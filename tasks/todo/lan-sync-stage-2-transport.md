@@ -25,7 +25,7 @@ Canal criptografado funcional (Noise Protocol) + lógica de diff three-way compl
     - `test_noise_handshake_timeout()` — peer que não responde → Err em 5s
     - `test_message_size_limit()` — payload > 50MB → Err
 
-- [ ] Task 5: Criar `src-tauri/src/sync/manifest.rs` — manifests e diff three-way + testes unitários
+- [x] Task 5: Criar `src-tauri/src/sync/manifest.rs` — manifests e diff three-way + testes unitários
   - Struct `FileEntry { path: String, sha256: String, mtime: u64 }`
   - Struct `SyncManifest { files: Vec<FileEntry>, generated_at: u64 }`
   - `is_excluded(path: &str, excluded_paths: &[String]) -> bool` — globs via `globset`

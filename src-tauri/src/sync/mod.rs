@@ -1,5 +1,5 @@
 pub mod crypto;
-// pub mod manifest;
+pub mod manifest;
 // pub mod server;
 // pub mod discovery;
 // pub mod client;
