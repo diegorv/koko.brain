@@ -21,6 +21,7 @@
 	import TrashSection from './sections/TrashSection.svelte';
 	import TodoistSection from './sections/TodoistSection.svelte';
 	import SecuritySection from './sections/SecuritySection.svelte';
+	import SyncSection from './sections/SyncSection.svelte';
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
@@ -36,6 +37,7 @@
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
+	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import type { SettingsSection } from './settings.types';
 	import type { Component } from 'svelte';
@@ -54,6 +56,7 @@
 		'auto-move': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
+		sync: RefreshCwIcon,
 		security: ShieldIcon,
 		troubleshooting: BugIcon,
 	};
@@ -201,6 +204,8 @@
 					<AutoMoveSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'trash'}
 					<TrashSection />
+				{:else if settingsDialogStore.activeSection === 'sync'}
+					<SyncSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'todoist'}
 					<TodoistSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'security'}

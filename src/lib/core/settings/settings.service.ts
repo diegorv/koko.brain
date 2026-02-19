@@ -123,6 +123,10 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.todoist,
 				...parsed.todoist,
 			},
+			sync: {
+				...DEFAULT_SETTINGS.sync,
+				...parsed.sync,
+			},
 			debugMode: parsed.debugMode ?? DEFAULT_SETTINGS.debugMode,
 			debugModeTauri: parsed.debugModeTauri ?? DEFAULT_SETTINGS.debugModeTauri,
 			debugLogToFile: parsed.debugLogToFile ?? DEFAULT_SETTINGS.debugLogToFile,
