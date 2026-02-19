@@ -69,7 +69,7 @@ Stack de rede completo (servidor, discovery, cliente) + engine orquestrador + Ta
   - Commands de config local: `get_sync_local_config`, `save_sync_local_config`
   - Commands de engine: `start_sync`, `stop_sync`, `get_sync_peers`, `trigger_sync`, `get_sync_status`
 
-- [ ] Task 12: Registrar módulo sync e commands em `src-tauri/src/lib.rs`
+- [x] Task 12: Registrar módulo sync e commands em `src-tauri/src/lib.rs`
   - `mod sync;` na lista de módulos
   - Registrar `Arc<Mutex<Option<SyncEngine>>>` como Tauri State em `setup()`
   - Adicionar todos os 13 commands em `tauri::generate_handler![]`
