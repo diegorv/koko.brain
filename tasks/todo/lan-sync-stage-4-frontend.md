@@ -62,7 +62,7 @@ UI completa de configuração + serviço de sync + integração no ciclo de vida
 - [x] Task 20: Adicionar seção `'sync'` em `settings.logic.ts`
   - Novo grupo `'Sync'` com `{ id: 'sync', label: 'Sync' }` após grupo 'Tools'
 
-- [ ] Task 21: Integrar sync no ciclo de vida em `app-lifecycle.service.ts`
+- [x] Task 21: Integrar sync no ciclo de vida em `app-lifecycle.service.ts`
   - `initializeVault()`: `await initSync(vaultPath)` após `await initTodoist()`
   - `teardownVault()`: `await teardownSync()` com os outros resets
 
