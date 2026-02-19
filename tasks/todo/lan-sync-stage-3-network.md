@@ -63,7 +63,7 @@ Stack de rede completo (servidor, discovery, cliente) + engine orquestrador + Ta
     - `test_settings_conflict_emits_event()`
     - `test_baseline_saved_after_sync()`
 
-- [ ] Task 11: Criar `src-tauri/src/commands/sync.rs` — Tauri commands
+- [x] Task 11: Criar `src-tauri/src/commands/sync.rs` — Tauri commands
   - **Estado:** `Arc<Mutex<Option<SyncEngine>>>` registrado via `app.manage()`
   - Commands de passphrase: `generate_sync_passphrase`, `save_sync_passphrase`, `has_sync_passphrase`, `delete_sync_passphrase`, `change_sync_passphrase`, `reset_sync`
   - Commands de config local: `get_sync_local_config`, `save_sync_local_config`

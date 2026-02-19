@@ -442,6 +442,62 @@ fn decrypt_private_key(blob: &EncryptedBlob, enc_key: &[u8; 32]) -> Result<Zeroi
 	Ok(key)
 }
 
+// ---------------------------------------------------------------------------
+// Passphrase Keychain storage
+// ---------------------------------------------------------------------------
+
+/// Derives the Keychain account name for the sync passphrase.
+///
+/// Account: `noted-sync-pass:{SHA256(canonical_vault_uuid)[0..8] hex}`.
+fn passphrase_account(vault_path: &str) -> Result<String, String> {
+	let uuid = get_canonical_vault_uuid(vault_path)?;
+	let hash = hash_vault_id_for_mdns(&uuid);
+	Ok(format!("noted-sync-pass:{hash}"))
+}
+
+/// Saves a sync passphrase to the Keychain.
+pub fn save_passphrase(vault_path: &str, passphrase: &str) -> Result<(), String> {
+	validate_passphrase(passphrase)?;
+	let account = passphrase_account(vault_path)?;
+	keychain::store_bytes(&account, passphrase.as_bytes())
+		.map_err(|e| format!("Failed to save passphrase: {e}"))
+}
+
+/// Loads the sync passphrase from the Keychain.
+pub fn load_passphrase(vault_path: &str) -> Result<String, String> {
+	let account = passphrase_account(vault_path)?;
+	let bytes = keychain::retrieve_bytes(&account).map_err(|e| match e {
+		keychain::KeychainError::NotFound => "No sync passphrase found for this vault".to_string(),
+		keychain::KeychainError::UserCanceled => "canceled".to_string(),
+		keychain::KeychainError::Internal(msg) => msg,
+	})?;
+	String::from_utf8(bytes).map_err(|e| format!("Invalid passphrase encoding: {e}"))
+}
+
+/// Checks whether a sync passphrase exists in the Keychain.
+pub fn has_passphrase(vault_path: &str) -> Result<bool, String> {
+	let account = passphrase_account(vault_path)?;
+	Ok(keychain::has_key(&account))
+}
+
+/// Deletes the sync passphrase from the Keychain.
+pub fn delete_passphrase(vault_path: &str) -> Result<(), String> {
+	let account = passphrase_account(vault_path)?;
+	keychain::delete_key(&account).map_err(|e| format!("Failed to delete passphrase: {e}"))
+}
+
+/// Deletes the sync-identity encryption key from the Keychain.
+pub fn delete_sync_id_key(vault_path: &str) -> Result<(), String> {
+	let uuid = get_canonical_vault_uuid(vault_path)?;
+	let hash = hash_vault_id_for_mdns(&uuid);
+	let account = format!("noted-sync-id:{hash}");
+	keychain::delete_key(&account).map_err(|e| format!("Failed to delete sync-id key: {e}"))
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
 /// Encodes a byte slice as lowercase hex string.
 fn hex_encode(bytes: &[u8]) -> String {
 	bytes.iter().map(|b| format!("{b:02x}")).collect()
