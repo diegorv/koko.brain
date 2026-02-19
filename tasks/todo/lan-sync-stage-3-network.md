@@ -33,7 +33,7 @@ Stack de rede completo (servidor, discovery, cliente) + engine orquestrador + Ta
     - Escuta peers, filtra por vault hash, emite candidatos via channel
     - **Apenas descobre** — engine autentica
 
-- [ ] Task 9: Criar `src-tauri/src/sync/client.rs` — cliente de sync
+- [x] Task 9: Criar `src-tauri/src/sync/client.rs` — cliente de sync
   - Struct `SyncSession` — wrapper sobre NoiseTransport para um ciclo completo
   - `SyncClient { peer, sync_keys, static_priv, vault_path }`
   - `open_session() -> Result<SyncSession, String>` — handshake + vault_uuid_exchange
