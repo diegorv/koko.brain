@@ -48,7 +48,7 @@ Canal criptografado funcional (Noise Protocol) + lógica de diff three-way compl
     - `test_build_manifest_excludes_sync_local_json()`, `test_build_manifest_excludes_sync_state_json()`
     - `test_build_manifest_includes_settings_json()`
 
-- [ ] Task 6: Criar `src-tauri/src/sync/conflict.rs` — resolução de conflitos + testes unitários
+- [x] Task 6: Criar `src-tauri/src/sync/conflict.rs` — resolução de conflitos + testes unitários
   - `MAX_CONFLICTS_PER_FILE: usize = 10`
   - `conflict_filename(original_path: &str, mtime: u64) -> String`
     - Formato: `"{stem} (conflicted {YYYY-MM-DD HH-MM}){ext}"`

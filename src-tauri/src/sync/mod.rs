@@ -4,5 +4,5 @@ pub mod manifest;
 // pub mod discovery;
 // pub mod client;
 // pub mod engine;
-// pub mod conflict;
+pub mod conflict;
 pub mod noise_transport;
