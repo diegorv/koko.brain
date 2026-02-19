@@ -3,6 +3,7 @@ pub mod db;
 pub mod search;
 pub mod security;
 pub mod semantic;
+pub mod sync;
 pub mod utils;
 
 use commands::terminal::TerminalState;
