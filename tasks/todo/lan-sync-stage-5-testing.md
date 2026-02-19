@@ -28,7 +28,7 @@ Cobertura de testes end-to-end (Rust + frontend) + indicador visual de sync na s
   - Ícone: `RefreshCw` do lucide-svelte
   - Integrar no `AppShell.svelte` no slot `right` do `StatusBar`
 
-- [ ] Task 24: Criar `src/tests/sync.service.test.ts` e `src/tests/sync-status.test.ts` — testes frontend
+- [x] Task 24: Criar `src/tests/sync.service.test.ts` e `src/tests/sync-status.test.ts` — testes frontend
   - Mock de `invoke` do Tauri
   - **sync.service.test.ts:**
     - `initSync` com `enabled: false` → não chama `invoke('start_sync')`
