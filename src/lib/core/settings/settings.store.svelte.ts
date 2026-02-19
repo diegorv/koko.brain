@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, SyncSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -98,6 +98,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	todoist: {
 		apiToken: '',
 	},
+	sync: {
+		enabled: false,
+		port: 39782,
+		intervalMinutes: 5,
+	},
 	debugMode: false,
 	debugModeTauri: false,
 	debugLogToFile: false,
@@ -125,6 +130,7 @@ export const settingsStore = {
 	get search() { return settings.search; },
 	get autoMove() { return settings.autoMove; },
 	get todoist() { return settings.todoist; },
+	get sync() { return settings.sync; },
 	get debugMode() { return settings.debugMode; },
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
@@ -246,6 +252,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			todoist: { ...settings.todoist, ...value },
+		};
+	},
+
+	/** Partially updates LAN sync settings, merging with existing values */
+	updateSync(value: Partial<SyncSettings>) {
+		settings = {
+			...settings,
+			sync: { ...settings.sync, ...value },
 		};
 	},
 

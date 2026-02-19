@@ -238,12 +238,12 @@ describe('isValidFolderName', () => {
 describe('SETTINGS_SECTION_GROUPS', () => {
 	it('contains all expected groups in order', () => {
 		const groups = SETTINGS_SECTION_GROUPS.map((g) => g.group);
-		expect(groups).toEqual(['General', 'Notes', 'Tools', 'Integrations', 'Advanced']);
+		expect(groups).toEqual(['General', 'Notes', 'Tools', 'Sync', 'Integrations', 'Advanced']);
 	});
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-note', 'one-on-one', 'templates', 'search', 'file-history', 'auto-move', 'trash', 'terminal', 'todoist', 'security', 'troubleshooting']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-note', 'one-on-one', 'templates', 'search', 'file-history', 'auto-move', 'trash', 'terminal', 'sync', 'todoist', 'security', 'troubleshooting']);
 	});
 
 	it('has labels for every section', () => {

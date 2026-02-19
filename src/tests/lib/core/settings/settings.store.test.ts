@@ -160,6 +160,24 @@ describe('settingsStore', () => {
 			expect(settingsStore.todoist.apiToken).toBe('abc123');
 		});
 
+		it('updateSync merges with existing', () => {
+			settingsStore.updateSync({ enabled: true });
+			expect(settingsStore.sync.enabled).toBe(true);
+			expect(settingsStore.sync.port).toBe(DEFAULT_SETTINGS.sync.port);
+			expect(settingsStore.sync.intervalMinutes).toBe(DEFAULT_SETTINGS.sync.intervalMinutes);
+		});
+
+		it('updateSync updates port', () => {
+			settingsStore.updateSync({ port: 40000 });
+			expect(settingsStore.sync.port).toBe(40000);
+			expect(settingsStore.sync.enabled).toBe(DEFAULT_SETTINGS.sync.enabled);
+		});
+
+		it('updateSync updates intervalMinutes', () => {
+			settingsStore.updateSync({ intervalMinutes: 10 });
+			expect(settingsStore.sync.intervalMinutes).toBe(10);
+		});
+
 		it('updateDebugMode sets the flag', () => {
 			expect(settingsStore.debugMode).toBe(false);
 			settingsStore.updateDebugMode(true);
