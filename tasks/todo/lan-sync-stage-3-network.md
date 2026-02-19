@@ -23,7 +23,7 @@ Stack de rede completo (servidor, discovery, cliente) + engine orquestrador + Ta
     - `test_safe_open_file_nofollow()` — symlink → falha atomicamente
     - `test_rate_limiter_allows_under_limit()`, `test_rate_limiter_blocks_over_limit()`, `test_rate_limiter_resets_after_minute()`
 
-- [ ] Task 8: Criar `src-tauri/src/sync/discovery.rs` — mDNS P2P
+- [x] Task 8: Criar `src-tauri/src/sync/discovery.rs` — mDNS P2P
   - Struct `SyncPeer { id, name, ip, port }`
   - Struct `DiscoveryCandidate { ip, port, name }` — candidato não autenticado
   - Struct `DiscoveryHandle { cancel_token, candidates_rx }`
