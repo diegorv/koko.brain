@@ -16,7 +16,7 @@ Cobertura de testes end-to-end (Rust + frontend) + indicador visual de sync na s
   - `test_vault_id_never_overwritten()` — receptor com vault-id → sync não sobrescreve
   - `test_baseline_persists_across_restarts()` — baseline em sync-state.json → sobrevive restart
 
-- [ ] Task 23: Criar `src/lib/core/status-bar/SyncStatus.svelte` — indicador de sync na status bar
+- [x] Task 23: Criar `src/lib/core/status-bar/SyncStatus.svelte` — indicador de sync na status bar
   - Lê `syncStore.isRunning`, `syncStore.status`, `syncStore.peers`
   - Estados:
     - Sync desativado → não renderiza

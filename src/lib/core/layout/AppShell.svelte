@@ -19,6 +19,7 @@
 	import TerminalPanel from '$lib/plugins/terminal/TerminalPanel.svelte';
 	import SearchStatus from '$lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
+	import SyncStatus from '$lib/core/status-bar/SyncStatus.svelte';
 	import { saveSettings } from '$lib/core/settings/settings.service';
 	import { debounce } from '$lib/utils/debounce';
 	import { error } from '$lib/utils/debug';
@@ -128,6 +129,7 @@
 				<SearchStatus />
 			{/snippet}
 			{#snippet right()}
+				<SyncStatus />
 				<SaveStatus />
 				<EncryptionToggle />
 				<WordCount />
