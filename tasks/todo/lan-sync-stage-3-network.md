@@ -42,7 +42,7 @@ Stack de rede completo (servidor, discovery, cliente) + engine orquestrador + Ta
   - `push_file(session, path, content, mtime) -> Result<(), String>`
   - `delete_file(session, path) -> Result<(), String>`
 
-- [ ] Task 10: Criar `src-tauri/src/sync/engine.rs` — orquestrador principal + testes unitários
+- [x] Task 10: Criar `src-tauri/src/sync/engine.rs` — orquestrador principal + testes unitários
   - Struct `SyncEngine` com: vault_path, sync_keys, static_priv, server, discovery, peers, peers_syncing, sync_state (incl. baseline_manifests), status, retry_backoff, last_trigger
   - `SyncStatus` enum: `Idle`, `Syncing { peer_id, files_done, files_total }`, `Error(String)`
   - `RetryState { attempts, next_retry }` — backoff: 5s → 15s → 30s → 60s
