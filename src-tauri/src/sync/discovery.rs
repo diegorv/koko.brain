@@ -5,6 +5,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use super::crypto::hash_vault_id_for_mdns;
+use crate::utils::logger::debug_log;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -87,6 +88,9 @@ pub fn start_discovery(
 
 	// Determine instance name from system hostname
 	let instance_name = get_hostname();
+	debug_log("SYNC:DISC", format!(
+		"Starting mDNS discovery: vault_hash={vault_hash}, port={port}, hostname={instance_name}"
+	));
 
 	// Register our service
 	let service = ServiceInfo::new(
@@ -103,6 +107,9 @@ pub fn start_discovery(
 
 	mdns.register(service)
 		.map_err(|e| format!("Failed to register mDNS service: {e}"))?;
+	debug_log("SYNC:DISC", format!(
+		"Registered: {instance_name}._noted._tcp.local. (vault={vault_hash})"
+	));
 
 	// Browse for peers with the same service type
 	let browse_rx = mdns
@@ -116,6 +123,7 @@ pub fn start_discovery(
 		loop {
 			tokio::select! {
 				_ = cancel.cancelled() => {
+					debug_log("SYNC:DISC", "mDNS discovery stopped");
 					let _ = mdns.shutdown();
 					break;
 				}
@@ -136,6 +144,10 @@ pub fn start_discovery(
 							if matches {
 								if let Some(ip) = info.get_addresses().iter().next() {
 									let name = extract_instance_name(info.get_fullname());
+									debug_log("SYNC:DISC", format!(
+										"Peer found: {name} at {ip}:{}",
+										info.get_port()
+									));
 									let candidate = DiscoveryCandidate {
 										ip: *ip,
 										port: info.get_port(),
@@ -145,10 +157,16 @@ pub fn start_discovery(
 										break; // Receiver dropped
 									}
 								}
+							} else {
+								debug_log("SYNC:DISC", format!(
+									"Service found but vault hash mismatch — skipping {}",
+									info.get_fullname()
+								));
 							}
 						}
 						Ok(ServiceEvent::ServiceRemoved(_, fullname)) => {
 							if fullname != our_fullname {
+								debug_log("SYNC:DISC", format!("Peer lost: {fullname}"));
 								if events_tx.send(DiscoveryEvent::Lost(fullname)).await.is_err() {
 									break;
 								}

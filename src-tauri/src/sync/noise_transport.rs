@@ -4,6 +4,7 @@ use std::time::Instant;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, Duration};
+use crate::utils::logger::debug_log;
 
 /// Noise Protocol pattern for sync transport.
 pub const NOISE_PATTERN: &str = "Noise_XXpsk3_25519_AESGCM_SHA256";
@@ -52,6 +53,7 @@ impl NoiseTransport {
 		connect_timeout: Duration,
 		handshake_timeout: Duration,
 	) -> Result<Self, String> {
+		debug_log("SYNC:NOISE", format!("Connecting to {addr} (timeout={}s)", connect_timeout.as_secs()));
 		let mut stream = timeout(connect_timeout, TcpStream::connect(addr))
 			.await
 			.map_err(|_| "Connection timed out".to_string())?
@@ -84,6 +86,7 @@ impl NoiseTransport {
 			.into_transport_mode()
 			.map_err(|e| format!("Failed to enter transport mode: {e}"))?;
 
+		debug_log("SYNC:NOISE", format!("Handshake complete with {addr} (initiator)"));
 		Ok(Self {
 			stream,
 			noise,
@@ -107,6 +110,7 @@ impl NoiseTransport {
 		static_priv: &[u8; 32],
 		handshake_timeout: Duration,
 	) -> Result<Self, String> {
+		debug_log("SYNC:NOISE", "Accepting Noise handshake (responder)");
 		let mut hs = snow::Builder::new(NOISE_PATTERN.parse().unwrap())
 			.local_private_key(static_priv)
 			.psk(3, psk_key)
@@ -135,6 +139,7 @@ impl NoiseTransport {
 			.into_transport_mode()
 			.map_err(|e| format!("Failed to enter transport mode: {e}"))?;
 
+		debug_log("SYNC:NOISE", "Handshake complete (responder)");
 		Ok(Self {
 			stream,
 			noise,

@@ -16,6 +16,7 @@ use super::crypto::{self, SyncKeys, SyncState};
 use super::discovery::{self, DiscoveryCandidate, DiscoveryEvent, SyncPeer};
 use super::manifest::{self, FileDiff, Side, SyncManifest};
 use super::server::{self, SyncServer};
+use crate::utils::logger::debug_log;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -152,23 +153,34 @@ impl SyncEngine {
 		passphrase: &str,
 		event_tx: mpsc::Sender<SyncEvent>,
 	) -> Result<Self, String> {
+		debug_log("SYNC", format!("Starting engine: vault={vault_path}, port={port}"));
+
 		// Validate passphrase
 		crypto::validate_passphrase(passphrase)?;
 
 		// Get canonical vault UUID
 		let canonical_uuid = crypto::get_canonical_vault_uuid(&vault_path)?;
+		debug_log("SYNC", format!("Canonical UUID: {canonical_uuid}"));
 
 		// Load/generate static keypair
 		let (_pub_key, static_priv) =
 			crypto::load_or_generate_static_keypair(&vault_path, &canonical_uuid)?;
 
 		// Derive master key → sync keys
+		debug_log("SYNC", "Deriving master key (Argon2id)…");
 		let master_key = crypto::derive_master_key(passphrase, &canonical_uuid)?;
 		let sync_keys = crypto::derive_sync_keys(&master_key)?;
+		debug_log("SYNC", "Sync keys derived");
 
 		// Load sync state and config
 		let sync_state = crypto::load_sync_state(&vault_path)?;
 		let config = crypto::load_sync_local_config(&vault_path)?;
+		debug_log("SYNC", format!(
+			"Config: port={}, interval={}s, excluded={} paths",
+			config.port,
+			config.interval_secs,
+			config.excluded_paths.len()
+		));
 
 		// Start server (separate copy of keys — both zeroed independently on drop)
 		let server = server::start_server(
@@ -181,18 +193,21 @@ impl SyncEngine {
 			Zeroizing::new(*static_priv),
 		)
 		.await?;
+		debug_log("SYNC", format!("Server listening on {}", server.addr));
 
 		// Start mDNS discovery
 		let discovery_handle =
 			discovery::start_discovery(&canonical_uuid, server.addr.port())?;
+		debug_log("SYNC", "mDNS discovery started");
 
 		// Build shared state
+		let excluded_count = config.excluded_paths.len();
 		let state = Arc::new(EngineState {
 			vault_path,
 			psk_key: sync_keys.psk_key,
 			hmac_key: sync_keys.hmac_key,
 			static_priv,
-			canonical_vault_uuid: canonical_uuid,
+			canonical_vault_uuid: canonical_uuid.clone(),
 			peers: Mutex::new(HashMap::new()),
 			peers_syncing: Mutex::new(HashSet::new()),
 			status: Mutex::new(SyncStatus::Idle),
@@ -213,6 +228,11 @@ impl SyncEngine {
 			Duration::from_secs(config.interval_secs),
 		));
 
+		debug_log("SYNC", format!(
+			"Engine ready: uuid={canonical_uuid}, excluded={excluded_count} paths, interval={}s",
+			config.interval_secs
+		));
+
 		Ok(Self {
 			state,
 			server,
@@ -225,6 +245,7 @@ impl SyncEngine {
 
 	/// Triggers an immediate sync (debounced by 2s in the main loop).
 	pub async fn trigger_sync(&self) {
+		debug_log("SYNC", "Sync triggered (debounce 2s)");
 		let _ = self.trigger_tx.send(()).await;
 	}
 
@@ -243,6 +264,7 @@ impl SyncEngine {
 		let config = crypto::load_sync_local_config(&self.state.vault_path)?;
 		let mut excluded = self.state.excluded_paths.lock().await;
 		*excluded = config.excluded_paths;
+		debug_log("SYNC", format!("Excluded paths reloaded: {} patterns", excluded.len()));
 		Ok(())
 	}
 
@@ -250,10 +272,12 @@ impl SyncEngine {
 	///
 	/// Keys are zeroed via `Zeroizing` drop on the `EngineState`.
 	pub async fn stop(self) {
+		debug_log("SYNC", "Stopping engine…");
 		self.main_loop_cancel.cancel();
 		self.discovery_cancel.cancel();
 		let _ = self.main_loop_handle.await;
 		self.server.stop().await;
+		debug_log("SYNC", "Engine stopped");
 	}
 
 	/// Returns the server's bound address.
@@ -325,8 +349,16 @@ async fn main_loop(
 async fn handle_discovery_event(state: &EngineState, event: DiscoveryEvent) {
 	match event {
 		DiscoveryEvent::Found(candidate) => {
+			debug_log("SYNC", format!(
+				"Candidate found via mDNS: {} {}:{}",
+				candidate.name, candidate.ip, candidate.port
+			));
 			match authenticate_candidate(state, &candidate).await {
 				Ok(peer) => {
+					debug_log("SYNC", format!(
+						"Peer authenticated: {} ({}) at {}:{}",
+						peer.name, peer.id, peer.ip, peer.port
+					));
 					let _ = state
 						.event_tx
 						.send(SyncEvent::PeerDiscovered {
@@ -342,8 +374,12 @@ async fn handle_discovery_event(state: &EngineState, event: DiscoveryEvent) {
 						.await
 						.insert(peer.id.clone(), peer);
 				}
-				Err(_) => {
-					// Authentication failed — silently ignore (wrong passphrase, etc.)
+				Err(e) => {
+					// Authentication failed — wrong passphrase or different vault
+					debug_log("SYNC", format!(
+						"Peer authentication failed for {}:{} — {e}",
+						candidate.ip, candidate.port
+					));
 				}
 			}
 		}
@@ -355,6 +391,7 @@ async fn handle_discovery_event(state: &EngineState, event: DiscoveryEvent) {
 				.find(|(_, p)| p.name == fullname)
 				.map(|(id, _)| id.clone())
 			{
+				debug_log("SYNC", format!("Peer lost: {id} ({fullname})"));
 				peers.remove(&id);
 				let _ = state.event_tx.send(SyncEvent::PeerLost { peer_id: id }).await;
 			}
@@ -370,6 +407,7 @@ async fn authenticate_candidate(
 	candidate: &DiscoveryCandidate,
 ) -> Result<SyncPeer, String> {
 	let peer_addr = SocketAddr::new(candidate.ip, candidate.port);
+	debug_log("SYNC", format!("Authenticating candidate {peer_addr}"));
 
 	let session = client::open_session(
 		peer_addr,
@@ -381,6 +419,11 @@ async fn authenticate_candidate(
 
 	// Validate peer UUID matches our canonical UUID
 	if session.peer_uuid() != state.canonical_vault_uuid {
+		debug_log("SYNC", format!(
+			"UUID mismatch: expected {}, got {}",
+			state.canonical_vault_uuid,
+			session.peer_uuid()
+		));
 		return Err(format!(
 			"Vault UUID mismatch: expected {}, got {}",
 			state.canonical_vault_uuid,
@@ -404,8 +447,16 @@ async fn authenticate_candidate(
 async fn sync_all_peers(state: &EngineState) {
 	let peer_ids: Vec<String> = state.peers.lock().await.keys().cloned().collect();
 
+	if peer_ids.is_empty() {
+		debug_log("SYNC", "Sync tick: no peers connected");
+		return;
+	}
+
+	debug_log("SYNC", format!("Sync tick: syncing with {} peer(s)", peer_ids.len()));
+
 	for peer_id in peer_ids {
 		if let Err(err) = sync_with_peer(state, &peer_id).await {
+			debug_log("SYNC", format!("Sync error with {peer_id}: {err}"));
 			let _ = state
 				.event_tx
 				.send(SyncEvent::Error {
@@ -427,6 +478,8 @@ async fn sync_with_peer(state: &EngineState, peer_id: &str) -> Result<SyncStats,
 		let backoffs = state.retry_backoff.lock().await;
 		if let Some(retry) = backoffs.get(peer_id) {
 			if Instant::now() < retry.next_retry {
+				let secs = retry.next_retry.duration_since(Instant::now()).as_secs();
+				debug_log("SYNC", format!("Peer {peer_id} in backoff (retry in ~{secs}s, attempt {})", retry.attempts));
 				return Err("In backoff period".to_string());
 			}
 		}
@@ -436,11 +489,13 @@ async fn sync_with_peer(state: &EngineState, peer_id: &str) -> Result<SyncStats,
 	{
 		let mut syncing = state.peers_syncing.lock().await;
 		if syncing.contains(peer_id) {
+			debug_log("SYNC", format!("Already syncing with {peer_id}, skipping"));
 			return Err("Already syncing with this peer".to_string());
 		}
 		syncing.insert(peer_id.to_string());
 	}
 
+	debug_log("SYNC", format!("Starting sync with {peer_id}"));
 	let result = do_sync(state, peer_id).await;
 
 	// Release peer lock
@@ -451,10 +506,14 @@ async fn sync_with_peer(state: &EngineState, peer_id: &str) -> Result<SyncStats,
 
 	// Update backoff state
 	match &result {
-		Ok(_) => {
+		Ok(stats) => {
+			debug_log("SYNC", format!(
+				"Sync with {peer_id} completed: {} files changed, {} conflicts",
+				stats.files_changed, stats.conflicts
+			));
 			state.retry_backoff.lock().await.remove(peer_id);
 		}
-		Err(_) => {
+		Err(e) => {
 			let mut backoffs = state.retry_backoff.lock().await;
 			let retry = backoffs
 				.entry(peer_id.to_string())
@@ -465,6 +524,11 @@ async fn sync_with_peer(state: &EngineState, peer_id: &str) -> Result<SyncStats,
 			retry.attempts += 1;
 			let delay = RetryState::backoff_duration(retry.attempts);
 			retry.next_retry = Instant::now() + delay;
+			debug_log("SYNC", format!(
+				"Sync with {peer_id} failed (attempt {}): {e} — backoff {}s",
+				retry.attempts,
+				delay.as_secs()
+			));
 		}
 	}
 
@@ -491,6 +555,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 		&state.canonical_vault_uuid,
 	)
 	.await?;
+	debug_log("SYNC", format!("Session opened with {peer_id} at {peer_addr}"));
 
 	// Validate peer UUID
 	if session.peer_uuid() != state.canonical_vault_uuid {
@@ -499,10 +564,12 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 
 	// Fetch remote manifest + verify HMAC
 	let remote_manifest = session.fetch_manifest(&state.hmac_key).await?;
+	debug_log("SYNC", format!("Remote manifest: {} files from {peer_id}", remote_manifest.files.len()));
 
 	// Build local manifest
 	let excluded = state.excluded_paths.lock().await.clone();
 	let local_manifest = manifest::build_manifest(&state.vault_path, &excluded)?;
+	debug_log("SYNC", format!("Local manifest: {} files", local_manifest.files.len()));
 
 	// Load baseline for this peer
 	let baseline: Option<SyncManifest> = {
@@ -512,6 +579,10 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 			.get(peer_id)
 			.and_then(|v| serde_json::from_value(v.clone()).ok())
 	};
+	debug_log("SYNC", format!(
+		"Baseline for {peer_id}: {}",
+		if baseline.is_some() { "loaded" } else { "none (first sync)" }
+	));
 
 	// Three-way diff
 	let diffs = manifest::diff_manifests(&local_manifest, &remote_manifest, baseline.as_ref());
@@ -526,6 +597,9 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 		.iter()
 		.filter(|(_, d)| !matches!(d, FileDiff::Identical))
 		.count();
+
+	debug_log("SYNC", format!("Diff with {peer_id}: {total} changes (of {} total entries)", diffs.len()));
+
 	let mut done = 0;
 	let mut files_changed = 0;
 	let mut conflicts = 0;
@@ -550,6 +624,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 			FileDiff::Identical => continue,
 
 			FileDiff::PullFromPeer => {
+				debug_log("SYNC", format!("Pull ← {path}"));
 				let (content, mtime) = session.fetch_file(path).await?;
 				verify_file_integrity(&content, &remote_manifest, path)?;
 				server::write_vault_file(&state.vault_path, path, &content, mtime)?;
@@ -557,6 +632,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 			}
 
 			FileDiff::PushToPeer => {
+				debug_log("SYNC", format!("Push → {path}"));
 				let (content, mtime) =
 					server::read_vault_file(&state.vault_path, path)?;
 				session.push_file(path, &content, mtime).await?;
@@ -564,6 +640,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 			}
 
 			FileDiff::Conflict => {
+				debug_log("SYNC", format!("Conflict on '{path}' — fetching both sides"));
 				let (remote_content, remote_mtime) =
 					session.fetch_file(path).await?;
 				let (local_content, local_mtime) =
@@ -578,6 +655,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 					remote_mtime,
 				)?;
 
+				debug_log("SYNC", format!("Conflict resolved: '{path}' → conflict file '{conflict_name}'"));
 				conflicts += 1;
 				files_changed += 1;
 
@@ -591,6 +669,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 
 				// Special handling for settings.json
 				if path == ".noted/settings.json" {
+					debug_log("SYNC", "Settings conflict — emitting SettingsConflict event");
 					let _ = state
 						.event_tx
 						.send(SyncEvent::SettingsConflict {
@@ -602,6 +681,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 
 			FileDiff::DeleteLocal => {
 				// Remote deleted this file → delete locally
+				debug_log("SYNC", format!("Delete local (peer removed): {path}"));
 				conflict::safe_delete_file(&state.vault_path, path)?;
 				let _ = state
 					.event_tx
@@ -614,10 +694,12 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 
 			FileDiff::DeleteRemote => {
 				// We deleted this file → tell peer to delete
+				debug_log("SYNC", format!("Delete remote (we removed): {path}"));
 				session.delete_file(path).await?;
 			}
 
 			FileDiff::DeleteModifyConflict { modified_side } => {
+				debug_log("SYNC", format!("Delete-modify conflict on '{path}': modified side = {modified_side:?}"));
 				match modified_side {
 					Side::Local => {
 						// We modified, peer deleted → keep our version
@@ -666,6 +748,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 	}
 
 	// Save baseline (rebuild manifest after all changes)
+	debug_log("SYNC", format!("Saving baseline for {peer_id}…"));
 	let reconciled = manifest::build_manifest(&state.vault_path, &excluded)?;
 	{
 		let mut sync_state = state.sync_state.lock().await;
@@ -682,6 +765,10 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 			.insert(peer_id.to_string(), now);
 		crypto::save_sync_state(&state.vault_path, &sync_state)?;
 	}
+	debug_log("SYNC", format!(
+		"Baseline saved for {peer_id}: {} files, changed={files_changed}, conflicts={conflicts}",
+		reconciled.files.len()
+	));
 
 	*state.status.lock().await = SyncStatus::Idle;
 

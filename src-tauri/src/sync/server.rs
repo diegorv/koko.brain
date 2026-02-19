@@ -19,6 +19,7 @@ use super::crypto::{
 };
 use super::manifest::{build_manifest, FileEntry};
 use super::noise_transport::NoiseTransport;
+use crate::utils::logger::debug_log;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -285,6 +286,8 @@ pub async fn start_server(
 		static_priv,
 	});
 
+	debug_log("SYNC:SRV", format!("Listening on {bound_addr} (max {MAX_CONCURRENT_CONNECTIONS} connections)"));
+
 	let cancel = cancel_token.clone();
 	let handle = tokio::spawn(async move {
 		loop {
@@ -298,6 +301,7 @@ pub async fn start_server(
 
 					// Rate limit
 					if !rate_limiter.check(peer_addr.ip()).await {
+						debug_log("SYNC:SRV", format!("Rate limited: {}", peer_addr.ip()));
 						drop(stream);
 						continue;
 					}
@@ -306,20 +310,25 @@ pub async fn start_server(
 					let permit = match semaphore.clone().try_acquire_owned() {
 						Ok(p) => p,
 						Err(_) => {
+							debug_log("SYNC:SRV", format!("At capacity, dropping connection from {}", peer_addr.ip()));
 							drop(stream);
 							continue;
 						}
 					};
 
+					debug_log("SYNC:SRV", format!("New connection from {peer_addr}"));
 					let state = Arc::clone(&state);
 					let cancel = cancel.clone();
 					tokio::spawn(async move {
 						let _permit = permit;
-						let _ = handle_connection(stream, state, cancel).await;
+						if let Err(e) = handle_connection(stream, state, cancel).await {
+							debug_log("SYNC:SRV", format!("Connection from {peer_addr} closed: {e}"));
+						}
 					});
 				}
 			}
 		}
+		debug_log("SYNC:SRV", "Server accept loop stopped");
 	});
 
 	Ok(SyncServer {
@@ -346,7 +355,7 @@ async fn handle_connection(
 
 	// UUID exchange (expect client to send first, then we respond)
 	let peer_uuid = handle_uuid_exchange(&mut transport, &state).await?;
-	let _ = peer_uuid; // Used by engine for peer identification
+	debug_log("SYNC:SRV", format!("UUID exchange complete: peer={peer_uuid}"));
 
 	// Message loop with idle timeout
 	loop {
@@ -439,6 +448,10 @@ async fn handle_uuid_exchange(
 		Some(canonical) => {
 			// Subsequent sync: reject mismatched UUID
 			if client_exchange.vault_uuid != *canonical {
+				debug_log("SYNC:SRV", format!(
+					"UUID mismatch: expected {canonical}, got {}",
+					client_exchange.vault_uuid
+				));
 				return Err(format!(
 					"Vault UUID mismatch: expected {canonical}, got {}",
 					client_exchange.vault_uuid
@@ -447,6 +460,10 @@ async fn handle_uuid_exchange(
 		}
 		None => {
 			// First sync: adopt initiator's UUID as canonical
+			debug_log("SYNC:SRV", format!(
+				"First sync: adopting canonical UUID {}",
+				client_exchange.vault_uuid
+			));
 			sync_state.canonical_vault_uuid = Some(client_exchange.vault_uuid.clone());
 			save_sync_state(&state.vault_path, &sync_state)?;
 		}
@@ -466,6 +483,7 @@ async fn handle_manifest_request(
 ) -> Result<(), String> {
 	let config = load_sync_local_config(&state.vault_path)?;
 	let manifest = build_manifest(&state.vault_path, &config.excluded_paths)?;
+	debug_log("SYNC:SRV", format!("Sending manifest: {} files", manifest.files.len()));
 
 	// Serialize manifest for HMAC computation (files + generated_at only)
 	let manifest_json = serde_json::to_vec(&manifest)
@@ -492,6 +510,7 @@ async fn handle_file_request(
 	let request: FileRequest = serde_json::from_slice(payload)
 		.map_err(|e| format!("Invalid file_request payload: {e}"))?;
 
+	debug_log("SYNC:SRV", format!("File requested: {}", request.path));
 	match read_vault_file(&state.vault_path, &request.path) {
 		Ok((content, mtime)) => {
 			let response = FileResponse {
@@ -524,6 +543,7 @@ async fn handle_file_push(
 		.decode(&push.content)
 		.map_err(|e| format!("Invalid base64 content: {e}"))?;
 
+	debug_log("SYNC:SRV", format!("File push: {} ({} bytes)", push.path, content.len()));
 	let result = write_vault_file(&state.vault_path, &push.path, &content, push.mtime);
 
 	let ack = FilePushAck {
@@ -544,6 +564,7 @@ async fn handle_file_delete(
 	let delete: FileDelete = serde_json::from_slice(payload)
 		.map_err(|e| format!("Invalid file_delete payload: {e}"))?;
 
+	debug_log("SYNC:SRV", format!("File delete: {}", delete.path));
 	let result = super::conflict::safe_delete_file(&state.vault_path, &delete.path);
 
 	let ack = FileDeleteAck {

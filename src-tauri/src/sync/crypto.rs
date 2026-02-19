@@ -12,6 +12,7 @@ use subtle::ConstantTimeEq;
 use zeroize::Zeroizing;
 
 use crate::security::keychain;
+use crate::utils::logger::debug_log;
 
 /// Current protocol version for the sync wire format.
 pub const PROTOCOL_VERSION: u8 = 1;
@@ -86,6 +87,7 @@ impl Default for SyncLocalConfig {
 ///
 /// Parameters: `m=64MB, t=3, p=1`, `salt = SHA-256(canonical_vault_uuid)`.
 pub fn derive_master_key(passphrase: &str, canonical_vault_uuid: &str) -> Result<Zeroizing<[u8; 32]>, String> {
+	debug_log("SYNC:CRYPTO", "Deriving master key via Argon2id (m=64MB, t=3)…");
 	let salt = Sha256::digest(canonical_vault_uuid.as_bytes());
 
 	let params = argon2::Params::new(64 * 1024, 3, 1, Some(32))
@@ -199,6 +201,7 @@ pub fn read_or_create_vault_id(vault_path: &str) -> Result<String, String> {
 			.map_err(|e| format!("Failed to read vault-id: {e}"))?;
 		let trimmed = content.trim().to_string();
 		if !trimmed.is_empty() {
+			debug_log("SYNC:CRYPTO", format!("Loaded vault ID: {trimmed}"));
 			return Ok(trimmed);
 		}
 	}
@@ -206,6 +209,7 @@ pub fn read_or_create_vault_id(vault_path: &str) -> Result<String, String> {
 	let new_id = uuid::Uuid::new_v4().to_string();
 	std::fs::write(&id_path, &new_id)
 		.map_err(|e| format!("Failed to write vault-id: {e}"))?;
+	debug_log("SYNC:CRYPTO", format!("Created new vault ID: {new_id}"));
 	Ok(new_id)
 }
 
@@ -267,6 +271,7 @@ pub fn load_or_generate_static_keypair(
 
 	if identity_path.exists() {
 		// Load existing keypair
+		debug_log("SYNC:CRYPTO", "Loading existing static keypair from sync-identity");
 		let data = std::fs::read_to_string(&identity_path)
 			.map_err(|e| format!("Failed to read sync-identity: {e}"))?;
 		let stored: StoredKeypair = serde_json::from_str(&data)
@@ -288,6 +293,7 @@ pub fn load_or_generate_static_keypair(
 		Ok((pub_arr, priv_key))
 	} else {
 		// Generate new keypair via snow
+		debug_log("SYNC:CRYPTO", "Generating new static X25519 keypair for Noise");
 		let builder = snow::Builder::new("Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap());
 		let keypair = builder
 			.generate_keypair()
@@ -309,6 +315,7 @@ pub fn load_or_generate_static_keypair(
 			.map_err(|e| format!("Failed to serialize sync-identity: {e}"))?;
 		std::fs::write(&identity_path, json)
 			.map_err(|e| format!("Failed to write sync-identity: {e}"))?;
+		debug_log("SYNC:CRYPTO", "New static keypair saved to sync-identity");
 
 		Ok((pub_arr, priv_arr))
 	}
@@ -460,7 +467,9 @@ pub fn save_passphrase(vault_path: &str, passphrase: &str) -> Result<(), String>
 	validate_passphrase(passphrase)?;
 	let account = passphrase_account(vault_path)?;
 	keychain::store_bytes(&account, passphrase.as_bytes())
-		.map_err(|e| format!("Failed to save passphrase: {e}"))
+		.map_err(|e| format!("Failed to save passphrase: {e}"))?;
+	debug_log("SYNC:CRYPTO", "Passphrase saved to Keychain");
+	Ok(())
 }
 
 /// Loads the sync passphrase from the Keychain.
@@ -483,7 +492,9 @@ pub fn has_passphrase(vault_path: &str) -> Result<bool, String> {
 /// Deletes the sync passphrase from the Keychain.
 pub fn delete_passphrase(vault_path: &str) -> Result<(), String> {
 	let account = passphrase_account(vault_path)?;
-	keychain::delete_key(&account).map_err(|e| format!("Failed to delete passphrase: {e}"))
+	keychain::delete_key(&account).map_err(|e| format!("Failed to delete passphrase: {e}"))?;
+	debug_log("SYNC:CRYPTO", "Passphrase deleted from Keychain");
+	Ok(())
 }
 
 /// Deletes the sync-identity encryption key from the Keychain.

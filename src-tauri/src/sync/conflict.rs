@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use super::manifest::Side;
+use crate::utils::logger::debug_log;
 
 /// Maximum number of conflict files kept per original file.
 pub const MAX_CONFLICTS_PER_FILE: usize = 10;
@@ -136,6 +137,9 @@ pub fn enforce_conflict_limit(vault_path: &str, original_path: &str) -> Result<(
 	let conflicts = count_existing_conflicts(vault_path, original_path)?;
 	if conflicts.len() >= MAX_CONFLICTS_PER_FILE {
 		let to_remove = conflicts.len() - MAX_CONFLICTS_PER_FILE + 1;
+		debug_log("SYNC:CONFLICT", format!(
+			"Conflict limit reached for '{original_path}': removing {to_remove} oldest file(s)"
+		));
 		for path in conflicts.iter().take(to_remove) {
 			std::fs::remove_file(path)
 				.map_err(|e| format!("Failed to remove old conflict: {e}"))?;
@@ -165,12 +169,19 @@ pub fn resolve_conflict(
 
 	// Newer version wins the original path
 	let (winner, loser, loser_mtime) = if local_mtime >= remote_mtime {
+		debug_log("SYNC:CONFLICT", format!(
+			"Conflict on '{path}': local wins (local_mtime={local_mtime} >= remote_mtime={remote_mtime})"
+		));
 		(local_content, remote_content, remote_mtime)
 	} else {
+		debug_log("SYNC:CONFLICT", format!(
+			"Conflict on '{path}': remote wins (remote_mtime={remote_mtime} > local_mtime={local_mtime})"
+		));
 		(remote_content, local_content, local_mtime)
 	};
 
 	let conflict_name = conflict_filename(path, loser_mtime);
+	debug_log("SYNC:CONFLICT", format!("Conflict file: '{conflict_name}'"));
 	let conflict_full = validate_vault_path(vault_path, &conflict_name)
 		.unwrap_or_else(|_| Path::new(vault_path).join(&conflict_name));
 
@@ -196,6 +207,10 @@ pub fn resolve_delete_modify_conflict(
 	_modified_mtime: u64,
 	_modifier: Side,
 ) -> Result<(), String> {
+	debug_log("SYNC:CONFLICT", format!(
+		"Delete-modify conflict on '{path}': preserving modified version ({} bytes)",
+		modified_content.len()
+	));
 	let full = validate_vault_path(vault_path, path)
 		.unwrap_or_else(|_| Path::new(vault_path).join(path));
 
@@ -216,6 +231,7 @@ pub fn safe_delete_file(vault_path: &str, path: &str) -> Result<(), String> {
 
 	if full.exists() {
 		std::fs::remove_file(&full).map_err(|e| format!("Failed to delete file: {e}"))?;
+		debug_log("SYNC:CONFLICT", format!("Deleted file: {path}"));
 	}
 	Ok(())
 }
