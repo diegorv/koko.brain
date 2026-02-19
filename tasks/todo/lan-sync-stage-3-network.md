@@ -74,7 +74,7 @@ Stack de rede completo (servidor, discovery, cliente) + engine orquestrador + Ta
   - Registrar `Arc<Mutex<Option<SyncEngine>>>` como Tauri State em `setup()`
   - Adicionar todos os 13 commands em `tauri::generate_handler![]`
 
-- [ ] Task 12.1: Verificar/atualizar capabilities Tauri em `src-tauri/capabilities/default.json`
+- [x] Task 12.1: Verificar/atualizar capabilities Tauri em `src-tauri/capabilities/default.json`
   - Verificar se Rust backend precisa de capabilities para TCP/mDNS (provavelmente não — sandbox restringe webview, não processo Rust)
   - Se necessário: adicionar permissões para TCP bind/connect e mDNS multicast
 
