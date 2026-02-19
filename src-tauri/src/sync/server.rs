@@ -191,6 +191,14 @@ impl RateLimiter {
 		attempts.push(now);
 		true
 	}
+
+	/// Inserts timestamps directly (for testing backoff/reset behaviour).
+	///
+	/// This is exposed publicly so that integration tests in `tests/` can use it.
+	pub async fn insert_test_timestamps(&self, ip: IpAddr, timestamps: Vec<Instant>) {
+		let mut map = self.attempts.lock().await;
+		map.insert(ip, timestamps);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -554,7 +562,7 @@ async fn handle_file_delete(
 /// Reads a file from the vault using TOCTOU-safe I/O.
 ///
 /// Returns `(content, mtime)`.
-fn read_vault_file(vault_path: &str, relative_path: &str) -> Result<(Vec<u8>, u64), String> {
+pub fn read_vault_file(vault_path: &str, relative_path: &str) -> Result<(Vec<u8>, u64), String> {
 	let mut file = safe_open_file(vault_path, relative_path, false)?;
 
 	let mut content = Vec::new();
@@ -573,7 +581,7 @@ fn read_vault_file(vault_path: &str, relative_path: &str) -> Result<(Vec<u8>, u6
 }
 
 /// Writes a file to the vault using TOCTOU-safe I/O, then sets its mtime.
-fn write_vault_file(
+pub fn write_vault_file(
 	vault_path: &str,
 	relative_path: &str,
 	content: &[u8],
@@ -593,192 +601,3 @@ fn write_vault_file(
 	Ok(())
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use std::os::unix::fs;
-	use tempfile::TempDir;
-
-	// -- Path traversal tests --
-
-	#[test]
-	fn test_path_traversal_dotdot() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		let result = safe_open_file(vault, "../etc/passwd", false);
-		assert!(result.is_err());
-		assert!(result.unwrap_err().contains("traversal"));
-	}
-
-	#[test]
-	fn test_path_traversal_encoded() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		// Even with encoded dots, the ".." check catches it
-		let result = safe_open_file(vault, "notes/../../../etc/passwd", false);
-		assert!(result.is_err());
-	}
-
-	#[test]
-	fn test_path_traversal_symlink() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		// Create a symlink inside the vault pointing outside
-		let link_path = tmp.path().join("evil-link.md");
-		fs::symlink("/etc/passwd", &link_path).unwrap();
-
-		let result = safe_open_file(vault, "evil-link.md", false);
-		assert!(result.is_err());
-	}
-
-	#[test]
-	fn test_path_valid_inside_vault() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		// Create a valid file inside the vault
-		let notes_dir = tmp.path().join("notes");
-		std::fs::create_dir_all(&notes_dir).unwrap();
-		std::fs::write(notes_dir.join("hello.md"), "# Hello").unwrap();
-
-		let result = safe_open_file(vault, "notes/hello.md", false);
-		assert!(result.is_ok());
-	}
-
-	#[test]
-	fn test_safe_open_file_nofollow() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		// Create a real file outside the vault
-		let outside = TempDir::new().unwrap();
-		let secret = outside.path().join("secret.txt");
-		std::fs::write(&secret, "secret data").unwrap();
-
-		// Symlink inside vault → outside file
-		let link_path = tmp.path().join("linked.md");
-		fs::symlink(&secret, &link_path).unwrap();
-
-		// O_NOFOLLOW should prevent opening the symlink
-		let result = safe_open_file(vault, "linked.md", false);
-		assert!(result.is_err());
-	}
-
-	// -- Rate limiter tests --
-
-	#[tokio::test]
-	async fn test_rate_limiter_allows_under_limit() {
-		let limiter = RateLimiter::new();
-		let ip: IpAddr = "192.168.1.1".parse().unwrap();
-
-		assert!(limiter.check(ip).await);
-		assert!(limiter.check(ip).await);
-		assert!(limiter.check(ip).await);
-	}
-
-	#[tokio::test]
-	async fn test_rate_limiter_blocks_over_limit() {
-		let limiter = RateLimiter::new();
-		let ip: IpAddr = "192.168.1.1".parse().unwrap();
-
-		// Exhaust the limit (3 per minute)
-		assert!(limiter.check(ip).await);
-		assert!(limiter.check(ip).await);
-		assert!(limiter.check(ip).await);
-		// 4th should be blocked
-		assert!(!limiter.check(ip).await);
-	}
-
-	#[tokio::test]
-	async fn test_rate_limiter_resets_after_minute() {
-		let limiter = RateLimiter::new();
-		let ip: IpAddr = "192.168.1.1".parse().unwrap();
-
-		// Manually insert old timestamps to simulate time passing
-		{
-			let mut map = limiter.attempts.lock().await;
-			let old = Instant::now() - Duration::from_secs(61);
-			map.insert(ip, vec![old, old, old]);
-		}
-
-		// Old entries should be cleaned up, allowing new attempts
-		assert!(limiter.check(ip).await);
-	}
-
-	// -- Safe file write + mtime test --
-
-	#[test]
-	fn test_write_vault_file_sets_mtime() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		let mtime = 1700000000u64; // 2023-11-14
-		write_vault_file(vault, "test.md", b"# Test", mtime).unwrap();
-
-		let meta = std::fs::metadata(tmp.path().join("test.md")).unwrap();
-		let actual_mtime = meta
-			.modified()
-			.unwrap()
-			.duration_since(std::time::UNIX_EPOCH)
-			.unwrap()
-			.as_secs();
-
-		assert_eq!(actual_mtime, mtime);
-	}
-
-	#[test]
-	fn test_read_vault_file_returns_content_and_mtime() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		let content = b"# Hello World";
-		let mtime = 1700000000u64;
-		write_vault_file(vault, "note.md", content, mtime).unwrap();
-
-		let (read_content, read_mtime) = read_vault_file(vault, "note.md").unwrap();
-		assert_eq!(read_content, content);
-		assert_eq!(read_mtime, mtime);
-	}
-
-	// -- Server start/stop test --
-
-	#[tokio::test]
-	async fn test_server_start_and_stop() {
-		let tmp = TempDir::new().unwrap();
-		let vault = tmp.path().to_str().unwrap();
-
-		// Create minimal vault structure
-		let noted_dir = tmp.path().join(".noted");
-		std::fs::create_dir_all(&noted_dir).unwrap();
-
-		// Generate keys for the test
-		let builder =
-			snow::Builder::new("Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap());
-		let keypair = builder.generate_keypair().unwrap();
-
-		let mut static_priv = Zeroizing::new([0u8; 32]);
-		static_priv.copy_from_slice(&keypair.private);
-
-		let sync_keys = SyncKeys {
-			psk_key: Zeroizing::new([1u8; 32]),
-			hmac_key: Zeroizing::new([2u8; 32]),
-		};
-
-		let server = start_server(vault.to_string(), 0, sync_keys, static_priv)
-			.await
-			.unwrap();
-
-		// Server should be listening on a port
-		assert_ne!(server.addr.port(), 0);
-
-		// Stop gracefully
-		server.stop().await;
-	}
-}
