@@ -5,4 +5,4 @@ pub mod crypto;
 // pub mod client;
 // pub mod engine;
 // pub mod conflict;
-// pub mod noise_transport;
+pub mod noise_transport;
