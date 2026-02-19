@@ -284,6 +284,11 @@
 				Save
 			</Button>
 		</div>
+		{#if getFullPassphrase()}
+			<p class="text-xs text-amber-500/80">
+				Save this passphrase before closing — it cannot be displayed again. Enter the same passphrase on every device you want to sync with.
+			</p>
+		{/if}
 	</div>
 
 	<!-- Enable sync toggle -->
