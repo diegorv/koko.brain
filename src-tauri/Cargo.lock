@@ -2921,6 +2921,62 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
+=======
+name = "noted"
+version = "2.2.2-beta"
+dependencies = [
+ "aes-gcm",
+ "argon2",
+ "base64 0.22.1",
+ "block2",
+ "chrono",
+ "futures-util",
+ "globset",
+ "half",
+ "hkdf",
+ "hmac",
+ "libc",
+ "mdns-sd",
+ "ndarray",
+ "objc2",
+ "objc2-core-foundation",
+ "objc2-foundation",
+ "objc2-local-authentication",
+ "objc2-security",
+ "ort",
+ "percent-encoding",
+ "portable-pty",
+ "rand 0.8.5",
+ "reqwest 0.12.28",
+ "rusqlite",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "sha2",
+ "similar",
+ "snow",
+ "subtle",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-deep-link",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-http",
+ "tauri-plugin-opener",
+ "tempfile",
+ "tokenizers",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
+>>>>>>> fc03494 (feat(sync): implement TCP/Noise sync server with rate limiting and TOCTOU-safe I/O)
 name = "notify"
 version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

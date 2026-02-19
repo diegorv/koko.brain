@@ -57,6 +57,21 @@ futures-util = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
 tauri-plugin-http = "2"
 
+<<<<<<< HEAD
+=======
+# LAN Sync
+libc = "0.2"
+mdns-sd = "0.12"
+snow = "0.9"
+argon2 = "0.5"
+hkdf = "0.12"
+hmac = "0.12"
+subtle = "2"
+globset = "0.4"
+tokio-util = "0.7"
+tracing = "0.1"
+
+>>>>>>> fc03494 (feat(sync): implement TCP/Noise sync server with rate limiting and TOCTOU-safe I/O)
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-core-foundation = "0.3"
