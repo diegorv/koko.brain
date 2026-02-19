@@ -9,6 +9,7 @@ use super::server::{
 	msg, ErrorMessage, FileDelete, FileDeleteAck, FilePush, FilePushAck, FileRequest,
 	FileResponse, ManifestResponse, VaultUuidExchange,
 };
+use crate::utils::logger::debug_log;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,6 +39,7 @@ impl SyncSession {
 		&mut self,
 		hmac_key: &[u8; 32],
 	) -> Result<SyncManifest, String> {
+		debug_log("SYNC:CLI", "Requesting manifest from peer");
 		// Send manifest request (empty payload)
 		self.transport
 			.send(msg::MANIFEST_REQUEST, &[])
@@ -87,9 +89,11 @@ impl SyncSession {
 		hmac_arr.copy_from_slice(&hmac_bytes);
 
 		if !verify_manifest(hmac_key, &manifest_json, &hmac_arr, manifest.generated_at) {
+			debug_log("SYNC:CLI", "Manifest HMAC verification failed — rejecting");
 			return Err("Manifest HMAC verification failed".to_string());
 		}
 
+		debug_log("SYNC:CLI", format!("Manifest received and verified: {} files", manifest.files.len()));
 		Ok(manifest)
 	}
 
@@ -100,6 +104,7 @@ impl SyncSession {
 		&mut self,
 		path: &str,
 	) -> Result<(Vec<u8>, u64), String> {
+		debug_log("SYNC:CLI", format!("Fetching file: {path}"));
 		let request = FileRequest {
 			path: path.to_string(),
 		};
@@ -145,6 +150,7 @@ impl SyncSession {
 		content: &[u8],
 		mtime: u64,
 	) -> Result<(), String> {
+		debug_log("SYNC:CLI", format!("Pushing file: {path} ({} bytes)", content.len()));
 		let push = FilePush {
 			path: path.to_string(),
 			content: BASE64.encode(content),
@@ -190,6 +196,7 @@ impl SyncSession {
 		&mut self,
 		path: &str,
 	) -> Result<(), String> {
+		debug_log("SYNC:CLI", format!("Requesting remote delete: {path}"));
 		let delete = FileDelete {
 			path: path.to_string(),
 		};
@@ -245,6 +252,7 @@ pub async fn open_session(
 	static_priv: &[u8; 32],
 	our_vault_uuid: &str,
 ) -> Result<SyncSession, String> {
+	debug_log("SYNC:CLI", format!("Connecting to {peer_addr}"));
 	// Connect and perform Noise handshake (initiator role)
 	let mut transport =
 		NoiseTransport::connect(peer_addr, psk_key, static_priv).await?;
@@ -272,12 +280,17 @@ pub async fn open_session(
 		.map_err(|e| format!("Invalid vault_uuid_exchange payload: {e}"))?;
 
 	if peer_exchange.protocol_version != PROTOCOL_VERSION {
+		debug_log("SYNC:CLI", format!(
+			"Protocol version mismatch: expected {PROTOCOL_VERSION}, got {}",
+			peer_exchange.protocol_version
+		));
 		return Err(format!(
 			"Protocol version mismatch: expected {PROTOCOL_VERSION}, got {}",
 			peer_exchange.protocol_version
 		));
 	}
 
+	debug_log("SYNC:CLI", format!("Session established with peer_uuid={}", peer_exchange.vault_uuid));
 	Ok(SyncSession {
 		transport,
 		peer_uuid: peer_exchange.vault_uuid,
