@@ -64,6 +64,7 @@ import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-hi
 import { registerEncryptionHooks, resetEncryptedNotes } from '$lib/plugins/encrypted-notes/encrypted-notes.service';
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
+import { initSync, teardownSync } from '$lib/features/sync/sync.service';
 
 /**
  * Version counter for vault initialization.
@@ -230,7 +231,17 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		});
 	}
 
-	// ── Step 7: File watcher ─────────────────────────────────────────
+	// ── Step 7: LAN Sync ────────────────────────────────────────────
+	// Initialize after indexes, before watcher — sync events may trigger
+	// file changes that the watcher needs to handle.
+	try {
+		await initSync(vaultPath);
+	} catch (err) {
+		error('LIFECYCLE', 'Failed to initialize sync:', err);
+	}
+	if (initVersion !== version) return;
+
+	// ── Step 8: File watcher ─────────────────────────────────────────
 	// Registered LAST (after indexes are built) to avoid rebuildIndex()
 	// racing with the initial buildIndex().
 	// Debounced to prevent concurrent rebuilds from rapid file changes.
@@ -247,7 +258,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	startWatching(vaultPath).catch((err) => {
 		error('LIFECYCLE', 'Failed to start file watcher:', err);
 	});
-	// ── Step 8: Execute pending deep-link action ────────────────────
+	// ── Step 9: Execute pending deep-link action ────────────────────
 	executePendingAction().catch((err) => {
 		error('LIFECYCLE', 'Failed to execute pending deep-link action:', err);
 	});
@@ -287,6 +298,9 @@ export function teardownVault(): void {
 	}
 	// ── Stop background processes ────────────────────────────────────
 	stopWatching();
+	teardownSync().catch((err) => {
+		error('LIFECYCLE', 'Failed to teardown sync:', err);
+	});
 	stopSemanticProgressListener();
 	stopTauriDebugListener();
 	teardownLogSession();
