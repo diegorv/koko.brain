@@ -121,14 +121,19 @@
 	}
 
 	async function handleToggleSync(enabled: boolean) {
-		settingsStore.updateSync({ enabled });
-		onchange();
-
 		const vp = vaultStore.path;
 		if (!vp) return;
 
+		settingsStore.updateSync({ enabled });
+		onchange();
+
 		if (enabled) {
 			await initSync(vp);
+			// initSync catches errors internally and sets running=false on failure
+			if (!syncStore.isRunning) {
+				settingsStore.updateSync({ enabled: false });
+				onchange();
+			}
 		} else {
 			await teardownSync();
 		}
