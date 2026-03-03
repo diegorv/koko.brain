@@ -543,7 +543,12 @@ async fn handle_file_request(
 	}
 
 	debug_log("SYNC:SRV", format!("File requested: {}", request.path));
-	match read_vault_file(&state.vault_path, &request.path) {
+	let vault = state.vault_path.clone();
+	let path = request.path.clone();
+	let read_result = tokio::task::spawn_blocking(move || read_vault_file(&vault, &path))
+		.await
+		.map_err(|e| format!("Read task failed: {e}"))?;
+	match read_result {
 		Ok((content, mtime)) => {
 			let response = FileResponse {
 				path: request.path,
@@ -584,7 +589,12 @@ async fn handle_file_push(
 		.map_err(|e| format!("Invalid base64 content: {e}"))?;
 
 	debug_log("SYNC:SRV", format!("File push: {} ({} bytes)", push.path, content.len()));
-	let result = write_vault_file(&state.vault_path, &push.path, &content, push.mtime);
+	let vault = state.vault_path.clone();
+	let path = push.path.clone();
+	let mtime = push.mtime;
+	let result = tokio::task::spawn_blocking(move || write_vault_file(&vault, &path, &content, mtime))
+		.await
+		.map_err(|e| format!("Write task failed: {e}"))?;
 
 	let ack = FilePushAck {
 		path: push.path,
