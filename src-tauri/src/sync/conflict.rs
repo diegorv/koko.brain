@@ -238,10 +238,19 @@ pub fn resolve_delete_modify_conflict(
 }
 
 /// Safely deletes a file within the vault after path validation.
+///
+/// Re-checks that the target is not a symlink immediately before deletion
+/// to mitigate TOCTOU race conditions where the path could be swapped.
 pub fn safe_delete_file(vault_path: &str, path: &str) -> Result<(), String> {
 	let full = validate_vault_path(vault_path, path)?;
 
 	if full.exists() {
+		// Re-verify not a symlink right before deletion (TOCTOU mitigation)
+		let meta = std::fs::symlink_metadata(&full)
+			.map_err(|e| format!("Failed to read metadata before delete: {e}"))?;
+		if meta.file_type().is_symlink() {
+			return Err(format!("Symlink not allowed (race detected): {path}"));
+		}
 		std::fs::remove_file(&full).map_err(|e| format!("Failed to delete file: {e}"))?;
 		debug_log("SYNC:CONFLICT", format!("Deleted file: {path}"));
 	}
