@@ -52,10 +52,21 @@ export async function deletePassphrase(vaultPath: string): Promise<void> {
 
 // ── Local config (allowed paths) ─────────────────────────────────────
 
+/** Full sync-local.json config shape from Rust */
+interface SyncLocalConfig {
+	allowed_paths: string[];
+	port: number;
+	interval_secs: number;
+}
+
+/** Cached copy of the last loaded config to avoid overwriting fields */
+let lastLocalConfig: SyncLocalConfig = { allowed_paths: [], port: 39782, interval_secs: 300 };
+
 /** Loads sync-local.json config and updates the store */
 export async function loadSyncLocalConfig(vaultPath: string): Promise<void> {
 	try {
-		const config = await invoke<{ allowed_paths: string[] }>('get_sync_local_config', { vaultPath });
+		const config = await invoke<SyncLocalConfig>('get_sync_local_config', { vaultPath });
+		lastLocalConfig = config;
 		syncStore.setAllowedPaths(config.allowed_paths);
 	} catch (err) {
 		error('SYNC', 'Failed to load sync local config:', err);
@@ -66,10 +77,31 @@ export async function loadSyncLocalConfig(vaultPath: string): Promise<void> {
 /** Saves allowed paths to sync-local.json and updates the store */
 export async function saveSyncLocalConfig(vaultPath: string, allowedPaths: string[]): Promise<void> {
 	try {
-		await invoke('save_sync_local_config', { vaultPath, config: { allowed_paths: allowedPaths } });
+		const config = { ...lastLocalConfig, allowed_paths: allowedPaths };
+		await invoke('save_sync_local_config', { vaultPath, config });
+		lastLocalConfig = config;
 		syncStore.setAllowedPaths(allowedPaths);
 	} catch (err) {
 		error('SYNC', 'Failed to save sync local config:', err);
+		throw err;
+	}
+}
+
+/** Updates the sync interval in sync-local.json and restarts engine if running */
+export async function updateSyncInterval(vaultPath: string, intervalMinutes: number): Promise<void> {
+	try {
+		const config = { ...lastLocalConfig, interval_secs: intervalMinutes * 60 };
+		await invoke('save_sync_local_config', { vaultPath, config });
+		lastLocalConfig = config;
+
+		// Restart engine so it picks up the new interval
+		if (syncStore.isRunning) {
+			debug('SYNC', 'Restarting engine for interval change:', intervalMinutes, 'min');
+			await teardownSync();
+			await initSync(vaultPath);
+		}
+	} catch (err) {
+		error('SYNC', 'Failed to update sync interval:', err);
 		throw err;
 	}
 }

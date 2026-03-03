@@ -23,6 +23,7 @@
 		resetSync,
 		initSync,
 		teardownSync,
+		updateSyncInterval,
 	} from '$lib/features/sync/sync.service';
 	import { error } from '$lib/utils/debug';
 	import SettingItem from './SettingItem.svelte';
@@ -139,9 +140,15 @@
 		}
 	}
 
-	function handleIntervalChange(value: string) {
-		settingsStore.updateSync({ intervalMinutes: Number(value) });
+	async function handleIntervalChange(value: string) {
+		const minutes = Number(value);
+		settingsStore.updateSync({ intervalMinutes: minutes });
 		onchange();
+
+		const vp = vaultStore.path;
+		if (vp) {
+			await updateSyncInterval(vp, minutes);
+		}
 	}
 
 	function handlePortChange(e: Event) {
