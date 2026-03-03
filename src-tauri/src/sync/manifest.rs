@@ -73,40 +73,42 @@ const HARDCODED_EXCLUDES: &[&str] = &[
 const NOTED_DIR_ALLOWLIST: &[&str] = &["vault-id", "settings.json"];
 
 // ---------------------------------------------------------------------------
-// Exclusion logic
+// Allowlist logic
 // ---------------------------------------------------------------------------
 
-/// Checks whether a path should be excluded from sync.
+/// Checks whether a path is allowed to sync.
 ///
-/// A path is excluded if it matches any hardcoded exclusion or any user glob
-/// in `excluded_paths`.
-pub fn is_excluded(path: &str, excluded_paths: &[String]) -> bool {
-	// Check hardcoded excludes
+/// A path is allowed only if it is NOT in the hardcoded exclusions AND matches
+/// at least one user-configured glob in `allowed_paths`. If `allowed_paths` is
+/// empty, no user files are allowed (system files in `.noted/` are handled
+/// separately by `build_manifest`).
+pub fn is_allowed(path: &str, allowed_paths: &[String]) -> bool {
+	// Hardcoded excludes always reject
 	for pattern in HARDCODED_EXCLUDES {
 		if pattern.ends_with('/') {
-			// Directory prefix match
 			let prefix = pattern.trim_end_matches('/');
 			if path.starts_with(prefix) && (path.len() == prefix.len() || path.as_bytes()[prefix.len()] == b'/') {
-				return true;
+				return false;
 			}
 		} else if path == *pattern {
-			return true;
+			return false;
 		}
 	}
 
-	// Check user-configured globs
-	if !excluded_paths.is_empty() {
-		let mut builder = GlobSetBuilder::new();
-		for pattern in excluded_paths {
-			if let Ok(glob) = Glob::new(pattern) {
-				builder.add(glob);
-			}
+	// Empty allowlist = nothing allowed
+	if allowed_paths.is_empty() {
+		return false;
+	}
+
+	// Check user-configured allow globs
+	let mut builder = GlobSetBuilder::new();
+	for pattern in allowed_paths {
+		if let Ok(glob) = Glob::new(pattern) {
+			builder.add(glob);
 		}
-		if let Ok(set) = builder.build() {
-			if set.is_match(path) {
-				return true;
-			}
-		}
+	}
+	if let Ok(set) = builder.build() {
+		return set.is_match(path);
 	}
 
 	false
@@ -116,26 +118,26 @@ pub fn is_excluded(path: &str, excluded_paths: &[String]) -> bool {
 // Manifest building
 // ---------------------------------------------------------------------------
 
-/// Builds a sync manifest for the given vault, respecting exclusions.
+/// Builds a sync manifest for the given vault, respecting the allowlist.
 ///
 /// Collects:
-/// 1. All `.md` / `.markdown` files via `collect_markdown_paths()`
-/// 2. Allowed files from `.noted/` (vault-id, settings.json)
+/// 1. All `.md` / `.markdown` files that match `allowed_paths` globs
+/// 2. System files from `.noted/` (vault-id, settings.json) — always included
 ///
-/// Filters out hardcoded exclusions and user-configured `excluded_paths`.
+/// Hardcoded exclusions (db, trash, etc.) are always rejected regardless of allowlist.
 pub fn build_manifest(
 	vault_path: &str,
-	excluded_paths: &[String],
+	allowed_paths: &[String],
 ) -> Result<SyncManifest, String> {
 	let vault_root = Path::new(vault_path);
 	let mut entries = Vec::new();
 
-	// 1. Collect markdown files
+	// 1. Collect markdown files matching the allowlist
 	let md_files = collect_markdown_paths(vault_root, &[])
 		.map_err(|e| format!("Failed to collect markdown files: {e}"))?;
 
 	for (rel_path, abs_path) in &md_files {
-		if is_excluded(rel_path, excluded_paths) {
+		if !is_allowed(rel_path, allowed_paths) {
 			continue;
 		}
 		if let Ok(entry) = build_file_entry(vault_root, rel_path, abs_path) {
@@ -143,14 +145,16 @@ pub fn build_manifest(
 		}
 	}
 
-	// 2. Collect allowed .noted/ files
+	// 2. Collect system .noted/ files (always synced, not subject to user allowlist)
 	let noted_dir = vault_root.join(".noted");
 	if noted_dir.is_dir() {
 		for allowed in NOTED_DIR_ALLOWLIST {
 			let abs_path = noted_dir.join(allowed);
 			if abs_path.is_file() {
 				let rel_path = format!(".noted/{allowed}");
-				if !is_excluded(&rel_path, excluded_paths) {
+				// Only check hardcoded excludes (not user allowlist)
+				let hardcoded_blocked = HARDCODED_EXCLUDES.iter().any(|p| rel_path == *p);
+				if !hardcoded_blocked {
 					if let Ok(entry) = build_file_entry(vault_root, &rel_path, &abs_path) {
 						entries.push(entry);
 					}

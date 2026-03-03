@@ -11,7 +11,7 @@ describe('syncStore', () => {
 		expect(syncStore.peers).toEqual([]);
 		expect(syncStore.status).toEqual({ state: 'idle' });
 		expect(syncStore.isRunning).toBe(false);
-		expect(syncStore.excludedPaths).toEqual([]);
+		expect(syncStore.allowedPaths).toEqual([]);
 	});
 
 	describe('peers', () => {
@@ -85,16 +85,16 @@ describe('syncStore', () => {
 		});
 	});
 
-	describe('excludedPaths', () => {
-		it('setExcludedPaths replaces the list', () => {
-			syncStore.setExcludedPaths(['.noted/', '_templates/']);
-			expect(syncStore.excludedPaths).toEqual(['.noted/', '_templates/']);
+	describe('allowedPaths', () => {
+		it('setAllowedPaths replaces the list', () => {
+			syncStore.setAllowedPaths(['notes/**', 'work/**']);
+			expect(syncStore.allowedPaths).toEqual(['notes/**', 'work/**']);
 		});
 
-		it('setExcludedPaths can set empty list', () => {
-			syncStore.setExcludedPaths(['.noted/']);
-			syncStore.setExcludedPaths([]);
-			expect(syncStore.excludedPaths).toEqual([]);
+		it('setAllowedPaths can set empty list', () => {
+			syncStore.setAllowedPaths(['notes/**']);
+			syncStore.setAllowedPaths([]);
+			expect(syncStore.allowedPaths).toEqual([]);
 		});
 	});
 
@@ -103,14 +103,14 @@ describe('syncStore', () => {
 			syncStore.setPeers([{ id: 'p1', name: 'Test', ip: '1.2.3.4', port: 39782 }]);
 			syncStore.setStatus({ state: 'syncing', peerId: 'p1' });
 			syncStore.setRunning(true);
-			syncStore.setExcludedPaths(['.noted/']);
+			syncStore.setAllowedPaths(['notes/**']);
 
 			syncStore.reset();
 
 			expect(syncStore.peers).toEqual([]);
 			expect(syncStore.status).toEqual({ state: 'idle' });
 			expect(syncStore.isRunning).toBe(false);
-			expect(syncStore.excludedPaths).toEqual([]);
+			expect(syncStore.allowedPaths).toEqual([]);
 		});
 	});
 });

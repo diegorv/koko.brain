@@ -90,11 +90,11 @@ describe('local config', () => {
 		syncStore.reset();
 	});
 
-	it('loadSyncLocalConfig updates store with excluded paths', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce({ excluded_paths: ['.noted/', '_templates/'] });
+	it('loadSyncLocalConfig updates store with allowed paths', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce({ allowed_paths: ['notes/**', 'work/**'] });
 		await loadSyncLocalConfig('/vault');
 		expect(invoke).toHaveBeenCalledWith('get_sync_local_config', { vaultPath: '/vault' });
-		expect(syncStore.excludedPaths).toEqual(['.noted/', '_templates/']);
+		expect(syncStore.allowedPaths).toEqual(['notes/**', 'work/**']);
 	});
 
 	it('loadSyncLocalConfig propagates errors', async () => {
@@ -103,12 +103,12 @@ describe('local config', () => {
 	});
 
 	it('saveSyncLocalConfig invokes and updates store', async () => {
-		await saveSyncLocalConfig('/vault', ['.noted/', 'private/']);
+		await saveSyncLocalConfig('/vault', ['notes/**', 'work/**']);
 		expect(invoke).toHaveBeenCalledWith('save_sync_local_config', {
 			vaultPath: '/vault',
-			config: { excluded_paths: ['.noted/', 'private/'] },
+			config: { allowed_paths: ['notes/**', 'work/**'] },
 		});
-		expect(syncStore.excludedPaths).toEqual(['.noted/', 'private/']);
+		expect(syncStore.allowedPaths).toEqual(['notes/**', 'work/**']);
 	});
 });
 
@@ -130,7 +130,7 @@ describe('initSync', () => {
 		settingsStore.updateSync({ enabled: true });
 		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
 			if (cmd === 'has_sync_passphrase') return false;
-			if (cmd === 'get_sync_local_config') return { excluded_paths: [] };
+			if (cmd === 'get_sync_local_config') return { allowed_paths: [] };
 		});
 
 		await initSync('/vault');
@@ -142,7 +142,7 @@ describe('initSync', () => {
 		settingsStore.updateSync({ enabled: true, port: 40000 });
 		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
 			if (cmd === 'has_sync_passphrase') return true;
-			if (cmd === 'get_sync_local_config') return { excluded_paths: [] };
+			if (cmd === 'get_sync_local_config') return { allowed_paths: [] };
 		});
 
 		await initSync('/vault');
@@ -156,7 +156,7 @@ describe('initSync', () => {
 		settingsStore.updateSync({ enabled: true });
 		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
 			if (cmd === 'has_sync_passphrase') return true;
-			if (cmd === 'get_sync_local_config') return { excluded_paths: [] };
+			if (cmd === 'get_sync_local_config') return { allowed_paths: [] };
 			if (cmd === 'start_sync') throw new Error('port in use');
 		});
 

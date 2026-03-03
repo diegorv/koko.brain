@@ -32,9 +32,9 @@ export interface SyncStatusInfo {
 let peers = $state<SyncPeer[]>([]);
 let status = $state<SyncStatusInfo>({ state: 'idle' });
 let running = $state(false);
-let excludedPaths = $state<string[]>([]);
+let allowedPaths = $state<string[]>([]);
 
-/** Reactive store for sync runtime state (peers, status, excluded paths) */
+/** Reactive store for sync runtime state (peers, status, allowed paths) */
 export const syncStore = {
 	/** List of discovered peers on the local network */
 	get peers() { return peers; },
@@ -42,8 +42,8 @@ export const syncStore = {
 	get status() { return status; },
 	/** Whether the sync engine is currently running */
 	get isRunning() { return running; },
-	/** Paths excluded from sync (persisted in sync-local.json) */
-	get excludedPaths() { return excludedPaths; },
+	/** Glob patterns for paths allowed to sync (persisted in sync-local.json) */
+	get allowedPaths() { return allowedPaths; },
 
 	/** Replaces the entire peer list */
 	setPeers(value: SyncPeer[]) {
@@ -72,9 +72,9 @@ export const syncStore = {
 		running = value;
 	},
 
-	/** Replaces the excluded paths list */
-	setExcludedPaths(value: string[]) {
-		excludedPaths = value;
+	/** Replaces the allowed paths list */
+	setAllowedPaths(value: string[]) {
+		allowedPaths = value;
 	},
 
 	/** Resets all runtime state to defaults */
@@ -82,6 +82,6 @@ export const syncStore = {
 		peers = [];
 		status = { state: 'idle' };
 		running = false;
-		excludedPaths = [];
+		allowedPaths = [];
 	},
 };

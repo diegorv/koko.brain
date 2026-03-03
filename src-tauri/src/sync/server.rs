@@ -482,7 +482,7 @@ async fn handle_manifest_request(
 	state: &SyncServerState,
 ) -> Result<(), String> {
 	let config = load_sync_local_config(&state.vault_path)?;
-	let manifest = build_manifest(&state.vault_path, &config.excluded_paths)?;
+	let manifest = build_manifest(&state.vault_path, &config.allowed_paths)?;
 	debug_log("SYNC:SRV", format!("Sending manifest: {} files", manifest.files.len()));
 
 	// Serialize manifest for HMAC computation (files + generated_at only)
