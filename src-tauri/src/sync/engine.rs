@@ -385,10 +385,12 @@ async fn handle_discovery_event(state: &EngineState, event: DiscoveryEvent) {
 		}
 		DiscoveryEvent::Lost(fullname) => {
 			let mut peers = state.peers.lock().await;
-			// Find peer by name (fullname from mDNS)
+			// Extract instance name from mDNS fullname for comparison
+			// (fullname = "Diegos-MacBook._noted._tcp.local.", name = "Diegos-MacBook")
+			let instance_name = fullname.split('.').next().unwrap_or(&fullname);
 			if let Some(id) = peers
 				.iter()
-				.find(|(_, p)| p.name == fullname)
+				.find(|(_, p)| p.name == instance_name)
 				.map(|(id, _)| id.clone())
 			{
 				debug_log("SYNC", format!("Peer lost: {id} ({fullname})"));
