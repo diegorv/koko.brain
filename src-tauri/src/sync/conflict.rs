@@ -65,7 +65,7 @@ pub fn validate_vault_path(vault_path: &str, relative_path: &str) -> Result<Path
 
 /// Generates a conflict filename from the original path and a modification timestamp.
 ///
-/// Format: `"{stem} (conflicted {YYYY-MM-DD HH-MM}){ext}"`.
+/// Format: `"{stem} (conflicted {YYYY-MM-DD HH-MM-SS}){ext}"`.
 pub fn conflict_filename(original_path: &str, mtime: u64) -> String {
 	let path = Path::new(original_path);
 	let stem = path
@@ -90,7 +90,7 @@ pub fn conflict_filename(original_path: &str, mtime: u64) -> String {
 
 	let dt = chrono::DateTime::from_timestamp(mtime as i64, 0)
 		.unwrap_or_default()
-		.format("%Y-%m-%d %H-%M");
+		.format("%Y-%m-%d %H-%M-%S");
 
 	format!("{parent}{stem} (conflicted {dt}){ext}")
 }
