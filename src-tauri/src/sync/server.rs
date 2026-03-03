@@ -37,6 +37,12 @@ const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(5);
 /// Idle timeout for an authenticated session (no messages for this long = disconnect).
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
+/// Maximum operations per authenticated session (prevents abuse after handshake).
+const MAX_OPS_PER_SESSION: usize = 5000;
+
+/// Maximum session duration (prevents connection slot exhaustion via keep-alive).
+const MAX_SESSION_DURATION: Duration = Duration::from_secs(10 * 60);
+
 // ---------------------------------------------------------------------------
 // Message type constants (shared with client)
 // ---------------------------------------------------------------------------
@@ -361,8 +367,17 @@ async fn handle_connection(
 	let config = load_sync_local_config(&state.vault_path)?;
 	let allowed_paths = config.allowed_paths;
 
+	let session_start = Instant::now();
+	let mut ops_count: usize = 0;
+
 	// Message loop with idle timeout
 	loop {
+		// Enforce max session duration
+		if session_start.elapsed() >= MAX_SESSION_DURATION {
+			debug_log("SYNC:SRV", "Max session duration reached, closing connection");
+			break;
+		}
+
 		tokio::select! {
 			_ = cancel.cancelled() => break,
 			_ = tokio::time::sleep(IDLE_TIMEOUT) => {
@@ -371,6 +386,11 @@ async fn handle_connection(
 				}
 			}
 			result = transport.recv() => {
+				ops_count += 1;
+				if ops_count > MAX_OPS_PER_SESSION {
+					debug_log("SYNC:SRV", format!("Max operations ({MAX_OPS_PER_SESSION}) exceeded, closing connection"));
+					break;
+				}
 				let (msg_type, payload) = result?;
 				match msg_type {
 					msg::MANIFEST_REQUEST => {
