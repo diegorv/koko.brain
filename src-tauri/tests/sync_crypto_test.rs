@@ -1,8 +1,8 @@
 use noted_lib::sync::crypto::{
 	derive_master_key, derive_sync_keys, generate_passphrase, hash_vault_id_for_mdns,
-	load_sync_local_config, load_sync_state, read_or_create_vault_id, save_sync_local_config,
-	save_sync_state, sign_manifest, validate_passphrase, verify_manifest, SyncLocalConfig,
-	SyncState, PASSPHRASE_CHARSET,
+	load_sync_local_config, load_sync_state, prune_stale_peers, read_or_create_vault_id,
+	save_sync_local_config, save_sync_state, sign_manifest, validate_passphrase, verify_manifest,
+	SyncLocalConfig, SyncState, PASSPHRASE_CHARSET, STALE_PEER_RETENTION_SECS,
 };
 
 // -- derive_master_key ------------------------------------------------------
@@ -252,4 +252,75 @@ fn read_or_create_vault_id_idempotent() {
 	let id1 = read_or_create_vault_id(vault_path).unwrap();
 	let id2 = read_or_create_vault_id(vault_path).unwrap();
 	assert_eq!(id1, id2);
+}
+
+// -- prune_stale_peers -------------------------------------------------------
+
+fn now_secs() -> u64 {
+	std::time::SystemTime::now()
+		.duration_since(std::time::UNIX_EPOCH)
+		.unwrap()
+		.as_secs()
+}
+
+#[test]
+fn prune_stale_peers_removes_old_entries() {
+	let mut state = SyncState::default();
+	let old_ts = now_secs() - STALE_PEER_RETENTION_SECS - 100;
+	state.last_sync.insert("old-peer".into(), old_ts);
+	state.baseline_manifests.insert("old-peer".into(), serde_json::json!({"files": []}));
+
+	prune_stale_peers(&mut state, STALE_PEER_RETENTION_SECS);
+
+	assert!(!state.last_sync.contains_key("old-peer"));
+	assert!(!state.baseline_manifests.contains_key("old-peer"));
+}
+
+#[test]
+fn prune_stale_peers_keeps_recent_entries() {
+	let mut state = SyncState::default();
+	let recent_ts = now_secs() - 3600; // 1 hour ago
+	state.last_sync.insert("recent-peer".into(), recent_ts);
+	state.baseline_manifests.insert("recent-peer".into(), serde_json::json!({"files": []}));
+
+	prune_stale_peers(&mut state, STALE_PEER_RETENTION_SECS);
+
+	assert!(state.last_sync.contains_key("recent-peer"));
+	assert!(state.baseline_manifests.contains_key("recent-peer"));
+}
+
+#[test]
+fn prune_stale_peers_removes_orphaned_baselines() {
+	let mut state = SyncState::default();
+	// Baseline exists but no corresponding last_sync entry
+	state.baseline_manifests.insert("orphan-peer".into(), serde_json::json!({"files": []}));
+
+	prune_stale_peers(&mut state, STALE_PEER_RETENTION_SECS);
+
+	assert!(!state.baseline_manifests.contains_key("orphan-peer"));
+}
+
+#[test]
+fn prune_stale_peers_mixed_scenario() {
+	let mut state = SyncState::default();
+	let now = now_secs();
+
+	// Old peer — should be pruned
+	state.last_sync.insert("old".into(), now - STALE_PEER_RETENTION_SECS - 1);
+	state.baseline_manifests.insert("old".into(), serde_json::json!({}));
+
+	// Recent peer — should be kept
+	state.last_sync.insert("recent".into(), now - 60);
+	state.baseline_manifests.insert("recent".into(), serde_json::json!({}));
+
+	// Orphaned baseline — should be pruned
+	state.baseline_manifests.insert("orphan".into(), serde_json::json!({}));
+
+	prune_stale_peers(&mut state, STALE_PEER_RETENTION_SECS);
+
+	assert!(!state.last_sync.contains_key("old"));
+	assert!(!state.baseline_manifests.contains_key("old"));
+	assert!(state.last_sync.contains_key("recent"));
+	assert!(state.baseline_manifests.contains_key("recent"));
+	assert!(!state.baseline_manifests.contains_key("orphan"));
 }

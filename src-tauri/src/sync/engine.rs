@@ -173,7 +173,9 @@ impl SyncEngine {
 		debug_log("SYNC", "Sync keys derived");
 
 		// Load sync state and config
-		let sync_state = crypto::load_sync_state(&vault_path)?;
+		let mut sync_state = crypto::load_sync_state(&vault_path)?;
+		crypto::prune_stale_peers(&mut sync_state, crypto::STALE_PEER_RETENTION_SECS);
+		crypto::save_sync_state(&vault_path, &sync_state)?;
 		let config = crypto::load_sync_local_config(&vault_path)?;
 		debug_log("SYNC", format!(
 			"Config: port={}, interval={}s, allowed={} paths",
