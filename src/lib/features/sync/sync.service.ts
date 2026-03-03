@@ -128,9 +128,13 @@ export async function updateSyncInterval(vaultPath: string, intervalMinutes: num
 
 // ── Event listeners ──────────────────────────────────────────────────
 
-/** Registers Tauri event listeners for sync engine events */
+/** Registers Tauri event listeners for sync engine events.
+ *
+ * Uses `allSettled` so that partial failures don't leak already-registered
+ * listeners — each successful registration is stored immediately.
+ */
 async function registerSyncListeners(): Promise<void> {
-	const fns = await Promise.all([
+	const results = await Promise.allSettled([
 		listen<{ peer_id: string; name: string; ip: string; port: number }>('sync:peer-discovered', (event) => {
 			debug('SYNC', 'Peer discovered:', event.payload.name);
 			syncStore.addPeer({
@@ -185,7 +189,25 @@ async function registerSyncListeners(): Promise<void> {
 			toast.warning('Sync detected a settings conflict. Check your settings.');
 		}),
 	]);
+
+	// Collect successful registrations; clean up and throw if any failed
+	const fns: UnlistenFn[] = [];
+	const failures: string[] = [];
+	for (const result of results) {
+		if (result.status === 'fulfilled') {
+			fns.push(result.value);
+		} else {
+			failures.push(String(result.reason));
+		}
+	}
+
 	unlistenFns = fns;
+
+	if (failures.length > 0) {
+		// Clean up the listeners that did succeed
+		removeSyncListeners();
+		throw new Error(`Failed to register ${failures.length} sync listener(s): ${failures.join('; ')}`);
+	}
 }
 
 /** Removes all registered sync event listeners */

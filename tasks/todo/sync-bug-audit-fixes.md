@@ -17,7 +17,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** `syncStore.reset()` runs unconditionally at line 221, even if `invoke('stop_sync')` threw at line 217. The backend engine may still be running, but frontend state says it's stopped. A subsequent `initSync()` would try to start a second engine.
   - **Fix:** Only call `syncStore.reset()` inside the try block after successful stop. In catch, log but leave `running=true` so the UI reflects the real state.
 
-- [ ] Task 3: Fix event listener leak on partial `registerSyncListeners()` failure
+- [x] Task 3: Fix event listener leak on partial `registerSyncListeners()` failure
   - **File:** `src/lib/features/sync/sync.service.ts:113-170`
   - **Bug:** `Promise.all()` on 9 `listen()` calls — if any one fails, the rest leak because `unlistenFns` is never populated. The catch handler calls `removeSyncListeners()` on an empty array.
   - **Fix:** Register listeners individually with `Promise.allSettled()` or a loop. Store each successful unlisten fn immediately. On failure, clean up only the ones that succeeded.
