@@ -32,7 +32,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** When a peer disappears (removed from `peers` map via `PeerLost`), its `retry_backoff` entry persists forever. The stale peer pruning in `crypto.rs` only cleans `baseline_manifests` and `last_sync`, not `retry_backoff`. Over time this leaks memory.
   - **Fix:** When handling `DiscoveryEvent::Lost`, also remove the peer's entry from `retry_backoff`. Additionally, prune backoff entries for peers not in `peers` map during `sync_all_peers`.
 
-- [ ] Task 6: Fix peer ID using IP:port instead of authenticated UUID
+- [x] Task 6: Fix peer ID using IP:port instead of authenticated UUID
   - **File:** `src-tauri/src/sync/engine.rs:442-443`
   - **Bug:** After authenticating the peer and validating its UUID (line 429-440), the code discards the UUID and uses `format!("{}:{}", candidate.ip, candidate.port)` as peer ID. If a device restarts on a different port, it's treated as a new peer — baseline manifests keyed by the old ID become orphaned, causing unnecessary full re-syncs and conflicts.
   - **Fix:** Use the vault UUID + some stable device identifier as the peer ID, or at minimum use the peer UUID from the session. Update the `SyncPeer` struct and all places that key by peer ID accordingly. Note: the peer UUID is the same for all peers in the same vault, so the peer needs a device-specific identity — consider using the peer's static public key fingerprint.

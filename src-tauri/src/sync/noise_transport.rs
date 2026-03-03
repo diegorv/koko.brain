@@ -32,6 +32,9 @@ pub struct NoiseTransport {
 	stream: TcpStream,
 	noise: TransportState,
 	last_activity: Instant,
+	/// The remote peer's static public key (extracted from the XX handshake).
+	/// Used as a stable device identifier across IP/port changes.
+	remote_static_key: Option<Vec<u8>>,
 }
 
 impl NoiseTransport {
@@ -82,6 +85,8 @@ impl NoiseTransport {
 		.await
 		.map_err(|_| "Handshake timed out".to_string())??;
 
+		let remote_static_key = hs.get_remote_static().map(|k| k.to_vec());
+
 		let noise = hs
 			.into_transport_mode()
 			.map_err(|e| format!("Failed to enter transport mode: {e}"))?;
@@ -91,6 +96,7 @@ impl NoiseTransport {
 			stream,
 			noise,
 			last_activity: Instant::now(),
+			remote_static_key,
 		})
 	}
 
@@ -135,6 +141,8 @@ impl NoiseTransport {
 		.await
 		.map_err(|_| "Handshake timed out".to_string())??;
 
+		let remote_static_key = hs.get_remote_static().map(|k| k.to_vec());
+
 		let noise = hs
 			.into_transport_mode()
 			.map_err(|e| format!("Failed to enter transport mode: {e}"))?;
@@ -144,6 +152,7 @@ impl NoiseTransport {
 			stream,
 			noise,
 			last_activity: Instant::now(),
+			remote_static_key,
 		})
 	}
 
@@ -264,6 +273,14 @@ impl NoiseTransport {
 	/// Returns the time of the last send or receive activity.
 	pub fn last_activity(&self) -> Instant {
 		self.last_activity
+	}
+
+	/// Returns the remote peer's static public key (from the XX handshake).
+	///
+	/// This key is a stable device identifier — it persists across IP/port
+	/// changes because each device generates and stores its own keypair.
+	pub fn remote_static_key(&self) -> Option<&[u8]> {
+		self.remote_static_key.as_deref()
 	}
 }
 

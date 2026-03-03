@@ -411,7 +411,9 @@ async fn handle_discovery_event(state: &EngineState, event: DiscoveryEvent) {
 
 /// Authenticates a discovery candidate via Noise handshake + UUID exchange.
 ///
-/// Returns a `SyncPeer` if authentication succeeds.
+/// Returns a `SyncPeer` if authentication succeeds. The peer ID is derived
+/// from the remote static public key (a stable device fingerprint that
+/// persists across IP/port changes).
 async fn authenticate_candidate(
 	state: &EngineState,
 	candidate: &DiscoveryCandidate,
@@ -441,8 +443,23 @@ async fn authenticate_candidate(
 		));
 	}
 
+	// Use the remote static public key as a stable device identifier.
+	// This persists across IP/port changes because each device generates
+	// and stores its own keypair in sync-identity.json.
+	let peer_id = match session.remote_static_key() {
+		Some(key) => {
+			let hash = Sha256::digest(key);
+			hex_encode(&hash[..8]) // 16-char hex fingerprint
+		}
+		None => {
+			// Fallback to IP:port if remote static key is unavailable
+			// (should not happen with the XX pattern, but be defensive)
+			format!("{}:{}", candidate.ip, candidate.port)
+		}
+	};
+
 	Ok(SyncPeer {
-		id: format!("{}:{}", candidate.ip, candidate.port),
+		id: peer_id,
 		name: candidate.name.clone(),
 		ip: candidate.ip,
 		port: candidate.port,
