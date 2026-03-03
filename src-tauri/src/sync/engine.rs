@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
 
+use futures_util::FutureExt;
 use sha2::{Digest, Sha256};
 use tokio::sync::{mpsc, Mutex};
 use tokio::task::JoinHandle;
@@ -503,13 +504,24 @@ async fn sync_with_peer(state: &EngineState, peer_id: &str) -> Result<SyncStats,
 	}
 
 	debug_log("SYNC", format!("Starting sync with {peer_id}"));
-	let result = do_sync(state, peer_id).await;
+	let result = std::panic::AssertUnwindSafe(do_sync(state, peer_id))
+		.catch_unwind()
+		.await;
 
-	// Release peer lock
+	// Always release peer lock — runs even if do_sync panicked
 	{
 		let mut syncing = state.peers_syncing.lock().await;
 		syncing.remove(peer_id);
 	}
+
+	// Convert caught panic to error
+	let result = match result {
+		Ok(r) => r,
+		Err(_) => {
+			debug_log("SYNC", format!("do_sync panicked for peer {peer_id}"));
+			Err(format!("Internal error: sync task panicked for peer {peer_id}"))
+		}
+	};
 
 	// Update backoff state
 	match &result {
