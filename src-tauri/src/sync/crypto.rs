@@ -168,12 +168,17 @@ pub fn verify_manifest(
 	mac: &[u8; 32],
 	generated_at: u64,
 ) -> bool {
-	// Check freshness — reject manifests older than 15 min
+	// Check freshness — reject manifests older than 15 min or from the future
 	let now = std::time::SystemTime::now()
 		.duration_since(std::time::UNIX_EPOCH)
 		.unwrap_or_default()
 		.as_secs();
 
+	// Allow up to 60 seconds of clock skew for future timestamps
+	const MAX_CLOCK_SKEW_SECS: u64 = 60;
+	if generated_at > now + MAX_CLOCK_SKEW_SECS {
+		return false;
+	}
 	if now.saturating_sub(generated_at) > MAX_MANIFEST_AGE_SECS {
 		return false;
 	}
