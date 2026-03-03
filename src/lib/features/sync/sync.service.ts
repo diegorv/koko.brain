@@ -150,7 +150,11 @@ async function registerSyncListeners(): Promise<void> {
 		}),
 		listen<{ peer_id: string }>('sync:started', (event) => {
 			debug('SYNC', 'Sync started with peer:', event.payload.peer_id);
-			syncStore.setStatus({ state: 'syncing', peerId: event.payload.peer_id });
+			syncStore.setStatus({
+				state: 'syncing',
+				peerId: event.payload.peer_id,
+				lastSyncAt: syncStore.status.lastSyncAt,
+			});
 		}),
 		listen<{ peer_id: string; files_total: number; files_done: number }>('sync:progress', (event) => {
 			syncStore.setStatus({
@@ -158,6 +162,7 @@ async function registerSyncListeners(): Promise<void> {
 				peerId: event.payload.peer_id,
 				filesTotal: event.payload.files_total,
 				filesDone: event.payload.files_done,
+				lastSyncAt: syncStore.status.lastSyncAt,
 			});
 		}),
 		listen<{ peer_id: string; files_changed: number; conflicts: number }>('sync:completed', (event) => {

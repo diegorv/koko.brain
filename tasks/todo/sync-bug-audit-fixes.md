@@ -22,7 +22,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** `Promise.all()` on 9 `listen()` calls — if any one fails, the rest leak because `unlistenFns` is never populated. The catch handler calls `removeSyncListeners()` on an empty array.
   - **Fix:** Register listeners individually with `Promise.allSettled()` or a loop. Store each successful unlisten fn immediately. On failure, clean up only the ones that succeeded.
 
-- [ ] Task 4: Fix `lastSyncAt` being cleared during sync progress events
+- [x] Task 4: Fix `lastSyncAt` being cleared during sync progress events
   - **File:** `src/lib/features/sync/sync.service.ts:132-138`
   - **Bug:** `sync:progress` handler calls `syncStore.setStatus({ state: 'syncing', ... })` which replaces the entire status object, clearing `lastSyncAt`. The "Last sync" timestamp disappears from the UI during active sync.
   - **Fix:** Preserve `lastSyncAt` in progress updates: `syncStore.setStatus({ ...syncStore.status, state: 'syncing', peerId: ..., filesTotal: ..., filesDone: ... })`.
