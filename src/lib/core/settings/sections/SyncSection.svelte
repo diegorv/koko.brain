@@ -39,6 +39,7 @@
 	let newAllowedPath = $state('');
 	let confirmingReset = $state(false);
 	let confirmingChangePass = $state(false);
+	let isTransitioning = $state(false);
 
 	const INTERVAL_OPTIONS = [
 		{ value: '1', label: '1 minute' },
@@ -124,20 +125,25 @@
 
 	async function handleToggleSync(enabled: boolean) {
 		const vp = vaultStore.path;
-		if (!vp) return;
+		if (!vp || isTransitioning) return;
 
-		settingsStore.updateSync({ enabled });
-		onchange();
+		isTransitioning = true;
+		try {
+			settingsStore.updateSync({ enabled });
+			onchange();
 
-		if (enabled) {
-			await initSync(vp);
-			// initSync catches errors internally and sets running=false on failure
-			if (!syncStore.isRunning) {
-				settingsStore.updateSync({ enabled: false });
-				onchange();
+			if (enabled) {
+				await initSync(vp);
+				// initSync catches errors internally and sets running=false on failure
+				if (!syncStore.isRunning) {
+					settingsStore.updateSync({ enabled: false });
+					onchange();
+				}
+			} else {
+				await teardownSync();
 			}
-		} else {
-			await teardownSync();
+		} finally {
+			isTransitioning = false;
 		}
 	}
 
@@ -316,7 +322,7 @@
 	>
 		<Switch
 			checked={settingsStore.sync.enabled}
-			disabled={passphraseStatus !== 'saved'}
+			disabled={passphraseStatus !== 'saved' || isTransitioning}
 			onCheckedChange={handleToggleSync}
 		/>
 	</SettingItem>
