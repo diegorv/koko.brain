@@ -124,12 +124,12 @@ pub fn derive_sync_keys(master_key: &[u8; 32]) -> Result<SyncKeys, String> {
 // Passphrase
 // ---------------------------------------------------------------------------
 
-/// Validates that a passphrase meets the minimum length requirement.
+/// Validates that a passphrase meets the minimum length requirement (character count, not bytes).
 pub fn validate_passphrase(passphrase: &str) -> Result<(), String> {
-	if passphrase.len() < MIN_PASSPHRASE_LEN {
+	let char_count = passphrase.chars().count();
+	if char_count < MIN_PASSPHRASE_LEN {
 		return Err(format!(
-			"Passphrase must be at least {MIN_PASSPHRASE_LEN} characters, got {}",
-			passphrase.len()
+			"Passphrase must be at least {MIN_PASSPHRASE_LEN} characters, got {char_count}",
 		));
 	}
 	Ok(())
