@@ -401,6 +401,8 @@ async fn handle_discovery_event(state: &EngineState, event: DiscoveryEvent) {
 			{
 				debug_log("SYNC", format!("Peer lost: {id} ({fullname})"));
 				peers.remove(&id);
+				// Clean up backoff state for the lost peer
+				state.retry_backoff.lock().await.remove(&id);
 				let _ = state.event_tx.send(SyncEvent::PeerLost { peer_id: id }).await;
 			}
 		}
@@ -458,6 +460,23 @@ async fn sync_all_peers(state: &EngineState) {
 	if peer_ids.is_empty() {
 		debug_log("SYNC", "Sync tick: no peers connected");
 		return;
+	}
+
+	// Prune backoff entries for peers that are no longer connected
+	{
+		let peer_set: HashSet<&String> = peer_ids.iter().collect();
+		let mut backoffs = state.retry_backoff.lock().await;
+		let stale: Vec<String> = backoffs
+			.keys()
+			.filter(|k| !peer_set.contains(k))
+			.cloned()
+			.collect();
+		for key in &stale {
+			backoffs.remove(key);
+		}
+		if !stale.is_empty() {
+			debug_log("SYNC", format!("Pruned {} stale backoff entries", stale.len()));
+		}
 	}
 
 	debug_log("SYNC", format!("Sync tick: syncing with {} peer(s)", peer_ids.len()));
