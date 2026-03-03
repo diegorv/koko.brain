@@ -73,6 +73,22 @@ describe('syncStore', () => {
 			expect(syncStore.status.filesTotal).toBe(10);
 			expect(syncStore.status.filesDone).toBe(3);
 		});
+
+		it('setStatus preserves lastSyncAt when explicitly passed during syncing', () => {
+			const timestamp = '2026-01-01T12:00:00.000Z';
+			syncStore.setStatus({ state: 'idle', lastSyncAt: timestamp });
+			expect(syncStore.status.lastSyncAt).toBe(timestamp);
+
+			// Simulate progress update preserving lastSyncAt
+			syncStore.setStatus({
+				state: 'syncing',
+				peerId: 'p1',
+				filesTotal: 5,
+				filesDone: 2,
+				lastSyncAt: syncStore.status.lastSyncAt,
+			});
+			expect(syncStore.status.lastSyncAt).toBe(timestamp);
+		});
 	});
 
 	describe('running', () => {
