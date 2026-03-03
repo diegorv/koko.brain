@@ -87,7 +87,7 @@ pub async fn change_sync_passphrase(
 
 /// Full sync reset: stops engine, deletes identity/state/keys.
 ///
-/// Preserves `.noted/sync-local.json` (local exclusions).
+/// Preserves `.noted/sync-local.json` (local allowlist config).
 /// After reset, the user re-enters passphrase and re-enables sync.
 #[tauri::command]
 pub async fn reset_sync(
@@ -137,7 +137,7 @@ pub fn get_sync_local_config(vault_path: String) -> Result<SyncLocalConfig, Stri
 	crypto::load_sync_local_config(&vault_path)
 }
 
-/// Saves the local sync config and hot-reloads excluded paths if engine is active.
+/// Saves the local sync config and hot-reloads allowed paths if engine is active.
 #[tauri::command]
 pub async fn save_sync_local_config(
 	vault_path: String,
@@ -146,10 +146,10 @@ pub async fn save_sync_local_config(
 ) -> Result<(), String> {
 	crypto::save_sync_local_config(&vault_path, &config)?;
 
-	// Hot-reload excluded paths if engine is running
+	// Hot-reload allowed paths if engine is running
 	let engine = engine_state.lock().await;
 	if let Some(ref e) = *engine {
-		e.reload_excluded_paths().await?;
+		e.reload_allowed_paths().await?;
 	}
 
 	Ok(())

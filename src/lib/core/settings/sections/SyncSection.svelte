@@ -34,7 +34,7 @@
 	let showPassphrase = $state(false);
 	let passphraseStatus = $state<'unknown' | 'saved' | 'not-configured'>('unknown');
 	let isSaving = $state(false);
-	let newExcludedPath = $state('');
+	let newAllowedPath = $state('');
 	let confirmingReset = $state(false);
 	let confirmingChangePass = $state(false);
 
@@ -147,18 +147,18 @@
 		}
 	}
 
-	async function handleAddExcludedPath() {
+	async function handleAddAllowedPath() {
 		const vp = vaultStore.path;
-		if (!vp || !newExcludedPath.trim()) return;
-		const updated = [...syncStore.excludedPaths, newExcludedPath.trim()];
+		if (!vp || !newAllowedPath.trim()) return;
+		const updated = [...syncStore.allowedPaths, newAllowedPath.trim()];
 		await saveSyncLocalConfig(vp, updated);
-		newExcludedPath = '';
+		newAllowedPath = '';
 	}
 
-	async function handleRemoveExcludedPath(path: string) {
+	async function handleRemoveAllowedPath(path: string) {
 		const vp = vaultStore.path;
 		if (!vp) return;
-		const updated = syncStore.excludedPaths.filter((p) => p !== path);
+		const updated = syncStore.allowedPaths.filter((p) => p !== path);
 		await saveSyncLocalConfig(vp, updated);
 	}
 
@@ -341,20 +341,20 @@
 		/>
 	</SettingItem>
 
-	<!-- Excluded paths -->
+	<!-- Allowed paths -->
 	<div class="flex flex-col gap-2 rounded-lg px-4 py-3 bg-setting-item-bg">
 		<div class="flex flex-col gap-1">
-			<span class="text-sm font-medium text-settings-text">Excluded paths</span>
-			<span class="text-xs text-muted-foreground">Paths to exclude from sync (relative to vault root, stored locally)</span>
+			<span class="text-sm font-medium text-settings-text">Allowed paths</span>
+			<span class="text-xs text-muted-foreground">Only files matching these glob patterns will be synced (e.g. "notes/**", "**" for all)</span>
 		</div>
-		{#if syncStore.excludedPaths.length > 0}
+		{#if syncStore.allowedPaths.length > 0}
 			<div class="flex flex-col gap-1">
-				{#each syncStore.excludedPaths as path (path)}
+				{#each syncStore.allowedPaths as path (path)}
 					<div class="flex items-center gap-2 text-sm text-muted-foreground">
 						<span class="font-mono text-xs flex-1 truncate">{path}</span>
 						<button
 							class="p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-							onclick={() => handleRemoveExcludedPath(path)}
+							onclick={() => handleRemoveAllowedPath(path)}
 							title="Remove path"
 						>
 							<XIcon class="size-3.5" />
@@ -366,12 +366,12 @@
 		<div class="flex items-center gap-2">
 			<input
 				type="text"
-				bind:value={newExcludedPath}
-				placeholder="e.g. .noted/"
+				bind:value={newAllowedPath}
+				placeholder='e.g. notes/** or ** for all'
 				class="h-7 flex-1 rounded-md border border-border bg-background px-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-				onkeydown={(e) => { if (e.key === 'Enter') handleAddExcludedPath(); }}
+				onkeydown={(e) => { if (e.key === 'Enter') handleAddAllowedPath(); }}
 			/>
-			<Button variant="outline" size="sm" onclick={handleAddExcludedPath} disabled={!newExcludedPath.trim()}>
+			<Button variant="outline" size="sm" onclick={handleAddAllowedPath} disabled={!newAllowedPath.trim()}>
 				<PlusIcon class="size-3.5 mr-1" />
 				Add
 			</Button>

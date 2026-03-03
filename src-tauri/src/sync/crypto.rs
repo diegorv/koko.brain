@@ -50,9 +50,9 @@ pub struct SyncState {
 /// Local sync configuration per vault (stored in `.noted/sync-local.json`, never synced).
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct SyncLocalConfig {
-	/// Glob patterns for paths excluded from sync on this machine.
+	/// Glob patterns for paths allowed to sync on this machine (allowlist).
 	#[serde(default)]
-	pub excluded_paths: Vec<String>,
+	pub allowed_paths: Vec<String>,
 	/// TCP port for the sync server (default: 39782).
 	#[serde(default = "default_port")]
 	pub port: u16,
@@ -72,7 +72,7 @@ fn default_interval() -> u64 {
 impl Default for SyncLocalConfig {
 	fn default() -> Self {
 		Self {
-			excluded_paths: Vec::new(),
+			allowed_paths: Vec::new(),
 			port: default_port(),
 			interval_secs: default_interval(),
 		}

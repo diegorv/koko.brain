@@ -209,7 +209,7 @@ fn save_and_load_sync_state_roundtrip() {
 fn load_sync_local_config_default_when_missing() {
 	let dir = tempfile::tempdir().unwrap();
 	let config = load_sync_local_config(dir.path().to_str().unwrap()).unwrap();
-	assert!(config.excluded_paths.is_empty());
+	assert!(config.allowed_paths.is_empty());
 	assert_eq!(config.port, 39782);
 	assert_eq!(config.interval_secs, 300);
 }
@@ -220,7 +220,7 @@ fn save_and_load_sync_local_config_roundtrip() {
 	let vault_path = dir.path().to_str().unwrap();
 
 	let config = SyncLocalConfig {
-		excluded_paths: vec!["private/".to_string(), "drafts/".to_string()],
+		allowed_paths: vec!["private/".to_string(), "drafts/".to_string()],
 		port: 40000,
 		interval_secs: 120,
 	};
@@ -228,7 +228,7 @@ fn save_and_load_sync_local_config_roundtrip() {
 	save_sync_local_config(vault_path, &config).unwrap();
 	let loaded = load_sync_local_config(vault_path).unwrap();
 
-	assert_eq!(loaded.excluded_paths, vec!["private/", "drafts/"]);
+	assert_eq!(loaded.allowed_paths, vec!["private/", "drafts/"]);
 	assert_eq!(loaded.port, 40000);
 	assert_eq!(loaded.interval_secs, 120);
 }

@@ -30,6 +30,12 @@ fn create_test_vault(uuid: &str) -> TempDir {
 	let noted_dir = tmp.path().join(".noted");
 	std::fs::create_dir_all(&noted_dir).unwrap();
 	std::fs::write(noted_dir.join("vault-id"), uuid).unwrap();
+	// Default sync-local.json with wildcard allowlist so all files sync in tests
+	std::fs::write(
+		noted_dir.join("sync-local.json"),
+		r#"{"allowed_paths":["**"]}"#,
+	)
+	.unwrap();
 	tmp
 }
 
@@ -111,7 +117,7 @@ async fn test_full_sync_cycle_two_peers() {
 	// Build Peer A's local manifest
 	let local_manifest = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 	assert!(
@@ -158,7 +164,7 @@ async fn test_delete_propagation_two_peers() {
 	// Build baseline from A (both vaults are identical at this point)
 	let baseline = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 	assert!(
@@ -197,7 +203,7 @@ async fn test_delete_propagation_two_peers() {
 	let remote_manifest = session.fetch_manifest(&keys.hmac_key).await.unwrap();
 	let local_manifest = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 
@@ -242,7 +248,7 @@ async fn test_delete_modify_conflict_keeps_modified() {
 	// Build baseline (both have same content)
 	let baseline = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 
@@ -280,7 +286,7 @@ async fn test_delete_modify_conflict_keeps_modified() {
 	let remote_manifest = session.fetch_manifest(&keys.hmac_key).await.unwrap();
 	let local_manifest = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 
@@ -335,7 +341,7 @@ async fn test_three_way_diff_no_false_conflicts() {
 	// Build baseline (same content on both)
 	let baseline = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 
@@ -370,7 +376,7 @@ async fn test_three_way_diff_no_false_conflicts() {
 	let remote_manifest = session.fetch_manifest(&keys.hmac_key).await.unwrap();
 	let local_manifest = manifest::build_manifest(
 		vault_a.path().to_str().unwrap(),
-		&[],
+		&["**".to_string()],
 	)
 	.unwrap();
 
@@ -537,7 +543,7 @@ fn test_baseline_persists_across_restarts() {
 
 	// Write a file and build a manifest to use as baseline
 	write_vault_md(&vault, "persist.md", "# Persistent note");
-	let manifest = manifest::build_manifest(vault_path, &[]).unwrap();
+	let manifest = manifest::build_manifest(vault_path, &["**".to_string()]).unwrap();
 	// Manifest includes persist.md + .noted/vault-id (from NOTED_DIR_ALLOWLIST)
 	assert!(
 		manifest.files.iter().any(|f| f.path == "persist.md"),
@@ -575,7 +581,7 @@ fn test_baseline_persists_across_restarts() {
 	assert_eq!(*loaded.last_sync.get("peer-abc").unwrap(), 1700000000u64);
 
 	// Use the loaded baseline in a diff to verify it works end-to-end
-	let new_manifest = manifest::build_manifest(vault_path, &[]).unwrap();
+	let new_manifest = manifest::build_manifest(vault_path, &["**".to_string()]).unwrap();
 	let diffs = manifest::diff_manifests(
 		&new_manifest,
 		&new_manifest,

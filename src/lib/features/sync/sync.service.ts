@@ -50,24 +50,24 @@ export async function deletePassphrase(vaultPath: string): Promise<void> {
 	}
 }
 
-// ── Local config (excluded paths) ────────────────────────────────────
+// ── Local config (allowed paths) ─────────────────────────────────────
 
 /** Loads sync-local.json config and updates the store */
 export async function loadSyncLocalConfig(vaultPath: string): Promise<void> {
 	try {
-		const config = await invoke<{ excluded_paths: string[] }>('get_sync_local_config', { vaultPath });
-		syncStore.setExcludedPaths(config.excluded_paths);
+		const config = await invoke<{ allowed_paths: string[] }>('get_sync_local_config', { vaultPath });
+		syncStore.setAllowedPaths(config.allowed_paths);
 	} catch (err) {
 		error('SYNC', 'Failed to load sync local config:', err);
 		throw err;
 	}
 }
 
-/** Saves excluded paths to sync-local.json and updates the store */
-export async function saveSyncLocalConfig(vaultPath: string, excludedPaths: string[]): Promise<void> {
+/** Saves allowed paths to sync-local.json and updates the store */
+export async function saveSyncLocalConfig(vaultPath: string, allowedPaths: string[]): Promise<void> {
 	try {
-		await invoke('save_sync_local_config', { vaultPath, config: { excluded_paths: excludedPaths } });
-		syncStore.setExcludedPaths(excludedPaths);
+		await invoke('save_sync_local_config', { vaultPath, config: { allowed_paths: allowedPaths } });
+		syncStore.setAllowedPaths(allowedPaths);
 	} catch (err) {
 		error('SYNC', 'Failed to save sync local config:', err);
 		throw err;

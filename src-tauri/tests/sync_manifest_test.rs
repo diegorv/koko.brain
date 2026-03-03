@@ -1,41 +1,42 @@
 use noted_lib::sync::manifest::{
-	build_manifest, diff_manifests, is_excluded, FileDiff, FileEntry, Side, SyncManifest,
+	build_manifest, diff_manifests, is_allowed, FileDiff, FileEntry, Side, SyncManifest,
 };
 
 // ---------------------------------------------------------------------------
-// is_excluded
+// is_allowed
 // ---------------------------------------------------------------------------
 
 #[test]
-fn is_excluded_folder() {
-	assert!(is_excluded(
-		".noted/trash/old.md",
-		&[]
-	));
-	assert!(is_excluded(".noted/sync-identity", &[]));
-	assert!(is_excluded(".noted/sync-local.json", &[]));
-	assert!(is_excluded(".noted/sync-state.json", &[]));
+fn is_allowed_rejects_hardcoded_excludes() {
+	let allow = vec!["**".to_string()];
+	assert!(!is_allowed(".noted/trash/old.md", &allow));
+	assert!(!is_allowed(".noted/sync-identity", &allow));
+	assert!(!is_allowed(".noted/sync-local.json", &allow));
+	assert!(!is_allowed(".noted/sync-state.json", &allow));
+	assert!(!is_allowed("noted.db", &allow));
+	assert!(!is_allowed("noted.db-wal", &allow));
+	assert!(!is_allowed("noted.db-shm", &allow));
 }
 
 #[test]
-fn is_excluded_glob() {
-	let excl = vec!["private/**".to_string(), "drafts/".to_string()];
-	assert!(is_excluded("private/secret.md", &excl));
-	assert!(!is_excluded("notes/hello.md", &excl));
+fn is_allowed_matches_glob() {
+	let allow = vec!["notes/**".to_string()];
+	assert!(is_allowed("notes/hello.md", &allow));
+	assert!(!is_allowed("private/secret.md", &allow));
 }
 
 #[test]
-fn is_excluded_empty_list() {
-	assert!(!is_excluded("notes/hello.md", &[]));
-	assert!(!is_excluded("README.md", &[]));
+fn is_allowed_empty_list_rejects_all() {
+	assert!(!is_allowed("notes/hello.md", &[]));
+	assert!(!is_allowed("README.md", &[]));
 }
 
 #[test]
-fn is_excluded_hardcoded_always_applies() {
-	// Even with an empty user list, hardcoded exclusions apply
-	assert!(is_excluded("noted.db", &[]));
-	assert!(is_excluded("noted.db-wal", &[]));
-	assert!(is_excluded("noted.db-shm", &[]));
+fn is_allowed_wildcard_allows_all_non_hardcoded() {
+	let allow = vec!["**".to_string()];
+	assert!(is_allowed("notes/hello.md", &allow));
+	assert!(is_allowed("README.md", &allow));
+	assert!(is_allowed("sub/deep/file.md", &allow));
 }
 
 // ---------------------------------------------------------------------------
@@ -51,7 +52,8 @@ fn build_manifest_excludes_sync_local_json() {
 	std::fs::write(noted.join("sync-local.json"), "{}").unwrap();
 	std::fs::write(vault.join("note.md"), "# Hello").unwrap();
 
-	let manifest = build_manifest(vault.to_str().unwrap(), &[]).unwrap();
+	let allow = vec!["**".to_string()];
+	let manifest = build_manifest(vault.to_str().unwrap(), &allow).unwrap();
 	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
 	assert!(!paths.contains(&".noted/sync-local.json"));
 }
@@ -65,7 +67,8 @@ fn build_manifest_excludes_sync_state_json() {
 	std::fs::write(noted.join("sync-state.json"), "{}").unwrap();
 	std::fs::write(vault.join("note.md"), "# Hello").unwrap();
 
-	let manifest = build_manifest(vault.to_str().unwrap(), &[]).unwrap();
+	let allow = vec!["**".to_string()];
+	let manifest = build_manifest(vault.to_str().unwrap(), &allow).unwrap();
 	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
 	assert!(!paths.contains(&".noted/sync-state.json"));
 }
@@ -78,6 +81,7 @@ fn build_manifest_includes_settings_json() {
 	std::fs::create_dir_all(&noted).unwrap();
 	std::fs::write(noted.join("settings.json"), r#"{"theme":"dark"}"#).unwrap();
 
+	// System files are always included regardless of user allowlist
 	let manifest = build_manifest(vault.to_str().unwrap(), &[]).unwrap();
 	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
 	assert!(paths.contains(&".noted/settings.json"));
@@ -91,35 +95,54 @@ fn build_manifest_includes_vault_id() {
 	std::fs::create_dir_all(&noted).unwrap();
 	std::fs::write(noted.join("vault-id"), "test-uuid").unwrap();
 
+	// System files are always included regardless of user allowlist
 	let manifest = build_manifest(vault.to_str().unwrap(), &[]).unwrap();
 	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
 	assert!(paths.contains(&".noted/vault-id"));
 }
 
 #[test]
-fn build_manifest_collects_md_files() {
+fn build_manifest_collects_md_files_matching_allowlist() {
 	let dir = tempfile::tempdir().unwrap();
 	let vault = dir.path();
 	std::fs::write(vault.join("hello.md"), "# Hello").unwrap();
 	std::fs::create_dir_all(vault.join("sub")).unwrap();
 	std::fs::write(vault.join("sub/nested.md"), "# Nested").unwrap();
 
-	let manifest = build_manifest(vault.to_str().unwrap(), &[]).unwrap();
+	let allow = vec!["**".to_string()];
+	let manifest = build_manifest(vault.to_str().unwrap(), &allow).unwrap();
 	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
 	assert!(paths.contains(&"hello.md"));
 	assert!(paths.contains(&"sub/nested.md"));
 }
 
 #[test]
-fn build_manifest_respects_user_exclusions() {
+fn build_manifest_empty_allowlist_excludes_user_files() {
+	let dir = tempfile::tempdir().unwrap();
+	let vault = dir.path();
+	std::fs::write(vault.join("hello.md"), "# Hello").unwrap();
+	let noted = vault.join(".noted");
+	std::fs::create_dir_all(&noted).unwrap();
+	std::fs::write(noted.join("vault-id"), "test-uuid").unwrap();
+
+	// Empty allowlist: no user files, but system files still included
+	let manifest = build_manifest(vault.to_str().unwrap(), &[]).unwrap();
+	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
+	assert!(!paths.contains(&"hello.md"));
+	assert!(paths.contains(&".noted/vault-id"));
+}
+
+#[test]
+fn build_manifest_respects_user_allowlist() {
 	let dir = tempfile::tempdir().unwrap();
 	let vault = dir.path();
 	std::fs::create_dir_all(vault.join("private")).unwrap();
 	std::fs::write(vault.join("private/secret.md"), "secret").unwrap();
 	std::fs::write(vault.join("public.md"), "public").unwrap();
 
-	let excl = vec!["private/**".to_string()];
-	let manifest = build_manifest(vault.to_str().unwrap(), &excl).unwrap();
+	// Only allow "public.md" — "private/**" not in allowlist
+	let allow = vec!["public.md".to_string()];
+	let manifest = build_manifest(vault.to_str().unwrap(), &allow).unwrap();
 	let paths: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
 	assert!(!paths.contains(&"private/secret.md"));
 	assert!(paths.contains(&"public.md"));

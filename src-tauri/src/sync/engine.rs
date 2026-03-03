@@ -139,7 +139,7 @@ struct EngineState {
 	peers_syncing: Mutex<HashSet<String>>,
 	status: Mutex<SyncStatus>,
 	retry_backoff: Mutex<HashMap<String, RetryState>>,
-	excluded_paths: Mutex<Vec<String>>,
+	allowed_paths: Mutex<Vec<String>>,
 	sync_state: Mutex<SyncState>,
 	event_tx: mpsc::Sender<SyncEvent>,
 }
@@ -176,10 +176,10 @@ impl SyncEngine {
 		let sync_state = crypto::load_sync_state(&vault_path)?;
 		let config = crypto::load_sync_local_config(&vault_path)?;
 		debug_log("SYNC", format!(
-			"Config: port={}, interval={}s, excluded={} paths",
+			"Config: port={}, interval={}s, allowed={} paths",
 			config.port,
 			config.interval_secs,
-			config.excluded_paths.len()
+			config.allowed_paths.len()
 		));
 
 		// Start server (separate copy of keys — both zeroed independently on drop)
@@ -201,7 +201,7 @@ impl SyncEngine {
 		debug_log("SYNC", "mDNS discovery started");
 
 		// Build shared state
-		let excluded_count = config.excluded_paths.len();
+		let allowed_count = config.allowed_paths.len();
 		let state = Arc::new(EngineState {
 			vault_path,
 			psk_key: sync_keys.psk_key,
@@ -212,7 +212,7 @@ impl SyncEngine {
 			peers_syncing: Mutex::new(HashSet::new()),
 			status: Mutex::new(SyncStatus::Idle),
 			retry_backoff: Mutex::new(HashMap::new()),
-			excluded_paths: Mutex::new(config.excluded_paths),
+			allowed_paths: Mutex::new(config.allowed_paths),
 			sync_state: Mutex::new(sync_state),
 			event_tx,
 		});
@@ -229,7 +229,7 @@ impl SyncEngine {
 		));
 
 		debug_log("SYNC", format!(
-			"Engine ready: uuid={canonical_uuid}, excluded={excluded_count} paths, interval={}s",
+			"Engine ready: uuid={canonical_uuid}, allowed={allowed_count} paths, interval={}s",
 			config.interval_secs
 		));
 
@@ -259,12 +259,12 @@ impl SyncEngine {
 		self.state.peers.lock().await.values().cloned().collect()
 	}
 
-	/// Reloads excluded paths from `sync-local.json` without restarting the engine.
-	pub async fn reload_excluded_paths(&self) -> Result<(), String> {
+	/// Reloads allowed paths from `sync-local.json` without restarting the engine.
+	pub async fn reload_allowed_paths(&self) -> Result<(), String> {
 		let config = crypto::load_sync_local_config(&self.state.vault_path)?;
-		let mut excluded = self.state.excluded_paths.lock().await;
-		*excluded = config.excluded_paths;
-		debug_log("SYNC", format!("Excluded paths reloaded: {} patterns", excluded.len()));
+		let mut allowed = self.state.allowed_paths.lock().await;
+		*allowed = config.allowed_paths;
+		debug_log("SYNC", format!("Allowed paths reloaded: {} patterns", allowed.len()));
 		Ok(())
 	}
 
@@ -567,8 +567,8 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 	debug_log("SYNC", format!("Remote manifest: {} files from {peer_id}", remote_manifest.files.len()));
 
 	// Build local manifest
-	let excluded = state.excluded_paths.lock().await.clone();
-	let local_manifest = manifest::build_manifest(&state.vault_path, &excluded)?;
+	let allowed = state.allowed_paths.lock().await.clone();
+	let local_manifest = manifest::build_manifest(&state.vault_path, &allowed)?;
 	debug_log("SYNC", format!("Local manifest: {} files", local_manifest.files.len()));
 
 	// Load baseline for this peer
@@ -587,10 +587,10 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 	// Three-way diff
 	let diffs = manifest::diff_manifests(&local_manifest, &remote_manifest, baseline.as_ref());
 
-	// Filter by local excluded_paths (receptor-side filtering)
+	// Filter by local allowed_paths (receptor-side filtering)
 	let diffs: Vec<_> = diffs
 		.into_iter()
-		.filter(|(path, _)| !manifest::is_excluded(path, &excluded))
+		.filter(|(path, _)| manifest::is_allowed(path, &allowed))
 		.collect();
 
 	let total = diffs
@@ -749,7 +749,7 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 
 	// Save baseline (rebuild manifest after all changes)
 	debug_log("SYNC", format!("Saving baseline for {peer_id}…"));
-	let reconciled = manifest::build_manifest(&state.vault_path, &excluded)?;
+	let reconciled = manifest::build_manifest(&state.vault_path, &allowed)?;
 	{
 		let mut sync_state = state.sync_state.lock().await;
 		sync_state.baseline_manifests.insert(
