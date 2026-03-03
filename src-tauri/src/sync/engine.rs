@@ -432,7 +432,7 @@ async fn authenticate_candidate(
 	}
 
 	Ok(SyncPeer {
-		id: session.peer_uuid().to_string(),
+		id: format!("{}:{}", candidate.ip, candidate.port),
 		name: candidate.name.clone(),
 		ip: candidate.ip,
 		port: candidate.port,
