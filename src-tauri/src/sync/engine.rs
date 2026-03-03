@@ -632,7 +632,15 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 		sync_state
 			.baseline_manifests
 			.get(peer_id)
-			.and_then(|v| serde_json::from_value(v.clone()).ok())
+			.and_then(|v| match serde_json::from_value::<SyncManifest>(v.clone()) {
+				Ok(manifest) => Some(manifest),
+				Err(e) => {
+					debug_log("SYNC", format!(
+						"WARNING: corrupt baseline for {peer_id}, treating as first sync: {e}"
+					));
+					None
+				}
+			})
 	};
 	debug_log("SYNC", format!(
 		"Baseline for {peer_id}: {}",

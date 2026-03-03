@@ -49,7 +49,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** `updateSyncInterval()` can throw (engine restart failure), but the caller has no try/catch. The UI shows the new interval but the engine may have crashed.
   - **Fix:** Wrap in try/catch, revert `settingsStore.updateSync` and show a toast on failure.
 
-- [ ] Task 9: Fix baseline deserialization silently dropping errors
+- [x] Task 9: Fix baseline deserialization silently dropping errors
   - **File:** `src-tauri/src/sync/engine.rs:594-600`
   - **Bug:** `.and_then(|v| serde_json::from_value(v.clone()).ok())` silently treats corrupt baselines as "no baseline" (first sync), which triggers unnecessary conflicts instead of logging the corruption.
   - **Fix:** Match on the Result, log a warning on `Err`, then fall back to `None`.
