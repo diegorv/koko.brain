@@ -44,7 +44,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** No mutex/flag prevents concurrent `initSync()`/`teardownSync()`. Rapid toggling can register duplicate event listeners.
   - **Fix:** Add an `isTransitioning` flag (or similar guard) to `handleToggleSync` — disable the toggle during async operations.
 
-- [ ] Task 8: Add error handling to `handleIntervalChange`
+- [x] Task 8: Add error handling to `handleIntervalChange`
   - **File:** `src/lib/core/settings/sections/SyncSection.svelte:143-152`
   - **Bug:** `updateSyncInterval()` can throw (engine restart failure), but the caller has no try/catch. The UI shows the new interval but the engine may have crashed.
   - **Fix:** Wrap in try/catch, revert `settingsStore.updateSync` and show a toast on failure.
