@@ -17,7 +17,7 @@ use super::crypto::{
 	load_sync_local_config, load_sync_state, save_sync_state, sign_manifest, SyncKeys,
 	PROTOCOL_VERSION,
 };
-use super::manifest::{build_manifest, FileEntry};
+use super::manifest::{build_manifest, is_allowed, FileEntry};
 use super::noise_transport::NoiseTransport;
 use crate::utils::logger::debug_log;
 
@@ -357,6 +357,10 @@ async fn handle_connection(
 	let peer_uuid = handle_uuid_exchange(&mut transport, &state).await?;
 	debug_log("SYNC:SRV", format!("UUID exchange complete: peer={peer_uuid}"));
 
+	// Load allowed_paths once per connection for enforcing on all file operations
+	let config = load_sync_local_config(&state.vault_path)?;
+	let allowed_paths = config.allowed_paths;
+
 	// Message loop with idle timeout
 	loop {
 		tokio::select! {
@@ -373,13 +377,13 @@ async fn handle_connection(
 						handle_manifest_request(&mut transport, &state).await?;
 					}
 					msg::FILE_REQUEST => {
-						handle_file_request(&mut transport, &state, &payload).await?;
+						handle_file_request(&mut transport, &state, &payload, &allowed_paths).await?;
 					}
 					msg::FILE_PUSH => {
-						handle_file_push(&mut transport, &state, &payload).await?;
+						handle_file_push(&mut transport, &state, &payload, &allowed_paths).await?;
 					}
 					msg::FILE_DELETE => {
-						handle_file_delete(&mut transport, &state, &payload).await?;
+						handle_file_delete(&mut transport, &state, &payload, &allowed_paths).await?;
 					}
 					_ => {
 						let err = ErrorMessage {
@@ -506,9 +510,17 @@ async fn handle_file_request(
 	transport: &mut NoiseTransport,
 	state: &SyncServerState,
 	payload: &[u8],
+	allowed_paths: &[String],
 ) -> Result<(), String> {
 	let request: FileRequest = serde_json::from_slice(payload)
 		.map_err(|e| format!("Invalid file_request payload: {e}"))?;
+
+	if !is_allowed(&request.path, allowed_paths) {
+		debug_log("SYNC:SRV", format!("File request rejected (not in allowed_paths): {}", request.path));
+		let error = ErrorMessage { message: "Path not allowed".to_string() };
+		let err_payload = serde_json::to_vec(&error).unwrap_or_default();
+		return transport.send(msg::ERROR, &err_payload).await;
+	}
 
 	debug_log("SYNC:SRV", format!("File requested: {}", request.path));
 	match read_vault_file(&state.vault_path, &request.path) {
@@ -535,9 +547,17 @@ async fn handle_file_push(
 	transport: &mut NoiseTransport,
 	state: &SyncServerState,
 	payload: &[u8],
+	allowed_paths: &[String],
 ) -> Result<(), String> {
 	let push: FilePush = serde_json::from_slice(payload)
 		.map_err(|e| format!("Invalid file_push payload: {e}"))?;
+
+	if !is_allowed(&push.path, allowed_paths) {
+		debug_log("SYNC:SRV", format!("File push rejected (not in allowed_paths): {}", push.path));
+		let ack = FilePushAck { path: push.path, ok: false };
+		let ack_payload = serde_json::to_vec(&ack).map_err(|e| format!("Failed to serialize push ack: {e}"))?;
+		return transport.send(msg::FILE_PUSH_ACK, &ack_payload).await;
+	}
 
 	let content = BASE64
 		.decode(&push.content)
@@ -560,9 +580,17 @@ async fn handle_file_delete(
 	transport: &mut NoiseTransport,
 	state: &SyncServerState,
 	payload: &[u8],
+	allowed_paths: &[String],
 ) -> Result<(), String> {
 	let delete: FileDelete = serde_json::from_slice(payload)
 		.map_err(|e| format!("Invalid file_delete payload: {e}"))?;
+
+	if !is_allowed(&delete.path, allowed_paths) {
+		debug_log("SYNC:SRV", format!("File delete rejected (not in allowed_paths): {}", delete.path));
+		let ack = FileDeleteAck { path: delete.path, ok: false };
+		let ack_payload = serde_json::to_vec(&ack).map_err(|e| format!("Failed to serialize delete ack: {e}"))?;
+		return transport.send(msg::FILE_DELETE_ACK, &ack_payload).await;
+	}
 
 	debug_log("SYNC:SRV", format!("File delete: {}", delete.path));
 	let result = super::conflict::safe_delete_file(&state.vault_path, &delete.path);
