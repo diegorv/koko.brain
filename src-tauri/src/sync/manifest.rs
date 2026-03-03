@@ -140,8 +140,11 @@ pub fn build_manifest(
 		if !is_allowed(rel_path, allowed_paths) {
 			continue;
 		}
-		if let Ok(entry) = build_file_entry(vault_root, rel_path, abs_path) {
-			entries.push(entry);
+		match build_file_entry(vault_root, rel_path, abs_path) {
+			Ok(entry) => entries.push(entry),
+			Err(e) => {
+				eprintln!("[SYNC:MANIFEST] Warning: skipping {rel_path}: {e}");
+			}
 		}
 	}
 
@@ -155,8 +158,11 @@ pub fn build_manifest(
 				// Only check hardcoded excludes (not user allowlist)
 				let hardcoded_blocked = HARDCODED_EXCLUDES.iter().any(|p| rel_path == *p);
 				if !hardcoded_blocked {
-					if let Ok(entry) = build_file_entry(vault_root, &rel_path, &abs_path) {
-						entries.push(entry);
+					match build_file_entry(vault_root, &rel_path, &abs_path) {
+						Ok(entry) => entries.push(entry),
+						Err(e) => {
+							eprintln!("[SYNC:MANIFEST] Warning: skipping {rel_path}: {e}");
+						}
 					}
 				}
 			}
@@ -174,12 +180,23 @@ pub fn build_manifest(
 	})
 }
 
+/// Maximum file size for manifest inclusion (10 MB).
+const MAX_FILE_SIZE_BYTES: u64 = 10 * 1024 * 1024;
+
 /// Builds a `FileEntry` for a single file.
 fn build_file_entry(
 	_vault_root: &Path,
 	rel_path: &str,
 	abs_path: &Path,
 ) -> Result<FileEntry, String> {
+	// Check file size before reading into memory
+	let file_size = std::fs::metadata(abs_path)
+		.map_err(|e| format!("Failed to stat {rel_path}: {e}"))?
+		.len();
+	if file_size > MAX_FILE_SIZE_BYTES {
+		return Err(format!("File too large ({file_size} bytes): {rel_path}"));
+	}
+
 	let content =
 		std::fs::read(abs_path).map_err(|e| format!("Failed to read {rel_path}: {e}"))?;
 
