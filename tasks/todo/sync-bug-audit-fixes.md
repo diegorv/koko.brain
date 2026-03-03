@@ -12,7 +12,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** `handlePortChange()` only updates `settingsStore.sync.port` — the running engine keeps listening on the old port. Compare with `handleIntervalChange()` (line 143) which correctly calls `updateSyncInterval()` to restart.
   - **Fix:** Add `updateSyncPort()` in `sync.service.ts` (mirrors `updateSyncInterval`): save config → restart engine if running. Call it from `handlePortChange`.
 
-- [ ] Task 2: Fix `teardownSync()` resetting store even when `stop_sync` fails
+- [x] Task 2: Fix `teardownSync()` resetting store even when `stop_sync` fails
   - **File:** `src/lib/features/sync/sync.service.ts:213-222`
   - **Bug:** `syncStore.reset()` runs unconditionally at line 221, even if `invoke('stop_sync')` threw at line 217. The backend engine may still be running, but frontend state says it's stopped. A subsequent `initSync()` would try to start a second engine.
   - **Fix:** Only call `syncStore.reset()` inside the try block after successful stop. In catch, log but leave `running=true` so the UI reflects the real state.

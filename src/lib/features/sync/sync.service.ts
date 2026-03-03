@@ -234,10 +234,12 @@ export async function teardownSync(): Promise<void> {
 	removeSyncListeners();
 	try {
 		await invoke('stop_sync');
+		syncStore.reset();
 	} catch (err) {
 		error('SYNC', 'Failed to stop sync engine:', err);
+		// Don't reset store — backend may still be running.
+		// Only clear listeners (already done above) to avoid duplicates on retry.
 	}
-	syncStore.reset();
 }
 
 // ── User actions ─────────────────────────────────────────────────────
