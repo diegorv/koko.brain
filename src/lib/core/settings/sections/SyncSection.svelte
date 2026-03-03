@@ -26,6 +26,7 @@
 		updateSyncInterval,
 		updateSyncPort,
 	} from '$lib/features/sync/sync.service';
+	import { toast } from 'svelte-sonner';
 	import { error } from '$lib/utils/debug';
 	import SettingItem from './SettingItem.svelte';
 
@@ -149,12 +150,20 @@
 
 	async function handleIntervalChange(value: string) {
 		const minutes = Number(value);
+		const previousMinutes = settingsStore.sync.intervalMinutes;
 		settingsStore.updateSync({ intervalMinutes: minutes });
 		onchange();
 
 		const vp = vaultStore.path;
 		if (vp) {
-			await updateSyncInterval(vp, minutes);
+			try {
+				await updateSyncInterval(vp, minutes);
+			} catch (err) {
+				error('SYNC', 'Failed to update interval:', err);
+				toast.error('Failed to update sync interval');
+				settingsStore.updateSync({ intervalMinutes: previousMinutes });
+				onchange();
+			}
 		}
 	}
 
@@ -162,11 +171,19 @@
 		const vp = vaultStore.path;
 		const val = Number((e.currentTarget as HTMLInputElement).value);
 		if (val >= 1024 && val <= 65535) {
+			const previousPort = settingsStore.sync.port;
 			settingsStore.updateSync({ port: val });
 			onchange();
 
 			if (vp) {
-				await updateSyncPort(vp, val);
+				try {
+					await updateSyncPort(vp, val);
+				} catch (err) {
+					error('SYNC', 'Failed to update port:', err);
+					toast.error('Failed to update sync port');
+					settingsStore.updateSync({ port: previousPort });
+					onchange();
+				}
 			}
 		}
 	}
