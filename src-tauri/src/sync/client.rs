@@ -31,6 +31,14 @@ impl SyncSession {
 		&self.peer_uuid
 	}
 
+	/// Returns the peer's static public key from the Noise handshake.
+	///
+	/// This key is a stable device identifier — it persists across IP/port
+	/// changes because each device generates and stores its own keypair.
+	pub fn remote_static_key(&self) -> Option<&[u8]> {
+		self.transport.remote_static_key()
+	}
+
 	/// Requests the peer's manifest and verifies its HMAC signature.
 	///
 	/// Sends `manifest_request`, receives `manifest_response`, verifies HMAC
