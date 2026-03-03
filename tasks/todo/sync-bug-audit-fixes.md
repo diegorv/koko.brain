@@ -54,7 +54,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** `.and_then(|v| serde_json::from_value(v.clone()).ok())` silently treats corrupt baselines as "no baseline" (first sync), which triggers unnecessary conflicts instead of logging the corruption.
   - **Fix:** Match on the Result, log a warning on `Err`, then fall back to `None`.
 
-- [ ] Task 10: Log passphrase check errors instead of silently swallowing
+- [x] Task 10: Log passphrase check errors instead of silently swallowing
   - **File:** `src/lib/core/settings/sections/SyncSection.svelte:62-63`
   - **Bug:** `.catch(() => { passphraseStatus = 'unknown'; })` discards the error entirely.
   - **Fix:** Add `error('SYNC', 'Failed to check passphrase:', err)` in the catch.

@@ -62,7 +62,8 @@
 		if (vp) {
 			hasPassphrase(vp).then((has) => {
 				passphraseStatus = has ? 'saved' : 'not-configured';
-			}).catch(() => {
+			}).catch((err) => {
+				error('SYNC', 'Failed to check passphrase status:', err);
 				passphraseStatus = 'unknown';
 			});
 		}
