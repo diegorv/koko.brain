@@ -27,7 +27,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
   - **Bug:** `sync:progress` handler calls `syncStore.setStatus({ state: 'syncing', ... })` which replaces the entire status object, clearing `lastSyncAt`. The "Last sync" timestamp disappears from the UI during active sync.
   - **Fix:** Preserve `lastSyncAt` in progress updates: `syncStore.setStatus({ ...syncStore.status, state: 'syncing', peerId: ..., filesTotal: ..., filesDone: ... })`.
 
-- [ ] Task 5: Fix `retry_backoff` HashMap never being pruned
+- [x] Task 5: Fix `retry_backoff` HashMap never being pruned
   - **File:** `src-tauri/src/sync/engine.rs:143`
   - **Bug:** When a peer disappears (removed from `peers` map via `PeerLost`), its `retry_backoff` entry persists forever. The stale peer pruning in `crypto.rs` only cleans `baseline_manifests` and `last_sync`, not `retry_backoff`. Over time this leaks memory.
   - **Fix:** When handling `DiscoveryEvent::Lost`, also remove the peer's entry from `retry_backoff`. Additionally, prune backoff entries for peers not in `peers` map during `sync_all_peers`.
