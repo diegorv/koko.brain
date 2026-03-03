@@ -227,12 +227,16 @@ describe('teardownSync', () => {
 		expect(syncStore.peers).toEqual([]);
 	});
 
-	it('handles stop_sync failure gracefully', async () => {
+	it('handles stop_sync failure by keeping store state intact', async () => {
+		syncStore.setRunning(true);
+		syncStore.setPeers([{ id: 'p1', name: 'Test', ip: '1.2.3.4', port: 39782 }]);
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('not running'));
 
 		await teardownSync();
 
-		expect(syncStore.isRunning).toBe(false);
+		// Store should NOT be reset when stop fails — backend may still be running
+		expect(syncStore.isRunning).toBe(true);
+		expect(syncStore.peers).toHaveLength(1);
 	});
 });
 
