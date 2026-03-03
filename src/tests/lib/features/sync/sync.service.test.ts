@@ -32,6 +32,7 @@ import {
 	deletePassphrase,
 	loadSyncLocalConfig,
 	saveSyncLocalConfig,
+	updateSyncPort,
 	initSync,
 	teardownSync,
 	triggerSync,
@@ -109,6 +110,49 @@ describe('local config', () => {
 			config: { allowed_paths: ['notes/**', 'work/**'] },
 		});
 		expect(syncStore.allowedPaths).toEqual(['notes/**', 'work/**']);
+	});
+});
+
+describe('updateSyncPort', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		syncStore.reset();
+		settingsStore.reset();
+	});
+
+	it('saves port to local config', async () => {
+		await updateSyncPort('/vault', 45000);
+		expect(invoke).toHaveBeenCalledWith('save_sync_local_config', {
+			vaultPath: '/vault',
+			config: expect.objectContaining({ port: 45000 }),
+		});
+	});
+
+	it('restarts engine when running', async () => {
+		settingsStore.updateSync({ enabled: true, port: 45000 });
+		syncStore.setRunning(true);
+
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'has_sync_passphrase') return true;
+			if (cmd === 'get_sync_local_config') return { allowed_paths: [], port: 45000, interval_secs: 300 };
+		});
+
+		await updateSyncPort('/vault', 45000);
+
+		expect(invoke).toHaveBeenCalledWith('stop_sync');
+		expect(invoke).toHaveBeenCalledWith('start_sync', expect.objectContaining({ vaultPath: '/vault' }));
+	});
+
+	it('does not restart engine when not running', async () => {
+		syncStore.setRunning(false);
+		await updateSyncPort('/vault', 45000);
+		expect(invoke).not.toHaveBeenCalledWith('stop_sync');
+		expect(invoke).not.toHaveBeenCalledWith('start_sync', expect.anything());
+	});
+
+	it('propagates errors', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('disk full'));
+		await expect(updateSyncPort('/vault', 45000)).rejects.toThrow('disk full');
 	});
 });
 

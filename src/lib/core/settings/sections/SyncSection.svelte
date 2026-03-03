@@ -24,6 +24,7 @@
 		initSync,
 		teardownSync,
 		updateSyncInterval,
+		updateSyncPort,
 	} from '$lib/features/sync/sync.service';
 	import { error } from '$lib/utils/debug';
 	import SettingItem from './SettingItem.svelte';
@@ -151,11 +152,16 @@
 		}
 	}
 
-	function handlePortChange(e: Event) {
+	async function handlePortChange(e: Event) {
+		const vp = vaultStore.path;
 		const val = Number((e.currentTarget as HTMLInputElement).value);
 		if (val >= 1024 && val <= 65535) {
 			settingsStore.updateSync({ port: val });
 			onchange();
+
+			if (vp) {
+				await updateSyncPort(vp, val);
+			}
 		}
 	}
 

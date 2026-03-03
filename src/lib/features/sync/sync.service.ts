@@ -88,6 +88,25 @@ export async function saveSyncLocalConfig(vaultPath: string, allowedPaths: strin
 	}
 }
 
+/** Updates the sync port in sync-local.json and restarts engine if running */
+export async function updateSyncPort(vaultPath: string, port: number): Promise<void> {
+	try {
+		const config = { ...lastLocalConfig, port };
+		await invoke('save_sync_local_config', { vaultPath, config });
+		lastLocalConfig = config;
+
+		// Restart engine so it picks up the new port
+		if (syncStore.isRunning) {
+			debug('SYNC', 'Restarting engine for port change:', port);
+			await teardownSync();
+			await initSync(vaultPath);
+		}
+	} catch (err) {
+		error('SYNC', 'Failed to update sync port:', err);
+		throw err;
+	}
+}
+
 /** Updates the sync interval in sync-local.json and restarts engine if running */
 export async function updateSyncInterval(vaultPath: string, intervalMinutes: number): Promise<void> {
 	try {
