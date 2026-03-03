@@ -96,6 +96,19 @@ mod platform {
 		Ok(data.to_vec())
 	}
 
+	/// Deletes a key from the macOS Keychain for the given account.
+	pub fn delete_key(account: &str) -> Result<(), KeychainError> {
+		delete_generic_password(SERVICE, account)
+			.map_err(|e| {
+				let code = e.code();
+				if code == -25300 {
+					KeychainError::NotFound
+				} else {
+					KeychainError::Internal(format!("Failed to delete key (code {code}): {e}"))
+				}
+			})
+	}
+
 	/// Checks if a key exists for the given account without triggering authentication.
 	pub fn has_key(account: &str) -> bool {
 		let mut search = ItemSearchOptions::new();
@@ -134,6 +147,12 @@ mod platform {
 	}
 
 	pub fn retrieve_bytes(_account: &str) -> Result<Vec<u8>, KeychainError> {
+		Err(KeychainError::Internal(
+			"Keychain is only available on macOS".to_string(),
+		))
+	}
+
+	pub fn delete_key(_account: &str) -> Result<(), KeychainError> {
 		Err(KeychainError::Internal(
 			"Keychain is only available on macOS".to_string(),
 		))
