@@ -122,6 +122,13 @@ async function registerSyncListeners(): Promise<void> {
 		listen<{ original_path: string; conflicted_path: string }>('sync:conflict', (event) => {
 			debug('SYNC', 'Conflict:', event.payload.original_path, '→', event.payload.conflicted_path);
 		}),
+		listen<{ peer_id: string; path: string }>('sync:file-deleted', (event) => {
+			debug('SYNC', 'File deleted by peer:', event.payload.path);
+		}),
+		listen<{ conflicted_path: string }>('sync:settings-conflict', (event) => {
+			debug('SYNC', 'Settings conflict:', event.payload.conflicted_path);
+			toast.warning('Sync detected a settings conflict. Check your settings.');
+		}),
 	]);
 	unlistenFns = fns;
 }
