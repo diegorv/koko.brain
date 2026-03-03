@@ -39,7 +39,7 @@ Covers both Rust backend (`src-tauri/src/sync/`) and frontend (`src/lib/features
 
 ### Medium Priority
 
-- [ ] Task 7: Add guard against concurrent init/teardown on rapid toggle
+- [x] Task 7: Add guard against concurrent init/teardown on rapid toggle
   - **File:** `src/lib/core/settings/sections/SyncSection.svelte:124-141`
   - **Bug:** No mutex/flag prevents concurrent `initSync()`/`teardownSync()`. Rapid toggling can register duplicate event listeners.
   - **Fix:** Add an `isTransitioning` flag (or similar guard) to `handleToggleSync` — disable the toggle during async operations.
