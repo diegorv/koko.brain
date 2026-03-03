@@ -680,8 +680,14 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 			}
 
 			FileDiff::DeleteLocal => {
+				// We deleted this file locally → tell peer to delete
+				debug_log("SYNC", format!("Propagate local deletion to peer: {path}"));
+				session.delete_file(path).await?;
+			}
+
+			FileDiff::DeleteRemote => {
 				// Remote deleted this file → delete locally
-				debug_log("SYNC", format!("Delete local (peer removed): {path}"));
+				debug_log("SYNC", format!("Apply remote deletion locally: {path}"));
 				conflict::safe_delete_file(&state.vault_path, path)?;
 				let _ = state
 					.event_tx
@@ -690,12 +696,6 @@ async fn do_sync(state: &EngineState, peer_id: &str) -> Result<SyncStats, String
 						path: path.clone(),
 					})
 					.await;
-			}
-
-			FileDiff::DeleteRemote => {
-				// We deleted this file → tell peer to delete
-				debug_log("SYNC", format!("Delete remote (we removed): {path}"));
-				session.delete_file(path).await?;
 			}
 
 			FileDiff::DeleteModifyConflict { modified_side } => {
