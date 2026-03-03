@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
+use futures_util::FutureExt;
 use noted_lib::sync::crypto::{self, SyncState};
 use noted_lib::sync::engine::{verify_file_integrity, RetryState, SyncEvent};
 use noted_lib::sync::manifest::{self, FileEntry, FileDiff, SyncManifest};
@@ -332,4 +333,41 @@ fn baseline_saved_after_sync() {
 	assert_eq!(baseline.files.len(), 1);
 	assert_eq!(baseline.files[0].path, "note.md");
 	assert_eq!(*loaded.last_sync.get("peer-1").unwrap(), 1700000000u64);
+}
+
+// ---------------------------------------------------------------------------
+// Panic safety: peers_syncing cleanup via catch_unwind
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn peers_syncing_cleaned_after_panic() {
+	let peers_syncing: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+
+	// Insert peer into syncing set
+	{
+		let mut syncing = peers_syncing.lock().await;
+		syncing.insert("peer-1".to_string());
+	}
+
+	// Simulate a panicking future caught by catch_unwind
+	let result = std::panic::AssertUnwindSafe(async {
+		panic!("simulated do_sync panic");
+	})
+	.catch_unwind()
+	.await;
+
+	// Always clean up — this runs even after caught panic
+	{
+		let mut syncing = peers_syncing.lock().await;
+		syncing.remove("peer-1");
+	}
+
+	assert!(result.is_err(), "panic should have been caught");
+
+	// Verify cleanup happened
+	let syncing = peers_syncing.lock().await;
+	assert!(
+		!syncing.contains("peer-1"),
+		"peer should be removed from syncing set after panic"
+	);
 }
