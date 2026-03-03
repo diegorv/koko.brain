@@ -25,8 +25,8 @@ pub fn validate_vault_path(vault_path: &str, relative_path: &str) -> Result<Path
 	let canonical_vault = std::fs::canonicalize(vault_path)
 		.map_err(|e| format!("Failed to canonicalize vault path: {e}"))?;
 
-	// If the file already exists, verify it resolves inside the vault
 	if full.exists() {
+		// File exists: verify it resolves inside the vault
 		let canonical_file = std::fs::canonicalize(&full)
 			.map_err(|e| format!("Failed to canonicalize file path: {e}"))?;
 		if !canonical_file.starts_with(&canonical_vault) {
@@ -39,6 +39,20 @@ pub fn validate_vault_path(vault_path: &str, relative_path: &str) -> Result<Path
 			.map_err(|e| format!("Failed to read metadata: {e}"))?;
 		if meta.file_type().is_symlink() {
 			return Err(format!("Symlink not allowed: {relative_path}"));
+		}
+	} else {
+		// File doesn't exist yet: verify the nearest existing ancestor resolves inside the vault
+		let mut ancestor = full.parent();
+		while let Some(dir) = ancestor {
+			if dir.exists() {
+				let canonical_dir = std::fs::canonicalize(dir)
+					.map_err(|e| format!("Failed to canonicalize parent dir: {e}"))?;
+				if !canonical_dir.starts_with(&canonical_vault) {
+					return Err(format!("Path escapes vault: {relative_path}"));
+				}
+				break;
+			}
+			ancestor = dir.parent();
 		}
 	}
 
@@ -182,8 +196,7 @@ pub fn resolve_conflict(
 
 	let conflict_name = conflict_filename(path, loser_mtime);
 	debug_log("SYNC:CONFLICT", format!("Conflict file: '{conflict_name}'"));
-	let conflict_full = validate_vault_path(vault_path, &conflict_name)
-		.unwrap_or_else(|_| Path::new(vault_path).join(&conflict_name));
+	let conflict_full = validate_vault_path(vault_path, &conflict_name)?;
 
 	// Ensure parent directory exists
 	if let Some(parent) = conflict_full.parent() {
@@ -211,8 +224,7 @@ pub fn resolve_delete_modify_conflict(
 		"Delete-modify conflict on '{path}': preserving modified version ({} bytes)",
 		modified_content.len()
 	));
-	let full = validate_vault_path(vault_path, path)
-		.unwrap_or_else(|_| Path::new(vault_path).join(path));
+	let full = validate_vault_path(vault_path, path)?;
 
 	if let Some(parent) = full.parent() {
 		std::fs::create_dir_all(parent)
