@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { toast } from 'svelte-sonner';
 import { syncStore } from './sync.store.svelte';
+import { isHandshakeError } from './sync.logic';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { debug, error } from '$lib/utils/debug';
 
@@ -150,6 +151,9 @@ async function registerSyncListeners(): Promise<void> {
 				peerId: event.payload.peer_id,
 				error: event.payload.message,
 			});
+			if (isHandshakeError(event.payload.message)) {
+				toast.error('Sync failed: passphrase may not match the other device. Ensure all devices use the same passphrase.');
+			}
 		}),
 		listen<{ original_path: string; conflicted_path: string }>('sync:conflict', (event) => {
 			debug('SYNC', 'Conflict:', event.payload.original_path, '→', event.payload.conflicted_path);
