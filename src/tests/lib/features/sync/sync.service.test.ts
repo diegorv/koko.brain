@@ -208,6 +208,28 @@ describe('initSync', () => {
 
 		expect(syncStore.isRunning).toBe(false);
 	});
+
+	it('cleans up successful listeners when one registration fails', async () => {
+		settingsStore.updateSync({ enabled: true });
+		const unlistenSpy = vi.fn();
+		let callCount = 0;
+		vi.mocked(listen).mockImplementation(async () => {
+			callCount++;
+			if (callCount === 5) throw new Error('listener failed');
+			return unlistenSpy;
+		});
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'has_sync_passphrase') return true;
+			if (cmd === 'get_sync_local_config') return { allowed_paths: [] };
+		});
+
+		await initSync('/vault');
+
+		// initSync catches the error internally and sets running=false
+		expect(syncStore.isRunning).toBe(false);
+		// Successful listeners should have been cleaned up
+		expect(unlistenSpy).toHaveBeenCalled();
+	});
 });
 
 describe('teardownSync', () => {
