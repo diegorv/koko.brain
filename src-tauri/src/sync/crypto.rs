@@ -357,6 +357,45 @@ pub fn save_sync_state(vault_path: &str, state: &SyncState) -> Result<(), String
 	std::fs::write(&path, json).map_err(|e| format!("Failed to write sync-state.json: {e}"))
 }
 
+/// Retention period for stale peers: 30 days in seconds.
+pub const STALE_PEER_RETENTION_SECS: u64 = 30 * 24 * 3600;
+
+/// Prunes baseline manifests and last_sync entries for peers not seen
+/// within the retention period.
+///
+/// Also removes orphaned baseline entries that have no corresponding
+/// `last_sync` timestamp (e.g., from interrupted syncs or peer ID changes).
+pub fn prune_stale_peers(state: &mut SyncState, retention_secs: u64) {
+	let now = std::time::SystemTime::now()
+		.duration_since(std::time::UNIX_EPOCH)
+		.unwrap_or_default()
+		.as_secs();
+
+	// Collect peers whose last_sync is older than retention period
+	let stale_peers: Vec<String> = state
+		.last_sync
+		.iter()
+		.filter(|(_, &ts)| now.saturating_sub(ts) > retention_secs)
+		.map(|(id, _)| id.clone())
+		.collect();
+
+	for peer_id in &stale_peers {
+		state.baseline_manifests.remove(peer_id);
+		state.last_sync.remove(peer_id);
+	}
+
+	// Remove orphaned baselines (present in baseline_manifests but not in last_sync)
+	let orphaned: Vec<String> = state
+		.baseline_manifests
+		.keys()
+		.filter(|id| !state.last_sync.contains_key(*id))
+		.cloned()
+		.collect();
+	for peer_id in &orphaned {
+		state.baseline_manifests.remove(peer_id);
+	}
+}
+
 /// Loads local sync config from `.noted/sync-local.json`, returning default if absent.
 pub fn load_sync_local_config(vault_path: &str) -> Result<SyncLocalConfig, String> {
 	let path = std::path::Path::new(vault_path)
