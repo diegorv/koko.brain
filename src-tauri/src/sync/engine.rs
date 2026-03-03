@@ -123,6 +123,7 @@ pub struct SyncEngine {
 	state: Arc<EngineState>,
 	server: SyncServer,
 	discovery_cancel: CancellationToken,
+	discovery_task_handle: JoinHandle<()>,
 	main_loop_cancel: CancellationToken,
 	main_loop_handle: JoinHandle<()>,
 	trigger_tx: mpsc::Sender<()>,
@@ -239,6 +240,7 @@ impl SyncEngine {
 			state,
 			server,
 			discovery_cancel: discovery_handle.cancel_token,
+			discovery_task_handle: discovery_handle.task_handle,
 			main_loop_cancel,
 			main_loop_handle,
 			trigger_tx,
@@ -278,6 +280,7 @@ impl SyncEngine {
 		self.main_loop_cancel.cancel();
 		self.discovery_cancel.cancel();
 		let _ = self.main_loop_handle.await;
+		let _ = self.discovery_task_handle.await;
 		self.server.stop().await;
 		debug_log("SYNC", "Engine stopped");
 	}

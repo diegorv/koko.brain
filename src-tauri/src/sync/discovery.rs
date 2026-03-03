@@ -2,6 +2,7 @@ use std::net::IpAddr;
 
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 use super::crypto::hash_vault_id_for_mdns;
@@ -63,6 +64,9 @@ pub struct DiscoveryHandle {
 	pub cancel_token: CancellationToken,
 	/// Receiver for discovery events.
 	pub events_rx: mpsc::Receiver<DiscoveryEvent>,
+	/// JoinHandle for the spawned discovery task — must be awaited on shutdown
+	/// to ensure the mDNS daemon is fully stopped.
+	pub task_handle: JoinHandle<()>,
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +123,7 @@ pub fn start_discovery(
 	let cancel = cancel_token.clone();
 	let vault_hash_clone = vault_hash.clone();
 
-	tokio::spawn(async move {
+	let task_handle = tokio::spawn(async move {
 		loop {
 			tokio::select! {
 				_ = cancel.cancelled() => {
@@ -183,6 +187,7 @@ pub fn start_discovery(
 	Ok(DiscoveryHandle {
 		cancel_token,
 		events_rx,
+		task_handle,
 	})
 }
 
