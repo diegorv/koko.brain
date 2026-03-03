@@ -15,8 +15,8 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 /// Default handshake timeout.
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Maximum payload size per message (50 MB).
-pub const MAX_PAYLOAD_SIZE: usize = 50 * 1024 * 1024;
+/// Maximum payload size per message (10 MB — generous for markdown notes).
+pub const MAX_PAYLOAD_SIZE: usize = 10 * 1024 * 1024;
 
 /// Maximum Noise protocol message size (spec limit).
 const MAX_NOISE_MSG: usize = 65535;
