@@ -43,7 +43,7 @@ percent-encoding = "2"
 
 # Encrypted Notes
 aes-gcm = "0.10"
-rand = "0.8"
+rand = "0.9"
 base64 = "0.22"
 zeroize = "1"
 
