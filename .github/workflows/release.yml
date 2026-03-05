@@ -35,6 +35,15 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Run TypeScript checks
+        run: pnpm check
+
+      - name: Run frontend tests
+        run: pnpm vitest run
+
       - name: Build Tauri app
         id: tauri
         uses: tauri-apps/tauri-action@v0
@@ -52,6 +61,16 @@ jobs:
           releaseName: ${{ github.ref_name }}
           releaseBody: |
             See the [tag annotation](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) for the full changelog.
+
+            ## Verify download integrity
+
+            After downloading, verify the SHA-256 checksum against the `checksums-sha256.txt` file:
+
+            ```bash
+            shasum -a 256 <downloaded-file>
+            ```
+
+            Compare the output with the corresponding entry in `checksums-sha256.txt`.
           releaseDraft: false
           prerelease: true
 
