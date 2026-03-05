@@ -114,6 +114,7 @@ src-tauri/src/
 
 Some features in Kokobrain were inspired by ideas from Obsidian community plugins that I used daily. These are concept-level inspirations only — no code was copied, and there is no expectation of compatibility, feature parity, or interoperability with any of these projects.
 
+- **Collection** — inspired by [Obsidian Bases](https://help.obsidian.md/bases)
 - **Auto-move** — inspired by [obsidian-auto-note-mover](https://github.com/farux/obsidian-auto-note-mover)
 - **QueryJS** — inspired by [obsidian-dataview](https://github.com/blacksmithgu/obsidian-dataview)
 - **Templates** — inspired by [Templater](https://github.com/SilentVoid13/Templater)
