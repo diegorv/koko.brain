@@ -48,7 +48,7 @@ base64 = "0.22"
 zeroize = "1"
 
 # Semantic Search
-ort = { version = "2.0.0-rc.11", features = ["download-binaries", "ndarray", "half"] }
+ort = { version = "2.0.0-rc.12", features = ["download-binaries", "ndarray", "half"] }
 half = "2.7"
 ndarray = "0.17"
 tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
