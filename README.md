@@ -77,16 +77,20 @@ bash scripts/e2e.sh       # Run E2E tests (Playwright)
 ```
 src/lib/
   components/ui/        # shadcn-svelte components
-  core/                 # Essential: vault, filesystem, editor, file explorer, settings, trash
+  core/                 # Essential: vault, filesystem, editor, file explorer, settings,
+                        #   trash, layout, keybindings, status bar, note creator, zoom
   features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
-                        #   collection, file-history, bookmarks, file-icons, copy-block-link
+                        #   collection, file-history, bookmarks, file-icons, copy-block-link,
+                        #   auto-move, command-palette, quick-switcher, folder-notes,
+                        #   outgoing-links, deep-link, views
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
-                        #   graph-view, encrypted-notes, terminal, queryjs, word-count
+                        #   graph-view, encrypted-notes, terminal, queryjs, word-count,
+                        #   kanban, one-on-one
   utils/                # Pure shared utilities
 
 src-tauri/src/
   commands/             # Tauri command handlers (vault, files, search, semantic, history,
-                        #   crypto, terminal, debug)
+                        #   crypto, terminal, debug, fonts, db)
   db/                   # SQLite: schema, FTS5 repo, history repo, semantic repo
   search/               # FTS indexing logic, text search, fuzzy expansion
   semantic/             # ONNX model management, embedder, markdown chunker, filtering

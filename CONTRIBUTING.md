@@ -112,13 +112,20 @@ pnpm tauri build
 ```
 src/lib/
   components/ui/        # shadcn-svelte components (generated via CLI)
-  core/                 # Essential: vault, filesystem, editor, file explorer, settings, trash
-  features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas, etc.
-  plugins/              # Optional modules: periodic-notes, templates, graph-view, terminal, etc.
+  core/                 # Essential: vault, filesystem, editor, file explorer, settings,
+                        #   trash, layout, keybindings, status bar, note creator, zoom
+  features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
+                        #   collection, file-history, bookmarks, file-icons, copy-block-link,
+                        #   auto-move, command-palette, quick-switcher, folder-notes,
+                        #   outgoing-links, deep-link, views
+  plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
+                        #   graph-view, encrypted-notes, terminal, queryjs, word-count,
+                        #   kanban, one-on-one
   utils/                # Pure shared utilities (no state, no side effects)
 
 src-tauri/src/
-  commands/             # Tauri command handlers
+  commands/             # Tauri command handlers (vault, files, search, semantic, history,
+                        #   crypto, terminal, debug, fonts, db)
   db/                   # SQLite: schema, FTS5, history, semantic repos
   search/               # FTS indexing, text search, fuzzy expansion
   semantic/             # ONNX model, embedder, markdown chunker
