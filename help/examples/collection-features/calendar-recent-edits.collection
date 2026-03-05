@@ -1,0 +1,10 @@
+properties:
+  file.name:
+    displayName: Note
+
+views:
+  - type: calendar
+    name: Recent Edits
+    dateProperty: file.mtime
+    weekStartDay: 1
+    limit: 50

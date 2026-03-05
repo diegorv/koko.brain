@@ -1,0 +1,14 @@
+filters: "file.hasTag('evento')"
+
+properties:
+  file.name:
+    displayName: Event
+  location:
+    displayName: Location
+
+views:
+  - type: calendar
+    name: Events
+    dateProperty: start-date
+    endDateProperty: end-date
+    weekStartDay: 0

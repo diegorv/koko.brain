@@ -1,0 +1,14 @@
+filters: "file.hasTag('evento')"
+
+properties:
+  file.name:
+    displayName: Event
+  category:
+    displayName: Category
+
+views:
+  - type: linear-calendar
+    name: Year Overview
+    dateProperty: start-date
+    endDateProperty: end-date
+    colorProperty: category

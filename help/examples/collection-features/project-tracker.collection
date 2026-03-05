@@ -1,0 +1,57 @@
+filters: "file.hasTag('projeto')"
+
+formulas:
+  daysLeft: "if(due != null, number((date(due) - today()) / 86400000), null)"
+  statusBadge: "badge(if(status == 'completed', 'Done', if(status == 'active', 'In Progress', 'Planned')), if(status == 'completed', 'green', if(status == 'active', 'blue', 'gray')))"
+  progressBar: "if(progress != null, progress(progress, 100), '')"
+
+properties:
+  file.name:
+    displayName: Project
+  formula.daysLeft:
+    displayName: Days Left
+  formula.statusBadge:
+    displayName: Phase
+  formula.progressBar:
+    displayName: Progress
+  assignee:
+    displayName: Owner
+
+views:
+  - type: table
+    name: Overview
+    order:
+      - file.name
+      - formula.statusBadge
+      - assignee
+      - formula.progressBar
+      - formula.daysLeft
+    sort:
+      - column: progress
+        direction: DESC
+    columnSize:
+      file.name: 220
+      formula.statusIcon: 120
+
+  - type: table
+    name: Active Only
+    filters: "status == 'active'"
+    order:
+      - file.name
+      - assignee
+      - progress
+      - due
+    sort:
+      - column: due
+        direction: ASC
+
+  - type: table
+    name: Completed
+    filters: "status == 'completed'"
+    order:
+      - file.name
+      - assignee
+      - progress
+    sort:
+      - column: file.name
+        direction: ASC

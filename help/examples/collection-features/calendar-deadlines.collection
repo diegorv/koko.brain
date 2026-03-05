@@ -1,0 +1,18 @@
+filters: "file.hasTag('projeto')"
+
+properties:
+  file.name:
+    displayName: Project
+  status:
+    displayName: Status
+  assignee:
+    displayName: Owner
+
+views:
+  - type: calendar
+    name: Deadlines
+    dateProperty: due
+    weekStartDay: 1
+    sort:
+      - column: due
+        direction: ASC

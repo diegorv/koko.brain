@@ -1,0 +1,55 @@
+filters:
+  or:
+    - "file.hasTag('bug')"
+    - "file.hasTag('task')"
+
+formulas:
+  progressBar: "if(progress != null, progress(progress, 100), progress(0, 100, 'gray'))"
+  deadlineBadge: "if(due != null, badge(if(date(due) < today(), 'Overdue', 'On Track'), if(date(due) < today(), 'red', 'green')), badge('No Deadline', 'gray'))"
+  effortBadge: "if(estimated_hours != null, badge(if(estimated_hours > 4, 'Large', if(estimated_hours > 2, 'Medium', 'Small')), if(estimated_hours > 4, 'orange', if(estimated_hours > 2, 'yellow', 'green'))), badge('?', 'gray'))"
+
+properties:
+  file.name:
+    displayName: Item
+  formula.progressBar:
+    displayName: Progress
+  formula.deadlineBadge:
+    displayName: Deadline
+  formula.effortBadge:
+    displayName: Effort
+  priority:
+    displayName: Priority
+  assignee:
+    displayName: Owner
+
+views:
+  - type: table
+    name: Active Sprint
+    filters: "status == 'active'"
+    order:
+      - file.name
+      - priority
+      - assignee
+      - formula.progressBar
+      - formula.deadlineBadge
+      - formula.effortBadge
+    sort:
+      - column: priority
+        direction: ASC
+      - column: progress
+        direction: DESC
+    columnSize:
+      file.name: 230
+      formula.isOverdue: 130
+
+  - type: table
+    name: Backlog
+    filters: "status == 'backlog' || status == 'planning'"
+    order:
+      - file.name
+      - priority
+      - formula.effort
+      - tags
+    sort:
+      - column: priority
+        direction: ASC

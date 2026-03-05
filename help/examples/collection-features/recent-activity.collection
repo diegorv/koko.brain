@@ -1,0 +1,43 @@
+formulas:
+  lastModified: "file.mtime.format('YYYY-MM-DD')"
+  modifiedAgo: "file.mtime.relative()"
+  createdDate: "if(created != null, date(created).format('MMM DD'), 'Unknown')"
+
+properties:
+  file.name:
+    displayName: Note
+  formula.lastModified:
+    displayName: Last Modified
+  formula.modifiedAgo:
+    displayName: How Long Ago
+  formula.createdDate:
+    displayName: Created
+  status:
+    displayName: Status
+
+views:
+  - type: table
+    name: Recently Modified
+    order:
+      - file.name
+      - formula.modifiedAgo
+      - formula.lastModified
+      - status
+    sort:
+      - column: file.mtime
+        direction: DESC
+    limit: 5
+    columnSize:
+      file.name: 240
+      formula.modifiedAgo: 140
+
+  - type: table
+    name: All Notes by Date
+    order:
+      - file.name
+      - formula.lastModified
+      - formula.createdDate
+      - status
+    sort:
+      - column: file.mtime
+        direction: DESC

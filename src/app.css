@@ -1,0 +1,269 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-tab-bar: var(--tab-bar);
+	--color-divider: var(--divider);
+
+	/* Component-specific theme colors */
+	--color-file-explorer-bg: var(--file-explorer-bg);
+	--color-editor-empty-bg: var(--editor-empty-bg);
+	--color-tab-text-active: var(--tab-text-active);
+	--color-tab-text-inactive: var(--tab-text-inactive);
+	--color-settings-dialog-bg: var(--settings-dialog-bg);
+	--color-settings-sidebar-bg: var(--settings-sidebar-bg);
+	--color-settings-text: var(--settings-text);
+	--color-settings-hover-bg: var(--settings-hover-bg);
+	--color-setting-item-bg: var(--setting-item-bg);
+	--color-input-bg: var(--input-bg);
+	--color-input-text: var(--input-text);
+	--color-switch-unchecked-bg: var(--switch-unchecked-bg);
+
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+	--background: oklch(0.978 0.005 100);
+	--foreground: oklch(0.243 0.015 280);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.243 0.015 280);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.243 0.015 280);
+	--primary: oklch(0.734 0.16 300);
+	--primary-foreground: oklch(0.978 0.005 100);
+	--secondary: oklch(0.92 0.008 100);
+	--secondary-foreground: oklch(0.243 0.015 280);
+	--muted: oklch(0.92 0.008 100);
+	--muted-foreground: oklch(0.529 0.07 265);
+	--accent: oklch(0.92 0.008 100);
+	--accent-foreground: oklch(0.243 0.015 280);
+	--destructive: oklch(0.628 0.225 25);
+	--destructive-foreground: oklch(0.978 0.005 100);
+	--border: oklch(0.88 0.01 100);
+	--input: oklch(0.88 0.01 100);
+	--ring: oklch(0.734 0.16 300);
+	--tab-bar: oklch(0.94 0.008 100);
+	--divider: oklch(0.88 0.01 100);
+	--radius: 0.625rem;
+}
+
+.dark {
+	/* UI shell */
+	--background: #21222e;
+	--foreground: #F8F8F2;
+	--card: #2a2e3d;
+	--card-foreground: oklch(0.98 0.005 105);
+	--popover: oklch(0.22 0.025 273);
+	--popover-foreground: oklch(0.98 0.005 105);
+	--primary: oklch(0.73 0.08 278);
+	--primary-foreground: oklch(0.19 0.025 273);
+	--secondary: oklch(0.28 0.025 272);
+	--secondary-foreground: oklch(0.98 0.005 105);
+	--muted: oklch(0.28 0.025 272);
+	--muted-foreground: oklch(0.55 0.06 268);
+	--accent: oklch(0.28 0.025 272);
+	--accent-foreground: oklch(0.98 0.005 105);
+	--destructive: oklch(0.628 0.225 25);
+	--destructive-foreground: oklch(0.98 0.005 105);
+	--border: oklch(0.28 0.025 272);
+	--input: oklch(0.28 0.025 272);
+	--ring: oklch(0.73 0.08 278);
+	--tab-bar: #5a5c79;
+	--divider: #383a4f;
+
+	/* Component-specific */
+	--file-explorer-bg: #262938;
+	--editor-empty-bg: #2b2f40;
+	--tab-text-active: #bac5ee;
+	--tab-text-inactive: #9ca3c7;
+	--settings-dialog-bg: #313549;
+	--settings-sidebar-bg: #2B2F40;
+	--settings-text: #bfcaf3;
+	--settings-hover-bg: #393e50;
+	--setting-item-bg: #20212d;
+	--input-bg: #3d4058;
+	--input-text: #F8F8F2;
+	--switch-unchecked-bg: #444660;
+
+	/* Syntax highlighting */
+	--syntax-heading1: #E8A5FF;
+	--syntax-heading2: #5DCCFF;
+	--syntax-heading3: #42E8A8;
+	--syntax-heading4: #FFD93D;
+	--syntax-heading5: #FF8C69;
+	--syntax-heading6: #B19CD9;
+	--syntax-emphasis: #93c5fd;
+	--syntax-strong: #93c5fd;
+	--syntax-strikethrough: #94a3b8;
+	--syntax-link: #60a5fa;
+	--syntax-url: #818cf8;
+	--syntax-code: #86efac;
+	--syntax-code-bg: rgba(255,255,255,0.06);
+	--syntax-quote: #94a3b8;
+	--syntax-meta: #64748b;
+	--syntax-processing: #f9a825;
+	--syntax-active-line: oklch(0.22 0.02 272 / 0.3);
+	--syntax-selection: oklch(0.40 0.12 340);
+	--syntax-active-line-gutter: oklch(0.22 0.02 272);
+
+	/* Live preview */
+	--lp-link: #60a5fa;
+	--lp-link-decoration: #60a5fa44;
+	--lp-wikilink: #a78bfa;
+	--lp-wikilink-decoration: #a78bfa44;
+	--lp-hr-border: #4b5563;
+	--lp-blockquote-border: #6b7280;
+	--lp-blockquote-bg: #6b728011;
+	--lp-blockquote-bg-2: #6b728018;
+	--lp-blockquote-bg-3: #6b728022;
+	--lp-task-border: #585b70;
+	--lp-task-hover: #a78bfa;
+	--lp-task-checked: #a78bfa;
+	--lp-task-checkmark: #1e1e2e;
+	--lp-highlight-bg: #fbbf2444;
+	--lp-ol-marker: #f9a825;
+	--lp-code-bg: #3b3b4f;
+	--lp-codeblock-bg: #1e1e2e;
+	--lp-codeblock-border: #313244;
+	--lp-codeblock-header-bg: #181825;
+	--lp-codeblock-lang: #6c7086;
+	--lp-codeblock-copy: #6c7086;
+	--lp-codeblock-copy-hover: #31324488;
+	--lp-codeblock-text: #cdd6f4;
+	--lp-syntax-keyword: #cba6f7;
+	--lp-syntax-builtin: #f9e2af;
+	--lp-syntax-type: #f9e2af;
+	--lp-syntax-literal: #fab387;
+	--lp-syntax-number: #fab387;
+	--lp-syntax-string: #a6e3a1;
+	--lp-syntax-function: #89b4fa;
+	--lp-syntax-variable: #cdd6f4;
+	--lp-syntax-comment: #6c7086;
+	--lp-syntax-meta: #f38ba8;
+	--lp-syntax-attr: #89dceb;
+	--lp-syntax-property: #89dceb;
+	--lp-syntax-tag: #f38ba8;
+	--lp-syntax-punctuation: #9399b2;
+	--lp-syntax-operator: #89dceb;
+	--lp-table-border: #313244;
+	--lp-table-header-bg: #1e1e2e;
+	--lp-table-alt: #1e1e2e44;
+	--lp-table-hover: #31324488;
+	--lp-footnote: #60a5fa;
+	--lp-frontmatter-bg: #1e1e2e;
+	--lp-frontmatter-border: #313244;
+	--lp-frontmatter-label: #cdd6f4;
+	--lp-frontmatter-count-bg: #313244;
+	--lp-frontmatter-count-text: #a6adc8;
+	--lp-frontmatter-row-border: #31324466;
+	--lp-frontmatter-key: #6b7280;
+	--lp-frontmatter-value: #cdd6f4;
+	--lp-frontmatter-tag-bg: #313244;
+	--lp-frontmatter-tag-text: #cdd6f4;
+	--lp-frontmatter-tag-x: #6b7280;
+	--lp-collection-bg: #1e1e2e;
+	--lp-collection-border: #313244;
+	--lp-collection-header: #a6adc8;
+	--lp-collection-header-border: #313244;
+	--lp-collection-table-header-bg: #181825;
+	--lp-collection-table-header-text: #a6adc8;
+	--lp-collection-table-hover: #31324488;
+	--lp-collection-table-alt: #1e1e2e44;
+	--lp-collection-null: #585b70;
+	--lp-collection-error: #f38ba8;
+	--lp-collection-loading: #a6adc8;
+	--lp-collection-empty: #585b70;
+	--lp-embed-bg: #1e1e2e;
+	--lp-embed-hover: #262637;
+	--lp-embed-header: #a78bfa;
+	--lp-embed-border: #313244;
+	--lp-embed-content: #cdd6f4;
+	--lp-embed-error: #f38ba8;
+	--lp-meta-bind-select-bg: #2a2e3d;
+	--lp-meta-bind-select-text: #bac5ee;
+	--lp-meta-bind-select-border: #383a4f;
+	--lp-meta-bind-select-arrow: #9ca3c7;
+	--lp-meta-bind-select-hover: #5a5c79;
+	--lp-meta-bind-btn-default-bg: #313244;
+	--lp-meta-bind-btn-default-text: #cdd6f4;
+	--lp-meta-bind-btn-default-border: #45475a;
+	--lp-meta-bind-btn-default-hover: #45475a;
+	--lp-meta-bind-btn-primary-bg: #a78bfa;
+	--lp-meta-bind-btn-primary-text: #1e1e2e;
+	--lp-meta-bind-btn-primary-hover: #b9a0fc;
+	--lp-meta-bind-btn-destructive-bg: #f38ba8;
+	--lp-meta-bind-btn-destructive-text: #1e1e2e;
+	--lp-meta-bind-btn-destructive-hover: #f5a0b8;
+	--lp-meta-bind-btn-plain-text: #cdd6f4;
+	--lp-meta-bind-btn-plain-hover: #31324488;
+	--lp-meta-bind-error-text: #f38ba8;
+	--lp-meta-bind-error-bg: #31324488;
+	--lp-meta-bind-error-border: #f38ba833;
+
+	/* Wikilink decorations */
+	--wikilink-bracket: #64748b;
+	--wikilink-target: #a78bfa;
+	--wikilink-target-decoration: #a78bfa44;
+	--wikilink-heading: #c4b5fd;
+	--wikilink-display: #60a5fa;
+
+	/* Callout types */
+	--callout-note: #60a5fa;
+	--callout-tip: #4ade80;
+	--callout-important: #a78bfa;
+	--callout-warning: #fbbf24;
+	--callout-caution: #f87171;
+	--callout-quote: #94a3b8;
+}
+
+/* Force date input text color (WebKit pseudo-elements ignore normal color inheritance) */
+input[type="date"],
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+	color: color-mix(in srgb, var(--foreground) 70%, transparent) !important;
+	-webkit-text-fill-color: color-mix(in srgb, var(--foreground) 70%, transparent) !important;
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+
+	html {
+		height: 100%;
+	}
+
+	body {
+		@apply bg-background text-foreground;
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+		height: 100%;
+		overflow: hidden;
+		user-select: none;
+	}
+}
