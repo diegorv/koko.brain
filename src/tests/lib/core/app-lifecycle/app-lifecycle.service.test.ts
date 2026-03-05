@@ -155,6 +155,12 @@ vi.mock('$lib/features/command-palette/command-palette.service', () => ({
 	resetCommandPalette: vi.fn(),
 }));
 
+vi.mock('$lib/features/auto-move/auto-move.service', () => ({
+	loadAutoMoveConfig: vi.fn(() => Promise.resolve()),
+	toggleAutoMoveHook: vi.fn(),
+	resetAutoMove: vi.fn(),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
 import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
@@ -237,8 +243,10 @@ describe('initializeVault', () => {
 
 	it('continues initialization when user data loading fails (bookmarks/icons)', async () => {
 		vi.mocked(loadBookmarks).mockRejectedValueOnce(new Error('db corrupt'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await initializeVault('/vault');
+		consoleSpy.mockRestore();
 
 		// Should continue to Step 4+ despite Step 3 failure
 		expect(buildIndex).toHaveBeenCalledWith('/vault');
@@ -260,8 +268,10 @@ describe('initializeVault', () => {
 
 	it('continues initialization when index build or file tree loading fails', async () => {
 		vi.mocked(loadDirectoryTree).mockRejectedValueOnce(new Error('scan failed'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await initializeVault('/vault');
+		consoleSpy.mockRestore();
 
 		// Should continue to Step 5+ despite Step 4 failure
 		expect(ensureTemplatesFolder).toHaveBeenCalled();
@@ -482,6 +492,8 @@ describe('teardownVault', () => {
 			);
 		});
 		consoleSpy.mockRestore();
+		// Reset invoke to default so it doesn't leak to subsequent tests
+		vi.mocked(invoke).mockImplementation(() => Promise.resolve() as Promise<any>);
 	});
 });
 
