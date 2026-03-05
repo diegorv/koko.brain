@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - "src/**"
+              - "static/**"
+              - "pnpm-lock.yaml"
+              - "package.json"
+              - "tsconfig.json"
+              - "svelte.config.*"
+              - "vite.config.*"
+              - "tailwind.config.*"
+              - "postcss.config.*"
+              - "components.json"
+            rust:
+              - "src-tauri/**"
+
+  typecheck:
+    name: TypeScript Check
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          rust: "false"
+
+      - name: Run type check
+        run: pnpm check
+
+  test-frontend:
+    name: Frontend Tests
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          rust: "false"
+
+      - name: Sync SvelteKit generated files
+        run: pnpm exec svelte-kit sync
+
+      - name: Run tests
+        run: pnpm vitest run
+
+  test-rust:
+    name: Rust Tests
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Run tests
+        env:
+          RUSTC_WRAPPER: sccache
+          SCCACHE_GHA_ENABLED: "true"
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+

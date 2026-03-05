@@ -1,0 +1,139 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "help/documentation/**"
+      - "help/examples/**"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v6
+
+      - name: Checkout wiki repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync documentation to wiki
+        run: |
+          set -euo pipefail
+          cd wiki
+
+          # Remove old pages (except .git)
+          find . -maxdepth 1 -name '*.md' -delete
+
+          # Build a mapping of old filenames to new wiki page names
+          declare -A LINK_MAP
+
+          for f in ../help/documentation/*.md; do
+            filename=$(basename "$f")
+            [ "$filename" = "README.md" ] && continue
+
+            clean=$(echo "$filename" \
+              | sed 's/^[0-9]*-//' \
+              | sed 's/\.md$//' \
+              | sed 's/-/ /g' \
+              | sed 's/\b\(.\)/\u\1/g')
+
+            # Map "01-getting-started.md" -> "Getting-Started" (wiki link format)
+            wiki_link=$(echo "$clean" | sed 's/ /-/g')
+            LINK_MAP["$filename"]="$wiki_link"
+          done
+
+          # Copy, rename, and rewrite internal links
+          for f in ../help/documentation/*.md; do
+            filename=$(basename "$f")
+
+            if [ "$filename" = "README.md" ]; then
+              dest="Home.md"
+            else
+              clean=$(echo "$filename" \
+                | sed 's/^[0-9]*-//' \
+                | sed 's/\.md$//' \
+                | sed 's/-/ /g' \
+                | sed 's/\b\(.\)/\u\1/g')
+              dest="${clean}.md"
+            fi
+
+            cp "$f" "$dest"
+
+            # Rewrite markdown links: [text](01-getting-started.md) -> [text](Getting-Started)
+            for old_name in "${!LINK_MAP[@]}"; do
+              wiki_link="${LINK_MAP[$old_name]}"
+              sed -i "s|(${old_name})|(${wiki_link})|g" "$dest"
+            done
+          done
+
+      - name: Sync examples to wiki
+        run: |
+          set -euo pipefail
+          cd wiki
+
+          # Each subfolder in help/examples/ becomes a wiki page
+          for dir in ../help/examples/*/; do
+            dirname=$(basename "$dir")
+            [ "$dirname" = ".DS_Store" ] && continue
+
+            # Convert folder name to page title: "collection-features" -> "Examples Collection Features"
+            title=$(echo "$dirname" \
+              | sed 's/-/ /g' \
+              | sed 's/\b\(.\)/\u\1/g')
+            dest="Examples ${title}.md"
+
+            echo "# Examples: ${title}" > "$dest"
+            echo "" >> "$dest"
+            echo "Sample files for the **${title}** feature." >> "$dest"
+            echo "" >> "$dest"
+
+            # Collect all files recursively (skip .DS_Store)
+            find "$dir" -type f ! -name '.DS_Store' | sort | while read -r f; do
+              fname=$(basename "$f")
+              relpath="${f#$dir}"
+              ext="${fname##*.}"
+
+              echo "---" >> "$dest"
+              echo "" >> "$dest"
+              echo "## \`${relpath}\`" >> "$dest"
+              echo "" >> "$dest"
+
+              # Pick syntax hint for the code block
+              case "$ext" in
+                md)         lang="markdown" ;;
+                js)         lang="javascript" ;;
+                collection) lang="yaml" ;;
+                *)          lang="" ;;
+              esac
+
+              echo "\`\`\`${lang}" >> "$dest"
+              cat "$f" >> "$dest"
+              echo "" >> "$dest"
+              echo "\`\`\`" >> "$dest"
+              echo "" >> "$dest"
+            done
+          done
+
+      - name: Commit and push to wiki
+        run: |
+          set -euo pipefail
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No wiki changes to commit."
+          else
+            git commit -m "docs: sync wiki from help/documentation"
+            git push
+          fi

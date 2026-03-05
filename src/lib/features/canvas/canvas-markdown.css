@@ -1,0 +1,130 @@
+/**
+ * Shared markdown rendering styles for canvas node content.
+ * Imported globally in CanvasInner.svelte — scoped by the .canvas-node-content class.
+ * Used by TextNode and FileNode.
+ */
+.canvas-node-content p {
+	margin: 0 0 0.5em;
+	word-break: break-word;
+}
+
+.canvas-node-content p:last-child {
+	margin-bottom: 0;
+}
+
+.canvas-node-content h1,
+.canvas-node-content h2,
+.canvas-node-content h3,
+.canvas-node-content h4,
+.canvas-node-content h5,
+.canvas-node-content h6 {
+	margin: 0 0 0.4em;
+	line-height: 1.3;
+	font-weight: 600;
+}
+
+.canvas-node-content h1 { font-size: 1.4em; color: var(--syntax-heading1); }
+.canvas-node-content h2 { font-size: 1.2em; color: var(--syntax-heading2); }
+.canvas-node-content h3 { font-size: 1.1em; color: var(--syntax-heading3); }
+.canvas-node-content h4 { font-size: 1.05em; color: var(--syntax-heading4); }
+.canvas-node-content h5 { font-size: 1em; color: var(--syntax-heading5); }
+.canvas-node-content h6 { font-size: 0.95em; color: var(--syntax-heading6); }
+
+.canvas-node-content strong {
+	color: var(--syntax-strong);
+}
+
+.canvas-node-content em {
+	color: var(--syntax-emphasis);
+}
+
+.canvas-node-content del {
+	color: var(--syntax-strikethrough);
+}
+
+.canvas-node-content a {
+	color: var(--lp-link, var(--syntax-link));
+	text-decoration: underline;
+	text-decoration-color: var(--lp-link-decoration, rgba(96, 165, 250, 0.27));
+}
+
+.canvas-node-content a:hover {
+	text-decoration-color: var(--lp-link, var(--syntax-link));
+}
+
+.canvas-node-content code {
+	background: var(--lp-code-bg, rgba(255, 255, 255, 0.08));
+	color: var(--syntax-code);
+	padding: 1px 4px;
+	border-radius: 3px;
+	font-size: 0.9em;
+}
+
+.canvas-node-content pre {
+	background: var(--lp-codeblock-bg, rgba(0, 0, 0, 0.3));
+	border: 1px solid var(--lp-codeblock-border, transparent);
+	color: var(--lp-codeblock-text);
+	padding: 8px;
+	border-radius: 4px;
+	overflow-x: auto;
+	margin: 0.5em 0;
+}
+
+.canvas-node-content pre code {
+	background: none;
+	padding: 0;
+	color: inherit;
+}
+
+.canvas-node-content ul,
+.canvas-node-content ol {
+	margin: 0.3em 0;
+	padding-left: 1.5em;
+}
+
+.canvas-node-content blockquote {
+	border-left: 3px solid var(--lp-blockquote-border, rgba(255, 255, 255, 0.2));
+	background: var(--lp-blockquote-bg, transparent);
+	margin: 0.5em 0;
+	padding: 4px 10px;
+	color: var(--syntax-quote, inherit);
+}
+
+.canvas-node-content mark {
+	background: var(--lp-highlight-bg, rgba(251, 191, 36, 0.27));
+	color: inherit;
+	border-radius: 2px;
+	padding: 1px 2px;
+}
+
+.canvas-node-content img {
+	max-width: 100%;
+	border-radius: 4px;
+}
+
+.canvas-node-content hr {
+	border: none;
+	border-top: 1px solid var(--lp-hr-border, rgba(255, 255, 255, 0.15));
+	margin: 0.8em 0;
+}
+
+.canvas-node-content table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 0.5em 0;
+}
+
+.canvas-node-content th,
+.canvas-node-content td {
+	border: 1px solid var(--lp-table-border, rgba(255, 255, 255, 0.15));
+	padding: 4px 8px;
+	font-size: 12px;
+}
+
+.canvas-node-content th {
+	background: var(--lp-table-header-bg, rgba(255, 255, 255, 0.05));
+}
+
+.canvas-node-content tr:nth-child(even) {
+	background: var(--lp-table-alt, transparent);
+}

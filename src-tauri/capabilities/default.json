@@ -1,0 +1,214 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-destroy",
+    "core:webview:allow-set-webview-zoom",
+    "deep-link:default",
+    "clipboard-manager:allow-read-text",
+    "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "$APPLOG"
+        },
+        {
+          "path": "$APPLOG/**"
+        }
+      ]
+    },
+    "dialog:default",
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        },
+        {
+          "path": "$APPLOG"
+        },
+        {
+          "path": "$APPLOG/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-rename",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-copy-file",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        },
+        {
+          "path": "$APPLOG"
+        },
+        {
+          "path": "$APPLOG/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-watch",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/**/.kokobrain/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-unwatch"
+    },
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        {
+          "url": "https://api.todoist.com/**"
+        }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-send",
+      "allow": [
+        {
+          "url": "https://api.todoist.com/**"
+        }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-read-body",
+      "allow": [
+        {
+          "url": "https://api.todoist.com/**"
+        }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-cancel-body",
+      "allow": [
+        {
+          "url": "https://api.todoist.com/**"
+        }
+      ]
+    }
+  ]
+}

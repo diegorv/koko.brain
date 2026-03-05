@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*-alpha"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag is on main branch
+        run: |
+          set -euo pipefail
+          TAG_COMMIT=$(git rev-parse HEAD)
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+            echo "::error::Release tag ${{ github.ref_name }} is not on the main branch. Aborting."
+            exit 1
+          fi
+          echo "Validated: ${{ github.ref_name }} is on main branch"
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Run TypeScript checks
+        run: pnpm check
+
+      - name: Run frontend tests
+        run: pnpm vitest run
+
+      - name: Build Tauri app
+        id: tauri
+        uses: tauri-apps/tauri-action@v0.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          RUSTC_WRAPPER: sccache
+          SCCACHE_GHA_ENABLED: "true"
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          args: '--target aarch64-apple-darwin'
+          releaseBody: |
+            See the [tag annotation](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) for the full changelog.
+
+            ## Verify download integrity
+
+            After downloading, verify the SHA-256 checksum against the `checksums-sha256.txt` file:
+
+            ```bash
+            shasum -a 256 <downloaded-file>
+            ```
+
+            Compare the output with the corresponding entry in `checksums-sha256.txt`.
+          releaseDraft: false
+          prerelease: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          set -euo pipefail
+          cd src-tauri/target/aarch64-apple-darwin/release/bundle
+          CHECKSUM_FILE="checksums-sha256.txt"
+          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | sed 's|^\./||' | while read -r file; do
+            shasum -a 256 "$file" >> "$CHECKSUM_FILE"
+          done
+          echo "--- Checksums ---"
+          cat "$CHECKSUM_FILE"
+
+      - name: Upload checksums to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload "${{ github.ref_name }}" \
+            src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
+            --clobber
