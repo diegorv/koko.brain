@@ -44,9 +44,13 @@ bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up
 ```
 src/lib/
   components/ui/      # shadcn-svelte components (generated via CLI)
-  core/               # Essential: vault, filesystem, editor, file explorer, settings
-  features/           # Built-in features: command palette, search, backlinks, tags, properties
-  plugins/            # Optional modules: daily notes, templates, graph view, page preview
+  core/               # Essential: app-lifecycle, editor, file-explorer, filesystem, keybindings,
+                      #   layout, markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
+  features/           # Built-in features: auto-move, backlinks, bookmarks, canvas, collection,
+                      #   command-palette, copy-block-link, deep-link, file-history, file-icons,
+                      #   folder-notes, outgoing-links, properties, quick-switcher, search, tags, tasks, views
+  plugins/            # Optional modules: calendar, encrypted-notes, graph-view, kanban, one-on-one,
+                      #   periodic-notes, queryjs, quick-note, templates, terminal, word-count
   utils/              # Pure shared utilities (no state, no side effects)
 ```
 
