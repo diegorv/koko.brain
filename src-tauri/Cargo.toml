@@ -30,7 +30,7 @@ portable-pty = "0.8"
 uuid = { version = "1", features = ["v4"] }
 
 # Debug / metrics
-sysinfo = { version = "0.33", default-features = false, features = ["system"] }
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 
 # Shared infrastructure
 chrono = "0.4"
