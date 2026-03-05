@@ -41,43 +41,31 @@ A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md
 
 ## Getting Started
 
-### Prerequisites
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full local development setup guide, including system dependencies, troubleshooting, and workflow tips.
 
-- [asdf](https://asdf-vm.com/) — version manager for Node.js, pnpm, and Rust
-- Tauri 2 system dependencies ([see Tauri docs](https://v2.tauri.app/start/prerequisites/))
-
-### Setup
+### Quick Start
 
 ```bash
-# Install runtime versions from .tool-versions
-asdf install
+# 1. Install mise (version manager) — https://mise.jdx.dev
+curl https://mise.jdx.dev/install.sh | sh
 
-# Install frontend dependencies
+# 2. Install pinned versions of Node.js, pnpm, and Rust
+mise install
+
+# 3. Install frontend dependencies
 pnpm install
+
+# 4. Run in dev mode
+pnpm tauri dev
 ```
 
-The `.tool-versions` file pins the exact versions of Node.js, pnpm, and Rust used in this project. Running `asdf install` will install all of them automatically.
-
-> **Note:** If you prefer managing Rust separately via [rustup](https://rustup.rs/), that works too — just make sure the Rust version matches what's in `.tool-versions`.
-
-### Development
+### Commands
 
 ```bash
-pnpm install              # Install dependencies
 pnpm tauri dev            # Run app in dev mode (frontend + Tauri)
 pnpm dev                  # Run frontend only (no Tauri window)
-```
-
-### Build
-
-```bash
 pnpm build                # Build frontend for production
 pnpm tauri build          # Build the full desktop app
-```
-
-### Testing
-
-```bash
 pnpm check                # TypeScript type checking
 pnpm vitest run           # Run frontend tests
 cargo test --manifest-path src-tauri/Cargo.toml   # Run Rust tests
