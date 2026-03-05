@@ -1,0 +1,39 @@
+filters:
+  and:
+    - "file.hasTag('bug')"
+    - "status != 'completed'"
+
+formulas:
+  urgency: "if(priority == 'critical', 4, if(priority == 'high', 3, if(priority == 'medium', 2, 1)))"
+  severityBadge: "badge(priority, if(priority == 'critical', 'red', if(priority == 'high', 'orange', 'gray')))"
+  urgencyColor: "color(if(priority == 'critical', 'CRITICAL', if(priority == 'high', 'HIGH', if(priority == 'medium', 'MED', 'LOW'))), if(priority == 'critical', 'red', if(priority == 'high', 'orange', 'yellow')))"
+  hasEstimate: "if(file.hasProperty('estimated_hours'), badge('Yes', 'green'), badge('No', 'gray'))"
+
+properties:
+  file.name:
+    displayName: Bug
+  formula.severityBadge:
+    displayName: Severity
+  formula.urgencyColor:
+    displayName: Urgency
+  formula.hasEstimate:
+    displayName: Estimated?
+  assignee:
+    displayName: Assigned To
+
+views:
+  - type: table
+    name: By Urgency
+    order:
+      - file.name
+      - formula.severityBadge
+      - formula.urgencyColor
+      - assignee
+      - formula.hasEstimate
+      - estimated_hours
+    sort:
+      - column: formula.urgency
+        direction: DESC
+    columnSize:
+      file.name: 250
+      priority: 100

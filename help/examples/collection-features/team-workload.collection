@@ -1,0 +1,39 @@
+filters: "file.hasProperty('assignee')"
+
+formulas:
+  type: "if(file.hasTag('bug'), 'Bug', if(file.hasTag('projeto'), 'Project', if(file.hasTag('task'), 'Task', 'Other')))"
+  tagList: "tags.join(', ')"
+  statusLabel: "status.title()"
+
+properties:
+  file.name:
+    displayName: Item
+  formula.type:
+    displayName: Type
+  formula.tagList:
+    displayName: Tags
+  formula.statusLabel:
+    displayName: Status
+  assignee:
+    displayName: Owner
+  progress:
+    displayName: "Done (%)"
+
+views:
+  - type: table
+    name: All Assignments
+    order:
+      - assignee
+      - file.name
+      - formula.type
+      - formula.statusLabel
+      - progress
+    sort:
+      - column: assignee
+        direction: ASC
+      - column: progress
+        direction: DESC
+    columnSize:
+      assignee: 120
+      file.name: 220
+      formula.type: 100

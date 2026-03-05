@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*-alpha"
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: "rust-tauri"
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri app
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseBody: |
+            See the [tag annotation](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) for the full changelog.
+          releaseDraft: false
+          prerelease: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd src-tauri/target/release/bundle
+          CHECKSUM_FILE="checksums-sha256.txt"
+          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" \) | sort | while read -r file; do
+            shasum -a 256 "$file" >> "$CHECKSUM_FILE"
+          done
+          echo "--- Checksums ---"
+          cat "$CHECKSUM_FILE"
+
+      - name: Upload checksums to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            src-tauri/target/release/bundle/checksums-sha256.txt \
+            --clobber

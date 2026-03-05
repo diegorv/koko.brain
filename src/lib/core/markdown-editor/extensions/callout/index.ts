@@ -1,0 +1,1 @@
+export { calloutDecoration } from './callout';

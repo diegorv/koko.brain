@@ -1,0 +1,26 @@
+name: Cache Warmup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src-tauri/**"
+      - "pnpm-lock.yaml"
+
+jobs:
+  warmup:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: "rust-tauri"
+
+      - name: Build Rust dependencies
+        run: cargo check --manifest-path src-tauri/Cargo.toml
