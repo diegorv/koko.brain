@@ -41,11 +41,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
-
       - name: Audit dependencies
-        run: cargo audit --file src-tauri/Cargo.lock
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri
 
   dependency-review:
     name: Dependency Review
