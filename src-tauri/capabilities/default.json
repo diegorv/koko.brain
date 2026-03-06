@@ -209,6 +209,8 @@
           "url": "https://api.todoist.com/**"
         }
       ]
-    }
+    },
+    "updater:default",
+    "process:allow-restart"
   ]
 }

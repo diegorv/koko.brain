@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://cdn.jsdelivr.net"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://cdn.jsdelivr.net https://github.com https://objects.githubusercontent.com"
     }
   },
   "plugins": {
@@ -32,10 +32,17 @@
       "desktop": {
         "schemes": ["kokobrain"]
       }
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/diegorv/koko.brain/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI0MjJCRkQyODY3MzBDNTIKUldSU0RIT0cwcjhpdEpXSkRXQitCamJENUxsbnNrN2JBYnBtS0RnU1kwclNoUnpFWmxuRk5odXMK"
     }
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",

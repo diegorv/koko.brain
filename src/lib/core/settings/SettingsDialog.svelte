@@ -22,6 +22,7 @@
 	import TodoistSection from './sections/TodoistSection.svelte';
 	import SecuritySection from './sections/SecuritySection.svelte';
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
+	import UpdateSection from './sections/UpdateSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -37,6 +38,7 @@
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import BugIcon from '@lucide/svelte/icons/bug';
+	import DownloadIcon from '@lucide/svelte/icons/download';
 	import type { SettingsSection } from './settings.types';
 	import type { Component } from 'svelte';
 
@@ -56,6 +58,7 @@
 		todoist: CircleCheckIcon,
 		security: ShieldIcon,
 		troubleshooting: BugIcon,
+		update: DownloadIcon,
 	};
 
 	const debouncedSave = debounce(() => {
@@ -207,6 +210,8 @@
 					<SecuritySection />
 				{:else if settingsDialogStore.activeSection === 'troubleshooting'}
 					<TroubleshootingSection onchange={debouncedSave} />
+				{:else if settingsDialogStore.activeSection === 'update'}
+					<UpdateSection />
 				{/if}
 			</div>
 		</ScrollArea>
