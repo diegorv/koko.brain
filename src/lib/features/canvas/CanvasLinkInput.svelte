@@ -18,7 +18,7 @@
 		const trimmed = url.trim();
 		if (!trimmed) return;
 		// Auto-add https:// if no protocol (case-insensitive check)
-		const finalUrl = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+		const finalUrl = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`; // privacy-ok
 		onSubmit(finalUrl, label.trim() || undefined);
 		url = '';
 		label = '';
