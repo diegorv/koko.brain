@@ -39,6 +39,9 @@ jobs:
       - name: Run frontend tests
         run: pnpm vitest run
 
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Build Tauri app
         id: tauri
         uses: tauri-apps/tauri-action@v0.6

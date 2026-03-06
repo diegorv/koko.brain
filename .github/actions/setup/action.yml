@@ -1,5 +1,5 @@
 name: "Setup Environment"
-description: "Setup pnpm, Node.js, Rust, Cargo cache, and sccache"
+description: "Setup pnpm, Node.js, Rust, and dependency caching"
 
 inputs:
   rust:
@@ -33,18 +33,9 @@ runs:
       with:
         targets: ${{ inputs.rust-targets }}
 
-    - name: Cache Cargo registry and git
+    - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
-      uses: actions/cache@v4
+      uses: Swatinem/rust-cache@v2
       with:
-        path: |
-          ~/.cargo/registry/index
-          ~/.cargo/registry/cache
-          ~/.cargo/git/db
-        key: cargo-registry-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
-        restore-keys: |
-          cargo-registry-${{ runner.os }}-
-
-    - name: Setup sccache
-      if: inputs.rust == 'true'
-      uses: mozilla-actions/sccache-action@v0.0.9
+        workspaces: "src-tauri -> target"
+        cache-on-failure: true
