@@ -286,6 +286,20 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.todoist.apiToken).toBe('token123');
 	});
 
+	it('merges sync settings with defaults', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ sync: { enabled: true, port: 40000 } }),
+		);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.sync.enabled).toBe(true);
+		expect(settingsStore.settings.sync.port).toBe(40000);
+		expect(settingsStore.settings.sync.intervalMinutes).toBe(DEFAULT_SETTINGS.sync.intervalMinutes);
+	});
+
 	it('merges quickNote settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

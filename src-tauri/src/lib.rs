@@ -3,8 +3,10 @@ pub mod db;
 pub mod search;
 pub mod security;
 pub mod semantic;
+pub mod sync;
 pub mod utils;
 
+use commands::sync::SyncEngineState;
 use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::Emitter;
@@ -81,6 +83,7 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(TerminalState::new())
+        .manage(SyncEngineState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -122,6 +125,19 @@ pub fn run() {
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
+            commands::sync::generate_sync_passphrase,
+            commands::sync::save_sync_passphrase,
+            commands::sync::has_sync_passphrase,
+            commands::sync::delete_sync_passphrase,
+            commands::sync::change_sync_passphrase,
+            commands::sync::reset_sync,
+            commands::sync::get_sync_local_config,
+            commands::sync::save_sync_local_config,
+            commands::sync::start_sync,
+            commands::sync::stop_sync,
+            commands::sync::trigger_sync,
+            commands::sync::get_sync_peers,
+            commands::sync::get_sync_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

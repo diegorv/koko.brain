@@ -183,8 +183,18 @@ export interface TagColorSettings {
 	colors: Record<string, string>;
 }
 
+/** Configuration for LAN sync between devices */
+export interface SyncSettings {
+	/** Whether LAN sync is enabled */
+	enabled: boolean;
+	/** TCP port for the sync server (default: 39782) */
+	port: number;
+	/** Interval in minutes between automatic sync cycles (default: 5) */
+	intervalMinutes: number;
+}
+
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sync' | 'security' | 'troubleshooting';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -206,6 +216,8 @@ export interface AppSettings {
 	todoist: TodoistSettings;
 	/** Auto-move feature configuration */
 	autoMove: import('$lib/features/auto-move/auto-move.types').AutoMoveSettings;
+	/** LAN sync configuration */
+	sync: SyncSettings;
 	/** Whether debug messages are logged to the browser console */
 	debugMode: boolean;
 	/** Whether Rust backend debug logs are forwarded to browser devtools */

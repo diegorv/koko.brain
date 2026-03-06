@@ -32,17 +32,36 @@ mod platform {
 
 	/// Stores a 32-byte encryption key in the macOS Keychain.
 	pub fn store_key(account: &str, key: &[u8; 32]) -> Result<(), KeychainError> {
-		// Delete existing key first (update not supported directly)
-		let _ = delete_generic_password(SERVICE, account);
-
-		set_generic_password(SERVICE, account, key)
-			.map_err(|e| KeychainError::Internal(format!("Failed to store key: {e}")))?;
-
-		Ok(())
+		store_bytes(account, key)
 	}
 
 	/// Retrieves a 32-byte encryption key from the macOS Keychain.
 	pub fn retrieve_key(account: &str) -> Result<[u8; 32], KeychainError> {
+		let data = retrieve_bytes(account)?;
+		if data.len() != 32 {
+			return Err(KeychainError::Internal(format!(
+				"Invalid key length: expected 32, got {}",
+				data.len()
+			)));
+		}
+		let mut key = [0u8; 32];
+		key.copy_from_slice(&data);
+		Ok(key)
+	}
+
+	/// Stores variable-length bytes in the macOS Keychain.
+	pub fn store_bytes(account: &str, data: &[u8]) -> Result<(), KeychainError> {
+		// Delete existing entry first (update not supported directly)
+		let _ = delete_generic_password(SERVICE, account);
+
+		set_generic_password(SERVICE, account, data)
+			.map_err(|e| KeychainError::Internal(format!("Failed to store data: {e}")))?;
+
+		Ok(())
+	}
+
+	/// Retrieves variable-length bytes from the macOS Keychain.
+	pub fn retrieve_bytes(account: &str) -> Result<Vec<u8>, KeychainError> {
 		let mut search = ItemSearchOptions::new();
 		search
 			.class(ItemClass::generic_password())
@@ -62,7 +81,7 @@ mod platform {
 			}
 		})?;
 
-		// Wrap in Zeroizing so raw key bytes are zeroed when this Vec is dropped
+		// Wrap in Zeroizing so raw bytes are zeroed when this Vec is dropped
 		let data = Zeroizing::new(
 			results
 				.into_iter()
@@ -74,16 +93,20 @@ mod platform {
 				.ok_or(KeychainError::NotFound)?,
 		);
 
-		if data.len() != 32 {
-			return Err(KeychainError::Internal(format!(
-				"Invalid key length: expected 32, got {}",
-				data.len()
-			)));
-		}
+		Ok(data.to_vec())
+	}
 
-		let mut key = [0u8; 32];
-		key.copy_from_slice(&data);
-		Ok(key)
+	/// Deletes a key from the macOS Keychain for the given account.
+	pub fn delete_key(account: &str) -> Result<(), KeychainError> {
+		delete_generic_password(SERVICE, account)
+			.map_err(|e| {
+				let code = e.code();
+				if code == -25300 {
+					KeychainError::NotFound
+				} else {
+					KeychainError::Internal(format!("Failed to delete key (code {code}): {e}"))
+				}
+			})
 	}
 
 	/// Checks if a key exists for the given account without triggering authentication.
@@ -112,6 +135,24 @@ mod platform {
 	}
 
 	pub fn retrieve_key(_account: &str) -> Result<[u8; 32], KeychainError> {
+		Err(KeychainError::Internal(
+			"Keychain is only available on macOS".to_string(),
+		))
+	}
+
+	pub fn store_bytes(_account: &str, _data: &[u8]) -> Result<(), KeychainError> {
+		Err(KeychainError::Internal(
+			"Keychain is only available on macOS".to_string(),
+		))
+	}
+
+	pub fn retrieve_bytes(_account: &str) -> Result<Vec<u8>, KeychainError> {
+		Err(KeychainError::Internal(
+			"Keychain is only available on macOS".to_string(),
+		))
+	}
+
+	pub fn delete_key(_account: &str) -> Result<(), KeychainError> {
 		Err(KeychainError::Internal(
 			"Keychain is only available on macOS".to_string(),
 		))

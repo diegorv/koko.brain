@@ -155,10 +155,16 @@ vi.mock('$lib/features/command-palette/command-palette.service', () => ({
 	resetCommandPalette: vi.fn(),
 }));
 
+<<<<<<< HEAD
 vi.mock('$lib/features/auto-move/auto-move.service', () => ({
 	loadAutoMoveConfig: vi.fn(() => Promise.resolve()),
 	toggleAutoMoveHook: vi.fn(),
 	resetAutoMove: vi.fn(),
+=======
+vi.mock('$lib/features/sync/sync.service', () => ({
+	initSync: vi.fn(() => Promise.resolve()),
+	teardownSync: vi.fn(() => Promise.resolve()),
+>>>>>>> 8690317 (feat(sync): integrate sync engine in app lifecycle)
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -196,6 +202,7 @@ import {
 	stopSemanticProgressListener,
 } from '$lib/features/search/search.service';
 import { toast } from 'svelte-sonner';
+import { initSync, teardownSync } from '$lib/features/sync/sync.service';
 import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 
 describe('initializeVault', () => {
@@ -289,6 +296,23 @@ describe('initializeVault', () => {
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
 		expect(scanFilesForCalendar).toHaveBeenCalled();
+	});
+
+	it('initializes sync engine during vault initialization', async () => {
+		await initializeVault('/vault');
+
+		expect(initSync).toHaveBeenCalledWith('/vault');
+	});
+
+	it('continues initialization when sync init fails', async () => {
+		vi.mocked(initSync).mockRejectedValueOnce(new Error('sync failed'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await initializeVault('/vault');
+
+		// Should continue to file watcher despite sync failure
+		expect(startWatching).toHaveBeenCalledWith('/vault');
+		consoleSpy.mockRestore();
 	});
 
 	it('enables file system monitoring for the vault', async () => {
@@ -458,6 +482,12 @@ describe('teardownVault', () => {
 		expect(resetTemplates).toHaveBeenCalled();
 		expect(resetCalendar).toHaveBeenCalled();
 		expect(resetTerminal).toHaveBeenCalled();
+	});
+
+	it('tears down sync engine during vault teardown', () => {
+		teardownVault();
+
+		expect(teardownSync).toHaveBeenCalled();
 	});
 
 	it('resets UI state (quick switcher, command palette)', () => {
