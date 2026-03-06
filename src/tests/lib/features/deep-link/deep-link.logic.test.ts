@@ -380,6 +380,32 @@ describe('resolveFilePath', () => {
 			'/vault/notes.archive/hello.md',
 		);
 	});
+
+	it('throws on path traversal with ..', () => {
+		expect(() => resolveFilePath('/vault', '../../../etc/passwd')).toThrow(
+			'Path traversal detected',
+		);
+	});
+
+	it('throws on path traversal with nested ..', () => {
+		expect(() => resolveFilePath('/vault', 'notes/../../..')).toThrow(
+			'Path traversal detected',
+		);
+	});
+
+	it('throws on path traversal that escapes by one level', () => {
+		expect(() => resolveFilePath('/vault', '../secret.md')).toThrow(
+			'Path traversal detected',
+		);
+	});
+
+	it('allows .. that stays within vault', () => {
+		expect(resolveFilePath('/vault', 'notes/../hello')).toBe('/vault/hello.md');
+	});
+
+	it('allows .. in subdirectory that stays within vault', () => {
+		expect(resolveFilePath('/vault', 'a/b/../c/note.md')).toBe('/vault/a/c/note.md');
+	});
 });
 
 describe('injectTagsIntoContent', () => {
