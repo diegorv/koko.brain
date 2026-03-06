@@ -45,12 +45,6 @@ runs:
         restore-keys: |
           cargo-registry-${{ runner.os }}-
 
-    - name: Rust cache (target directory)
-      if: inputs.rust == 'true'
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: "src-tauri -> target"
-
     - name: Setup sccache
       if: inputs.rust == 'true'
       uses: mozilla-actions/sccache-action@v0.0.9
