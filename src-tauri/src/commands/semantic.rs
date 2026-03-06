@@ -665,7 +665,16 @@ const EXCLUDED_FOLDERS: &[&str] = &["_templates"];
 /// Uses the actual file modification time (matching what `build_semantic_index` reads)
 /// to prevent redundant re-indexing on the next build.
 fn update_stored_mtime(file_path: &str, vault_path: &str) -> Result<(), String> {
-	let abs_path = Path::new(vault_path).join(file_path);
+	let vault_root = Path::new(vault_path)
+		.canonicalize()
+		.map_err(|e| format!("Invalid vault path: {e}"))?;
+	let abs_path = vault_root.join(file_path);
+	let abs_canonical = abs_path
+		.canonicalize()
+		.map_err(|e| format!("Cannot resolve path {}: {e}", file_path))?;
+	if !abs_canonical.starts_with(&vault_root) {
+		return Err(format!("Path traversal detected: {}", file_path));
+	}
 	let mtime = std::fs::metadata(&abs_path)
 		.and_then(|m| m.modified())
 		.ok()
