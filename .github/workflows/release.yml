@@ -74,6 +74,10 @@ jobs:
           releaseDraft: false
           prerelease: true
 
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
+
       - name: Generate SHA-256 checksums
         run: |
           set -euo pipefail
