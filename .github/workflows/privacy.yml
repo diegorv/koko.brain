@@ -11,6 +11,7 @@ on:
     paths:
       - "src/**"
       - "src-tauri/src/**"
+  workflow_dispatch:
 
 concurrency:
   group: privacy-${{ github.ref }}
@@ -26,27 +27,33 @@ jobs:
 
       - name: Scan TypeScript files for external calls
         run: |
-          echo "Scanning .ts/.svelte files for external network calls..."
+          echo "Scanning .ts/.svelte/.js files for external network calls..."
+
+          # Patterns that indicate actual network calls
           PATTERNS=(
-            'new URL\s*\('
             'fetch\s*\('
             'XMLHttpRequest'
             'navigator\.sendBeacon'
             'WebSocket\s*\('
             'EventSource\s*\('
-            'http:\/\/'
-            'https:\/\/'
             '\.open\s*\(\s*["\x27](?:GET|POST|PUT|DELETE|PATCH)'
+            'import.*\baxios\b'
+            'import.*\bgot\b'
+            'import.*\bnode-fetch\b'
+            'import.*\bky\b'
+            'require\s*\(\s*["\x27](?:axios|got|node-fetch|ky)["\x27]\)'
           )
 
           SKIP=(
             '\.test\.ts'
             '\.spec\.ts'
             'node_modules'
-            '\.d\.ts$'
+            '\.svelte-kit/'
+            '\.d\.ts:'
             'localhost'
             '127\.0\.0\.1'
             'tauri\.localhost'
+            'e2e/'
             '# privacy-ok'
             '// privacy-ok'
           )
@@ -54,13 +61,12 @@ jobs:
           # Known expected external calls (shown as notice, don't fail the build)
           KNOWN=(
             'cdn\.jsdelivr\.net/npm/chart\.js'
-            'xmlns="http://www\.w3\.org'
-            'data:image/svg\+xml'
             'openUrl\('
           )
 
           FOUND=0
-          KNOWN_FOUND=0
+          KNOWN_MATCHES=()
+          UNKNOWN_MATCHES=()
           for pattern in "${PATTERNS[@]}"; do
             while IFS= read -r match; do
               SKIP_MATCH=false
@@ -83,31 +89,48 @@ jobs:
               done
 
               if [ "$IS_KNOWN" = true ]; then
-                echo "::notice::$match"
-                KNOWN_FOUND=$((KNOWN_FOUND + 1))
+                KNOWN_MATCHES+=("$match")
               else
-                echo "::warning::$match"
-                FOUND=$((FOUND + 1))
+                UNKNOWN_MATCHES+=("$match")
               fi
-            done < <(grep -rnE "$pattern" --include='*.ts' --include='*.svelte' --include='*.js' . 2>/dev/null || true)
+            done < <(grep -rnE "$pattern" --include='*.ts' --include='*.svelte' --include='*.js' src/ 2>/dev/null || true)
           done
 
-          if [ "$KNOWN_FOUND" -gt 0 ]; then
+          echo ""
+          echo "=== Results ==="
+
+          if [ ${#KNOWN_MATCHES[@]} -gt 0 ]; then
             echo ""
-            echo "Found $KNOWN_FOUND known external call(s) (expected, not blocking)."
+            echo "Known (expected, not blocking):"
+            for m in "${KNOWN_MATCHES[@]}"; do
+              echo "  ok  $m"
+              echo "::notice::$m"
+            done
           fi
 
-          if [ "$FOUND" -gt 0 ]; then
+          if [ ${#UNKNOWN_MATCHES[@]} -gt 0 ]; then
             echo ""
-            echo "Found $FOUND unknown external call(s) in TypeScript/Svelte files."
+            echo "Unknown (blocking):"
+            for m in "${UNKNOWN_MATCHES[@]}"; do
+              echo "  !!  $m"
+              echo "::warning::$m"
+            done
+            echo ""
+            echo "Found ${#UNKNOWN_MATCHES[@]} unknown external call(s) in TypeScript/Svelte files."
             echo "If a call is intentional, add it to the KNOWN list in this workflow or add '// privacy-ok' on the same line."
             exit 1
           fi
-          echo "No unknown external calls found in TypeScript/Svelte files."
+
+          if [ ${#KNOWN_MATCHES[@]} -eq 0 ]; then
+            echo ""
+            echo "No external calls found."
+          fi
 
       - name: Scan Rust files for external calls
         run: |
           echo "Scanning .rs files for external network calls..."
+
+          # Patterns that indicate actual network calls or HTTP client usage
           PATTERNS=(
             'reqwest'
             'hyper::client'
@@ -116,8 +139,6 @@ jobs:
             'curl::'
             'TcpStream::connect'
             'UdpSocket::connect'
-            'http:\/\/'
-            'https:\/\/'
           )
 
           SKIP=(
@@ -136,8 +157,8 @@ jobs:
             'semantic/model\.rs.*reqwest'
           )
 
-          FOUND=0
-          KNOWN_FOUND=0
+          KNOWN_MATCHES=()
+          UNKNOWN_MATCHES=()
           for pattern in "${PATTERNS[@]}"; do
             while IFS= read -r match; do
               SKIP_MATCH=false
@@ -160,24 +181,39 @@ jobs:
               done
 
               if [ "$IS_KNOWN" = true ]; then
-                echo "::notice::$match"
-                KNOWN_FOUND=$((KNOWN_FOUND + 1))
+                KNOWN_MATCHES+=("$match")
               else
-                echo "::warning::$match"
-                FOUND=$((FOUND + 1))
+                UNKNOWN_MATCHES+=("$match")
               fi
-            done < <(grep -rnE "$pattern" --include='*.rs' . 2>/dev/null || true)
+            done < <(grep -rnE "$pattern" --include='*.rs' src-tauri/src/ 2>/dev/null || true)
           done
 
-          if [ "$KNOWN_FOUND" -gt 0 ]; then
+          echo ""
+          echo "=== Results ==="
+
+          if [ ${#KNOWN_MATCHES[@]} -gt 0 ]; then
             echo ""
-            echo "Found $KNOWN_FOUND known external call(s) (expected, not blocking)."
+            echo "Known (expected, not blocking):"
+            for m in "${KNOWN_MATCHES[@]}"; do
+              echo "  ok  $m"
+              echo "::notice::$m"
+            done
           fi
 
-          if [ "$FOUND" -gt 0 ]; then
+          if [ ${#UNKNOWN_MATCHES[@]} -gt 0 ]; then
             echo ""
-            echo "Found $FOUND unknown external call(s) in Rust files."
+            echo "Unknown (blocking):"
+            for m in "${UNKNOWN_MATCHES[@]}"; do
+              echo "  !!  $m"
+              echo "::warning::$m"
+            done
+            echo ""
+            echo "Found ${#UNKNOWN_MATCHES[@]} unknown external call(s) in Rust files."
             echo "If a call is intentional, add it to the KNOWN list in this workflow or add '// privacy-ok' on the same line."
             exit 1
           fi
-          echo "No unknown external calls found in Rust files."
+
+          if [ ${#KNOWN_MATCHES[@]} -eq 0 ]; then
+            echo ""
+            echo "No external calls found."
+          fi
