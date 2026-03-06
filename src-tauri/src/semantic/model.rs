@@ -93,7 +93,7 @@ impl ModelManager {
 		dest: &Path,
 		on_progress: impl Fn(f32),
 	) -> Result<(), String> {
-		let client = reqwest::Client::new();
+		let client = reqwest::Client::new(); // huggingface.co/Xenova/bge-m3 downloads only
 		let response = client
 			.get(url)
 			.send()

@@ -31,8 +31,6 @@ const DEFAULT_HEATMAP_COLORS = [
 	'rgba(34,197,94,0.6)',
 ];
 
-/** Chart.js CDN URL for lazy loading */
-const CHARTJS_CDN = 'https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js';
 
 /** Timeout in milliseconds for loading Chart.js from CDN */
 const CHARTJS_LOAD_TIMEOUT = 10_000;
@@ -880,7 +878,7 @@ export class DVUI {
 
 		return new Promise<void>((resolve, reject) => {
 			const script = document.createElement('script');
-			script.src = CHARTJS_CDN;
+			script.src = 'https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js';
 
 			const timer = setTimeout(() => {
 				script.remove();
