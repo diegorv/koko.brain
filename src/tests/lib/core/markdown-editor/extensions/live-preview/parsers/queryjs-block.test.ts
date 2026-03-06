@@ -15,29 +15,29 @@ describe('findQueryjsBlock', () => {
 	it('detects a simple queryjs block', () => {
 		const lines = makeLines([
 			'```queryjs',
-			'dv.list(dv.pages().file.link)',
+			'kb.list(kb.pages().file.link)',
 			'```',
 		]);
 
 		const result = findQueryjsBlock(lines, 0);
 		expect(result).not.toBeNull();
 		expect(result!.endIdx).toBe(2);
-		expect(result!.block.jsContent).toBe('dv.list(dv.pages().file.link)');
+		expect(result!.block.jsContent).toBe('kb.list(kb.pages().file.link)');
 	});
 
 	it('extracts multiline JS content correctly', () => {
 		const lines = makeLines([
 			'```queryjs',
-			'const pages = dv.pages("#journal")',
+			'const pages = kb.pages("#journal")',
 			'const filtered = pages.where(p => p.status === "active")',
-			'dv.table(["Name"], filtered.map(p => [p.file.link]))',
+			'kb.table(["Name"], filtered.map(p => [p.file.link]))',
 			'```',
 		]);
 
 		const result = findQueryjsBlock(lines, 0);
 		expect(result).not.toBeNull();
 		expect(result!.block.jsContent).toContain('const pages');
-		expect(result!.block.jsContent).toContain('dv.table');
+		expect(result!.block.jsContent).toContain('kb.table');
 		expect(result!.endIdx).toBe(4);
 	});
 
@@ -74,7 +74,7 @@ describe('findQueryjsBlock', () => {
 	it('returns null if block is not closed', () => {
 		const lines = makeLines([
 			'```queryjs',
-			'dv.paragraph("hello")',
+			'kb.paragraph("hello")',
 		]);
 
 		expect(findQueryjsBlock(lines, 0)).toBeNull();
@@ -94,7 +94,7 @@ describe('findQueryjsBlock', () => {
 	it('returns correct fence positions', () => {
 		const lines = makeLines([
 			'```queryjs',
-			'dv.paragraph("test")',
+			'kb.paragraph("test")',
 			'```',
 		]);
 
@@ -110,7 +110,7 @@ describe('findQueryjsBlock', () => {
 		const lines = makeLines([
 			'Some text',
 			'```queryjs',
-			'dv.list(dv.pages())',
+			'kb.list(kb.pages())',
 			'```',
 		]);
 
@@ -121,19 +121,19 @@ describe('findQueryjsBlock', () => {
 	it('handles longer fence markers', () => {
 		const lines = makeLines([
 			'````queryjs',
-			'dv.paragraph("hello")',
+			'kb.paragraph("hello")',
 			'````',
 		]);
 
 		const result = findQueryjsBlock(lines, 0);
 		expect(result).not.toBeNull();
-		expect(result!.block.jsContent).toBe('dv.paragraph("hello")');
+		expect(result!.block.jsContent).toBe('kb.paragraph("hello")');
 	});
 
 	it('does not close with shorter fence', () => {
 		const lines = makeLines([
 			'````queryjs',
-			'dv.paragraph("hello")',
+			'kb.paragraph("hello")',
 			'```',
 			'more code',
 			'````',
