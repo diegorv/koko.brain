@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - ".github/workflows/**"
   schedule:
     - cron: "0 9 * * 1" # Every Monday at 9:00 UTC
 
