@@ -121,6 +121,25 @@ src-tauri/src/
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 
+## Privacy
+
+**Privacy is a core value of this project.** Kokobrain is designed to work entirely offline — your notes never leave your machine.
+
+- All data is stored locally as plain Markdown files
+- Search indexing (FTS5 + semantic embeddings) runs locally via SQLite and ONNX Runtime
+- Encryption uses AES-256-GCM with macOS Keychain and Touch ID — no external key servers
+- The semantic search model is downloaded once from HuggingFace and runs locally — no API calls, no telemetry, no cloud processing
+- **No analytics, no tracking, no accounts, no sign-up**
+
+The only external network calls in the entire codebase are:
+
+| Call | Where | Why |
+|------|-------|-----|
+| HuggingFace model download | `src-tauri/src/semantic/model.rs` | One-time download of the BGE-M3 ONNX model and tokenizer for local semantic search. After download, everything runs offline. |
+| Chart.js CDN | `src/lib/plugins/queryjs/dv-ui.ts` | Loads Chart.js for rendering charts in QueryJS results. |
+
+A [Privacy Check](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml) workflow runs on every push and pull request, scanning all `.ts` and `.rs` source files for external network calls. Any new external call that is not explicitly approved will fail the build.
+
 ## Inspirations
 
 Some features in Kokobrain were inspired by ideas from Obsidian community plugins that I used daily. These are concept-level inspirations only — no code was copied, and there is no expectation of compatibility, feature parity, or interoperability with any of these projects.
