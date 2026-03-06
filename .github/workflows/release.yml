@@ -39,6 +39,27 @@ jobs:
       - name: Run frontend tests
         run: pnpm vitest run
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          # Find the previous tag
+          PREV_TAG=$(git tag --list --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
+          if [ -z "$PREV_TAG" ]; then
+            # First release — use all commits
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "$TAG" | grep -v "^- chore: bump version")
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..${TAG}" | grep -v "^- chore: bump version")
+          fi
+          # Store in output (handle multiline)
+          {
+            echo "commits<<CHANGELOG_EOF"
+            echo "$COMMITS"
+            echo "CHANGELOG_EOF"
+            echo "prev_tag=${PREV_TAG:-}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.9
 
@@ -63,7 +84,11 @@ jobs:
           releaseName: ${{ github.ref_name }}
           args: '--target aarch64-apple-darwin'
           releaseBody: |
-            See the [tag annotation](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) for the full changelog.
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.commits }}
+
+            ${{ steps.changelog.outputs.prev_tag && format('**Full diff:** [{0}...{1}](https://github.com/{2}/compare/{0}...{1})', steps.changelog.outputs.prev_tag, github.ref_name, github.repository) || '' }}
 
             ## Verify download integrity
 
