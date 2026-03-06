@@ -44,24 +44,24 @@ tags:
 
 ### Satisfaction
 ```queryjs
-dv.view("_system/queryjs/yearly-satisfaction-by-quarter")
+kb.view("_system/queryjs/yearly-satisfaction-by-quarter")
 ```
 
 ### Practices
 ```queryjs
-dv.view("_system/queryjs/yearly-practices-by-quarter")
+kb.view("_system/queryjs/yearly-practices-by-quarter")
 ```
 
 ## Charts — By Month
 
 ### Satisfaction
 ```queryjs
-dv.view("_system/queryjs/yearly-satisfaction-by-month")
+kb.view("_system/queryjs/yearly-satisfaction-by-month")
 ```
 
 ### Practices
 ```queryjs
-dv.view("_system/queryjs/yearly-practices-by-month")
+kb.view("_system/queryjs/yearly-practices-by-month")
 ```
 
 ## Life Check-in

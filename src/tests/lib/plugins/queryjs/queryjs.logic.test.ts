@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
-	buildDVLink,
-	buildDVPage,
+	buildKBLink,
+	buildKBPage,
 	buildReverseIndex,
 	resolveInlinks,
 	resolveWikiLinkTarget,
 	parseSource,
 } from '$lib/plugins/queryjs/queryjs.logic';
-import { DVDateTime } from '$lib/plugins/queryjs/dv-datetime';
+import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
 
@@ -30,20 +30,20 @@ function makeWikiLink(target: string): WikiLink {
 	return { target, alias: null, heading: null, position: 0 };
 }
 
-describe('buildDVLink', () => {
+describe('buildKBLink', () => {
 	it('creates link from path', () => {
-		const link = buildDVLink('/vault/notes/hello.md');
+		const link = buildKBLink('/vault/notes/hello.md');
 		expect(link.path).toBe('/vault/notes/hello.md');
 		expect(link.display).toBe('hello');
 	});
 
 	it('handles nested paths', () => {
-		const link = buildDVLink('/vault/deep/nested/file.md');
+		const link = buildKBLink('/vault/deep/nested/file.md');
 		expect(link.display).toBe('file');
 	});
 
 	it('handles files without extension', () => {
-		const link = buildDVLink('/vault/README');
+		const link = buildKBLink('/vault/README');
 		expect(link.display).toBe('README');
 	});
 });
@@ -155,14 +155,14 @@ describe('resolveInlinks', () => {
 	});
 });
 
-describe('buildDVPage', () => {
+describe('buildKBPage', () => {
 	const noteIndex = new Map<string, WikiLink[]>();
 	const noteContents = new Map<string, string>();
 	const allPaths = ['/vault/notes/test.md'];
 
 	it('maps NoteRecord correctly', () => {
 		const record = makeRecord();
-		const page = buildDVPage(record, noteIndex, noteContents, allPaths);
+		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
 
 		expect(page.file.path).toBe('/vault/notes/test.md');
 		expect(page.file.name).toBe('test.md');
@@ -176,7 +176,7 @@ describe('buildDVPage', () => {
 		const contents = new Map([
 			['/vault/notes/test.md', '---\ntags: [journal]\n---\nSome #inline-tag content'],
 		]);
-		const page = buildDVPage(makeRecord(), noteIndex, contents, allPaths);
+		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
 		expect(page.file.tags).toContain('journal');
 		expect(page.file.tags).toContain('inline-tag');
 	});
@@ -186,7 +186,7 @@ describe('buildDVPage', () => {
 			['/vault/other.md', [makeWikiLink('test')]],
 		]);
 		const reverse = buildReverseIndex(index);
-		const page = buildDVPage(makeRecord(), index, noteContents, allPaths, reverse);
+		const page = buildKBPage(makeRecord(), index, noteContents, allPaths, reverse);
 		expect(page.file.inlinks).toHaveLength(1);
 		expect(page.file.inlinks[0].path).toBe('/vault/other.md');
 	});
@@ -196,7 +196,7 @@ describe('buildDVPage', () => {
 			['/vault/notes/test.md', [makeWikiLink('test')]],
 		]);
 		const paths = ['/vault/notes/test.md'];
-		const page = buildDVPage(makeRecord(), index, noteContents, paths);
+		const page = buildKBPage(makeRecord(), index, noteContents, paths);
 		expect(page.file.outlinks).toHaveLength(1);
 	});
 
@@ -207,36 +207,36 @@ describe('buildDVPage', () => {
 				['priority', 5],
 			]),
 		});
-		const page = buildDVPage(record, noteIndex, noteContents, allPaths);
+		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
 		expect(page.status).toBe('active');
 		expect(page.priority).toBe(5);
 	});
 
-	it('converts date strings to DVDateTime', () => {
+	it('converts date strings to KBDateTime', () => {
 		const record = makeRecord({
 			properties: new Map<string, unknown>([['created', '2024-06-15']]),
 		});
-		const page = buildDVPage(record, noteIndex, noteContents, allPaths);
-		expect(page.created).toBeInstanceOf(DVDateTime);
-		expect((page.created as DVDateTime).year).toBe(2024);
+		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
+		expect(page.created).toBeInstanceOf(KBDateTime);
+		expect((page.created as KBDateTime).year).toBe(2024);
 	});
 
 	it('does not override file property from frontmatter', () => {
 		const record = makeRecord({
 			properties: new Map<string, unknown>([['file', 'should-not-override']]),
 		});
-		const page = buildDVPage(record, noteIndex, noteContents, allPaths);
+		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
 		expect(page.file.path).toBe('/vault/notes/test.md');
 	});
 
 	it('returns empty tasks when content has no tasks', () => {
 		const contents = new Map([['/vault/notes/test.md', 'Just some text\nNo tasks here']]);
-		const page = buildDVPage(makeRecord(), noteIndex, contents, allPaths);
+		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
 		expect(page.file.tasks).toEqual([]);
 	});
 
 	it('returns empty tasks when content is empty', () => {
-		const page = buildDVPage(makeRecord(), noteIndex, noteContents, allPaths);
+		const page = buildKBPage(makeRecord(), noteIndex, noteContents, allPaths);
 		expect(page.file.tasks).toEqual([]);
 	});
 
@@ -244,7 +244,7 @@ describe('buildDVPage', () => {
 		const contents = new Map([
 			['/vault/notes/test.md', '# My note\n- [ ] Buy milk\n- [x] Write tests\nSome text'],
 		]);
-		const page = buildDVPage(makeRecord(), noteIndex, contents, allPaths);
+		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
 		expect(page.file.tasks).toHaveLength(2);
 		expect(page.file.tasks[0]).toEqual({
 			text: 'Buy milk',
@@ -267,7 +267,7 @@ describe('buildDVPage', () => {
 				'- [ ] Real task\n```\n- [ ] Fake task\n```\n- [x] Another real task',
 			],
 		]);
-		const page = buildDVPage(makeRecord(), noteIndex, contents, allPaths);
+		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
 		expect(page.file.tasks).toHaveLength(2);
 		expect(page.file.tasks[0].text).toBe('Real task');
 		expect(page.file.tasks[1].text).toBe('Another real task');
@@ -278,7 +278,7 @@ describe('buildDVPage', () => {
 		const record = makeRecord({ path: customPath });
 		const contents = new Map([[customPath, '- [ ] Task one']]);
 		const paths = [customPath];
-		const page = buildDVPage(record, noteIndex, contents, paths);
+		const page = buildKBPage(record, noteIndex, contents, paths);
 		expect(page.file.tasks[0].path).toBe(customPath);
 	});
 });

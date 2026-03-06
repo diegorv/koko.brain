@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DVAPI } from '$lib/plugins/queryjs/dv-api';
+import { KBAPI } from '$lib/plugins/queryjs/kb-api';
 import { DataArray } from '$lib/plugins/queryjs/data-array';
-import { DVDateTime } from '$lib/plugins/queryjs/dv-datetime';
+import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
 
@@ -50,7 +50,7 @@ function createAPI(opts?: {
 
 	const container = document.createElement('div');
 
-	return new DVAPI({
+	return new KBAPI({
 		container,
 		propertyIndex,
 		noteIndex,
@@ -61,7 +61,7 @@ function createAPI(opts?: {
 	});
 }
 
-describe('DVAPI', () => {
+describe('KBAPI', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -158,10 +158,10 @@ describe('DVAPI', () => {
 	});
 
 	describe('date', () => {
-		it('returns DVDateTime', () => {
+		it('returns KBDateTime', () => {
 			const dv = createAPI();
 			const dt = dv.date('2024-06-15');
-			expect(dt).toBeInstanceOf(DVDateTime);
+			expect(dt).toBeInstanceOf(KBDateTime);
 			expect(dt.year).toBe(2024);
 		});
 
@@ -173,10 +173,10 @@ describe('DVAPI', () => {
 	});
 
 	describe('tryDate', () => {
-		it('returns DVDateTime for valid string', () => {
+		it('returns KBDateTime for valid string', () => {
 			const dv = createAPI();
 			const dt = dv.tryDate('2024-06-15');
-			expect(dt).toBeInstanceOf(DVDateTime);
+			expect(dt).toBeInstanceOf(KBDateTime);
 			expect(dt!.year).toBe(2024);
 		});
 
@@ -190,10 +190,10 @@ describe('DVAPI', () => {
 			expect(dv.tryDate(undefined)).toBeNull();
 		});
 
-		it('returns DVDateTime from { year, month, day } object', () => {
+		it('returns KBDateTime from { year, month, day } object', () => {
 			const dv = createAPI();
 			const dt = dv.tryDate({ year: 2024, month: 3, day: 10 });
-			expect(dt).toBeInstanceOf(DVDateTime);
+			expect(dt).toBeInstanceOf(KBDateTime);
 			expect(dt!.month).toBe(3);
 			expect(dt!.day).toBe(10);
 		});
@@ -237,10 +237,10 @@ describe('DVAPI', () => {
 			expect(dv.getDaysInRange('2024-06-10', 'garbage').length).toBe(0);
 		});
 
-		it('accepts DVDateTime as input', () => {
+		it('accepts KBDateTime as input', () => {
 			const dv = createAPI();
-			const start = new DVDateTime('2024-01-01');
-			const end = new DVDateTime('2024-01-03');
+			const start = new KBDateTime('2024-01-01');
+			const end = new KBDateTime('2024-01-03');
 			const days = dv.getDaysInRange(start, end);
 			expect(days.length).toBe(3);
 		});
@@ -255,7 +255,7 @@ describe('DVAPI', () => {
 			const dv = createAPI();
 			const days = dv.getDaysInRange('2026-02-09', '2026-02-15');
 			expect(days.length).toBe(7);
-			const isos = days.map((d: DVDateTime) => d.toISODate()).array();
+			const isos = days.map((d: KBDateTime) => d.toISODate()).array();
 			expect(isos).toEqual([
 				'2026-02-09', '2026-02-10', '2026-02-11', '2026-02-12',
 				'2026-02-13', '2026-02-14', '2026-02-15',
@@ -286,7 +286,7 @@ describe('DVAPI', () => {
 	});
 
 	describe('fileLink', () => {
-		it('creates DVLink from path', () => {
+		it('creates KBLink from path', () => {
 			const dv = createAPI();
 			const link = dv.fileLink('/vault/test.md');
 			expect(link.path).toBe('/vault/test.md');
@@ -439,13 +439,13 @@ describe('DVAPI', () => {
 			expect(ul.children[0].textContent).toBe('a');
 		});
 
-		it('list renders DVLink as clickable <a>', () => {
+		it('list renders KBLink as clickable <a>', () => {
 			const dv = createAPI();
 			const ul = dv.list(new DataArray([{ path: '/vault/test.md', display: 'test' }]));
 			const a = ul.querySelector('a');
 			expect(a).not.toBeNull();
 			expect(a!.textContent).toBe('test');
-			expect(a!.className).toBe('cm-lp-dvjs-link');
+			expect(a!.className).toBe('cm-lp-qjs-link');
 		});
 
 		it('renders object with non-string path/display as plain text, not link', () => {
@@ -492,7 +492,7 @@ describe('DVAPI', () => {
 			for (const r of records) propertyIndex.set(r.path, r);
 			const container = document.createElement('div');
 
-			const dv = new DVAPI({
+			const dv = new KBAPI({
 				container,
 				propertyIndex,
 				noteIndex: new Map(),
@@ -515,7 +515,7 @@ describe('DVAPI', () => {
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const container = document.createElement('div');
-			const dv = new DVAPI({
+			const dv = new KBAPI({
 				container,
 				propertyIndex,
 				noteIndex: new Map(),
@@ -526,7 +526,7 @@ describe('DVAPI', () => {
 			});
 
 			await dv.view('scripts/failing');
-			const errorEl = container.querySelector('.cm-lp-dvjs-error');
+			const errorEl = container.querySelector('.cm-lp-qjs-error');
 			expect(errorEl).not.toBeNull();
 			expect(errorEl!.textContent).toContain('script failed');
 		});
@@ -539,7 +539,7 @@ describe('DVAPI', () => {
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const container = document.createElement('div');
-			const dv = new DVAPI({
+			const dv = new KBAPI({
 				container,
 				propertyIndex,
 				noteIndex: new Map(),
@@ -550,7 +550,7 @@ describe('DVAPI', () => {
 			});
 
 			await dv.view('scripts/failing');
-			const errorEl = container.querySelector('.cm-lp-dvjs-error');
+			const errorEl = container.querySelector('.cm-lp-qjs-error');
 			expect(errorEl).not.toBeNull();
 			expect(errorEl!.textContent).toContain('sync fail');
 		});
@@ -561,7 +561,7 @@ describe('DVAPI', () => {
 			const propertyIndex = new Map<string, NoteRecord>();
 			for (const r of records) propertyIndex.set(r.path, r);
 
-			const dv = new DVAPI({
+			const dv = new KBAPI({
 				container: document.createElement('div'),
 				propertyIndex,
 				noteIndex: new Map(),
@@ -583,7 +583,7 @@ describe('DVAPI', () => {
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const container = document.createElement('div');
-			const dv = new DVAPI({
+			const dv = new KBAPI({
 				container,
 				propertyIndex,
 				noteIndex: new Map(),
@@ -594,7 +594,7 @@ describe('DVAPI', () => {
 			});
 
 			await dv.view('../../etc/passwd');
-			const errorEl = container.querySelector('.cm-lp-dvjs-error');
+			const errorEl = container.querySelector('.cm-lp-qjs-error');
 			expect(errorEl).not.toBeNull();
 			expect(errorEl!.textContent).toContain('traversal');
 		});
@@ -624,7 +624,7 @@ describe('DVAPI', () => {
 			expect(dv.ui).toBe(dv.ui);
 		});
 
-		it('dv.ui.table renders DVLink as clickable <a> via renderValue', () => {
+		it('dv.ui.table renders KBLink as clickable <a> via renderValue', () => {
 			const dv = createAPI();
 			dv.ui.table(
 				['Note', 'Status'],
@@ -633,7 +633,7 @@ describe('DVAPI', () => {
 			const a = dv.container.querySelector('a');
 			expect(a).not.toBeNull();
 			expect(a!.textContent).toBe('alpha');
-			expect(a!.className).toBe('cm-lp-dvjs-link');
+			expect(a!.className).toBe('cm-lp-qjs-link');
 		});
 
 		it('dv.ui.table renders HTMLElement directly in cells via renderValue', () => {

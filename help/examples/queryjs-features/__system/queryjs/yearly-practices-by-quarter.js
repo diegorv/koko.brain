@@ -1,13 +1,13 @@
 // Yearly Practices by Quarter - Radar chart with quarterly practices for the year
-const current = dv.current();
+const current = kb.current();
 if (!current || !current.created) {
-  dv.paragraph("*No created date found on this note.*");
+  kb.paragraph("*No created date found on this note.*");
   return;
 }
 
-const yearDate = dv.tryDate(current.created);
+const yearDate = kb.tryDate(current.created);
 if (!yearDate) {
-  dv.paragraph("*Invalid created date.*");
+  kb.paragraph("*Invalid created date.*");
   return;
 }
 
@@ -36,7 +36,7 @@ const quarterColors = [
 const quarterNames = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 // Find quarterly notes in this year
-const quarterlyNotes = dv.pages('#type/journal/quarterly')
+const quarterlyNotes = kb.pages('#type/journal/quarterly')
   .whereDate('created', yearStart, yearEnd);
 
 const sorted = quarterlyNotes.sort(p => p.created, 'asc').array();
@@ -44,20 +44,20 @@ const sorted = quarterlyNotes.sort(p => p.created, 'asc').array();
 // Build radar datasets — one line per quarter that has data
 const datasets = sorted
   .map((nota, i) => {
-    const data = fields.map(f => dv.number(nota[f.key]));
+    const data = fields.map(f => kb.number(nota[f.key]));
     if (!data.some(v => v > 0)) return null;
-    const qDate = dv.tryDate(nota.created);
+    const qDate = kb.tryDate(nota.created);
     const label = qDate ? `${quarterNames[qDate.quarter - 1]} ${qDate.year}` : `Q${i + 1}`;
     return { label, data, color: quarterColors[i % quarterColors.length] };
   })
   .filter(Boolean);
 
 if (datasets.length === 0) {
-  dv.paragraph("*No practices data found for this year.*");
+  kb.paragraph("*No practices data found for this year.*");
   return;
 }
 
-await dv.ui.chart('radar', {
+await kb.ui.chart('radar', {
   labels: fields.map(f => f.label),
   datasets,
   max: 5,
@@ -65,17 +65,17 @@ await dv.ui.chart('radar', {
 });
 
 // Yearly averages table
-dv.header(3, 'Yearly Averages');
+kb.header(3, 'Yearly Averages');
 
-const notesWithData = sorted.filter(n => fields.some(f => dv.number(n[f.key]) > 0));
+const notesWithData = sorted.filter(n => fields.some(f => kb.number(n[f.key]) > 0));
 const count = notesWithData.length || 1;
 
 const averages = fields.map(f => {
-  const sum = notesWithData.reduce((acc, nota) => acc + dv.number(nota[f.key]), 0);
+  const sum = notesWithData.reduce((acc, nota) => acc + kb.number(nota[f.key]), 0);
   return Math.round((sum / count) * 10) / 10;
 });
 
-dv.table(
+kb.table(
   ["Practice", "Avg", "Visual"],
-  fields.map((f, i) => [f.label, averages[i].toFixed(1), dv.progressBar(averages[i], 5)])
+  fields.map((f, i) => [f.label, averages[i].toFixed(1), kb.progressBar(averages[i], 5)])
 );

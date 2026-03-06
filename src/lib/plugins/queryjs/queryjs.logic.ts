@@ -1,7 +1,7 @@
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
-import type { DVPage, DVLink, DVTask } from './queryjs.types';
-import { DVDateTime } from './dv-datetime';
+import type { KBPage, KBLink, KBTask } from './queryjs.types';
+import { KBDateTime } from './kb-datetime';
 import { extractAllTags } from '$lib/features/tags/tags.logic';
 import { extractTasks } from '$lib/features/tasks/tasks.logic';
 
@@ -13,8 +13,8 @@ function getBasename(filePath: string): string {
 	return dotIdx > 0 ? fileName.substring(0, dotIdx) : fileName;
 }
 
-/** Creates a DVLink from a file path */
-export function buildDVLink(filePath: string): DVLink {
+/** Creates a KBLink from a file path */
+export function buildKBLink(filePath: string): KBLink {
 	return { path: filePath, display: getBasename(filePath) };
 }
 
@@ -62,54 +62,54 @@ export function buildReverseIndex(
 /**
  * Finds all files whose outgoing wikilinks target the given file.
  * Uses a pre-computed reverse index for O(1) lookup instead of scanning all entries.
- * Returns one DVLink per source file (deduped, excluding self-links).
+ * Returns one KBLink per source file (deduped, excluding self-links).
  */
 export function resolveInlinks(
 	filePath: string,
 	reverseIndex: Map<string, Set<string>>,
-): DVLink[] {
+): KBLink[] {
 	const targetBasename = getBasename(filePath).toLowerCase();
 	const sources = reverseIndex.get(targetBasename);
 	if (!sources) return [];
 
-	const inlinks: DVLink[] = [];
+	const inlinks: KBLink[] = [];
 	for (const sourcePath of sources) {
 		if (sourcePath !== filePath) {
-			inlinks.push(buildDVLink(sourcePath));
+			inlinks.push(buildKBLink(sourcePath));
 		}
 	}
 	return inlinks;
 }
 
 /**
- * If a value looks like an ISO date string, convert it to DVDateTime.
+ * If a value looks like an ISO date string, convert it to KBDateTime.
  * Otherwise return as-is.
  */
 function maybeParseDate(value: unknown): unknown {
 	if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
 		const d = new Date(value);
-		if (!isNaN(d.getTime())) return new DVDateTime(value);
+		if (!isNaN(d.getTime())) return new KBDateTime(value);
 	}
 	return value;
 }
 
 /**
- * Builds a DVPage from a NoteRecord.
+ * Builds a KBPage from a NoteRecord.
  * Merges file metadata, computed links, tags, and frontmatter properties.
  */
-export function buildDVPage(
+export function buildKBPage(
 	record: NoteRecord,
 	noteIndex: Map<string, WikiLink[]>,
 	noteContents: Map<string, string>,
 	allFilePaths: string[],
 	reverseIndex?: Map<string, Set<string>>,
-): DVPage {
+): KBPage {
 	const content = noteContents.get(record.path) ?? '';
 	const tags = extractAllTags(content);
 	const inlinks = reverseIndex
 		? resolveInlinks(record.path, reverseIndex)
 		: [];
-	const tasks: DVTask[] = extractTasks(content).map((t) => ({
+	const tasks: KBTask[] = extractTasks(content).map((t) => ({
 		text: t.text,
 		completed: t.checked,
 		line: t.lineNumber,
@@ -118,7 +118,7 @@ export function buildDVPage(
 
 	// Compute outlinks from this file's wikilinks
 	const outWikiLinks = noteIndex.get(record.path) ?? [];
-	const outlinks: DVLink[] = [];
+	const outlinks: KBLink[] = [];
 	for (const wl of outWikiLinks) {
 		const resolved = resolveWikiLinkTarget(wl.target, allFilePaths);
 		if (resolved) {
@@ -126,13 +126,13 @@ export function buildDVPage(
 		}
 	}
 
-	const page: DVPage = {
+	const page: KBPage = {
 		file: {
 			path: record.path,
 			name: record.name,
 			basename: record.basename,
 			folder: record.folder,
-			link: buildDVLink(record.path),
+			link: buildKBLink(record.path),
 			tags,
 			inlinks,
 			outlinks,
@@ -154,11 +154,11 @@ export function buildDVPage(
 }
 
 /**
- * Parses a dv.pages() source string into a filter function.
+ * Parses a kb.pages() source string into a filter function.
  * Supports #tag (with subtag hierarchy) and "folder" filters.
  * Returns null if source is empty/undefined (meaning: all pages).
  */
-export function parseSource(source: string | undefined): ((page: DVPage) => boolean) | null {
+export function parseSource(source: string | undefined): ((page: KBPage) => boolean) | null {
 	if (!source || !source.trim()) return null;
 
 	const trimmed = source.trim();

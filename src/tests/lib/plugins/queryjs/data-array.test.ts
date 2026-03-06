@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DataArray } from '$lib/plugins/queryjs/data-array';
-import { DVDateTime } from '$lib/plugins/queryjs/dv-datetime';
+import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
 
 describe('DataArray', () => {
 	describe('where / filter', () => {
@@ -106,8 +106,8 @@ describe('DataArray', () => {
 
 		it('filters items within date range (inclusive)', () => {
 			const arr = new DataArray(items);
-			const start = new DVDateTime('2024-06-10');
-			const end = new DVDateTime('2024-06-15');
+			const start = new KBDateTime('2024-06-10');
+			const end = new KBDateTime('2024-06-15');
 			const result = arr.whereDate('created', start, end);
 			expect(result.length).toBe(3);
 			expect(result.map((x: any) => x.name).array()).toEqual(['a', 'b', 'c']);
@@ -115,8 +115,8 @@ describe('DataArray', () => {
 
 		it('excludes items outside range', () => {
 			const arr = new DataArray(items);
-			const start = new DVDateTime('2024-06-13');
-			const end = new DVDateTime('2024-06-18');
+			const start = new KBDateTime('2024-06-13');
+			const end = new KBDateTime('2024-06-18');
 			const result = arr.whereDate('created', start, end);
 			expect(result.length).toBe(1);
 			expect((result.first() as any).name).toBe('c');
@@ -124,22 +124,22 @@ describe('DataArray', () => {
 
 		it('excludes items with unparseable dates', () => {
 			const arr = new DataArray(items);
-			const start = new DVDateTime('2024-06-01');
-			const end = new DVDateTime('2024-06-30');
+			const start = new KBDateTime('2024-06-01');
+			const end = new KBDateTime('2024-06-30');
 			const result = arr.whereDate('created', start, end);
 			expect(result.length).toBe(4);
 		});
 
 		it('returns empty for empty DataArray', () => {
 			const arr = new DataArray([]);
-			const start = new DVDateTime('2024-06-01');
-			const end = new DVDateTime('2024-06-30');
+			const start = new KBDateTime('2024-06-01');
+			const end = new KBDateTime('2024-06-30');
 			expect(arr.whereDate('created', start, end).length).toBe(0);
 		});
 
 		it('returns single-day match when start equals end', () => {
 			const arr = new DataArray(items);
-			const day = new DVDateTime('2024-06-12');
+			const day = new KBDateTime('2024-06-12');
 			const result = arr.whereDate('created', day, day);
 			expect(result.length).toBe(1);
 			expect((result.first() as any).name).toBe('b');
@@ -161,9 +161,9 @@ describe('DataArray', () => {
 		it('maps days to matching items', () => {
 			const arr = new DataArray(items);
 			const days = [
-				new DVDateTime('2024-06-10'),
-				new DVDateTime('2024-06-11'),
-				new DVDateTime('2024-06-12'),
+				new KBDateTime('2024-06-10'),
+				new KBDateTime('2024-06-11'),
+				new KBDateTime('2024-06-12'),
 			];
 			const result = arr.byDate('created', days);
 			expect(result.length).toBe(3);
@@ -175,8 +175,8 @@ describe('DataArray', () => {
 		it('returns all nulls when no items match', () => {
 			const arr = new DataArray(items);
 			const days = [
-				new DVDateTime('2025-01-01'),
-				new DVDateTime('2025-01-02'),
+				new KBDateTime('2025-01-01'),
+				new KBDateTime('2025-01-02'),
 			];
 			expect(arr.byDate('created', days)).toEqual([null, null]);
 		});
@@ -188,7 +188,7 @@ describe('DataArray', () => {
 
 		it('returns all nulls for empty DataArray', () => {
 			const arr = new DataArray([]);
-			const days = [new DVDateTime('2024-06-10')];
+			const days = [new KBDateTime('2024-06-10')];
 			expect(arr.byDate('created', days)).toEqual([null]);
 		});
 
@@ -197,7 +197,7 @@ describe('DataArray', () => {
 				{ name: 'valid', created: '2024-06-10' },
 				{ name: 'invalid', created: 'nope' },
 			]);
-			const days = [new DVDateTime('2024-06-10')];
+			const days = [new KBDateTime('2024-06-10')];
 			const result = arr.byDate('created', days);
 			expect(result[0]!.name).toBe('valid');
 		});

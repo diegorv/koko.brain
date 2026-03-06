@@ -859,7 +859,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'transparent !important',
 	},
 	/* ── QueryJS ── */
-	'.cm-lp-dvjs-block': {
+	'.cm-lp-qjs-block': {
 		display: 'block',
 		padding: '10px 14px',
 		margin: '4px 0',
@@ -869,49 +869,49 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '16px',
 		lineHeight: '1.5',
 	},
-	'.cm-lp-dvjs-error': {
+	'.cm-lp-qjs-error': {
 		color: 'var(--lp-collection-error, #f87171)',
 		fontSize: '15px',
 		fontStyle: 'italic',
 	},
-	'.cm-lp-dvjs-loading': {
+	'.cm-lp-qjs-loading': {
 		color: 'var(--lp-collection-loading)',
 		fontSize: '15px',
 		padding: '4px 0',
 	},
-	'.cm-lp-dvjs-link': {
+	'.cm-lp-qjs-link': {
 		color: 'var(--lp-wikilink)',
 		textDecoration: 'underline',
 		textDecorationColor: 'var(--lp-wikilink-decoration)',
 		cursor: 'pointer',
 	},
-	'.cm-lp-dvjs-link:hover': {
+	'.cm-lp-qjs-link:hover': {
 		textDecorationColor: 'var(--lp-wikilink)',
 	},
-	'.cm-lp-dvjs-list': {
+	'.cm-lp-qjs-list': {
 		margin: '0',
 		paddingLeft: '20px',
 	},
-	'.cm-lp-dvjs-table': {
+	'.cm-lp-qjs-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
 		fontSize: '15px',
 	},
-	'.cm-lp-dvjs-table th, .cm-lp-dvjs-table td': {
+	'.cm-lp-qjs-table th, .cm-lp-qjs-table td': {
 		border: '1px solid var(--lp-collection-border)',
 		padding: '7px 12px',
 		textAlign: 'left',
 	},
-	'.cm-lp-dvjs-table th': {
+	'.cm-lp-qjs-table th': {
 		backgroundColor: 'var(--lp-collection-table-header-bg)',
 		fontWeight: '600',
 	},
-	'.cm-lp-dvjs-tasklist': {
+	'.cm-lp-qjs-tasklist': {
 		listStyle: 'none',
 		margin: '0',
 		paddingLeft: '4px',
 	},
-	'.cm-activeLine:has(.cm-lp-dvjs-block)': {
+	'.cm-activeLine:has(.cm-lp-qjs-block)': {
 		backgroundColor: 'transparent !important',
 	},
 });

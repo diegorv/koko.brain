@@ -12,7 +12,7 @@ COMO TESTAR:
 ## 1. Lista Simples de Todas as Notas
 
 ```queryjs
-dv.list(dv.pages().file.link)
+kb.list(kb.pages().file.link)
 ```
 
 %%
@@ -26,7 +26,7 @@ ESPERADO:
 ## 2. Lista com Limite
 
 ```queryjs
-dv.list(dv.pages().limit(3).file.link)
+kb.list(kb.pages().limit(3).file.link)
 ```
 
 %%
@@ -38,9 +38,9 @@ ESPERADO:
 ## 3. Filtro por Tag
 
 ```queryjs
-const pages = dv.pages("#projeto")
-dv.header(3, `Projetos (${pages.length})`)
-dv.list(pages.file.link)
+const pages = kb.pages("#projeto")
+kb.header(3, `Projetos (${pages.length})`)
+kb.list(pages.file.link)
 ```
 
 %%
@@ -53,7 +53,7 @@ ESPERADO:
 ## 4. Filtro por Pasta
 
 ```queryjs
-dv.list(dv.pages('"collection-examples"').file.link)
+kb.list(kb.pages('"collection-examples"').file.link)
 ```
 
 %%
@@ -61,16 +61,16 @@ ESPERADO:
 - Apenas notas dentro da pasta collection-examples (ou subpastas)
 %%
 
-## 5. Pagina Atual (dv.current)
+## 5. Pagina Atual (kb.current)
 
 ```queryjs
-const current = dv.current()
+const current = kb.current()
 if (current) {
-    dv.paragraph(`Arquivo: ${current.file.basename}`)
-    dv.paragraph(`Pasta: ${current.file.folder}`)
-    dv.paragraph(`Tamanho: ${current.file.size} bytes`)
+    kb.paragraph(`Arquivo: ${current.file.basename}`)
+    kb.paragraph(`Pasta: ${current.file.folder}`)
+    kb.paragraph(`Tamanho: ${current.file.size} bytes`)
 } else {
-    dv.paragraph("Nao foi possivel encontrar a pagina atual")
+    kb.paragraph("Nao foi possivel encontrar a pagina atual")
 }
 ```
 
@@ -84,8 +84,8 @@ ESPERADO:
 ## 6. Tabela com Headers e Rows
 
 ```queryjs
-const pages = dv.pages().limit(5)
-dv.table(
+const pages = kb.pages().limit(5)
+kb.table(
     ["Nome", "Pasta", "Tags"],
     pages.map(p => [
         p.file.link,
@@ -106,9 +106,9 @@ ESPERADO:
 ## 7. Propriedades do Frontmatter
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.status !== undefined)
-dv.table(
+kb.table(
     ["Nota", "Status", "Priority"],
     pages.map(p => [p.file.link, p.status, p.priority ?? "—"])
 )
@@ -124,13 +124,13 @@ ESPERADO:
 ## 8. DataArray Chaining (where + sort + limit)
 
 ```queryjs
-const result = dv.pages()
+const result = kb.pages()
     .where(p => p.file.tags.length > 0)
     .sort(p => p.file.basename)
     .limit(5)
 
-dv.header(3, `Notas com tags (top 5 por nome)`)
-dv.list(result.map(p => `${p.file.basename} — ${p.file.tags.join(", ")}`))
+kb.header(3, `Notas com tags (top 5 por nome)`)
+kb.list(result.map(p => `${p.file.basename} — ${p.file.tags.join(", ")}`))
 ```
 
 %%
@@ -144,14 +144,14 @@ ESPERADO:
 ## 9. Datas (DVDateTime)
 
 ```queryjs
-const hoje = dv.date()
+const hoje = kb.date()
 const ontem = hoje.minus({ days: 1 })
 const semana = hoje.startOf('week')
 
-dv.paragraph(`Hoje: ${hoje.toISODate()}`)
-dv.paragraph(`Ontem: ${ontem.toISODate()}`)
-dv.paragraph(`Inicio da semana (segunda): ${semana.toISODate()}`)
-dv.paragraph(`Ano: ${hoje.year}, Mes: ${hoje.month}, Dia: ${hoje.day}`)
+kb.paragraph(`Hoje: ${hoje.toISODate()}`)
+kb.paragraph(`Ontem: ${ontem.toISODate()}`)
+kb.paragraph(`Inicio da semana (segunda): ${semana.toISODate()}`)
+kb.paragraph(`Ano: ${hoje.year}, Mes: ${hoje.month}, Dia: ${hoje.day}`)
 ```
 
 %%
@@ -162,10 +162,10 @@ ESPERADO:
 - Ano, mes (1-12), dia corretos
 %%
 
-## 10. dv.el() — Elemento Customizado
+## 10. kb.el() — Elemento Customizado
 
 ```queryjs
-dv.el('div', 'Conteudo customizado', {
+kb.el('div', 'Conteudo customizado', {
     attr: { style: 'padding: 12px; background: rgba(100,100,255,0.1); border-radius: 8px; border: 1px solid rgba(100,100,255,0.3);' },
     cls: 'my-custom-class'
 })
@@ -181,7 +181,7 @@ ESPERADO:
 ## 11. Task List
 
 ```queryjs
-dv.taskList([
+kb.taskList([
     { text: "Implementar QueryJS parser", completed: true },
     { text: "Implementar QueryJS widget", completed: true },
     { text: "Implementar QueryJS API", completed: true },
@@ -201,13 +201,13 @@ ESPERADO:
 ## 11b. Tasks de Paginas (file.tasks)
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.file.tasks.length > 0)
 
-dv.header(3, `Notas com tasks (${pages.length})`)
+kb.header(3, `Notas com tasks (${pages.length})`)
 for (const p of pages) {
-    dv.header(4, p.file.link)
-    dv.taskList(p.file.tasks)
+    kb.header(4, p.file.link)
+    kb.taskList(p.file.tasks)
 }
 ```
 
@@ -222,11 +222,11 @@ ESPERADO:
 ## 11c. Tasks Pendentes de Todo o Vault
 
 ```queryjs
-const allTasks = dv.pages().file.tasks
+const allTasks = kb.pages().file.tasks
     .where(t => !t.completed)
 
-dv.header(3, `Pendentes (${allTasks.length})`)
-dv.taskList(allTasks)
+kb.header(3, `Pendentes (${allTasks.length})`)
+kb.taskList(allTasks)
 ```
 
 %%
@@ -239,14 +239,14 @@ ESPERADO:
 ## 11d. Tasks por Projeto
 
 ```queryjs
-const projetos = dv.pages("#type/project")
+const projetos = kb.pages("#type/project")
     .where(p => p.file.tasks.length > 0)
 
 for (const p of projetos) {
     const total = p.file.tasks.length
     const done = p.file.tasks.filter(t => t.completed).length
-    dv.header(4, `${p.file.basename} (${done}/${total})`)
-    dv.taskList(p.file.tasks)
+    kb.header(4, `${p.file.basename} (${done}/${total})`)
+    kb.taskList(p.file.tasks)
 }
 ```
 
@@ -260,11 +260,11 @@ ESPERADO:
 ## 11e. Resumo de Tasks em Tabela
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.file.tasks.length > 0)
     .sort(p => p.file.tasks.filter(t => !t.completed).length, 'desc')
 
-dv.table(
+kb.table(
     ["Nota", "Total", "Feitas", "Pendentes"],
     pages.map(p => {
         const total = p.file.tasks.length
@@ -284,10 +284,10 @@ ESPERADO:
 ## 12. Paragrafos e Headers
 
 ```queryjs
-dv.header(1, "Titulo Principal")
-dv.header(2, "Subtitulo")
-dv.paragraph("Este e um paragrafo normal com texto.")
-dv.span("E este e um span inline.")
+kb.header(1, "Titulo Principal")
+kb.header(2, "Subtitulo")
+kb.paragraph("Este e um paragrafo normal com texto.")
+kb.span("E este e um span inline.")
 ```
 
 %%
@@ -301,14 +301,14 @@ ESPERADO:
 ## 13. fileLink e compare
 
 ```queryjs
-const link1 = dv.fileLink("/vault/test.md", false, "Nota de Teste")
-const link2 = dv.fileLink("/vault/other.md")
+const link1 = kb.fileLink("/vault/test.md", false, "Nota de Teste")
+const link2 = kb.fileLink("/vault/other.md")
 
-dv.list([link1, link2])
-dv.paragraph(`compare(1, 2) = ${dv.compare(1, 2)}`)
-dv.paragraph(`compare(2, 2) = ${dv.compare(2, 2)}`)
-dv.paragraph(`equal(1, 1) = ${dv.equal(1, 1)}`)
-dv.paragraph(`isArray([1,2]) = ${dv.isArray([1,2])}`)
+kb.list([link1, link2])
+kb.paragraph(`compare(1, 2) = ${kb.compare(1, 2)}`)
+kb.paragraph(`compare(2, 2) = ${kb.compare(2, 2)}`)
+kb.paragraph(`equal(1, 1) = ${kb.equal(1, 1)}`)
+kb.paragraph(`isArray([1,2]) = ${kb.isArray([1,2])}`)
 ```
 
 %%
@@ -348,13 +348,13 @@ ESPERADO:
 ## 16. GroupBy
 
 ```queryjs
-const grouped = dv.pages()
+const grouped = kb.pages()
     .where(p => p.status !== undefined)
     .groupBy(p => p.status)
 
 for (const group of grouped) {
-    dv.header(4, `Status: ${group.key} (${group.rows.length})`)
-    dv.list(group.rows.file.link)
+    kb.header(4, `Status: ${group.key} (${group.rows.length})`)
+    kb.list(group.rows.file.link)
 }
 ```
 
@@ -382,7 +382,7 @@ ESPERADO:
 ```queryjs
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 await delay(100)
-dv.paragraph("Carregou apos 100ms de delay!")
+kb.paragraph("Carregou apos 100ms de delay!")
 ```
 
 %%
@@ -394,7 +394,7 @@ ESPERADO:
 ## 19. Acesso ao DOM (Sem Sandbox)
 
 ```queryjs
-const div = dv.el('div', '', { attr: { style: 'padding: 8px;' } })
+const div = kb.el('div', '', { attr: { style: 'padding: 8px;' } })
 const canvas = document.createElement('canvas')
 canvas.width = 200
 canvas.height = 50
@@ -410,7 +410,7 @@ if (ctx) {
         ctx.fillRect(i * 20 + 2, 50 - h, 16, h)
     }
 }
-dv.paragraph("Canvas renderizado acima com barras aleatorias")
+kb.paragraph("Canvas renderizado acima com barras aleatorias")
 ```
 
 %%
@@ -423,13 +423,13 @@ ESPERADO:
 ## 20. Proxy Deep Access Complexo
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
 const basenames = pages.file.basename
 const tags = pages.file.tags
 
-dv.paragraph(`Total de paginas: ${pages.length}`)
-dv.paragraph(`Basenames: ${basenames.join(", ")}`)
-dv.paragraph(`Todas as tags (flat): ${tags.distinct().join(", ")}`)
+kb.paragraph(`Total de paginas: ${pages.length}`)
+kb.paragraph(`Basenames: ${basenames.join(", ")}`)
+kb.paragraph(`Todas as tags (flat): ${tags.distinct().join(", ")}`)
 ```
 
 %%
@@ -443,20 +443,20 @@ ESPERADO:
 ## 21. Inlinks e Outlinks
 
 ```queryjs
-const current = dv.current()
+const current = kb.current()
 if (current) {
-    dv.header(3, "Inlinks")
+    kb.header(3, "Inlinks")
     if (current.file.inlinks.length > 0) {
-        dv.list(current.file.inlinks)
+        kb.list(current.file.inlinks)
     } else {
-        dv.paragraph("Nenhuma nota aponta para este arquivo")
+        kb.paragraph("Nenhuma nota aponta para este arquivo")
     }
 
-    dv.header(3, "Outlinks")
+    kb.header(3, "Outlinks")
     if (current.file.outlinks.length > 0) {
-        dv.list(current.file.outlinks)
+        kb.list(current.file.outlinks)
     } else {
-        dv.paragraph("Este arquivo nao possui links para outras notas")
+        kb.paragraph("Este arquivo nao possui links para outras notas")
     }
 }
 ```

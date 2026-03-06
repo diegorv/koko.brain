@@ -1,5 +1,5 @@
 // Tag Count Table — lists all tags sorted by occurrence count
-const counts = dv.pages()
+const counts = kb.pages()
 	.flatMap(p => p.file.tags)
 	.countBy();
 
@@ -8,9 +8,9 @@ const sorted = Object.entries(counts)
 	.slice(0, 200);
 
 if (sorted.length === 0) {
-	dv.paragraph("No tags found.");
+	kb.paragraph("No tags found.");
 } else {
-	dv.table(
+	kb.table(
 		["Tag", "Count"],
 		sorted.map(([tag, count]) => ["#" + tag, count])
 	);

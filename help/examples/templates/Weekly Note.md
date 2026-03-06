@@ -33,12 +33,12 @@ tags:
 
 ### Wellness
 ```queryjs
-dv.view("_system/queryjs/weekly-wellness-chart")
+kb.view("_system/queryjs/weekly-wellness-chart")
 ```
 
 ### Habits
 ```queryjs
-dv.view("_system/queryjs/weekly-habits-chart")
+kb.view("_system/queryjs/weekly-habits-chart")
 ```
 
 ## Life Check-in

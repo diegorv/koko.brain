@@ -1,13 +1,13 @@
 // Quarterly Satisfaction Chart - Radar chart with monthly life satisfaction for the quarter
-const current = dv.current();
+const current = kb.current();
 if (!current || !current.created) {
-  dv.paragraph("*No created date found on this note.*");
+  kb.paragraph("*No created date found on this note.*");
   return;
 }
 
-const quarterDate = dv.tryDate(current.created);
+const quarterDate = kb.tryDate(current.created);
 if (!quarterDate) {
-  dv.paragraph("*Invalid created date.*");
+  kb.paragraph("*Invalid created date.*");
   return;
 }
 
@@ -32,7 +32,7 @@ const monthColors = [
 ];
 
 // Find monthly notes in this quarter
-const monthlyNotes = dv.pages('#type/journal/monthly')
+const monthlyNotes = kb.pages('#type/journal/monthly')
   .whereDate('created', quarterStart, quarterEnd);
 
 const sorted = monthlyNotes.sort(p => p.created, 'asc').array();
@@ -40,20 +40,20 @@ const sorted = monthlyNotes.sort(p => p.created, 'asc').array();
 // Build radar datasets — one line per month that has data
 const datasets = sorted
   .map((nota, i) => {
-    const data = fields.map(f => dv.number(nota[f.key]));
+    const data = fields.map(f => kb.number(nota[f.key]));
     if (!data.some(v => v > 0)) return null;
-    const monthDate = dv.tryDate(nota.created);
+    const monthDate = kb.tryDate(nota.created);
     const label = monthDate ? monthDate.toFormat('MMMM') : `Month ${i + 1}`;
     return { label, data, color: monthColors[i % monthColors.length] };
   })
   .filter(Boolean);
 
 if (datasets.length === 0) {
-  dv.paragraph("*No satisfaction data found for this quarter.*");
+  kb.paragraph("*No satisfaction data found for this quarter.*");
   return;
 }
 
-await dv.ui.chart('radar', {
+await kb.ui.chart('radar', {
   labels: fields.map(f => f.label),
   datasets,
   max: 5,
@@ -61,17 +61,17 @@ await dv.ui.chart('radar', {
 });
 
 // Quarterly averages table
-dv.header(3, 'Quarterly Averages');
+kb.header(3, 'Quarterly Averages');
 
-const notesWithData = sorted.filter(n => fields.some(f => dv.number(n[f.key]) > 0));
+const notesWithData = sorted.filter(n => fields.some(f => kb.number(n[f.key]) > 0));
 const count = notesWithData.length || 1;
 
 const averages = fields.map(f => {
-  const sum = notesWithData.reduce((acc, nota) => acc + dv.number(nota[f.key]), 0);
+  const sum = notesWithData.reduce((acc, nota) => acc + kb.number(nota[f.key]), 0);
   return Math.round((sum / count) * 10) / 10;
 });
 
-dv.table(
+kb.table(
   ["Area", "Avg", "Visual"],
-  fields.map((f, i) => [f.label, averages[i].toFixed(1), dv.progressBar(averages[i], 5)])
+  fields.map((f, i) => [f.label, averages[i].toFixed(1), kb.progressBar(averages[i], 5)])
 );

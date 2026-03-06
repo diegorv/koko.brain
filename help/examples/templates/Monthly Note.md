@@ -41,12 +41,12 @@ tags:
 
 ### Satisfaction
 ```queryjs
-dv.view("_system/queryjs/monthly-satisfaction-chart")
+kb.view("_system/queryjs/monthly-satisfaction-chart")
 ```
 
 ### Practices
 ```queryjs
-dv.view("_system/queryjs/monthly-practices-chart")
+kb.view("_system/queryjs/monthly-practices-chart")
 ```
 
 ## Life Check-in
