@@ -243,7 +243,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-note', 'one-on-one', 'templates', 'search', 'file-history', 'auto-move', 'trash', 'terminal', 'todoist', 'security', 'troubleshooting']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-note', 'one-on-one', 'templates', 'search', 'file-history', 'auto-move', 'trash', 'terminal', 'todoist', 'security', 'troubleshooting', 'update']);
 	});
 
 	it('has labels for every section', () => {
