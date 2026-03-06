@@ -72,7 +72,7 @@ jobs:
 
             Compare the output with the corresponding entry in `checksums-sha256.txt`.
           releaseDraft: false
-          prerelease: true
+          prerelease: false
 
       - name: Show sccache stats
         if: always()
