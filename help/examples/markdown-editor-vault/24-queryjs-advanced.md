@@ -9,14 +9,14 @@ COMO TESTAR:
 
 ---
 
-## 1. Dashboard — Resumo do Vault (dv.ui.cards)
+## 1. Dashboard — Resumo do Vault (kb.ui.cards)
 
 ```queryjs
-const all = dv.pages()
+const all = kb.pages()
 const withTags = all.where(p => p.file.tags.length > 0)
 const withStatus = all.where(p => p.status !== undefined)
 
-dv.ui.cards([
+kb.ui.cards([
     { label: 'Total Notes', value: all.length, color: 'blue', icon: '📝' },
     { label: 'With Tags', value: withTags.length, color: 'green', icon: '🏷️' },
     { label: 'With Status', value: withStatus.length, color: 'orange', icon: '📊' },
@@ -36,17 +36,17 @@ ESPERADO:
 ## 2. Statistics — Aggregations (sum, avg, min, max, stats)
 
 ```queryjs
-const dailies = dv.pages('#type/journal/daily')
+const dailies = kb.pages('#type/journal/daily')
 
 if (dailies.length === 0) {
-    dv.paragraph("Nenhum daily note encontrado com tag type/journal/daily")
+    kb.paragraph("Nenhum daily note encontrado com tag type/journal/daily")
 } else {
     const sleepValues = dailies
         .where(p => p.life_track_sleep_quality !== undefined)
         .map(p => p.life_track_sleep_quality)
 
-    dv.header(3, "Sleep Quality Stats")
-    dv.table(
+    kb.header(3, "Sleep Quality Stats")
+    kb.table(
         ["Metric", "Value"],
         [
             ["Total entries", sleepValues.length],
@@ -59,7 +59,7 @@ if (dailies.length === 0) {
 
     // Alternatively, get everything at once with stats()
     const s = sleepValues.stats()
-    dv.paragraph(`stats() → sum: ${s.sum}, avg: ${s.avg.toFixed(1)}, min: ${s.min}, max: ${s.max}, count: ${s.count}`)
+    kb.paragraph(`stats() → sum: ${s.sum}, avg: ${s.avg.toFixed(1)}, min: ${s.min}, max: ${s.max}, count: ${s.count}`)
 }
 ```
 
@@ -70,27 +70,27 @@ ESPERADO:
 - Linha extra mostrando stats() com todos os valores de uma vez
 %%
 
-## 3. Progress Bars — dv.ui.table + dv.ui.progressBar
+## 3. Progress Bars — kb.ui.table + kb.ui.progressBar
 
 ```queryjs
-const dailies = dv.pages('#type/journal/daily')
+const dailies = kb.pages('#type/journal/daily')
     .where(p => p.life_track_sleep_quality !== undefined)
     .sort(p => p.file.basename)
 
-const s = dailies.map(p => dv.number(p.life_track_sleep_quality)).stats()
+const s = dailies.map(p => kb.number(p.life_track_sleep_quality)).stats()
 
-dv.header(3, "Daily Metrics Overview")
-dv.ui.table(
+kb.header(3, "Daily Metrics Overview")
+kb.ui.table(
     ["Day", "Sleep", "Energy", "Mood"],
     dailies.map(p => {
-        const sleep = dv.number(p.life_track_sleep_quality)
-        const energy = dv.number(p.life_track_energy)
-        const mood = dv.number(p.life_track_mood)
+        const sleep = kb.number(p.life_track_sleep_quality)
+        const energy = kb.number(p.life_track_energy)
+        const mood = kb.number(p.life_track_mood)
         return [
             p.file.basename.replace('daily-2026-02-', '02/'),
-            dv.ui.progressBar(sleep, 5),
-            dv.ui.progressBar(energy, 5),
-            dv.ui.progressBar(mood, 5),
+            kb.ui.progressBar(sleep, 5),
+            kb.ui.progressBar(energy, 5),
+            kb.ui.progressBar(mood, 5),
         ]
     }),
     {
@@ -109,15 +109,15 @@ ESPERADO:
 - Footer com "Average" e o valor medio de sleep
 %%
 
-## 4. Status Cards — dv.ui.statusCards
+## 4. Status Cards — kb.ui.statusCards
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.status !== undefined)
 
-dv.header(3, `All Items by Status (${pages.length})`)
+kb.header(3, `All Items by Status (${pages.length})`)
 
-dv.ui.statusCards(
+kb.ui.statusCards(
     pages.map(p => ({
         title: p.file.basename,
         status: p.status,
@@ -137,38 +137,38 @@ ESPERADO:
 ## 5. DataArray Advanced Methods
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
 
-dv.header(3, "DataArray Method Tests")
+kb.header(3, "DataArray Method Tests")
 
 // .some() / .every() / .none()
 const hasTags = pages.some(p => p.file.tags.length > 0)
 const allHaveTags = pages.every(p => p.file.tags.length > 0)
 const noneEmpty = pages.none(p => p.file.basename === '')
 
-dv.paragraph(`some() have tags: ${hasTags}`)
-dv.paragraph(`every() have tags: ${allHaveTags}`)
-dv.paragraph(`none() have empty name: ${noneEmpty}`)
+kb.paragraph(`some() have tags: ${hasTags}`)
+kb.paragraph(`every() have tags: ${allHaveTags}`)
+kb.paragraph(`none() have empty name: ${noneEmpty}`)
 
 // .find() / .findIndex()
 const found = pages.find(p => p.file.basename.includes('project'))
-dv.paragraph(`find('project'): ${found ? found.file.basename : 'not found'}`)
+kb.paragraph(`find('project'): ${found ? found.file.basename : 'not found'}`)
 
 const idx = pages.findIndex(p => p.file.basename.includes('project'))
-dv.paragraph(`findIndex('project'): ${idx}`)
+kb.paragraph(`findIndex('project'): ${idx}`)
 
 // .flatMap()
 const allTagsFlat = pages.flatMap(p => p.file.tags)
-dv.paragraph(`flatMap tags count: ${allTagsFlat.length}`)
-dv.paragraph(`distinct tags: ${allTagsFlat.distinct().join(', ')}`)
+kb.paragraph(`flatMap tags count: ${allTagsFlat.length}`)
+kb.paragraph(`distinct tags: ${allTagsFlat.distinct().join(', ')}`)
 
 // .slice()
 const sliced = pages.slice(0, 3)
-dv.paragraph(`slice(0,3) length: ${sliced.length}`)
+kb.paragraph(`slice(0,3) length: ${sliced.length}`)
 
 // .includes()
 const firstPage = pages.first()
-dv.paragraph(`includes(first page): ${pages.includes(firstPage)}`)
+kb.paragraph(`includes(first page): ${pages.includes(firstPage)}`)
 ```
 
 %%
@@ -186,30 +186,30 @@ ESPERADO:
 ## 6. DVDateTime — Formatting and Comparison
 
 ```queryjs
-const d1 = dv.date("2026-02-13")
-const d2 = dv.date("2026-02-15")
+const d1 = kb.date("2026-02-13")
+const d2 = kb.date("2026-02-15")
 
-dv.header(3, "Date Formatting")
-dv.paragraph(`toISODate: ${d1.toISODate()}`)
-dv.paragraph(`toFormat('yyyy/MM/dd'): ${d1.toFormat('yyyy/MM/dd')}`)
-dv.paragraph(`toFormat('dd-MM-yyyy'): ${d1.toFormat('dd-MM-yyyy')}`)
+kb.header(3, "Date Formatting")
+kb.paragraph(`toISODate: ${d1.toISODate()}`)
+kb.paragraph(`toFormat('yyyy/MM/dd'): ${d1.toFormat('yyyy/MM/dd')}`)
+kb.paragraph(`toFormat('dd-MM-yyyy'): ${d1.toFormat('dd-MM-yyyy')}`)
 
-dv.header(3, "Date Comparison")
-dv.paragraph(`d1 < d2: ${d1 < d2}`)
-dv.paragraph(`d1 > d2: ${d1 > d2}`)
-dv.paragraph(`d1 == d2: ${d1.valueOf() === d2.valueOf()}`)
-dv.paragraph(`hasSame day: ${d1.hasSame(d2, 'day')}`)
-dv.paragraph(`hasSame month: ${d1.hasSame(d2, 'month')}`)
-dv.paragraph(`hasSame year: ${d1.hasSame(d2, 'year')}`)
+kb.header(3, "Date Comparison")
+kb.paragraph(`d1 < d2: ${d1 < d2}`)
+kb.paragraph(`d1 > d2: ${d1 > d2}`)
+kb.paragraph(`d1 == d2: ${d1.valueOf() === d2.valueOf()}`)
+kb.paragraph(`hasSame day: ${d1.hasSame(d2, 'day')}`)
+kb.paragraph(`hasSame month: ${d1.hasSame(d2, 'month')}`)
+kb.paragraph(`hasSame year: ${d1.hasSame(d2, 'year')}`)
 
-dv.header(3, "Date Arithmetic")
+kb.header(3, "Date Arithmetic")
 const nextWeek = d1.plus({ days: 7 })
 const lastMonth = d1.minus({ months: 1 })
-dv.paragraph(`+7 days: ${nextWeek.toISODate()}`)
-dv.paragraph(`-1 month: ${lastMonth.toISODate()}`)
-dv.paragraph(`Start of week: ${d1.startOf('week').toISODate()}`)
-dv.paragraph(`Start of month: ${d1.startOf('month').toISODate()}`)
-dv.paragraph(`Start of year: ${d1.startOf('year').toISODate()}`)
+kb.paragraph(`+7 days: ${nextWeek.toISODate()}`)
+kb.paragraph(`-1 month: ${lastMonth.toISODate()}`)
+kb.paragraph(`Start of week: ${d1.startOf('week').toISODate()}`)
+kb.paragraph(`Start of month: ${d1.startOf('month').toISODate()}`)
+kb.paragraph(`Start of year: ${d1.startOf('year').toISODate()}`)
 ```
 
 %%
@@ -227,19 +227,19 @@ ESPERADO:
 - Start of year: 2026-01-01
 %%
 
-## 7. Timeline — dv.ui.timeline
+## 7. Timeline — kb.ui.timeline
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.created !== undefined)
     .sort(p => {
         const c = p.created
         return typeof c.ts !== 'undefined' ? c.ts : 0
     }, 'desc')
 
-dv.header(3, `Timeline (${pages.length} notes)`)
+kb.header(3, `Timeline (${pages.length} notes)`)
 
-dv.ui.timeline(
+kb.ui.timeline(
     pages.map(p => {
         const c = p.created
         const dateStr = typeof c.toISODate === 'function'
@@ -264,25 +264,25 @@ ESPERADO:
 - Datas: 2026-02-13 (meetings + daily), 2026-02-10 (meeting + daily), etc.
 %%
 
-## 8. Heatmap — dv.ui.heatmap
+## 8. Heatmap — kb.ui.heatmap
 
 ```queryjs
-const dailies = dv.pages('#type/journal/daily')
+const dailies = kb.pages('#type/journal/daily')
     .where(p => p.created !== undefined)
     .sort(p => p.created)
 
 if (dailies.length === 0) {
-    dv.paragraph("No daily notes found")
+    kb.paragraph("No daily notes found")
 } else {
-    dv.header(3, "Sleep Quality Heatmap")
+    kb.header(3, "Sleep Quality Heatmap")
 
-    dv.ui.heatmap(dailies, {
-        value: p => dv.number(p.life_track_sleep_quality),
+    kb.ui.heatmap(dailies, {
+        value: p => kb.number(p.life_track_sleep_quality),
         label: p => {
             const c = p.created
             return typeof c.toISODate === 'function' ? c.toISODate().slice(5) : ''
         },
-        tooltip: p => `${p.file.basename}: ${dv.number(p.life_track_sleep_quality)}/5`,
+        tooltip: p => `${p.file.basename}: ${kb.number(p.life_track_sleep_quality)}/5`,
         max: 5,
     })
 }
@@ -301,15 +301,15 @@ ESPERADO:
 ## 9. Cross-Reference — Related Notes
 
 ```queryjs
-const current = dv.current()
+const current = kb.current()
 if (!current) {
-    dv.paragraph("Current page not found in index")
+    kb.paragraph("Current page not found in index")
 } else {
     const myTags = current.file.tags
     if (myTags.length === 0) {
-        dv.paragraph("This file has no tags — cannot find related notes")
+        kb.paragraph("This file has no tags — cannot find related notes")
     } else {
-        const related = dv.pages()
+        const related = kb.pages()
             .where(p => p.file.path !== current.file.path)
             .where(p => p.file.tags.some(t => myTags.includes(t)))
             .sort(p => {
@@ -318,12 +318,12 @@ if (!current) {
             })
             .limit(10)
 
-        dv.header(3, `Related Notes (${related.length})`)
+        kb.header(3, `Related Notes (${related.length})`)
 
         if (related.length === 0) {
-            dv.paragraph("No related notes found")
+            kb.paragraph("No related notes found")
         } else {
-            dv.table(
+            kb.table(
                 ["Note", "Shared Tags", "Count"],
                 related.map(p => {
                     const shared = p.file.tags.filter(t => myTags.includes(t))
@@ -346,7 +346,7 @@ ESPERADO:
 ## 10. Multi-Sort and Reverse
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.created !== undefined)
 
 // Sort ascending by created date
@@ -355,8 +355,8 @@ const ascending = pages.sort(p => {
     return typeof c.ts !== 'undefined' ? c.ts : 0
 })
 
-dv.header(4, "Oldest First")
-dv.table(
+kb.header(4, "Oldest First")
+kb.table(
     ["Note", "Created"],
     ascending.limit(5).map(p => [
         p.file.link,
@@ -370,8 +370,8 @@ const descending = pages.sort(p => {
     return typeof c.ts !== 'undefined' ? c.ts : 0
 }, 'desc')
 
-dv.header(4, "Newest First")
-dv.table(
+kb.header(4, "Newest First")
+kb.table(
     ["Note", "Created"],
     descending.limit(5).map(p => [
         p.file.link,
@@ -387,13 +387,13 @@ ESPERADO:
 - Ambas limitadas a 5 resultados
 %%
 
-## 11. Tag Cloud — dv.ui.tagCloud
+## 11. Tag Cloud — kb.ui.tagCloud
 
 ```queryjs
-const allTags = dv.pages().file.tags.array().flat()
+const allTags = kb.pages().file.tags.array().flat()
 
-dv.header(3, `Tag Cloud (${dv.array(allTags).distinct().length} unique tags)`)
-dv.ui.tagCloud(allTags)
+kb.header(3, `Tag Cloud (${kb.array(allTags).distinct().length} unique tags)`)
+kb.ui.tagCloud(allTags)
 ```
 
 %%
@@ -408,25 +408,25 @@ ESPERADO:
 ## 12. Multiple Blocks Interacting via DOM
 
 ```queryjs
-dv.header(3, "Block A: File Count")
-const count = dv.pages().length
-dv.paragraph(`There are ${count} files in this vault.`)
+kb.header(3, "Block A: File Count")
+const count = kb.pages().length
+kb.paragraph(`There are ${count} files in this vault.`)
 ```
 
 ```queryjs
-dv.header(3, "Block B: Tag Summary")
-const tags = dv.pages().file.tags.distinct()
-dv.paragraph(`There are ${tags.length} unique tags: ${tags.sort(t => t).join(', ')}`)
+kb.header(3, "Block B: Tag Summary")
+const tags = kb.pages().file.tags.distinct()
+kb.paragraph(`There are ${tags.length} unique tags: ${tags.sort(t => t).join(', ')}`)
 ```
 
 ```queryjs
-dv.header(3, "Block C: Status Summary")
-const statuses = dv.pages()
+kb.header(3, "Block C: Status Summary")
+const statuses = kb.pages()
     .where(p => p.status !== undefined)
     .groupBy(p => p.status)
 
 for (const group of statuses) {
-    dv.paragraph(`${group.key}: ${group.rows.length} note(s)`)
+    kb.paragraph(`${group.key}: ${group.rows.length} note(s)`)
 }
 ```
 
@@ -439,29 +439,29 @@ ESPERADO:
 - Cada bloco e independente — cursor em um nao afeta os outros
 %%
 
-## 13. dv.array() Wrapping and Chaining
+## 13. kb.array() Wrapping and Chaining
 
 ```queryjs
 // Wrap raw array
 const raw = [5, 3, 8, 1, 9, 2, 7]
-const da = dv.array(raw)
+const da = kb.array(raw)
 
-dv.header(3, "dv.array() Tests")
-dv.paragraph(`Original: ${da.join(', ')}`)
-dv.paragraph(`Sorted asc: ${da.sort(x => x).join(', ')}`)
-dv.paragraph(`Sorted desc: ${da.sort(x => x, 'desc').join(', ')}`)
-dv.paragraph(`Where > 4: ${da.where(x => x > 4).join(', ')}`)
-dv.paragraph(`First: ${da.sort(x => x).first()}`)
-dv.paragraph(`Last: ${da.sort(x => x).last()}`)
-dv.paragraph(`Length: ${da.length}`)
-dv.paragraph(`isArray: ${dv.isArray(da)}`)
+kb.header(3, "kb.array() Tests")
+kb.paragraph(`Original: ${da.join(', ')}`)
+kb.paragraph(`Sorted asc: ${da.sort(x => x).join(', ')}`)
+kb.paragraph(`Sorted desc: ${da.sort(x => x, 'desc').join(', ')}`)
+kb.paragraph(`Where > 4: ${da.where(x => x > 4).join(', ')}`)
+kb.paragraph(`First: ${da.sort(x => x).first()}`)
+kb.paragraph(`Last: ${da.sort(x => x).last()}`)
+kb.paragraph(`Length: ${da.length}`)
+kb.paragraph(`isArray: ${kb.isArray(da)}`)
 
 // Chaining
-const result = dv.array([10, 20, 30, 40, 50])
+const result = kb.array([10, 20, 30, 40, 50])
     .where(x => x > 15)
     .map(x => x * 2)
     .limit(2)
-dv.paragraph(`Chain (>15, *2, limit 2): ${result.join(', ')}`)
+kb.paragraph(`Chain (>15, *2, limit 2): ${result.join(', ')}`)
 ```
 
 %%
@@ -480,12 +480,12 @@ ESPERADO:
 ## 14. Frontmatter Date Auto-Conversion
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.created !== undefined)
     .limit(5)
 
-dv.header(3, "Date Type Detection")
-dv.table(
+kb.header(3, "Date Type Detection")
+kb.table(
     ["Note", "Created Type", "Year", "Month", "Day", "ISO"],
     pages.map(p => {
         const c = p.created
@@ -514,15 +514,15 @@ ESPERADO:
 ## 15. Error Recovery — Partial Render
 
 ```queryjs
-dv.header(3, "Before Error")
-dv.paragraph("This paragraph renders before the error")
-dv.list(["Item 1", "Item 2", "Item 3"])
+kb.header(3, "Before Error")
+kb.paragraph("This paragraph renders before the error")
+kb.list(["Item 1", "Item 2", "Item 3"])
 
 // Force an error
 const x = undefined
 x.crash()
 
-dv.paragraph("This will NOT render (after error)")
+kb.paragraph("This will NOT render (after error)")
 ```
 
 %%
@@ -539,32 +539,32 @@ ESPERADO:
 ## 16. Aggregate Methods — countBy, reduce, stats
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
 
-dv.header(3, "countBy — Tag Frequency")
+kb.header(3, "countBy — Tag Frequency")
 const allTags = pages.flatMap(p => p.file.tags)
 const tagCounts = allTags.countBy()
-dv.table(
+kb.table(
     ["Tag", "Count"],
     Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).map(([tag, count]) => [tag, count])
 )
 
-dv.header(3, "countBy — Status Distribution")
+kb.header(3, "countBy — Status Distribution")
 const statusCounts = pages.where(p => p.status !== undefined).countBy(p => p.status)
-dv.table(
+kb.table(
     ["Status", "Count"],
     Object.entries(statusCounts).map(([status, count]) => [status, count])
 )
 
-dv.header(3, "reduce — Total File Size")
+kb.header(3, "reduce — Total File Size")
 const totalSize = pages.reduce((acc, p) => acc + p.file.size, 0)
-dv.paragraph(`Total vault size: ${(totalSize / 1024).toFixed(1)} KB across ${pages.length} files`)
+kb.paragraph(`Total vault size: ${(totalSize / 1024).toFixed(1)} KB across ${pages.length} files`)
 
-dv.header(3, "Aggregate with key function")
+kb.header(3, "Aggregate with key function")
 const avgSize = pages.avg(p => p.file.size)
 const minSize = pages.min(p => p.file.size)
 const maxSize = pages.max(p => p.file.size)
-dv.paragraph(`File sizes → avg: ${avgSize.toFixed(0)} bytes, min: ${minSize}, max: ${maxSize}`)
+kb.paragraph(`File sizes → avg: ${avgSize.toFixed(0)} bytes, min: ${minSize}, max: ${maxSize}`)
 ```
 
 %%
@@ -576,14 +576,14 @@ ESPERADO:
 - Demonstra countBy(), reduce(), avg(), min(), max() com key functions
 %%
 
-## 17. Enhanced Tables — dv.ui.table (align, striped, footer, rowStyle)
+## 17. Enhanced Tables — kb.ui.table (align, striped, footer, rowStyle)
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
     .where(p => p.status !== undefined || p.file.tags.length > 0)
 
-dv.header(3, "Styled Table — Alignment + Striping + Footer")
-dv.ui.table(
+kb.header(3, "Styled Table — Alignment + Striping + Footer")
+kb.ui.table(
     ["Note", "Status", "Tags", "Size"],
     pages.map(p => [
         p.file.link,
@@ -603,8 +603,8 @@ dv.ui.table(
     }
 )
 
-dv.header(3, "Conditional Row Styling")
-dv.ui.table(
+kb.header(3, "Conditional Row Styling")
+kb.ui.table(
     ["Note", "Status"],
     pages.map(p => [p.file.basename, p.status || 'none']),
     {
@@ -630,24 +630,24 @@ ESPERADO:
   - Demais sem fundo especial
 %%
 
-## 18. Dashboard Completo — Combinando dv.ui + Aggregates
+## 18. Dashboard Completo — Combinando kb.ui + Aggregates
 
 ```queryjs
-const all = dv.pages()
+const all = kb.pages()
 const dailies = all.where(p => p.file.tags.some(t => t === 'type/journal/daily'))
 const withStatus = all.where(p => p.status !== undefined)
 
 // Cards com aggregates
-dv.ui.cards([
+kb.ui.cards([
     { label: 'Total Notes', value: all.length, color: 'blue', icon: '📝' },
     { label: 'Daily Notes', value: dailies.length, color: 'green', icon: '📅' },
-    { label: 'Avg Sleep', value: dailies.avg(p => dv.number(p.life_track_sleep_quality)).toFixed(1), color: 'purple', icon: '😴' },
-    { label: 'Best Sleep', value: dailies.max(p => dv.number(p.life_track_sleep_quality)), color: 'yellow', icon: '⭐' },
+    { label: 'Avg Sleep', value: dailies.avg(p => kb.number(p.life_track_sleep_quality)).toFixed(1), color: 'purple', icon: '😴' },
+    { label: 'Best Sleep', value: dailies.max(p => kb.number(p.life_track_sleep_quality)), color: 'yellow', icon: '⭐' },
 ], { columns: 4 })
 
 // Status cards com badge
-dv.header(3, "Projects")
-dv.ui.statusCards(
+kb.header(3, "Projects")
+kb.ui.statusCards(
     withStatus.map(p => ({
         title: p.file.basename,
         status: p.status,
@@ -656,38 +656,38 @@ dv.ui.statusCards(
 )
 
 // Sleep heatmap
-dv.header(3, "Sleep This Week")
-dv.ui.heatmap(dailies, {
-    value: p => dv.number(p.life_track_sleep_quality),
+kb.header(3, "Sleep This Week")
+kb.ui.heatmap(dailies, {
+    value: p => kb.number(p.life_track_sleep_quality),
     label: p => p.file.basename.replace('daily-2026-02-', ''),
     max: 5,
 })
 
 // Metrics table with progress bars, striping, and footer
-dv.header(3, "Daily Breakdown")
-dv.ui.table(
+kb.header(3, "Daily Breakdown")
+kb.ui.table(
     ["Day", "Sleep", "Energy", "Mood"],
     dailies.sort(p => p.file.basename).map(p => [
         p.file.basename.replace('daily-2026-02-', '02/'),
-        dv.ui.progressBar(dv.number(p.life_track_sleep_quality), 5),
-        dv.ui.progressBar(dv.number(p.life_track_energy), 5),
-        dv.ui.progressBar(dv.number(p.life_track_mood), 5),
+        kb.ui.progressBar(kb.number(p.life_track_sleep_quality), 5),
+        kb.ui.progressBar(kb.number(p.life_track_energy), 5),
+        kb.ui.progressBar(kb.number(p.life_track_mood), 5),
     ]),
     {
         striped: true,
         align: ['left', 'center', 'center', 'center'],
         footer: [
             `${dailies.length} days`,
-            `avg ${dailies.avg(p => dv.number(p.life_track_sleep_quality)).toFixed(1)}`,
-            `avg ${dailies.avg(p => dv.number(p.life_track_energy)).toFixed(1)}`,
-            `avg ${dailies.avg(p => dv.number(p.life_track_mood)).toFixed(1)}`,
+            `avg ${dailies.avg(p => kb.number(p.life_track_sleep_quality)).toFixed(1)}`,
+            `avg ${dailies.avg(p => kb.number(p.life_track_energy)).toFixed(1)}`,
+            `avg ${dailies.avg(p => kb.number(p.life_track_mood)).toFixed(1)}`,
         ],
     }
 )
 
 // Tag cloud
-dv.header(3, "Tags")
-dv.ui.tagCloud(all.flatMap(p => p.file.tags).array())
+kb.header(3, "Tags")
+kb.ui.tagCloud(all.flatMap(p => p.file.tags).array())
 ```
 
 %%

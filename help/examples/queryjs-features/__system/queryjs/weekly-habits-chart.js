@@ -1,13 +1,13 @@
 // Weekly Habits Chart - Radar chart with daily Body & Mind habits for the week
-const current = dv.current();
+const current = kb.current();
 if (!current || !current.created) {
-  dv.paragraph("*No created date found on this note.*");
+  kb.paragraph("*No created date found on this note.*");
   return;
 }
 
-const weekStart = dv.tryDate(current.created);
+const weekStart = kb.tryDate(current.created);
 if (!weekStart) {
-  dv.paragraph("*Invalid created date.*");
+  kb.paragraph("*Invalid created date.*");
   return;
 }
 
@@ -19,7 +19,7 @@ const fields = [
 ];
 
 const weekEnd = weekStart.plus({ days: 6 });
-const days = dv.getDaysInRange(weekStart, weekEnd);
+const days = kb.getDaysInRange(weekStart, weekEnd);
 const daysArr = days.array();
 
 const dayColors = [
@@ -34,7 +34,7 @@ const dayColors = [
 const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 // Find daily notes in this week and map each day to its note (or null)
-const dailyNotes = dv.pages('#type/journal/daily')
+const dailyNotes = kb.pages('#type/journal/daily')
   .whereDate('created', weekStart, weekEnd);
 
 const noteByDay = dailyNotes.byDate('created', daysArr);
@@ -43,18 +43,18 @@ const noteByDay = dailyNotes.byDate('created', daysArr);
 const datasets = noteByDay
   .map((nota, i) => {
     if (!nota) return null;
-    const data = fields.map(f => dv.number(nota[f.key]));
+    const data = fields.map(f => kb.number(nota[f.key]));
     if (!data.some(v => v > 0)) return null;
     return { label: `${dayNames[i]} ${daysArr[i].toFormat('dd/MM')}`, data, color: dayColors[i] };
   })
   .filter(Boolean);
 
 if (datasets.length === 0) {
-  dv.paragraph("*No habits data found for this week.*");
+  kb.paragraph("*No habits data found for this week.*");
   return;
 }
 
-await dv.ui.chart('radar', {
+await kb.ui.chart('radar', {
   labels: fields.map(f => f.label),
   datasets,
   max: 5,
@@ -62,14 +62,14 @@ await dv.ui.chart('radar', {
 });
 
 // Weekly averages table
-dv.header(3, 'Weekly Averages');
+kb.header(3, 'Weekly Averages');
 
 const averages = fields.map(f => {
-  const sum = noteByDay.reduce((acc, nota) => acc + dv.number(nota?.[f.key]), 0);
+  const sum = noteByDay.reduce((acc, nota) => acc + kb.number(nota?.[f.key]), 0);
   return Math.round((sum / daysArr.length) * 10) / 10;
 });
 
-dv.table(
+kb.table(
   ["Habit", "Avg", "Visual"],
-  fields.map((f, i) => [f.label, averages[i].toFixed(1), dv.progressBar(averages[i], 5)])
+  fields.map((f, i) => [f.label, averages[i].toFixed(1), kb.progressBar(averages[i], 5)])
 );

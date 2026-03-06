@@ -1,15 +1,15 @@
 // Yearly Exercise — Vertical calendar with emoji on intense workout days
-const dailies = dv.pages('#type/journal/daily');
+const dailies = kb.pages('#type/journal/daily');
 
 if (dailies.length === 0) {
-  dv.paragraph("*No daily notes found.*");
+  kb.paragraph("*No daily notes found.*");
   return;
 }
 
-dv.ui.yearlyCalendar(
+kb.ui.yearlyCalendar(
   dailies.map(p => {
-    const dt = dv.tryDate(p.created);
-    const val = dv.number(p.life_track_health_exercices);
+    const dt = kb.tryDate(p.created);
+    const val = kb.number(p.life_track_health_exercices);
     return {
       date: dt ? dt.toISODate() : '',
       intensity: val,

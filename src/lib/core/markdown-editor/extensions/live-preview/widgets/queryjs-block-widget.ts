@@ -1,5 +1,5 @@
 import { WidgetType } from '@codemirror/view';
-import { DVAPI } from '$lib/plugins/queryjs/dv-api';
+import { KBAPI } from '$lib/plugins/queryjs/kb-api';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -21,11 +21,11 @@ export class QueryjsBlockWidget extends WidgetType {
 
 	toDOM() {
 		const container = document.createElement('div');
-		container.className = 'cm-lp-dvjs-block';
+		container.className = 'cm-lp-qjs-block';
 
 		if (!this.isIndexReady || this.activeTabPath === null) {
 			const loading = document.createElement('div');
-			loading.className = 'cm-lp-dvjs-loading';
+			loading.className = 'cm-lp-qjs-loading';
 			loading.textContent = 'Building index...';
 			container.appendChild(loading);
 			return container;
@@ -52,7 +52,7 @@ export class QueryjsBlockWidget extends WidgetType {
 	/** Executes the queryjs script inside the container */
 	private async execute(container: HTMLElement): Promise<void> {
 		try {
-			const dv = new DVAPI({
+			const api = new KBAPI({
 				container,
 				propertyIndex: collectionStore.propertyIndex,
 				noteIndex: noteIndexStore.noteIndex,
@@ -62,18 +62,18 @@ export class QueryjsBlockWidget extends WidgetType {
 				loadScript: loadExternalScript,
 			});
 
-			// Match Obsidian: if script contains await, wrap in async IIFE.
+			// If script contains await, wrap in async IIFE.
 			// Must prepend `return` so the promise is returned from the Function body,
 			// otherwise it floats unhandled and errors escape try/catch.
 			const code = this.jsContent.includes('await')
 				? `return (async () => { ${this.jsContent} })()`
 				: this.jsContent;
 
-			const fn = new Function('dv', code);
-			await Promise.resolve(fn(dv));
+			const fn = new Function('kb', 'dv', code);
+			await Promise.resolve(fn(api, api));
 		} catch (err) {
 			const errorEl = document.createElement('div');
-			errorEl.className = 'cm-lp-dvjs-error';
+			errorEl.className = 'cm-lp-qjs-error';
 			errorEl.textContent = `QueryJS Error: ${err instanceof Error ? err.message : String(err)}`;
 			container.appendChild(errorEl);
 		}

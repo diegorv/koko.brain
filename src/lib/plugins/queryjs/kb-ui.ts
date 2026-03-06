@@ -1,23 +1,23 @@
 import type {
-	DVCardItem,
-	DVCardsOptions,
-	DVProgressBarOptions,
-	DVHeatmapOptions,
-	DVTagsOptions,
-	DVTagCloudOptions,
-	DVStatusCardItem,
-	DVStatusCardsOptions,
-	DVStatusColorMap,
-	DVTimelineItem,
-	DVTimelineOptions,
-	DVUITableOptions,
-	DVChartType,
-	DVChartDataset,
-	DVChartOptions,
-	DVHeatmapCalendarEntry,
-	DVHeatmapCalendarOptions,
-	DVYearlyCalendarOptions,
-} from './dv-ui.types';
+	KBCardItem,
+	KBCardsOptions,
+	KBProgressBarOptions,
+	KBHeatmapOptions,
+	KBTagsOptions,
+	KBTagCloudOptions,
+	KBStatusCardItem,
+	KBStatusCardsOptions,
+	KBStatusColorMap,
+	KBTimelineItem,
+	KBTimelineOptions,
+	KBUITableOptions,
+	KBChartType,
+	KBChartDataset,
+	KBChartOptions,
+	KBHeatmapCalendarEntry,
+	KBHeatmapCalendarOptions,
+	KBYearlyCalendarOptions,
+} from './kb-ui.types';
 import { DataArray } from './data-array';
 import { COLOR_PRESET_BG } from '$lib/utils/color-presets';
 
@@ -36,7 +36,7 @@ const DEFAULT_HEATMAP_COLORS = [
 const CHARTJS_LOAD_TIMEOUT = 10_000;
 
 /** Default status color mapping */
-const DEFAULT_STATUS_COLORS: DVStatusColorMap = {
+const DEFAULT_STATUS_COLORS: KBStatusColorMap = {
 	active: { bg: 'rgba(72,187,120,0.1)', border: 'rgba(72,187,120,0.4)' },
 	planning: { bg: 'rgba(66,153,225,0.1)', border: 'rgba(66,153,225,0.4)' },
 	done: { bg: 'rgba(160,160,160,0.1)', border: 'rgba(160,160,160,0.4)' },
@@ -47,12 +47,12 @@ const DEFAULT_STATUS_COLORS: DVStatusColorMap = {
  * UI render helpers for QueryJS.
  * Provides high-level widget methods (cards, heatmap, tagCloud, etc.)
  * that abstract away manual DOM construction.
- * Accessed via `dv.ui`.
+ * Accessed via `kb.ui`.
  */
-export class DVUI {
+export class KBUI {
 	/** The DOM container to render into */
 	private readonly container: HTMLElement;
-	/** Callback to render a value into a DOM element (handles DVLink, dates, etc.) */
+	/** Callback to render a value into a DOM element (handles KBLink, dates, etc.) */
 	private readonly renderValue: (el: HTMLElement, value: unknown) => void;
 
 	constructor(
@@ -60,7 +60,7 @@ export class DVUI {
 		renderValue?: (el: HTMLElement, value: unknown) => void,
 	) {
 		this.container = container;
-		this.renderValue = renderValue ?? DVUI.defaultRenderValue;
+		this.renderValue = renderValue ?? KBUI.defaultRenderValue;
 	}
 
 	/** Fallback renderer: plain string conversion */
@@ -72,7 +72,7 @@ export class DVUI {
 	 * Renders a grid of stat cards.
 	 * Each card shows a prominent value with a label underneath.
 	 */
-	cards(items: DVCardItem[], options?: DVCardsOptions): HTMLElement {
+	cards(items: KBCardItem[], options?: KBCardsOptions): HTMLElement {
 		const cols = Math.min(options?.columns ?? items.length, 6);
 		const radius = options?.borderRadius ?? 8;
 
@@ -113,7 +113,7 @@ export class DVUI {
 	 * Returns a unicode progress bar string for use in table cells.
 	 * Does NOT render to DOM — returns a string value.
 	 */
-	progressBar(value: number, max: number, options?: DVProgressBarOptions): string {
+	progressBar(value: number, max: number, options?: KBProgressBarOptions): string {
 		const showValue = options?.showValue ?? true;
 
 		// Guard against degenerate max — no bar can be drawn
@@ -135,7 +135,7 @@ export class DVUI {
 	 * Renders a color-scaled heatmap grid with optional legend.
 	 * Items are rendered as colored cells with value + label.
 	 */
-	heatmap<T>(items: Iterable<T> | DataArray<T>, options: DVHeatmapOptions<T>): HTMLElement {
+	heatmap<T>(items: Iterable<T> | DataArray<T>, options: KBHeatmapOptions<T>): HTMLElement {
 		const arr = items instanceof DataArray ? items.array() : Array.from(items);
 		const colorScale = options.colorScale ?? DEFAULT_HEATMAP_COLORS;
 		const cellSize = options.cellSize ?? 48;
@@ -214,7 +214,7 @@ export class DVUI {
 	 */
 	tagCloud(
 		tags: string[] | Record<string, number>,
-		options?: DVTagCloudOptions,
+		options?: KBTagCloudOptions,
 	): HTMLElement {
 		const minFont = options?.minFontSize ?? 14;
 		const maxFont = options?.maxFontSize ?? 26;
@@ -257,7 +257,7 @@ export class DVUI {
 	 * Renders an inline list of styled tag chips.
 	 * For simple tag display in table cells and text — unlike tagCloud() which scales by frequency.
 	 */
-	tags(tags: string[], options?: DVTagsOptions): HTMLElement {
+	tags(tags: string[], options?: KBTagsOptions): HTMLElement {
 		const bg = options?.color ?? 'rgba(124,58,237,0.15)';
 		const text = options?.textColor ?? 'rgba(186,197,238,0.9)';
 		const size = options?.fontSize ?? 11;
@@ -280,7 +280,7 @@ export class DVUI {
 	/**
 	 * Renders a list of status-colored cards with badges.
 	 */
-	statusCards(items: DVStatusCardItem[], options?: DVStatusCardsOptions): HTMLElement {
+	statusCards(items: KBStatusCardItem[], options?: KBStatusCardsOptions): HTMLElement {
 		const colorMap = options?.colors ?? DEFAULT_STATUS_COLORS;
 		const fallback = { bg: 'rgba(160,160,160,0.1)', border: 'rgba(160,160,160,0.4)' };
 
@@ -320,7 +320,7 @@ export class DVUI {
 	/**
 	 * Renders a grouped timeline with date headers and dot indicators.
 	 */
-	timeline(items: DVTimelineItem[], options?: DVTimelineOptions): HTMLElement {
+	timeline(items: KBTimelineItem[], options?: KBTimelineOptions): HTMLElement {
 		const defaultDotColor = options?.dotColor ?? 'rgba(139,108,239,0.8)';
 		const wrapper = document.createElement('div');
 
@@ -364,12 +364,12 @@ export class DVUI {
 
 	/**
 	 * Renders an enhanced table with alignment, striping, conditional row styling, and footer.
-	 * Uses the same CSS class as dv.table() but adds inline style enhancements.
+	 * Uses the same CSS class as kb.table() but adds inline style enhancements.
 	 */
 	table(
 		headers: string[],
 		rows: unknown[][] | DataArray<unknown[]>,
-		options?: DVUITableOptions,
+		options?: KBUITableOptions,
 	): HTMLElement {
 		const arr = rows instanceof DataArray ? rows.array() : rows;
 		const align = options?.align ?? [];
@@ -377,7 +377,7 @@ export class DVUI {
 		const oddBg = 'rgba(255,255,255,0.03)';
 
 		const table = document.createElement('table');
-		table.className = 'cm-lp-dvjs-table';
+		table.className = 'cm-lp-qjs-table';
 
 		// ── thead ──
 		const thead = document.createElement('thead');
@@ -449,11 +449,11 @@ export class DVUI {
 	 * Lazy-loads Chart.js from CDN on first use. Detects theme for text/grid colors.
 	 * If Chart.js fails to load, renders an inline error message.
 	 */
-	async chart(type: DVChartType, options: DVChartOptions): Promise<HTMLElement> {
+	async chart(type: KBChartType, options: KBChartOptions): Promise<HTMLElement> {
 		const wrapper = document.createElement('div');
 		wrapper.style.cssText = 'display: flex; justify-content: center; width: 100%;';
 
-		const isSquare = DVUI.isSquareChart(type);
+		const isSquare = KBUI.isSquareChart(type);
 		const maxW = options.maxWidth ?? (isSquare ? 600 : 800);
 
 		const inner = document.createElement('div');
@@ -471,7 +471,7 @@ export class DVUI {
 
 		// Attempt to load Chart.js
 		try {
-			await DVUI.loadChartJS();
+			await KBUI.loadChartJS();
 		} catch (err) {
 			const errorEl = document.createElement('div');
 			errorEl.style.cssText =
@@ -492,7 +492,7 @@ export class DVUI {
 
 		// Expand datasets
 		const datasets = options.datasets.map((ds) =>
-			DVUI.expandDataset(ds, type, highlight, fill),
+			KBUI.expandDataset(ds, type, highlight, fill),
 		);
 
 		// Build Chart.js config
@@ -570,8 +570,8 @@ export class DVUI {
 	 * Compatible with the Obsidian heatmap-calendar plugin API.
 	 */
 	heatmapCalendar(
-		entries: DVHeatmapCalendarEntry[],
-		options?: DVHeatmapCalendarOptions,
+		entries: KBHeatmapCalendarEntry[],
+		options?: KBHeatmapCalendarOptions,
 	): HTMLElement {
 		const year = options?.year ?? new Date().getFullYear();
 		const colors: Record<string, string[]> = options?.colors ?? {
@@ -606,10 +606,10 @@ export class DVUI {
 			if (minIntensity === maxIntensity && scaleStart === scaleEnd) {
 				mapped = numLevels;
 			} else {
-				mapped = Math.round(DVUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
+				mapped = Math.round(KBUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
 			}
 
-			const dayOfYear = DVUI.getDayOfYear(new Date(e.date + 'T00:00'));
+			const dayOfYear = KBUI.getDayOfYear(new Date(e.date + 'T00:00'));
 			mappedEntries[dayOfYear] = {
 				date: e.date,
 				intensity: mapped,
@@ -624,8 +624,8 @@ export class DVUI {
 		const firstDay = new Date(Date.UTC(year, 0, 1));
 		const emptyBefore = (firstDay.getUTCDay() + 7 - weekStartDay) % 7;
 		const lastDay = new Date(Date.UTC(year, 11, 31));
-		const daysInYear = DVUI.getDayOfYear(lastDay);
-		const todayDayLocal = DVUI.getDayOfYearLocal(new Date());
+		const daysInYear = KBUI.getDayOfYear(lastDay);
+		const todayDayLocal = KBUI.getDayOfYearLocal(new Date());
 		const todayYear = new Date().getFullYear();
 
 		interface Box {
@@ -737,8 +737,8 @@ export class DVUI {
 	 * Inspired by the Obsidian every-day-calendar plugin.
 	 */
 	yearlyCalendar(
-		entries: DVHeatmapCalendarEntry[],
-		options?: DVYearlyCalendarOptions,
+		entries: KBHeatmapCalendarEntry[],
+		options?: KBYearlyCalendarOptions,
 	): HTMLElement {
 		const year = options?.year ?? new Date().getFullYear();
 		const colors: Record<string, string[]> = options?.colors ?? {
@@ -774,7 +774,7 @@ export class DVUI {
 			if (minIntensity === maxIntensity && scaleStart === scaleEnd) {
 				mapped = numLevels;
 			} else {
-				mapped = Math.round(DVUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
+				mapped = Math.round(KBUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
 			}
 
 			entryMap[key] = { intensity: mapped, color: e.color, content: e.content, date: e.date };
@@ -901,7 +901,7 @@ export class DVUI {
 	}
 
 	/** Returns true for chart types that render best in a square aspect ratio */
-	private static isSquareChart(type: DVChartType): boolean {
+	private static isSquareChart(type: KBChartType): boolean {
 		return type === 'radar' || type === 'pie' || type === 'doughnut' || type === 'polarArea';
 	}
 
@@ -935,10 +935,10 @@ export class DVUI {
 		return Math.max(outMin, Math.min(mapped, outMax));
 	}
 
-	/** Expands a simplified DVChartDataset into a full Chart.js dataset config */
+	/** Expands a simplified KBChartDataset into a full Chart.js dataset config */
 	private static expandDataset(
-		ds: DVChartDataset,
-		type: DVChartType,
+		ds: KBChartDataset,
+		type: KBChartType,
 		highlight: string,
 		fill: boolean,
 	): Record<string, unknown> {

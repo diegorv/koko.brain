@@ -9,32 +9,32 @@ tags:
 ## Sleep Quality Heatmap
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-sleep-heatmap")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-sleep-heatmap")
 ```
 
 ## Exercise Heatmap
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exercise-heatmap")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exercise-heatmap")
 ```
 
 ## Overall Wellness Heatmap
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-wellness-heatmap")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-wellness-heatmap")
 ```
 
 ## Heatmap Calendar (inline)
 
 ```queryjs
-const dailies = dv.pages('#type/journal/daily');
+const dailies = kb.pages('#type/journal/daily');
 
-dv.ui.heatmapCalendar(
+kb.ui.heatmapCalendar(
   dailies.map(p => {
-    const dt = dv.tryDate(p.created);
+    const dt = kb.tryDate(p.created);
     return {
       date: dt ? dt.toISODate() : '',
-      intensity: dv.number(p.life_track_mood),
+      intensity: kb.number(p.life_track_mood),
     };
   }).array(),
   {
@@ -51,26 +51,26 @@ dv.ui.heatmapCalendar(
 ## Sleep — Vertical Calendar
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-sleep-vertical")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-sleep-vertical")
 ```
 
 ## Exercise — Vertical Calendar
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exercise-vertical")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exercise-vertical")
 ```
 
 ## Yearly Calendar (inline)
 
 ```queryjs
-const dailies = dv.pages('#type/journal/daily');
+const dailies = kb.pages('#type/journal/daily');
 
-dv.ui.yearlyCalendar(
+kb.ui.yearlyCalendar(
   dailies.map(p => {
-    const dt = dv.tryDate(p.created);
+    const dt = kb.tryDate(p.created);
     return {
       date: dt ? dt.toISODate() : '',
-      intensity: dv.number(p.life_track_mood),
+      intensity: kb.number(p.life_track_mood),
     };
   }).array(),
   {

@@ -14,13 +14,13 @@ tags:
 ## Weekly Wellness Chart
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/weekly-wellness-chart")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/weekly-wellness-chart")
 ```
 
 ## Reuniões da semana
 
 ```queryjs
-dv.view("Resources/help/examples/queryjs-features/__system/queryjs/weekly-meeting-list")
+kb.view("Resources/help/examples/queryjs-features/__system/queryjs/weekly-meeting-list")
 ```
 
 ## Notas

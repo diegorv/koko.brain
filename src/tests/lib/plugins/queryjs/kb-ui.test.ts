@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DVUI } from '$lib/plugins/queryjs/dv-ui';
+import { KBUI } from '$lib/plugins/queryjs/kb-ui';
 import { DataArray } from '$lib/plugins/queryjs/data-array';
 
-describe('DVUI', () => {
+describe('KBUI', () => {
 	let container: HTMLElement;
-	let ui: DVUI;
+	let ui: KBUI;
 
 	beforeEach(() => {
 		container = document.createElement('div');
-		ui = new DVUI(container);
+		ui = new KBUI(container);
 	});
 
 	describe('cards', () => {
@@ -572,7 +572,7 @@ describe('DVUI', () => {
 			]);
 
 			expect(table.tagName).toBe('TABLE');
-			expect(table.className).toBe('cm-lp-dvjs-table');
+			expect(table.className).toBe('cm-lp-qjs-table');
 			const ths = table.querySelectorAll('th');
 			expect(ths.length).toBe(2);
 			expect(ths[0].textContent).toBe('Name');
@@ -684,7 +684,7 @@ describe('DVUI', () => {
 				}
 			};
 
-			const uiWithRender = new DVUI(container, mockRenderValue);
+			const uiWithRender = new KBUI(container, mockRenderValue);
 			uiWithRender.table(['Col'], [[{ special: 'bold text' }]]);
 
 			const td = container.querySelector('td');
@@ -698,7 +698,7 @@ describe('DVUI', () => {
 				el.textContent = value == null ? '—' : `[${String(value)}]`;
 			};
 
-			const uiWithRender = new DVUI(container, mockRenderValue);
+			const uiWithRender = new KBUI(container, mockRenderValue);
 			uiWithRender.table(['A'], [['row']], { footer: ['sum'] });
 
 			const footerTd = container.querySelector('tfoot td');

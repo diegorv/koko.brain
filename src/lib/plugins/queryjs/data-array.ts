@@ -1,9 +1,9 @@
 import type { AggregateStats } from './queryjs.types';
-import { DVDateTime } from './dv-datetime';
+import { KBDateTime } from './kb-datetime';
 
 /**
  * Chainable array wrapper with Proxy-based deep property access.
- * `dv.pages().file.link` maps `.file.link` across all items, returning a new DataArray.
+ * `kb.pages().file.link` maps `.file.link` across all items, returning a new DataArray.
  */
 export class DataArray<T> {
 	/** @internal */
@@ -91,11 +91,11 @@ export class DataArray<T> {
 	/**
 	 * Filters items that have at least one tag matching any of the given prefixes.
 	 * Uses safe runtime access to `item.file.tags` — works on any DataArray
-	 * but is most useful on DataArray<DVPage>.
+	 * but is most useful on DataArray<KBPage>.
 	 *
 	 * @example
-	 * dv.pages().whereTag('tracking/')                       // single prefix
-	 * dv.pages().whereTag('type/meeting', 'type/capture')    // multiple prefixes (OR)
+	 * kb.pages().whereTag('tracking/')                       // single prefix
+	 * kb.pages().whereTag('type/meeting', 'type/capture')    // multiple prefixes (OR)
 	 */
 	whereTag(...prefixes: string[]): DataArray<T> {
 		const matchers = prefixes.map((p) => {
@@ -116,17 +116,17 @@ export class DataArray<T> {
 	}
 
 	/**
-	 * Filters items where item[field] (parsed via DVDateTime.tryParse) falls within
+	 * Filters items where item[field] (parsed via KBDateTime.tryParse) falls within
 	 * [start, end] date range (inclusive, compared by day).
 	 * Items whose field value cannot be parsed as a date are excluded.
 	 */
-	whereDate(field: string, start: DVDateTime, end: DVDateTime): DataArray<T> {
+	whereDate(field: string, start: KBDateTime, end: KBDateTime): DataArray<T> {
 		const startDay = start.startOf('day');
 		const endDay = end.startOf('day');
 		return new DataArray(
 			this._values.filter((item) => {
 				const raw = (item as Record<string, unknown>)?.[field];
-				const dt = DVDateTime.tryParse(raw);
+				const dt = KBDateTime.tryParse(raw);
 				if (!dt) return false;
 				const day = dt.startOf('day');
 				return day >= startDay && day <= endDay;
@@ -135,15 +135,15 @@ export class DataArray<T> {
 	}
 
 	/**
-	 * Maps an array of DVDateTime days to matching items from this DataArray.
+	 * Maps an array of KBDateTime days to matching items from this DataArray.
 	 * For each day, finds the first item whose item[field] matches that day.
 	 * Returns a plain array of (T | null), positionally aligned with the input days.
 	 */
-	byDate(field: string, days: DVDateTime[]): (T | null)[] {
+	byDate(field: string, days: KBDateTime[]): (T | null)[] {
 		return days.map((day) =>
 			this._values.find((item) => {
 				const raw = (item as Record<string, unknown>)?.[field];
-				const dt = DVDateTime.tryParse(raw);
+				const dt = KBDateTime.tryParse(raw);
 				return dt !== null && dt.hasSame(day, 'day');
 			}) ?? null,
 		);

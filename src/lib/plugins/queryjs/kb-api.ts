@@ -1,18 +1,18 @@
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
-import type { DVPage, DVLink, DVElOptions } from './queryjs.types';
+import type { KBPage, KBLink, KBElOptions } from './queryjs.types';
 import { DataArray } from './data-array';
-import { DVDateTime } from './dv-datetime';
-import { DVUI } from './dv-ui';
-import { buildDVLink, buildDVPage, buildReverseIndex, parseSource } from './queryjs.logic';
+import { KBDateTime } from './kb-datetime';
+import { KBUI } from './kb-ui';
+import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './queryjs.logic';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 
 /**
  * QueryJS API object.
  * Instantiated per widget render with access to the container DOM and vault data.
- * Closely matches the Obsidian QueryJS inline API.
+ * Provides the `kb` (and legacy `dv`) scripting API for inline queries.
  */
-export class DVAPI {
+export class KBAPI {
 	/** The DOM container to render into */
 	readonly container: HTMLElement;
 
@@ -22,8 +22,8 @@ export class DVAPI {
 	private readonly currentFilePath: string;
 	private readonly vaultPath: string;
 	private readonly loadScript: (path: string) => Promise<string>;
-	private _pageCache: { list: DVPage[]; byPath: Map<string, DVPage> } | null = null;
-	private _ui: DVUI | null = null;
+	private _pageCache: { list: KBPage[]; byPath: Map<string, KBPage> } | null = null;
+	private _ui: KBUI | null = null;
 
 	constructor(opts: {
 		container: HTMLElement;
@@ -47,11 +47,11 @@ export class DVAPI {
 
 	/**
 	 * Returns all pages, optionally filtered by a source string.
-	 * dv.pages() — all pages
-	 * dv.pages('#tag') — pages with that tag (includes subtags)
-	 * dv.pages('"folder"') — pages in that folder
+	 * kb.pages() — all pages
+	 * kb.pages('#tag') — pages with that tag (includes subtags)
+	 * kb.pages('"folder"') — pages in that folder
 	 */
-	pages(source?: string): DataArray<DVPage> {
+	pages(source?: string): DataArray<KBPage> {
 		const cache = this.ensureCache();
 
 		if (source) {
@@ -69,56 +69,56 @@ export class DVAPI {
 		return this.pages(source).map((p) => p.file.path);
 	}
 
-	/** Returns the DVPage for the currently active file */
-	current(): DVPage | null {
+	/** Returns the KBPage for the currently active file */
+	current(): KBPage | null {
 		return this.ensureCache().byPath.get(this.currentFilePath) ?? null;
 	}
 
-	/** Returns DVPage for a specific file path */
-	page(path: string): DVPage | undefined {
+	/** Returns KBPage for a specific file path */
+	page(path: string): KBPage | undefined {
 		return this.ensureCache().byPath.get(path);
 	}
 
 	/** UI render helpers namespace (cards, heatmap, tagCloud, table, etc.) */
-	get ui(): DVUI {
+	get ui(): KBUI {
 		if (!this._ui) {
-			this._ui = new DVUI(this.container, this.renderValue.bind(this));
+			this._ui = new KBUI(this.container, this.renderValue.bind(this));
 		}
 		return this._ui;
 	}
 
 	// ── Date/utility methods ──
 
-	/** Creates a DVDateTime from a string, number, Date, or returns now */
-	date(input?: string | number | Date): DVDateTime {
-		return new DVDateTime(input);
+	/** Creates a KBDateTime from a string, number, Date, or returns now */
+	date(input?: string | number | Date): KBDateTime {
+		return new KBDateTime(input);
 	}
 
 	/**
-	 * Safely normalizes any date-like value to DVDateTime.
+	 * Safely normalizes any date-like value to KBDateTime.
 	 * Returns null for values that cannot be parsed.
-	 * Handles: null, undefined, DVDateTime, Date, number, string,
+	 * Handles: null, undefined, KBDateTime, Date, number, string,
 	 * objects with {year, month, day}, objects with {ts}.
 	 */
-	tryDate(value: unknown): DVDateTime | null {
-		return DVDateTime.tryParse(value);
+	tryDate(value: unknown): KBDateTime | null {
+		return KBDateTime.tryParse(value);
 	}
 
 	/**
-	 * Generates a DataArray of DVDateTime for each day from start to end (inclusive).
+	 * Generates a DataArray of KBDateTime for each day from start to end (inclusive).
 	 * Start and end are normalized via tryDate — accepts any date-like input.
 	 * Returns an empty DataArray if either bound is not parseable or start > end.
 	 */
-	getDaysInRange(start: unknown, end: unknown): DataArray<DVDateTime> {
-		const startDt = DVDateTime.tryParse(start);
-		const endDt = DVDateTime.tryParse(end);
-		if (!startDt || !endDt) return new DataArray<DVDateTime>([]);
+	getDaysInRange(start: unknown, end: unknown): DataArray<KBDateTime> {
+		const startDt = KBDateTime.tryParse(start);
+		const endDt = KBDateTime.tryParse(end);
+		if (!startDt || !endDt) return new DataArray<KBDateTime>([]);
 
 		const startDay = startDt.startOf('day');
 		const endDay = endDt.startOf('day');
-		if (startDay > endDay) return new DataArray<DVDateTime>([]);
+		if (startDay > endDay) return new DataArray<KBDateTime>([]);
 
-		const days: DVDateTime[] = [];
+		const days: KBDateTime[] = [];
 		let current = startDay;
 		while (current <= endDay) {
 			days.push(current);
@@ -139,9 +139,9 @@ export class DVAPI {
 		return raw instanceof DataArray || Array.isArray(raw);
 	}
 
-	/** Creates a DVLink from a path */
-	fileLink(path: string, _embed?: boolean, display?: string): DVLink {
-		const link = buildDVLink(path);
+	/** Creates a KBLink from a path */
+	fileLink(path: string, _embed?: boolean, display?: string): KBLink {
+		const link = buildKBLink(path);
 		if (display) link.display = display;
 		return link;
 	}
@@ -169,7 +169,7 @@ export class DVAPI {
 	/**
 	 * Returns a text progress bar string using Unicode block characters.
 	 * Value is clamped between 0 and max. Uses filled (U+2588) and empty (U+2591) chars.
-	 * Distinct from dv.ui.progressBar() which renders DOM elements.
+	 * Distinct from kb.ui.progressBar() which renders DOM elements.
 	 */
 	progressBar(value: number, max: number): string {
 		const clamped = Math.max(0, Math.min(max, Math.round(value)));
@@ -185,7 +185,7 @@ export class DVAPI {
 	el<K extends keyof HTMLElementTagNameMap>(
 		tag: K,
 		text?: string,
-		options?: DVElOptions,
+		options?: KBElOptions,
 	): HTMLElementTagNameMap[K] {
 		const element = document.createElement(tag);
 
@@ -212,7 +212,7 @@ export class DVAPI {
 		return this.el('p', text);
 	}
 
-	/** Renders a header (h1-h6). Accepts strings or DVLink objects. */
+	/** Renders a header (h1-h6). Accepts strings or KBLink objects. */
 	header(level: number, content: unknown): HTMLElement {
 		const tag = `h${Math.min(Math.max(level, 1), 6)}` as keyof HTMLElementTagNameMap;
 		if (typeof content === 'string') {
@@ -225,15 +225,15 @@ export class DVAPI {
 	}
 
 	/** Renders a span */
-	span(text: string, options?: DVElOptions): HTMLSpanElement {
+	span(text: string, options?: KBElOptions): HTMLSpanElement {
 		return this.el('span', text, options);
 	}
 
-	/** Renders a bulleted list. DVLink items become clickable links. */
+	/** Renders a bulleted list. KBLink items become clickable links. */
 	list(items: Iterable<unknown> | DataArray<unknown>): HTMLElement {
 		const arr = items instanceof DataArray ? items.array() : [...items];
 		const ul = document.createElement('ul');
-		ul.className = 'cm-lp-dvjs-list';
+		ul.className = 'cm-lp-qjs-list';
 
 		for (const item of arr) {
 			const li = document.createElement('li');
@@ -249,7 +249,7 @@ export class DVAPI {
 	table(headers: string[], rows: unknown[][] | DataArray<unknown[]>): HTMLElement {
 		const arr = rows instanceof DataArray ? rows.array() : rows;
 		const table = document.createElement('table');
-		table.className = 'cm-lp-dvjs-table';
+		table.className = 'cm-lp-qjs-table';
 
 		const thead = document.createElement('thead');
 		const headerRow = document.createElement('tr');
@@ -281,7 +281,7 @@ export class DVAPI {
 	/** Renders a task list with checkboxes */
 	taskList(tasks: { text: string; completed: boolean }[]): HTMLElement {
 		const ul = document.createElement('ul');
-		ul.className = 'cm-lp-dvjs-tasklist';
+		ul.className = 'cm-lp-qjs-tasklist';
 
 		for (const task of tasks) {
 			const li = document.createElement('li');
@@ -304,25 +304,25 @@ export class DVAPI {
 
 	/**
 	 * Loads and executes an external .js script from the vault.
-	 * Matches Obsidian's dv.view() behavior: tries `path.js`, wraps await content.
+	 * Exposes the API as both `kb` (primary) and `dv` (legacy alias).
 	 */
 	async view(scriptPath: string, input?: unknown): Promise<void> {
 		try {
 			const fullPath = this.resolveScriptPath(scriptPath);
 			const code = await this.loadScript(fullPath);
 
-			// Match Obsidian: if script contains await, wrap in async IIFE.
+			// If script contains await, wrap in async IIFE.
 			// Must prepend `return` so the promise is returned from the Function body,
 			// otherwise it floats unhandled and errors escape try/catch.
 			const wrappedCode = code.includes('await')
 				? `return (async () => { ${code} })()`
 				: code;
 
-			const fn = new Function('dv', 'input', wrappedCode);
-			await Promise.resolve(fn(this, input));
+			const fn = new Function('kb', 'dv', 'input', wrappedCode);
+			await Promise.resolve(fn(this, this, input));
 		} catch (err) {
 			const errorEl = document.createElement('div');
-			errorEl.className = 'cm-lp-dvjs-error';
+			errorEl.className = 'cm-lp-qjs-error';
 			errorEl.textContent = `QueryJS Error in ${scriptPath}: ${err instanceof Error ? err.message : String(err)}`;
 			this.container.appendChild(errorEl);
 		}
@@ -330,16 +330,16 @@ export class DVAPI {
 
 	// ── Private helpers ──
 
-	/** Builds and caches all DVPages on first access, returns the cache */
-	private ensureCache(): { list: DVPage[]; byPath: Map<string, DVPage> } {
+	/** Builds and caches all KBPages on first access, returns the cache */
+	private ensureCache(): { list: KBPage[]; byPath: Map<string, KBPage> } {
 		if (!this._pageCache) {
 			const allFilePaths = Array.from(this.propertyIndex.keys());
 			const reverseIndex = buildReverseIndex(this.noteIndex);
 			const list = allFilePaths.map((fp) => {
 				const record = this.propertyIndex.get(fp)!;
-				return buildDVPage(record, this.noteIndex, this.noteContents, allFilePaths, reverseIndex);
+				return buildKBPage(record, this.noteIndex, this.noteContents, allFilePaths, reverseIndex);
 			});
-			const byPath = new Map<string, DVPage>();
+			const byPath = new Map<string, KBPage>();
 			for (const page of list) {
 				byPath.set(page.file.path, page);
 			}
@@ -348,7 +348,7 @@ export class DVAPI {
 		return this._pageCache;
 	}
 
-	/** Renders a value into an element — DVLink as clickable <a>, HTMLElement appended directly, dates as strings */
+	/** Renders a value into an element — KBLink as clickable <a>, HTMLElement appended directly, dates as strings */
 	private renderValue(el: HTMLElement, value: unknown): void {
 		if (value instanceof HTMLElement) {
 			el.appendChild(value);
@@ -359,13 +359,13 @@ export class DVAPI {
 			typeof value === 'object' &&
 			'path' in value &&
 			'display' in value &&
-			typeof (value as DVLink).path === 'string' &&
-			typeof (value as DVLink).display === 'string'
+			typeof (value as KBLink).path === 'string' &&
+			typeof (value as KBLink).display === 'string'
 		) {
-			const link = value as DVLink;
+			const link = value as KBLink;
 			const a = document.createElement('a');
 			a.textContent = link.display;
-			a.className = 'cm-lp-dvjs-link';
+			a.className = 'cm-lp-qjs-link';
 			a.href = '#';
 			a.addEventListener('mousedown', (e) => {
 				e.preventDefault();
@@ -373,7 +373,7 @@ export class DVAPI {
 				openFileInEditor(link.path);
 			});
 			el.appendChild(a);
-		} else if (value instanceof DVDateTime) {
+		} else if (value instanceof KBDateTime) {
 			el.textContent = value.toISODate();
 		} else if (value instanceof Date) {
 			el.textContent = value.toISOString().split('T')[0];

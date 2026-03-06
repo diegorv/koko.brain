@@ -1,5 +1,5 @@
 /** Configuration for a single stat card in a cards grid */
-export interface DVCardItem {
+export interface KBCardItem {
 	/** Display label (e.g., "Total Notes") */
 	label: string;
 	/** Numeric or string value to display prominently */
@@ -10,16 +10,16 @@ export interface DVCardItem {
 	icon?: string;
 }
 
-/** Options for dv.ui.cards() */
-export interface DVCardsOptions {
+/** Options for kb.ui.cards() */
+export interface KBCardsOptions {
 	/** Number of columns in the grid (default: items.length, max 6) */
 	columns?: number;
 	/** Card border radius in px (default: 8) */
 	borderRadius?: number;
 }
 
-/** Options for dv.ui.progressBar() */
-export interface DVProgressBarOptions {
+/** Options for kb.ui.progressBar() */
+export interface KBProgressBarOptions {
 	/** Character for filled portion (default: "\u2588") */
 	fillChar?: string;
 	/** Character for empty portion (default: "\u2591") */
@@ -30,8 +30,8 @@ export interface DVProgressBarOptions {
 	width?: number;
 }
 
-/** Options for dv.ui.heatmap() */
-export interface DVHeatmapOptions<T> {
+/** Options for kb.ui.heatmap() */
+export interface KBHeatmapOptions<T> {
 	/** Function to extract the numeric value from each item */
 	value: (item: T) => number;
 	/** Function to extract the display label for each cell */
@@ -50,8 +50,8 @@ export interface DVHeatmapOptions<T> {
 	showLegend?: boolean;
 }
 
-/** Options for dv.ui.tags() */
-export interface DVTagsOptions {
+/** Options for kb.ui.tags() */
+export interface KBTagsOptions {
 	/** Background color for tag chips (default: 'rgba(124,58,237,0.15)') */
 	color?: string;
 	/** Text color for tag chips (default: 'rgba(186,197,238,0.9)') */
@@ -62,8 +62,8 @@ export interface DVTagsOptions {
 	gap?: number;
 }
 
-/** Options for dv.ui.tagCloud() */
-export interface DVTagCloudOptions {
+/** Options for kb.ui.tagCloud() */
+export interface KBTagCloudOptions {
 	/** Minimum font size in px (default: 14) */
 	minFontSize?: number;
 	/** Maximum font size in px (default: 26) */
@@ -75,7 +75,7 @@ export interface DVTagCloudOptions {
 }
 
 /** Configuration for a single status card */
-export interface DVStatusCardItem {
+export interface KBStatusCardItem {
 	/** Title text (e.g., page basename) */
 	title: string;
 	/** Status string (used to look up color) */
@@ -85,7 +85,7 @@ export interface DVStatusCardItem {
 }
 
 /** Color mapping for status cards */
-export interface DVStatusColorMap {
+export interface KBStatusColorMap {
 	[status: string]: {
 		/** Background color */
 		bg: string;
@@ -94,14 +94,14 @@ export interface DVStatusColorMap {
 	};
 }
 
-/** Options for dv.ui.statusCards() */
-export interface DVStatusCardsOptions {
+/** Options for kb.ui.statusCards() */
+export interface KBStatusCardsOptions {
 	/** Color map keyed by status string */
-	colors?: DVStatusColorMap;
+	colors?: KBStatusColorMap;
 }
 
 /** Configuration for a single timeline entry */
-export interface DVTimelineItem {
+export interface KBTimelineItem {
 	/** Date string for grouping (e.g., "2026-02-13") */
 	date: string;
 	/** Display text for the item */
@@ -112,19 +112,19 @@ export interface DVTimelineItem {
 	dotColor?: string;
 }
 
-/** Options for dv.ui.timeline() */
-export interface DVTimelineOptions {
+/** Options for kb.ui.timeline() */
+export interface KBTimelineOptions {
 	/** Default dot color (default: 'rgba(139,108,239,0.8)') */
 	dotColor?: string;
 }
 
-/** Column alignment for dv.ui.table() */
-export type DVTableColumnAlign = 'left' | 'center' | 'right';
+/** Column alignment for kb.ui.table() */
+export type KBTableColumnAlign = 'left' | 'center' | 'right';
 
-/** Options for dv.ui.table() */
-export interface DVUITableOptions {
+/** Options for kb.ui.table() */
+export interface KBUITableOptions {
 	/** Column text alignment per index (default: 'left' for all) */
-	align?: DVTableColumnAlign[];
+	align?: KBTableColumnAlign[];
 	/** Enable alternating row background colors (default: false) */
 	striped?: boolean;
 	/** Footer/summary row cells — rendered in a &lt;tfoot&gt; with bold styling */
@@ -133,11 +133,11 @@ export interface DVUITableOptions {
 	rowStyle?: (row: unknown[], index: number) => string | null;
 }
 
-/** Supported Chart.js chart types for dv.ui.chart() */
-export type DVChartType = 'bar' | 'line' | 'radar' | 'pie' | 'doughnut' | 'polarArea';
+/** Supported Chart.js chart types for kb.ui.chart() */
+export type KBChartType = 'bar' | 'line' | 'radar' | 'pie' | 'doughnut' | 'polarArea';
 
-/** A single dataset for dv.ui.chart() */
-export interface DVChartDataset {
+/** A single dataset for kb.ui.chart() */
+export interface KBChartDataset {
 	/** Label for the dataset (shown in legend) */
 	label: string;
 	/** Numeric data values */
@@ -147,7 +147,7 @@ export interface DVChartDataset {
 }
 
 /** A single entry for the heatmap calendar */
-export interface DVHeatmapCalendarEntry {
+export interface KBHeatmapCalendarEntry {
 	/** Date string in YYYY-MM-DD format */
 	date: string;
 	/** Numeric intensity value — mapped to a color from the palette */
@@ -158,8 +158,8 @@ export interface DVHeatmapCalendarEntry {
 	content?: string;
 }
 
-/** Options for dv.ui.heatmapCalendar() */
-export interface DVHeatmapCalendarOptions {
+/** Options for kb.ui.heatmapCalendar() */
+export interface KBHeatmapCalendarOptions {
 	/** Year to display (default: current year) */
 	year?: number;
 	/** Color palettes keyed by name — each value is an array of CSS color strings ordered from lowest to highest intensity. Default: GitHub-style green. */
@@ -176,8 +176,8 @@ export interface DVHeatmapCalendarOptions {
 	weekStartDay?: number;
 }
 
-/** Options for dv.ui.yearlyCalendar() */
-export interface DVYearlyCalendarOptions {
+/** Options for kb.ui.yearlyCalendar() */
+export interface KBYearlyCalendarOptions {
 	/** Year to display (default: current year) */
 	year?: number;
 	/** Color palettes keyed by name — each value is an array of CSS color strings ordered from lowest to highest intensity. Default: GitHub-style green. */
@@ -192,12 +192,12 @@ export interface DVYearlyCalendarOptions {
 	intensityScaleEnd?: number;
 }
 
-/** Options for dv.ui.chart() */
-export interface DVChartOptions {
+/** Options for kb.ui.chart() */
+export interface KBChartOptions {
 	/** Axis/segment labels */
 	labels: string[];
 	/** One or more datasets to plot */
-	datasets: DVChartDataset[];
+	datasets: KBChartDataset[];
 	/** Maximum value for the scale (e.g., for radar charts). Omit for auto-scaling. */
 	max?: number;
 	/** Minimum value for the scale (default: 0) */

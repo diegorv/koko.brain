@@ -1,21 +1,21 @@
 /** Clickable link to a file */
-export interface DVLink {
+export interface KBLink {
 	/** Absolute path to the target file */
 	path: string;
 	/** Display name (basename without extension) */
 	display: string;
 }
 
-/** Options for dv.el() */
-export interface DVElOptions {
+/** Options for kb.el() */
+export interface KBElOptions {
 	/** HTML attributes to set on the element */
 	attr?: Record<string, string>;
 	/** CSS class(es) to add */
 	cls?: string;
 }
 
-/** Page object representing a single note, returned by dv.pages() and dv.current() */
-export interface DVPage {
+/** Page object representing a single note, returned by kb.pages() and kb.current() */
+export interface KBPage {
 	/** File metadata object */
 	file: {
 		/** Absolute file path */
@@ -26,14 +26,14 @@ export interface DVPage {
 		basename: string;
 		/** Parent folder path */
 		folder: string;
-		/** DVLink to this page */
-		link: DVLink;
+		/** KBLink to this page */
+		link: KBLink;
 		/** All tags (frontmatter + inline) */
 		tags: string[];
 		/** Files that link TO this file */
-		inlinks: DVLink[];
+		inlinks: KBLink[];
 		/** Files this file links TO */
-		outlinks: DVLink[];
+		outlinks: KBLink[];
 		/** File size in bytes */
 		size: number;
 		/** Creation timestamp (ms) */
@@ -41,14 +41,14 @@ export interface DVPage {
 		/** Modification timestamp (ms) */
 		mtime: number;
 		/** Tasks extracted from file content */
-		tasks: DVTask[];
+		tasks: KBTask[];
 	};
 	/** Frontmatter properties accessible as direct keys (e.g., page.created) */
 	[key: string]: unknown;
 }
 
 /** A task extracted from a page's content */
-export interface DVTask {
+export interface KBTask {
 	/** The raw text of the task (without the checkbox prefix) */
 	text: string;
 	/** Whether the task is completed */

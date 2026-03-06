@@ -1,8 +1,8 @@
 // Yearly Wellness Heatmap — average of all life_track metrics per day
-const dailies = dv.pages('#type/journal/daily');
+const dailies = kb.pages('#type/journal/daily');
 
 if (dailies.length === 0) {
-  dv.paragraph("*No daily notes found.*");
+  kb.paragraph("*No daily notes found.*");
   return;
 }
 
@@ -15,10 +15,10 @@ const fields = [
   'life_track_health_exercices',
 ];
 
-dv.ui.heatmapCalendar(
+kb.ui.heatmapCalendar(
   dailies.map(p => {
-    const dt = dv.tryDate(p.created);
-    const values = fields.map(f => dv.number(p[f]));
+    const dt = kb.tryDate(p.created);
+    const values = fields.map(f => kb.number(p[f]));
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
     return {
       date: dt ? dt.toISODate() : '',

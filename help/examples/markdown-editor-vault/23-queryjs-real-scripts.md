@@ -22,10 +22,10 @@ Aqui testamos o script inline para validar que a API funciona:
 
 ```queryjs
 // Versao simplificada do meeting-list usando whereTag()
-const meetings = dv.pages().whereTag('type/meeting')
+const meetings = kb.pages().whereTag('type/meeting')
 
-dv.header(3, `Todas as reunioes (${meetings.length})`)
-dv.list(meetings.file.link)
+kb.header(3, `Todas as reunioes (${meetings.length})`)
+kb.list(meetings.file.link)
 ```
 
 %%
@@ -38,14 +38,14 @@ ESPERADO:
 ## 2. Meeting List Completo (inline) — Filtro por data
 
 ```queryjs
-const targetDate = dv.date("2026-02-13");
+const targetDate = kb.date("2026-02-13");
 
-const resultado = dv.pages()
+const resultado = kb.pages()
     .whereTag('type/meeting')
     .whereDate('created', targetDate, targetDate);
 
-dv.header(3, `Reunioes de 13/02 (${resultado.length})`)
-dv.list(resultado.file.link);
+kb.header(3, `Reunioes de 13/02 (${resultado.length})`)
+kb.list(resultado.file.link);
 ```
 
 %%
@@ -55,10 +55,10 @@ ESPERADO:
 - meeting-planning-feb10 NAO aparece (criado em 2026-02-10)
 %%
 
-## 3. Meeting List via dv.view()
+## 3. Meeting List via kb.view()
 
 %%
-Este teste carrega o script meeting-list.js do vault via dv.view().
+Este teste carrega o script meeting-list.js do vault via kb.view().
 So funciona se markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list.js existir no vault.
 Como este arquivo nao tem inlinks para meetings, o resultado sera vazio.
 Para testar de verdade, abra o daily-2026-02-13.md.
@@ -66,10 +66,10 @@ Para testar de verdade, abra o daily-2026-02-13.md.
 
 ```queryjs
 try {
-    await dv.view("markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list")
+    await kb.view("markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list")
 } catch (e) {
-    dv.paragraph(`Erro ao carregar script: ${e.message}`)
-    dv.paragraph("Certifique-se de que markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list.js esta no vault")
+    kb.paragraph(`Erro ao carregar script: ${e.message}`)
+    kb.paragraph("Certifique-se de que markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list.js esta no vault")
 }
 ```
 
@@ -85,7 +85,7 @@ ESPERADO (no daily-2026-02-13.md):
 ## 4. Weekly Tracking — Tabela de Metricas
 
 ```queryjs
-const weekStart = dv.date("2026-02-09");
+const weekStart = kb.date("2026-02-09");
 const weekEnd = weekStart.plus({ days: 6 });
 
 const fields = [
@@ -98,29 +98,29 @@ const fields = [
 ];
 
 // getDaysInRange replaces manual loop
-const diasSemana = dv.getDaysInRange(weekStart, weekEnd);
+const diasSemana = kb.getDaysInRange(weekStart, weekEnd);
 
-const allDaily = dv.pages('#type/journal/daily');
+const allDaily = kb.pages('#type/journal/daily');
 
-dv.paragraph(`Encontrados ${allDaily.length} daily notes com tag type/journal/daily`)
+kb.paragraph(`Encontrados ${allDaily.length} daily notes com tag type/journal/daily`)
 
 // whereDate replaces manual date filtering
 const dailyNotes = allDaily
   .whereDate('created', weekStart, weekEnd)
-  .sort(p => dv.tryDate(p.created)?.ts ?? 0);
+  .sort(p => kb.tryDate(p.created)?.ts ?? 0);
 
-dv.paragraph(`${dailyNotes.length} notas encontradas na semana de ${weekStart.toISODate()}`)
+kb.paragraph(`${dailyNotes.length} notas encontradas na semana de ${weekStart.toISODate()}`)
 
 // Tabela com dados brutos
 const nomeDias = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-dv.table(
+kb.table(
   ["Dia", ...fields.map(f => f.label)],
   dailyNotes.map((p, i) => {
-    const dt = dv.tryDate(p.created);
+    const dt = kb.tryDate(p.created);
     const dayIdx = dt ? diasSemana.findIndex(d => d.hasSame(dt, 'day')) : i;
     return [
       `${nomeDias[dayIdx >= 0 ? dayIdx : i]} ${dt ? dt.toISODate() : '?'}`,
-      ...fields.map(f => dv.number(p[f.key]))
+      ...fields.map(f => kb.number(p[f.key]))
     ];
   })
 );
@@ -136,7 +136,7 @@ ESPERADO:
 - Thursday (12/02) tem valores mais altos
 %%
 
-## 5. Weekly Tracking Chart via dv.view()
+## 5. Weekly Tracking Chart via kb.view()
 
 %%
 Este teste carrega o script completo com Chart.js.
@@ -145,10 +145,10 @@ Requer conexao com internet para carregar Chart.js do CDN.
 
 ```queryjs
 try {
-    await dv.view("markdown-manual-test/queryjs-examples/__system/queryjs/weekly-wellness-chart")
+    await kb.view("markdown-manual-test/queryjs-examples/__system/queryjs/weekly-wellness-chart")
 } catch (e) {
-    dv.paragraph(`Erro ao carregar script: ${e.message}`)
-    dv.paragraph("Certifique-se de que markdown-manual-test/queryjs-examples/__system/queryjs/weekly-wellness-chart.js esta no vault")
+    kb.paragraph(`Erro ao carregar script: ${e.message}`)
+    kb.paragraph("Certifique-se de que markdown-manual-test/queryjs-examples/__system/queryjs/weekly-wellness-chart.js esta no vault")
 }
 ```
 
@@ -165,33 +165,33 @@ ESPERADO:
 ## 6. DVDateTime — Operacoes de Data
 
 ```queryjs
-const hoje = dv.date("2026-02-13")
+const hoje = kb.date("2026-02-13")
 
-dv.header(3, "Operacoes com DVDateTime")
+kb.header(3, "Operacoes com DVDateTime")
 
-dv.paragraph(`Data: ${hoje.toISODate()}`)
-dv.paragraph(`Ano: ${hoje.year}, Mes: ${hoje.month}, Dia: ${hoje.day}`)
-dv.paragraph(`Timestamp: ${hoje.ts}`)
+kb.paragraph(`Data: ${hoje.toISODate()}`)
+kb.paragraph(`Ano: ${hoje.year}, Mes: ${hoje.month}, Dia: ${hoje.day}`)
+kb.paragraph(`Timestamp: ${hoje.ts}`)
 
 const amanha = hoje.plus({ days: 1 })
-dv.paragraph(`Amanha: ${amanha.toISODate()}`)
+kb.paragraph(`Amanha: ${amanha.toISODate()}`)
 
 const semanaPassada = hoje.minus({ days: 7 })
-dv.paragraph(`Semana passada: ${semanaPassada.toISODate()}`)
+kb.paragraph(`Semana passada: ${semanaPassada.toISODate()}`)
 
 const inicioSemana = hoje.startOf('week')
-dv.paragraph(`Inicio da semana (segunda): ${inicioSemana.toISODate()}`)
+kb.paragraph(`Inicio da semana (segunda): ${inicioSemana.toISODate()}`)
 
 const inicioMes = hoje.startOf('month')
-dv.paragraph(`Inicio do mes: ${inicioMes.toISODate()}`)
+kb.paragraph(`Inicio do mes: ${inicioMes.toISODate()}`)
 
 // Comparacao
-const d1 = dv.date("2026-02-13")
-const d2 = dv.date("2026-02-13")
-const d3 = dv.date("2026-02-14")
-dv.paragraph(`Mesmo dia (13 vs 13): ${d1.hasSame(d2, 'day')}`)
-dv.paragraph(`Mesmo dia (13 vs 14): ${d1.hasSame(d3, 'day')}`)
-dv.paragraph(`d1 < d3: ${d1 < d3}`)
+const d1 = kb.date("2026-02-13")
+const d2 = kb.date("2026-02-13")
+const d3 = kb.date("2026-02-14")
+kb.paragraph(`Mesmo dia (13 vs 13): ${d1.hasSame(d2, 'day')}`)
+kb.paragraph(`Mesmo dia (13 vs 14): ${d1.hasSame(d3, 'day')}`)
+kb.paragraph(`d1 < d3: ${d1 < d3}`)
 ```
 
 %%
@@ -211,26 +211,26 @@ ESPERADO:
 ## 7. DataArray — Proxy e Chaining
 
 ```queryjs
-const pages = dv.pages()
+const pages = kb.pages()
 
-dv.header(3, "DataArray Proxy e Chaining")
-dv.paragraph(`Total de paginas: ${pages.length}`)
+kb.header(3, "DataArray Proxy e Chaining")
+kb.paragraph(`Total de paginas: ${pages.length}`)
 
 // Proxy deep access
 const basenames = pages.file.basename
-dv.paragraph(`Basenames: ${basenames.join(", ")}`)
+kb.paragraph(`Basenames: ${basenames.join(", ")}`)
 
 // Tags (flatten via to())
 const allTags = pages.file.tags.distinct()
-dv.paragraph(`Tags unicas: ${allTags.join(", ")}`)
+kb.paragraph(`Tags unicas: ${allTags.join(", ")}`)
 
 // Chaining complexo
-const projectPages = dv.pages('#type/project')
+const projectPages = kb.pages('#type/project')
     .sort(p => p.priority)
     .limit(5)
 
-dv.header(4, `Projetos por prioridade (${projectPages.length})`)
-dv.table(
+kb.header(4, `Projetos por prioridade (${projectPages.length})`)
+kb.table(
     ["Projeto", "Status", "Prioridade"],
     projectPages.map(p => [p.file.link, p.status, p.priority])
 )
@@ -249,13 +249,13 @@ ESPERADO:
 ## 8. Projetos Ativos — Filtro por Frontmatter
 
 ```queryjs
-const ativos = dv.pages()
+const ativos = kb.pages()
     .where(p => p.status === "active")
 
-dv.header(3, `Projetos Ativos (${ativos.length})`)
+kb.header(3, `Projetos Ativos (${ativos.length})`)
 
 for (const p of ativos) {
-    const el = dv.el('div', '', {
+    const el = kb.el('div', '', {
         attr: {
             style: 'padding: 8px 12px; margin: 4px 0; border-radius: 6px; border: 1px solid rgba(100,200,100,0.3); background: rgba(100,200,100,0.05);'
         }
@@ -277,21 +277,21 @@ for (const p of ativos) {
 ESPERADO:
 - Header "Projetos Ativos (1)" (apenas project-kokobrain tem status: active)
 - Card estilizado com borda verde e badge "P1"
-- Demonstra dv.el() + DOM manipulation direta
+- Demonstra kb.el() + DOM manipulation direta
 %%
 
 ## 9. GroupBy — Notas Agrupadas por Tag
 
 ```queryjs
-const meetings = dv.pages('#type/meeting')
+const meetings = kb.pages('#type/meeting')
 const grouped = meetings.groupBy(p => {
     const teamTag = p.file.tags.find(t => t.startsWith('team/'))
     return teamTag ? teamTag.replace('team/', '') : 'sem-time'
 })
 
 for (const group of grouped) {
-    dv.header(4, `Time: ${group.key} (${group.rows.length})`)
-    dv.list(group.rows.file.link)
+    kb.header(4, `Time: ${group.key} (${group.rows.length})`)
+    kb.list(group.rows.file.link)
 }
 ```
 
@@ -306,28 +306,28 @@ ESPERADO:
 
 ```queryjs
 // Busca o daily de 13/02 que tem links para meetings
-const daily13 = dv.pages()
+const daily13 = kb.pages()
     .where(p => p.file.basename === "daily-2026-02-13")
     .first()
 
 if (daily13) {
-    dv.header(3, `Links de ${daily13.file.basename}`)
+    kb.header(3, `Links de ${daily13.file.basename}`)
 
-    dv.header(4, `Outlinks (${daily13.file.outlinks.length})`)
+    kb.header(4, `Outlinks (${daily13.file.outlinks.length})`)
     if (daily13.file.outlinks.length > 0) {
-        dv.list(daily13.file.outlinks)
+        kb.list(daily13.file.outlinks)
     } else {
-        dv.paragraph("Nenhum outlink encontrado")
+        kb.paragraph("Nenhum outlink encontrado")
     }
 
-    dv.header(4, `Inlinks (${daily13.file.inlinks.length})`)
+    kb.header(4, `Inlinks (${daily13.file.inlinks.length})`)
     if (daily13.file.inlinks.length > 0) {
-        dv.list(daily13.file.inlinks)
+        kb.list(daily13.file.inlinks)
     } else {
-        dv.paragraph("Nenhum inlink encontrado")
+        kb.paragraph("Nenhum inlink encontrado")
     }
 } else {
-    dv.paragraph("daily-2026-02-13 nao encontrado no vault")
+    kb.paragraph("daily-2026-02-13 nao encontrado no vault")
 }
 ```
 

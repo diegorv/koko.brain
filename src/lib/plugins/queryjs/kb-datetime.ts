@@ -2,11 +2,11 @@
  * Lightweight Luxon-compatible date wrapper.
  * Wraps native Date, providing .year, .month, .day, .ts, .plus(), .startOf(), etc.
  */
-export class DVDateTime {
+export class KBDateTime {
 	private readonly _date: Date;
 
-	constructor(input?: string | number | Date | DVDateTime) {
-		if (input instanceof DVDateTime) {
+	constructor(input?: string | number | Date | KBDateTime) {
+		if (input instanceof KBDateTime) {
 			this._date = new Date(input._date.getTime());
 		} else if (input instanceof Date) {
 			this._date = new Date(input.getTime());
@@ -26,26 +26,26 @@ export class DVDateTime {
 	}
 
 	/**
-	 * Safely normalizes any date-like value to DVDateTime.
+	 * Safely normalizes any date-like value to KBDateTime.
 	 * Returns null for values that cannot be parsed as dates.
 	 *
-	 * Handles: null/undefined → null, DVDateTime → copy, Date → wrap,
+	 * Handles: null/undefined → null, KBDateTime → copy, Date → wrap,
 	 * number → timestamp, string → parse, {year, month, day} → construct,
 	 * {ts} → timestamp, anything else → null.
 	 */
-	static tryParse(value: unknown): DVDateTime | null {
+	static tryParse(value: unknown): KBDateTime | null {
 		if (value == null) return null;
 
-		if (value instanceof DVDateTime) {
-			return new DVDateTime(value);
+		if (value instanceof KBDateTime) {
+			return new KBDateTime(value);
 		}
 
 		if (value instanceof Date) {
-			return isNaN(value.getTime()) ? null : new DVDateTime(value);
+			return isNaN(value.getTime()) ? null : new KBDateTime(value);
 		}
 
 		if (typeof value === 'number') {
-			return isNaN(value) ? null : new DVDateTime(value);
+			return isNaN(value) ? null : new KBDateTime(value);
 		}
 
 		if (typeof value === 'string') {
@@ -53,7 +53,7 @@ export class DVDateTime {
 			const d = /^\d{4}-\d{2}-\d{2}$/.test(value)
 				? new Date(value + 'T00:00:00')
 				: new Date(value);
-			return isNaN(d.getTime()) ? null : new DVDateTime(d);
+			return isNaN(d.getTime()) ? null : new KBDateTime(d);
 		}
 
 		if (typeof value === 'object') {
@@ -66,12 +66,12 @@ export class DVDateTime {
 				typeof obj.day === 'number'
 			) {
 				const d = new Date(obj.year, obj.month - 1, obj.day);
-				return isNaN(d.getTime()) ? null : new DVDateTime(d);
+				return isNaN(d.getTime()) ? null : new KBDateTime(d);
 			}
 
 			// Object with { ts } timestamp
 			if (typeof obj.ts === 'number') {
-				return isNaN(obj.ts) ? null : new DVDateTime(obj.ts);
+				return isNaN(obj.ts) ? null : new KBDateTime(obj.ts);
 			}
 		}
 
@@ -108,31 +108,31 @@ export class DVDateTime {
 		return this._date.getTime();
 	}
 
-	/** Returns a new DVDateTime advanced by the given duration */
+	/** Returns a new KBDateTime advanced by the given duration */
 	plus(duration: {
 		years?: number;
 		months?: number;
 		days?: number;
 		hours?: number;
 		minutes?: number;
-	}): DVDateTime {
+	}): KBDateTime {
 		const d = new Date(this._date.getTime());
 		if (duration.years) d.setFullYear(d.getFullYear() + duration.years);
 		if (duration.months) d.setMonth(d.getMonth() + duration.months);
 		if (duration.days) d.setDate(d.getDate() + duration.days);
 		if (duration.hours) d.setHours(d.getHours() + duration.hours);
 		if (duration.minutes) d.setMinutes(d.getMinutes() + duration.minutes);
-		return new DVDateTime(d);
+		return new KBDateTime(d);
 	}
 
-	/** Returns a new DVDateTime set back by the given duration */
+	/** Returns a new KBDateTime set back by the given duration */
 	minus(duration: {
 		years?: number;
 		months?: number;
 		days?: number;
 		hours?: number;
 		minutes?: number;
-	}): DVDateTime {
+	}): KBDateTime {
 		const neg: Record<string, number> = {};
 		for (const [k, v] of Object.entries(duration)) {
 			if (v) neg[k] = -v;
@@ -159,30 +159,30 @@ export class DVDateTime {
 	}
 
 	/** Comparison: is this date the same as another on a given unit? */
-	hasSame(other: DVDateTime, unit: 'day' | 'month' | 'year'): boolean {
+	hasSame(other: KBDateTime, unit: 'day' | 'month' | 'year'): boolean {
 		if (unit === 'year') return this.year === other.year;
 		if (unit === 'month') return this.year === other.year && this.month === other.month;
 		return this.year === other.year && this.month === other.month && this.day === other.day;
 	}
 
-	/** Returns a new DVDateTime at the start of the given unit */
-	startOf(unit: 'day' | 'week' | 'month' | 'year'): DVDateTime {
+	/** Returns a new KBDateTime at the start of the given unit */
+	startOf(unit: 'day' | 'week' | 'month' | 'year'): KBDateTime {
 		const d = new Date(this._date.getTime());
 		d.setHours(0, 0, 0, 0);
-		if (unit === 'day') return new DVDateTime(d);
+		if (unit === 'day') return new KBDateTime(d);
 		if (unit === 'week') {
 			const dayOfWeek = d.getDay(); // 0=Sun
 			const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday-based
 			d.setDate(d.getDate() - diff);
-			return new DVDateTime(d);
+			return new KBDateTime(d);
 		}
 		if (unit === 'month') {
 			d.setDate(1);
-			return new DVDateTime(d);
+			return new KBDateTime(d);
 		}
 		// year
 		d.setMonth(0, 1);
-		return new DVDateTime(d);
+		return new KBDateTime(d);
 	}
 
 	/** Returns timestamp for relational comparison operators (< > <= >=). Note: === compares object references, not valueOf() */
