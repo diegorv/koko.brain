@@ -1,6 +1,6 @@
 [package]
 name = "kokobrain"
-version = "1.0.6-alpha"
+version = "1.0.7-alpha"
 description = "Markdown second-brain app"
 authors = ["you"]
 edition = "2021"
