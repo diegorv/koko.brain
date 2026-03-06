@@ -67,9 +67,9 @@ jobs:
           )
 
           # Known expected external calls (shown as notice, don't fail the build)
+          # Each entry is a literal URL that has been reviewed and approved
           KNOWN=(
-            'CHARTJS_CDN'
-            'openUrl\('
+            'cdn\.jsdelivr\.net/npm/chart\.js'
           )
 
           FOUND=0
@@ -155,6 +155,8 @@ jobs:
             # Raw networking
             'TcpStream::connect'
             'UdpSocket::connect'
+            # Hardcoded URLs
+            'https?://'
           )
 
           SKIP=(
@@ -168,9 +170,9 @@ jobs:
           )
 
           # Known expected external calls (shown as notice, don't fail the build)
+          # Each entry must match a literal URL — no generic patterns
           KNOWN=(
             'huggingface\.co/Xenova/bge-m3'
-            'semantic/model\.rs.*reqwest'
           )
 
           KNOWN_MATCHES=()
