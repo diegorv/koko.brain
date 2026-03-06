@@ -42,6 +42,7 @@ jobs:
             'import.*\bnode-fetch\b'
             'import.*\bky\b'
             'require\s*\(\s*["\x27](?:axios|got|node-fetch|ky)["\x27]\)'
+            'script\.src\s*='
           )
 
           SKIP=(
@@ -60,7 +61,7 @@ jobs:
 
           # Known expected external calls (shown as notice, don't fail the build)
           KNOWN=(
-            'cdn\.jsdelivr\.net/npm/chart\.js'
+            'CHARTJS_CDN'
             'openUrl\('
           )
 
