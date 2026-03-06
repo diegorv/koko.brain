@@ -463,7 +463,7 @@ describe('DataArray', () => {
 				{ a: { b: 2 } },
 				{ a: { b: 3 } },
 			]) as DataArray<{ a: { b: number } }> & { a: DataArray<{ b: number }> };
-			// dv.pages().a.b → DataArray
+			// kb.pages().a.b → DataArray
 			const result = (arr as any).a.b;
 			expect(result.array()).toEqual([1, 2, 3]);
 		});
