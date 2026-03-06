@@ -50,6 +50,11 @@ jobs:
             # HTTP libraries (import/require)
             'import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b'
             'require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)'
+            # External API clients
+            '@doist/todoist-api-typescript'
+            '@tauri-apps/plugin-http'
+            # Hardcoded URLs
+            'https?://'
           )
 
           SKIP=(
@@ -62,17 +67,27 @@ jobs:
             '127\.0\.0\.1'
             'tauri\.localhost'
             'e2e/'
-            '# privacy-ok'
-            '// privacy-ok'
+            'privacy-ok'
+            # Comment lines (no network calls)
+            ':\s*//'
+            ':\s*\*'
+            ':\s*/\*'
+            # Non-network inline references
+            'w3\.org'
+            'example\.com'
           )
 
           # Known expected external calls (shown as notice, don't fail the build)
           # Each entry is a literal URL that has been reviewed and approved
           KNOWN=(
             'cdn\.jsdelivr\.net/npm/chart\.js'
+            'todoist\.com'
+            '@doist/todoist-api-typescript'
+            '@tauri-apps/plugin-http'
           )
 
           FOUND=0
+          SKIPPED_MATCHES=()
           KNOWN_MATCHES=()
           UNKNOWN_MATCHES=()
           for pattern in "${PATTERNS[@]}"; do
@@ -85,6 +100,7 @@ jobs:
                 fi
               done
               if [ "$SKIP_MATCH" = true ]; then
+                SKIPPED_MATCHES+=("$match")
                 continue
               fi
 
@@ -106,6 +122,14 @@ jobs:
 
           echo ""
           echo "=== Results ==="
+
+          if [ ${#SKIPPED_MATCHES[@]} -gt 0 ]; then
+            echo ""
+            echo "Skipped (${#SKIPPED_MATCHES[@]} matches excluded by skip rules):"
+            for m in "${SKIPPED_MATCHES[@]}"; do
+              echo "  --  $m"
+            done
+          fi
 
           if [ ${#KNOWN_MATCHES[@]} -gt 0 ]; then
             echo ""
@@ -129,7 +153,7 @@ jobs:
             exit 1
           fi
 
-          if [ ${#KNOWN_MATCHES[@]} -eq 0 ]; then
+          if [ ${#KNOWN_MATCHES[@]} -eq 0 ] && [ ${#SKIPPED_MATCHES[@]} -eq 0 ]; then
             echo ""
             echo "No external calls found."
           fi
@@ -165,8 +189,7 @@ jobs:
             'target/'
             'localhost'
             '127\.0\.0\.1'
-            '# privacy-ok'
-            '// privacy-ok'
+            'privacy-ok'
           )
 
           # Known expected external calls (shown as notice, don't fail the build)
@@ -175,6 +198,7 @@ jobs:
             'huggingface\.co/Xenova/bge-m3'
           )
 
+          SKIPPED_MATCHES=()
           KNOWN_MATCHES=()
           UNKNOWN_MATCHES=()
           for pattern in "${PATTERNS[@]}"; do
@@ -187,6 +211,7 @@ jobs:
                 fi
               done
               if [ "$SKIP_MATCH" = true ]; then
+                SKIPPED_MATCHES+=("$match")
                 continue
               fi
 
@@ -208,6 +233,14 @@ jobs:
 
           echo ""
           echo "=== Results ==="
+
+          if [ ${#SKIPPED_MATCHES[@]} -gt 0 ]; then
+            echo ""
+            echo "Skipped (${#SKIPPED_MATCHES[@]} matches excluded by skip rules):"
+            for m in "${SKIPPED_MATCHES[@]}"; do
+              echo "  --  $m"
+            done
+          fi
 
           if [ ${#KNOWN_MATCHES[@]} -gt 0 ]; then
             echo ""
@@ -231,7 +264,7 @@ jobs:
             exit 1
           fi
 
-          if [ ${#KNOWN_MATCHES[@]} -eq 0 ]; then
+          if [ ${#KNOWN_MATCHES[@]} -eq 0 ] && [ ${#SKIPPED_MATCHES[@]} -eq 0 ]; then
             echo ""
             echo "No external calls found."
           fi

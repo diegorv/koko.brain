@@ -37,7 +37,7 @@ export function sanitizeHtml(html: string): string {
  */
 export function sanitizeSvgContent(svgInner: string): string {
 	// Wrap in <svg> so DOMPurify parses child elements in the correct SVG namespace
-	const wrapped = `<svg xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
+	const wrapped = `<svg xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`; // privacy-ok
 	const clean = DOMPurify.sanitize(wrapped, {
 		USE_PROFILES: { svg: true, svgFilters: true },
 		FORBID_TAGS: ['script', 'foreignObject', 'use'],

@@ -723,7 +723,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		cursor: 'pointer',
 		outline: 'none',
 		verticalAlign: 'middle',
-		backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+		backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, // privacy-ok
 		backgroundRepeat: 'no-repeat',
 		backgroundPosition: 'right 6px center',
 		backgroundSize: '12px',

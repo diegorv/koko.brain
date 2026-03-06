@@ -51,7 +51,7 @@
 	function stopEditing() {
 		const trimmedUrl = editUrl.trim();
 		if (trimmedUrl) {
-			const finalUrl = /^https?:\/\//i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
+			const finalUrl = /^https?:\/\//i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`; // privacy-ok
 			updateNodeData(id, { ...data, url: finalUrl, label: editLabel.trim() || undefined });
 		}
 		editing = false;
