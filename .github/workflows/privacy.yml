@@ -31,18 +31,25 @@ jobs:
 
           # Patterns that indicate actual network calls
           PATTERNS=(
+            # Native APIs
             'fetch\s*\('
             'XMLHttpRequest'
             'navigator\.sendBeacon'
             'WebSocket\s*\('
             'EventSource\s*\('
             '\.open\s*\(\s*["\x27](?:GET|POST|PUT|DELETE|PATCH)'
-            'import.*\baxios\b'
-            'import.*\bgot\b'
-            'import.*\bnode-fetch\b'
-            'import.*\bky\b'
-            'require\s*\(\s*["\x27](?:axios|got|node-fetch|ky)["\x27]\)'
+            'RTCPeerConnection'
+            'navigator\.geolocation'
+            # External resource loading
             'script\.src\s*='
+            'iframe\.src\s*='
+            'new\s+Image\s*\(.*\.src\s*='
+            'new\s+Worker\s*\('
+            'new\s+SharedWorker\s*\('
+            'ServiceWorker\.register'
+            # HTTP libraries (import/require)
+            'import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b'
+            'require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)'
           )
 
           SKIP=(
@@ -133,11 +140,19 @@ jobs:
 
           # Patterns that indicate actual network calls or HTTP client usage
           PATTERNS=(
+            # HTTP clients
             'reqwest'
             'hyper::client'
             'surf::'
             'ureq::'
             'curl::'
+            'attohttpc'
+            'isahc::'
+            'minreq::'
+            'awc::'
+            # gRPC
+            'tonic::transport'
+            # Raw networking
             'TcpStream::connect'
             'UdpSocket::connect'
           )
