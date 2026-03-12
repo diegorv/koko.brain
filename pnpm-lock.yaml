@@ -37,8 +37,8 @@ importers:
         specifier: ^6.39.16
         version: 6.39.16
       '@doist/todoist-api-typescript':
-        specifier: ^6.10.0
-        version: 6.10.0(type-fest@4.41.0)
+        specifier: ^7.0.0
+        version: 7.0.0(type-fest@4.41.0)
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.2.0
         version: 7.2.0
@@ -424,8 +424,8 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@doist/todoist-api-typescript@6.10.0':
-    resolution: {integrity: sha512-obSwvJLSA4/8Sw6xbse8OL+Oq7l//+JtwtVissTEZ/9NTjRrdS/jqykgaiviW1wHUWZWf1LY7RVDKfRjCzaghA==}
+  '@doist/todoist-api-typescript@7.0.0':
+    resolution: {integrity: sha512-TUO0nG1AK1miiTNvOS8HyvCC3neHZBoK84Nq4uRCV9KsN/PJv21DkIqop9GhaYBSSZ4jHHuAMj8nzCwcONeeMw==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       type-fest: ^4.12.0
@@ -2214,6 +2214,10 @@ packages:
     resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
     engines: {node: '>=20.18.1'}
 
+  undici@7.24.0:
+    resolution: {integrity: sha512-jxytwMHhsbdpBXxLAcuu0fzlQeXCNnWdDyRHpvWsUl8vd98UwYdl9YTyn8/HcpcJPC3pwUveefsa3zTxyD/ERg==}
+    engines: {node: '>=20.18.1'}
+
   uuid@11.1.0:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
     hasBin: true
@@ -2682,14 +2686,14 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@doist/todoist-api-typescript@6.10.0(type-fest@4.41.0)':
+  '@doist/todoist-api-typescript@7.0.0(type-fest@4.41.0)':
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
       form-data: 4.0.5
       ts-custom-error: 3.3.1
       type-fest: 4.41.0
-      undici: 7.22.0
+      undici: 7.24.0
       uuid: 11.1.0
       zod: 4.3.6
 
@@ -4407,6 +4411,8 @@ snapshots:
   ufo@1.6.3: {}
 
   undici@7.22.0: {}
+
+  undici@7.24.0: {}
 
   uuid@11.1.0: {}
 
