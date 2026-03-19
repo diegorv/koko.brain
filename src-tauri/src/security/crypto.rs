@@ -3,7 +3,7 @@ use aes_gcm::{
 	Aes256Gcm, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-use rand::RngCore as _;
+use rand::RngExt as _;
 
 /// Encrypted file payload stored as JSON on disk.
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -23,7 +23,7 @@ pub fn encrypt(plaintext: &str, key: &[u8; 32]) -> Result<EncryptedPayload, Stri
 		.map_err(|e| format!("Failed to create cipher: {e}"))?;
 
 	let mut iv_bytes = [0u8; 12];
-	rand::rng().fill_bytes(&mut iv_bytes);
+	rand::rng().fill(&mut iv_bytes);
 	let nonce = Nonce::from_slice(&iv_bytes);
 
 	let ciphertext = cipher
@@ -66,7 +66,7 @@ pub fn decrypt(payload: &EncryptedPayload, key: &[u8; 32]) -> Result<String, Str
 /// Generates a cryptographically secure random 256-bit key.
 pub fn generate_key() -> [u8; 32] {
 	let mut key = [0u8; 32];
-	rand::rng().fill_bytes(&mut key);
+	rand::rng().fill(&mut key);
 	key
 }
 
