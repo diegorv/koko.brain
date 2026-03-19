@@ -56,7 +56,7 @@ pub fn search_match(
 		.map_err(|e| format!("FTS5 query failed: {e}"))?;
 
 	let results = stmt
-		.query_map(rusqlite::params![fts_query, limit], |row| {
+		.query_map(rusqlite::params![fts_query, limit as i64], |row| {
 			Ok(FtsSearchResult {
 				path: row.get(0)?,
 				title: row.get(1)?,
@@ -87,7 +87,7 @@ pub fn delete_entry(conn: &Connection, path: &str) -> Result<(), String> {
 
 /// Counts the total number of documents in the FTS5 index.
 pub fn count_entries(conn: &Connection) -> Result<u64, String> {
-	conn.query_row("SELECT COUNT(*) FROM notes_fts", [], |row| row.get(0))
+	conn.query_row("SELECT COUNT(*) FROM notes_fts", [], |row| row.get::<_, i64>(0).map(|v| v.max(0) as u64))
 		.map_err(|e| format!("Failed to count FTS entries: {e}"))
 }
 
@@ -103,7 +103,7 @@ pub fn expand_vocab_terms(
 		.map_err(|e| e.to_string())?;
 
 	let terms: Vec<String> = stmt
-		.query_map(rusqlite::params![like_pattern, limit], |row| row.get(0))
+		.query_map(rusqlite::params![like_pattern, limit as i64], |row| row.get(0))
 		.map_err(|e| e.to_string())?
 		.filter_map(|r| match r {
 			Ok(v) => Some(v),

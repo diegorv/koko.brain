@@ -34,7 +34,7 @@ sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 
 # Shared infrastructure
 chrono = "0.4"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 sha2 = "0.10"
 
 # File History

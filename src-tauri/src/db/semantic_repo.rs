@@ -209,7 +209,7 @@ pub fn delete_orphaned_mtimes(
 
 /// Counts total chunks in the index.
 pub fn count_chunks(conn: &Connection) -> Result<u64, String> {
-	conn.query_row("SELECT COUNT(*) FROM chunks", [], |row| row.get(0))
+	conn.query_row("SELECT COUNT(*) FROM chunks", [], |row| row.get::<_, i64>(0).map(|v| v.max(0) as u64))
 		.map_err(|e| format!("Failed to count chunks: {e}"))
 }
 
@@ -218,7 +218,7 @@ pub fn count_sources(conn: &Connection) -> Result<u64, String> {
 	conn.query_row(
 		"SELECT COUNT(DISTINCT source_path) FROM chunks",
 		[],
-		|row| row.get(0),
+		|row| row.get::<_, i64>(0).map(|v| v.max(0) as u64),
 	)
 	.map_err(|e| format!("Failed to count sources: {e}"))
 }
@@ -229,7 +229,7 @@ pub fn get_sample_chunks(conn: &Connection, limit: usize) -> Result<Vec<ChunkSam
 		.prepare("SELECT source_path, heading, length(embedding) FROM chunks LIMIT ?1")
 		.map_err(|e| format!("Query failed: {e}"))?;
 	let rows: Vec<ChunkSample> = stmt
-		.query_map([limit], |row| {
+		.query_map([limit as i64], |row| {
 			Ok(ChunkSample {
 				source_path: row.get(0)?,
 				heading: row.get(1)?,
