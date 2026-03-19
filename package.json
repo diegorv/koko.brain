@@ -74,7 +74,7 @@
     "dayjs": "^1.11.20",
     "feather-icons": "^4.29.2",
     "isomorphic-dompurify": "^3.5.1",
-    "katex": "^0.16.35",
+    "katex": "^0.16.39",
     "lowlight": "^3.3.0",
     "lucide-static": "^0.577.0",
     "lucide-svelte": "^0.577.0",
