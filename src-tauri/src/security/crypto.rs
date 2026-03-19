@@ -65,9 +65,7 @@ pub fn decrypt(payload: &EncryptedPayload, key: &[u8; 32]) -> Result<String, Str
 
 /// Generates a cryptographically secure random 256-bit key.
 pub fn generate_key() -> [u8; 32] {
-	let mut key = [0u8; 32];
-	rand::rng().fill(&mut key);
-	key
+	rand::rng().random()
 }
 
 /// Encodes a 32-byte AES key as a base64 recovery key string.
@@ -82,15 +80,10 @@ pub fn recovery_key_to_key(recovery_key: &str) -> Result<[u8; 32], String> {
 	let bytes = BASE64
 		.decode(trimmed)
 		.map_err(|e| format!("Invalid recovery key: {e}"))?;
-	if bytes.len() != 32 {
-		return Err(format!(
-			"Invalid recovery key length: expected 32 bytes, got {}",
-			bytes.len()
-		));
-	}
-	let mut key = [0u8; 32];
-	key.copy_from_slice(&bytes);
-	Ok(key)
+	let len = bytes.len();
+	bytes
+		.try_into()
+		.map_err(|_| format!("Invalid recovery key length: expected 32 bytes, got {len}"))
 }
 
 #[cfg(test)]

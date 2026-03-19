@@ -8,6 +8,16 @@ use std::thread;
 use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
 
+/// Masks a session ID for safe logging: shows first 8 chars + "…".
+/// e.g., "a1b2c3d4-e5f6-..." → "a1b2c3d4…"
+fn mask_session_id(id: &str) -> String {
+	if id.len() > 8 {
+		format!("{}…", &id[..8])
+	} else {
+		"***".to_string()
+	}
+}
+
 /// Holds a running terminal session's resources.
 /// The reader thread stops when `child.kill()` causes the PTY read to return EOF/error.
 struct TerminalSession {
@@ -91,7 +101,7 @@ pub fn spawn_terminal(
 
     // Detect user's default shell
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
-    debug_log("TERMINAL", format!("Spawning session: {}, shell: {}, size: {}x{}", session_id, shell, rows, cols));
+    debug_log("TERMINAL", format!("Spawning session: {}, shell: {}, size: {}x{}", mask_session_id(&session_id), shell, rows, cols));
 
     let mut cmd = CommandBuilder::new(&shell);
     cmd.cwd(&cwd);
@@ -174,7 +184,7 @@ pub fn write_terminal(
         .map_err(|e| format!("Lock error: {}", e))?;
     let session = sessions
         .get_mut(&session_id)
-        .ok_or_else(|| format!("No session: {}", session_id))?;
+        .ok_or_else(|| format!("No session: {}", mask_session_id(&session_id)))?;
     session
         .writer
         .write_all(data.as_bytes())
@@ -204,8 +214,8 @@ pub fn resize_terminal(
         .map_err(|e| format!("Lock error: {}", e))?;
     let session = sessions
         .get(&session_id)
-        .ok_or_else(|| format!("No session: {}", session_id))?;
-    debug_log("TERMINAL", format!("Resizing {}: {}x{}", session_id, rows, cols));
+        .ok_or_else(|| format!("No session: {}", mask_session_id(&session_id)))?;
+    debug_log("TERMINAL", format!("Resizing {}: {}x{}", mask_session_id(&session_id), rows, cols));
     session
         .master
         .resize(PtySize {
@@ -230,7 +240,7 @@ pub fn kill_terminal(
         .lock()
         .map_err(|e| format!("Lock error: {}", e))?;
     if let Some(mut session) = sessions.remove(&session_id) {
-        debug_log("TERMINAL", format!("Killing session: {}", session_id));
+        debug_log("TERMINAL", format!("Killing session: {}", mask_session_id(&session_id)));
         // Kill child process — causes PTY read to return EOF, stopping the reader thread
         let _ = session.child.kill();
         let _ = session.child.wait();

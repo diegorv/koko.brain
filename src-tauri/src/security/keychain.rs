@@ -74,16 +74,10 @@ mod platform {
 				.ok_or(KeychainError::NotFound)?,
 		);
 
-		if data.len() != 32 {
-			return Err(KeychainError::Internal(format!(
-				"Invalid key length: expected 32, got {}",
-				data.len()
-			)));
-		}
-
-		let mut key = [0u8; 32];
-		key.copy_from_slice(&data);
-		Ok(key)
+		let len = data.len();
+		<[u8; 32]>::try_from(&data[..]).map_err(|_| {
+			KeychainError::Internal(format!("Invalid key length: expected 32, got {len}"))
+		})
 	}
 
 	/// Checks if a key exists for the given account without triggering authentication.
