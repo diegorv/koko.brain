@@ -37,8 +37,8 @@ importers:
         specifier: ^6.40.0
         version: 6.40.0
       '@doist/todoist-api-typescript':
-        specifier: ^6.10.0
-        version: 6.10.0(type-fest@4.41.0)
+        specifier: ^7.2.0
+        version: 7.2.0(type-fest@4.41.0)
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.2.0
         version: 7.2.0
@@ -427,8 +427,8 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@doist/todoist-api-typescript@6.10.0':
-    resolution: {integrity: sha512-obSwvJLSA4/8Sw6xbse8OL+Oq7l//+JtwtVissTEZ/9NTjRrdS/jqykgaiviW1wHUWZWf1LY7RVDKfRjCzaghA==}
+  '@doist/todoist-api-typescript@7.2.0':
+    resolution: {integrity: sha512-JdTzh/p3bh3utAwRdNi9RpYv5ECaz656ieGLfmUVa6OD9hu1VUuRTe2xkRMVxzdMUHCELyfF0IjQ0DF5Cr9UHA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       type-fest: ^4.12.0
@@ -2164,10 +2164,6 @@ packages:
   ufo@1.6.3:
     resolution: {integrity: sha512-yDJTmhydvl5lJzBmy/hyOAA0d+aqCBuwl818haVdYCRrWV84o7YyeVm4QlVHStqNrrJSTb6jKuFAVqAFsr+K3Q==}
 
-  undici@7.22.0:
-    resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
-    engines: {node: '>=20.18.1'}
-
   undici@7.24.4:
     resolution: {integrity: sha512-BM/JzwwaRXxrLdElV2Uo6cTLEjhSb3WXboncJamZ15NgUURmvlXvxa6xkwIOILIjPNo9i8ku136ZvWV0Uly8+w==}
     engines: {node: '>=20.18.1'}
@@ -2644,14 +2640,14 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@doist/todoist-api-typescript@6.10.0(type-fest@4.41.0)':
+  '@doist/todoist-api-typescript@7.2.0(type-fest@4.41.0)':
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
       form-data: 4.0.5
       ts-custom-error: 3.3.1
       type-fest: 4.41.0
-      undici: 7.22.0
+      undici: 7.24.4
       uuid: 11.1.0
       zod: 4.3.6
 
@@ -4336,8 +4332,6 @@ snapshots:
   typescript@5.9.3: {}
 
   ufo@1.6.3: {}
-
-  undici@7.22.0: {}
 
   undici@7.24.4: {}
 
