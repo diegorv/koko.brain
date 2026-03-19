@@ -17,6 +17,9 @@ concurrency:
   group: privacy-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   scan-external-calls:
     name: Scan for External Calls
