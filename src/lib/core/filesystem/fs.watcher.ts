@@ -199,6 +199,7 @@ export async function startWatching(vaultPath: string) {
 	currentVaultPath = vaultPath;
 
 	const kokobrainDir = `${vaultPath}/.kokobrain`;
+	const gitDir = `${vaultPath}/.git`;
 	try {
 		unwatch = await watch(vaultPath, (event: WatchEvent) => {
 			let addedAny = false;
@@ -219,6 +220,11 @@ export async function startWatching(vaultPath: string) {
 				if (pathStr === kokobrainDir || pathStr.startsWith(`${kokobrainDir}/`)) {
 					counters.skippedKokobrain++;
 					debug('WATCHER', `Skipped (.kokobrain): ${pathStr}`);
+					continue;
+				}
+				// Skip all .git directory changes — git operations (commit, add, fetch, rebase)
+				// generate many internal file events that are irrelevant to the user's notes.
+				if (pathStr === gitDir || pathStr.startsWith(`${gitDir}/`)) {
 					continue;
 				}
 				counters.accepted++;

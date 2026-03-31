@@ -371,6 +371,27 @@ describe('watcher event filtering', () => {
 		// the debounce directly, but we can verify no side effects occurred)
 	});
 
+	it('ignores events from .git directory', async () => {
+		let capturedCallback: ((event: any) => void) | null = null;
+		vi.mocked(watch).mockImplementation(async (_path, callback) => {
+			capturedCallback = callback as any;
+			return () => {};
+		});
+
+		await startWatching('/vault');
+		expect(capturedCallback).not.toBeNull();
+
+		// Simulate git operations — all must be silently ignored, no counter increment
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git/index'] });
+		capturedCallback!({ type: { create: { kind: 'file' } }, paths: ['/vault/.git/objects/ff/abc123'] });
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git'] });
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git/refs/heads/main'] });
+
+		const counters = getWatcherCounters();
+		expect(counters.accepted).toBe(0);
+		expect(counters.rawEvents).toBe(4);
+	});
+
 	it('ignores events for the vault root path itself', async () => {
 		let capturedCallback: ((event: any) => void) | null = null;
 		vi.mocked(watch).mockImplementation(async (_path, callback) => {
