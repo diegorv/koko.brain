@@ -79,7 +79,7 @@
     "lucide-static": "^0.577.0",
     "lucide-svelte": "^0.577.0",
     "marked": "^17.0.5",
-    "mermaid": "^11.13.0",
+    "mermaid": "^11.14.0",
     "simple-icons": "^16.14.0",
     "svelte-sonner": "^1.1.0",
     "tailwind-merge": "^3.5.0",
