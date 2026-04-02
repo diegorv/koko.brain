@@ -163,8 +163,8 @@ importers:
         specifier: ^0.577.0
         version: 0.577.0
       lucide-svelte:
-        specifier: ^0.577.0
-        version: 0.577.0(svelte@5.55.1)
+        specifier: ^1.0.1
+        version: 1.0.1(svelte@5.55.1)
       marked:
         specifier: ^17.0.5
         version: 17.0.5
@@ -1847,6 +1847,7 @@ packages:
 
   lodash-es@4.18.0:
     resolution: {integrity: sha512-koAgswPPA+UTaPN64Etp+PGP+WT6oqOS2NMi5yDkMaiGw9qY4VxQbQF0mtKMyr4BlTznWyzePV5UpECTJQmSUA==}
+    deprecated: Bad release. Please use lodash-es@4.17.23 instead.
 
   lowlight@3.3.0:
     resolution: {integrity: sha512-0JNhgFoPvP6U6lE/UdVsSq99tn6DhjjpAj5MxG49ewd2mOBVtwWYIT8ClyABhq198aXXODMU6Ox8DrGy/CpTZQ==}
@@ -1858,8 +1859,8 @@ packages:
   lucide-static@0.577.0:
     resolution: {integrity: sha512-hx39J5Tq4JWF2ALY+5YRg+SxQLpeAmLJDXNcqiBJH/UuVwp43it9fyki/onZO7AVFgG5ZbB+fWwZR9mwGHE2XQ==}
 
-  lucide-svelte@0.577.0:
-    resolution: {integrity: sha512-0i88o57KsaHWnc80J57fY99CWzlZsSdtH5kKjLUJa7z8dum/9/AbINNLzJ7NiRFUdOgMnfAmJt8jFbW2zeC5qQ==}
+  lucide-svelte@1.0.1:
+    resolution: {integrity: sha512-WvzZgk0pqzgda+AErLvgWxHkfg/+GgUwqKMRHvzt0IqyMdmyEDzDCk3Z+Wo/3y753oIgx8u9Q4eUbWkghFa8Jg==}
     peerDependencies:
       svelte: ^3 || ^4 || ^5.0.0-next.42
 
@@ -4037,7 +4038,7 @@ snapshots:
 
   lucide-static@0.577.0: {}
 
-  lucide-svelte@0.577.0(svelte@5.55.1):
+  lucide-svelte@1.0.1(svelte@5.55.1):
     dependencies:
       svelte: 5.55.1
 
