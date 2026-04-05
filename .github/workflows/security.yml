@@ -53,6 +53,36 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: src-tauri
 
+  supply-chain-quarantine:
+    name: Supply Chain Quarantine
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify pnpm-workspace.yaml exists
+        run: |
+          if [[ ! -f pnpm-workspace.yaml ]]; then
+            echo "::error::pnpm-workspace.yaml is missing — supply chain quarantine is disabled!"
+            exit 1
+          fi
+
+      - name: Verify minimumReleaseAge is configured
+        run: |
+          age=$(grep -oP 'minimumReleaseAge:\s*\K\d+' pnpm-workspace.yaml || true)
+          if [[ -z "$age" ]]; then
+            echo "::error::minimumReleaseAge is not set in pnpm-workspace.yaml"
+            exit 1
+          fi
+          min_age=20160  # 14 days in minutes
+          if [[ "$age" -lt "$min_age" ]]; then
+            echo "::error::minimumReleaseAge is $age minutes ($(( age / 1440 )) days), minimum required is $min_age minutes (14 days)"
+            exit 1
+          fi
+          echo "✅ minimumReleaseAge is $age minutes ($(( age / 1440 )) days)"
+
   dependency-review:
     name: Dependency Review
     if: github.event_name == 'pull_request'
