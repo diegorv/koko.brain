@@ -1,0 +1,9 @@
+# Dependency age quarantine allowlist
+# Add package@version entries (one per line) to bypass the 14-day age check.
+# Use sparingly — document the reason for each exception.
+#
+# Format:
+#   package@version  # reason for exception
+#
+# Example:
+#   lodash@4.17.22  # Emergency security patch, reviewed manually
