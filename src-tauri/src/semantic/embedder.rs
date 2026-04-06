@@ -221,7 +221,7 @@ fn mean_pool_f32(
 			}
 		}
 		normalize_embedding(&mut sum, count);
-		if i == 0 { log_embedding(&sum); }
+
 		embeddings.push(sum);
 	}
 	embeddings
@@ -251,7 +251,7 @@ fn mean_pool_f16(
 			}
 		}
 		normalize_embedding(&mut sum, count);
-		if i == 0 { log_embedding(&sum); }
+
 		embeddings.push(sum);
 	}
 	embeddings
@@ -270,22 +270,6 @@ fn normalize_embedding(sum: &mut [f32], count: f32) {
 			*val /= norm;
 		}
 	}
-}
-
-/// Logs embedding values for diagnostics.
-fn log_embedding(emb: &[f32]) {
-	debug_log(
-		"EMBEDDER",
-		format!(
-			"First embedding (first 5 vals): [{:.4}, {:.4}, {:.4}, {:.4}, {:.4}], norm: {:.6}",
-			emb.get(0).unwrap_or(&0.0),
-			emb.get(1).unwrap_or(&0.0),
-			emb.get(2).unwrap_or(&0.0),
-			emb.get(3).unwrap_or(&0.0),
-			emb.get(4).unwrap_or(&0.0),
-			emb.iter().map(|x| x * x).sum::<f32>().sqrt(),
-		),
-	);
 }
 
 /// Computes cosine similarity between two vectors.
