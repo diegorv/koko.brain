@@ -17,6 +17,7 @@ import {
 	buildMonthlyLinksTable,
 	buildQuarterlyLinksTable,
 	detectPeriodicNoteType,
+	shouldRefreshDailyNote,
 } from '$lib/plugins/periodic-notes/periodic-notes.logic';
 import type { PeriodicNotesSettings } from '$lib/core/settings/settings.types';
 
@@ -538,5 +539,23 @@ describe('detectPeriodicNoteType', () => {
 		expect(result).not.toBeNull();
 		expect(result!.periodType).toBe('yearly');
 		expect(result!.date.year()).toBe(2026);
+	});
+});
+
+describe('shouldRefreshDailyNote', () => {
+	it('returns false when lastAutoOpenedDate is null', () => {
+		expect(shouldRefreshDailyNote(null, '2026-04-06')).toBe(false);
+	});
+
+	it('returns false when dates are the same', () => {
+		expect(shouldRefreshDailyNote('2026-04-06', '2026-04-06')).toBe(false);
+	});
+
+	it('returns true when dates differ', () => {
+		expect(shouldRefreshDailyNote('2026-04-05', '2026-04-06')).toBe(true);
+	});
+
+	it('returns true when dates differ across months', () => {
+		expect(shouldRefreshDailyNote('2026-03-31', '2026-04-01')).toBe(true);
 	});
 });
