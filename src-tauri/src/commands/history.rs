@@ -123,7 +123,7 @@ pub fn cleanup_history(retention_days: u32) -> Result<u32, String> {
 	let cutoff_recent = now - days * 86_400 * 1000;
 	let cutoff_daily = cutoff_recent - 30 * 86400 * 1000;
 
-	db::with_db_transaction(|conn| {
+	db::with_db_transaction("history cleanup", |conn| {
 		let old_deleted = db::history_repo::delete_old_snapshots(conn, cutoff_daily)?;
 		let medium_deleted =
 			db::history_repo::delete_medium_duplicates(conn, cutoff_daily, cutoff_recent)?;

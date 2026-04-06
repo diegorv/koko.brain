@@ -40,7 +40,7 @@ pub fn build_search_index(vault_path: String) -> Result<IndexStats, String> {
 		debug_log("FTS", format!("Skipped {} of {} files due to read errors", skipped, total_entries));
 	}
 
-	db::with_db_transaction(|conn| {
+	db::with_db_transaction("fts index rebuild", |conn| {
 		db::fts_repo::clear_index(conn)?;
 
 		let mut count = 0u64;
@@ -94,7 +94,7 @@ pub fn search_fts(
 #[tauri::command]
 pub fn update_search_index_file(file_path: String, content: String) -> Result<(), String> {
 	debug_log("FTS", format!("Updating: {}", file_path));
-	db::with_db_transaction(|conn| {
+	db::with_db_transaction("fts update file", |conn| {
 		db::fts_repo::delete_entry(conn, &file_path)?;
 
 		let title = extract_title(&file_path);

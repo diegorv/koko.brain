@@ -342,7 +342,7 @@ pub async fn build_semantic_index(
 			// Delete old + insert new + save completed mtimes in a single transaction.
 			// If insert fails, delete is rolled back — no data loss.
 			tokio::task::spawn_blocking(move || {
-				db::with_db_transaction(|conn| {
+				db::with_db_transaction("semantic index batch", |conn| {
 					for path in &paths_to_delete {
 						db::semantic_repo::delete_chunks_for_path(conn, path)?;
 					}
@@ -511,7 +511,7 @@ pub async fn update_semantic_file(
 
 		if chunks.is_empty() {
 			// No content to index — delete old chunks atomically
-			db::with_db_transaction(|conn| {
+			db::with_db_transaction("semantic delete empty file", |conn| {
 				db::semantic_repo::delete_chunks_for_path(conn, &file_path)
 			})?;
 			update_stored_mtime(&file_path, &vault_path)?;
@@ -538,7 +538,7 @@ pub async fn update_semantic_file(
 
 		// Delete old + insert new in a single transaction.
 		// If insert fails, delete is rolled back — no data loss.
-		db::with_db_transaction(|conn| {
+		db::with_db_transaction("semantic update file", |conn| {
 			db::semantic_repo::delete_chunks_for_path(conn, &file_path)?;
 
 			let now = std::time::SystemTime::now()
@@ -712,7 +712,7 @@ fn get_semantic_stats_inner() -> Result<SemanticStats, String> {
 /// Uses a transaction to ensure all orphan deletions are atomic.
 pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> {
 	let path_set: HashSet<&str> = existing_paths.iter().map(|s| s.as_str()).collect();
-	db::with_db_transaction(|conn| {
+	db::with_db_transaction("semantic orphan cleanup", |conn| {
 		let indexed_paths = db::semantic_repo::get_distinct_sources(conn)?;
 
 		for path in &indexed_paths {

@@ -58,27 +58,27 @@ where
 
 /// Runs a closure inside a SQL transaction (BEGIN/COMMIT/ROLLBACK).
 /// Automatically rolls back on error.
-pub fn with_db_transaction<F, T>(f: F) -> Result<T, String>
+pub fn with_db_transaction<F, T>(label: &str, f: F) -> Result<T, String>
 where
 	F: FnOnce(&Connection) -> Result<T, String>,
 {
 	let db = DB.lock().map_err(|e| format!("Lock error: {e}"))?;
 	let conn = db.as_ref().ok_or("Database not open")?;
-	debug_log("DB", "Transaction BEGIN");
+	debug_log("DB", format!("BEGIN — {label}"));
 	conn.execute_batch("BEGIN")
 		.map_err(|e| format!("Failed to begin transaction: {e}"))?;
 	match f(conn) {
 		Ok(result) => {
 			conn.execute_batch("COMMIT")
 				.map_err(|e| format!("Failed to commit transaction: {e}"))?;
-			debug_log("DB", "Transaction COMMIT");
+			debug_log("DB", format!("COMMIT — {label}"));
 			Ok(result)
 		}
 		Err(e) => {
 			if let Err(rb_err) = conn.execute_batch("ROLLBACK") {
-				debug_log("DB", format!("ROLLBACK failed: {rb_err}"));
+				debug_log("DB", format!("ROLLBACK failed ({label}): {rb_err}"));
 			}
-			debug_log("DB", format!("Transaction ROLLBACK: {e}"));
+			debug_log("DB", format!("ROLLBACK — {label}: {e}"));
 			Err(e)
 		}
 	}
