@@ -163,6 +163,65 @@ fn cleanup_orphaned_chunks_empty_index() {
 	db::close_database().unwrap();
 }
 
+// --- get_chunk_hashes_for_path ---
+
+#[test]
+fn get_chunk_hashes_returns_hashes_for_path() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, 1, 5, "hash_a", b"emb1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, 6, 10, "hash_b", b"emb2", 1000)?;
+		semantic_repo::insert_chunk(conn, "k3", "other.md", "text3", None, 1, 5, "hash_c", b"emb3", 1000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	let hashes = db::with_db(|conn| semantic_repo::get_chunk_hashes_for_path(conn, "note.md")).unwrap();
+	assert_eq!(hashes.len(), 2, "should return hashes only for the requested path");
+	assert_eq!(hashes.get("k1").unwrap(), "hash_a");
+	assert_eq!(hashes.get("k2").unwrap(), "hash_b");
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn get_chunk_hashes_returns_empty_for_missing_path() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	let hashes = db::with_db(|conn| semantic_repo::get_chunk_hashes_for_path(conn, "nonexistent.md")).unwrap();
+	assert!(hashes.is_empty(), "should return empty map for missing path");
+
+	db::close_database().unwrap();
+}
+
+// --- delete_chunk_by_key ---
+
+#[test]
+fn delete_chunk_by_key_removes_single_chunk() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, 1, 5, "h1", b"emb1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, 6, 10, "h2", b"emb2", 1000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	db::with_db(|conn| semantic_repo::delete_chunk_by_key(conn, "k1")).unwrap();
+
+	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	assert_eq!(count, 1, "only one chunk should remain after deleting by key");
+
+	let remaining = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	assert_eq!(remaining[0].key, "k2", "the remaining chunk should be k2");
+
+	db::close_database().unwrap();
+}
+
 // --- atomic delete+insert per batch (regression for build_semantic_index) ---
 
 #[test]
