@@ -98,9 +98,11 @@ export function removeFileFromIndex(filePath: string) {
 }
 
 /**
- * Updates only linked mentions for a file and marks unlinked as dirty.
- * This is the fast path used by keystroke-driven index updates and tab switches.
- * Unlinked mentions are deferred until the panel requests them via `computeUnlinkedMentionsForFile`.
+ * Updates only linked mentions for a file.
+ * Does NOT mark unlinked mentions as dirty — callers that need unlinked
+ * recomputation (tab switch, save, external change) should call
+ * `backlinksStore.markUnlinkedDirty()` explicitly.
+ * This keeps the keystroke path (index-updater) free of the ~30ms unlinked cost.
  */
 export function updateBacklinksForFile(
 	filePath: string,
@@ -121,7 +123,6 @@ export function updateBacklinksForFile(
 	perfEnd('BACKLINKS', 'findLinkedMentions', t1);
 
 	backlinksStore.setLinkedMentions(linked);
-	backlinksStore.markUnlinkedDirty();
 	perfEnd('BACKLINKS', 'updateBacklinksForFile', t0);
 }
 

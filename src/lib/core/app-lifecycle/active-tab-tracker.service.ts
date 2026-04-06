@@ -2,6 +2,7 @@ import {
 	updateBacklinksForFile,
 } from '$lib/features/backlinks/backlinks.service';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import {
@@ -29,6 +30,7 @@ export function updateActiveTabLinks(path: string | null): void {
 		const cache = buildResolutionCache(allFilePaths);
 		try { updateBacklinksForFile(path, allFilePaths, cache); } catch (err) { error('ACTIVE-TAB', 'updateBacklinksForFile failed:', err); }
 		try { updateOutgoingLinksForFile(path, allFilePaths, cache); } catch (err) { error('ACTIVE-TAB', 'updateOutgoingLinksForFile failed:', err); }
+		backlinksStore.markUnlinkedDirty();
 		perfEnd('ACTIVE-TAB', 'updateActiveTabLinks', t0);
 	} else {
 		backlinksStore.setLinkedMentions([]);
