@@ -65,6 +65,101 @@ describe('noteIndexStore', () => {
 		expect(noteIndexStore.noteContents.size).toBe(2);
 	});
 
+	it('starts with empty reverse index', () => {
+		expect(noteIndexStore.reverseIndex.size).toBe(0);
+	});
+
+	it('setNoteIndex builds reverse index from links', () => {
+		// note-b links to note-a via [[note-a]]
+		const contents = new Map([
+			['note-a.md', 'Hello'],
+			['note-b.md', 'See [[note-a]]'],
+		]);
+		noteIndexStore.setNoteContents(contents);
+
+		const index = new Map([
+			['note-a.md', []],
+			['note-b.md', [{ target: 'note-a', alias: null, heading: null, position: 4 }]],
+		]) as any;
+		noteIndexStore.setNoteIndex(index);
+
+		const sources = noteIndexStore.reverseIndex.get('note-a.md');
+		expect(sources).toBeDefined();
+		expect(sources!.has('note-b.md')).toBe(true);
+	});
+
+	it('updateNoteEntry incrementally updates reverse index', () => {
+		const contents = new Map([
+			['note-a.md', 'Hello'],
+			['note-b.md', 'No links'],
+		]);
+		noteIndexStore.setNoteContents(contents);
+		noteIndexStore.setNoteIndex(new Map([
+			['note-a.md', []],
+			['note-b.md', []],
+		]) as any);
+
+		expect(noteIndexStore.reverseIndex.size).toBe(0);
+
+		// Now update note-b to link to note-a
+		noteIndexStore.updateNoteEntry(
+			'note-b.md',
+			'See [[note-a]]',
+			[{ target: 'note-a', alias: null, heading: null, position: 4 }] as any,
+		);
+
+		const sources = noteIndexStore.reverseIndex.get('note-a.md');
+		expect(sources).toBeDefined();
+		expect(sources!.has('note-b.md')).toBe(true);
+	});
+
+	it('updateNoteEntry removes old reverse entries when links change', () => {
+		const contents = new Map([
+			['note-a.md', 'Hello'],
+			['note-b.md', 'See [[note-a]]'],
+			['note-c.md', 'Other'],
+		]);
+		noteIndexStore.setNoteContents(contents);
+		noteIndexStore.setNoteIndex(new Map([
+			['note-a.md', []],
+			['note-b.md', [{ target: 'note-a', alias: null, heading: null, position: 4 }]],
+			['note-c.md', []],
+		]) as any);
+
+		expect(noteIndexStore.reverseIndex.get('note-a.md')?.has('note-b.md')).toBe(true);
+
+		// Update note-b to link to note-c instead
+		noteIndexStore.updateNoteEntry(
+			'note-b.md',
+			'See [[note-c]]',
+			[{ target: 'note-c', alias: null, heading: null, position: 4 }] as any,
+		);
+
+		// note-a should no longer have note-b as a source
+		const sourcesA = noteIndexStore.reverseIndex.get('note-a.md');
+		expect(sourcesA === undefined || sourcesA.size === 0).toBe(true);
+
+		// note-c should now have note-b as a source
+		const sourcesC = noteIndexStore.reverseIndex.get('note-c.md');
+		expect(sourcesC).toBeDefined();
+		expect(sourcesC!.has('note-b.md')).toBe(true);
+	});
+
+	it('reset clears reverse index', () => {
+		const contents = new Map([
+			['note-a.md', 'Hello'],
+			['note-b.md', 'See [[note-a]]'],
+		]);
+		noteIndexStore.setNoteContents(contents);
+		noteIndexStore.setNoteIndex(new Map([
+			['note-a.md', []],
+			['note-b.md', [{ target: 'note-a', alias: null, heading: null, position: 4 }]],
+		]) as any);
+
+		noteIndexStore.reset();
+		expect(noteIndexStore.reverseIndex.size).toBe(0);
+	});
+
 	it('reset clears all state', () => {
 		noteIndexStore.setLoading(true);
 		noteIndexStore.setNoteContents(new Map([['a', 'b']]));

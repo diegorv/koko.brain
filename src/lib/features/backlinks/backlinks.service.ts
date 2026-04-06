@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { debug, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteIndexStore } from './note-index.store.svelte';
-import { parseWikilinks, getNoteName, findLinkedMentions, findUnlinkedMentions } from './backlinks.logic';
+import { parseWikilinks, getNoteName, buildResolutionCache, findLinkedMentions, findLinkedMentionsFromReverse, findUnlinkedMentions } from './backlinks.logic';
 import type { WikilinkResolutionCache } from './backlinks.logic';
 import type { WikiLink } from './backlinks.types';
 import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
@@ -113,7 +113,11 @@ export function updateBacklinksForFile(
 	const allFilePaths = sharedFilePaths ?? Array.from(noteContents.keys());
 
 	const t1 = perfStart();
-	const linked = findLinkedMentions(filePath, noteIndex, noteContents, allFilePaths, sharedCache);
+	const reverseIdx = noteIndexStore.reverseIndex;
+	const cache = sharedCache ?? buildResolutionCache(allFilePaths);
+	const linked = reverseIdx.size > 0
+		? findLinkedMentionsFromReverse(filePath, reverseIdx, noteIndex, noteContents, cache)
+		: findLinkedMentions(filePath, noteIndex, noteContents, allFilePaths, sharedCache);
 	perfEnd('BACKLINKS', 'findLinkedMentions', t1);
 
 	backlinksStore.setLinkedMentions(linked);
