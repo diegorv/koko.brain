@@ -200,10 +200,11 @@ export async function startWatching(vaultPath: string) {
 
 	const kokobrainDir = `${vaultPath}/.kokobrain`;
 	const gitDir = `${vaultPath}/.git`;
+	const claudeDir = `${vaultPath}/.claude`;
 	try {
 		unwatch = await watch(vaultPath, (event: WatchEvent) => {
 			let addedAny = false;
-			// Pre-filter paths: discard .git and .kokobrain before logging to keep
+			// Pre-filter paths: discard .git, .kokobrain, and .claude before logging to keep
 			// the debug output clean — these directories generate high-frequency noise.
 			const relevantPaths: string[] = [];
 			for (const p of event.paths) {
@@ -213,6 +214,9 @@ export async function startWatching(vaultPath: string) {
 				}
 				if (pathStr === kokobrainDir || pathStr.startsWith(`${kokobrainDir}/`)) {
 					counters.skippedKokobrain++;
+					continue;
+				}
+				if (pathStr === claudeDir || pathStr.startsWith(`${claudeDir}/`)) {
 					continue;
 				}
 				if (pathStr === vaultPath) {
