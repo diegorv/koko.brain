@@ -1,33 +1,43 @@
+import { invoke } from '@tauri-apps/api/core';
 import {
 	rebuildIndex,
+	updateIndexForFile,
 	updateBacklinksForFile,
+	removeFileFromIndex,
 } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex } from '$lib/features/collection/collection.service';
+import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
 import {
 	updateOutgoingLinksForFile,
 } from '$lib/features/outgoing-links/outgoing-links.service';
-import { buildTagIndex } from '$lib/features/tags/tags.service';
-import { buildFrontmatterIconIndex } from '$lib/features/file-icons/file-icons.service';
-import { scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
-import { buildTaskIndex } from '$lib/features/tasks/tasks.service';
+import { buildTagIndex, updateTagIndexForFile } from '$lib/features/tags/tags.service';
+import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
+import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { buildTaskIndex, updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
+import type { FileReadResult } from '$lib/core/filesystem/fs.types';
+
+/** Maximum number of changed markdown files for incremental path. Above this, do full rebuild. */
+const INCREMENTAL_THRESHOLD = 10;
 
 /**
  * Performs a FULL rebuild of all indexes from disk.
  * Called by the file watcher when file changes are detected on disk
  * (external edits, renames, deletes, git operations, etc.).
  *
+ * Uses an INCREMENTAL per-file strategy when a small number of markdown
+ * files changed (≤ INCREMENTAL_THRESHOLD), avoiding the expensive full
+ * vault re-scan. Falls back to full rebuild for large change sets.
+ *
  * Skips the rebuild when ALL changed paths were recently saved by the
  * editor itself (self-save detection), since the indexes are already
  * up-to-date from the incremental per-file updates.
  *
- * This is distinct from `updateIndexesForFile()` in index-updater.service.ts,
- * which does INCREMENTAL per-file updates from in-memory editor content
- * as the user types.
- *
- * @param changedPaths - File paths that triggered the watcher
+ * @param changedPaths - File paths that triggered the watcher (absolute)
  * @see index-updater.service.ts — incremental per-file updates (typing)
  * @see active-tab-tracker.service.ts — tab-switch backlinks/outgoing refresh
  */
@@ -48,7 +58,26 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	}
 
 	const start = performance.now();
-	debug('WATCHER-HANDLER', `rebuildAllIndexes executing at ${Date.now()}, paths: ${changedPaths.length}`);
+
+	// Filter to markdown files for incremental path
+	const mdPaths = filePaths.filter((p) => p.endsWith('.md') || p.endsWith('.markdown'));
+	const vaultPath = vaultStore.path;
+
+	// Incremental path: small number of markdown changes with known vault
+	if (mdPaths.length > 0 && mdPaths.length <= INCREMENTAL_THRESHOLD && vaultPath) {
+		debug('WATCHER-HANDLER', `Incremental update for ${mdPaths.length} file(s) at ${Date.now()}`);
+		try {
+			await incrementalUpdateFiles(mdPaths, vaultPath);
+			debug('WATCHER-HANDLER', `Incremental update completed in ${(performance.now() - start).toFixed(1)}ms`);
+			logProcessMemory();
+			return;
+		} catch (err) {
+			debug('WATCHER-HANDLER', `Incremental update failed, falling back to full rebuild: ${err}`);
+			// Fall through to full rebuild
+		}
+	}
+
+	debug('WATCHER-HANDLER', `Full rebuildAllIndexes executing at ${Date.now()}, paths: ${changedPaths.length}`);
 
 	try { await rebuildIndex(); } catch (err) { error('WATCHER', 'rebuildIndex failed:', err); }
 	try { buildTagIndex(); } catch (err) { error('WATCHER', 'buildTagIndex failed:', err); }
@@ -63,6 +92,48 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 		try { updateOutgoingLinksForFile(activePath); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
 
-	debug('WATCHER-HANDLER', `rebuildAllIndexes completed in ${(performance.now() - start).toFixed(1)}ms`);
+	debug('WATCHER-HANDLER', `Full rebuildAllIndexes completed in ${(performance.now() - start).toFixed(1)}ms`);
 	logProcessMemory();
+}
+
+/**
+ * Incrementally updates indexes for a small set of changed files.
+ * Reads file content from disk via Tauri, then applies per-file index updates.
+ * For deleted files, removes them from all indexes.
+ */
+async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string): Promise<void> {
+	// Convert absolute paths to vault-relative for the Tauri batch read
+	const relativePaths = absolutePaths.map((p) =>
+		p.startsWith(vaultPath + '/') ? p.substring(vaultPath.length + 1) : p,
+	);
+
+	const readResults = await invoke<FileReadResult[]>('read_files_batch', {
+		vaultPath,
+		paths: relativePaths,
+	});
+
+	const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
+	const cache = buildResolutionCache(allFilePaths);
+
+	for (const result of readResults) {
+		if (result.content !== null) {
+			// File exists — update all indexes for this file
+			try { updateIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateIndexForFile failed:', err); }
+			try { updateTagIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateTagIndexForFile failed:', err); }
+			try { updateTaskIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateTaskIndexForFile failed:', err); }
+			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
+			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
+			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
+		} else {
+			// File doesn't exist (deleted) — remove from indexes
+			try { removeFileFromIndex(result.path); } catch (err) { error('WATCHER', 'removeFileFromIndex failed:', err); }
+		}
+	}
+
+	// Refresh backlinks/outgoing-links for the active tab
+	const activePath = editorStore.activeTabPath;
+	if (activePath) {
+		try { updateBacklinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateBacklinksForFile failed:', err); }
+		try { updateOutgoingLinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
+	}
 }
