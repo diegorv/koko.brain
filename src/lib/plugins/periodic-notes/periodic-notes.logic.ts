@@ -268,6 +268,19 @@ export function buildQuarterlyLinksTable(folder: string, quarterlyFormat: string
 	return `| Quarter | Link |\n|---------|------|\n${rows.join('\n')}`;
 }
 
+/**
+ * Determines whether the daily note should be refreshed based on date change.
+ * Returns true if the last auto-opened date differs from today's date.
+ * Returns false when lastAutoOpenedDate is null (auto-open never ran or was reset).
+ */
+export function shouldRefreshDailyNote(
+	lastAutoOpenedDate: string | null,
+	todayDate: string,
+): boolean {
+	if (!lastAutoOpenedDate) return false;
+	return lastAutoOpenedDate !== todayDate;
+}
+
 /** Month name (abbreviated or full) → 0-indexed month number.
  *  "May" is intentionally only in the abbreviation row — it's the same as the full name. */
 const MONTH_ABBR: Record<string, number> = {
