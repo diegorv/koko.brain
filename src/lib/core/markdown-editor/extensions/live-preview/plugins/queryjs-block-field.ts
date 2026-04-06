@@ -54,11 +54,14 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
 export const queryjsBlockField = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
+		lastCursorLine: number;
 		constructor(view: EditorView) {
 			this.decorations = computeQueryjsBlocks(view.state);
+			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 		update(update: ViewUpdate) {
-			if (checkUpdateAction(update) === 'rebuild') {
+			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
+				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = computeQueryjsBlocks(update.state);
 			}
 		}
