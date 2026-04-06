@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { pinTabByPath } from '$lib/core/editor/editor.service';
+import { pinTabByPath, unpinTabByPath } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import type { PeriodType } from '$lib/core/settings/settings.types';
 import {
@@ -11,7 +11,11 @@ import {
 	getDailyInlineTemplate,
 	getPeriodicNoteTitle,
 	buildPeriodicVariables,
+	shouldRefreshDailyNote,
 } from './periodic-notes.logic';
+
+/** Tracks the date (YYYY-MM-DD) of the last auto-opened daily note */
+let lastAutoOpenedDate: string | null = null;
 
 /**
  * Opens or creates a periodic note for a specific date.
@@ -83,4 +87,55 @@ export async function autoOpenDailyNote(): Promise<void> {
 	if (autoPin) {
 		pinTabByPath(filePath);
 	}
+
+	lastAutoOpenedDate = date.format('YYYY-MM-DD');
+}
+
+/**
+ * Refreshes the auto-pinned daily note when the date has changed.
+ * Unpins yesterday's note (if auto-pinned and still pinned),
+ * then opens and pins today's note.
+ * Called by the window focus listener.
+ */
+export async function refreshDailyNoteIfDateChanged(): Promise<void> {
+	const { autoOpen, autoPin } = settingsStore.periodicNotes.daily;
+	if (!autoOpen) return;
+
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return;
+
+	const todayStr = dayjs().format('YYYY-MM-DD');
+	if (!shouldRefreshDailyNote(lastAutoOpenedDate, todayStr)) return;
+
+	const settings = settingsStore.periodicNotes;
+	const format = getFormatForPeriod(settings, 'daily');
+
+	// Unpin yesterday's auto-pinned note
+	if (autoPin && lastAutoOpenedDate) {
+		const previousDate = dayjs(lastAutoOpenedDate, 'YYYY-MM-DD');
+		const previousPath = buildPeriodicNotePath(vaultPath, settings.folder, format, previousDate);
+		unpinTabByPath(previousPath);
+	}
+
+	// Open/create today's daily note
+	const today = dayjs();
+	await openOrCreatePeriodicNoteForDate('daily', today);
+
+	// Pin today's note
+	if (autoPin) {
+		const todayPath = buildPeriodicNotePath(vaultPath, settings.folder, format, today);
+		pinTabByPath(todayPath);
+	}
+
+	lastAutoOpenedDate = todayStr;
+}
+
+/** Resets periodic notes module state. Called during vault teardown. */
+export function resetPeriodicNotes(): void {
+	lastAutoOpenedDate = null;
+}
+
+/** Exposed for testing only — returns the last auto-opened date string. */
+export function _getLastAutoOpenedDate(): string | null {
+	return lastAutoOpenedDate;
 }

@@ -6,6 +6,7 @@ setupLocalStorage();
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 	pinTabByPath: vi.fn(),
+	unpinTabByPath: vi.fn(),
 }));
 
 vi.mock('$lib/core/note-creator/note-creator.service', () => ({
@@ -15,7 +16,7 @@ vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 import dayjs from 'dayjs';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { pinTabByPath } from '$lib/core/editor/editor.service';
+import { pinTabByPath, unpinTabByPath } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import {
 	buildPeriodicNotePath,
@@ -30,6 +31,9 @@ import {
 	openOrCreatePeriodicNote,
 	openOrCreatePeriodicNoteForDate,
 	autoOpenDailyNote,
+	refreshDailyNoteIfDateChanged,
+	resetPeriodicNotes,
+	_getLastAutoOpenedDate,
 } from '$lib/plugins/periodic-notes/periodic-notes.service';
 
 describe('openOrCreateDailyNote', () => {
@@ -406,5 +410,212 @@ describe('autoOpenDailyNote', () => {
 		vi.mocked(openOrCreateNote).mockRejectedValueOnce(new Error('auto-open failed'));
 
 		await expect(autoOpenDailyNote()).rejects.toThrow('auto-open failed');
+	});
+
+	it('sets lastAutoOpenedDate after opening daily note', async () => {
+		settingsStore.updatePeriodicNotes({
+			daily: { autoOpen: true },
+		});
+
+		await autoOpenDailyNote();
+
+		expect(_getLastAutoOpenedDate()).toBe(dayjs().format('YYYY-MM-DD'));
+	});
+});
+
+describe('refreshDailyNoteIfDateChanged', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		resetPeriodicNotes();
+		vaultStore.open('/vault');
+		settingsStore.updatePeriodicNotes({
+			folder: '',
+			daily: {
+				format: 'DD-MM-YYYY',
+				template: '',
+				templatePath: undefined,
+				autoOpen: true,
+				autoPin: true,
+			},
+			weekly: { format: 'YYYY/[W]WW' },
+			monthly: { format: 'YYYY/MM-MMM' },
+			quarterly: { format: 'YYYY/[Q]Q' },
+		});
+	});
+
+	it('does nothing when autoOpen is false', async () => {
+		settingsStore.updatePeriodicNotes({
+			daily: { autoOpen: false },
+		});
+
+		await refreshDailyNoteIfDateChanged();
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('does nothing when no vault is open', async () => {
+		vaultStore.close();
+
+		await refreshDailyNoteIfDateChanged();
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('does nothing when lastAutoOpenedDate is null (auto-open never ran)', async () => {
+		await refreshDailyNoteIfDateChanged();
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('does nothing when date has not changed', async () => {
+		// First, trigger autoOpenDailyNote to set lastAutoOpenedDate to today
+		await autoOpenDailyNote();
+		vi.mocked(openOrCreateNote).mockClear();
+
+		await refreshDailyNoteIfDateChanged();
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('opens today\'s note when date has changed', async () => {
+		// Simulate: autoOpen ran yesterday
+		await autoOpenDailyNote();
+		vi.mocked(openOrCreateNote).mockClear();
+		vi.mocked(pinTabByPath).mockClear();
+
+		// Advance date by 1 day using fake timers
+		const now = new Date();
+		const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0);
+		vi.useFakeTimers({ now: tomorrowDate });
+
+		await refreshDailyNoteIfDateChanged();
+
+		expect(openOrCreateNote).toHaveBeenCalled();
+		const tomorrowDayjs = dayjs(tomorrowDate);
+		const settings = settingsStore.periodicNotes;
+		const format = getFormatForPeriod(settings, 'daily');
+		const expectedPath = buildPeriodicNotePath('/vault', '', format, tomorrowDayjs);
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: expectedPath,
+			}),
+		);
+
+		vi.useRealTimers();
+	});
+
+	it('unpins yesterday\'s note when autoPin is true and date changed', async () => {
+		await autoOpenDailyNote();
+		vi.mocked(unpinTabByPath).mockClear();
+
+		const now = new Date();
+		const todayPath = buildPeriodicNotePath(
+			'/vault', '',
+			getFormatForPeriod(settingsStore.periodicNotes, 'daily'),
+			dayjs(),
+		);
+
+		const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0);
+		vi.useFakeTimers({ now: tomorrowDate });
+
+		await refreshDailyNoteIfDateChanged();
+
+		expect(unpinTabByPath).toHaveBeenCalledWith(todayPath);
+
+		vi.useRealTimers();
+	});
+
+	it('does not unpin when autoPin is false', async () => {
+		settingsStore.updatePeriodicNotes({
+			daily: { autoPin: false },
+		});
+
+		await autoOpenDailyNote();
+		vi.mocked(unpinTabByPath).mockClear();
+
+		const now = new Date();
+		const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0);
+		vi.useFakeTimers({ now: tomorrowDate });
+
+		await refreshDailyNoteIfDateChanged();
+
+		expect(unpinTabByPath).not.toHaveBeenCalled();
+		expect(pinTabByPath).not.toHaveBeenCalled();
+
+		vi.useRealTimers();
+	});
+
+	it('pins today\'s note when autoPin is true and date changed', async () => {
+		await autoOpenDailyNote();
+		vi.mocked(pinTabByPath).mockClear();
+
+		const now = new Date();
+		const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0);
+		vi.useFakeTimers({ now: tomorrowDate });
+
+		await refreshDailyNoteIfDateChanged();
+
+		const tomorrowDayjs = dayjs(tomorrowDate);
+		const expectedPath = buildPeriodicNotePath(
+			'/vault', '',
+			getFormatForPeriod(settingsStore.periodicNotes, 'daily'),
+			tomorrowDayjs,
+		);
+		expect(pinTabByPath).toHaveBeenCalledWith(expectedPath);
+
+		vi.useRealTimers();
+	});
+
+	it('updates lastAutoOpenedDate after refresh', async () => {
+		await autoOpenDailyNote();
+		const beforeDate = _getLastAutoOpenedDate();
+
+		const now = new Date();
+		const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0);
+		vi.useFakeTimers({ now: tomorrowDate });
+
+		await refreshDailyNoteIfDateChanged();
+
+		const afterDate = _getLastAutoOpenedDate();
+		expect(afterDate).not.toBe(beforeDate);
+		expect(afterDate).toBe(dayjs(tomorrowDate).format('YYYY-MM-DD'));
+
+		vi.useRealTimers();
+	});
+});
+
+describe('resetPeriodicNotes', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		resetPeriodicNotes();
+		vaultStore.open('/vault');
+		settingsStore.updatePeriodicNotes({
+			folder: '',
+			daily: {
+				format: 'DD-MM-YYYY',
+				template: '',
+				templatePath: undefined,
+				autoOpen: true,
+				autoPin: false,
+			},
+			weekly: { format: 'YYYY/[W]WW' },
+			monthly: { format: 'YYYY/MM-MMM' },
+			quarterly: { format: 'YYYY/[Q]Q' },
+		});
+	});
+
+	it('clears lastAutoOpenedDate', async () => {
+		await autoOpenDailyNote();
+		expect(_getLastAutoOpenedDate()).not.toBeNull();
+
+		resetPeriodicNotes();
+
+		expect(_getLastAutoOpenedDate()).toBeNull();
 	});
 });
