@@ -180,7 +180,7 @@ fn atomic_delete_insert_preserves_unprocessed_files() {
 	.unwrap();
 
 	// Simulate batch 1 succeeding: atomic delete+insert for file A only
-	db::with_db_transaction(|conn| {
+	db::with_db_transaction("test batch 1", |conn| {
 		semantic_repo::delete_chunks_for_path(conn, "a.md")?;
 		semantic_repo::insert_chunk(conn, "a:new", "a.md", "new text a", None, 1, 10, "ha_new", b"emb_new", 2000)?;
 		Ok(())
@@ -218,7 +218,7 @@ fn atomic_delete_insert_rolls_back_on_failure() {
 	.unwrap();
 
 	// Simulate a failed transaction: delete succeeds but insert fails
-	let result: Result<(), String> = db::with_db_transaction(|conn| {
+	let result: Result<(), String> = db::with_db_transaction("test rollback", |conn| {
 		semantic_repo::delete_chunks_for_path(conn, "a.md")?;
 		// Force failure after delete
 		Err("simulated embedding failure".to_string())
