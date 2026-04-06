@@ -282,6 +282,8 @@ pub async fn build_semantic_index(
 				.collect();
 
 			// Run ONNX inference on blocking thread to avoid starving the async runtime
+			let total_batches = (all_chunks.len() + batch_size - 1) / batch_size;
+			debug_log("EMBEDDER", format!("Index batch {}/{} — {} chunks", batch_idx + 1, total_batches, batch.len()));
 			let embeddings = tokio::task::spawn_blocking(move || {
 				let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 				let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
@@ -530,6 +532,7 @@ pub async fn update_semantic_file(
 			};
 
 			let text_refs: Vec<&str> = chunks.iter().map(|c| c.content.as_str()).collect();
+			debug_log("EMBEDDER", format!("File update — {} chunks for {}", text_refs.len(), file_path));
 			embedder.embed_batch(&text_refs)?
 		}; // EMBEDDER guard dropped here — prevents deadlock with DB lock
 
