@@ -141,6 +141,7 @@ vi.mock('$lib/core/trash/trash.service', () => ({
 
 vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	autoOpenDailyNote: vi.fn(),
+	resetPeriodicNotes: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/terminal/terminal.service', () => ({
