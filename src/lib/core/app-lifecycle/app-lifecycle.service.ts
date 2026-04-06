@@ -57,7 +57,7 @@ import {
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
-import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { autoOpenDailyNote, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { resetTerminal } from '$lib/plugins/terminal/terminal.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
@@ -323,5 +323,6 @@ export function teardownVault(): void {
 	resetCommandPalette();
 	resetAutoMove();
 	resetDeepLink();
+	resetPeriodicNotes();
 	resetTrash();
 }
