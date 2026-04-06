@@ -22,10 +22,20 @@ mockOnCloseRequested.mockImplementation((handler: (event: { preventDefault: () =
 	return Promise.resolve(mockUnlistenClose);
 });
 
+const mockUnlistenFocus = vi.fn();
+const mockOnFocusChanged = vi.fn();
+let capturedFocusHandler: ((event: { payload: boolean }) => void) | undefined;
+
+mockOnFocusChanged.mockImplementation((handler: (event: { payload: boolean }) => void) => {
+	capturedFocusHandler = handler;
+	return Promise.resolve(mockUnlistenFocus);
+});
+
 vi.mock('@tauri-apps/api/window', () => ({
 	getCurrentWindow: () => ({
 		onCloseRequested: (...args: unknown[]) => mockOnCloseRequested(...args),
 		destroy: (...args: unknown[]) => mockDestroy(...args),
+		onFocusChanged: (...args: unknown[]) => mockOnFocusChanged(...args),
 	}),
 }));
 
@@ -37,13 +47,18 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	saveAllDirtyTabs: vi.fn(),
 }));
 
+vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
+}));
+
 // --- Imports (after mocks) ---
 
 import { listen } from '@tauri-apps/api/event';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
-import { registerMenuSettingsListener, registerCloseHandler } from '$lib/core/layout/tauri-listeners.service';
+import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener } from '$lib/core/layout/tauri-listeners.service';
 
 // --- Tests ---
 
@@ -214,6 +229,61 @@ describe('registerCloseHandler', () => {
 
 		const unlistenFn = vi.fn();
 		resolveClose!(unlistenFn);
+
+		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe('registerFocusListener', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedFocusHandler = undefined;
+	});
+
+	it('registers an onFocusChanged handler', async () => {
+		registerFocusListener();
+
+		await vi.waitFor(() => expect(mockOnFocusChanged).toHaveBeenCalledTimes(1));
+		expect(mockOnFocusChanged).toHaveBeenCalledWith(expect.any(Function));
+	});
+
+	it('calls refreshDailyNoteIfDateChanged when window gains focus', async () => {
+		registerFocusListener();
+		await vi.waitFor(() => expect(capturedFocusHandler).toBeDefined());
+
+		capturedFocusHandler!({ payload: true });
+
+		expect(refreshDailyNoteIfDateChanged).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not call refreshDailyNoteIfDateChanged when window loses focus', async () => {
+		registerFocusListener();
+		await vi.waitFor(() => expect(capturedFocusHandler).toBeDefined());
+
+		capturedFocusHandler!({ payload: false });
+
+		expect(refreshDailyNoteIfDateChanged).not.toHaveBeenCalled();
+	});
+
+	it('returns a cleanup function that unsubscribes', async () => {
+		const cleanup = registerFocusListener();
+		await vi.waitFor(() => expect(mockUnlistenFocus).not.toHaveBeenCalled());
+
+		cleanup();
+		expect(mockUnlistenFocus).toHaveBeenCalledTimes(1);
+	});
+
+	it('cleanup cancels subscription if called before onFocusChanged resolves', () => {
+		let resolveFocus: ((fn: () => void) => void) | undefined;
+		mockOnFocusChanged.mockImplementationOnce(() =>
+			new Promise((resolve) => { resolveFocus = resolve; }),
+		);
+
+		const cleanup = registerFocusListener();
+		cleanup();
+
+		const unlistenFn = vi.fn();
+		resolveFocus!(unlistenFn);
 
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
 	});
