@@ -64,6 +64,7 @@ import {
 	togglePinTab,
 	togglePinActiveTab,
 	pinTabByPath,
+	unpinTabByPath,
 	closeTabsForDeletedPath,
 	flushPendingSaves,
 	saveAllDirtyTabs,
@@ -779,6 +780,38 @@ describe('pinTabByPath', () => {
 
 		// No reorder should happen
 		expect(editorStore.tabs[0].path).toBe(tabsBefore[0].path);
+	});
+});
+
+describe('unpinTabByPath', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('unpins a pinned tab found by path', () => {
+		addTab('/vault/a.md', '', { pinned: true });
+
+		unpinTabByPath('/vault/a.md');
+
+		expect(editorStore.tabs[0].path).toBe('/vault/a.md');
+		expect(editorStore.tabs[0].pinned).toBe(false);
+	});
+
+	it('does nothing if tab not found', () => {
+		addTab('/vault/a.md', '', { pinned: true });
+
+		unpinTabByPath('/vault/missing.md');
+
+		expect(editorStore.tabs[0].pinned).toBe(true);
+	});
+
+	it('does nothing if tab is already unpinned', () => {
+		addTab('/vault/a.md');
+
+		unpinTabByPath('/vault/a.md');
+
+		expect(editorStore.tabs[0].pinned).toBeFalsy();
 	});
 });
 
