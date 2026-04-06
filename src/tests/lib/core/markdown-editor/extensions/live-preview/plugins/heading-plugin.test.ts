@@ -194,6 +194,42 @@ describe('headingPlugin — buildHeadingDecorations', () => {
 		});
 	});
 
+	describe('same-line cursor optimization premise', () => {
+		it('decorations are identical when cursor moves within the same heading line', () => {
+			const doc = '# Hello World\nsome text';
+			// Cursor at position 4 (inside "Hello")
+			const decos1 = buildHeadings(doc, 4);
+			// Cursor at position 8 (inside "World") — same line
+			const decos2 = buildHeadings(doc, 8);
+			// Mark visibility should be the same (both on the heading line)
+			expect(markDecos(decos1).map(d => d.class)).toEqual(markDecos(decos2).map(d => d.class));
+			expect(lineDecos(decos1)).toEqual(lineDecos(decos2));
+		});
+
+		it('decorations are identical when cursor moves within a non-heading line', () => {
+			const doc = '# Heading\nsome longer text here';
+			// Cursor at position 15 — on "some longer"
+			const decos1 = buildHeadings(doc, 15);
+			// Cursor at position 25 — on "text here" (same line)
+			const decos2 = buildHeadings(doc, 25);
+			expect(markDecos(decos1).map(d => d.class)).toEqual(markDecos(decos2).map(d => d.class));
+			expect(lineDecos(decos1)).toEqual(lineDecos(decos2));
+		});
+
+		it('decorations DIFFER when cursor moves between heading and non-heading line', () => {
+			const doc = '# Hello\nsome text';
+			// Cursor on heading line
+			const decosOnHeading = buildHeadings(doc, 4);
+			// Cursor on text line
+			const decosOnText = buildHeadings(doc, 12);
+			// Mark visibility should differ
+			const headingMarks = markDecos(decosOnHeading);
+			const textMarks = markDecos(decosOnText);
+			expect(headingMarks[0].class).toBe('cm-formatting-block cm-formatting-block-visible');
+			expect(textMarks[0].class).toBe('cm-formatting-block');
+		});
+	});
+
 	describe('multi-line documents', () => {
 		it('handles heading on non-first line', () => {
 			const doc = 'first line\n## Title\nmore text';
