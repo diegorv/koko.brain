@@ -23,14 +23,17 @@ import { OrderedListMarkerWidget } from '../widgets';
 export const orderedListPlugin = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
+		lastCursorLine: number;
 
 		constructor(view: EditorView) {
 			this.decorations = buildOrderedListDecorations(view.state, view.visibleRanges);
+			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
 		update(update: ViewUpdate) {
-			const action = checkUpdateAction(update);
+			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
+				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildOrderedListDecorations(
 					update.view.state,
 					update.view.visibleRanges,

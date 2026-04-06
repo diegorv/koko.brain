@@ -26,7 +26,6 @@ import { headingLineDeco } from '../styles';
 export const headingPlugin = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
-		/** Tracks cursor line to skip rebuilds when cursor moves within the same line */
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
@@ -35,18 +34,9 @@ export const headingPlugin = ViewPlugin.fromClass(
 		}
 
 		update(update: ViewUpdate) {
-			const action = checkUpdateAction(update);
+			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
-				// Selection-only change: skip rebuild if cursor stayed on the same line.
-				// Heading mark visibility (shouldShowSource) only changes when the cursor
-				// enters/leaves a heading line, not when it moves within the same line.
-				if (update.selectionSet && !update.docChanged && !update.viewportChanged) {
-					const cursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-					if (cursorLine === this.lastCursorLine) return;
-					this.lastCursorLine = cursorLine;
-				} else {
-					this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				}
+				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildHeadingDecorations(
 					update.view.state,
 					update.view.visibleRanges,
