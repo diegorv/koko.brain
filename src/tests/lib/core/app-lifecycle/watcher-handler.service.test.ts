@@ -244,7 +244,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 	it('uses incremental update for a small number of markdown files', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([
-			{ path: 'note.md', content: 'updated content' },
+			{ path: '/vault/note.md', content: 'updated content' },
 		]);
 
 		await rebuildAllIndexes(['/vault/note.md']);
@@ -253,11 +253,12 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(rebuildIndex).not.toHaveBeenCalled();
 		expect(buildTagIndex).not.toHaveBeenCalled();
 
-		// Should call incremental per-file updaters
+		// Should pass absolute paths to read_files_batch
 		expect(invoke).toHaveBeenCalledWith('read_files_batch', {
 			vaultPath: '/vault',
-			paths: ['note.md'],
+			paths: ['/vault/note.md'],
 		});
+		// Index updaters receive vault-relative paths
 		expect(updateIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
 		expect(updateTaskIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
@@ -293,7 +294,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 	it('handles deleted files in incremental path', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([
-			{ path: 'deleted.md', content: null },
+			{ path: '/vault/deleted.md', content: null },
 		]);
 
 		const { removeFileFromIndex } = await import('$lib/features/backlinks/backlinks.service');
