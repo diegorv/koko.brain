@@ -3,6 +3,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
+import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 
 /**
  * Registers a listener for the native macOS menu "Settings" event.
@@ -52,6 +53,33 @@ export function registerCloseHandler(): () => void {
 		else unlisten = fn;
 	}).catch((err) => {
 		console.error('Failed to listen for close-requested:', err);
+	});
+	return () => {
+		cancelled = true;
+		unlisten?.();
+	};
+}
+
+/**
+ * Registers a listener for window focus changes.
+ * When the window regains focus, checks if the date has changed
+ * and refreshes the auto-pinned daily note if needed.
+ * Returns a cleanup function to unsubscribe.
+ */
+export function registerFocusListener(): () => void {
+	let cancelled = false;
+	let unlisten: (() => void) | undefined;
+	getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+		if (focused) {
+			refreshDailyNoteIfDateChanged().catch((err) => {
+				console.error('Failed to refresh daily note on focus:', err);
+			});
+		}
+	}).then((fn) => {
+		if (cancelled) fn();
+		else unlisten = fn;
+	}).catch((err) => {
+		console.error('Failed to listen for focus changes:', err);
 	});
 	return () => {
 		cancelled = true;
