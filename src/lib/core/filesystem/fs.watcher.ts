@@ -19,6 +19,19 @@ let counters = {
 	incrementalRefreshes: 0,
 };
 
+/**
+ * Checks whether a path is inside a hidden (dot-prefixed) directory relative to the vault.
+ * e.g. /vault/.git/foo → true, /vault/.kokobrain/db → true, /vault/notes/foo.md → false
+ */
+function isInsideHiddenDir(pathStr: string, vaultPrefix: string): boolean {
+	if (!pathStr.startsWith(vaultPrefix)) return false;
+	const relative = pathStr.substring(vaultPrefix.length);
+	// Check if the first path segment starts with a dot
+	const firstSlash = relative.indexOf('/');
+	const firstSegment = firstSlash >= 0 ? relative.substring(0, firstSlash) : relative;
+	return firstSegment.startsWith('.');
+}
+
 /** Logs the current counter summary */
 function logCounters() {
 	debug('WATCHER', `Counters: ${JSON.stringify(counters)}`);
@@ -198,25 +211,18 @@ export async function startWatching(vaultPath: string) {
 	await stopWatching();
 	currentVaultPath = vaultPath;
 
-	const kokobrainDir = `${vaultPath}/.kokobrain`;
-	const gitDir = `${vaultPath}/.git`;
-	const claudeDir = `${vaultPath}/.claude`;
+	const vaultPrefix = `${vaultPath}/`;
 	try {
 		unwatch = await watch(vaultPath, (event: WatchEvent) => {
 			let addedAny = false;
-			// Pre-filter paths: discard .git, .kokobrain, and .claude before logging to keep
-			// the debug output clean — these directories generate high-frequency noise.
+			// Pre-filter paths: discard hidden directories (dot-prefixed like .git,
+			// .kokobrain, .claude, .obsidian, etc.) before logging to keep the debug
+			// output clean — these directories generate high-frequency noise.
 			const relevantPaths: string[] = [];
 			for (const p of event.paths) {
 				const pathStr = String(p);
-				if (pathStr === gitDir || pathStr.startsWith(`${gitDir}/`)) {
-					continue;
-				}
-				if (pathStr === kokobrainDir || pathStr.startsWith(`${kokobrainDir}/`)) {
+				if (isInsideHiddenDir(pathStr, vaultPrefix)) {
 					counters.skippedKokobrain++;
-					continue;
-				}
-				if (pathStr === claudeDir || pathStr.startsWith(`${claudeDir}/`)) {
 					continue;
 				}
 				if (pathStr === vaultPath) {

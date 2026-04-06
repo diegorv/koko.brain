@@ -291,14 +291,14 @@ describe('updateBacklinksForFile', () => {
 		expect(backlinksStore.linkedMentions[0].snippets).toHaveLength(1);
 	});
 
-	it('marks unlinked mentions as dirty instead of computing them', () => {
+	it('does not mark unlinked mentions as dirty (deferred to save/tab-switch)', () => {
 		updateIndexForFile('/vault/note-a.md', 'Hello world');
 		updateIndexForFile('/vault/note-b.md', 'I mention note-a without linking');
 
 		updateBacklinksForFile('/vault/note-a.md');
 
-		// Unlinked should NOT be computed inline — only marked dirty
-		expect(backlinksStore.unlinkedDirty).toBe(true);
+		// Unlinked should NOT be marked dirty from keystroke path
+		expect(backlinksStore.unlinkedDirty).toBe(false);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
 	});
 
@@ -309,8 +309,8 @@ describe('updateBacklinksForFile', () => {
 		updateBacklinksForFile('/vault/note-a.md');
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
-		// Unlinked not computed inline, just marked dirty
-		expect(backlinksStore.unlinkedDirty).toBe(true);
+		// Unlinked not marked dirty from keystroke path
+		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 
 	it('excludes self-references from backlinks', () => {
@@ -331,8 +331,8 @@ describe('computeUnlinkedMentionsForFile', () => {
 		updateIndexForFile('/vault/note-a.md', 'Hello world');
 		updateIndexForFile('/vault/note-b.md', 'I mention note-a without linking');
 
-		// First update linked only — marks unlinked dirty
-		updateBacklinksForFile('/vault/note-a.md');
+		// Simulate save/tab-switch marking dirty
+		backlinksStore.markUnlinkedDirty();
 		expect(backlinksStore.unlinkedDirty).toBe(true);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
 

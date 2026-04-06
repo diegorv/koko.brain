@@ -341,7 +341,7 @@ describe('startWatching / stopWatching', () => {
 	});
 });
 
-// --- .kokobrain path filtering tests ---
+// --- hidden directory path filtering tests ---
 
 describe('watcher event filtering', () => {
 	beforeEach(() => {
@@ -352,7 +352,7 @@ describe('watcher event filtering', () => {
 		await stopWatching();
 	});
 
-	it('ignores events from .kokobrain directory', async () => {
+	it('ignores events from any hidden (dot-prefixed) directory', async () => {
 		let capturedCallback: ((event: any) => void) | null = null;
 		vi.mocked(watch).mockImplementation(async (_path, callback) => {
 			capturedCallback = callback as any;
@@ -362,35 +362,31 @@ describe('watcher event filtering', () => {
 		await startWatching('/vault');
 		expect(capturedCallback).not.toBeNull();
 
-		// Simulate events from .kokobrain directory — these should be ignored
+		// All hidden directories should be ignored: .kokobrain, .git, .claude, .obsidian, etc.
 		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.kokobrain/debug.log'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.kokobrain'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.kokobrain/db/index.db'] });
-
-		// No debounced refresh should be triggered (we can't easily assert on
-		// the debounce directly, but we can verify no side effects occurred)
-	});
-
-	it('ignores events from .git directory', async () => {
-		let capturedCallback: ((event: any) => void) | null = null;
-		vi.mocked(watch).mockImplementation(async (_path, callback) => {
-			capturedCallback = callback as any;
-			return () => {};
-		});
-
-		await startWatching('/vault');
-		expect(capturedCallback).not.toBeNull();
-
-		// Simulate git operations — all must be silently ignored, no counter increment
 		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git/index'] });
-		capturedCallback!({ type: { create: { kind: 'file' } }, paths: ['/vault/.git/objects/ff/abc123'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git/refs/heads/main'] });
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.claude/scripts/test.ts'] });
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.obsidian/workspace.json'] });
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.trash/deleted.md'] });
 
 		const counters = getWatcherCounters();
 		expect(counters.accepted).toBe(0);
-		// .git events are pre-filtered before rawEvents is incremented
 		expect(counters.rawEvents).toBe(0);
+	});
+
+	it('accepts events from non-hidden directories', async () => {
+		let capturedCallback: ((event: any) => void) | null = null;
+		vi.mocked(watch).mockImplementation(async (_path, callback) => {
+			capturedCallback = callback as any;
+			return () => {};
+		});
+
+		await startWatching('/vault');
+		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/notes/hello.md'] });
+
+		const counters = getWatcherCounters();
+		expect(counters.accepted).toBe(1);
+		expect(counters.rawEvents).toBe(1);
 	});
 
 	it('ignores events for the vault root path itself', async () => {
@@ -462,7 +458,7 @@ describe('watcher counters', () => {
 
 		// Accepted path
 		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/note.md'] });
-		// Skipped .kokobrain path
+		// Skipped hidden dir path (.kokobrain)
 		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.kokobrain/debug.log'] });
 		// Skipped vault root
 		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault'] });
@@ -471,6 +467,7 @@ describe('watcher counters', () => {
 		// rawEvents only counts events that have at least one relevant path after pre-filtering
 		expect(counters.rawEvents).toBe(1);
 		expect(counters.accepted).toBe(1);
+		// skippedKokobrain now counts all hidden dir skips (unified counter)
 		expect(counters.skippedKokobrain).toBe(1);
 		expect(counters.skippedVaultRoot).toBe(1);
 	});

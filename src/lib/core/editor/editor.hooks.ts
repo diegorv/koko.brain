@@ -1,4 +1,5 @@
 import type { EditorTab } from './editor.types';
+import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -139,9 +140,11 @@ export async function applyWriteTransform(
 	return handled;
 }
 
-/** Notifies all after-save observers. Errors are caught and logged. */
+/** Notifies all after-save observers. Errors are caught and logged.
+ *  Also marks unlinked mentions as dirty so the BacklinksPanel recomputes on save. */
 export function notifyAfterSave(filePath: string, content: string): void {
 	markRecentSave(filePath);
+	backlinksStore.markUnlinkedDirty();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);
 	for (const observer of afterSaveObservers) {
 		try {

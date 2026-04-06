@@ -16,6 +16,7 @@ import { buildTaskIndex, updateTaskIndexForFile } from '$lib/features/tasks/task
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
@@ -91,6 +92,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 		try { updateBacklinksForFile(activePath); } catch (err) { error('WATCHER', 'updateBacklinksForFile failed:', err); }
 		try { updateOutgoingLinksForFile(activePath); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
+	backlinksStore.markUnlinkedDirty();
 
 	debug('WATCHER-HANDLER', `Full rebuildAllIndexes completed in ${(performance.now() - start).toFixed(1)}ms`);
 	logProcessMemory();
@@ -136,4 +138,5 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		try { updateBacklinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateBacklinksForFile failed:', err); }
 		try { updateOutgoingLinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
+	backlinksStore.markUnlinkedDirty();
 }
