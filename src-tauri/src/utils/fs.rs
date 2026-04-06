@@ -21,6 +21,10 @@ pub fn validate_vault_path(vault_path: &str) -> Result<PathBuf, String> {
 /// A collected markdown file entry: (relative_path, absolute_path).
 pub type MarkdownEntry = (String, PathBuf);
 
+/// A collected markdown file entry with modification time: (relative_path, absolute_path, mtime_secs).
+/// The mtime is seconds since UNIX epoch, extracted during directory walk to avoid separate stat() calls.
+pub type MarkdownEntryWithMtime = (String, PathBuf, i64);
+
 /// Recursively collects markdown file paths from a vault directory.
 ///
 /// Returns `(relative_path, absolute_path)` pairs for all `.md` / `.markdown` files.
@@ -31,6 +35,18 @@ pub fn collect_markdown_paths(
 ) -> Result<Vec<MarkdownEntry>, String> {
 	let mut entries = Vec::new();
 	walk_dir(vault_root, vault_root, &mut entries, excluded_folders, 0)?;
+	Ok(entries)
+}
+
+/// Like `collect_markdown_paths`, but also collects modification times from the
+/// metadata already fetched during the walk. Eliminates the need for separate
+/// `std::fs::metadata()` calls per file.
+pub fn collect_markdown_paths_with_mtime(
+	vault_root: &Path,
+	excluded_folders: &[&str],
+) -> Result<Vec<MarkdownEntryWithMtime>, String> {
+	let mut entries = Vec::new();
+	walk_dir_with_mtime(vault_root, vault_root, &mut entries, excluded_folders, 0)?;
 	Ok(entries)
 }
 
@@ -82,6 +98,62 @@ fn walk_dir(
 				.map(|p| p.to_string_lossy().to_string())
 				.unwrap_or_else(|_| path.to_string_lossy().to_string());
 			entries.push((rel_path, path));
+		}
+	}
+
+	Ok(())
+}
+
+fn walk_dir_with_mtime(
+	dir: &Path,
+	vault_root: &Path,
+	entries: &mut Vec<MarkdownEntryWithMtime>,
+	excluded_folders: &[&str],
+	depth: usize,
+) -> Result<(), String> {
+	if depth >= MAX_DEPTH {
+		return Ok(());
+	}
+
+	let dir_entries = std::fs::read_dir(dir)
+		.map_err(|e| format!("Failed to read directory {:?}: {e}", dir))?;
+
+	for entry in dir_entries {
+		let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
+		let file_name = entry.file_name().to_string_lossy().to_string();
+
+		if file_name.starts_with('.') {
+			continue;
+		}
+
+		let path = entry.path();
+
+		let metadata = match std::fs::symlink_metadata(&path) {
+			Ok(m) => m,
+			Err(_) => continue,
+		};
+
+		if metadata.file_type().is_symlink() {
+			continue;
+		}
+
+		if metadata.is_dir() {
+			if excluded_folders.contains(&file_name.as_str()) {
+				continue;
+			}
+			walk_dir_with_mtime(&path, vault_root, entries, excluded_folders, depth + 1)?;
+		} else if file_name.ends_with(".md") || file_name.ends_with(".markdown") {
+			let rel_path = path
+				.strip_prefix(vault_root)
+				.map(|p| p.to_string_lossy().to_string())
+				.unwrap_or_else(|_| path.to_string_lossy().to_string());
+			let mtime = metadata
+				.modified()
+				.ok()
+				.and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+				.map(|d| d.as_secs() as i64)
+				.unwrap_or(0);
+			entries.push((rel_path, path, mtime));
 		}
 	}
 
