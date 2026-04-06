@@ -519,35 +519,68 @@ pub async fn update_semantic_file(
 			return Ok(());
 		}
 
-		// Embed new chunks FIRST, before any DB modification.
+		// Compare content hashes to find which chunks actually changed.
+		// This avoids expensive ONNX inference when content hasn't changed.
+		let existing_hashes = db::with_db(|conn| {
+			db::semantic_repo::get_chunk_hashes_for_path(conn, &file_path)
+		})?;
+
+		let new_keys: std::collections::HashSet<&str> = chunks.iter().map(|c| c.key.as_str()).collect();
+		let chunks_to_embed: Vec<&crate::semantic::types::Chunk> = chunks
+			.iter()
+			.filter(|chunk| {
+				existing_hashes
+					.get(&chunk.key)
+					.map_or(true, |stored_hash| stored_hash != &chunk.content_hash)
+			})
+			.collect();
+		let keys_to_delete: Vec<&str> = existing_hashes
+			.keys()
+			.filter(|k| !new_keys.contains(k.as_str()))
+			.map(|k| k.as_str())
+			.collect();
+
+		// All chunk keys match AND all hashes match — nothing to do
+		if chunks_to_embed.is_empty() && keys_to_delete.is_empty() {
+			debug_log("SEMANTIC", format!("Skipped update for {} — all {} chunks unchanged", file_path, chunks.len()));
+			update_stored_mtime(&file_path, &vault_path)?;
+			return Ok(());
+		}
+
+		// Embed only changed/new chunks FIRST, before any DB modification.
 		// If embedding fails, old chunks remain untouched in the DB.
-		let embeddings = {
+		let embeddings = if !chunks_to_embed.is_empty() {
 			let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 			let embedder = match guard.as_mut() {
 				Some(e) => e,
 				None => {
-				debug_log("SEMANTIC", format!("Skipped update for {}: embedder not loaded", file_path));
-				return Ok(());
-			}
+					debug_log("SEMANTIC", format!("Skipped update for {}: embedder not loaded", file_path));
+					return Ok(());
+				}
 			};
 
-			let text_refs: Vec<&str> = chunks.iter().map(|c| c.content.as_str()).collect();
-			debug_log("EMBEDDER", format!("File update — {} chunks for {}", text_refs.len(), file_path));
-			embedder.embed_batch(&text_refs)?
+			let texts: Vec<&str> = chunks_to_embed.iter().map(|c| c.content.as_str()).collect();
+			debug_log("EMBEDDER", format!("File update — {} changed of {} total chunks for {}", texts.len(), chunks.len(), file_path));
+			embedder.embed_batch(&texts)?
+		} else {
+			vec![]
 		}; // EMBEDDER guard dropped here — prevents deadlock with DB lock
 
-		// Delete old + insert new in a single transaction.
-		// If insert fails, delete is rolled back — no data loss.
+		// Apply changes in a single transaction:
+		// 1. Delete removed chunks (keys that no longer exist)
+		// 2. Upsert changed/new chunks with fresh embeddings
 		db::with_db_transaction("semantic update file", |conn| {
-			db::semantic_repo::delete_chunks_for_path(conn, &file_path)?;
+			for key in &keys_to_delete {
+				db::semantic_repo::delete_chunk_by_key(conn, key)?;
+			}
 
 			let now = std::time::SystemTime::now()
 				.duration_since(std::time::UNIX_EPOCH)
 				.map(|d| d.as_millis() as i64)
 				.unwrap_or(0);
 
-			for (i, chunk) in chunks.iter().enumerate() {
-				let embedding_bytes: Vec<u8> = embeddings[i]
+			for (chunk, embedding) in chunks_to_embed.iter().zip(embeddings.iter()) {
+				let embedding_bytes: Vec<u8> = embedding
 					.iter()
 					.flat_map(|f| f.to_le_bytes())
 					.collect();
@@ -570,7 +603,9 @@ pub async fn update_semantic_file(
 
 		// Update mtime so build_semantic_index doesn't re-process this file
 		update_stored_mtime(&file_path, &vault_path)?;
-		invalidate_search_cache();
+		if !chunks_to_embed.is_empty() || !keys_to_delete.is_empty() {
+			invalidate_search_cache();
+		}
 		Ok(())
 	})
 	.await

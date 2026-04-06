@@ -63,6 +63,13 @@ pub fn upsert_mtimes(conn: &Connection, entries: &[(String, i64)]) -> Result<(),
 	Ok(())
 }
 
+/// Deletes a single chunk by its unique key.
+pub fn delete_chunk_by_key(conn: &Connection, key: &str) -> Result<(), String> {
+	conn.execute("DELETE FROM chunks WHERE key = ?1", [key])
+		.map_err(|e| format!("Failed to delete chunk {}: {e}", key))?;
+	Ok(())
+}
+
 /// Deletes all chunks for a given source file path.
 pub fn delete_chunks_for_path(conn: &Connection, source_path: &str) -> Result<(), String> {
 	conn.execute(
@@ -102,6 +109,23 @@ pub fn insert_chunk(
 	)
 	.map_err(|e| format!("Failed to insert chunk: {e}"))?;
 	Ok(())
+}
+
+/// Returns content hashes for all chunks of a given source file.
+/// Used to skip re-embedding when content hasn't changed.
+/// Returns a map of `chunk_key -> content_hash`.
+pub fn get_chunk_hashes_for_path(conn: &Connection, source_path: &str) -> Result<HashMap<String, String>, String> {
+	let mut stmt = conn
+		.prepare("SELECT key, content_hash FROM chunks WHERE source_path = ?1")
+		.map_err(|e| format!("Failed to query chunk hashes for {}: {e}", source_path))?;
+	let map: HashMap<String, String> = stmt
+		.query_map([source_path], |row| {
+			Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+		})
+		.map_err(|e| e.to_string())?
+		.filter_map(|r| r.ok())
+		.collect();
+	Ok(map)
 }
 
 /// Loads all chunk rows with their raw embedding bytes.
