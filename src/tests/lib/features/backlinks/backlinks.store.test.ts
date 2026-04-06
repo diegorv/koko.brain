@@ -10,6 +10,7 @@ describe('backlinksStore', () => {
 	it('starts with empty state', () => {
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
+		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 
 	it('setLinkedMentions updates linked mentions', () => {
@@ -24,8 +25,23 @@ describe('backlinksStore', () => {
 		expect(backlinksStore.unlinkedMentions).toBe(mentions);
 	});
 
-	it('reset clears backlinks state and resets noteIndexStore', () => {
+	it('markUnlinkedDirty sets the dirty flag', () => {
+		expect(backlinksStore.unlinkedDirty).toBe(false);
+		backlinksStore.markUnlinkedDirty();
+		expect(backlinksStore.unlinkedDirty).toBe(true);
+	});
+
+	it('setUnlinkedMentions clears the dirty flag', () => {
+		backlinksStore.markUnlinkedDirty();
+		expect(backlinksStore.unlinkedDirty).toBe(true);
+
+		backlinksStore.setUnlinkedMentions([]);
+		expect(backlinksStore.unlinkedDirty).toBe(false);
+	});
+
+	it('reset clears backlinks state including dirty flag and resets noteIndexStore', () => {
 		backlinksStore.setLinkedMentions([{}] as any);
+		backlinksStore.markUnlinkedDirty();
 		noteIndexStore.setLoading(true);
 		noteIndexStore.setNoteContents(new Map([['a', 'b']]));
 
@@ -33,6 +49,7 @@ describe('backlinksStore', () => {
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
+		expect(backlinksStore.unlinkedDirty).toBe(false);
 		expect(noteIndexStore.isLoading).toBe(false);
 		expect(noteIndexStore.noteIndex.size).toBe(0);
 		expect(noteIndexStore.noteContents.size).toBe(0);

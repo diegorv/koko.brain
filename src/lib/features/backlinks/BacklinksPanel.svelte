@@ -1,14 +1,26 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { ChevronRight, Link, Type } from 'lucide-svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { backlinksStore } from './backlinks.store.svelte';
 	import { noteIndexStore } from './note-index.store.svelte';
+	import { computeUnlinkedMentionsForFile } from './backlinks.service';
 	import LinkItem from './LinkItem.svelte';
 
 	let linkedOpen = $state(true);
 	let unlinkedOpen = $state(true);
+
+	// Compute unlinked mentions on demand when the section is open and dirty
+	$effect(() => {
+		const dirty = backlinksStore.unlinkedDirty;
+		const open = unlinkedOpen;
+		const path = editorStore.activeTabPath;
+		if (dirty && open && path) {
+			untrack(() => computeUnlinkedMentionsForFile(path));
+		}
+	});
 </script>
 
 <div class="flex flex-col">

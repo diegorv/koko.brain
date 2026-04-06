@@ -13,6 +13,7 @@ import {
 	updateIndexForFile,
 	removeFileFromIndex,
 	updateBacklinksForFile,
+	computeUnlinkedMentionsForFile,
 	resetBacklinks,
 } from '$lib/features/backlinks/backlinks.service';
 import { makeFileNode, makeDirNode, makeSuccessResult, makeErrorResult } from '../../../fixtures/tauri-api.fixture';
@@ -290,14 +291,15 @@ describe('updateBacklinksForFile', () => {
 		expect(backlinksStore.linkedMentions[0].snippets).toHaveLength(1);
 	});
 
-	it('computes unlinked mentions from notes that mention the name without wikilink', () => {
+	it('marks unlinked mentions as dirty instead of computing them', () => {
 		updateIndexForFile('/vault/note-a.md', 'Hello world');
 		updateIndexForFile('/vault/note-b.md', 'I mention note-a without linking');
 
 		updateBacklinksForFile('/vault/note-a.md');
 
-		expect(backlinksStore.unlinkedMentions).toHaveLength(1);
-		expect(backlinksStore.unlinkedMentions[0].sourcePath).toBe('/vault/note-b.md');
+		// Unlinked should NOT be computed inline — only marked dirty
+		expect(backlinksStore.unlinkedDirty).toBe(true);
+		expect(backlinksStore.unlinkedMentions).toEqual([]);
 	});
 
 	it('returns empty when no notes link to the file', () => {
@@ -307,7 +309,8 @@ describe('updateBacklinksForFile', () => {
 		updateBacklinksForFile('/vault/note-a.md');
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
-		expect(backlinksStore.unlinkedMentions).toEqual([]);
+		// Unlinked not computed inline, just marked dirty
+		expect(backlinksStore.unlinkedDirty).toBe(true);
 	});
 
 	it('excludes self-references from backlinks', () => {
@@ -316,6 +319,39 @@ describe('updateBacklinksForFile', () => {
 		updateBacklinksForFile('/vault/note-a.md');
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
+	});
+});
+
+describe('computeUnlinkedMentionsForFile', () => {
+	beforeEach(() => {
+		resetBacklinks();
+	});
+
+	it('computes unlinked mentions on demand and clears dirty flag', () => {
+		updateIndexForFile('/vault/note-a.md', 'Hello world');
+		updateIndexForFile('/vault/note-b.md', 'I mention note-a without linking');
+
+		// First update linked only — marks unlinked dirty
+		updateBacklinksForFile('/vault/note-a.md');
+		expect(backlinksStore.unlinkedDirty).toBe(true);
+		expect(backlinksStore.unlinkedMentions).toEqual([]);
+
+		// Now compute unlinked on demand
+		computeUnlinkedMentionsForFile('/vault/note-a.md');
+
+		expect(backlinksStore.unlinkedMentions).toHaveLength(1);
+		expect(backlinksStore.unlinkedMentions[0].sourcePath).toBe('/vault/note-b.md');
+		expect(backlinksStore.unlinkedDirty).toBe(false);
+	});
+
+	it('returns empty when no unlinked mentions exist', () => {
+		updateIndexForFile('/vault/note-a.md', 'Hello world');
+		updateIndexForFile('/vault/note-b.md', 'No mention of the other note');
+
+		computeUnlinkedMentionsForFile('/vault/note-a.md');
+
+		expect(backlinksStore.unlinkedMentions).toEqual([]);
+		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 });
 

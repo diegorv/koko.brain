@@ -97,6 +97,11 @@ export function removeFileFromIndex(filePath: string) {
 	}
 }
 
+/**
+ * Updates only linked mentions for a file and marks unlinked as dirty.
+ * This is the fast path used by keystroke-driven index updates and tab switches.
+ * Unlinked mentions are deferred until the panel requests them via `computeUnlinkedMentionsForFile`.
+ */
 export function updateBacklinksForFile(
 	filePath: string,
 	sharedFilePaths?: string[],
@@ -106,19 +111,29 @@ export function updateBacklinksForFile(
 	const noteIndex = noteIndexStore.noteIndex;
 	const noteContents = noteIndexStore.noteContents;
 	const allFilePaths = sharedFilePaths ?? Array.from(noteContents.keys());
-	const noteName = getNoteName(filePath);
 
 	const t1 = perfStart();
 	const linked = findLinkedMentions(filePath, noteIndex, noteContents, allFilePaths, sharedCache);
 	perfEnd('BACKLINKS', 'findLinkedMentions', t1);
 
-	const t2 = perfStart();
-	const unlinked = findUnlinkedMentions(filePath, noteName, noteContents, noteIndex);
-	perfEnd('BACKLINKS', 'findUnlinkedMentions', t2);
-
 	backlinksStore.setLinkedMentions(linked);
-	backlinksStore.setUnlinkedMentions(unlinked);
+	backlinksStore.markUnlinkedDirty();
 	perfEnd('BACKLINKS', 'updateBacklinksForFile', t0);
+}
+
+/**
+ * Computes unlinked mentions on demand. Called by the BacklinksPanel when
+ * the unlinked section is visible and the dirty flag is set.
+ * This is the expensive O(N) operation that scans all note contents.
+ */
+export function computeUnlinkedMentionsForFile(filePath: string) {
+	const t0 = perfStart();
+	const noteIndex = noteIndexStore.noteIndex;
+	const noteContents = noteIndexStore.noteContents;
+	const noteName = getNoteName(filePath);
+	const unlinked = findUnlinkedMentions(filePath, noteName, noteContents, noteIndex);
+	backlinksStore.setUnlinkedMentions(unlinked);
+	perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);
 }
 
 export function resetBacklinks() {
