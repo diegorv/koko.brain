@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+setupLocalStorage();
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	rebuildIndex: vi.fn(() => Promise.resolve()),
+	updateIndexForFile: vi.fn(),
 	updateBacklinksForFile: vi.fn(),
+	removeFileFromIndex: vi.fn(),
 }));
 
 vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
@@ -11,22 +19,27 @@ vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
 
 vi.mock('$lib/features/tags/tags.service', () => ({
 	buildTagIndex: vi.fn(),
+	updateTagIndexForFile: vi.fn(),
 }));
 
 vi.mock('$lib/features/collection/collection.service', () => ({
 	buildPropertyIndex: vi.fn(),
+	updateNoteInIndex: vi.fn(),
 }));
 
 vi.mock('$lib/features/file-icons/file-icons.service', () => ({
 	buildFrontmatterIconIndex: vi.fn(),
+	updateFrontmatterIconForFile: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 	scanFilesForCalendar: vi.fn(),
+	updateCalendarForFile: vi.fn(),
 }));
 
 vi.mock('$lib/features/tasks/tasks.service', () => ({
 	buildTaskIndex: vi.fn(),
+	updateTaskIndexForFile: vi.fn(),
 }));
 
 vi.mock('$lib/core/editor/editor.hooks', () => ({
@@ -39,16 +52,18 @@ vi.mock('$lib/utils/debug', () => ({
 	logProcessMemory: vi.fn(),
 }));
 
+import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
-import { rebuildIndex, updateBacklinksForFile } from '$lib/features/backlinks/backlinks.service';
+import { rebuildIndex, updateIndexForFile, updateBacklinksForFile } from '$lib/features/backlinks/backlinks.service';
 import { updateOutgoingLinksForFile } from '$lib/features/outgoing-links/outgoing-links.service';
-import { buildTagIndex } from '$lib/features/tags/tags.service';
-import { buildPropertyIndex } from '$lib/features/collection/collection.service';
-import { buildFrontmatterIconIndex } from '$lib/features/file-icons/file-icons.service';
-import { scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
-import { buildTaskIndex } from '$lib/features/tasks/tasks.service';
+import { buildTagIndex, updateTagIndexForFile } from '$lib/features/tags/tags.service';
+import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
+import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
+import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { buildTaskIndex, updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { rebuildAllIndexes } from '$lib/core/app-lifecycle/watcher-handler.service';
 
 describe('rebuildAllIndexes', () => {
@@ -215,5 +230,77 @@ describe('rebuildAllIndexes — error isolation', () => {
 
 		expect(debugError).toHaveBeenCalledWith('WATCHER', 'updateBacklinksForFile failed:', expect.any(Error));
 		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md');
+	});
+});
+
+describe('rebuildAllIndexes — incremental path', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+	});
+
+	it('uses incremental update for a small number of markdown files', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: 'note.md', content: 'updated content' },
+		]);
+
+		await rebuildAllIndexes(['/vault/note.md']);
+
+		// Should NOT call full rebuild
+		expect(rebuildIndex).not.toHaveBeenCalled();
+		expect(buildTagIndex).not.toHaveBeenCalled();
+
+		// Should call incremental per-file updaters
+		expect(invoke).toHaveBeenCalledWith('read_files_batch', {
+			vaultPath: '/vault',
+			paths: ['note.md'],
+		});
+		expect(updateIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
+		expect(updateTagIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
+		expect(updateTaskIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
+		expect(updateNoteInIndex).toHaveBeenCalledWith('note.md', 'updated content');
+		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('note.md', 'updated content');
+		expect(updateCalendarForFile).toHaveBeenCalledWith('note.md', 'updated content');
+	});
+
+	it('falls back to full rebuild when incremental fails', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('read failed'));
+
+		await rebuildAllIndexes(['/vault/note.md']);
+
+		// Incremental failed, should fall back to full rebuild
+		expect(rebuildIndex).toHaveBeenCalled();
+		expect(buildTagIndex).toHaveBeenCalled();
+	});
+
+	it('uses full rebuild for many changed files', async () => {
+		const paths = Array.from({ length: 15 }, (_, i) => `/vault/note-${i}.md`);
+
+		await rebuildAllIndexes(paths);
+
+		expect(rebuildIndex).toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalledWith('read_files_batch', expect.anything());
+	});
+
+	it('uses full rebuild for non-markdown files', async () => {
+		await rebuildAllIndexes(['/vault/image.png']);
+
+		expect(rebuildIndex).toHaveBeenCalled();
+	});
+
+	it('handles deleted files in incremental path', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: 'deleted.md', content: null },
+		]);
+
+		const { removeFileFromIndex } = await import('$lib/features/backlinks/backlinks.service');
+
+		await rebuildAllIndexes(['/vault/deleted.md']);
+
+		expect(removeFileFromIndex).toHaveBeenCalledWith('deleted.md');
+		expect(updateIndexForFile).not.toHaveBeenCalled();
 	});
 });
