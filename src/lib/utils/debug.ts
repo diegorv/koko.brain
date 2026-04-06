@@ -13,10 +13,10 @@ function logTime(): string {
  *  Does nothing when `settingsStore.debugMode` is false. */
 export function debug(tag: string, ...args: unknown[]): void {
 	if (settingsStore.debugLogToFile) {
-		appendLog(tag, ...args);
+		appendLog(`FRONT-END:${tag}`, ...args);
 	}
 	if (!settingsStore.debugMode) return;
-	console.log(`[${logTime()}] [${tag}]`, ...args);
+	console.log(`[${logTime()}] [FRONT-END:${tag}]`, ...args);
 }
 
 /** Logs an error message to the console. Always visible (not gated by debugMode).
@@ -24,9 +24,9 @@ export function debug(tag: string, ...args: unknown[]): void {
  *  Also writes to the log file when `debugLogToFile` is enabled. */
 export function error(tag: string, ...args: unknown[]): void {
 	if (settingsStore.debugLogToFile) {
-		appendLog(`ERROR:${tag}`, ...args);
+		appendLog(`ERROR:FRONT-END:${tag}`, ...args);
 	}
-	console.error(`[${logTime()}] [${tag}]`, ...args);
+	console.error(`[${logTime()}] [FRONT-END:${tag}]`, ...args);
 }
 
 // --- Timing helpers ---
@@ -115,9 +115,9 @@ async function startTauriDebugListener(): Promise<void> {
 	if (tauriDebugUnlisten) return;
 	tauriDebugUnlisten = await listen<TauriDebugLogPayload>('tauri-debug-log', (event) => {
 		const { tag, message } = event.payload;
-		console.log(`[${logTime()}] [TAURI:${tag}] ${message}`);
+		console.log(`[${logTime()}] [TAURI:RUST:${tag}] ${message}`);
 		if (settingsStore.debugTauriLogToFile) {
-			appendLog(`TAURI:${tag}`, message);
+			appendLog(`TAURI:RUST:${tag}`, message);
 		}
 	});
 }

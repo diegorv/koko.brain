@@ -42,7 +42,7 @@ describe('debug', () => {
 
 		debug('WATCHER', 'refresh fired', { paths: ['/a'] });
 
-		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[WATCHER]'), 'refresh fired', { paths: ['/a'] });
+		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[FRONT-END:WATCHER]'), 'refresh fired', { paths: ['/a'] });
 	});
 
 	it('passes multiple arguments through', () => {
@@ -50,7 +50,7 @@ describe('debug', () => {
 
 		debug('FS', 'renamed:', '/old', '→', '/new');
 
-		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[FS]'), 'renamed:', '/old', '→', '/new');
+		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[FRONT-END:FS]'), 'renamed:', '/old', '→', '/new');
 	});
 
 	it('calls appendLog when debugLogToFile is true', () => {
@@ -58,7 +58,7 @@ describe('debug', () => {
 
 		debug('TEST', 'hello', 42);
 
-		expect(appendLog).toHaveBeenCalledWith('TEST', 'hello', 42);
+		expect(appendLog).toHaveBeenCalledWith('FRONT-END:TEST', 'hello', 42);
 	});
 
 	it('calls appendLog even when debugMode is false', () => {
@@ -66,7 +66,7 @@ describe('debug', () => {
 
 		debug('TEST', 'file only');
 
-		expect(appendLog).toHaveBeenCalledWith('TEST', 'file only');
+		expect(appendLog).toHaveBeenCalledWith('FRONT-END:TEST', 'file only');
 		expect(consoleSpy).not.toHaveBeenCalled();
 	});
 
@@ -95,7 +95,7 @@ describe('error', () => {
 	it('always logs to console.error regardless of debugMode', () => {
 		error('TEST', 'something broke', 42);
 
-		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[TEST]'), 'something broke', 42);
+		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[FRONT-END:TEST]'), 'something broke', 42);
 	});
 
 	it('logs even when debugMode is false', () => {
@@ -103,7 +103,7 @@ describe('error', () => {
 
 		error('FS', 'disk error');
 
-		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[FS]'), 'disk error');
+		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[FRONT-END:FS]'), 'disk error');
 	});
 
 	it('calls appendLog with ERROR: prefix when debugLogToFile is true', () => {
@@ -111,7 +111,7 @@ describe('error', () => {
 
 		error('EDITOR', 'save failed', { code: 'ENOENT' });
 
-		expect(appendLog).toHaveBeenCalledWith('ERROR:EDITOR', 'save failed', { code: 'ENOENT' });
+		expect(appendLog).toHaveBeenCalledWith('ERROR:FRONT-END:EDITOR', 'save failed', { code: 'ENOENT' });
 	});
 
 	it('does not call appendLog when debugLogToFile is false', () => {
@@ -124,7 +124,7 @@ describe('error', () => {
 		error('ENCRYPTION', 'Failed to encrypt:', '/path/file.md', new Error('denied'));
 
 		expect(consoleSpy).toHaveBeenCalledWith(
-			expect.stringContaining('[ENCRYPTION]'),
+			expect.stringContaining('[FRONT-END:ENCRYPTION]'),
 			'Failed to encrypt:',
 			'/path/file.md',
 			expect.any(Error),
@@ -201,7 +201,7 @@ describe('timeAsync', () => {
 		await timeAsync('FS', 'loadTree', async () => 'done');
 
 		expect(consoleSpy).toHaveBeenCalledWith(
-			expect.stringContaining('[FS]'),
+			expect.stringContaining('[FRONT-END:FS]'),
 			expect.stringMatching(/loadTree completed in \d+(\.\d+)?ms/),
 		);
 	});
@@ -237,7 +237,7 @@ describe('timeSync', () => {
 		timeSync('TAGS', 'buildIndex', () => {});
 
 		expect(consoleSpy).toHaveBeenCalledWith(
-			expect.stringContaining('[TAGS]'),
+			expect.stringContaining('[FRONT-END:TAGS]'),
 			expect.stringMatching(/buildIndex completed in \d+(\.\d+)?ms/),
 		);
 	});
@@ -270,7 +270,7 @@ describe('logProcessMemory', () => {
 
 		expect(invoke).toHaveBeenCalledWith('get_process_memory');
 		expect(consoleSpy).toHaveBeenCalledWith(
-			expect.stringContaining('[MEMORY]'),
+			expect.stringContaining('[FRONT-END:MEMORY]'),
 			'Process RSS: 100.0 MB',
 		);
 	});
@@ -291,7 +291,7 @@ describe('logProcessMemory', () => {
 		await logProcessMemory();
 
 		expect(errorSpy).toHaveBeenCalledWith(
-			expect.stringContaining('[MEMORY]'),
+			expect.stringContaining('[FRONT-END:MEMORY]'),
 			'Failed to get process memory:',
 			expect.any(Error),
 		);
