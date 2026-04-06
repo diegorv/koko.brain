@@ -224,6 +224,14 @@ export function pinTabByPath(filePath: string) {
 	}
 }
 
+/** Unpins a tab identified by file path (used when rotating auto-pinned daily notes) */
+export function unpinTabByPath(filePath: string) {
+	const index = findTabIndex(editorStore.tabs, filePath);
+	if (index >= 0 && editorStore.tabs[index].pinned) {
+		editorStore.setPinned(index, false);
+	}
+}
+
 /**
  * Force-closes all tabs whose path matches or is a child of the given path.
  * Bypasses the pinned check — used when the underlying file has been deleted.
