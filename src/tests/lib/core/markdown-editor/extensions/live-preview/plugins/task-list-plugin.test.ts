@@ -60,6 +60,34 @@ describe('taskListPlugin — buildTaskListDecorations', () => {
 		expect(decos).toHaveLength(0);
 	});
 
+	describe('same-line cursor optimization premise', () => {
+		it('decorations are identical when cursor moves within the same task line', () => {
+			const doc = '- [ ] a longer task item\ntext';
+			// Cursor at two different positions on the task line — both show source
+			const decos1 = buildTasks(doc, 6);
+			const decos2 = buildTasks(doc, 15);
+			expect(decos1).toEqual(decos2);
+		});
+
+		it('decorations are identical when cursor moves within the same non-task line', () => {
+			const doc = '- [ ] task\nsome longer text here';
+			const decos1 = buildTasks(doc, 15);
+			const decos2 = buildTasks(doc, 25);
+			expect(decos1).toEqual(decos2);
+		});
+
+		it('decorations DIFFER when cursor moves from task line to non-task line', () => {
+			const doc = '- [ ] task\ntext';
+			// On task line — shows source (no widget)
+			const decosOnTask = buildTasks(doc, 6);
+			// On text line — shows widget
+			const decosOnText = buildTasks(doc, 13);
+			expect(decosOnTask).toHaveLength(0);
+			expect(decosOnText).toHaveLength(1);
+			expect(decosOnText[0].hasWidget).toBe(true);
+		});
+	});
+
 	it('per-element: only shows source for task under cursor', () => {
 		const doc = '- [ ] first\n- [ ] second\ntext';
 		const decos = buildTasks(doc, 5); // cursor on "first"
