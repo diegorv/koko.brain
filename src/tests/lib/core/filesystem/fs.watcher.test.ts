@@ -389,7 +389,8 @@ describe('watcher event filtering', () => {
 
 		const counters = getWatcherCounters();
 		expect(counters.accepted).toBe(0);
-		expect(counters.rawEvents).toBe(4);
+		// .git events are pre-filtered before rawEvents is incremented
+		expect(counters.rawEvents).toBe(0);
 	});
 
 	it('ignores events for the vault root path itself', async () => {
@@ -467,7 +468,8 @@ describe('watcher counters', () => {
 		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault'] });
 
 		const counters = getWatcherCounters();
-		expect(counters.rawEvents).toBe(3);
+		// rawEvents only counts events that have at least one relevant path after pre-filtering
+		expect(counters.rawEvents).toBe(1);
 		expect(counters.accepted).toBe(1);
 		expect(counters.skippedKokobrain).toBe(1);
 		expect(counters.skippedVaultRoot).toBe(1);

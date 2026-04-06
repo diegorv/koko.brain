@@ -203,30 +203,29 @@ export async function startWatching(vaultPath: string) {
 	try {
 		unwatch = await watch(vaultPath, (event: WatchEvent) => {
 			let addedAny = false;
-			counters.rawEvents++;
-			debug('WATCHER', `Raw event — type: ${JSON.stringify(event.type)}, paths: [${event.paths.map(String).join(', ')}]`);
+			// Pre-filter paths: discard .git and .kokobrain before logging to keep
+			// the debug output clean — these directories generate high-frequency noise.
+			const relevantPaths: string[] = [];
 			for (const p of event.paths) {
 				const pathStr = String(p);
-				// Skip the vault root itself — macOS FSEvents reports parent directories
-				// as changed when files inside them change. If .kokobrain/* triggered the event,
-				// we'd only see the vault root here, causing an infinite refresh loop.
-				if (pathStr === vaultPath) {
-					counters.skippedVaultRoot++;
-					debug('WATCHER', `Skipped (vault root): ${pathStr}`);
-					continue;
-				}
-				// Skip changes inside the .kokobrain internal directory (logs, db, settings)
-				// to prevent feedback loops when debug logging or DB writes trigger the watcher.
-				if (pathStr === kokobrainDir || pathStr.startsWith(`${kokobrainDir}/`)) {
-					counters.skippedKokobrain++;
-					debug('WATCHER', `Skipped (.kokobrain): ${pathStr}`);
-					continue;
-				}
-				// Skip all .git directory changes — git operations (commit, add, fetch, rebase)
-				// generate many internal file events that are irrelevant to the user's notes.
 				if (pathStr === gitDir || pathStr.startsWith(`${gitDir}/`)) {
 					continue;
 				}
+				if (pathStr === kokobrainDir || pathStr.startsWith(`${kokobrainDir}/`)) {
+					counters.skippedKokobrain++;
+					continue;
+				}
+				if (pathStr === vaultPath) {
+					counters.skippedVaultRoot++;
+					continue;
+				}
+				relevantPaths.push(pathStr);
+			}
+			if (relevantPaths.length === 0) return;
+
+			counters.rawEvents++;
+			debug('WATCHER', `Raw event — type: ${JSON.stringify(event.type)}, paths: [${relevantPaths.join(', ')}]`);
+			for (const pathStr of relevantPaths) {
 				counters.accepted++;
 				debug('WATCHER', `Accepted: ${pathStr}`);
 				pendingChangedPaths.add(pathStr);
