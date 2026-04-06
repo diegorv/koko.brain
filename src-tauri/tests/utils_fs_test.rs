@@ -1,4 +1,4 @@
-use kokobrain_lib::utils::fs::collect_markdown_paths;
+use kokobrain_lib::utils::fs::{collect_markdown_paths, collect_markdown_paths_with_mtime};
 use std::fs;
 use tempfile::TempDir;
 
@@ -188,4 +188,50 @@ fn ignores_non_markdown_files() {
 	let entries = collect_markdown_paths(tmp.path(), &[]).unwrap();
 	assert_eq!(entries.len(), 1);
 	assert_eq!(entries[0].0, "note.md");
+}
+
+// --- collect_markdown_paths_with_mtime ---
+
+#[test]
+fn with_mtime_collects_files_and_returns_positive_mtime() {
+	let tmp = setup();
+	fs::write(tmp.path().join("note.md"), "# Hello").unwrap();
+
+	let entries = collect_markdown_paths_with_mtime(tmp.path(), &[]).unwrap();
+	assert_eq!(entries.len(), 1);
+	assert_eq!(entries[0].0, "note.md");
+	assert!(entries[0].2 > 0, "mtime should be a positive unix timestamp");
+}
+
+#[test]
+fn with_mtime_returns_same_files_as_without_mtime() {
+	let tmp = setup();
+	let sub = tmp.path().join("sub");
+	fs::create_dir_all(&sub).unwrap();
+	fs::write(tmp.path().join("a.md"), "a").unwrap();
+	fs::write(sub.join("b.md"), "b").unwrap();
+	fs::write(tmp.path().join("skip.txt"), "not md").unwrap();
+
+	let without = collect_markdown_paths(tmp.path(), &[]).unwrap();
+	let with_mtime = collect_markdown_paths_with_mtime(tmp.path(), &[]).unwrap();
+
+	let mut paths_without: Vec<&str> = without.iter().map(|(p, _)| p.as_str()).collect();
+	let mut paths_with: Vec<&str> = with_mtime.iter().map(|(p, _, _)| p.as_str()).collect();
+	paths_without.sort();
+	paths_with.sort();
+
+	assert_eq!(paths_without, paths_with, "both functions should return the same file paths");
+}
+
+#[test]
+fn with_mtime_excludes_folders() {
+	let tmp = setup();
+	let excluded = tmp.path().join("hidden");
+	fs::create_dir_all(&excluded).unwrap();
+	fs::write(excluded.join("secret.md"), "x").unwrap();
+	fs::write(tmp.path().join("visible.md"), "y").unwrap();
+
+	let entries = collect_markdown_paths_with_mtime(tmp.path(), &["hidden"]).unwrap();
+	assert_eq!(entries.len(), 1);
+	assert_eq!(entries[0].0, "visible.md");
 }

@@ -167,29 +167,20 @@ pub async fn build_semantic_index(
 			db::with_db(|conn| db::semantic_repo::clear_all_chunks(conn))?;
 		}
 
-		let file_entries = vault_fs::collect_markdown_paths(vault, EXCLUDED_FOLDERS)?;
+		let file_entries = vault_fs::collect_markdown_paths_with_mtime(vault, EXCLUDED_FOLDERS)?;
 		let stored_mtimes = db::with_db(|conn| db::semantic_repo::get_stored_mtimes(conn))?;
 
 		let total_files = file_entries.len();
 		let mut changed_files: Vec<(String, String, i64)> = Vec::new();
 		let mut all_paths: Vec<String> = Vec::new();
 
-		for (rel_path, abs_path) in &file_entries {
+		for (rel_path, abs_path, mtime) in &file_entries {
 			all_paths.push(rel_path.clone());
-			let mtime = std::fs::metadata(abs_path)
-				.and_then(|m| m.modified())
-				.ok()
-				.and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-				.map(|d| d.as_secs() as i64)
-				.unwrap_or_else(|| {
-					debug_log("SEMANTIC", format!("Failed to read mtime for {}, defaulting to 0", rel_path));
-					0
-				});
 
 			let stored = stored_mtimes.get(rel_path).copied().unwrap_or(-1);
-			if model_changed || mtime != stored {
+			if model_changed || *mtime != stored {
 				if let Ok(content) = std::fs::read_to_string(abs_path) {
-					changed_files.push((rel_path.clone(), content, mtime));
+					changed_files.push((rel_path.clone(), content, *mtime));
 				}
 			}
 		}
