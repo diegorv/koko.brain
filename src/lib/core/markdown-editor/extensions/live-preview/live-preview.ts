@@ -32,6 +32,7 @@ import { unorderedListPlugin } from './plugins/unordered-list-plugin';
 import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
+import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
 
 export { forceDecorationRebuild } from './core/effects';
 import { calloutFoldState } from './core/effects';
@@ -75,6 +76,8 @@ export function livePreviewExtensions(): Extension[] {
 		hardBreakPlugin,
 		inlineCommentPlugin,
 		blockReferencePlugin,
+		// Scroll debounce — defers decoration rebuilds during active scroll
+		scrollDebouncePlugin,
 		// Shared
 		livePreviewClickHandler,
 		livePreviewStyles,
