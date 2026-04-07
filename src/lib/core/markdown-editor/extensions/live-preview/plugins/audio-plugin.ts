@@ -7,7 +7,7 @@ import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
-import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes audio block decorations */
 export function computeAudioBlocks(state: EditorState): DecorationSet {
@@ -64,9 +64,9 @@ export const audioPlugin = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = performance.now();
+				const _t = profileStart();
 				this.decorations = computeAudioBlocks(update.state);
-				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `audio: ${_d.toFixed(1)}ms`);
+				profileEnd('audio', _t);
 			}
 		}
 	},

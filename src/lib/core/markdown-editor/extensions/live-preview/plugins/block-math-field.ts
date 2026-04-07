@@ -6,7 +6,7 @@ import { BlockMathWidget } from '../widgets/block-math-widget';
 import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
-import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes block math decorations using the Lezer syntax tree */
 export function computeBlockMath(state: EditorState): DecorationSet {
@@ -57,9 +57,9 @@ export const blockMathField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = performance.now();
+				const _t = profileStart();
 				this.decorations = computeBlockMath(update.state);
-				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `block-math: ${_d.toFixed(1)}ms`);
+				profileEnd('block-math', _t);
 			}
 		}
 	},

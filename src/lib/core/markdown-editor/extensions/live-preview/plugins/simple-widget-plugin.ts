@@ -17,7 +17,7 @@ import {
 	OrderedListMarkerWidget,
 } from '../widgets';
 import { InlineMathWidget } from '../widgets/inline-math-widget';
-import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 
 /**
@@ -44,12 +44,12 @@ export const simpleWidgetPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = performance.now();
+				const _t = profileStart();
 				this.decorations = buildSimpleWidgetDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
-				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `simple-widget: ${_d.toFixed(1)}ms`);
+				profileEnd('simple-widget', _t);
 			}
 		}
 	},
