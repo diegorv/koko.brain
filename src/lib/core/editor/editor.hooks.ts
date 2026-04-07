@@ -1,5 +1,6 @@
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -145,6 +146,7 @@ export async function applyWriteTransform(
 export function notifyAfterSave(filePath: string, content: string): void {
 	markRecentSave(filePath);
 	backlinksStore.markUnlinkedDirty();
+	invalidateQueryjsCache();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);
 	for (const observer of afterSaveObservers) {
 		try {

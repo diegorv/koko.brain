@@ -214,6 +214,10 @@ export interface AppSettings {
 	debugLogToFile: boolean;
 	/** Whether Tauri backend debug logs are also written to a file in .kokobrain/logs/ */
 	debugTauriLogToFile: boolean;
+	/** Whether live preview decoration plugin timing is logged (LP-PROFILE entries) */
+	livePreviewProfiling: boolean;
+	/** Live preview decorators that are disabled (keyed by decorator name) */
+	disabledDecorators: Record<string, boolean>;
 	/** Tag color assignments (persisted per-vault) */
 	tagColors: TagColorSettings;
 }

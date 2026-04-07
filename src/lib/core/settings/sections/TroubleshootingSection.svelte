@@ -7,6 +7,17 @@
 	import SettingItem from './SettingItem.svelte';
 
 	let { onchange }: { onchange: () => void } = $props();
+
+	/** All live preview decorator names that can be toggled */
+	const DECORATOR_NAMES = [
+		'table', 'metaBindInput', 'queryjs', 'codeBlock', 'frontmatter',
+		'callout', 'link', 'inlineMarks', 'simpleWidget', 'heading',
+		'blockquote', 'markdownStyle',
+	] as const;
+
+	function isDecoratorDisabled(name: string): boolean {
+		return settingsStore.disabledDecorators[name] ?? false;
+	}
 </script>
 
 <div class="flex flex-col gap-2">
@@ -59,6 +70,40 @@
 			Open
 		</Button>
 	</SettingItem>
+
+	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Live Preview</h3>
+
+	<SettingItem
+		label="Profile decoration plugins"
+		description="Log timing for each live preview decoration rebuild (requires log to file enabled)"
+	>
+		<Switch
+			checked={settingsStore.livePreviewProfiling}
+			onCheckedChange={(v) => {
+				settingsStore.updateLivePreviewProfiling(v);
+				onchange();
+			}}
+		/>
+	</SettingItem>
+
+	<p class="text-xs text-muted-foreground mt-4 mb-2">
+		Disable individual decorators for debugging. Changes require app restart.
+	</p>
+
+	{#each DECORATOR_NAMES as name}
+		<SettingItem
+			label={name}
+			description=""
+		>
+			<Switch
+				checked={!isDecoratorDisabled(name)}
+				onCheckedChange={(v) => {
+					settingsStore.toggleDecorator(name, !v);
+					onchange();
+				}}
+			/>
+		</SettingItem>
+	{/each}
 
 	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Backend (Tauri)</h3>
 

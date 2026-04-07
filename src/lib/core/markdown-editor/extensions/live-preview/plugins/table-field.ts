@@ -8,6 +8,7 @@ import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import type { Property } from '$lib/features/properties/properties.types';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes table decorations using the Lezer syntax tree */
 export function computeTables(state: EditorState): DecorationSet {
@@ -58,7 +59,9 @@ export const tableField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = computeTables(update.state);
+				profileEnd('table', _t);
 			}
 		}
 	},

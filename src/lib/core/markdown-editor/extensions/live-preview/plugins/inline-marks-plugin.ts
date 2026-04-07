@@ -6,6 +6,7 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findHighlightRanges } from '../parsers/highlight';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * ViewPlugin that manages inline formatting mark visibility with CSS animations.
@@ -35,10 +36,12 @@ export const inlineMarksPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = buildMarkVisibilityForRanges(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				profileEnd('inline-marks', _t);
 			}
 			// 'skip' during drag, 'none' when nothing changed
 		}

@@ -6,6 +6,7 @@ import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { findHighlightRanges } from '../parsers/highlight';
 import { forceDecorationRebuild } from '../core/effects';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * ViewPlugin that applies semantic CSS classes to inline content ranges:
@@ -35,10 +36,12 @@ export const markdownStylePlugin = ViewPlugin.fromClass(
 				update.transactions.some((t) => t.reconfigured) ||
 				update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild)))
 			) {
+				const _t = profileStart();
 				this.decorations = buildContentStylesForRanges(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				profileEnd('markdown-style', _t);
 			}
 		}
 	},

@@ -18,6 +18,7 @@ import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
 import type { FileReadResult } from '$lib/core/filesystem/fs.types';
@@ -93,6 +94,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 		try { updateOutgoingLinksForFile(activePath); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
 	backlinksStore.markUnlinkedDirty();
+	invalidateQueryjsCache();
 
 	debug('WATCHER-HANDLER', `Full rebuildAllIndexes completed in ${(performance.now() - start).toFixed(1)}ms`);
 	logProcessMemory();
@@ -144,4 +146,5 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		try { updateOutgoingLinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
 	backlinksStore.markUnlinkedDirty();
+	invalidateQueryjsCache();
 }

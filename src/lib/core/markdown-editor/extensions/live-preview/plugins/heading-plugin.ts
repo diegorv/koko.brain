@@ -12,6 +12,7 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { headingLineDeco } from '../styles';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * ViewPlugin that renders ATX and setext headings with per-element cursor awareness
@@ -38,10 +39,12 @@ export const headingPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = buildHeadingDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				profileEnd('heading', _t);
 			}
 		}
 	},

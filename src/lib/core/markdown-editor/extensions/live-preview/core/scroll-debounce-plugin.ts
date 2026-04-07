@@ -1,5 +1,6 @@
 import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { forceDecorationRebuild } from './effects';
+import { profileStart, profileEnd } from './profiling';
 
 /**
  * Debounces decoration rebuilds during scroll.
@@ -19,10 +20,19 @@ export const scrollDebouncePlugin = ViewPlugin.fromClass(
 		private timer: ReturnType<typeof setTimeout> | null = null;
 
 		update(update: ViewUpdate) {
+			// Log total rebuild time when forceDecorationRebuild fires
+			if (update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild)))) {
+				if ((this as any)._rebuildStart) {
+					profileEnd('forceDecorationRebuild total', (this as any)._rebuildStart);
+					(this as any)._rebuildStart = 0;
+				}
+			}
+
 			if (update.viewportChanged && !update.docChanged) {
 				if (this.timer) clearTimeout(this.timer);
 				this.timer = setTimeout(() => {
 					this.timer = null;
+					(this as any)._rebuildStart = profileStart();
 					update.view.dispatch({
 						effects: forceDecorationRebuild.of(null),
 					});
