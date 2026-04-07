@@ -7,6 +7,7 @@ import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
+import { appendLog } from '$lib/utils/log.service';
 
 /** Computes queryjs block decorations */
 export function computeQueryjsBlocks(state: EditorState): DecorationSet {
@@ -63,7 +64,9 @@ export const queryjsBlockField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = performance.now();
 				this.decorations = computeQueryjsBlocks(update.state);
+				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `queryjs-block: ${_d.toFixed(1)}ms`);
 			}
 		}
 	},

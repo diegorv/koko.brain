@@ -12,6 +12,7 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { ImageWidget } from '../widgets';
+import { appendLog } from '$lib/utils/log.service';
 
 /** Parsed image size from `|width` or `|widthxheight` suffix */
 interface ImageSize {
@@ -62,10 +63,12 @@ export const imagePlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = performance.now();
 				this.decorations = buildImageDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `image: ${_d.toFixed(1)}ms`);
 			}
 		}
 	},

@@ -14,6 +14,7 @@ import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
 import { MetaBindSelectWidget } from '../widgets';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
+import { appendLog } from '$lib/utils/log.service';
 
 /**
  * ViewPlugin that handles meta-bind INPUT field decoration.
@@ -38,10 +39,12 @@ export const metaBindInputPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = performance.now();
 				this.decorations = buildMetaBindInputDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `meta-bind-input: ${_d.toFixed(1)}ms`);
 			}
 		}
 	},

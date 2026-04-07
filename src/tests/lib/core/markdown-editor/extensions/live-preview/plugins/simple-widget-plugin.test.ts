@@ -30,11 +30,13 @@ function buildDecos(doc: string, cursor?: number) {
 // --- Task Marker ---
 
 describe('simpleWidgetPlugin — task markers', () => {
-	it('replaces task marker with widget when cursor is outside', () => {
+	it('hides list marker and replaces task marker with widget when cursor is outside', () => {
 		const doc = '- [ ] todo\ntext';
 		const decos = buildDecos(doc, 13);
-		expect(decos).toHaveLength(1);
-		expect(decos[0].hasWidget).toBe(true);
+		// 1 mark (hide "- ") + 1 widget (checkbox for "[ ]") = 2
+		expect(decos).toHaveLength(2);
+		expect(decos[0].hasWidget).toBe(false); // "- " hidden via CSS
+		expect(decos[1].hasWidget).toBe(true);  // checkbox widget
 	});
 
 	it('shows source when cursor is on the task line', () => {
@@ -46,14 +48,16 @@ describe('simpleWidgetPlugin — task markers', () => {
 	it('handles checked tasks', () => {
 		const doc = '- [x] done\ntext';
 		const decos = buildDecos(doc, 13);
-		expect(decos).toHaveLength(1);
-		expect(decos[0].hasWidget).toBe(true);
+		expect(decos).toHaveLength(2); // mark + widget
+		const widgets = decos.filter(d => d.hasWidget);
+		expect(widgets).toHaveLength(1);
 	});
 
 	it('handles multiple tasks', () => {
 		const doc = '- [ ] one\n- [x] two\ntext';
 		const decos = buildDecos(doc, 22);
-		expect(decos).toHaveLength(2);
+		// 2 tasks × (1 mark + 1 widget) = 4
+		expect(decos).toHaveLength(4);
 	});
 
 	it('produces no decorations inside fenced code blocks', () => {
@@ -65,7 +69,8 @@ describe('simpleWidgetPlugin — task markers', () => {
 	it('per-element: only shows source for task under cursor', () => {
 		const doc = '- [ ] first\n- [ ] second\ntext';
 		const decos = buildDecos(doc, 5);
-		expect(decos).toHaveLength(1);
+		// First task shows source (0 decos), second task has mark + widget = 2
+		expect(decos).toHaveLength(2);
 		const state = createMarkdownState(doc);
 		const line2 = state.doc.line(2);
 		expect(decos[0].from).toBeGreaterThanOrEqual(line2.from);
@@ -91,8 +96,9 @@ describe('simpleWidgetPlugin — task markers', () => {
 			const decosOnTask = buildDecos(doc, 6);
 			const decosOnText = buildDecos(doc, 13);
 			expect(decosOnTask).toHaveLength(0);
-			expect(decosOnText).toHaveLength(1);
-			expect(decosOnText[0].hasWidget).toBe(true);
+			// mark (hide "- ") + widget (checkbox) = 2
+			expect(decosOnText).toHaveLength(2);
+			expect(decosOnText.some(d => d.hasWidget)).toBe(true);
 		});
 	});
 });
@@ -100,17 +106,18 @@ describe('simpleWidgetPlugin — task markers', () => {
 // --- Horizontal Rule ---
 
 describe('simpleWidgetPlugin — horizontal rules', () => {
-	it('replaces --- with widget when cursor is outside', () => {
+	it('hides --- via CSS mark and adds line decoration when cursor is outside', () => {
 		const doc = 'text\n\n---\nmore';
 		const decos = buildDecos(doc, 0);
-		expect(decos).toHaveLength(1);
-		expect(decos[0].hasWidget).toBe(true);
+		// 1 mark (hide text) + 1 line (border-bottom) = 2
+		expect(decos).toHaveLength(2);
+		expect(decos.every(d => !d.hasWidget)).toBe(true);
 	});
 
-	it('replaces *** with widget', () => {
+	it('hides *** via CSS mark', () => {
 		const doc = 'text\n\n***\nmore';
 		const decos = buildDecos(doc, 0);
-		expect(decos).toHaveLength(1);
+		expect(decos).toHaveLength(2);
 	});
 
 	it('shows source when cursor is on the HR line', () => {
@@ -175,27 +182,27 @@ describe('simpleWidgetPlugin — ordered list markers', () => {
 // --- Unordered List ---
 
 describe('simpleWidgetPlugin — unordered list markers', () => {
-	it('replaces dash marker with bullet widget when cursor is outside', () => {
+	it('hides dash marker via CSS mark when cursor is outside', () => {
 		const doc = '- first\ntext';
 		const decos = buildDecos(doc, 10);
 		expect(decos).toHaveLength(1);
-		expect(decos[0].hasWidget).toBe(true);
+		expect(decos[0].hasWidget).toBe(false);
 		expect(decos[0].from).toBe(0);
 		expect(decos[0].to).toBe(2);
 	});
 
-	it('replaces asterisk marker with bullet widget', () => {
+	it('hides asterisk marker via CSS mark', () => {
 		const doc = '* first\ntext';
 		const decos = buildDecos(doc, 10);
 		expect(decos).toHaveLength(1);
-		expect(decos[0].hasWidget).toBe(true);
+		expect(decos[0].hasWidget).toBe(false);
 	});
 
-	it('replaces plus marker with bullet widget', () => {
+	it('hides plus marker via CSS mark', () => {
 		const doc = '+ first\ntext';
 		const decos = buildDecos(doc, 10);
 		expect(decos).toHaveLength(1);
-		expect(decos[0].hasWidget).toBe(true);
+		expect(decos[0].hasWidget).toBe(false);
 	});
 
 	it('shows source when cursor is on the list item line', () => {
@@ -239,11 +246,12 @@ describe('simpleWidgetPlugin — unordered list markers', () => {
 // --- Hard Break ---
 
 describe('simpleWidgetPlugin — hard breaks', () => {
-	it('replaces trailing backslash with widget when cursor is outside', () => {
+	it('hides trailing backslash via CSS mark when cursor is outside', () => {
 		const doc = 'line one\\\nline two';
 		const decos = buildDecos(doc, 15);
-		const hardBreaks = decos.filter(d => d.hasWidget);
+		const hardBreaks = decos.filter(d => d.from >= 8);
 		expect(hardBreaks.length).toBeGreaterThanOrEqual(1);
+		expect(hardBreaks[0].hasWidget).toBe(false);
 	});
 
 	it('shows source when cursor is on the hard break itself', () => {
@@ -288,7 +296,7 @@ describe('simpleWidgetPlugin — inline math', () => {
 // --- Mixed Document (Integration Test) ---
 
 describe('simpleWidgetPlugin — mixed document', () => {
-	it('handles all 6 widget types in a single document', () => {
+	it('handles all 6 element types in a single document', () => {
 		const doc = [
 			'- [ ] a task',
 			'',
@@ -302,18 +310,22 @@ describe('simpleWidgetPlugin — mixed document', () => {
 		// Cursor on last line (outside all elements)
 		const decos = buildDecos(doc, doc.length - 1);
 
-		// Should have widgets for: task (1) + HR (1) + ordered (1) + unordered (1) = 4
+		// task: 1 mark (hide "- ") + 1 widget (checkbox)
+		// HR: 1 mark (hide text) + 1 line (border)
+		// ordered: 1 widget
+		// unordered: 1 mark (bullet)
 		const widgets = decos.filter(d => d.hasWidget);
-		expect(widgets.length).toBe(4);
+		const marks = decos.filter(d => !d.hasWidget);
+		expect(widgets.length).toBe(2); // task checkbox + ordered list marker
+		expect(marks.length).toBe(4); // task "- " + HR mark + HR line + UL mark
 	});
 
 	it('cursor on one element only shows source for that element', () => {
 		const doc = '- [ ] task\n1. ordered\n- unordered\ntext';
 
-		// Cursor on task line — task shows source, others have widgets
+		// Cursor on task line — task shows source, others have decorations
 		const decos = buildDecos(doc, 5);
-		// Task has no decoration (source shown), ordered + unordered have widgets
-		const widgets = decos.filter(d => d.hasWidget);
-		expect(widgets.length).toBe(2);
+		// Task has no decoration (source shown), ordered has widget, unordered has mark
+		expect(decos.length).toBe(2); // ordered widget + unordered mark
 	});
 });

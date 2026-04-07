@@ -4,7 +4,6 @@ import {
 	EditorView,
 	ViewPlugin,
 	type ViewUpdate,
-	WidgetType,
 } from '@codemirror/view';
 import type { EditorState, Range } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
@@ -15,25 +14,11 @@ import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import {
 	TaskCheckboxWidget,
-	HorizontalRuleWidget,
 	OrderedListMarkerWidget,
-	UnorderedListMarkerWidget,
 } from '../widgets';
 import { InlineMathWidget } from '../widgets/inline-math-widget';
+import { appendLog } from '$lib/utils/log.service';
 
-/** Inline widget that shows a ↵ indicator for hard line breaks */
-class HardBreakWidget extends WidgetType {
-	toDOM() {
-		const span = document.createElement('span');
-		span.className = 'cm-lp-hard-break';
-		span.textContent = '↵';
-		return span;
-	}
-
-	eq() {
-		return true;
-	}
-}
 
 /**
  * Consolidated ViewPlugin that handles 6 simple widget replacements in a single
@@ -59,10 +44,12 @@ export const simpleWidgetPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = performance.now();
 				this.decorations = buildSimpleWidgetDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `simple-widget: ${_d.toFixed(1)}ms`);
 			}
 		}
 	},
@@ -128,7 +115,8 @@ function handleTaskMarker(
 	);
 }
 
-/** Handles HorizontalRule nodes — replaces `---`/`***`/`___` with `<hr>` widget */
+/** Handles HorizontalRule nodes — hides `---`/`***`/`___` text via CSS mark
+ *  and shows a styled border via line decoration. No widget = no DOM reflow. */
 function handleHorizontalRule(
 	node: SyntaxNodeRef,
 	state: EditorState,
@@ -137,8 +125,13 @@ function handleHorizontalRule(
 	if (isInsideBlockContext(node)) return;
 	if (shouldShowSource(state, node.from, node.to)) return;
 
+	// Hide the rule text (---, ***, ___) via CSS font-size: 0
 	decorations.push(
-		Decoration.replace({ widget: new HorizontalRuleWidget() }).range(node.from, node.to),
+		Decoration.mark({ class: 'cm-formatting-hr' }).range(node.from, node.to),
+	);
+	// Apply the visual horizontal line via a line decoration (border-bottom)
+	decorations.push(
+		Decoration.line({ class: 'cm-lp-hr-line' }).range(state.doc.lineAt(node.from).from),
 	);
 }
 
@@ -150,9 +143,13 @@ function handleListMark(
 	decorations: Range<Decoration>[],
 ): void {
 	const parent = node.node.parent;
-	// Skip list marks inside task list items — the TaskMarker handler covers those.
-	// Check if the ListItem parent contains a Task node (GFM task list structure).
-	if (parent?.name === 'ListItem' && (parent.getChild('Task') || parent.getChild('TaskMarker'))) return;
+	const isTaskItem = parent?.name === 'ListItem' && (parent.getChild('Task') || parent.getChild('TaskMarker'));
+
+	// Task list items: hide the "- " marker (no bullet) so only the checkbox shows
+	if (isTaskItem) {
+		handleTaskListMark(node, state, decorations);
+		return;
+	}
 
 	const grandparent = parent?.parent?.name;
 	if (grandparent === 'OrderedList') {
@@ -160,6 +157,25 @@ function handleListMark(
 	} else if (grandparent === 'BulletList') {
 		handleUnorderedListMark(node, state, decorations);
 	}
+}
+
+/** Handles ListMark inside task list items — hides `- ` so only the checkbox shows */
+function handleTaskListMark(
+	node: SyntaxNodeRef,
+	state: EditorState,
+	decorations: Range<Decoration>[],
+): void {
+	const line = state.doc.lineAt(node.from);
+	if (shouldShowSource(state, line.from, line.to)) return;
+
+	let markTo = node.to;
+	if (markTo < line.to && state.doc.sliceString(markTo, markTo + 1) === ' ') {
+		markTo++;
+	}
+
+	decorations.push(
+		Decoration.mark({ class: 'cm-formatting-task-marker' }).range(node.from, markTo),
+	);
 }
 
 /** Handles ListMark inside OrderedList — replaces `1. ` with styled number widget */
@@ -186,7 +202,8 @@ function handleOrderedListMark(
 	);
 }
 
-/** Handles ListMark inside BulletList — replaces `-`/`*`/`+` with bullet widget */
+/** Handles ListMark inside BulletList — hides `-`/`*`/`+` via CSS and shows `•`
+ *  via ::before pseudo-element. No widget = no DOM reflow. */
 function handleUnorderedListMark(
 	node: SyntaxNodeRef,
 	state: EditorState,
@@ -202,12 +219,20 @@ function handleUnorderedListMark(
 		markTo++;
 	}
 
+	// Skip if the remaining text looks like an incomplete task marker (e.g. "- [ ]" without text).
+	// Lezer doesn't parse this as TaskMarker, so hiding the "- " would leave orphan "[ ]" text.
+	const rest = state.doc.sliceString(markTo, line.to).trim();
+	if (/^\[.\]$/.test(rest)) return;
+
+	// Hide the marker text (-, *, +) and trailing space via CSS font-size: 0
+	// The bullet • is shown via ::before pseudo-element
 	decorations.push(
-		Decoration.replace({ widget: new UnorderedListMarkerWidget() }).range(node.from, markTo),
+		Decoration.mark({ class: 'cm-formatting-ul-marker' }).range(node.from, markTo),
 	);
 }
 
-/** Handles HardBreak nodes — replaces trailing spaces/backslash with ↵ widget */
+/** Handles HardBreak nodes — hides trailing spaces/backslash via CSS and shows `↵`
+ *  via ::after pseudo-element. No widget = no DOM reflow. */
 function handleHardBreak(
 	node: SyntaxNodeRef,
 	state: EditorState,
@@ -217,8 +242,10 @@ function handleHardBreak(
 	if (shouldShowSource(state, node.from, node.to)) return;
 
 	const replaceEnd = state.doc.lineAt(node.from).to;
+	// Hide the break source (\\ or trailing spaces) via CSS font-size: 0
+	// The ↵ indicator is shown via ::after pseudo-element
 	decorations.push(
-		Decoration.replace({ widget: new HardBreakWidget() }).range(node.from, replaceEnd),
+		Decoration.mark({ class: 'cm-formatting-hard-break' }).range(node.from, replaceEnd),
 	);
 }
 

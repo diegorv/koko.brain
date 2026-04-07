@@ -6,6 +6,7 @@ import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { calloutFoldState, toggleCalloutFold } from '../core/effects';
 import { hiddenLineDeco } from '../styles';
+import { appendLog } from '$lib/utils/log.service';
 
 /** Widget that renders a fold chevron (▶/▼) for foldable callouts */
 class CalloutFoldWidget extends WidgetType {
@@ -132,7 +133,9 @@ export const calloutField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = performance.now();
 				this.decorations = computeCallouts(update.state);
+				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `callout: ${_d.toFixed(1)}ms`);
 			}
 			// Also rebuild when fold state changes
 			for (const effect of update.transactions.flatMap((t) => t.effects)) {
