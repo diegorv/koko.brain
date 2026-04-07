@@ -184,6 +184,38 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing guide: mock rules, a
 - **Tests:** Every code change MUST include corresponding test updates (`src/tests/` for TypeScript, `src-tauri/tests/` for Rust).
 - **Commits:** Use Conventional Commits with **full detailed descriptions** — every commit must include Context, Problem (if applicable), Solution, Behavior, and Files (with line ranges). No short-form commits. See [docs/COMMITS.md](docs/COMMITS.md) for the full format and examples.
 
+## Performance Guidelines
+
+### Live Preview (CodeMirror Decorations)
+
+The live preview system uses ~22 CodeMirror decoration plugins. Key performance rules:
+
+1. **Use `Decoration.mark()` + CSS over `Decoration.replace()` + widgets** — marks are CSS-only (GPU-accelerated paint), widgets cause DOM reflow. Only use widgets for complex interactive elements (tables, code blocks, meta-bind selects). For simple visual replacements (bullets, HR, hard breaks), use marks with `font-size: 0` + `::before`/`::after` pseudo-elements.
+
+2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache expensive results (scripts, API calls) at module level and clone cached DOM in `toDOM()`. See `queryjs-block-widget.ts` for the cache pattern.
+
+3. **Widgets with `eq()` don't prevent `toDOM()` calls** — `eq()` returning `true` keeps existing DOM, but when the widget is removed from viewport and re-enters, CM calls `toDOM()` fresh. Cache is the only way to avoid re-execution.
+
+4. **Block plugins must skip viewport-only scroll** — add `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` as the first line of `update()` in any plugin that scans the full document.
+
+5. **`checkUpdateAction` with `lastCursorLine`** — pass cursor line to skip rebuilds when cursor stays on the same line. All plugins already do this.
+
+6. **Profile before optimizing** — the LP-PROFILE timing logs (currently in all plugins via `appendLog`) measure JS computation. If JS is fast (~1ms per plugin), the bottleneck is DOM rendering, not JS. Disable plugins one by one via the `DISABLE` flags in `live-preview.ts` to isolate which plugin causes lag.
+
+7. **Scroll debounce** — `scrollDebouncePlugin` defers `forceDecorationRebuild` by 150ms after scroll stops. `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond viewport so content has decorations ready when it scrolls in.
+
+### Indexing & Watcher
+
+1. **Backlinks use reverse index** — `findLinkedMentions` is O(K) via `noteIndexStore.reverseIndex`, not O(N) full scan. The reverse index is maintained incrementally in `updateNoteEntry()`.
+
+2. **Unlinked mentions are deferred** — only computed on save and tab switch, never on keystroke. Controlled by `backlinksStore.unlinkedDirty` flag.
+
+3. **Watcher uses incremental updates** — for ≤10 changed files, `incrementalUpdateFiles()` reads and indexes only the changed files instead of full vault rebuild. Falls back to full rebuild for large changesets.
+
+4. **File watcher filters all hidden dirs** — `isInsideHiddenDir()` silently discards events from any dot-prefixed directory (`.git`, `.kokobrain`, `.claude`, `.obsidian`, etc.).
+
+5. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500ms saved per save).
+
 ## Documentation Index
 
 | Document | Contents |
