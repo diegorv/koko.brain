@@ -56,14 +56,28 @@ export const queryjsBlockField = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
 		lastCursorLine: number;
+		/** Cached doc content hash to skip redundant rebuilds */
+		lastDocContent: string = '';
+		lastCursorInBlock: boolean = false;
 		constructor(view: EditorView) {
 			this.decorations = computeQueryjsBlocks(view.state);
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
+			this.lastDocContent = view.state.doc.toString();
 		}
 		update(update: ViewUpdate) {
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
+
+			// For forceDecorationRebuild (scroll debounce): skip entirely.
+			// Queryjs blocks don't change during scroll — their output is static
+			// until the user edits the block content.
+			if (!update.docChanged && !update.selectionSet) return;
+
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+
+				// Only recompute if document actually changed (not just cursor move
+				// between lines, which can toggle shouldShowSource for the block).
+				// For cursor moves, we still need to rebuild to show/hide source.
 				const _t = performance.now();
 				this.decorations = computeQueryjsBlocks(update.state);
 				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `queryjs-block: ${_d.toFixed(1)}ms`);
