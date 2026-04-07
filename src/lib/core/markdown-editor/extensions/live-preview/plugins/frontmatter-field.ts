@@ -7,6 +7,7 @@ import { hiddenLineDeco, hiddenGutterMarker } from '../styles';
 import { forceDecorationRebuild } from '../core/effects';
 import { getAllLines } from '../core/get-all-lines';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
+import { appendLog } from '$lib/utils/log.service';
 
 /** Computes frontmatter decorations (block widget on first line, hidden lines for the rest) */
 export function computeFrontmatter(state: EditorState): DecorationSet {
@@ -49,7 +50,10 @@ export const frontmatterField = StateField.define<DecorationSet>({
 	},
 	update(value, tr) {
 		if (tr.docChanged || tr.effects.some((e) => e.is(forceDecorationRebuild))) {
-			return computeFrontmatter(tr.state);
+			const _t = performance.now();
+			const _r = computeFrontmatter(tr.state);
+			const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `frontmatter: ${_d.toFixed(1)}ms`);
+			return _r;
 		}
 		return value;
 	},

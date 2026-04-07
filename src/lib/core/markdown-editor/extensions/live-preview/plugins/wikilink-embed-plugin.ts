@@ -13,6 +13,7 @@ import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findWikilinkEmbedRanges } from '../parsers/wikilink-embed';
 import { WikilinkImageEmbedWidget, WikilinkNoteEmbedWidget } from '../widgets';
+import { appendLog } from '$lib/utils/log.service';
 
 /** Parses the display/pipe value as an optional pixel width (e.g. `"300"` → `300`) */
 function parseWidth(display: string | null): number | null {
@@ -44,10 +45,12 @@ export const wikilinkEmbedPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = performance.now();
 				this.decorations = buildWikilinkEmbedDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `wikilink-embed: ${_d.toFixed(1)}ms`);
 			}
 		}
 	},

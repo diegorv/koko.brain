@@ -59,6 +59,46 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '1em',
 		opacity: '0.6',
 	},
+
+	/* ── CSS-based mark replacements (no widgets, no reflow) ── */
+
+	/** Horizontal rule text (---, ***, ___) — hidden, line shows border instead */
+	'.cm-formatting-hr': {
+		fontSize: '0',
+		opacity: '0',
+		overflow: 'hidden',
+		display: 'inline-block',
+		width: '0',
+		height: '0',
+	},
+	/** Horizontal rule line decoration — visual hr via border */
+	'.cm-lp-hr-line': {
+		borderBottom: '1px solid var(--lp-hr-border)',
+		lineHeight: '0.5em',
+	},
+	/** Task list marker (- before checkbox) — hidden so only checkbox shows */
+	'.cm-formatting-task-marker': {
+		fontSize: '0',
+	},
+	/** Unordered list marker (-, *, +) — text hidden, bullet shown via ::before */
+	'.cm-formatting-ul-marker': {
+		fontSize: '0',
+	},
+	'.cm-formatting-ul-marker::before': {
+		content: '"•  "',
+		fontSize: '1rem',
+		color: 'var(--lp-list-marker, var(--syntax-list, inherit))',
+	},
+	/** Hard break (\\, trailing spaces) — hidden, ↵ shown via ::after */
+	'.cm-formatting-hard-break': {
+		fontSize: '0',
+	},
+	'.cm-formatting-hard-break::after': {
+		content: '"↵"',
+		fontSize: '0.85rem',
+		opacity: '0.5',
+		color: 'var(--lp-hard-break, var(--syntax-comment, #6c7086))',
+	},
 	'.cm-lp-link': {
 		color: 'var(--lp-link)',
 		textDecoration: 'underline',
