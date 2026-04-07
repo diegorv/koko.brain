@@ -13,7 +13,7 @@ import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { blockquoteLineDeco } from '../styles';
 import { CALLOUT_RE } from '../parsers/blockquote';
-import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Maps nesting depth to line decoration. Depths beyond 3 use depth-3 styling. */
 const blockquoteDepthDeco: Record<number, Decoration> = {
@@ -48,12 +48,12 @@ export const blockquotePlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = performance.now();
+				const _t = profileStart();
 				this.decorations = buildBlockquoteDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
-				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `blockquote: ${_d.toFixed(1)}ms`);
+				profileEnd('blockquote', _t);
 			}
 		}
 	},

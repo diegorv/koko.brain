@@ -7,7 +7,7 @@ import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
-import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes queryjs block decorations */
 export function computeQueryjsBlocks(state: EditorState): DecorationSet {
@@ -78,9 +78,9 @@ export const queryjsBlockField = ViewPlugin.fromClass(
 				// Only recompute if document actually changed (not just cursor move
 				// between lines, which can toggle shouldShowSource for the block).
 				// For cursor moves, we still need to rebuild to show/hide source.
-				const _t = performance.now();
+				const _t = profileStart();
 				this.decorations = computeQueryjsBlocks(update.state);
-				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `queryjs-block: ${_d.toFixed(1)}ms`);
+				profileEnd('queryjs-block', _t);
 			}
 		}
 	},

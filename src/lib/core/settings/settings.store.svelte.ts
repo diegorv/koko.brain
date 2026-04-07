@@ -102,6 +102,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	debugModeTauri: false,
 	debugLogToFile: false,
 	debugTauriLogToFile: false,
+	livePreviewProfiling: false,
+	disabledDecorators: {},
 	tagColors: {
 		colors: {},
 	},
@@ -129,6 +131,8 @@ export const settingsStore = {
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
 	get debugTauriLogToFile() { return settings.debugTauriLogToFile; },
+	get livePreviewProfiling() { return settings.livePreviewProfiling; },
+	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
 
 	/** Replaces the entire settings object (used on load) */
@@ -267,6 +271,17 @@ export const settingsStore = {
 	/** Updates the Tauri debug log-to-file flag */
 	updateDebugTauriLogToFile(value: boolean) {
 		settings = { ...settings, debugTauriLogToFile: value };
+	},
+
+	/** Updates the live preview profiling flag */
+	updateLivePreviewProfiling(value: boolean) {
+		settings = { ...settings, livePreviewProfiling: value };
+	},
+
+	/** Toggles a specific live preview decorator on/off */
+	toggleDecorator(name: string, disabled: boolean) {
+		const updated = { ...settings.disabledDecorators, [name]: disabled };
+		settings = { ...settings, disabledDecorators: updated };
 	},
 
 	/** Partially updates tag color settings, merging with existing values */

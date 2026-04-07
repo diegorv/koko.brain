@@ -1,5 +1,6 @@
 import { WidgetType } from '@codemirror/view';
 import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 import { KBAPI } from '$lib/plugins/queryjs/kb-api';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
@@ -80,7 +81,7 @@ export class QueryjsBlockWidget extends WidgetType {
 
 	/** Executes the queryjs script inside the container */
 	private async execute(container: HTMLElement): Promise<void> {
-		const _t = performance.now();
+		const _t = profileStart();
 		try {
 			const api = new KBAPI({
 				container,
@@ -101,7 +102,7 @@ export class QueryjsBlockWidget extends WidgetType {
 
 			const fn = new Function('kb', 'dv', code);
 			await Promise.resolve(fn(api, api));
-		appendLog('QJS-PROFILE', `execute() completed in ${(performance.now() - _t).toFixed(1)}ms`);
+		profileEnd('qjs-execute', _t);
 		// Cache the rendered result for future toDOM() calls with same key
 		scriptResultCache.set(cacheKey(this.jsContent), container.cloneNode(true) as HTMLElement);
 		} catch (err) {

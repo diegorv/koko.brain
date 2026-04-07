@@ -14,7 +14,7 @@ import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { linkTextDeco, wikilinkTextDeco } from '../styles';
 import { findWikilinkRanges } from '../../wikilink/decoration.logic';
 import { findExtendedAutolinkRanges } from '../parsers/link';
-import { appendLog } from '$lib/utils/log.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * ViewPlugin that handles all link decoration — markdown links and wikilinks.
@@ -44,12 +44,12 @@ export const linkPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = performance.now();
+				const _t = profileStart();
 				this.decorations = buildLinkDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
-				const _d = performance.now() - _t; if (_d > 0.5) appendLog('LP-PROFILE', `link: ${_d.toFixed(1)}ms`);
+				profileEnd('link', _t);
 			}
 		}
 	},
