@@ -41,9 +41,15 @@ describe('checkUpdateAction', () => {
 		expect(checkUpdateAction(update)).toBe('rebuild');
 	});
 
-	it('returns "rebuild" when viewport changes', () => {
+	it('returns "none" when only viewport changes (deferred to scroll debounce)', () => {
 		const state = createState();
 		const update = mockUpdate(state, { viewportChanged: true });
+		expect(checkUpdateAction(update)).toBe('none');
+	});
+
+	it('returns "rebuild" when viewport changes WITH doc change', () => {
+		const state = createState();
+		const update = mockUpdate(state, { viewportChanged: true, docChanged: true });
 		expect(checkUpdateAction(update)).toBe('rebuild');
 	});
 

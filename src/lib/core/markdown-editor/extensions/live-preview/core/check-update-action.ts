@@ -14,7 +14,11 @@ import { mouseSelectingField } from './mouse-selecting';
  * when the cursor enters/leaves a line, not when it moves within one.
  */
 export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 'rebuild' | 'skip' | 'none' {
-	if (update.docChanged || update.viewportChanged) return 'rebuild';
+	if (update.docChanged) return 'rebuild';
+	// Pure viewport change (scroll): defer to scrollDebouncePlugin which will
+	// dispatch forceDecorationRebuild after scroll stops. This eliminates
+	// decoration rebuilds during active scrolling for all 27 plugins.
+	if (update.viewportChanged) return 'none';
 	if (update.transactions.some((t) => t.reconfigured)) return 'rebuild';
 	if (update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))))
 		return 'rebuild';
