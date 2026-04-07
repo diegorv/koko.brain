@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { TaskCheckboxWidget } from '../widgets';
 
 /**
@@ -18,7 +19,7 @@ import { TaskCheckboxWidget } from '../widgets';
  * - Tree traversal for `TaskMarker` nodes (GFM)
  * - Per-element cursor: `shouldShowSource(state, taskLine.from, taskLine.to)`
  * - `isInsideBlockContext` to skip
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const taskListPlugin = ViewPlugin.fromClass(
 	class {
@@ -26,7 +27,7 @@ export const taskListPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildTaskListDecorations(view.state, view.visibleRanges);
+			this.decorations = buildTaskListDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -36,7 +37,7 @@ export const taskListPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildTaskListDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

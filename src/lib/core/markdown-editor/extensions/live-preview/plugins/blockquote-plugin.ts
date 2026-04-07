@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { blockquoteLineDeco } from '../styles';
 import { CALLOUT_RE } from '../parsers/blockquote';
 
@@ -30,7 +31,7 @@ const blockquoteDepthDeco: Record<number, Decoration> = {
  * - Excludes callout lines (`> [!type]`) which are handled by calloutField
  * - Uses `shouldShowSource` per-element: only the blockquote line under the cursor shows marks
  * - Uses `isInsideBlockContext` to skip blockquotes inside code blocks
- * - Uses `view.visibleRanges` for performance (inline plugin, doesn't collapse content)
+ * - Uses `expandedVisibleRanges(view)` for performance (inline plugin, doesn't collapse content)
  */
 export const blockquotePlugin = ViewPlugin.fromClass(
 	class {
@@ -38,7 +39,7 @@ export const blockquotePlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildBlockquoteDecorations(view.state, view.visibleRanges);
+			this.decorations = buildBlockquoteDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -48,7 +49,7 @@ export const blockquotePlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildBlockquoteDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

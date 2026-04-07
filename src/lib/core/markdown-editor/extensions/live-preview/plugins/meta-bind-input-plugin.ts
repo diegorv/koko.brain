@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
 import { MetaBindSelectWidget } from '../widgets';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
@@ -21,7 +22,7 @@ import { parseFrontmatterProperties } from '$lib/features/properties/properties.
  * - Reads current value from frontmatter properties for initial selection
  * - Per-element cursor: shows source when cursor is on the input field
  * - Block context skip via `isInsideBlockContext`
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const metaBindInputPlugin = ViewPlugin.fromClass(
 	class {
@@ -29,7 +30,7 @@ export const metaBindInputPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildMetaBindInputDecorations(view.state, view.visibleRanges);
+			this.decorations = buildMetaBindInputDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -39,7 +40,7 @@ export const metaBindInputPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildMetaBindInputDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

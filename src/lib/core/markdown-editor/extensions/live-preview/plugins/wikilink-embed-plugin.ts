@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findWikilinkEmbedRanges } from '../parsers/wikilink-embed';
 import { WikilinkImageEmbedWidget, WikilinkNoteEmbedWidget } from '../widgets';
 
@@ -27,7 +28,7 @@ function parseWidth(display: string | null): number | null {
  * - **Note embeds** `![[note]]`, `![[note#heading]]`, `![[note#^block]]`: Replaced with `WikilinkNoteEmbedWidget`
  * - Per-element cursor: shows source when cursor is on the embed
  * - Block context skip via `isInsideBlockContext`
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const wikilinkEmbedPlugin = ViewPlugin.fromClass(
 	class {
@@ -35,7 +36,7 @@ export const wikilinkEmbedPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildWikilinkEmbedDecorations(view.state, view.visibleRanges);
+			this.decorations = buildWikilinkEmbedDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -45,7 +46,7 @@ export const wikilinkEmbedPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildWikilinkEmbedDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

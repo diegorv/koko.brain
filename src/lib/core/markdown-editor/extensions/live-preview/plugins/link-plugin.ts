@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { linkTextDeco, wikilinkTextDeco } from '../styles';
 import { findWikilinkRanges } from '../../wikilink/decoration.logic';
 import { findExtendedAutolinkRanges } from '../parsers/link';
@@ -23,7 +24,7 @@ import { findExtendedAutolinkRanges } from '../parsers/link';
  *   `cm-lp-wikilink`. Handles display text (`[[target|display]]`), headings, block-ids.
  * - Per-element cursor: each link checked individually via `shouldShowSource`
  * - Block context skip via `isInsideBlockContext`
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  *
  * Note: Click handling (Cmd+click to open) stays in `click-handler.ts` as a separate extension.
  * Wikilink completion stays in `extensions/wikilink/completion.ts`.
@@ -34,7 +35,7 @@ export const linkPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildLinkDecorations(view.state, view.visibleRanges);
+			this.decorations = buildLinkDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -44,7 +45,7 @@ export const linkPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildLinkDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

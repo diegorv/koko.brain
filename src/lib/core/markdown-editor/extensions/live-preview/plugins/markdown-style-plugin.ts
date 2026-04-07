@@ -5,6 +5,7 @@ import { boldTextDeco, italicTextDeco, strikethroughTextDeco, inlineCodeTextDeco
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { findHighlightRanges } from '../parsers/highlight';
 import { forceDecorationRebuild } from '../core/effects';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 
 /**
  * ViewPlugin that applies semantic CSS classes to inline content ranges:
@@ -22,7 +23,7 @@ export const markdownStylePlugin = ViewPlugin.fromClass(
 		decorations: DecorationSet;
 
 		constructor(view: EditorView) {
-			this.decorations = buildContentStylesForRanges(view.state, view.visibleRanges);
+			this.decorations = buildContentStylesForRanges(view.state, expandedVisibleRanges(view));
 		}
 
 		update(update: ViewUpdate) {
@@ -36,7 +37,7 @@ export const markdownStylePlugin = ViewPlugin.fromClass(
 			) {
 				this.decorations = buildContentStylesForRanges(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

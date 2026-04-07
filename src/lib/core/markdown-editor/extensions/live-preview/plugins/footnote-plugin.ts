@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { footnoteRefDeco, footnoteDefMarkerDeco } from '../styles';
 import {
 	findFootnoteRefRanges,
@@ -25,7 +26,7 @@ import {
  * - **Inline footnotes** `^[text]`: Hides `^[` and `]`, styles text as superscript.
  * - Per-element cursor: each footnote checked individually via `shouldShowSource`
  * - Block context skip via `isInsideBlockContext`
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const footnotePlugin = ViewPlugin.fromClass(
 	class {
@@ -33,7 +34,7 @@ export const footnotePlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildFootnoteDecorations(view.state, view.visibleRanges);
+			this.decorations = buildFootnoteDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -43,7 +44,7 @@ export const footnotePlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildFootnoteDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { HorizontalRuleWidget } from '../widgets';
 
 /**
@@ -18,7 +19,7 @@ import { HorizontalRuleWidget } from '../widgets';
  * - Tree traversal for `HorizontalRule` nodes
  * - Per-element cursor: shows source when cursor is on the HR line
  * - `isInsideBlockContext` to skip
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const horizontalRulePlugin = ViewPlugin.fromClass(
 	class {
@@ -26,7 +27,7 @@ export const horizontalRulePlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildHorizontalRuleDecorations(view.state, view.visibleRanges);
+			this.decorations = buildHorizontalRuleDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -36,7 +37,7 @@ export const horizontalRulePlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildHorizontalRuleDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}
