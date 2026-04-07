@@ -13,22 +13,17 @@ import { metaBindButtonField } from './plugins/meta-bind-button-field';
 import { queryjsBlockField } from './plugins/queryjs-block-field';
 import { mermaidField } from './plugins/mermaid-field';
 import { blockMathField } from './plugins/block-math-field';
-import { inlineMathPlugin } from './plugins/inline-math-plugin';
+import { simpleWidgetPlugin } from './plugins/simple-widget-plugin';
 import { inlineMarksPlugin } from './plugins/inline-marks-plugin';
 import { markdownStylePlugin } from './plugins/markdown-style-plugin';
 import { headingPlugin } from './plugins/heading-plugin';
 import { blockquotePlugin } from './plugins/blockquote-plugin';
 import { linkPlugin } from './plugins/link-plugin';
-import { taskListPlugin } from './plugins/task-list-plugin';
-import { horizontalRulePlugin } from './plugins/horizontal-rule-plugin';
 import { imagePlugin } from './plugins/image-plugin';
-import { orderedListPlugin } from './plugins/ordered-list-plugin';
 import { footnotePlugin } from './plugins/footnote-plugin';
 import { wikilinkEmbedPlugin } from './plugins/wikilink-embed-plugin';
 import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
-import { hardBreakPlugin } from './plugins/hard-break-plugin';
 import { inlineCommentPlugin } from './plugins/inline-comment-plugin';
-import { unorderedListPlugin } from './plugins/unordered-list-plugin';
 import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
@@ -58,22 +53,18 @@ export function livePreviewExtensions(): Extension[] {
 		blockMathField,
 		audioPlugin,
 		videoPlugin,
-		// Inline ViewPlugins (Phase 3)
+		// Consolidated simple widget plugin (task, HR, ordered/unordered list, hard break, inline math)
+		simpleWidgetPlugin,
+		// Inline ViewPlugins
 		inlineMarksPlugin,
 		markdownStylePlugin,
 		headingPlugin,
 		blockquotePlugin,
 		linkPlugin,
-		taskListPlugin,
-		horizontalRulePlugin,
 		imagePlugin,
-		orderedListPlugin,
-		unorderedListPlugin,
 		footnotePlugin,
 		wikilinkEmbedPlugin,
 		metaBindInputPlugin,
-		inlineMathPlugin,
-		hardBreakPlugin,
 		inlineCommentPlugin,
 		blockReferencePlugin,
 		// Scroll debounce — defers decoration rebuilds during active scroll
