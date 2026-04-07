@@ -7,6 +7,7 @@ import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes queryjs block decorations */
 export function computeQueryjsBlocks(state: EditorState): DecorationSet {
@@ -55,15 +56,31 @@ export const queryjsBlockField = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
 		lastCursorLine: number;
+		/** Cached doc content hash to skip redundant rebuilds */
+		lastDocContent: string = '';
+		lastCursorInBlock: boolean = false;
 		constructor(view: EditorView) {
 			this.decorations = computeQueryjsBlocks(view.state);
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
+			this.lastDocContent = view.state.doc.toString();
 		}
 		update(update: ViewUpdate) {
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
+
+			// For forceDecorationRebuild (scroll debounce): skip entirely.
+			// Queryjs blocks don't change during scroll — their output is static
+			// until the user edits the block content.
+			if (!update.docChanged && !update.selectionSet) return;
+
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+
+				// Only recompute if document actually changed (not just cursor move
+				// between lines, which can toggle shouldShowSource for the block).
+				// For cursor moves, we still need to rebuild to show/hide source.
+				const _t = profileStart();
 				this.decorations = computeQueryjsBlocks(update.state);
+				profileEnd('queryjs-block', _t);
 			}
 		}
 	},

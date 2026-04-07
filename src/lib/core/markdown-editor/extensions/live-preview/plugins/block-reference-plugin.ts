@@ -12,6 +12,7 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findBlockReference } from '../parsers/block-reference';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * ViewPlugin that hides block references (`^block-id`) at the end of lines.
@@ -35,10 +36,12 @@ export const blockReferencePlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = buildBlockReferenceDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				profileEnd('block-reference', _t);
 			}
 		}
 	},

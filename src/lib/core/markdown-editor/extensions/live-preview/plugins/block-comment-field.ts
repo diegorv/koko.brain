@@ -6,6 +6,7 @@ import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
 import { hiddenLineDeco } from '../styles';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes block comment decorations */
 export function computeBlockComments(state: EditorState): DecorationSet {
@@ -51,7 +52,9 @@ export const blockCommentField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = computeBlockComments(update.state);
+				profileEnd('block-comment', _t);
 			}
 		}
 	},

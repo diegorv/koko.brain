@@ -17,6 +17,7 @@ import {
 	findFootnoteDefRange,
 	findInlineFootnoteRanges,
 } from '../parsers/footnote';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * ViewPlugin that handles all footnote decoration:
@@ -42,10 +43,12 @@ export const footnotePlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = buildFootnoteDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),
 				);
+				profileEnd('footnote', _t);
 			}
 		}
 	},

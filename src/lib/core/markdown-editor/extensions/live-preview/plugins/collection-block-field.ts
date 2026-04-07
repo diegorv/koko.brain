@@ -7,6 +7,7 @@ import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes collection block decorations */
 export function computeCollectionBlocks(state: EditorState): DecorationSet {
@@ -63,7 +64,9 @@ export const collectionBlockField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				const _t = profileStart();
 				this.decorations = computeCollectionBlocks(update.state);
+				profileEnd('collection-block', _t);
 			}
 		}
 	},

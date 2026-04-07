@@ -13,75 +13,65 @@ import { metaBindButtonField } from './plugins/meta-bind-button-field';
 import { queryjsBlockField } from './plugins/queryjs-block-field';
 import { mermaidField } from './plugins/mermaid-field';
 import { blockMathField } from './plugins/block-math-field';
-import { inlineMathPlugin } from './plugins/inline-math-plugin';
+import { simpleWidgetPlugin } from './plugins/simple-widget-plugin';
 import { inlineMarksPlugin } from './plugins/inline-marks-plugin';
 import { markdownStylePlugin } from './plugins/markdown-style-plugin';
 import { headingPlugin } from './plugins/heading-plugin';
 import { blockquotePlugin } from './plugins/blockquote-plugin';
 import { linkPlugin } from './plugins/link-plugin';
-import { taskListPlugin } from './plugins/task-list-plugin';
-import { horizontalRulePlugin } from './plugins/horizontal-rule-plugin';
 import { imagePlugin } from './plugins/image-plugin';
-import { orderedListPlugin } from './plugins/ordered-list-plugin';
 import { footnotePlugin } from './plugins/footnote-plugin';
 import { wikilinkEmbedPlugin } from './plugins/wikilink-embed-plugin';
 import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
-import { hardBreakPlugin } from './plugins/hard-break-plugin';
 import { inlineCommentPlugin } from './plugins/inline-comment-plugin';
-import { unorderedListPlugin } from './plugins/unordered-list-plugin';
 import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 export { forceDecorationRebuild } from './core/effects';
 import { calloutFoldState } from './core/effects';
 
 export const livePreviewCompartment = new Compartment();
 
+/** Checks if a decorator is disabled via settings. Returns false (enabled) by default. */
+function isDisabled(name: string): boolean {
+	return settingsStore.disabledDecorators[name] ?? false;
+}
+
 export function livePreviewExtensions(): Extension[] {
-	return [
+	const exts: Extension[] = [
 		mouseSelectingField,
 		mouseSelectingHandlers,
 		calloutFoldState,
-		// Block StateFields
-		frontmatterField,
-		frontmatterGutter,
-		codeBlockField,
-		blockCommentField,
-		tableField,
-		calloutField,
-		collectionBlockField,
-		queryjsBlockField,
-		metaBindButtonField,
-		mermaidField,
-		blockMathField,
-		audioPlugin,
-		videoPlugin,
-		// Inline ViewPlugins (Phase 3)
-		inlineMarksPlugin,
-		markdownStylePlugin,
-		headingPlugin,
-		blockquotePlugin,
-		linkPlugin,
-		taskListPlugin,
-		horizontalRulePlugin,
-		imagePlugin,
-		orderedListPlugin,
-		unorderedListPlugin,
-		footnotePlugin,
-		wikilinkEmbedPlugin,
-		metaBindInputPlugin,
-		inlineMathPlugin,
-		hardBreakPlugin,
-		inlineCommentPlugin,
-		blockReferencePlugin,
-		// Scroll debounce — defers decoration rebuilds during active scroll
-		scrollDebouncePlugin,
-		// Shared
-		livePreviewClickHandler,
-		livePreviewStyles,
 	];
+
+	// Block plugins
+	if (!isDisabled('frontmatter')) { exts.push(frontmatterField, frontmatterGutter); }
+	if (!isDisabled('codeBlock')) { exts.push(codeBlockField); }
+	exts.push(blockCommentField);
+	if (!isDisabled('table')) { exts.push(tableField); }
+	if (!isDisabled('callout')) { exts.push(calloutField); }
+	exts.push(collectionBlockField);
+	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
+	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
+
+	// Inline plugins
+	if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
+	if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
+	if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
+	if (!isDisabled('heading')) { exts.push(headingPlugin); }
+	if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
+	if (!isDisabled('link')) { exts.push(linkPlugin); }
+	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
+	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
+	exts.push(inlineCommentPlugin, blockReferencePlugin);
+
+	// Scroll debounce + shared
+	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
+
+	return exts;
 }
 
 export function livePreview(enabled: boolean): Extension {
