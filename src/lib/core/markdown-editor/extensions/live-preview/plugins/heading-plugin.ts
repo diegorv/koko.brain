@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { headingLineDeco } from '../styles';
 
 /**
@@ -21,7 +22,7 @@ import { headingLineDeco } from '../styles';
  * - Setext headings: hides underline row (`===`/`---`) via `cm-formatting-block` CSS animation
  * - Uses `shouldShowSource` per-element: only the heading under the cursor shows its marks
  * - Uses `isInsideBlockContext` to skip headings inside code blocks
- * - Uses `view.visibleRanges` for performance (inline plugin, doesn't collapse content)
+ * - Uses `expandedVisibleRanges(view)` for performance (inline plugin, doesn't collapse content)
  */
 export const headingPlugin = ViewPlugin.fromClass(
 	class {
@@ -29,7 +30,7 @@ export const headingPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildHeadingDecorations(view.state, view.visibleRanges);
+			this.decorations = buildHeadingDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -39,7 +40,7 @@ export const headingPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildHeadingDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

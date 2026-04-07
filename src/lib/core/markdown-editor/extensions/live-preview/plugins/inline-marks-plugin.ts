@@ -4,6 +4,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findHighlightRanges } from '../parsers/highlight';
 
 /**
@@ -26,7 +27,7 @@ export const inlineMarksPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildMarkVisibilityForRanges(view.state, view.visibleRanges);
+			this.decorations = buildMarkVisibilityForRanges(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -36,7 +37,7 @@ export const inlineMarksPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildMarkVisibilityForRanges(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 			// 'skip' during drag, 'none' when nothing changed

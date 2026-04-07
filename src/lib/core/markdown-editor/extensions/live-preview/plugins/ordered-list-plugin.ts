@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { OrderedListMarkerWidget } from '../widgets';
 
 /**
@@ -18,7 +19,7 @@ import { OrderedListMarkerWidget } from '../widgets';
  * - Tree traversal for `ListMark` nodes inside `OrderedList`
  * - Per-element cursor: shows source when cursor is on the list item line
  * - `isInsideBlockContext` to skip
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const orderedListPlugin = ViewPlugin.fromClass(
 	class {
@@ -26,7 +27,7 @@ export const orderedListPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildOrderedListDecorations(view.state, view.visibleRanges);
+			this.decorations = buildOrderedListDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -36,7 +37,7 @@ export const orderedListPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildOrderedListDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

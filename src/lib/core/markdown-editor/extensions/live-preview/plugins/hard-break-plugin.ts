@@ -11,6 +11,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 
 /** Inline widget that shows a ↵ indicator for hard line breaks */
 class HardBreakWidget extends WidgetType {
@@ -42,7 +43,7 @@ export const hardBreakPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildHardBreakDecorations(view.state, view.visibleRanges);
+			this.decorations = buildHardBreakDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -52,7 +53,7 @@ export const hardBreakPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildHardBreakDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

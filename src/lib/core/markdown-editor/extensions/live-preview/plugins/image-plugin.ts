@@ -10,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { ImageWidget } from '../widgets';
 
 /** Parsed image size from `|width` or `|widthxheight` suffix */
@@ -45,7 +46,7 @@ export function parseImageAlt(rawAlt: string): ImageSize {
  * - Tree traversal for `Image` nodes
  * - Per-element cursor: shows source when cursor is on the image syntax
  * - `isInsideBlockContext` to skip
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const imagePlugin = ViewPlugin.fromClass(
 	class {
@@ -53,7 +54,7 @@ export const imagePlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildImageDecorations(view.state, view.visibleRanges);
+			this.decorations = buildImageDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -63,7 +64,7 @@ export const imagePlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildImageDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}

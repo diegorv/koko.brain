@@ -4,6 +4,7 @@ import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
+import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findInlineMathRanges } from '../parsers/math';
 import { InlineMathWidget } from '../widgets/inline-math-widget';
 
@@ -13,7 +14,7 @@ import { InlineMathWidget } from '../widgets/inline-math-widget';
  * - Uses Lezer syntax tree (`InlineMath` nodes from the MathExtension)
  * - Per-element cursor: shows source when cursor is on the math expression
  * - `isInsideBlockContext` as safety check for code blocks / HTML blocks
- * - Uses `view.visibleRanges` for performance
+ * - Uses `expandedVisibleRanges(view)` for performance
  */
 export const inlineMathPlugin = ViewPlugin.fromClass(
 	class {
@@ -21,7 +22,7 @@ export const inlineMathPlugin = ViewPlugin.fromClass(
 		lastCursorLine: number;
 
 		constructor(view: EditorView) {
-			this.decorations = buildInlineMathDecorations(view.state, view.visibleRanges);
+			this.decorations = buildInlineMathDecorations(view.state, expandedVisibleRanges(view));
 			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
@@ -31,7 +32,7 @@ export const inlineMathPlugin = ViewPlugin.fromClass(
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				this.decorations = buildInlineMathDecorations(
 					update.view.state,
-					update.view.visibleRanges,
+					expandedVisibleRanges(update.view),
 				);
 			}
 		}
