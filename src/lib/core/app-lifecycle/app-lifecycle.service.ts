@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
+import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { debounce } from '$lib/utils/debounce';
@@ -237,6 +237,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	debouncedFileChangeHandler = debounce(async () => {
 		const paths = [...pendingWatcherPaths];
 		pendingWatcherPaths = [];
+		await reloadExternallyChangedTabs(paths);
 		await rebuildAllIndexes(paths);
 	}, 300);
 	unsubscribeFileChange = onFileChange((paths) => {

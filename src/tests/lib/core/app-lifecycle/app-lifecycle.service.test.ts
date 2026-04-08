@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 vi.mock('$lib/core/editor/editor.service', () => ({
 	resetEditor: vi.fn(),
 	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),
+	reloadExternallyChangedTabs: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('$lib/core/editor/editor.hooks', () => ({

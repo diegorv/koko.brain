@@ -68,6 +68,7 @@ import {
 	closeTabsForDeletedPath,
 	flushPendingSaves,
 	saveAllDirtyTabs,
+	reloadExternallyChangedTabs,
 } from '$lib/core/editor/editor.service';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
@@ -1097,5 +1098,113 @@ describe('state transitions', () => {
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(editorStore.activeIndex).toBe(-1);
 		expect(fsStore.selectedFilePath).toBeNull();
+	});
+});
+
+describe('reloadExternallyChangedTabs', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		fsStore.reset();
+		resetHooks();
+	});
+
+	it('silently reloads a clean tab when file changed externally', async () => {
+		addTab('/vault/note.md', 'original');
+		vi.mocked(readTextFile).mockResolvedValueOnce('external edit');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(editorStore.tabs[0].content).toBe('external edit');
+		expect(editorStore.tabs[0].savedContent).toBe('external edit');
+	});
+
+	it('skips tabs not in the changed paths', async () => {
+		addTab('/vault/note.md', 'original');
+
+		await reloadExternallyChangedTabs(['/vault/other.md']);
+
+		expect(editorStore.tabs[0].content).toBe('original');
+		expect(readTextFile).not.toHaveBeenCalled();
+	});
+
+	it('skips when disk content matches savedContent (no external change)', async () => {
+		addTab('/vault/note.md', 'same');
+		vi.mocked(readTextFile).mockResolvedValueOnce('same');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		// Content should remain unchanged
+		expect(editorStore.tabs[0].content).toBe('same');
+	});
+
+	it('skips self-saves (disk matches savedContent)', async () => {
+		addTab('/vault/note.md', 'original');
+		// Simulate editor just saved — disk has the same content as savedContent
+		vi.mocked(readTextFile).mockResolvedValueOnce('original');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		// Content should remain unchanged — no reload needed
+		expect(editorStore.tabs[0].content).toBe('original');
+	});
+
+	it('skips virtual tabs', async () => {
+		editorStore.addTab({
+			path: '__virtual__/tasks',
+			name: 'Tasks',
+			content: '',
+			savedContent: '',
+			fileType: 'tasks',
+		});
+
+		await reloadExternallyChangedTabs(['__virtual__/tasks']);
+
+		expect(readTextFile).not.toHaveBeenCalled();
+	});
+
+	it('skips dirty tabs — editor always wins over external changes', async () => {
+		addTab('/vault/note.md', 'user edits', { savedContent: 'original' });
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		// Should not even read from disk — editor content is preserved
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe('user edits');
+		expect(editorStore.tabs[0].savedContent).toBe('original');
+	});
+
+	it('handles read errors gracefully (file may be deleted)', async () => {
+		addTab('/vault/note.md', 'original');
+		vi.mocked(readTextFile).mockRejectedValueOnce(new Error('file not found'));
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		// Tab should remain unchanged
+		expect(editorStore.tabs[0].content).toBe('original');
+	});
+
+	it('applies read transform when reloading (e.g. encrypted files)', async () => {
+		setFileReadTransform(async (_path, raw) => ({ content: `decrypted:${raw}` }));
+		addTab('/vault/secret.md', 'decrypted:original', { savedContent: 'decrypted:original' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('new-encrypted');
+
+		await reloadExternallyChangedTabs(['/vault/secret.md']);
+
+		expect(editorStore.tabs[0].content).toBe('decrypted:new-encrypted');
+		expect(editorStore.tabs[0].savedContent).toBe('decrypted:new-encrypted');
+	});
+
+	it('reloads multiple tabs in a single call', async () => {
+		addTab('/vault/a.md', 'old A');
+		addTab('/vault/b.md', 'old B');
+		vi.mocked(readTextFile)
+			.mockResolvedValueOnce('new A')
+			.mockResolvedValueOnce('new B');
+
+		await reloadExternallyChangedTabs(['/vault/a.md', '/vault/b.md']);
+
+		expect(editorStore.tabs[0].content).toBe('new A');
+		expect(editorStore.tabs[1].content).toBe('new B');
 	});
 });
