@@ -65,6 +65,11 @@ export function buildSimpleWidgetDecorations(
 	ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
 	const decorations: Range<Decoration>[] = [];
+	// expandedVisibleRanges can overlap, causing the same node to be visited
+	// multiple times. Decoration.mark() with ::before/::after (ListMark, HardBreak)
+	// produces extra visual elements per duplicate. Track seen positions to skip.
+	// Key uses "name:from" because different node types can share the same from.
+	const seen = new Set<string>();
 
 	for (const { from, to } of ranges) {
 		syntaxTree(state).iterate({
@@ -72,21 +77,41 @@ export function buildSimpleWidgetDecorations(
 			to,
 			enter: (node) => {
 				switch (node.name) {
-					case 'TaskMarker':
+					case 'TaskMarker': {
+						const key = `T${node.from}`;
+						if (seen.has(key)) return;
+						seen.add(key);
 						handleTaskMarker(node, state, decorations);
 						return;
-					case 'HorizontalRule':
+					}
+					case 'HorizontalRule': {
+						const key = `H${node.from}`;
+						if (seen.has(key)) return false;
+						seen.add(key);
 						handleHorizontalRule(node, state, decorations);
 						return false;
-					case 'ListMark':
+					}
+					case 'ListMark': {
+						const key = `L${node.from}`;
+						if (seen.has(key)) return;
+						seen.add(key);
 						handleListMark(node, state, decorations);
 						return;
-					case 'HardBreak':
+					}
+					case 'HardBreak': {
+						const key = `B${node.from}`;
+						if (seen.has(key)) return false;
+						seen.add(key);
 						handleHardBreak(node, state, decorations);
 						return false;
-					case 'InlineMath':
+					}
+					case 'InlineMath': {
+						const key = `M${node.from}`;
+						if (seen.has(key)) return false;
+						seen.add(key);
 						handleInlineMath(node, state, decorations);
 						return false;
+					}
 				}
 			},
 		});

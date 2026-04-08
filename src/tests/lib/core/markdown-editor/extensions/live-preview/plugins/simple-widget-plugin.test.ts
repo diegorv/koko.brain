@@ -293,6 +293,75 @@ describe('simpleWidgetPlugin — inline math', () => {
 	});
 });
 
+// --- Overlapping Ranges (Deduplication) ---
+
+describe('simpleWidgetPlugin — overlapping ranges deduplication', () => {
+	function buildDecosWithRanges(doc: string, ranges: { from: number; to: number }[], cursor?: number) {
+		const baseState = createMarkdownState(doc);
+		const safeCursor =
+			cursor !== undefined ? Math.min(cursor, baseState.doc.length) : undefined;
+		const state = baseState.update({
+			selection: safeCursor !== undefined ? EditorSelection.single(safeCursor) : undefined,
+		}).state;
+		return collectDecos(buildSimpleWidgetDecorations(state, ranges));
+	}
+
+	it('produces no duplicate decorations when ranges overlap for unordered lists', () => {
+		const doc = '- first\n- second\ntext';
+		const len = doc.length;
+		// Simulate expandedVisibleRanges returning overlapping ranges
+		const overlapping = [
+			{ from: 0, to: len },
+			{ from: 0, to: len },
+			{ from: 0, to: len },
+		];
+		const single = [{ from: 0, to: len }];
+		const decosOverlap = buildDecosWithRanges(doc, overlapping, len - 1);
+		const decosSingle = buildDecosWithRanges(doc, single, len - 1);
+		expect(decosOverlap).toEqual(decosSingle);
+	});
+
+	it('produces no duplicate decorations when ranges overlap for ordered lists', () => {
+		const doc = '1. first\n2. second\ntext';
+		const len = doc.length;
+		const overlapping = [
+			{ from: 0, to: len },
+			{ from: 0, to: len },
+		];
+		const single = [{ from: 0, to: len }];
+		const decosOverlap = buildDecosWithRanges(doc, overlapping, len - 1);
+		const decosSingle = buildDecosWithRanges(doc, single, len - 1);
+		expect(decosOverlap).toEqual(decosSingle);
+	});
+
+	it('produces no duplicate decorations when ranges overlap for horizontal rules', () => {
+		const doc = 'text\n\n---\nmore';
+		const len = doc.length;
+		const overlapping = [
+			{ from: 0, to: len },
+			{ from: 0, to: len },
+		];
+		const single = [{ from: 0, to: len }];
+		const decosOverlap = buildDecosWithRanges(doc, overlapping, 0);
+		const decosSingle = buildDecosWithRanges(doc, single, 0);
+		expect(decosOverlap).toEqual(decosSingle);
+	});
+
+	it('produces no duplicate decorations for mixed document with overlapping ranges', () => {
+		const doc = '- [ ] task\n1. ordered\n- bullet\n\n---\ntext';
+		const len = doc.length;
+		const overlapping = [
+			{ from: 0, to: len },
+			{ from: 0, to: len },
+			{ from: 0, to: len },
+		];
+		const single = [{ from: 0, to: len }];
+		const decosOverlap = buildDecosWithRanges(doc, overlapping, len - 1);
+		const decosSingle = buildDecosWithRanges(doc, single, len - 1);
+		expect(decosOverlap).toEqual(decosSingle);
+	});
+});
+
 // --- Mixed Document (Integration Test) ---
 
 describe('simpleWidgetPlugin — mixed document', () => {
