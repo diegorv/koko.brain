@@ -251,6 +251,38 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 }
 
 /**
+ * Reloads content from disk for open tabs whose files were externally modified.
+ * Called by the file watcher when changes are detected on disk.
+ * Only reloads when the tab is clean (no unsaved editor changes).
+ * If the user has unsaved edits, the editor always wins — the disk
+ * version is ignored and the editor content will be saved on next auto-save.
+ */
+export async function reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> {
+	for (const filePath of changedPaths) {
+		const tab = editorStore.tabs.find((t) => t.path === filePath);
+		if (!tab || isVirtualTab(tab)) continue;
+
+		// Editor has unsaved changes — editor wins, skip reload
+		if (isTabDirty(tab)) continue;
+
+		try {
+			const rawContent = await readTextFile(filePath);
+			const transformed = await applyReadTransform(filePath, rawContent);
+			const diskContent = transformed?.content ?? rawContent;
+
+			// Disk matches what we last saved — no external change
+			if (diskContent === tab.savedContent) continue;
+
+			editorStore.updateTabContentByPath(filePath, diskContent);
+			debug('EDITOR', 'Reloaded externally changed file:', filePath);
+		} catch {
+			// File may have been deleted — handled elsewhere (closeTabsForDeletedPath)
+			debug('EDITOR', 'Failed to read externally changed file (may be deleted):', filePath);
+		}
+	}
+}
+
+/**
  * Cancels any pending auto-saves and resets all editor state.
  * Uses cancel (not flush) because callers must await saveAllDirtyTabs()
  * before calling resetEditor — flushing would fire async saves that race
