@@ -141,10 +141,27 @@ If you cannot answer #1-#3 with specific file paths and line numbers, you do NOT
 
 ## Debugging
 
-**`console.log` is ALWAYS the first debugging tool.** When something isn't working, add `console.log` statements to inspect values, execution flow, and state BEFORE trying to reason about the problem or rewrite code. Do NOT waste time guessing — log it, see the actual data, then fix it.
+**Logging is ALWAYS the first debugging tool.** When something isn't working, add log statements to inspect values, execution flow, and state BEFORE trying to reason about the problem or rewrite code. Do NOT waste time guessing — log it, see the actual data, then fix it.
 
-- **Frontend (webview):** `console.log` outputs to the browser devtools (right-click → Inspect in the Tauri window).
-- **Rust (backend):** Use `println!` or `eprintln!` — output goes to the terminal where `pnpm tauri dev` is running. For structured logging, use `RUST_LOG=debug pnpm tauri dev`.
+### Log file location
+
+All app logs are written to `~/Library/Logs/com.diegorv.kokobrain/` (one file per session, e.g. `2026-04-08_10-33-38.log`). Use `python3 scripts/log-watcher.py` to tail in real-time.
+
+### Frontend logging
+
+**Use `appendLog(tag, ...args)` from `$lib/utils/log.service`** — NOT `console.log`. `appendLog` writes to the session log file; `console.log` only goes to browser devtools (which requires right-click → Inspect in the Tauri window) and is not persisted.
+
+```typescript
+import { appendLog } from '$lib/utils/log.service';
+appendLog('MY-TAG', `value=${someVar} state=${otherVar}`);
+// Output in log file: [HH:mm:ss.SSS] [MY-TAG] value=... state=...
+```
+
+### Rust logging
+
+- Use `debug_log(tag, msg)` from `utils::logger` — emits to stderr (terminal) and to the frontend via `tauri-debug-log` event (when debug mode is enabled).
+- For low-level debugging: `eprintln!` outputs to the terminal where `pnpm tauri dev` is running.
+- For structured logging: `RUST_LOG=debug pnpm tauri dev`.
 
 ## Testing
 
