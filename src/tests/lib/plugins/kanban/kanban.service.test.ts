@@ -16,37 +16,12 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.store.svelte', () => ({
-	fsStore: {
-		fileTree: [{ name: 'notes', path: '/vault/notes', isDir: true, children: [{ name: 'My Note.md', path: '/vault/notes/My Note.md', isDir: false, children: [] }] }],
-	},
-}));
-
-vi.mock('$lib/features/quick-switcher/quick-switcher.logic', () => ({
-	flattenFileTree: vi.fn(() => [{ name: 'My Note.md', path: '/vault/notes/My Note.md', isDir: false, children: [] }]),
-}));
-
-vi.mock('$lib/features/backlinks/backlinks.logic', () => ({
-	resolveWikilink: vi.fn((target: string) => {
-		if (target === 'My Note') return '/vault/notes/My Note.md';
-		return null;
-	}),
-}));
-
-vi.mock('$lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic', () => ({
-	stripFrontmatter: vi.fn((content: string) => {
-		if (!content.startsWith('---')) return content;
-		const endIdx = content.indexOf('\n---', 3);
-		if (endIdx === -1) return content;
-		return content.substring(endIdx + 4).trimStart();
-	}),
-}));
-
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard } from '$lib/plugins/kanban/kanban.logic';
 import { createKanbanFile, resetKanban, loadLinkedFileContent } from '$lib/plugins/kanban/kanban.service';
 import { kanbanStore } from '$lib/plugins/kanban/kanban.store.svelte';
+import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 
 describe('createKanbanFile', () => {
 	beforeEach(() => {
@@ -105,6 +80,10 @@ describe('loadLinkedFileContent', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetKanban(); // clears content cache
+		// Populate real store so resolveWikilinkCached can resolve "My Note"
+		noteIndexStore.setNoteContents(new Map([
+			['/vault/notes/My Note.md', 'file content'],
+		]));
 	});
 
 	it('returns empty string for card without wikilinks', async () => {
