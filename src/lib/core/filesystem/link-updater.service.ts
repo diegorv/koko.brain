@@ -25,8 +25,8 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 		? Array.from(reverseIdx.get(oldPath) ?? []).filter((p) => p !== oldPath)
 		: findFilesLinkingTo(oldName, noteIndexStore.noteContents, oldPath);
 
-	for (const filePath of affectedPaths) {
-		try {
+	const results = await Promise.allSettled(
+		affectedPaths.map(async (filePath) => {
 			// Use in-memory content if the tab has unsaved edits to avoid losing them
 			const openTab = editorStore.tabs.find((t) => t.path === filePath);
 			const isDirty = openTab != null && isTabDirty(openTab);
@@ -41,8 +41,11 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 				editorStore.updateTabContentByPath(filePath, updatedContent);
 				updateIndexForFile(filePath, updatedContent);
 			}
-		} catch (err) {
-			error('LINK_UPDATER', `Failed to update links in ${filePath}:`, err);
+		}),
+	);
+	for (const result of results) {
+		if (result.status === 'rejected') {
+			error('LINK_UPDATER', `Failed to update links:`, result.reason);
 		}
 	}
 }
