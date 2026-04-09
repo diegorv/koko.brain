@@ -791,7 +791,7 @@ fn update_stored_mtime(file_path: &str, vault_path: &str) -> Result<(), String> 
 	if !abs_canonical.starts_with(&vault_root) {
 		return Err(format!("Path traversal detected: {}", file_path));
 	}
-	let mtime = std::fs::metadata(&abs_path)
+	let mtime = std::fs::metadata(&abs_canonical)
 		.and_then(|m| m.modified())
 		.ok()
 		.and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
