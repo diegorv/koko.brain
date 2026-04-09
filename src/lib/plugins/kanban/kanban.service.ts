@@ -2,6 +2,9 @@ import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';
+import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { buildResolutionCache, resolveWikilinkCached } from '$lib/features/backlinks/backlinks.logic';
+import { stripFrontmatter } from '$lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic';
 import { error } from '$lib/utils/debug';
 
 /**
@@ -51,14 +54,9 @@ export async function loadLinkedFileContent(cardText: string): Promise<string> {
 	const target = wikilinks[0].target;
 
 	try {
-		const { fsStore } = await import('$lib/core/filesystem/fs.store.svelte');
-		const { flattenFileTree } = await import('$lib/features/quick-switcher/quick-switcher.logic');
-		const { resolveWikilink } = await import('$lib/features/backlinks/backlinks.logic');
-		const { stripFrontmatter } = await import('$lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic');
-
-		const files = flattenFileTree(fsStore.fileTree);
-		const allPaths = files.map((f) => f.path);
-		const resolved = resolveWikilink(target, allPaths);
+		const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
+		const cache = buildResolutionCache(allFilePaths);
+		const resolved = resolveWikilinkCached(target, cache);
 
 		if (!resolved) {
 			linkedContentCache.set(cardText, '');

@@ -14,7 +14,7 @@ Analysis of `src/` revealed several synchronous operations that iterate over the
   - **Fix:** Pre-parse all formula ASTs into a Map before the record loop. Add a `parseCache: Map<string, AST>` for `evaluateFilter` to avoid re-parsing the same filter expressions per record.
   - **Test:** `src/tests/lib/features/collection/collection-logic.test.ts`
 
-- [ ] Task 2: Replace O(n) `resolveWikilink` with O(1) cached version in kanban service
+- [x] Task 2: Replace O(n) `resolveWikilink` with O(1) cached version in kanban service
   - **File:** `src/lib/plugins/kanban/kanban.service.ts:40-77`
   - **Problem:** Uses `resolveWikilink()` (O(n) linear scan) + `flattenFileTree()` (O(n) tree walk) + dynamic imports. Called per kanban card with wikilink.
   - **Fix:** Replace dynamic imports with static imports. Use `noteIndexStore.noteContents.keys()` + `buildResolutionCache()` + `resolveWikilinkCached()` for O(1) lookup. Remove `flattenFileTree` dependency entirely.
