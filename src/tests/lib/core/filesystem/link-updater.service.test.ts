@@ -20,6 +20,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
+import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 
 describe('updateLinksAfterRename', () => {
 	beforeEach(() => {
@@ -202,6 +203,32 @@ describe('updateLinksAfterRename', () => {
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/other.md', 'link to [[new-name]]');
 		// No tab to update, so tabs should still be empty
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('uses reverse index for O(1) lookup when available', async () => {
+		// Set up both noteContents AND noteIndex so reverseIndex is populated
+		noteIndexStore.setNoteContents(new Map([
+			['/vault/old-name.md', ''],
+			['/vault/other.md', 'link to [[old-name]]'],
+			['/vault/unrelated.md', 'no links'],
+		]));
+		noteIndexStore.setNoteIndex(new Map([
+			['/vault/old-name.md', []],
+			['/vault/other.md', parseWikilinks('link to [[old-name]]')],
+			['/vault/unrelated.md', []],
+		]));
+
+		// Verify reverse index was built
+		expect(noteIndexStore.reverseIndex.size).toBeGreaterThan(0);
+
+		vi.mocked(readTextFile).mockResolvedValue('link to [[old-name]]');
+
+		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
+
+		// Should only process the file that links to old-name, not unrelated
+		expect(readTextFile).toHaveBeenCalledTimes(1);
+		expect(readTextFile).toHaveBeenCalledWith('/vault/other.md');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/other.md', 'link to [[new-name]]');
 	});
 });
 

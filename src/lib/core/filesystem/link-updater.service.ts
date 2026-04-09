@@ -20,7 +20,10 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 
 	if (oldName.toLowerCase() === newName.toLowerCase()) return;
 
-	const affectedPaths = findFilesLinkingTo(oldName, noteIndexStore.noteContents, oldPath);
+	const reverseIdx = noteIndexStore.reverseIndex;
+	const affectedPaths = reverseIdx.size > 0
+		? Array.from(reverseIdx.get(oldPath) ?? []).filter((p) => p !== oldPath)
+		: findFilesLinkingTo(oldName, noteIndexStore.noteContents, oldPath);
 
 	for (const filePath of affectedPaths) {
 		try {
