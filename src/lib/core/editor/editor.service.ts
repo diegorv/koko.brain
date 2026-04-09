@@ -258,27 +258,35 @@ export function closeTabsForDeletedPath(deletedPath: string) {
  * version is ignored and the editor content will be saved on next auto-save.
  */
 export async function reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> {
+	// Collect eligible file paths (open, non-virtual, clean tabs)
+	const eligible: string[] = [];
 	for (const filePath of changedPaths) {
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
-		if (!tab || isVirtualTab(tab)) continue;
+		if (!tab || isVirtualTab(tab) || isTabDirty(tab)) continue;
+		eligible.push(filePath);
+	}
 
-		// Editor has unsaved changes — editor wins, skip reload
-		if (isTabDirty(tab)) continue;
-
-		try {
+	// Read all files in parallel
+	const results = await Promise.allSettled(
+		eligible.map(async (filePath) => {
 			const rawContent = await readTextFile(filePath);
 			const transformed = await applyReadTransform(filePath, rawContent);
-			const diskContent = transformed?.content ?? rawContent;
+			return { filePath, diskContent: transformed?.content ?? rawContent };
+		}),
+	);
 
-			// Disk matches what we last saved — no external change
-			if (diskContent === tab.savedContent) continue;
-
-			editorStore.updateTabContentByPath(filePath, diskContent);
-			debug('EDITOR', 'Reloaded externally changed file:', filePath);
-		} catch {
-			// File may have been deleted — handled elsewhere (closeTabsForDeletedPath)
-			debug('EDITOR', 'Failed to read externally changed file (may be deleted):', filePath);
+	// Apply updates synchronously after all reads complete
+	for (const result of results) {
+		if (result.status === 'rejected') {
+			debug('EDITOR', 'Failed to read externally changed file (may be deleted)');
+			continue;
 		}
+		const { filePath, diskContent } = result.value;
+		// Re-check tab state — it may have changed during parallel reads
+		const tab = editorStore.tabs.find((t) => t.path === filePath);
+		if (!tab || diskContent === tab.savedContent) continue;
+		editorStore.updateTabContentByPath(filePath, diskContent);
+		debug('EDITOR', 'Reloaded externally changed file:', filePath);
 	}
 }
 
