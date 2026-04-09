@@ -457,6 +457,11 @@ pub async fn build_semantic_index(
 		.map_err(|e| format!("Task join error: {e}"))??;
 
 	invalidate_search_cache();
+
+	// Unload the embedder immediately after indexing to free ~2-4 GB of RSS.
+	// Subsequent search/update calls will lazy-reload as needed.
+	unload_embedder();
+
 	get_semantic_stats_inner()
 }
 
@@ -477,6 +482,9 @@ pub async fn search_semantic(
 		let limit = max_results.unwrap_or(20);
 		let threshold = min_score.unwrap_or(0.3);
 
+		// Lazy-reload embedder if it was unloaded after indexing
+		ensure_embedder_loaded()?;
+
 		// Embed the query text (try_lock to avoid blocking during indexing)
 		let query_embedding = {
 			let mut guard = EMBEDDER.try_lock().map_err(|_| {
@@ -486,6 +494,9 @@ pub async fn search_semantic(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+
+		// Schedule auto-unload after idle timeout
+		schedule_embedder_unload();
 
 		// Load chunks from cache (avoids re-reading DB + re-deserializing on every search)
 		let cached_chunks = get_or_load_cache()?;
@@ -606,6 +617,9 @@ pub async fn update_semantic_file(
 		// Embed only changed/new chunks FIRST, before any DB modification.
 		// If embedding fails, old chunks remain untouched in the DB.
 		let embeddings = if !chunks_to_embed.is_empty() {
+			// Lazy-reload embedder if it was unloaded after indexing
+			ensure_embedder_loaded()?;
+
 			let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 			let embedder = match guard.as_mut() {
 				Some(e) => e,
@@ -617,10 +631,16 @@ pub async fn update_semantic_file(
 
 			let texts: Vec<&str> = chunks_to_embed.iter().map(|c| c.content.as_str()).collect();
 			debug_log("EMBEDDER", format!("File update — {} changed of {} total chunks for {}", texts.len(), chunks.len(), file_path));
-			embedder.embed_batch(&texts)?
+			let result = embedder.embed_batch(&texts)?;
+
+			// Schedule auto-unload after idle timeout (guard must be dropped first)
+			drop(guard);
+			schedule_embedder_unload();
+
+			result
 		} else {
 			vec![]
-		}; // EMBEDDER guard dropped here — prevents deadlock with DB lock
+		};
 
 		// Apply changes in a single transaction:
 		// 1. Delete removed chunks (keys that no longer exist)
