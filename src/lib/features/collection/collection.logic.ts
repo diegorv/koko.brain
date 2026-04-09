@@ -9,7 +9,7 @@ import type {
 } from './collection.types';
 import { evaluate, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
-import { isDisplayValue } from './expression/expression.types';
+import { isDisplayValue, type ASTNode } from './expression/expression.types';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import { getFileExtension, getFileName } from '$lib/core/filesystem/fs.logic';
 
@@ -53,27 +53,44 @@ export function executeQuery(
 	// 1. Collect all records
 	let records = Array.from(index.values());
 
+	// Pre-parse all formula ASTs once (avoids re-parsing per record)
+	const parsedFormulas: Array<[string, ASTNode | null]> = Object.entries(formulas).map(
+		([name, expr]) => {
+			try {
+				return [name, parse(expr)];
+			} catch {
+				return [name, null];
+			}
+		},
+	);
+
+	// Shared parse cache for filter expressions (avoids re-parsing per record)
+	const parseCache = new Map<string, ASTNode>();
+
 	// 2. Filter — combine global + view filters with AND
 	records = records.filter((record) => {
 		const ctx: EvalContext = { record, formulas };
-		if (definition.filters && !evaluateFilter(definition.filters, ctx)) {
+		if (definition.filters && !evaluateFilterCached(definition.filters, ctx, parseCache)) {
 			return false;
 		}
-		if (view.filters && !evaluateFilter(view.filters, ctx)) {
+		if (view.filters && !evaluateFilterCached(view.filters, ctx, parseCache)) {
 			return false;
 		}
 		return true;
 	});
 
 	// 3. Compute formulas — clone records first to avoid mutating the shared property index
-	if (Object.keys(formulas).length > 0) {
+	if (parsedFormulas.length > 0) {
 		records = records.map((r) => ({ ...r, properties: new Map(r.properties) }));
 	}
 	for (const record of records) {
-		for (const [formulaName, formulaExpr] of Object.entries(formulas)) {
+		for (const [formulaName, ast] of parsedFormulas) {
+			if (!ast) {
+				record.properties.set(`formula.${formulaName}`, null);
+				continue;
+			}
 			try {
 				const ctx: EvalContext = { record, formulas };
-				const ast = parse(formulaExpr);
 				const value = evaluate(ast, ctx);
 				record.properties.set(`formula.${formulaName}`, value);
 			} catch {
@@ -132,6 +149,40 @@ export function evaluateFilter(filter: FilterItem, ctx: EvalContext): boolean {
 	}
 	if (result && filterObj.not) {
 		result = filterObj.not.every((item) => !evaluateFilter(item, ctx));
+	}
+
+	return result;
+}
+
+/**
+ * Evaluates a filter item using a shared parse cache to avoid re-parsing
+ * the same expression strings on every record.
+ */
+function evaluateFilterCached(filter: FilterItem, ctx: EvalContext, parseCache: Map<string, ASTNode>): boolean {
+	if (typeof filter === 'string') {
+		try {
+			let ast = parseCache.get(filter);
+			if (!ast) {
+				ast = parse(filter);
+				parseCache.set(filter, ast);
+			}
+			return toTruthy(evaluate(ast, ctx));
+		} catch {
+			return false;
+		}
+	}
+
+	const filterObj = filter as CollectionFilter;
+	let result = true;
+
+	if (filterObj.and) {
+		result = filterObj.and.every((item) => evaluateFilterCached(item, ctx, parseCache));
+	}
+	if (result && filterObj.or) {
+		result = filterObj.or.some((item) => evaluateFilterCached(item, ctx, parseCache));
+	}
+	if (result && filterObj.not) {
+		result = filterObj.not.every((item) => !evaluateFilterCached(item, ctx, parseCache));
 	}
 
 	return result;
