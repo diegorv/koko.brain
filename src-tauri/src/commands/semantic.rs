@@ -9,11 +9,22 @@ use crate::utils::logger::debug_log;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
-/// Global embedder instance, loaded once on `init_semantic_search`.
+/// Global embedder instance. Lazy-loaded on demand, auto-unloaded after idle timeout.
 static EMBEDDER: Mutex<Option<Embedder>> = Mutex::new(None);
+
+/// Stored vault path for lazy-reloading the embedder after it's been unloaded.
+static VAULT_PATH: Mutex<Option<String>> = Mutex::new(None);
+
+/// Generation counter for debounced unload. Each use bumps this; only the latest
+/// scheduled unload fires (if the generation hasn't changed since scheduling).
+static UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Seconds of inactivity before the embedder is automatically unloaded to free memory.
+const EMBEDDER_IDLE_TIMEOUT_SECS: u64 = 120;
 
 /// Cached pre-deserialized embeddings to avoid reloading from DB on every search.
 static SEARCH_CACHE: Mutex<Option<Arc<Vec<CachedChunk>>>> = Mutex::new(None);
@@ -80,11 +91,65 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 	Ok(arc)
 }
 
+/// Unloads the ONNX model to free memory (typically ~2-4 GB RSS).
+fn unload_embedder() {
+	if let Ok(mut guard) = EMBEDDER.lock() {
+		if guard.is_some() {
+			*guard = None;
+			debug_log("SEMANTIC", "Embedder unloaded to free memory");
+		}
+	}
+}
+
+/// Ensures the embedder is loaded, reloading from stored vault path if needed.
+/// Returns an error if no vault path is stored (init_semantic_search was never called).
+fn ensure_embedder_loaded() -> Result<(), String> {
+	{
+		let guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
+		if guard.is_some() {
+			return Ok(());
+		}
+	}
+
+	let vault_path = {
+		let vp = VAULT_PATH.lock().map_err(|e| format!("Lock error: {e}"))?;
+		vp.clone().ok_or_else(|| "No vault path stored — init_semantic_search was never called".to_string())?
+	};
+
+	debug_log("SEMANTIC", "Lazy-reloading embedder...");
+	let manager = ModelManager::new(Path::new(&vault_path));
+	if !manager.is_model_available() {
+		return Err("Model not available on disk".to_string());
+	}
+	let embedder = Embedder::load(&manager.model_path())?;
+	let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
+	*guard = Some(embedder);
+	debug_log("SEMANTIC", "Embedder lazy-reloaded");
+	Ok(())
+}
+
+/// Schedules an embedder unload after the idle timeout. Uses a generation counter
+/// so that subsequent calls cancel previous timers — only the latest one fires.
+fn schedule_embedder_unload() {
+	let gen = UNLOAD_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+	tokio::spawn(async move {
+		tokio::time::sleep(std::time::Duration::from_secs(EMBEDDER_IDLE_TIMEOUT_SECS)).await;
+		if UNLOAD_GENERATION.load(Ordering::SeqCst) == gen {
+			unload_embedder();
+		}
+	});
+}
+
 /// Loads the ONNX model into the static embedder. Call once after vault open.
 /// Runs model loading on a blocking thread to avoid freezing the UI.
 #[tauri::command]
 pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 	tokio::task::spawn_blocking(move || {
+		// Store vault path for lazy-reloading after idle unload
+		if let Ok(mut vp) = VAULT_PATH.lock() {
+			*vp = Some(vault_path.clone());
+		}
+
 		let manager = ModelManager::new(Path::new(&vault_path));
 		if !manager.is_model_available() {
 			return Ok(false);
