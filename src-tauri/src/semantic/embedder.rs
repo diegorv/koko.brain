@@ -16,7 +16,9 @@ pub struct Embedder {
 
 impl Embedder {
 	/// Maximum texts per ONNX inference call to limit memory usage.
-	const INFERENCE_BATCH_SIZE: usize = 32;
+	/// Kept small (4) to reduce peak RSS — BGE-M3 allocates large intermediate
+	/// activation tensors proportional to batch × seq_len × hidden_dim.
+	const INFERENCE_BATCH_SIZE: usize = 4;
 
 	/// Loads the ONNX model and tokenizer from the given directory.
 	///
@@ -33,7 +35,7 @@ impl Embedder {
 		}
 
 		let num_threads = std::thread::available_parallelism()
-			.map(|n| n.get())
+			.map(|n| n.get().min(4))
 			.unwrap_or(4);
 		debug_log("EMBEDDER", format!("Using {} intra-op threads", num_threads));
 

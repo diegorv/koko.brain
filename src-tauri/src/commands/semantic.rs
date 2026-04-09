@@ -248,7 +248,7 @@ pub async fn build_semantic_index(
 	let total_to_embed = all_chunks.len();
 	let mut deleted_paths: HashSet<String> = HashSet::new();
 	if total_to_embed > 0 {
-		let batch_size = 32;
+		let batch_size = 4;
 		let chunk_indices: Vec<usize> = (0..all_chunks.len()).collect();
 
 		// Build path → mtime lookup for incremental mtime saves
