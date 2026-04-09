@@ -14,21 +14,48 @@ import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
 import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { error, perfStart, perfEnd } from '$lib/utils/debug';
 
+/** Version counter to discard stale in-flight updates when a newer call arrives. */
+let updateVersion = 0;
+
+/** Yields to the event loop so the browser can process pending frames/input. */
+const yieldToEventLoop = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
 /**
  * Updates all indexes for a single file's content change.
  * Called with a debounce from the layout effect when the active tab's content changes.
  * Uses per-file incremental updates instead of full-vault rebuilds.
- * Builds allFilePaths and resolution cache once, sharing them between
- * backlinks and outgoing-links to avoid redundant O(n) computations.
+ *
+ * Split into 3 phases with event-loop yields between them to avoid blocking
+ * the main thread for the full duration (~30-100ms on large vaults):
+ *   Phase 1 (immediate): updateIndexForFile — stores parsed wikilinks needed by Phase 2
+ *   Phase 2 (after yield): backlinks + outgoing-links (share resolution cache)
+ *   Phase 3 (after yield): tags, tasks, collection, icons, calendar
+ *
+ * A version counter discards phases 2/3 if a newer call has started.
  * Each updater is wrapped in try/catch so one failure doesn't block the rest.
  */
-export function updateIndexesForFile(filePath: string, content: string): void {
+export async function updateIndexesForFile(filePath: string, content: string): Promise<void> {
+	const version = ++updateVersion;
 	const t0 = perfStart();
+
+	// Phase 1: immediate — must run first, stores parsed wikilinks for Phase 2
 	try { updateIndexForFile(filePath, content); } catch (err) { error('INDEX', 'updateIndexForFile failed:', err); }
+
+	// Yield to let the browser process pending frames/input
+	await yieldToEventLoop();
+	if (updateVersion !== version) return;
+
+	// Phase 2: link-dependent updates (share allFilePaths and cache)
 	const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
 	const cache = buildResolutionCache(allFilePaths);
 	try { updateBacklinksForFile(filePath, allFilePaths, cache); } catch (err) { error('INDEX', 'updateBacklinksForFile failed:', err); }
 	try { updateOutgoingLinksForFile(filePath, allFilePaths, cache); } catch (err) { error('INDEX', 'updateOutgoingLinksForFile failed:', err); }
+
+	// Yield again before the remaining lightweight updates
+	await yieldToEventLoop();
+	if (updateVersion !== version) return;
+
+	// Phase 3: independent lightweight updates
 	try { updateTagIndexForFile(filePath, content); } catch (err) { error('INDEX', 'updateTagIndexForFile failed:', err); }
 	try { updateTaskIndexForFile(filePath, content); } catch (err) { error('INDEX', 'updateTaskIndexForFile failed:', err); }
 	try { updateNoteInIndex(filePath, content); } catch (err) { error('INDEX', 'updateNoteInIndex failed:', err); }
