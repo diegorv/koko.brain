@@ -694,6 +694,7 @@ pub async fn update_semantic_file(
 #[tauri::command]
 pub async fn debug_semantic_embeddings() -> Result<String, String> {
 	tokio::task::spawn_blocking(|| {
+		ensure_embedder_loaded()?;
 		let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 		let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 
@@ -764,6 +765,7 @@ pub async fn debug_semantic_embeddings() -> Result<String, String> {
 			output.push('\n');
 		}
 
+		schedule_embedder_unload();
 		Ok(output)
 	})
 	.await
