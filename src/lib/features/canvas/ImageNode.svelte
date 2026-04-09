@@ -20,18 +20,27 @@
 		if (!file) return;
 		imageSrc = null;
 		error = false;
-		let currentSrc: string | null = null;
+		let aborted = false;
+		let blobUrl: string | null = null;
+
 		resolveImageSrc(file)
 			.then((src) => {
-				currentSrc = src;
+				if (aborted) {
+					if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+					return;
+				}
+				blobUrl = src;
 				imageSrc = src;
 			})
 			.catch(() => {
+				if (aborted) return;
 				error = true;
 			});
+
 		return () => {
-			if (currentSrc && currentSrc.startsWith('blob:')) {
-				URL.revokeObjectURL(currentSrc);
+			aborted = true;
+			if (blobUrl && blobUrl.startsWith('blob:')) {
+				URL.revokeObjectURL(blobUrl);
 			}
 		};
 	});
