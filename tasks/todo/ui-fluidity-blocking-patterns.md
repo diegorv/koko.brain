@@ -26,7 +26,7 @@ Analysis of `src/` revealed several synchronous operations that iterate over the
   - **Fix:** Single-pass algorithm using `linkMap: Map<string, GraphLink>` and `directedEdges: Set<string>` simultaneously. Accept optional `prebuiltCache` parameter.
   - **Test:** `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`
 
-- [ ] Task 4: Yield to event loop in `updateIndexesForFile()`
+- [x] Task 4: Yield to event loop in `updateIndexesForFile()`
   - **File:** `src/lib/core/app-lifecycle/index-updater.service.ts:25-37`
   - **Problem:** 8 sequential synchronous index updates block the main thread for 30-100ms after every typing pause (1s debounce). Includes O(n) `buildResolutionCache`.
   - **Fix:** Make async, split into 3 phases with `await new Promise(r => setTimeout(r, 0))` between them:

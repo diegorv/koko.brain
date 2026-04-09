@@ -60,8 +60,8 @@ describe('updateIndexesForFile', () => {
 		vi.clearAllMocks();
 	});
 
-	it('calls all per-file index update functions with the correct arguments', () => {
-		updateIndexesForFile('/vault/note.md', '# Hello world');
+	it('calls all per-file index update functions with the correct arguments', async () => {
+		await updateIndexesForFile('/vault/note.md', '# Hello world');
 
 		expect(updateIndexForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
@@ -73,8 +73,8 @@ describe('updateIndexesForFile', () => {
 		expect(updateCalendarForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 	});
 
-	it('calls all updaters with empty path and content', () => {
-		updateIndexesForFile('', '');
+	it('calls all updaters with empty path and content', async () => {
+		await updateIndexesForFile('', '');
 
 		expect(updateIndexForFile).toHaveBeenCalledWith('', '');
 		expect(updateBacklinksForFile).toHaveBeenCalledWith('', expect.any(Array), expect.any(Map));
@@ -86,8 +86,8 @@ describe('updateIndexesForFile', () => {
 		expect(updateTaskIndexForFile).toHaveBeenCalledWith('', '');
 	});
 
-	it('shares the same allFilePaths and cache between backlinks and outgoing-links', () => {
-		updateIndexesForFile('/vault/note.md', 'content');
+	it('shares the same allFilePaths and cache between backlinks and outgoing-links', async () => {
+		await updateIndexesForFile('/vault/note.md', 'content');
 
 		const backlinksArgs = vi.mocked(updateBacklinksForFile).mock.calls[0];
 		const outgoingArgs = vi.mocked(updateOutgoingLinksForFile).mock.calls[0];
@@ -97,24 +97,24 @@ describe('updateIndexesForFile', () => {
 		expect(backlinksArgs[2]).toBe(outgoingArgs[2]);
 	});
 
-	it('calls updateIndexForFile before dependent index updates', () => {
+	it('calls updateIndexForFile before dependent index updates', async () => {
 		const callOrder: string[] = [];
 		vi.mocked(updateIndexForFile).mockImplementation(() => { callOrder.push('updateIndexForFile'); });
 		vi.mocked(updateBacklinksForFile).mockImplementation(() => { callOrder.push('updateBacklinksForFile'); });
 		vi.mocked(updateOutgoingLinksForFile).mockImplementation(() => { callOrder.push('updateOutgoingLinksForFile'); });
 		vi.mocked(updateTagIndexForFile).mockImplementation(() => { callOrder.push('updateTagIndexForFile'); });
 
-		updateIndexesForFile('/vault/note.md', 'content');
+		await updateIndexesForFile('/vault/note.md', 'content');
 
 		expect(callOrder[0]).toBe('updateIndexForFile');
 	});
 
-	it('continues calling remaining updaters when one throws', () => {
+	it('continues calling remaining updaters when one throws', async () => {
 		vi.mocked(updateTagIndexForFile).mockImplementation(() => {
 			throw new Error('tag parse error');
 		});
 
-		updateIndexesForFile('/vault/note.md', 'content');
+		await updateIndexesForFile('/vault/note.md', 'content');
 
 		// Updaters before the failure should have been called
 		expect(updateIndexForFile).toHaveBeenCalled();
@@ -127,14 +127,31 @@ describe('updateIndexesForFile', () => {
 		expect(updateCalendarForFile).toHaveBeenCalled();
 	});
 
-	it('logs error when an updater throws', () => {
+	it('logs error when an updater throws', async () => {
 		const testError = new Error('calendar crash');
 		vi.mocked(updateCalendarForFile).mockImplementation(() => {
 			throw testError;
 		});
 
-		updateIndexesForFile('/vault/note.md', 'content');
+		await updateIndexesForFile('/vault/note.md', 'content');
 
 		expect(debugError).toHaveBeenCalledWith('INDEX', 'updateCalendarForFile failed:', testError);
+	});
+
+	it('skips phases 2 and 3 when a newer call supersedes', async () => {
+		// Start first call but don't await — it will be superseded
+		const first = updateIndexesForFile('/vault/old.md', 'old content');
+		// Start second call immediately — increments version, invalidating first
+		const second = updateIndexesForFile('/vault/new.md', 'new content');
+
+		await Promise.all([first, second]);
+
+		// Phase 1 of both calls runs (updateIndexForFile is synchronous before yield)
+		expect(updateIndexForFile).toHaveBeenCalledTimes(2);
+		// Phases 2/3 only run for the second (latest) call
+		expect(updateBacklinksForFile).toHaveBeenCalledTimes(1);
+		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/new.md', expect.any(Array), expect.any(Map));
+		expect(updateTagIndexForFile).toHaveBeenCalledTimes(1);
+		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/new.md', 'new content');
 	});
 });
