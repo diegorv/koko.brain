@@ -45,7 +45,7 @@ Análise completa do código TypeScript em `src/` buscando bugs reais, falhas de
 - [x] Task 1: Extrair `resolveFilePath` e `normalizePath` para `src/lib/utils/path.ts`
 - [x] Task 2: Corrigir path traversal no meta-bind createNote
 - [x] Task 3: Corrigir race condition no FileNode.svelte
-- [ ] Task 4: Corrigir race condition + blob leak no ImageNode.svelte
+- [x] Task 4: Corrigir race condition + blob leak no ImageNode.svelte
 
 ## Detalhes de implementação
 
