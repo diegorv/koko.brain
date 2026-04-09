@@ -14,38 +14,35 @@ export function buildGraphData(
 	allFilePaths: string[],
 ): GraphData {
 	const nodes: GraphNode[] = [];
-	const links: GraphLink[] = [];
 	const linkCountMap = new Map<string, number>();
-	const seenEdges = new Set<string>();
-	// Track directed edges to detect bidirectional links
 	const directedEdges = new Set<string>();
+	const linkMap = new Map<string, GraphLink>();
 	const cache = buildResolutionCache(allFilePaths);
 
-	// First pass: collect all directed edges
+	// Single pass: build directed edges and deduplicated links simultaneously
 	for (const [sourcePath, wikilinks] of noteIndex) {
 		for (const link of wikilinks) {
 			const resolvedPath = resolveWikilinkCached(link.target, cache);
 			if (!resolvedPath || resolvedPath === sourcePath) continue;
+
 			directedEdges.add(`${sourcePath}->${resolvedPath}`);
+			const canonicalKey = [sourcePath, resolvedPath].sort().join('->');
+
+			const existing = linkMap.get(canonicalKey);
+			if (existing) {
+				// Reverse direction encountered — mark bidirectional
+				existing.bidirectional = true;
+			} else {
+				// First encounter — check if reverse was already seen
+				const reverseExists = directedEdges.has(`${resolvedPath}->${sourcePath}`);
+				linkMap.set(canonicalKey, { source: sourcePath, target: resolvedPath, bidirectional: reverseExists });
+				linkCountMap.set(sourcePath, (linkCountMap.get(sourcePath) ?? 0) + 1);
+				linkCountMap.set(resolvedPath, (linkCountMap.get(resolvedPath) ?? 0) + 1);
+			}
 		}
 	}
 
-	// Second pass: build deduplicated links with bidirectional flag
-	for (const [sourcePath, wikilinks] of noteIndex) {
-		for (const link of wikilinks) {
-			const resolvedPath = resolveWikilinkCached(link.target, cache);
-			if (!resolvedPath || resolvedPath === sourcePath) continue;
-
-			const edgeKey = [sourcePath, resolvedPath].sort().join('->');
-			if (seenEdges.has(edgeKey)) continue;
-			seenEdges.add(edgeKey);
-
-			const reverseExists = directedEdges.has(`${resolvedPath}->${sourcePath}`);
-			links.push({ source: sourcePath, target: resolvedPath, bidirectional: reverseExists });
-			linkCountMap.set(sourcePath, (linkCountMap.get(sourcePath) ?? 0) + 1);
-			linkCountMap.set(resolvedPath, (linkCountMap.get(resolvedPath) ?? 0) + 1);
-		}
-	}
+	const links = Array.from(linkMap.values());
 
 	// Build nodes from all file paths
 	for (const filePath of allFilePaths) {
