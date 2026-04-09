@@ -20,7 +20,7 @@ Analysis of `src/` revealed several synchronous operations that iterate over the
   - **Fix:** Replace dynamic imports with static imports. Use `noteIndexStore.noteContents.keys()` + `buildResolutionCache()` + `resolveWikilinkCached()` for O(1) lookup. Remove `flattenFileTree` dependency entirely.
   - **Test:** Create `src/tests/lib/plugins/kanban/kanban.service.test.ts` if not exists
 
-- [ ] Task 3: Merge `buildGraphData()` into single pass
+- [x] Task 3: Merge `buildGraphData()` into single pass
   - **File:** `src/lib/plugins/graph-view/graph-view.logic.ts:11-65`
   - **Problem:** Two full passes over noteIndex (first collects directed edges, second builds links). Can be merged: track `directedEdges` set and a `linkMap` by canonical key in one pass, flip `bidirectional` flag when reverse edge is encountered.
   - **Fix:** Single-pass algorithm using `linkMap: Map<string, GraphLink>` and `directedEdges: Set<string>` simultaneously. Accept optional `prebuiltCache` parameter.
