@@ -135,9 +135,12 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 		case 'createNote': {
 			const { openOrCreateNote } = await import('$lib/core/note-creator/note-creator.service');
 			const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+			const { resolveFilePath } = await import('$lib/utils/path');
 
-			const folder = action.folderPath ? `${action.folderPath}/` : '';
-			const filePath = `${vaultStore.path}/${folder}${action.fileName}.md`;
+			const relative = action.folderPath
+				? `${action.folderPath}/${action.fileName}`
+				: action.fileName;
+			const filePath = resolveFilePath(vaultStore.path!, relative);
 
 			await openOrCreateNote({
 				filePath,
