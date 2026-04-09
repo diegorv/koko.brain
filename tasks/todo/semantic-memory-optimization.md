@@ -10,7 +10,7 @@ with an idle timer that auto-unloads after 120s of inactivity.
 ## Tasks
 
 - [x] Task 1: Reduce INFERENCE_BATCH_SIZE from 32 to 4 in embedder.rs, batch_size from 32 to 4 in semantic.rs, and cap intra-op threads at 4
-- [ ] Task 2: Add vault path static + lazy reload helper + debounced unload timer in semantic.rs
+- [x] Task 2: Add vault path static + lazy reload helper + debounced unload timer in semantic.rs
 - [ ] Task 3: Unload embedder after build_semantic_index completes, lazy-load in search_semantic and update_semantic_file, schedule idle unload after use
 - [ ] Task 4: Update debug_semantic_embeddings to lazy-load, and update tests
 
