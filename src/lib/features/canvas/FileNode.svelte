@@ -33,15 +33,20 @@
 		loading = true;
 		error = false;
 		fileContent = null;
+		let aborted = false;
 
 		const fullPath = vaultStore.path ? `${vaultStore.path}/${filePath}` : filePath;
 		readTextFile(fullPath as string).then((content) => {
+			if (aborted) return;
 			fileContent = content;
 			loading = false;
 		}).catch(() => {
+			if (aborted) return;
 			error = true;
 			loading = false;
 		});
+
+		return () => { aborted = true; };
 	});
 
 	/** Open the referenced file in the editor */
