@@ -117,25 +117,21 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 	const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
 	const cache = buildResolutionCache(allFilePaths);
 
-	const vaultPrefix = vaultPath + '/';
 	for (const result of readResults) {
-		// The result path is absolute — convert to vault-relative for index updaters
-		// which use relative paths as keys (matching buildIndex behavior).
-		const relPath = result.path.startsWith(vaultPrefix)
-			? result.path.substring(vaultPrefix.length)
-			: result.path;
-
+		// Use absolute paths directly — buildIndex stores absolute paths as map keys,
+		// and all other systems (file tree, editor tabs, modifiedAtMap) use absolute paths.
+		// Path traversal protection is handled by Rust's read_files_batch (canonicalize + starts_with check).
 		if (result.content !== null) {
 			// File exists — update all indexes for this file
-			try { updateIndexForFile(relPath, result.content); } catch (err) { error('WATCHER', 'updateIndexForFile failed:', err); }
-			try { updateTagIndexForFile(relPath, result.content); } catch (err) { error('WATCHER', 'updateTagIndexForFile failed:', err); }
-			try { updateTaskIndexForFile(relPath, result.content); } catch (err) { error('WATCHER', 'updateTaskIndexForFile failed:', err); }
-			try { updateNoteInIndex(relPath, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
-			try { updateFrontmatterIconForFile(relPath, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
-			try { updateCalendarForFile(relPath, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
+			try { updateIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateIndexForFile failed:', err); }
+			try { updateTagIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateTagIndexForFile failed:', err); }
+			try { updateTaskIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateTaskIndexForFile failed:', err); }
+			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
+			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
+			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
 		} else {
 			// File doesn't exist (deleted) — remove from indexes
-			try { removeFileFromIndex(relPath); } catch (err) { error('WATCHER', 'removeFileFromIndex failed:', err); }
+			try { removeFileFromIndex(result.path); } catch (err) { error('WATCHER', 'removeFileFromIndex failed:', err); }
 		}
 	}
 

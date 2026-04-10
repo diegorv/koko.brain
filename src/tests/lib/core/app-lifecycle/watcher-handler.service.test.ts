@@ -258,13 +258,13 @@ describe('rebuildAllIndexes — incremental path', () => {
 			vaultPath: '/vault',
 			paths: ['/vault/note.md'],
 		});
-		// Index updaters receive vault-relative paths
-		expect(updateIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
-		expect(updateTagIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
-		expect(updateTaskIndexForFile).toHaveBeenCalledWith('note.md', 'updated content');
-		expect(updateNoteInIndex).toHaveBeenCalledWith('note.md', 'updated content');
-		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('note.md', 'updated content');
-		expect(updateCalendarForFile).toHaveBeenCalledWith('note.md', 'updated content');
+		// Index updaters receive absolute paths (matching buildIndex behavior)
+		expect(updateIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		expect(updateTaskIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		expect(updateCalendarForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 	});
 
 	it('falls back to full rebuild when incremental fails', async () => {
@@ -301,7 +301,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 		await rebuildAllIndexes(['/vault/deleted.md']);
 
-		expect(removeFileFromIndex).toHaveBeenCalledWith('deleted.md');
+		expect(removeFileFromIndex).toHaveBeenCalledWith('/vault/deleted.md');
 		expect(updateIndexForFile).not.toHaveBeenCalled();
 	});
 });
