@@ -231,7 +231,9 @@ The live preview system uses ~22 CodeMirror decoration plugins. Key performance 
 
 4. **File watcher filters all hidden dirs** — `isInsideHiddenDir()` silently discards events from any dot-prefixed directory (`.git`, `.kokobrain`, `.claude`, `.obsidian`, etc.).
 
-5. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500ms saved per save).
+5. **All index keys use absolute paths** — `noteContents`, `noteIndex`, `fileTasksIndex`, `modifiedAtMap`, and editor tabs all use absolute paths as keys (from `FileTreeNode.path`). Never convert to vault-relative paths before storing in any index. Path traversal protection is handled by Rust's `read_files_batch` (`canonicalize` + `starts_with` check), not by frontend path stripping.
+
+6. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500ms saved per save).
 
 ## Documentation Index
 
