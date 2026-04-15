@@ -7,3 +7,10 @@
 #
 # Example:
 #   lodash@4.17.22  # Emergency security patch, reviewed manually
+
+# Tauri plugins: exempt from cooldown to keep frontend/Rust versions aligned
+@tauri-apps/plugin-deep-link@2.4.8  # Sync with cargo tauri-plugin-deep-link 2.4.8
+@tauri-apps/plugin-dialog@2.7.0  # Sync with cargo tauri-plugin-dialog 2.7.0
+@tauri-apps/plugin-fs@2.5.0  # Sync with cargo tauri-plugin-fs 2.5.0
+@tauri-apps/plugin-http@2.5.8  # Sync with cargo tauri-plugin-http 2.5.8
+@tauri-apps/plugin-updater@2.10.1  # Sync with cargo tauri-plugin-updater 2.10.1
