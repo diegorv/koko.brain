@@ -2,3 +2,5 @@
 # published less than 14 days (20160 minutes) ago.
 # See: https://pnpm.io/settings#minimumreleaseage
 minimumReleaseAge: 20160
+minimumReleaseAgeExclude:
+  - '@tauri-apps/*'
