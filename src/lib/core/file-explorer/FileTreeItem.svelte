@@ -518,13 +518,15 @@
 	{/each}
 {/if}
 
-<IconPicker
-	bind:open={iconPickerOpen}
-	currentPack={customIconEntry?.iconPack}
-	currentName={customIconEntry?.iconName}
-	currentColor={customIconEntry?.color}
-	currentTextColor={customIconEntry?.textColor}
-	onSelect={handleIconSelect}
-	onRemove={handleIconRemove}
-	onClose={() => iconPickerOpen = false}
-/>
+{#if iconPickerOpen}
+	<IconPicker
+		bind:open={iconPickerOpen}
+		currentPack={customIconEntry?.iconPack}
+		currentName={customIconEntry?.iconName}
+		currentColor={customIconEntry?.color}
+		currentTextColor={customIconEntry?.textColor}
+		onSelect={handleIconSelect}
+		onRemove={handleIconRemove}
+		onClose={() => iconPickerOpen = false}
+	/>
+{/if}
