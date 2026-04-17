@@ -347,17 +347,9 @@
 		{#snippet child({ props })}
 			{#if isRenaming}
 				<div
-					class="relative flex items-center gap-1 px-2 py-0.5"
-					style="padding-left: {depth * 16 + 8}px"
+					class="relative flex items-center gap-1 px-2 py-0.5 {depth > 0 ? 'ft-indent-lines' : ''}"
+					style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
 				>
-					{#if depth > 0}
-						{#each Array(depth) as _, i}
-							<div
-								class="absolute top-0 bottom-0 w-px bg-muted-foreground/40 pointer-events-none"
-								style="left: {i * 16 + 12}px"
-							></div>
-						{/each}
-					{/if}
 					{#if node.isDirectory}
 						<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
 					{:else}
@@ -377,8 +369,9 @@
 					{...props}
 					class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary text-left cursor-default select-none
 						{isSelected ? 'bg-primary/25' : ''}
-						{isDragOver ? 'bg-accent/50 outline-dashed outline-1 outline-ring' : ''}"
-					style="padding-left: {depth * 16 + 8}px"
+						{isDragOver ? 'bg-accent/50 outline-dashed outline-1 outline-ring' : ''}
+						{depth > 0 ? 'ft-indent-lines' : ''}"
+					style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
 					onclick={handleClick}
 					ondblclick={handleDoubleClick}
 					draggable={!isRenaming}
@@ -395,14 +388,6 @@
 						if (e.key === 'F2') startRename();
 					}}
 				>
-					{#if depth > 0}
-						{#each Array(depth) as _, i}
-							<div
-								class="absolute top-0 bottom-0 w-px bg-muted-foreground/40 pointer-events-none"
-								style="left: {i * 16 + 12}px"
-							></div>
-						{/each}
-					{/if}
 					{#if node.isDirectory}
 						{#if isExpanded}
 							<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" />
@@ -530,3 +515,16 @@
 		onClose={() => iconPickerOpen = false}
 	/>
 {/if}
+
+<style>
+	.ft-indent-lines {
+		background-image: repeating-linear-gradient(
+			to right,
+			transparent 0 12px,
+			color-mix(in oklch, var(--muted-foreground) 40%, transparent) 12px 13px,
+			transparent 13px 16px
+		);
+		background-size: calc(var(--ft-indent-depth, 0) * 16px) 100%;
+		background-repeat: no-repeat;
+	}
+</style>
