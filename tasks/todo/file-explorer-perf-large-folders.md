@@ -11,7 +11,7 @@ icon-pack loads and thousands of extra DOM nodes.
 ### Phase 1 — Lazy-mount + CSS indentation (quick wins)
 
 - [x] Task 1: Lazy-mount `IconPicker` inside `FileTreeItem.svelte` via `{#if iconPickerOpen}` so the dialog (and its `loadIcons` effect) only mounts when the user opens the picker for that row.
-- [ ] Task 2: Replace the per-row `{#each Array(depth)}` indentation-line divs with a CSS gradient driven by `--depth`, removing N absolutely-positioned divs per row.
+- [x] Task 2: Replace the per-row `{#each Array(depth)}` indentation-line divs with a CSS gradient driven by `--depth`, removing N absolutely-positioned divs per row.
 
 ### Phase 2 — (deferred, not in this session)
 
