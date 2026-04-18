@@ -54,9 +54,12 @@ export async function startSemanticProgressListener(): Promise<void> {
 
 		// Phase transitions (e.g. "downloading" → "embedding" → "complete") must
 		// reach the UI immediately so state changes are visible without the
-		// throttle delay. Within a phase, coalesce updates.
+		// throttle delay. Within a phase, coalesce updates. We log only the
+		// transition — per-batch logs would mirror the Rust-side `EMBEDDER`
+		// log and cost a Tauri plugin-fs IPC write each time.
 		const phaseChanged = !lastPropagatedProgress || lastPropagatedProgress.phase !== payload.phase;
 		if (phaseChanged) {
+			debug('SEARCH', 'Semantic progress phase:', payload.phase, payload.message);
 			flushSemanticProgress();
 			return;
 		}

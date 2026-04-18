@@ -15,8 +15,9 @@ vi.mock('@tauri-apps/api/event', () => ({
 	listen: (event: string, handler: (...args: unknown[]) => void) => mockListen(event, handler),
 }));
 
+const mockDebug = vi.fn();
 vi.mock('$lib/utils/debug', () => ({
-	debug: vi.fn(),
+	debug: (...args: unknown[]) => mockDebug(...args),
 	error: vi.fn(),
 }));
 
@@ -604,6 +605,44 @@ describe('semantic progress listener (throttle)', () => {
 			vi.advanceTimersByTime(1000);
 			expect(searchStore.semanticProgress?.phase).toBe('embedding');
 			expect(searchStore.semanticProgress?.current).toBe(4);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('logs only phase transitions, not every batch', async () => {
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+			mockDebug.mockClear();
+
+			// 10 same-phase embedding events — must produce ZERO 'Semantic progress phase' logs
+			for (let i = 0; i < 10; i++) {
+				capturedHandler!({
+					payload: {
+						phase: 'embedding',
+						current: (i + 1) * 4,
+						total: 1000,
+						message: `${(i + 1) * 4}/1000`,
+					},
+				});
+			}
+
+			// Phase transition to 'chunking' — MUST log
+			capturedHandler!({
+				payload: { phase: 'chunking', current: 0, total: 1000, message: 'Chunking...' },
+			});
+
+			const phaseLogs = mockDebug.mock.calls.filter(
+				(call) => call[0] === 'SEARCH' && call[1] === 'Semantic progress phase:'
+			);
+			// Exactly 2 phase logs: initial 'embedding' entry + transition to 'chunking'
+			expect(phaseLogs).toHaveLength(2);
+			expect(phaseLogs[0]?.[2]).toBe('embedding');
+			expect(phaseLogs[1]?.[2]).toBe('chunking');
+
+			// State also reflects the last phase (sanity check — not the sole assertion)
+			expect(searchStore.semanticProgress?.phase).toBe('chunking');
 		} finally {
 			vi.useRealTimers();
 		}

@@ -21,7 +21,7 @@ work (including expand-folder clicks that happen while indexing is in flight).
   called at most once every 500 ms (keep the latest payload, coalesce the
   rest). The "complete" / phase-change events must still propagate promptly,
   so a leading+trailing throttle is appropriate.
-- [ ] Task B: In the same listener, drop the per-batch
+- [x] Task B: In the same listener, drop the per-batch
   `debug('SEARCH', 'Semantic progress:', …)` call. The Rust side already
   logs `Index batch N/M` via `debug_log('EMBEDDER', …)`, so the frontend
   duplicate is redundant and each call costs a Tauri plugin-fs IPC write
