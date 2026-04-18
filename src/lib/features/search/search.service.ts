@@ -18,6 +18,29 @@ import type {
 /** Active listener for semantic progress events */
 let progressUnlisten: UnlistenFn | null = null;
 
+/** Throttle window (ms) for propagating progress updates to the store. Rust emits
+ *  one event per 4-chunk batch (~16/s during indexing); flooding the store would
+ *  cause SearchStatus / SearchPanel / SearchSection to re-render on every batch. */
+const PROGRESS_THROTTLE_MS = 500;
+
+/** Trailing-edge throttle state for the progress listener */
+let progressThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingProgress: SemanticProgress | null = null;
+let lastPropagatedProgress: SemanticProgress | null = null;
+
+/** Propagates the latest pending payload to the store and resets throttle state. */
+function flushSemanticProgress(): void {
+	if (progressThrottleTimer) {
+		clearTimeout(progressThrottleTimer);
+		progressThrottleTimer = null;
+	}
+	if (pendingProgress) {
+		searchStore.setSemanticProgress(pendingProgress);
+		lastPropagatedProgress = pendingProgress;
+		pendingProgress = null;
+	}
+}
+
 /** Version counter to discard results from stale search calls */
 let searchVersion = 0;
 
@@ -26,8 +49,21 @@ export async function startSemanticProgressListener(): Promise<void> {
 	if (progressUnlisten) return; // Already listening
 	debug('SEARCH', 'Starting semantic progress listener');
 	progressUnlisten = await listen<SemanticProgress>('semantic-index-progress', (event) => {
-		debug('SEARCH', 'Semantic progress:', event.payload.phase, event.payload.message);
-		searchStore.setSemanticProgress(event.payload);
+		const payload = event.payload;
+		pendingProgress = payload;
+
+		// Phase transitions (e.g. "downloading" → "embedding" → "complete") must
+		// reach the UI immediately so state changes are visible without the
+		// throttle delay. Within a phase, coalesce updates.
+		const phaseChanged = !lastPropagatedProgress || lastPropagatedProgress.phase !== payload.phase;
+		if (phaseChanged) {
+			flushSemanticProgress();
+			return;
+		}
+
+		if (!progressThrottleTimer) {
+			progressThrottleTimer = setTimeout(flushSemanticProgress, PROGRESS_THROTTLE_MS);
+		}
 	});
 }
 
@@ -38,6 +74,12 @@ export function stopSemanticProgressListener(): void {
 		progressUnlisten();
 		progressUnlisten = null;
 	}
+	if (progressThrottleTimer) {
+		clearTimeout(progressThrottleTimer);
+		progressThrottleTimer = null;
+	}
+	pendingProgress = null;
+	lastPropagatedProgress = null;
 	searchStore.setSemanticProgress(null);
 }
 
