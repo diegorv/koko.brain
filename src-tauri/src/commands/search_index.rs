@@ -16,8 +16,23 @@ pub struct IndexStats {
 
 /// Builds the FTS5 search index by scanning all markdown files in the vault.
 /// Clears existing data and re-indexes from scratch.
+///
+/// The Tauri command is `async` so the CPU + I/O work is offloaded to a
+/// blocking worker thread via `spawn_blocking`. A synchronous `fn` command
+/// would run on the main Tauri IPC thread and block every other `invoke()` /
+/// `listen()` call for the duration of the rebuild (~3 s on a vault of
+/// ~1,800 notes), which noticeably stalls app startup.
 #[tauri::command]
-pub fn build_search_index(vault_path: String) -> Result<IndexStats, String> {
+pub async fn build_search_index(vault_path: String) -> Result<IndexStats, String> {
+	tokio::task::spawn_blocking(move || build_search_index_inner(vault_path))
+		.await
+		.map_err(|e| format!("build_search_index task join error: {e}"))?
+}
+
+/// Synchronous implementation of the FTS5 rebuild. Exposed for tests and for
+/// callers that are already running on a blocking context. Production callers
+/// from the frontend go through the async `build_search_index` wrapper above.
+pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String> {
 	let start = std::time::Instant::now();
 	let vault = vault_fs::validate_vault_path(&vault_path)?;
 	let entries = vault_fs::collect_markdown_paths(&vault, &[])?;
