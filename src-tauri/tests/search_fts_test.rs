@@ -63,7 +63,7 @@ fn build_search_index_indexes_markdown_files() {
 	let tmp = setup_vault();
 
 	let stats =
-		search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+		search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 	assert_eq!(stats.total_documents, 4, "should index 4 markdown files");
 
 	teardown();
@@ -76,7 +76,7 @@ fn build_search_index_skips_hidden_directories() {
 	let tmp = setup_vault();
 
 	let stats =
-		search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+		search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Search for content from the hidden file
 	let results = search_index::search_fts("Internal".to_string(), Some(10), Some(false)).unwrap();
@@ -94,7 +94,7 @@ fn search_fts_finds_matching_content() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let results = search_index::search_fts("programming".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find documents with 'programming'");
@@ -112,7 +112,7 @@ fn search_fts_returns_empty_for_no_match() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let results =
 		search_index::search_fts("xyznonexistent".to_string(), Some(10), Some(false)).unwrap();
@@ -126,7 +126,7 @@ fn search_fts_returns_empty_for_empty_query() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let results = search_index::search_fts("".to_string(), Some(10), Some(false)).unwrap();
 	assert!(results.is_empty(), "should return empty for empty query");
@@ -145,7 +145,7 @@ fn search_fts_bm25_ranks_title_matches_higher() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// "rust" appears in title of rust.md but only in content of others (if at all)
 	let results = search_index::search_fts("rust".to_string(), Some(10), Some(false)).unwrap();
@@ -163,7 +163,7 @@ fn search_fts_snippet_contains_mark_tags() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let results = search_index::search_fts("safety".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find 'safety'");
@@ -179,7 +179,7 @@ fn update_search_index_file_updates_content() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Original content should be findable
 	let results = search_index::search_fts("greetings".to_string(), Some(10), Some(false)).unwrap();
@@ -211,7 +211,7 @@ fn remove_from_search_index_removes_file() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Verify file is indexed
 	let results = search_index::search_fts("rust".to_string(), Some(10), Some(false)).unwrap();
@@ -233,7 +233,7 @@ fn get_search_index_stats_returns_correct_count() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let stats = search_index::get_search_index_stats().unwrap();
 	assert_eq!(
@@ -249,7 +249,7 @@ fn search_fts_handles_special_characters() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Should not crash on special characters
 	let results =
@@ -269,7 +269,7 @@ fn search_fts_quotes_only_query_returns_empty() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Query with only double quotes — sanitize_fts_term strips them all,
 	// leaving an empty FTS query that would cause a MATCH syntax error
@@ -327,7 +327,7 @@ fn expand_fuzzy_terms_finds_similar_terms() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	db::with_db(|conn| {
 		// "javascript" is in the vocabulary (from javascript.md content)
@@ -355,7 +355,7 @@ fn expand_fuzzy_terms_returns_only_original_for_short_terms() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	db::with_db(|conn| {
 		let terms = fuzzy::expand_fuzzy_terms(conn, "ab")?;
@@ -373,7 +373,7 @@ fn search_fts_with_fuzzy_finds_typo_tolerant_matches() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// "programing" (one 'm') is a typo for "programming"
 	let results =
@@ -391,7 +391,7 @@ fn search_fts_indexes_nested_files_with_relative_paths() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
-	search_index::build_search_index(tmp.path().to_string_lossy().to_string()).unwrap();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let results = search_index::search_fts("nested".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find nested note");
@@ -410,7 +410,7 @@ fn build_search_index_rejects_non_existent_path() {
 	teardown();
 
 	let result =
-		search_index::build_search_index("/non/existent/vault/path".to_string());
+		search_index::build_search_index_inner("/non/existent/vault/path".to_string());
 	assert!(result.is_err());
 	assert!(result
 		.unwrap_err()
@@ -429,7 +429,7 @@ fn build_search_index_rejects_file_as_vault() {
 	fs::write(&file_path, "content").unwrap();
 
 	let result =
-		search_index::build_search_index(file_path.to_string_lossy().to_string());
+		search_index::build_search_index_inner(file_path.to_string_lossy().to_string());
 	assert!(result.is_err());
 	assert!(result.unwrap_err().contains("not a directory"));
 
