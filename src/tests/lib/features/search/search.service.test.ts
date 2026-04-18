@@ -36,7 +36,10 @@ import {
 	initSemanticSearch,
 	buildSemanticIndex,
 	registerSearchIndexHook,
+	startSemanticProgressListener,
+	stopSemanticProgressListener,
 } from '$lib/features/search/search.service';
+import type { SemanticProgress } from '$lib/features/search/search.types';
 
 describe('performSearch', () => {
 	beforeEach(() => {
@@ -498,6 +501,137 @@ describe('registerSearchIndexHook', () => {
 
 		expect(mockInvoke).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe('/vault');
+	});
+});
+
+describe('semantic progress listener (throttle)', () => {
+	let capturedHandler: ((event: { payload: SemanticProgress }) => void) | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		searchStore.reset();
+		stopSemanticProgressListener(); // ensure a clean start between tests
+		capturedHandler = null;
+		mockListen.mockImplementation((_event, handler) => {
+			capturedHandler = handler as (e: { payload: SemanticProgress }) => void;
+			return Promise.resolve(vi.fn());
+		});
+	});
+
+	it('propagates the first event immediately (phase transition from null)', async () => {
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+			expect(capturedHandler).not.toBeNull();
+
+			const first: SemanticProgress = {
+				phase: 'embedding',
+				current: 4,
+				total: 1000,
+				message: 'Embedding chunks... 4/1000',
+			};
+			capturedHandler!({ payload: first });
+
+			// Immediate propagation — no timer advance required
+			expect(searchStore.semanticProgress).toEqual(first);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('coalesces rapid same-phase events into a trailing 500ms update', async () => {
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+
+			// Prime lastPropagatedProgress so the next event is a same-phase update
+			capturedHandler!({
+				payload: { phase: 'embedding', current: 4, total: 1000, message: '4/1000' },
+			});
+
+			// Simulate a burst of 10 same-phase events within the throttle window.
+			for (let i = 1; i <= 10; i++) {
+				capturedHandler!({
+					payload: {
+						phase: 'embedding',
+						current: 4 + i * 4,
+						total: 1000,
+						message: `${4 + i * 4}/1000`,
+					},
+				});
+			}
+
+			// Store still holds the first payload — throttle has not fired yet
+			expect(searchStore.semanticProgress?.current).toBe(4);
+
+			// Advance past the throttle window
+			vi.advanceTimersByTime(500);
+
+			// Store now holds the LAST coalesced payload (not an intermediate one)
+			expect(searchStore.semanticProgress?.current).toBe(44);
+			expect(searchStore.semanticProgress?.message).toBe('44/1000');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('bypasses the throttle when the phase changes', async () => {
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+
+			// First event (downloading) — propagates immediately
+			capturedHandler!({
+				payload: { phase: 'downloading', current: 50, total: 100, message: '50%' },
+			});
+			expect(searchStore.semanticProgress?.phase).toBe('downloading');
+
+			// Second event in the same phase — starts throttle, does NOT propagate
+			capturedHandler!({
+				payload: { phase: 'downloading', current: 80, total: 100, message: '80%' },
+			});
+			expect(searchStore.semanticProgress?.current).toBe(50);
+
+			// Phase change event arrives BEFORE the throttle fires — must propagate now
+			capturedHandler!({
+				payload: { phase: 'embedding', current: 4, total: 1000, message: '4/1000' },
+			});
+			expect(searchStore.semanticProgress?.phase).toBe('embedding');
+			expect(searchStore.semanticProgress?.current).toBe(4);
+
+			// The in-flight throttle timer must be cleared so no stale flush leaks
+			vi.advanceTimersByTime(1000);
+			expect(searchStore.semanticProgress?.phase).toBe('embedding');
+			expect(searchStore.semanticProgress?.current).toBe(4);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('stopSemanticProgressListener clears pending work and resets the store', async () => {
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+
+			capturedHandler!({
+				payload: { phase: 'embedding', current: 4, total: 1000, message: '4/1000' },
+			});
+			capturedHandler!({
+				payload: { phase: 'embedding', current: 8, total: 1000, message: '8/1000' },
+			});
+
+			stopSemanticProgressListener();
+
+			// Store is cleared
+			expect(searchStore.semanticProgress).toBeNull();
+
+			// Pending timer must not fire after stop
+			vi.advanceTimersByTime(1000);
+			expect(searchStore.semanticProgress).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 
