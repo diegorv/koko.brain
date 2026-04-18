@@ -1,59 +1,216 @@
 <script lang="ts">
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { createFile, createFolder, moveItem } from '$lib/core/filesystem/fs.service';
-	import { validateDragDrop } from '$lib/core/filesystem/fs.logic';
+	import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
+	import { toggleBookmarkForPath } from '$lib/features/bookmarks/bookmarks.service';
+	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+	import {
+		setIconForPath,
+		removeIconForPath,
+		trackRecentIcon,
+	} from '$lib/features/file-icons/file-icons.service';
+	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import {
+		createFile,
+		createFolder,
+		deleteItem,
+		duplicateItem,
+		moveItem,
+		revealInSystemExplorer,
+	} from '$lib/core/filesystem/fs.service';
+	import {
+		validateDragDrop,
+		getRelativePath,
+		getParentPath,
+	} from '$lib/core/filesystem/fs.logic';
 	import { createCanvasFile } from '$lib/features/canvas/canvas.service';
 	import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
-	import { Vault, FilePlus, FolderPlus, LayoutDashboard, Kanban } from 'lucide-svelte';
+	import { ask } from '@tauri-apps/plugin-dialog';
+	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
+	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
+	import {
+		Vault,
+		FilePlus,
+		FolderPlus,
+		LayoutDashboard,
+		Kanban,
+		Pencil,
+		Trash2,
+		Copy,
+		Bookmark,
+		BookmarkMinus,
+		ExternalLink,
+		FolderSearch,
+		Palette,
+	} from 'lucide-svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import FileExplorerHeader from './FileExplorerHeader.svelte';
 	import FileTreeItem from './FileTreeItem.svelte';
+	import { setFileExplorerContext } from './file-explorer.context';
 
-	/** Creates a new file at the vault root and immediately enters rename mode */
-	async function handleNewFile() {
-		const path = vaultStore.path;
-		if (!path) return;
-		const filePath = await createFile(path, 'Untitled.md');
-		if (filePath) {
-			fsStore.setPendingCreationPath(filePath);
-			fsStore.setRenamingPath(filePath);
+	// --- Shared context menu + icon picker state ---
+
+	/** The node under the shared context menu (null = menu opened on empty vault-root area) */
+	let contextTargetNode = $state<FileTreeNode | null>(null);
+	/** The node the shared IconPicker dialog is bound to (null when closed) */
+	let iconPickerNode = $state<FileTreeNode | null>(null);
+	/** Controls the IconPicker Dialog open/closed state (two-way bound) */
+	let iconPickerOpen = $state(false);
+
+	let targetIsBookmarked = $derived(
+		contextTargetNode ? bookmarksStore.isBookmarked(contextTargetNode.path) : false
+	);
+	let iconPickerEntry = $derived(
+		iconPickerNode ? fileIconsStore.getIcon(iconPickerNode.path) : undefined
+	);
+
+	setFileExplorerContext({
+		setContextTarget(node) {
+			contextTargetNode = node;
+		},
+		openIconPicker(node) {
+			iconPickerNode = node;
+			iconPickerOpen = true;
+		},
+	});
+
+	// --- Creation target resolution ---
+
+	/** Resolves the directory to create a new item in for the current context target */
+	function getCreationDir(target: FileTreeNode | null): string | null {
+		if (!target) return vaultStore.path;
+		return target.isDirectory ? target.path : getParentPath(target.path);
+	}
+
+	// --- Shared context menu actions (operate on a target node, or null = vault root) ---
+
+	/** Creates a new markdown file at the resolved target dir and enters rename mode */
+	async function handleNewFile(target: FileTreeNode | null) {
+		const dir = getCreationDir(target);
+		if (!dir) return;
+		if (target?.isDirectory) fsStore.expandDir(target.path);
+		const path = await createFile(dir, 'Untitled.md');
+		if (path) {
+			fsStore.setPendingCreationPath(path);
+			fsStore.setRenamingPath(path);
 		}
 	}
 
-	/** Creates a new folder at the vault root and immediately enters rename mode */
-	async function handleNewFolder() {
-		const path = vaultStore.path;
-		if (!path) return;
-		const folderPath = await createFolder(path, 'Untitled');
-		if (folderPath) {
-			fsStore.setRenamingPath(folderPath);
+	/** Creates a new folder at the resolved target dir and enters rename mode */
+	async function handleNewFolder(target: FileTreeNode | null) {
+		const dir = getCreationDir(target);
+		if (!dir) return;
+		if (target?.isDirectory) fsStore.expandDir(target.path);
+		const path = await createFolder(dir, 'Untitled');
+		if (path) {
+			fsStore.setRenamingPath(path);
 		}
 	}
 
-	/** Creates a new .canvas file at the vault root */
-	async function handleNewCanvas() {
-		const path = vaultStore.path;
-		if (!path) return;
-		const filePath = await createCanvasFile(path);
-		if (filePath) {
-			fsStore.setPendingCreationPath(filePath);
-			fsStore.setRenamingPath(filePath);
+	/** Creates a new .canvas file at the resolved target dir and enters rename mode */
+	async function handleNewCanvas(target: FileTreeNode | null) {
+		const dir = getCreationDir(target);
+		if (!dir) return;
+		if (target?.isDirectory) fsStore.expandDir(target.path);
+		const path = await createCanvasFile(dir);
+		if (path) {
+			fsStore.setPendingCreationPath(path);
+			fsStore.setRenamingPath(path);
 		}
 	}
 
-	/** Creates a new .kanban file at the vault root */
-	async function handleNewKanban() {
-		const path = vaultStore.path;
-		if (!path) return;
-		const filePath = await createKanbanFile(path);
-		if (filePath) {
-			fsStore.setPendingCreationPath(filePath);
-			fsStore.setRenamingPath(filePath);
+	/** Creates a new .kanban file at the resolved target dir and enters rename mode */
+	async function handleNewKanban(target: FileTreeNode | null) {
+		const dir = getCreationDir(target);
+		if (!dir) return;
+		if (target?.isDirectory) fsStore.expandDir(target.path);
+		const path = await createKanbanFile(dir);
+		if (path) {
+			fsStore.setPendingCreationPath(path);
+			fsStore.setRenamingPath(path);
 		}
+	}
+
+	/** Opens the target file in the editor (no-op for directories) */
+	function handleOpenInNewTab(target: FileTreeNode) {
+		if (!target.isDirectory) openFileInEditor(target.path);
+	}
+
+	/** Duplicates the file or folder with a "copy" suffix */
+	async function handleDuplicate(target: FileTreeNode) {
+		await duplicateItem(target.path, target.isDirectory);
+	}
+
+	/** Toggles the bookmark state for the target */
+	async function handleToggleBookmark(target: FileTreeNode) {
+		if (!vaultStore.path) return;
+		await toggleBookmarkForPath(vaultStore.path, target.path, target.name, target.isDirectory);
+	}
+
+	/** Copies the absolute path to the clipboard */
+	async function handleCopyAbsolutePath(target: FileTreeNode) {
+		await navigator.clipboard.writeText(target.path);
+	}
+
+	/** Copies the vault-relative path to the clipboard */
+	async function handleCopyRelativePath(target: FileTreeNode) {
+		if (!vaultStore.path) return;
+		await navigator.clipboard.writeText(getRelativePath(vaultStore.path, target.path));
+	}
+
+	/** Reveals the target in the system file explorer */
+	async function handleRevealInFinder(target: FileTreeNode) {
+		await revealInSystemExplorer(target.path);
+	}
+
+	/** Enters inline rename mode for the target */
+	function handleStartRename(target: FileTreeNode) {
+		fsStore.setRenamingPath(target.path);
+	}
+
+	/** Prompts for confirmation, then moves the target to trash */
+	async function handleDelete(target: FileTreeNode) {
+		const confirmed = await ask(
+			`Move "${target.name}" to trash?${target.isDirectory ? ' This will include all contents.' : ''}`,
+			{ title: 'Move to Trash', kind: 'warning' }
+		);
+		if (confirmed) {
+			await deleteItem(target.path, target.isDirectory);
+		}
+	}
+
+	/** Opens the shared icon picker dialog bound to the target */
+	function handleChangeIcon(target: FileTreeNode) {
+		iconPickerNode = target;
+		iconPickerOpen = true;
+	}
+
+	/** Handles icon selection from the picker (uses iconPickerNode as the target) */
+	async function handleIconSelect(
+		pack: IconPackId,
+		name: string,
+		color?: string,
+		textColor?: string
+	) {
+		if (!vaultStore.path || !iconPickerNode) return;
+		await setIconForPath(vaultStore.path, iconPickerNode.path, pack, name, color, textColor);
+		await trackRecentIcon(vaultStore.path, pack, name);
+	}
+
+	/** Handles icon removal from the picker (uses iconPickerNode as the target) */
+	async function handleIconRemove() {
+		if (!vaultStore.path || !iconPickerNode) return;
+		await removeIconForPath(vaultStore.path, iconPickerNode.path);
+	}
+
+	/** Closes the icon picker and clears the bound node so the component unmounts */
+	function handleIconPickerClose() {
+		iconPickerOpen = false;
+		iconPickerNode = null;
 	}
 
 	// --- Vault-root drag & drop (empty space in the tree) ---
@@ -87,7 +244,10 @@
 
 <Tooltip.Provider delayDuration={400}>
 	<div class="flex h-full flex-col bg-file-explorer-bg">
-		<FileExplorerHeader onNewFile={handleNewFile} onNewFolder={handleNewFolder} />
+		<FileExplorerHeader
+			onNewFile={() => handleNewFile(null)}
+			onNewFolder={() => handleNewFolder(null)}
+		/>
 		<Separator />
 		<ScrollArea class="flex-1 overflow-hidden">
 			<ContextMenu.Root>
@@ -101,6 +261,10 @@
 							ondragover={handleRootDragOver}
 							ondragleave={handleRootDragLeave}
 							ondrop={handleRootDrop}
+							oncontextmenu={(e) => {
+								if (e.target === e.currentTarget) contextTargetNode = null;
+								if (typeof props.oncontextmenu === 'function') props.oncontextmenu(e);
+							}}
 						>
 							{#each fsStore.fileTree as node (node.path)}
 								<FileTreeItem {node} />
@@ -108,24 +272,105 @@
 						</div>
 					{/snippet}
 				</ContextMenu.Trigger>
-				<ContextMenu.Content class="w-48">
-					<ContextMenu.Item onclick={handleNewFile}>
-						<FilePlus class="size-4" />
-						<span>New File</span>
-					</ContextMenu.Item>
-					<ContextMenu.Item onclick={handleNewFolder}>
-						<FolderPlus class="size-4" />
-						<span>New Folder</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-					<ContextMenu.Item onclick={handleNewCanvas}>
-						<LayoutDashboard class="size-4" />
-						<span>New Canvas</span>
-					</ContextMenu.Item>
-					<ContextMenu.Item onclick={handleNewKanban}>
-						<Kanban class="size-4" />
-						<span>New Kanban Board</span>
-					</ContextMenu.Item>
+				<ContextMenu.Content class="w-56">
+					{#if contextTargetNode}
+						{@const target = contextTargetNode}
+						{#if !target.isDirectory}
+							<ContextMenu.Item onclick={() => handleOpenInNewTab(target)}>
+								<ExternalLink class="size-4" />
+								<span>Open in new tab</span>
+							</ContextMenu.Item>
+							<ContextMenu.Separator />
+						{/if}
+
+						<ContextMenu.Item onclick={() => handleNewFile(target)}>
+							<FilePlus class="size-4" />
+							<span>New File</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewFolder(target)}>
+							<FolderPlus class="size-4" />
+							<span>New Folder</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewCanvas(target)}>
+							<LayoutDashboard class="size-4" />
+							<span>New Canvas</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewKanban(target)}>
+							<Kanban class="size-4" />
+							<span>New Kanban Board</span>
+						</ContextMenu.Item>
+						<ContextMenu.Separator />
+
+						<ContextMenu.Item onclick={() => handleDuplicate(target)}>
+							<Copy class="size-4" />
+							<span>Duplicate</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleToggleBookmark(target)}>
+							{#if targetIsBookmarked}
+								<BookmarkMinus class="size-4" />
+								<span>Remove bookmark</span>
+							{:else}
+								<Bookmark class="size-4" />
+								<span>Bookmark</span>
+							{/if}
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleChangeIcon(target)}>
+							<Palette class="size-4" />
+							<span>Change icon</span>
+						</ContextMenu.Item>
+						<ContextMenu.Separator />
+
+						<ContextMenu.Sub>
+							<ContextMenu.SubTrigger>
+								<Copy class="size-4" />
+								<span>Copy path</span>
+							</ContextMenu.SubTrigger>
+							<ContextMenu.SubContent>
+								<ContextMenu.Item onclick={() => handleCopyAbsolutePath(target)}>
+									<span>Copy absolute path</span>
+								</ContextMenu.Item>
+								<ContextMenu.Item onclick={() => handleCopyRelativePath(target)}>
+									<span>Copy relative path</span>
+								</ContextMenu.Item>
+							</ContextMenu.SubContent>
+						</ContextMenu.Sub>
+						<ContextMenu.Separator />
+
+						<ContextMenu.Item onclick={() => handleRevealInFinder(target)}>
+							<FolderSearch class="size-4" />
+							<span>Reveal in Finder</span>
+						</ContextMenu.Item>
+						<ContextMenu.Separator />
+
+						<ContextMenu.Item onclick={() => handleStartRename(target)}>
+							<Pencil class="size-4" />
+							<span>Rename</span>
+							<ContextMenu.Shortcut>F2</ContextMenu.Shortcut>
+						</ContextMenu.Item>
+						<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target)}>
+							<Trash2 class="size-4" />
+							<span>Move to Trash</span>
+							<ContextMenu.Shortcut>⌘⌫</ContextMenu.Shortcut>
+						</ContextMenu.Item>
+					{:else}
+						<ContextMenu.Item onclick={() => handleNewFile(null)}>
+							<FilePlus class="size-4" />
+							<span>New File</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewFolder(null)}>
+							<FolderPlus class="size-4" />
+							<span>New Folder</span>
+						</ContextMenu.Item>
+						<ContextMenu.Separator />
+						<ContextMenu.Item onclick={() => handleNewCanvas(null)}>
+							<LayoutDashboard class="size-4" />
+							<span>New Canvas</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewKanban(null)}>
+							<Kanban class="size-4" />
+							<span>New Kanban Board</span>
+						</ContextMenu.Item>
+					{/if}
 				</ContextMenu.Content>
 			</ContextMenu.Root>
 		</ScrollArea>
@@ -136,3 +381,16 @@
 		</div>
 	</div>
 </Tooltip.Provider>
+
+{#if iconPickerNode}
+	<IconPicker
+		bind:open={iconPickerOpen}
+		currentPack={iconPickerEntry?.iconPack}
+		currentName={iconPickerEntry?.iconName}
+		currentColor={iconPickerEntry?.color}
+		currentTextColor={iconPickerEntry?.textColor}
+		onSelect={handleIconSelect}
+		onRemove={handleIconRemove}
+		onClose={handleIconPickerClose}
+	/>
+{/if}

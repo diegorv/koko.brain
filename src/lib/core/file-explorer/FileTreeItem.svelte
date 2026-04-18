@@ -3,51 +3,22 @@
 	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import {
-		createFile,
-		createFolder,
-		deleteItem,
-		renameItem,
-		moveItem,
-		duplicateItem,
-		revealInSystemExplorer,
-	} from '$lib/core/filesystem/fs.service';
-	import { isValidFileName, getRelativePath, validateDragDrop } from '$lib/core/filesystem/fs.logic';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
-	import { toggleBookmarkForPath } from '$lib/features/bookmarks/bookmarks.service';
+	import { renameItem, moveItem } from '$lib/core/filesystem/fs.service';
+	import { isValidFileName, validateDragDrop } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
-	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
-	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { findFolderNote } from '$lib/features/folder-notes/folder-notes.logic';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import Self from './FileTreeItem.svelte';
+	import { useFileExplorerContext } from './file-explorer.context';
 	import {
 		ChevronRight,
 		ChevronDown,
 		FolderOpen,
 		Folder,
 		File,
-		FilePlus,
-		FolderPlus,
-		LayoutDashboard,
-		Pencil,
-		Trash2,
-		Copy,
-		Bookmark,
-		BookmarkMinus,
-		ExternalLink,
-		FolderSearch,
-		Palette,
-		Kanban,
 	} from 'lucide-svelte';
-	import { createCanvasFile } from '$lib/features/canvas/canvas.service';
-	import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
-	import { ask } from '@tauri-apps/plugin-dialog';
 
 	/**
 	 * Recursive tree item — renders a single file or folder row,
@@ -61,6 +32,8 @@
 	}
 
 	let { node, depth = 0 }: Props = $props();
+
+	const fileExplorerCtx = useFileExplorerContext();
 
 	let isExpanded = $derived(fsStore.expandedDirs.has(node.path));
 	let fileCount = $derived(node.fileCount ?? 0);
@@ -98,7 +71,7 @@
 			});
 		}
 	});
-	let isNodeBookmarked = $derived(bookmarksStore.isBookmarked(node.path));
+
 	let customIconEntry = $derived(fileIconsStore.getIcon(node.path));
 	let customIcon = $derived(customIconEntry ? getIconSync(customIconEntry.iconPack, customIconEntry.iconName) : undefined);
 	let frontmatterRef = $derived(fileIconsStore.getFrontmatterIcon(node.path));
@@ -106,7 +79,6 @@
 	let resolvedIcon = $derived(frontmatterIcon ?? customIcon);
 	let resolvedColor = $derived(frontmatterIcon ? undefined : customIconEntry?.color);
 	let resolvedTextColor = $derived(frontmatterIcon ? undefined : customIconEntry?.textColor);
-	let iconPickerOpen = $state(false);
 
 	/** Path to the folder note inside this directory, if one exists */
 	let folderNotePath = $derived(
@@ -182,112 +154,6 @@
 		}
 	}
 
-	/** Creates a file inside this node's directory (or parent if node is a file) */
-	async function handleNewFile() {
-		const targetDir = node.isDirectory ? node.path : node.path.substring(0, node.path.lastIndexOf('/'));
-		if (node.isDirectory) fsStore.expandDir(node.path);
-		const path = await createFile(targetDir, 'Untitled.md');
-		if (path) {
-			fsStore.setPendingCreationPath(path);
-			fsStore.setRenamingPath(path);
-		}
-	}
-
-	/** Creates a folder inside this node's directory (or parent if node is a file) */
-	async function handleNewFolder() {
-		const targetDir = node.isDirectory ? node.path : node.path.substring(0, node.path.lastIndexOf('/'));
-		if (node.isDirectory) fsStore.expandDir(node.path);
-		const path = await createFolder(targetDir, 'Untitled');
-		if (path) {
-			fsStore.setRenamingPath(path);
-		}
-	}
-
-	/** Creates a .canvas file inside this node's directory (or parent if node is a file) */
-	async function handleNewCanvas() {
-		const targetDir = node.isDirectory ? node.path : node.path.substring(0, node.path.lastIndexOf('/'));
-		if (node.isDirectory) fsStore.expandDir(node.path);
-		const path = await createCanvasFile(targetDir);
-		if (path) {
-			fsStore.setPendingCreationPath(path);
-			fsStore.setRenamingPath(path);
-		}
-	}
-
-	/** Creates a .kanban file inside this node's directory (or parent if node is a file) */
-	async function handleNewKanban() {
-		const targetDir = node.isDirectory ? node.path : node.path.substring(0, node.path.lastIndexOf('/'));
-		if (node.isDirectory) fsStore.expandDir(node.path);
-		const path = await createKanbanFile(targetDir);
-		if (path) {
-			fsStore.setPendingCreationPath(path);
-			fsStore.setRenamingPath(path);
-		}
-	}
-
-	/** Prompts for confirmation, then moves the file or folder to trash */
-	async function handleDelete() {
-		const confirmed = await ask(
-			`Move "${node.name}" to trash?${node.isDirectory ? ' This will include all contents.' : ''}`,
-			{ title: 'Move to Trash', kind: 'warning' }
-		);
-		if (confirmed) {
-			await deleteItem(node.path, node.isDirectory);
-		}
-	}
-
-	// --- Context menu action handlers ---
-
-	/** Opens the file in a new editor tab */
-	function handleOpenInNewTab() {
-		if (!node.isDirectory) openFileInEditor(node.path);
-	}
-
-	/** Duplicates the file or folder with a "copy" suffix */
-	async function handleDuplicate() {
-		await duplicateItem(node.path, node.isDirectory);
-	}
-
-	/** Toggles the bookmark state for this item */
-	async function handleToggleBookmark() {
-		if (!vaultStore.path) return;
-		await toggleBookmarkForPath(vaultStore.path, node.path, node.name, node.isDirectory);
-	}
-
-	/** Copies the absolute path to the clipboard */
-	async function handleCopyAbsolutePath() {
-		await navigator.clipboard.writeText(node.path);
-	}
-
-	/** Copies the vault-relative path to the clipboard */
-	async function handleCopyRelativePath() {
-		if (!vaultStore.path) return;
-		await navigator.clipboard.writeText(getRelativePath(vaultStore.path, node.path));
-	}
-
-	/** Reveals the item in the system file explorer */
-	async function handleRevealInFinder() {
-		await revealInSystemExplorer(node.path);
-	}
-
-	/** Opens the icon picker modal */
-	function handleChangeIcon() {
-		iconPickerOpen = true;
-	}
-
-	/** Handles icon selection from the picker */
-	async function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
-		if (!vaultStore.path) return;
-		await setIconForPath(vaultStore.path, node.path, pack, name, color, textColor);
-		await trackRecentIcon(vaultStore.path, pack, name);
-	}
-
-	/** Handles icon removal from the picker */
-	async function handleIconRemove() {
-		if (!vaultStore.path) return;
-		await removeIconForPath(vaultStore.path, node.path);
-	}
-
 	// --- Drag and drop handlers ---
 
 	/** Stores the dragged item's path in the dataTransfer payload */
@@ -340,180 +206,100 @@
 		if (validateDragDrop(sourcePath, node.path)) return;
 		await moveItem(sourcePath, node.path);
 	}
+
+	/** Registers this node as the shared context-menu target; event bubbles up to the tree-root ContextMenu.Trigger which opens the menu at the cursor */
+	function handleContextMenu() {
+		fileExplorerCtx.setContextTarget(node);
+	}
+
+	/** Suppress the context menu entirely while the row is being renamed */
+	function handleRenameContextMenu(e: MouseEvent) {
+		e.stopPropagation();
+		e.preventDefault();
+	}
 </script>
 
-<ContextMenu.Root>
-	<ContextMenu.Trigger>
-		{#snippet child({ props })}
-			{#if isRenaming}
-				<div
-					class="relative flex items-center gap-1 px-2 py-0.5 {depth > 0 ? 'ft-indent-lines' : ''}"
-					style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
-				>
-					{#if node.isDirectory}
-						<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
-					{:else}
-						<File class="size-3.5 shrink-0 text-muted-foreground" />
-					{/if}
-					<input
-						bind:this={renameInput}
-						bind:value={renameValue}
-						onkeydown={handleRenameKeydown}
-						onblur={commitRename}
-						class="h-5 flex-1 rounded border border-ring bg-background px-1 text-sm outline-none"
-					/>
-				</div>
-			{:else}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					{...props}
-					class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary text-left cursor-default select-none
-						{isSelected ? 'bg-primary/25' : ''}
-						{isDragOver ? 'bg-accent/50 outline-dashed outline-1 outline-ring' : ''}
-						{depth > 0 ? 'ft-indent-lines' : ''}"
-					style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
-					onclick={handleClick}
-					ondblclick={handleDoubleClick}
-					draggable={!isRenaming}
-					ondragstart={handleDragStart}
-					ondragover={handleDragOver}
-					ondragleave={handleDragLeave}
-					ondrop={handleDrop}
-					role="treeitem"
-					aria-expanded={node.isDirectory ? isExpanded : undefined}
-					aria-selected={isSelected}
-					tabindex={0}
-					onkeydown={(e) => {
-						if (e.key === 'Enter') handleClick();
-						if (e.key === 'F2') startRename();
-					}}
-				>
-					{#if node.isDirectory}
-						{#if isExpanded}
-							<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" />
-						{:else}
-							<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" />
-						{/if}
-						{#if resolvedIcon}
-							<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={resolvedColor} />
-						{:else if isExpanded}
-							<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
-						{:else}
-							<Folder class="size-3.5 shrink-0 text-muted-foreground" />
-						{/if}
-					{:else}
-						{#if resolvedIcon}
-							<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={resolvedColor} />
-						{:else}
-							<File class="size-3.5 shrink-0 text-muted-foreground" />
-						{/if}
-					{/if}
-					<span class="truncate {isSelected ? 'text-primary' : ''}" class:underline={!!folderNotePath} style:text-underline-offset={folderNotePath ? '2px' : undefined} style:color={!isSelected && resolvedTextColor ? resolvedTextColor : undefined}>{node.name}</span>
-					{#if node.isDirectory && fileCount > 0}
-						<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{String(fileCount).padStart(2, '0')}</span>
-					{/if}
-				</div>
-			{/if}
-		{/snippet}
-	</ContextMenu.Trigger>
-	<ContextMenu.Content class="w-56">
-		{#if !node.isDirectory}
-			<ContextMenu.Item onclick={handleOpenInNewTab}>
-				<ExternalLink class="size-4" />
-				<span>Open in new tab</span>
-			</ContextMenu.Item>
-			<ContextMenu.Separator />
+{#if isRenaming}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="relative flex items-center gap-1 px-2 py-0.5 {depth > 0 ? 'ft-indent-lines' : ''}"
+		style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
+		oncontextmenu={handleRenameContextMenu}
+	>
+		{#if node.isDirectory}
+			<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
+		{:else}
+			<File class="size-3.5 shrink-0 text-muted-foreground" />
 		{/if}
-
-		<ContextMenu.Item onclick={handleNewFile}>
-			<FilePlus class="size-4" />
-			<span>New File</span>
-		</ContextMenu.Item>
-		<ContextMenu.Item onclick={handleNewFolder}>
-			<FolderPlus class="size-4" />
-			<span>New Folder</span>
-		</ContextMenu.Item>
-		<ContextMenu.Item onclick={handleNewCanvas}>
-			<LayoutDashboard class="size-4" />
-			<span>New Canvas</span>
-		</ContextMenu.Item>
-		<ContextMenu.Item onclick={handleNewKanban}>
-			<Kanban class="size-4" />
-			<span>New Kanban Board</span>
-		</ContextMenu.Item>
-		<ContextMenu.Separator />
-
-		<ContextMenu.Item onclick={handleDuplicate}>
-			<Copy class="size-4" />
-			<span>Duplicate</span>
-		</ContextMenu.Item>
-		<ContextMenu.Item onclick={handleToggleBookmark}>
-			{#if isNodeBookmarked}
-				<BookmarkMinus class="size-4" />
-				<span>Remove bookmark</span>
+		<input
+			bind:this={renameInput}
+			bind:value={renameValue}
+			onkeydown={handleRenameKeydown}
+			onblur={commitRename}
+			class="h-5 flex-1 rounded border border-ring bg-background px-1 text-sm outline-none"
+		/>
+	</div>
+{:else}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary text-left cursor-default select-none
+			{isSelected ? 'bg-primary/25' : ''}
+			{isDragOver ? 'bg-accent/50 outline-dashed outline-1 outline-ring' : ''}
+			{depth > 0 ? 'ft-indent-lines' : ''}"
+		style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
+		onclick={handleClick}
+		ondblclick={handleDoubleClick}
+		oncontextmenu={handleContextMenu}
+		draggable={!isRenaming}
+		ondragstart={handleDragStart}
+		ondragover={handleDragOver}
+		ondragleave={handleDragLeave}
+		ondrop={handleDrop}
+		role="treeitem"
+		aria-expanded={node.isDirectory ? isExpanded : undefined}
+		aria-selected={isSelected}
+		tabindex={0}
+		onkeydown={(e) => {
+			if (e.key === 'Enter') handleClick();
+			if (e.key === 'F2') startRename();
+		}}
+	>
+		{#if node.isDirectory}
+			{#if isExpanded}
+				<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" />
 			{:else}
-				<Bookmark class="size-4" />
-				<span>Bookmark</span>
+				<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" />
 			{/if}
-		</ContextMenu.Item>
-		<ContextMenu.Item onclick={handleChangeIcon}>
-			<Palette class="size-4" />
-			<span>Change icon</span>
-		</ContextMenu.Item>
-		<ContextMenu.Separator />
-
-		<ContextMenu.Sub>
-			<ContextMenu.SubTrigger>
-				<Copy class="size-4" />
-				<span>Copy path</span>
-			</ContextMenu.SubTrigger>
-			<ContextMenu.SubContent>
-				<ContextMenu.Item onclick={handleCopyAbsolutePath}>
-					<span>Copy absolute path</span>
-				</ContextMenu.Item>
-				<ContextMenu.Item onclick={handleCopyRelativePath}>
-					<span>Copy relative path</span>
-				</ContextMenu.Item>
-			</ContextMenu.SubContent>
-		</ContextMenu.Sub>
-		<ContextMenu.Separator />
-
-		<ContextMenu.Item onclick={handleRevealInFinder}>
-			<FolderSearch class="size-4" />
-			<span>Reveal in Finder</span>
-		</ContextMenu.Item>
-		<ContextMenu.Separator />
-
-		<ContextMenu.Item onclick={startRename}>
-			<Pencil class="size-4" />
-			<span>Rename</span>
-			<ContextMenu.Shortcut>F2</ContextMenu.Shortcut>
-		</ContextMenu.Item>
-		<ContextMenu.Item variant="destructive" onclick={handleDelete}>
-			<Trash2 class="size-4" />
-			<span>Move to Trash</span>
-			<ContextMenu.Shortcut>⌘⌫</ContextMenu.Shortcut>
-		</ContextMenu.Item>
-	</ContextMenu.Content>
-</ContextMenu.Root>
+			{#if resolvedIcon}
+				<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={resolvedColor} />
+			{:else if isExpanded}
+				<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
+			{:else}
+				<Folder class="size-3.5 shrink-0 text-muted-foreground" />
+			{/if}
+		{:else}
+			{#if resolvedIcon}
+				<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={resolvedColor} />
+			{:else}
+				<File class="size-3.5 shrink-0 text-muted-foreground" />
+			{/if}
+		{/if}
+		<span
+			class="truncate {isSelected ? 'text-primary' : ''}"
+			class:underline={!!folderNotePath}
+			style:text-underline-offset={folderNotePath ? '2px' : undefined}
+			style:color={!isSelected && resolvedTextColor ? resolvedTextColor : undefined}
+		>{node.name}</span>
+		{#if node.isDirectory && fileCount > 0}
+			<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{String(fileCount).padStart(2, '0')}</span>
+		{/if}
+	</div>
+{/if}
 
 {#if node.isDirectory && isExpanded && node.children}
 	{#each node.children as child (child.path)}
 		<Self node={child} depth={depth + 1} />
 	{/each}
-{/if}
-
-{#if iconPickerOpen}
-	<IconPicker
-		bind:open={iconPickerOpen}
-		currentPack={customIconEntry?.iconPack}
-		currentName={customIconEntry?.iconName}
-		currentColor={customIconEntry?.color}
-		currentTextColor={customIconEntry?.textColor}
-		onSelect={handleIconSelect}
-		onRemove={handleIconRemove}
-		onClose={() => iconPickerOpen = false}
-	/>
 {/if}
 
 <style>
