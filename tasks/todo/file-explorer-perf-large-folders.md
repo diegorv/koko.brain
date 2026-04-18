@@ -13,10 +13,13 @@ icon-pack loads and thousands of extra DOM nodes.
 - [x] Task 1: Lazy-mount `IconPicker` inside `FileTreeItem.svelte` via `{#if iconPickerOpen}` so the dialog (and its `loadIcons` effect) only mounts when the user opens the picker for that row.
 - [x] Task 2: Replace the per-row `{#each Array(depth)}` indentation-line divs with a CSS gradient driven by `--depth`, removing N absolutely-positioned divs per row.
 
-### Phase 2 — (deferred, not in this session)
+### Phase 2.1 — Hoist ContextMenu + IconPicker
 
-- Hoist `ContextMenu` to a single shared instance at `FileExplorer.svelte` level.
-- Virtualize the file tree list for very large directories.
+- [x] Task 3: Replace per-row `<ContextMenu.Root>` + `<IconPicker>` in `FileTreeItem.svelte` with a single shared instance at `FileExplorer.svelte`. Rows emit `oncontextmenu` into a Svelte context; `ContextMenu.Content` renders conditional items based on `contextTargetNode` (null = vault-root menu). Validated via `FE-FILE-EXPLORER-PROBE` instrumentation: `Reading list/2026/04-Apr` with 710 children mounts in ~15ms (click→paint 125ms). Probe removed before commit.
+
+### Phase 2.2 — (future work, not in this session)
+
+- Virtualize the file tree list for very large directories (only render visible rows).
 
 ## Notes
 
