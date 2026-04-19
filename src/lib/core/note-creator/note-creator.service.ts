@@ -4,6 +4,7 @@ import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { processTemplate } from '$lib/utils/template';
 import { error } from '$lib/utils/debug';
+import { appendLog } from '$lib/utils/log.service';
 
 /** Options for creating or opening a note from a template */
 export interface NoteCreationOptions {
@@ -34,8 +35,13 @@ export interface NoteCreationOptions {
 export async function openOrCreateNote(options: NoteCreationOptions): Promise<void> {
 	const { filePath, templatePath, inlineTemplate, title, customVariables } = options;
 
+	// [FE-STARTUP-PROBE]
+	const probeStart = performance.now();
+	appendLog('FE-STARTUP-PROBE', `openOrCreateNote: ENTRY path=${filePath}`);
+
 	try {
 		const fileExists = await exists(filePath);
+		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: after exists() @ ${(performance.now() - probeStart).toFixed(1)}ms (exists=${fileExists})`);
 
 		if (!fileExists) {
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
@@ -62,9 +68,12 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			} catch (refreshErr) {
 				error('NOTE_CREATOR', 'refreshTree failed after file creation:', refreshErr);
 			}
+			appendLog('FE-STARTUP-PROBE', `openOrCreateNote: file created @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		}
 
+		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: before openFileInEditor @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		await openFileInEditor(filePath);
+		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: EXIT @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 	} catch (err) {
 		error('NOTE_CREATOR', 'Failed to open or create note:', err);
 		throw err;

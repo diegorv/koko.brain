@@ -9,6 +9,7 @@ import { applyReadTransform, applyWriteTransform, notifyAfterSave } from './edit
 import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
+import { appendLog } from '$lib/utils/log.service';
 
 /**
  * Opens a file in the editor.
@@ -16,16 +17,26 @@ import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
  * Otherwise reads the file from disk and creates a new tab.
  */
 export async function openFileInEditor(filePath: string) {
+	// [FE-STARTUP-PROBE]
+	const probeStart = performance.now();
+	appendLog('FE-STARTUP-PROBE', `openFileInEditor: ENTRY path=${filePath}`);
+
 	const existingIndex = findTabIndex(editorStore.tabs, filePath);
 	if (existingIndex >= 0) {
 		editorStore.setActiveIndex(existingIndex);
 		fsStore.setSelectedFilePath(filePath);
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: tab already open @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		return;
 	}
 
 	try {
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: before readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		const rawContent = await readTextFile(filePath);
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms (${rawContent.length} chars)`);
+
 		const transformed = await applyReadTransform(filePath, rawContent);
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after applyReadTransform @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+
 		const content = transformed?.content ?? rawContent;
 
 		if (transformed) {
@@ -48,6 +59,7 @@ export async function openFileInEditor(filePath: string) {
 		editorStore.addTab({ path: filePath, name, content, savedContent: content, fileType, ...transformed?.tabProps });
 		fsStore.setSelectedFilePath(filePath);
 		debug('EDITOR', 'opened file:', filePath);
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
 		if (msg === 'canceled') return; // Touch ID dismissed — silent

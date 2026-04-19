@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount, tick } from 'svelte';
 	import type { Snippet } from 'svelte';
+	import { appendLog } from '$lib/utils/log.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -24,6 +26,18 @@
 	import { error } from '$lib/utils/debug';
 
 	let { children }: { children: Snippet } = $props();
+
+	// [FE-STARTUP-PROBE]
+	onMount(async () => {
+		appendLog('FE-STARTUP-PROBE', 'AppShell: onMount fired (DOM mounted)');
+		await tick();
+		appendLog('FE-STARTUP-PROBE', 'AppShell: after first tick (Svelte initial paint done)');
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				appendLog('FE-STARTUP-PROBE', 'AppShell: after 2 RAFs (browser painted)');
+			});
+		});
+	});
 
 	const debouncedSave = debounce(() => {
 		if (vaultStore.path) {
