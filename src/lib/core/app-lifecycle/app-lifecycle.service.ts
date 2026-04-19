@@ -57,7 +57,7 @@ import {
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
-import { autoOpenDailyNote, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { resetTerminal } from '$lib/plugins/terminal/terminal.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
@@ -177,10 +177,15 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	if (initVersion !== version) return;
 
 	// ── Step 5: Post-index setup ─────────────────────────────────────
-	// Templates folder + daily note AFTER tree is loaded to avoid
-	// concurrent loadDirectoryTree calls racing with isLoading state
+	// Templates folder stays here (cheap, avoids racing loadDirectoryTree).
+	// autoOpenDailyNote is deliberately NOT called here — it is triggered
+	// from +layout.svelte after initializeVault resolves, so the daily-note
+	// `exists() → readTextFile` chain doesn't compete for the main thread
+	// with the synchronous index builds below and with Svelte's initial
+	// UI mount. Profiling showed that calling it here delayed the open
+	// of the daily note by ~2 seconds even though the Rust side responded
+	// in <10 ms — the JS microtask was starved.
 	await ensureTemplatesFolder();
-	autoOpenDailyNote();
 
 	buildTagIndex();
 	buildTaskIndex();

@@ -215,12 +215,16 @@ describe('initializeVault', () => {
 		expect(loadSettings).toHaveBeenCalledWith('/vault');
 	});
 
-	it('opens daily note and prepares templates after settings are ready', async () => {
+	it('prepares templates after settings are ready (daily-note auto-open is deferred to the layout)', async () => {
 		await initializeVault('/vault');
 
 		await vi.mocked(loadSettings).mock.results[0].value;
-		expect(autoOpenDailyNote).toHaveBeenCalled();
 		expect(ensureTemplatesFolder).toHaveBeenCalled();
+		// autoOpenDailyNote is intentionally NOT invoked from initializeVault
+		// anymore — it is triggered from +layout.svelte after initializeVault
+		// resolves so the daily-note exists()/readTextFile microtasks don't
+		// compete for the main thread with the synchronous index builds.
+		expect(autoOpenDailyNote).not.toHaveBeenCalled();
 	});
 
 	it('opens the shared database after settings load', async () => {
@@ -277,7 +281,6 @@ describe('initializeVault', () => {
 
 		// Should continue to Step 5+ despite Step 4 failure
 		expect(ensureTemplatesFolder).toHaveBeenCalled();
-		expect(autoOpenDailyNote).toHaveBeenCalled();
 		expect(startWatching).toHaveBeenCalledWith('/vault');
 	});
 

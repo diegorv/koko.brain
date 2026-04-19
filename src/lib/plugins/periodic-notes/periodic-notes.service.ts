@@ -3,6 +3,7 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { pinTabByPath, unpinTabByPath } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { appendLog } from '$lib/utils/log.service';
 import type { PeriodType } from '$lib/core/settings/settings.types';
 import {
 	buildPeriodicNotePath,
@@ -77,18 +78,28 @@ export async function autoOpenDailyNote(): Promise<void> {
 	const vaultPath = vaultStore.path;
 	if (!vaultPath) return;
 
+	// [FE-STARTUP-PROBE]
+	const probeStart = performance.now();
+	appendLog('FE-STARTUP-PROBE', 'autoOpenDailyNote: ENTRY');
+
 	const date = dayjs();
 	const settings = settingsStore.periodicNotes;
 	const format = getFormatForPeriod(settings, 'daily');
 	const filePath = buildPeriodicNotePath(vaultPath, settings.folder, format, date);
 
+	appendLog('FE-STARTUP-PROBE', `autoOpenDailyNote: before openOrCreate @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+
 	await openOrCreatePeriodicNoteForDate('daily', date);
+
+	appendLog('FE-STARTUP-PROBE', `autoOpenDailyNote: after openOrCreate @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 
 	if (autoPin) {
 		pinTabByPath(filePath);
 	}
 
 	lastAutoOpenedDate = date.format('YYYY-MM-DD');
+
+	appendLog('FE-STARTUP-PROBE', `autoOpenDailyNote: EXIT @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 }
 
 /**
