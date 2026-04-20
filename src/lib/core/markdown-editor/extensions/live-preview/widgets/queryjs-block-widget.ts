@@ -93,12 +93,25 @@ export class QueryjsBlockWidget extends WidgetType {
 				loadScript: loadExternalScript,
 			});
 
-			// If script contains await, wrap in async IIFE.
-			// Must prepend `return` so the promise is returned from the Function body,
-			// otherwise it floats unhandled and errors escape try/catch.
-			const code = this.jsContent.includes('await')
-				? `return (async () => { ${this.jsContent} })()`
-				: this.jsContent;
+			// Always wrap in an async IIFE so fn() returns a Promise we can await.
+			// Without this, a bare `kb.view("…")` statement (no `await`) would
+			// evaluate — kicking off the async load + render — but fn() would
+			// return undefined synchronously, so the caller below would cache an
+			// EMPTY container before the script finished appending DOM. Next
+			// toDOM() call with the same cacheVersion would then clone the empty
+			// snapshot and render nothing.
+			//
+			// Auto-prepend `await` to top-level `kb.view(…)` / `dv.view(…)` calls
+			// so users don't have to remember — matches works the same whether
+			// their code block writes `await kb.view(…)` or just `kb.view(…)`.
+			// The negative lookbehind avoids touching member accesses like
+			// `foo.kb.view(` and already-awaited calls are idempotent (double
+			// `await` on the same Promise resolves to the same value).
+			const autoAwaited = this.jsContent.replace(
+				/(?<![\w.])(kb|dv)\.view\(/g,
+				'await $1.view(',
+			);
+			const code = `return (async () => { ${autoAwaited} })()`;
 
 			const fn = new Function('kb', 'dv', code);
 			await Promise.resolve(fn(api, api));
