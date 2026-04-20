@@ -528,6 +528,7 @@ describe('initializeVault — semantic search startup', () => {
 	});
 
 	it('initializes and builds index when model is available', async () => {
+		vi.useFakeTimers();
 		settingsStore.updateSearch({ semanticSearchEnabled: true });
 		// Simulate initSemanticSearch setting model as available
 		vi.mocked(initSemanticSearch).mockImplementation(async () => {
@@ -535,8 +536,10 @@ describe('initializeVault — semantic search startup', () => {
 		});
 
 		await initializeVault('/vault');
-		// Wait for the .then() chain to resolve
+		// Semantic init is deferred — advance past the timer and let the chain flush
+		await vi.advanceTimersByTimeAsync(3000);
 		await vi.mocked(initSemanticSearch).mock.results[0].value;
+		vi.useRealTimers();
 
 		expect(startSemanticProgressListener).toHaveBeenCalled();
 		expect(initSemanticSearch).toHaveBeenCalled();
@@ -545,6 +548,7 @@ describe('initializeVault — semantic search startup', () => {
 	});
 
 	it('disables semantic search and shows toast when model is missing', async () => {
+		vi.useFakeTimers();
 		settingsStore.updateSearch({ semanticSearchEnabled: true });
 		// initSemanticSearch resolves but model stays unavailable
 		vi.mocked(initSemanticSearch).mockImplementation(async () => {
@@ -552,7 +556,9 @@ describe('initializeVault — semantic search startup', () => {
 		});
 
 		await initializeVault('/vault');
+		await vi.advanceTimersByTimeAsync(3000);
 		await vi.mocked(initSemanticSearch).mock.results[0].value;
+		vi.useRealTimers();
 
 		expect(settingsStore.search.semanticSearchEnabled).toBe(false);
 		expect(saveSettings).toHaveBeenCalledWith('/vault');
@@ -564,13 +570,16 @@ describe('initializeVault — semantic search startup', () => {
 	});
 
 	it('does not auto-download the model on startup', async () => {
+		vi.useFakeTimers();
 		settingsStore.updateSearch({ semanticSearchEnabled: true });
 		vi.mocked(initSemanticSearch).mockImplementation(async () => {
 			searchStore.setModelAvailable(false);
 		});
 
 		await initializeVault('/vault');
+		await vi.advanceTimersByTimeAsync(3000);
 		await vi.mocked(initSemanticSearch).mock.results[0].value;
+		vi.useRealTimers();
 
 		expect(invoke).not.toHaveBeenCalledWith('download_semantic_model', expect.anything());
 	});
