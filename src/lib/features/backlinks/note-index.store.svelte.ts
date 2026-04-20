@@ -77,6 +77,12 @@ export const noteIndexStore = {
 	/** Reverse index: resolvedTargetPath -> Set of source paths that link to it */
 	get reverseIndex() { return reverseIndex; },
 
+	/**
+	 * Replaces the full note index and rebuilds the reverse index.
+	 * IMPORTANT: call `setNoteContents` first on bulk loads — `rebuildReverseIndex`
+	 * resolves wikilinks against `noteContents.keys()`, so an out-of-date contents
+	 * map leaves `reverseIndex` empty.
+	 */
 	setNoteIndex(index: Map<string, WikiLink[]>) {
 		noteIndex = index;
 		rebuildReverseIndex();
