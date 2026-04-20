@@ -16,6 +16,7 @@ import {
 	computeUnlinkedMentionsForFile,
 	resetBacklinks,
 } from '$lib/features/backlinks/backlinks.service';
+import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { makeFileNode, makeDirNode, makeSuccessResult, makeErrorResult } from '../../../fixtures/tauri-api.fixture';
 
 describe('buildIndex', () => {
@@ -289,6 +290,29 @@ describe('removeFileFromIndex', () => {
 		expect(noteIndexStore.noteContents.has('/vault/keep.md')).toBe(true);
 		expect(noteIndexStore.noteContents.get('/vault/keep.md')).toBe('keep this');
 		expect(noteIndexStore.noteContents.has('/vault/remove.md')).toBe(false);
+	});
+
+	it('clears the dedup signature so a re-created file with identical content is re-indexed', () => {
+		clearAllIndexed();
+		// Simulate content-effect or notifyAfterSave having indexed this path before.
+		markIndexed('/vault/note.md', 'hello');
+		expect(isAlreadyIndexed('/vault/note.md', 'hello')).toBe(true);
+
+		removeFileFromIndex('/vault/note.md');
+
+		// Dedup entry must be gone so the next indexer call actually runs.
+		expect(isAlreadyIndexed('/vault/note.md', 'hello')).toBe(false);
+	});
+
+	it('only clears the deleted path from the dedup map — other paths are preserved', () => {
+		clearAllIndexed();
+		markIndexed('/vault/a.md', 'foo');
+		markIndexed('/vault/b.md', 'bar');
+
+		removeFileFromIndex('/vault/a.md');
+
+		expect(isAlreadyIndexed('/vault/a.md', 'foo')).toBe(false);
+		expect(isAlreadyIndexed('/vault/b.md', 'bar')).toBe(true);
 	});
 });
 

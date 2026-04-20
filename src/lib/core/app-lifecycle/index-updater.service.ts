@@ -13,6 +13,7 @@ import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icon
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
 import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { error, perfStart, perfEnd } from '$lib/utils/debug';
+import { isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
 
 /** Version counter to discard stale in-flight updates when a newer call arrives. */
 let updateVersion = 0;
@@ -35,6 +36,13 @@ const yieldToEventLoop = (): Promise<void> => new Promise((r) => setTimeout(r, 0
  * Each updater is wrapped in try/catch so one failure doesn't block the rest.
  */
 export async function updateIndexesForFile(filePath: string, content: string): Promise<void> {
+	// Dedup against the shared signature map: if `notifyAfterSave` (or a
+	// previous run of this function) already indexed this exact (path, content)
+	// pair, skip the ~5-15 ms of per-file parsing entirely. Common hit: content
+	// effect fires at 1 s of idle, autosave fires at 2 s for the same content.
+	if (isAlreadyIndexed(filePath, content)) return;
+	markIndexed(filePath, content);
+
 	const version = ++updateVersion;
 	const t0 = perfStart();
 

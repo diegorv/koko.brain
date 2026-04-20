@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { debug, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
+import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteIndexStore } from './note-index.store.svelte';
 import { parseWikilinks, getNoteName, buildResolutionCache, findLinkedMentions, findLinkedMentionsFromReverse, findUnlinkedMentions } from './backlinks.logic';
@@ -100,6 +101,10 @@ export function updateIndexForFile(filePath: string, content: string) {
 
 /** Removes a file from both noteIndex and noteContents (e.g. when a file is deleted) */
 export function removeFileFromIndex(filePath: string) {
+	// Drop the dedup signature so a later re-creation with the same content
+	// isn't silently skipped by `isAlreadyIndexed`.
+	clearIndexedEntry(filePath);
+
 	const nextContents = new Map(noteIndexStore.noteContents);
 	const nextIndex = new Map(noteIndexStore.noteIndex);
 	const deletedContents = nextContents.delete(filePath);
