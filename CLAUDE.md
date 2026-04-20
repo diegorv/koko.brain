@@ -221,6 +221,10 @@ The live preview system uses ~22 CodeMirror decoration plugins. Key performance 
 
 7. **Scroll debounce** — `scrollDebouncePlugin` defers `forceDecorationRebuild` by 150ms after scroll stops. `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond viewport so content has decorations ready when it scrolls in.
 
+8. **QueryJS widgets auto-await top-level `kb.view(…)` / `dv.view(…)`** — `queryjs-block-widget.ts` wraps every `jsContent` in `return (async () => { … })()` and regex-prepends `await` to top-level `kb.view(` / `dv.view(` calls. Without this, a block like `` ```queryjs\nkb.view("…")\n``` `` (no explicit `await`) runs the script's async IIFE, kicks off `kb.view()`, returns `undefined` synchronously, and `scriptResultCache.set(cloneNode(container))` captures an EMPTY container before the inner script finishes writing DOM. Next cache HIT then clones the blank snapshot and renders nothing.
+
+9. **`scriptResultCache` skips containers with `<canvas>`, `<video>`, or `<iframe>`** — `cloneNode(true)` clones the element but NOT its pixel buffer / playback state, so Chart.js widgets cache as a blank square. Containers holding any of these re-execute on every `toDOM()`. Re-execution is bounded by the per-KBAPI `_pageCache` + O(1) wikilink resolution (see Indexing rule 8), so a 1870-note vault re-renders in ~200 ms.
+
 ### Indexing & Watcher
 
 1. **Backlinks use reverse index** — `findLinkedMentions` is O(K) via `noteIndexStore.reverseIndex`, not O(N) full scan. The reverse index is maintained incrementally in `updateNoteEntry()`.
@@ -234,6 +238,14 @@ The live preview system uses ~22 CodeMirror decoration plugins. Key performance 
 5. **All index keys use absolute paths** — `noteContents`, `noteIndex`, `fileTasksIndex`, `modifiedAtMap`, and editor tabs all use absolute paths as keys (from `FileTreeNode.path`). Never convert to vault-relative paths before storing in any index. Path traversal protection is handled by Rust's `read_files_batch` (`canonicalize` + `starts_with` check), not by frontend path stripping.
 
 6. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500ms saved per save).
+
+7. **`setNoteContents` MUST precede `setNoteIndex` on bulk loads** — `setNoteIndex` synchronously triggers `rebuildReverseIndex`, which iterates every wikilink and resolves targets via a cache built from `noteContents.keys()`. If contents are empty at that moment, every target fails to resolve and the reverseIndex stays empty; the fallback O(N) scan in `updateBacklinksForFile` hides the bug until the first incremental `updateNoteEntry` call flips `reverseIdx.size > 0`, at which point the fast path returns `[]` for every untouched file. `buildIndex` in `backlinks.service.ts` enforces the order.
+
+8. **QueryJS `ensureCache` reuses the backlinks `WikilinkResolutionCache`** — `kb-api.ts` builds one `Map<basename, absolutePath>` per query session and passes it into every `buildKBPage` call. `buildKBPage` resolves each outlink via `resolveWikilinkCached` (O(1)) instead of scanning `allFilePaths` per wikilink (O(N)). Drops outlink cost on the whole vault from O(N²×L) to O(N+N×L) — on a 1870-note vault, ~17 M ops → ~10 k.
+
+9. **`notifyAfterSave` refreshes per-file indexes synchronously before invalidating the queryjs cache** — the layout content-effect also runs the per-file updaters, but with a 1 s debounce whose pending setTimeout is cleared when `activeTabPath` changes. A user who creates + saves + switches tabs inside that window would otherwise leave the just-saved file absent from `propertyIndex`/`noteIndex`/`tagMap`/etc., and any `kb.pages()` query on the new tab would silently miss it. The watcher can't cover for it because `areAllRecentSaves` skips self-saves.
+
+10. **Duplicate index work between content-effect and save is deduped via `$lib/utils/index-dedupe.ts`** — shared `Map<path, lastContent>` with `isAlreadyIndexed` / `markIndexed` / `clearIndexedEntry` / `clearAllIndexed`. Both `updateIndexesForFile` (content-effect) and `notifyAfterSave` guard on the signature up front and mark it before running. Clear the entry in `removeFileFromIndex` so a deleted-then-recreated file with identical bytes re-indexes; `resetHooks` wipes the whole map on vault teardown. Memory cost is a Map entry (~50 B) per indexed file — the content strings are references shared with `noteContents`, not copies.
 
 ## Documentation Index
 
