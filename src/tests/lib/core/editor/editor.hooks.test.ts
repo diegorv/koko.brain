@@ -21,6 +21,7 @@ import {
 	areAllRecentSaves,
 	clearRecentSaves,
 } from '$lib/core/editor/editor.hooks';
+import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import type { EditorTab } from '$lib/core/editor/editor.types';
 
 const makeTab = (overrides: Partial<EditorTab> = {}): EditorTab => ({
@@ -107,6 +108,39 @@ describe('notifyAfterSave', () => {
 
 		expect(obs1).toHaveBeenCalledWith('/vault/note.md', 'content');
 		expect(obs2).toHaveBeenCalledWith('/vault/note.md', 'content');
+	});
+
+	it('marks the (path, content) signature in the shared dedup map', () => {
+		clearAllIndexed();
+		expect(isAlreadyIndexed('/vault/note.md', 'abc')).toBe(false);
+
+		notifyAfterSave('/vault/note.md', 'abc');
+
+		expect(isAlreadyIndexed('/vault/note.md', 'abc')).toBe(true);
+	});
+
+	it('does not re-mark or re-invoke observers when content is already indexed', () => {
+		clearAllIndexed();
+		// Simulate the content-effect having just run for this content.
+		markIndexed('/vault/note.md', 'abc');
+
+		const obs = vi.fn();
+		addAfterSaveObserver(obs);
+		notifyAfterSave('/vault/note.md', 'abc');
+
+		// Observers still run (they are outside the dedup guard — the guard
+		// only skips the index updaters, not the observer fan-out).
+		expect(obs).toHaveBeenCalledWith('/vault/note.md', 'abc');
+		expect(isAlreadyIndexed('/vault/note.md', 'abc')).toBe(true);
+	});
+
+	it('resetHooks clears the dedup map so a reopened vault re-indexes', () => {
+		notifyAfterSave('/vault/note.md', 'abc');
+		expect(isAlreadyIndexed('/vault/note.md', 'abc')).toBe(true);
+
+		resetHooks();
+
+		expect(isAlreadyIndexed('/vault/note.md', 'abc')).toBe(false);
 	});
 
 	it('catches and logs observer errors without propagating', () => {

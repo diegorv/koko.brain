@@ -54,10 +54,15 @@ import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
 import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { error as debugError } from '$lib/utils/debug';
 import { updateIndexesForFile } from '$lib/core/app-lifecycle/index-updater.service';
+import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
 
 describe('updateIndexesForFile', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Dedup state is module-level and would otherwise leak between tests
+		// (second call to updateIndexesForFile with the same path/content would
+		// short-circuit before invoking any mocked updater).
+		clearAllIndexed();
 	});
 
 	it('calls all per-file index update functions with the correct arguments', async () => {
@@ -153,5 +158,40 @@ describe('updateIndexesForFile', () => {
 		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/new.md', expect.any(Array), expect.any(Map));
 		expect(updateTagIndexForFile).toHaveBeenCalledTimes(1);
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/new.md', 'new content');
+	});
+
+	it('skips all phases when the (path, content) signature was already indexed', async () => {
+		// Simulate notifyAfterSave having already marked this content.
+		markIndexed('/vault/note.md', 'same content');
+
+		await updateIndexesForFile('/vault/note.md', 'same content');
+
+		expect(updateIndexForFile).not.toHaveBeenCalled();
+		expect(updateBacklinksForFile).not.toHaveBeenCalled();
+		expect(updateTagIndexForFile).not.toHaveBeenCalled();
+		expect(updateNoteInIndex).not.toHaveBeenCalled();
+		expect(updateCalendarForFile).not.toHaveBeenCalled();
+	});
+
+	it('marks the (path, content) signature after running, so an immediate re-run short-circuits', async () => {
+		await updateIndexesForFile('/vault/note.md', 'hello');
+		expect(isAlreadyIndexed('/vault/note.md', 'hello')).toBe(true);
+
+		// Second call with same content: all mocks stay at 1 invocation from the first call.
+		await updateIndexesForFile('/vault/note.md', 'hello');
+		expect(updateIndexForFile).toHaveBeenCalledTimes(1);
+		expect(updateBacklinksForFile).toHaveBeenCalledTimes(1);
+		expect(updateCalendarForFile).toHaveBeenCalledTimes(1);
+	});
+
+	it('re-runs when the content actually changes after an indexed signature', async () => {
+		await updateIndexesForFile('/vault/note.md', 'v1');
+		expect(updateIndexForFile).toHaveBeenCalledTimes(1);
+
+		await updateIndexesForFile('/vault/note.md', 'v2');
+		expect(updateIndexForFile).toHaveBeenCalledTimes(2);
+		expect(updateIndexForFile).toHaveBeenLastCalledWith('/vault/note.md', 'v2');
+		expect(isAlreadyIndexed('/vault/note.md', 'v1')).toBe(false);
+		expect(isAlreadyIndexed('/vault/note.md', 'v2')).toBe(true);
 	});
 });

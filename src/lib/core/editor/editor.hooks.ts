@@ -1,6 +1,13 @@
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
+import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
+import { updateTagIndexForFile } from '$lib/features/tags/tags.service';
+import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
+import { updateNoteInIndex } from '$lib/features/collection/collection.service';
+import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
+import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -142,10 +149,35 @@ export async function applyWriteTransform(
 }
 
 /** Notifies all after-save observers. Errors are caught and logged.
- *  Also marks unlinked mentions as dirty so the BacklinksPanel recomputes on save. */
+ *  Also marks unlinked mentions as dirty so the BacklinksPanel recomputes on save,
+ *  and synchronously refreshes every per-file index so queryjs widgets that
+ *  re-render after the cache invalidation below see the saved content. */
 export function notifyAfterSave(filePath: string, content: string): void {
 	markRecentSave(filePath);
 	backlinksStore.markUnlinkedDirty();
+
+	// Synchronously refresh the per-file indexes before invalidating the
+	// queryjs cache. The +layout.svelte content-effect also runs these, but
+	// with a 1 s debounce — if the user switches tabs within that window the
+	// pending setTimeout is cleared and the just-saved file never gets
+	// indexed (the watcher also skips it, because areAllRecentSaves sees
+	// the markRecentSave above). Without this block, kb.pages() queries on
+	// the next active tab would miss notes the user just created.
+	// Skipped when the shared dedupe map reports that this exact
+	// (path, content) has already been indexed (typically by the
+	// content-effect firing 1 s before the 2 s autosave).
+	// Each updater is wrapped individually so one failure doesn't block
+	// the rest (mirrors the pattern in index-updater.service.ts).
+	if (!isAlreadyIndexed(filePath, content)) {
+		markIndexed(filePath, content);
+		try { updateIndexForFile(filePath, content); } catch (err) { error('HOOKS', 'updateIndexForFile after save failed:', err); }
+		try { updateTagIndexForFile(filePath, content); } catch (err) { error('HOOKS', 'updateTagIndexForFile after save failed:', err); }
+		try { updateTaskIndexForFile(filePath, content); } catch (err) { error('HOOKS', 'updateTaskIndexForFile after save failed:', err); }
+		try { updateNoteInIndex(filePath, content); } catch (err) { error('HOOKS', 'updateNoteInIndex after save failed:', err); }
+		try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('HOOKS', 'updateFrontmatterIconForFile after save failed:', err); }
+		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
+	}
+
 	invalidateQueryjsCache();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);
 	for (const observer of afterSaveObservers) {
@@ -165,4 +197,5 @@ export function resetHooks(): void {
 	afterSaveObservers.length = 0;
 	for (const timer of recentSaves.values()) clearTimeout(timer);
 	recentSaves.clear();
+	clearAllIndexed();
 }
