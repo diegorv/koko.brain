@@ -7,6 +7,7 @@ import {
 	resolveWikiLinkTarget,
 	parseSource,
 } from '$lib/plugins/queryjs/queryjs.logic';
+import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
@@ -198,6 +199,30 @@ describe('buildKBPage', () => {
 		const paths = ['/vault/notes/test.md'];
 		const page = buildKBPage(makeRecord(), index, noteContents, paths);
 		expect(page.file.outlinks).toHaveLength(1);
+	});
+
+	it('outlinks resolved via resolutionCache match the O(N) fallback', () => {
+		const index = new Map<string, WikiLink[]>([
+			['/vault/notes/test.md', [
+				makeWikiLink('Alpha'),
+				makeWikiLink('other/Gamma'),
+				makeWikiLink('missing'),
+			]],
+		]);
+		const paths = [
+			'/vault/notes/test.md',
+			'/vault/notes/Alpha.md',
+			'/vault/other/Gamma.md',
+		];
+
+		const pageSlow = buildKBPage(makeRecord(), index, noteContents, paths);
+		const cache = buildResolutionCache(paths);
+		const pageFast = buildKBPage(makeRecord(), index, noteContents, paths, undefined, cache);
+
+		expect(pageFast.file.outlinks).toEqual(pageSlow.file.outlinks);
+		expect(pageFast.file.outlinks).toHaveLength(2);
+		expect(pageFast.file.outlinks[0].path).toBe('/vault/notes/Alpha.md');
+		expect(pageFast.file.outlinks[1].path).toBe('/vault/other/Gamma.md');
 	});
 
 	it('spreads frontmatter properties onto page root', () => {

@@ -4,6 +4,10 @@ import type { KBPage, KBLink, KBTask } from './queryjs.types';
 import { KBDateTime } from './kb-datetime';
 import { extractAllTags } from '$lib/features/tags/tags.logic';
 import { extractTasks } from '$lib/features/tasks/tasks.logic';
+import {
+	resolveWikilinkCached,
+	type WikilinkResolutionCache,
+} from '$lib/features/backlinks/backlinks.logic';
 
 /** Extracts basename (without extension) from a file path */
 function getBasename(filePath: string): string {
@@ -103,6 +107,7 @@ export function buildKBPage(
 	noteContents: Map<string, string>,
 	allFilePaths: string[],
 	reverseIndex?: Map<string, Set<string>>,
+	resolutionCache?: WikilinkResolutionCache,
 ): KBPage {
 	const content = noteContents.get(record.path) ?? '';
 	const tags = extractAllTags(content);
@@ -116,11 +121,17 @@ export function buildKBPage(
 		path: record.path,
 	}));
 
-	// Compute outlinks from this file's wikilinks
+	// Compute outlinks from this file's wikilinks.
+	// Uses the pre-built O(1) resolution cache when provided — falls back to
+	// the O(N) scan for callers (e.g. tests) that don't pass it. Building
+	// the cache once per vault scan and passing it in turns the outlinks
+	// computation from O(N²×L) to O(N×L) across all pages.
 	const outWikiLinks = noteIndex.get(record.path) ?? [];
 	const outlinks: KBLink[] = [];
 	for (const wl of outWikiLinks) {
-		const resolved = resolveWikiLinkTarget(wl.target, allFilePaths);
+		const resolved = resolutionCache
+			? resolveWikilinkCached(wl.target, resolutionCache)
+			: resolveWikiLinkTarget(wl.target, allFilePaths);
 		if (resolved) {
 			outlinks.push({ path: resolved, display: wl.alias ?? wl.target });
 		}

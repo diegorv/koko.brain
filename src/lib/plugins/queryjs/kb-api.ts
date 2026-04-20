@@ -5,6 +5,7 @@ import { DataArray } from './data-array';
 import { KBDateTime } from './kb-datetime';
 import { KBUI } from './kb-ui';
 import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './queryjs.logic';
+import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 
 /**
@@ -335,9 +336,22 @@ export class KBAPI {
 		if (!this._pageCache) {
 			const allFilePaths = Array.from(this.propertyIndex.keys());
 			const reverseIndex = buildReverseIndex(this.noteIndex);
+			// Build the wikilink resolution cache ONCE (O(N)) instead of letting
+			// buildKBPage rescan allFilePaths for every outgoing wikilink of every
+			// page. Without this, outlink resolution is O(N×L) per page and
+			// O(N²×L) across all pages (~17M ops on a 1870-note vault) — that's
+			// what the 1+ s cold-start cost of the first kb.pages() call was.
+			const resolutionCache = buildResolutionCache(allFilePaths);
 			const list = allFilePaths.map((fp) => {
 				const record = this.propertyIndex.get(fp)!;
-				return buildKBPage(record, this.noteIndex, this.noteContents, allFilePaths, reverseIndex);
+				return buildKBPage(
+					record,
+					this.noteIndex,
+					this.noteContents,
+					allFilePaths,
+					reverseIndex,
+					resolutionCache,
+				);
 			});
 			const byPath = new Map<string, KBPage>();
 			for (const page of list) {
