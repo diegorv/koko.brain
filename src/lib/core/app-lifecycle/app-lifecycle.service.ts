@@ -4,7 +4,7 @@ import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib
 import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { debounce } from '$lib/utils/debounce';
-import { debug, error, logProcessMemory, setTauriDebugMode, stopTauriDebugListener } from '$lib/utils/debug';
+import { debug, error, logProcessMemory, perfStart, perfEnd, setTauriDebugMode, stopTauriDebugListener } from '$lib/utils/debug';
 import { initLogSession, teardownLogSession } from '$lib/utils/log.service';
 import {
 	startWatching,
@@ -103,7 +103,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	// ── Step 1: Settings ─────────────────────────────────────────────
 	// Settings MUST load first — other operations depend on it
+	const t1 = perfStart();
 	await loadSettings(vaultPath);
+	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
 
 	if (settingsStore.debugModeTauri) {
@@ -122,6 +124,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	// ── Step 2: Database + hooks ─────────────────────────────────────
 	debug('LIFECYCLE', 'Opening vault database...');
+	const t2 = perfStart();
 	try {
 		await invoke('open_vault_db', { vaultPath });
 	} catch (err) {
@@ -129,7 +132,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		toast.error('Failed to open vault database. Some features may not work.');
 		return;
 	}
-	debug('LIFECYCLE', 'Vault database opened');
+	perfEnd('LIFECYCLE', 'Step 2: open_vault_db', t2);
 	if (initVersion !== version) return;
 
 	if (settingsStore.history.enabled) {
@@ -149,6 +152,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	});
 
 	// ── Step 3: Load user data (parallel) ────────────────────────────
+	const t3 = perfStart();
 	try {
 		await Promise.all([
 			loadBookmarks(vaultPath),
@@ -161,10 +165,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		error('LIFECYCLE', 'Failed to load user data (bookmarks/icons/trash):', err);
 		toast.error('Failed to load some user data. Bookmarks, icons, or trash may be missing.');
 	}
+	perfEnd('LIFECYCLE', 'Step 3: loadUserData(parallel)', t3);
 	if (initVersion !== version) return;
 
 	// ── Step 4: Build indexes + file tree ────────────────────────────
 	// Must complete before starting the watcher to avoid concurrent builds
+	const t4 = perfStart();
 	try {
 		await Promise.all([
 			buildIndex(vaultPath),
@@ -174,6 +180,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		error('LIFECYCLE', 'Failed to build indexes or load file tree:', err);
 		toast.error('Failed to load vault contents. The file explorer or search may not work.');
 	}
+	perfEnd('LIFECYCLE', 'Step 4: buildIndex+loadDirectoryTree(parallel)', t4);
 	if (initVersion !== version) return;
 
 	// ── Step 5: Post-index setup ─────────────────────────────────────
@@ -185,7 +192,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// UI mount. Profiling showed that calling it here delayed the open
 	// of the daily note by ~2 seconds even though the Rust side responded
 	// in <10 ms — the JS microtask was starved.
+	const t5a = perfStart();
 	await ensureTemplatesFolder();
+	perfEnd('LIFECYCLE', 'Step 5a: ensureTemplatesFolder', t5a);
 
 	// Secondary index builders are deferred off the init critical path. Each
 	// iterates over every note's content and together add ~460ms of synchronous
@@ -195,18 +204,23 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
 	// first, then the builders run as macrotasks.
 	setTimeout(() => {
+		const t5b = perfStart();
 		buildTagIndex();
 		buildTaskIndex();
 		buildPropertyIndex();
 		buildFrontmatterIconIndex();
 		scanFilesForCalendar();
+		perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons+calendar)', t5b);
 	}, 0);
 
 	// ── Step 6: Search ───────────────────────────────────────────────
 	debug('LIFECYCLE', 'Building FTS5 search index...');
-	buildSearchIndex().catch((err) => {
-		error('LIFECYCLE', 'Search index build failed:', err);
-	});
+	const t6 = perfStart();
+	buildSearchIndex()
+		.then(() => perfEnd('LIFECYCLE', 'Step 6: buildSearchIndex (async)', t6))
+		.catch((err) => {
+			error('LIFECYCLE', 'Search index build failed:', err);
+		});
 	unsubscribeSearchIndex = registerSearchIndexHook();
 
 	if (settingsStore.autoMove.enabled) {

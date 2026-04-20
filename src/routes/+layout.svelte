@@ -14,7 +14,7 @@
 	import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 	import { updateIndexesForFile } from '$lib/core/app-lifecycle/index-updater.service';
 	import { isVirtualTab } from '$lib/core/editor/editor.logic';
-	import { perfStart, perfEnd } from '$lib/utils/debug';
+	import { debug, perfStart, perfEnd } from '$lib/utils/debug';
 	import AppOverlays from '$lib/core/layout/AppOverlays.svelte';
 	import AppShell from '$lib/core/layout/AppShell.svelte';
 
@@ -80,13 +80,14 @@
 	$effect(() => {
 		const path = editorStore.activeTabPath;
 		const t0 = perfStart();
+		debug('LAYOUT', `activeTabPath changed → scheduling 150ms updateActiveTabLinks for: ${path}`);
 
 		const timer = setTimeout(() => {
 			untrack(() => {
 				const tab = editorStore.activeTab;
 				if (path && tab && isVirtualTab(tab)) return;
 				updateActiveTabLinks(path);
-				perfEnd('LAYOUT', 'activeTabLinks:effect→callback', t0);
+				perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0);
 			});
 		}, 150);
 
@@ -108,8 +109,12 @@
 		});
 		if (isVirtual) return;
 
+		const tEffect = perfStart();
 		const timer = setTimeout(() => {
-			untrack(() => updateIndexesForFile(path, content));
+			untrack(() => {
+				perfEnd('LAYOUT', 'contentEffect→updateIndexesForFile(1000ms debounce)', tEffect);
+				updateIndexesForFile(path, content);
+			});
 		}, 1000);
 
 		return () => clearTimeout(timer);

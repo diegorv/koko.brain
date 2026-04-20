@@ -52,6 +52,8 @@ vi.mock('$lib/utils/debug', () => ({
 	stopTauriDebugListener: vi.fn(),
 	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
+	perfStart: vi.fn(() => 0),
+	perfEnd: vi.fn(),
 }));
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({

@@ -207,9 +207,10 @@ export async function buildSearchIndex(): Promise<void> {
 	if (!vaultPath) return;
 	debug('SEARCH', 'buildSearchIndex() starting for', vaultPath);
 	searchStore.setIsIndexing(true);
+	const t0 = performance.now();
 	try {
 		const stats = await invoke<SearchIndexStats>('build_search_index', { vaultPath });
-		debug('SEARCH', 'FTS index built:', stats);
+		debug('SEARCH', `FTS index built in ${(performance.now() - t0).toFixed(1)}ms:`, stats);
 		searchStore.setIndexStats(stats);
 	} catch (err) {
 		debug('SEARCH', 'FTS index build failed:', err);
