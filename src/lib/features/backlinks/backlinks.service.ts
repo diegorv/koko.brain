@@ -57,8 +57,12 @@ export async function buildIndex(path: string) {
 				}
 			}
 
-			noteIndexStore.setNoteIndex(index);
+			// Contents must be set BEFORE the index: setNoteIndex triggers
+			// rebuildReverseIndex, which resolves wikilinks using noteContents.keys().
+			// If reversed, the resolution cache is empty and reverseIndex stays empty
+			// until an incremental update happens to populate it file-by-file.
 			noteIndexStore.setNoteContents(contents);
+			noteIndexStore.setNoteIndex(index);
 			debug('BACKLINKS', `Index: ${index.size} notes, ${contents.size} contents`);
 		});
 	} finally {

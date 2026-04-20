@@ -106,6 +106,24 @@ describe('buildIndex', () => {
 		});
 	});
 
+	it('populates reverseIndex so backlinks resolve on first open', async () => {
+		vi.mocked(invoke)
+			.mockResolvedValueOnce([
+				makeFileNode({ name: 'day-20.md', path: '/vault/day-20.md' }),
+				makeFileNode({ name: 'week-17.md', path: '/vault/week-17.md' }),
+			])
+			.mockResolvedValueOnce([
+				makeSuccessResult('/vault/day-20.md', 'no outgoing links'),
+				makeSuccessResult('/vault/week-17.md', 'See [[day-20]] for details'),
+			]);
+
+		await buildIndex('/vault');
+
+		const sources = noteIndexStore.reverseIndex.get('/vault/day-20.md');
+		expect(sources).toBeDefined();
+		expect(sources!.has('/vault/week-17.md')).toBe(true);
+	});
+
 	it('filters out non-markdown files', async () => {
 		vi.mocked(invoke)
 			.mockResolvedValueOnce([
