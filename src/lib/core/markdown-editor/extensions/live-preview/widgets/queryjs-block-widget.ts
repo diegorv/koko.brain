@@ -116,8 +116,19 @@ export class QueryjsBlockWidget extends WidgetType {
 			const fn = new Function('kb', 'dv', code);
 			await Promise.resolve(fn(api, api));
 		profileEnd('qjs-execute', _t);
-		// Cache the rendered result for future toDOM() calls with same key
-		scriptResultCache.set(cacheKey(this.jsContent), container.cloneNode(true) as HTMLElement);
+		// Cache the rendered result for future toDOM() calls with same key,
+		// UNLESS the container holds elements whose visual state isn't
+		// preserved by cloneNode(true). Notably:
+		//   - <canvas>: element is cloned but its pixel buffer is not, so a
+		//     Chart.js radar/bar/etc. would clone as a blank square.
+		//   - <video>/<iframe>: playback state / loaded content aren't cloned.
+		// For those, re-execute every render — slower but correct. The
+		// per-KBAPI _pageCache + O(1) outlinks resolution keep the re-exec
+		// cost reasonable (~200 ms for a 1870-note vault).
+		const hasUnclonable = container.querySelector('canvas, video, iframe') !== null;
+		if (!hasUnclonable) {
+			scriptResultCache.set(cacheKey(this.jsContent), container.cloneNode(true) as HTMLElement);
+		}
 		} catch (err) {
 			const errorEl = document.createElement('div');
 			errorEl.className = 'cm-lp-qjs-error';
