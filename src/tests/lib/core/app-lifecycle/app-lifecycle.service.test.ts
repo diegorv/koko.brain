@@ -288,6 +288,9 @@ describe('initializeVault', () => {
 		await initializeVault('/vault');
 
 		await vi.mocked(buildIndex).mock.results[0].value;
+		// Secondary index builders are deferred via setTimeout(…, 0). Flush
+		// the macrotask queue before asserting they ran.
+		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(buildTagIndex).toHaveBeenCalled();
 		expect(buildTaskIndex).toHaveBeenCalled();
