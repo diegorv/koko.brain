@@ -187,11 +187,20 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// in <10 ms — the JS microtask was starved.
 	await ensureTemplatesFolder();
 
-	buildTagIndex();
-	buildTaskIndex();
-	buildPropertyIndex();
-	buildFrontmatterIconIndex();
-	scanFilesForCalendar();
+	// Secondary index builders are deferred off the init critical path. Each
+	// iterates over every note's content and together add ~460ms of synchronous
+	// JS work on the main thread — none of them are required for the daily
+	// note to open. Their stores back the Tags / Properties / Calendar / file
+	// icon panels, which degrade gracefully if briefly empty. Running them via
+	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
+	// first, then the builders run as macrotasks.
+	setTimeout(() => {
+		buildTagIndex();
+		buildTaskIndex();
+		buildPropertyIndex();
+		buildFrontmatterIconIndex();
+		scanFilesForCalendar();
+	}, 0);
 
 	// ── Step 6: Search ───────────────────────────────────────────────
 	debug('LIFECYCLE', 'Building FTS5 search index...');
