@@ -336,4 +336,113 @@ describe('KBDateTime', () => {
 			expect(d.getFullYear()).toBe(2024);
 		});
 	});
+
+	describe('quarter', () => {
+		it.each([
+			['2024-01-15', 1], ['2024-02-10', 1], ['2024-03-31', 1],
+			['2024-04-01', 2], ['2024-05-15', 2], ['2024-06-30', 2],
+			['2024-07-01', 3], ['2024-08-20', 3], ['2024-09-30', 3],
+			['2024-10-01', 4], ['2024-11-15', 4], ['2024-12-31', 4],
+		])('maps %s → Q%i', (iso, q) => {
+			expect(new KBDateTime(iso).quarter).toBe(q);
+		});
+	});
+
+	describe('weekNumber (ISO 8601)', () => {
+		it('returns 1 for a year that starts on Monday', () => {
+			// 2024-01-01 is a Monday, so it belongs to week 1 of 2024.
+			expect(new KBDateTime('2024-01-01').weekNumber).toBe(1);
+		});
+
+		it('applies the 4-day rule at year boundaries', () => {
+			// 2023-12-31 (Sunday) is the last day of ISO week 52 of 2023.
+			expect(new KBDateTime('2023-12-31').weekNumber).toBe(52);
+			// 2024-12-30 (Monday) belongs to ISO week 1 of 2025 (Jan 1–5 of 2025
+			// has only 5 days in the year, but weeks are anchored to Thursday).
+			expect(new KBDateTime('2024-12-30').weekNumber).toBe(1);
+		});
+
+		it('spans mid-year weeks correctly', () => {
+			expect(new KBDateTime('2024-04-20').weekNumber).toBe(16);
+			expect(new KBDateTime('2024-07-01').weekNumber).toBe(27);
+		});
+	});
+
+	describe('startOf with quarter', () => {
+		it.each([
+			['2024-01-15', '2024-01-01'],
+			['2024-02-29', '2024-01-01'],
+			['2024-04-05', '2024-04-01'],
+			['2024-06-30', '2024-04-01'],
+			['2024-08-15', '2024-07-01'],
+			['2024-11-20', '2024-10-01'],
+		])('anchors %s to the first day of its quarter (%s)', (input, expected) => {
+			expect(new KBDateTime(input).startOf('quarter').toISODate()).toBe(expected);
+		});
+
+		it('zeros the time at the start of the quarter', () => {
+			const dt = new KBDateTime('2024-05-15T15:30:45').startOf('quarter');
+			expect(dt.hour).toBe(0);
+			expect(dt.minute).toBe(0);
+		});
+	});
+
+	describe('endOf', () => {
+		it('returns 23:59 of the same day for unit=day', () => {
+			const end = new KBDateTime('2024-06-15T10:00:00').endOf('day');
+			expect(end.toISODate()).toBe('2024-06-15');
+			expect(end.hour).toBe(23);
+			expect(end.minute).toBe(59);
+		});
+
+		it('returns Sunday for endOf week (Monday-based)', () => {
+			// 2024-04-15 is a Monday → Sunday of that ISO week is 2024-04-21.
+			expect(new KBDateTime('2024-04-15').endOf('week').toISODate()).toBe('2024-04-21');
+			// A Wednesday inside the same week resolves to the same Sunday.
+			expect(new KBDateTime('2024-04-17').endOf('week').toISODate()).toBe('2024-04-21');
+			// Sunday itself stays as Sunday.
+			expect(new KBDateTime('2024-04-21').endOf('week').toISODate()).toBe('2024-04-21');
+		});
+
+		it('returns the last day of the month (handles leap + non-leap Feb, 30/31-day)', () => {
+			expect(new KBDateTime('2024-02-10').endOf('month').toISODate()).toBe('2024-02-29');
+			expect(new KBDateTime('2023-02-10').endOf('month').toISODate()).toBe('2023-02-28');
+			expect(new KBDateTime('2024-04-10').endOf('month').toISODate()).toBe('2024-04-30');
+			expect(new KBDateTime('2024-01-10').endOf('month').toISODate()).toBe('2024-01-31');
+		});
+
+		it.each([
+			['2024-01-15', '2024-03-31'],
+			['2024-04-05', '2024-06-30'],
+			['2024-08-15', '2024-09-30'],
+			['2024-11-20', '2024-12-31'],
+		])('returns the last day of the quarter for %s (%s)', (input, expected) => {
+			expect(new KBDateTime(input).endOf('quarter').toISODate()).toBe(expected);
+		});
+
+		it('returns Dec 31 for endOf year', () => {
+			expect(new KBDateTime('2024-06-15').endOf('year').toISODate()).toBe('2024-12-31');
+		});
+	});
+
+	describe('toFormat with month-name tokens', () => {
+		it('expands MMM to short English month name', () => {
+			expect(new KBDateTime('2024-04-15').toFormat('MMM')).toBe('Apr');
+			expect(new KBDateTime('2024-12-01').toFormat('MMM')).toBe('Dec');
+		});
+
+		it('expands MMMM to full English month name', () => {
+			expect(new KBDateTime('2024-04-15').toFormat('MMMM')).toBe('April');
+			expect(new KBDateTime('2024-09-01').toFormat('MMMM')).toBe('September');
+		});
+
+		it('MMMM is replaced before MM so "MM-MMMM" yields "04-April"', () => {
+			expect(new KBDateTime('2024-04-15').toFormat('MM-MMMM')).toBe('04-April');
+		});
+
+		it('coexists with the existing tokens', () => {
+			const dt = new KBDateTime('2024-04-15T09:05:00');
+			expect(dt.toFormat('dd MMM yyyy HH:mm')).toBe('15 Apr 2024 09:05');
+		});
+	});
 });

@@ -108,6 +108,23 @@ export class KBDateTime {
 		return this._date.getTime();
 	}
 
+	/** Quarter number (1-4) */
+	get quarter(): number {
+		return Math.floor(this._date.getMonth() / 3) + 1;
+	}
+
+	/** ISO 8601 week number (1-53). Weeks start Monday; week 1 of a year is the
+	 *  first week with at least 4 days in that year. */
+	get weekNumber(): number {
+		const d = new Date(Date.UTC(this.year, this.month - 1, this.day));
+		// In ISO, Monday = 1, Sunday = 7
+		const dayNum = d.getUTCDay() || 7;
+		// Shift to the Thursday of the current ISO week (used for year disambiguation).
+		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+		return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+	}
+
 	/** Returns a new KBDateTime advanced by the given duration */
 	plus(duration: {
 		years?: number;
@@ -148,15 +165,29 @@ export class KBDateTime {
 		return `${y}-${m}-${d}`;
 	}
 
-	/** Simple format: supports yyyy, MM, dd, HH, mm tokens (all occurrences) */
+	/** Simple format tokens (all occurrences replaced): yyyy, MMMM (full month
+	 *  name, e.g. "April"), MMM (short month, e.g. "Apr"), MM (2-digit month),
+	 *  dd, HH, mm. Longest tokens are replaced first so "MMMM" doesn't get
+	 *  partially consumed by the "MM" pass. Month names are English. */
 	toFormat(fmt: string): string {
 		return fmt
+			.replaceAll('MMMM', KBDateTime.MONTHS_LONG[this.month - 1])
+			.replaceAll('MMM', KBDateTime.MONTHS_SHORT[this.month - 1])
 			.replaceAll('yyyy', String(this.year).padStart(4, '0'))
 			.replaceAll('MM', String(this.month).padStart(2, '0'))
 			.replaceAll('dd', String(this.day).padStart(2, '0'))
 			.replaceAll('HH', String(this.hour).padStart(2, '0'))
 			.replaceAll('mm', String(this.minute).padStart(2, '0'));
 	}
+
+	private static readonly MONTHS_LONG = [
+		'January', 'February', 'March', 'April', 'May', 'June',
+		'July', 'August', 'September', 'October', 'November', 'December',
+	];
+	private static readonly MONTHS_SHORT = [
+		'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+		'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+	];
 
 	/** Comparison: is this date the same as another on a given unit? */
 	hasSame(other: KBDateTime, unit: 'day' | 'month' | 'year'): boolean {
@@ -165,8 +196,10 @@ export class KBDateTime {
 		return this.year === other.year && this.month === other.month && this.day === other.day;
 	}
 
-	/** Returns a new KBDateTime at the start of the given unit */
-	startOf(unit: 'day' | 'week' | 'month' | 'year'): KBDateTime {
+	/** Returns a new KBDateTime at the start of the given unit.
+	 *  Week boundaries are Monday-based (ISO convention). Quarters are calendar
+	 *  quarters: Q1 starts Jan 1, Q2 Apr 1, Q3 Jul 1, Q4 Oct 1. */
+	startOf(unit: 'day' | 'week' | 'month' | 'quarter' | 'year'): KBDateTime {
 		const d = new Date(this._date.getTime());
 		d.setHours(0, 0, 0, 0);
 		if (unit === 'day') return new KBDateTime(d);
@@ -180,8 +213,42 @@ export class KBDateTime {
 			d.setDate(1);
 			return new KBDateTime(d);
 		}
+		if (unit === 'quarter') {
+			const currentQuarter = Math.floor(d.getMonth() / 3);
+			d.setMonth(currentQuarter * 3, 1);
+			return new KBDateTime(d);
+		}
 		// year
 		d.setMonth(0, 1);
+		return new KBDateTime(d);
+	}
+
+	/** Returns a new KBDateTime at the end of the given unit (23:59:59.999 on
+	 *  the last day). Week/quarter boundaries match `startOf`. */
+	endOf(unit: 'day' | 'week' | 'month' | 'quarter' | 'year'): KBDateTime {
+		const d = new Date(this._date.getTime());
+		d.setHours(23, 59, 59, 999);
+		if (unit === 'day') return new KBDateTime(d);
+		if (unit === 'week') {
+			// Sunday is the last day of a Monday-started week.
+			const dayOfWeek = d.getDay();
+			const diff = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+			d.setDate(d.getDate() + diff);
+			return new KBDateTime(d);
+		}
+		if (unit === 'month') {
+			// Day 0 of next month = last day of current month.
+			d.setMonth(d.getMonth() + 1, 0);
+			return new KBDateTime(d);
+		}
+		if (unit === 'quarter') {
+			const currentQuarter = Math.floor(d.getMonth() / 3);
+			// Day 0 of the first month after the quarter = last day of the quarter.
+			d.setMonth((currentQuarter + 1) * 3, 0);
+			return new KBDateTime(d);
+		}
+		// year
+		d.setMonth(11, 31);
 		return new KBDateTime(d);
 	}
 
