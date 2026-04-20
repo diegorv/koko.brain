@@ -35,18 +35,25 @@ export async function buildIndex(path: string) {
 
 	try {
 		await timeAsync('BACKLINKS', 'buildIndex', async () => {
+			const tScan = perfStart();
 			const tree = await invoke<FileTreeNode[]>('scan_vault', {
 				path,
 				sortBy: 'name',
 			});
+			perfEnd('BACKLINKS', 'buildIndex:scan_vault(IPC)', tScan);
 
+			const tCollect = perfStart();
 			const filePaths = collectMarkdownPaths(tree);
+			perfEnd('BACKLINKS', `buildIndex:collectMarkdownPaths(${filePaths.length} files)`, tCollect);
 
+			const tRead = perfStart();
 			const readResults = await invoke<FileReadResult[]>('read_files_batch', {
 				vaultPath: path,
 				paths: filePaths,
 			});
+			perfEnd('BACKLINKS', `buildIndex:read_files_batch(IPC, ${readResults.length} files)`, tRead);
 
+			const tParse = perfStart();
 			const index = new Map<string, WikiLink[]>();
 			const contents = new Map<string, string>();
 
@@ -56,13 +63,16 @@ export async function buildIndex(path: string) {
 					index.set(result.path, parseWikilinks(result.content));
 				}
 			}
+			perfEnd('BACKLINKS', `buildIndex:parseWikilinks(${index.size} files)`, tParse);
 
 			// Contents must be set BEFORE the index: setNoteIndex triggers
 			// rebuildReverseIndex, which resolves wikilinks using noteContents.keys().
 			// If reversed, the resolution cache is empty and reverseIndex stays empty
 			// until an incremental update happens to populate it file-by-file.
+			const tStore = perfStart();
 			noteIndexStore.setNoteContents(contents);
 			noteIndexStore.setNoteIndex(index);
+			perfEnd('BACKLINKS', 'buildIndex:setStores(incl. rebuildReverseIndex)', tStore);
 			debug('BACKLINKS', `Index: ${index.size} notes, ${contents.size} contents`);
 		});
 	} finally {
