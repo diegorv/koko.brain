@@ -66,11 +66,23 @@ import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/dee
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
 
 /**
+ * Delay (ms) before the deferred semantic-search init kicks in.
+ * The ONNX model load + initial chunk+embed pass blocks the main thread
+ * for ~2.7s on a fresh boot (1800-note vault). Deferring this past the
+ * user's first tab interaction keeps early UI responsiveness intact —
+ * profiling showed the first tab switch normally happens within 1.5-2s
+ * after initializeVault resolves, so 3s clears that window.
+ */
+const SEMANTIC_INIT_DEFER_MS = 3000;
+
+/**
  * Version counter for vault initialization.
  * Incremented on every initializeVault call, checked after each await
  * to discard results from obsolete initializations (e.g. rapid vault switch).
  */
 let initVersion = 0;
+/** Timer handle for the deferred semantic-search init, set during initializeVault */
+let semanticInitTimer: ReturnType<typeof setTimeout> | null = null;
 /** Cleanup function for the file change listener, set during initializeVault */
 let unsubscribeFileChange: (() => void) | null = null;
 /** Cleanup function for the file history after-save hook */
@@ -232,30 +244,40 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	// Semantic search: if enabled but model is missing, disable and notify.
 	// Model download only happens from the Settings toggle, never on startup.
+	// DEFERRED by SEMANTIC_INIT_DEFER_MS — the ONNX model load blocks the
+	// main thread for ~2.7s and used to hit right as the user tried their
+	// first tab switch, making the app feel frozen. Pushing it past the
+	// initial interaction window moves the unavoidable jank to a time the
+	// user isn't actively clicking around.
 	debug('LIFECYCLE', `Semantic search enabled: ${settingsStore.search.semanticSearchEnabled}`);
 	if (settingsStore.search.semanticSearchEnabled) {
-		debug('LIFECYCLE', 'Starting semantic search init...');
-		await startSemanticProgressListener();
-		initSemanticSearch().then(async () => {
+		debug('LIFECYCLE', `Scheduling deferred semantic search init in ${SEMANTIC_INIT_DEFER_MS}ms...`);
+		semanticInitTimer = setTimeout(async () => {
+			semanticInitTimer = null;
 			if (initVersion !== version) return;
-			if (!searchStore.modelAvailable) {
-				debug('LIFECYCLE', 'Model not found — disabling semantic search');
+			debug('LIFECYCLE', 'Running deferred semantic search init...');
+			await startSemanticProgressListener();
+			initSemanticSearch().then(async () => {
+				if (initVersion !== version) return;
+				if (!searchStore.modelAvailable) {
+					debug('LIFECYCLE', 'Model not found — disabling semantic search');
+					settingsStore.updateSearch({ semanticSearchEnabled: false });
+					await saveSettings(vaultPath);
+					stopSemanticProgressListener();
+					toast.warning('Semantic search model not found. Re-enable in Settings to download.');
+					return;
+				}
+				debug('LIFECYCLE', `Semantic model available: ${searchStore.modelAvailable}`);
+				buildSemanticIndex();
+			}).catch(async (err) => {
+				if (initVersion !== version) return;
+				error('LIFECYCLE', 'Semantic search init failed:', err);
 				settingsStore.updateSearch({ semanticSearchEnabled: false });
 				await saveSettings(vaultPath);
 				stopSemanticProgressListener();
-				toast.warning('Semantic search model not found. Re-enable in Settings to download.');
-				return;
-			}
-			debug('LIFECYCLE', `Semantic model available: ${searchStore.modelAvailable}`);
-			buildSemanticIndex();
-		}).catch(async (err) => {
-			if (initVersion !== version) return;
-			error('LIFECYCLE', 'Semantic search init failed:', err);
-			settingsStore.updateSearch({ semanticSearchEnabled: false });
-			await saveSettings(vaultPath);
-			stopSemanticProgressListener();
-			toast.error('Semantic search initialization failed. Re-enable in Settings to retry.');
-		});
+				toast.error('Semantic search initialization failed. Re-enable in Settings to retry.');
+			});
+		}, SEMANTIC_INIT_DEFER_MS);
 	}
 
 	// ── Step 7: File watcher ─────────────────────────────────────────
@@ -295,6 +317,10 @@ export function teardownVault(): void {
 	// ── Invalidate in-flight initialization ──────────────────────────
 	initVersion++;
 	pendingWatcherPaths = [];
+	if (semanticInitTimer) {
+		clearTimeout(semanticInitTimer);
+		semanticInitTimer = null;
+	}
 
 	// ── Unsubscribe hooks + listeners ────────────────────────────────
 	if (debouncedFileChangeHandler) {
