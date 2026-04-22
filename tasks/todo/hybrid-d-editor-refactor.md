@@ -27,12 +27,12 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] `toggleRawMode()` em `editor.service.ts` + keybinding Cmd+K em `global-keybindings.ts`.
 - [x] E2E `e2e/specs/live-preview/raw-mode.spec.ts`.
 
-### Fase 2 — Scaffold do novo pipeline
+### Fase 2 — Scaffold do novo pipeline ✅
 
-- [ ] Criar `new/markdown-highlight-style.ts` preservando nomes de classe do inventário.
-- [ ] Criar `new/inline-formatting-plugin.ts` com handler registry (nodeType + decorate + cursor-reveal via `touched`).
-- [ ] Criar `new/new-inline-extensions.ts` e cablear em `live-preview.ts` quando flag on.
-- [ ] Teste unitário com handler dummy.
+- [x] Criar `new/markdown-highlight-style.ts` preservando nomes de classe do inventário.
+- [x] Criar `new/inline-formatting-plugin.ts` com handler registry (nodeType + decorate + cursor-reveal via `isTouched(from, to)` — refatorado do `touched` pré-computado porque marcas precisam do range do parent).
+- [x] Criar `new/new-inline-extensions.ts` e cablear em `live-preview.ts` quando flag on.
+- [x] Testes unitários: registry, dispatch, block-context skip, isTouched helper, HighlightStyle sanity, extension array (19 casos).
 
 ### Fase 3 — Aposentar `markdownStylePlugin` (113 linhas)
 
