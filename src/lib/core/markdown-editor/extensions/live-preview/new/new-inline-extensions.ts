@@ -5,11 +5,14 @@ import { mdStyle } from './markdown-highlight-style';
 import {
 	inlineFormattingPlugin,
 	registerInlineHandler,
+	registerLineHandler,
 	_clearInlineHandlers,
 	type InlineHandler,
+	type InlineLineHandler,
 } from './inline-formatting-plugin';
 import { headingHandlers } from './handlers/heading-handler';
 import { blockquoteHandler } from './handlers/blockquote-handler';
+import { inlineCommentHandler } from './handlers/inline-comment-handler';
 
 /**
  * Production handlers registered by the new inline pipeline. Kept as a
@@ -24,6 +27,11 @@ import { blockquoteHandler } from './handlers/blockquote-handler';
 export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	...headingHandlers,
 	blockquoteHandler,
+];
+
+/** Line-based handlers (regex parsers, no Lezer node). */
+export const PRODUCTION_LINE_HANDLERS: readonly InlineLineHandler[] = [
+	inlineCommentHandler,
 ];
 
 /**
@@ -44,8 +52,7 @@ export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
  */
 export function newInlineExtensions(): Extension[] {
 	_clearInlineHandlers();
-	for (const handler of PRODUCTION_INLINE_HANDLERS) {
-		registerInlineHandler(handler);
-	}
+	for (const handler of PRODUCTION_INLINE_HANDLERS) registerInlineHandler(handler);
+	for (const handler of PRODUCTION_LINE_HANDLERS) registerLineHandler(handler);
 	return [syntaxHighlighting(mdStyle), inlineFormattingPlugin];
 }

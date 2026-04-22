@@ -60,9 +60,25 @@ export interface InlineHandler {
 	decorate(ctx: InlineHandlerContext): InlineHandlerResult;
 }
 
-/** Module-level registry. Handlers are pushed at import time. */
+/**
+ * Context for line-based handlers. Used when a decoration depends on a regex
+ * scan of the line text (e.g. `%%inline comments%%` or `==highlight==` before
+ * the Lezer HighlightExtension landed) rather than a Lezer node.
+ */
+export interface InlineLineHandlerContext {
+	state: EditorState;
+	line: { from: number; to: number; number: number };
+	isTouched: (from: number, to: number) => boolean;
+}
+
+export interface InlineLineHandler {
+	decorate(ctx: InlineLineHandlerContext): InlineHandlerResult;
+}
+
+/** Module-level registries. Handlers are pushed at import time. */
 const handlers: InlineHandler[] = [];
 const handlersByNode: Map<string, InlineHandler[]> = new Map();
+const lineHandlers: InlineLineHandler[] = [];
 
 /**
  * Registers a handler. Callers should invoke this at module load time — the
@@ -76,6 +92,15 @@ export function registerInlineHandler(handler: InlineHandler): void {
 		handlersByNode.set(handler.nodeType, arr);
 	}
 	arr.push(handler);
+}
+
+/**
+ * Registers a line-based handler — called once per visible line that is not
+ * inside a block context. Use for decorations whose input is a regex over the
+ * line text rather than a Lezer node.
+ */
+export function registerLineHandler(handler: InlineLineHandler): void {
+	lineHandlers.push(handler);
 }
 
 /**
@@ -93,6 +118,7 @@ export function _inlineHandlersSnapshot(): readonly InlineHandler[] {
 export function _clearInlineHandlers(): void {
 	handlers.length = 0;
 	handlersByNode.clear();
+	lineHandlers.length = 0;
 }
 
 /**
@@ -162,6 +188,15 @@ export function buildInlineDecorations(
 
 	const isTouched = (from: number, to: number) => shouldShowSource(state, from, to);
 
+	const pushResult = (result: InlineHandlerResult) => {
+		if (result == null) return;
+		if (Array.isArray(result)) {
+			for (const entry of result) collected.push(entry.deco.range(entry.from, entry.to));
+		} else {
+			collected.push(result.deco.range(result.from, result.to));
+		}
+	};
+
 	for (const { from, to } of ranges) {
 		syntaxTree(state).iterate({
 			from,
@@ -170,22 +205,26 @@ export function buildInlineDecorations(
 				if (isInsideBlockContext(node)) return false;
 				const matching = handlersByNode.get(node.name);
 				if (!matching || matching.length === 0) return;
-
 				const ctx: InlineHandlerContext = { state, node, isTouched };
-
-				for (const handler of matching) {
-					const result = handler.decorate(ctx);
-					if (result == null) continue;
-					if (Array.isArray(result)) {
-						for (const entry of result) {
-							collected.push(entry.deco.range(entry.from, entry.to));
-						}
-					} else {
-						collected.push(result.deco.range(result.from, result.to));
-					}
-				}
+				for (const handler of matching) pushResult(handler.decorate(ctx));
 			},
 		});
+
+		if (lineHandlers.length > 0) {
+			const startLine = state.doc.lineAt(from).number;
+			const endLine = state.doc.lineAt(to).number;
+			for (let ln = startLine; ln <= endLine; ln++) {
+				const line = state.doc.line(ln);
+				const nodeAt = syntaxTree(state).resolveInner(line.from);
+				if (isInsideBlockContext(nodeAt)) continue;
+				const ctx: InlineLineHandlerContext = {
+					state,
+					line: { from: line.from, to: line.to, number: line.number },
+					isTouched,
+				};
+				for (const handler of lineHandlers) pushResult(handler.decorate(ctx));
+			}
+		}
 	}
 
 	return Decoration.set(collected, true);

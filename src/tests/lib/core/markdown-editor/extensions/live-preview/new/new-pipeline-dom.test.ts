@@ -103,6 +103,12 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 		expect(classesOf(view)).toContain('cm-lp-blockquote');
 	});
 
+	it('renders cm-lp-inline-comment-hidden for %%comments%% off-cursor', () => {
+		view = mount('text %%hidden comment%% after\n');
+		// Default cursor is at 0 — comment at later pos is hidden
+		expect(classesOf(view)).toContain('cm-lp-inline-comment-hidden');
+	});
+
 	it('renders cm-lp-blockquote-2 and -3 at nested depths', () => {
 		view = mount('> > two\n> > > three\n');
 		const classes = classesOf(view);
