@@ -222,26 +222,6 @@ describe('settingsStore', () => {
 			expect(settingsStore.tagColors.colors).toEqual({ personal: '#44cf6e' });
 		});
 
-		it('experimental starts with newLivePreview disabled', () => {
-			expect(settingsStore.experimental).toEqual({ newLivePreview: false });
-		});
-
-		it('updateExperimental toggles newLivePreview', () => {
-			settingsStore.updateExperimental({ newLivePreview: true });
-			expect(settingsStore.experimental.newLivePreview).toBe(true);
-
-			settingsStore.updateExperimental({ newLivePreview: false });
-			expect(settingsStore.experimental.newLivePreview).toBe(false);
-		});
-
-		it('updateExperimental preserves other flags when merging', () => {
-			// Regression guard for when future experimental flags get added
-			settingsStore.updateExperimental({ newLivePreview: true });
-			const before = settingsStore.experimental;
-			settingsStore.updateExperimental({});
-			expect(settingsStore.experimental).toEqual(before);
-		});
-
 		it('queryjs starts with autoRunQueries first-open', () => {
 			expect(settingsStore.queryjs).toEqual({ autoRunQueries: 'first-open' });
 		});
