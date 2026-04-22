@@ -114,6 +114,23 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 		expect(classesOf(view)).toContain('cm-lp-block-ref-hidden');
 	});
 
+	it('renders cm-lp-hr-line + cm-formatting-hr on horizontal rule when cursor is away', () => {
+		view = mount('intro\n\n---\n\noutro\n');
+		const classes = classesOf(view);
+		expect(classes).toContain('cm-lp-hr-line');
+		expect(classes).toContain('cm-formatting-hr');
+	});
+
+	it('renders cm-formatting-ul-marker on unordered list items', () => {
+		view = mount('intro\n\n- first\n- second\n\noutro\n');
+		expect(classesOf(view)).toContain('cm-formatting-ul-marker');
+	});
+
+	it('renders cm-formatting-task-marker on task list items', () => {
+		view = mount('intro\n\n- [ ] todo\n- [x] done\n\noutro\n');
+		expect(classesOf(view)).toContain('cm-formatting-task-marker');
+	});
+
 	it('renders cm-lp-blockquote-2 and -3 at nested depths', () => {
 		view = mount('> > two\n> > > three\n');
 		const classes = classesOf(view);

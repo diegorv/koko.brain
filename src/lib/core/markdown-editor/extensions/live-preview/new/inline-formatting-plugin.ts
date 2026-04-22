@@ -197,6 +197,13 @@ export function buildInlineDecorations(
 		}
 	};
 
+	// Dedup across overlapping visible ranges — expandedVisibleRanges can yield
+	// overlapping spans and a handler that emits Decoration.replace({ widget })
+	// would otherwise produce two widgets at the same node. Key by "name:from"
+	// so different node types at the same position don't collide.
+	const visitedNodes = new Set<string>();
+	const visitedLines = new Set<number>();
+
 	for (const { from, to } of ranges) {
 		syntaxTree(state).iterate({
 			from,
@@ -205,6 +212,9 @@ export function buildInlineDecorations(
 				if (isInsideBlockContext(node)) return false;
 				const matching = handlersByNode.get(node.name);
 				if (!matching || matching.length === 0) return;
+				const key = `${node.name}:${node.from}`;
+				if (visitedNodes.has(key)) return;
+				visitedNodes.add(key);
 				const ctx: InlineHandlerContext = { state, node, isTouched };
 				for (const handler of matching) pushResult(handler.decorate(ctx));
 			},
@@ -214,6 +224,8 @@ export function buildInlineDecorations(
 			const startLine = state.doc.lineAt(from).number;
 			const endLine = state.doc.lineAt(to).number;
 			for (let ln = startLine; ln <= endLine; ln++) {
+				if (visitedLines.has(ln)) continue;
+				visitedLines.add(ln);
 				const line = state.doc.line(ln);
 				const nodeAt = syntaxTree(state).resolveInner(line.from);
 				if (isInsideBlockContext(nodeAt)) continue;
