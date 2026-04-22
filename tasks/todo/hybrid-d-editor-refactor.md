@@ -70,12 +70,12 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] 5 handlers em `simple-widget-handlers.ts` (TaskMarker, HorizontalRule, ListMark com dispatch por parent, HardBreak, InlineMath) reusando widgets existentes.
 - [x] 12 testes unit + 3 no snapshot DOM.
 
-### Fase 9 — Aposentar `linkPlugin` (283 linhas)
+### Fase 9 — Aposentar `linkPlugin` (283 linhas) ✅
 
-- [ ] 9.a: link básico `[x](y)` — mark que esconde brackets + classe.
-- [ ] 9.b: ícone de link externo (replace widget).
-- [ ] 9.c: integração `wikilink-navigation.ts` (click handler).
-- [ ] E2E `links.spec.ts`.
+- [x] 9a: `markdown-link-handlers.ts` — `linkHandler` (Link) + `linkReferenceHandler` (LinkReference).
+- [x] 9b: `autolink-handlers.ts` — `autolinkHandler` (Autolink node) + `extendedAutolinkHandler` (line handler p/ bare URLs com skip quando já coberto por Link/Autolink/Image).
+- [x] 9c: `wikilink-handler.ts` (line handler) cobrindo `[[target]]`, `#heading`, `#^block-id` e `|display`. Click handling inalterado — `livePreviewClickHandler` já está em shared.
+- [x] 18 testes unit (6+6+6) + 2 novos DOM snapshots.
 
 ### Fase 10 — Aposentar `inlineMarksPlugin` (163 linhas)
 
