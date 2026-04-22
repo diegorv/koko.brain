@@ -10,15 +10,15 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 
 ## Tasks
 
-### Fase 0 — Baseline & feature flag
+### Fase 0 — Inventário & feature flag
 
-- [ ] Rodar `bash scripts/e2e.sh` completo. Registrar baseline 100% verde.
+**Decisão revisada:** baseline E2E do projeto atual está instável — pulada. Cada fase cria seus próprios testes (unit + E2E específicos) do zero como parte do commit da fase. Sem gate de "E2E suite antiga verde".
+
+- [x] ~~Rodar `bash scripts/e2e.sh` completo~~ — pulada por instabilidade conhecida.
 - [ ] Inventariar classes CSS emitidas pelos 11 plugins inline em `tasks/notes/css-classes-inventory.md`.
-- [ ] Auditar gaps de teste nos 11 plugins (cursor-reveal + isInsideBlockContext).
-- [ ] Preencher gaps de teste (um commit por plugin).
-- [ ] Adicionar `experimental.newLivePreview: boolean` em settings (types + store + getter + updater + teste).
+- [ ] Adicionar `experimental.newLivePreview: boolean` em settings (types + store + getter + updater + teste unit).
 - [ ] Adicionar seção "Experimental" em settings UI.
-- [ ] Refatorar `livePreviewExtensions()` para branching flag; `newInlineExtensions()` retorna `[]`.
+- [ ] Refatorar `livePreviewExtensions()` para branching flag; `newInlineExtensions()` retorna `[]`. Teste unit do branching.
 
 ### Fase 1 — Raw mode (Cmd+K)
 
@@ -153,7 +153,7 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 
 - **Feature flag:** `experimental.newLivePreview` (default `false` até Fase 11.5). Branch único em `live-preview.ts → livePreviewExtensions()`.
 - **Rollback por fase:** flipar flag (runtime) ou `git revert` do commit da fase.
-- **Testing gate** (CLAUDE.md Quick Ref #6): Frontend → `pnpm check` + `pnpm vitest run`; E2E → `bash scripts/e2e.sh`. Commit por task, formato detalhado (Context/Problem/Solution/Behavior/Files).
+- **Testing gate** (CLAUDE.md Quick Ref #6): Frontend → `pnpm check` + `pnpm vitest run`. **E2E baseline pulada** — cada fase escreve specs próprios, do zero. Commit por task, formato detalhado (Context/Problem/Solution/Behavior/Files).
 - **Nomes de classe CSS:** preservar exatamente (inventário na Fase 0) para não quebrar temas externos.
 - **`shouldShowSource` é chamado por 22 arquivos** — short-circuit `rawMode` afeta inline E blocks (intencional).
 - **Risco cache `<canvas>`:** novo `resultCache` guarda referência live (não clona); widget destruído pelo CM mas elemento sobrevive — re-entrada reinsere o mesmo node, estado preservado.
