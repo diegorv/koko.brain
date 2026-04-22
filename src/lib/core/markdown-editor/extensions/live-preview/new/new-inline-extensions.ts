@@ -15,6 +15,7 @@ import { blockquoteHandler } from './handlers/blockquote-handler';
 import { inlineCommentHandler } from './handlers/inline-comment-handler';
 import { blockReferenceHandler } from './handlers/block-reference-handler';
 import { simpleWidgetHandlers } from './handlers/simple-widget-handlers';
+import { markdownLinkHandlers } from './handlers/markdown-link-handlers';
 
 /**
  * Production handlers registered by the new inline pipeline. Kept as a
@@ -30,6 +31,7 @@ export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	...headingHandlers,
 	blockquoteHandler,
 	...simpleWidgetHandlers,
+	...markdownLinkHandlers,
 ];
 
 /** Line-based handlers (regex parsers, no Lezer node). */
