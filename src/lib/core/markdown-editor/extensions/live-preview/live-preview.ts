@@ -28,6 +28,7 @@ import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
+import { newInlineExtensions as newInlinePipeline } from './new/new-inline-extensions';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 export { forceDecorationRebuild } from './core/effects';
@@ -61,11 +62,12 @@ export function legacyInlineExtensions(): Extension[] {
 
 /**
  * New inline pipeline — unified HighlightStyle + inlineFormattingPlugin.
- * Phases 2–11 progressively fill this array. Returns `[]` while scaffolding
- * is in place but no handlers are migrated yet.
+ * Delegates to new/new-inline-extensions.ts so the scaffolding lives next
+ * to markdown-highlight-style.ts + inline-formatting-plugin.ts. Phases 3–10
+ * fill the handler registry consumed by the plugin.
  */
 export function newInlineExtensions(): Extension[] {
-	return [];
+	return newInlinePipeline();
 }
 
 export function livePreviewExtensions(): Extension[] {

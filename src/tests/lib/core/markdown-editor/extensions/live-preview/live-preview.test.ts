@@ -32,36 +32,36 @@ describe('livePreviewExtensions — flag branching', () => {
 		const legacy = legacyInlineExtensions();
 		const combined = livePreviewExtensions();
 
-		// New pipeline is empty during Phase 0 scaffolding
-		expect(newExts).toEqual([]);
-		// Combined output is legacy.length smaller when the flag is on
-		expect(combined.length).toBe(
-			legacyInlineExtensionsLengthWhenOn() + newExts.length,
-		);
+		// New pipeline ships at least the syntaxHighlighting + unified plugin.
+		expect(newExts.length).toBeGreaterThan(0);
+		// Combined output is the shared head/tail plus exactly newExts, not legacy.
+		expect(combined.length).toBe(sharedExtensionsLength() + newExts.length);
 
 		// Sanity: legacy output still non-empty (not accidentally emptied by flag state)
 		expect(legacy.length).toBeGreaterThan(0);
 	});
 
-	it('returns different-length arrays between flag states', () => {
+	it('returns a smaller array with the flag on than with it off (for now)', () => {
+		// Phase 2 scaffolds only 2 new extensions while legacy ships 11+; the new
+		// path will grow in Phases 3–10. The check is ">=" so this spec doesn't
+		// become brittle as handlers migrate over.
 		settingsStore.updateExperimental({ newLivePreview: false });
 		const off = livePreviewExtensions().length;
 
 		settingsStore.updateExperimental({ newLivePreview: true });
 		const on = livePreviewExtensions().length;
 
-		expect(off).toBeGreaterThan(on);
+		expect(off).toBeGreaterThanOrEqual(on);
 	});
 });
 
 /**
- * Computes the length of `livePreviewExtensions()` minus the legacy inline
- * plugins — i.e. the shared head/block/tail extensions that live on both
- * paths. Used to verify the flag branch shape independently of how many
- * extensions the shared segments contribute.
+ * Length of the shared head/block/tail extensions on both branches —
+ * everything in livePreviewExtensions() that is NOT the inline pipeline.
+ * Used to verify flag branch shape independently of how many extensions the
+ * shared segments contribute.
  */
-function legacyInlineExtensionsLengthWhenOn(): number {
-	// Temporarily flip to off, measure combined, subtract legacy inline count.
+function sharedExtensionsLength(): number {
 	const previous = settingsStore.experimental.newLivePreview;
 	settingsStore.updateExperimental({ newLivePreview: false });
 	const combined = livePreviewExtensions().length;
