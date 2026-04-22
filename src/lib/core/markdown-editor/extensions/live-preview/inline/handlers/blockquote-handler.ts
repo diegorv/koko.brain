@@ -1,5 +1,4 @@
 import { Decoration } from '@codemirror/view';
-import { syntaxTree } from '@codemirror/language';
 
 import { blockquoteLineDeco } from '../../styles';
 import { CALLOUT_RE } from '../../parsers/blockquote';
@@ -14,32 +13,39 @@ const depthDeco: Record<number, Decoration> = {
 };
 
 /**
- * Matches the parent `Blockquote` node once per block (not once per `>` mark),
- * walks each line of the block to count nested `>` to determine depth, and
- * emits `Decoration.line` for styling + `Decoration.mark` for cursor-reveal of
- * every `>` on the line + the trailing space. Callout lines (`> [!type]`) are
- * skipped — calloutField owns them.
+ * Matches the parent `Blockquote` node once per block. Walks the block's own
+ * Lezer subtree ONCE to collect every `QuoteMark`, groups them by line, then
+ * emits `Decoration.line` for depth styling + `Decoration.mark` for
+ * cursor-reveal of the `>` marks plus the trailing space. Callout lines
+ * (`> [!type]`) are skipped — calloutField owns them.
  */
 export const blockquoteHandler: InlineHandler = {
 	nodeType: 'Blockquote',
 	decorate: ({ state, node, isTouched }) => {
+		// One tree walk for the whole block: collect QuoteMark ranges per line.
+		// Previous version re-called syntaxTree(state).iterate({ from: line.from,
+		// to: line.to }) once per line — O(block × lines) — which this reduces
+		// to O(block).
+		const marksByLine = new Map<number, { from: number; to: number }[]>();
+		const cursor = node.node.cursor();
+		// Advance into the subtree; bail when the cursor exits the block.
+		if (cursor.next()) {
+			do {
+				if (cursor.name !== 'QuoteMark') continue;
+				const lineNum = state.doc.lineAt(cursor.from).number;
+				let bucket = marksByLine.get(lineNum);
+				if (!bucket) {
+					bucket = [];
+					marksByLine.set(lineNum, bucket);
+				}
+				bucket.push({ from: cursor.from, to: cursor.to });
+			} while (cursor.next() && cursor.from < node.to);
+		}
+
 		const entries: InlineDecorationEntry[] = [];
-		const firstLine = state.doc.lineAt(node.from).number;
-		const lastLine = state.doc.lineAt(node.to).number;
-
-		for (let ln = firstLine; ln <= lastLine; ln++) {
-			const line = state.doc.line(ln);
+		for (const [lineNum, quoteMarks] of marksByLine) {
+			const line = state.doc.line(lineNum);
 			if (CALLOUT_RE.test(state.doc.sliceString(line.from, line.to))) continue;
-
-			const quoteMarks: { from: number; to: number }[] = [];
-			syntaxTree(state).iterate({
-				from: line.from,
-				to: line.to,
-				enter: (n) => {
-					if (n.name === 'QuoteMark') quoteMarks.push({ from: n.from, to: n.to });
-				},
-			});
-			if (quoteMarks.length === 0) continue;
 
 			entries.push({
 				from: line.from,
