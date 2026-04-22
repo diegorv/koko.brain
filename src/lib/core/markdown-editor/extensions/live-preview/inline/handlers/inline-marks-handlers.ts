@@ -1,12 +1,9 @@
 import { Decoration } from '@codemirror/view';
 
+import { revealClass } from '../cursor-reveal';
 import type { InlineHandler, InlineDecorationEntry } from '../inline-formatting-plugin';
 
 const FORMATTING_CLS = 'cm-formatting-inline';
-
-function markClass(touched: boolean): string {
-	return touched ? `${FORMATTING_CLS} cm-formatting-inline-visible` : FORMATTING_CLS;
-}
 
 /**
  * Factory for the four marks whose visibility reveals when the cursor enters
@@ -24,7 +21,7 @@ function makeMarkHandler(nodeType: string): InlineHandler {
 			return {
 				from: node.from,
 				to: node.to,
-				deco: Decoration.mark({ class: markClass(isTouched(parent.from, parent.to)) }),
+				deco: Decoration.mark({ class: revealClass(FORMATTING_CLS, isTouched(parent.from, parent.to)) }),
 			};
 		},
 	};
@@ -39,7 +36,7 @@ const escapeHandler: InlineHandler = {
 	decorate: ({ node, isTouched }) => ({
 		from: node.from,
 		to: node.from + 1,
-		deco: Decoration.mark({ class: markClass(isTouched(node.from, node.to)) }),
+		deco: Decoration.mark({ class: revealClass(FORMATTING_CLS, isTouched(node.from, node.to)) }),
 	}),
 };
 

@@ -1,6 +1,7 @@
 import { Decoration } from '@codemirror/view';
 
 import { findBlockReference } from '../../parsers/block-reference';
+import { hideClass } from '../cursor-reveal';
 import type { InlineLineHandler, InlineHandlerResult } from '../inline-formatting-plugin';
 
 /**
@@ -13,9 +14,7 @@ export const blockReferenceHandler: InlineLineHandler = {
 	decorate: ({ state, line, isTouched }): InlineHandlerResult => {
 		const ref = findBlockReference(state.doc.sliceString(line.from, line.to), line.from);
 		if (!ref) return null;
-		const cls = isTouched(line.from, line.to)
-			? 'cm-lp-block-ref'
-			: 'cm-lp-block-ref cm-lp-block-ref-hidden';
+		const cls = hideClass('cm-lp-block-ref', isTouched(line.from, line.to));
 		return {
 			from: ref.from,
 			to: ref.to,

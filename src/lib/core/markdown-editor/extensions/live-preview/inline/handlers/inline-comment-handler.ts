@@ -1,6 +1,7 @@
 import { Decoration } from '@codemirror/view';
 
 import { findInlineCommentRanges } from '../../parsers/comment';
+import { hideClass } from '../cursor-reveal';
 import type { InlineLineHandler, InlineDecorationEntry } from '../inline-formatting-plugin';
 
 /**
@@ -13,9 +14,7 @@ export const inlineCommentHandler: InlineLineHandler = {
 	decorate: ({ state, line, isTouched }) => {
 		const entries: InlineDecorationEntry[] = [];
 		for (const range of findInlineCommentRanges(state, line.from, line.to)) {
-			const cls = isTouched(range.from, range.to)
-				? 'cm-lp-inline-comment'
-				: 'cm-lp-inline-comment cm-lp-inline-comment-hidden';
+			const cls = hideClass('cm-lp-inline-comment', isTouched(range.from, range.to));
 			entries.push({
 				from: range.from,
 				to: range.to,

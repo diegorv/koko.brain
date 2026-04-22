@@ -3,6 +3,7 @@ import { syntaxTree } from '@codemirror/language';
 
 import { blockquoteLineDeco } from '../../styles';
 import { CALLOUT_RE } from '../../parsers/blockquote';
+import { revealClass } from '../cursor-reveal';
 import type { InlineHandler, InlineDecorationEntry } from '../inline-formatting-plugin';
 
 /** Depth (1/2/3) → Decoration.line. Depths beyond 3 collapse to depth-3 styling. */
@@ -50,9 +51,7 @@ export const blockquoteHandler: InlineHandler = {
 			let markTo = last.to;
 			if (markTo < line.to && state.doc.sliceString(markTo, markTo + 1) === ' ') markTo++;
 
-			const cls = isTouched(line.from, line.to)
-				? 'cm-formatting-block cm-formatting-block-visible'
-				: 'cm-formatting-block';
+			const cls = revealClass('cm-formatting-block', isTouched(line.from, line.to));
 			entries.push({
 				from: line.from,
 				to: markTo,

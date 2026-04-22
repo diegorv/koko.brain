@@ -1,6 +1,7 @@
 import { Decoration } from '@codemirror/view';
 
 import { headingLineDeco } from '../../styles';
+import { revealClass } from '../cursor-reveal';
 import type { InlineHandler, InlineDecorationEntry } from '../inline-formatting-plugin';
 
 type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
@@ -38,10 +39,7 @@ function makeAtxHandler(level: HeadingLevel): InlineHandler {
 			const headerMark = node.node.getChild('HeaderMark');
 			if (headerMark) {
 				const markTo = Math.min(headerMark.to + 1, line.to);
-				const touched = isTouched(line.from, line.to);
-				const cls = touched
-					? 'cm-formatting-block cm-formatting-block-visible'
-					: 'cm-formatting-block';
+				const cls = revealClass('cm-formatting-block', isTouched(line.from, line.to));
 				entries.push({
 					from: headerMark.from,
 					to: markTo,
@@ -68,10 +66,7 @@ function makeSetextHandler(level: 1 | 2): InlineHandler {
 		decorate: ({ state, node, isTouched }) => {
 			const textLine = state.doc.lineAt(node.from);
 			const underlineLine = state.doc.lineAt(node.to);
-			const touched = isTouched(node.from, node.to);
-			const cls = touched
-				? 'cm-formatting-block cm-formatting-block-visible'
-				: 'cm-formatting-block';
+			const cls = revealClass('cm-formatting-block', isTouched(node.from, node.to));
 			return [
 				{
 					from: textLine.from,
