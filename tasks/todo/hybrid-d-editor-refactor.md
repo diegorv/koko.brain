@@ -64,11 +64,11 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] `blockReferenceHandler` line handler reusando `findBlockReference`.
 - [x] 4 testes unit + snapshot DOM.
 
-### Fase 8 — Aposentar `simpleWidgetPlugin` (290 linhas)
+### Fase 8 — Aposentar `simpleWidgetPlugin` (290 linhas) ✅
 
-- [ ] Estender handler registry: `{ type: 'mark' | 'replace', ... }`.
-- [ ] Handlers `hrHandler`, `hardBreakHandler`, `bulletHandler`, `taskMarkerHandler`.
-- [ ] E2E `lists.spec.ts` + `misc-features.spec.ts`.
+- [x] Adicionada dedup por nó e por linha em `buildInlineDecorations` (Set<"name:from"> + Set<line>).
+- [x] 5 handlers em `simple-widget-handlers.ts` (TaskMarker, HorizontalRule, ListMark com dispatch por parent, HardBreak, InlineMath) reusando widgets existentes.
+- [x] 12 testes unit + 3 no snapshot DOM.
 
 ### Fase 9 — Aposentar `linkPlugin` (283 linhas)
 
