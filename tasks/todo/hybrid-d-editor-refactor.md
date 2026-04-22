@@ -10,22 +10,22 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 
 ## Tasks
 
-### Fase 0 — Inventário & feature flag
+### Fase 0 — Inventário & feature flag ✅
 
 **Decisão revisada:** baseline E2E do projeto atual está instável — pulada. Cada fase cria seus próprios testes (unit + E2E específicos) do zero como parte do commit da fase. Sem gate de "E2E suite antiga verde".
 
 - [x] ~~Rodar `bash scripts/e2e.sh` completo~~ — pulada por instabilidade conhecida.
-- [ ] Inventariar classes CSS emitidas pelos 11 plugins inline em `tasks/notes/css-classes-inventory.md`.
-- [ ] Adicionar `experimental.newLivePreview: boolean` em settings (types + store + getter + updater + teste unit).
-- [ ] Adicionar seção "Experimental" em settings UI.
-- [ ] Refatorar `livePreviewExtensions()` para branching flag; `newInlineExtensions()` retorna `[]`. Teste unit do branching.
+- [x] Inventariar classes CSS emitidas pelos 11 plugins inline em `tasks/notes/css-classes-inventory.md`.
+- [x] Adicionar `experimental.newLivePreview: boolean` em settings (types + store + getter + updater + teste unit).
+- [x] Adicionar seção "Experimental" em settings UI.
+- [x] Refatorar `livePreviewExtensions()` para branching flag; `newInlineExtensions()` retorna `[]`. Teste unit do branching.
 
-### Fase 1 — Raw mode (Cmd+K)
+### Fase 1 — Raw mode (Cmd+K) ✅
 
-- [ ] `rawMode: boolean` em `EditorSettings` (types + defaults + getter + teste).
-- [ ] Short-circuit em `core/should-show-source.ts` + atualizar `should-show-source.test.ts`.
-- [ ] `toggleRawMode()` em `editor.service.ts` + keybinding Cmd+K em `global-keybindings.ts`.
-- [ ] E2E `e2e/specs/live-preview/raw-mode.spec.ts`.
+- [x] `rawMode: boolean` em `EditorSettings` (types + defaults + getter + teste).
+- [x] Short-circuit em `core/should-show-source.ts` + atualizar `should-show-source.test.ts`.
+- [x] `toggleRawMode()` em `editor.service.ts` + keybinding Cmd+K em `global-keybindings.ts`.
+- [x] E2E `e2e/specs/live-preview/raw-mode.spec.ts`.
 
 ### Fase 2 — Scaffold do novo pipeline
 
