@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { computeAudioBlocks } from '$lib/core/markdown-editor/extensions/live-preview/plugins/audio-plugin';
+import { computeAudioBlocks } from '$lib/core/markdown-editor/extensions/live-preview/media/audio-plugin';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return EditorState.create({

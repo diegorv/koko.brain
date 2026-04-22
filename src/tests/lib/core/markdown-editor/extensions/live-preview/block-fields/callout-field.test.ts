@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
-import { computeCallouts } from '$lib/core/markdown-editor/extensions/live-preview/plugins/callout-field';
+import { computeCallouts } from '$lib/core/markdown-editor/extensions/live-preview/block-fields/callout-field';
 import { calloutFoldState, toggleCalloutFold } from '$lib/core/markdown-editor/extensions/live-preview/core/effects';
 
 function createState(doc: string, cursor?: number): EditorState {

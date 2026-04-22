@@ -4,7 +4,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { MathExtension } from '$lib/core/markdown-editor/extensions/lezer/math-extension';
-import { computeBlockMath } from '$lib/core/markdown-editor/extensions/live-preview/plugins/block-math-field';
+import { computeBlockMath } from '$lib/core/markdown-editor/extensions/live-preview/block-fields/block-math-field';
 
 function createState(doc: string, cursor?: number): EditorState {
 	const state = EditorState.create({

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { computeVideoBlocks } from '$lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin';
+import { computeVideoBlocks } from '$lib/core/markdown-editor/extensions/live-preview/media/video-plugin';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return EditorState.create({

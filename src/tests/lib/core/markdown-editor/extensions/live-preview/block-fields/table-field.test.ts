@@ -3,7 +3,7 @@ import { EditorState, EditorSelection } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
-import { computeTables } from '$lib/core/markdown-editor/extensions/live-preview/plugins/table-field';
+import { computeTables } from '$lib/core/markdown-editor/extensions/live-preview/block-fields/table-field';
 
 function createState(doc: string, cursor?: number): EditorState {
 	const state = EditorState.create({

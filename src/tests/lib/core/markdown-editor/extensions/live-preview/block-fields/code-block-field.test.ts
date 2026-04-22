@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
-import { computeCodeBlocks } from '$lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field';
+import { computeCodeBlocks } from '$lib/core/markdown-editor/extensions/live-preview/block-fields/code-block-field';
 
 function createState(doc: string, cursor?: number): EditorState {
 	const state = EditorState.create({

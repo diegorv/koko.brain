@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { computeMetaBindButtons } from '$lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-button-field';
+import { computeMetaBindButtons } from '$lib/core/markdown-editor/extensions/live-preview/block-fields/meta-bind-button-field';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return EditorState.create({
