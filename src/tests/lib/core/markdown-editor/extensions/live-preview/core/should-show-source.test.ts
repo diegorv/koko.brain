@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { shouldShowSource } from '$lib/core/markdown-editor/extensions/live-preview/core/should-show-source';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 function createState(doc: string, cursor: number): EditorState {
 	return EditorState.create({ doc, selection: EditorSelection.single(cursor) });
@@ -20,6 +21,10 @@ function createStateMultiCursor(doc: string, cursors: number[]): EditorState {
 }
 
 describe('shouldShowSource', () => {
+	beforeEach(() => {
+		settingsStore.reset();
+	});
+
 	it('returns true when cursor is inside range', () => {
 		const state = createState('hello world', 3);
 		expect(shouldShowSource(state, 0, 11)).toBe(true);
@@ -125,5 +130,31 @@ describe('shouldShowSource', () => {
 		const doc = 'hello **bold** world';
 		const state = createState(doc, 8);
 		expect(shouldShowSource(state, 6, 14)).toBe(true);
+	});
+
+	describe('editor.rawMode short-circuit', () => {
+		it('returns true for out-of-range element when rawMode is on', () => {
+			// Cursor at 0, element at 100-110 — normally would be false
+			const state = createState('x'.repeat(200), 0);
+			expect(shouldShowSource(state, 100, 110)).toBe(false);
+
+			settingsStore.updateEditor({ rawMode: true });
+			expect(shouldShowSource(state, 100, 110)).toBe(true);
+		});
+
+		it('still returns true for in-range element when rawMode is on', () => {
+			const state = createState('hello world', 3);
+			settingsStore.updateEditor({ rawMode: true });
+			expect(shouldShowSource(state, 0, 11)).toBe(true);
+		});
+
+		it('reverts to cursor-reveal behavior when rawMode flips back off', () => {
+			const state = createState('hello world', 0);
+			settingsStore.updateEditor({ rawMode: true });
+			expect(shouldShowSource(state, 5, 11)).toBe(true);
+
+			settingsStore.updateEditor({ rawMode: false });
+			expect(shouldShowSource(state, 5, 11)).toBe(false);
+		});
 	});
 });
