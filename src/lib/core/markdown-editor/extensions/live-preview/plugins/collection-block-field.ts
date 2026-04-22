@@ -1,13 +1,12 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findCollectionBlock } from '../parsers/collection-block';
 import { CollectionBlockWidget } from '../widgets/collection-block-widget';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
-import { profileStart, profileEnd } from '../core/profiling';
+import { buildBlockField } from '../core/build-block-field';
 
 /** Computes collection block decorations */
 export function computeCollectionBlocks(state: EditorState): DecorationSet {
@@ -48,27 +47,11 @@ export function computeCollectionBlocks(state: EditorState): DecorationSet {
 }
 
 /**
- * ViewPlugin that manages collection block decorations independently.
- * Replaces ```collection code blocks with CollectionBlockWidget when cursor is outside.
- * Shows raw YAML when cursor is inside the block.
+ * ViewPlugin that manages collection block decorations. Replaces
+ * ```collection``` code blocks with CollectionBlockWidget when the cursor is
+ * outside; shows raw YAML when inside.
  */
-export const collectionBlockField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeCollectionBlocks(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
-				this.decorations = computeCollectionBlocks(update.state);
-				profileEnd('collection-block', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const collectionBlockField = buildBlockField({
+	name: 'collection-block',
+	compute: computeCollectionBlocks,
+});

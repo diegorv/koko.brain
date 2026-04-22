@@ -1,12 +1,11 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllBlockMath } from '../parsers/math';
 import { BlockMathWidget } from '../widgets/block-math-widget';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
-import { profileStart, profileEnd } from '../core/profiling';
+import { buildBlockField } from '../core/build-block-field';
 
 /** Computes block math decorations using the Lezer syntax tree */
 export function computeBlockMath(state: EditorState): DecorationSet {
@@ -40,28 +39,8 @@ export function computeBlockMath(state: EditorState): DecorationSet {
 }
 
 /**
- * ViewPlugin that manages block math (`$$...$$`) decorations.
- * Uses Lezer syntax tree (`BlockMath` nodes from the MathExtension) for robust detection.
- * Replaces block math with rendered KaTeX display when cursor is outside.
- * Shows raw LaTeX source when cursor is inside the block.
+ * ViewPlugin that manages block math (`$$...$$`) decorations. Replaces the
+ * block with a rendered KaTeX display when the cursor is outside; shows raw
+ * LaTeX source when inside.
  */
-export const blockMathField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeBlockMath(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
-				this.decorations = computeBlockMath(update.state);
-				profileEnd('block-math', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const blockMathField = buildBlockField({ name: 'block-math', compute: computeBlockMath });

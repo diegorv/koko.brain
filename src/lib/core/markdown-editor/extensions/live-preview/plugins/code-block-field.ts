@@ -1,13 +1,12 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { findAllFencedCodeBlocks } from '../parsers/fenced-code-block';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { CodeBlockWidget } from '../widgets/code-block-widget';
-import { profileStart, profileEnd } from '../core/profiling';
+import { buildBlockField } from '../core/build-block-field';
 
 /** Languages handled by specialized block decorators, not the generic code block decorator */
 const SPECIAL_LANGUAGES = new Set(['collection', 'queryjs', 'meta-bind-button', 'mermaid']);
@@ -101,28 +100,9 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 }
 
 /**
- * ViewPlugin that manages fenced code block decorations independently.
- * Uses Lezer syntax tree (`FencedCode` nodes) for robust detection.
- * Hides fence lines and styles content lines when cursor is outside the block.
- * Skips specialized blocks (collection, meta-bind-button, mermaid) handled by other plugins.
+ * ViewPlugin that manages fenced + indented code block decorations.
+ * Uses Lezer syntax tree (`FencedCode` / `CodeBlock`) for robust detection;
+ * skips specialized languages (collection, queryjs, meta-bind-button,
+ * mermaid) handled by other plugins.
  */
-export const codeBlockField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeCodeBlocks(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
-				this.decorations = computeCodeBlocks(update.state);
-				profileEnd('code-block', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const codeBlockField = buildBlockField({ name: 'code-block', compute: computeCodeBlocks });

@@ -1,12 +1,11 @@
-import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from '@codemirror/view';
+import { RangeSetBuilder } from '@codemirror/state';
+import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view';
 import { findAllCallouts, CALLOUT_CONTENT_RE } from '../parsers/callout';
-import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { calloutFoldState, toggleCalloutFold } from '../core/effects';
 import { hiddenLineDeco } from '../styles';
-import { profileStart, profileEnd } from '../core/profiling';
+import { buildBlockField } from '../core/build-block-field';
 
 /** Widget that renders a fold chevron (▶/▼) for foldable callouts */
 class CalloutFoldWidget extends WidgetType {
@@ -115,36 +114,16 @@ export function computeCallouts(state: EditorState): DecorationSet {
 }
 
 /**
- * ViewPlugin that manages callout decorations independently.
- * Uses Lezer syntax tree (`Blockquote` nodes) for robust block boundary detection.
- * Hides `> [!type]` markers, applies colored left-border styling, and marks titles.
- * Shows raw text when cursor is inside the callout block.
- * Supports fold/collapse via `[!type]+` and `[!type]-` syntax.
+ * ViewPlugin that manages callout decorations. Uses Lezer syntax tree
+ * (`Blockquote`) for robust block detection. Hides `> [!type]` markers,
+ * applies colored left-border styling, marks titles, and renders a fold
+ * chevron on every callout. Shows raw text when cursor is inside.
+ *
+ * `toggleCalloutFold` is listed as an extra rebuild trigger so clicking the
+ * chevron flips the fold state without needing a doc or selection change.
  */
-export const calloutField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeCallouts(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
-				this.decorations = computeCallouts(update.state);
-				profileEnd('callout', _t);
-			}
-			// Also rebuild when fold state changes
-			for (const effect of update.transactions.flatMap((t) => t.effects)) {
-				if (effect.is(toggleCalloutFold)) {
-					this.decorations = computeCallouts(update.state);
-					break;
-				}
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const calloutField = buildBlockField({
+	name: 'callout',
+	compute: computeCallouts,
+	rebuildOnEffects: [toggleCalloutFold],
+});

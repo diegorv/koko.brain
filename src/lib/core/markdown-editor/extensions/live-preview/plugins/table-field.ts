@@ -1,14 +1,13 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllTables } from '../parsers/table';
 import { TableWidget } from '../widgets/table-widget';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import type { Property } from '$lib/features/properties/properties.types';
-import { profileStart, profileEnd } from '../core/profiling';
+import { buildBlockField } from '../core/build-block-field';
 
 /** Computes table decorations using the Lezer syntax tree */
 export function computeTables(state: EditorState): DecorationSet {
@@ -42,28 +41,9 @@ export function computeTables(state: EditorState): DecorationSet {
 }
 
 /**
- * ViewPlugin that manages table decorations independently.
- * Uses Lezer syntax tree (GFM `Table` nodes) for robust detection.
- * Replaces the first line with a TableWidget and hides remaining lines when cursor is outside.
- * Passes frontmatter properties to TableWidget for meta-bind input rendering in cells.
+ * ViewPlugin that manages table decorations independently. Uses the shared
+ * `buildBlockField` scaffolding for rebuild gating, cursor tracking and
+ * profiling. Passes frontmatter properties to TableWidget so meta-bind
+ * inputs inside cells can read the current value.
  */
-export const tableField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeTables(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
-				this.decorations = computeTables(update.state);
-				profileEnd('table', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const tableField = buildBlockField({ name: 'table', compute: computeTables });
