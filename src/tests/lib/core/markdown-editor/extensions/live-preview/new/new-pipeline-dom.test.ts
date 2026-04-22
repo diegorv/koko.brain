@@ -109,6 +109,11 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 		expect(classesOf(view)).toContain('cm-lp-inline-comment-hidden');
 	});
 
+	it('renders cm-lp-block-ref-hidden for ^ref off-cursor', () => {
+		view = mount('first line\nsecond line ^abc123\n');
+		expect(classesOf(view)).toContain('cm-lp-block-ref-hidden');
+	});
+
 	it('renders cm-lp-blockquote-2 and -3 at nested depths', () => {
 		view = mount('> > two\n> > > three\n');
 		const classes = classesOf(view);
