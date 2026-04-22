@@ -28,6 +28,7 @@ import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
+import { pasteTsvHandler } from './core/paste-tsv-handler';
 import { newInlineExtensions as newInlinePipeline } from './new/new-inline-extensions';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
@@ -108,7 +109,7 @@ export function livePreviewExtensions(): Extension[] {
 	exts.push(...sharedInlineExtensions());
 
 	// Scroll debounce + shared
-	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
+	exts.push(scrollDebouncePlugin, livePreviewClickHandler, pasteTsvHandler, livePreviewStyles);
 
 	return exts;
 }
