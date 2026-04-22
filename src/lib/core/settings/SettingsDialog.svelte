@@ -22,6 +22,7 @@
 	import TodoistSection from './sections/TodoistSection.svelte';
 	import SecuritySection from './sections/SecuritySection.svelte';
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
+	import ExperimentalSection from './sections/ExperimentalSection.svelte';
 	import UpdateSection from './sections/UpdateSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
@@ -212,6 +213,8 @@
 					<SecuritySection />
 				{:else if settingsDialogStore.activeSection === 'troubleshooting'}
 					<TroubleshootingSection onchange={debouncedSave} />
+				{:else if settingsDialogStore.activeSection === 'experimental'}
+					<ExperimentalSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'update'}
 					<UpdateSection />
 				{/if}
