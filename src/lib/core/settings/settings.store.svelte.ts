@@ -72,6 +72,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 			h5: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
 			h6: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
 		},
+		rawMode: false,
 	},
 	templates: {
 		folder: '_system/templates',

@@ -121,6 +121,20 @@ describe('settingsStore', () => {
 			expect(settingsStore.editor.contentWidth).toBe(900);
 		});
 
+		it('editor.rawMode defaults to false', () => {
+			expect(settingsStore.editor.rawMode).toBe(false);
+		});
+
+		it('updateEditor toggles rawMode without disturbing other editor fields', () => {
+			settingsStore.updateEditor({ rawMode: true });
+			expect(settingsStore.editor.rawMode).toBe(true);
+			expect(settingsStore.editor.fontFamily).toBe(DEFAULT_SETTINGS.editor.fontFamily);
+			expect(settingsStore.editor.fontSize).toBe(DEFAULT_SETTINGS.editor.fontSize);
+
+			settingsStore.updateEditor({ rawMode: false });
+			expect(settingsStore.editor.rawMode).toBe(false);
+		});
+
 		it('updateTemplates merges with existing', () => {
 			settingsStore.updateTemplates({ folder: '_my-templates' });
 			expect(settingsStore.templates.folder).toBe('_my-templates');

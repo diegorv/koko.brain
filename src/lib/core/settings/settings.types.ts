@@ -111,6 +111,8 @@ export interface EditorSettings {
 	paragraphSpacing: number;
 	/** Typography settings for heading levels h1–h6 */
 	headingTypography: HeadingTypography;
+	/** Whether raw markdown source is always visible (disables cursor-reveal hiding). Toggled via Cmd+K. */
+	rawMode: boolean;
 }
 
 /** Configuration for the templates plugin */
