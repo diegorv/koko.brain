@@ -53,15 +53,16 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] Reuso de `blockquoteLineDeco` (styles.ts) e `CALLOUT_RE` (parsers/blockquote) — zero constantes duplicadas.
 - [x] 9 testes unit + 2 no snapshot DOM + E2E `blockquotes-new-pipeline.spec.ts`.
 
-### Fase 6 — Aposentar `inlineCommentPlugin` (95 linhas)
+### Fase 6 — Aposentar `inlineCommentPlugin` (95 linhas) ✅
 
-- [ ] `commentHandler` no inlineFormattingPlugin.
-- [ ] E2E `misc-features.spec.ts` (comments).
+- [x] Adicionada 2ª registry `registerLineHandler` ao `inline-formatting-plugin.ts` para regex parsers (sem nó Lezer).
+- [x] `inlineCommentHandler` (15 linhas) reusando `findInlineCommentRanges`.
+- [x] 5 testes unit + snapshot DOM.
 
-### Fase 7 — Aposentar `blockReferencePlugin` (89 linhas)
+### Fase 7 — Aposentar `blockReferencePlugin` (89 linhas) ✅
 
-- [ ] `blockRefHandler`.
-- [ ] E2E `misc-features.spec.ts` (block refs).
+- [x] `blockReferenceHandler` line handler reusando `findBlockReference`.
+- [x] 4 testes unit + snapshot DOM.
 
 ### Fase 8 — Aposentar `simpleWidgetPlugin` (290 linhas)
 
