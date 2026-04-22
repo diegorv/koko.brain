@@ -255,6 +255,7 @@ The live preview system uses ~22 CodeMirror decoration plugins. Key performance 
 | [docs/TESTING.md](docs/TESTING.md) | Full testing guide: mock rules, assertions, service/store tests, E2E, completion gate |
 | [docs/COMMITS.md](docs/COMMITS.md) | Commit message convention with format and examples |
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
+| [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
 
 ## Plan Mode Workflow
 
