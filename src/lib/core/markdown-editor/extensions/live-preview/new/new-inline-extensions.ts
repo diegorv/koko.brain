@@ -9,6 +9,7 @@ import {
 	type InlineHandler,
 } from './inline-formatting-plugin';
 import { highlightHandler } from './handlers/highlight-handler';
+import { headingHandlers } from './handlers/heading-handler';
 
 /**
  * Production handlers registered by the new inline pipeline. Keeping the
@@ -28,6 +29,7 @@ import { highlightHandler } from './handlers/highlight-handler';
  */
 export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	highlightHandler,
+	...headingHandlers,
 ];
 
 /**
