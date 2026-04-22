@@ -100,14 +100,14 @@ Nota: o ambiente sandbox atual do Claude Code não tem display/X, então `bash s
 - [ ] Mudar default de `experimental.newLivePreview` para `true`.
 - [ ] Release notes com instrução de como desligar.
 
-### Fase 12 — QueryJS execution model
+### Fase 12 — QueryJS execution model ✅
 
-- [ ] `queryjs: { autoRunQueries }` em settings.
-- [ ] `queryjs-session.store.svelte.ts` (`autoRunOnFirstOpen`, `resultCache` live DOM ref, `reset()`).
-- [ ] Reescrever `queryjs-block-widget.ts → toDOM()`: deletar auto-await regex, clone semantics e exclusões; fluxo com cache hit + autoRun + botão Run + erro.
-- [ ] Cleanup da nota no close.
-- [ ] E2E `execution-model.spec.ts` (5 cenários).
-- [ ] Atualizar `docs/adr/0010-queryjs-kb-api-caching.md`.
+- [x] `queryjs: { autoRunQueries: 'first-open' | 'always' | 'manual' }` em `settings.types.ts`, store, service (merge on load) + 3 testes novos.
+- [x] `src/lib/plugins/queryjs/queryjs-session.store.svelte.ts` com `resultCache` live-ref, `autoRunOnFirstOpen`, `invalidate`/`invalidatePath`/`reset` + 12 testes.
+- [x] Reescrever widget: deletado auto-await regex (substituído por `_pendingViews` + `awaitAllPending()` em KBAPI, 3 linhas), clone semantics e exclusões; fluxo cache-hit/autoRun/Run-button/error + 8 testes jsdom.
+- [x] Cleanup: `queryjsSessionStore.invalidatePath` em `editor.service.ts → closeTab` + `closeTabsForDeletedPath`; `reset()` em `app-lifecycle.service.ts` teardown + regression test em `editor.service.test.ts`.
+- [x] ADR 0010 reescrito + CLAUDE.md rules 8/9 atualizadas + rule 10 nova (policy matrix + invariante manual-não-marca-autoRun).
+- [ ] **Usuário**: E2E `execution-model.spec.ts` (5 cenários — precisa do vault real e do display).
 
 ### Fase 12.5 — Cleanup do legacy
 
