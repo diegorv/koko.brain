@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, ExperimentalSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, ExperimentalSettings, QueryJSSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -111,6 +111,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	experimental: {
 		newLivePreview: false,
 	},
+	queryjs: {
+		autoRunQueries: 'first-open',
+	},
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -139,6 +142,7 @@ export const settingsStore = {
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
 	get experimental() { return settings.experimental; },
+	get queryjs() { return settings.queryjs; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -302,6 +306,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			experimental: { ...settings.experimental, ...value },
+		};
+	},
+
+	/** Partially updates QueryJS settings, merging with existing values */
+	updateQueryjs(value: Partial<QueryJSSettings>) {
+		settings = {
+			...settings,
+			queryjs: { ...settings.queryjs, ...value },
 		};
 	},
 

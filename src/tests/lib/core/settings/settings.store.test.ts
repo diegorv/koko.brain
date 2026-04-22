@@ -241,6 +241,28 @@ describe('settingsStore', () => {
 			settingsStore.updateExperimental({});
 			expect(settingsStore.experimental).toEqual(before);
 		});
+
+		it('queryjs starts with autoRunQueries first-open', () => {
+			expect(settingsStore.queryjs).toEqual({ autoRunQueries: 'first-open' });
+		});
+
+		it('updateQueryjs switches autoRunQueries between modes', () => {
+			settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+			expect(settingsStore.queryjs.autoRunQueries).toBe('always');
+
+			settingsStore.updateQueryjs({ autoRunQueries: 'manual' });
+			expect(settingsStore.queryjs.autoRunQueries).toBe('manual');
+
+			settingsStore.updateQueryjs({ autoRunQueries: 'first-open' });
+			expect(settingsStore.queryjs.autoRunQueries).toBe('first-open');
+		});
+
+		it('updateQueryjs preserves other fields when merging', () => {
+			settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+			const before = settingsStore.queryjs;
+			settingsStore.updateQueryjs({});
+			expect(settingsStore.queryjs).toEqual(before);
+		});
 	});
 
 	describe('reset', () => {

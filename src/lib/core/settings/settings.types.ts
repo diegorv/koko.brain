@@ -191,6 +191,21 @@ export interface ExperimentalSettings {
 	newLivePreview: boolean;
 }
 
+/** QueryJS execution policy for the `queryjs` code block widget. */
+export type AutoRunQueriesMode =
+	/** Auto-run each query on the note's first opening per session, then serve from cache on re-opens until the block content changes. */
+	| 'first-open'
+	/** Auto-run every time the widget renders (legacy behavior). */
+	| 'always'
+	/** Never auto-run. Display a Run button that the user clicks explicitly. */
+	| 'manual';
+
+/** QueryJS plugin configuration */
+export interface QueryJSSettings {
+	/** When to auto-execute `queryjs` code blocks. Default `'first-open'`. */
+	autoRunQueries: AutoRunQueriesMode;
+}
+
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'experimental' | 'update';
 
@@ -230,4 +245,6 @@ export interface AppSettings {
 	tagColors: TagColorSettings;
 	/** Opt-in flags for experimental features */
 	experimental: ExperimentalSettings;
+	/** QueryJS plugin configuration */
+	queryjs: QueryJSSettings;
 }
