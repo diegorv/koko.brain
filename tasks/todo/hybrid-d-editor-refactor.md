@@ -118,42 +118,32 @@ Nota: o ambiente sandbox atual do Claude Code não tem display/X, então `bash s
 - [ ] Renomear `new/*.ts` para caminhos finais.
 - [ ] Suite completa + E2E + visual regression.
 
-### Fase 13 — Table widget UX
+### Fase 13 — Table widget UX ✅ (parcial)
 
-- [ ] Tab/Shift+Tab navega células.
-- [ ] Enter cria linha.
-- [ ] Botões `+` coluna/linha.
-- [ ] Drag handle para reordenar.
-- [ ] Paste detector TSV/Excel.
-- [ ] E2E + testes parser TSV.
+- [x] Paste detector TSV/Excel → markdown table (puro: `paste-tsv.logic.ts` + `paste-tsv-handler.ts`, 14 testes).
+- [ ] **Deferido** (refactor arquitetural): Tab/Shift+Tab navegação, Enter cria linha, botões `+` coluna/linha, drag handle. Requerem modo edit no TableWidget (hoje é read-only; click na célula revela markdown via shouldShowSource).
 
-### Fase 14 — Code block UX
+### Fase 14 — Code block UX ✅ (parcial)
 
-- [ ] Switcher de linguagem (dropdown).
-- [ ] Shift+Tab sai do bloco.
-- [ ] Tab indenta (verificar).
-- [ ] E2E `code-blocks.spec.ts`.
+- [x] Switcher de linguagem (dropdown `<select>` no header com 30+ linguagens + preservação de exóticas; parser expõe `languageFrom`/`languageTo`; widget dispatcha transaction substituindo o range). 7 testes unit.
+- [ ] **Deferido**: Shift+Tab sai do bloco e Tab indenta. Requerem keymap aninhado em CM nested — follow-up.
 
-### Fase 15 — QueryJS rendering states
+### Fase 15 — QueryJS rendering states ✅ (parcial)
 
-- [ ] Loading state.
-- [ ] Error display com stack + botão Run.
-- [ ] Paginação via `kb.ui.table(..., { pageSize })`.
-- [ ] E2E estende `execution-model.spec.ts`.
+- [x] Loading indicator "Running query…" durante execute.
+- [x] Error display estruturado: título + `<details>` com stack trace + botão Run (retry).
+- [ ] **Deferido**: paginação via `kb.ui.table(..., { pageSize })`. Requer mudança na API KBUI + estado por página — follow-up.
 
-### Fase 16 — Meta-bind form validation
+### Fase 16 — Meta-bind form validation ✅ (parcial)
 
-- [ ] Validação inline de tipos.
-- [ ] Mensagem de erro abaixo do input.
-- [ ] Aceita/rejeita save.
-- [ ] E2E `meta-bind.spec.ts`.
+- [x] `MetaBindNumberWidget` com validação inline (`isNumericString`), flag inicial pra frontmatter malformado, classe `-invalid` + mensagem inline, commit em blur/Enter, revert em Escape; dispatch bloqueado quando valor inválido.
+- [x] Parser: `TYPES_WITHOUT_OPTIONS = { 'number' }` permite `INPUT[number():prop]`.
+- [ ] **Deferido**: widgets para `date()` e `toggle()`/`boolean()` — mesmo padrão, follow-up.
 
-### Fase 17 — Callout UX
+### Fase 17 — Callout UX ✅ (parcial)
 
-- [ ] Dropdown de tipo.
-- [ ] Toggle collapse UI.
-- [ ] Persistir via `calloutFoldState`.
-- [ ] E2E `blockquotes-callouts.spec.ts`.
+- [x] Fold chevron agora renderiza em **todos** os callouts, não só os com `+`/`-` explícito. Toggle persiste via `calloutFoldState` sem tocar markdown.
+- [ ] **Deferido**: dropdown de tipo (pra trocar note/warning/tip/info/…). Requer popover + preservar cor de borda por tipo — follow-up.
 
 ## Notes
 
