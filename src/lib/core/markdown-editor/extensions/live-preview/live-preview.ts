@@ -42,9 +42,14 @@ function isDisabled(name: string): boolean {
 }
 
 /**
- * Legacy inline pipeline — the 11 inline plugins shipped before the Híbrido D
- * refactor. Kept as the default path until experimental.newLivePreview is
- * flipped in Phase 11.5.
+ * Legacy inline pipeline — the subset of inline plugins that ARE being
+ * migrated to the unified pipeline in Phases 3–10. Replaced wholesale by
+ * newInlineExtensions() when experimental.newLivePreview is on.
+ *
+ * Plugins that are NOT being migrated (image, footnote, wikilink-embed,
+ * meta-bind input) live in sharedInlineExtensions() so they run on BOTH
+ * paths — the unified plugin doesn't register handlers for their node
+ * types, so there's no conflict.
  */
 export function legacyInlineExtensions(): Extension[] {
 	const exts: Extension[] = [];
@@ -54,9 +59,19 @@ export function legacyInlineExtensions(): Extension[] {
 	if (!isDisabled('heading')) { exts.push(headingPlugin); }
 	if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
 	if (!isDisabled('link')) { exts.push(linkPlugin); }
-	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
-	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
 	exts.push(inlineCommentPlugin, blockReferencePlugin);
+	return exts;
+}
+
+/**
+ * Shared inline plugins — run regardless of experimental.newLivePreview.
+ * These ViewPlugins iterate Lezer node types the unified plugin doesn't
+ * claim (Image, FootnoteRef/FootnoteDef, WikilinkEmbed, MetaBindInput) so
+ * they coexist cleanly with the new pipeline without double-decoration.
+ */
+export function sharedInlineExtensions(): Extension[] {
+	const exts: Extension[] = [imagePlugin, footnotePlugin, wikilinkEmbedPlugin];
+	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
 	return exts;
 }
 
@@ -87,9 +102,10 @@ export function livePreviewExtensions(): Extension[] {
 	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
-	// Inline plugins — flag picks new vs legacy
+	// Inline plugins — flag picks new vs legacy, plus always-on shared plugins
 	const useNew = settingsStore.experimental.newLivePreview;
 	exts.push(...(useNew ? newInlineExtensions() : legacyInlineExtensions()));
+	exts.push(...sharedInlineExtensions());
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
