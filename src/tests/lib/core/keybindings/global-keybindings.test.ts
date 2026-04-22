@@ -115,10 +115,10 @@ describe('registerGlobalKeybindings', () => {
 		vi.clearAllMocks();
 	});
 
-	it('registers all 19 global keybindings', () => {
+	it('registers all 20 global keybindings', () => {
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(19);
+		expect(registerKeybinding).toHaveBeenCalledTimes(20);
 	});
 
 	it('registers Cmd+P for command palette', () => {

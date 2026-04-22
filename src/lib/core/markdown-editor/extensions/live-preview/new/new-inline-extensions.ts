@@ -21,6 +21,7 @@ import {
 	autolinkLineHandlers,
 } from './handlers/autolink-handlers';
 import { wikilinkHandler } from './handlers/wikilink-handler';
+import { inlineMarksHandlers } from './handlers/inline-marks-handlers';
 
 /**
  * Production handlers registered by the new inline pipeline. Kept as a
@@ -38,6 +39,7 @@ export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	...simpleWidgetHandlers,
 	...markdownLinkHandlers,
 	...autolinkNodeHandlers,
+	...inlineMarksHandlers,
 ];
 
 /** Line-based handlers (regex parsers, no Lezer node). */
