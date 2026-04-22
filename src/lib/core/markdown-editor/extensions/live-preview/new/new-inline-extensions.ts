@@ -9,6 +9,7 @@ import {
 	type InlineHandler,
 } from './inline-formatting-plugin';
 import { headingHandlers } from './handlers/heading-handler';
+import { blockquoteHandler } from './handlers/blockquote-handler';
 
 /**
  * Production handlers registered by the new inline pipeline. Kept as a
@@ -22,6 +23,7 @@ import { headingHandlers } from './handlers/heading-handler';
  */
 export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	...headingHandlers,
+	blockquoteHandler,
 ];
 
 /**

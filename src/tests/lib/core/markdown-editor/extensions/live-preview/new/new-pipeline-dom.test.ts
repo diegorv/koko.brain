@@ -98,7 +98,19 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 		expect(lpClasses).toEqual([]);
 	});
 
-	it('covers every class the retired markdownStylePlugin emitted', () => {
+	it('renders cm-lp-blockquote on > lines via the handler', () => {
+		view = mount('> a quoted line\n');
+		expect(classesOf(view)).toContain('cm-lp-blockquote');
+	});
+
+	it('renders cm-lp-blockquote-2 and -3 at nested depths', () => {
+		view = mount('> > two\n> > > three\n');
+		const classes = classesOf(view);
+		expect(classes).toContain('cm-lp-blockquote-2');
+		expect(classes).toContain('cm-lp-blockquote-3');
+	});
+
+	it('covers every class the retired plugins emitted', () => {
 		// Single comprehensive document mapping each legacy emission to a line,
 		// so a future regression in any tag→class rule shows up here.
 		view = mount(
@@ -108,7 +120,8 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 				'#### Heading Four\n' +
 				'##### Heading Five\n' +
 				'###### Heading Six\n\n' +
-				'Combined **bold** and *italic* and ~~strike~~ and `code` and ==highlight== text.\n',
+				'Combined **bold** and *italic* and ~~strike~~ and `code` and ==highlight== text.\n\n' +
+				'> quote depth 1\n> > quote depth 2\n> > > quote depth 3\n',
 		);
 		const classes = new Set(classesOf(view));
 		for (const expected of [
@@ -123,6 +136,9 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 			'cm-lp-h4',
 			'cm-lp-h5',
 			'cm-lp-h6',
+			'cm-lp-blockquote',
+			'cm-lp-blockquote-2',
+			'cm-lp-blockquote-3',
 		]) {
 			expect(classes.has(expected)).toBe(true);
 		}
