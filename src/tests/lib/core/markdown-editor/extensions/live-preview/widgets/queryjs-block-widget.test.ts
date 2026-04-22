@@ -68,8 +68,10 @@ describe('QueryjsBlockWidget.toDOM', () => {
 			const widget = new QueryjsBlockWidget('kb.pages()');
 			const dom = widget.toDOM();
 
-			// No Run button — auto-ran
+			// No Run button yet — execute is in flight
 			expect(dom.querySelector('.cm-lp-qjs-run')).toBeNull();
+			// Loading state renders synchronously while execute runs
+			expect(dom.querySelector('.cm-lp-qjs-loading')?.textContent).toBe('Running query…');
 			// Note is flagged as having auto-run
 			expect(queryjsSessionStore.hasAutoRun('/note.md')).toBe(true);
 		});
@@ -133,6 +135,27 @@ describe('QueryjsBlockWidget.toDOM', () => {
 			invalidateQueryjsCache();
 			expect(spy).toHaveBeenCalledTimes(1);
 			spy.mockRestore();
+		});
+	});
+
+	describe('rendering states', () => {
+		it('renders a loading indicator while execute is in flight', () => {
+			const widget = new QueryjsBlockWidget('kb.pages()');
+			const dom = widget.toDOM();
+			expect(dom.querySelector('.cm-lp-qjs-loading')).not.toBeNull();
+		});
+
+		it('renders an error block with stack details + Run button on failure', async () => {
+			const widget = new QueryjsBlockWidget('throw new Error("boom")');
+			const dom = widget.toDOM();
+
+			// Wait microtasks so execute() finishes and appends the error
+			await new Promise((r) => setTimeout(r, 0));
+
+			const errTitle = dom.querySelector('.cm-lp-qjs-error-title');
+			expect(errTitle?.textContent).toContain('QueryJS Error');
+			expect(dom.querySelector('.cm-lp-qjs-error-stack')).not.toBeNull();
+			expect(dom.querySelector('.cm-lp-qjs-run')).not.toBeNull();
 		});
 	});
 });

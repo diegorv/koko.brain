@@ -107,11 +107,51 @@ export class QueryjsBlockWidget extends WidgetType {
 		container.appendChild(btn);
 	}
 
+	/** Renders a spinner-style loading indicator used while the script runs. */
+	private renderLoading(container: HTMLElement): HTMLElement {
+		const loading = document.createElement('div');
+		loading.className = 'cm-lp-qjs-loading';
+		loading.textContent = 'Running query…';
+		container.appendChild(loading);
+		return loading;
+	}
+
+	/** Renders the error state: a structured block with message, optional
+	 * stack details, and a Run button to retry. */
+	private renderError(container: HTMLElement, notePath: string, err: unknown): void {
+		const message = err instanceof Error ? err.message : String(err);
+		const stack = err instanceof Error && err.stack ? err.stack : null;
+
+		const wrap = document.createElement('div');
+		wrap.className = 'cm-lp-qjs-error';
+
+		const title = document.createElement('div');
+		title.className = 'cm-lp-qjs-error-title';
+		title.textContent = `QueryJS Error: ${message}`;
+		wrap.appendChild(title);
+
+		if (stack) {
+			const details = document.createElement('details');
+			details.className = 'cm-lp-qjs-error-stack';
+			const summary = document.createElement('summary');
+			summary.textContent = 'Stack trace';
+			const pre = document.createElement('pre');
+			pre.textContent = stack;
+			details.appendChild(summary);
+			details.appendChild(pre);
+			wrap.appendChild(details);
+		}
+
+		container.appendChild(wrap);
+		this.renderRunButton(container, notePath);
+	}
+
 	/** Executes the queryjs script, awaits every `kb.view()` promise the user
 	 * code kicked off (tracked by KBAPI), then caches the container element
 	 * by content hash for later cache hits. */
 	private async execute(container: HTMLElement, notePath: string): Promise<void> {
 		const _t = profileStart();
+		const loading = this.renderLoading(container);
 		try {
 			const api = new KBAPI({
 				container,
@@ -130,15 +170,12 @@ export class QueryjsBlockWidget extends WidgetType {
 			await api.awaitAllPending();
 			profileEnd('qjs-execute', _t);
 
+			loading.remove();
 			// Live DOM reference. No clone, no <canvas>/<video>/<iframe> exclusion.
 			queryjsSessionStore.setCached(this.jsContent, notePath, container);
 		} catch (err) {
-			const errorEl = document.createElement('div');
-			errorEl.className = 'cm-lp-qjs-error';
-			errorEl.textContent = `QueryJS Error: ${err instanceof Error ? err.message : String(err)}`;
-			container.appendChild(errorEl);
-			// Also append a Run button so the user can retry after fixing.
-			this.renderRunButton(container, notePath);
+			loading.remove();
+			this.renderError(container, notePath, err);
 		}
 	}
 }

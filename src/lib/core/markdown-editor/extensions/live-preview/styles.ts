@@ -928,6 +928,39 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '15px',
 		fontStyle: 'italic',
 	},
+	'.cm-lp-qjs-error-title': {
+		fontWeight: '500',
+		marginBottom: '6px',
+	},
+	'.cm-lp-qjs-error-stack': {
+		marginTop: '4px',
+		fontFamily: 'MonoLisa, monospace',
+		fontSize: '12px',
+		fontStyle: 'normal',
+		opacity: '0.8',
+	},
+	'.cm-lp-qjs-error-stack summary': {
+		cursor: 'pointer',
+		userSelect: 'none',
+	},
+	'.cm-lp-qjs-error-stack pre': {
+		whiteSpace: 'pre-wrap',
+		wordBreak: 'break-word',
+		margin: '6px 0 0 0',
+	},
+	'.cm-lp-qjs-run': {
+		marginTop: '8px',
+		padding: '4px 12px',
+		fontSize: '13px',
+		cursor: 'pointer',
+		background: 'var(--lp-codeblock-header-bg)',
+		border: '1px solid var(--lp-codeblock-border)',
+		borderRadius: '4px',
+		color: 'inherit',
+	},
+	'.cm-lp-qjs-run:hover': {
+		background: 'var(--lp-codeblock-copy-hover, var(--lp-codeblock-header-bg))',
+	},
 	'.cm-lp-qjs-loading': {
 		color: 'var(--lp-collection-loading)',
 		fontSize: '15px',
