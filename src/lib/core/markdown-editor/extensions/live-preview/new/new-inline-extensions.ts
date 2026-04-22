@@ -20,6 +20,7 @@ import {
 	autolinkNodeHandlers,
 	autolinkLineHandlers,
 } from './handlers/autolink-handlers';
+import { wikilinkHandler } from './handlers/wikilink-handler';
 
 /**
  * Production handlers registered by the new inline pipeline. Kept as a
@@ -44,6 +45,7 @@ export const PRODUCTION_LINE_HANDLERS: readonly InlineLineHandler[] = [
 	inlineCommentHandler,
 	blockReferenceHandler,
 	...autolinkLineHandlers,
+	wikilinkHandler,
 ];
 
 /**

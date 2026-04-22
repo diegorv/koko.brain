@@ -138,6 +138,16 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 		expect(classes).toContain('cm-lp-blockquote-3');
 	});
 
+	it('renders cm-lp-link on inline markdown links', () => {
+		view = mount('plain\n\n[hello](https://example.com) here\n');
+		expect(classesOf(view)).toContain('cm-lp-link');
+	});
+
+	it('renders cm-lp-wikilink on [[target]]', () => {
+		view = mount('plain\n\n[[SomeNote]] body\n');
+		expect(classesOf(view)).toContain('cm-lp-wikilink');
+	});
+
 	it('covers every class the retired plugins emitted', () => {
 		// Single comprehensive document mapping each legacy emission to a line,
 		// so a future regression in any tag→class rule shows up here.
@@ -149,7 +159,10 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 				'##### Heading Five\n' +
 				'###### Heading Six\n\n' +
 				'Combined **bold** and *italic* and ~~strike~~ and `code` and ==highlight== text.\n\n' +
-				'> quote depth 1\n> > quote depth 2\n> > > quote depth 3\n',
+				'> quote depth 1\n> > quote depth 2\n> > > quote depth 3\n\n' +
+				'[markdown link](https://example.com)\n' +
+				'[[WikiTarget]]\n' +
+				'bare https://example.org here\n',
 		);
 		const classes = new Set(classesOf(view));
 		for (const expected of [
@@ -167,6 +180,8 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 			'cm-lp-blockquote',
 			'cm-lp-blockquote-2',
 			'cm-lp-blockquote-3',
+			'cm-lp-link',
+			'cm-lp-wikilink',
 		]) {
 			expect(classes.has(expected)).toBe(true);
 		}
