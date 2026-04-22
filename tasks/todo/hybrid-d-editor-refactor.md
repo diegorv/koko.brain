@@ -47,11 +47,11 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] Adicionados a `PRODUCTION_INLINE_HANDLERS` após highlightHandler.
 - [x] `headings-new-pipeline.spec.ts` criado (flag on) com 6 ATX + 2 Setext + cursor reveal + bold-in-h1.
 
-### Fase 5 — Aposentar `blockquotePlugin` (133 linhas)
+### Fase 5 — Aposentar `blockquotePlugin` (133 linhas) ✅
 
-- [ ] `new/blockquote-line-decoration.ts` para estilização de linha.
-- [ ] Marcas `>` no handler registry com cursor-reveal.
-- [ ] E2E `blockquotes-callouts.spec.ts`.
+- [x] `blockquote-handler.ts` único matchando `Blockquote` (parent) — 60 linhas cobrem tudo: depth 1/2/3 via `Decoration.line`, cursor-reveal dos `>`, exclusão de callouts, dedupe natural.
+- [x] Reuso de `blockquoteLineDeco` (styles.ts) e `CALLOUT_RE` (parsers/blockquote) — zero constantes duplicadas.
+- [x] 9 testes unit + 2 no snapshot DOM + E2E `blockquotes-new-pipeline.spec.ts`.
 
 ### Fase 6 — Aposentar `inlineCommentPlugin` (95 linhas)
 
