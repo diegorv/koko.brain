@@ -136,6 +136,10 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.tagColors,
 				...parsed.tagColors,
 			},
+			experimental: {
+				...DEFAULT_SETTINGS.experimental,
+				...parsed.experimental,
+			},
 		};
 		settingsStore.setSettings(merged);
 		await saveSettings(vaultPath);

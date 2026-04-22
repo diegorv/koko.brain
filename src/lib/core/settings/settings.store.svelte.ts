@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, ExperimentalSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -107,6 +107,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	tagColors: {
 		colors: {},
 	},
+	experimental: {
+		newLivePreview: false,
+	},
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -134,6 +137,7 @@ export const settingsStore = {
 	get livePreviewProfiling() { return settings.livePreviewProfiling; },
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
+	get experimental() { return settings.experimental; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -289,6 +293,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			tagColors: { ...settings.tagColors, ...value },
+		};
+	},
+
+	/** Partially updates experimental feature flags, merging with existing values */
+	updateExperimental(value: Partial<ExperimentalSettings>) {
+		settings = {
+			...settings,
+			experimental: { ...settings.experimental, ...value },
 		};
 	},
 

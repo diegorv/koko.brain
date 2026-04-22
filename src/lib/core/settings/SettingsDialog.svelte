@@ -38,6 +38,7 @@
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import BugIcon from '@lucide/svelte/icons/bug';
+	import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import type { SettingsSection } from './settings.types';
 	import type { Component } from 'svelte';
@@ -58,6 +59,7 @@
 		todoist: CircleCheckIcon,
 		security: ShieldIcon,
 		troubleshooting: BugIcon,
+		experimental: FlaskConicalIcon,
 		update: DownloadIcon,
 	};
 

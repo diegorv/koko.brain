@@ -183,8 +183,14 @@ export interface TagColorSettings {
 	colors: Record<string, string>;
 }
 
+/** Opt-in flags for experimental features under active development */
+export interface ExperimentalSettings {
+	/** Use the unified live preview renderer (HighlightStyle + inlineFormattingPlugin). Default false until migration completes. */
+	newLivePreview: boolean;
+}
+
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'experimental' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -220,4 +226,6 @@ export interface AppSettings {
 	disabledDecorators: Record<string, boolean>;
 	/** Tag color assignments (persisted per-vault) */
 	tagColors: TagColorSettings;
+	/** Opt-in flags for experimental features */
+	experimental: ExperimentalSettings;
 }
