@@ -13,10 +13,6 @@ import { metaBindButtonField } from './plugins/meta-bind-button-field';
 import { queryjsBlockField } from './plugins/queryjs-block-field';
 import { mermaidField } from './plugins/mermaid-field';
 import { blockMathField } from './plugins/block-math-field';
-import { imagePlugin } from './plugins/image-plugin';
-import { footnotePlugin } from './plugins/footnote-plugin';
-import { wikilinkEmbedPlugin } from './plugins/wikilink-embed-plugin';
-import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
@@ -32,19 +28,6 @@ export const livePreviewCompartment = new Compartment();
 /** Checks if a decorator is disabled via settings. Returns false (enabled) by default. */
 function isDisabled(name: string): boolean {
 	return settingsStore.disabledDecorators[name] ?? false;
-}
-
-/**
- * Inline plugins that iterate Lezer node types the unified pipeline does not
- * register handlers for (Image, FootnoteRef/FootnoteDef, WikilinkEmbed,
- * MetaBindInput). They coexist with the unified plugin without double-decoration
- * because the node-handler registry only fires for types registered by
- * `PRODUCTION_INLINE_HANDLERS`.
- */
-export function sharedInlineExtensions(): Extension[] {
-	const exts: Extension[] = [imagePlugin, footnotePlugin, wikilinkEmbedPlugin];
-	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
-	return exts;
 }
 
 export function livePreviewExtensions(): Extension[] {
@@ -64,8 +47,8 @@ export function livePreviewExtensions(): Extension[] {
 	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
-	// Inline: unified pipeline (syntaxHighlighting + inlineFormattingPlugin) + shared plugins
-	exts.push(...newInlineExtensions(), ...sharedInlineExtensions());
+	// Inline: unified pipeline covers every inline Lezer node + regex pattern
+	exts.push(...newInlineExtensions());
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, pasteTsvHandler, livePreviewStyles);

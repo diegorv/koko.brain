@@ -22,6 +22,10 @@ import {
 } from './handlers/autolink-handlers';
 import { wikilinkHandler } from './handlers/wikilink-handler';
 import { inlineMarksHandlers } from './handlers/inline-marks-handlers';
+import { imageHandler } from './handlers/image-handler';
+import { footnoteHandler } from './handlers/footnote-handlers';
+import { wikilinkEmbedHandler } from './handlers/wikilink-embed-handler';
+import { metaBindInputHandler } from './handlers/meta-bind-input-handler';
 
 /**
  * Production handlers registered by the inline pipeline. Kept as a pure value
@@ -40,6 +44,7 @@ export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	...markdownLinkHandlers,
 	...autolinkNodeHandlers,
 	...inlineMarksHandlers,
+	imageHandler,
 ];
 
 /** Line-based handlers (regex parsers, no Lezer node). */
@@ -48,6 +53,9 @@ export const PRODUCTION_LINE_HANDLERS: readonly InlineLineHandler[] = [
 	blockReferenceHandler,
 	...autolinkLineHandlers,
 	wikilinkHandler,
+	footnoteHandler,
+	wikilinkEmbedHandler,
+	metaBindInputHandler,
 ];
 
 /**
