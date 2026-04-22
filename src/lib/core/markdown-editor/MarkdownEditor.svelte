@@ -8,17 +8,10 @@
 	import { findTabIndex, getPositionAfterFrontmatter } from '$lib/core/editor/editor.logic';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { applyHeadingTypography } from '$lib/core/settings/settings.service';
-	import { onContentChange, openFileInEditor } from '$lib/core/editor/editor.service';
-	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
+	import { onContentChange } from '$lib/core/editor/editor.service';
 	import { livePreviewCompartment, livePreviewExtensions, forceDecorationRebuild } from './extensions/live-preview';
-	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
-	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+	import { handleWikilinkClick } from './extensions/wikilink/navigation.service';
 	import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
-	import { createFile } from '$lib/core/filesystem/fs.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { detectPeriodicNoteType } from '$lib/plugins/periodic-notes/periodic-notes.logic';
-	import { openOrCreatePeriodicNoteForDate } from '$lib/plugins/periodic-notes/periodic-notes.service';
 	import { debug, perfStart, perfEnd } from '$lib/utils/debug';
 	import { getLanguageEffects } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
@@ -43,90 +36,16 @@
 
 	async function handleEditorClick(e: MouseEvent) {
 		if (!view) return;
-		const el = (e.target as HTMLElement).closest('.cm-wikilink-target, .cm-wikilink-heading, .cm-wikilink-block-id, .cm-wikilink-display, .cm-wikilink-bracket, .cm-lp-wikilink') as HTMLElement | null;
-		if (!el) return;
-
+		// The handler returns true for any wikilink click; fall through for
+		// non-wikilink clicks so CodeMirror handles them normally.
+		if (!(e.target as HTMLElement).closest('.cm-wikilink-target, .cm-wikilink-heading, .cm-wikilink-block-id, .cm-wikilink-display, .cm-wikilink-bracket, .cm-lp-wikilink')) {
+			return;
+		}
 		// Prevent CodeMirror from moving cursor (which would strip live preview decorations)
-		// and stop propagation so mouseup on a switched tab doesn't create a selection
+		// and stop propagation so mouseup on a switched tab doesn't create a selection.
 		e.preventDefault();
 		e.stopPropagation();
-
-		try {
-			const pos = view.posAtDOM(el);
-			const line = view.state.doc.lineAt(pos);
-			const info = findWikilinkInfoAtPosition(line.text, line.from, pos);
-			if (!info) return;
-
-			const hasAnchor = info.heading !== null || info.blockId !== null;
-
-			if (!info.target) {
-				// Same-note reference: [[#heading]] or [[#^block-id]]
-				if (!hasAnchor) return;
-				const content = view.state.doc.toString();
-				const anchorPos = info.heading
-					? findHeadingPosition(content, info.heading)
-					: findBlockIdPosition(content, info.blockId!);
-				if (anchorPos !== null) {
-					view.dispatch({
-						selection: EditorSelection.cursor(anchorPos),
-						scrollIntoView: true,
-					});
-					view.focus();
-				}
-				return;
-			}
-
-			// Cross-note reference
-			const files = flattenFileTree(fsStore.fileTree);
-			const allPaths = files.map((f) => f.path);
-			let resolved = resolveWikilink(info.target, allPaths);
-
-			// Create non-existent note on click (with template if it matches a periodic note)
-			if (!resolved && vaultStore.path) {
-				const periodicMatch = detectPeriodicNoteType(info.target, settingsStore.periodicNotes);
-				if (periodicMatch) {
-					// openOrCreatePeriodicNoteForDate already opens the file in the editor,
-					// so skip the openFileInEditor call below to avoid a double-open error
-					// when the periodic note folder differs from the vault root.
-					await openOrCreatePeriodicNoteForDate(periodicMatch.periodType, periodicMatch.date);
-				} else {
-					const newPath = await createFile(vaultStore.path, `${info.target}.md`);
-					if (!newPath) return;
-					resolved = newPath;
-				}
-			}
-			if (!resolved) {
-				// Periodic notes are already open — skip to anchor check
-				if (hasAnchor) {
-					const tab = editorStore.activeTab;
-					if (tab) {
-						const anchorPos = info.heading
-							? findHeadingPosition(tab.content, info.heading)
-							: findBlockIdPosition(tab.content, info.blockId!);
-						if (anchorPos !== null) {
-							editorStore.setPendingScrollPosition(anchorPos);
-						}
-					}
-				}
-				return;
-			}
-
-			await openFileInEditor(resolved);
-
-			if (hasAnchor) {
-				const tab = editorStore.activeTab;
-				if (tab) {
-					const anchorPos = info.heading
-						? findHeadingPosition(tab.content, info.heading)
-						: findBlockIdPosition(tab.content, info.blockId!);
-					if (anchorPos !== null) {
-						editorStore.setPendingScrollPosition(anchorPos);
-					}
-				}
-			}
-		} catch (err) {
-			console.error('Failed to handle wikilink click:', err);
-		}
+		await handleWikilinkClick(view, e.target);
 	}
 
 	/** Moves the cursor to the right-click position so copy-block-link operates on the correct line */
