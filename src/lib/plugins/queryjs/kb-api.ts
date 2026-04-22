@@ -26,6 +26,16 @@ export class KBAPI {
 	private _pageCache: { list: KBPage[]; byPath: Map<string, KBPage> } | null = null;
 	private _ui: KBUI | null = null;
 
+	/**
+	 * Pending promises from `view()` calls that the user invoked without
+	 * `await`. The queryjs widget awaits these via `awaitAllPending()` before
+	 * caching the rendered DOM — legacy code prepended `await` to bare
+	 * `kb.view(...)` / `dv.view(...)` calls via regex; tracking the promise
+	 * here is a smaller, more correct alternative that also covers users
+	 * who call `kb.view()` through aliases the regex wouldn't match.
+	 */
+	private _pendingViews: Promise<void>[] = [];
+
 	constructor(opts: {
 		container: HTMLElement;
 		propertyIndex: Map<string, NoteRecord>;
@@ -306,8 +316,28 @@ export class KBAPI {
 	/**
 	 * Loads and executes an external .js script from the vault.
 	 * Exposes the API as both `kb` (primary) and `dv` (legacy alias).
+	 *
+	 * The promise is tracked in `_pendingViews` so the queryjs widget can
+	 * await it even when the caller wrote `kb.view(...)` without `await`.
 	 */
-	async view(scriptPath: string, input?: unknown): Promise<void> {
+	view(scriptPath: string, input?: unknown): Promise<void> {
+		const promise = this._runView(scriptPath, input);
+		this._pendingViews.push(promise);
+		return promise;
+	}
+
+	/** Waits for every `view()` promise started via this API to settle. */
+	async awaitAllPending(): Promise<void> {
+		// Settle (never reject) — individual failures have already been captured
+		// into the container by _runView's try/catch; we just want to make sure
+		// the DOM is done mutating before the caller caches the container.
+		await Promise.allSettled(this._pendingViews);
+	}
+
+	/** @internal Implementation detail of view() — kept separate so the sync
+	 * part of view() can push the promise into `_pendingViews` before the
+	 * async body starts awaiting anything. */
+	private async _runView(scriptPath: string, input?: unknown): Promise<void> {
 		try {
 			const fullPath = this.resolveScriptPath(scriptPath);
 			const code = await this.loadScript(fullPath);

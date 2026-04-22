@@ -7,29 +7,36 @@ import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte'
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 /**
- * Module-level cache for queryjs script results.
- * Keyed by `jsContent:version` — reuses cached DOM when the script hasn't
- * changed and no save/tab-switch has occurred since the last execution.
- * Invalidated via incrementing cacheVersion on save (notifyAfterSave) or
- * tab switch, NOT on every keystroke (which would cause 600ms re-execution).
+ * Legacy compatibility shim. Callers in editor.hooks.ts and
+ * watcher-handler.service.ts invoke this on save / vault index rebuild
+ * to flush stale query results. Delegates to the new session store so
+ * both the cached DOM references AND the per-note autoRun tracking get
+ * reset in one call — matches the legacy "bump cacheVersion" semantics.
  */
-const scriptResultCache = new Map<string, HTMLElement>();
-let cacheVersion = 0;
-
-/** Invalidates the queryjs cache. Call on save or tab switch. */
 export function invalidateQueryjsCache(): void {
-	cacheVersion++;
-	scriptResultCache.clear();
+	queryjsSessionStore.reset();
 }
 
-/** Builds a cache key from script content + current version */
-function cacheKey(jsContent: string): string {
-	return `${jsContent}::${cacheVersion}`;
-}
-
-/** Widget that renders a ```queryjs code block by executing its JavaScript */
+/**
+ * Widget that renders a ```queryjs``` code block.
+ *
+ * Execution policy (settings.queryjs.autoRunQueries):
+ *   - `'first-open'` (default): the first queryjs widget in a note that
+ *     the session has never auto-run executes; subsequent identical-hash
+ *     widgets cache-hit; edits to the block content produce a new hash
+ *     and render the Run button instead of auto-executing.
+ *   - `'always'`: every cache miss executes. Matches legacy behavior.
+ *   - `'manual'`: cache misses render the Run button, never auto-execute.
+ *
+ * The cache stores a LIVE DOM reference (not a clone) — re-inserting
+ * the same element into a new container preserves <canvas> pixel
+ * buffers, <iframe>/<video> playback state and any other mutable state
+ * without the legacy cloneNode exclusion dance.
+ */
 export class QueryjsBlockWidget extends WidgetType {
 	private readonly isIndexReady: boolean;
 
@@ -42,7 +49,8 @@ export class QueryjsBlockWidget extends WidgetType {
 		const container = document.createElement('div');
 		container.className = 'cm-lp-qjs-block';
 
-		if (!this.isIndexReady || editorStore.activeTabPath === null) {
+		const notePath = editorStore.activeTabPath;
+		if (!this.isIndexReady || notePath === null) {
 			const loading = document.createElement('div');
 			loading.className = 'cm-lp-qjs-loading';
 			loading.textContent = 'Building index...';
@@ -50,37 +58,59 @@ export class QueryjsBlockWidget extends WidgetType {
 			return container;
 		}
 
-		// Check cache: if this exact script + index state was already executed, clone the result
-		const key = cacheKey(this.jsContent);
-		const cached = scriptResultCache.get(key);
-		if (cached) {
-			appendLog('QJS-PROFILE', `toDOM() cache HIT — skipping execution for: ${this.jsContent.substring(0, 50)}`);
-			container.appendChild(cached.cloneNode(true));
+		const hit = queryjsSessionStore.getCached(this.jsContent);
+		if (hit) {
+			appendLog('QJS-PROFILE', `toDOM() cache HIT: ${this.jsContent.substring(0, 50)}`);
+			// Live reference: moving it into the new container preserves any
+			// canvas/iframe/video state that accumulated since the original run.
+			container.appendChild(hit);
 			return container;
 		}
 
-		appendLog('QJS-PROFILE', `toDOM() cache MISS — executing: ${this.jsContent.substring(0, 50)}`);
-		// Execute script asynchronously — errors are caught and shown inline
-		this.execute(container);
+		const policy = settingsStore.queryjs.autoRunQueries;
+		const shouldAutoRun =
+			policy === 'always' ||
+			(policy === 'first-open' && !queryjsSessionStore.hasAutoRun(notePath));
+
+		if (shouldAutoRun) {
+			appendLog('QJS-PROFILE', `toDOM() auto-run (${policy}): ${this.jsContent.substring(0, 50)}`);
+			queryjsSessionStore.markAutoRun(notePath);
+			this.execute(container, notePath);
+			return container;
+		}
+
+		// Manual mode OR first-open mode with the note already auto-run at least
+		// once (typical: block content was edited, producing a new hash).
+		appendLog('QJS-PROFILE', `toDOM() Run button (${policy}): ${this.jsContent.substring(0, 50)}`);
+		this.renderRunButton(container, notePath);
 		return container;
 	}
 
 	eq(other: QueryjsBlockWidget) {
-		// Only compare jsContent — index size and tab path changes should NOT
-		// cause script re-execution. The script re-executes when the user
-		// edits the code block content (enters/exits the block via cursor).
-		return (
-			this.jsContent === other.jsContent &&
-			this.isIndexReady === other.isIndexReady
-		);
+		return this.jsContent === other.jsContent && this.isIndexReady === other.isIndexReady;
 	}
 
 	ignoreEvent() {
 		return false;
 	}
 
-	/** Executes the queryjs script inside the container */
-	private async execute(container: HTMLElement): Promise<void> {
+	/** Renders a ▶ Run button that executes the script when clicked. */
+	private renderRunButton(container: HTMLElement, notePath: string): void {
+		const btn = document.createElement('button');
+		btn.type = 'button';
+		btn.className = 'cm-lp-qjs-run';
+		btn.textContent = '▶ Run';
+		btn.addEventListener('click', () => {
+			container.innerHTML = '';
+			this.execute(container, notePath);
+		});
+		container.appendChild(btn);
+	}
+
+	/** Executes the queryjs script, awaits every `kb.view()` promise the user
+	 * code kicked off (tracked by KBAPI), then caches the container element
+	 * by content hash for later cache hits. */
+	private async execute(container: HTMLElement, notePath: string): Promise<void> {
 		const _t = profileStart();
 		try {
 			const api = new KBAPI({
@@ -88,52 +118,27 @@ export class QueryjsBlockWidget extends WidgetType {
 				propertyIndex: collectionStore.propertyIndex,
 				noteIndex: noteIndexStore.noteIndex,
 				noteContents: noteIndexStore.noteContents,
-				currentFilePath: editorStore.activeTabPath ?? '',
+				currentFilePath: notePath,
 				vaultPath: vaultStore.path ?? '',
 				loadScript: loadExternalScript,
 			});
 
-			// Always wrap in an async IIFE so fn() returns a Promise we can await.
-			// Without this, a bare `kb.view("…")` statement (no `await`) would
-			// evaluate — kicking off the async load + render — but fn() would
-			// return undefined synchronously, so the caller below would cache an
-			// EMPTY container before the script finished appending DOM. Next
-			// toDOM() call with the same cacheVersion would then clone the empty
-			// snapshot and render nothing.
-			//
-			// Auto-prepend `await` to top-level `kb.view(…)` / `dv.view(…)` calls
-			// so users don't have to remember — matches works the same whether
-			// their code block writes `await kb.view(…)` or just `kb.view(…)`.
-			// The negative lookbehind avoids touching member accesses like
-			// `foo.kb.view(` and already-awaited calls are idempotent (double
-			// `await` on the same Promise resolves to the same value).
-			const autoAwaited = this.jsContent.replace(
-				/(?<![\w.])(kb|dv)\.view\(/g,
-				'await $1.view(',
-			);
-			const code = `return (async () => { ${autoAwaited} })()`;
-
-			const fn = new Function('kb', 'dv', code);
+			const fn = new Function('kb', 'dv', `return (async () => { ${this.jsContent} })()`);
 			await Promise.resolve(fn(api, api));
-		profileEnd('qjs-execute', _t);
-		// Cache the rendered result for future toDOM() calls with same key,
-		// UNLESS the container holds elements whose visual state isn't
-		// preserved by cloneNode(true). Notably:
-		//   - <canvas>: element is cloned but its pixel buffer is not, so a
-		//     Chart.js radar/bar/etc. would clone as a blank square.
-		//   - <video>/<iframe>: playback state / loaded content aren't cloned.
-		// For those, re-execute every render — slower but correct. The
-		// per-KBAPI _pageCache + O(1) outlinks resolution keep the re-exec
-		// cost reasonable (~200 ms for a 1870-note vault).
-		const hasUnclonable = container.querySelector('canvas, video, iframe') !== null;
-		if (!hasUnclonable) {
-			scriptResultCache.set(cacheKey(this.jsContent), container.cloneNode(true) as HTMLElement);
-		}
+			// Wait for bare `kb.view(...)` calls the user didn't await —
+			// replaces the legacy auto-await regex via KBAPI.awaitAllPending().
+			await api.awaitAllPending();
+			profileEnd('qjs-execute', _t);
+
+			// Live DOM reference. No clone, no <canvas>/<video>/<iframe> exclusion.
+			queryjsSessionStore.setCached(this.jsContent, notePath, container);
 		} catch (err) {
 			const errorEl = document.createElement('div');
 			errorEl.className = 'cm-lp-qjs-error';
 			errorEl.textContent = `QueryJS Error: ${err instanceof Error ? err.message : String(err)}`;
 			container.appendChild(errorEl);
+			// Also append a Run button so the user can retry after fixing.
+			this.renderRunButton(container, notePath);
 		}
 	}
 }
