@@ -34,7 +34,9 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 		decos.push({
 			from: block.openFenceFrom,
 			to: block.openFenceTo,
-			deco: Decoration.replace({ widget: new CodeBlockWidget(code, block.language) }),
+			deco: Decoration.replace({
+				widget: new CodeBlockWidget(code, block.language, block.languageFrom, block.languageTo),
+			}),
 		});
 
 		const startLine = state.doc.lineAt(block.openFenceFrom).number + 1;
@@ -70,11 +72,14 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 			}
 			const code = lines.join('\n');
 
-			// First line: replace with CodeBlockWidget (no language)
+			// First line: replace with CodeBlockWidget (no language — indented
+			// block has no fence info, pass 0/0 so the language switcher is a
+			// no-op if the user interacts with it. Indented blocks don't have
+			// a natural insert slot.)
 			decos.push({
 				from: firstLine.from,
 				to: firstLine.to,
-				deco: Decoration.replace({ widget: new CodeBlockWidget(code, '') }),
+				deco: Decoration.replace({ widget: new CodeBlockWidget(code, '', 0, 0) }),
 			});
 
 			// Remaining lines: hide

@@ -17,6 +17,14 @@ export interface FencedCodeBlockRange {
 	contentTo: number;
 	/** The language identifier (e.g. "js", "python"), empty string if none */
 	language: string;
+	/** Document position where the language token starts. When no language info
+	 * exists, this equals `languageTo` and points at the insertion spot right
+	 * after the opening fence marks — used by the code-block widget's language
+	 * switcher so adding a language replaces the empty span cleanly. */
+	languageFrom: number;
+	/** Document position where the language token ends. Equals `languageFrom`
+	 * when the opening fence had no language info. */
+	languageTo: number;
 	/** Whether the block has a closing fence (per CommonMark spec, unclosed blocks extend to EOF) */
 	closed: boolean;
 }
@@ -35,6 +43,9 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 
 			const inner = node.node;
 			let language = '';
+			let languageFrom = -1;
+			let languageTo = -1;
+			let openingCodeMarkTo = -1;
 			let contentFrom = -1;
 			let contentTo = -1;
 			let codeMarkCount = 0;
@@ -44,8 +55,11 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 			while (child) {
 				if (child.name === 'CodeMark') {
 					codeMarkCount++;
+					if (openingCodeMarkTo < 0) openingCodeMarkTo = child.to;
 				} else if (child.name === 'CodeInfo') {
 					language = state.doc.sliceString(child.from, child.to).trim();
+					languageFrom = child.from;
+					languageTo = child.to;
 				} else if (child.name === 'CodeText') {
 					contentFrom = child.from;
 					contentTo = child.to;
@@ -70,6 +84,15 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 				contentTo = openLine.to + 1;
 			}
 
+			// When no CodeInfo child exists, point both language positions at the
+			// slot right after the opening fence marks so the widget's language
+			// switcher can INSERT a language without computing a different path.
+			if (languageFrom < 0) {
+				const fallback = openingCodeMarkTo >= 0 ? openingCodeMarkTo : openLine.to;
+				languageFrom = fallback;
+				languageTo = fallback;
+			}
+
 			blocks.push({
 				openFenceFrom: openLine.from,
 				openFenceTo: openLine.to,
@@ -78,6 +101,8 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 				contentFrom,
 				contentTo: contentFrom > contentTo ? contentFrom : contentTo,
 				language,
+				languageFrom,
+				languageTo,
 				closed,
 			});
 		},

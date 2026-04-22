@@ -315,6 +315,20 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontFamily: 'MonoLisa, monospace',
 		textTransform: 'lowercase',
 	},
+	'.cm-lp-codeblock-lang-select': {
+		fontSize: '11px',
+		color: 'var(--lp-codeblock-lang)',
+		fontFamily: 'MonoLisa, monospace',
+		textTransform: 'lowercase',
+		background: 'transparent',
+		border: 'none',
+		cursor: 'pointer',
+		outline: 'none',
+		padding: '0 4px',
+	},
+	'.cm-lp-codeblock-lang-select:hover': {
+		color: 'var(--syntax-keyword, var(--lp-codeblock-lang))',
+	},
 	'.cm-lp-codeblock-copy': {
 		fontSize: '11px',
 		color: 'var(--lp-codeblock-copy)',
