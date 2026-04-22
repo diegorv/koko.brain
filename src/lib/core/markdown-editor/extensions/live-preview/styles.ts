@@ -1,14 +1,8 @@
 import { Decoration, EditorView, GutterMarker } from '@codemirror/view';
 
 export const linkTextDeco = Decoration.mark({ class: 'cm-lp-link' });
-export const boldTextDeco = Decoration.mark({ class: 'cm-lp-bold' });
-export const italicTextDeco = Decoration.mark({ class: 'cm-lp-italic' });
 export const blockquoteLineDeco = Decoration.line({ class: 'cm-lp-blockquote' });
-export const strikethroughTextDeco = Decoration.mark({ class: 'cm-lp-strikethrough' });
-export const inlineCodeTextDeco = Decoration.mark({ class: 'cm-lp-code' });
 export const wikilinkTextDeco = Decoration.mark({ class: 'cm-lp-wikilink' });
-export const highlightTextDeco = Decoration.mark({ class: 'cm-lp-highlight' });
-export const codeBlockLineDeco = Decoration.line({ class: 'cm-lp-codeblock-line' });
 export const footnoteRefDeco = Decoration.mark({ class: 'cm-lp-footnote-ref' });
 export const footnoteDefMarkerDeco = Decoration.mark({ class: 'cm-lp-footnote-def-marker' });
 export const hiddenLineDeco = Decoration.line({ class: 'cm-lp-hidden-line' });
