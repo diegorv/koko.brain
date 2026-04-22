@@ -109,14 +109,17 @@ Nota: o ambiente sandbox atual do Claude Code não tem display/X, então `bash s
 - [x] ADR 0010 reescrito + CLAUDE.md rules 8/9 atualizadas + rule 10 nova (policy matrix + invariante manual-não-marca-autoRun).
 - [ ] **Usuário**: E2E `execution-model.spec.ts` (5 cenários — precisa do vault real e do display).
 
-### Fase 12.5 — Cleanup do legacy
+### Fase 12.5 — Cleanup do legacy ✅
 
-- [ ] Deletar os 11 plugins antigos.
-- [ ] Deletar `legacyInlineExtensions()` e colapsar branching.
-- [ ] Remover flag `experimental.newLivePreview`.
-- [ ] Deletar testes antigos.
-- [ ] Renomear `new/*.ts` para caminhos finais.
-- [ ] Suite completa + E2E + visual regression.
+- [x] Deletados 8 plugins retirados (`markdown-style`, `heading`, `blockquote`, `link`, `simple-widget`, `inline-marks`, `inline-comment`, `block-reference`) + 8 test files.
+- [x] `legacyInlineExtensions()` removido; `livePreviewExtensions()` colapsado para single-pipeline.
+- [x] Flag `experimental.newLivePreview` + `ExperimentalSettings` interface + UI section + sidebar entry — tudo removido. Chaves órfãs em settings.json de usuários ignoradas silenciosamente no merge.
+- [x] `new/` renomeado para `inline/`; `new-inline-extensions.ts` → `inline-extensions.ts`; `new-pipeline-dom.test.ts` → `pipeline-dom.test.ts`. JSDoc purgado de referências "Phase N" históricas.
+- [x] 3 E2E specs `-new-pipeline` duplicadas deletadas (cobertura preservada pelos specs originais).
+- [x] ADR 0010 + CLAUDE.md atualizados para descrever o estado atual sem linguagem de transição.
+- [x] Full suite verde (5569 testes). Não rodamos E2E/visual regression no sandbox (sem display); usuário valida.
+
+> **Skipped safety net**: plano original previa Fase 11 (dogfood) + Fase 11.5 (flag flip de 1 release) antes deste cleanup. O usuário optou por deletar direto — não há mais fallback runtime; rollback agora é via `git revert` da série de 5 commits.
 
 ### Fase 13 — Table widget UX ✅ (parcial)
 
