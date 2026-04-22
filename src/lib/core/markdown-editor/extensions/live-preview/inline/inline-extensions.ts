@@ -24,14 +24,14 @@ import { wikilinkHandler } from './handlers/wikilink-handler';
 import { inlineMarksHandlers } from './handlers/inline-marks-handlers';
 
 /**
- * Production handlers registered by the new inline pipeline. Kept as a
- * pure value list so handlers stay auditable in one place and tests can
- * swap them trivially (_clearInlineHandlers() + register specific ones).
+ * Production handlers registered by the inline pipeline. Kept as a pure value
+ * list so handlers stay auditable in one place and tests can swap them
+ * trivially (_clearInlineHandlers() + register specific ones).
  *
- * HighlightStyle covers every case that can be expressed purely via a Lezer
- * tag → CSS class mapping. A handler is only added when the legacy plugin
- * did something HighlightStyle cannot: Decoration.line, cursor-reveal,
- * Decoration.replace with a widget, or a cross-line span.
+ * `syntaxHighlighting(mdStyle)` covers every case that can be expressed purely
+ * via a Lezer tag → CSS class mapping. A handler is only added when the
+ * feature needs something `HighlightStyle` cannot express: `Decoration.line`,
+ * cursor-reveal, `Decoration.replace` with a widget, or a cross-line span.
  */
 export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	...headingHandlers,
@@ -51,16 +51,16 @@ export const PRODUCTION_LINE_HANDLERS: readonly InlineLineHandler[] = [
 ];
 
 /**
- * Extensions emitted by the new inline pipeline. Called from
- * `live-preview.ts → livePreviewExtensions()` when
- * `experimental.newLivePreview` is on.
+ * Extensions that drive the inline rendering of the live-preview editor.
+ * Called from `live-preview.ts → livePreviewExtensions()`.
  *
- * Ships two extensions today:
- *   1. `syntaxHighlighting(mdStyle)` — Lezer tag → cm-lp-* class mapping for
- *      bold, italic, strikethrough, inline code and headings 1–6.
+ * Ships two extensions:
+ *   1. `syntaxHighlighting(mdStyle)` — Lezer tag → `cm-lp-*` class mapping for
+ *      bold, italic, strikethrough, inline code and highlight.
  *   2. `inlineFormattingPlugin` — ViewPlugin that dispatches the registered
- *      PRODUCTION_INLINE_HANDLERS. The plugin is idempotent: every call
- *      clears the registry first so repeat invocations never double-register.
+ *      PRODUCTION_INLINE_HANDLERS + PRODUCTION_LINE_HANDLERS. Idempotent:
+ *      every call clears the registry first so repeat invocations don't
+ *      double-register.
  *
  * Order matters: syntaxHighlighting is registered first so handlers can
  * override the tag-based styling when they need to (e.g. blockquote depths

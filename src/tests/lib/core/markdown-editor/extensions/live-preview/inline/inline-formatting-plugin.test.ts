@@ -9,7 +9,7 @@ import {
 	_inlineHandlersSnapshot,
 	replaceWithWidget,
 	type InlineHandler,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 import { createMarkdownState } from '../../../test-helpers';
 
 /** Collects (from, to, spec) tuples from a DecorationSet for assertions. */

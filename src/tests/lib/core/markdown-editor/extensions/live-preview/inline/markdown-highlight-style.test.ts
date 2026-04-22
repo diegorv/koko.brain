@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 
-import { mdStyle } from '$lib/core/markdown-editor/extensions/live-preview/new/markdown-highlight-style';
+import { mdStyle } from '$lib/core/markdown-editor/extensions/live-preview/inline/markdown-highlight-style';
 
 describe('mdStyle HighlightStyle', () => {
 	it('is a HighlightStyle instance', () => {

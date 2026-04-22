@@ -139,12 +139,10 @@ export function replaceWithWidget(
  *
  * Iterates the syntax tree once per rebuild, dispatches each node to every
  * registered handler keyed on node name, and collects their decorations.
- * Skips nodes inside block contexts (fenced code, frontmatter, etc.) the
- * same way every legacy plugin does.
+ * Skips nodes inside block contexts (fenced code, frontmatter, etc.).
  *
- * Rebuild triggers follow checkUpdateAction with lastCursorLine — identical
- * optimization as inline-marks-plugin. During Phase 2 (no handlers) the
- * rebuild path returns an empty DecorationSet and costs O(visibleChars).
+ * Rebuild triggers follow checkUpdateAction with lastCursorLine, so cursor
+ * moves that keep the cursor on the same line do not force a rebuild.
  */
 export const inlineFormattingPlugin = ViewPlugin.fromClass(
 	class {

@@ -4,7 +4,7 @@ import {
 	livePreviewExtensions,
 	sharedInlineExtensions,
 } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
-import { newInlineExtensions } from '$lib/core/markdown-editor/extensions/live-preview/new/new-inline-extensions';
+import { newInlineExtensions } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions';
 
 describe('livePreviewExtensions', () => {
 	it('returns a non-empty extension array', () => {

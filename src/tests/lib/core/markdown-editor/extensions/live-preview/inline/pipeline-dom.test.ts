@@ -7,8 +7,8 @@ import { GFM } from '@lezer/markdown';
 
 import { MathExtension } from '$lib/core/markdown-editor/extensions/lezer/math-extension';
 import { HighlightExtension } from '$lib/core/markdown-editor/extensions/lezer/highlight-extension';
-import { newInlineExtensions } from '$lib/core/markdown-editor/extensions/live-preview/new/new-inline-extensions';
-import { _clearInlineHandlers } from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+import { newInlineExtensions } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions';
+import { _clearInlineHandlers } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 
 /**
  * Snapshot-style DOM checks — the only way to assert that

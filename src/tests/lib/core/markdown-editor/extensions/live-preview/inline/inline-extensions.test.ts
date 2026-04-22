@@ -3,11 +3,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	newInlineExtensions,
 	PRODUCTION_INLINE_HANDLERS,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/new-inline-extensions';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions';
 import {
 	_inlineHandlersSnapshot,
 	_clearInlineHandlers,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 
 describe('newInlineExtensions', () => {
 	beforeEach(() => {

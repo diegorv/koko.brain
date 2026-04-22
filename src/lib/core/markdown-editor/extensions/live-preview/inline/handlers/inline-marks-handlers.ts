@@ -12,8 +12,8 @@ function markClass(touched: boolean): string {
  * Factory for the four marks whose visibility reveals when the cursor enters
  * the PARENT span: EmphasisMark (`*` / `**`), CodeMark (`` ` ``),
  * StrikethroughMark (`~~`), and HighlightMark (`==`). HighlightMark gets a
- * Lezer node from the custom HighlightExtension (Phase 3), so it dispatches
- * here uniformly instead of via a regex line handler.
+ * Lezer node from the custom HighlightExtension, so it dispatches here
+ * uniformly instead of via a regex line handler.
  */
 function makeMarkHandler(nodeType: string): InlineHandler {
 	return {

@@ -6,8 +6,8 @@ import {
 	buildInlineDecorations,
 	registerLineHandler,
 	_clearInlineHandlers,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
-import { inlineCommentHandler } from '$lib/core/markdown-editor/extensions/live-preview/new/handlers/inline-comment-handler';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
+import { inlineCommentHandler } from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/inline-comment-handler';
 import { createMarkdownState } from '../../../../test-helpers';
 
 function collect(decoSet: DecorationSet) {

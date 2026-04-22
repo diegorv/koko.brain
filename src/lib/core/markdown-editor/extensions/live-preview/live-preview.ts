@@ -21,7 +21,7 @@ import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
 import { pasteTsvHandler } from './core/paste-tsv-handler';
-import { newInlineExtensions } from './new/new-inline-extensions';
+import { newInlineExtensions } from './inline/inline-extensions';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 export { forceDecorationRebuild } from './core/effects';

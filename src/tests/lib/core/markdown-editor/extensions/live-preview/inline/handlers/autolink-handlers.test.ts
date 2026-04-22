@@ -7,11 +7,11 @@ import {
 	registerInlineHandler,
 	registerLineHandler,
 	_clearInlineHandlers,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 import {
 	autolinkNodeHandlers,
 	autolinkLineHandlers,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/handlers/autolink-handlers';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/autolink-handlers';
 import { createMarkdownState } from '../../../../test-helpers';
 
 function collect(decoSet: DecorationSet) {
