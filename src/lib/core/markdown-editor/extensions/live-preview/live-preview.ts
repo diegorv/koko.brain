@@ -40,6 +40,34 @@ function isDisabled(name: string): boolean {
 	return settingsStore.disabledDecorators[name] ?? false;
 }
 
+/**
+ * Legacy inline pipeline — the 11 inline plugins shipped before the Híbrido D
+ * refactor. Kept as the default path until experimental.newLivePreview is
+ * flipped in Phase 11.5.
+ */
+export function legacyInlineExtensions(): Extension[] {
+	const exts: Extension[] = [];
+	if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
+	if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
+	if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
+	if (!isDisabled('heading')) { exts.push(headingPlugin); }
+	if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
+	if (!isDisabled('link')) { exts.push(linkPlugin); }
+	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
+	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
+	exts.push(inlineCommentPlugin, blockReferencePlugin);
+	return exts;
+}
+
+/**
+ * New inline pipeline — unified HighlightStyle + inlineFormattingPlugin.
+ * Phases 2–11 progressively fill this array. Returns `[]` while scaffolding
+ * is in place but no handlers are migrated yet.
+ */
+export function newInlineExtensions(): Extension[] {
+	return [];
+}
+
 export function livePreviewExtensions(): Extension[] {
 	const exts: Extension[] = [
 		mouseSelectingField,
@@ -57,16 +85,9 @@ export function livePreviewExtensions(): Extension[] {
 	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
-	// Inline plugins
-	if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
-	if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
-	if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
-	if (!isDisabled('heading')) { exts.push(headingPlugin); }
-	if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
-	if (!isDisabled('link')) { exts.push(linkPlugin); }
-	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
-	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
-	exts.push(inlineCommentPlugin, blockReferencePlugin);
+	// Inline plugins — flag picks new vs legacy
+	const useNew = settingsStore.experimental.newLivePreview;
+	exts.push(...(useNew ? newInlineExtensions() : legacyInlineExtensions()));
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
