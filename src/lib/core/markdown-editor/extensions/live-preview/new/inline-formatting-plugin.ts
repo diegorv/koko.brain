@@ -18,14 +18,17 @@ import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * Context handed to a handler every time the unified plugin visits a Lezer node.
- * Handlers consume `touched` directly — it's precomputed once per visit — to
- * decide whether to emit the cursor-reveal variant of their decoration.
+ * `isTouched(from, to)` is a thin wrapper over shouldShowSource so handlers
+ * can query cursor-reveal over arbitrary ranges — some handlers care about the
+ * node's own range (`node.from, node.to`), others care about the parent node
+ * (EmphasisMark handlers reveal when cursor is inside the whole Emphasis, not
+ * just on the `*`).
  */
 export interface InlineHandlerContext {
 	state: EditorState;
 	node: SyntaxNodeRef;
-	/** Result of shouldShowSource(state, node.from, node.to). */
-	touched: boolean;
+	/** Returns true if any selection range intersects [from, to] (or rawMode is on). */
+	isTouched: (from: number, to: number) => boolean;
 }
 
 /**
@@ -157,6 +160,8 @@ export function buildInlineDecorations(
 ): DecorationSet {
 	const collected: Range<Decoration>[] = [];
 
+	const isTouched = (from: number, to: number) => shouldShowSource(state, from, to);
+
 	for (const { from, to } of ranges) {
 		syntaxTree(state).iterate({
 			from,
@@ -166,8 +171,7 @@ export function buildInlineDecorations(
 				const matching = handlersByNode.get(node.name);
 				if (!matching || matching.length === 0) return;
 
-				const touched = shouldShowSource(state, node.from, node.to);
-				const ctx: InlineHandlerContext = { state, node, touched };
+				const ctx: InlineHandlerContext = { state, node, isTouched };
 
 				for (const handler of matching) {
 					const result = handler.decorate(ctx);
