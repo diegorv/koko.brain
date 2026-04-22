@@ -8,27 +8,19 @@ import {
 	_clearInlineHandlers,
 	type InlineHandler,
 } from './inline-formatting-plugin';
-import { highlightHandler } from './handlers/highlight-handler';
 import { headingHandlers } from './handlers/heading-handler';
 
 /**
- * Production handlers registered by the new inline pipeline. Keeping the
- * list as a pure value makes it trivially testable (_clearInlineHandlers()
- * + one forEach(registerInlineHandler) in beforeEach) and keeps phase-
- * specific handlers auditable in one place.
+ * Production handlers registered by the new inline pipeline. Kept as a
+ * pure value list so handlers stay auditable in one place and tests can
+ * swap them trivially (_clearInlineHandlers() + register specific ones).
  *
- * Grows one handler per migration phase:
- *   - Phase 3 (markdownStyle)        → highlightHandler
- *   - Phase 4 (heading)              → headingMarkHandler
- *   - Phase 5 (blockquote)           → blockquoteMarkHandler (+ line deco)
- *   - Phase 6 (inline comments)      → commentHandler
- *   - Phase 7 (block references)     → blockRefHandler
- *   - Phase 8 (simpleWidget)         → hrHandler, bulletHandler, …
- *   - Phase 9 (link)                 → linkHandler (split 9a/9b/9c)
- *   - Phase 10 (inline marks)        → inlineMarksHandler (cursor-reveal)
+ * HighlightStyle covers every case that can be expressed purely via a Lezer
+ * tag → CSS class mapping. A handler is only added when the legacy plugin
+ * did something HighlightStyle cannot: Decoration.line, cursor-reveal,
+ * Decoration.replace with a widget, or a cross-line span.
  */
 export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
-	highlightHandler,
 	...headingHandlers,
 ];
 

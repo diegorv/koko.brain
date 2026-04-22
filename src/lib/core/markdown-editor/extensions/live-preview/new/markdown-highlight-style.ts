@@ -28,4 +28,5 @@ export const mdStyle = HighlightStyle.define([
 	{ tag: t.emphasis, class: 'cm-lp-italic' },
 	{ tag: t.strikethrough, class: 'cm-lp-strikethrough' },
 	{ tag: t.monospace, class: 'cm-lp-code' },
+	{ tag: t.special(t.content), class: 'cm-lp-highlight' },
 ]);

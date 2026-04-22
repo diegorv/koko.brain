@@ -8,7 +8,6 @@ import {
 	_inlineHandlersSnapshot,
 	_clearInlineHandlers,
 } from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
-import { highlightHandler } from '$lib/core/markdown-editor/extensions/live-preview/new/handlers/highlight-handler';
 
 describe('newInlineExtensions', () => {
 	beforeEach(() => {
@@ -39,8 +38,4 @@ describe('newInlineExtensions', () => {
 		expect(_inlineHandlersSnapshot()).toEqual(PRODUCTION_INLINE_HANDLERS);
 	});
 
-	it('Phase 3 registers the highlight handler', () => {
-		newInlineExtensions();
-		expect(_inlineHandlersSnapshot()).toContain(highlightHandler);
-	});
 });

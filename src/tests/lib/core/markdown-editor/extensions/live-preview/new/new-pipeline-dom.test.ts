@@ -79,7 +79,7 @@ describe('newInlineExtensions — DOM snapshot (flag-on rendering)', () => {
 		}
 	});
 
-	it('renders cm-lp-highlight via the handler registry (not HighlightStyle)', () => {
+	it('renders cm-lp-highlight via HighlightStyle t.special(t.content)', () => {
 		view = mount('==highlighted text==');
 		expect(classesOf(view)).toContain('cm-lp-highlight');
 	});
