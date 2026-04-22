@@ -34,11 +34,11 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] Criar `new/new-inline-extensions.ts` e cablear em `live-preview.ts` quando flag on.
 - [x] Testes unitários: registry, dispatch, block-context skip, isTouched helper, HighlightStyle sanity, extension array (19 casos).
 
-### Fase 3 — Aposentar `markdownStylePlugin` (113 linhas)
+### Fase 3 — Aposentar `markdownStylePlugin` (113 linhas) ✅
 
-- [ ] Snapshot DOM confirma classes `cm-lp-bold`, `cm-lp-italic`, etc.
-- [ ] Condicionar legacy: quando flag on, pular `markdownStylePlugin`.
-- [ ] `inline-formatting.spec.ts` com flag on e off.
+- [x] Snapshot DOM (jsdom) confirma classes `cm-lp-bold/italic/strikethrough/code/h1..h6/highlight` via `EditorView` montado com `newInlineExtensions()`.
+- [x] Legacy já condicionado — flag on ≠ `legacyInlineExtensions()`. `highlightHandler` adicionado à `PRODUCTION_INLINE_HANDLERS` porque `==text==` precisa de handler (parser custom, sem tag reutilizável).
+- [x] `inline-formatting-new-pipeline.spec.ts` criado (flag on) em paralelo ao spec legacy (flag off). Mesma suíte de asserções nos dois caminhos.
 
 ### Fase 4 — Aposentar `headingPlugin` (121 linhas)
 
