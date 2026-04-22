@@ -10,6 +10,9 @@ import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { saveSettings } from '$lib/core/settings/settings.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 
 /**
  * Opens a file in the editor.
@@ -299,6 +302,20 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 		if (!tab || diskContent === tab.savedContent) continue;
 		editorStore.updateTabContentByPath(filePath, diskContent);
 		debug('EDITOR', 'Reloaded externally changed file:', filePath);
+	}
+}
+
+/**
+ * Flips the editor.rawMode flag and persists the change. Bound to Cmd+K so
+ * the user can toggle between live preview and raw markdown at any time.
+ * Calling in an unopened vault (no vaultStore.path) still flips the in-memory
+ * flag — the save is skipped silently instead of throwing.
+ */
+export function toggleRawMode(): void {
+	const next = !settingsStore.editor.rawMode;
+	settingsStore.updateEditor({ rawMode: next });
+	if (vaultStore.path) {
+		saveSettings(vaultStore.path).catch((err) => error('SETTINGS', 'Failed to save raw mode:', err));
 	}
 }
 

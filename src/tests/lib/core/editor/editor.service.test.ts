@@ -24,6 +24,10 @@ vi.mock('$lib/utils/debug', () => ({
 	perfEnd: vi.fn(),
 }));
 
+vi.mock('$lib/core/settings/settings.service', () => ({
+	saveSettings: vi.fn(async () => {}),
+}));
+
 vi.mock('$lib/utils/debounce', () => ({
 	debounce: vi.fn((fn: (...args: any[]) => any) => {
 		let lastArgs: any[] | undefined;
@@ -58,6 +62,7 @@ import {
 	switchTab,
 	closeTab,
 	closeActiveTab,
+	toggleRawMode,
 	switchToNextTab,
 	switchToPreviousTab,
 	resetEditor,
@@ -1206,5 +1211,57 @@ describe('reloadExternallyChangedTabs', () => {
 
 		expect(editorStore.tabs[0].content).toBe('new A');
 		expect(editorStore.tabs[1].content).toBe('new B');
+	});
+});
+
+describe('toggleRawMode', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		// vaultStore.open() writes to localStorage — stub it for jsdom/node runs
+		const storage = new Map<string, string>();
+		vi.stubGlobal('localStorage', {
+			getItem: (k: string) => storage.get(k) ?? null,
+			setItem: (k: string, v: string) => storage.set(k, v),
+			removeItem: (k: string) => storage.delete(k),
+			clear: () => storage.clear(),
+		});
+		const { settingsStore } = await import('$lib/core/settings/settings.store.svelte');
+		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+		settingsStore.reset();
+		vaultStore._reset();
+	});
+
+	it('flips editor.rawMode from false to true on first call', async () => {
+		const { settingsStore } = await import('$lib/core/settings/settings.store.svelte');
+		expect(settingsStore.editor.rawMode).toBe(false);
+
+		toggleRawMode();
+
+		expect(settingsStore.editor.rawMode).toBe(true);
+	});
+
+	it('flips back to false on second call', async () => {
+		const { settingsStore } = await import('$lib/core/settings/settings.store.svelte');
+		toggleRawMode();
+		toggleRawMode();
+		expect(settingsStore.editor.rawMode).toBe(false);
+	});
+
+	it('persists settings when a vault path is set', async () => {
+		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+		const { saveSettings } = await import('$lib/core/settings/settings.service');
+		vaultStore.open('/vault');
+
+		toggleRawMode();
+
+		expect(saveSettings).toHaveBeenCalledWith('/vault');
+	});
+
+	it('skips save silently when no vault path is set', async () => {
+		const { saveSettings } = await import('$lib/core/settings/settings.service');
+		// vaultStore.path is null from _reset
+		toggleRawMode();
+
+		expect(saveSettings).not.toHaveBeenCalled();
 	});
 });

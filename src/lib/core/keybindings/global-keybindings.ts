@@ -4,6 +4,7 @@ import {
 	closeActiveTab,
 	switchToNextTab,
 	switchToPreviousTab,
+	toggleRawMode,
 } from '$lib/core/editor/editor.service';
 import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
@@ -119,6 +120,12 @@ export function registerGlobalKeybindings(): () => void {
 				const path = editorStore.activeTabPath;
 				if (path) openFileHistory(path);
 			},
+		}),
+		// Raw mode: Cmd+K toggles editor.rawMode (shows all markdown source)
+		registerKeybinding({
+			key: 'k',
+			meta: true,
+			handler: () => toggleRawMode(),
 		}),
 		// Zoom: Cmd+= or Cmd+Shift+= (Cmd++)
 		registerKeybinding({ key: '=', meta: true, handler: () => { zoomIn().catch(console.error); } }),
