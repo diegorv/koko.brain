@@ -13,6 +13,7 @@ import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
 import { MetaBindSelectWidget } from '../widgets';
+import { MetaBindNumberWidget } from '../widgets/meta-bind-number-widget';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import { profileStart, profileEnd } from '../core/profiling';
 
@@ -77,10 +78,17 @@ export function buildMetaBindInputDecorations(
 				const prop = fmProperties.find((p) => p.key === range.bindTarget);
 				const currentValue = prop ? String(prop.value) : null;
 
+				// Per-type widget dispatch. `number` validates the bound frontmatter
+				// value + user input inline; every other type falls back to the
+				// existing select widget (safe default — select tolerates any
+				// option list).
+				const widget =
+					range.inputType === 'number'
+						? new MetaBindNumberWidget(range.bindTarget, currentValue)
+						: new MetaBindSelectWidget(range.options, range.bindTarget, currentValue);
+
 				decorations.push(
-					Decoration.replace({
-						widget: new MetaBindSelectWidget(range.options, range.bindTarget, currentValue),
-					}).range(range.from, range.to),
+					Decoration.replace({ widget }).range(range.from, range.to),
 				);
 			}
 		}

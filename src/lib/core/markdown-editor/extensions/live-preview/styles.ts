@@ -789,6 +789,37 @@ export const livePreviewStyles = EditorView.baseTheme({
 		borderColor: 'hsl(var(--primary))',
 		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
 	},
+	'.cm-lp-meta-bind-number': {
+		display: 'inline-flex',
+		alignItems: 'center',
+		gap: '6px',
+		verticalAlign: 'middle',
+	},
+	'.cm-lp-meta-bind-number-input': {
+		background: 'var(--lp-meta-bind-select-bg)',
+		color: 'var(--lp-meta-bind-select-text)',
+		border: '1px solid var(--lp-meta-bind-select-border)',
+		borderRadius: '6px',
+		padding: '2px 8px',
+		fontSize: '13px',
+		lineHeight: '1.4',
+		outline: 'none',
+		width: '96px',
+	},
+	'.cm-lp-meta-bind-number-input:focus': {
+		borderColor: 'hsl(var(--primary))',
+		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
+	},
+	'.cm-lp-meta-bind-number-input-invalid': {
+		borderColor: 'var(--lp-meta-bind-error-border, #f87171)',
+		color: 'var(--lp-meta-bind-error-text, #f87171)',
+	},
+	'.cm-lp-meta-bind-number-error': {
+		color: 'var(--lp-meta-bind-error-text, #f87171)',
+		fontSize: '11px',
+		fontStyle: 'italic',
+		opacity: '0.9',
+	},
 	'.cm-lp-meta-bind-button-container': {
 		display: 'block',
 		padding: '4px 0',

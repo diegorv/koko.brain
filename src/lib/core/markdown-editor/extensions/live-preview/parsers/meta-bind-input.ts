@@ -22,6 +22,8 @@ export interface MetaBindInputRange {
 
 const INPUT_RE = /`INPUT\[([^\]]+)\]`/g;
 const OPTION_RE = /option\(([^,]+),\s*([^)]*)\)/g;
+/** Types that don't carry an option list — they validate based on type alone. */
+const TYPES_WITHOUT_OPTIONS = new Set(['number']);
 
 /**
  * Finds all meta-bind INPUT fields in a line of text.
@@ -76,7 +78,10 @@ export function findMetaBindInputRanges(text: string, offset: number): MetaBindI
 			}
 		}
 
-		if (options.length === 0) continue;
+		// Option list can be empty for typed inputs that don't need choices
+		// (e.g. `number()`, `number:prop`); the widget dispatch picks the
+		// right renderer based on `inputType`.
+		if (options.length === 0 && !TYPES_WITHOUT_OPTIONS.has(inputType)) continue;
 
 		const start = offset + match.index;
 		ranges.push({
