@@ -12,7 +12,8 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findWikilinkEmbedRanges } from '../parsers/wikilink-embed';
-import { WikilinkImageEmbedWidget, WikilinkNoteEmbedWidget } from '../widgets';
+import { WikilinkImageEmbedWidget } from '../widgets/wikilink-image-embed-widget';
+import { WikilinkNoteEmbedWidget } from '../widgets/wikilink-note-embed-widget';
 import { profileStart, profileEnd } from '../core/profiling';
 
 /** Parses the display/pipe value as an optional pixel width (e.g. `"300"` → `300`) */

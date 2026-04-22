@@ -2,7 +2,7 @@ import { RangeSetBuilder, StateField } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, gutterLineClass } from '@codemirror/view';
 import { findFrontmatterBlock } from '../parsers/frontmatter';
-import { FrontmatterWidget } from '../widgets';
+import { FrontmatterWidget } from '../widgets/frontmatter-widget';
 import { hiddenLineDeco, hiddenGutterMarker } from '../styles';
 import { forceDecorationRebuild } from '../core/effects';
 import { getAllLines } from '../core/get-all-lines';

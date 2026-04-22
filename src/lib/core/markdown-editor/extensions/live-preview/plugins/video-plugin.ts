@@ -2,7 +2,7 @@ import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { findVideoBlock } from '../parsers/video';
-import { VideoWidget } from '../widgets';
+import { VideoWidget } from '../widgets/video-widget';
 import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';

@@ -2,7 +2,7 @@ import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { findAudioBlock } from '../parsers/audio';
-import { AudioWidget } from '../widgets';
+import { AudioWidget } from '../widgets/audio-widget';
 import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';

@@ -1,6 +1,7 @@
 import { Decoration } from '@codemirror/view';
 
-import { TaskCheckboxWidget, OrderedListMarkerWidget } from '../../widgets';
+import { TaskCheckboxWidget } from '../../widgets/task-checkbox-widget';
+import { OrderedListMarkerWidget } from '../../widgets/ordered-list-marker-widget';
 import { InlineMathWidget } from '../../widgets/inline-math-widget';
 import type {
 	InlineHandler,

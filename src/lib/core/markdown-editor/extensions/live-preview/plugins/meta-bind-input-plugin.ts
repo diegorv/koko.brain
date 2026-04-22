@@ -12,7 +12,7 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
-import { MetaBindSelectWidget } from '../widgets';
+import { MetaBindSelectWidget } from '../widgets/meta-bind-select-widget';
 import { MetaBindNumberWidget } from '../widgets/meta-bind-number-widget';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import { profileStart, profileEnd } from '../core/profiling';

@@ -11,7 +11,7 @@ import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
-import { ImageWidget } from '../widgets';
+import { ImageWidget } from '../widgets/image-widget';
 import { profileStart, profileEnd } from '../core/profiling';
 
 /** Parsed image size from `|width` or `|widthxheight` suffix */
