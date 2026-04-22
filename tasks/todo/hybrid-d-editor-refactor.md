@@ -84,12 +84,16 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] 11 testes unit + fix de contagem em `global-keybindings.test.ts` (19 → 20, leftover da Fase 1).
 - [x] Full suite verde: **5658 testes passando**.
 
-### Fase 11 — Dogfood + ajustes
+### Fase 11 — Dogfood + ajustes (responsabilidade do usuário)
 
-- [ ] Flag on em dev local, 1 semana, vault de 1 870 notas.
-- [ ] Perf benchmarks: init time, scroll FPS, `LP-PROFILE` timings.
-- [ ] Corrigir regressões descobertas.
-- [ ] Suite E2E completa com flag on.
+> Claude Code não consegue executar esta fase: rodar o app localmente com a flag on e usar o vault real por dias é trabalho interativo. Entregue o ambiente de dogfood preparado (unified pipeline completo atrás de `experimental.newLivePreview`); o usuário dirige e reporta.
+
+- [ ] **Usuário**: setar `experimental.newLivePreview: true` em Settings → Experimental e rodar `pnpm tauri dev` por ~1 semana contra o vault real (1 870 notas).
+- [ ] **Usuário**: capturar perf: `LP-PROFILE` logs via `appendLog`, FPS de scroll no DevTools Performance, tempo inicial de `livePreviewExtensions()`.
+- [ ] **Usuário**: reportar regressões visuais ou de UX encontradas — Claude Code corrige 1 commit por regressão.
+- [ ] **Usuário**: rodar `bash scripts/e2e.sh` contra o pipeline novo (specs `*-new-pipeline.spec.ts` + a suite legacy em paralelo para comparação).
+
+Nota: o ambiente sandbox atual do Claude Code não tem display/X, então `bash scripts/e2e.sh` rodado aqui falha por ambiente e não reflete a saúde real do código.
 
 ### Fase 11.5 — Flip da flag default
 
