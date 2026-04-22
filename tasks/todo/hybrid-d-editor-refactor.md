@@ -77,11 +77,12 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] 9c: `wikilink-handler.ts` (line handler) cobrindo `[[target]]`, `#heading`, `#^block-id` e `|display`. Click handling inalterado — `livePreviewClickHandler` já está em shared.
 - [x] 18 testes unit (6+6+6) + 2 novos DOM snapshots.
 
-### Fase 10 — Aposentar `inlineMarksPlugin` (163 linhas)
+### Fase 10 — Aposentar `inlineMarksPlugin` (163 linhas) ✅
 
-- [ ] Handler detecta `**`, `*`, `` ` ``, `~~`, `==`.
-- [ ] Integrar `shouldShowSource` via `touched`.
-- [ ] Suite E2E completa `e2e/specs/live-preview/`.
+- [x] Factory `makeMarkHandler(nodeType)` gera 4 handlers (EmphasisMark, CodeMark, StrikethroughMark, HighlightMark) + `escapeHandler`.
+- [x] `HighlightMark` agora via nó Lezer (confirmação da Fase 3) — sem line handler.
+- [x] 11 testes unit + fix de contagem em `global-keybindings.test.ts` (19 → 20, leftover da Fase 1).
+- [x] Full suite verde: **5658 testes passando**.
 
 ### Fase 11 — Dogfood + ajustes
 
