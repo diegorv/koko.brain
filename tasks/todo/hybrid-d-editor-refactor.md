@@ -40,12 +40,12 @@ Consolida os 11 plugins inline do live preview em 2–3 (via `HighlightStyle` na
 - [x] Legacy já condicionado — flag on ≠ `legacyInlineExtensions()`. `highlightHandler` adicionado à `PRODUCTION_INLINE_HANDLERS` porque `==text==` precisa de handler (parser custom, sem tag reutilizável).
 - [x] `inline-formatting-new-pipeline.spec.ts` criado (flag on) em paralelo ao spec legacy (flag off). Mesma suíte de asserções nos dois caminhos.
 
-### Fase 4 — Aposentar `headingPlugin` (121 linhas)
+### Fase 4 — Aposentar `headingPlugin` (121 linhas) ✅
 
-- [ ] Mapeamentos `t.heading1..heading6` no `mdStyle`.
-- [ ] `headingMarkHandler` no `inlineFormattingPlugin` cobre hide do `#` com cursor-reveal.
-- [ ] Remover registro no caminho novo.
-- [ ] E2E `headings.spec.ts`.
+- [x] ~~Mapeamentos `t.heading1..heading6` no `mdStyle`~~ — revertido: HighlightStyle emite em span, headings precisam de `Decoration.line` no `.cm-line` (line-height só compõe em bloco).
+- [x] 8 handlers em `heading-handler.ts` via factories: `ATXHeading1..6` + `SetextHeading1..2`. Cursor-reveal no `HeaderMark` e underline.
+- [x] Adicionados a `PRODUCTION_INLINE_HANDLERS` após highlightHandler.
+- [x] `headings-new-pipeline.spec.ts` criado (flag on) com 6 ATX + 2 Setext + cursor reveal + bold-in-h1.
 
 ### Fase 5 — Aposentar `blockquotePlugin` (133 linhas)
 
