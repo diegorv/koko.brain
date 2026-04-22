@@ -16,6 +16,10 @@ import { inlineCommentHandler } from './handlers/inline-comment-handler';
 import { blockReferenceHandler } from './handlers/block-reference-handler';
 import { simpleWidgetHandlers } from './handlers/simple-widget-handlers';
 import { markdownLinkHandlers } from './handlers/markdown-link-handlers';
+import {
+	autolinkNodeHandlers,
+	autolinkLineHandlers,
+} from './handlers/autolink-handlers';
 
 /**
  * Production handlers registered by the new inline pipeline. Kept as a
@@ -32,12 +36,14 @@ export const PRODUCTION_INLINE_HANDLERS: readonly InlineHandler[] = [
 	blockquoteHandler,
 	...simpleWidgetHandlers,
 	...markdownLinkHandlers,
+	...autolinkNodeHandlers,
 ];
 
 /** Line-based handlers (regex parsers, no Lezer node). */
 export const PRODUCTION_LINE_HANDLERS: readonly InlineLineHandler[] = [
 	inlineCommentHandler,
 	blockReferenceHandler,
+	...autolinkLineHandlers,
 ];
 
 /**
