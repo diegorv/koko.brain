@@ -35,6 +35,7 @@ import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/se
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 import {
 	resetTemplates,
 	ensureTemplatesFolder,
@@ -366,6 +367,7 @@ export function teardownVault(): void {
 	resetSettings();
 	resetSearch();
 	resetGraphView();
+	queryjsSessionStore.reset();
 	resetKanban();
 	resetTemplates();
 	resetBookmarks();

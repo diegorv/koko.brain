@@ -621,6 +621,24 @@ describe('closeTab', () => {
 		expect(ask).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 	});
+
+	it('invalidates queryjs session cache entries for the closed tab path', async () => {
+		const { queryjsSessionStore } = await import('$lib/plugins/queryjs/queryjs-session.store.svelte');
+		queryjsSessionStore.reset();
+
+		addTab('/vault/note.md', 'body');
+		queryjsSessionStore.setCached(
+			'hash-body',
+			'/vault/note.md',
+			{ tagName: 'div' } as unknown as HTMLElement,
+		);
+		queryjsSessionStore.markAutoRun('/vault/note.md');
+
+		await closeTab(0);
+
+		expect(queryjsSessionStore.hasAutoRun('/vault/note.md')).toBe(false);
+		expect(queryjsSessionStore.getCached('hash-body')).toBeNull();
+	});
 });
 
 describe('closeActiveTab', () => {

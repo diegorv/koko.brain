@@ -13,6 +13,7 @@ import { appendLog } from '$lib/utils/log.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 /**
  * Opens a file in the editor.
@@ -193,6 +194,9 @@ export async function closeTab(index: number) {
 
 	editorStore.removeTab(currentIndex);
 	deleteTabViewState(tabPath);
+	// Drop the queryjs live-DOM cache entries for this note so reopening
+	// re-executes from scratch (desired UX: closed tab → fresh state).
+	queryjsSessionStore.invalidatePath(tabPath);
 
 	const newActive = editorStore.activeTab;
 	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
@@ -257,6 +261,7 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 		const tab = editorStore.tabs[i];
 		if (tab.path === deletedPath || tab.path.startsWith(deletedPath + '/')) {
 			deleteTabViewState(tab.path);
+			queryjsSessionStore.invalidatePath(tab.path);
 			editorStore.removeTab(i);
 		}
 	}
