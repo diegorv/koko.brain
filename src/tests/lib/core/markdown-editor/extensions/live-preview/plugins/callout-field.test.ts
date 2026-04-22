@@ -31,10 +31,10 @@ describe('calloutField', () => {
 		const doc = 'text\n> [!note] Title\n> content line';
 		const state = createState(doc, 0); // cursor on "text"
 		const decos = collectDecos(state);
-		// Header line: lineDeco + replace marker + mark title = 3
-		// Content line: lineDeco + replace prefix = 2
-		// Total: 5
-		expect(decos).toHaveLength(5);
+		// Header: lineDeco + replace marker + fold chevron widget + mark title = 4
+		// Content: lineDeco + replace prefix = 2
+		// Total: 6 (Phase 17 — chevron renders on every callout, not just foldable)
+		expect(decos).toHaveLength(6);
 	});
 
 	it('uses visible marks when cursor is inside the callout', () => {
@@ -43,7 +43,7 @@ describe('calloutField', () => {
 		const decos = collectDecos(state);
 		// Header: lineDeco + mark(visible) on marker + mark on title = 3
 		// Content: lineDeco + mark(visible) on prefix = 2
-		// Total: 5 (marks are visible, no fold widget)
+		// Total: 5 (marks are visible, fold chevron suppressed while editing)
 		expect(decos).toHaveLength(5);
 	});
 
@@ -56,28 +56,28 @@ describe('calloutField', () => {
 		const doc = 'text\n> [!warning]\n> content';
 		const state = createState(doc, 0);
 		const decos = collectDecos(state);
-		// Header: lineDeco + replace marker (no title mark) = 2
+		// Header: lineDeco + replace marker + fold chevron = 3
 		// Content: lineDeco + replace prefix = 2
-		// Total: 4
-		expect(decos).toHaveLength(4);
+		// Total: 5
+		expect(decos).toHaveLength(5);
 	});
 
 	it('handles header-only callout (no content lines)', () => {
 		const doc = 'text\n> [!tip] Just a tip';
 		const state = createState(doc, 0);
 		const decos = collectDecos(state);
-		// Header only: lineDeco + replace marker + mark title = 3
-		expect(decos).toHaveLength(3);
+		// Header only: lineDeco + replace marker + fold chevron + mark title = 4
+		expect(decos).toHaveLength(4);
 	});
 
 	it('handles multiple callouts', () => {
 		const doc = 'text\n> [!note] A\n> body\n\n> [!warning] B';
 		const state = createState(doc, 0);
 		const decos = collectDecos(state);
-		// Callout 1: 3 (header) + 2 (content) = 5
-		// Callout 2: 3 (header only) = 3
-		// Total: 8
-		expect(decos).toHaveLength(8);
+		// Callout 1: 4 (header + chevron) + 2 (content) = 6
+		// Callout 2: 4 (header + chevron, no content) = 4
+		// Total: 10
+		expect(decos).toHaveLength(10);
 	});
 
 	it('does not match plain blockquotes as callouts', () => {
@@ -121,14 +121,27 @@ describe('calloutField', () => {
 		expect(decos).toHaveLength(8);
 	});
 
-	it('does not add fold widget for non-foldable callout', () => {
+	it('adds fold widget for every callout, foldable or not (Phase 17)', () => {
 		const doc = 'text\n> [!note] Title\n> content';
 		const state = createState(doc, 0);
 		const decos = collectDecos(state);
-		// Header: lineDeco + replace marker + mark title = 3 (no widget)
+		// Header: lineDeco + replace marker + fold chevron + mark title = 4
 		// Content: lineDeco + replace prefix = 2
-		// Total: 5
-		expect(decos).toHaveLength(5);
+		// Total: 6 (chevron now renders on every callout, even without +/- in source)
+		expect(decos).toHaveLength(6);
+	});
+
+	it('toggling fold on a non-foldable callout collapses via state, not source', () => {
+		const doc = 'text\n> [!note] Title\n> body1\n> body2';
+		const state = createState(doc, 0);
+		const before = collectDecos(state);
+		// Before: 4 (header+chevron) + 2*2 (content lines) = 8
+
+		// Toggle fold — defaultCollapsed is false for `note`, so after toggle it's collapsed
+		const toggled = state.update({ effects: toggleCalloutFold.of(2) });
+		const after = collectDecos(toggled.state);
+		// After: header unchanged (4) + 2*2 hidden content decos = 8
+		expect(after.length).toBe(before.length);
 	});
 
 	it('toggles fold state from expanded to collapsed', () => {

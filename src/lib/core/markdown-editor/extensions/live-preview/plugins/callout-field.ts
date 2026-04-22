@@ -53,18 +53,15 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			attributes: { style: `border-left-color: ${header.color}` },
 		});
 
-		// Determine fold state
-		const isFoldable = header.foldable !== null;
-		let isCollapsed = false;
-		if (isFoldable) {
-			if (foldedLines.has(callout.startLine)) {
-				// User toggled — inverted from default
-				isCollapsed = header.foldable === '+'; // default expanded, toggled = collapsed
-			} else {
-				// Default state
-				isCollapsed = header.foldable === '-';
-			}
-		}
+		// Fold state — every callout is toggleable from the UI, not just ones
+		// whose markdown source carries `+`/`-`. Default is expanded unless the
+		// source explicitly collapses via `-`; clicking the chevron toggles from
+		// there and the toggle persists via `calloutFoldState` without touching
+		// the markdown.
+		const defaultCollapsed = header.foldable === '-';
+		const isCollapsed = foldedLines.has(callout.startLine)
+			? !defaultCollapsed
+			: defaultCollapsed;
 
 		const markerCls = isTouched
 			? 'cm-formatting-block cm-formatting-block-visible'
@@ -75,8 +72,11 @@ export function computeCallouts(state: EditorState): DecorationSet {
 		builder.add(headerLine.from, headerLine.from, lineDeco);
 		builder.add(header.markerFrom, header.markerTo, Decoration.mark({ class: markerCls }));
 
-		// Add fold chevron widget after the marker (before title) — only when not editing
-		if (isFoldable && !isTouched) {
+		// Add fold chevron for every callout (not just those with explicit +/-
+		// in source) so collapse is a UI affordance, not a syntactic one.
+		// Skipped while the cursor is inside — otherwise the chevron would
+		// overlap the raw markdown being edited.
+		if (!isTouched) {
 			builder.add(
 				header.markerTo,
 				header.markerTo,
