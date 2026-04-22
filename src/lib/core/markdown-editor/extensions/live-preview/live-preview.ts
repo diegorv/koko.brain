@@ -13,23 +13,15 @@ import { metaBindButtonField } from './plugins/meta-bind-button-field';
 import { queryjsBlockField } from './plugins/queryjs-block-field';
 import { mermaidField } from './plugins/mermaid-field';
 import { blockMathField } from './plugins/block-math-field';
-import { simpleWidgetPlugin } from './plugins/simple-widget-plugin';
-import { inlineMarksPlugin } from './plugins/inline-marks-plugin';
-import { markdownStylePlugin } from './plugins/markdown-style-plugin';
-import { headingPlugin } from './plugins/heading-plugin';
-import { blockquotePlugin } from './plugins/blockquote-plugin';
-import { linkPlugin } from './plugins/link-plugin';
 import { imagePlugin } from './plugins/image-plugin';
 import { footnotePlugin } from './plugins/footnote-plugin';
 import { wikilinkEmbedPlugin } from './plugins/wikilink-embed-plugin';
 import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
-import { inlineCommentPlugin } from './plugins/inline-comment-plugin';
-import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
 import { pasteTsvHandler } from './core/paste-tsv-handler';
-import { newInlineExtensions as newInlinePipeline } from './new/new-inline-extensions';
+import { newInlineExtensions } from './new/new-inline-extensions';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 export { forceDecorationRebuild } from './core/effects';
@@ -43,47 +35,16 @@ function isDisabled(name: string): boolean {
 }
 
 /**
- * Legacy inline pipeline — the subset of inline plugins that ARE being
- * migrated to the unified pipeline in Phases 3–10. Replaced wholesale by
- * newInlineExtensions() when experimental.newLivePreview is on.
- *
- * Plugins that are NOT being migrated (image, footnote, wikilink-embed,
- * meta-bind input) live in sharedInlineExtensions() so they run on BOTH
- * paths — the unified plugin doesn't register handlers for their node
- * types, so there's no conflict.
- */
-export function legacyInlineExtensions(): Extension[] {
-	const exts: Extension[] = [];
-	if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
-	if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
-	if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
-	if (!isDisabled('heading')) { exts.push(headingPlugin); }
-	if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
-	if (!isDisabled('link')) { exts.push(linkPlugin); }
-	exts.push(inlineCommentPlugin, blockReferencePlugin);
-	return exts;
-}
-
-/**
- * Shared inline plugins — run regardless of experimental.newLivePreview.
- * These ViewPlugins iterate Lezer node types the unified plugin doesn't
- * claim (Image, FootnoteRef/FootnoteDef, WikilinkEmbed, MetaBindInput) so
- * they coexist cleanly with the new pipeline without double-decoration.
+ * Inline plugins that iterate Lezer node types the unified pipeline does not
+ * register handlers for (Image, FootnoteRef/FootnoteDef, WikilinkEmbed,
+ * MetaBindInput). They coexist with the unified plugin without double-decoration
+ * because the node-handler registry only fires for types registered by
+ * `PRODUCTION_INLINE_HANDLERS`.
  */
 export function sharedInlineExtensions(): Extension[] {
 	const exts: Extension[] = [imagePlugin, footnotePlugin, wikilinkEmbedPlugin];
 	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
 	return exts;
-}
-
-/**
- * New inline pipeline — unified HighlightStyle + inlineFormattingPlugin.
- * Delegates to new/new-inline-extensions.ts so the scaffolding lives next
- * to markdown-highlight-style.ts + inline-formatting-plugin.ts. Phases 3–10
- * fill the handler registry consumed by the plugin.
- */
-export function newInlineExtensions(): Extension[] {
-	return newInlinePipeline();
 }
 
 export function livePreviewExtensions(): Extension[] {
@@ -103,10 +64,8 @@ export function livePreviewExtensions(): Extension[] {
 	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
-	// Inline plugins — flag picks new vs legacy, plus always-on shared plugins
-	const useNew = settingsStore.experimental.newLivePreview;
-	exts.push(...(useNew ? newInlineExtensions() : legacyInlineExtensions()));
-	exts.push(...sharedInlineExtensions());
+	// Inline: unified pipeline (syntaxHighlighting + inlineFormattingPlugin) + shared plugins
+	exts.push(...newInlineExtensions(), ...sharedInlineExtensions());
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, pasteTsvHandler, livePreviewStyles);
