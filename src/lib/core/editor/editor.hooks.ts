@@ -1,4 +1,5 @@
 import type { EditorTab } from './editor.types';
+import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
@@ -7,6 +8,7 @@ import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { debug, error } from '$lib/utils/debug';
 
@@ -178,6 +180,18 @@ export function notifyAfterSave(filePath: string, content: string): void {
 		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
 	}
 
+	// Rust-side VaultIndex mirror: when any of the Rust migration flags is
+	// on, forward the save to `update_note_in_index` so the Rust index stays
+	// in sync. The Tauri command returns after mutating state + emitting
+	// `vault-index-updated`, which bumps vaultStore.vaultIndexVersion and
+	// re-triggers consumer panels. Fire-and-forget (fire-and-log) — a failed
+	// invoke must not block the rest of notifyAfterSave.
+	if (shouldUpdateRustIndex()) {
+		invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
+			error('HOOKS', 'update_note_in_index failed:', err);
+		});
+	}
+
 	invalidateQueryjsCache();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);
 	for (const observer of afterSaveObservers) {
@@ -187,6 +201,18 @@ export function notifyAfterSave(filePath: string, content: string): void {
 			error('HOOKS', 'afterSave observer error:', err);
 		}
 	}
+}
+
+/**
+ * True when any consumer that reads from the Rust VaultIndex is turned on —
+ * meaning saves must forward to the Rust side via update_note_in_index to
+ * keep the Rust index in sync with disk. Checked per save; adding a new
+ * experimental flag that relies on the Rust index should also be OR'd in
+ * here.
+ */
+function shouldUpdateRustIndex(): boolean {
+	const e = settingsStore.experimental;
+	return e.rustBacklinks || e.rustOutgoing || e.rustTagsAndTasks || e.rustProperties;
 }
 
 /** Removes all hooks and observers. Used in tests and teardown. */
