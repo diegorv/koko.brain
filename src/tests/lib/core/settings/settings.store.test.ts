@@ -200,6 +200,31 @@ describe('settingsStore', () => {
 			expect(settingsStore.perfBaseline).toBe(false);
 		});
 
+		it('experimental flags default to false', () => {
+			expect(settingsStore.experimental).toEqual({
+				rustBacklinks: false,
+				rustOutgoing: false,
+				rustTagsAndTasks: false,
+				rustProperties: false,
+				gitHashCache: false,
+				legacyWatcher: false,
+				legacyTsIndexers: false,
+			});
+		});
+
+		it('updateExperimental merges with existing values', () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			expect(settingsStore.experimental.rustBacklinks).toBe(true);
+			expect(settingsStore.experimental.rustOutgoing).toBe(false);
+
+			settingsStore.updateExperimental({ rustOutgoing: true });
+			expect(settingsStore.experimental.rustBacklinks).toBe(true);
+			expect(settingsStore.experimental.rustOutgoing).toBe(true);
+
+			settingsStore.reset();
+			expect(settingsStore.experimental.rustBacklinks).toBe(false);
+		});
+
 		it('tagColors starts with empty colors map', () => {
 			expect(settingsStore.tagColors).toEqual({ colors: {} });
 		});
