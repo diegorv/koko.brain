@@ -9,3 +9,14 @@
 pub mod entry;
 pub mod index;
 pub mod parsing;
+
+use std::sync::RwLock;
+
+/// Tauri managed-state wrapper for the singleton `VaultIndex`. Held inside
+/// an `RwLock` so reads (`get_backlinks_v2`, `get_outgoing_links_v2`, etc.)
+/// can execute in parallel while writes (`scan_vault_v2`,
+/// `update_note_in_index`) briefly take the exclusive lock.
+///
+/// Command handlers receive it as `State<'_, VaultIndexState>` and call
+/// `.read()` / `.write()` at the top of the handler.
+pub type VaultIndexState = RwLock<index::VaultIndex>;
