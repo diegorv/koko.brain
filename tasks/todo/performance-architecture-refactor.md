@@ -24,7 +24,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 2 — Rust Backlinks Index (parallel)
 
-- [ ] **2.1** `src-tauri/src/index/mod.rs`: `VaultIndex { entries, by_path, backlinks, version }`.
+- [x] **2.1** `src-tauri/src/vault/index.rs` (moved from `src-tauri/src/index/` — staying under the `vault/` module to keep related code together): `VaultIndex { entries, by_path, backlinks, version }` with private fields + getter-only access (no drift between entries and reverse index).
 - [ ] **2.2** `VaultIndex::build(entries)` computing reverse index with same resolution rules as TS `resolveWikilink` (filename, title, aliases, path suffix).
 - [ ] **2.3** Wire `VaultIndex` into Tauri managed state (`RwLock<VaultIndex>`). Initialize on `scan_vault_v2`.
 - [ ] **2.4** `#[tauri::command] get_backlinks_v2(path)` → `Vec<NoteEntry>`.
