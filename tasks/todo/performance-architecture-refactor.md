@@ -33,7 +33,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 3 — Migrate Backlinks Consumers
 
-- [ ] **3.1** Add `experimental` nested settings group. Flag `experimental.rustBacklinks` default `false`.
+- [x] **3.1** Added `ExperimentalSettings` group on `AppSettings` with `rustBacklinks`, `rustOutgoing`, `rustTagsAndTasks`, `rustProperties`, `gitHashCache`, `legacyWatcher`, `legacyTsIndexers` — all default `false`. Persistence wired via `settings.service.ts`. Store exposes `settingsStore.experimental` getter + `updateExperimental` partial setter.
 - [ ] **3.2** Add `vaultStore.vaultIndexVersion` + global `listen('vault-index-updated')`.
 - [ ] **3.3** Branch `active-tab-tracker.service.ts` on the flag.
 - [ ] **3.4** Migrate Backlinks Panel to consumer pattern.

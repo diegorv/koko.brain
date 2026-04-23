@@ -183,6 +183,53 @@ export interface TagColorSettings {
 	colors: Record<string, string>;
 }
 
+/**
+ * Opt-in toggles for the performance refactor (ADR 0025).
+ *
+ * Each flag swaps a consumer path from the TS-side index to the Rust-side
+ * VaultIndex. Flags are rolled out per phase and removed after validation;
+ * `legacyWatcher` / `legacyTsIndexers` are the reverse — temporary escape
+ * hatches kept around the last two phases in case a regression surfaces.
+ */
+export interface ExperimentalSettings {
+	/**
+	 * Phase 3: Source backlinks from Rust `get_backlinks_v2` instead of the
+	 * TS reverse index. Enables the `vault-index-updated` listener +
+	 * consumer-panel pattern for the Backlinks Panel.
+	 */
+	rustBacklinks: boolean;
+	/**
+	 * Phase 6: Source outgoing links + unlinked mentions from Rust.
+	 */
+	rustOutgoing: boolean;
+	/**
+	 * Phase 7: Source tag + task indexes and their mutations from Rust.
+	 */
+	rustTagsAndTasks: boolean;
+	/**
+	 * Phase 8: Source frontmatter / property queries and mutations (and
+	 * file create/rename/delete operations) from Rust.
+	 */
+	rustProperties: boolean;
+	/**
+	 * Phase 10: Persist the VaultIndex keyed by git commit hash for
+	 * instant vault reopens.
+	 */
+	gitHashCache: boolean;
+	/**
+	 * Phase 9 (rollback): Fall back to the legacy TS-side file watcher
+	 * instead of the native Rust `notify`-based watcher. Temporary — will
+	 * be removed once the new watcher is validated.
+	 */
+	legacyWatcher: boolean;
+	/**
+	 * Phase 11 (rollback): Keep the legacy TS indexers alive alongside
+	 * the Rust VaultIndex. Temporary — will be removed after a stable
+	 * validation period.
+	 */
+	legacyTsIndexers: boolean;
+}
+
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'update';
 
@@ -222,4 +269,6 @@ export interface AppSettings {
 	disabledDecorators: Record<string, boolean>;
 	/** Tag color assignments (persisted per-vault) */
 	tagColors: TagColorSettings;
+	/** Feature flags gating the incremental performance refactor (ADR 0025) */
+	experimental: ExperimentalSettings;
 }
