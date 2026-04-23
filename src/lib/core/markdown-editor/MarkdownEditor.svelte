@@ -213,6 +213,8 @@
 		untrack(() => {
 			if (!view || path === lastTabPath || !path) return;
 
+			const tTabSwitch = perfStart();
+
 			// Detect rename: the old path no longer exists in tabs but the CM doc
 			// matches the new tab content — this is a path change, not a tab switch.
 			// Migrate view state to the new path and skip the doc replace / scroll reset.
@@ -229,6 +231,7 @@
 					}
 					deleteTabViewState(lastTabPath);
 					lastTabPath = path;
+					perfEnd('TAB_SWITCH', 'tabSwitchEffect:renameShortcut', tTabSwitch);
 					return;
 				}
 			}
@@ -287,6 +290,7 @@
 					const t1 = perfStart();
 					view?.dispatch({ effects: forceDecorationRebuild.of(null) });
 					perfEnd('TAB_SWITCH', 'decorationRebuild', t1);
+					perfEnd('TAB_SWITCH', 'tabSwitchEffect:total', tTabSwitch);
 				});
 			});
 
@@ -324,6 +328,7 @@
 		untrack(() => {
 			if (!view || content === undefined) return;
 
+			const tSync = perfStart();
 			const currentDoc = view.state.doc.toString();
 			if (content !== currentDoc) {
 				const cursorPos = Math.min(view.state.selection.main.head, content.length);
@@ -332,6 +337,9 @@
 					selection: EditorSelection.cursor(cursorPos),
 					annotations: Transaction.addToHistory.of(false),
 				});
+				perfEnd('CONTENT_SYNC', 'externalSync:dispatched', tSync, `chars=${content.length}`);
+			} else {
+				perfEnd('CONTENT_SYNC', 'externalSync:noop', tSync, `chars=${content.length}`);
 			}
 		});
 	});

@@ -8,7 +8,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 0 — Measurement Baseline
 
-- [ ] **0.1** Add `perfStart` / `perfEnd` probes around `openFileInEditor`, `closeTab`, `switchTab` (tab-switch effect in `MarkdownEditor.svelte`), `updateActiveTabLinks`, `updateIndexesForFile`, and the content-sync `$effect`. Emit via `appendLog('PERF-BASELINE', …)`.
+- [x] **0.1** Add `perfStart` / `perfEnd` probes around `openFileInEditor`, `closeTab`, `switchTab` (tab-switch effect in `MarkdownEditor.svelte`), `updateActiveTabLinks`, `updateIndexesForFile`, and the content-sync `$effect`. Emit via `appendLog('PERF-BASELINE', …)`.
 - [ ] **0.2** Add `scripts/perf-baseline.sh` that runs a reproducible E2E sequence (open 10 files, switch 20×, close 5, type 500 chars, save) and extracts median timings from the session log.
 - [ ] **0.3** Record baseline on the real vault. Commit to `docs/perf/baseline-<date>.md`.
 - [ ] **0.4** Add ADR `docs/adr/0018-performance-refactor.md` documenting this plan at a high level. Link from `CLAUDE.md`.

@@ -103,6 +103,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	debugLogToFile: false,
 	debugTauriLogToFile: false,
 	livePreviewProfiling: false,
+	perfBaseline: false,
 	disabledDecorators: {},
 	tagColors: {
 		colors: {},
@@ -132,6 +133,7 @@ export const settingsStore = {
 	get debugLogToFile() { return settings.debugLogToFile; },
 	get debugTauriLogToFile() { return settings.debugTauriLogToFile; },
 	get livePreviewProfiling() { return settings.livePreviewProfiling; },
+	get perfBaseline() { return settings.perfBaseline; },
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
 
@@ -276,6 +278,11 @@ export const settingsStore = {
 	/** Updates the live preview profiling flag */
 	updateLivePreviewProfiling(value: boolean) {
 		settings = { ...settings, livePreviewProfiling: value };
+	},
+
+	/** Updates the perf baseline flag — when true, perfStart/perfEnd also emit to the PERF-BASELINE tag */
+	updatePerfBaseline(value: boolean) {
+		settings = { ...settings, perfBaseline: value };
 	},
 
 	/** Toggles a specific live preview decorator on/off */

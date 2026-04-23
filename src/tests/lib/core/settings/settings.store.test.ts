@@ -192,6 +192,14 @@ describe('settingsStore', () => {
 			expect(settingsStore.debugTauriLogToFile).toBe(false);
 		});
 
+		it('updatePerfBaseline sets the flag', () => {
+			expect(settingsStore.perfBaseline).toBe(false);
+			settingsStore.updatePerfBaseline(true);
+			expect(settingsStore.perfBaseline).toBe(true);
+			settingsStore.updatePerfBaseline(false);
+			expect(settingsStore.perfBaseline).toBe(false);
+		});
+
 		it('tagColors starts with empty colors map', () => {
 			expect(settingsStore.tagColors).toEqual({ colors: {} });
 		});

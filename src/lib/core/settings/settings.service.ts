@@ -128,6 +128,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			debugLogToFile: parsed.debugLogToFile ?? DEFAULT_SETTINGS.debugLogToFile,
 			debugTauriLogToFile: parsed.debugTauriLogToFile ?? DEFAULT_SETTINGS.debugTauriLogToFile,
 			livePreviewProfiling: parsed.livePreviewProfiling ?? DEFAULT_SETTINGS.livePreviewProfiling,
+			perfBaseline: parsed.perfBaseline ?? DEFAULT_SETTINGS.perfBaseline,
 			disabledDecorators: {
 				...DEFAULT_SETTINGS.disabledDecorators,
 				...parsed.disabledDecorators,

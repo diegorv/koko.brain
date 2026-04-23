@@ -15,7 +15,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { debug, error, logProcessMemory, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
+import { debug, error, logProcessMemory, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
 
 describe('debug', () => {
@@ -245,6 +245,101 @@ describe('timeSync', () => {
 	it('does not log when debug mode is disabled', () => {
 		timeSync('TEST', 'op', () => null);
 
+		expect(consoleSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('perfStart / perfEnd', () => {
+	let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		settingsStore.reset();
+		vi.mocked(appendLog).mockClear();
+	});
+
+	afterEach(() => {
+		consoleSpy.mockRestore();
+	});
+
+	it('returns 0 and emits nothing when all flags are off', () => {
+		const t = perfStart();
+		expect(t).toBe(0);
+
+		perfEnd('TEST', 'op', t);
+		expect(appendLog).not.toHaveBeenCalled();
+		expect(consoleSpy).not.toHaveBeenCalled();
+	});
+
+	it('returns a non-zero timestamp when perfBaseline is on', () => {
+		settingsStore.updatePerfBaseline(true);
+		const t = perfStart();
+		expect(t).toBeGreaterThan(0);
+	});
+
+	it('emits to PERF-BASELINE tag when perfBaseline is on', () => {
+		settingsStore.updatePerfBaseline(true);
+		const t = perfStart();
+		perfEnd('EDITOR', 'openFileInEditor', t);
+
+		expect(appendLog).toHaveBeenCalledWith(
+			'PERF-BASELINE',
+			expect.stringMatching(/^EDITOR openFileInEditor: \d+(\.\d+)?ms$/),
+		);
+	});
+
+	it('appends meta suffix to the PERF-BASELINE line when provided', () => {
+		settingsStore.updatePerfBaseline(true);
+		const t = perfStart();
+		perfEnd('EDITOR', 'openFileInEditor', t, 'chars=1234');
+
+		expect(appendLog).toHaveBeenCalledWith(
+			'PERF-BASELINE',
+			expect.stringMatching(/^EDITOR openFileInEditor: \d+(\.\d+)?ms chars=1234$/),
+		);
+	});
+
+	it('also emits via debug() when debugMode is on alongside perfBaseline', () => {
+		settingsStore.updateDebugMode(true);
+		settingsStore.updatePerfBaseline(true);
+		const t = perfStart();
+		perfEnd('EDITOR', 'closeTab', t);
+
+		expect(appendLog).toHaveBeenCalledWith(
+			'PERF-BASELINE',
+			expect.stringMatching(/^EDITOR closeTab: \d+(\.\d+)?ms$/),
+		);
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining('[FRONT-END:EDITOR]'),
+			expect.stringMatching(/^closeTab: \d+(\.\d+)?ms$/),
+		);
+	});
+
+	it('emits via debug() but NOT to PERF-BASELINE when only debugMode is on', () => {
+		settingsStore.updateDebugMode(true);
+		const t = perfStart();
+		perfEnd('TAG_INDEX', 'buildIndex', t);
+
+		expect(appendLog).not.toHaveBeenCalledWith(
+			'PERF-BASELINE',
+			expect.anything(),
+		);
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining('[FRONT-END:TAG_INDEX]'),
+			expect.stringMatching(/^buildIndex: \d+(\.\d+)?ms$/),
+		);
+	});
+
+	it('skips entirely when start is 0 even if a flag flipped on after perfStart', () => {
+		// perfStart returned 0 (flags off). Even if perfBaseline flips on before
+		// perfEnd, we should still skip — we have no valid start timestamp.
+		const t = perfStart();
+		expect(t).toBe(0);
+
+		settingsStore.updatePerfBaseline(true);
+		perfEnd('EDITOR', 'op', t);
+
+		expect(appendLog).not.toHaveBeenCalled();
 		expect(consoleSpy).not.toHaveBeenCalled();
 	});
 });

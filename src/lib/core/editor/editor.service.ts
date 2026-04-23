@@ -17,6 +17,7 @@ import { appendLog } from '$lib/utils/log.service';
  * Otherwise reads the file from disk and creates a new tab.
  */
 export async function openFileInEditor(filePath: string) {
+	const t0 = perfStart();
 	// [FE-STARTUP-PROBE]
 	const probeStart = performance.now();
 	appendLog('FE-STARTUP-PROBE', `openFileInEditor: ENTRY path=${filePath}`);
@@ -26,6 +27,7 @@ export async function openFileInEditor(filePath: string) {
 		editorStore.setActiveIndex(existingIndex);
 		fsStore.setSelectedFilePath(filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: tab already open @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		perfEnd('EDITOR', 'openFileInEditor:alreadyOpen', t0);
 		return;
 	}
 
@@ -48,6 +50,7 @@ export async function openFileInEditor(filePath: string) {
 		if (raceIndex >= 0) {
 			editorStore.setActiveIndex(raceIndex);
 			fsStore.setSelectedFilePath(filePath);
+			perfEnd('EDITOR', 'openFileInEditor:raceResolved', t0);
 			return;
 		}
 
@@ -60,6 +63,7 @@ export async function openFileInEditor(filePath: string) {
 		fsStore.setSelectedFilePath(filePath);
 		debug('EDITOR', 'opened file:', filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		perfEnd('EDITOR', 'openFileInEditor:fresh', t0, `chars=${content.length}`);
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
 		if (msg === 'canceled') return; // Touch ID dismissed — silent
@@ -172,6 +176,7 @@ export async function closeTab(index: number) {
 	if (isTabPinned(tab)) return;
 
 	const tabPath = tab.path;
+	const t0 = perfStart();
 
 	if (!isVirtualTab(tab)) {
 		if (isTabDirty(tab)) {
@@ -193,6 +198,7 @@ export async function closeTab(index: number) {
 
 	const newActive = editorStore.activeTab;
 	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
+	perfEnd('EDITOR', 'closeTab', t0);
 }
 
 /** Convenience: closes whichever tab is currently focused */

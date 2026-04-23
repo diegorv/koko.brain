@@ -216,6 +216,8 @@ export interface AppSettings {
 	debugTauriLogToFile: boolean;
 	/** Whether live preview decoration plugin timing is logged (LP-PROFILE entries) */
 	livePreviewProfiling: boolean;
+	/** Whether perf baseline probes (hot-path timings) are emitted to the PERF-BASELINE tag */
+	perfBaseline: boolean;
 	/** Live preview decorators that are disabled (keyed by decorator name) */
 	disabledDecorators: Record<string, boolean>;
 	/** Tag color assignments (persisted per-vault) */

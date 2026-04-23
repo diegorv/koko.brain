@@ -66,18 +66,30 @@ export function timeSync<T>(
 // --- Inline perf markers ---
 
 /** Starts a performance measurement. Returns the start timestamp.
- *  Returns 0 when debug mode is disabled (zero overhead). */
+ *  Returns 0 when both debug modes and perf baseline are disabled (zero overhead). */
 export function perfStart(): number {
-	if (!settingsStore.debugMode && !settingsStore.debugLogToFile) return 0;
+	if (!settingsStore.debugMode && !settingsStore.debugLogToFile && !settingsStore.perfBaseline) return 0;
 	return performance.now();
 }
 
-/** Ends a performance measurement and logs the elapsed time via debug().
- *  Skips if debug mode is disabled (start === 0). */
-export function perfEnd(tag: string, label: string, start: number): void {
+/** Ends a performance measurement and logs the elapsed time.
+ *  Routing rules:
+ *    - When `perfBaseline` is on: emits a line to the PERF-BASELINE tag (always
+ *      written to the session log file, independent of debug flags). This is the
+ *      channel the baseline extraction script consumes.
+ *    - When `debugMode` or `debugLogToFile` is on: also emits via debug() under
+ *      the FRONT-END:<tag> namespace.
+ *  Skips entirely if `perfStart` returned 0 (all flags off). */
+export function perfEnd(tag: string, label: string, start: number, meta?: string): void {
 	if (start === 0) return;
 	const elapsed = (performance.now() - start).toFixed(1);
-	debug(tag, `${label}: ${elapsed}ms`);
+	const suffix = meta ? ` ${meta}` : '';
+	if (settingsStore.perfBaseline) {
+		appendLog('PERF-BASELINE', `${tag} ${label}: ${elapsed}ms${suffix}`);
+	}
+	if (settingsStore.debugMode || settingsStore.debugLogToFile) {
+		debug(tag, `${label}: ${elapsed}ms${suffix}`);
+	}
 }
 
 // --- Tauri debug log forwarding ---
