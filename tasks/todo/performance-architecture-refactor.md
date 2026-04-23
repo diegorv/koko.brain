@@ -29,7 +29,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 - [x] **2.3** Wire `VaultIndex` into Tauri managed state (`RwLock<VaultIndex>`) via `VaultIndexState` alias in `vault/mod.rs`. `scan_vault_v2` takes `State<'_, VaultIndexState>` and calls `idx.build(...)` after collecting entries.
 - [x] **2.4** `#[tauri::command] get_backlinks_v2(path)` → `Vec<NoteEntry>`. Sorts results by title for stable UI ordering; filters out entries whose paths are missing from the index (defensive, should not happen in normal operation).
 - [x] **2.5** `VaultIndex::update_entry` returning `UpdateResult { changed, affected, version }`. Diffs outgoing links vs previous entry state; adds/removes source from target backlinks sets; cleans up empty sets. Self-links filtered.
-- [ ] **2.6** `#[tauri::command] update_note_in_index(path, content)` → parse + update_entry + emit `vault-index-updated`.
+- [x] **2.6** `#[tauri::command] update_note_in_index(path, content)` → parses via Phase 1 extractors, calls `update_entry`, emits `vault-index-updated` carrying the `UpdateResult`. Reads mtime from disk at call time; failed emits are logged but don't fail the mutation (already committed under the write lock). Event name exported as `VAULT_INDEX_UPDATED_EVENT` constant.
 
 ### Phase 3 — Migrate Backlinks Consumers
 

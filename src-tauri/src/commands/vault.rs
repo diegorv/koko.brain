@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
@@ -169,6 +169,57 @@ pub fn scan_vault_v2(
 		),
 	);
 	Ok(entries)
+}
+
+/// Name of the Tauri event emitted by `update_note_in_index` (and, later,
+/// by watcher-driven updaters in Phase 9). All consumer panels in the
+/// frontend listen on this single channel and re-invoke their read
+/// command on receipt — see the consumer panel pattern in ADR 0025.
+pub const VAULT_INDEX_UPDATED_EVENT: &str = "vault-index-updated";
+
+/// Parses the supplied content into a `NoteEntry` (via Phase 1 extractors),
+/// inserts or replaces it in the managed `VaultIndex` (via Phase 2.5's
+/// `update_entry`), and emits `vault-index-updated` carrying the
+/// `UpdateResult`. Intended to be called by the frontend editor service
+/// on save, not on every keystroke.
+///
+/// The note's mtime is read from disk at call time so the entry carries a
+/// fresh timestamp; if the stat fails (e.g. the save completes after this
+/// call), `modified_at` falls back to `None`.
+#[tauri::command]
+pub fn update_note_in_index(
+	path: String,
+	content: String,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	let modified_at = fs::metadata(&path)
+		.ok()
+		.and_then(|m| m.modified().ok())
+		.and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+		.and_then(|d| u64::try_from(d.as_millis()).ok());
+
+	let entry = NoteEntry::from_content(&path, &content, modified_at);
+
+	let result = {
+		let mut idx = index_state
+			.write()
+			.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+		idx.update_entry(entry)
+	};
+
+	// Emit to the frontend so every consumer panel re-fetches against the
+	// latest VaultIndex revision. Emit errors are logged but not returned —
+	// a failed emit should not fail the index mutation (which already
+	// succeeded inside the write lock).
+	if let Err(err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log(
+			"VAULT",
+			format!("update_note_in_index: emit failed ({})", err),
+		);
+	}
+
+	Ok(result)
 }
 
 /// Returns every note that wikilinks to `path`, sorted by title for stable UI
