@@ -12,6 +12,7 @@
 //! directly without a per-field rename, matching the existing `FileNode`
 //! convention in `commands::vault`.
 
+use crate::vault::parsing;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -58,6 +59,97 @@ pub struct NoteEntry {
 	/// Up-to-~200-char preview of the note body (whitespace collapsed).
 	/// For quick-switcher previews and search-result teasers.
 	pub snippet: String,
+}
+
+/// Maximum character count stored in `NoteEntry.snippet`. Tuned for quick-
+/// switcher previews where ~200 chars fits two lines at typical widths.
+pub const SNIPPET_MAX_CHARS: usize = 200;
+
+impl NoteEntry {
+	/// Builds a `NoteEntry` from raw note content plus mtime. Invokes every
+	/// parser in `vault::parsing`, so the returned entry is fully populated
+	/// and ready to sit inside `VaultIndex`. Never panics — malformed YAML
+	/// frontmatter degrades to an empty map, invalid UTF-8 bytes upstream are
+	/// the caller's concern (this function takes &str).
+	pub fn from_content(path: &str, content: &str, modified_at: Option<u64>) -> Self {
+		let frontmatter = parsing::parse_frontmatter(content);
+		let title = resolve_title(path, &frontmatter);
+		let outgoing_links = parsing::extract_outgoing_links(content);
+		let tags = parsing::extract_tags(content);
+		let word_count = count_body_words(content);
+		let snippet = make_snippet(content, SNIPPET_MAX_CHARS);
+		Self {
+			path: path.to_string(),
+			title,
+			frontmatter,
+			outgoing_links,
+			tags,
+			modified_at,
+			word_count,
+			snippet,
+		}
+	}
+}
+
+/// Title resolution: a string `title` in frontmatter wins; otherwise the
+/// filename stem (path's last `/`-separated segment with `.md` / `.markdown`
+/// stripped). Numbers / booleans in `title` are coerced to their string
+/// representation so a valid non-string frontmatter title still produces a
+/// non-empty title. Null / array / object frontmatter titles fall through to
+/// the filename.
+pub fn resolve_title(path: &str, frontmatter: &HashMap<String, Value>) -> String {
+	if let Some(v) = frontmatter.get("title") {
+		match v {
+			Value::String(s) if !s.is_empty() => return s.clone(),
+			Value::Number(n) => return n.to_string(),
+			Value::Bool(b) => return b.to_string(),
+			_ => {}
+		}
+	}
+	filename_stem(path)
+}
+
+fn filename_stem(path: &str) -> String {
+	let name = path.rsplit(&['/', '\\'][..]).next().unwrap_or(path);
+	name.strip_suffix(".md")
+		.or_else(|| name.strip_suffix(".markdown"))
+		.unwrap_or(name)
+		.to_string()
+}
+
+/// Counts body words (whitespace-separated runs) with frontmatter and fenced
+/// code blocks stripped. Uses `strip_non_body_content` so positions are not
+/// shifted — consistent with how the rest of the parsing module treats "the
+/// body".
+pub fn count_body_words(content: &str) -> usize {
+	let body = parsing::strip_non_body_content(content);
+	body.split_whitespace().count()
+}
+
+/// Builds a short preview of the note body. Strips frontmatter and fenced
+/// code blocks via `strip_non_body_content`, collapses every whitespace run
+/// into a single space, trims, and truncates to at most `max_chars`
+/// characters (NOT bytes — matches the CJK-safe truncation done in the
+/// semantic chunker).
+pub fn make_snippet(content: &str, max_chars: usize) -> String {
+	let body = parsing::strip_non_body_content(content);
+	let mut out = String::with_capacity(max_chars.min(body.len()));
+	let mut last_was_space = true;
+	for c in body.chars() {
+		if c.is_whitespace() {
+			if !last_was_space {
+				out.push(' ');
+				last_was_space = true;
+			}
+		} else {
+			out.push(c);
+			last_was_space = false;
+		}
+		if out.chars().count() >= max_chars {
+			break;
+		}
+	}
+	out.trim().to_string()
 }
 
 #[cfg(test)]
@@ -123,6 +215,96 @@ mod tests {
 		let json = serde_json::to_string(&entry).expect("to_string");
 		let round: NoteEntry = serde_json::from_str(&json).expect("from_str");
 		assert_eq!(round, entry);
+	}
+
+	#[test]
+	fn from_content_populates_every_field() {
+		let content = concat!(
+			"---\n",
+			"title: Alpha\n",
+			"tags: [work, status/active]\n",
+			"priority: 3\n",
+			"---\n",
+			"# Heading\n",
+			"\n",
+			"See [[Beta]] and #focus. Some body text with enough words to count.\n",
+		);
+		let entry = NoteEntry::from_content("/vault/alpha.md", content, Some(42));
+		assert_eq!(entry.path, "/vault/alpha.md");
+		assert_eq!(entry.title, "Alpha");
+		assert_eq!(entry.modified_at, Some(42));
+		assert_eq!(entry.outgoing_links, vec!["Beta"]);
+		assert!(entry.tags.contains(&"work".to_string()));
+		assert!(entry.tags.contains(&"status/active".to_string()));
+		assert!(entry.tags.contains(&"focus".to_string()));
+		assert_eq!(entry.frontmatter["priority"], Value::Number(3i64.into()));
+		assert!(entry.word_count > 0);
+		assert!(!entry.snippet.is_empty());
+		assert!(entry.snippet.contains("Heading") || entry.snippet.contains("body"));
+	}
+
+	#[test]
+	fn from_content_falls_back_to_filename_title() {
+		let entry = NoteEntry::from_content("/vault/subdir/my-note.md", "no frontmatter", Some(1));
+		assert_eq!(entry.title, "my-note");
+	}
+
+	#[test]
+	fn resolve_title_coerces_number_and_bool_frontmatter_values() {
+		let mut fm = HashMap::new();
+		fm.insert("title".to_string(), Value::Number(42i64.into()));
+		assert_eq!(resolve_title("/vault/x.md", &fm), "42");
+
+		let mut fm = HashMap::new();
+		fm.insert("title".to_string(), Value::Bool(true));
+		assert_eq!(resolve_title("/vault/x.md", &fm), "true");
+	}
+
+	#[test]
+	fn resolve_title_falls_back_on_null_or_array() {
+		let mut fm = HashMap::new();
+		fm.insert("title".to_string(), Value::Null);
+		assert_eq!(resolve_title("/vault/x.md", &fm), "x");
+
+		let mut fm = HashMap::new();
+		fm.insert("title".to_string(), Value::Array(vec![]));
+		assert_eq!(resolve_title("/vault/x.md", &fm), "x");
+	}
+
+	#[test]
+	fn filename_stem_strips_extensions() {
+		assert_eq!(filename_stem("/a/b/note.md"), "note");
+		assert_eq!(filename_stem("/a/b/note.markdown"), "note");
+		assert_eq!(filename_stem("note.md"), "note");
+		assert_eq!(filename_stem("/a/no-ext"), "no-ext");
+	}
+
+	#[test]
+	fn count_body_words_excludes_frontmatter_and_code() {
+		let content = "---\ntitle: x\n---\none two three\n```\nfour five\n```\nsix";
+		assert_eq!(count_body_words(content), 4);
+	}
+
+	#[test]
+	fn make_snippet_collapses_whitespace_and_truncates() {
+		let content = "   alpha\n\n\nbeta   gamma   ";
+		let snip = make_snippet(content, 100);
+		assert_eq!(snip, "alpha beta gamma");
+	}
+
+	#[test]
+	fn make_snippet_truncates_at_char_count_not_bytes() {
+		// Each emoji is 4 bytes. 10 chars = 40 bytes; make_snippet must count chars.
+		let content = "🔐🔑🗝️🔒🔓🛡️🏰🗡️🛠️🔧🧿";
+		let snip = make_snippet(content, 5);
+		assert!(snip.chars().count() <= 5);
+	}
+
+	#[test]
+	fn make_snippet_strips_frontmatter_and_code_fences() {
+		let content = "---\ntitle: x\n---\n```\ncode here\n```\n\nactual body";
+		let snip = make_snippet(content, 100);
+		assert_eq!(snip, "actual body");
 	}
 
 	#[test]

@@ -37,36 +37,36 @@ pub fn strip_non_body_content(content: &str) -> String {
 	}
 
 	// --- Fenced code blocks ---
+	// Match any ``` … ``` pair (3+ backticks), independent of line position — mirrors
+	// the TS regex `/```[\s\S]*?```/g`. A line-start anchor was rejected because the
+	// frontmatter strip above replaces newlines with spaces, so scanners that depend
+	// on `\n` boundaries post-frontmatter would miss the first fence after a
+	// frontmatter block.
 	let mut i = 0;
 	while i < out.len() {
 		if out[i] == b'`' {
-			// Fence = run of 3+ backticks starting on a line (preceded by \n or at offset 0)
-			let is_line_start = i == 0 || out[i - 1] == b'\n';
-			if is_line_start {
-				let fence_start = i;
-				let mut j = i;
-				while j < out.len() && out[j] == b'`' {
-					j += 1;
-				}
-				let fence_len = j - fence_start;
-				if fence_len >= 3 {
-					// Find a matching closing fence (>= fence_len backticks on a line start)
-					if let Some(close_start) = find_matching_fence(&out, j, fence_len) {
-						let close_end = close_start
-							+ out[close_start..]
-								.iter()
-								.take_while(|&&b| b == b'`')
-								.count();
-						for byte in out.iter_mut().take(close_end).skip(fence_start) {
-							*byte = b' ';
-						}
-						i = close_end;
-						continue;
-					}
-				}
-				i = j;
-				continue;
+			let fence_start = i;
+			let mut j = i;
+			while j < out.len() && out[j] == b'`' {
+				j += 1;
 			}
+			let fence_len = j - fence_start;
+			if fence_len >= 3 {
+				if let Some(close_start) = find_matching_backtick_run(&out, j, fence_len) {
+					let close_end = close_start
+						+ out[close_start..]
+							.iter()
+							.take_while(|&&b| b == b'`')
+							.count();
+					for byte in out.iter_mut().take(close_end).skip(fence_start) {
+						*byte = b' ';
+					}
+					i = close_end;
+					continue;
+				}
+			}
+			i = j;
+			continue;
 		}
 		i += 1;
 	}
@@ -104,23 +104,12 @@ fn find_frontmatter_end(content: &str) -> Option<usize> {
 	None
 }
 
-fn find_matching_fence(bytes: &[u8], start: usize, min_len: usize) -> Option<usize> {
+/// Finds the next run of `>= min_len` consecutive backticks starting at or
+/// after `start`. Used to close a fence match in `strip_non_body_content`.
+fn find_matching_backtick_run(bytes: &[u8], start: usize, min_len: usize) -> Option<usize> {
 	let mut i = start;
 	while i < bytes.len() {
-		// Advance to next line start
-		if i > start && bytes[i - 1] != b'\n' {
-			// Skip to the next newline
-			while i < bytes.len() && bytes[i] != b'\n' {
-				i += 1;
-			}
-			if i >= bytes.len() {
-				return None;
-			}
-			i += 1;
-			continue;
-		}
-		// At a line start — check for a fence
-		if i < bytes.len() && bytes[i] == b'`' {
+		if bytes[i] == b'`' {
 			let run_start = i;
 			let mut j = i;
 			while j < bytes.len() && bytes[j] == b'`' {
@@ -130,13 +119,7 @@ fn find_matching_fence(bytes: &[u8], start: usize, min_len: usize) -> Option<usi
 				return Some(run_start);
 			}
 			i = j;
-			continue;
-		}
-		// Not a fence — advance to next line
-		while i < bytes.len() && bytes[i] != b'\n' {
-			i += 1;
-		}
-		if i < bytes.len() {
+		} else {
 			i += 1;
 		}
 	}

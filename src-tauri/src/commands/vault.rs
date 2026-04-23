@@ -1,5 +1,6 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
+use crate::vault::entry::NoteEntry;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
@@ -98,6 +99,59 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
 
     sort_nodes(&mut nodes, sort_by);
     Ok(nodes)
+}
+
+/// Scans a vault and returns one enriched `NoteEntry` per markdown note.
+///
+/// For each `.md` / `.markdown` file: reads content, parses frontmatter,
+/// extracts wikilinks + tags, counts words, and builds a snippet. Individual
+/// file-read failures are logged and skipped so one unreadable note never
+/// aborts the whole scan. The returned list is in the order the walker
+/// produces (depth-first, dirs-first per level) — callers that need a
+/// specific order should sort the result.
+///
+/// This is the Phase-1 additive sibling of `scan_vault`. It does not yet
+/// feed into any UI consumer — Phase 2 builds `VaultIndex` on top of this
+/// and Phase 3+ migrates the backlink / tag / collection panels. See
+/// ADR 0025.
+#[tauri::command]
+pub fn scan_vault_v2(vault_path: String) -> Result<Vec<NoteEntry>, String> {
+	let start = std::time::Instant::now();
+	debug_log("VAULT", format!("scan_vault_v2: {}", vault_path));
+	let root = vault_fs::validate_vault_path(&vault_path)?;
+	let files = vault_fs::collect_markdown_paths_with_mtime(&root, &[])?;
+	let total = files.len();
+
+	let mut entries = Vec::with_capacity(total);
+	let mut read_failures = 0usize;
+
+	for (_rel, abs, mtime_secs) in files {
+		let content = match fs::read_to_string(&abs) {
+			Ok(c) => c,
+			Err(err) => {
+				debug_log(
+					"VAULT",
+					format!("scan_vault_v2: skipped {} ({})", abs.display(), err),
+				);
+				read_failures += 1;
+				continue;
+			}
+		};
+		let modified_at = u64::try_from(mtime_secs.saturating_mul(1_000)).ok();
+		let path_str = abs.to_string_lossy().to_string();
+		entries.push(NoteEntry::from_content(&path_str, &content, modified_at));
+	}
+
+	debug_log(
+		"VAULT",
+		format!(
+			"scan_vault_v2: {} entries ({} read failures) in {}ms",
+			entries.len(),
+			read_failures,
+			start.elapsed().as_millis()
+		),
+	);
+	Ok(entries)
 }
 
 fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
