@@ -56,6 +56,50 @@ impl VaultIndex {
 		Self::default()
 	}
 
+	/// Populates the index from a full vault scan. Rebuilds `entries`,
+	/// `by_path`, and the reverse `backlinks` map from scratch; bumps
+	/// `version` by 1. Any previous state is dropped.
+	///
+	/// Wikilink resolution mirrors `resolveWikilink` in the TS backlinks
+	/// logic: lowercase filename stem matches with a basename fallback
+	/// for path-prefixed targets. First path wins on filename collisions
+	/// (same as `buildResolutionCache` in TS).
+	pub fn build(&mut self, entries: Vec<NoteEntry>) {
+		self.entries = entries;
+		self.by_path.clear();
+		self.by_path.reserve(self.entries.len());
+		for (i, entry) in self.entries.iter().enumerate() {
+			self.by_path.insert(entry.path.clone(), i);
+		}
+
+		// Build the lowercase filename → path resolution map; first entry wins on collision.
+		let mut by_filename: HashMap<String, String> =
+			HashMap::with_capacity(self.entries.len());
+		for entry in &self.entries {
+			let key = filename_stem_lower(&entry.path);
+			by_filename.entry(key).or_insert_with(|| entry.path.clone());
+		}
+
+		self.backlinks.clear();
+		for entry in &self.entries {
+			for target in &entry.outgoing_links {
+				if let Some(resolved) = resolve_wikilink(target, &by_filename) {
+					// Do not count self-links — matches the sourcePath != currentPath
+					// skip in TS's findLinkedMentions.
+					if resolved == entry.path {
+						continue;
+					}
+					self.backlinks
+						.entry(resolved.to_string())
+						.or_default()
+						.insert(entry.path.clone());
+				}
+			}
+		}
+
+		self.version = self.version.wrapping_add(1);
+	}
+
 	/// Read-only slice of all entries, in insertion order. Callers that
 	/// need lookup by path should use `entry_for_path` (O(1)) instead of
 	/// iterating this slice.
@@ -98,6 +142,45 @@ impl VaultIndex {
 	}
 }
 
+/// Resolves a raw wikilink target to an absolute path using the prebuilt
+/// lowercase-filename lookup. First tries the target as-is (case-insensitive),
+/// then falls back to the basename for path-prefixed targets
+/// (`folder/sub/note` → `note`). Mirrors TS `resolveWikilink` exactly.
+fn resolve_wikilink<'a>(target: &str, by_filename: &'a HashMap<String, String>) -> Option<&'a str> {
+	if target.is_empty() {
+		return None;
+	}
+	let lowered = target.to_lowercase();
+	if let Some(path) = by_filename.get(&lowered) {
+		return Some(path.as_str());
+	}
+	let basename = basename_lower(target);
+	if basename != lowered {
+		if let Some(path) = by_filename.get(&basename) {
+			return Some(path.as_str());
+		}
+	}
+	None
+}
+
+fn filename_stem_lower(path: &str) -> String {
+	let name = path.rsplit(&['/', '\\'][..]).next().unwrap_or(path);
+	let stem = name
+		.strip_suffix(".md")
+		.or_else(|| name.strip_suffix(".markdown"))
+		.unwrap_or(name);
+	stem.to_lowercase()
+}
+
+fn basename_lower(target: &str) -> String {
+	let name = target.rsplit(&['/', '\\'][..]).next().unwrap_or(target);
+	let stem = name
+		.strip_suffix(".md")
+		.or_else(|| name.strip_suffix(".markdown"))
+		.unwrap_or(name);
+	stem.to_lowercase()
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -119,5 +202,160 @@ mod tests {
 		let b = VaultIndex::default();
 		assert_eq!(a.len(), b.len());
 		assert_eq!(a.version(), b.version());
+	}
+
+	fn make_entry(path: &str, links: &[&str]) -> NoteEntry {
+		NoteEntry {
+			path: path.to_string(),
+			title: String::new(),
+			frontmatter: HashMap::new(),
+			outgoing_links: links.iter().map(|s| s.to_string()).collect(),
+			tags: Vec::new(),
+			modified_at: None,
+			word_count: 0,
+			snippet: String::new(),
+		}
+	}
+
+	#[test]
+	fn build_populates_entries_and_by_path() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &[]),
+			make_entry("/v/b.md", &[]),
+		]);
+		assert_eq!(idx.len(), 2);
+		assert!(!idx.is_empty());
+		assert_eq!(idx.entry_for_path("/v/a.md").unwrap().path, "/v/a.md");
+		assert_eq!(idx.entry_for_path("/v/b.md").unwrap().path, "/v/b.md");
+		assert!(idx.entry_for_path("/v/missing.md").is_none());
+	}
+
+	#[test]
+	fn build_bumps_version_each_time() {
+		let mut idx = VaultIndex::new();
+		assert_eq!(idx.version(), 0);
+		idx.build(vec![make_entry("/v/a.md", &[])]);
+		assert_eq!(idx.version(), 1);
+		idx.build(vec![make_entry("/v/a.md", &[]), make_entry("/v/b.md", &[])]);
+		assert_eq!(idx.version(), 2);
+	}
+
+	#[test]
+	fn build_resolves_simple_filename_wikilinks() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/alpha.md", &["beta"]),
+			make_entry("/v/beta.md", &[]),
+		]);
+		let backs = idx.backlinks_of("/v/beta.md");
+		assert_eq!(backs.len(), 1);
+		assert_eq!(backs[0], "/v/alpha.md");
+		assert!(idx.backlinks_of("/v/alpha.md").is_empty());
+	}
+
+	#[test]
+	fn build_resolves_case_insensitive() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/Alpha.md", &["ALPHA"]),
+			make_entry("/v/beta.md", &["alpha"]),
+		]);
+		let backs = idx.backlinks_of("/v/Alpha.md");
+		assert_eq!(backs.len(), 1);
+		assert_eq!(backs[0], "/v/beta.md");
+	}
+
+	#[test]
+	fn build_falls_back_to_basename_for_path_targets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/beta.md", &["folder/sub/beta"]),
+			make_entry("/v/alpha.md", &[]),
+		]);
+		// The [[folder/sub/beta]] link resolves via basename to /v/beta.md
+		// (a self-link, which is filtered out), NOT to /v/alpha.md.
+		assert!(idx.backlinks_of("/v/beta.md").is_empty());
+	}
+
+	#[test]
+	fn build_ignores_self_links() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/alpha.md", &["alpha"])]);
+		assert!(idx.backlinks_of("/v/alpha.md").is_empty());
+	}
+
+	#[test]
+	fn build_handles_unresolved_targets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/alpha.md", &["does-not-exist"])]);
+		assert!(idx.backlinks_of("/v/alpha.md").is_empty());
+	}
+
+	#[test]
+	fn build_first_path_wins_on_filename_collision() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/dir1/note.md", &[]),
+			make_entry("/v/dir2/note.md", &[]),
+			make_entry("/v/source.md", &["note"]),
+		]);
+		// Collision: both dir1/note.md and dir2/note.md share stem `note`.
+		// First wins (insertion order): dir1/note.md should be the target.
+		let backs = idx.backlinks_of("/v/dir1/note.md");
+		assert_eq!(backs.len(), 1);
+		assert_eq!(backs[0], "/v/source.md");
+		assert!(idx.backlinks_of("/v/dir2/note.md").is_empty());
+	}
+
+	#[test]
+	fn build_multiple_sources_linking_to_same_target() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["target"]),
+			make_entry("/v/b.md", &["target"]),
+			make_entry("/v/c.md", &["target"]),
+			make_entry("/v/target.md", &[]),
+		]);
+		let mut backs: Vec<&String> = idx.backlinks_of("/v/target.md");
+		backs.sort();
+		assert_eq!(
+			backs
+				.iter()
+				.map(|s| s.as_str())
+				.collect::<Vec<_>>(),
+			vec!["/v/a.md", "/v/b.md", "/v/c.md"]
+		);
+	}
+
+	#[test]
+	fn build_same_source_linking_twice_counts_once() {
+		// a.md has "beta" twice in its outgoing_links (extractor dedupes, but defend against it).
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			NoteEntry {
+				path: "/v/a.md".into(),
+				outgoing_links: vec!["beta".into(), "beta".into()],
+				..Default::default()
+			},
+			make_entry("/v/beta.md", &[]),
+		]);
+		assert_eq!(idx.backlinks_of("/v/beta.md").len(), 1);
+	}
+
+	#[test]
+	fn build_rebuild_replaces_previous_state() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["b"]),
+			make_entry("/v/b.md", &[]),
+		]);
+		assert_eq!(idx.backlinks_of("/v/b.md").len(), 1);
+
+		// Rebuild with a fresh set — old backlinks must not persist.
+		idx.build(vec![make_entry("/v/c.md", &[])]);
+		assert_eq!(idx.len(), 1);
+		assert!(idx.backlinks_of("/v/b.md").is_empty());
+		assert!(idx.entry_for_path("/v/a.md").is_none());
 	}
 }
