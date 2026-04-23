@@ -27,6 +27,14 @@
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
 	let lastTabPath: string | undefined;
+	/**
+	 * Monotonic counter used to cancel stale tab-switch rAF chains. Each new
+	 * invocation of the tab-switch $effect below increments this and captures
+	 * its starting value; the deferred rAF callbacks bail if the counter has
+	 * advanced since they were scheduled. Prevents A→B→C under 100ms from
+	 * queuing three overlapping rAF chains that race on view.dispatch.
+	 */
+	let tabSwitchVersion = 0;
 	/** Whether a tab switch is in progress (suppresses onContentChange from the doc replace) */
 	let isTabSwitching = false;
 	const lineNumbersCompartment = new Compartment();
@@ -213,6 +221,12 @@
 		untrack(() => {
 			if (!view || path === lastTabPath || !path) return;
 
+			// Rapid-switch cancellation. Each invocation bumps the version; the
+			// deferred rAF work captures its starting version and bails if a
+			// newer switch has started since. Without this, switching A→B→C
+			// within 100ms queues three overlapping rAF chains that race on
+			// `view?.dispatch` and produce visible flicker.
+			const mySwitchVersion = ++tabSwitchVersion;
 			const tTabSwitch = perfStart();
 
 			// Detect rename: the old path no longer exists in tabs but the CM doc
@@ -279,6 +293,7 @@
 
 			// Restore scroll position, then force decoration rebuild once viewport is stable
 			requestAnimationFrame(() => {
+				if (mySwitchVersion !== tabSwitchVersion) return;
 				debug('TAB_SWITCH', 'restoring scroll, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
 				if (saved) {
 					view?.scrollDOM.scrollTo(saved.scrollLeft, saved.scrollTop);
@@ -286,6 +301,7 @@
 					view?.scrollDOM.scrollTo(0, 0);
 				}
 				requestAnimationFrame(() => {
+					if (mySwitchVersion !== tabSwitchVersion) return;
 					debug('TAB_SWITCH', 'dispatching forceDecorationRebuild, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
 					const t1 = perfStart();
 					view?.dispatch({ effects: forceDecorationRebuild.of(null) });
