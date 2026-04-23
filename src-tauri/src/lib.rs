@@ -96,6 +96,7 @@ pub fn run() {
             commands::history::cleanup_history,
             commands::vault::scan_vault,
             commands::vault::scan_vault_v2,
+            commands::vault::get_backlinks_v2,
             commands::files::read_files_batch,
             commands::search::search_vault,
             commands::terminal::spawn_terminal,

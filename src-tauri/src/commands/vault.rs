@@ -171,6 +171,30 @@ pub fn scan_vault_v2(
 	Ok(entries)
 }
 
+/// Returns every note that wikilinks to `path`, sorted by title for stable UI
+/// ordering. Reads the reverse backlinks map that was populated by the
+/// preceding `scan_vault_v2` call (or maintained incrementally by Phase 2.6's
+/// `update_note_in_index`), so the answer is O(K) where K is the number of
+/// backlinks — not O(N) over the whole vault.
+///
+/// Returns an empty list when the path is unknown or has no backlinks.
+#[tauri::command]
+pub fn get_backlinks_v2(
+	path: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	let source_paths = idx.backlinks_of(&path);
+	let mut entries: Vec<NoteEntry> = source_paths
+		.iter()
+		.filter_map(|src| idx.entry_for_path(src).cloned())
+		.collect();
+	entries.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	Ok(entries)
+}
+
 fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
     nodes.sort_by(|a, b| {
         // Directories always come first

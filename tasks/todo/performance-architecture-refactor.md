@@ -27,7 +27,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 - [x] **2.1** `src-tauri/src/vault/index.rs` (moved from `src-tauri/src/index/` — staying under the `vault/` module to keep related code together): `VaultIndex { entries, by_path, backlinks, version }` with private fields + getter-only access (no drift between entries and reverse index).
 - [x] **2.2** `VaultIndex::build(entries)` computing reverse index. Wikilink resolution mirrors TS `resolveWikilink` exactly: lowercase filename stem + basename-fallback for path-prefixed targets. First path wins on stem collisions. Self-links filtered.
 - [x] **2.3** Wire `VaultIndex` into Tauri managed state (`RwLock<VaultIndex>`) via `VaultIndexState` alias in `vault/mod.rs`. `scan_vault_v2` takes `State<'_, VaultIndexState>` and calls `idx.build(...)` after collecting entries.
-- [ ] **2.4** `#[tauri::command] get_backlinks_v2(path)` → `Vec<NoteEntry>`.
+- [x] **2.4** `#[tauri::command] get_backlinks_v2(path)` → `Vec<NoteEntry>`. Sorts results by title for stable UI ordering; filters out entries whose paths are missing from the index (defensive, should not happen in normal operation).
 - [ ] **2.5** `VaultIndex::update_entry` returning `UpdateResult { changed, affected }`.
 - [ ] **2.6** `#[tauri::command] update_note_in_index(path, content)` → parse + update_entry + emit `vault-index-updated`.
 
