@@ -13,3 +13,7 @@ references
 # Playwright
 test-results/
 playwright-report/
+
+# Python bytecode (scripts/*.py helpers)
+__pycache__/
+*.pyc
