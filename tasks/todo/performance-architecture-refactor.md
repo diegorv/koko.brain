@@ -46,9 +46,9 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 ### Phase 4 — Tab-Switch Pipeline Cleanup
 
 - [ ] **4.1** Baseline `switchTab` breakdown.
-- [ ] **4.2** Remove redundant `forceDecorationRebuild.of(null)` rAF call (line ~288).
-- [ ] **4.3** Combine language reconfigure + doc replace into single `view.dispatch`.
-- [ ] **4.4** Add `AbortController` cancellation for rapid switches.
+- [ ] **4.2** Remove redundant `forceDecorationRebuild.of(null)` rAF call (line ~288). **Deferred** — analysis shows the rebuild is needed because scrollTo happens AFTER the docChanged rebuild; removing it could cause a 150ms decoration lag on large files until scrollDebouncePlugin fires. Requires real-vault validation with the Phase 0 probes.
+- [ ] **4.3** Combine language reconfigure + doc replace into single `view.dispatch`. **Deferred** — `applyLanguageForTab` is async (awaits `getLanguageEffects`); combining requires making the effect body async, which interacts with the Phase 4.4 cancellation pattern. Safer to tackle against real vault with baseline probes.
+- [x] **4.4** Rapid-switch cancellation via a `tabSwitchVersion` counter. Simpler than `AbortController` (no async plumbing, no listener leak). Each effect invocation pre-increments + captures; both rAF callbacks bail when the counter has advanced.
 - [ ] **4.5** Regression test for 100 rapid switches.
 
 ### Phase 5 — Keystroke Reactivity Fix ⚠️ BEHAVIORAL (subtle)
