@@ -15,7 +15,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 1 — Rust Entry Enrichment (additive)
 
-- [ ] **1.1** Define `NoteEntry` in `src-tauri/src/vault/entry.rs` (path, title, frontmatter, outgoing_links, tags, modified_at, word_count, snippet). Serde camelCase.
+- [x] **1.1** Define `NoteEntry` in `src-tauri/src/vault/entry.rs` (path, title, frontmatter, outgoing_links, tags, modified_at, word_count, snippet). Serde camelCase.
 - [ ] **1.2** Implement `extract_outgoing_links` in `src-tauri/src/vault/parsing.rs`. Excludes frontmatter + fenced code. Handles `[[target]]`, `[[t|d]]`, `[[t#h]]`, `[[t#^b]]`.
 - [ ] **1.3** Implement `extract_tags` (nested, code-fence exclusion, in-word rejection). Reuse existing `src-tauri/src/search/fts_logic.rs:31-129` logic where possible.
 - [ ] **1.4** Implement `parse_frontmatter` — malformed YAML → empty map, no panics.

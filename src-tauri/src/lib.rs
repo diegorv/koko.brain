@@ -4,6 +4,7 @@ pub mod search;
 pub mod security;
 pub mod semantic;
 pub mod utils;
+pub mod vault;
 
 use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
