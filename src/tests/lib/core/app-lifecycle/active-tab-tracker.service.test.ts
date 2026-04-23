@@ -10,8 +10,10 @@ import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte'
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
 import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import * as backlinksService from '$lib/features/backlinks/backlinks.service';
 import * as outgoingLinksService from '$lib/features/outgoing-links/outgoing-links.service';
+import { invoke } from '@tauri-apps/api/core';
 
 describe('updateActiveTabLinks', () => {
 	beforeEach(() => {
@@ -159,5 +161,75 @@ describe('updateActiveTabLinks', () => {
 		expect(backlinksStore.linkedMentions.length).toBeGreaterThan(0);
 
 		spy.mockRestore();
+	});
+
+	describe('rustBacklinks flag', () => {
+		beforeEach(() => {
+			settingsStore.updateExperimental({ rustBacklinks: false });
+			vi.mocked(invoke).mockReset();
+		});
+
+		it('invokes get_backlinks_v2 when flag is on', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockImplementation(async (cmd) => {
+				if (cmd === 'get_backlinks_v2') {
+					return [
+						{
+							path: '/vault/note-b.md',
+							title: 'note-b',
+							frontmatter: {},
+							outgoingLinks: ['note-a'],
+							tags: [],
+							modifiedAt: null,
+							wordCount: 3,
+							snippet: 'See [[note-a]] for details',
+						},
+					];
+				}
+				return undefined;
+			});
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/note-a.md' }));
+			await vi.waitFor(() => expect(backlinksStore.linkedMentions).toHaveLength(1));
+
+			expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/note-b.md');
+			expect(backlinksStore.linkedMentions[0].sourceName).toBe('note-b');
+			// Snippets intentionally empty in the Phase 3 migration — pinned so a
+			// future enrichment commit must update this test deliberately.
+			expect(backlinksStore.linkedMentions[0].snippets).toEqual([]);
+
+			settingsStore.updateExperimental({ rustBacklinks: false });
+		});
+
+		it('falls back to TS path when flag is off', () => {
+			noteIndexStore.setNoteContents(new Map([
+				['/vault/note-a.md', 'body'],
+				['/vault/note-b.md', 'See [[note-a]] for details'],
+			]));
+			noteIndexStore.setNoteIndex(new Map([
+				['/vault/note-a.md', parseWikilinks('body')],
+				['/vault/note-b.md', parseWikilinks('See [[note-a]] for details')],
+			]));
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			expect(invoke).not.toHaveBeenCalledWith('get_backlinks_v2', expect.anything());
+			expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/note-b.md');
+		});
+
+		it('bypasses the loading guard when flag is on (Rust index has its own state)', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			noteIndexStore.setLoading(true);
+			vi.mocked(invoke).mockResolvedValue([]);
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/note-a.md' }));
+
+			settingsStore.updateExperimental({ rustBacklinks: false });
+			noteIndexStore.setLoading(false);
+		});
 	});
 });

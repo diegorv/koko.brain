@@ -35,7 +35,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 - [x] **3.1** Added `ExperimentalSettings` group on `AppSettings` with `rustBacklinks`, `rustOutgoing`, `rustTagsAndTasks`, `rustProperties`, `gitHashCache`, `legacyWatcher`, `legacyTsIndexers` — all default `false`. Persistence wired via `settings.service.ts`. Store exposes `settingsStore.experimental` getter + `updateExperimental` partial setter.
 - [x] **3.2** Added `vaultStore.vaultIndexVersion` + `bumpVaultIndexVersion()`. Global `listen('vault-index-updated')` registered in `app-lifecycle.service.ts::initializeVault` (Step 0, idempotent — subscription survives vault switches because the Tauri managed VaultIndex is process-wide).
-- [ ] **3.3** Branch `active-tab-tracker.service.ts` on the flag.
+- [x] **3.3** Branched `updateActiveTabLinks` on `settingsStore.experimental.rustBacklinks`: flag on → `invoke('get_backlinks_v2')` → convert `NoteEntry[]` to `BacklinkEntry[]` (empty snippets for now) → populate store; flag off → existing TS reverse-index path. Outgoing links still flow through TS until Phase 6. Unlinked mentions panel-side path unchanged. Tests pin both branches plus the loading-guard bypass when the Rust path is active.
 - [ ] **3.4** Migrate Backlinks Panel to consumer pattern.
 - [ ] **3.5** Hook `update_note_in_index` into `notifyAfterSave` when flag on.
 - [ ] **3.6** Run `pnpm perf:baseline` with flag on; commit comparison to `docs/perf/phase-3-comparison.md`.
