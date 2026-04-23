@@ -26,6 +26,29 @@ describe('vaultStore', () => {
 		expect(vaultStore.name).toBeNull();
 		expect(vaultStore.isOpen).toBe(false);
 		expect(vaultStore.recentVaults).toEqual([]);
+		expect(vaultStore.vaultIndexVersion).toBe(0);
+	});
+
+	describe('vaultIndexVersion', () => {
+		it('starts at 0', () => {
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+		});
+
+		it('bumpVaultIndexVersion increments by 1 each call', () => {
+			vaultStore.bumpVaultIndexVersion();
+			expect(vaultStore.vaultIndexVersion).toBe(1);
+			vaultStore.bumpVaultIndexVersion();
+			vaultStore.bumpVaultIndexVersion();
+			expect(vaultStore.vaultIndexVersion).toBe(3);
+		});
+
+		it('_reset returns vaultIndexVersion to 0', () => {
+			vaultStore.bumpVaultIndexVersion();
+			vaultStore.bumpVaultIndexVersion();
+			expect(vaultStore.vaultIndexVersion).toBe(2);
+			vaultStore._reset();
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+		});
 	});
 
 	describe('isOpen', () => {

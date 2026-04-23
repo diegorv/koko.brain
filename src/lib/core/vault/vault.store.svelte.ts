@@ -11,6 +11,17 @@ let vaultPath = $state<string | null>(null);
 let vaultName = $state<string | null>(null);
 /** List of recently opened vaults, loaded from localStorage on startup */
 let recentVaults = $state<RecentVault[]>(loadRecentVaults());
+/**
+ * Monotonic counter bumped on every `vault-index-updated` Tauri event.
+ *
+ * Consumer panels that render Rust-side VaultIndex data should track this
+ * counter in their `$effect` dependency list alongside `tabsStore.activePath`.
+ * When the Rust side mutates the index (editor save, external file change,
+ * watcher update), the event handler calls `vaultStore.bumpVaultIndexVersion()`
+ * and every consumer panel re-fetches from its read command (get_backlinks_v2,
+ * get_outgoing_links_v2, etc.). See the consumer panel pattern in ADR 0025.
+ */
+let vaultIndexVersion = $state<number>(0);
 /** Reads the recent vaults list from localStorage (returns [] on failure) */
 function loadRecentVaults(): RecentVault[] {
 	try {
@@ -33,6 +44,18 @@ export const vaultStore = {
 	/** Whether a vault is currently open (computed from path) */
 	get isOpen() { return vaultPath !== null; },
 	get recentVaults() { return recentVaults; },
+	/**
+	 * Counter that consumer panels track as a reactive dependency to re-
+	 * fetch from Rust read commands whenever the Rust-side VaultIndex has
+	 * changed. Bumped by the global `vault-index-updated` listener
+	 * registered in `app-lifecycle.service.ts`.
+	 */
+	get vaultIndexVersion() { return vaultIndexVersion; },
+
+	/** Increments the vault index version to invalidate consumer caches. */
+	bumpVaultIndexVersion() {
+		vaultIndexVersion += 1;
+	},
 
 	/** Opens a vault by path — updates state and persists to recent vaults */
 	open(path: string) {
@@ -61,5 +84,6 @@ export const vaultStore = {
 		vaultPath = null;
 		vaultName = null;
 		recentVaults = [];
+		vaultIndexVersion = 0;
 	},
 };

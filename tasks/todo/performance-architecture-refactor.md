@@ -34,7 +34,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 ### Phase 3 — Migrate Backlinks Consumers
 
 - [x] **3.1** Added `ExperimentalSettings` group on `AppSettings` with `rustBacklinks`, `rustOutgoing`, `rustTagsAndTasks`, `rustProperties`, `gitHashCache`, `legacyWatcher`, `legacyTsIndexers` — all default `false`. Persistence wired via `settings.service.ts`. Store exposes `settingsStore.experimental` getter + `updateExperimental` partial setter.
-- [ ] **3.2** Add `vaultStore.vaultIndexVersion` + global `listen('vault-index-updated')`.
+- [x] **3.2** Added `vaultStore.vaultIndexVersion` + `bumpVaultIndexVersion()`. Global `listen('vault-index-updated')` registered in `app-lifecycle.service.ts::initializeVault` (Step 0, idempotent — subscription survives vault switches because the Tauri managed VaultIndex is process-wide).
 - [ ] **3.3** Branch `active-tab-tracker.service.ts` on the flag.
 - [ ] **3.4** Migrate Backlinks Panel to consumer pattern.
 - [ ] **3.5** Hook `update_note_in_index` into `notifyAfterSave` when flag on.

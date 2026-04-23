@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { toast } from 'svelte-sonner';
 import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
@@ -93,6 +95,12 @@ let unsubscribeSearchIndex: (() => void) | null = null;
 let debouncedFileChangeHandler: ReturnType<typeof debounce> | null = null;
 /** Accumulated changed paths from the watcher, consumed by the debounced handler */
 let pendingWatcherPaths: string[] = [];
+/**
+ * Cleanup function for the global `vault-index-updated` listener.
+ * Registered on app mount (first `initializeVault`), not per-vault — the
+ * Tauri managed VaultIndex is process-wide, so a single listener suffices.
+ */
+let unsubscribeVaultIndexUpdated: UnlistenFn | null = null;
 
 /**
  * Initializes all app systems when a vault is opened.
@@ -112,6 +120,23 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	const version = ++initVersion;
 	const initStart = performance.now();
 	debug('LIFECYCLE', 'initializeVault started:', vaultPath);
+
+	// ── Step 0: Global `vault-index-updated` listener ────────────────
+	// Registered once per process (idempotent). Every Rust-side
+	// VaultIndex mutation emits this event; bumping the store signal
+	// here causes every consumer panel's $effect to re-fetch. The
+	// listener is intentionally separate from the per-vault watcher
+	// so it survives vault switches — the Tauri managed VaultIndex
+	// resets on scan_vault_v2 but the listener subscription does not.
+	if (!unsubscribeVaultIndexUpdated) {
+		try {
+			unsubscribeVaultIndexUpdated = await listen('vault-index-updated', () => {
+				vaultStore.bumpVaultIndexVersion();
+			});
+		} catch (err) {
+			error('LIFECYCLE', 'Failed to subscribe to vault-index-updated:', err);
+		}
+	}
 
 	// ── Step 1: Settings ─────────────────────────────────────────────
 	// Settings MUST load first — other operations depend on it
