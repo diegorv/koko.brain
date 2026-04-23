@@ -77,10 +77,21 @@
 	// ── Active tab link tracking ────────────────────────────────────
 	// Deferred 150ms so the CM document swap + decoration rebuild can paint
 	// before the backlinks/outgoing-links computation runs on the main thread.
+	//
+	// Dependencies:
+	//   - editorStore.activeTabPath — the user switched tabs.
+	//   - vaultStore.vaultIndexVersion — the Rust-side VaultIndex mutated
+	//     (save, external change, watcher update). This is the consumer
+	//     panel pattern from ADR 0025: one effect, two reactive deps, one
+	//     re-fetch. When rustBacklinks is off, version bumps are harmless
+	//     (they fire on the same events the TS index is already tracking
+	//     via other effects) — the extra re-invoke is a no-op cost of a
+	//     few ms on the main thread.
 	$effect(() => {
 		const path = editorStore.activeTabPath;
+		const _vaultIndexVersion = vaultStore.vaultIndexVersion;
 		const t0 = perfStart();
-		debug('LAYOUT', `activeTabPath changed → scheduling 150ms updateActiveTabLinks for: ${path}`);
+		debug('LAYOUT', `activeTabPath/vaultIndexVersion changed → scheduling 150ms updateActiveTabLinks for: ${path}`);
 
 		const timer = setTimeout(() => {
 			untrack(() => {
