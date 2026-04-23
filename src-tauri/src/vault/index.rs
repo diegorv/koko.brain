@@ -23,12 +23,34 @@
 //! Svelte-store pattern in the TS codebase (ADR 0005).
 
 use crate::vault::entry::NoteEntry;
+use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 
 /// Monotonic revision number. Bumps on every mutation so consumers can
 /// discard stale reads and so `vault-index-updated` payloads carry a
 /// strictly-increasing stamp that clients can order against.
 pub type IndexVersion = u64;
+
+/// Outcome of a single `update_entry` call, carried as the payload of the
+/// `vault-index-updated` Tauri event (Phase 2.6). Clients use it to decide
+/// which consumer panels need to re-fetch: a panel showing backlinks for
+/// any path in `affected` must re-invoke `get_backlinks_v2`; a panel
+/// rendering metadata for any path in `changed` must re-invoke its own
+/// read command.
+#[derive(Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateResult {
+	/// Paths whose `NoteEntry` was directly inserted or replaced.
+	pub changed: Vec<String>,
+	/// Paths whose backlinks list changed as a side effect — i.e., the
+	/// updated entry added or removed a wikilink pointing at these paths.
+	/// A panel rendering backlinks for any of these paths must re-fetch.
+	pub affected: Vec<String>,
+	/// Index revision after the mutation. Clients can use this to
+	/// detect / drop out-of-order events if they maintain their own
+	/// monotonic signal.
+	pub version: IndexVersion,
+}
 
 /// In-memory vault metadata index. One entry per markdown note; a reverse
 /// map from "target path" → "source paths that wikilink to it" for O(K)
@@ -98,6 +120,102 @@ impl VaultIndex {
 		}
 
 		self.version = self.version.wrapping_add(1);
+	}
+
+	/// Inserts or replaces a single entry, keeping the reverse backlinks map
+	/// in sync. Returns an `UpdateResult` listing the changed path plus every
+	/// path whose backlinks list shifted as a side effect of this mutation.
+	///
+	/// Semantics:
+	///   * First insert of a path → entry appended; outgoing_links register
+	///     new incoming edges on resolved targets.
+	///   * Subsequent updates → outgoing_links diffed against the previous
+	///     version. Removed links retract the source from the target's
+	///     backlinks set; added links register new ones. The entry itself
+	///     is replaced in place (preserves the slot index in `entries`).
+	///   * Self-links are filtered (consistent with `build`).
+	///   * Version bumps by 1 (wrapping).
+	pub fn update_entry(&mut self, entry: NoteEntry) -> UpdateResult {
+		let source_path = entry.path.clone();
+		let new_links = entry.outgoing_links.clone();
+
+		// Snapshot previous outgoing links (if the entry already exists).
+		let prev_links: Vec<String> = self
+			.by_path
+			.get(&source_path)
+			.and_then(|i| self.entries.get(*i))
+			.map(|e| e.outgoing_links.clone())
+			.unwrap_or_default();
+
+		// Replace / insert the entry in the entries vec and by_path.
+		if let Some(idx) = self.by_path.get(&source_path) {
+			self.entries[*idx] = entry;
+		} else {
+			self.entries.push(entry);
+			self.by_path
+				.insert(source_path.clone(), self.entries.len() - 1);
+		}
+
+		// Rebuild the filename resolver cheaply — O(N) but only touches
+		// HashMap inserts. Acceptable for the Phase 2 per-save cost; if
+		// profiling later shows this as a hotspot it becomes an incremental
+		// structure maintained by build + update_entry together.
+		let by_filename: HashMap<String, String> = {
+			let mut map = HashMap::with_capacity(self.entries.len());
+			for e in &self.entries {
+				let key = filename_stem_lower(&e.path);
+				map.entry(key).or_insert_with(|| e.path.clone());
+			}
+			map
+		};
+
+		// Diff outgoing links to determine which target backlinks change.
+		let prev_set: HashSet<&String> = prev_links.iter().collect();
+		let new_set: HashSet<&String> = new_links.iter().collect();
+		let removed: Vec<&String> = prev_set.difference(&new_set).copied().collect();
+		let added: Vec<&String> = new_set.difference(&prev_set).copied().collect();
+
+		let mut affected: HashSet<String> = HashSet::new();
+
+		// Remove source from backlinks of every target whose link was removed.
+		for target in removed {
+			if let Some(resolved) = resolve_wikilink(target, &by_filename) {
+				if resolved == source_path {
+					continue;
+				}
+				let resolved_owned = resolved.to_string();
+				if let Some(set) = self.backlinks.get_mut(&resolved_owned) {
+					if set.remove(&source_path) {
+						affected.insert(resolved_owned.clone());
+					}
+					if set.is_empty() {
+						self.backlinks.remove(&resolved_owned);
+					}
+				}
+			}
+		}
+
+		// Add source to backlinks of every target whose link was added.
+		for target in added {
+			if let Some(resolved) = resolve_wikilink(target, &by_filename) {
+				if resolved == source_path {
+					continue;
+				}
+				let resolved_owned = resolved.to_string();
+				let set = self.backlinks.entry(resolved_owned.clone()).or_default();
+				if set.insert(source_path.clone()) {
+					affected.insert(resolved_owned);
+				}
+			}
+		}
+
+		self.version = self.version.wrapping_add(1);
+
+		UpdateResult {
+			changed: vec![source_path],
+			affected: affected.into_iter().collect(),
+			version: self.version,
+		}
 	}
 
 	/// Read-only slice of all entries, in insertion order. Callers that
@@ -357,5 +475,116 @@ mod tests {
 		assert_eq!(idx.len(), 1);
 		assert!(idx.backlinks_of("/v/b.md").is_empty());
 		assert!(idx.entry_for_path("/v/a.md").is_none());
+	}
+
+	// --- update_entry ---
+
+	#[test]
+	fn update_entry_inserts_new_path() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/target.md", &[])]);
+		assert_eq!(idx.len(), 1);
+
+		let r = idx.update_entry(make_entry("/v/new.md", &["target"]));
+		assert_eq!(r.changed, vec!["/v/new.md"]);
+		assert_eq!(r.affected, vec!["/v/target.md"]);
+		assert_eq!(r.version, idx.version());
+		assert_eq!(idx.len(), 2);
+		let backs = idx.backlinks_of("/v/target.md");
+		assert_eq!(backs.len(), 1);
+		assert_eq!(backs[0], "/v/new.md");
+	}
+
+	#[test]
+	fn update_entry_replaces_existing() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["target"]),
+			make_entry("/v/target.md", &[]),
+		]);
+		assert_eq!(idx.backlinks_of("/v/target.md").len(), 1);
+
+		// Replace a.md with new content that removes the target link.
+		idx.update_entry(make_entry("/v/a.md", &[]));
+		assert!(idx.backlinks_of("/v/target.md").is_empty());
+		assert_eq!(idx.len(), 2);
+	}
+
+	#[test]
+	fn update_entry_diffs_links_correctly() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["beta", "gamma"]),
+			make_entry("/v/beta.md", &[]),
+			make_entry("/v/gamma.md", &[]),
+			make_entry("/v/delta.md", &[]),
+		]);
+		// a.md links to beta and gamma. Update: drop gamma, add delta.
+		let r = idx.update_entry(make_entry("/v/a.md", &["beta", "delta"]));
+		assert_eq!(r.changed, vec!["/v/a.md"]);
+		let mut affected = r.affected.clone();
+		affected.sort();
+		assert_eq!(affected, vec!["/v/delta.md", "/v/gamma.md"]);
+
+		// beta unchanged, gamma cleared, delta picked up.
+		assert_eq!(idx.backlinks_of("/v/beta.md").len(), 1);
+		assert!(idx.backlinks_of("/v/gamma.md").is_empty());
+		assert_eq!(idx.backlinks_of("/v/delta.md").len(), 1);
+	}
+
+	#[test]
+	fn update_entry_no_link_changes_reports_no_affected() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["beta"]),
+			make_entry("/v/beta.md", &[]),
+		]);
+		// Update with same outgoing links — only metadata (e.g. word count) changes.
+		let r = idx.update_entry(NoteEntry {
+			word_count: 42,
+			..make_entry("/v/a.md", &["beta"])
+		});
+		assert!(r.affected.is_empty());
+		assert_eq!(r.changed, vec!["/v/a.md"]);
+		assert_eq!(idx.entry_for_path("/v/a.md").unwrap().word_count, 42);
+	}
+
+	#[test]
+	fn update_entry_self_link_ignored() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/a.md", &[])]);
+		let r = idx.update_entry(make_entry("/v/a.md", &["a"]));
+		assert!(r.affected.is_empty());
+		assert!(idx.backlinks_of("/v/a.md").is_empty());
+	}
+
+	#[test]
+	fn update_entry_bumps_version() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/a.md", &[])]);
+		let v0 = idx.version();
+		idx.update_entry(make_entry("/v/a.md", &["x"]));
+		assert_eq!(idx.version(), v0 + 1);
+		idx.update_entry(make_entry("/v/b.md", &[]));
+		assert_eq!(idx.version(), v0 + 2);
+	}
+
+	#[test]
+	fn update_entry_cleans_up_empty_backlink_sets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["target"]),
+			make_entry("/v/target.md", &[]),
+		]);
+		assert_eq!(idx.backlinks_of("/v/target.md").len(), 1);
+
+		// Remove the only backlink.
+		idx.update_entry(make_entry("/v/a.md", &[]));
+		assert!(idx.backlinks_of("/v/target.md").is_empty());
+		// Internal check: the target should NOT be in the map with an empty set.
+		// (The public API can't see this directly, but the cleanup is what lets
+		// backlinks_of return empty correctly if the target later gets re-linked.)
+		idx.update_entry(make_entry("/v/c.md", &["target"]));
+		assert_eq!(idx.backlinks_of("/v/target.md").len(), 1);
 	}
 }
