@@ -9,6 +9,10 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
 	setFileReadTransform,
 	setFileWriteTransform,
@@ -22,6 +26,8 @@ import {
 	clearRecentSaves,
 } from '$lib/core/editor/editor.hooks';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { invoke } from '@tauri-apps/api/core';
 import type { EditorTab } from '$lib/core/editor/editor.types';
 
 const makeTab = (overrides: Partial<EditorTab> = {}): EditorTab => ({
@@ -160,6 +166,52 @@ describe('notifyAfterSave', () => {
 		// Good observer still called despite bad observer throwing
 		expect(goodObserver).toHaveBeenCalledWith('/vault/note.md', 'content');
 		consoleSpy.mockRestore();
+	});
+
+	describe('Rust index forwarding', () => {
+		beforeEach(() => {
+			settingsStore.reset();
+			vi.mocked(invoke).mockClear();
+			vi.mocked(invoke).mockResolvedValue(undefined);
+		});
+
+		it('does NOT call update_note_in_index when all Rust flags are off', () => {
+			notifyAfterSave('/vault/note.md', 'content');
+			expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+		});
+
+		it('calls update_note_in_index when rustBacklinks is on', () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			notifyAfterSave('/vault/note.md', 'content');
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/note.md', content: 'content' });
+		});
+
+		it('calls update_note_in_index when rustProperties is on', () => {
+			settingsStore.updateExperimental({ rustProperties: true });
+			notifyAfterSave('/vault/note.md', 'content');
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/note.md', content: 'content' });
+		});
+
+		it('invokes once even when multiple Rust flags are on', () => {
+			settingsStore.updateExperimental({ rustBacklinks: true, rustOutgoing: true, rustTagsAndTasks: true });
+			notifyAfterSave('/vault/note.md', 'content');
+			const updateCalls = vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'update_note_in_index');
+			expect(updateCalls).toHaveLength(1);
+		});
+
+		it('swallows invoke failures without affecting observers', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockRejectedValue(new Error('rust exploded'));
+			const observer = vi.fn();
+			addAfterSaveObserver(observer);
+
+			notifyAfterSave('/vault/note.md', 'content');
+
+			// Observer still called (invoke is fire-and-forget).
+			expect(observer).toHaveBeenCalledWith('/vault/note.md', 'content');
+			// Give the rejected promise a tick to log.
+			await new Promise((r) => setTimeout(r, 0));
+		});
 	});
 });
 
