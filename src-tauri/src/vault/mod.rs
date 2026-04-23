@@ -7,3 +7,4 @@
 //! `tasks/todo/performance-architecture-refactor.md` for the full plan.
 
 pub mod entry;
+pub mod parsing;
