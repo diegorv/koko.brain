@@ -18,7 +18,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 - [x] **1.1** Define `NoteEntry` in `src-tauri/src/vault/entry.rs` (path, title, frontmatter, outgoing_links, tags, modified_at, word_count, snippet). Serde camelCase.
 - [x] **1.2** Implement `extract_outgoing_links` in `src-tauri/src/vault/parsing.rs`. Excludes frontmatter + fenced code. Handles `[[target]]`, `[[t|d]]`, `[[t#h]]`, `[[t#^b]]`.
 - [x] **1.3** Implement `extract_tags` (nested, code-fence exclusion, in-word rejection). The existing `src-tauri/src/search/fts_logic.rs` extractor is too permissive (allows first-char digits, no HTML-comment strip, no trailing-slash normalisation) for the canonical NoteEntry view; wrote a Unicode-aware version in `vault/parsing.rs` that mirrors `tags.logic.ts::extractAllTags` exactly. fts_logic version retained for FTS5 indexing.
-- [ ] **1.4** Implement `parse_frontmatter` — malformed YAML → empty map, no panics.
+- [x] **1.4** Implement `parse_frontmatter` — malformed YAML → empty map, no panics. Minimal subset parser (scalars, inline arrays, block arrays) — adequate for note frontmatter; nested maps intentionally become null entries to preserve sibling parsing. No new crate dep (sandbox has no network egress for cargo fetches).
 - [ ] **1.5** Add `#[tauri::command] scan_vault_v2` returning `Vec<NoteEntry>`.
 - [ ] **1.6** Mirror `NoteEntry` in `src/lib/types/vault-v2.types.ts` (`@experimental`).
 

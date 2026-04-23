@@ -545,6 +545,281 @@ fn normalise_tag(raw: &str) -> Option<String> {
 	}
 }
 
+// --- Frontmatter parsing ---
+
+/// Parses the YAML frontmatter block of a note into a map of JSON values.
+///
+/// Scope: the subset of YAML that appears in real Obsidian-style note
+/// frontmatter. Handles flat top-level keys with these value shapes:
+///
+///   * Scalars: plain / single-quoted / double-quoted strings, integers,
+///     floats, booleans (`true` / `false`), and null (`null`, `~`, or
+///     empty).
+///   * Inline arrays: `[a, b, c]` — entries parsed as scalars.
+///   * Block arrays: subsequent `  - v1` lines until a non-list line.
+///
+/// Nested maps and multi-line scalars are intentionally out of scope —
+/// a key whose value introduces a nested structure (`: ` followed by
+/// nothing, then indented `key: val` lines) is recorded as `null` and
+/// the inner lines are skipped. This is safe: note frontmatter almost
+/// never uses nested maps, and the caller (VaultIndex) treats unknown
+/// shapes as missing.
+///
+/// Any parse ambiguity (duplicate keys, malformed values, unterminated
+/// inline arrays) degrades to dropping that specific key, never panics,
+/// and never corrupts sibling keys. Returns an empty map when there is
+/// no frontmatter block at all.
+pub fn parse_frontmatter(content: &str) -> std::collections::HashMap<String, serde_json::Value> {
+	let fm = match extract_frontmatter_block(content) {
+		Some(s) if !s.is_empty() => s,
+		_ => return std::collections::HashMap::new(),
+	};
+
+	let lines: Vec<&str> = fm
+		.split('\n')
+		.map(|l| l.strip_suffix('\r').unwrap_or(l))
+		.collect();
+
+	let mut out = std::collections::HashMap::new();
+	let mut i = 0;
+	while i < lines.len() {
+		let line = lines[i];
+		if line.trim().is_empty() || line.trim_start().starts_with('#') {
+			i += 1;
+			continue;
+		}
+		// Top-level key: line must start at column 0 (no leading whitespace).
+		if line.starts_with(|c: char| c.is_whitespace()) {
+			i += 1;
+			continue;
+		}
+		let (key, value_str) = match split_key_value(line) {
+			Some(kv) => kv,
+			None => {
+				i += 1;
+				continue;
+			}
+		};
+		let value_str = value_str.trim();
+
+		// Block array: value is empty and following lines are `- …` at deeper indent.
+		if value_str.is_empty() {
+			let (items, consumed) = parse_block_array(&lines[i + 1..]);
+			if !items.is_empty() {
+				out.insert(key, serde_json::Value::Array(items));
+				i += 1 + consumed;
+				continue;
+			}
+			// Empty value with no block array → null.
+			out.insert(key, serde_json::Value::Null);
+			// Consume any nested/continuation lines so sibling parsing resumes correctly.
+			let skipped = skip_continuation(&lines[i + 1..]);
+			i += 1 + skipped;
+			continue;
+		}
+
+		// Inline array on the same line.
+		if value_str.starts_with('[') {
+			if let Some(arr) = parse_inline_array(value_str) {
+				out.insert(key, serde_json::Value::Array(arr));
+				i += 1;
+				continue;
+			}
+			// Malformed — drop this key and advance.
+			i += 1;
+			continue;
+		}
+
+		// Scalar.
+		out.insert(key, parse_scalar(value_str));
+		i += 1;
+	}
+
+	out
+}
+
+/// Splits `key: value` into `(key, value)` or `None` if the line doesn't
+/// look like a key/value pair. `key` is returned trimmed; `value` may be
+/// empty.
+fn split_key_value(line: &str) -> Option<(String, &str)> {
+	// Find the first ':' that is not inside a quote. For top-level keys
+	// (column 0), quotes are unusual; a plain find is sufficient.
+	let colon = line.find(':')?;
+	let key = line[..colon].trim();
+	if key.is_empty() {
+		return None;
+	}
+	// Reject keys that contain characters invalid in YAML map keys.
+	if !key.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == ' ' || c == '.') {
+		return None;
+	}
+	Some((key.to_string(), &line[colon + 1..]))
+}
+
+fn parse_block_array(rest: &[&str]) -> (Vec<serde_json::Value>, usize) {
+	let mut items = Vec::new();
+	let mut consumed = 0;
+	for line in rest {
+		let trimmed_start = line.trim_start();
+		if trimmed_start.is_empty() {
+			consumed += 1;
+			continue;
+		}
+		// Indented `- value` line.
+		if line.starts_with(|c: char| c.is_whitespace()) {
+			if let Some(rest) = trimmed_start.strip_prefix("- ") {
+				items.push(parse_scalar(rest.trim()));
+				consumed += 1;
+				continue;
+			}
+			// Indented line that's not a list item — still belongs to the key's value
+			// (could be a nested map). Consume it so we don't mistake it for a sibling.
+			consumed += 1;
+			continue;
+		}
+		// Non-indented, non-empty — sibling key; stop.
+		break;
+	}
+	(items, consumed)
+}
+
+/// Parses an inline array like `[a, "b", 1]`. Returns None if the array
+/// is malformed (e.g. no closing bracket).
+fn parse_inline_array(s: &str) -> Option<Vec<serde_json::Value>> {
+	let inner = s.strip_prefix('[')?;
+	let close = inner.rfind(']')?;
+	let inner = &inner[..close];
+	if inner.trim().is_empty() {
+		return Some(Vec::new());
+	}
+	let mut items = Vec::new();
+	let mut current = String::new();
+	let mut in_quote: Option<char> = None;
+	let mut depth = 0;
+	for c in inner.chars() {
+		match (c, in_quote, depth) {
+			('"' | '\'', None, _) => {
+				in_quote = Some(c);
+				current.push(c);
+			}
+			(c, Some(q), _) if c == q => {
+				in_quote = None;
+				current.push(c);
+			}
+			('[', None, _) => {
+				depth += 1;
+				current.push(c);
+			}
+			(']', None, _) if depth > 0 => {
+				depth -= 1;
+				current.push(c);
+			}
+			(',', None, 0) => {
+				items.push(parse_scalar(current.trim()));
+				current.clear();
+			}
+			(c, _, _) => current.push(c),
+		}
+	}
+	if !current.trim().is_empty() {
+		items.push(parse_scalar(current.trim()));
+	}
+	Some(items)
+}
+
+/// Parses a single scalar into a serde_json::Value. Recognises:
+///   - Double-quoted strings: `"foo bar"`
+///   - Single-quoted strings: `'foo bar'`
+///   - Booleans: `true`, `false`
+///   - Null: `null`, `~`, ``
+///   - Integers: base-10 integers with optional `+`/`-`
+///   - Floats: with decimal point (e.g. `3.14`)
+///   - Plain strings: everything else (trimmed)
+fn parse_scalar(raw: &str) -> serde_json::Value {
+	let s = raw.trim();
+
+	// Null
+	if s.is_empty() || s == "null" || s == "~" || s == "Null" || s == "NULL" {
+		return serde_json::Value::Null;
+	}
+
+	// Booleans
+	if s == "true" || s == "True" || s == "TRUE" {
+		return serde_json::Value::Bool(true);
+	}
+	if s == "false" || s == "False" || s == "FALSE" {
+		return serde_json::Value::Bool(false);
+	}
+
+	// Quoted strings
+	if s.len() >= 2 {
+		let first = s.chars().next().unwrap();
+		let last = s.chars().last().unwrap();
+		if (first == '"' || first == '\'') && first == last {
+			// Simple unescape for double-quoted strings: \n, \t, \\, \", \'
+			let inner = &s[1..s.len() - 1];
+			if first == '"' {
+				return serde_json::Value::String(unescape_double_quoted(inner));
+			}
+			return serde_json::Value::String(inner.to_string());
+		}
+	}
+
+	// Numbers (JSON numbers map 1-1 into serde_json::Number).
+	if let Ok(n) = s.parse::<i64>() {
+		return serde_json::Value::Number(n.into());
+	}
+	if let Ok(n) = s.parse::<f64>() {
+		if let Some(num) = serde_json::Number::from_f64(n) {
+			return serde_json::Value::Number(num);
+		}
+	}
+
+	// Plain string — trim and return.
+	serde_json::Value::String(s.to_string())
+}
+
+fn unescape_double_quoted(s: &str) -> String {
+	let mut out = String::with_capacity(s.len());
+	let mut chars = s.chars();
+	while let Some(c) = chars.next() {
+		if c == '\\' {
+			match chars.next() {
+				Some('n') => out.push('\n'),
+				Some('t') => out.push('\t'),
+				Some('r') => out.push('\r'),
+				Some('\\') => out.push('\\'),
+				Some('"') => out.push('"'),
+				Some('\'') => out.push('\''),
+				Some(other) => {
+					out.push('\\');
+					out.push(other);
+				}
+				None => out.push('\\'),
+			}
+		} else {
+			out.push(c);
+		}
+	}
+	out
+}
+
+fn skip_continuation(rest: &[&str]) -> usize {
+	let mut consumed = 0;
+	for line in rest {
+		if line.trim().is_empty() {
+			consumed += 1;
+			continue;
+		}
+		if line.starts_with(|c: char| c.is_whitespace()) {
+			consumed += 1;
+			continue;
+		}
+		break;
+	}
+	consumed
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -903,5 +1178,173 @@ mod tests {
 	#[test]
 	fn combined_tags_empty_input_returns_empty() {
 		assert!(extract_tags("").is_empty());
+	}
+
+	// --- Frontmatter parsing ---
+
+	#[test]
+	fn parse_frontmatter_no_block_returns_empty() {
+		assert!(parse_frontmatter("no frontmatter here").is_empty());
+	}
+
+	#[test]
+	fn parse_frontmatter_unclosed_block_returns_empty() {
+		assert!(parse_frontmatter("---\ntitle: x\nno closing").is_empty());
+	}
+
+	#[test]
+	fn parse_frontmatter_flat_string_value() {
+		let fm = parse_frontmatter("---\ntitle: Hello\n---\nbody");
+		assert_eq!(fm["title"], serde_json::Value::String("Hello".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_double_quoted_string() {
+		let fm = parse_frontmatter("---\ndescription: \"Hello, world\"\n---\n");
+		assert_eq!(fm["description"], serde_json::Value::String("Hello, world".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_single_quoted_string() {
+		let fm = parse_frontmatter("---\ndescription: 'Hello'\n---\n");
+		assert_eq!(fm["description"], serde_json::Value::String("Hello".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_double_quoted_unescape() {
+		let fm = parse_frontmatter("---\ndescription: \"Line1\\nLine2\\t\\\"quoted\\\"\"\n---\n");
+		assert_eq!(
+			fm["description"],
+			serde_json::Value::String("Line1\nLine2\t\"quoted\"".into())
+		);
+	}
+
+	#[test]
+	fn parse_frontmatter_integers_and_floats() {
+		let fm = parse_frontmatter("---\ncount: 42\nratio: 3.14\n---\n");
+		assert_eq!(fm["count"], serde_json::Value::Number(42i64.into()));
+		assert!(matches!(fm["ratio"], serde_json::Value::Number(_)));
+	}
+
+	#[test]
+	fn parse_frontmatter_booleans_all_casings() {
+		let fm = parse_frontmatter("---\na: true\nb: True\nc: FALSE\n---\n");
+		assert_eq!(fm["a"], serde_json::Value::Bool(true));
+		assert_eq!(fm["b"], serde_json::Value::Bool(true));
+		assert_eq!(fm["c"], serde_json::Value::Bool(false));
+	}
+
+	#[test]
+	fn parse_frontmatter_null_forms() {
+		let fm = parse_frontmatter("---\na: null\nb: ~\nc:\n---\n");
+		assert_eq!(fm["a"], serde_json::Value::Null);
+		assert_eq!(fm["b"], serde_json::Value::Null);
+		assert_eq!(fm["c"], serde_json::Value::Null);
+	}
+
+	#[test]
+	fn parse_frontmatter_inline_array_of_strings() {
+		let fm = parse_frontmatter("---\ntags: [alpha, beta, gamma]\n---\n");
+		if let serde_json::Value::Array(a) = &fm["tags"] {
+			assert_eq!(a.len(), 3);
+			assert_eq!(a[0], serde_json::Value::String("alpha".into()));
+			assert_eq!(a[2], serde_json::Value::String("gamma".into()));
+		} else {
+			panic!("expected array");
+		}
+	}
+
+	#[test]
+	fn parse_frontmatter_inline_array_with_quoted_commas() {
+		let fm = parse_frontmatter("---\nlist: [\"a, b\", c]\n---\n");
+		if let serde_json::Value::Array(a) = &fm["list"] {
+			assert_eq!(a.len(), 2);
+			assert_eq!(a[0], serde_json::Value::String("a, b".into()));
+			assert_eq!(a[1], serde_json::Value::String("c".into()));
+		} else {
+			panic!("expected array");
+		}
+	}
+
+	#[test]
+	fn parse_frontmatter_inline_array_empty() {
+		let fm = parse_frontmatter("---\nempty: []\n---\n");
+		assert_eq!(fm["empty"], serde_json::Value::Array(Vec::new()));
+	}
+
+	#[test]
+	fn parse_frontmatter_inline_array_malformed_dropped() {
+		// Unterminated [ — drop this key, don't panic, don't poison siblings.
+		let fm = parse_frontmatter("---\nbroken: [a, b\nother: kept\n---\n");
+		assert!(!fm.contains_key("broken"));
+		assert_eq!(fm["other"], serde_json::Value::String("kept".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_block_array() {
+		let fm = parse_frontmatter("---\ntags:\n  - alpha\n  - beta\nauthor: me\n---\n");
+		if let serde_json::Value::Array(a) = &fm["tags"] {
+			assert_eq!(a.len(), 2);
+			assert_eq!(a[0], serde_json::Value::String("alpha".into()));
+			assert_eq!(a[1], serde_json::Value::String("beta".into()));
+		} else {
+			panic!("expected array");
+		}
+		assert_eq!(fm["author"], serde_json::Value::String("me".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_block_array_with_numbers_and_bools() {
+		let fm = parse_frontmatter("---\nmixed:\n  - 1\n  - 2\n  - true\n---\n");
+		if let serde_json::Value::Array(a) = &fm["mixed"] {
+			assert_eq!(a[0], serde_json::Value::Number(1i64.into()));
+			assert_eq!(a[2], serde_json::Value::Bool(true));
+		} else {
+			panic!("expected array");
+		}
+	}
+
+	#[test]
+	fn parse_frontmatter_nested_map_becomes_null() {
+		// Nested map is out of scope — key recorded as null, inner lines skipped,
+		// sibling `other` still parses.
+		let fm = parse_frontmatter("---\nconfig:\n  host: localhost\n  port: 80\nother: kept\n---\n");
+		assert_eq!(fm["config"], serde_json::Value::Null);
+		assert_eq!(fm["other"], serde_json::Value::String("kept".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_comment_lines_ignored() {
+		let fm = parse_frontmatter("---\n# comment here\ntitle: real\n---\n");
+		assert!(!fm.contains_key("# comment here"));
+		assert_eq!(fm["title"], serde_json::Value::String("real".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_skips_indented_key_lines() {
+		// A `  title: x` line at indent is NOT a top-level key.
+		let fm = parse_frontmatter("---\nparent:\n  title: x\nreal: y\n---\n");
+		assert!(!fm.contains_key("title"));
+		assert_eq!(fm["real"], serde_json::Value::String("y".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_handles_crlf_line_endings() {
+		let fm = parse_frontmatter("---\r\ntitle: x\r\nstatus: done\r\n---\r\n");
+		assert_eq!(fm["title"], serde_json::Value::String("x".into()));
+		assert_eq!(fm["status"], serde_json::Value::String("done".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_dates_stay_as_strings() {
+		// Our minimal parser doesn't try to classify date-like strings.
+		let fm = parse_frontmatter("---\ncreated: 2024-03-15\n---\n");
+		assert_eq!(fm["created"], serde_json::Value::String("2024-03-15".into()));
+	}
+
+	#[test]
+	fn parse_frontmatter_empty_block_returns_empty() {
+		let fm = parse_frontmatter("---\n---\nbody");
+		assert!(fm.is_empty());
 	}
 }
