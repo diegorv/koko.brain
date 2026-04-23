@@ -11,7 +11,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 - [x] **0.1** Add `perfStart` / `perfEnd` probes around `openFileInEditor`, `closeTab`, `switchTab` (tab-switch effect in `MarkdownEditor.svelte`), `updateActiveTabLinks`, `updateIndexesForFile`, and the content-sync `$effect`. Emit via `appendLog('PERF-BASELINE', …)`.
 - [x] **0.2** Add `scripts/perf-baseline.py` that parses a session log file (`~/Library/Logs/com.diegorv.kokobrain/*.log`) and extracts `PERF-BASELINE` median/p95 timings grouped by `<TAG> <label>`. Plain log parser — no E2E harness (E2E fixtures are not a good fit for timing data).
 - [x] **0.3** Create `docs/perf/baseline-template.md` describing the manual reproduction sequence (open 10 files, switch 20×, close 5, type 500 chars, save) and the one-line command to turn on the flag + parse the log. User fills in the numbers on their real vault and commits as `docs/perf/baseline-<date>.md`.
-- [ ] **0.4** Add ADR `docs/adr/0018-performance-refactor.md` documenting this plan at a high level. Link from `CLAUDE.md`.
+- [x] **0.4** Add ADR `docs/adr/0025-performance-refactor-rust-vault-index.md` (number bumped — 0018 was already taken by the batch-IPC ADR) documenting this plan at a high level. Linked from `CLAUDE.md` and `docs/adr/README.md`.
 
 ### Phase 1 — Rust Entry Enrichment (additive)
 

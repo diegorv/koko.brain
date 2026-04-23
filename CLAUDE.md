@@ -203,6 +203,8 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing guide: mock rules, a
 
 ## Performance Guidelines
 
+> **Ongoing refactor:** the vault metadata layer is being moved from TypeScript into a Rust `VaultIndex` with a single `vault-index-updated` event and a three-tier change detection architecture. See [ADR 0025](docs/adr/0025-performance-refactor-rust-vault-index.md) for the decision record and [tasks/todo/performance-architecture-refactor.md](tasks/todo/performance-architecture-refactor.md) for the phase-by-phase plan. Hot-path timings use `settingsStore.perfBaseline` → `appendLog('PERF-BASELINE', …)` → `python3 scripts/perf-baseline.py`; the capture template lives at [docs/perf/baseline-template.md](docs/perf/baseline-template.md).
+
 ### Live Preview (CodeMirror Decorations)
 
 The live preview system uses ~22 CodeMirror decoration plugins. Key performance rules:
