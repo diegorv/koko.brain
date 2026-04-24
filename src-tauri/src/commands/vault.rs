@@ -259,6 +259,55 @@ pub fn get_all_tags_v2(
 	Ok(idx.all_tags())
 }
 
+/// Returns every note whose frontmatter `key` has a value that canonicalises
+/// to `value`. For array properties any element match counts. Comparison is
+/// exact on the canonical string form (use the same canonicalisation the
+/// Rust side uses: numbers as `.to_string()`, bools `true`/`false`, null
+/// `null`).
+#[tauri::command]
+pub fn query_notes_by_property_v2(
+	key: String,
+	value: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	let paths = idx.notes_with_property(&key, &value);
+	let mut entries: Vec<NoteEntry> = paths
+		.iter()
+		.filter_map(|p| idx.entry_for_path(p).cloned())
+		.collect();
+	entries.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	Ok(entries)
+}
+
+/// Distinct canonicalised values present for `key` across the vault, sorted.
+/// Used by Collection toolbars to build filter dropdowns.
+#[tauri::command]
+pub fn get_property_values_v2(
+	key: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<String>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	Ok(idx.property_values(&key))
+}
+
+/// The raw frontmatter map of the note at `path` (empty when unknown).
+/// Useful for panels that want to render the entire property set.
+#[tauri::command]
+pub fn get_note_properties_v2(
+	path: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<std::collections::HashMap<String, serde_json::Value>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	Ok(idx.note_properties(&path))
+}
+
 /// Returns every note (full `NoteEntry`) that carries the given tag.
 /// Lookup is case-insensitive. Sorted by title for stable UI.
 #[tauri::command]

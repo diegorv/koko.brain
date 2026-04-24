@@ -81,9 +81,9 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 8 — Rust Frontmatter / Properties Index + File Ops
 
-- [ ] **8.1** Extend `VaultIndex` with `properties: HashMap<String, HashMap<Value, Vec<String>>>`.
-- [ ] **8.2** Wire into `update_entry`.
-- [ ] **8.3** Read commands: `query_notes_by_property`, `get_property_values`, `get_note_properties`.
+- [x] **8.1** Extend `VaultIndex` with `properties: HashMap<String, HashMap<String, HashSet<String>>>` (key → canonical-value-string → paths). Values canonicalise via `canonicalise_property_value`: scalars produce one key; arrays explode per-element; objects skipped (no stable O(1) shape). Populated in `build` + cleared on rebuild.
+- [x] **8.2** Wired into `update_entry` via symmetric-difference diff on (key, canonicalised value) pairs. Empty value-sets drop their entry; empty key-maps drop the key. Handles array→scalar transitions correctly.
+- [x] **8.3** Read commands: `query_notes_by_property_v2(key, value)` → `Vec<NoteEntry>`, `get_property_values_v2(key)` → distinct sorted values, `get_note_properties_v2(path)` → frontmatter map.
 - [ ] **8.4** Write commands: `update_frontmatter`, `delete_frontmatter_key`, `rename_frontmatter_key`.
 - [ ] **8.5** `experimental.rustProperties` flag; migrate Properties Panel + `collection.service.ts`.
 - [ ] **8.6** File op commands: `create_note`, `rename_note`, `delete_note`, `create_folder`.

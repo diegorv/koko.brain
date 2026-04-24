@@ -25,6 +25,7 @@
 use crate::vault::entry::NoteEntry;
 use crate::vault::parsing;
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 /// Monotonic revision number. Bumps on every mutation so consumers can
@@ -108,6 +109,14 @@ pub struct VaultIndex {
 	/// case-insensitive dedup + first-wins casing from
 	/// `tags.logic.ts::aggregateTags`.
 	tags_display: HashMap<String, String>,
+	/// Property key → canonicalised value → set of absolute paths. Enables
+	/// O(1) "notes where status == done" queries. Keys preserve casing as
+	/// written in frontmatter (`Status` and `status` are distinct). Values
+	/// are canonicalised to `String` via `canonicalise_property_value`;
+	/// arrays explode (each element is a separate value entry); objects
+	/// are skipped (non-trivial to query in O(1)). Maintained by `build`
+	/// + `update_entry`.
+	properties: HashMap<String, HashMap<String, HashSet<String>>>,
 	version: IndexVersion,
 }
 
@@ -149,6 +158,7 @@ impl VaultIndex {
 		self.backlinks.clear();
 		self.tags_by_name.clear();
 		self.tags_display.clear();
+		self.properties.clear();
 		for entry in &self.entries {
 			for target in &entry.outgoing_links {
 				if let Some(resolved) = resolve_wikilink(target, &self.by_filename) {
@@ -173,6 +183,16 @@ impl VaultIndex {
 					.entry(lower)
 					.or_insert_with(|| tag.clone());
 			}
+			for (key, value) in &entry.frontmatter {
+				for canon in canonicalise_property_value(value) {
+					self.properties
+						.entry(key.clone())
+						.or_default()
+						.entry(canon)
+						.or_default()
+						.insert(entry.path.clone());
+				}
+			}
 		}
 
 		self.version = self.version.wrapping_add(1);
@@ -195,14 +215,15 @@ impl VaultIndex {
 		let source_path = entry.path.clone();
 		let new_links = entry.outgoing_links.clone();
 
-		// Snapshot previous outgoing links + tags (if the entry already exists).
-		let (prev_links, prev_tags): (Vec<String>, Vec<String>) = self
+		// Snapshot previous outgoing links + tags + frontmatter (if entry already exists).
+		let (prev_links, prev_tags, prev_frontmatter) = self
 			.by_path
 			.get(&source_path)
 			.and_then(|i| self.entries.get(*i))
-			.map(|e| (e.outgoing_links.clone(), e.tags.clone()))
+			.map(|e| (e.outgoing_links.clone(), e.tags.clone(), e.frontmatter.clone()))
 			.unwrap_or_default();
 		let new_tags = entry.tags.clone();
+		let new_frontmatter = entry.frontmatter.clone();
 
 		// Replace / insert the entry in the entries vec and by_path.
 		if let Some(idx) = self.by_path.get(&source_path) {
@@ -293,6 +314,45 @@ impl VaultIndex {
 					.entry(lower)
 					.or_insert_with(|| tag.clone());
 			}
+		}
+
+		// Properties diff: symmetric difference on (key, canonicalised value) pairs.
+		let prev_pairs: HashSet<(String, String)> = prev_frontmatter
+			.iter()
+			.flat_map(|(k, v)| {
+				canonicalise_property_value(v)
+					.into_iter()
+					.map(move |canon| (k.clone(), canon))
+			})
+			.collect();
+		let new_pairs: HashSet<(String, String)> = new_frontmatter
+			.iter()
+			.flat_map(|(k, v)| {
+				canonicalise_property_value(v)
+					.into_iter()
+					.map(move |canon| (k.clone(), canon))
+			})
+			.collect();
+		for (key, canon) in prev_pairs.difference(&new_pairs) {
+			if let Some(by_val) = self.properties.get_mut(key) {
+				if let Some(set) = by_val.get_mut(canon) {
+					set.remove(&source_path);
+					if set.is_empty() {
+						by_val.remove(canon);
+					}
+				}
+				if by_val.is_empty() {
+					self.properties.remove(key);
+				}
+			}
+		}
+		for (key, canon) in new_pairs.difference(&prev_pairs) {
+			self.properties
+				.entry(key.clone())
+				.or_default()
+				.entry(canon.clone())
+				.or_default()
+				.insert(source_path.clone());
 		}
 
 		self.version = self.version.wrapping_add(1);
@@ -448,6 +508,38 @@ impl VaultIndex {
 		out
 	}
 
+	/// Returns every absolute path whose frontmatter has `key` set to a value
+	/// that canonicalises to `value`. For array properties, the source note
+	/// matches if ANY element of the array canonicalises to `value` — e.g.
+	/// `tags: [alpha, beta]` matches both a query for "alpha" and "beta".
+	/// Value comparison is exact (case-sensitive) on the canonical string.
+	pub fn notes_with_property<V: AsRef<str>>(&self, key: &str, value: V) -> Vec<String> {
+		self.properties
+			.get(key)
+			.and_then(|by_val| by_val.get(value.as_ref()))
+			.map(|set| set.iter().cloned().collect())
+			.unwrap_or_default()
+	}
+
+	/// Distinct canonicalised values for `key` across the vault, sorted.
+	/// Useful for building property-value filter dropdowns in the UI.
+	pub fn property_values(&self, key: &str) -> Vec<String> {
+		let mut values: Vec<String> = self
+			.properties
+			.get(key)
+			.map(|by_val| by_val.keys().cloned().collect())
+			.unwrap_or_default();
+		values.sort();
+		values
+	}
+
+	/// The raw frontmatter map of the note at `path`, empty when unknown.
+	pub fn note_properties(&self, path: &str) -> HashMap<String, Value> {
+		self.entry_for_path(path)
+			.map(|e| e.frontmatter.clone())
+			.unwrap_or_default()
+	}
+
 	/// Resolves the outgoing wikilinks of the note at `source_path` to the
 	/// absolute paths of their target notes. Deduplicated by target path;
 	/// unresolved links are omitted (their target does not exist in the
@@ -526,6 +618,30 @@ fn filename_stem(path: &str) -> String {
 		.or_else(|| name.strip_suffix(".markdown"))
 		.unwrap_or(name)
 		.to_string()
+}
+
+/// Canonicalises a `serde_json::Value` into a list of string keys used for
+/// property indexing. Scalars produce one key; arrays explode into one key
+/// per element; objects are skipped (no stable O(1) indexable shape).
+///
+///   * String → the raw string
+///   * Number → `n.to_string()` (preserves int / float form as serialised)
+///   * Bool   → "true" / "false"
+///   * Null   → "null"
+///   * Array  → flat-map over elements (also drops objects-inside-arrays)
+///   * Object → empty vec (skip)
+fn canonicalise_property_value(value: &Value) -> Vec<String> {
+	match value {
+		Value::String(s) => vec![s.clone()],
+		Value::Number(n) => vec![n.to_string()],
+		Value::Bool(b) => vec![b.to_string()],
+		Value::Null => vec!["null".to_string()],
+		Value::Array(items) => items
+			.iter()
+			.flat_map(|v| canonicalise_property_value(v))
+			.collect(),
+		Value::Object(_) => Vec::new(),
+	}
 }
 
 #[cfg(test)]
@@ -973,6 +1089,197 @@ mod tests {
 		idx.build(vec![make_tagged("/v/b.md", &["new"])]);
 		assert!(idx.notes_with_tag("old").is_empty());
 		assert_eq!(idx.notes_with_tag("new"), vec!["/v/b.md"]);
+	}
+
+	// --- properties ---
+
+	fn make_frontmatter(path: &str, pairs: &[(&str, Value)]) -> NoteEntry {
+		let mut fm = HashMap::new();
+		for (k, v) in pairs {
+			fm.insert(k.to_string(), v.clone());
+		}
+		NoteEntry {
+			path: path.to_string(),
+			frontmatter: fm,
+			..Default::default()
+		}
+	}
+
+	#[test]
+	fn notes_with_property_scalar_match() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_frontmatter("/v/a.md", &[("status", Value::String("done".into()))]),
+			make_frontmatter("/v/b.md", &[("status", Value::String("active".into()))]),
+			make_frontmatter("/v/c.md", &[("status", Value::String("done".into()))]),
+		]);
+		let mut done = idx.notes_with_property("status", "done");
+		done.sort();
+		assert_eq!(done, vec!["/v/a.md", "/v/c.md"]);
+		assert_eq!(idx.notes_with_property("status", "active"), vec!["/v/b.md"]);
+		assert!(idx.notes_with_property("status", "missing").is_empty());
+	}
+
+	#[test]
+	fn notes_with_property_number_values() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_frontmatter("/v/a.md", &[("priority", Value::Number(3i64.into()))]),
+			make_frontmatter("/v/b.md", &[("priority", Value::Number(1i64.into()))]),
+		]);
+		assert_eq!(idx.notes_with_property("priority", "3"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_property("priority", "1"), vec!["/v/b.md"]);
+	}
+
+	#[test]
+	fn notes_with_property_bool_and_null() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_frontmatter("/v/a.md", &[("draft", Value::Bool(true))]),
+			make_frontmatter("/v/b.md", &[("draft", Value::Bool(false))]),
+			make_frontmatter("/v/c.md", &[("draft", Value::Null)]),
+		]);
+		assert_eq!(idx.notes_with_property("draft", "true"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_property("draft", "false"), vec!["/v/b.md"]);
+		assert_eq!(idx.notes_with_property("draft", "null"), vec!["/v/c.md"]);
+	}
+
+	#[test]
+	fn notes_with_property_array_explodes() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[(
+				"labels",
+				Value::Array(vec![
+					Value::String("alpha".into()),
+					Value::String("beta".into()),
+				]),
+			)],
+		)]);
+		assert_eq!(idx.notes_with_property("labels", "alpha"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_property("labels", "beta"), vec!["/v/a.md"]);
+		assert!(idx.notes_with_property("labels", "gamma").is_empty());
+	}
+
+	#[test]
+	fn notes_with_property_object_values_skipped() {
+		let mut idx = VaultIndex::new();
+		let mut nested = serde_json::Map::new();
+		nested.insert("host".into(), Value::String("localhost".into()));
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[("config", Value::Object(nested))],
+		)]);
+		// Objects don't canonicalise, so no key is registered.
+		assert!(idx.notes_with_property("config", "localhost").is_empty());
+		assert!(idx.property_values("config").is_empty());
+	}
+
+	#[test]
+	fn property_values_lists_distinct_sorted() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_frontmatter("/v/a.md", &[("status", Value::String("done".into()))]),
+			make_frontmatter("/v/b.md", &[("status", Value::String("active".into()))]),
+			make_frontmatter("/v/c.md", &[("status", Value::String("done".into()))]),
+			make_frontmatter("/v/d.md", &[("status", Value::String("waiting".into()))]),
+		]);
+		assert_eq!(idx.property_values("status"), vec!["active", "done", "waiting"]);
+	}
+
+	#[test]
+	fn note_properties_returns_frontmatter() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[
+				("status", Value::String("done".into())),
+				("priority", Value::Number(3i64.into())),
+			],
+		)]);
+		let fm = idx.note_properties("/v/a.md");
+		assert_eq!(fm.get("status"), Some(&Value::String("done".into())));
+		assert_eq!(fm.get("priority"), Some(&Value::Number(3i64.into())));
+		assert!(idx.note_properties("/v/unknown.md").is_empty());
+	}
+
+	#[test]
+	fn update_entry_diffs_properties() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[("status", Value::String("active".into()))],
+		)]);
+		assert_eq!(idx.notes_with_property("status", "active"), vec!["/v/a.md"]);
+
+		idx.update_entry(make_frontmatter(
+			"/v/a.md",
+			&[("status", Value::String("done".into()))],
+		));
+		assert!(idx.notes_with_property("status", "active").is_empty());
+		assert_eq!(idx.notes_with_property("status", "done"), vec!["/v/a.md"]);
+	}
+
+	#[test]
+	fn update_entry_cleans_up_empty_property_sets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[("status", Value::String("only".into()))],
+		)]);
+		assert_eq!(idx.property_values("status"), vec!["only"]);
+
+		idx.update_entry(make_frontmatter("/v/a.md", &[]));
+		assert!(idx.property_values("status").is_empty());
+	}
+
+	#[test]
+	fn update_entry_array_property_diffs_per_element() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[(
+				"labels",
+				Value::Array(vec![
+					Value::String("alpha".into()),
+					Value::String("beta".into()),
+				]),
+			)],
+		)]);
+		assert_eq!(idx.notes_with_property("labels", "alpha"), vec!["/v/a.md"]);
+
+		idx.update_entry(make_frontmatter(
+			"/v/a.md",
+			&[(
+				"labels",
+				Value::Array(vec![
+					Value::String("beta".into()),
+					Value::String("gamma".into()),
+				]),
+			)],
+		));
+		// alpha dropped, beta retained, gamma added.
+		assert!(idx.notes_with_property("labels", "alpha").is_empty());
+		assert_eq!(idx.notes_with_property("labels", "beta"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_property("labels", "gamma"), vec!["/v/a.md"]);
+	}
+
+	#[test]
+	fn build_rebuilds_property_index_from_scratch() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_frontmatter(
+			"/v/a.md",
+			&[("old", Value::String("x".into()))],
+		)]);
+		assert_eq!(idx.property_values("old"), vec!["x"]);
+
+		idx.build(vec![make_frontmatter(
+			"/v/b.md",
+			&[("new", Value::String("y".into()))],
+		)]);
+		assert!(idx.property_values("old").is_empty());
+		assert_eq!(idx.property_values("new"), vec!["y"]);
 	}
 
 	// --- outgoing_unlinked_mentions_of ---
