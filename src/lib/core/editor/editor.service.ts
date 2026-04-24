@@ -130,6 +130,43 @@ export function onContentChange(content: string) {
 	debouncedSave();
 }
 
+/**
+ * Single explicit entry point for EXTERNAL writers that need to push a fresh
+ * content string into the editor store AND notify CodeMirror to re-sync its
+ * document. Use this from anywhere outside the keystroke path
+ * (`onContentChange`) when code on the TS side mutates a tab's content —
+ * Properties Panel edits, tasks toggle, link-updater on rename, watcher
+ * disk-change reload.
+ *
+ * Two behaviours, selected by `options.markSaved`:
+ *   * `markSaved: true` → updates both `content` AND `savedContent`, clearing
+ *     the dirty flag (matches `updateTabContentByPath`). Use for programmatic
+ *     edits that have already been written to disk (watcher reload, toggle
+ *     task after a fs write, rename-time link rewrites).
+ *   * `markSaved: false` (default) → updates only `content`, preserving the
+ *     dirty flag (matches `updateTabContentOnly`). Use for edits that still
+ *     need to flow through the auto-save path (Properties Panel).
+ *
+ * Regardless of mode, bumps `editorStore.externalSyncSignal` so the
+ * `MarkdownEditor.svelte` content-sync `$effect` fires and re-dispatches the
+ * new content into CM. The effect intentionally does NOT track tab content
+ * reactively — the keystroke path (`onContentChange`) updates content via
+ * the store but must NOT trigger re-sync (CM already has the new content).
+ * Phase 5 of the performance refactor (ADR 0025).
+ */
+export function syncExternalContentToEditor(
+	path: string,
+	content: string,
+	options: { markSaved?: boolean } = {},
+): void {
+	if (options.markSaved) {
+		editorStore.updateTabContentByPath(path, content);
+	} else {
+		editorStore.updateTabContentOnly(path, content);
+	}
+	editorStore.bumpExternalSyncSignal();
+}
+
 /** Immediately saves all dirty tabs that have a pending auto-save */
 export function flushPendingSaves(): void {
 	debouncedSave.flush();
@@ -303,7 +340,9 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 		// Re-check tab state — it may have changed during parallel reads
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
 		if (!tab || diskContent === tab.savedContent) continue;
-		editorStore.updateTabContentByPath(filePath, diskContent);
+		// Watcher-driven reload: mark as saved (disk IS the new truth) and
+		// push via the explicit sync so the CodeMirror document re-syncs.
+		syncExternalContentToEditor(filePath, diskContent, { markSaved: true });
 		debug('EDITOR', 'Reloaded externally changed file:', filePath);
 	}
 }

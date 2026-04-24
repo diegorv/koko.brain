@@ -69,6 +69,7 @@ import {
 	flushPendingSaves,
 	saveAllDirtyTabs,
 	reloadExternallyChangedTabs,
+	syncExternalContentToEditor,
 } from '$lib/core/editor/editor.service';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
@@ -1206,5 +1207,69 @@ describe('reloadExternallyChangedTabs', () => {
 
 		expect(editorStore.tabs[0].content).toBe('new A');
 		expect(editorStore.tabs[1].content).toBe('new B');
+	});
+});
+
+describe('syncExternalContentToEditor', () => {
+	beforeEach(() => {
+		editorStore.reset();
+	});
+
+	it('default (markSaved:false) updates content only and preserves dirty flag', () => {
+		addTab('/vault/a.md', 'orig', { savedContent: 'orig' });
+		// Make it dirty
+		editorStore.updateContent('dirty buffer');
+		expect(editorStore.tabs[0].content).toBe('dirty buffer');
+		expect(editorStore.tabs[0].savedContent).toBe('orig');
+
+		syncExternalContentToEditor('/vault/a.md', 'external push');
+
+		expect(editorStore.tabs[0].content).toBe('external push');
+		// savedContent unchanged — dirty flag preserved.
+		expect(editorStore.tabs[0].savedContent).toBe('orig');
+	});
+
+	it('markSaved:true updates both content and savedContent (clean)', () => {
+		addTab('/vault/a.md', 'orig', { savedContent: 'orig' });
+		editorStore.updateContent('dirty buffer');
+
+		syncExternalContentToEditor('/vault/a.md', 'disk truth', { markSaved: true });
+
+		expect(editorStore.tabs[0].content).toBe('disk truth');
+		expect(editorStore.tabs[0].savedContent).toBe('disk truth');
+	});
+
+	it('bumps externalSyncSignal exactly once per call', () => {
+		addTab('/vault/a.md', 'orig');
+		const before = editorStore.externalSyncSignal;
+		syncExternalContentToEditor('/vault/a.md', 'v1');
+		expect(editorStore.externalSyncSignal).toBe(before + 1);
+		syncExternalContentToEditor('/vault/a.md', 'v2', { markSaved: true });
+		expect(editorStore.externalSyncSignal).toBe(before + 2);
+	});
+
+	it('onContentChange (keystroke path) does NOT bump externalSyncSignal', () => {
+		addTab('/vault/a.md', 'orig');
+		editorStore.setActiveIndex(0);
+		const before = editorStore.externalSyncSignal;
+		onContentChange('k1');
+		onContentChange('k12');
+		onContentChange('k123');
+		// Keystroke updates flow CM → store; the signal must stay flat so
+		// the MarkdownEditor content-sync $effect does not fire on every
+		// keystroke. Phase 5 regression pin.
+		expect(editorStore.externalSyncSignal).toBe(before);
+		expect(editorStore.tabs[0].content).toBe('k123');
+	});
+
+	it('ignores updates to unknown paths (no signal bump either)', () => {
+		addTab('/vault/a.md', 'orig');
+		const beforeSig = editorStore.externalSyncSignal;
+		syncExternalContentToEditor('/vault/nonexistent.md', 'ghost');
+		// Store unchanged; signal still bumps so the $effect can no-op via
+		// the length check — matches the contract that callers don't have
+		// to pre-validate the path.
+		expect(editorStore.tabs[0].content).toBe('orig');
+		expect(editorStore.externalSyncSignal).toBe(beforeSig + 1);
 	});
 });

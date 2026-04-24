@@ -337,26 +337,43 @@
 		});
 	});
 
-	// Sync external content changes (e.g. from Properties panel) into CodeMirror
+	// Sync external content changes (e.g. from Properties Panel, task toggle,
+	// rename-time link rewrite, watcher disk reload) into CodeMirror.
+	//
+	// Phase 5 (ADR 0025): tracks ONLY the externalSyncSignal counter — not
+	// activeTab.content — so keystroke updates (which flow CM → store via
+	// onContentChange) do not trigger this effect. Callers on the TS side
+	// who need to push content in must go through
+	// `syncExternalContentToEditor`, which bumps the signal after updating
+	// the store. Doing this saves a `view.state.doc.toString()` call per
+	// keystroke on large files.
 	$effect(() => {
-		const content = editorStore.activeTab?.content;
+		const _signal = editorStore.externalSyncSignal;
 
 		untrack(() => {
-			if (!view || content === undefined) return;
+			if (!view) return;
+			const content = editorStore.activeTab?.content;
+			if (content === undefined) return;
 
 			const tSync = perfStart();
-			const currentDoc = view.state.doc.toString();
-			if (content !== currentDoc) {
-				const cursorPos = Math.min(view.state.selection.main.head, content.length);
-				view.dispatch({
-					changes: { from: 0, to: view.state.doc.length, insert: content },
-					selection: EditorSelection.cursor(cursorPos),
-					annotations: Transaction.addToHistory.of(false),
-				});
-				perfEnd('CONTENT_SYNC', 'externalSync:dispatched', tSync, `chars=${content.length}`);
-			} else {
-				perfEnd('CONTENT_SYNC', 'externalSync:noop', tSync, `chars=${content.length}`);
+			// Cheap length check before the expensive toString() comparison.
+			// When an external writer already matches what CM has (rare — but
+			// possible if two writers converge on the same value), skip the
+			// dispatch entirely.
+			if (view.state.doc.length === content.length) {
+				const currentDoc = view.state.doc.toString();
+				if (content === currentDoc) {
+					perfEnd('CONTENT_SYNC', 'externalSync:noop', tSync, `chars=${content.length}`);
+					return;
+				}
 			}
+			const cursorPos = Math.min(view.state.selection.main.head, content.length);
+			view.dispatch({
+				changes: { from: 0, to: view.state.doc.length, insert: content },
+				selection: EditorSelection.cursor(cursorPos),
+				annotations: Transaction.addToHistory.of(false),
+			});
+			perfEnd('CONTENT_SYNC', 'externalSync:dispatched', tSync, `chars=${content.length}`);
 		});
 	});
 

@@ -14,6 +14,11 @@ let pendingScrollPosition = $state<number | null>(null);
 let isLivePreview = $state(true);
 /** Reference to the active CodeMirror EditorView instance (set by MarkdownEditor on mount) */
 let editorView = $state<EditorView | null>(null);
+/** Monotonic counter bumped by `syncExternalContentToEditor` when an external
+ *  writer (Properties Panel, tasks toggle, link-updater rename, watcher) pushes
+ *  content into a tab. The MarkdownEditor content-sync $effect tracks only
+ *  this signal so keystroke updates (CM → store) do not fire it. */
+let externalSyncSignal = $state<number>(0);
 
 // --- Derived state (implemented as getters for vitest compatibility) ---
 
@@ -127,6 +132,23 @@ export const editorStore = {
 		}
 	},
 
+	/**
+	 * Counter bumped each time an external writer pushes a fresh content
+	 * value into the editor store via `syncExternalContentToEditor` in
+	 * `editor.service.ts`. `MarkdownEditor.svelte`'s content-sync `$effect`
+	 * tracks this counter — not `activeTab.content` — so keystroke updates
+	 * (which flow CM → store, opposite direction) no longer cause the
+	 * effect to fire and run an expensive `view.state.doc.toString()`
+	 * comparison. Phase 5 of the performance refactor (ADR 0025).
+	 */
+	get externalSyncSignal() { return externalSyncSignal; },
+
+	/** Increments the external-sync signal. Called by
+	 *  `syncExternalContentToEditor` after the store mutation. */
+	bumpExternalSyncSignal() {
+		externalSyncSignal += 1;
+	},
+
 	/** Toggles the pinned state of the tab at the given index and reorders tabs */
 	togglePin(index: number) {
 		if (index < 0 || index >= tabs.length) return;
@@ -152,5 +174,6 @@ export const editorStore = {
 		pendingScrollPosition = null;
 		isLivePreview = true;
 		editorView = null;
+		externalSyncSignal = 0;
 	},
 };

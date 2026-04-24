@@ -4,6 +4,7 @@ import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte'
 import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { findTabIndex, TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { tasksStore } from './tasks.store.svelte';
 import {

@@ -1,4 +1,5 @@
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { propertiesStore } from './properties.store.svelte';
 import {
 	parseFrontmatterProperties,
@@ -39,7 +40,14 @@ function commitChanges(updated: Property[]): void {
 	const body = extractBody(editorStore.activeTab?.content ?? '');
 	const newContent = rebuildContent(updated, body);
 	skipNextParse = true;
-	editorStore.updateContent(newContent);
+	const activePath = editorStore.activeTabPath;
+	if (activePath) {
+		// Keep dirty flag (markSaved omitted → false) so the auto-save path
+		// still writes the edit to disk. Phase 5: routes through the explicit
+		// sync so the content-sync $effect fires once via the signal rather
+		// than on every keystroke via reactive-pull.
+		syncExternalContentToEditor(activePath, newContent);
+	}
 }
 
 /** Updates a property's value (and optionally its type) in the active note */

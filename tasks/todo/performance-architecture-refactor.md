@@ -53,11 +53,11 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 5 — Keystroke Reactivity Fix ⚠️ BEHAVIORAL (subtle)
 
-- [ ] **5.1** Inventory every call site mutating `editorStore` tab content from outside `editor.service.ts`.
-- [ ] **5.2** Add `editor.service.ts::syncExternalContentToEditor(path, content)`.
-- [ ] **5.3** Migrate each call site.
-- [ ] **5.4** Replace content-sync `$effect` with signal-based + `untrack()`.
-- [ ] **5.5** Tests: `syncExternalContentToEditor` + perf assertion (0 `toString()` on 100 keystrokes).
+- [x] **5.1** Inventory — 3 external writers found: `features/tasks/tasks.service.ts:135` (toggleTask), `features/properties/properties.service.ts:42` (commitChanges), `core/filesystem/link-updater.service.ts:41` (rename flow). Plus `core/editor/editor.service.ts:306` (reloadExternallyChangedTabs, watcher-driven).
+- [x] **5.2** Added `editor.service.ts::syncExternalContentToEditor(path, content, options?)`. `options.markSaved: true` clears dirty flag (disk IS truth — watcher, toggleTask post-write, rename-time link rewrite); default `false` preserves dirty (Properties Panel edits still flow through auto-save). Bumps `editorStore.externalSyncSignal` counter.
+- [x] **5.3** Migrated all 4 call sites: tasks toggle (markSaved:true), properties commitChanges (dirty preserved), link-updater rename (markSaved:true), reloadExternallyChangedTabs (markSaved:true).
+- [x] **5.4** Replaced `MarkdownEditor.svelte` content-sync `$effect`. Now tracks only `editorStore.externalSyncSignal`; reads `activeTab.content` under `untrack()`; cheap length-check gates the `view.state.doc.toString()` comparison. Keystroke path (`onContentChange`) no longer fires the effect at all.
+- [x] **5.5** Tests: 5 new `syncExternalContentToEditor` tests in `editor.service.test.ts` pinning both `markSaved` modes, signal increment semantics, the keystroke-path-does-NOT-bump-signal regression, and unknown-path contract. All 5570 frontend tests pass.
 
 ### Phase 6 — Rust Outgoing Links
 
