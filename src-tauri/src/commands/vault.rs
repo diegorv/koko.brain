@@ -177,6 +177,103 @@ pub fn scan_vault_v2(
 /// command on receipt — see the consumer panel pattern in ADR 0025.
 pub const VAULT_INDEX_UPDATED_EVENT: &str = "vault-index-updated";
 
+/// Common flow for frontmatter-mutating commands: read file, apply an
+/// in-memory text transform, write back, reindex, emit the event. Returns
+/// the `UpdateResult` so callers can also refresh their own local state.
+fn write_and_reindex(
+	path: &str,
+	new_content: String,
+	app: &AppHandle,
+	index_state: &State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	fs::write(path, &new_content).map_err(|e| format!("Failed to write {}: {}", path, e))?;
+
+	let modified_at = fs::metadata(path)
+		.ok()
+		.and_then(|m| m.modified().ok())
+		.and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+		.and_then(|d| u64::try_from(d.as_millis()).ok());
+
+	let entry = NoteEntry::from_content(path, &new_content, modified_at);
+	let result = {
+		let mut idx = index_state
+			.write()
+			.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+		idx.update_entry(entry)
+	};
+
+	if let Err(err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log(
+			"VAULT",
+			format!("write_and_reindex: emit failed ({})", err),
+		);
+	}
+
+	Ok(result)
+}
+
+/// Writes a scalar value to the `key` frontmatter field of the note at
+/// `path`. Creates the key if absent, creates the frontmatter block if
+/// absent. Rejects non-scalar values and block-valued existing keys
+/// (callers see the error returned from
+/// `vault::frontmatter_writer::update_frontmatter`).
+///
+/// Goes through the editor save pipeline contract (read → mutate → write
+/// → reindex → emit). Intended for Properties Panel writes when the
+/// target file is NOT the currently open editor tab; editor-local writes
+/// should go through `view.dispatch` so the live buffer stays
+/// authoritative.
+#[tauri::command]
+pub fn update_frontmatter_v2(
+	path: String,
+	key: String,
+	value: serde_json::Value,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	let content = fs::read_to_string(&path)
+		.map_err(|e| format!("Failed to read {}: {}", path, e))?;
+	let new_content =
+		crate::vault::frontmatter_writer::update_frontmatter(&content, &key, &value)?;
+	write_and_reindex(&path, new_content, &app, &index_state)
+}
+
+/// Removes the `key` frontmatter field from the note at `path`. Block
+/// values (block arrays / nested maps) are removed cleanly including
+/// their continuation lines. No-op when the key is absent; still
+/// re-indexes because the re-read of the file may pick up concurrent
+/// changes.
+#[tauri::command]
+pub fn delete_frontmatter_key_v2(
+	path: String,
+	key: String,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	let content = fs::read_to_string(&path)
+		.map_err(|e| format!("Failed to read {}: {}", path, e))?;
+	let new_content = crate::vault::frontmatter_writer::delete_frontmatter_key(&content, &key)?;
+	write_and_reindex(&path, new_content, &app, &index_state)
+}
+
+/// Renames a frontmatter key, preserving its value. Rejects when the new
+/// key already exists, or when old_key == new_key, or when new_key is
+/// empty.
+#[tauri::command]
+pub fn rename_frontmatter_key_v2(
+	path: String,
+	old_key: String,
+	new_key: String,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	let content = fs::read_to_string(&path)
+		.map_err(|e| format!("Failed to read {}: {}", path, e))?;
+	let new_content =
+		crate::vault::frontmatter_writer::rename_frontmatter_key(&content, &old_key, &new_key)?;
+	write_and_reindex(&path, new_content, &app, &index_state)
+}
+
 /// Parses the supplied content into a `NoteEntry` (via Phase 1 extractors),
 /// inserts or replaces it in the managed `VaultIndex` (via Phase 2.5's
 /// `update_entry`), and emits `vault-index-updated` carrying the
