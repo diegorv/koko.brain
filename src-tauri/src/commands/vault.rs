@@ -246,6 +246,38 @@ pub fn get_backlinks_v2(
 	Ok(entries)
 }
 
+/// Aggregate list of every tag in the vault with count + file paths,
+/// sorted by name (case-insensitive). First-occurrence casing preserved
+/// (mirrors TS `aggregateTags`).
+#[tauri::command]
+pub fn get_all_tags_v2(
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<crate::vault::index::TagAggregate>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	Ok(idx.all_tags())
+}
+
+/// Returns every note (full `NoteEntry`) that carries the given tag.
+/// Lookup is case-insensitive. Sorted by title for stable UI.
+#[tauri::command]
+pub fn get_notes_with_tag_v2(
+	tag: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	let paths = idx.notes_with_tag(&tag);
+	let mut entries: Vec<NoteEntry> = paths
+		.iter()
+		.filter_map(|p| idx.entry_for_path(p).cloned())
+		.collect();
+	entries.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	Ok(entries)
+}
+
 /// Scans the supplied `content` (the editor's current buffer, which may differ
 /// from disk when the user is typing) for plain-text mentions of every other
 /// note's title that the source at `path` does NOT already wikilink to.

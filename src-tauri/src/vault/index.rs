@@ -47,6 +47,21 @@ pub struct OutgoingUnlinkedMention {
 	pub count: usize,
 }
 
+/// One aggregate row produced by `all_tags` — a tag that appears in the vault
+/// along with its file count and the preserved first-occurrence casing of
+/// the name. Clients use `count` for the tag tree and `file_paths` for
+/// secondary navigation (panel-side filters).
+///
+/// Matches the TS `TagEntry` shape in
+/// `src/lib/features/tags/tags.types.ts`.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TagAggregate {
+	pub name: String,
+	pub count: usize,
+	pub file_paths: Vec<String>,
+}
+
 /// Outcome of a single `update_entry` call, carried as the payload of the
 /// `vault-index-updated` Tauri event (Phase 2.6). Clients use it to decide
 /// which consumer panels need to re-fetch: a panel showing backlinks for
@@ -85,6 +100,14 @@ pub struct VaultIndex {
 	by_path: HashMap<String, usize>,
 	backlinks: HashMap<String, HashSet<String>>,
 	by_filename: HashMap<String, String>,
+	/// Tag → set of absolute file paths. Keyed by lowercase tag for
+	/// case-insensitive lookup; `tags_display` preserves the original
+	/// casing chosen by the first note that introduced the tag.
+	tags_by_name: HashMap<String, HashSet<String>>,
+	/// Lowercase tag → first-occurrence display casing. Mirrors the TS
+	/// case-insensitive dedup + first-wins casing from
+	/// `tags.logic.ts::aggregateTags`.
+	tags_display: HashMap<String, String>,
 	version: IndexVersion,
 }
 
@@ -124,6 +147,8 @@ impl VaultIndex {
 		}
 
 		self.backlinks.clear();
+		self.tags_by_name.clear();
+		self.tags_display.clear();
 		for entry in &self.entries {
 			for target in &entry.outgoing_links {
 				if let Some(resolved) = resolve_wikilink(target, &self.by_filename) {
@@ -137,6 +162,16 @@ impl VaultIndex {
 						.or_default()
 						.insert(entry.path.clone());
 				}
+			}
+			for tag in &entry.tags {
+				let lower = tag.to_lowercase();
+				self.tags_by_name
+					.entry(lower.clone())
+					.or_default()
+					.insert(entry.path.clone());
+				self.tags_display
+					.entry(lower)
+					.or_insert_with(|| tag.clone());
 			}
 		}
 
@@ -160,13 +195,14 @@ impl VaultIndex {
 		let source_path = entry.path.clone();
 		let new_links = entry.outgoing_links.clone();
 
-		// Snapshot previous outgoing links (if the entry already exists).
-		let prev_links: Vec<String> = self
+		// Snapshot previous outgoing links + tags (if the entry already exists).
+		let (prev_links, prev_tags): (Vec<String>, Vec<String>) = self
 			.by_path
 			.get(&source_path)
 			.and_then(|i| self.entries.get(*i))
-			.map(|e| e.outgoing_links.clone())
+			.map(|e| (e.outgoing_links.clone(), e.tags.clone()))
 			.unwrap_or_default();
+		let new_tags = entry.tags.clone();
 
 		// Replace / insert the entry in the entries vec and by_path.
 		if let Some(idx) = self.by_path.get(&source_path) {
@@ -227,6 +263,35 @@ impl VaultIndex {
 				if set.insert(source_path.clone()) {
 					affected.insert(resolved_owned);
 				}
+			}
+		}
+
+		// Tag diff: drop source from old tags no longer present, insert into new ones.
+		let prev_tag_lower: HashSet<String> =
+			prev_tags.iter().map(|t| t.to_lowercase()).collect();
+		let new_tag_lower: HashSet<String> = new_tags.iter().map(|t| t.to_lowercase()).collect();
+		for tag in prev_tags.iter() {
+			let lower = tag.to_lowercase();
+			if !new_tag_lower.contains(&lower) {
+				if let Some(set) = self.tags_by_name.get_mut(&lower) {
+					set.remove(&source_path);
+					if set.is_empty() {
+						self.tags_by_name.remove(&lower);
+						self.tags_display.remove(&lower);
+					}
+				}
+			}
+		}
+		for tag in new_tags.iter() {
+			let lower = tag.to_lowercase();
+			if !prev_tag_lower.contains(&lower) {
+				self.tags_by_name
+					.entry(lower.clone())
+					.or_default()
+					.insert(source_path.clone());
+				self.tags_display
+					.entry(lower)
+					.or_insert_with(|| tag.clone());
 			}
 		}
 
@@ -345,6 +410,42 @@ impl VaultIndex {
 				.cmp(&b.note_name.to_lowercase())
 		});
 		mentions
+	}
+
+	/// Returns every absolute path of a note that carries the given tag.
+	/// Lookup is case-insensitive; order is unspecified (callers should
+	/// sort if needed). O(1).
+	pub fn notes_with_tag(&self, tag: &str) -> Vec<String> {
+		self.tags_by_name
+			.get(&tag.to_lowercase())
+			.map(|set| set.iter().cloned().collect())
+			.unwrap_or_default()
+	}
+
+	/// Aggregate view of every tag in the vault: display name, file count, and
+	/// full path list. Sorted by name (case-insensitive) for stable UI.
+	/// Mirrors TS `aggregateTags` output.
+	pub fn all_tags(&self) -> Vec<TagAggregate> {
+		let mut out: Vec<TagAggregate> = self
+			.tags_by_name
+			.iter()
+			.map(|(lower, paths)| {
+				let name = self
+					.tags_display
+					.get(lower)
+					.cloned()
+					.unwrap_or_else(|| lower.clone());
+				let mut file_paths: Vec<String> = paths.iter().cloned().collect();
+				file_paths.sort();
+				TagAggregate {
+					count: paths.len(),
+					name,
+					file_paths,
+				}
+			})
+			.collect();
+		out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+		out
 	}
 
 	/// Resolves the outgoing wikilinks of the note at `source_path` to the
@@ -763,6 +864,115 @@ mod tests {
 		]);
 		// `folder/sub/beta` resolves via basename to /v/beta.md.
 		assert_eq!(idx.outgoing_links_of("/v/source.md"), vec!["/v/beta.md".to_string()]);
+	}
+
+	// --- tags aggregation ---
+
+	fn make_tagged(path: &str, tags: &[&str]) -> NoteEntry {
+		NoteEntry {
+			path: path.to_string(),
+			tags: tags.iter().map(|s| s.to_string()).collect(),
+			..Default::default()
+		}
+	}
+
+	#[test]
+	fn notes_with_tag_returns_paths() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_tagged("/v/a.md", &["work"]),
+			make_tagged("/v/b.md", &["work", "urgent"]),
+			make_tagged("/v/c.md", &["personal"]),
+		]);
+		let mut work = idx.notes_with_tag("work");
+		work.sort();
+		assert_eq!(work, vec!["/v/a.md", "/v/b.md"]);
+		assert_eq!(idx.notes_with_tag("urgent"), vec!["/v/b.md"]);
+		assert!(idx.notes_with_tag("nonexistent").is_empty());
+	}
+
+	#[test]
+	fn notes_with_tag_is_case_insensitive() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_tagged("/v/a.md", &["Work"])]);
+		assert_eq!(idx.notes_with_tag("work"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_tag("WORK"), vec!["/v/a.md"]);
+	}
+
+	#[test]
+	fn all_tags_aggregates_with_first_occurrence_casing() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_tagged("/v/a.md", &["Work"]),
+			make_tagged("/v/b.md", &["work"]),       // Lowercase — but "Work" should persist
+			make_tagged("/v/c.md", &["Personal"]),
+		]);
+		let all = idx.all_tags();
+		assert_eq!(all.len(), 2);
+		let work = all.iter().find(|t| t.name == "Work").expect("Work case preserved");
+		assert_eq!(work.count, 2);
+		assert_eq!(work.file_paths.len(), 2);
+	}
+
+	#[test]
+	fn all_tags_sorted_case_insensitive() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_tagged("/v/a.md", &["Zebra"]),
+			make_tagged("/v/b.md", &["alpha"]),
+			make_tagged("/v/c.md", &["Mango"]),
+		]);
+		let all = idx.all_tags();
+		assert_eq!(
+			all.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(),
+			vec!["alpha", "Mango", "Zebra"]
+		);
+	}
+
+	#[test]
+	fn update_entry_diffs_tags() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_tagged("/v/a.md", &["old1", "old2"])]);
+		assert_eq!(idx.notes_with_tag("old1"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_tag("old2"), vec!["/v/a.md"]);
+
+		idx.update_entry(make_tagged("/v/a.md", &["old1", "new1"]));
+		assert_eq!(idx.notes_with_tag("old1"), vec!["/v/a.md"]);
+		assert!(idx.notes_with_tag("old2").is_empty());
+		assert_eq!(idx.notes_with_tag("new1"), vec!["/v/a.md"]);
+	}
+
+	#[test]
+	fn update_entry_cleans_up_empty_tag_sets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_tagged("/v/a.md", &["solo"])]);
+		assert_eq!(idx.all_tags().len(), 1);
+
+		idx.update_entry(make_tagged("/v/a.md", &[]));
+		assert!(idx.all_tags().is_empty());
+	}
+
+	#[test]
+	fn update_entry_insert_with_new_tag_registers_display() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_tagged("/v/a.md", &["Alpha"])]);
+		idx.update_entry(make_tagged("/v/b.md", &["alpha"]));
+		let all = idx.all_tags();
+		assert_eq!(all.len(), 1);
+		assert_eq!(all[0].name, "Alpha"); // first-occurrence casing preserved across updates
+		assert_eq!(all[0].count, 2);
+	}
+
+	#[test]
+	fn build_rebuilds_tag_index_from_scratch() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_tagged("/v/a.md", &["old"])]);
+		assert_eq!(idx.notes_with_tag("old"), vec!["/v/a.md"]);
+
+		// Rebuild with different entries — old tags must be cleared.
+		idx.build(vec![make_tagged("/v/b.md", &["new"])]);
+		assert!(idx.notes_with_tag("old").is_empty());
+		assert_eq!(idx.notes_with_tag("new"), vec!["/v/b.md"]);
 	}
 
 	// --- outgoing_unlinked_mentions_of ---
