@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
+use std::path::{Path as StdPath, PathBuf};
 use tauri::{AppHandle, Emitter, State};
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
@@ -272,6 +273,126 @@ pub fn rename_frontmatter_key_v2(
 	let new_content =
 		crate::vault::frontmatter_writer::rename_frontmatter_key(&content, &old_key, &new_key)?;
 	write_and_reindex(&path, new_content, &app, &index_state)
+}
+
+// --- File operations (Phase 8.6) ---
+
+/// Creates a new markdown note at `path` with the given content. Parent
+/// directories are created if missing. Errors if the target file already
+/// exists (refuses to clobber). Emits `vault-index-updated` on success.
+///
+/// `content` is written as-is — the caller is expected to have already
+/// applied any template processing on the TS side (template engine stays
+/// in TS as a pure string function per ADR 0025).
+#[tauri::command]
+pub fn create_note(
+	path: String,
+	content: String,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	let target = PathBuf::from(&path);
+	if target.exists() {
+		return Err(format!("File already exists: {}", path));
+	}
+	if let Some(parent) = target.parent() {
+		if !parent.as_os_str().is_empty() && !parent.exists() {
+			fs::create_dir_all(parent)
+				.map_err(|e| format!("Failed to create parent directory: {}", e))?;
+		}
+	}
+	fs::write(&target, &content).map_err(|e| format!("Failed to create note: {}", e))?;
+	write_and_reindex(&path, content, &app, &index_state)
+}
+
+/// Moves a note from `old_path` to `new_path`. Validates that the new path
+/// does not already exist, then fs-renames the file, drops the old entry
+/// from the VaultIndex, and indexes the content at the new path. Parent
+/// directories for the new path are created if missing.
+///
+/// Known limitation: other notes' outgoing wikilinks pointing at the old
+/// filename stem silently break after rename. A future "rewrite refs"
+/// feature can chase those down; for now the rename is a pure file-level
+/// operation + index update.
+#[tauri::command]
+pub fn rename_note(
+	old_path: String,
+	new_path: String,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	if old_path == new_path {
+		return Err("old_path and new_path must differ".to_string());
+	}
+	let new_target = PathBuf::from(&new_path);
+	if new_target.exists() {
+		return Err(format!("Destination already exists: {}", new_path));
+	}
+	if let Some(parent) = new_target.parent() {
+		if !parent.as_os_str().is_empty() && !parent.exists() {
+			fs::create_dir_all(parent)
+				.map_err(|e| format!("Failed to create parent directory: {}", e))?;
+		}
+	}
+	fs::rename(&old_path, &new_target).map_err(|e| format!("Failed to rename: {}", e))?;
+
+	// Drop the old entry + reindex the new one with its updated path.
+	{
+		let mut idx = index_state
+			.write()
+			.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+		idx.remove_entry(&old_path);
+	}
+	let content = fs::read_to_string(&new_path)
+		.map_err(|e| format!("Failed to read renamed file: {}", e))?;
+	write_and_reindex(&new_path, content, &app, &index_state)
+}
+
+/// Deletes a note at `path`. Removes from the VaultIndex first (so the
+/// UI can re-render cleanly before the fs operation), then deletes the
+/// file. Errors if the file doesn't exist. Emits `vault-index-updated`.
+///
+/// Uses `std::fs::remove_file` — does NOT move to the system trash. The
+/// caller is expected to handle trash logic on the TS side (the existing
+/// trash service integration) if it wants recoverable deletes.
+#[tauri::command]
+pub fn delete_note(
+	path: String,
+	app: AppHandle,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<crate::vault::index::UpdateResult, String> {
+	let target = StdPath::new(&path);
+	if !target.exists() {
+		return Err(format!("File does not exist: {}", path));
+	}
+	let (removed, version) = {
+		let mut idx = index_state
+			.write()
+			.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+		(idx.remove_entry(&path), idx.version())
+	};
+	fs::remove_file(&target).map_err(|e| format!("Failed to delete: {}", e))?;
+
+	let result = crate::vault::index::UpdateResult {
+		changed: vec![path.clone()],
+		affected: if removed { vec![path.clone()] } else { Vec::new() },
+		version,
+	};
+	if let Err(err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log("VAULT", format!("delete_note: emit failed ({})", err));
+	}
+	Ok(result)
+}
+
+/// Creates a folder at `path`, including any missing parent components.
+/// No-op when the folder already exists. Does not touch the `VaultIndex`
+/// (folders aren't indexed entries) and does not emit
+/// `vault-index-updated` — consumers that display the file tree should
+/// listen on the existing watcher / scan events.
+#[tauri::command]
+pub fn create_folder(path: String) -> Result<(), String> {
+	fs::create_dir_all(&path)
+		.map_err(|e| format!("Failed to create folder {}: {}", path, e))
 }
 
 /// Parses the supplied content into a `NoteEntry` (via Phase 1 extractors),

@@ -571,6 +571,77 @@ impl VaultIndex {
 	pub fn version(&self) -> IndexVersion {
 		self.version
 	}
+
+	/// Removes the entry at `path` from the index, cleaning up the reverse
+	/// backlinks map, the tag indexes, and the property index. Other
+	/// entries' outgoing_links that targeted this note are silently
+	/// abandoned — their backlinks entry disappears. No-op when the path
+	/// is unknown. Version bumps.
+	///
+	/// Used by `delete_note` and `rename_note`.
+	pub fn remove_entry(&mut self, path: &str) -> bool {
+		let idx = match self.by_path.remove(path) {
+			Some(i) => i,
+			None => return false,
+		};
+		let removed = self.entries.swap_remove(idx);
+		// Swap-remove: the last element (if any) now sits at position `idx`.
+		// If we moved something, update its by_path mapping.
+		if idx < self.entries.len() {
+			let moved_path = self.entries[idx].path.clone();
+			self.by_path.insert(moved_path, idx);
+		}
+
+		// Remove `path` as a source from every backlinks set.
+		self.backlinks.retain(|_target, sources| {
+			sources.remove(path);
+			!sources.is_empty()
+		});
+		// And drop the entry itself as a target (nothing links to a vanished
+		// note — the users of those links will discover the break at next
+		// lookup).
+		self.backlinks.remove(path);
+
+		// Tags — drop from each tag's path set; clean up empty sets.
+		for tag in &removed.tags {
+			let lower = tag.to_lowercase();
+			if let Some(set) = self.tags_by_name.get_mut(&lower) {
+				set.remove(path);
+				if set.is_empty() {
+					self.tags_by_name.remove(&lower);
+					self.tags_display.remove(&lower);
+				}
+			}
+		}
+
+		// Properties — for every (key, canon) that was registered by this
+		// entry, drop `path` from the value set. Clean up empty value sets
+		// and empty key maps.
+		for (key, value) in &removed.frontmatter {
+			for canon in canonicalise_property_value(value) {
+				if let Some(by_val) = self.properties.get_mut(key) {
+					if let Some(set) = by_val.get_mut(&canon) {
+						set.remove(path);
+						if set.is_empty() {
+							by_val.remove(&canon);
+						}
+					}
+					if by_val.is_empty() {
+						self.properties.remove(key);
+					}
+				}
+			}
+		}
+
+		// by_filename — only drop if this entry owned the stem mapping.
+		let stem = filename_stem_lower(path);
+		if self.by_filename.get(&stem).map(|p| p.as_str()) == Some(path) {
+			self.by_filename.remove(&stem);
+		}
+
+		self.version = self.version.wrapping_add(1);
+		true
+	}
 }
 
 /// Resolves a raw wikilink target to an absolute path using the prebuilt
@@ -1263,6 +1334,77 @@ mod tests {
 		assert!(idx.notes_with_property("labels", "alpha").is_empty());
 		assert_eq!(idx.notes_with_property("labels", "beta"), vec!["/v/a.md"]);
 		assert_eq!(idx.notes_with_property("labels", "gamma"), vec!["/v/a.md"]);
+	}
+
+	// --- remove_entry ---
+
+	#[test]
+	fn remove_entry_drops_from_all_indexes() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			NoteEntry {
+				path: "/v/a.md".into(),
+				title: "a".into(),
+				frontmatter: {
+					let mut fm = HashMap::new();
+					fm.insert("status".to_string(), Value::String("done".into()));
+					fm
+				},
+				outgoing_links: vec!["b".into()],
+				tags: vec!["work".into()],
+				..Default::default()
+			},
+			make_titled("/v/b.md"),
+		]);
+		assert_eq!(idx.notes_with_tag("work"), vec!["/v/a.md"]);
+		assert_eq!(idx.notes_with_property("status", "done"), vec!["/v/a.md"]);
+		assert_eq!(idx.backlinks_of("/v/b.md"), vec!["/v/a.md".to_string()].iter().collect::<Vec<_>>());
+
+		let removed = idx.remove_entry("/v/a.md");
+		assert!(removed);
+		assert!(idx.entry_for_path("/v/a.md").is_none());
+		assert!(idx.notes_with_tag("work").is_empty());
+		assert!(idx.notes_with_property("status", "done").is_empty());
+		assert!(idx.backlinks_of("/v/b.md").is_empty());
+		assert_eq!(idx.len(), 1);
+	}
+
+	#[test]
+	fn remove_entry_missing_is_noop() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/a.md")]);
+		let v0 = idx.version();
+		assert!(!idx.remove_entry("/v/missing.md"));
+		assert_eq!(idx.version(), v0);
+		assert_eq!(idx.len(), 1);
+	}
+
+	#[test]
+	fn remove_entry_preserves_other_entries() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_tagged("/v/a.md", &["work"]),
+			make_tagged("/v/b.md", &["work"]),
+			make_tagged("/v/c.md", &["work"]),
+		]);
+		idx.remove_entry("/v/b.md");
+		let mut remaining = idx.notes_with_tag("work");
+		remaining.sort();
+		assert_eq!(remaining, vec!["/v/a.md", "/v/c.md"]);
+	}
+
+	#[test]
+	fn remove_entry_cleans_by_filename_when_owner() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/alpha.md")]);
+		idx.remove_entry("/v/alpha.md");
+		// A later scanning pass should resolve [[alpha]] to nothing.
+		idx.update_entry(NoteEntry {
+			path: "/v/source.md".into(),
+			outgoing_links: vec!["alpha".into()],
+			..Default::default()
+		});
+		assert!(idx.backlinks_of("/v/alpha.md").is_empty());
 	}
 
 	#[test]
