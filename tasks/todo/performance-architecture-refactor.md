@@ -69,12 +69,14 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 ### Phase 7 — Rust Tag & Task Indexes
 
-- [ ] **7.1** Extend `VaultIndex` with `tags`, `tasks`.
+- [x] **7.1a (tags)** Added `tags_by_name: HashMap<String, HashSet<String>>` (lowercase-keyed) + `tags_display: HashMap<String, String>` (first-occurrence casing) to `VaultIndex`. Populated in `build`; maintained in `update_entry` via tag diff (drops source from old tags, inserts into new, cleans up empty sets, preserves display casing across replacements). Getters: `notes_with_tag(tag)` (O(1)) + `all_tags() -> Vec<TagAggregate>`.
+- [ ] **7.1b (tasks)** Extend `VaultIndex` with `tasks: HashMap<String, Vec<TaskEntry>>`. Deferred — task extraction is substantial new work (checkbox regex + TaskMetadata emoji signifiers + indent calc + ordered/unordered markers).
 - [ ] **7.2** `extract_tasks` (checkboxes, statuses, line numbers, due dates).
-- [ ] **7.3** Wire into `update_entry` with `vault-index-updated`.
-- [ ] **7.4** Read commands: `get_notes_with_tag`, `get_all_tags`, `get_all_tasks`, `get_tasks_in_path`.
+- [ ] **7.3** Wire into `update_entry` with `vault-index-updated` (tags portion done as part of 7.1a).
+- [x] **7.4a (tag read commands)** `get_all_tags_v2` + `get_notes_with_tag_v2(tag) -> Vec<NoteEntry>`.
+- [ ] **7.4b (task read commands)** `get_all_tasks`, `get_tasks_in_path`.
 - [ ] **7.5** Write commands: `rename_tag`, `add_tag_to_note`, `remove_tag_from_note`, `toggle_task_status`.
-- [ ] **7.6** `experimental.rustTagsAndTasks` flag; migrate Tags + Tasks panels.
+- [ ] **7.6** `experimental.rustTagsAndTasks` flag (already defined in Phase 3.1); migrate Tags + Tasks panels.
 - [ ] **7.7** Enable + delete orphans.
 
 ### Phase 8 — Rust Frontmatter / Properties Index + File Ops
