@@ -16,6 +16,10 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
@@ -29,14 +33,18 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 }));
 
 import { exists, writeTextFile, mkdir, readTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 
 describe('openOrCreateNote', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		settingsStore.reset();
+		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
 	it('opens the file directly when it already exists', async () => {
@@ -201,5 +209,43 @@ describe('openOrCreateNote', () => {
 
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to open or create note:', expect.any(Error));
 		consoleSpy.mockRestore();
+	});
+
+	describe('rustProperties flag', () => {
+		it('invokes create_note when flag is on (skipping writeTextFile + mkdir)', async () => {
+			settingsStore.updateExperimental({ rustProperties: true });
+			vi.mocked(exists).mockResolvedValue(false);
+
+			await openOrCreateNote({
+				filePath: '/vault/new.md',
+				inlineTemplate: '# Hello',
+				title: 'new',
+			});
+
+			expect(invoke).toHaveBeenCalledWith('create_note', expect.objectContaining({
+				path: '/vault/new.md',
+			}));
+			// Legacy direct writes must NOT fire on the Rust path.
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(mkdir).not.toHaveBeenCalled();
+			expect(openFileInEditor).toHaveBeenCalledWith('/vault/new.md');
+
+			settingsStore.updateExperimental({ rustProperties: false });
+		});
+
+		it('uses TS writeTextFile + mkdir when flag is off', async () => {
+			vi.mocked(exists).mockResolvedValue(false);
+
+			await openOrCreateNote({
+				filePath: '/vault/new.md',
+				inlineTemplate: '# Hello',
+				title: 'new',
+			});
+
+			expect(writeTextFile).toHaveBeenCalled();
+			expect(mkdir).toHaveBeenCalled();
+			// Rust command must NOT be called on the legacy path.
+			expect(invoke).not.toHaveBeenCalledWith('create_note', expect.anything());
+		});
 	});
 });

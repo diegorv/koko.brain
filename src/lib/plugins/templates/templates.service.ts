@@ -1,4 +1,5 @@
 import { readDir, exists, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -92,14 +93,22 @@ export async function ensureTemplatesFolder(): Promise<void> {
 	try {
 		const folderExists = await exists(folderPath);
 		if (!folderExists) {
-			await mkdir(folderPath, { recursive: true });
+			if (settingsStore.experimental.rustProperties) {
+				await invoke('create_folder', { path: folderPath });
+			} else {
+				await mkdir(folderPath, { recursive: true });
+			}
 		}
 
 		let created = false;
 		for (const relPath of templatePaths) {
 			const absPath = `${vaultPath}/${relPath}`;
 			if (!(await exists(absPath))) {
-				await writeTextFile(absPath, '');
+				if (settingsStore.experimental.rustProperties) {
+					await invoke('create_note', { path: absPath, content: '' });
+				} else {
+					await writeTextFile(absPath, '');
+				}
 				created = true;
 			}
 		}

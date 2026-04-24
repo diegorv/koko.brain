@@ -1,7 +1,9 @@
 import { exists, writeTextFile, mkdir, readTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { processTemplate } from '$lib/utils/template';
 import { error } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
@@ -45,7 +47,6 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 
 		if (!fileExists) {
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-			await mkdir(parentDir, { recursive: true });
 
 			let content = '';
 
@@ -61,7 +62,18 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 
 			content = processTemplate(content, title, customVariables);
 
-			await writeTextFile(filePath, content);
+			// Write via Rust create_note when rustProperties is on — the command
+			// creates parent dirs + writes the file + updates VaultIndex +
+			// emits vault-index-updated in one atomic operation, so the new
+			// note appears in the backlinks / outgoing / tags / properties
+			// indexes immediately. Falls back to the legacy writeTextFile
+			// path when the flag is off to preserve existing behaviour.
+			if (settingsStore.experimental.rustProperties) {
+				await invoke('create_note', { path: filePath, content });
+			} else {
+				await mkdir(parentDir, { recursive: true });
+				await writeTextFile(filePath, content);
+			}
 			markRecentSave(filePath);
 			try {
 				await refreshTree();
