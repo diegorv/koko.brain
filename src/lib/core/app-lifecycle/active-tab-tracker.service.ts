@@ -10,8 +10,10 @@ import {
 	updateOutgoingLinksForFile,
 } from '$lib/features/outgoing-links/outgoing-links.service';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import type { BacklinkEntry } from '$lib/features/backlinks/backlinks.types';
+import type { OutgoingLink, OutgoingUnlinkedMention } from '$lib/features/outgoing-links/outgoing-links.types';
 import type { NoteEntry } from '$lib/types/vault-v2.types';
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
 
@@ -22,25 +24,60 @@ import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
  * Clears both panels when no tab is active.
  * Each updater is wrapped in try/catch so one failure doesn't block the other.
  *
- * When `settings.experimental.rustBacklinks` is on, backlinks are sourced
- * from the Rust-side VaultIndex via `get_backlinks_v2` (O(K) reverse-index
- * lookup) instead of the TS reverse index. Outgoing links still use the TS
- * path until Phase 6 migrates them. Unlinked mentions continue to use the
- * TS deferred-compute path on the panel side.
+ * Flag matrix:
+ *   - `experimental.rustBacklinks` — source linked mentions from
+ *     `get_backlinks_v2`. When off, the TS reverse index is used.
+ *   - `experimental.rustOutgoing` — source outgoing links + unlinked mentions
+ *     from `get_outgoing_links_v2` + `get_outgoing_unlinked_mentions_v2`.
+ *     When off, the TS reverse-scan is used. Independent of rustBacklinks
+ *     so either can be rolled out without the other.
+ *   - Both off: original TS behaviour, loading-guard applied.
+ *   - Either on: loading-guard bypassed (Rust index has its own state).
  */
 export function updateActiveTabLinks(path: string | null): void {
-	if (path && !settingsStore.experimental.rustBacklinks && noteIndexStore.isLoading) return;
+	const rustBacklinks = settingsStore.experimental.rustBacklinks;
+	const rustOutgoing = settingsStore.experimental.rustOutgoing;
+
+	// Loading guard applies only when BOTH consumers are on the TS path.
+	if (path && !rustBacklinks && !rustOutgoing && noteIndexStore.isLoading) return;
 
 	if (path) {
 		const t0 = perfStart();
 
-		if (settingsStore.experimental.rustBacklinks) {
+		// Build the TS resolver lazily — only one of the consumers might need it.
+		let tsAllFilePaths: string[] | null = null;
+		let tsCache: ReturnType<typeof buildResolutionCache> | null = null;
+		const ensureTsResolver = () => {
+			if (tsAllFilePaths !== null && tsCache !== null) {
+				return { allFilePaths: tsAllFilePaths, cache: tsCache };
+			}
+			tsAllFilePaths = Array.from(noteIndexStore.noteContents.keys());
+			tsCache = buildResolutionCache(tsAllFilePaths);
+			return { allFilePaths: tsAllFilePaths, cache: tsCache };
+		};
+
+		// Linked mentions
+		if (rustBacklinks) {
 			fetchBacklinksFromRust(path);
 		} else {
-			const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
-			const cache = buildResolutionCache(allFilePaths);
-			try { updateBacklinksForFile(path, allFilePaths, cache); } catch (err) { error('ACTIVE-TAB', 'updateBacklinksForFile failed:', err); }
-			try { updateOutgoingLinksForFile(path, allFilePaths, cache); } catch (err) { error('ACTIVE-TAB', 'updateOutgoingLinksForFile failed:', err); }
+			try {
+				const { allFilePaths, cache } = ensureTsResolver();
+				updateBacklinksForFile(path, allFilePaths, cache);
+			} catch (err) {
+				error('ACTIVE-TAB', 'updateBacklinksForFile failed:', err);
+			}
+		}
+
+		// Outgoing links + unlinked mentions
+		if (rustOutgoing) {
+			fetchOutgoingFromRust(path);
+		} else {
+			try {
+				const { allFilePaths, cache } = ensureTsResolver();
+				updateOutgoingLinksForFile(path, allFilePaths, cache);
+			} catch (err) {
+				error('ACTIVE-TAB', 'updateOutgoingLinksForFile failed:', err);
+			}
 		}
 
 		backlinksStore.markUnlinkedDirty();
@@ -61,9 +98,6 @@ export function updateActiveTabLinks(path: string | null): void {
  * will display the source file name / title without the preview text.
  * A later pass can either enrich the Rust response or compute snippets
  * lazily from noteContents when the user expands a backlink row.
- *
- * Outgoing links still flow through the TS path here until Phase 6. When
- * both flags land, this function absorbs that migration as well.
  */
 function fetchBacklinksFromRust(path: string): void {
 	const t0 = perfStart();
@@ -81,13 +115,56 @@ function fetchBacklinksFromRust(path: string): void {
 		.catch((err) => {
 			error('ACTIVE-TAB', 'get_backlinks_v2 failed:', err);
 		});
+}
 
-	// Outgoing-links path still goes through TS until Phase 6.
-	try {
-		const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
-		const cache = buildResolutionCache(allFilePaths);
-		updateOutgoingLinksForFile(path, allFilePaths, cache);
-	} catch (err) {
-		error('ACTIVE-TAB', 'updateOutgoingLinksForFile failed (Rust backlinks path):', err);
-	}
+/**
+ * Rust-backed outgoing-links fetch. Issues two invokes in parallel:
+ *   1. `get_outgoing_links_v2` → Vec<NoteEntry> → converted to OutgoingLink[]
+ *      with `target = entry.title`, `resolvedPath = entry.path`. Alias,
+ *      heading, and original position are intentionally dropped in this
+ *      Phase 6 migration — a follow-up can enrich the Rust payload if the
+ *      panel grows a demand for them (currently the Outgoing Links Panel
+ *      only shows `alias ?? target` + optional heading, both of which
+ *      degrade gracefully: title is the filename stem; heading is null).
+ *   2. `get_outgoing_unlinked_mentions_v2(path, content)` — reads the
+ *      current editor buffer content (not disk) so unsaved edits are
+ *      honoured, same as the TS path.
+ *
+ * Both invokes are independent — a failure on one doesn't clear the other.
+ */
+function fetchOutgoingFromRust(path: string): void {
+	const tLinks = perfStart();
+	invoke<NoteEntry[]>('get_outgoing_links_v2', { path })
+		.then((entries) => {
+			const links: OutgoingLink[] = entries.map((e) => ({
+				target: e.title,
+				alias: null,
+				heading: null,
+				resolvedPath: e.path,
+				position: 0,
+			}));
+			outgoingLinksStore.setOutgoingLinks(links);
+			perfEnd('ACTIVE-TAB', 'get_outgoing_links_v2', tLinks, `n=${links.length}`);
+		})
+		.catch((err) => {
+			error('ACTIVE-TAB', 'get_outgoing_links_v2 failed:', err);
+		});
+
+	// Unlinked mentions — needs the editor's current buffer, which may differ
+	// from disk. Skip if the current tab isn't the one we're fetching for
+	// (race during a fast tab switch — a stale response would populate the
+	// wrong tab's panel).
+	const activeTab = editorStore.activeTab;
+	if (!activeTab || activeTab.path !== path) return;
+	const content = activeTab.content;
+
+	const tUnlinked = perfStart();
+	invoke<OutgoingUnlinkedMention[]>('get_outgoing_unlinked_mentions_v2', { path, content })
+		.then((mentions) => {
+			outgoingLinksStore.setUnlinkedMentions(mentions);
+			perfEnd('ACTIVE-TAB', 'get_outgoing_unlinked_mentions_v2', tUnlinked, `n=${mentions.length}`);
+		})
+		.catch((err) => {
+			error('ACTIVE-TAB', 'get_outgoing_unlinked_mentions_v2 failed:', err);
+		});
 }

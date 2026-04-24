@@ -63,8 +63,8 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 
 - [x] **6.1** `get_outgoing_links_v2(path)` → `Vec<NoteEntry>`. Added `VaultIndex::outgoing_links_of` (O(K) using a cached `by_filename` resolver — now maintained incrementally by `build` + `update_entry` instead of being rebuilt on every update). Dedupes target paths, filters self-links, omits unresolved links. Sorted by title for stable UI.
 - [x] **6.2** `get_outgoing_unlinked_mentions_v2(path, content)` + `VaultIndex::outgoing_unlinked_mentions_of` + `count_plain_text_mentions` in `vault/parsing.rs`. Content passed as a param so the editor's unsaved buffer is honoured. Mirrors TS `findOutgoingUnlinkedMentions` word-boundary + wikilink-exclusion + frontmatter/code-strip semantics. New struct `OutgoingUnlinkedMention { noteName, notePath, count }` (camelCase serde).
-- [ ] **6.3** `experimental.rustOutgoing` flag.
-- [ ] **6.4** Migrate Outgoing Links Panel + consumers.
+- [x] **6.3** `experimental.rustOutgoing` flag. Already defined as part of the Phase 3.1 `ExperimentalSettings` group (defaults to `false`). No code change needed here beyond wiring consumers — that's Task 6.4.
+- [x] **6.4** Branched `updateActiveTabLinks` in `active-tab-tracker.service.ts` on `rustOutgoing` (independent from `rustBacklinks` — either can flip on without the other). On: invokes `get_outgoing_links_v2` + `get_outgoing_unlinked_mentions_v2(path, content)` in parallel. Reads current editor buffer content so unsaved edits propagate. Stale-tab race guard skips the unlinked-mentions invoke if the active tab path has drifted. Converts `NoteEntry[]` to `OutgoingLink[]` with `target = title`, `alias/heading = null`, `position = 0` (intentional Phase 6 reduction — matches the Panel 3 snippets-deferred decision). Outgoing Links Panel reads from store; no component change needed.
 - [ ] **6.5** Enable + delete orphans.
 
 ### Phase 7 — Rust Tag & Task Indexes

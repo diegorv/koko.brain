@@ -11,6 +11,7 @@ import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.
 import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import * as backlinksService from '$lib/features/backlinks/backlinks.service';
 import * as outgoingLinksService from '$lib/features/outgoing-links/outgoing-links.service';
 import { invoke } from '@tauri-apps/api/core';
@@ -230,6 +231,118 @@ describe('updateActiveTabLinks', () => {
 
 			settingsStore.updateExperimental({ rustBacklinks: false });
 			noteIndexStore.setLoading(false);
+		});
+	});
+
+	describe('rustOutgoing flag', () => {
+		beforeEach(() => {
+			settingsStore.updateExperimental({ rustBacklinks: false, rustOutgoing: false });
+			vi.mocked(invoke).mockReset();
+			editorStore.reset();
+		});
+
+		it('invokes get_outgoing_links_v2 + unlinked_mentions_v2 when flag is on', async () => {
+			settingsStore.updateExperimental({ rustOutgoing: true });
+			editorStore.addTab({
+				path: '/vault/note-a.md',
+				name: 'note-a.md',
+				content: 'body mentions beta',
+				savedContent: 'body mentions beta',
+			});
+			vi.mocked(invoke).mockImplementation(async (cmd) => {
+				if (cmd === 'get_outgoing_links_v2') {
+					return [{
+						path: '/vault/beta.md',
+						title: 'beta',
+						frontmatter: {},
+						outgoingLinks: [],
+						tags: [],
+						modifiedAt: null,
+						wordCount: 0,
+						snippet: '',
+					}];
+				}
+				if (cmd === 'get_outgoing_unlinked_mentions_v2') {
+					return [{ noteName: 'gamma', notePath: '/vault/gamma.md', count: 2 }];
+				}
+				return undefined;
+			});
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/note-a.md' }));
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('get_outgoing_unlinked_mentions_v2', { path: '/vault/note-a.md', content: 'body mentions beta' }));
+			await vi.waitFor(() => expect(outgoingLinksStore.outgoingLinks).toHaveLength(1));
+
+			expect(outgoingLinksStore.outgoingLinks[0].target).toBe('beta');
+			expect(outgoingLinksStore.outgoingLinks[0].resolvedPath).toBe('/vault/beta.md');
+			expect(outgoingLinksStore.outgoingLinks[0].alias).toBeNull();
+			expect(outgoingLinksStore.unlinkedMentions).toEqual([
+				{ noteName: 'gamma', notePath: '/vault/gamma.md', count: 2 },
+			]);
+
+			settingsStore.updateExperimental({ rustOutgoing: false });
+		});
+
+		it('falls back to TS outgoing path when flag is off', () => {
+			noteIndexStore.setNoteContents(new Map([
+				['/vault/note-a.md', 'Link to [[note-b]]'],
+				['/vault/note-b.md', 'Target note'],
+			]));
+			noteIndexStore.setNoteIndex(new Map([
+				['/vault/note-a.md', parseWikilinks('Link to [[note-b]]')],
+				['/vault/note-b.md', parseWikilinks('Target note')],
+			]));
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			expect(invoke).not.toHaveBeenCalledWith('get_outgoing_links_v2', expect.anything());
+			expect(outgoingLinksStore.outgoingLinks[0].target).toBe('note-b');
+		});
+
+		it('skips the unlinked-mentions invoke on a stale tab (race guard)', async () => {
+			settingsStore.updateExperimental({ rustOutgoing: true });
+			// Active tab is a DIFFERENT path than the one requested — should skip
+			// the unlinked mentions fetch entirely.
+			editorStore.addTab({
+				path: '/vault/other-tab.md',
+				name: 'other-tab.md',
+				content: 'different buffer',
+				savedContent: 'different buffer',
+			});
+			vi.mocked(invoke).mockResolvedValue([]);
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			// get_outgoing_links_v2 always fires (no content needed).
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/note-a.md' }));
+			// But the unlinked-mentions invoke must NOT — the active tab doesn't match.
+			const calls = vi.mocked(invoke).mock.calls.map((c) => c[0]);
+			expect(calls).not.toContain('get_outgoing_unlinked_mentions_v2');
+
+			settingsStore.updateExperimental({ rustOutgoing: false });
+		});
+
+		it('both rustBacklinks and rustOutgoing can be on independently', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true, rustOutgoing: true });
+			editorStore.addTab({
+				path: '/vault/note-a.md',
+				name: 'note-a.md',
+				content: 'buffer',
+				savedContent: 'buffer',
+			});
+			vi.mocked(invoke).mockResolvedValue([]);
+
+			updateActiveTabLinks('/vault/note-a.md');
+
+			await vi.waitFor(() => {
+				const calls = vi.mocked(invoke).mock.calls.map((c) => c[0]);
+				expect(calls).toContain('get_backlinks_v2');
+				expect(calls).toContain('get_outgoing_links_v2');
+				expect(calls).toContain('get_outgoing_unlinked_mentions_v2');
+			});
+
+			settingsStore.updateExperimental({ rustBacklinks: false, rustOutgoing: false });
 		});
 	});
 });
