@@ -23,6 +23,7 @@
 //! Svelte-store pattern in the TS codebase (ADR 0005).
 
 use crate::vault::entry::NoteEntry;
+use crate::vault::parsing;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 
@@ -30,6 +31,21 @@ use std::collections::{HashMap, HashSet};
 /// discard stale reads and so `vault-index-updated` payloads carry a
 /// strictly-increasing stamp that clients can order against.
 pub type IndexVersion = u64;
+
+/// One aggregate row produced by `outgoing_unlinked_mentions_of` — a note in
+/// the vault whose title appears as plain text in the source body (with word
+/// boundaries, outside of wikilinks, outside of frontmatter/code) but is not
+/// already wikilinked from the source.
+///
+/// Matches the TS `OutgoingUnlinkedMention` shape in
+/// `src/lib/features/outgoing-links/outgoing-links.types.ts`.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct OutgoingUnlinkedMention {
+	pub note_name: String,
+	pub note_path: String,
+	pub count: usize,
+}
 
 /// Outcome of a single `update_entry` call, carried as the payload of the
 /// `vault-index-updated` Tauri event (Phase 2.6). Clients use it to decide
@@ -259,6 +275,78 @@ impl VaultIndex {
 			.unwrap_or_default()
 	}
 
+	/// Scans the supplied body (typically the editor's current content for the
+	/// source) for plain-text mentions of every other note's title — returns
+	/// per-note aggregates where `count > 0`. Mentions that are already
+	/// wikilinks from this source (including path-basename variants), mentions
+	/// inside `[[…]]`, and mentions inside frontmatter / fenced code are
+	/// excluded. Matches the TS `findOutgoingUnlinkedMentions` semantics.
+	///
+	/// Takes `content` explicitly instead of reading disk because the editor
+	/// buffer may differ from disk when the user is typing. O(N × M) where N
+	/// is vault size and M is body size; acceptable because this runs only
+	/// when the Outgoing panel is open + dirty (deferred compute).
+	pub fn outgoing_unlinked_mentions_of(
+		&self,
+		source_path: &str,
+		content: &str,
+	) -> Vec<OutgoingUnlinkedMention> {
+		if content.is_empty() {
+			return Vec::new();
+		}
+		let source_entry = self.entry_for_path(source_path);
+		let already_linked: HashSet<String> = source_entry
+			.map(|e| {
+				e.outgoing_links
+					.iter()
+					.flat_map(|t| {
+						let lower = t.to_lowercase();
+						let base = basename_lower(t);
+						if base == lower {
+							vec![lower]
+						} else {
+							vec![lower, base]
+						}
+					})
+					.collect()
+			})
+			.unwrap_or_default();
+
+		let stripped = parsing::strip_non_body_content(content);
+
+		let mut mentions: Vec<OutgoingUnlinkedMention> = self
+			.entries
+			.iter()
+			.filter(|e| e.path != source_path)
+			.filter_map(|entry| {
+				let note_name = filename_stem(&entry.path);
+				if note_name.is_empty() {
+					return None;
+				}
+				let note_name_lower = note_name.to_lowercase();
+				if already_linked.contains(&note_name_lower) {
+					return None;
+				}
+				let count = parsing::count_plain_text_mentions(&stripped, &note_name);
+				if count == 0 {
+					return None;
+				}
+				Some(OutgoingUnlinkedMention {
+					note_name,
+					note_path: entry.path.clone(),
+					count,
+				})
+			})
+			.collect();
+
+		mentions.sort_by(|a, b| {
+			a.note_name
+				.to_lowercase()
+				.cmp(&b.note_name.to_lowercase())
+		});
+		mentions
+	}
+
 	/// Resolves the outgoing wikilinks of the note at `source_path` to the
 	/// absolute paths of their target notes. Deduplicated by target path;
 	/// unresolved links are omitted (their target does not exist in the
@@ -329,6 +417,14 @@ fn basename_lower(target: &str) -> String {
 		.or_else(|| name.strip_suffix(".markdown"))
 		.unwrap_or(name);
 	stem.to_lowercase()
+}
+
+fn filename_stem(path: &str) -> String {
+	let name = path.rsplit(&['/', '\\'][..]).next().unwrap_or(path);
+	name.strip_suffix(".md")
+		.or_else(|| name.strip_suffix(".markdown"))
+		.unwrap_or(name)
+		.to_string()
 }
 
 #[cfg(test)]
@@ -667,6 +763,117 @@ mod tests {
 		]);
 		// `folder/sub/beta` resolves via basename to /v/beta.md.
 		assert_eq!(idx.outgoing_links_of("/v/source.md"), vec!["/v/beta.md".to_string()]);
+	}
+
+	// --- outgoing_unlinked_mentions_of ---
+
+	fn make_titled(path: &str) -> NoteEntry {
+		NoteEntry {
+			path: path.to_string(),
+			..Default::default()
+		}
+	}
+
+	#[test]
+	fn outgoing_unlinked_finds_plain_text_mentions() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/source.md"), make_titled("/v/alpha.md")]);
+		let body = "We talked about alpha yesterday.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		assert_eq!(mentions.len(), 1);
+		assert_eq!(mentions[0].note_name, "alpha");
+		assert_eq!(mentions[0].note_path, "/v/alpha.md");
+		assert_eq!(mentions[0].count, 1);
+	}
+
+	#[test]
+	fn outgoing_unlinked_skips_already_linked_targets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/source.md", &["alpha"]),
+			make_titled("/v/alpha.md"),
+		]);
+		let body = "We talked about alpha and [[alpha]] again.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		// Source already wikilinks to alpha — no unlinked mention reported.
+		assert!(mentions.is_empty());
+	}
+
+	#[test]
+	fn outgoing_unlinked_skips_source_itself() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/source.md")]);
+		let body = "I am source talking about source.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		assert!(mentions.is_empty());
+	}
+
+	#[test]
+	fn outgoing_unlinked_counts_multiple_occurrences() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/source.md"), make_titled("/v/alpha.md")]);
+		let body = "alpha once, alpha twice, alpha thrice.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		assert_eq!(mentions.len(), 1);
+		assert_eq!(mentions[0].count, 3);
+	}
+
+	#[test]
+	fn outgoing_unlinked_sorted_by_note_name() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_titled("/v/source.md"),
+			make_titled("/v/Zebra.md"),
+			make_titled("/v/alpha.md"),
+			make_titled("/v/Mango.md"),
+		]);
+		let body = "zebra, alpha, mango in some order";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		assert_eq!(mentions.len(), 3);
+		assert_eq!(mentions[0].note_name, "alpha");
+		assert_eq!(mentions[1].note_name, "Mango");
+		assert_eq!(mentions[2].note_name, "Zebra");
+	}
+
+	#[test]
+	fn outgoing_unlinked_excludes_wikilink_matches() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/source.md"), make_titled("/v/alpha.md")]);
+		// [[alpha]] still counts as "already linked" via outgoing_links on the source.
+		// But if we craft a source with NO outgoing_links and put alpha both inside
+		// and outside brackets, only the outside one should count.
+		let body = "Reading [[alpha]] then alpha plain.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		assert_eq!(mentions.len(), 1);
+		assert_eq!(mentions[0].count, 1);
+	}
+
+	#[test]
+	fn outgoing_unlinked_strips_frontmatter_and_code() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/source.md"), make_titled("/v/alpha.md")]);
+		let body = "---\nrelated: alpha\n---\n```\nalpha\n```\nOnly this alpha counts.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/source.md", body);
+		assert_eq!(mentions.len(), 1);
+		assert_eq!(mentions[0].count, 1);
+	}
+
+	#[test]
+	fn outgoing_unlinked_empty_content() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/source.md"), make_titled("/v/alpha.md")]);
+		assert!(idx.outgoing_unlinked_mentions_of("/v/source.md", "").is_empty());
+	}
+
+	#[test]
+	fn outgoing_unlinked_unknown_source_still_scans() {
+		// An unknown source has no outgoing_links, so nothing is pre-excluded.
+		// The scan still finds plain mentions.
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_titled("/v/alpha.md"), make_titled("/v/beta.md")]);
+		let body = "alpha and beta mentioned.";
+		let mentions = idx.outgoing_unlinked_mentions_of("/v/unknown.md", body);
+		assert_eq!(mentions.len(), 2);
 	}
 
 	#[test]

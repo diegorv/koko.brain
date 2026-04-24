@@ -62,7 +62,7 @@ Full plan context: `/root/.claude/plans/performance-architecture-buzzing-cray.md
 ### Phase 6 — Rust Outgoing Links
 
 - [x] **6.1** `get_outgoing_links_v2(path)` → `Vec<NoteEntry>`. Added `VaultIndex::outgoing_links_of` (O(K) using a cached `by_filename` resolver — now maintained incrementally by `build` + `update_entry` instead of being rebuilt on every update). Dedupes target paths, filters self-links, omits unresolved links. Sorted by title for stable UI.
-- [ ] **6.2** `get_outgoing_unlinked_mentions_v2` (mirrors TS word-boundary rules).
+- [x] **6.2** `get_outgoing_unlinked_mentions_v2(path, content)` + `VaultIndex::outgoing_unlinked_mentions_of` + `count_plain_text_mentions` in `vault/parsing.rs`. Content passed as a param so the editor's unsaved buffer is honoured. Mirrors TS `findOutgoingUnlinkedMentions` word-boundary + wikilink-exclusion + frontmatter/code-strip semantics. New struct `OutgoingUnlinkedMention { noteName, notePath, count }` (camelCase serde).
 - [ ] **6.3** `experimental.rustOutgoing` flag.
 - [ ] **6.4** Migrate Outgoing Links Panel + consumers.
 - [ ] **6.5** Enable + delete orphans.

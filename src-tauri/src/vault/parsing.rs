@@ -787,6 +787,96 @@ fn unescape_double_quoted(s: &str) -> String {
 	out
 }
 
+// --- Plain-text mention scanning (unlinked mentions) ---
+
+/// Counts case-insensitive plain-text occurrences of `term` in `content` that
+/// (a) sit on word boundaries and (b) are not inside a `[[wikilink]]`.
+///
+/// Mirrors `findPlainTextMentionPositions` in
+/// `src/lib/features/backlinks/backlinks.logic.ts` — same word-boundary rule
+/// (previous/next char must not be a word char, i.e. not alphanumeric or `_`)
+/// and same wikilink exclusion (scan the current line; if there's a `[[` to
+/// the left of the match and no `]]` between them, the match is inside a
+/// wikilink and is skipped).
+///
+/// Frontmatter and fenced code should be stripped out of `content` by the
+/// caller via `strip_non_body_content` before invoking this — the function
+/// itself does no stripping, so positions line up with the original input
+/// for wikilink-presence checks.
+pub fn count_plain_text_mentions(content: &str, term: &str) -> usize {
+	if term.is_empty() || content.is_empty() {
+		return 0;
+	}
+	let content_lower = content.to_lowercase();
+	let term_lower = term.to_lowercase();
+	if term_lower.len() > content_lower.len() {
+		return 0;
+	}
+	let term_bytes = term_lower.as_bytes();
+	let bytes_lower = content_lower.as_bytes();
+
+	let mut count = 0;
+	let mut i = 0;
+	while i + term_bytes.len() <= bytes_lower.len() {
+		if &bytes_lower[i..i + term_bytes.len()] == term_bytes {
+			if !content.is_char_boundary(i) || !content.is_char_boundary(i + term_bytes.len()) {
+				// Match straddles a UTF-8 char boundary — skip.
+				i += 1;
+				continue;
+			}
+			if is_word_boundary_match(content, i, term_bytes.len())
+				&& !is_inside_wikilink(content, i)
+			{
+				count += 1;
+			}
+			i += term_bytes.len();
+		} else {
+			i += 1;
+		}
+	}
+	count
+}
+
+fn is_word_boundary_match(content: &str, start: usize, len: usize) -> bool {
+	let before_ok = start == 0 || {
+		content[..start]
+			.chars()
+			.last()
+			.map(is_word_boundary_char)
+			.unwrap_or(true)
+	};
+	let end = start + len;
+	let after_ok = end >= content.len() || {
+		content[end..]
+			.chars()
+			.next()
+			.map(is_word_boundary_char)
+			.unwrap_or(true)
+	};
+	before_ok && after_ok
+}
+
+fn is_word_boundary_char(c: char) -> bool {
+	!c.is_alphanumeric() && c != '_'
+}
+
+fn is_inside_wikilink(content: &str, pos: usize) -> bool {
+	let line_start = content[..pos].rfind('\n').map(|n| n + 1).unwrap_or(0);
+	let pos_in_line = pos - line_start;
+	let line_end = content[pos..]
+		.find('\n')
+		.map(|n| pos + n)
+		.unwrap_or(content.len());
+	let line = &content[line_start..line_end];
+	let Some(bb) = line[..pos_in_line].rfind("[[") else {
+		return false;
+	};
+	// A match is inside the wikilink only if there's no `]]` between the `[[`
+	// and `pos_in_line`. If the wikilink already closed before `pos`, the
+	// match is outside.
+	line[bb..pos_in_line].find("]]").is_none()
+}
+
 fn skip_continuation(rest: &[&str]) -> usize {
 	let mut consumed = 0;
 	for line in rest {
@@ -1329,5 +1419,81 @@ mod tests {
 	fn parse_frontmatter_empty_block_returns_empty() {
 		let fm = parse_frontmatter("---\n---\nbody");
 		assert!(fm.is_empty());
+	}
+
+	// --- count_plain_text_mentions ---
+
+	#[test]
+	fn count_plain_simple() {
+		assert_eq!(count_plain_text_mentions("Hello Alpha world", "Alpha"), 1);
+	}
+
+	#[test]
+	fn count_plain_case_insensitive() {
+		assert_eq!(count_plain_text_mentions("Hello ALPHA world alpha", "Alpha"), 2);
+	}
+
+	#[test]
+	fn count_plain_rejects_mid_word() {
+		// Alphabet contains "alpha" but is not a standalone word.
+		assert_eq!(count_plain_text_mentions("The alphabet starts", "alpha"), 0);
+	}
+
+	#[test]
+	fn count_plain_rejects_prefix_substring() {
+		assert_eq!(count_plain_text_mentions("Alphanumeric text", "Alpha"), 0);
+	}
+
+	#[test]
+	fn count_plain_accepts_punctuation_boundary() {
+		assert_eq!(count_plain_text_mentions("Hello, alpha. Goodbye alpha!", "alpha"), 2);
+	}
+
+	#[test]
+	fn count_plain_excludes_wikilinks() {
+		// `alpha` inside [[alpha]] is skipped; `alpha` outside is counted.
+		assert_eq!(
+			count_plain_text_mentions("See [[alpha]] and also alpha here.", "alpha"),
+			1
+		);
+	}
+
+	#[test]
+	fn count_plain_excludes_wikilink_with_alias() {
+		// Target part of [[alpha|display]] — still inside brackets.
+		assert_eq!(
+			count_plain_text_mentions("[[alpha|display text]] plus alpha alone.", "alpha"),
+			1
+		);
+	}
+
+	#[test]
+	fn count_plain_counts_wikilink_then_same_line_plain() {
+		// [[alpha]] closes before the next plain `alpha` on the same line.
+		let content = "[[alpha]] and alpha";
+		assert_eq!(count_plain_text_mentions(content, "alpha"), 1);
+	}
+
+	#[test]
+	fn count_plain_empty_term_is_zero() {
+		assert_eq!(count_plain_text_mentions("anything", ""), 0);
+	}
+
+	#[test]
+	fn count_plain_empty_content_is_zero() {
+		assert_eq!(count_plain_text_mentions("", "anything"), 0);
+	}
+
+	#[test]
+	fn count_plain_handles_newlines() {
+		let content = "line one alpha\nline two\nalpha ends";
+		assert_eq!(count_plain_text_mentions(content, "alpha"), 2);
+	}
+
+	#[test]
+	fn count_plain_handles_unicode_term() {
+		// "café" word-bounded by punctuation should count.
+		let content = "Bonjour, café! Another café?";
+		assert_eq!(count_plain_text_mentions(content, "café"), 2);
 	}
 }

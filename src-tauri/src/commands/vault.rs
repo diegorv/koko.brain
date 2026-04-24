@@ -246,6 +246,25 @@ pub fn get_backlinks_v2(
 	Ok(entries)
 }
 
+/// Scans the supplied `content` (the editor's current buffer, which may differ
+/// from disk when the user is typing) for plain-text mentions of every other
+/// note's title that the source at `path` does NOT already wikilink to.
+/// Excludes mentions inside `[[…]]`, frontmatter, and fenced code. Matches
+/// TS `findOutgoingUnlinkedMentions` semantics.
+///
+/// Returns the list sorted by note name (case-insensitive).
+#[tauri::command]
+pub fn get_outgoing_unlinked_mentions_v2(
+	path: String,
+	content: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<crate::vault::index::OutgoingUnlinkedMention>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	Ok(idx.outgoing_unlinked_mentions_of(&path, &content))
+}
+
 /// Returns every note the source at `path` outgoing-links to. Targets are
 /// resolved via the cached `by_filename` map (same rules as
 /// `get_backlinks_v2`); unresolved wikilinks and self-links are omitted.
