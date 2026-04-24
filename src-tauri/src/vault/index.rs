@@ -68,6 +68,7 @@ pub struct VaultIndex {
 	entries: Vec<NoteEntry>,
 	by_path: HashMap<String, usize>,
 	backlinks: HashMap<String, HashSet<String>>,
+	by_filename: HashMap<String, String>,
 	version: IndexVersion,
 }
 
@@ -95,17 +96,21 @@ impl VaultIndex {
 		}
 
 		// Build the lowercase filename → path resolution map; first entry wins on collision.
-		let mut by_filename: HashMap<String, String> =
-			HashMap::with_capacity(self.entries.len());
+		// Cached on the struct so subsequent get_outgoing_links_v2 / update_entry calls
+		// don't pay the O(N) re-scan. Kept in sync by update_entry.
+		self.by_filename.clear();
+		self.by_filename.reserve(self.entries.len());
 		for entry in &self.entries {
 			let key = filename_stem_lower(&entry.path);
-			by_filename.entry(key).or_insert_with(|| entry.path.clone());
+			self.by_filename
+				.entry(key)
+				.or_insert_with(|| entry.path.clone());
 		}
 
 		self.backlinks.clear();
 		for entry in &self.entries {
 			for target in &entry.outgoing_links {
-				if let Some(resolved) = resolve_wikilink(target, &by_filename) {
+				if let Some(resolved) = resolve_wikilink(target, &self.by_filename) {
 					// Do not count self-links — matches the sourcePath != currentPath
 					// skip in TS's findLinkedMentions.
 					if resolved == entry.path {
@@ -154,20 +159,20 @@ impl VaultIndex {
 			self.entries.push(entry);
 			self.by_path
 				.insert(source_path.clone(), self.entries.len() - 1);
+			// New path may introduce a new filename stem. First-wins preserves
+			// the existing mapping if the stem already exists.
+			let key = filename_stem_lower(&source_path);
+			self.by_filename
+				.entry(key)
+				.or_insert_with(|| source_path.clone());
 		}
 
-		// Rebuild the filename resolver cheaply — O(N) but only touches
-		// HashMap inserts. Acceptable for the Phase 2 per-save cost; if
-		// profiling later shows this as a hotspot it becomes an incremental
-		// structure maintained by build + update_entry together.
-		let by_filename: HashMap<String, String> = {
-			let mut map = HashMap::with_capacity(self.entries.len());
-			for e in &self.entries {
-				let key = filename_stem_lower(&e.path);
-				map.entry(key).or_insert_with(|| e.path.clone());
-			}
-			map
-		};
+		// Snapshot the cached resolver. Build() already maintains by_filename;
+		// we only insert new paths above. Stem renames (path change of an
+		// existing entry) would require removing the old stem + inserting the
+		// new — not possible via update_entry today (it's keyed on the same
+		// path), so the cache stays correct.
+		let by_filename = &self.by_filename;
 
 		// Diff outgoing links to determine which target backlinks change.
 		let prev_set: HashSet<&String> = prev_links.iter().collect();
@@ -179,7 +184,7 @@ impl VaultIndex {
 
 		// Remove source from backlinks of every target whose link was removed.
 		for target in removed {
-			if let Some(resolved) = resolve_wikilink(target, &by_filename) {
+			if let Some(resolved) = resolve_wikilink(target, by_filename) {
 				if resolved == source_path {
 					continue;
 				}
@@ -197,7 +202,7 @@ impl VaultIndex {
 
 		// Add source to backlinks of every target whose link was added.
 		for target in added {
-			if let Some(resolved) = resolve_wikilink(target, &by_filename) {
+			if let Some(resolved) = resolve_wikilink(target, by_filename) {
 				if resolved == source_path {
 					continue;
 				}
@@ -252,6 +257,33 @@ impl VaultIndex {
 			.get(target_path)
 			.map(|set| set.iter().collect())
 			.unwrap_or_default()
+	}
+
+	/// Resolves the outgoing wikilinks of the note at `source_path` to the
+	/// absolute paths of their target notes. Deduplicated by target path;
+	/// unresolved links are omitted (their target does not exist in the
+	/// vault). Self-links are filtered to match backlinks semantics.
+	///
+	/// O(K) where K is the number of outgoing links on the source — uses
+	/// the cached `by_filename` resolver, no full-vault scan.
+	pub fn outgoing_links_of(&self, source_path: &str) -> Vec<String> {
+		let entry = match self.entry_for_path(source_path) {
+			Some(e) => e,
+			None => return Vec::new(),
+		};
+		let mut seen: HashSet<String> = HashSet::new();
+		let mut out = Vec::new();
+		for target in &entry.outgoing_links {
+			if let Some(resolved) = resolve_wikilink(target, &self.by_filename) {
+				if resolved == source_path {
+					continue;
+				}
+				if seen.insert(resolved.to_string()) {
+					out.push(resolved.to_string());
+				}
+			}
+		}
+		out
 	}
 
 	/// Current revision number. Bumps on every successful mutation.
@@ -567,6 +599,90 @@ mod tests {
 		assert_eq!(idx.version(), v0 + 1);
 		idx.update_entry(make_entry("/v/b.md", &[]));
 		assert_eq!(idx.version(), v0 + 2);
+	}
+
+	// --- outgoing_links_of ---
+
+	#[test]
+	fn outgoing_links_of_resolves_simple_targets() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/source.md", &["alpha", "beta"]),
+			make_entry("/v/alpha.md", &[]),
+			make_entry("/v/beta.md", &[]),
+		]);
+		let mut out = idx.outgoing_links_of("/v/source.md");
+		out.sort();
+		assert_eq!(out, vec!["/v/alpha.md".to_string(), "/v/beta.md".to_string()]);
+	}
+
+	#[test]
+	fn outgoing_links_of_dedupes_same_target() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			NoteEntry {
+				path: "/v/source.md".into(),
+				outgoing_links: vec!["alpha".into(), "alpha".into()],
+				..Default::default()
+			},
+			make_entry("/v/alpha.md", &[]),
+		]);
+		assert_eq!(idx.outgoing_links_of("/v/source.md"), vec!["/v/alpha.md".to_string()]);
+	}
+
+	#[test]
+	fn outgoing_links_of_omits_unresolved() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/source.md", &["alpha", "does-not-exist", "beta"]),
+			make_entry("/v/alpha.md", &[]),
+			make_entry("/v/beta.md", &[]),
+		]);
+		let out = idx.outgoing_links_of("/v/source.md");
+		assert_eq!(out.len(), 2);
+		assert!(out.contains(&"/v/alpha.md".to_string()));
+		assert!(out.contains(&"/v/beta.md".to_string()));
+	}
+
+	#[test]
+	fn outgoing_links_of_filters_self_links() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/source.md", &["source"])]);
+		assert!(idx.outgoing_links_of("/v/source.md").is_empty());
+	}
+
+	#[test]
+	fn outgoing_links_of_empty_for_unknown_path() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![make_entry("/v/a.md", &["b"])]);
+		assert!(idx.outgoing_links_of("/v/unknown.md").is_empty());
+	}
+
+	#[test]
+	fn outgoing_links_of_respects_path_basename_fallback() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/source.md", &["folder/sub/beta"]),
+			make_entry("/v/beta.md", &[]),
+		]);
+		// `folder/sub/beta` resolves via basename to /v/beta.md.
+		assert_eq!(idx.outgoing_links_of("/v/source.md"), vec!["/v/beta.md".to_string()]);
+	}
+
+	#[test]
+	fn outgoing_links_survives_update_entry() {
+		let mut idx = VaultIndex::new();
+		idx.build(vec![
+			make_entry("/v/a.md", &["target"]),
+			make_entry("/v/target.md", &[]),
+		]);
+		// Add a new entry via update_entry — by_filename should pick it up.
+		idx.update_entry(make_entry("/v/new.md", &["target"]));
+		assert_eq!(idx.outgoing_links_of("/v/new.md"), vec!["/v/target.md".to_string()]);
+
+		// Remove the outgoing link via replace.
+		idx.update_entry(make_entry("/v/new.md", &[]));
+		assert!(idx.outgoing_links_of("/v/new.md").is_empty());
 	}
 
 	#[test]

@@ -246,6 +246,30 @@ pub fn get_backlinks_v2(
 	Ok(entries)
 }
 
+/// Returns every note the source at `path` outgoing-links to. Targets are
+/// resolved via the cached `by_filename` map (same rules as
+/// `get_backlinks_v2`); unresolved wikilinks and self-links are omitted.
+/// Results sorted by title for stable UI ordering.
+///
+/// Empty list when the source path is unknown or has no resolved outgoing
+/// links. O(K) over the source's outgoing links — no full-vault scan.
+#[tauri::command]
+pub fn get_outgoing_links_v2(
+	path: String,
+	index_state: State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = index_state
+		.read()
+		.map_err(|_| "VaultIndex lock poisoned".to_string())?;
+	let resolved_paths = idx.outgoing_links_of(&path);
+	let mut entries: Vec<NoteEntry> = resolved_paths
+		.iter()
+		.filter_map(|p| idx.entry_for_path(p).cloned())
+		.collect();
+	entries.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	Ok(entries)
+}
+
 fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
     nodes.sort_by(|a, b| {
         // Directories always come first
