@@ -15,6 +15,7 @@ import {
 	updateBacklinksForFile,
 	computeUnlinkedMentionsForFile,
 	resetBacklinks,
+	fetchBacklinksV2,
 } from '$lib/features/backlinks/backlinks.service';
 import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { makeFileNode, makeDirNode, makeSuccessResult, makeErrorResult } from '../../../fixtures/tauri-api.fixture';
@@ -469,5 +470,82 @@ describe('state transitions: buildIndex → updateIndexForFile', () => {
 		// Recompute — backlink should be gone
 		updateBacklinksForFile('/vault/note-a.md');
 		expect(backlinksStore.linkedMentions).toHaveLength(0);
+	});
+});
+
+describe('fetchBacklinksV2', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+	});
+
+	it('invokes get_backlinks_v2 with the path', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/note-a.md');
+
+		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/note-a.md' });
+	});
+
+	it('writes converted entries to backlinksStore.linkedMentions', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			{
+				path: '/vault/note-b.md',
+				title: 'note-b',
+				frontmatter: {},
+				outgoingLinks: [],
+				tags: [],
+				modifiedAt: 0,
+				wordCount: 4,
+				snippet: 'See note-a',
+			},
+		]);
+
+		await fetchBacklinksV2('/vault/note-a.md');
+
+		expect(backlinksStore.linkedMentions).toEqual([
+			{
+				sourcePath: '/vault/note-b.md',
+				sourceName: 'note-b',
+				snippets: [{ text: 'See note-a', linkStart: 0, linkEnd: 0 }],
+			},
+		]);
+	});
+
+	it('writes empty linked mentions when the v2 result is empty', async () => {
+		backlinksStore.setLinkedMentions([
+			{ sourcePath: '/vault/old.md', sourceName: 'old', snippets: [] },
+		]);
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/note-a.md');
+
+		expect(backlinksStore.linkedMentions).toEqual([]);
+	});
+
+	it('preserves prior linked mentions on IPC error (does not throw)', async () => {
+		const prior = [{ sourcePath: '/vault/x.md', sourceName: 'x', snippets: [] }];
+		backlinksStore.setLinkedMentions(prior);
+		vi.mocked(invoke).mockRejectedValue(new Error('IPC failure'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(fetchBacklinksV2('/vault/note-a.md')).resolves.toBeUndefined();
+		expect(backlinksStore.linkedMentions).toEqual(prior);
+
+		consoleSpy.mockRestore();
+	});
+
+	it('handles multiple entries and preserves order from the Rust response', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			{ path: '/vault/a.md', title: 'a', frontmatter: {}, outgoingLinks: [], tags: [], modifiedAt: 0, wordCount: 1, snippet: 'x' },
+			{ path: '/vault/b.md', title: 'b', frontmatter: {}, outgoingLinks: [], tags: [], modifiedAt: 0, wordCount: 1, snippet: 'y' },
+		]);
+
+		await fetchBacklinksV2('/vault/note-a.md');
+
+		expect(backlinksStore.linkedMentions.map((e) => e.sourcePath)).toEqual([
+			'/vault/a.md',
+			'/vault/b.md',
+		]);
 	});
 });

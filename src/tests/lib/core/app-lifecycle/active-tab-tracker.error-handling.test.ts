@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	updateBacklinksForFile: vi.fn(),
+	fetchBacklinksV2: vi.fn(),
 }));
 
 vi.mock('$lib/features/backlinks/note-index.store.svelte', () => ({

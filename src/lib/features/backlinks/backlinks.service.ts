@@ -1,12 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
-import { debug, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
+import { debug, error as errorLog, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
 import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteIndexStore } from './note-index.store.svelte';
-import { parseWikilinks, getNoteName, buildResolutionCache, findLinkedMentions, findLinkedMentionsFromReverse, findUnlinkedMentions } from './backlinks.logic';
+import { parseWikilinks, getNoteName, buildResolutionCache, findLinkedMentions, findLinkedMentionsFromReverse, findUnlinkedMentions, noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { WikilinkResolutionCache } from './backlinks.logic';
 import type { WikiLink } from './backlinks.types';
 import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 let vaultPath: string | null = null;
 let isBuilding = false;
@@ -143,6 +144,31 @@ export function updateBacklinksForFile(
 
 	backlinksStore.setLinkedMentions(linked);
 	perfEnd('BACKLINKS', 'updateBacklinksForFile', t0);
+}
+
+/**
+ * Fetches backlinks for a file from the Rust `VaultIndex` via
+ * `invoke('get_backlinks_v2')` and writes them to `backlinksStore.linkedMentions`.
+ *
+ * Phase 3 of the perf refactor (`tasks/todo/performance-architecture-refactor.md`).
+ * Used by both the active-tab tracker (path change) and `BacklinksPanel.svelte`
+ * (path change OR `vaultStore.vaultIndexVersion` bump). Errors are logged via
+ * `error('BACKLINKS', ...)` and swallowed — the linked-mentions panel keeps
+ * its prior contents on IPC failure.
+ *
+ * Caller is responsible for gating on `settingsStore.experimental.rustBacklinks`.
+ * This function does not check the flag; it always invokes.
+ */
+export async function fetchBacklinksV2(path: string): Promise<void> {
+	const t0 = perfStart();
+	try {
+		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
+		const linked = entries.map(noteEntryV2ToBacklinkEntry);
+		backlinksStore.setLinkedMentions(linked);
+		perfEnd('BACKLINKS', 'fetchBacklinksV2', t0);
+	} catch (err) {
+		errorLog('BACKLINKS', 'fetchBacklinksV2 failed:', err);
+	}
 }
 
 /**
