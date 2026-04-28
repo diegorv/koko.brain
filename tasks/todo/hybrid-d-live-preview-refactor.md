@@ -21,9 +21,7 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 2 — New pipeline scaffold
 
-- [ ] Task 2.1: `new/markdown-highlight-style.ts` mirroring current `markdownHighlight` entries with `class:` keys preserving CSS class names
-- [ ] Task 2.2: `new/inline-formatting-plugin.ts` — handler registry (node + line), build loop, `isTouched` helper, dedup sets, viewport-only-scroll skip, `LP-PROFILE` profiling
-- [ ] Task 2.3: `new/new-inline-extensions.ts` and wire into `live-preview.ts` flag-on branch
+- [x] Task 2.1+2.2+2.3 (combined): `new/markdown-highlight-style.ts` (empty entries — populated per phase) + `new/inline-formatting-plugin.ts` (factory pattern with `NodeHandler`/`LineHandler` interfaces, pure `buildInlineDecorations` builder, viewport-skip + `checkUpdateAction` rebuild gate + `LP-PROFILE`) + `new/new-inline-extensions.ts` (production handler arrays + extension factory) + wire into `live-preview.ts` flag-on branch (combined: pipeline files form a closed type-graph, splitting would land broken intermediate states)
 - [ ] Task 2.4: Unit tests — registry, dispatch, block-context skip, dedup, `isTouched`, HighlightStyle sanity, extension array
 
 ### Phase 3 — Retire markdownStylePlugin (113 LOC)

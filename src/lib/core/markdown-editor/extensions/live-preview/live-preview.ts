@@ -28,6 +28,7 @@ import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
+import { newInlineExtensions } from './new/new-inline-extensions';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 export { forceDecorationRebuild } from './core/effects';
@@ -38,15 +39,6 @@ export const livePreviewCompartment = new Compartment();
 /** Checks if a decorator is disabled via settings. Returns false (enabled) by default. */
 function isDisabled(name: string): boolean {
 	return settingsStore.disabledDecorators[name] ?? false;
-}
-
-/**
- * Returns the consolidated inline pipeline (`HighlightStyle` + a single
- * `inlineFormattingPlugin` with handler registry) used when
- * `experimental.newLivePreview` is `true`. Empty until Phase 2 wires the scaffold.
- */
-export function newInlineExtensions(): Extension[] {
-	return [];
 }
 
 export function livePreviewExtensions(): Extension[] {
