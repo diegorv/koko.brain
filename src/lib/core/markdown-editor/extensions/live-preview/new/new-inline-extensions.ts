@@ -14,6 +14,7 @@ import { simpleWidgetHandlers } from './handlers/simple-widget-handlers';
 import { linkHandler, linkReferenceHandler } from './handlers/markdown-link-handlers';
 import { autolinkHandler, extendedAutolinkHandler } from './handlers/autolink-handlers';
 import { wikilinkHandler } from './handlers/wikilink-handler';
+import { markHandlers, escapeHandler } from './handlers/mark-handlers';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
@@ -27,6 +28,8 @@ export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 	linkHandler,
 	linkReferenceHandler,
 	autolinkHandler,
+	...markHandlers,
+	escapeHandler,
 ];
 
 /**
