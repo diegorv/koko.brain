@@ -36,7 +36,7 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 2 - Rust VaultIndex with Backlinks (additive)
 
-- [ ] **2.1** `src-tauri/src/vault/index.rs`. `pub struct VaultIndex { entries, by_path, backlinks, version }`. Private fields, getter-only access (mirrors `noteIndexStore` getter pattern).
+- [x] **2.1** `src-tauri/src/vault/index.rs`. `pub struct VaultIndex { entries, by_path, backlinks, version }`. Private fields, getter-only access (mirrors `noteIndexStore` getter pattern). `entries: HashMap<String, NoteEntry>`, `by_path: HashMap<String, String>` (lowercase note name -> abs path), `backlinks: HashMap<String, BTreeSet<String>>`, `version: u64`.
 - [ ] **2.2** `VaultIndex::build(entries)`. Wikilink resolution mirrors `backlinks.logic.ts::resolveWikilink` exactly: lowercase filename stem + basename fallback for path-prefixed targets, first path wins on stem collisions, self-links filtered.
 - [ ] **2.3** In `lib.rs`: `pub type VaultIndexState = RwLock<VaultIndex>;` exported from `vault/mod.rs`. Add `.manage(VaultIndexState::default())` next to the existing TerminalState manage. `scan_vault_v2` now takes `State<'_, VaultIndexState>` and calls `idx.build(...)` after collecting entries.
 - [ ] **2.4** `commands/vault.rs::get_backlinks_v2(path) -> Vec<NoteEntry>`. Sort by title for stable UI ordering. Defensively filter out entries whose paths are missing.
