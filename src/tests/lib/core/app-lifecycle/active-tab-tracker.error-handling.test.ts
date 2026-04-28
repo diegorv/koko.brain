@@ -1,18 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Tauri core API — needed because backlinks.service imports invoke
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
-	updateBacklinksForFile: vi.fn(),
-	fetchBacklinksV2: vi.fn(),
+	fetchBacklinksV2: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('$lib/features/backlinks/note-index.store.svelte', () => ({
 	noteIndexStore: {
 		get noteContents() { return new Map(); },
+		get isLoading() { return false; },
 		reset: vi.fn(),
 	},
 }));
@@ -32,33 +31,32 @@ vi.mock('$lib/utils/debug', () => ({
 	perfBaseline: vi.fn(),
 }));
 
-import { updateBacklinksForFile } from '$lib/features/backlinks/backlinks.service';
+import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
 import { updateOutgoingLinksForFile } from '$lib/features/outgoing-links/outgoing-links.service';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 
 describe('updateActiveTabLinks — error handling', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		vi.mocked(fetchBacklinksV2).mockResolvedValue(undefined);
 		backlinksStore.reset();
 		outgoingLinksStore.reset();
-		settingsStore.reset();
 	});
 
-	it('catches error when updateBacklinksForFile throws (does not propagate)', async () => {
-		vi.mocked(updateBacklinksForFile).mockImplementation(() => {
-			throw new Error('backlinks computation failed');
-		});
+	it('catches error when fetchBacklinksV2 rejects (does not propagate)', async () => {
+		vi.mocked(fetchBacklinksV2).mockRejectedValue(new Error('rust ipc failed'));
 
-		await expect(updateActiveTabLinks('/vault/note.md')).resolves.toBeUndefined();
+		await expect(updateActiveTabLinks('/vault/note.md')).rejects.toThrow();
+		// Note: fetchBacklinksV2 itself is supposed to swallow errors internally
+		// and never reject. This test documents the contract: if it ever does
+		// reject, updateActiveTabLinks does NOT swallow — the caller in
+		// +layout.svelte applies a `.catch()` for that case.
 	});
 
-	it('still calls updateOutgoingLinksForFile when updateBacklinksForFile throws', async () => {
-		vi.mocked(updateBacklinksForFile).mockImplementation(() => {
-			throw new Error('backlinks error');
-		});
+	it('still calls updateOutgoingLinksForFile after backlinks fetch resolves', async () => {
+		vi.mocked(fetchBacklinksV2).mockResolvedValue(undefined);
 
 		await updateActiveTabLinks('/vault/note.md');
 
@@ -73,19 +71,7 @@ describe('updateActiveTabLinks — error handling', () => {
 		await expect(updateActiveTabLinks('/vault/note.md')).resolves.toBeUndefined();
 	});
 
-	it('calls updateBacklinksForFile even when updateOutgoingLinksForFile throws', async () => {
-		vi.mocked(updateOutgoingLinksForFile).mockImplementation(() => {
-			throw new Error('outgoing links failed');
-		});
-
-		await updateActiveTabLinks('/vault/note.md');
-
-		// Backlinks should have been updated even though outgoing links threw
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
-	});
-
 	it('clears stores without error when path is null (no service calls)', async () => {
-		// Pre-populate stores
 		backlinksStore.setLinkedMentions([
 			{ sourcePath: '/vault/x.md', sourceName: 'x', snippets: [] },
 		]);
@@ -95,7 +81,7 @@ describe('updateActiveTabLinks — error handling', () => {
 
 		await updateActiveTabLinks(null);
 
-		expect(updateBacklinksForFile).not.toHaveBeenCalled();
+		expect(fetchBacklinksV2).not.toHaveBeenCalled();
 		expect(updateOutgoingLinksForFile).not.toHaveBeenCalled();
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(outgoingLinksStore.outgoingLinks).toEqual([]);

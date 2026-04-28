@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import {
 	rebuildIndex,
 	updateIndexForFile,
-	updateBacklinksForFile,
 	removeFileFromIndex,
 } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
@@ -88,9 +87,12 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	try { buildFrontmatterIconIndex(); } catch (err) { error('WATCHER', 'buildFrontmatterIconIndex failed:', err); }
 	try { scanFilesForCalendar(); } catch (err) { error('WATCHER', 'scanFilesForCalendar failed:', err); }
 
+	// rebuildIndex() above already invokes scan_vault_v2 which rebuilds the
+	// Rust VaultIndex AND emits `vault-index-updated` — `BacklinksPanel` will
+	// auto-refresh via its reactive `$effect`. Outgoing links still run on
+	// the TS path until Phase 6.
 	const activePath = editorStore.activeTabPath;
 	if (activePath) {
-		try { updateBacklinksForFile(activePath); } catch (err) { error('WATCHER', 'updateBacklinksForFile failed:', err); }
 		try { updateOutgoingLinksForFile(activePath); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
 	backlinksStore.markUnlinkedDirty();
@@ -129,16 +131,29 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
 			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
 			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
+			// Update Rust `VaultIndex` so backlinks reflect the external change.
+			// Fire-and-forget: emits `vault-index-updated` which triggers
+			// `BacklinksPanel`'s reactive `$effect` to re-fetch.
+			invoke('update_note_in_index', { path: result.path, content: result.content }).catch((err) => {
+				error('WATCHER', 'update_note_in_index failed:', err);
+			});
 		} else {
-			// File doesn't exist (deleted) — remove from indexes
+			// File doesn't exist (deleted) — remove from indexes.
 			try { removeFileFromIndex(result.path); } catch (err) { error('WATCHER', 'removeFileFromIndex failed:', err); }
+			// Push an empty content into Rust so its index drops the entry's
+			// outgoing-links contributions to other notes' backlinks. Phase 9
+			// will replace this with a dedicated `remove_note_from_index`
+			// command driven by the native Rust watcher.
+			invoke('update_note_in_index', { path: result.path, content: '' }).catch((err) => {
+				error('WATCHER', 'update_note_in_index (deleted file) failed:', err);
+			});
 		}
 	}
 
-	// Refresh backlinks/outgoing-links for the active tab
+	// Refresh outgoing-links for the active tab. Backlinks auto-refresh via
+	// the `vault-index-updated` events emitted by the Rust calls above.
 	const activePath = editorStore.activeTabPath;
 	if (activePath) {
-		try { updateBacklinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateBacklinksForFile failed:', err); }
 		try { updateOutgoingLinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
 	}
 	backlinksStore.markUnlinkedDirty();

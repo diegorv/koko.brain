@@ -221,23 +221,6 @@ describe('settingsStore', () => {
 			expect(settingsStore.queryjs.autoRunQueries).toBe('first-open');
 		});
 
-		it('experimental defaults to all flags off', () => {
-			expect(settingsStore.experimental).toEqual({ rustBacklinks: false });
-		});
-
-		it('updateExperimental flips rustBacklinks on and off', () => {
-			expect(settingsStore.experimental.rustBacklinks).toBe(false);
-			settingsStore.updateExperimental({ rustBacklinks: true });
-			expect(settingsStore.experimental.rustBacklinks).toBe(true);
-			settingsStore.updateExperimental({ rustBacklinks: false });
-			expect(settingsStore.experimental.rustBacklinks).toBe(false);
-		});
-
-		it('updateExperimental preserves untouched flags when partial value is passed', () => {
-			settingsStore.updateExperimental({ rustBacklinks: true });
-			settingsStore.updateExperimental({});
-			expect(settingsStore.experimental.rustBacklinks).toBe(true);
-		});
 	});
 
 	describe('reset', () => {

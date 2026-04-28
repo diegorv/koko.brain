@@ -26,7 +26,6 @@ import {
 	areAllRecentSaves,
 	clearRecentSaves,
 } from '$lib/core/editor/editor.hooks';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import type { EditorTab } from '$lib/core/editor/editor.types';
 
@@ -103,7 +102,9 @@ describe('notifyAfterSave', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetHooks();
-		settingsStore.reset();
+		// Always-active Rust update IPC must resolve to avoid unhandled promises
+		// in tests that don't explicitly configure it.
+		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
 	it('calls all registered observers', () => {
@@ -170,18 +171,8 @@ describe('notifyAfterSave', () => {
 		consoleSpy.mockRestore();
 	});
 
-	describe('experimental.rustBacklinks (Phase 3.5)', () => {
-		it('flag-off: does NOT call update_note_in_index', () => {
-			vi.mocked(invoke).mockResolvedValue(undefined);
-			expect(settingsStore.experimental.rustBacklinks).toBe(false);
-
-			notifyAfterSave('/vault/note.md', 'content');
-
-			expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
-		});
-
-		it('flag-on: invokes update_note_in_index with path and content', () => {
-			settingsStore.updateExperimental({ rustBacklinks: true });
+	describe('Rust VaultIndex update', () => {
+		it('invokes update_note_in_index with path and content on every save', () => {
 			vi.mocked(invoke).mockResolvedValue(undefined);
 
 			notifyAfterSave('/vault/note.md', 'fresh content');
@@ -192,14 +183,12 @@ describe('notifyAfterSave', () => {
 			});
 		});
 
-		it('flag-on: STILL fires Rust call when TS dedup says already-indexed (Rust has its own dedup)', () => {
+		it('STILL fires Rust call when TS dedup says already-indexed', () => {
 			// The TS dedup tracks whether the TS indexers were called for this
 			// exact (path, content). The content-effect in updateIndexesForFile
-			// marks indexed but never calls Rust — so a typing-pause-then-save
-			// sequence (content-effect at 1 s → autosave at 2 s) would otherwise
-			// leave Rust permanently stale. Rust has internal change detection
-			// via UpdateResult.changed; calling on every save is cheap and correct.
-			settingsStore.updateExperimental({ rustBacklinks: true });
+			// also calls Rust, but if it didn't fire (e.g. quick save after
+			// typing) the save side must still update Rust. Calling on every
+			// save is cheap (~1-5ms IPC) and Rust has internal change detection.
 			vi.mocked(invoke).mockResolvedValue(undefined);
 			markIndexed('/vault/note.md', 'same');
 
@@ -211,10 +200,7 @@ describe('notifyAfterSave', () => {
 			});
 		});
 
-		it('flag-on: TS dedup STILL skips the TS indexers when content is unchanged', () => {
-			// Same scenario as above, but verifying the TS path remains gated by
-			// the dedup. Only the Rust call jumped outside the guard.
-			settingsStore.updateExperimental({ rustBacklinks: true });
+		it('TS dedup STILL skips the TS indexers when content is unchanged', () => {
 			vi.mocked(invoke).mockResolvedValue(undefined);
 			markIndexed('/vault/note.md', 'same');
 			const tsCallsBefore = vi.mocked(invoke).mock.calls.length;
@@ -228,8 +214,7 @@ describe('notifyAfterSave', () => {
 			expect(isAlreadyIndexed('/vault/note.md', 'same')).toBe(true);
 		});
 
-		it('flag-on: IPC rejection is swallowed and does not block observers', async () => {
-			settingsStore.updateExperimental({ rustBacklinks: true });
+		it('IPC rejection is swallowed and does not block observers', async () => {
 			vi.mocked(invoke).mockRejectedValue(new Error('IPC error'));
 			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 			const observer = vi.fn();
@@ -247,21 +232,6 @@ describe('notifyAfterSave', () => {
 				expect.any(Error),
 			);
 			consoleSpy.mockRestore();
-		});
-
-		it('flag-on: Rust call runs in addition to (parallel with) the TS indexers', () => {
-			settingsStore.updateExperimental({ rustBacklinks: true });
-			vi.mocked(invoke).mockResolvedValue(undefined);
-
-			notifyAfterSave('/vault/note.md', 'content');
-
-			// TS dedup signature still recorded
-			expect(isAlreadyIndexed('/vault/note.md', 'content')).toBe(true);
-			// Rust IPC also fired
-			expect(invoke).toHaveBeenCalledWith('update_note_in_index', expect.objectContaining({
-				path: '/vault/note.md',
-				content: 'content',
-			}));
 		});
 	});
 });
