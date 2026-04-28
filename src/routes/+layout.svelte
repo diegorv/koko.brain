@@ -9,7 +9,7 @@
 	import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
 	import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 	import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener } from '$lib/core/layout/tauri-listeners.service';
+	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
 	import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 	import { updateIndexesForFile } from '$lib/core/app-lifecycle/index-updater.service';
@@ -40,6 +40,10 @@
 
 	$effect(() => {
 		return registerFocusListener();
+	});
+
+	$effect(() => {
+		return registerVaultIndexUpdatedListener();
 	});
 
 	// ── Vault initialization / teardown ─────────────────────────────
@@ -86,8 +90,9 @@
 			untrack(() => {
 				const tab = editorStore.activeTab;
 				if (path && tab && isVirtualTab(tab)) return;
-				updateActiveTabLinks(path);
-				perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0);
+				updateActiveTabLinks(path)
+					.catch((err) => console.error('updateActiveTabLinks failed:', err))
+					.finally(() => perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0));
 			});
 		}, 150);
 

@@ -9,6 +9,11 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
+import { invoke } from '@tauri-apps/api/core';
 import {
 	setFileReadTransform,
 	setFileWriteTransform,
@@ -95,7 +100,11 @@ describe('applyWriteTransform', () => {
 
 describe('notifyAfterSave', () => {
 	beforeEach(() => {
+		vi.clearAllMocks();
 		resetHooks();
+		// Always-active Rust update IPC must resolve to avoid unhandled promises
+		// in tests that don't explicitly configure it.
+		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
 	it('calls all registered observers', () => {
@@ -160,6 +169,70 @@ describe('notifyAfterSave', () => {
 		// Good observer still called despite bad observer throwing
 		expect(goodObserver).toHaveBeenCalledWith('/vault/note.md', 'content');
 		consoleSpy.mockRestore();
+	});
+
+	describe('Rust VaultIndex update', () => {
+		it('invokes update_note_in_index with path and content on every save', () => {
+			vi.mocked(invoke).mockResolvedValue(undefined);
+
+			notifyAfterSave('/vault/note.md', 'fresh content');
+
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+				path: '/vault/note.md',
+				content: 'fresh content',
+			});
+		});
+
+		it('STILL fires Rust call when TS dedup says already-indexed', () => {
+			// The TS dedup tracks whether the TS indexers were called for this
+			// exact (path, content). The content-effect in updateIndexesForFile
+			// also calls Rust, but if it didn't fire (e.g. quick save after
+			// typing) the save side must still update Rust. Calling on every
+			// save is cheap (~1-5ms IPC) and Rust has internal change detection.
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			markIndexed('/vault/note.md', 'same');
+
+			notifyAfterSave('/vault/note.md', 'same');
+
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+				path: '/vault/note.md',
+				content: 'same',
+			});
+		});
+
+		it('TS dedup STILL skips the TS indexers when content is unchanged', () => {
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			markIndexed('/vault/note.md', 'same');
+			const tsCallsBefore = vi.mocked(invoke).mock.calls.length;
+
+			notifyAfterSave('/vault/note.md', 'same');
+
+			// Rust call fires (1 new invoke)
+			expect(vi.mocked(invoke).mock.calls.length).toBe(tsCallsBefore + 1);
+			expect(vi.mocked(invoke).mock.calls[tsCallsBefore][0]).toBe('update_note_in_index');
+			// dedup signature unchanged (still marked, no re-mark needed)
+			expect(isAlreadyIndexed('/vault/note.md', 'same')).toBe(true);
+		});
+
+		it('IPC rejection is swallowed and does not block observers', async () => {
+			vi.mocked(invoke).mockRejectedValue(new Error('IPC error'));
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const observer = vi.fn();
+			addAfterSaveObserver(observer);
+
+			notifyAfterSave('/vault/note.md', 'content');
+
+			// Observer fires synchronously (before the rejected IPC promise settles)
+			expect(observer).toHaveBeenCalledWith('/vault/note.md', 'content');
+
+			// Wait a microtask for the .catch to run
+			await new Promise((r) => setTimeout(r, 0));
+			expect(consoleSpy).toHaveBeenCalledWith(
+				'update_note_in_index after save failed:',
+				expect.any(Error),
+			);
+			consoleSpy.mockRestore();
+		});
 	});
 });
 

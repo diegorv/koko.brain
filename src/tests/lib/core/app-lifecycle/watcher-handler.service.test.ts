@@ -9,12 +9,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	rebuildIndex: vi.fn(() => Promise.resolve()),
 	updateIndexForFile: vi.fn(),
-	updateBacklinksForFile: vi.fn(),
 	removeFileFromIndex: vi.fn(),
-}));
-
-vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
-	updateOutgoingLinksForFile: vi.fn(),
 }));
 
 vi.mock('$lib/features/tags/tags.service', () => ({
@@ -54,8 +49,7 @@ vi.mock('$lib/utils/debug', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
-import { rebuildIndex, updateIndexForFile, updateBacklinksForFile } from '$lib/features/backlinks/backlinks.service';
-import { updateOutgoingLinksForFile } from '$lib/features/outgoing-links/outgoing-links.service';
+import { rebuildIndex, updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
 import { buildTagIndex, updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
@@ -81,24 +75,6 @@ describe('rebuildAllIndexes', () => {
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
 		expect(scanFilesForCalendar).toHaveBeenCalled();
-	});
-
-	it('refreshes backlinks and outgoing links for the active tab', async () => {
-		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
-
-		await rebuildAllIndexes();
-
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md');
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md');
-	});
-
-	it('skips active tab refresh when no file is open', async () => {
-		editorStore.reset();
-
-		await rebuildAllIndexes();
-
-		expect(updateBacklinksForFile).not.toHaveBeenCalled();
-		expect(updateOutgoingLinksForFile).not.toHaveBeenCalled();
 	});
 
 	it('calls rebuildIndex before derived indexes', async () => {
@@ -212,24 +188,15 @@ describe('rebuildAllIndexes — error isolation', () => {
 		expect(buildPropertyIndex).toHaveBeenCalled();
 	});
 
-	it('continues to active tab refresh when an index builder fails', async () => {
+	it('error in one builder does not abort the rest of the rebuild', async () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 		vi.mocked(buildPropertyIndex).mockImplementation(() => { throw new Error('prop fail'); });
 
 		await rebuildAllIndexes();
 
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md');
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md');
-	});
-
-	it('logs error when active tab backlinks refresh fails', async () => {
-		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
-		vi.mocked(updateBacklinksForFile).mockImplementation(() => { throw new Error('backlink fail'); });
-
-		await rebuildAllIndexes();
-
-		expect(debugError).toHaveBeenCalledWith('WATCHER', 'updateBacklinksForFile failed:', expect.any(Error));
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md');
+		// Index builders after the failure still run.
+		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
+		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 });
 
@@ -240,6 +207,10 @@ describe('rebuildAllIndexes — incremental path', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		vaultStore.open('/vault');
+		// Default mock for invoke calls not explicitly configured by individual
+		// tests (e.g. update_note_in_index, scan_vault_v2). The
+		// mockResolvedValueOnce values below take precedence in call order.
+		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
 	it('uses incremental update for a small number of markdown files', async () => {

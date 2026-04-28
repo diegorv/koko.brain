@@ -1,5 +1,6 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { isTabDirty } from '$lib/core/editor/editor.logic';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
@@ -38,7 +39,9 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 				// Sync both content and savedContent — the full content (including
 				// any prior unsaved edits) was just written to disk, so savedContent
 				// must reflect the on-disk state to keep the dirty flag accurate.
-				editorStore.updateTabContentByPath(filePath, updatedContent);
+				// `syncExternalContentToEditor` also bumps `externalContentSignal`
+				// so an open editor for this path gets a fresh doc replace.
+				syncExternalContentToEditor(filePath, updatedContent, true);
 				updateIndexForFile(filePath, updatedContent);
 			}
 		}),

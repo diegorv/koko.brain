@@ -1,4 +1,5 @@
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { propertiesStore } from './properties.store.svelte';
 import {
 	parseFrontmatterProperties,
@@ -39,7 +40,12 @@ function commitChanges(updated: Property[]): void {
 	const body = extractBody(editorStore.activeTab?.content ?? '');
 	const newContent = rebuildContent(updated, body);
 	skipNextParse = true;
-	editorStore.updateContent(newContent);
+	const activePath = editorStore.activeTabPath;
+	if (activePath) {
+		// Dirty-aware: only `content` is updated (preserves savedContent so the
+		// dirty flag stays true until the user saves).
+		syncExternalContentToEditor(activePath, newContent, false);
+	}
 }
 
 /** Updates a property's value (and optionally its type) in the active note */

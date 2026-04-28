@@ -1,10 +1,14 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
+use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
+use crate::vault::index::{UpdateResult, VaultIndex};
+use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
+use tauri::Emitter;
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
@@ -98,6 +102,239 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
 
     sort_nodes(&mut nodes, sort_by);
     Ok(nodes)
+}
+
+/// Walks a vault and builds a `Vec<NoteEntry>` from every markdown file
+/// under it. This is the pure I/O + parsing path used by the Tauri
+/// command `scan_vault_v2` and by tests that want to exercise scanning
+/// without paying the cost of acquiring the managed `VaultIndexState`
+/// write lock.
+///
+/// Per-file read failures are logged via `debug_log("VAULT-V2", ...)` and
+/// silently skipped — one unreadable file must not poison the whole scan.
+/// Whole-directory failures (permission denied on the vault root, path
+/// is not a directory) propagate as `Err`.
+pub fn collect_v2_entries(path: &str) -> Result<Vec<NoteEntry>, String> {
+	let start = std::time::Instant::now();
+	debug_log(
+		"VAULT-V2",
+		format!("collect_v2_entries: starting on {}", path),
+	);
+	let root = vault_fs::validate_vault_path(path)?;
+	let entries = vault_fs::collect_markdown_paths_with_mtime(&root, &[])?;
+	let total = entries.len();
+	let mut notes: Vec<NoteEntry> = Vec::with_capacity(total);
+	let mut skipped = 0usize;
+
+	for (_rel, abs, mtime) in entries {
+		let abs_path_str = abs.to_string_lossy().to_string();
+		match fs::read_to_string(&abs) {
+			Ok(content) => {
+				notes.push(NoteEntry::from_content(abs_path_str, &content, mtime));
+			}
+			Err(err) => {
+				skipped += 1;
+				debug_log(
+					"VAULT-V2",
+					format!("collect_v2_entries: skipping {} ({})", abs_path_str, err),
+				);
+			}
+		}
+	}
+
+	debug_log(
+		"VAULT-V2",
+		format!(
+			"collect_v2_entries: {} entries ({} skipped) in {}ms",
+			notes.len(),
+			skipped,
+			start.elapsed().as_millis(),
+		),
+	);
+	Ok(notes)
+}
+
+/// Reads a file's `modified` timestamp as seconds since the UNIX epoch.
+/// Returns `None` on any I/O or system-time failure (file missing,
+/// permission denied, system clock before epoch, etc.). The Phase 2.6
+/// caller falls back to `0` so a missing mtime never aborts the index
+/// mutation.
+fn read_file_mtime_secs(path: &str) -> Option<i64> {
+	std::fs::metadata(path)
+		.ok()?
+		.modified()
+		.ok()?
+		.duration_since(UNIX_EPOCH)
+		.ok()
+		.map(|d| d.as_secs() as i64)
+}
+
+/// Pure-logic implementation behind the `update_note_in_index` Tauri
+/// command. Builds a `NoteEntry` from `(path, content, mtime)` via the
+/// Phase 1.5 constructor and applies it through `VaultIndex::update_entry`.
+/// Tests construct an in-memory `VaultIndex`, call this directly, and
+/// inspect the returned `UpdateResult` without needing a Tauri AppHandle.
+pub fn update_note_in_index_inner(
+	idx: &mut VaultIndex,
+	path: String,
+	content: &str,
+	mtime: i64,
+) -> UpdateResult {
+	let entry = NoteEntry::from_content(path, content, mtime);
+	idx.update_entry(entry)
+}
+
+/// Tauri command: updates a single note's metadata in the managed
+/// `VaultIndex` and emits `vault-index-updated` with the resulting
+/// `UpdateResult` payload.
+///
+/// Reads the file's mtime from disk at call time (fallback to 0 on any
+/// I/O error). The mutation runs under a write lock; the lock is dropped
+/// BEFORE the event is emitted so consumers reacting to
+/// `vault-index-updated` can immediately re-read the index without
+/// contending. Emit failures are logged via `debug_log("VAULT-V2", ...)`
+/// and ignored — the mutation has already been committed and rolling it
+/// back would create an inconsistent state.
+#[tauri::command]
+pub fn update_note_in_index(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	path: String,
+	content: String,
+) -> Result<UpdateResult, String> {
+	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		update_note_in_index_inner(&mut idx, path, &content, mtime)
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"update_note_in_index: vault-index-updated emit failed: {}",
+				emit_err,
+			),
+		);
+	}
+	Ok(result)
+}
+
+/// Returns every `NoteEntry` whose outgoing links resolve to `path`,
+/// sorted by title (case-insensitive) for stable UI ordering. Reads
+/// from the managed `VaultIndex` under a shared lock; safe to call
+/// concurrently with other readers.
+///
+/// Returns an empty vector when no backlinks are recorded for `path`
+/// (or when the path is unknown to the index entirely).
+#[tauri::command]
+pub fn get_backlinks_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_backlinks(&path))
+}
+
+/// Returns the outgoing wikilinks of `path`, each resolved against the
+/// managed `VaultIndex.by_path` cache (so callers know which links are
+/// broken vs which target real notes). Reads under a shared lock; empty
+/// vector when `path` is unknown to the index.
+///
+/// Phase 6.1 of the perf refactor — moves outgoing-link resolution off
+/// the JS main thread.
+#[tauri::command]
+pub fn get_outgoing_links_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<OutgoingLink>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_outgoing_links(&path))
+}
+
+/// Returns notes whose names appear as plain text in `content` but are
+/// NOT already linked from `path` via wikilinks. Sorted by `note_name`
+/// (case-insensitive) for stable UI ordering. Reads under a shared lock.
+///
+/// `content` is passed in by the frontend (active tab content) because
+/// the index doesn't store full per-note bodies — only `snippet`.
+///
+/// Phase 6.2 of the perf refactor — moves the unlinked-mention scan
+/// (Unicode word-boundary checks, frontmatter/code stripping) off the
+/// JS main thread.
+#[tauri::command]
+pub fn get_outgoing_unlinked_mentions_v2(
+	path: String,
+	content: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<OutgoingUnlinkedMention>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_outgoing_unlinked_mentions(&path, &content))
+}
+
+/// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
+/// Returns the same `Vec<NoteEntry>` produced by [`collect_v2_entries`]
+/// so the frontend has the data without an extra round-trip.
+///
+/// The original `scan_vault` (which returns the recursive `FileNode` tree
+/// the file explorer needs) is not affected and continues to be the
+/// source of truth for tree shape. `scan_vault_v2` only emits markdown
+/// leaves and uses absolute paths everywhere (CLAUDE.md Indexing &
+/// Watcher item 5).
+///
+/// After the rebuild commits, emits `vault-index-updated` with
+/// `{ changed: true, affected: [], version: <new> }`. `affected: []`
+/// signals "full rebuild — re-fetch from scratch" to consumers; the
+/// non-empty `affected` slot is reserved for incremental
+/// `update_note_in_index` mutations (Phase 2.6). The lock is dropped
+/// BEFORE emitting so reactive consumers can immediately re-read the
+/// fresh index without contending with the write guard.
+#[tauri::command]
+pub fn scan_vault_v2(
+	app: tauri::AppHandle,
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let notes = collect_v2_entries(&path)?;
+	let build_start = std::time::Instant::now();
+	let new_version = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		idx.build(notes.clone());
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"scan_vault_v2: VaultIndex.build({} entries) in {}ms, version={}",
+				notes.len(),
+				build_start.elapsed().as_millis(),
+				idx.version(),
+			),
+		);
+		idx.version()
+	};
+	let payload = UpdateResult {
+		changed: true,
+		affected: Vec::new(),
+		version: new_version,
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"scan_vault_v2: vault-index-updated emit failed: {}",
+				emit_err,
+			),
+		);
+	}
+	Ok(notes)
 }
 
 fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {

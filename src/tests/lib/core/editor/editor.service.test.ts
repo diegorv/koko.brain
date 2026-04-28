@@ -22,6 +22,7 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 	perfStart: vi.fn(() => 0),
 	perfEnd: vi.fn(),
+	perfBaseline: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debounce', () => ({
@@ -70,6 +71,7 @@ import {
 	saveAllDirtyTabs,
 	reloadExternallyChangedTabs,
 	toggleSourceMode,
+	syncExternalContentToEditor,
 } from '$lib/core/editor/editor.service';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
@@ -1234,5 +1236,74 @@ describe('reloadExternallyChangedTabs', () => {
 
 		expect(editorStore.tabs[0].content).toBe('new A');
 		expect(editorStore.tabs[1].content).toBe('new B');
+	});
+});
+
+describe('syncExternalContentToEditor (Phase 5)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetEditor();
+	});
+
+	it('updates content + savedContent and bumps signal when path is the active tab', () => {
+		addTab('/vault/a.md', 'old');
+		const before = editorStore.externalContentSignal;
+
+		syncExternalContentToEditor('/vault/a.md', 'new', true);
+
+		expect(editorStore.tabs[0].content).toBe('new');
+		expect(editorStore.tabs[0].savedContent).toBe('new');
+		expect(editorStore.externalContentSignal).toBe(before + 1);
+	});
+
+	it('updates content but NOT savedContent when markSaved=false (dirty-aware)', () => {
+		addTab('/vault/a.md', 'old');
+		const tab = editorStore.tabs[0];
+		expect(tab.savedContent).toBe('old');
+		const before = editorStore.externalContentSignal;
+
+		syncExternalContentToEditor('/vault/a.md', 'edited', false);
+
+		expect(editorStore.tabs[0].content).toBe('edited');
+		expect(editorStore.tabs[0].savedContent).toBe('old');
+		expect(editorStore.externalContentSignal).toBe(before + 1);
+	});
+
+	it('does NOT bump signal when path is NOT the active tab (CM does not need a refresh)', () => {
+		addTab('/vault/a.md', 'a content');
+		addTab('/vault/b.md', 'b content');
+		// b.md is now active (last added)
+		const before = editorStore.externalContentSignal;
+
+		syncExternalContentToEditor('/vault/a.md', 'a updated', true);
+
+		// Signal NOT bumped — a.md is in the background
+		expect(editorStore.externalContentSignal).toBe(before);
+		// But the non-active tab's content + savedContent ARE updated
+		expect(editorStore.tabs[0].content).toBe('a updated');
+		expect(editorStore.tabs[0].savedContent).toBe('a updated');
+	});
+
+	it('returns silently when the path does not match any open tab', () => {
+		addTab('/vault/a.md', 'a content');
+		const before = editorStore.externalContentSignal;
+
+		syncExternalContentToEditor('/vault/missing.md', 'whatever', true);
+
+		expect(editorStore.externalContentSignal).toBe(before);
+		expect(editorStore.tabs[0].content).toBe('a content');
+	});
+
+	it('multiple sequential bumps on the active tab produce monotonically increasing signal', () => {
+		addTab('/vault/a.md', 'v0');
+		const start = editorStore.externalContentSignal;
+
+		syncExternalContentToEditor('/vault/a.md', 'v1', true);
+		syncExternalContentToEditor('/vault/a.md', 'v2', true);
+		syncExternalContentToEditor('/vault/a.md', 'v3', false);
+
+		expect(editorStore.externalContentSignal).toBe(start + 3);
+		expect(editorStore.tabs[0].content).toBe('v3');
+		expect(editorStore.tabs[0].savedContent).toBe('v2'); // last markSaved=true write
 	});
 });

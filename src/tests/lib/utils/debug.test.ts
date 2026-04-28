@@ -15,7 +15,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { debug, error, logProcessMemory, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
+import { debug, error, logProcessMemory, perfBaseline, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
 
 describe('debug', () => {
@@ -296,5 +296,85 @@ describe('logProcessMemory', () => {
 			expect.any(Error),
 		);
 		errorSpy.mockRestore();
+	});
+});
+
+describe('perfStart / perfEnd', () => {
+	beforeEach(() => {
+		settingsStore.reset();
+		vi.mocked(appendLog).mockClear();
+	});
+
+	it('returns 0 when both debugMode and debugLogToFile are off', () => {
+		expect(perfStart()).toBe(0);
+	});
+
+	it('returns a non-zero timestamp when debugMode is on', () => {
+		settingsStore.updateDebugMode(true);
+
+		expect(perfStart()).toBeGreaterThan(0);
+	});
+
+	it('returns a non-zero timestamp when debugLogToFile is on', () => {
+		settingsStore.updateDebugLogToFile(true);
+
+		expect(perfStart()).toBeGreaterThan(0);
+	});
+
+	it('perfEnd is a no-op when start === 0', () => {
+		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+		perfEnd('TAG', 'label', 0);
+
+		expect(consoleSpy).not.toHaveBeenCalled();
+		expect(appendLog).not.toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+
+	it('perfEnd writes elapsed time via debug() when start is non-zero', () => {
+		settingsStore.updateDebugMode(true);
+		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+		perfEnd('EDITOR', 'switchTab', 1);
+
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining('[FRONT-END:EDITOR]'),
+			expect.stringMatching(/switchTab: \d+(\.\d+)?ms/),
+		);
+		consoleSpy.mockRestore();
+	});
+});
+
+describe('perfBaseline', () => {
+	beforeEach(() => {
+		settingsStore.reset();
+		vi.mocked(appendLog).mockClear();
+	});
+
+	it('is a no-op when start === 0 (debug fully disabled)', () => {
+		perfBaseline('switchTab', 0);
+
+		expect(appendLog).not.toHaveBeenCalled();
+	});
+
+	it('writes a PERF-BASELINE entry with label and elapsed ms when start is non-zero', () => {
+		settingsStore.updateDebugLogToFile(true);
+
+		perfBaseline('updateIndexesForFile', 1);
+
+		expect(appendLog).toHaveBeenCalledWith(
+			'PERF-BASELINE',
+			expect.stringMatching(/^updateIndexesForFile: \d+(\.\d+)?ms$/),
+		);
+	});
+
+	it('uses the literal PERF-BASELINE tag (not prefixed with FRONT-END:)', () => {
+		settingsStore.updateDebugLogToFile(true);
+
+		perfBaseline('label', 1);
+
+		const call = vi.mocked(appendLog).mock.calls[0];
+		expect(call[0]).toBe('PERF-BASELINE');
+		expect(call[0]).not.toContain('FRONT-END');
 	});
 });

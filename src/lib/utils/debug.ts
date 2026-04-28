@@ -80,6 +80,16 @@ export function perfEnd(tag: string, label: string, start: number): void {
 	debug(tag, `${label}: ${elapsed}ms`);
 }
 
+/** Writes a stable PERF-BASELINE log line consumed by `scripts/perf-baseline.py`.
+ *  Emitted alongside (not instead of) topic-specific perfEnd calls so the script
+ *  has one deterministic tag to grep across sessions, while existing tags remain
+ *  available for ad-hoc debugging. Skips when debug is fully disabled (start === 0). */
+export function perfBaseline(label: string, start: number): void {
+	if (start === 0) return;
+	const elapsed = (performance.now() - start).toFixed(1);
+	appendLog('PERF-BASELINE', `${label}: ${elapsed}ms`);
+}
+
 // --- Tauri debug log forwarding ---
 
 /** Payload received from the Rust backend debug log events */

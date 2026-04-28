@@ -31,7 +31,7 @@ const isPlaywright = !!process.env.PLAYWRIGHT;
 
 // ─── Node.js shims ───────────────────────────────────────────────────────────
 // Browser shims for Node.js built-in modules imported by
-// @doist/todoist-api-typescript's multipart-upload.js.
+// @doist/todoist-sdk's multipart-upload.js.
 // The upload code path is never called at runtime in the Tauri webview,
 // but the imports must resolve for the ES module graph to load successfully.
 

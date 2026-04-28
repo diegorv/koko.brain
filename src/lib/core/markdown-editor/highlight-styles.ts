@@ -67,21 +67,44 @@ export function markdownLanguage() {
 }
 
 /**
+ * Synchronous fast-path: returns reconfigure effects for files that don't
+ * need async language loading (markdown, kanban — they reuse the already-bundled
+ * markdown parser). Returns `null` for code files where the language parser
+ * must be loaded via `langDesc.load()` — callers fall back to the async
+ * `getLanguageEffects` for those.
+ *
+ * Phase 4.3 of the perf refactor: lets the tab-switch effect bundle the
+ * language reconfigure into the same `view.dispatch` as the doc replace,
+ * cutting a redundant dispatch + decoration recompute on the markdown path
+ * (the common case). Code files keep the prior 2-dispatch behavior.
+ */
+export function getLanguageEffectsSync(
+	fileName: string,
+	languageCompartment: Compartment,
+	highlightStyleCompartment: Compartment,
+): StateEffect<unknown>[] | null {
+	const langDesc = getLanguageForFile(fileName);
+	if (langDesc) return null;
+	return [
+		languageCompartment.reconfigure(markdownLanguage()),
+		highlightStyleCompartment.reconfigure(syntaxHighlighting(markdownHighlight)),
+	];
+}
+
+/**
  * Returns the StateEffect[] to reconfigure language parser and highlight style
- * for the given file. Returns null if async loading is needed (code files).
+ * for the given file. For files needing async language loading (e.g. .ts, .py)
+ * this awaits `langDesc.load()`; for markdown / kanban it short-circuits via
+ * `getLanguageEffectsSync`.
  */
 export async function getLanguageEffects(
 	fileName: string,
 	languageCompartment: Compartment,
 	highlightStyleCompartment: Compartment,
 ): Promise<StateEffect<unknown>[]> {
-	const langDesc = getLanguageForFile(fileName);
-	if (!langDesc) {
-		return [
-			languageCompartment.reconfigure(markdownLanguage()),
-			highlightStyleCompartment.reconfigure(syntaxHighlighting(markdownHighlight)),
-		];
-	}
+	const sync = getLanguageEffectsSync(fileName, languageCompartment, highlightStyleCompartment);
+	if (sync !== null) return sync;
+	const langDesc = getLanguageForFile(fileName)!;
 	const langSupport = await langDesc.load();
 	return [
 		languageCompartment.reconfigure(langSupport),
