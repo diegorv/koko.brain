@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting } from '@codemirror/language';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
 import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
 
@@ -39,12 +38,8 @@ function classesIn(root: HTMLElement): Set<string> {
 	return result;
 }
 
-describe('new pipeline — DOM snapshot (jsdom)', () => {
+describe('inline pipeline — DOM snapshot (jsdom)', () => {
 	let cleanup: (() => void) | null = null;
-
-	beforeEach(() => {
-		settingsStore.reset();
-	});
 
 	afterEach(() => {
 		cleanup?.();
@@ -52,11 +47,9 @@ describe('new pipeline — DOM snapshot (jsdom)', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('flag OFF: legacy plugin emits cm-lp-bold/italic/strikethrough/code/highlight', () => {
-		expect(settingsStore.experimental.newLivePreview).toBe(false);
+	it('emits cm-lp-bold/italic/strikethrough/code/highlight on the inline sample', () => {
 		const { view, root } = mountView(SAMPLE);
 		cleanup = () => view.destroy();
-
 		const classes = classesIn(root);
 		expect(classes.has('cm-lp-bold')).toBe(true);
 		expect(classes.has('cm-lp-italic')).toBe(true);
@@ -65,24 +58,9 @@ describe('new pipeline — DOM snapshot (jsdom)', () => {
 		expect(classes.has('cm-lp-highlight')).toBe(true);
 	});
 
-	it('flag ON: new pipeline emits the same classes verbatim', () => {
-		settingsStore.updateExperimental({ newLivePreview: true });
+	it('cm-lp-bold spans cover the bold range and nothing else', () => {
 		const { view, root } = mountView(SAMPLE);
 		cleanup = () => view.destroy();
-
-		const classes = classesIn(root);
-		expect(classes.has('cm-lp-bold')).toBe(true);
-		expect(classes.has('cm-lp-italic')).toBe(true);
-		expect(classes.has('cm-lp-strikethrough')).toBe(true);
-		expect(classes.has('cm-lp-code')).toBe(true);
-		expect(classes.has('cm-lp-highlight')).toBe(true);
-	});
-
-	it('flag ON: cm-lp-bold spans cover the bold range (**bold**) and nothing else', () => {
-		settingsStore.updateExperimental({ newLivePreview: true });
-		const { view, root } = mountView(SAMPLE);
-		cleanup = () => view.destroy();
-
 		// Lezer's `StrongEmphasis/...` style applies tags.strong to all descendants
 		// (both `**` marks AND the inner content), so multiple spans share the
 		// class. Their concatenated text spans the full **bold** marker range.
@@ -90,23 +68,20 @@ describe('new pipeline — DOM snapshot (jsdom)', () => {
 		expect(boldEls.length).toBeGreaterThan(0);
 		const boldText = Array.from(boldEls).map((el) => el.textContent ?? '').join('');
 		expect(boldText).toContain('bold');
-		// And does not bleed into the italic word
 		expect(boldText).not.toContain('italic');
 		expect(boldText).not.toContain('strike');
 	});
 
-	it('flag ON: cm-lp-highlight covers the ==hi== range', () => {
-		settingsStore.updateExperimental({ newLivePreview: true });
+	it('cm-lp-highlight covers the ==hi== range', () => {
 		const { view, root } = mountView(SAMPLE);
 		cleanup = () => view.destroy();
-
 		const hlEls = root.querySelectorAll('.cm-lp-highlight');
 		expect(hlEls.length).toBeGreaterThan(0);
 		const hlText = Array.from(hlEls).map((el) => el.textContent ?? '').join('');
 		expect(hlText).toContain('hi');
 	});
 
-	it('flag OFF: legacy headingPlugin emits cm-lp-h1..h6 line decorations', () => {
+	it('emits cm-lp-h1..h6 for ATX heading levels', () => {
 		const { view, root } = mountView(HEADINGS);
 		cleanup = () => view.destroy();
 		const classes = classesIn(root);
@@ -115,27 +90,7 @@ describe('new pipeline — DOM snapshot (jsdom)', () => {
 		}
 	});
 
-	it('flag ON: new heading handlers emit the same cm-lp-h1..h6 line decorations', () => {
-		settingsStore.updateExperimental({ newLivePreview: true });
-		const { view, root } = mountView(HEADINGS);
-		cleanup = () => view.destroy();
-		const classes = classesIn(root);
-		for (const level of [1, 2, 3, 4, 5, 6]) {
-			expect(classes.has(`cm-lp-h${level}`)).toBe(true);
-		}
-	});
-
-	it('flag OFF: legacy blockquotePlugin emits cm-lp-blockquote, -2, -3 by depth', () => {
-		const { view, root } = mountView(BLOCKQUOTES);
-		cleanup = () => view.destroy();
-		const classes = classesIn(root);
-		expect(classes.has('cm-lp-blockquote')).toBe(true);
-		expect(classes.has('cm-lp-blockquote-2')).toBe(true);
-		expect(classes.has('cm-lp-blockquote-3')).toBe(true);
-	});
-
-	it('flag ON: new blockquoteHandler emits the same depth-aware classes', () => {
-		settingsStore.updateExperimental({ newLivePreview: true });
+	it('emits cm-lp-blockquote / -2 / -3 by depth', () => {
 		const { view, root } = mountView(BLOCKQUOTES);
 		cleanup = () => view.destroy();
 		const classes = classesIn(root);

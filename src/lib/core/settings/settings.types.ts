@@ -183,12 +183,6 @@ export interface TagColorSettings {
 	colors: Record<string, string>;
 }
 
-/** Experimental feature flags — disabled by default, opt-in via Settings → Experimental */
-export interface ExperimentalSettings {
-	/** Use the consolidated live-preview pipeline (HighlightStyle + unified inline plugin). Default false. */
-	newLivePreview: boolean;
-}
-
 /** Policy for QueryJS block execution — controls when `kb.pages()`/`dv.view()` blocks run */
 export type AutoRunQueriesPolicy =
 	| 'first-open' // execute the first time the file is opened in this session, then cache for the session
@@ -202,7 +196,7 @@ export interface QueryjsSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'update' | 'experimental';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -238,8 +232,6 @@ export interface AppSettings {
 	disabledDecorators: Record<string, boolean>;
 	/** Tag color assignments (persisted per-vault) */
 	tagColors: TagColorSettings;
-	/** Experimental feature flags — opt-in via Settings → Experimental */
-	experimental: ExperimentalSettings;
 	/** QueryJS plugin configuration (execution policy, …) */
 	queryjs: QueryjsSettings;
 }

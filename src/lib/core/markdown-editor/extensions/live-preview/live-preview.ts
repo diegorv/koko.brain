@@ -13,18 +13,10 @@ import { metaBindButtonField } from './plugins/meta-bind-button-field';
 import { queryjsBlockField } from './plugins/queryjs-block-field';
 import { mermaidField } from './plugins/mermaid-field';
 import { blockMathField } from './plugins/block-math-field';
-import { simpleWidgetPlugin } from './plugins/simple-widget-plugin';
-import { inlineMarksPlugin } from './plugins/inline-marks-plugin';
-import { markdownStylePlugin } from './plugins/markdown-style-plugin';
-import { headingPlugin } from './plugins/heading-plugin';
-import { blockquotePlugin } from './plugins/blockquote-plugin';
-import { linkPlugin } from './plugins/link-plugin';
 import { imagePlugin } from './plugins/image-plugin';
 import { footnotePlugin } from './plugins/footnote-plugin';
 import { wikilinkEmbedPlugin } from './plugins/wikilink-embed-plugin';
 import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
-import { inlineCommentPlugin } from './plugins/inline-comment-plugin';
-import { blockReferencePlugin } from './plugins/block-reference-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
@@ -42,6 +34,14 @@ function isDisabled(name: string): boolean {
 	return settingsStore.disabledDecorators[name] ?? false;
 }
 
+/**
+ * Returns the live-preview extension array. The inline pipeline is the
+ * unified `HighlightStyle` + `inlineFormattingPlugin` set from `new/`;
+ * block fields and always-on inline plugins (image, footnote, wikilink-embed,
+ * metaBindInput) are kept side-by-side. Source mode is handled at the
+ * compartment level by `livePreview(enabled)` — when off, the entire array
+ * is replaced with `[]` so line numbers + gutter come back.
+ */
 export function livePreviewExtensions(): Extension[] {
 	const exts: Extension[] = [
 		mouseSelectingField,
@@ -49,7 +49,7 @@ export function livePreviewExtensions(): Extension[] {
 		calloutFoldState,
 	];
 
-	// Block plugins (unchanged across both pipelines)
+	// Block plugins
 	if (!isDisabled('frontmatter')) { exts.push(frontmatterField, frontmatterGutter); }
 	if (!isDisabled('codeBlock')) { exts.push(codeBlockField); }
 	exts.push(blockCommentField);
@@ -59,24 +59,10 @@ export function livePreviewExtensions(): Extension[] {
 	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
-	// Inline pipeline — selected by experimental.newLivePreview.
-	// Flag OFF preserves exact pre-refactor ordering (decoration precedence
-	// depends on extension order). Flag ON uses the new unified pipeline.
-	if (settingsStore.experimental.newLivePreview) {
-		exts.push(...newInlineExtensions());
-		exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
-		if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
-	} else {
-		if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
-		if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
-		if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
-		if (!isDisabled('heading')) { exts.push(headingPlugin); }
-		if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
-		if (!isDisabled('link')) { exts.push(linkPlugin); }
-		exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
-		if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
-		exts.push(inlineCommentPlugin, blockReferencePlugin);
-	}
+	// Unified inline pipeline (ex-Phases 3–10) + always-on inline plugins
+	exts.push(...newInlineExtensions());
+	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
+	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
