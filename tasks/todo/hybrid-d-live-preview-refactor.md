@@ -55,9 +55,9 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 8 — Retire simpleWidgetPlugin (290 LOC)
 
-- [ ] Task 8.1: `new/handlers/simple-widget-handlers.ts` — 5 handlers (TaskMarker, HorizontalRule, ListMark, HardBreak, InlineMath) reusing widgets
-- [ ] Task 8.2: Verify Phase 2 dedup sets handle the volume
-- [ ] Task 8.3: Register, delete plugin, migrate tests
+- [x] Task 8.1: `new/handlers/simple-widget-handlers.ts` — 5 NodeHandlers (TaskMarker, HorizontalRule, ListMark, HardBreak, InlineMath); ListMark dispatches by parent (Task / Ordered / Bullet); reuses `TaskCheckboxWidget`, `OrderedListMarkerWidget`, `InlineMathWidget`
+- [x] Task 8.2: Confirmed via 14 unit tests that the existing `seenNodes` Set in `buildInlineDecorations` handles per-node dedup; no changes needed
+- [x] Task 8.3: Registered after `blockquoteHandler` in `PRODUCTION_NODE_HANDLERS`. **Plugin deletion deferred to Phase 12.5.** 14 unit tests cover all 5 widget kinds + cursor-on-line fall-through + raw mode + FencedCode skip
 
 ### Phase 9 — Retire linkPlugin (283 LOC) — subdivided
 
