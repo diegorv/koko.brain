@@ -15,7 +15,7 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 - [x] Task 1.1: Add `rawMode: boolean` to `EditorSettings` (default `false`); store + tests
 - [x] Task 1.2: Short-circuit in `should-show-source.ts`; update co-located tests
-- [ ] Task 1.3: `toggleRawMode()` in `editor.service.ts` + `Cmd+K` binding in `global-keybindings.ts`; tests
+- [x] Task 1.3: `toggleRawMode()` in `editor.service.ts` + `Cmd+K` binding in `global-keybindings.ts`; tests
 - [ ] Task 1.4: Toggle in `EditorSection.svelte`
 - [ ] Task 1.5: E2E `e2e/specs/live-preview/raw-mode.spec.ts`
 

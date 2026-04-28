@@ -10,6 +10,7 @@ import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 /**
  * Opens a file in the editor.
@@ -226,6 +227,15 @@ export function togglePinActiveTab() {
 	if (editorStore.activeIndex >= 0) {
 		togglePinTab(editorStore.activeIndex);
 	}
+}
+
+/**
+ * Toggles raw mode — when on, every cursor-aware live-preview decoration
+ * shows its markdown source regardless of cursor position. Bound to Cmd+K
+ * via global-keybindings.
+ */
+export function toggleRawMode() {
+	settingsStore.updateEditor({ rawMode: !settingsStore.editor.rawMode });
 }
 
 /** Pins a tab identified by file path (used for auto-pin features like daily notes) */

@@ -69,7 +69,9 @@ import {
 	flushPendingSaves,
 	saveAllDirtyTabs,
 	reloadExternallyChangedTabs,
+	toggleRawMode,
 } from '$lib/core/editor/editor.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
 	const name = path.split('/').pop() ?? path;
@@ -719,6 +721,26 @@ describe('togglePinTab', () => {
 		togglePinTab(0);
 
 		expect(editorStore.tabs[0].pinned).toBe(false);
+	});
+});
+
+describe('toggleRawMode', () => {
+	beforeEach(() => {
+		settingsStore.reset();
+	});
+
+	it('flips editor.rawMode from false to true and back', () => {
+		expect(settingsStore.editor.rawMode).toBe(false);
+		toggleRawMode();
+		expect(settingsStore.editor.rawMode).toBe(true);
+		toggleRawMode();
+		expect(settingsStore.editor.rawMode).toBe(false);
+	});
+
+	it('does not disturb other editor fields', () => {
+		const originalFontSize = settingsStore.editor.fontSize;
+		toggleRawMode();
+		expect(settingsStore.editor.fontSize).toBe(originalFontSize);
 	});
 });
 
