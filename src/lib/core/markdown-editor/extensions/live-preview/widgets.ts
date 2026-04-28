@@ -389,11 +389,21 @@ export class TableWidget extends WidgetType {
 	 * point-inserting because column appends touch every line.
 	 */
 	private attachAddButtons(wrapper: HTMLElement, view: EditorView): void {
+		// `mousedown` must stopPropagation BEFORE CodeMirror's own mousedown
+		// handler runs — otherwise CM moves the cursor into the table range,
+		// `shouldShowSource(...)` becomes true on the next render, the widget
+		// is destroyed, and the button's `click` event never fires (target gone).
+		// Same pattern as MetaBindSelect / language switcher / callout type
+		// popover. Without this, the buttons silently no-op.
 		const addCol = document.createElement('button');
 		addCol.type = 'button';
 		addCol.className = 'cm-lp-table-add cm-lp-table-add-col';
 		addCol.textContent = '+';
 		addCol.title = 'Add column';
+		addCol.addEventListener('mousedown', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		});
 		addCol.onclick = (e) => {
 			e.preventDefault();
 			e.stopPropagation();
@@ -406,6 +416,10 @@ export class TableWidget extends WidgetType {
 		addRow.className = 'cm-lp-table-add cm-lp-table-add-row';
 		addRow.textContent = '+';
 		addRow.title = 'Add row';
+		addRow.addEventListener('mousedown', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		});
 		addRow.onclick = (e) => {
 			e.preventDefault();
 			e.stopPropagation();
