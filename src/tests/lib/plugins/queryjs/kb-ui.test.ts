@@ -724,6 +724,66 @@ describe('KBUI', () => {
 			expect(result).toBe(container.firstElementChild);
 			expect(result.tagName).toBe('TABLE');
 		});
+
+		describe('pagination', () => {
+			const headers = ['idx'];
+			const rows = Array.from({ length: 12 }, (_, i) => [String(i + 1)]);
+
+			it('does not render nav when pageSize is 0 or omitted', () => {
+				ui.table(headers, rows);
+				expect(container.querySelector('.cm-lp-qjs-table-nav')).toBeNull();
+			});
+
+			it('does not render nav when row count is below pageSize', () => {
+				ui.table(headers, [['only one']], { pageSize: 5 });
+				expect(container.querySelector('.cm-lp-qjs-table-nav')).toBeNull();
+			});
+
+			it('renders Prev / Next / indicator when paginated', () => {
+				ui.table(headers, rows, { pageSize: 5 });
+				const nav = container.querySelector('.cm-lp-qjs-table-nav');
+				expect(nav).not.toBeNull();
+				const buttons = nav!.querySelectorAll('.cm-lp-qjs-table-nav-btn');
+				expect(buttons.length).toBe(2);
+				expect(buttons[0].textContent).toBe('Prev');
+				expect(buttons[1].textContent).toBe('Next');
+				const indicator = nav!.querySelector('.cm-lp-qjs-table-nav-indicator');
+				expect(indicator?.textContent).toBe('Page 1 of 3');
+			});
+
+			it('shows only the first pageSize rows initially', () => {
+				ui.table(headers, rows, { pageSize: 5 });
+				const tds = container.querySelectorAll('tbody tr');
+				expect(tds.length).toBe(5);
+			});
+
+			it('Next advances to page 2 and updates the indicator', () => {
+				ui.table(headers, rows, { pageSize: 5 });
+				const next = container.querySelector<HTMLButtonElement>('.cm-lp-qjs-table-nav-btn:nth-child(3)');
+				next!.click();
+				const tds = container.querySelectorAll('tbody td');
+				expect(tds[0].textContent).toBe('6');
+				expect(container.querySelector('.cm-lp-qjs-table-nav-indicator')?.textContent).toBe('Page 2 of 3');
+			});
+
+			it('Prev disabled on page 1, Next disabled on last page', () => {
+				ui.table(headers, rows, { pageSize: 5 });
+				const prev = container.querySelector<HTMLButtonElement>('.cm-lp-qjs-table-nav-btn:nth-child(1)')!;
+				const next = container.querySelector<HTMLButtonElement>('.cm-lp-qjs-table-nav-btn:nth-child(3)')!;
+				expect(prev.disabled).toBe(true);
+				expect(next.disabled).toBe(false);
+				next.click();
+				next.click();
+				expect(prev.disabled).toBe(false);
+				expect(next.disabled).toBe(true);
+			});
+
+			it('returns the wrapper (not the table) when paginated', () => {
+				const result = ui.table(headers, rows, { pageSize: 5 });
+				expect(result.classList.contains('cm-lp-qjs-table-wrapper')).toBe(true);
+				expect(result.querySelector('.cm-lp-qjs-table')).not.toBeNull();
+			});
+		});
 	});
 
 	describe('chart', () => {
