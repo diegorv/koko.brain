@@ -16,9 +16,10 @@ describe('new-inline-extensions', () => {
 		}
 	});
 
-	it('PRODUCTION_LINE_HANDLERS contains the inline-comment handler (Phase 6)', () => {
+	it('PRODUCTION_LINE_HANDLERS contains inline-comment + block-reference (Phases 6 + 7)', () => {
 		const names = PRODUCTION_LINE_HANDLERS.map((h) => h.name);
 		expect(names).toContain('inline-comment');
+		expect(names).toContain('block-reference');
 	});
 
 	it('newInlineExtensions() returns the HighlightStyle wrapper + the inline plugin (2 entries)', () => {

@@ -9,6 +9,7 @@ import { highlightHandler } from './handlers/highlight-handler';
 import { headingHandlers } from './handlers/heading-handler';
 import { blockquoteHandler } from './handlers/blockquote-handler';
 import { inlineCommentHandler } from './handlers/inline-comment-handler';
+import { blockReferenceHandler } from './handlers/block-reference-handler';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
@@ -22,11 +23,12 @@ export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 
 /**
  * Production line handlers — regex-based parsers for markdown features
- * without a usable Lezer node. Phase 6 ships inline `%%comments%%`; Phases
- * 7 and 9 will add block-references and wikilinks/extended-autolinks.
+ * without a usable Lezer node. Phases 6 + 7 covered inline comments and
+ * block references; Phase 9 will add wikilinks and extended autolinks.
  */
 export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 	inlineCommentHandler,
+	blockReferenceHandler,
 ];
 
 /**

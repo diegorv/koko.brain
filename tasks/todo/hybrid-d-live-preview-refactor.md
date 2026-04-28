@@ -50,8 +50,8 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 7 — Retire blockReferencePlugin (89 LOC)
 
-- [ ] Task 7.1: `new/handlers/block-reference-handler.ts` (line handler reusing `findBlockReference`)
-- [ ] Task 7.2: Register, delete, migrate tests + DOM snapshot
+- [x] Task 7.1: `new/handlers/block-reference-handler.ts` (line handler reusing `findBlockReference` from `parsers/block-reference.ts`)
+- [x] Task 7.2: Registered alongside `inlineCommentHandler` in `PRODUCTION_LINE_HANDLERS`. **Plugin deletion deferred to Phase 12.5.** 6 unit tests cover hide/reveal/raw mode/no match/middle-of-line not matched/FencedCode skip
 
 ### Phase 8 — Retire simpleWidgetPlugin (290 LOC)
 
