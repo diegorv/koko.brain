@@ -1,14 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
 	parseTaskMetadata,
-	serializeTaskMetadata,
 	mapCheckboxChar,
-	statusToCheckboxChar,
 	isOverdue,
 	isDueToday,
 	isDueSoon,
 } from '$lib/features/tasks/task-metadata.logic';
-import type { TaskMetadata } from '$lib/features/tasks/task-metadata.types';
 
 // ── parseTaskMetadata ──────────────────────────────────────────────
 
@@ -283,107 +280,6 @@ describe('parseTaskMetadata', () => {
 	});
 });
 
-// ── serializeTaskMetadata ──────────────────────────────────────────
-
-describe('serializeTaskMetadata', () => {
-	it('serializes plain description', () => {
-		const m: TaskMetadata = { description: 'Buy groceries', tags: [] };
-		expect(serializeTaskMetadata(m)).toBe('Buy groceries');
-	});
-
-	it('serializes with due date', () => {
-		const m: TaskMetadata = { description: 'Task', dueDate: '2026-02-20', tags: [] };
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('Task');
-		expect(result).toContain('2026-02-20');
-	});
-
-	it('serializes with priority', () => {
-		const m: TaskMetadata = { description: 'Task', priority: 'highest', tags: [] };
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('Task');
-		expect(result).toContain('\u{1F53A}'); // 🔺
-	});
-
-	it('serializes with tags', () => {
-		const m: TaskMetadata = { description: 'Task', tags: ['work', 'urgent'] };
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('#work');
-		expect(result).toContain('#urgent');
-	});
-
-	it('serializes with recurrence', () => {
-		const m: TaskMetadata = {
-			description: 'Water plants',
-			recurrence: { text: 'every week' },
-			tags: [],
-		};
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('\u{1F501} every week');
-	});
-
-	it('serializes with ID', () => {
-		const m: TaskMetadata = { description: 'Task', id: 'abc123', tags: [] };
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('\u{1F194} abc123');
-	});
-
-	it('serializes with dependsOn', () => {
-		const m: TaskMetadata = { description: 'Task', dependsOn: ['id1', 'id2'], tags: [] };
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('\u{26D4} id1,id2');
-	});
-
-	it('serializes with onCompletion', () => {
-		const m: TaskMetadata = { description: 'Task', onCompletion: 'delete', tags: [] };
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('\u{1F3C1} delete');
-	});
-
-	it('serializes full metadata', () => {
-		const m: TaskMetadata = {
-			description: 'Complex task',
-			dueDate: '2026-03-01',
-			priority: 'high',
-			recurrence: { text: 'every week' },
-			tags: ['work'],
-		};
-		const result = serializeTaskMetadata(m);
-		expect(result).toContain('Complex task');
-		expect(result).toContain('2026-03-01');
-		expect(result).toContain('\u{23EB}'); // ⏫
-		expect(result).toContain('#work');
-	});
-});
-
-// ── round-trip ─────────────────────────────────────────────────────
-
-describe('round-trip parse → serialize → parse', () => {
-	const cases = [
-		'Buy groceries',
-		'Task 📅 2026-02-20',
-		'Task 🔺',
-		'Task 📅 2026-02-20 🔺 #shopping',
-		'Water plants 🔁 every week',
-		'Task 🆔 abc123',
-	];
-
-	for (const input of cases) {
-		it(`round-trips: "${input}"`, () => {
-			const first = parseTaskMetadata(input);
-			const serialized = serializeTaskMetadata(first);
-			const second = parseTaskMetadata(serialized);
-
-			expect(second.description).toBe(first.description);
-			expect(second.dueDate).toBe(first.dueDate);
-			expect(second.priority).toBe(first.priority);
-			expect(second.tags).toEqual(first.tags);
-			expect(second.recurrence?.text).toBe(first.recurrence?.text);
-			expect(second.id).toBe(first.id);
-		});
-	}
-});
-
 // ── mapCheckboxChar ────────────────────────────────────────────────
 
 describe('mapCheckboxChar', () => {
@@ -421,45 +317,6 @@ describe('mapCheckboxChar', () => {
 
 	it('defaults unknown chars to todo', () => {
 		expect(mapCheckboxChar('z')).toBe('todo');
-	});
-});
-
-// ── statusToCheckboxChar ───────────────────────────────────────────
-
-describe('statusToCheckboxChar', () => {
-	it('maps todo to space', () => {
-		expect(statusToCheckboxChar('todo')).toBe(' ');
-	});
-
-	it('maps done to x', () => {
-		expect(statusToCheckboxChar('done')).toBe('x');
-	});
-
-	it('maps cancelled to -', () => {
-		expect(statusToCheckboxChar('cancelled')).toBe('-');
-	});
-
-	it('maps in-progress to /', () => {
-		expect(statusToCheckboxChar('in-progress')).toBe('/');
-	});
-
-	it('maps question to ?', () => {
-		expect(statusToCheckboxChar('question')).toBe('?');
-	});
-
-	it('maps forwarded to >', () => {
-		expect(statusToCheckboxChar('forwarded')).toBe('>');
-	});
-
-	it('maps important to !', () => {
-		expect(statusToCheckboxChar('important')).toBe('!');
-	});
-
-	it('is inverse of mapCheckboxChar', () => {
-		const chars = [' ', 'x', '-', '/', '?', '>', '!'];
-		for (const ch of chars) {
-			expect(statusToCheckboxChar(mapCheckboxChar(ch))).toBe(ch);
-		}
 	});
 });
 

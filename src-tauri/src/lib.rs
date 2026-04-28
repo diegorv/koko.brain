@@ -106,6 +106,7 @@ pub fn run() {
             commands::vault::get_tasks_in_path_v2,
             commands::vault::get_tasks_in_section_v2,
             commands::vault::toggle_task_status,
+            commands::vault::remove_note_from_index,
             commands::files::read_files_batch,
             commands::search::search_vault,
             commands::terminal::spawn_terminal,
