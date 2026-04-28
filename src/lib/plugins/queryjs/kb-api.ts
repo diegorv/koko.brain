@@ -25,6 +25,15 @@ export class KBAPI {
 	private readonly loadScript: (path: string) => Promise<string>;
 	private _pageCache: { list: KBPage[]; byPath: Map<string, KBPage> } | null = null;
 	private _ui: KBUI | null = null;
+	/**
+	 * Pending `kb.view()` / `dv.view()` promises started during the current
+	 * script execution. The widget calls `awaitAllPending()` after running
+	 * user code so calls written without `await` (`kb.view("…")`) still
+	 * complete their DOM mutations before the result is cached. Replaces
+	 * the legacy auto-await regex (`/(?<![\w.])(kb|dv)\.view\(/g` → `await
+	 * $1.view(`) — same effect, no regex fragility.
+	 */
+	private _pendingViews: Promise<void>[] = [];
 
 	constructor(opts: {
 		container: HTMLElement;
@@ -306,8 +315,34 @@ export class KBAPI {
 	/**
 	 * Loads and executes an external .js script from the vault.
 	 * Exposes the API as both `kb` (primary) and `dv` (legacy alias).
+	 *
+	 * The returned Promise is registered in `_pendingViews`, so the widget
+	 * can `await api.awaitAllPending()` after the user's script body
+	 * finishes — that catches calls written without `await` (`kb.view("…")`)
+	 * and lets the DOM mutations inside `view()` complete before the
+	 * caller caches the rendered result.
 	 */
-	async view(scriptPath: string, input?: unknown): Promise<void> {
+	view(scriptPath: string, input?: unknown): Promise<void> {
+		const promise = this.runView(scriptPath, input);
+		this._pendingViews.push(promise);
+		return promise;
+	}
+
+	/**
+	 * Awaits every `kb.view()` / `dv.view()` call started since the last
+	 * call to this method, then clears the pending list. Errors raised
+	 * inside `view()` are already caught and rendered as `<div
+	 * class="cm-lp-qjs-error">` (so the returned Promise resolves rather
+	 * than rejects), keeping `Promise.all` here safe.
+	 */
+	async awaitAllPending(): Promise<void> {
+		const pending = this._pendingViews;
+		this._pendingViews = [];
+		await Promise.all(pending);
+	}
+
+	/** Internal — the body of `view()` without the pending-promise tracking. */
+	private async runView(scriptPath: string, input?: unknown): Promise<void> {
 		try {
 			const fullPath = this.resolveScriptPath(scriptPath);
 			const code = await this.loadScript(fullPath);

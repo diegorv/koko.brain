@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { debounce } from '$lib/utils/debounce';
 import { debug, error, logProcessMemory, perfStart, perfEnd, setTauriDebugMode, stopTauriDebugListener } from '$lib/utils/debug';
@@ -357,6 +358,7 @@ export function teardownVault(): void {
 
 	// ── Reset hooks + stores ────────────────────────────────────────
 	resetHooks();
+	queryjsSessionStore.reset();
 	resetTerminal();
 	resetEditor();
 	resetFileSystem();

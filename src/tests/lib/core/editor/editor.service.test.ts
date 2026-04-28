@@ -72,6 +72,7 @@ import {
 	toggleRawMode,
 } from '$lib/core/editor/editor.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
 	const name = path.split('/').pop() ?? path;
@@ -566,6 +567,17 @@ describe('closeTab', () => {
 		await closeTab(0);
 
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('drops the queryjs autoRun marker for the closed tab', async () => {
+		queryjsSessionStore.reset();
+		addTab('/vault/note.md', 'hello');
+		queryjsSessionStore.markAutoRun('/vault/note.md');
+		expect(queryjsSessionStore.hasAutoRun('/vault/note.md')).toBe(true);
+
+		await closeTab(0);
+
+		expect(queryjsSessionStore.hasAutoRun('/vault/note.md')).toBe(false);
 	});
 
 	it('does not cancel pending saves for other tabs when closing', async () => {

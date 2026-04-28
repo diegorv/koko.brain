@@ -11,6 +11,7 @@ import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-ed
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 /**
  * Opens a file in the editor.
@@ -191,6 +192,11 @@ export async function closeTab(index: number) {
 
 	editorStore.removeTab(currentIndex);
 	deleteTabViewState(tabPath);
+	// Drop the file's autoRun marker so reopening the file restarts the
+	// 'first-open' policy. Cached results are invalidated on save, not on
+	// close — keeping them lets the user reopen a recently-viewed note
+	// instantly even mid-session.
+	queryjsSessionStore.invalidatePath(tabPath);
 
 	const newActive = editorStore.activeTab;
 	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
@@ -264,6 +270,9 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 		const tab = editorStore.tabs[i];
 		if (tab.path === deletedPath || tab.path.startsWith(deletedPath + '/')) {
 			deleteTabViewState(tab.path);
+			// Drop autoRun marker — if the user later restores or recreates the
+			// file, treat it as a fresh open.
+			queryjsSessionStore.invalidatePath(tab.path);
 			editorStore.removeTab(i);
 		}
 	}
