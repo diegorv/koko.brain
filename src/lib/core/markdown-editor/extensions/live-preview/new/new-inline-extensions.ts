@@ -6,6 +6,7 @@ import {
 	type LineHandler,
 } from './inline-formatting-plugin';
 import { highlightHandler } from './handlers/highlight-handler';
+import { headingHandlers } from './handlers/heading-handler';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
@@ -13,6 +14,7 @@ import { highlightHandler } from './handlers/highlight-handler';
  */
 export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 	highlightHandler,
+	...headingHandlers,
 ];
 
 /**

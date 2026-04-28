@@ -33,10 +33,10 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 4 — Retire headingPlugin (121 LOC)
 
-- [ ] Task 4.1: `new/handlers/heading-handler.ts` — 8 handlers (ATX1-6 + Setext1-2) via factories, `Decoration.line` + cursor-reveal of HeaderMark
-- [ ] Task 4.2: Register in `new-inline-extensions.ts`
-- [ ] Task 4.3: Delete `plugins/heading-plugin.ts` + remove from legacy branch
-- [ ] Task 4.4: Unit tests + E2E `headings-new-pipeline.spec.ts`
+- [x] Task 4.1: `new/handlers/heading-handler.ts` — 8 handlers (ATX1-6 + Setext1-2) via factories, `Decoration.line` + cursor-reveal of HeaderMark
+- [x] Task 4.2: Register in `new-inline-extensions.ts`
+- [~] Task 4.3: **deferred to Phase 12.5** — keeping `plugins/heading-plugin.ts` active in flag-off path through dogfood window
+- [x] Task 4.4: Unit tests (15 cases) + E2E `headings-new-pipeline.spec.ts` (6 ATX + 2 Setext + cursor-reveal + bold-in-h1) + DOM-snapshot test extended to assert `cm-lp-h1..h6` in both flag paths
 
 ### Phase 5 — Retire blockquotePlugin (133 LOC)
 
