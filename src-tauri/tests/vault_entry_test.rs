@@ -175,3 +175,151 @@ fn note_entry_round_trips_through_json() {
 	let parsed: NoteEntry = serde_json::from_str(&json).unwrap();
 	assert_eq!(parsed, original);
 }
+
+// --- NoteEntry::from_content (Phase 1.5) ------------------------------------
+//
+// Builds a full NoteEntry from a (path, content, mtime) triple. The
+// extractors landed in 1.2-1.4 are already covered by vault_parsing_test;
+// these tests focus on the GLUE: title derivation, body-scoped word count,
+// snippet shape + truncation, and that the right extractors get the right
+// inputs.
+
+#[test]
+fn from_content_empty_string_yields_zero_word_count_and_empty_snippet() {
+	let entry = NoteEntry::from_content("/abs/note.md".into(), "", 1714305600);
+	assert_eq!(entry.path, "/abs/note.md");
+	assert_eq!(entry.title, "note");
+	assert_eq!(entry.modified_at, 1714305600);
+	assert_eq!(entry.word_count, 0);
+	assert_eq!(entry.snippet, "");
+	assert!(entry.frontmatter.is_empty());
+	assert!(entry.outgoing_links.is_empty());
+	assert!(entry.tags.is_empty());
+}
+
+#[test]
+fn from_content_strips_md_extension_for_title() {
+	let entry = NoteEntry::from_content("/abs/Daily Note.md".into(), "", 0);
+	assert_eq!(entry.title, "Daily Note");
+}
+
+#[test]
+fn from_content_strips_markdown_extension_for_title() {
+	let entry = NoteEntry::from_content("/abs/Wiki Page.markdown".into(), "", 0);
+	assert_eq!(entry.title, "Wiki Page");
+}
+
+#[test]
+fn from_content_keeps_filename_when_no_known_extension() {
+	let entry = NoteEntry::from_content("/abs/README".into(), "", 0);
+	assert_eq!(entry.title, "README");
+}
+
+#[test]
+fn from_content_title_uses_basename_for_nested_paths() {
+	let entry =
+		NoteEntry::from_content("/Users/me/vault/area/sub/note.md".into(), "", 0);
+	assert_eq!(entry.title, "note");
+}
+
+#[test]
+fn from_content_word_count_skips_frontmatter() {
+	let content = "---\ntitle: Heavy\nauthor: me\nrating: 5\n---\nbody one two three four five";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.word_count, 6); // body has 6 whitespace-delimited tokens
+}
+
+#[test]
+fn from_content_word_count_handles_multiple_lines() {
+	let content = "first paragraph\nsecond line still part of it.\n\nThird paragraph here.";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.word_count, 11);
+}
+
+#[test]
+fn from_content_word_count_zero_when_body_is_only_whitespace() {
+	let entry = NoteEntry::from_content("/n.md".into(), "   \n\n\t\t\n", 0);
+	assert_eq!(entry.word_count, 0);
+}
+
+#[test]
+fn from_content_snippet_joins_non_blank_lines_with_spaces() {
+	// Blank lines are collapsed (not treated as paragraph terminators) so
+	// `# Heading\n\nLead paragraph` produces a useful preview rather than
+	// stopping at the heading. See compute_snippet docs for rationale.
+	let content = "First sentence.\nSecond sentence still in para 1.\n\nSecond paragraph included too.";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(
+		entry.snippet,
+		"First sentence. Second sentence still in para 1. Second paragraph included too.",
+	);
+}
+
+#[test]
+fn from_content_snippet_skips_leading_blank_lines() {
+	let content = "\n\n  \nFirst real line.";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.snippet, "First real line.");
+}
+
+#[test]
+fn from_content_snippet_truncates_at_280_bytes() {
+	let line = "x ".repeat(200); // 400 chars / bytes
+	let content = format!("---\n---\n{line}");
+	let entry = NoteEntry::from_content("/n.md".into(), &content, 0);
+	assert!(entry.snippet.len() <= 280);
+	assert!(entry.snippet.len() > 0);
+	assert!(entry.snippet.is_char_boundary(entry.snippet.len()));
+}
+
+#[test]
+fn from_content_snippet_truncates_at_codepoint_boundary_for_multibyte() {
+	// é (e + combining acute) is 3 bytes via "e\u{0301}". Build a body whose
+	// 280-byte truncation would land mid-codepoint without the boundary
+	// rewind. The output length must be <= 280 AND a valid char boundary.
+	let body: String = "café ".repeat(80); // each "café " is 6 bytes
+	let content = format!("---\n---\n{body}");
+	let entry = NoteEntry::from_content("/n.md".into(), &content, 0);
+	assert!(entry.snippet.len() <= 280);
+	assert!(entry.snippet.is_char_boundary(entry.snippet.len()));
+	// Should still be valid UTF-8 (implicit by being a String, but make it
+	// explicit by re-validating).
+	std::str::from_utf8(entry.snippet.as_bytes())
+		.expect("snippet should be valid UTF-8");
+}
+
+#[test]
+fn from_content_full_document_populates_all_fields() {
+	let content = "---\ntitle: Q2 Review\ntags: [work, q2]\nrating: 4.5\n---\n# Heading\n\nThis is the lead paragraph linking to [[Other Note]] and tagging #project.\n\nMore content below.";
+	let entry =
+		NoteEntry::from_content("/abs/Q2 Review.md".into(), content, 1714305600);
+
+	assert_eq!(entry.path, "/abs/Q2 Review.md");
+	assert_eq!(entry.title, "Q2 Review");
+	assert_eq!(entry.modified_at, 1714305600);
+
+	// Frontmatter (parsed via parse_frontmatter): title, tags, rating
+	assert_eq!(
+		entry.frontmatter.get("title"),
+		Some(&serde_json::Value::String("Q2 Review".to_string())),
+	);
+	assert_eq!(entry.frontmatter.get("tags"), Some(&json!(["work", "q2"])));
+	assert_eq!(entry.frontmatter.get("rating"), Some(&json!(4.5)));
+
+	// Outgoing links: just the wikilink in the body.
+	assert_eq!(entry.outgoing_links.len(), 1);
+	assert_eq!(entry.outgoing_links[0].target, "Other Note");
+
+	// Tags: frontmatter (work, q2) merged with inline (project).
+	assert_eq!(entry.tags, vec!["work", "q2", "project"]);
+
+	// Word count is body-scoped (excludes frontmatter).
+	assert!(entry.word_count > 0);
+	assert!(entry.word_count < 30, "word count should not include frontmatter");
+
+	// Snippet joins all non-blank body lines with spaces. Heading and
+	// lead paragraph appear together for a useful preview.
+	assert!(entry.snippet.starts_with("# Heading"));
+	assert!(entry.snippet.contains("[[Other Note]]"));
+	assert!(entry.snippet.contains("More content below"));
+}

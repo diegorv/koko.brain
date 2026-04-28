@@ -1,4 +1,4 @@
-use kokobrain_lib::commands::vault::scan_vault;
+use kokobrain_lib::commands::vault::{scan_vault, scan_vault_v2};
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -228,4 +228,174 @@ fn canonicalizes_symlinked_vault_path() {
     let nodes = scan_vault(link_path.to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].name, "note.md");
+}
+
+// --- scan_vault_v2 (Phase 1.5) ----------------------------------------------
+//
+// scan_vault_v2 returns a flat Vec<NoteEntry> for every markdown file under
+// the vault, populated by NoteEntry::from_content. The original scan_vault
+// is unaffected — these tests live alongside it because they share the
+// TempDir + write fixtures.
+
+#[test]
+fn v2_empty_vault_returns_empty_vec() {
+    let dir = TempDir::new().unwrap();
+    let result = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert!(result.is_empty());
+}
+
+#[test]
+fn v2_single_file_populates_entry_fields() {
+    let dir = TempDir::new().unwrap();
+    let note = dir.path().join("welcome.md");
+    fs::write(
+        &note,
+        "---\ntitle: Welcome\ntags: [intro]\n---\nFirst paragraph with a [[Linked Note]] and #onboarding tag.\n",
+    )
+    .unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert_eq!(entries.len(), 1);
+
+    let e = &entries[0];
+    assert_eq!(e.title, "welcome");
+    // Path returned is absolute (canonicalized vault root + file).
+    assert!(e.path.ends_with("welcome.md"));
+    assert!(std::path::Path::new(&e.path).is_absolute());
+    assert!(e.modified_at > 0);
+
+    // Frontmatter: title + tags.
+    assert_eq!(
+        e.frontmatter.get("title"),
+        Some(&serde_json::Value::String("Welcome".to_string())),
+    );
+    assert_eq!(
+        e.frontmatter.get("tags"),
+        Some(&serde_json::json!(["intro"])),
+    );
+
+    // Outgoing links: the wikilink in the body.
+    assert_eq!(e.outgoing_links.len(), 1);
+    assert_eq!(e.outgoing_links[0].target, "Linked Note");
+
+    // Tags: intro (frontmatter) + onboarding (inline) merged.
+    assert_eq!(e.tags, vec!["intro", "onboarding"]);
+
+    // Snippet picks up the lead paragraph.
+    assert!(e.snippet.starts_with("First paragraph"));
+    assert!(e.snippet.contains("[[Linked Note]]"));
+}
+
+#[test]
+fn v2_collects_multiple_files_across_subdirectories() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha").unwrap();
+    let sub = dir.path().join("folder/sub");
+    fs::create_dir_all(&sub).unwrap();
+    fs::write(sub.join("b.md"), "Beta body").unwrap();
+    fs::write(dir.path().join("c.markdown"), "Gamma").unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert_eq!(entries.len(), 3);
+
+    let titles: Vec<_> = entries.iter().map(|e| e.title.clone()).collect();
+    assert!(titles.iter().any(|t| t == "a"));
+    assert!(titles.iter().any(|t| t == "b"));
+    assert!(titles.iter().any(|t| t == "c"));
+}
+
+#[test]
+fn v2_skips_non_markdown_files() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("note.md"), "real").unwrap();
+    fs::write(dir.path().join("readme.txt"), "ignored").unwrap();
+    fs::write(dir.path().join("image.png"), "ignored").unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].title, "note");
+}
+
+#[test]
+fn v2_skips_hidden_directories_and_their_contents() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("public.md"), "visible").unwrap();
+    let hidden = dir.path().join(".kokobrain");
+    fs::create_dir_all(&hidden).unwrap();
+    fs::write(hidden.join("internal.md"), "hidden").unwrap();
+    let git = dir.path().join(".git/info");
+    fs::create_dir_all(&git).unwrap();
+    fs::write(git.join("inside-git.md"), "vcs").unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].title, "public");
+}
+
+#[test]
+fn v2_invalid_vault_path_returns_error() {
+    let result = scan_vault_v2("/nonexistent/vault/path/does/not/exist".to_string());
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.contains("Failed to resolve vault path") || err.contains("not a directory"),
+        "unexpected error message: {}",
+        err,
+    );
+}
+
+#[test]
+fn v2_path_to_a_file_not_a_directory_returns_error() {
+    let dir = TempDir::new().unwrap();
+    let file = dir.path().join("not-a-vault.md");
+    fs::write(&file, "x").unwrap();
+
+    let result = scan_vault_v2(file.to_string_lossy().to_string());
+    assert!(result.is_err());
+}
+
+#[test]
+fn v2_word_count_is_body_scoped() {
+    let dir = TempDir::new().unwrap();
+    fs::write(
+        dir.path().join("n.md"),
+        "---\ntitle: heavy\ndescription: lots of frontmatter words here\n---\nbody one two\n",
+    )
+    .unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].word_count, 3); // "body one two"
+}
+
+#[test]
+fn v2_modified_at_is_seconds_since_epoch_and_recent() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("n.md"), "x").unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let mtime = entries[0].modified_at;
+    assert!(mtime > 0);
+    // Allow a 60s skew to keep the test robust on slow CI.
+    assert!((now - mtime).abs() < 60, "mtime drift: now={} mtime={}", now, mtime);
+}
+
+#[cfg(unix)]
+#[test]
+fn v2_skips_symlinked_files_and_dirs() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("real.md"), "real").unwrap();
+
+    let other = TempDir::new().unwrap();
+    fs::write(other.path().join("outside.md"), "outside").unwrap();
+    symlink(other.path(), dir.path().join("symlink-dir")).unwrap();
+    symlink(other.path().join("outside.md"), dir.path().join("symlink-file.md")).unwrap();
+
+    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].title, "real");
 }
