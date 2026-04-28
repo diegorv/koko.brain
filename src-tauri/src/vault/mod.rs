@@ -19,3 +19,9 @@ pub mod parsing;
 /// as `State<'_, VaultIndexState>` and acquire `read()` / `write()` for
 /// the duration of their work.
 pub type VaultIndexState = std::sync::RwLock<index::VaultIndex>;
+
+/// Frontend event name emitted by `update_note_in_index` (Phase 2.6) and
+/// the upcoming Phase 9 watcher orchestrator. Consumers subscribe via
+/// `listen('vault-index-updated', ...)` and receive an
+/// `UpdateResult`-shaped payload.
+pub const VAULT_INDEX_UPDATED_EVENT: &str = "vault-index-updated";

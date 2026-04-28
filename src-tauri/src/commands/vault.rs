@@ -1,12 +1,14 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::NoteEntry;
-use crate::vault::VaultIndexState;
+use crate::vault::index::{UpdateResult, VaultIndex};
+use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
+use tauri::Emitter;
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
@@ -150,6 +152,73 @@ pub fn collect_v2_entries(path: &str) -> Result<Vec<NoteEntry>, String> {
 		),
 	);
 	Ok(notes)
+}
+
+/// Reads a file's `modified` timestamp as seconds since the UNIX epoch.
+/// Returns `None` on any I/O or system-time failure (file missing,
+/// permission denied, system clock before epoch, etc.). The Phase 2.6
+/// caller falls back to `0` so a missing mtime never aborts the index
+/// mutation.
+fn read_file_mtime_secs(path: &str) -> Option<i64> {
+	std::fs::metadata(path)
+		.ok()?
+		.modified()
+		.ok()?
+		.duration_since(UNIX_EPOCH)
+		.ok()
+		.map(|d| d.as_secs() as i64)
+}
+
+/// Pure-logic implementation behind the `update_note_in_index` Tauri
+/// command. Builds a `NoteEntry` from `(path, content, mtime)` via the
+/// Phase 1.5 constructor and applies it through `VaultIndex::update_entry`.
+/// Tests construct an in-memory `VaultIndex`, call this directly, and
+/// inspect the returned `UpdateResult` without needing a Tauri AppHandle.
+pub fn update_note_in_index_inner(
+	idx: &mut VaultIndex,
+	path: String,
+	content: &str,
+	mtime: i64,
+) -> UpdateResult {
+	let entry = NoteEntry::from_content(path, content, mtime);
+	idx.update_entry(entry)
+}
+
+/// Tauri command: updates a single note's metadata in the managed
+/// `VaultIndex` and emits `vault-index-updated` with the resulting
+/// `UpdateResult` payload.
+///
+/// Reads the file's mtime from disk at call time (fallback to 0 on any
+/// I/O error). The mutation runs under a write lock; the lock is dropped
+/// BEFORE the event is emitted so consumers reacting to
+/// `vault-index-updated` can immediately re-read the index without
+/// contending. Emit failures are logged via `debug_log("VAULT-V2", ...)`
+/// and ignored — the mutation has already been committed and rolling it
+/// back would create an inconsistent state.
+#[tauri::command]
+pub fn update_note_in_index(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	path: String,
+	content: String,
+) -> Result<UpdateResult, String> {
+	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		update_note_in_index_inner(&mut idx, path, &content, mtime)
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"update_note_in_index: vault-index-updated emit failed: {}",
+				emit_err,
+			),
+		);
+	}
+	Ok(result)
 }
 
 /// Returns every `NoteEntry` whose outgoing links resolve to `path`,
