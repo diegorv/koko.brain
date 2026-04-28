@@ -3,8 +3,8 @@ import { EditorSelection } from '@codemirror/state';
 import {
 	markHandlers,
 	escapeHandler,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/handlers/mark-handlers';
-import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/mark-handlers';
+import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { createMarkdownState } from '../../../../test-helpers';
 

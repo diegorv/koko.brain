@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { highlightHandler } from '$lib/core/markdown-editor/extensions/live-preview/new/handlers/highlight-handler';
-import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+import { highlightHandler } from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/highlight-handler';
+import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 import { createMarkdownState } from '../../../../test-helpers';
 
 function build(doc: string) {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	markdownInlineHighlight,
 	inlineHighlightExtension,
-} from '$lib/core/markdown-editor/extensions/live-preview/new/markdown-highlight-style';
+} from '$lib/core/markdown-editor/extensions/live-preview/inline/markdown-highlight-style';
 
 describe('new/markdown-highlight-style', () => {
 	it('exports markdownInlineHighlight as a HighlightStyle instance', () => {

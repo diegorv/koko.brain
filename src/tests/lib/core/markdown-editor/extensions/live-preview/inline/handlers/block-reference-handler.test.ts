@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
-import { blockReferenceHandler } from '$lib/core/markdown-editor/extensions/live-preview/new/handlers/block-reference-handler';
-import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/new/inline-formatting-plugin';
+import { blockReferenceHandler } from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/block-reference-handler';
+import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { createMarkdownState } from '../../../../test-helpers';
 
