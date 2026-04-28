@@ -13,6 +13,44 @@ import { appendLog } from '$lib/utils/log.service';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 /**
+ * Single owner of "external content → CodeMirror" sync (Phase 5 of the
+ * perf refactor). Updates a tab's content (path-keyed) and bumps
+ * `editorStore.externalContentSignal` so `MarkdownEditor.svelte`'s
+ * content-sync `$effect` fires a doc replace.
+ *
+ * Replaces the prior pattern where each external writer touched
+ * `editorStore` directly and the editor effect re-ran on every keystroke
+ * (because it depended on `activeTab.content`). Now the effect only re-runs
+ * on the signal bump, eliminating the per-keystroke `view.state.doc.toString()`
+ * round-trip on the hot path.
+ *
+ * @param markSaved - when `true` (default) the write is treated as
+ *   disk-synced (sets both `content` and `savedContent`). When `false`,
+ *   only `content` is updated and dirty state is preserved (used by the
+ *   Properties panel's in-memory edits).
+ */
+export function syncExternalContentToEditor(
+	path: string,
+	content: string,
+	markSaved: boolean = true,
+): void {
+	const tab = editorStore.tabs.find((t) => t.path === path);
+	if (!tab) return;
+	if (markSaved) {
+		editorStore.updateTabContentByPath(path, content);
+	} else {
+		editorStore.updateTabContentOnly(path, content);
+	}
+	// Only signal CodeMirror if this is the active tab — the tab-switch
+	// effect will handle non-active tabs when the user switches to them.
+	// This avoids a wasted CM dispatch when an external write targets a
+	// background tab.
+	if (editorStore.activeTabPath === path) {
+		editorStore.bumpExternalContentSignal();
+	}
+}
+
+/**
  * Opens a file in the editor.
  * If the file is already open in a tab, just switches to it.
  * Otherwise reads the file from disk and creates a new tab.
@@ -324,7 +362,8 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 		// Re-check tab state — it may have changed during parallel reads
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
 		if (!tab || diskContent === tab.savedContent) continue;
-		editorStore.updateTabContentByPath(filePath, diskContent);
+		// Disk-synced: content + savedContent both reflect the new disk state.
+		syncExternalContentToEditor(filePath, diskContent, true);
 		debug('EDITOR', 'Reloaded externally changed file:', filePath);
 	}
 }

@@ -14,6 +14,15 @@ let pendingScrollPosition = $state<number | null>(null);
 let isLivePreview = $state(true);
 /** Reference to the active CodeMirror EditorView instance (set by MarkdownEditor on mount) */
 let editorView = $state<EditorView | null>(null);
+/**
+ * Monotonic counter bumped by `syncExternalContentToEditor` whenever an
+ * external writer (Properties panel, task toggle, link rename, watcher
+ * reload) replaces a tab's content. `MarkdownEditor.svelte`'s content-sync
+ * `$effect` depends on THIS, not on `activeTab.content`, so it does not
+ * re-run on every keystroke (avoiding the per-keystroke `view.state.doc.toString()`
+ * round-trip).
+ */
+let externalContentSignal = $state(0);
 
 // --- Derived state (implemented as getters for vitest compatibility) ---
 
@@ -32,6 +41,12 @@ export const editorStore = {
 	get pendingScrollPosition() { return pendingScrollPosition; },
 	get isLivePreview() { return isLivePreview; },
 	get editorView() { return editorView; },
+	/**
+	 * Counter that bumps on every external content write (Properties, task
+	 * toggle, link rename, watcher reload). `MarkdownEditor.svelte`'s
+	 * content-sync `$effect` consumes this — keystrokes do NOT bump it.
+	 */
+	get externalContentSignal() { return externalContentSignal; },
 
 	/** Opens a new tab and makes it active (unpinned tabs go after pinned ones) */
 	addTab(tab: EditorTab) {
@@ -101,6 +116,15 @@ export const editorStore = {
 		editorView = view;
 	},
 
+	/**
+	 * Increments the `externalContentSignal` counter so `MarkdownEditor.svelte`'s
+	 * content-sync `$effect` re-runs and dispatches a doc replace. Called by
+	 * `syncExternalContentToEditor` — do NOT call from the keystroke pipeline.
+	 */
+	bumpExternalContentSignal() {
+		externalContentSignal++;
+	},
+
 	/** Updates the path and display name of a tab identified by its old path */
 	updateTabPath(oldPath: string, newPath: string, newName: string) {
 		const tab = tabs.find((t) => t.path === oldPath);
@@ -152,5 +176,6 @@ export const editorStore = {
 		pendingScrollPosition = null;
 		isLivePreview = true;
 		editorView = null;
+		externalContentSignal = 0;
 	},
 };

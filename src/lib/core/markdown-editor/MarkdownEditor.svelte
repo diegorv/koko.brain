@@ -348,28 +348,35 @@
 		});
 	});
 
-	// Sync external content changes (e.g. from Properties panel) into CodeMirror.
-	// Re-runs on every keystroke because activeTab.content is reactive — Phase 5
-	// will eliminate the per-keystroke toString() round-trip via syncExternalContentToEditor.
+	// Sync external content changes (Properties panel, task toggle, link
+	// rename, watcher reload) into CodeMirror. Phase 5 of the perf refactor:
+	// driven by `editorStore.externalContentSignal` (a counter bumped only by
+	// `syncExternalContentToEditor`), NOT by `activeTab.content`. Keystrokes
+	// don't bump the signal, so this effect doesn't re-run on every keystroke
+	// and the per-keystroke `view.state.doc.toString()` round-trip is gone.
+	//
+	// `lastSeenSignal` skips the dispatch on first mount (signal === 0) — the
+	// editor view was constructed with the initial content already; we only
+	// dispatch on EXTERNAL bumps that follow.
+	let lastSeenSignal = 0;
 	$effect(() => {
-		const content = editorStore.activeTab?.content;
+		const signal = editorStore.externalContentSignal;
 
 		untrack(() => {
-			if (!view || content === undefined) return;
+			if (signal === lastSeenSignal) return;
+			lastSeenSignal = signal;
+			if (!view) return;
+			const content = editorStore.activeTab?.content;
+			if (content === undefined) return;
 
 			const tBaseline = perfStart();
-			const currentDoc = view.state.doc.toString();
-			if (content !== currentDoc) {
-				const cursorPos = Math.min(view.state.selection.main.head, content.length);
-				view.dispatch({
-					changes: { from: 0, to: view.state.doc.length, insert: content },
-					selection: EditorSelection.cursor(cursorPos),
-					annotations: Transaction.addToHistory.of(false),
-				});
-				perfBaseline('contentSyncEffect:dispatched', tBaseline);
-			} else {
-				perfBaseline('contentSyncEffect:noop', tBaseline);
-			}
+			const cursorPos = Math.min(view.state.selection.main.head, content.length);
+			view.dispatch({
+				changes: { from: 0, to: view.state.doc.length, insert: content },
+				selection: EditorSelection.cursor(cursorPos),
+				annotations: Transaction.addToHistory.of(false),
+			});
+			perfBaseline('contentSyncEffect:dispatched', tBaseline);
 		});
 	});
 
