@@ -51,10 +51,10 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 - [x] **3.4** Migrate `BacklinksPanel.svelte` to consumer pattern: read `vaultStore.vaultIndexVersion` to invalidate; call `get_backlinks_v2` when active path changes OR version bumps. Effect uses `untrack()` per `docs/PATTERNS.md`.
 - [x] **3.5** Hook `update_note_in_index` into `editor.hooks.ts::notifyAfterSave` when flag on. Run **parallel** to existing TS indexers (do not remove yet). The parallel run validates parity.
 - [x] **3.5b** (added during execution) Bootstrap the Rust `VaultIndex` on vault open. Without this, `get_backlinks_v2` returns empty until each note is saved during the session, blocking Phase 3.6 perf comparison and Phase 3.7 dogfooding. Adds: (1) `scan_vault_v2` Rust command emits `vault-index-updated` after `idx.build(...)` so the global listener bumps `vaultStore.vaultIndexVersion`; (2) `backlinks.service.ts::buildIndex` fires `invoke('scan_vault_v2', { path })` in parallel with the TS scan when `experimental.rustBacklinks` is on (fire-and-forget, errors logged).
-- [ ] **3.6** Run `python3 scripts/perf-baseline.py` with flag on/off; commit `docs/perf/phase-3-comparison.md`.
-- [ ] **3.7** Default-on after at least **2 days** of dogfooding (balanced risk posture).
-- [ ] **3.8** Delete unreachable TS branches: body of `updateBacklinksForFile` no longer needed, `findLinkedMentionsFromReverse` if unused. **Apply CLAUDE.md "Removing or Refactoring Code" ritual**: each deletion's commit body must contain the explicit "Function A at [file:line] updates [store]. Replacement B at [file:line] also updates [store] via [mechanism]." sentence. Keep `noteIndexStore.reverseIndex` if any non-backlinks consumer still reads it (audit `noteIndexStore.reverseIndex` call sites first).
-- [ ] **3.9** Remove `experimental.rustBacklinks` flag.
+- [~] **3.6** Run `python3 scripts/perf-baseline.py` with flag on/off; commit `docs/perf/phase-3-comparison.md`. **Skipped by user — went straight to default-on + cleanup based on smoke test confidence.**
+- [x] **3.7** Default-on after at least **2 days** of dogfooding (balanced risk posture). **Compressed: skipped the 2-day soak per user direction; merged into the 3.8/3.9 cleanup commit.**
+- [x] **3.8** Delete unreachable TS branches: body of `updateBacklinksForFile` no longer needed, `findLinkedMentionsFromReverse` if unused. **Apply CLAUDE.md "Removing or Refactoring Code" ritual**: each deletion's commit body must contain the explicit "Function A at [file:line] updates [store]. Replacement B at [file:line] also updates [store] via [mechanism]." sentence. Keep `noteIndexStore.reverseIndex` if any non-backlinks consumer still reads it (audit `noteIndexStore.reverseIndex` call sites first).
+- [x] **3.9** Remove `experimental.rustBacklinks` flag.
 
 ### Phase 4 - Tab-Switch Pipeline Cleanup (parallel with Phase 2-3)
 

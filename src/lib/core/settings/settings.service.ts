@@ -140,10 +140,6 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.queryjs,
 				...parsed.queryjs,
 			},
-			experimental: {
-				...DEFAULT_SETTINGS.experimental,
-				...parsed.experimental,
-			},
 		};
 		settingsStore.setSettings(merged);
 		await saveSettings(vaultPath);

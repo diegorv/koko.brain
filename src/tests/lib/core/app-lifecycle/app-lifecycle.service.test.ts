@@ -59,7 +59,6 @@ vi.mock('$lib/utils/debug', () => ({
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	buildIndex: vi.fn(() => Promise.resolve()),
 	rebuildIndex: vi.fn(() => Promise.resolve()),
-	updateBacklinksForFile: vi.fn(),
 	resetBacklinks: vi.fn(),
 }));
 
@@ -171,7 +170,7 @@ import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { startWatching, stopWatching, onFileChange } from '$lib/core/filesystem/fs.watcher';
-import { buildIndex, rebuildIndex, updateBacklinksForFile, resetBacklinks } from '$lib/features/backlinks/backlinks.service';
+import { buildIndex, rebuildIndex, resetBacklinks } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, resetCollection } from '$lib/features/collection/collection.service';
 import { updateOutgoingLinksForFile, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
 import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
@@ -389,7 +388,7 @@ describe('initializeVault — file change listener', () => {
 		capturedCallback!(['/vault/note.md']);
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md');
+		// Backlinks now auto-refresh via vault-index-updated; only outgoing links runs here.
 		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md');
 	});
 
@@ -407,7 +406,6 @@ describe('initializeVault — file change listener', () => {
 		capturedCallback!(['/vault/note.md']);
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		expect(updateBacklinksForFile).not.toHaveBeenCalled();
 		expect(updateOutgoingLinksForFile).not.toHaveBeenCalled();
 	});
 });

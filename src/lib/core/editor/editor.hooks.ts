@@ -8,7 +8,6 @@ import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { debug, error } from '$lib/utils/debug';
 
@@ -180,26 +179,21 @@ export function notifyAfterSave(filePath: string, content: string): void {
 		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
 	}
 
-	// Phase 3.5: parallel-run the Rust VaultIndex update so save-driven
-	// `vault-index-updated` events bump `vaultStore.vaultIndexVersion` and
-	// `BacklinksPanel.svelte`'s consumer effect re-fetches via
-	// `get_backlinks_v2`. Fire-and-forget — failures must not block the
-	// TS path.
+	// Update the Rust `VaultIndex` so save-driven `vault-index-updated`
+	// events bump `vaultStore.vaultIndexVersion` and `BacklinksPanel.svelte`'s
+	// consumer effect re-fetches via `get_backlinks_v2`. Fire-and-forget —
+	// errors are logged but never propagated.
 	//
-	// IMPORTANT: the call sits OUTSIDE the `!isAlreadyIndexed` guard. The TS
-	// dedup map only tracks whether the *TS* indexers were called for this
-	// exact (path, content); the content-effect in `updateIndexesForFile`
-	// marks indexed but never calls Rust. If we gated this call on the same
-	// flag, a typing-pause-then-save sequence (content-effect at 1 s →
-	// autosave at 2 s) would leave Rust permanently stale because the dedup
-	// fires `true` on the save and skipped the Rust call. The Rust side has
-	// its own internal dedup (UpdateResult.changed) — calling it on every
-	// save is cheap (~1-5 ms IPC) and correct.
-	if (settingsStore.experimental.rustBacklinks) {
-		invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
-			error('HOOKS', 'update_note_in_index after save failed:', err);
-		});
-	}
+	// IMPORTANT: this call sits OUTSIDE the `!isAlreadyIndexed` guard. The
+	// TS dedup map tracks whether the *TS* indexers were called for an exact
+	// (path, content); the content-effect in `updateIndexesForFile` marks
+	// indexed and *also* calls Rust, so a typing-pause-then-save sequence
+	// (content-effect at 1 s → autosave at 2 s) still updates Rust on the
+	// save side. Calling on every save is cheap (~1-5 ms IPC) and Rust has
+	// its own internal change detection via `UpdateResult.changed`.
+	invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
+		error('HOOKS', 'update_note_in_index after save failed:', err);
+	});
 
 	invalidateQueryjsCache();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);

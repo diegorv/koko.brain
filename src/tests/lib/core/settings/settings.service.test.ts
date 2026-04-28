@@ -361,31 +361,6 @@ describe('loadSettings', () => {
 		);
 	});
 
-	it('merges experimental settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ experimental: { rustBacklinks: true } }),
-		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-		await loadSettings('/vault');
-
-		expect(settingsStore.settings.experimental.rustBacklinks).toBe(true);
-	});
-
-	it('uses default experimental flags when not present in saved settings', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ editor: { fontSize: 20 } }),
-		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-		await loadSettings('/vault');
-
-		expect(settingsStore.settings.experimental).toEqual(DEFAULT_SETTINGS.experimental);
-		expect(settingsStore.settings.experimental.rustBacklinks).toBe(false);
-	});
-
 	it('normalizes appearance settings on load', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

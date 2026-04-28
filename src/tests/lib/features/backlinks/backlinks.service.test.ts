@@ -7,13 +7,11 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import {
 	buildIndex,
 	rebuildIndex,
 	updateIndexForFile,
 	removeFileFromIndex,
-	updateBacklinksForFile,
 	computeUnlinkedMentionsForFile,
 	resetBacklinks,
 	fetchBacklinksV2,
@@ -21,21 +19,15 @@ import {
 import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { makeFileNode, makeDirNode, makeSuccessResult, makeErrorResult } from '../../../fixtures/tauri-api.fixture';
 
-// Reset shared module state before every test in this file so flag-on
-// tests in the bootstrap suite cannot leak into the other describes.
-beforeEach(() => {
-	settingsStore.reset();
-});
-
 describe('buildIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
-		settingsStore.reset();
 	});
 
 	it('populates noteIndex and noteContents from vault files', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
 				makeFileNode({ name: 'other.md', path: '/vault/other.md' }),
@@ -62,6 +54,7 @@ describe('buildIndex', () => {
 
 	it('sets loading to false after successful build', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([])
 			.mockResolvedValueOnce([]);
 
@@ -80,6 +73,7 @@ describe('buildIndex', () => {
 
 	it('skips files with read errors', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'good.md', path: '/vault/good.md' }),
 				makeFileNode({ name: 'bad.md', path: '/vault/bad.md' }),
@@ -98,6 +92,7 @@ describe('buildIndex', () => {
 
 	it('collects markdown files from nested directories', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeDirNode('subfolder', [
 					makeFileNode({ name: 'nested.md', path: '/vault/subfolder/nested.md' }),
@@ -118,6 +113,7 @@ describe('buildIndex', () => {
 
 	it('populates reverseIndex so backlinks resolve on first open', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'day-20.md', path: '/vault/day-20.md' }),
 				makeFileNode({ name: 'week-17.md', path: '/vault/week-17.md' }),
@@ -136,6 +132,7 @@ describe('buildIndex', () => {
 
 	it('filters out non-markdown files', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
 				makeFileNode({ name: 'image.png', path: '/vault/image.png' }),
@@ -156,6 +153,7 @@ describe('buildIndex', () => {
 
 	it('collects both .md and .markdown files', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
 				makeFileNode({ name: 'doc.markdown', path: '/vault/doc.markdown' }),
@@ -173,6 +171,7 @@ describe('buildIndex', () => {
 
 	it('handles empty vault', async () => {
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([])
 			.mockResolvedValueOnce([]);
 
@@ -182,20 +181,8 @@ describe('buildIndex', () => {
 		expect(noteIndexStore.noteContents.size).toBe(0);
 	});
 
-	describe('experimental.rustBacklinks bootstrap (Phase 3.5b)', () => {
-		it('flag-off: does NOT call scan_vault_v2', async () => {
-			vi.mocked(invoke)
-				.mockResolvedValueOnce([])
-				.mockResolvedValueOnce([]);
-
-			expect(settingsStore.experimental.rustBacklinks).toBe(false);
-			await buildIndex('/vault');
-
-			expect(invoke).not.toHaveBeenCalledWith('scan_vault_v2', expect.anything());
-		});
-
-		it('flag-on: fires scan_vault_v2 in parallel with the TS scan', async () => {
-			settingsStore.updateExperimental({ rustBacklinks: true });
+	describe('Rust VaultIndex bootstrap', () => {
+		it('always fires scan_vault_v2 in parallel with the TS scan', async () => {
 			vi.mocked(invoke).mockImplementation((command: string) => {
 				if (command === 'scan_vault_v2') return Promise.resolve([]);
 				if (command === 'scan_vault') return Promise.resolve([]);
@@ -209,8 +196,7 @@ describe('buildIndex', () => {
 			expect(invoke).toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'name' });
 		});
 
-		it('flag-on: scan_vault_v2 rejection does not block the TS scan', async () => {
-			settingsStore.updateExperimental({ rustBacklinks: true });
+		it('scan_vault_v2 rejection does not block the TS scan', async () => {
 			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 			vi.mocked(invoke).mockImplementation((command: string) => {
 				if (command === 'scan_vault_v2') return Promise.reject(new Error('Rust scan failed'));
@@ -221,11 +207,9 @@ describe('buildIndex', () => {
 
 			await buildIndex('/vault');
 
-			// The TS-side index still populated normally
 			expect(noteIndexStore.isLoading).toBe(false);
 			expect(invoke).toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'name' });
 
-			// Wait a microtask for the rejected promise's catch to run
 			await new Promise((r) => setTimeout(r, 0));
 			consoleSpy.mockRestore();
 		});
@@ -247,6 +231,7 @@ describe('rebuildIndex', () => {
 	it('rebuilds from the previously set vault path', async () => {
 		// First build sets vaultPath
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
 			])
@@ -258,6 +243,7 @@ describe('rebuildIndex', () => {
 
 		// Now rebuild should use the same vault path
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([]) // scan_vault_v2 (fire-and-forget, fires first)
 			.mockResolvedValueOnce([
 				makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
 			])
@@ -374,54 +360,6 @@ describe('removeFileFromIndex', () => {
 	});
 });
 
-describe('updateBacklinksForFile', () => {
-	beforeEach(() => {
-		resetBacklinks();
-	});
-
-	it('computes linked mentions from notes that link to the file', () => {
-		updateIndexForFile('/vault/note-a.md', 'Hello world');
-		updateIndexForFile('/vault/note-b.md', 'See [[note-a]] for details');
-
-		updateBacklinksForFile('/vault/note-a.md');
-
-		expect(backlinksStore.linkedMentions).toHaveLength(1);
-		expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/note-b.md');
-		expect(backlinksStore.linkedMentions[0].sourceName).toBe('note-b');
-		expect(backlinksStore.linkedMentions[0].snippets).toHaveLength(1);
-	});
-
-	it('does not mark unlinked mentions as dirty (deferred to save/tab-switch)', () => {
-		updateIndexForFile('/vault/note-a.md', 'Hello world');
-		updateIndexForFile('/vault/note-b.md', 'I mention note-a without linking');
-
-		updateBacklinksForFile('/vault/note-a.md');
-
-		// Unlinked should NOT be marked dirty from keystroke path
-		expect(backlinksStore.unlinkedDirty).toBe(false);
-		expect(backlinksStore.unlinkedMentions).toEqual([]);
-	});
-
-	it('returns empty when no notes link to the file', () => {
-		updateIndexForFile('/vault/note-a.md', 'Standalone note');
-		updateIndexForFile('/vault/note-b.md', 'Another standalone');
-
-		updateBacklinksForFile('/vault/note-a.md');
-
-		expect(backlinksStore.linkedMentions).toEqual([]);
-		// Unlinked not marked dirty from keystroke path
-		expect(backlinksStore.unlinkedDirty).toBe(false);
-	});
-
-	it('excludes self-references from backlinks', () => {
-		updateIndexForFile('/vault/note-a.md', 'I link to [[note-a]] myself');
-
-		updateBacklinksForFile('/vault/note-a.md');
-
-		expect(backlinksStore.linkedMentions).toEqual([]);
-	});
-});
-
 describe('computeUnlinkedMentionsForFile', () => {
 	beforeEach(() => {
 		resetBacklinks();
@@ -459,7 +397,9 @@ describe('resetBacklinks', () => {
 	it('clears all backlinks state', () => {
 		// Pre-populate with data
 		updateIndexForFile('/vault/note.md', 'content with [[link]]');
-		updateBacklinksForFile('/vault/note.md');
+		backlinksStore.setLinkedMentions([
+			{ sourcePath: '/vault/x.md', sourceName: 'x', snippets: [] },
+		]);
 
 		resetBacklinks();
 
@@ -468,65 +408,6 @@ describe('resetBacklinks', () => {
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
 		expect(noteIndexStore.isLoading).toBe(false);
-	});
-});
-
-describe('state transitions: buildIndex → updateIndexForFile', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		resetBacklinks();
-	});
-
-	it('incremental update reflects in subsequent backlinks computation', async () => {
-		// Build initial index with two files
-		vi.mocked(invoke)
-			.mockResolvedValueOnce([
-				makeFileNode({ name: 'note-a.md', path: '/vault/note-a.md' }),
-				makeFileNode({ name: 'note-b.md', path: '/vault/note-b.md' }),
-			])
-			.mockResolvedValueOnce([
-				makeSuccessResult('/vault/note-a.md', 'Hello world'),
-				makeSuccessResult('/vault/note-b.md', 'No links yet'),
-			]);
-
-		await buildIndex('/vault');
-
-		// Verify initial state — no backlinks
-		updateBacklinksForFile('/vault/note-a.md');
-		expect(backlinksStore.linkedMentions).toHaveLength(0);
-
-		// Now user edits note-b to add a link to note-a
-		updateIndexForFile('/vault/note-b.md', 'Now links to [[note-a]]');
-
-		// Recompute backlinks — should now find the new link
-		updateBacklinksForFile('/vault/note-a.md');
-		expect(backlinksStore.linkedMentions).toHaveLength(1);
-		expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/note-b.md');
-	});
-
-	it('removing a file updates backlinks for remaining files', async () => {
-		// Build index: note-b links to note-a
-		vi.mocked(invoke)
-			.mockResolvedValueOnce([
-				makeFileNode({ name: 'note-a.md', path: '/vault/note-a.md' }),
-				makeFileNode({ name: 'note-b.md', path: '/vault/note-b.md' }),
-			])
-			.mockResolvedValueOnce([
-				makeSuccessResult('/vault/note-a.md', 'Target'),
-				makeSuccessResult('/vault/note-b.md', 'See [[note-a]]'),
-			]);
-
-		await buildIndex('/vault');
-
-		updateBacklinksForFile('/vault/note-a.md');
-		expect(backlinksStore.linkedMentions).toHaveLength(1);
-
-		// Delete note-b
-		removeFileFromIndex('/vault/note-b.md');
-
-		// Recompute — backlink should be gone
-		updateBacklinksForFile('/vault/note-a.md');
-		expect(backlinksStore.linkedMentions).toHaveLength(0);
 	});
 });
 
