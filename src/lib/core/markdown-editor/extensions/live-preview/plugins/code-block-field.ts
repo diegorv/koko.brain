@@ -34,7 +34,13 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 		decos.push({
 			from: block.openFenceFrom,
 			to: block.openFenceTo,
-			deco: Decoration.replace({ widget: new CodeBlockWidget(code, block.language) }),
+			deco: Decoration.replace({
+				widget: new CodeBlockWidget(code, block.language, {
+					languageFrom: block.languageFrom,
+					languageTo: block.languageTo,
+					openFenceTo: block.openFenceTo,
+				}),
+			}),
 		});
 
 		const startLine = state.doc.lineAt(block.openFenceFrom).number + 1;

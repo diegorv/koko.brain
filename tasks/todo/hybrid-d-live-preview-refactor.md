@@ -105,16 +105,16 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 13 — Table widget UX
 
-- [ ] Task 13.1: `paste-tsv.logic.ts` (pure parser TSV/Excel → markdown table); 14 tests
-- [ ] Task 13.2: `paste-tsv-handler.ts` wired via `EditorView.domEventHandlers`
-- [ ] Task 13.3: `TableWidget` edit mode (contenteditable cells, Tab/Shift+Tab/Enter navigation, blur commits); tests
-- [ ] Task 13.4: `+col` / `+row` floating buttons on hover; tests
-- [ ] Task 13.5: Drag handle for row reorder via HTML5 DnD; tests
+- [x] Task 13.1: `paste-tsv.logic.ts` — `looksLikeTSV` / `parseTSVRows` / `tsvRowsToMarkdownTable` / `clipboardToMarkdownTable` (Excel quoting + CRLF + escape); 19 tests
+- [x] Task 13.2: `paste-tsv-handler.ts` wired via `EditorView.domEventHandlers`
+- [~] Task 13.3: **Deferred to follow-up** — cell-editing requires focus-management + contenteditable state machine + commit/revert flow. The "click into table → raw markdown reveal" path still works as escape-hatch
+- [x] Task 13.4: `+col` / `+row` hover-revealed floating buttons; TableWidget refactored to accept `sourceRange`; 8 tests including button click → transaction
+- [~] Task 13.5: **Deferred to follow-up** — row drag handle needs HTML5 DnD + reorder transaction; same architectural surface as 13.3, ships best together
 
 ### Phase 14 — Code block UX
 
-- [ ] Task 14.1: Language switcher dropdown in code-block widget header (preserves exotic languages); parser exposes `languageFrom`/`languageTo`; tests
-- [ ] Task 14.2: Tab/Shift+Tab keymap when cursor inside `FencedCode`; tests
+- [x] Task 14.1: Language switcher dropdown in code-block widget header — `<select>` with 30+ COMMON_LANGUAGES, exotic tags preserved by prepending. Parser exposes `languageFrom`/`languageTo`; widget receives `languageRange` and dispatches the rewrite transaction. 8 jsdom tests
+- [~] Task 14.2: **Deferred to follow-up** — Tab/Shift+Tab indent inside FencedCode requires keymap composition with the existing `cursor-inside-block → reveal source` flow; would conflict with the current "click into block to edit" UX. Best to ship after the cell-editing architectural work in Phase 13 lands.
 
 ### Phase 15 — QueryJS rendering states
 

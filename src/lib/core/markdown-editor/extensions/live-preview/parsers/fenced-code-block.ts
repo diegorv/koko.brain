@@ -17,6 +17,16 @@ export interface FencedCodeBlockRange {
 	contentTo: number;
 	/** The language identifier (e.g. "js", "python"), empty string if none */
 	language: string;
+	/**
+	 * Start position of the language tag on the opening fence line — used by
+	 * the language-switcher widget to dispatch a transaction that rewrites
+	 * just the tag, leaving the rest of the document untouched. `null` when
+	 * the fence has no `CodeInfo` child (e.g. ` ```\n…\n``` ` with no
+	 * language); callers must insert at `openFenceTo` in that case.
+	 */
+	languageFrom: number | null;
+	/** End position of the language tag on the opening fence line. `null` if absent. */
+	languageTo: number | null;
 	/** Whether the block has a closing fence (per CommonMark spec, unclosed blocks extend to EOF) */
 	closed: boolean;
 }
@@ -35,6 +45,8 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 
 			const inner = node.node;
 			let language = '';
+			let languageFrom: number | null = null;
+			let languageTo: number | null = null;
 			let contentFrom = -1;
 			let contentTo = -1;
 			let codeMarkCount = 0;
@@ -46,6 +58,8 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 					codeMarkCount++;
 				} else if (child.name === 'CodeInfo') {
 					language = state.doc.sliceString(child.from, child.to).trim();
+					languageFrom = child.from;
+					languageTo = child.to;
 				} else if (child.name === 'CodeText') {
 					contentFrom = child.from;
 					contentTo = child.to;
@@ -78,6 +92,8 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 				contentFrom,
 				contentTo: contentFrom > contentTo ? contentFrom : contentTo,
 				language,
+				languageFrom,
+				languageTo,
 				closed,
 			});
 		},
