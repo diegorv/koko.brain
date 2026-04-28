@@ -149,6 +149,14 @@ export class QueryjsBlockWidget extends WidgetType {
 	/** Executes the queryjs script inside the container. */
 	private async execute(container: HTMLElement): Promise<void> {
 		const _t = profileStart();
+
+		// Render loading indicator immediately. Replaced by the script's DOM on success
+		// or by the structured error block on failure.
+		const loading = document.createElement('div');
+		loading.className = 'cm-lp-qjs-loading';
+		loading.textContent = 'Running query…';
+		container.appendChild(loading);
+
 		try {
 			const api = new KBAPI({
 				container,
@@ -169,15 +177,59 @@ export class QueryjsBlockWidget extends WidgetType {
 			await api.awaitAllPending();
 			profileEnd('qjs-execute', _t);
 
+			// Strip the loading indicator now that the script finished. The
+			// script may or may not have written DOM into the container.
+			loading.remove();
+
 			// Cache the live container — `<canvas>` / `<video>` / `<iframe>`
 			// state survives the widget being destroyed and re-mounted because
 			// the DOM stays alive via this reference.
 			queryjsSessionStore.setResult(this.jsContent, container);
 		} catch (err) {
-			const errorEl = document.createElement('div');
-			errorEl.className = 'cm-lp-qjs-error';
-			errorEl.textContent = `QueryJS Error: ${err instanceof Error ? err.message : String(err)}`;
-			container.appendChild(errorEl);
+			loading.remove();
+			this.renderStructuredError(container, err);
 		}
+	}
+
+	/**
+	 * Renders a script error as a title + collapsible stack trace + ▶ Run retry.
+	 * Replaces the legacy `errorEl.textContent = "QueryJS Error: …"` flat string.
+	 * The retry button re-runs the script (without re-marking autoRun, since the
+	 * file is already past its first-open by the time an error happened).
+	 */
+	private renderStructuredError(container: HTMLElement, err: unknown): void {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'cm-lp-qjs-error';
+
+		const title = document.createElement('div');
+		title.className = 'cm-lp-qjs-error-title';
+		title.textContent = `QueryJS error: ${err instanceof Error ? err.message : String(err)}`;
+		wrapper.appendChild(title);
+
+		const stack = err instanceof Error ? err.stack : undefined;
+		if (stack) {
+			const details = document.createElement('details');
+			details.className = 'cm-lp-qjs-error-details';
+			const summary = document.createElement('summary');
+			summary.textContent = 'Stack trace';
+			details.appendChild(summary);
+			const pre = document.createElement('pre');
+			pre.className = 'cm-lp-qjs-error-stack';
+			pre.textContent = stack;
+			details.appendChild(pre);
+			wrapper.appendChild(details);
+		}
+
+		const retry = document.createElement('button');
+		retry.type = 'button';
+		retry.className = 'cm-lp-qjs-run';
+		retry.textContent = '▶ Run again';
+		retry.onclick = () => {
+			container.replaceChildren();
+			this.execute(container);
+		};
+		wrapper.appendChild(retry);
+
+		container.appendChild(wrapper);
 	}
 }

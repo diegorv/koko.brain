@@ -118,9 +118,9 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 15 — QueryJS rendering states
 
-- [ ] Task 15.1: Loading indicator during `execute()`
-- [ ] Task 15.2: Structured error display (title + collapsible stack `<details>` + Run button)
-- [ ] Task 15.3: Pagination via `kb.ui.table(headers, rows, { pageSize })`; KBUI types updated; tests
+- [x] Task 15.1: "Running query…" loading indicator rendered immediately when `execute()` starts; replaced by script DOM on success or structured error on failure
+- [x] Task 15.2: Structured error display — `cm-lp-qjs-error-title` + collapsible `<details>` with stack trace + ▶ Run again retry button. Replaces the legacy flat `errorEl.textContent = "QueryJS Error: …"`
+- [x] Task 15.3: `kb.ui.table(headers, rows, { pageSize })` — KBUITableOptions extended; pagination only renders nav when row count exceeds pageSize; per-page DOM swap (no full re-render); 7 jsdom tests cover hide-when-not-needed/Prev+Next/disabled-states/wrapper-vs-table-return/indicator
 
 ### Phase 16 — Meta-bind validation
 
