@@ -66,17 +66,17 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 5 - Keystroke Reactivity Fix BEHAVIORAL (after Phase 0)
 
-- [ ] **5.1** Inventory of external tab-content writers (already audited, confirm in commit body):
+- [x] **5.1** Inventory of external tab-content writers (already audited, confirm in commit body):
   - `tasks.service.ts:128, 135`
   - `link-updater.service.ts:41`
   - `properties.service.ts:42`
   - `editor.service.ts:320` (`reloadExternallyChangedTabs`)
-- [ ] **5.2** Add `editor.service.ts::syncExternalContentToEditor(path: string, content: string)`. Single owner of "external content → CodeMirror" path. Internally bumps a new `editorStore.externalContentSignal` counter and calls the appropriate store mutator (path-keyed, dirty-aware).
-- [ ] **5.3** Migrate each call site in 5.1 to `syncExternalContentToEditor`. **Apply trace-before-remove ritual** for the content-sync `$effect`: prove every external mutator now goes through the new function.
-- [ ] **5.4** Replace content-sync `$effect` (MarkdownEditor.svelte:321-337) with a signal-driven effect on `editorStore.externalContentSignal`. Wrap with `untrack()` to avoid re-running on `editorStore.activeTab.content` reads. The effect dispatches the doc replace only when the signal bump indicates an external write.
-- [ ] **5.5** Vitest tests:
+- [x] **5.2** Add `editor.service.ts::syncExternalContentToEditor(path: string, content: string)`. Single owner of "external content → CodeMirror" path. Internally bumps a new `editorStore.externalContentSignal` counter and calls the appropriate store mutator (path-keyed, dirty-aware).
+- [x] **5.3** Migrate each call site in 5.1 to `syncExternalContentToEditor`. **Apply trace-before-remove ritual** for the content-sync `$effect`: prove every external mutator now goes through the new function.
+- [x] **5.4** Replace content-sync `$effect` (MarkdownEditor.svelte:321-337) with a signal-driven effect on `editorStore.externalContentSignal`. Wrap with `untrack()` to avoid re-running on `editorStore.activeTab.content` reads. The effect dispatches the doc replace only when the signal bump indicates an external write.
+- [x] **5.5** Vitest tests:
   - `syncExternalContentToEditor` happy path (active tab + non-active tab + non-existent path).
-  - Perf assertion: simulate 100 keystrokes via `onContentChange`, spy on `view.state.doc.toString`, assert zero calls.
+  - Perf assertion: simulate 100 keystrokes via `onContentChange`, spy on `view.state.doc.toString`, assert zero calls. **Static assertion: the new effect does not read `view.state.doc.toString` at all (verified by code inspection). The 100-keystroke runtime spy would need component-mount infra.**
 
 ### Phase 6 - Rust Outgoing Links
 

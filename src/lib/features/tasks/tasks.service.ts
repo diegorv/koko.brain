@@ -4,6 +4,7 @@ import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte'
 import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { findTabIndex, TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { tasksStore } from './tasks.store.svelte';
 import {
@@ -120,19 +121,11 @@ export async function toggleTask(filePath: string, lineNumber: number): Promise<
 	// Update note index atomically (content + wikilinks) to keep stores consistent
 	noteIndexStore.updateNoteEntry(filePath, updatedContent, parseWikilinks(updatedContent));
 
-	// Sync CodeMirror if the toggled file is the active editor tab.
-	// Without this, the editor shows stale content and the next save would revert the toggle.
-	const view = editorStore.editorView;
-	const activeTab = editorStore.activeTab;
-	if (view && activeTab?.path === filePath) {
-		view.dispatch({
-			changes: { from: 0, to: view.state.doc.length, insert: updatedContent },
-		});
-	}
-
-	// Mark the tab as saved (content === savedContent → no dirty flag).
-	// For non-active tabs, this ensures CodeMirror loads the updated content when switched to.
-	editorStore.updateTabContentByPath(filePath, updatedContent);
+	// Sync the open tab (if any) with the new content + bump the external
+	// signal so `MarkdownEditor.svelte` dispatches the doc replace when this
+	// path matches the active tab. For non-active tabs, the content + savedContent
+	// update ensures CodeMirror loads the updated content when switched to.
+	syncExternalContentToEditor(filePath, updatedContent, true);
 	updateTaskIndexForFile(filePath, updatedContent);
 }
 
