@@ -1,6 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import {
 	updateBacklinksForFile,
+	fetchBacklinksV2,
 } from '$lib/features/backlinks/backlinks.service';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 
@@ -11,8 +11,6 @@ import {
 } from '$lib/features/outgoing-links/outgoing-links.service';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import type { BacklinkEntry } from '$lib/features/backlinks/backlinks.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 
 /**
@@ -22,11 +20,17 @@ import { error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
  * Clears both panels when no tab is active.
  * Each updater is wrapped in try/catch so one failure doesn't block the other.
  *
- * Backlinks branch (Phase 3.3 of the perf refactor): when
+ * Backlinks branch (Phase 3 of the perf refactor): when
  * `experimental.rustBacklinks` is on, linked mentions come from
- * `invoke('get_backlinks_v2')` against the Rust `VaultIndex`. Otherwise the
- * TS reverse index (`updateBacklinksForFile`) is used. Outgoing links and
- * unlinked mentions stay on the TS path until Phase 6 / 8.
+ * `fetchBacklinksV2` (Rust `VaultIndex` via `invoke('get_backlinks_v2')`).
+ * Otherwise the TS reverse index (`updateBacklinksForFile`) is used.
+ * Outgoing links and unlinked mentions stay on the TS path until Phase 6 / 8.
+ *
+ * Note: in Phase 3.4, `BacklinksPanel.svelte` ALSO runs an `$effect` that
+ * calls `fetchBacklinksV2` on `vaultStore.vaultIndexVersion` bumps so the
+ * panel stays fresh on save (and watcher events in Phase 9). On tab switch
+ * both this function and that effect fire — they overwrite the same store
+ * with the same result, so the duplication is wasteful but not incorrect.
  *
  * Returns a promise that settles after the active branch finishes; callers
  * may `void` it (the perfEnd timing wraps the awaited work).
@@ -49,17 +53,7 @@ export async function updateActiveTabLinks(path: string | null): Promise<void> {
 	const cache = buildResolutionCache(allFilePaths);
 
 	if (settingsStore.experimental.rustBacklinks) {
-		try {
-			const v2Entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
-			const linked: BacklinkEntry[] = v2Entries.map((e) => ({
-				sourcePath: e.path,
-				sourceName: e.title,
-				snippets: e.snippet ? [{ text: e.snippet, linkStart: 0, linkEnd: 0 }] : [],
-			}));
-			backlinksStore.setLinkedMentions(linked);
-		} catch (err) {
-			error('ACTIVE-TAB', 'get_backlinks_v2 failed:', err);
-		}
+		await fetchBacklinksV2(path);
 	} else {
 		try { updateBacklinksForFile(path, allFilePaths, cache); } catch (err) { error('ACTIVE-TAB', 'updateBacklinksForFile failed:', err); }
 	}

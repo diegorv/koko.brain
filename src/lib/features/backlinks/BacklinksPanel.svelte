@@ -4,9 +4,11 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
+	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { backlinksStore } from './backlinks.store.svelte';
 	import { noteIndexStore } from './note-index.store.svelte';
-	import { computeUnlinkedMentionsForFile } from './backlinks.service';
+	import { computeUnlinkedMentionsForFile, fetchBacklinksV2 } from './backlinks.service';
 	import LinkItem from './LinkItem.svelte';
 
 	let linkedOpen = $state(true);
@@ -20,6 +22,22 @@
 		if (dirty && open && path) {
 			untrack(() => computeUnlinkedMentionsForFile(path));
 		}
+	});
+
+	// Phase 3.4: when the rustBacklinks flag is on, refresh linked mentions on
+	// active path change OR on `vaultIndexVersion` bumps (save / watcher / etc.).
+	// The active-tab tracker also fires fetchBacklinksV2 on tab switch — both
+	// paths overwrite the same store with the same result, so the duplication
+	// is wasteful but not incorrect.
+	$effect(() => {
+		if (!settingsStore.experimental.rustBacklinks) return;
+		const path = editorStore.activeTabPath;
+		// Read so the effect re-runs on bump even if path is unchanged.
+		const _version = vaultStore.vaultIndexVersion;
+		if (!path) return;
+		untrack(() => {
+			fetchBacklinksV2(path).catch(() => { /* fetchBacklinksV2 already logs */ });
+		});
 	});
 </script>
 
