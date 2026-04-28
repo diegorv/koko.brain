@@ -10,6 +10,7 @@ use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::Emitter;
 use utils::logger::init_logger;
+use vault::VaultIndexState;
 
 fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let settings_item = MenuItemBuilder::new("Settings...")
@@ -84,6 +85,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(TerminalState::new())
+        .manage(VaultIndexState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,

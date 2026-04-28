@@ -1,4 +1,4 @@
-use kokobrain_lib::commands::vault::{scan_vault, scan_vault_v2};
+use kokobrain_lib::commands::vault::{collect_v2_entries, scan_vault};
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -230,17 +230,20 @@ fn canonicalizes_symlinked_vault_path() {
     assert_eq!(nodes[0].name, "note.md");
 }
 
-// --- scan_vault_v2 (Phase 1.5) ----------------------------------------------
+// --- collect_v2_entries (Phase 1.5 + 2.3) -----------------------------------
 //
-// scan_vault_v2 returns a flat Vec<NoteEntry> for every markdown file under
-// the vault, populated by NoteEntry::from_content. The original scan_vault
-// is unaffected — these tests live alongside it because they share the
-// TempDir + write fixtures.
+// `collect_v2_entries` is the pure I/O + parsing path used by both the
+// Tauri command `scan_vault_v2` and these tests. It returns a flat
+// Vec<NoteEntry> for every markdown file under the vault (populated via
+// NoteEntry::from_content). The Tauri command wraps this with a
+// VaultIndex.build call against the managed VaultIndexState; that
+// integration is exercised through the index's own tests in
+// vault_index_test.rs (Phases 2.1-2.5).
 
 #[test]
 fn v2_empty_vault_returns_empty_vec() {
     let dir = TempDir::new().unwrap();
-    let result = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let result = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert!(result.is_empty());
 }
 
@@ -254,7 +257,7 @@ fn v2_single_file_populates_entry_fields() {
     )
     .unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 1);
 
     let e = &entries[0];
@@ -295,7 +298,7 @@ fn v2_collects_multiple_files_across_subdirectories() {
     fs::write(sub.join("b.md"), "Beta body").unwrap();
     fs::write(dir.path().join("c.markdown"), "Gamma").unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 3);
 
     let titles: Vec<_> = entries.iter().map(|e| e.title.clone()).collect();
@@ -311,7 +314,7 @@ fn v2_skips_non_markdown_files() {
     fs::write(dir.path().join("readme.txt"), "ignored").unwrap();
     fs::write(dir.path().join("image.png"), "ignored").unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].title, "note");
 }
@@ -327,14 +330,14 @@ fn v2_skips_hidden_directories_and_their_contents() {
     fs::create_dir_all(&git).unwrap();
     fs::write(git.join("inside-git.md"), "vcs").unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].title, "public");
 }
 
 #[test]
 fn v2_invalid_vault_path_returns_error() {
-    let result = scan_vault_v2("/nonexistent/vault/path/does/not/exist".to_string());
+    let result = collect_v2_entries("/nonexistent/vault/path/does/not/exist");
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
@@ -350,7 +353,7 @@ fn v2_path_to_a_file_not_a_directory_returns_error() {
     let file = dir.path().join("not-a-vault.md");
     fs::write(&file, "x").unwrap();
 
-    let result = scan_vault_v2(file.to_string_lossy().to_string());
+    let result = collect_v2_entries(&file.to_string_lossy());
     assert!(result.is_err());
 }
 
@@ -363,7 +366,7 @@ fn v2_word_count_is_body_scoped() {
     )
     .unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].word_count, 3); // "body one two"
 }
@@ -373,7 +376,7 @@ fn v2_modified_at_is_seconds_since_epoch_and_recent() {
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("n.md"), "x").unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -395,7 +398,7 @@ fn v2_skips_symlinked_files_and_dirs() {
     symlink(other.path(), dir.path().join("symlink-dir")).unwrap();
     symlink(other.path().join("outside.md"), dir.path().join("symlink-file.md")).unwrap();
 
-    let entries = scan_vault_v2(dir.path().to_string_lossy().to_string()).unwrap();
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].title, "real");
 }
