@@ -399,11 +399,12 @@ describe('createFile', () => {
 
 	it('creates file with requested name when no conflicts', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		// Default invoke mock returns []; create_note returns undefined.
+		// Other invokes (refreshTree → scan_vault) keep returning [].
 
 		const result = await createFile('/vault', 'new.md');
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/new.md', '');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/new.md', content: '' });
 		expect(result).toBe('/vault/new.md');
 	});
 
@@ -411,17 +412,19 @@ describe('createFile', () => {
 		vi.mocked(readDir).mockResolvedValue([
 			{ name: 'new.md', isDirectory: false, isFile: true, isSymlink: false },
 		] as any);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		const result = await createFile('/vault', 'new.md');
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/new 1.md', '');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/new 1.md', content: '' });
 		expect(result).toBe('/vault/new 1.md');
 	});
 
 	it('returns null on write error', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
-		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('write error'));
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') throw new Error('write error');
+			return [];
+		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await createFile('/vault', 'new.md');
@@ -446,7 +449,7 @@ describe('createFolder', () => {
 
 		const result = await createFolder('/vault', 'new-folder');
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/new-folder');
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/new-folder' });
 		expect(fsStore.expandedDirs.has('/vault/new-folder')).toBe(true);
 		expect(result).toBe('/vault/new-folder');
 	});
@@ -458,14 +461,17 @@ describe('createFolder', () => {
 
 		const result = await createFolder('/vault', 'new-folder');
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/new-folder 1');
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/new-folder 1' });
 		expect(fsStore.expandedDirs.has('/vault/new-folder 1')).toBe(true);
 		expect(result).toBe('/vault/new-folder 1');
 	});
 
 	it('returns null on mkdir error', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
-		vi.mocked(mkdir).mockRejectedValueOnce(new Error('mkdir error'));
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_folder') throw new Error('mkdir error');
+			return [];
+		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await createFolder('/vault', 'new-folder');
