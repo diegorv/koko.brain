@@ -709,3 +709,200 @@ export class MetaBindSelectWidget extends WidgetType {
 	}
 }
 
+/**
+ * Dispatches a frontmatter-property update for a meta-bind input. Used by the
+ * number / date / toggle widgets — same single-transaction shape the legacy
+ * select widget performs inline.
+ */
+export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): void {
+	const doc = view.state.doc.toString();
+	const properties = parseFrontmatterProperties(doc);
+	const body = extractBody(doc);
+	const existing = properties.find((p) => p.key === bindTarget);
+	let updated = existing
+		? updatePropertyValue(properties, bindTarget, newValue)
+		: updatePropertyValue(addProperty(properties, bindTarget), bindTarget, newValue);
+	const newContent = rebuildContent(updated, body);
+	const frontmatterEnd = doc.length - body.length;
+	const newFrontmatter = newContent.slice(0, newContent.length - body.length);
+	view.dispatch({ changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter } });
+}
+
+/** Pure validator: an empty string OR a finite number (`Number.isFinite`). */
+export function isNumericString(text: string): boolean {
+	if (text.trim() === '') return true; // empty = clearing the property
+	const n = Number(text);
+	return Number.isFinite(n);
+}
+
+/**
+ * Widget for `INPUT[number():prop]` — text input with inline numeric
+ * validation. Pre-existing malformed frontmatter (e.g. `count: not a number`)
+ * is flagged with `cm-lp-meta-bind-input-invalid` on first render. Commit on
+ * blur/Enter; revert on Escape.
+ */
+export class MetaBindNumberWidget extends WidgetType {
+	constructor(
+		readonly bindTarget: string,
+		readonly currentValue: string | null,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, {
+			type: 'number',
+			validate: isNumericString,
+			invalidMessage: 'Not a number',
+		});
+	}
+
+	eq(other: MetaBindNumberWidget) {
+		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+/** Pure validator: empty string OR a `YYYY-MM-DD` date that round-trips through Date. */
+export function isDateString(text: string): boolean {
+	if (text.trim() === '') return true;
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(text.trim())) return false;
+	const d = new Date(text.trim());
+	return !Number.isNaN(d.getTime());
+}
+
+/**
+ * Widget for `INPUT[date():prop]` — `<input type="date">` with inline
+ * validation (browser provides the date picker; manual paste is validated
+ * via `isDateString` for the YYYY-MM-DD shape).
+ */
+export class MetaBindDateWidget extends WidgetType {
+	constructor(
+		readonly bindTarget: string,
+		readonly currentValue: string | null,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, {
+			type: 'date',
+			validate: isDateString,
+			invalidMessage: 'Use YYYY-MM-DD',
+		});
+	}
+
+	eq(other: MetaBindDateWidget) {
+		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+/**
+ * Widget for `INPUT[toggle():prop]` / `INPUT[boolean():prop]` — native
+ * checkbox styled inline. Truthy frontmatter values (`true`/`yes`/`1`) start
+ * checked; everything else starts unchecked. Toggling immediately commits
+ * `'true'` or `'false'` to frontmatter.
+ */
+export class MetaBindToggleWidget extends WidgetType {
+	constructor(
+		readonly bindTarget: string,
+		readonly currentValue: string | null,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		const wrap = document.createElement('label');
+		wrap.className = 'cm-lp-meta-bind-toggle';
+		const cb = document.createElement('input');
+		cb.type = 'checkbox';
+		cb.className = 'cm-lp-meta-bind-toggle-input';
+		const truthy = ['true', 'yes', '1', 'on'];
+		cb.checked = this.currentValue !== null && truthy.includes(this.currentValue.toLowerCase());
+		cb.addEventListener('mousedown', (e) => e.stopPropagation());
+		cb.addEventListener('change', () => {
+			dispatchMetaBindUpdate(view, this.bindTarget, cb.checked ? 'true' : 'false');
+		});
+		wrap.appendChild(cb);
+		return wrap;
+	}
+
+	eq(other: MetaBindToggleWidget) {
+		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+/** Internal helper: builds the text input for number/date widgets with shared validation behaviour. */
+function buildMetaBindTextInput(
+	view: EditorView,
+	bindTarget: string,
+	currentValue: string | null,
+	opts: { type: 'number' | 'date'; validate: (text: string) => boolean; invalidMessage: string },
+): HTMLElement {
+	const wrap = document.createElement('span');
+	wrap.className = 'cm-lp-meta-bind-input-wrap';
+
+	const input = document.createElement('input');
+	input.type = opts.type;
+	input.className = 'cm-lp-meta-bind-input';
+	const initial = currentValue ?? '';
+	input.value = initial;
+
+	const error = document.createElement('span');
+	error.className = 'cm-lp-meta-bind-input-error';
+	error.textContent = '';
+
+	const isInvalid = !opts.validate(initial);
+	if (isInvalid) {
+		wrap.classList.add('cm-lp-meta-bind-input-invalid');
+		error.textContent = opts.invalidMessage;
+	}
+
+	const validateNow = () => {
+		const ok = opts.validate(input.value);
+		if (ok) {
+			wrap.classList.remove('cm-lp-meta-bind-input-invalid');
+			error.textContent = '';
+		} else {
+			wrap.classList.add('cm-lp-meta-bind-input-invalid');
+			error.textContent = opts.invalidMessage;
+		}
+		return ok;
+	};
+
+	const commit = () => {
+		if (!validateNow()) return;
+		dispatchMetaBindUpdate(view, bindTarget, input.value);
+	};
+
+	input.addEventListener('mousedown', (e) => e.stopPropagation());
+	input.addEventListener('input', validateNow);
+	input.addEventListener('blur', commit);
+	input.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commit();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			input.value = initial;
+			validateNow();
+			input.blur();
+		}
+	});
+
+	wrap.appendChild(input);
+	wrap.appendChild(error);
+	return wrap;
+}
+

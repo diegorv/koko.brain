@@ -124,10 +124,10 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 16 — Meta-bind validation
 
-- [ ] Task 16.1: `MetaBindNumberWidget` with inline validation, blur-commits, Escape-reverts; tests
-- [ ] Task 16.2: `MetaBindDateWidget` (dayjs parsing); tests
-- [ ] Task 16.3: `MetaBindToggleWidget` (`toggle()`/`boolean()`); tests
-- [ ] Task 16.4: Parser: extend `TYPES_WITHOUT_OPTIONS` to `{ number, date, toggle, boolean }`; tests
+- [x] Task 16.1: `MetaBindNumberWidget` — `<input type="number">` with inline `isNumericString` validation, malformed-frontmatter flag on first render, blur/Enter commits, Escape reverts. Shared `buildMetaBindTextInput` helper.
+- [x] Task 16.2: `MetaBindDateWidget` — `<input type="date">` with `isDateString` validation (YYYY-MM-DD round-trip through Date)
+- [x] Task 16.3: `MetaBindToggleWidget` — native checkbox; truthy values (`true`/`yes`/`1`/`on`) start checked; commit on change
+- [x] Task 16.4: Parser `TYPES_WITHOUT_OPTIONS = { number, date, toggle, boolean }` accepts empty parens. `meta-bind-input-plugin.pickWidget()` dispatches by inputType. 12 new parser/widget tests + 2 validator tests for `isNumericString`/`isDateString`
 
 ### Phase 17 — Callout UX
 
