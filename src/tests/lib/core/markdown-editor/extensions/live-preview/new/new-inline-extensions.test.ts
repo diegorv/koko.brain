@@ -16,8 +16,9 @@ describe('new-inline-extensions', () => {
 		}
 	});
 
-	it('PRODUCTION_LINE_HANDLERS starts empty (populated by Phases 6, 7, 9)', () => {
-		expect(PRODUCTION_LINE_HANDLERS).toEqual([]);
+	it('PRODUCTION_LINE_HANDLERS contains the inline-comment handler (Phase 6)', () => {
+		const names = PRODUCTION_LINE_HANDLERS.map((h) => h.name);
+		expect(names).toContain('inline-comment');
 	});
 
 	it('newInlineExtensions() returns the HighlightStyle wrapper + the inline plugin (2 entries)', () => {

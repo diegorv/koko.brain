@@ -45,8 +45,8 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 6 — Retire inlineCommentPlugin (95 LOC)
 
-- [ ] Task 6.1: `new/handlers/inline-comment-handler.ts` (line handler reusing `findInlineCommentRanges`)
-- [ ] Task 6.2: Register, delete, migrate tests + DOM snapshot
+- [x] Task 6.1: `new/handlers/inline-comment-handler.ts` (line handler reusing `findInlineCommentRanges` from `parsers/comment.ts`)
+- [x] Task 6.2: Registered as first entry in `PRODUCTION_LINE_HANDLERS`. **Plugin deletion deferred to Phase 12.5.** 6 unit tests cover hide/reveal/raw mode/no match/multiple per line/FencedCode skip
 
 ### Phase 7 — Retire blockReferencePlugin (89 LOC)
 
