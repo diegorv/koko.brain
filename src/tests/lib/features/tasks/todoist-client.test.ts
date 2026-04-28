@@ -9,7 +9,7 @@ vi.mock('$lib/features/tasks/tauri-fetch-adapter', () => ({
 }));
 
 import { createTodoistClient } from '$lib/features/tasks/todoist-client';
-import { TodoistApi } from '@doist/todoist-api-typescript';
+import { TodoistApi } from '@doist/todoist-sdk';
 
 describe('createTodoistClient', () => {
 	it('returns a TodoistApi instance', () => {

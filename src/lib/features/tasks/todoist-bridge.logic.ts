@@ -1,4 +1,4 @@
-import type { AddTaskArgs } from '@doist/todoist-api-typescript';
+import type { AddTaskArgs } from '@doist/todoist-sdk';
 import type { TaskMetadata, TaskPriority } from './task-metadata.types';
 
 /**
