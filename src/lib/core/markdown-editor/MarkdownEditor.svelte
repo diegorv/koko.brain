@@ -20,7 +20,7 @@
 	import { detectPeriodicNoteType } from '$lib/plugins/periodic-notes/periodic-notes.logic';
 	import { openOrCreatePeriodicNoteForDate } from '$lib/plugins/periodic-notes/periodic-notes.service';
 	import { debug, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
-	import { getLanguageEffects } from './highlight-styles';
+	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions } from './setup';
 
@@ -29,6 +29,13 @@
 	let lastTabPath: string | undefined;
 	/** Whether a tab switch is in progress (suppresses onContentChange from the doc replace) */
 	let isTabSwitching = false;
+	/**
+	 * AbortController for the rAF chain queued at the end of the tab-switch
+	 * effect. When the user switches tabs faster than the rAF can fire, the
+	 * prior chain is aborted so a stale `forceDecorationRebuild` does not
+	 * land on the new tab's view (Phase 4.4).
+	 */
+	let tabSwitchRafAbort: AbortController | null = null;
 	const lineNumbersCompartment = new Compartment();
 	const editorThemeCompartment = new Compartment();
 	const languageCompartment = new Compartment();
@@ -191,6 +198,10 @@
 	onDestroy(() => {
 		editorStore.setEditorView(null);
 		container?.removeEventListener('mousedown', handleEditorClick);
+		// Abort any pending tab-switch rAF chain so it does not fire on a
+		// destroyed view.
+		tabSwitchRafAbort?.abort();
+		tabSwitchRafAbort = null;
 		if (view) {
 			const path = lastTabPath;
 			if (path) {
@@ -255,6 +266,13 @@
 			const saved = getTabViewState(path);
 			const cursorPos = saved ? Math.min(saved.cursorPos, tab.content.length) : getPositionAfterFrontmatter(tab.content);
 
+			// Phase 4.3: bundle the language reconfigure into the same dispatch
+			// as the doc replace when possible. Markdown / kanban resolve
+			// synchronously via `getLanguageEffectsSync`; code files (.ts,
+			// .py, …) need an async parser load — for those we keep the
+			// prior 2-dispatch path via `applyLanguageForTab`.
+			const langEffects = getLanguageEffectsSync(tab.name, languageCompartment, highlightStyleCompartment);
+
 			// Suppress onContentChange during the doc replace — this is a tab switch,
 			// not a user edit, so we don't want to trigger a debounced auto-save.
 			isTabSwitching = true;
@@ -264,18 +282,30 @@
 				changes: { from: 0, to: view.state.doc.length, insert: tab.content },
 				selection: EditorSelection.cursor(cursorPos),
 				annotations: Transaction.addToHistory.of(false),
+				effects: langEffects ?? [],
 			});
 			perfEnd('TAB_SWITCH', 'docReplace', t0);
 			isTabSwitching = false;
 
-			// Switch language parser based on file extension
-			applyLanguageForTab(tab.name);
+			// Async language load for code files only — markdown/kanban already
+			// reconfigured via the inline `effects` above.
+			if (langEffects === null) {
+				applyLanguageForTab(tab.name);
+			}
 
 			// Restore focus so the caret renders
 			view.focus();
 
+			// Phase 4.4: cancel the prior pending rAF chain so a rapid tab
+			// switch (A → B before A's rAF fires) does not land A's
+			// `forceDecorationRebuild` on B's view.
+			tabSwitchRafAbort?.abort();
+			tabSwitchRafAbort = new AbortController();
+			const rafSignal = tabSwitchRafAbort.signal;
+
 			// Restore scroll position, then force decoration rebuild once viewport is stable
 			requestAnimationFrame(() => {
+				if (rafSignal.aborted) return;
 				debug('TAB_SWITCH', 'restoring scroll, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
 				if (saved) {
 					view?.scrollDOM.scrollTo(saved.scrollLeft, saved.scrollTop);
@@ -283,6 +313,7 @@
 					view?.scrollDOM.scrollTo(0, 0);
 				}
 				requestAnimationFrame(() => {
+					if (rafSignal.aborted) return;
 					debug('TAB_SWITCH', 'dispatching forceDecorationRebuild, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
 					const t1 = perfStart();
 					view?.dispatch({ effects: forceDecorationRebuild.of(null) });
