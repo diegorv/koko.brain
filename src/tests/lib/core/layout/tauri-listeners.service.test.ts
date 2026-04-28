@@ -51,6 +51,18 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
 }));
 
+// vault.store.svelte uses localStorage on module load — provide a minimal stub
+const localStorageMock = (() => {
+	let store: Record<string, string> = {};
+	return {
+		getItem: vi.fn((key: string) => store[key] ?? null),
+		setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+		removeItem: vi.fn((key: string) => { delete store[key]; }),
+		clear: vi.fn(() => { store = {}; }),
+	};
+})();
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
+
 // --- Imports (after mocks) ---
 
 import { listen } from '@tauri-apps/api/event';
@@ -58,7 +70,8 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener } from '$lib/core/layout/tauri-listeners.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 
 // --- Tests ---
 
@@ -229,6 +242,63 @@ describe('registerCloseHandler', () => {
 
 		const unlistenFn = vi.fn();
 		resolveClose!(unlistenFn);
+
+		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe('registerVaultIndexUpdatedListener', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedEventHandler = undefined;
+		vaultStore._reset();
+	});
+
+	it('listens for the vault-index-updated event', async () => {
+		registerVaultIndexUpdatedListener();
+
+		await vi.waitFor(() => expect(listen).toHaveBeenCalledTimes(1));
+		expect(listen).toHaveBeenCalledWith('vault-index-updated', expect.any(Function));
+	});
+
+	it('bumps vaultIndexVersion from the payload when the event fires', async () => {
+		registerVaultIndexUpdatedListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		expect(vaultStore.vaultIndexVersion).toBe(0);
+		capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 3 } });
+		expect(vaultStore.vaultIndexVersion).toBe(3);
+	});
+
+	it('overwrites prior version on subsequent events', async () => {
+		registerVaultIndexUpdatedListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+		capturedEventHandler!({ payload: { changed: false, affected: [], version: 2 } });
+		capturedEventHandler!({ payload: { changed: true, affected: ['/x'], version: 5 } });
+		expect(vaultStore.vaultIndexVersion).toBe(5);
+	});
+
+	it('returns a cleanup function that unsubscribes', async () => {
+		const cleanup = registerVaultIndexUpdatedListener();
+		await vi.waitFor(() => expect(mockUnlistenEvent).not.toHaveBeenCalled());
+
+		cleanup();
+		expect(mockUnlistenEvent).toHaveBeenCalledTimes(1);
+	});
+
+	it('cleanup cancels subscription if called before listen resolves', () => {
+		let resolveListen: ((fn: () => void) => void) | undefined;
+		vi.mocked(listen).mockImplementationOnce(() =>
+			new Promise((resolve) => { resolveListen = resolve; }),
+		);
+
+		const cleanup = registerVaultIndexUpdatedListener();
+		cleanup();
+
+		const unlistenFn = vi.fn();
+		resolveListen!(unlistenFn);
 
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
 	});

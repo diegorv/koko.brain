@@ -114,4 +114,35 @@ describe('vaultStore', () => {
 			expect(vaultStore.recentVaults).toEqual([]);
 		});
 	});
+
+	describe('vaultIndexVersion', () => {
+		it('starts at 0', () => {
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+		});
+
+		it('bumpVaultIndexVersion sets the value', () => {
+			vaultStore.bumpVaultIndexVersion(7);
+			expect(vaultStore.vaultIndexVersion).toBe(7);
+		});
+
+		it('bumpVaultIndexVersion overwrites with the latest value (no min/max)', () => {
+			vaultStore.bumpVaultIndexVersion(10);
+			vaultStore.bumpVaultIndexVersion(20);
+			expect(vaultStore.vaultIndexVersion).toBe(20);
+		});
+
+		it('_reset returns the version to 0', () => {
+			vaultStore.bumpVaultIndexVersion(42);
+			vaultStore._reset();
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+		});
+
+		it('does not affect path or recent vaults', () => {
+			vaultStore.open('/vault');
+			vaultStore.bumpVaultIndexVersion(5);
+			expect(vaultStore.path).toBe('/vault');
+			expect(vaultStore.recentVaults).toHaveLength(1);
+			expect(vaultStore.vaultIndexVersion).toBe(5);
+		});
+	});
 });
