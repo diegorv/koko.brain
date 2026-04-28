@@ -57,7 +57,7 @@ Adjacent jobs in the same workflow run `pnpm audit --audit-level=moderate`, `rus
 
 - **Pin every version exactly + manual audit**: prohibitive for a small team; every minor bump is a judgement call.
 - **Snyk / Socket.dev / Dependabot alerts only**: reactive — detects after exposure. We want proactive blocking.
-- **7-day quarantine instead of 14**: shorter windows miss slower-detected compromises. 14 days aligns with post-`axios-attack` industry guidance and remains practical for us.
+- **14-day quarantine instead of 7**: longer windows catch more slow-detection compromises but in practice forced too many CVE backports through the allowlist and held us behind security patches in `vite`, `@sveltejs/kit`, `dompurify`, etc. 7 days still covers the bulk of fast-detection windows for hostile packages while letting first-week security patches land.
 - **`minimumReleaseAge` without CI verification**: a rogue PR could remove the config silently. The CI check catches that.
 - **No local pre-commit, CI-only**: attacks slip past CI when a developer runs `pnpm install` locally and executes malicious install scripts before CI ever sees the lockfile diff. Local hook catches that.
 - **No exclude list**: Tauri TS + Rust alignment would break on every Tauri release. Rejected.
