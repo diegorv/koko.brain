@@ -13,14 +13,21 @@
 //! UTF-8 multi-byte sequences never collide with them.
 
 use crate::vault::entry::WikiLink;
+use serde_json::{Number, Value as JsonValue};
+use std::collections::BTreeMap;
 
 // --- Strip helpers (shared between extractors) -------------------------------
 
 /// Returns the byte range `[start, end)` covered by the leading frontmatter
-/// block, including the opening and closing `---` delimiters and the line
-/// terminator after the opening `---`. `None` when the content has no
-/// frontmatter (matches the TS regex `/^---\r?\n([\s\S]*?)\r?\n---/`,
-/// which is anchored at start-of-input — no `m` flag).
+/// block, including the opening and closing `---` delimiters. `None` when
+/// the content has no frontmatter. Mirrors the TS regex
+/// `/^---\r?\n([\s\S]*?)\r?\n---/`, which:
+///
+/// - is anchored at start-of-input (no `m` flag), so the `---` opener must
+///   be on the very first line;
+/// - is non-greedy, so the first `\r?\n---` after the opener wins;
+/// - does NOT require any specific char after the closing `---` (no
+///   trailing-newline assertion).
 fn frontmatter_range(content: &str) -> Option<(usize, usize)> {
 	let after_open = if let Some(r) = content.strip_prefix("---\n") {
 		content.len() - r.len()
@@ -30,24 +37,11 @@ fn frontmatter_range(content: &str) -> Option<(usize, usize)> {
 		return None;
 	};
 	let body = &content[after_open..];
-	// Look for `\n---` first, then for `\r\n---`. The TS regex `\r?\n---`
-	// non-greedy captures the SHORTEST run that satisfies the trailing
-	// terminator, so we want the earliest `\n---` (with optional preceding
-	// `\r`) at line start.
-	let mut search_from = 0usize;
-	while search_from < body.len() {
-		let Some(rel) = body[search_from..].find("\n---") else { break };
-		let nl_pos = search_from + rel; // index of the `\n` in body
-		// Closing `---` must end at the run boundary: end of file, `\n`, or `\r\n`.
-		let end_of_close = nl_pos + 4; // past `\n---`
-		let next = body.as_bytes().get(end_of_close);
-		let close_ok = matches!(next, None | Some(b'\n') | Some(b'\r'));
-		if close_ok {
-			return Some((0, after_open + end_of_close));
-		}
-		search_from = nl_pos + 1;
-	}
-	None
+	// Search for the first `\n---` (which absorbs an optional preceding `\r`
+	// since `\r\n---` ends with the same `\n---` substring).
+	let rel = body.find("\n---")?;
+	let end_of_close = rel + 4; // past `\n---`
+	Some((0, after_open + end_of_close))
 }
 
 /// Returns the frontmatter inner text (between the two `---` markers), or
@@ -432,6 +426,249 @@ pub fn extract_tags_strict(content: &str) -> Vec<String> {
 		}
 	}
 	result
+}
+
+// --- Frontmatter parsing ----------------------------------------------------
+//
+// `parse_frontmatter` is intentionally a SUBSET of YAML, not a full parser.
+// The TS side uses the `yaml` library (full spec) for the Properties panel;
+// matching that surface in Rust without a crate dep is impractical, and the
+// migration plan (ADR 0025) explicitly scopes this Rust parser to the common
+// note-frontmatter shapes:
+//
+// - Top-level scalars: `key: value`, `key: "quoted"`, `key:`, `key: null`.
+// - Inline arrays: `key: [a, b, c]`.
+// - Block arrays:    `key:\n  - item1\n  - item2`.
+// - Nested maps: kept as JSON null entries to "preserve sibling parsing"
+//   (the parent key still appears in the map; nested values are not
+//   recursively parsed). This signals presence to downstream consumers
+//   without forcing them to handle arbitrary depth here.
+//
+// Anything more complex (block scalars `|` / `>`, anchors `&`, references
+// `*`, complex flow mappings, comments after values) is intentionally out
+// of scope. Phase 8 (Properties migration) is the natural place to revisit
+// this — either by adding a YAML crate or by widening the hand-rolled
+// parser, with explicit user buy-in. Until then: malformed input or
+// out-of-scope shapes degrade to JSON null for the offending entry, never
+// panic, and never poison adjacent keys.
+
+/// Parses the leading YAML frontmatter into a key->JsonValue map. Returns
+/// an empty map when the content has no frontmatter or the frontmatter is
+/// empty. Never panics. Supported shapes: top-level scalars, inline arrays,
+/// block arrays, and nested maps (recorded as JSON null — see the module
+/// comment for rationale).
+pub fn parse_frontmatter(content: &str) -> BTreeMap<String, JsonValue> {
+	let Some(yaml) = frontmatter_inner(content) else {
+		return BTreeMap::new();
+	};
+
+	let lines: Vec<&str> = yaml
+		.split('\n')
+		.map(|l| l.strip_suffix('\r').unwrap_or(l))
+		.collect();
+
+	parse_yaml_lines(&lines)
+}
+
+fn parse_yaml_lines(lines: &[&str]) -> BTreeMap<String, JsonValue> {
+	let mut result: BTreeMap<String, JsonValue> = BTreeMap::new();
+	let mut i = 0usize;
+
+	while i < lines.len() {
+		let line = lines[i];
+
+		// Skip blank lines.
+		if line.trim().is_empty() {
+			i += 1;
+			continue;
+		}
+
+		// Indented lines at top level mean we are scanning into a previous
+		// key's continuation that was already consumed; skip without harm.
+		if leading_spaces(line) > 0 || line.starts_with('\t') {
+			i += 1;
+			continue;
+		}
+
+		let Some((key, raw_value)) = split_key_value(line) else {
+			// Malformed line at top level (no colon, or empty key). Skip.
+			i += 1;
+			continue;
+		};
+
+		let key = key.to_string();
+		let value_trimmed = raw_value.trim();
+
+		if value_trimmed.is_empty() {
+			// Empty value: peek the next non-blank line to decide whether
+			// this is a block array, a nested map, or a plain null.
+			let mut j = i + 1;
+			while j < lines.len() && lines[j].trim().is_empty() {
+				j += 1;
+			}
+			if j >= lines.len() {
+				result.insert(key, JsonValue::Null);
+				i = j;
+				continue;
+			}
+			let next = lines[j];
+			let indent = leading_spaces(next);
+			if indent == 0 {
+				// Next is another top-level key: this key is null.
+				result.insert(key, JsonValue::Null);
+				i += 1;
+				continue;
+			}
+			let next_trimmed = &next[indent..];
+			if next_trimmed.starts_with("- ") || next_trimmed == "-" {
+				let (items, consumed) = parse_block_array(&lines[j..], indent);
+				result.insert(key, JsonValue::Array(items));
+				i = j + consumed;
+			} else {
+				// Nested map (or any other indented continuation): record
+				// the parent key as null and skip the indented block.
+				let consumed = skip_indented_block(&lines[j..], indent);
+				result.insert(key, JsonValue::Null);
+				i = j + consumed;
+			}
+			continue;
+		}
+
+		// Value is on the same line.
+		if value_trimmed.starts_with('[') {
+			result.insert(key, parse_inline_array(value_trimmed));
+		} else {
+			result.insert(key, parse_scalar(value_trimmed));
+		}
+		i += 1;
+	}
+
+	result
+}
+
+/// Splits a `key: value` line on the FIRST colon. Returns `None` when no
+/// colon is present or the trimmed key is empty.
+fn split_key_value(line: &str) -> Option<(&str, &str)> {
+	let colon = line.find(':')?;
+	let key = line[..colon].trim();
+	if key.is_empty() {
+		return None;
+	}
+	Some((key, &line[colon + 1..]))
+}
+
+/// Parses an inline-array value like `[a, "b", 'c', 1, true]`. The leading
+/// `[` is required; the closing `]` is optional (matches the lenient
+/// behavior the TS frontmatter-tags path uses). Stray commas (`[a, , b]`)
+/// drop the empty slot; quoted empties (`[a, "", b]`) survive as empty
+/// strings because the filter runs on the raw token before parsing.
+fn parse_inline_array(value: &str) -> JsonValue {
+	let inner = value.strip_prefix('[').unwrap_or(value);
+	let inner = match inner.rfind(']') {
+		Some(idx) => &inner[..idx],
+		None => inner,
+	};
+	let items: Vec<JsonValue> = inner
+		.split(',')
+		.map(str::trim)
+		.filter(|raw| !raw.is_empty())
+		.map(parse_scalar)
+		.collect();
+	JsonValue::Array(items)
+}
+
+/// Parses a single scalar value. Recognises booleans, null, integers, and
+/// floats; everything else (including ISO dates) becomes a `JsonValue::String`.
+fn parse_scalar(s: &str) -> JsonValue {
+	let s = s.trim();
+	if s.is_empty() {
+		return JsonValue::String(String::new());
+	}
+	// Quoted string: strip ONE outer pair of matching quotes.
+	if (s.starts_with('"') && s.ends_with('"') && s.len() >= 2)
+		|| (s.starts_with('\'') && s.ends_with('\'') && s.len() >= 2)
+	{
+		let inner = &s[1..s.len() - 1];
+		return JsonValue::String(inner.to_string());
+	}
+	// YAML null literals.
+	match s {
+		"null" | "Null" | "NULL" | "~" => return JsonValue::Null,
+		"true" | "True" | "TRUE" => return JsonValue::Bool(true),
+		"false" | "False" | "FALSE" => return JsonValue::Bool(false),
+		_ => {}
+	}
+	// Numbers (try integer first to avoid 42 -> 42.0 reformatting).
+	if let Ok(n) = s.parse::<i64>() {
+		return JsonValue::Number(n.into());
+	}
+	if let Ok(f) = s.parse::<f64>() {
+		if let Some(num) = Number::from_f64(f) {
+			return JsonValue::Number(num);
+		}
+	}
+	// Fallback: bare string.
+	JsonValue::String(s.to_string())
+}
+
+/// Counts the number of leading SPACE bytes on a line. Tab indentation is
+/// counted separately by the caller (we treat tabs as "indented but not in
+/// a YAML block we recognise" and skip).
+fn leading_spaces(s: &str) -> usize {
+	s.bytes().take_while(|b| *b == b' ').count()
+}
+
+/// Parses a block array starting at the first item line. `min_indent` is
+/// the indentation of the first item (subsequent items must use the same
+/// or deeper indent to remain part of the block; less indent ends the
+/// block). Returns `(items, consumed_lines)` where `consumed_lines` is the
+/// number of input lines walked.
+fn parse_block_array(lines: &[&str], min_indent: usize) -> (Vec<JsonValue>, usize) {
+	let mut items: Vec<JsonValue> = Vec::new();
+	let mut i = 0usize;
+	while i < lines.len() {
+		let line = lines[i];
+		if line.trim().is_empty() {
+			i += 1;
+			continue;
+		}
+		let indent = leading_spaces(line);
+		if indent < min_indent {
+			break;
+		}
+		let trimmed = &line[indent..];
+		if let Some(rest) = trimmed.strip_prefix("- ") {
+			items.push(parse_scalar(rest.trim()));
+			i += 1;
+		} else if trimmed == "-" {
+			items.push(JsonValue::Null);
+			i += 1;
+		} else {
+			// Same indent but not a list marker: the block ended before
+			// this line.
+			break;
+		}
+	}
+	(items, i)
+}
+
+/// Skips an indented continuation block (used when a key has a nested map
+/// we deliberately drop). Returns the number of consumed lines.
+fn skip_indented_block(lines: &[&str], min_indent: usize) -> usize {
+	let mut i = 0usize;
+	while i < lines.len() {
+		let line = lines[i];
+		if line.trim().is_empty() {
+			i += 1;
+			continue;
+		}
+		let indent = leading_spaces(line);
+		if indent < min_indent {
+			break;
+		}
+		i += 1;
+	}
+	i
 }
 
 /// Extracts outgoing wikilinks from raw markdown content.

@@ -7,7 +7,10 @@
 //! and compares.
 
 use kokobrain_lib::vault::entry::WikiLink;
-use kokobrain_lib::vault::parsing::{extract_outgoing_links, extract_tags_strict};
+use kokobrain_lib::vault::parsing::{
+	extract_outgoing_links, extract_tags_strict, parse_frontmatter,
+};
+use serde_json::{json, Value};
 
 fn link(target: &str, alias: Option<&str>, heading: Option<&str>, position: usize) -> WikiLink {
 	WikiLink {
@@ -445,4 +448,304 @@ fn realistic_document_extraction() {
 	// Expected order: frontmatter first (work, alpha, beta), then inline
 	// merged dedup-ed (work already present, area/sub/leaf, note).
 	assert_eq!(tags, vec!["work", "alpha", "beta", "area/sub/leaf", "note"]);
+}
+
+// --- parse_frontmatter (Phase 1.4) ------------------------------------------
+//
+// The Rust parser is intentionally a SUBSET of YAML (see the module
+// comment in `parsing.rs`). These tests pin both:
+//   1. the supported subset (scalars, inline arrays, block arrays, nested
+//      maps as null), and
+//   2. the deliberate divergences from the TS `yaml` library (no comment
+//      stripping, quoted keys not unquoted, no block scalar `|`/`>`,
+//      no anchors/references). Phase 8 (Properties migration) is the
+//      natural place to revisit if the gaps bite real notes.
+
+fn fm_int(n: i64) -> Value {
+	json!(n)
+}
+
+#[test]
+fn parse_no_frontmatter_returns_empty_map() {
+	assert!(parse_frontmatter("just body, no fm\n").is_empty());
+	assert!(parse_frontmatter("").is_empty());
+}
+
+#[test]
+fn parse_empty_frontmatter_returns_empty_map() {
+	assert!(parse_frontmatter("---\n---\n").is_empty());
+	// Single blank line between delimiters is also empty.
+	assert!(parse_frontmatter("---\n\n---\n").is_empty());
+}
+
+#[test]
+fn parse_bare_string_scalar() {
+	let m = parse_frontmatter("---\nkey: hello\n---\n");
+	assert_eq!(m.get("key"), Some(&Value::String("hello".to_string())));
+}
+
+#[test]
+fn parse_double_and_single_quoted_strings() {
+	let m = parse_frontmatter("---\na: \"double\"\nb: 'single'\n---\n");
+	assert_eq!(m.get("a"), Some(&Value::String("double".to_string())));
+	assert_eq!(m.get("b"), Some(&Value::String("single".to_string())));
+}
+
+#[test]
+fn parse_quoted_empty_string() {
+	let m = parse_frontmatter("---\nkey: \"\"\n---\n");
+	assert_eq!(m.get("key"), Some(&Value::String(String::new())));
+}
+
+#[test]
+fn parse_integer_and_negative_integer() {
+	let m = parse_frontmatter("---\npos: 42\nneg: -5\n---\n");
+	assert_eq!(m.get("pos"), Some(&fm_int(42)));
+	assert_eq!(m.get("neg"), Some(&fm_int(-5)));
+}
+
+#[test]
+fn parse_float() {
+	let m = parse_frontmatter("---\npi: 3.14\n---\n");
+	assert_eq!(m.get("pi"), Some(&json!(3.14)));
+}
+
+#[test]
+fn parse_boolean_variants() {
+	let m = parse_frontmatter("---\na: true\nb: True\nc: TRUE\nd: false\ne: False\nf: FALSE\n---\n");
+	assert_eq!(m.get("a"), Some(&Value::Bool(true)));
+	assert_eq!(m.get("b"), Some(&Value::Bool(true)));
+	assert_eq!(m.get("c"), Some(&Value::Bool(true)));
+	assert_eq!(m.get("d"), Some(&Value::Bool(false)));
+	assert_eq!(m.get("e"), Some(&Value::Bool(false)));
+	assert_eq!(m.get("f"), Some(&Value::Bool(false)));
+}
+
+#[test]
+fn parse_null_variants() {
+	let m = parse_frontmatter("---\na: null\nb: Null\nc: NULL\nd: ~\ne:\n---\n");
+	assert_eq!(m.get("a"), Some(&Value::Null));
+	assert_eq!(m.get("b"), Some(&Value::Null));
+	assert_eq!(m.get("c"), Some(&Value::Null));
+	assert_eq!(m.get("d"), Some(&Value::Null));
+	assert_eq!(m.get("e"), Some(&Value::Null));
+}
+
+#[test]
+fn parse_quoted_string_that_looks_like_number_stays_string() {
+	let m = parse_frontmatter("---\nkey: \"42\"\n---\n");
+	assert_eq!(m.get("key"), Some(&Value::String("42".to_string())));
+}
+
+#[test]
+fn parse_iso_date_remains_a_string_at_parser_layer() {
+	// The TS parseFrontmatterProperties detects ISO dates and assigns the
+	// `date` property type, but the YAML parsing step itself keeps the
+	// raw string. Our Rust parser stops at the YAML layer; date detection
+	// happens at the consumer.
+	let m = parse_frontmatter("---\nstart: 2026-04-28\n---\n");
+	assert_eq!(m.get("start"), Some(&Value::String("2026-04-28".to_string())));
+}
+
+#[test]
+fn parse_inline_array_of_strings() {
+	let m = parse_frontmatter("---\ntags: [foo, bar, baz]\n---\n");
+	assert_eq!(m.get("tags"), Some(&json!(["foo", "bar", "baz"])));
+}
+
+#[test]
+fn parse_inline_array_mixed_types() {
+	let m = parse_frontmatter("---\nmixed: [1, \"two\", true, null, 3.5]\n---\n");
+	assert_eq!(m.get("mixed"), Some(&json!([1, "two", true, null, 3.5])));
+}
+
+#[test]
+fn parse_inline_array_drops_stray_commas() {
+	let m = parse_frontmatter("---\ntags: [a, , b]\n---\n");
+	assert_eq!(m.get("tags"), Some(&json!(["a", "b"])));
+}
+
+#[test]
+fn parse_inline_array_preserves_quoted_empty_string() {
+	// A bare empty slot is a stray comma (dropped); a quoted empty `""`
+	// is intentional and survives.
+	let m = parse_frontmatter("---\nslots: [a, \"\", b]\n---\n");
+	assert_eq!(m.get("slots"), Some(&json!(["a", "", "b"])));
+}
+
+#[test]
+fn parse_inline_array_unclosed_bracket_lenient() {
+	let m = parse_frontmatter("---\ntags: [a, b\n---\n");
+	assert_eq!(m.get("tags"), Some(&json!(["a", "b"])));
+}
+
+#[test]
+fn parse_empty_inline_array() {
+	let m = parse_frontmatter("---\nempty: []\n---\n");
+	assert_eq!(m.get("empty"), Some(&json!([])));
+}
+
+#[test]
+fn parse_block_array_of_strings() {
+	let content = "---\ntags:\n  - foo\n  - bar\n  - baz\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("tags"), Some(&json!(["foo", "bar", "baz"])));
+}
+
+#[test]
+fn parse_block_array_with_quoted_items() {
+	let content = "---\ntags:\n  - \"foo\"\n  - 'bar'\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("tags"), Some(&json!(["foo", "bar"])));
+}
+
+#[test]
+fn parse_block_array_lone_dash_is_null_item() {
+	let content = "---\nitems:\n  - first\n  -\n  - third\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("items"), Some(&json!(["first", null, "third"])));
+}
+
+#[test]
+fn parse_block_array_with_4_space_indent() {
+	let content = "---\ntags:\n    - foo\n    - bar\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("tags"), Some(&json!(["foo", "bar"])));
+}
+
+#[test]
+fn parse_block_array_terminates_when_indent_decreases() {
+	// Once a less-indented line appears, the block ends and the next key
+	// is a new top-level key.
+	let content = "---\ntags:\n  - foo\nnext: hello\n  - skipped\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("tags"), Some(&json!(["foo"])));
+	assert_eq!(m.get("next"), Some(&Value::String("hello".to_string())));
+}
+
+#[test]
+fn parse_nested_map_records_parent_as_null_and_preserves_sibling() {
+	// The plan calls for nested maps to land as JSON null entries in the
+	// top-level map so consumers can detect key presence without forcing
+	// arbitrary depth here. Sibling keys after the nested block must
+	// continue to parse normally.
+	let content = "---\nparent:\n  child1: value1\n  child2: value2\nsibling: hello\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("parent"), Some(&Value::Null));
+	assert_eq!(m.get("sibling"), Some(&Value::String("hello".to_string())));
+}
+
+#[test]
+fn parse_deeply_nested_map_preserves_top_level_siblings() {
+	let content = "---\nroot:\n  level1:\n    level2: deep\n    other: thing\nafter: yes\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("root"), Some(&Value::Null));
+	assert_eq!(m.get("after"), Some(&Value::String("yes".to_string())));
+}
+
+#[test]
+fn parse_multiple_top_level_keys() {
+	let content = "---\ntitle: Example\nauthor: me\ncount: 7\ndraft: true\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("title"), Some(&Value::String("Example".to_string())));
+	assert_eq!(m.get("author"), Some(&Value::String("me".to_string())));
+	assert_eq!(m.get("count"), Some(&fm_int(7)));
+	assert_eq!(m.get("draft"), Some(&Value::Bool(true)));
+}
+
+#[test]
+fn parse_blank_lines_between_keys_are_skipped() {
+	let content = "---\na: 1\n\n\nb: 2\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("a"), Some(&fm_int(1)));
+	assert_eq!(m.get("b"), Some(&fm_int(2)));
+}
+
+#[test]
+fn parse_malformed_line_without_colon_is_skipped() {
+	let content = "---\nvalid: yes\nthis is not valid yaml\nanother: ok\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("valid"), Some(&Value::String("yes".to_string())));
+	assert_eq!(m.get("another"), Some(&Value::String("ok".to_string())));
+	assert_eq!(m.len(), 2);
+}
+
+#[test]
+fn parse_line_with_empty_key_is_skipped() {
+	let content = "---\n: orphan value\nreal: ok\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("real"), Some(&Value::String("ok".to_string())));
+	assert_eq!(m.len(), 1);
+}
+
+#[test]
+fn parse_value_is_trimmed_of_outer_whitespace() {
+	let content = "---\nkey:    value with internal spaces   \n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(
+		m.get("key"),
+		Some(&Value::String("value with internal spaces".to_string())),
+	);
+}
+
+#[test]
+fn parse_duplicate_keys_last_value_wins() {
+	// BTreeMap semantics: the last `insert` for a given key wins. This
+	// matches the TS `yaml` library's `uniqueKeys: false` option used in
+	// `parseFrontmatterProperties`.
+	let content = "---\nkey: first\nkey: second\nkey: third\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("key"), Some(&Value::String("third".to_string())));
+	assert_eq!(m.len(), 1);
+}
+
+#[test]
+fn parse_handles_crlf_line_endings() {
+	let content = "---\r\ntitle: Example\r\ncount: 3\r\n---\r\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("title"), Some(&Value::String("Example".to_string())));
+	assert_eq!(m.get("count"), Some(&fm_int(3)));
+}
+
+#[test]
+fn parse_frontmatter_without_trailing_newline_is_recognised() {
+	// `---\nkey: v\n---trailing` — the JS regex `/^---\r?\n([\s\S]*?)\r?\n---/`
+	// does not require any specific char after the closing `---`. Our
+	// frontmatter_range mirrors that behavior; trailing junk on the close
+	// line stays in the body.
+	let content = "---\nkey: v\n---trailing";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("key"), Some(&Value::String("v".to_string())));
+}
+
+#[test]
+fn parse_comments_after_value_are_kept_as_part_of_string() {
+	// Documented divergence: the TS `yaml` library strips `#`-comments;
+	// the Rust minimal parser does not. The whole right-hand side becomes
+	// the string. Phase 8 may revisit if real notes hit this.
+	let content = "---\nkey: value # not a comment in this parser\n---\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(
+		m.get("key"),
+		Some(&Value::String(
+			"value # not a comment in this parser".to_string()
+		)),
+	);
+}
+
+#[test]
+fn parse_realistic_note_frontmatter() {
+	let content = "---\ntitle: \"Q2 Review\"\ndate: 2026-04-28\nauthor: me\ntags: [work, draft, q2]\nchecklist:\n  - kickoff\n  - midway\n  - retro\nfeatured: true\nrating: 4.5\nrelated:\n  parent: somewhere\n  child: deep\n---\n# Body\n";
+	let m = parse_frontmatter(content);
+	assert_eq!(m.get("title"), Some(&Value::String("Q2 Review".to_string())));
+	assert_eq!(m.get("date"), Some(&Value::String("2026-04-28".to_string())));
+	assert_eq!(m.get("author"), Some(&Value::String("me".to_string())));
+	assert_eq!(m.get("tags"), Some(&json!(["work", "draft", "q2"])));
+	assert_eq!(
+		m.get("checklist"),
+		Some(&json!(["kickoff", "midway", "retro"])),
+	);
+	assert_eq!(m.get("featured"), Some(&Value::Bool(true)));
+	assert_eq!(m.get("rating"), Some(&json!(4.5)));
+	assert_eq!(m.get("related"), Some(&Value::Null)); // nested -> null
 }
