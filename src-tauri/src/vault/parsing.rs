@@ -758,3 +758,282 @@ pub fn extract_outgoing_links(content: &str) -> Vec<WikiLink> {
 
 	links
 }
+
+// --- Phase 6 helpers: position-preserving stripping + word-boundary mention search ---
+
+/// Returns true when `c` is whitespace OR punctuation — the union the TS
+/// regex `/[\s\p{P}]/u` matches at note-name word boundaries. Whitespace
+/// uses Rust's Unicode-aware `char::is_whitespace`. Punctuation covers
+/// every ASCII punctuation char plus the common Unicode general-punctuation
+/// ranges (dashes, primes, en/em quotes, CJK punct) most likely to appear
+/// at word boundaries in real prose.
+///
+/// Mirrors the runtime semantics of TS `findPlainTextMentionPositions`'s
+/// `isWordBoundary` test. Edge-case Unicode marks outside these ranges
+/// will be treated as non-boundary (a known minor divergence from TS's
+/// full `\p{P}` class — sufficient for the latin-1 / common-Unicode
+/// content that note-taking apps hit in practice).
+pub fn is_word_boundary_char(c: char) -> bool {
+	if c.is_whitespace() {
+		return true;
+	}
+	if c.is_ascii_punctuation() {
+		return true;
+	}
+	matches!(c,
+		// Latin-1 punctuation
+		'\u{00A1}' | '\u{00A7}' | '\u{00AB}' | '\u{00B6}' | '\u{00B7}' | '\u{00BB}' | '\u{00BF}' |
+		// General Punctuation block (subset that's actual punctuation)
+		'\u{2010}'..='\u{2027}' |
+		'\u{2030}'..='\u{205E}' |
+		// CJK Symbols and Punctuation
+		'\u{3000}'..='\u{303F}' |
+		// Halfwidth/Fullwidth (covers fullwidth ASCII punctuation)
+		'\u{FF01}'..='\u{FF0F}' |
+		'\u{FF1A}'..='\u{FF20}' |
+		'\u{FF3B}'..='\u{FF40}' |
+		'\u{FF5B}'..='\u{FF65}'
+	)
+}
+
+/// Replaces leading frontmatter and every fenced code block with ASCII
+/// spaces of the same byte length. Byte positions of all OTHER content
+/// are preserved, so callers can index into the result OR the original
+/// interchangeably for matched positions.
+///
+/// Mirrors `backlinks.logic.ts::stripNonBodyContent`. The TS regex is
+/// non-greedy and only matches FULL frontmatter / FULL fences — unclosed
+/// fences and missing closing `---` produce no replacement, exactly like
+/// the JS regex. Frontmatter regex consumes the optional trailing `\r?\n?`
+/// after the closing `---`; we mirror that.
+///
+/// The result's bytes are guaranteed valid UTF-8: every modified byte is
+/// `b' '` (ASCII), and frontmatter / fence boundaries are always at
+/// codepoint-aligned positions because the markers (`---`, `` ``` ``) are
+/// pure ASCII.
+pub fn strip_non_body_content(content: &str) -> String {
+	let bytes = content.as_bytes();
+	let mut out: Vec<u8> = bytes.to_vec();
+
+	// Frontmatter: 0..end-with-trailing-newline.
+	if let Some((_, end)) = frontmatter_range(content) {
+		// `frontmatter_range` returns the byte after the closing `---`.
+		// TS regex also consumes an optional `\r?\n?` after that.
+		let mut effective_end = end;
+		if effective_end < bytes.len() && bytes[effective_end] == b'\r' {
+			effective_end += 1;
+		}
+		if effective_end < bytes.len() && bytes[effective_end] == b'\n' {
+			effective_end += 1;
+		}
+		for i in 0..effective_end.min(out.len()) {
+			out[i] = b' ';
+		}
+	}
+
+	// Fenced code blocks: pair up ``` ... ``` non-greedily.
+	let mut search_from = 0;
+	while search_from + 3 <= bytes.len() {
+		// Find the next opening ```
+		let open_idx = match find_triple_backtick(bytes, search_from) {
+			Some(i) => i,
+			None => break,
+		};
+		// Find the closing ``` after the opener
+		let after_open = open_idx + 3;
+		let close_idx = match find_triple_backtick(bytes, after_open) {
+			Some(i) => i,
+			None => break, // Unclosed fence — TS regex doesn't match, leave as-is
+		};
+		let close_end = close_idx + 3;
+		for i in open_idx..close_end.min(out.len()) {
+			out[i] = b' ';
+		}
+		search_from = close_end;
+	}
+
+	// SAFETY: every modified byte is ASCII space; unmodified bytes were
+	// from a valid UTF-8 input. Result is therefore valid UTF-8.
+	unsafe { String::from_utf8_unchecked(out) }
+}
+
+/// Finds the byte offset of the next `\`\`\`` (three consecutive backticks)
+/// at or after `start`. Returns the offset of the FIRST backtick of the
+/// triple, or `None` when no such sequence exists in `bytes[start..]`.
+fn find_triple_backtick(bytes: &[u8], start: usize) -> Option<usize> {
+	if bytes.len() < 3 {
+		return None;
+	}
+	let mut i = start;
+	while i + 2 < bytes.len() {
+		if bytes[i] == b'`' && bytes[i + 1] == b'`' && bytes[i + 2] == b'`' {
+			return Some(i);
+		}
+		i += 1;
+	}
+	None
+}
+
+/// Returns byte offsets where `search_term` appears as a plain-text
+/// mention in `content`. A match must satisfy:
+///
+/// 1. **Word boundary** — the chars immediately before and after the match
+///    are whitespace OR punctuation (TS `[\s\p{P}]/u`). Out-of-range is
+///    treated as a space (start/end of input).
+/// 2. **Outside wikilinks** — the match must NOT be inside a `[[...]]`
+///    pair on the same line. The same-line check mirrors the TS code:
+///    `lineContent.lastIndexOf('[[', posInLine)` plus the closing `]]`
+///    range check.
+///
+/// `stripped_lower` should be `strip_non_body_content(content).to_lowercase()`
+/// — frontmatter and fenced code are spaced out so their mentions are not
+/// counted, while preserving byte positions so the wikilink-exclusion
+/// check against the ORIGINAL `content` lines up.
+///
+/// Mirrors `backlinks.logic.ts::findPlainTextMentionPositions`. The TS
+/// version returns UTF-16 code-unit offsets; this version returns UTF-8
+/// byte offsets — different for content with multi-byte chars, but
+/// positions are not currently routed across IPC, so the divergence is
+/// internal.
+pub fn find_plain_text_mention_positions(
+	content: &str,
+	stripped_lower: &str,
+	search_term: &str,
+) -> Vec<usize> {
+	if search_term.is_empty() || stripped_lower.is_empty() {
+		return Vec::new();
+	}
+	let term_lower = search_term.to_lowercase();
+	if term_lower.is_empty() {
+		return Vec::new();
+	}
+	let term_byte_len = term_lower.len();
+	let mut positions: Vec<usize> = Vec::new();
+	let mut search_from = 0usize;
+	let stripped_bytes = stripped_lower.as_bytes();
+	let stripped_len = stripped_bytes.len();
+
+	while search_from < stripped_len {
+		let idx = match stripped_lower[search_from..].find(&term_lower) {
+			Some(rel) => search_from + rel,
+			None => break,
+		};
+
+		// Word-boundary check on the ORIGINAL content (chars, not bytes,
+		// to avoid splitting multi-byte codepoints).
+		let before_char = char_before_byte(content, idx).unwrap_or(' ');
+		let after_byte_pos = idx + term_byte_len;
+		let after_char = char_at_byte(content, after_byte_pos).unwrap_or(' ');
+		let is_word_boundary = is_word_boundary_char(before_char) && is_word_boundary_char(after_char);
+
+		if is_word_boundary && !is_inside_wikilink(content, idx) {
+			positions.push(idx);
+		}
+
+		search_from = idx + term_byte_len;
+	}
+
+	positions
+}
+
+/// Returns the char that ends at byte offset `byte_pos` in `s`, or `None`
+/// when `byte_pos` is 0. `byte_pos` MUST be a codepoint boundary.
+fn char_before_byte(s: &str, byte_pos: usize) -> Option<char> {
+	if byte_pos == 0 || byte_pos > s.len() {
+		return None;
+	}
+	s[..byte_pos].chars().last()
+}
+
+/// Returns the char that starts at byte offset `byte_pos` in `s`, or
+/// `None` when `byte_pos >= s.len()`. `byte_pos` MUST be a codepoint
+/// boundary.
+fn char_at_byte(s: &str, byte_pos: usize) -> Option<char> {
+	if byte_pos >= s.len() {
+		return None;
+	}
+	s[byte_pos..].chars().next()
+}
+
+/// Returns true when `match_byte_pos` falls between `[[` and `]]` on the
+/// same line of `content`. Mirrors the TS algorithm:
+///
+/// ```text
+/// lineStart = content.lastIndexOf('\n', idx-1) + 1
+/// lineContent = content[lineStart..]
+/// posInLine = idx - lineStart
+/// bracketBefore = lineContent.lastIndexOf('[[', posInLine)
+/// bracketAfter = lineContent.indexOf(']]', posInLine)
+/// isInside = bracketBefore >= 0 && bracketAfter >= 0
+///            && lineContent.indexOf(']]', bracketBefore) >= posInLine
+/// ```
+fn is_inside_wikilink(content: &str, match_byte_pos: usize) -> bool {
+	let bytes = content.as_bytes();
+	if match_byte_pos > bytes.len() {
+		return false;
+	}
+	// Find line start (first byte after the previous '\n', or 0).
+	let line_start = bytes[..match_byte_pos]
+		.iter()
+		.rposition(|&b| b == b'\n')
+		.map(|i| i + 1)
+		.unwrap_or(0);
+	let line_end = bytes[match_byte_pos..]
+		.iter()
+		.position(|&b| b == b'\n')
+		.map(|rel| match_byte_pos + rel)
+		.unwrap_or(bytes.len());
+	let line = &content[line_start..line_end];
+	let pos_in_line = match_byte_pos - line_start;
+
+	// `lineContent.lastIndexOf('[[', posInLine)` — find the latest `[[`
+	// at or before pos_in_line.
+	let bracket_before = find_last_double_bracket_open(line, pos_in_line);
+	if bracket_before.is_none() {
+		return false;
+	}
+	let bracket_before = bracket_before.unwrap();
+	// `lineContent.indexOf(']]', posInLine)` — find any `]]` at/after
+	// pos_in_line.
+	let bracket_after = find_double_bracket_close(line, pos_in_line);
+	if bracket_after.is_none() {
+		return false;
+	}
+	// `lineContent.indexOf(']]', bracket_before) >= pos_in_line` — verify
+	// the `]]` after the opener is at or after pos_in_line (i.e. the
+	// match position lies between the opener and its first closer).
+	let close_after_open = find_double_bracket_close(line, bracket_before)
+		.map(|p| p >= pos_in_line)
+		.unwrap_or(false);
+	close_after_open
+}
+
+/// `String.lastIndexOf('[[', from)` — search [0, from] for the latest
+/// `[[` whose start is `<= from`.
+fn find_last_double_bracket_open(line: &str, from: usize) -> Option<usize> {
+	let bytes = line.as_bytes();
+	let upper = from.min(bytes.len().saturating_sub(1));
+	let mut i = upper;
+	loop {
+		if i + 1 < bytes.len() && bytes[i] == b'[' && bytes[i + 1] == b'[' {
+			return Some(i);
+		}
+		if i == 0 {
+			return None;
+		}
+		i -= 1;
+	}
+}
+
+/// `String.indexOf(']]', from)` — search [from, end] for the next `]]`.
+fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
+	let bytes = line.as_bytes();
+	let mut i = from;
+	while i + 1 < bytes.len() {
+		if bytes[i] == b']' && bytes[i + 1] == b']' {
+			return Some(i);
+		}
+		i += 1;
+	}
+	None
+}

@@ -749,3 +749,197 @@ fn parse_realistic_note_frontmatter() {
 	assert_eq!(m.get("rating"), Some(&json!(4.5)));
 	assert_eq!(m.get("related"), Some(&Value::Null)); // nested -> null
 }
+
+// --- Phase 6.2 helpers: strip_non_body_content + find_plain_text_mention_positions ---
+
+use kokobrain_lib::vault::parsing::{
+	find_plain_text_mention_positions, is_word_boundary_char, strip_non_body_content,
+};
+
+#[test]
+fn strip_non_body_replaces_frontmatter_with_spaces_preserving_length() {
+	let input = "---\ntitle: x\n---\nbody";
+	let stripped = strip_non_body_content(input);
+	assert_eq!(stripped.len(), input.len());
+	// Frontmatter range is all spaces; body is preserved verbatim.
+	assert!(stripped.starts_with("                "));
+	assert!(stripped.ends_with("body"));
+}
+
+#[test]
+fn strip_non_body_replaces_fenced_code_blocks_with_spaces() {
+	let input = "before\n```\ncode\n```\nafter";
+	let stripped = strip_non_body_content(input);
+	assert_eq!(stripped.len(), input.len());
+	assert!(stripped.starts_with("before\n"));
+	assert!(stripped.ends_with("\nafter"));
+	assert!(stripped.contains("            ")); // many spaces in the fence range
+}
+
+#[test]
+fn strip_non_body_handles_multiple_fences() {
+	let input = "a\n```\nA\n```\nb\n```\nB\n```\nc";
+	let stripped = strip_non_body_content(input);
+	assert_eq!(stripped.len(), input.len());
+	// b between fences is preserved
+	let mid = stripped.find('b').unwrap();
+	assert_eq!(input.as_bytes()[mid], b'b');
+}
+
+#[test]
+fn strip_non_body_unclosed_fence_is_left_intact() {
+	let input = "before\n```\nunclosed code";
+	let stripped = strip_non_body_content(input);
+	// JS regex non-greedy with no closer => no match => no replacement.
+	assert_eq!(stripped, input);
+}
+
+#[test]
+fn strip_non_body_no_frontmatter_no_fences_is_identity() {
+	let input = "Plain prose with [[wikilink]] and *italic* text.";
+	let stripped = strip_non_body_content(input);
+	assert_eq!(stripped, input);
+}
+
+#[test]
+fn strip_non_body_preserves_byte_positions_of_body() {
+	let input = "---\nfm: 1\n---\nLine A with X\n```\nIGNORED\n```\nLine B with X";
+	let stripped = strip_non_body_content(input);
+	// Both 'X's should be at the same byte offsets in the stripped output.
+	let original_xs: Vec<usize> = input
+		.bytes()
+		.enumerate()
+		.filter(|(_, b)| *b == b'X')
+		.map(|(i, _)| i)
+		.collect();
+	let stripped_xs: Vec<usize> = stripped
+		.bytes()
+		.enumerate()
+		.filter(|(_, b)| *b == b'X')
+		.map(|(i, _)| i)
+		.collect();
+	assert_eq!(original_xs.len(), 2);
+	assert_eq!(original_xs, stripped_xs);
+}
+
+#[test]
+fn is_word_boundary_char_covers_ascii_whitespace_and_punctuation() {
+	for c in [' ', '\t', '\n', '.', ',', '!', '?', '(', ')', '"', '\''] {
+		assert!(is_word_boundary_char(c), "expected boundary: {:?}", c);
+	}
+	for c in ['a', 'Z', '0', 'é', '_'] {
+		// `_` is ASCII punctuation in TS \p{P}
+		if c == '_' {
+			assert!(is_word_boundary_char(c));
+		} else {
+			assert!(!is_word_boundary_char(c), "expected non-boundary: {:?}", c);
+		}
+	}
+}
+
+#[test]
+fn is_word_boundary_char_covers_common_unicode_punct() {
+	for c in [
+		'\u{00AB}', // «
+		'\u{00BB}', // »
+		'\u{201C}', // left double quote
+		'\u{201D}', // right double quote
+		'\u{2018}', // left single quote
+		'\u{2019}', // right single quote
+		'\u{2014}', // em dash
+		'\u{2013}', // en dash
+		'\u{2026}', // ellipsis
+		'\u{00B7}', // middle dot
+	] {
+		assert!(is_word_boundary_char(c), "expected boundary: U+{:04X}", c as u32);
+	}
+}
+
+#[test]
+fn find_plain_text_mention_returns_empty_when_no_match() {
+	let content = "no relevant words here";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	assert!(find_plain_text_mention_positions(content, &stripped_lower, "Note A").is_empty());
+}
+
+#[test]
+fn find_plain_text_mention_returns_word_boundary_position() {
+	let content = "See Note A in the docs.";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions, vec![4]);
+}
+
+#[test]
+fn find_plain_text_mention_excludes_in_word_match() {
+	let content = "Annotation X has noteAfoo inside.";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "noteA");
+	// 'noteA' is followed by 'foo' (alphanumeric, not a boundary) — rejected.
+	assert!(positions.is_empty());
+}
+
+#[test]
+fn find_plain_text_mention_excludes_match_inside_wikilink() {
+	let content = "Click [[Note A]] here";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert!(positions.is_empty());
+}
+
+#[test]
+fn find_plain_text_mention_finds_outside_wikilink_on_same_line() {
+	let content = "[[Note B]] mentions Note A explicitly";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions.len(), 1);
+}
+
+#[test]
+fn find_plain_text_mention_handles_multiple_matches_same_line() {
+	let content = "Note A and Note A again, plus Note A at the end";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions.len(), 3);
+}
+
+#[test]
+fn find_plain_text_mention_skips_matches_in_fenced_code_blocks() {
+	let content = "Note A here\n```\nNote A in code\n```\nNote A again";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	// Two matches: the first and the last; the one in the fence is gone after strip.
+	assert_eq!(positions.len(), 2);
+}
+
+#[test]
+fn find_plain_text_mention_skips_matches_in_frontmatter() {
+	let content = "---\nrelated: Note A\n---\nNote A in body";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions.len(), 1);
+}
+
+#[test]
+fn find_plain_text_mention_at_start_of_content() {
+	let content = "Note A starts the file";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions, vec![0]);
+}
+
+#[test]
+fn find_plain_text_mention_at_end_of_content() {
+	let content = "Ends with Note A";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions, vec!["Ends with ".len()]);
+}
+
+#[test]
+fn find_plain_text_mention_case_insensitive() {
+	let content = "Click NOTE A or note a in upper or lower";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions.len(), 2);
+}

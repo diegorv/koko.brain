@@ -605,3 +605,195 @@ fn update_re_running_on_same_path_does_not_create_phantom_by_path_entries() {
 	}
 	assert_eq!(idx.by_path().get("note").cloned(), original);
 }
+
+// --- Phase 6.1+6.2: lookup_outgoing_links + lookup_outgoing_unlinked_mentions ---
+
+use kokobrain_lib::vault::entry::{OutgoingLink, OutgoingUnlinkedMention};
+
+#[test]
+fn lookup_outgoing_links_returns_resolved_paths() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target", "missing-note"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let result = idx.lookup_outgoing_links("/v/source.md");
+	assert_eq!(result.len(), 2);
+	assert_eq!(result[0].target, "target");
+	assert_eq!(result[0].resolved_path, Some("/v/target.md".to_string()));
+	assert_eq!(result[1].target, "missing-note");
+	assert_eq!(result[1].resolved_path, None);
+}
+
+#[test]
+fn lookup_outgoing_links_returns_empty_for_unknown_path() {
+	let idx = VaultIndex::default();
+	assert!(idx.lookup_outgoing_links("/v/none.md").is_empty());
+}
+
+#[test]
+fn lookup_outgoing_links_preserves_alias_heading_position() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		NoteEntry {
+			path: "/v/source.md".to_string(),
+			title: "source".to_string(),
+			outgoing_links: vec![WikiLink {
+				target: "target".to_string(),
+				alias: Some("alias".to_string()),
+				heading: Some("section".to_string()),
+				position: 42,
+			}],
+			..Default::default()
+		},
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let result = idx.lookup_outgoing_links("/v/source.md");
+	assert_eq!(result.len(), 1);
+	let link = &result[0];
+	assert_eq!(link.alias, Some("alias".to_string()));
+	assert_eq!(link.heading, Some("section".to_string()));
+	assert_eq!(link.position, 42);
+	assert_eq!(link.resolved_path, Some("/v/target.md".to_string()));
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_returns_empty_for_empty_content() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/note-a.md", &[]),
+		entry_with_links("/v/note-b.md", &[]),
+	]);
+	assert!(idx
+		.lookup_outgoing_unlinked_mentions("/v/note-a.md", "")
+		.is_empty());
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_finds_plain_text_mention() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/note-a.md", &[]),
+		entry_with_links("/v/note-b.md", &[]),
+	]);
+	let mentions = idx
+		.lookup_outgoing_unlinked_mentions("/v/note-a.md", "I mentioned note-b in plain text");
+	assert_eq!(mentions.len(), 1);
+	assert_eq!(mentions[0].note_name, "note-b");
+	assert_eq!(mentions[0].note_path, "/v/note-b.md");
+	assert_eq!(mentions[0].count, 1);
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_skips_already_linked_targets() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		// note-a links to note-b via a wikilink — plain-text mentions don't count
+		entry_with_links("/v/note-a.md", &["note-b"]),
+		entry_with_links("/v/note-b.md", &[]),
+	]);
+	let mentions = idx.lookup_outgoing_unlinked_mentions(
+		"/v/note-a.md",
+		"See [[note-b]] and also note-b in plain text",
+	);
+	// note-b is excluded from mentions because it's already linked
+	assert!(mentions.is_empty());
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_excludes_self() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/me.md", &[]),
+		entry_with_links("/v/other.md", &[]),
+	]);
+	let mentions = idx.lookup_outgoing_unlinked_mentions("/v/me.md", "I mention me here in body");
+	// 'me' is the current note's own name — excluded
+	let names: Vec<_> = mentions.iter().map(|m| m.note_name.as_str()).collect();
+	assert!(!names.contains(&"me"));
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_counts_multiple_occurrences() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/note-a.md", &[]),
+		entry_with_links("/v/note-b.md", &[]),
+	]);
+	let mentions = idx
+		.lookup_outgoing_unlinked_mentions("/v/note-a.md", "note-b first, note-b second, note-b third");
+	assert_eq!(mentions.len(), 1);
+	assert_eq!(mentions[0].count, 3);
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_sorts_by_name_case_insensitive() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/zebra.md", &[]),
+		entry_with_links("/v/alpha.md", &[]),
+		entry_with_links("/v/Mango.md", &[]),
+		entry_with_links("/v/source.md", &[]),
+	]);
+	let mentions =
+		idx.lookup_outgoing_unlinked_mentions("/v/source.md", "zebra and alpha and Mango here");
+	let names: Vec<&str> = mentions.iter().map(|m| m.note_name.as_str()).collect();
+	assert_eq!(names, vec!["alpha", "Mango", "zebra"]);
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_skips_mentions_in_frontmatter_and_code() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &[]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let content = "---\nrelated: target\n---\n```\ntarget in code\n```\nend body";
+	let mentions = idx.lookup_outgoing_unlinked_mentions("/v/source.md", content);
+	// `target` only appears in frontmatter and inside the code block, both
+	// of which are stripped — no plain-body mention.
+	assert!(mentions.is_empty());
+}
+
+#[test]
+fn lookup_outgoing_unlinked_mentions_returns_only_OutgoingUnlinkedMention_fields() {
+	// Spec test: ensure we return the exact wire shape (note_name, note_path, count).
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &[]),
+		entry_with_links("/v/found.md", &[]),
+	]);
+	let mentions = idx.lookup_outgoing_unlinked_mentions("/v/source.md", "I see found here");
+	assert_eq!(mentions.len(), 1);
+	let m: &OutgoingUnlinkedMention = &mentions[0];
+	assert_eq!(m.note_name, "found");
+	assert_eq!(m.note_path, "/v/found.md");
+	assert_eq!(m.count, 1);
+}
+
+#[test]
+fn outgoing_link_serializes_to_camel_case() {
+	// Quick wire-shape smoke (matches `OutgoingLinkV2` in
+	// `src/lib/types/vault-v2.types.ts` after Phase 6 lands the TS mirror).
+	let link = OutgoingLink {
+		target: "t".to_string(),
+		alias: None,
+		heading: None,
+		resolved_path: Some("/v/t.md".to_string()),
+		position: 0,
+	};
+	let json = serde_json::to_string(&link).unwrap();
+	assert!(json.contains("\"resolvedPath\":\"/v/t.md\""));
+}
+
+#[test]
+fn outgoing_unlinked_mention_serializes_to_camel_case() {
+	let m = OutgoingUnlinkedMention {
+		note_name: "x".to_string(),
+		note_path: "/v/x.md".to_string(),
+		count: 2,
+	};
+	let json = serde_json::to_string(&m).unwrap();
+	assert!(json.contains("\"noteName\""));
+	assert!(json.contains("\"notePath\""));
+}
