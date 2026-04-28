@@ -49,7 +49,7 @@ Installed via `bash scripts/setup-hooks.sh`. On every commit that stages `pnpm-l
 The `supply-chain-quarantine` job (`security.yml:56-84`) runs on every push and PR:
 
 - Verifies `pnpm-workspace.yaml` exists.
-- Verifies `minimumReleaseAge` is set to at least 20160 (14 days). Fails the build if missing or lower.
+- Verifies `minimumReleaseAge` is set to at least 10080 (7 days). Fails the build if missing or lower.
 
 Adjacent jobs in the same workflow run `pnpm audit --audit-level=moderate`, `rustsec/audit-check` for Cargo, and GitHub's `dependency-review-action` on PRs.
 
