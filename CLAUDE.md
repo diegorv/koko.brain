@@ -2,6 +2,13 @@
 
 A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built with Svelte 5 + Tauri 2.
 
+## Approach (Mandatory)
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output.
+- No sycophantic openers or closing fluff.
+- No emojis or em-dashes.
+- Do not guess APIs, versions, flags, commit SHAs, or package names. Verify by reading code or docs before asserting.#
+
 ## Quick Reference (Most Common Mistakes)
 
 1. **Never mock stores or `.logic.ts` files** in tests — use real stores, verify real state
