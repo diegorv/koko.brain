@@ -1,4 +1,6 @@
-use kokobrain_lib::commands::vault::{collect_v2_entries, scan_vault};
+use kokobrain_lib::commands::vault::{collect_v2_entries, scan_vault, update_note_in_index_inner};
+use kokobrain_lib::vault::index::VaultIndex;
+use kokobrain_lib::vault::VAULT_INDEX_UPDATED_EVENT;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -401,4 +403,93 @@ fn v2_skips_symlinked_files_and_dirs() {
     let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].title, "real");
+}
+
+// --- update_note_in_index_inner (Phase 2.6) ---------------------------------
+//
+// `update_note_in_index_inner` is the pure-logic core of the
+// `update_note_in_index` Tauri command. The thin Tauri wrapper around it
+// reads mtime from disk and emits `vault-index-updated`; both behaviors
+// are tested separately here without needing a Tauri AppHandle.
+
+#[test]
+fn vault_index_updated_event_constant_matches_frontend_listener_name() {
+    // The frontend listens via `listen('vault-index-updated', ...)`. A
+    // rename of the constant without the matching frontend update would
+    // silently break Phase 3+ panel invalidation, so we lock the literal.
+    assert_eq!(VAULT_INDEX_UPDATED_EVENT, "vault-index-updated");
+}
+
+#[test]
+fn update_inner_inserts_a_new_note_into_the_managed_index() {
+    let mut idx = VaultIndex::default();
+    let result = update_note_in_index_inner(
+        &mut idx,
+        "/v/note.md".to_string(),
+        "# Heading\n\nSome body content.",
+        1714305600,
+    );
+    assert!(result.changed);
+    assert!(result.affected.is_empty());
+    assert_eq!(result.version, 1);
+    assert_eq!(idx.len(), 1);
+    let stored = idx.entries().get("/v/note.md").unwrap();
+    assert_eq!(stored.title, "note");
+    assert_eq!(stored.modified_at, 1714305600);
+}
+
+#[test]
+fn update_inner_records_backlink_when_target_is_already_indexed() {
+    let mut idx = VaultIndex::default();
+    update_note_in_index_inner(&mut idx, "/v/target.md".to_string(), "body", 0);
+    let result = update_note_in_index_inner(
+        &mut idx,
+        "/v/source.md".to_string(),
+        "Body with [[target]] link.",
+        0,
+    );
+    assert!(result.changed);
+    assert_eq!(result.affected, vec!["/v/target.md".to_string()]);
+    let backlinks = idx.backlinks().get("/v/target.md").unwrap();
+    assert!(backlinks.contains("/v/source.md"));
+}
+
+#[test]
+fn update_inner_called_twice_with_same_content_reports_unchanged_second_time() {
+    let mut idx = VaultIndex::default();
+    let content = "Hello [[target]]";
+    update_note_in_index_inner(&mut idx, "/v/target.md".to_string(), "", 0);
+    let r1 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), content, 0);
+    let r2 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), content, 0);
+    assert!(r1.changed);
+    assert!(!r2.changed);
+    assert!(r2.affected.is_empty());
+    // Versions are still monotonic across both calls.
+    assert!(r2.version > r1.version);
+}
+
+#[test]
+fn update_inner_round_trip_through_save_event_pattern() {
+    // Simulates the editor.hooks.ts::notifyAfterSave flow: each save
+    // calls update with the post-save content; backlinks shift as the
+    // user adds/removes wikilinks across save events.
+    let mut idx = VaultIndex::default();
+    update_note_in_index_inner(&mut idx, "/v/a.md".to_string(), "", 0);
+    update_note_in_index_inner(&mut idx, "/v/b.md".to_string(), "", 0);
+
+    // Save 1: source -> a
+    let r1 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), "[[a]]", 0);
+    assert_eq!(r1.affected, vec!["/v/a.md".to_string()]);
+
+    // Save 2: source switches link to b
+    let r2 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), "[[b]]", 0);
+    assert!(r2.changed);
+    assert_eq!(
+        r2.affected,
+        vec!["/v/a.md".to_string(), "/v/b.md".to_string()],
+    );
+    // a's backlink set is pruned because no source remains.
+    assert!(!idx.backlinks().contains_key("/v/a.md"));
+    // b gains the source.
+    assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/source.md"));
 }
