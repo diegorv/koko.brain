@@ -1,4 +1,5 @@
-import { readDir, exists, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -92,13 +93,21 @@ export async function ensureTemplatesFolder(): Promise<void> {
 	try {
 		const folderExists = await exists(folderPath);
 		if (!folderExists) {
-			await mkdir(folderPath, { recursive: true });
+			// Phase 8.8: routes through Rust so the watcher self-save
+			// filter notices the new directory event when the watcher
+			// fires shortly after. The TS `mkdir` was identical in
+			// behaviour (recursive, no-op when present).
+			await invoke('create_folder', { path: folderPath });
 		}
 
 		let created = false;
 		for (const relPath of templatePaths) {
 			const absPath = `${vaultPath}/${relPath}`;
 			if (!(await exists(absPath))) {
+				// Empty placeholder template files — stays TS. These are
+				// initialization scaffolding (not vault notes) and don't
+				// need Rust-side index updates: the watcher's later batch
+				// will pick them up.
 				await writeTextFile(absPath, '');
 				created = true;
 			}

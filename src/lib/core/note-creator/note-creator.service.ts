@@ -1,4 +1,5 @@
-import { exists, writeTextFile, mkdir, readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
@@ -44,8 +45,15 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: after exists() @ ${(performance.now() - probeStart).toFixed(1)}ms (exists=${fileExists})`);
 
 		if (!fileExists) {
+			// Phase 8.7: parent dir + file creation now go through Rust.
+			// `create_folder` is recursive (no-op when present), and
+			// `create_note` errors if the path already exists — but we
+			// already checked above. After both calls succeed, the Rust
+			// side has updated `VaultIndex` AND emitted
+			// `vault-index-updated`, so the panels (Backlinks, Tags,
+			// Tasks, etc.) auto-refetch.
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-			await mkdir(parentDir, { recursive: true });
+			await invoke('create_folder', { path: parentDir });
 
 			let content = '';
 
@@ -61,7 +69,10 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 
 			content = processTemplate(content, title, customVariables);
 
-			await writeTextFile(filePath, content);
+			await invoke('create_note', { path: filePath, content });
+			// Mark the path as a self-save so the watcher's batch-rebuild
+			// guard (`areAllRecentSaves`) doesn't trigger a full vault
+			// rescan when it sees the write event we just made.
 			markRecentSave(filePath);
 			try {
 				await refreshTree();

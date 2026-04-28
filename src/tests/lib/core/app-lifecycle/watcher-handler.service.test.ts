@@ -66,7 +66,7 @@ describe('rebuildAllIndexes', () => {
 	it('calls rebuildIndex before derived indexes', async () => {
 		const callOrder: string[] = [];
 		vi.mocked(rebuildIndex).mockImplementation(async () => { callOrder.push('rebuildIndex'); });
-		vi.mocked(buildPropertyIndex).mockImplementation(() => { callOrder.push('buildPropertyIndex'); });
+		vi.mocked(buildPropertyIndex).mockImplementation(async () => { callOrder.push('buildPropertyIndex'); });
 
 		await rebuildAllIndexes();
 

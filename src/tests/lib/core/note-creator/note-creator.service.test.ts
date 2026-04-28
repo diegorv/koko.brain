@@ -11,9 +11,11 @@ vi.mock('$lib/utils/debug', () => ({
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
 	readTextFile: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
 }));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
@@ -28,7 +30,8 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-import { exists, writeTextFile, mkdir, readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
@@ -45,8 +48,7 @@ describe('openOrCreateNote', () => {
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
 		expect(exists).toHaveBeenCalledWith('/vault/note.md');
-		expect(mkdir).not.toHaveBeenCalled();
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
 	});
 
@@ -55,8 +57,8 @@ describe('openOrCreateNote', () => {
 
 		await openOrCreateNote({ filePath: '/vault/sub/note.md', title: 'note' });
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/sub', { recursive: true });
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/sub/note.md', '');
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/sub' });
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/sub/note.md', content: '' });
 		expect(markRecentSave).toHaveBeenCalledWith('/vault/sub/note.md');
 		expect(refreshTree).toHaveBeenCalled();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/sub/note.md');
@@ -81,7 +83,7 @@ describe('openOrCreateNote', () => {
 		});
 
 		expect(readTextFile).toHaveBeenCalledWith('/vault/_templates/daily.md');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', '# My Note');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '# My Note' });
 	});
 
 	it('falls back to inlineTemplate when templatePath read fails', async () => {
@@ -95,7 +97,7 @@ describe('openOrCreateNote', () => {
 			title: 'Fallback',
 		});
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', '# Fallback');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '# Fallback' });
 	});
 
 	it('falls back to empty content when templatePath read fails and no inlineTemplate', async () => {
@@ -108,7 +110,7 @@ describe('openOrCreateNote', () => {
 			title: 'note',
 		});
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', '');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '' });
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
 	});
 
@@ -117,7 +119,7 @@ describe('openOrCreateNote', () => {
 
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', '');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '' });
 	});
 
 	it('passes customVariables to processTemplate', async () => {
@@ -131,7 +133,7 @@ describe('openOrCreateNote', () => {
 			customVariables: customVars,
 		});
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', '/vault/yesterday.md');
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '/vault/yesterday.md' });
 	});
 
 	it('throws and logs error when exists() fails', async () => {
@@ -147,9 +149,11 @@ describe('openOrCreateNote', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('throws and logs error when mkdir fails', async () => {
+	it('throws and logs error when create_folder fails', async () => {
 		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockRejectedValue(new Error('mkdir failed'));
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_folder') throw new Error('mkdir failed');
+		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(
@@ -157,14 +161,15 @@ describe('openOrCreateNote', () => {
 		).rejects.toThrow('mkdir failed');
 
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to open or create note:', expect.any(Error));
-		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
 		consoleSpy.mockRestore();
 	});
 
-	it('throws and logs error when writeTextFile fails', async () => {
+	it('throws and logs error when create_note fails', async () => {
 		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('write failed'));
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') throw new Error('write failed');
+		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(
@@ -184,7 +189,7 @@ describe('openOrCreateNote', () => {
 
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('create_note', expect.any(Object));
 		expect(consoleSpy).toHaveBeenCalledWith('refreshTree failed after file creation:', expect.any(Error));
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
 		consoleSpy.mockRestore();

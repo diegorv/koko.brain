@@ -120,7 +120,11 @@ export async function createFile(parentPath: string, fileName: string): Promise<
 		const siblingNames = entries.map((e) => e.name);
 		const uniqueName = generateUniqueName(fileName, false, siblingNames);
 		const filePath = `${parentPath}/${uniqueName}`;
-		await writeTextFile(filePath, '');
+		// Phase 8.6: Rust `create_note` does the disk write, updates
+		// the `VaultIndex`, and emits `vault-index-updated`. The TS
+		// `markRecentSave` still flips the watcher self-save guard so
+		// the subsequent fs event doesn't trigger a redundant rebuild.
+		await invoke('create_note', { path: filePath, content: '' });
 		markRecentSave(filePath);
 		await refreshTree();
 		debug('FS', 'created file:', filePath);
@@ -138,7 +142,9 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 		const siblingNames = entries.map((e) => e.name);
 		const uniqueName = generateUniqueName(folderName, true, siblingNames);
 		const folderPath = `${parentPath}/${uniqueName}`;
-		await mkdir(folderPath);
+		// Phase 8.6: Rust `create_folder` (recursive — no-op when
+		// the dir exists, but `generateUniqueName` ensures it doesn't).
+		await invoke('create_folder', { path: folderPath });
 		await refreshTree();
 		fsStore.expandDir(folderPath);
 		debug('FS', 'created folder:', folderPath);
