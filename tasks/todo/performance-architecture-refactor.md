@@ -58,11 +58,11 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 4 - Tab-Switch Pipeline Cleanup (parallel with Phase 2-3)
 
-- [ ] **4.1** Capture `switchTab` breakdown via Phase 0 probes; record before-numbers in commit body.
-- [ ] **4.2** Investigate `forceDecorationRebuild.of(null)` at `MarkdownEditor.svelte:288`. **Risk gate (balanced)**: do a **30-minute manual smoke session** with the rAF removed (open large vault, scroll heavy, switch tabs, type fast, drop in/out of viewport). If no decoration regression appears, apply the trace-before-remove ritual and commit the removal. If a regression appears, restore the rAF + add an explanatory comment naming the symptom and the line that triggered it.
-- [ ] **4.3** Combine language reconfigure (line 272 via `applyLanguageForTab`) + doc replace (lines 263-267) into a single `view.dispatch`. Inline the `getLanguageEffects` call before the dispatch builds its effects array.
-- [ ] **4.4** Add `AbortController` to the tab-switch effect. Abort any prior pending rAF chain when `activeTabPath` changes again before the inner rAF fires. Track via local `let abortCtrl: AbortController | null` captured by the effect.
-- [ ] **4.5** Vitest regression: simulate 100 rapid `switchTab` calls; assert at most one `forceDecorationRebuild` dispatched per resolved tab; assert prior abort signal clears stale rAFs.
+- [x] **4.1** Capture `switchTab` breakdown via Phase 0 probes; record before-numbers in commit body.
+- [ ] **4.2** Investigate `forceDecorationRebuild.of(null)` at `MarkdownEditor.svelte:288`. **Risk gate (balanced)**: do a **30-minute manual smoke session** with the rAF removed (open large vault, scroll heavy, switch tabs, type fast, drop in/out of viewport). If no decoration regression appears, apply the trace-before-remove ritual and commit the removal. If a regression appears, restore the rAF + add an explanatory comment naming the symptom and the line that triggered it. **Pending: requires manual user smoke.**
+- [x] **4.3** Combine language reconfigure (line 272 via `applyLanguageForTab`) + doc replace (lines 263-267) into a single `view.dispatch`. Inline the `getLanguageEffects` call before the dispatch builds its effects array.
+- [x] **4.4** Add `AbortController` to the tab-switch effect. Abort any prior pending rAF chain when `activeTabPath` changes again before the inner rAF fires. Track via local `let abortCtrl: AbortController | null` captured by the effect.
+- [~] **4.5** Vitest regression: simulate 100 rapid `switchTab` calls; assert at most one `forceDecorationRebuild` dispatched per resolved tab; assert prior abort signal clears stale rAFs. **Component-level test deferred — repo lacks `@testing-library/svelte`. Logic-level coverage added via `getLanguageEffectsSync` tests; 100-switchTab assertion would need component mount infra.**
 
 ### Phase 5 - Keystroke Reactivity Fix BEHAVIORAL (after Phase 0)
 
