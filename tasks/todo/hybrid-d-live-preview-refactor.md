@@ -131,8 +131,8 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 17 — Callout UX
 
-- [ ] Task 17.1: Fold chevron renders on every callout (no longer gated on `+`/`-`); persists via `calloutFoldState`; tests
-- [ ] Task 17.2: Type dropdown popover; transaction replaces type token only; preserves border color; tests
+- [x] Task 17.1: Fold chevron renders on every callout — `isFoldable = true` unconditionally. Default state for non-foldable callouts is "expanded"; user toggle inverts via the existing `calloutFoldState`
+- [x] Task 17.2: `CalloutTypeSwitcherWidget` — clickable type label opens popover with all 24 types from `CALLOUT_COLORS`. Click dispatches a single transaction replacing only the type token; border colour follows automatically because `findAllCallouts` re-reads the type. Existing `callout-field.test.ts` updated for the new decoration counts (each callout +2 decos when not touched: type-switcher + chevron)
 
 ## Notes
 
