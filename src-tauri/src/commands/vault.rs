@@ -1,6 +1,7 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::NoteEntry;
+use crate::vault::VaultIndexState;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
@@ -101,28 +102,23 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
     Ok(nodes)
 }
 
-/// Scans a vault and returns a `NoteEntry` for every markdown file under it.
-///
-/// This is the additive Phase 1.5 surface: an enriched view with title,
-/// frontmatter, outgoing links, tags, modification time, body word count,
-/// and a leading-paragraph snippet. The Phase 2 `VaultIndex` builds on top
-/// of these entries; Phase 3 starts migrating consumers to read from
-/// `VaultIndex` instead of the per-feature TS stores.
-///
-/// The original `scan_vault` (which returns the recursive `FileNode` tree
-/// the file explorer needs) is not affected and continues to be the source
-/// of truth for tree shape. `scan_vault_v2` only emits markdown leaves and
-/// uses absolute paths everywhere (CLAUDE.md Indexing & Watcher item 5).
+/// Walks a vault and builds a `Vec<NoteEntry>` from every markdown file
+/// under it. This is the pure I/O + parsing path used by the Tauri
+/// command `scan_vault_v2` and by tests that want to exercise scanning
+/// without paying the cost of acquiring the managed `VaultIndexState`
+/// write lock.
 ///
 /// Per-file read failures are logged via `debug_log("VAULT-V2", ...)` and
 /// silently skipped — one unreadable file must not poison the whole scan.
-/// The whole-directory failure path (e.g. permission denied on the vault
-/// root) still propagates as an `Err`.
-#[tauri::command]
-pub fn scan_vault_v2(path: String) -> Result<Vec<NoteEntry>, String> {
+/// Whole-directory failures (permission denied on the vault root, path
+/// is not a directory) propagate as `Err`.
+pub fn collect_v2_entries(path: &str) -> Result<Vec<NoteEntry>, String> {
 	let start = std::time::Instant::now();
-	debug_log("VAULT-V2", format!("scan_vault_v2: starting on {}", path));
-	let root = vault_fs::validate_vault_path(&path)?;
+	debug_log(
+		"VAULT-V2",
+		format!("collect_v2_entries: starting on {}", path),
+	);
+	let root = vault_fs::validate_vault_path(path)?;
 	let entries = vault_fs::collect_markdown_paths_with_mtime(&root, &[])?;
 	let total = entries.len();
 	let mut notes: Vec<NoteEntry> = Vec::with_capacity(total);
@@ -138,7 +134,7 @@ pub fn scan_vault_v2(path: String) -> Result<Vec<NoteEntry>, String> {
 				skipped += 1;
 				debug_log(
 					"VAULT-V2",
-					format!("scan_vault_v2: skipping {} ({})", abs_path_str, err),
+					format!("collect_v2_entries: skipping {} ({})", abs_path_str, err),
 				);
 			}
 		}
@@ -147,12 +143,46 @@ pub fn scan_vault_v2(path: String) -> Result<Vec<NoteEntry>, String> {
 	debug_log(
 		"VAULT-V2",
 		format!(
-			"scan_vault_v2: {} entries ({} skipped) in {}ms",
+			"collect_v2_entries: {} entries ({} skipped) in {}ms",
 			notes.len(),
 			skipped,
 			start.elapsed().as_millis(),
 		),
 	);
+	Ok(notes)
+}
+
+/// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
+/// Returns the same `Vec<NoteEntry>` produced by [`collect_v2_entries`]
+/// so the frontend has the data without an extra round-trip.
+///
+/// The original `scan_vault` (which returns the recursive `FileNode` tree
+/// the file explorer needs) is not affected and continues to be the
+/// source of truth for tree shape. `scan_vault_v2` only emits markdown
+/// leaves and uses absolute paths everywhere (CLAUDE.md Indexing &
+/// Watcher item 5).
+#[tauri::command]
+pub fn scan_vault_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let notes = collect_v2_entries(&path)?;
+	let build_start = std::time::Instant::now();
+	{
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		idx.build(notes.clone());
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"scan_vault_v2: VaultIndex.build({} entries) in {}ms, version={}",
+				notes.len(),
+				build_start.elapsed().as_millis(),
+				idx.version(),
+			),
+		);
+	}
 	Ok(notes)
 }
 

@@ -13,3 +13,9 @@
 pub mod entry;
 pub mod index;
 pub mod parsing;
+
+/// Tauri-managed wrapper around `VaultIndex`. Wires up via
+/// `.manage(VaultIndexState::default())` in `lib.rs`; commands receive it
+/// as `State<'_, VaultIndexState>` and acquire `read()` / `write()` for
+/// the duration of their work.
+pub type VaultIndexState = std::sync::RwLock<index::VaultIndex>;
