@@ -11,6 +11,13 @@ let vaultPath = $state<string | null>(null);
 let vaultName = $state<string | null>(null);
 /** List of recently opened vaults, loaded from localStorage on startup */
 let recentVaults = $state<RecentVault[]>(loadRecentVaults());
+/**
+ * Monotonic counter mirroring the Rust `VaultIndex.version`. Bumped from the
+ * `vault-index-updated` Tauri event so consumer panels (Backlinks, Outgoing,
+ * etc.) can invalidate by reactivity instead of polling. `0` while no Rust
+ * event has been received yet.
+ */
+let vaultIndexVersion = $state(0);
 /** Reads the recent vaults list from localStorage (returns [] on failure) */
 function loadRecentVaults(): RecentVault[] {
 	try {
@@ -33,6 +40,12 @@ export const vaultStore = {
 	/** Whether a vault is currently open (computed from path) */
 	get isOpen() { return vaultPath !== null; },
 	get recentVaults() { return recentVaults; },
+	/**
+	 * Current monotonic version of the Rust `VaultIndex`. Increments on every
+	 * `vault-index-updated` Tauri event. Consumers `$effect` on this getter
+	 * to invalidate cached views (backlinks, outgoing, tags, etc.).
+	 */
+	get vaultIndexVersion() { return vaultIndexVersion; },
 
 	/** Opens a vault by path — updates state and persists to recent vaults */
 	open(path: string) {
@@ -56,10 +69,21 @@ export const vaultStore = {
 		persistRecentVaults(recentVaults);
 	},
 
+	/**
+	 * Sets the cached `vaultIndexVersion` to the latest value seen from the
+	 * Rust `vault-index-updated` event. Always assigns (does not min/max)
+	 * because the Rust side is the sole source of truth for the counter and
+	 * always emits a strictly-greater value than the prior one.
+	 */
+	bumpVaultIndexVersion(version: number) {
+		vaultIndexVersion = version;
+	},
+
 	/** @internal Resets all state to initial values (for testing only) */
 	_reset() {
 		vaultPath = null;
 		vaultName = null;
 		recentVaults = [];
+		vaultIndexVersion = 0;
 	},
 };

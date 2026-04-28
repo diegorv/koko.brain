@@ -4,6 +4,8 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
 
 /**
  * Registers a listener for the native macOS menu "Settings" event.
@@ -53,6 +55,35 @@ export function registerCloseHandler(): () => void {
 		else unlisten = fn;
 	}).catch((err) => {
 		console.error('Failed to listen for close-requested:', err);
+	});
+	return () => {
+		cancelled = true;
+		unlisten?.();
+	};
+}
+
+/**
+ * Registers a listener for the Rust `vault-index-updated` event.
+ * Bumps `vaultStore.vaultIndexVersion` from the payload's monotonic counter
+ * so consumer panels (Backlinks, Outgoing, etc.) can invalidate cached views
+ * via `$effect` on the version getter instead of polling.
+ *
+ * Phase 3.2 of the perf refactor (`tasks/todo/performance-architecture-refactor.md`).
+ * Until per-feature consumers migrate (Phase 3.4 onwards), the bump is a
+ * harmless reactive signal — nothing reads `vaultIndexVersion` yet.
+ *
+ * Returns a cleanup function to unsubscribe.
+ */
+export function registerVaultIndexUpdatedListener(): () => void {
+	let cancelled = false;
+	let unlisten: (() => void) | undefined;
+	listen<UpdateResultV2>('vault-index-updated', (event) => {
+		vaultStore.bumpVaultIndexVersion(event.payload.version);
+	}).then((fn) => {
+		if (cancelled) fn();
+		else unlisten = fn;
+	}).catch((err) => {
+		console.error('Failed to listen for vault-index-updated:', err);
 	});
 	return () => {
 		cancelled = true;

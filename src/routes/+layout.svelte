@@ -9,7 +9,7 @@
 	import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
 	import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 	import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener } from '$lib/core/layout/tauri-listeners.service';
+	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
 	import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 	import { updateIndexesForFile } from '$lib/core/app-lifecycle/index-updater.service';
@@ -40,6 +40,10 @@
 
 	$effect(() => {
 		return registerFocusListener();
+	});
+
+	$effect(() => {
+		return registerVaultIndexUpdatedListener();
 	});
 
 	// ── Vault initialization / teardown ─────────────────────────────
