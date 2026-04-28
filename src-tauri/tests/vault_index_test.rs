@@ -797,3 +797,244 @@ fn outgoing_unlinked_mention_serializes_to_camel_case() {
 	assert!(json.contains("\"noteName\""));
 	assert!(json.contains("\"notePath\""));
 }
+
+// ============================================================================
+// Phase 7 — tags_index + tag/task lookups
+// ============================================================================
+
+use kokobrain_lib::vault::task::{Task, TaskMetadata, TaskStatus};
+
+/// Builds a minimal `NoteEntry` carrying tags. Title is derived from path.
+fn entry_with_tags(path: &str, tags: &[&str]) -> NoteEntry {
+	let title = path
+		.rsplit('/')
+		.next()
+		.unwrap_or(path)
+		.strip_suffix(".md")
+		.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path))
+		.to_string();
+	NoteEntry {
+		path: path.to_string(),
+		title,
+		tags: tags.iter().map(|t| t.to_string()).collect(),
+		..Default::default()
+	}
+}
+
+/// Builds a minimal `NoteEntry` carrying tasks at the given line numbers.
+fn entry_with_tasks(path: &str, modified_at: i64, task_count: usize) -> NoteEntry {
+	let title = path
+		.rsplit('/')
+		.next()
+		.unwrap_or(path)
+		.strip_suffix(".md")
+		.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path))
+		.to_string();
+	let tasks = (0..task_count)
+		.map(|i| Task {
+			text: format!("task {}", i),
+			checked: false,
+			indent: 0,
+			line_number: i + 1,
+			status: TaskStatus::Todo,
+			metadata: TaskMetadata::default(),
+		})
+		.collect();
+	NoteEntry {
+		path: path.to_string(),
+		title,
+		modified_at,
+		tasks,
+		..Default::default()
+	}
+}
+
+#[test]
+fn build_with_tagged_entries_populates_tags_index() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/a.md", &["work", "alpha"]),
+		entry_with_tags("/v/b.md", &["work"]),
+	]);
+	let tags = idx.tags_index();
+	assert!(tags.contains_key("work"));
+	assert!(tags.contains_key("alpha"));
+	assert_eq!(tags.get("work").unwrap().len(), 2);
+	assert_eq!(tags.get("alpha").unwrap().len(), 1);
+}
+
+#[test]
+fn build_clears_tags_index_on_rebuild() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
+	idx.build(vec![entry_with_tags("/v/b.md", &["other"])]);
+	assert!(!idx.tags_index().contains_key("work"));
+	assert!(idx.tags_index().contains_key("other"));
+}
+
+#[test]
+fn build_aggregates_tags_case_insensitively() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/a.md", &["JavaScript"]),
+		entry_with_tags("/v/b.md", &["javascript"]),
+	]);
+	assert_eq!(idx.tags_index().len(), 1);
+	let paths = idx.tags_index().get("javascript").unwrap();
+	assert_eq!(paths.len(), 2);
+}
+
+#[test]
+fn update_entry_adds_new_tag_inserts_path_into_index() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &[])]);
+	let mut entry = idx.entries().get("/v/a.md").unwrap().clone();
+	entry.tags = vec!["new-tag".to_string()];
+	idx.update_entry(entry);
+	assert!(idx.tags_index().contains_key("new-tag"));
+	assert_eq!(idx.tags_index().get("new-tag").unwrap().len(), 1);
+}
+
+#[test]
+fn update_entry_removes_tag_prunes_empty_set() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["solo"])]);
+	let mut entry = idx.entries().get("/v/a.md").unwrap().clone();
+	entry.tags.clear();
+	idx.update_entry(entry);
+	assert!(
+		!idx.tags_index().contains_key("solo"),
+		"empty set should have been pruned"
+	);
+}
+
+#[test]
+fn update_entry_renames_tag_drops_old_inserts_new() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["old-tag"])]);
+	let mut entry = idx.entries().get("/v/a.md").unwrap().clone();
+	entry.tags = vec!["new-tag".to_string()];
+	idx.update_entry(entry);
+	assert!(!idx.tags_index().contains_key("old-tag"));
+	assert!(idx.tags_index().contains_key("new-tag"));
+}
+
+#[test]
+fn update_entry_keeps_tag_set_when_other_path_still_uses_it() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/a.md", &["shared"]),
+		entry_with_tags("/v/b.md", &["shared"]),
+	]);
+	let mut a = idx.entries().get("/v/a.md").unwrap().clone();
+	a.tags.clear();
+	idx.update_entry(a);
+	// Only `b.md` remains in the set; the key must still exist.
+	let set = idx.tags_index().get("shared").expect("shared key dropped");
+	assert_eq!(set.len(), 1);
+	assert!(set.contains("/v/b.md"));
+}
+
+#[test]
+fn update_entry_no_op_does_not_touch_tags_index() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
+	let snapshot_before: BTreeSet<String> =
+		idx.tags_index().get("work").unwrap().iter().cloned().collect();
+	let entry = idx.entries().get("/v/a.md").unwrap().clone();
+	idx.update_entry(entry);
+	let snapshot_after: BTreeSet<String> =
+		idx.tags_index().get("work").unwrap().iter().cloned().collect();
+	assert_eq!(snapshot_before, snapshot_after);
+}
+
+#[test]
+fn lookup_notes_with_tag_returns_empty_for_unknown() {
+	let idx = VaultIndex::default();
+	assert!(idx.lookup_notes_with_tag("nope").is_empty());
+}
+
+#[test]
+fn lookup_notes_with_tag_strips_hash_prefix() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
+	let with_hash = idx.lookup_notes_with_tag("#work");
+	let without_hash = idx.lookup_notes_with_tag("work");
+	assert_eq!(with_hash.len(), 1);
+	assert_eq!(without_hash.len(), 1);
+}
+
+#[test]
+fn lookup_notes_with_tag_is_case_insensitive() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["JavaScript"])]);
+	assert_eq!(idx.lookup_notes_with_tag("javascript").len(), 1);
+	assert_eq!(idx.lookup_notes_with_tag("JAVASCRIPT").len(), 1);
+}
+
+#[test]
+fn lookup_notes_with_tag_sorts_by_title_case_insensitive() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/zeta.md", &["work"]),
+		entry_with_tags("/v/alpha.md", &["work"]),
+		entry_with_tags("/v/Mu.md", &["work"]),
+	]);
+	let result = idx.lookup_notes_with_tag("work");
+	let titles: Vec<&str> = result.iter().map(|e| e.title.as_str()).collect();
+	assert_eq!(titles, vec!["alpha", "Mu", "zeta"]);
+}
+
+#[test]
+fn lookup_all_tags_returns_alphabetical_with_counts() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/a.md", &["zoo", "alpha"]),
+		entry_with_tags("/v/b.md", &["alpha"]),
+	]);
+	let tags = idx.lookup_all_tags();
+	assert_eq!(tags.len(), 2);
+	assert_eq!(tags[0].name, "alpha");
+	assert_eq!(tags[0].count, 2);
+	assert_eq!(tags[1].name, "zoo");
+	assert_eq!(tags[1].count, 1);
+}
+
+#[test]
+fn lookup_all_tags_serializes_with_camel_case_keys() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
+	let json = serde_json::to_value(&idx.lookup_all_tags()).unwrap();
+	assert!(json[0].get("filePaths").is_some(), "filePaths missing");
+	assert!(json[0].get("name").is_some());
+	assert!(json[0].get("count").is_some());
+}
+
+#[test]
+fn lookup_all_tasks_filters_empty_and_sorts_by_mtime_desc() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tasks("/v/a.md", 100, 2),
+		entry_with_tags("/v/b.md", &[]), // no tasks -> filtered out
+		entry_with_tasks("/v/c.md", 300, 1),
+		entry_with_tasks("/v/d.md", 200, 3),
+	]);
+	let groups = idx.lookup_all_tasks();
+	assert_eq!(groups.len(), 3, "b.md (no tasks) should be filtered");
+	let order: Vec<i64> = groups.iter().map(|g| g.modified_at).collect();
+	assert_eq!(order, vec![300, 200, 100]); // descending
+}
+
+#[test]
+fn lookup_tasks_in_path_returns_entry_tasks() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tasks("/v/a.md", 0, 3)]);
+	let tasks = idx.lookup_tasks_in_path("/v/a.md");
+	assert_eq!(tasks.len(), 3);
+}
+
+#[test]
+fn lookup_tasks_in_path_returns_empty_for_unknown() {
+	let idx = VaultIndex::default();
+	assert!(idx.lookup_tasks_in_path("/v/nope.md").is_empty());
+}

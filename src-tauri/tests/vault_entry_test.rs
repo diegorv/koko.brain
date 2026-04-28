@@ -93,6 +93,7 @@ fn note_entry_serializes_with_camel_case_keys() {
 		modified_at: 1714305600,
 		word_count: 215,
 		snippet: "This is the first paragraph.".to_string(),
+		tasks: Vec::new(),
 	};
 
 	let value = serde_json::to_value(&entry).unwrap();
@@ -108,6 +109,7 @@ fn note_entry_serializes_with_camel_case_keys() {
 		"modifiedAt",
 		"wordCount",
 		"snippet",
+		"tasks",
 	];
 	for key in expected_keys {
 		assert!(obj.contains_key(key), "missing key: {}", key);
@@ -169,6 +171,7 @@ fn note_entry_round_trips_through_json() {
 		modified_at: 42,
 		word_count: 10,
 		snippet: "snip".to_string(),
+		tasks: Vec::new(),
 	};
 
 	let json = serde_json::to_string(&original).unwrap();

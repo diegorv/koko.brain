@@ -2,6 +2,8 @@ use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
 use crate::vault::index::{UpdateResult, VaultIndex};
+use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
+use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -277,6 +279,168 @@ pub fn get_outgoing_unlinked_mentions_v2(
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	Ok(idx.lookup_outgoing_unlinked_mentions(&path, &content))
+}
+
+/// Returns the flat list of tag aggregates (one per distinct tag), sorted
+/// alphabetically. Phase 7.3 — replaces `tags.service.ts::buildTagIndex`'s
+/// JS-side aggregation. The frontend builds the tree from this output via
+/// the existing `buildTagTree` / `sortTagTree` helpers.
+#[tauri::command]
+pub fn get_all_tags_v2(
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<TagAggregate>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_all_tags())
+}
+
+/// Returns every `NoteEntry` whose tags contain `tag` (case-insensitively;
+/// any leading `#` on the input is stripped). Phase 7.3.
+#[tauri::command]
+pub fn get_notes_with_tag_v2(
+	tag: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_notes_with_tag(&tag))
+}
+
+/// Returns every file's tasks grouped by file, sorted by `modifiedAt`
+/// descending. Files with zero tasks are filtered out. Phase 7.3 —
+/// replaces `tasks.service.ts::buildTaskIndex`'s JS-side aggregation.
+#[tauri::command]
+pub fn get_all_tasks_v2(
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<FileTaskGroup>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_all_tasks())
+}
+
+/// Returns the parsed task list for the entry at `path`. Empty when
+/// `path` is unknown to the index or has no tasks. Phase 7.3.
+#[tauri::command]
+pub fn get_tasks_in_path_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<Task>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_tasks_in_path(&path))
+}
+
+/// Returns tasks across the vault filtered by section heading: only tasks
+/// whose containing heading text contains `section_tag` are emitted. The
+/// `VaultIndex` does not store headings, so this command reads each note's
+/// raw content from disk and runs `extract_tasks_from_section` per file.
+/// Cost is N file reads per call — acceptable because the section filter
+/// is fired only when the user types a non-empty filter (debounced 400ms
+/// in `TasksView.svelte`). Phase 7.3.
+#[tauri::command]
+pub fn get_tasks_in_section_v2(
+	section_tag: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<FileTaskGroup>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	let mut out: Vec<FileTaskGroup> = Vec::new();
+	for entry in idx.entries().values() {
+		let content = std::fs::read_to_string(&entry.path).unwrap_or_default();
+		let tasks = extract_tasks_from_section(&content, &section_tag);
+		if !tasks.is_empty() {
+			out.push(FileTaskGroup {
+				file_path: entry.path.clone(),
+				file_name: display_name(&entry.path),
+				modified_at: entry.modified_at,
+				tasks,
+			});
+		}
+	}
+	out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+	Ok(out)
+}
+
+/// Pure-logic implementation behind `toggle_task_status`. Reads the
+/// current file content, toggles the checkbox at `line_number`, writes
+/// the new content back, and returns the diff applied to the `VaultIndex`.
+/// Tests construct a tmpdir + an in-memory `VaultIndex`, call this
+/// directly, and assert on disk + index state without a Tauri AppHandle.
+pub fn toggle_task_status_inner(
+	idx: &mut VaultIndex,
+	path: &str,
+	line_number: usize,
+) -> Result<ToggleTaskResult, String> {
+	let original = std::fs::read_to_string(path)
+		.map_err(|e| format!("read failed for {}: {}", path, e))?;
+	let updated = toggle_task_in_content(&original, line_number);
+	if updated == original {
+		// No-op: line out of bounds, no checkbox on the line, etc.
+		// Skip the disk write and the index update entirely.
+		return Ok(ToggleTaskResult {
+			updated_content: original,
+			update_result: UpdateResult {
+				changed: false,
+				affected: Vec::new(),
+				version: idx.version(),
+			},
+		});
+	}
+	std::fs::write(path, &updated)
+		.map_err(|e| format!("write failed for {}: {}", path, e))?;
+	let mtime = read_file_mtime_secs(path).unwrap_or(0);
+	let result = update_note_in_index_inner(idx, path.to_string(), &updated, mtime);
+	Ok(ToggleTaskResult {
+		updated_content: updated,
+		update_result: result,
+	})
+}
+
+/// Tauri command: toggles a task's checkbox on disk + in the managed
+/// `VaultIndex`. Replaces the direct `writeTextFile` call at
+/// `tasks.service.ts:113` (a known JS write-surface violator from the
+/// Phase 11.5 audit list). Phase 7.4.
+///
+/// Flow:
+///   1. Read file from disk.
+///   2. Toggle line via `toggle_task_in_content`.
+///   3. If unchanged (out of bounds or no checkbox): return no-op result.
+///   4. Else: write to disk, update VaultIndex via the Phase 2.6 helper.
+///   5. Emit `vault-index-updated` after dropping the write lock.
+///
+/// The lock is released BEFORE the emit so consumers reacting to the
+/// event can immediately re-read the index without contending. Emit
+/// failures are logged and ignored (the mutation has already committed).
+#[tauri::command]
+pub fn toggle_task_status(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	path: String,
+	line_number: usize,
+) -> Result<ToggleTaskResult, String> {
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		toggle_task_status_inner(&mut idx, &path, line_number)?
+	};
+	if result.update_result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
+			debug_log(
+				"VAULT-V2",
+				format!(
+					"toggle_task_status: vault-index-updated emit failed: {}",
+					emit_err,
+				),
+			);
+		}
+	}
+	Ok(result)
 }
 
 /// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
