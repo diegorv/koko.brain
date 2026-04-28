@@ -7,6 +7,7 @@ import {
 } from './inline-formatting-plugin';
 import { highlightHandler } from './handlers/highlight-handler';
 import { headingHandlers } from './handlers/heading-handler';
+import { blockquoteHandler } from './handlers/blockquote-handler';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
@@ -15,6 +16,7 @@ import { headingHandlers } from './handlers/heading-handler';
 export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 	highlightHandler,
 	...headingHandlers,
+	blockquoteHandler,
 ];
 
 /**

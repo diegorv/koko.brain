@@ -9,6 +9,7 @@ import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/h
 
 const SAMPLE = '**bold** *italic* ~~strike~~ `code` ==hi==';
 const HEADINGS = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n';
+const BLOCKQUOTES = '> a\n> > b\n> > > c\n';
 
 /**
  * Mounts an EditorView in jsdom with the same extension stack the production
@@ -122,5 +123,24 @@ describe('new pipeline — DOM snapshot (jsdom)', () => {
 		for (const level of [1, 2, 3, 4, 5, 6]) {
 			expect(classes.has(`cm-lp-h${level}`)).toBe(true);
 		}
+	});
+
+	it('flag OFF: legacy blockquotePlugin emits cm-lp-blockquote, -2, -3 by depth', () => {
+		const { view, root } = mountView(BLOCKQUOTES);
+		cleanup = () => view.destroy();
+		const classes = classesIn(root);
+		expect(classes.has('cm-lp-blockquote')).toBe(true);
+		expect(classes.has('cm-lp-blockquote-2')).toBe(true);
+		expect(classes.has('cm-lp-blockquote-3')).toBe(true);
+	});
+
+	it('flag ON: new blockquoteHandler emits the same depth-aware classes', () => {
+		settingsStore.updateExperimental({ newLivePreview: true });
+		const { view, root } = mountView(BLOCKQUOTES);
+		cleanup = () => view.destroy();
+		const classes = classesIn(root);
+		expect(classes.has('cm-lp-blockquote')).toBe(true);
+		expect(classes.has('cm-lp-blockquote-2')).toBe(true);
+		expect(classes.has('cm-lp-blockquote-3')).toBe(true);
 	});
 });
