@@ -1,99 +1,124 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
-import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
-import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
-import { updateOutgoingLinksForFile, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
 
-describe('updateOutgoingLinksForFile', () => {
+import { invoke } from '@tauri-apps/api/core';
+import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { fetchOutgoingLinksV2, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
+
+describe('fetchOutgoingLinksV2 (Phase 6)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		noteIndexStore.reset();
 		outgoingLinksStore.reset();
 	});
 
-	it('populates outgoing links from wikilinks in file content', () => {
-		const content = 'Links to [[other]] and [[third]]';
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/note.md', content],
-			['/vault/other.md', 'Some content'],
-			['/vault/third.md', 'More content'],
-		]));
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/note.md', parseWikilinks(content)],
-		]));
+	it('invokes both v2 commands in parallel', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
 
-		updateOutgoingLinksForFile('/vault/note.md');
+		await fetchOutgoingLinksV2('/vault/note.md', 'body');
+
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/note.md' });
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_unlinked_mentions_v2', {
+			path: '/vault/note.md',
+			content: 'body',
+		});
+	});
+
+	it('writes resolved outgoing links to the store', async () => {
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return Promise.resolve([
+					{ target: 'a', alias: null, heading: null, resolvedPath: '/vault/a.md', position: 0 },
+					{ target: 'b', alias: 'alias', heading: 'sec', resolvedPath: null, position: 12 },
+				]);
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') return Promise.resolve([]);
+			return Promise.resolve(undefined);
+		});
+
+		await fetchOutgoingLinksV2('/vault/note.md', 'body');
 
 		expect(outgoingLinksStore.outgoingLinks).toHaveLength(2);
-		const targets = outgoingLinksStore.outgoingLinks.map(l => l.target);
-		expect(targets).toContain('other');
-		expect(targets).toContain('third');
+		expect(outgoingLinksStore.outgoingLinks[0]).toEqual({
+			target: 'a',
+			alias: null,
+			heading: null,
+			resolvedPath: '/vault/a.md',
+			position: 0,
+		});
+		expect(outgoingLinksStore.outgoingLinks[1].alias).toBe('alias');
+		expect(outgoingLinksStore.outgoingLinks[1].resolvedPath).toBeNull();
 	});
 
-	it('resolves link target to matching file path', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/note.md', '[[other]]'],
-			['/vault/other.md', 'content'],
-		]));
-		noteIndexStore.setNoteIndex(new Map());
+	it('deduplicates outgoing links by lowercase target (first occurrence wins)', async () => {
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return Promise.resolve([
+					{ target: 'note', alias: null, heading: null, resolvedPath: '/vault/note.md', position: 0 },
+					{ target: 'NOTE', alias: 'second', heading: null, resolvedPath: '/vault/note.md', position: 20 },
+					{ target: 'other', alias: null, heading: null, resolvedPath: '/vault/other.md', position: 40 },
+				]);
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') return Promise.resolve([]);
+			return Promise.resolve(undefined);
+		});
 
-		updateOutgoingLinksForFile('/vault/note.md');
+		await fetchOutgoingLinksV2('/vault/source.md', 'body');
 
-		expect(outgoingLinksStore.outgoingLinks[0].resolvedPath).toBe('/vault/other.md');
+		expect(outgoingLinksStore.outgoingLinks).toHaveLength(2);
+		expect(outgoingLinksStore.outgoingLinks[0].target).toBe('note');
+		expect(outgoingLinksStore.outgoingLinks[1].target).toBe('other');
 	});
 
-	it('deduplicates outgoing links with same target', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/note.md', '[[other]] and [[other]] again'],
-			['/vault/other.md', 'content'],
-		]));
-		noteIndexStore.setNoteIndex(new Map());
+	it('writes unlinked mentions to the store', async () => {
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') return Promise.resolve([]);
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return Promise.resolve([
+					{ noteName: 'alpha', notePath: '/vault/alpha.md', count: 2 },
+					{ noteName: 'beta', notePath: '/vault/beta.md', count: 1 },
+				]);
+			}
+			return Promise.resolve(undefined);
+		});
 
-		updateOutgoingLinksForFile('/vault/note.md');
+		await fetchOutgoingLinksV2('/vault/note.md', 'body');
 
-		expect(outgoingLinksStore.outgoingLinks).toHaveLength(1);
-		expect(outgoingLinksStore.outgoingLinks[0].target).toBe('other');
+		expect(outgoingLinksStore.unlinkedMentions).toEqual([
+			{ noteName: 'alpha', notePath: '/vault/alpha.md', count: 2 },
+			{ noteName: 'beta', notePath: '/vault/beta.md', count: 1 },
+		]);
 	});
 
-	it('finds unlinked mentions of other note names in plain text', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/note.md', 'Mentions other in plain text'],
-			['/vault/other.md', 'content'],
-		]));
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/note.md', []],
-			['/vault/other.md', []],
-		]));
+	it('preserves prior store contents when both invokes reject', async () => {
+		const prior = [
+			{ target: 'kept', alias: null, heading: null, resolvedPath: null, position: 0 },
+		];
+		outgoingLinksStore.setOutgoingLinks(prior);
+		vi.mocked(invoke).mockRejectedValue(new Error('IPC error'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		updateOutgoingLinksForFile('/vault/note.md');
+		await expect(fetchOutgoingLinksV2('/vault/note.md', 'body')).resolves.toBeUndefined();
 
-		expect(outgoingLinksStore.unlinkedMentions).toHaveLength(1);
-		expect(outgoingLinksStore.unlinkedMentions[0].noteName).toBe('other');
-		expect(outgoingLinksStore.unlinkedMentions[0].count).toBe(1);
+		expect(outgoingLinksStore.outgoingLinks).toEqual(prior);
+		consoleSpy.mockRestore();
 	});
 
-	it('returns empty results for file with no links or mentions', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/note.md', 'Just plain text'],
-		]));
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/note.md', []],
-		]));
+	it('handles empty results (clears the store)', async () => {
+		outgoingLinksStore.setOutgoingLinks([
+			{ target: 'old', alias: null, heading: null, resolvedPath: null, position: 0 },
+		]);
+		outgoingLinksStore.setUnlinkedMentions([
+			{ noteName: 'old', notePath: '/vault/old.md', count: 1 },
+		]);
+		vi.mocked(invoke).mockResolvedValue([]);
 
-		updateOutgoingLinksForFile('/vault/note.md');
+		await fetchOutgoingLinksV2('/vault/note.md', 'body');
 
 		expect(outgoingLinksStore.outgoingLinks).toEqual([]);
 		expect(outgoingLinksStore.unlinkedMentions).toEqual([]);
-	});
-
-	it('uses empty string content for unknown file', () => {
-		noteIndexStore.setNoteContents(new Map());
-		noteIndexStore.setNoteIndex(new Map());
-
-		updateOutgoingLinksForFile('/vault/unknown.md');
-
-		expect(outgoingLinksStore.outgoingLinks).toEqual([]);
 	});
 });
 

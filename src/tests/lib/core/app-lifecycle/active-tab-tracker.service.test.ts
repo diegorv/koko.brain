@@ -8,9 +8,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
-import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
-import * as outgoingLinksService from '$lib/features/outgoing-links/outgoing-links.service';
 
 describe('updateActiveTabLinks', () => {
 	beforeEach(() => {
@@ -39,22 +37,6 @@ describe('updateActiveTabLinks', () => {
 
 		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/note-a.md' });
 		expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/note-b.md');
-	});
-
-	it('populates outgoing links from wikilinks in the active file (TS path until Phase 6)', async () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/note-a.md', 'Link to [[note-b]]'],
-			['/vault/note-b.md', 'Target note'],
-		]));
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/note-a.md', parseWikilinks('Link to [[note-b]]')],
-			['/vault/note-b.md', parseWikilinks('Target note')],
-		]));
-
-		await updateActiveTabLinks('/vault/note-a.md');
-
-		expect(outgoingLinksStore.outgoingLinks.length).toBeGreaterThan(0);
-		expect(outgoingLinksStore.outgoingLinks[0].target).toBe('note-b');
 	});
 
 	it('skips computation when noteIndexStore is still loading', async () => {
@@ -114,16 +96,6 @@ describe('updateActiveTabLinks', () => {
 		await expect(updateActiveTabLinks('/vault/note-a.md')).resolves.toBeUndefined();
 
 		consoleSpy.mockRestore();
-	});
-
-	it('does not throw when updateOutgoingLinksForFile throws', async () => {
-		const spy = vi.spyOn(outgoingLinksService, 'updateOutgoingLinksForFile').mockImplementation(() => {
-			throw new Error('outgoing links exploded');
-		});
-
-		await expect(updateActiveTabLinks('/vault/note-a.md')).resolves.toBeUndefined();
-
-		spy.mockRestore();
 	});
 
 	it('marks unlinked mentions as dirty after the v2 fetch completes', async () => {

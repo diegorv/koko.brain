@@ -80,11 +80,11 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 6 - Rust Outgoing Links
 
-- [ ] **6.1** `commands/vault.rs::get_outgoing_links_v2(path)`. Reads `VaultIndex.entries[path].outgoing_links`.
-- [ ] **6.2** `commands/vault.rs::get_outgoing_unlinked_mentions_v2(path)`. Port `outgoing-links.logic.ts::findOutgoingUnlinkedMentions` word-boundary rules. Same word-boundary regex as TS.
-- [ ] **6.3** Add `experimental.rustOutgoing: boolean`. Branch `outgoing-links.service.ts`. Migrate `OutgoingLinksPanel.svelte` to consumer pattern (read `vaultIndexVersion`).
-- [ ] **6.4** Default-on after **2 days** of dogfooding.
-- [ ] **6.5** Delete TS orphans (`outgoing-links.service.ts` body, extract bits in logic). Trace-before-remove ritual.
+- [x] **6.1** `commands/vault.rs::get_outgoing_links_v2(path)`. Reads `VaultIndex.entries[path].outgoing_links`.
+- [x] **6.2** `commands/vault.rs::get_outgoing_unlinked_mentions_v2(path)`. Port `outgoing-links.logic.ts::findOutgoingUnlinkedMentions` word-boundary rules. Same word-boundary regex as TS.
+- [~] **6.3** Add `experimental.rustOutgoing: boolean`. Branch `outgoing-links.service.ts`. Migrate `OutgoingLinksPanel.svelte` to consumer pattern (read `vaultIndexVersion`). **Skipped flag — went straight to migrate per Phase 3 pattern (user-directed).**
+- [~] **6.4** Default-on after **2 days** of dogfooding. **Skipped per user direction (matches Phase 3 compression).**
+- [x] **6.5** Delete TS orphans (`outgoing-links.service.ts` body, extract bits in logic). Trace-before-remove ritual.
 
 ### Phase 7 - Rust Tag & Task Indexes
 

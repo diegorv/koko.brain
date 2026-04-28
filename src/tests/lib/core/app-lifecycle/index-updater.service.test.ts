@@ -8,20 +8,6 @@ vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	updateIndexForFile: vi.fn(),
 }));
 
-vi.mock('$lib/features/backlinks/note-index.store.svelte', () => ({
-	noteIndexStore: {
-		get noteContents() { return new Map(); },
-	},
-}));
-
-vi.mock('$lib/features/backlinks/backlinks.logic', () => ({
-	buildResolutionCache: vi.fn(() => new Map()),
-}));
-
-vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
-	updateOutgoingLinksForFile: vi.fn(),
-}));
-
 vi.mock('$lib/features/tags/tags.service', () => ({
 	updateTagIndexForFile: vi.fn(),
 }));
@@ -51,7 +37,6 @@ vi.mock('$lib/utils/debug', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
-import { updateOutgoingLinksForFile } from '$lib/features/outgoing-links/outgoing-links.service';
 import { updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
@@ -76,7 +61,6 @@ describe('updateIndexesForFile', () => {
 
 		expect(updateIndexForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/note.md', content: '# Hello world' });
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
@@ -89,7 +73,6 @@ describe('updateIndexesForFile', () => {
 
 		expect(updateIndexForFile).toHaveBeenCalledWith('', '');
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '', content: '' });
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('', expect.any(Array), expect.any(Map));
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('', '');
 		expect(updateNoteInIndex).toHaveBeenCalledWith('', '');
 		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('', '');
@@ -100,7 +83,6 @@ describe('updateIndexesForFile', () => {
 	it('calls updateIndexForFile before dependent updates', async () => {
 		const callOrder: string[] = [];
 		vi.mocked(updateIndexForFile).mockImplementation(() => { callOrder.push('updateIndexForFile'); });
-		vi.mocked(updateOutgoingLinksForFile).mockImplementation(() => { callOrder.push('updateOutgoingLinksForFile'); });
 		vi.mocked(updateTagIndexForFile).mockImplementation(() => { callOrder.push('updateTagIndexForFile'); });
 
 		await updateIndexesForFile('/vault/note.md', 'content');
@@ -116,7 +98,7 @@ describe('updateIndexesForFile', () => {
 		await updateIndexesForFile('/vault/note.md', 'content');
 
 		expect(updateIndexForFile).toHaveBeenCalled();
-		expect(updateOutgoingLinksForFile).toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', expect.any(Object));
 		expect(updateTaskIndexForFile).toHaveBeenCalled();
 		expect(updateNoteInIndex).toHaveBeenCalled();
 		expect(updateFrontmatterIconForFile).toHaveBeenCalled();

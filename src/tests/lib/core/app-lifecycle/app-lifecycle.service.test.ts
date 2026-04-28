@@ -68,7 +68,6 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 }));
 
 vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
-	updateOutgoingLinksForFile: vi.fn(),
 	resetOutgoingLinks: vi.fn(),
 }));
 
@@ -172,7 +171,7 @@ import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.serv
 import { startWatching, stopWatching, onFileChange } from '$lib/core/filesystem/fs.watcher';
 import { buildIndex, rebuildIndex, resetBacklinks } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, resetCollection } from '$lib/features/collection/collection.service';
-import { updateOutgoingLinksForFile, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
+import { resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
 import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
 import { resetSearch, buildSearchIndex } from '$lib/features/search/search.service';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
@@ -374,7 +373,7 @@ describe('initializeVault — file change listener', () => {
 		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 
-	it('refreshes active tab backlinks and outgoing links on file change', async () => {
+	it('runs the full set of index rebuilders on file change (backlinks + outgoing auto-refresh via vault-index-updated)', async () => {
 		let capturedCallback: ((paths: string[]) => void) | null = null;
 		vi.mocked(onFileChange).mockImplementation((cb) => {
 			capturedCallback = cb;
@@ -388,25 +387,10 @@ describe('initializeVault — file change listener', () => {
 		capturedCallback!(['/vault/note.md']);
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		// Backlinks now auto-refresh via vault-index-updated; only outgoing links runs here.
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md');
-	});
-
-	it('skips active tab refresh when no file is open', async () => {
-		let capturedCallback: ((paths: string[]) => void) | null = null;
-		vi.mocked(onFileChange).mockImplementation((cb) => {
-			capturedCallback = cb;
-			return vi.fn();
-		});
-		// editorStore.reset() already called in beforeEach — activeTabPath is null
-
-		await initializeVault('/vault');
-
-		vi.clearAllMocks();
-		capturedCallback!(['/vault/note.md']);
-		await new Promise((resolve) => setTimeout(resolve, 0));
-
-		expect(updateOutgoingLinksForFile).not.toHaveBeenCalled();
+		// Backlinks AND outgoing links auto-refresh via vault-index-updated
+		// after the watcher's incremental update_note_in_index calls — no
+		// explicit call here. Verify the TS-side rebuilders that still run.
+		expect(buildTagIndex).toHaveBeenCalled();
 	});
 });
 

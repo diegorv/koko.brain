@@ -5,20 +5,14 @@ import {
 	removeFileFromIndex,
 } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
-import {
-	updateOutgoingLinksForFile,
-} from '$lib/features/outgoing-links/outgoing-links.service';
 import { buildTagIndex, updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
 import { buildTaskIndex, updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
 import type { FileReadResult } from '$lib/core/filesystem/fs.types';
 
@@ -88,13 +82,8 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	try { scanFilesForCalendar(); } catch (err) { error('WATCHER', 'scanFilesForCalendar failed:', err); }
 
 	// rebuildIndex() above already invokes scan_vault_v2 which rebuilds the
-	// Rust VaultIndex AND emits `vault-index-updated` — `BacklinksPanel` will
-	// auto-refresh via its reactive `$effect`. Outgoing links still run on
-	// the TS path until Phase 6.
-	const activePath = editorStore.activeTabPath;
-	if (activePath) {
-		try { updateOutgoingLinksForFile(activePath); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
-	}
+	// Rust VaultIndex AND emits `vault-index-updated` — `BacklinksPanel` and
+	// `OutgoingLinksPanel` both auto-refresh via their reactive `$effect`s.
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
 
@@ -115,9 +104,6 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		vaultPath,
 		paths: absolutePaths,
 	});
-
-	const allFilePaths = Array.from(noteIndexStore.noteContents.keys());
-	const cache = buildResolutionCache(allFilePaths);
 
 	for (const result of readResults) {
 		// Use absolute paths directly — buildIndex stores absolute paths as map keys,
@@ -150,12 +136,9 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		}
 	}
 
-	// Refresh outgoing-links for the active tab. Backlinks auto-refresh via
-	// the `vault-index-updated` events emitted by the Rust calls above.
-	const activePath = editorStore.activeTabPath;
-	if (activePath) {
-		try { updateOutgoingLinksForFile(activePath, allFilePaths, cache); } catch (err) { error('WATCHER', 'updateOutgoingLinksForFile failed:', err); }
-	}
+	// `BacklinksPanel` AND `OutgoingLinksPanel` auto-refresh via their
+	// reactive `$effect`s on the `vault-index-updated` events emitted by
+	// the Rust calls above. Nothing extra to do here for the active tab.
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
 }
