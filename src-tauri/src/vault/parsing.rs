@@ -63,8 +63,10 @@ fn frontmatter_inner(content: &str) -> Option<&str> {
 
 /// Removes the leading frontmatter block (if any), returning the remaining
 /// body. Mirrors `text.replace(FRONTMATTER_REGEX, '')` from
-/// `tags.logic.ts::extractInlineTags`.
-fn strip_frontmatter(content: &str) -> &str {
+/// `tags.logic.ts::extractInlineTags`. Public because Phase 1.5's
+/// `NoteEntry::from_content` uses it for word-count and snippet derivation
+/// over the body only.
+pub fn strip_frontmatter(content: &str) -> &str {
 	match frontmatter_range(content) {
 		Some((_, end)) => &content[end..],
 		None => content,

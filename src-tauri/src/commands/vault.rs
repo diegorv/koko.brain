@@ -1,5 +1,6 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
+use crate::vault::entry::NoteEntry;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
@@ -98,6 +99,61 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
 
     sort_nodes(&mut nodes, sort_by);
     Ok(nodes)
+}
+
+/// Scans a vault and returns a `NoteEntry` for every markdown file under it.
+///
+/// This is the additive Phase 1.5 surface: an enriched view with title,
+/// frontmatter, outgoing links, tags, modification time, body word count,
+/// and a leading-paragraph snippet. The Phase 2 `VaultIndex` builds on top
+/// of these entries; Phase 3 starts migrating consumers to read from
+/// `VaultIndex` instead of the per-feature TS stores.
+///
+/// The original `scan_vault` (which returns the recursive `FileNode` tree
+/// the file explorer needs) is not affected and continues to be the source
+/// of truth for tree shape. `scan_vault_v2` only emits markdown leaves and
+/// uses absolute paths everywhere (CLAUDE.md Indexing & Watcher item 5).
+///
+/// Per-file read failures are logged via `debug_log("VAULT-V2", ...)` and
+/// silently skipped — one unreadable file must not poison the whole scan.
+/// The whole-directory failure path (e.g. permission denied on the vault
+/// root) still propagates as an `Err`.
+#[tauri::command]
+pub fn scan_vault_v2(path: String) -> Result<Vec<NoteEntry>, String> {
+	let start = std::time::Instant::now();
+	debug_log("VAULT-V2", format!("scan_vault_v2: starting on {}", path));
+	let root = vault_fs::validate_vault_path(&path)?;
+	let entries = vault_fs::collect_markdown_paths_with_mtime(&root, &[])?;
+	let total = entries.len();
+	let mut notes: Vec<NoteEntry> = Vec::with_capacity(total);
+	let mut skipped = 0usize;
+
+	for (_rel, abs, mtime) in entries {
+		let abs_path_str = abs.to_string_lossy().to_string();
+		match fs::read_to_string(&abs) {
+			Ok(content) => {
+				notes.push(NoteEntry::from_content(abs_path_str, &content, mtime));
+			}
+			Err(err) => {
+				skipped += 1;
+				debug_log(
+					"VAULT-V2",
+					format!("scan_vault_v2: skipping {} ({})", abs_path_str, err),
+				);
+			}
+		}
+	}
+
+	debug_log(
+		"VAULT-V2",
+		format!(
+			"scan_vault_v2: {} entries ({} skipped) in {}ms",
+			notes.len(),
+			skipped,
+			start.elapsed().as_millis(),
+		),
+	);
+	Ok(notes)
 }
 
 fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {

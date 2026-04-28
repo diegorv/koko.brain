@@ -9,9 +9,16 @@
 //! `search::fts_logic::extract_tags` keeps its own broader rules for FTS
 //! recall and intentionally diverges from this one.
 
+use crate::vault::parsing::{
+	extract_outgoing_links, extract_tags_strict, parse_frontmatter, strip_frontmatter,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
+
+/// Maximum length (in bytes) of `NoteEntry::snippet`. Truncation is at a
+/// codepoint boundary so the resulting `String` is always valid UTF-8.
+const SNIPPET_MAX_LEN: usize = 280;
 
 /// One outgoing wikilink in a note's body.
 ///
@@ -68,8 +75,92 @@ pub struct NoteEntry {
 	pub modified_at: i64,
 	/// Whitespace-delimited word count of the body (post-frontmatter).
 	pub word_count: usize,
-	/// First non-empty body paragraph, capped at 280 chars. Used by the
-	/// future quick-switcher and command-palette previews so they don't
-	/// have to re-read the file.
+	/// First non-empty body paragraph, capped at `SNIPPET_MAX_LEN` bytes
+	/// (truncated at a codepoint boundary). Used by the future quick-
+	/// switcher and command-palette previews so they don't have to re-read
+	/// the file.
 	pub snippet: String,
+}
+
+impl NoteEntry {
+	/// Builds a `NoteEntry` from a file's path, raw content, and last-
+	/// modified timestamp. The `path` and `modified_at` are passed through
+	/// verbatim; `title`, `frontmatter`, `outgoing_links`, `tags`,
+	/// `word_count`, and `snippet` are derived from `content`.
+	///
+	/// `word_count` and `snippet` are computed over the BODY (post-
+	/// frontmatter) so heavy frontmatter does not inflate counts or
+	/// produce useless previews.
+	pub fn from_content(path: String, content: &str, modified_at: i64) -> Self {
+		let title = extract_title_from_path(&path);
+		let frontmatter = parse_frontmatter(content);
+		let outgoing_links = extract_outgoing_links(content);
+		let tags = extract_tags_strict(content);
+		let body = strip_frontmatter(content);
+		let word_count = compute_word_count(body);
+		let snippet = compute_snippet(body);
+		Self {
+			path,
+			title,
+			frontmatter,
+			outgoing_links,
+			tags,
+			modified_at,
+			word_count,
+			snippet,
+		}
+	}
+}
+
+/// Extracts the title from a file path: filename without `.md` /
+/// `.markdown` suffix. Equivalent to
+/// `backlinks.logic.ts::getNoteName(path)`.
+fn extract_title_from_path(path: &str) -> String {
+	let name = path.rsplit('/').next().unwrap_or(path);
+	name.strip_suffix(".md")
+		.or_else(|| name.strip_suffix(".markdown"))
+		.unwrap_or(name)
+		.to_string()
+}
+
+/// Counts whitespace-delimited words in `body`. Empty bodies and bodies
+/// containing only whitespace return 0.
+fn compute_word_count(body: &str) -> usize {
+	body.split_whitespace().count()
+}
+
+/// Returns the leading body content as a snippet: every non-blank line
+/// (in document order, post-frontmatter) joined with single spaces, then
+/// truncated to `SNIPPET_MAX_LEN` bytes at a codepoint boundary.
+///
+/// Blank lines are collapsed (skipped silently) rather than treated as
+/// paragraph breaks. This keeps headings+paragraphs preview-friendly:
+/// `# Title\n\nLead text` produces `"# Title Lead text"`, whereas a
+/// stop-at-blank-line strategy would emit only `"# Title"` and lose the
+/// useful preview content. Markdown structure (headings, code fences,
+/// list markers) is preserved verbatim — the consumer's renderer decides
+/// how to display it.
+fn compute_snippet(body: &str) -> String {
+	let mut snippet = String::new();
+	for line in body.lines() {
+		let trimmed = line.trim();
+		if trimmed.is_empty() {
+			continue;
+		}
+		if !snippet.is_empty() {
+			snippet.push(' ');
+		}
+		snippet.push_str(trimmed);
+		if snippet.len() >= SNIPPET_MAX_LEN {
+			break;
+		}
+	}
+	if snippet.len() > SNIPPET_MAX_LEN {
+		let mut end = SNIPPET_MAX_LEN;
+		while end > 0 && !snippet.is_char_boundary(end) {
+			end -= 1;
+		}
+		snippet.truncate(end);
+	}
+	snippet
 }
