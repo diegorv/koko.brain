@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
@@ -7,6 +8,7 @@ import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { debug, error } from '$lib/utils/debug';
 
@@ -176,6 +178,18 @@ export function notifyAfterSave(filePath: string, content: string): void {
 		try { updateNoteInIndex(filePath, content); } catch (err) { error('HOOKS', 'updateNoteInIndex after save failed:', err); }
 		try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('HOOKS', 'updateFrontmatterIconForFile after save failed:', err); }
 		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
+
+		// Phase 3.5: parallel-run the Rust VaultIndex update so save-driven
+		// `vault-index-updated` events bump `vaultStore.vaultIndexVersion` and
+		// the `BacklinksPanel.svelte` consumer effect re-fetches via
+		// `get_backlinks_v2`. Fire-and-forget — the Rust side is still being
+		// validated for parity with the TS indexers above (Phase 3.6
+		// comparison), so a failure here must not block the TS path.
+		if (settingsStore.experimental.rustBacklinks) {
+			invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
+				error('HOOKS', 'update_note_in_index after save failed:', err);
+			});
+		}
 	}
 
 	invalidateQueryjsCache();
