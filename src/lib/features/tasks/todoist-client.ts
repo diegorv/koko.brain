@@ -1,4 +1,4 @@
-import { TodoistApi } from '@doist/todoist-api-typescript';
+import { TodoistApi } from '@doist/todoist-sdk';
 import { createTauriFetchAdapter } from './tauri-fetch-adapter';
 
 /**
