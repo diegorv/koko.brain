@@ -170,4 +170,25 @@ impl VaultIndex {
 
 		self.version += 1;
 	}
+
+	/// Returns every `NoteEntry` whose outgoing links resolve to `path`,
+	/// sorted by title (case-insensitive) for stable UI ordering.
+	///
+	/// Defensively filters out entries whose paths are missing from
+	/// `entries` — should not happen in normal operation (the reverse
+	/// index is updated in lock-step with entries), but it keeps the
+	/// panel rendering safe across watcher races and hand-built test
+	/// fixtures. Mirrors the consumer-side semantics of
+	/// `findLinkedMentionsFromReverse` from `backlinks.logic.ts:183`.
+	pub fn lookup_backlinks(&self, path: &str) -> Vec<NoteEntry> {
+		let mut sources: Vec<NoteEntry> = match self.backlinks.get(path) {
+			Some(set) => set
+				.iter()
+				.filter_map(|p| self.entries.get(p).cloned())
+				.collect(),
+			None => Vec::new(),
+		};
+		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		sources
+	}
 }
