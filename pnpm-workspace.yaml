@@ -1,6 +1,6 @@
 # Supply chain defense: refuse to resolve any package version
-# published less than 14 days (20160 minutes) ago.
+# published less than 7 days (10080 minutes) ago.
 # See: https://pnpm.io/settings#minimumreleaseage
-minimumReleaseAge: 20160
+minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   - '@tauri-apps/*'
