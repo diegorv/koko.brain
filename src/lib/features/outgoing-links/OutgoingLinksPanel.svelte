@@ -1,13 +1,33 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { ChevronRight, ExternalLink, Type, FileText, AlertCircle } from 'lucide-svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { outgoingLinksStore } from './outgoing-links.store.svelte';
+	import { fetchOutgoingLinksV2 } from './outgoing-links.service';
 
 	let linksOpen = $state(true);
 	let unlinkedOpen = $state(true);
+
+	// Refresh outgoing links + unlinked mentions on active path change OR
+	// on `vaultIndexVersion` bumps (save / watcher / external mutation).
+	// Same shape as `BacklinksPanel.svelte` (Phase 3.4 / Phase 6).
+	$effect(() => {
+		const path = editorStore.activeTabPath;
+		// Read version so the effect re-runs on bump even when path is unchanged.
+		const _version = vaultStore.vaultIndexVersion;
+		if (!path) {
+			outgoingLinksStore.reset();
+			return;
+		}
+		untrack(() => {
+			const content = editorStore.activeTab?.content ?? '';
+			fetchOutgoingLinksV2(path, content).catch(() => { /* fetchOutgoingLinksV2 already logs */ });
+		});
+	});
 </script>
 
 <div class="flex flex-col">
