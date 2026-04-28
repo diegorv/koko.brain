@@ -6,9 +6,17 @@ import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { calloutFoldState, toggleCalloutFold } from '../core/effects';
 import { hiddenLineDeco } from '../styles';
+import { CALLOUT_COLORS } from '../../callout/callout.logic';
 import { profileStart, profileEnd } from '../core/profiling';
 
-/** Widget that renders a fold chevron (▶/▼) for foldable callouts */
+/**
+ * Callout type list shown in the type-switcher dropdown. Drawn from
+ * `CALLOUT_COLORS` keys so the dropdown matches the parser's recognised
+ * set. Sorted alphabetically for predictability.
+ */
+const CALLOUT_TYPES: readonly string[] = Object.keys(CALLOUT_COLORS).sort();
+
+/** Widget that renders a fold chevron (▶/▼) for any callout (foldable or not) */
 class CalloutFoldWidget extends WidgetType {
 	constructor(
 		readonly isCollapsed: boolean,
@@ -38,6 +46,84 @@ class CalloutFoldWidget extends WidgetType {
 	}
 }
 
+/**
+ * Type-switcher widget. Renders a clickable label showing the current
+ * callout type; clicking opens a popover with every supported type. On
+ * pick, a single transaction rewrites just the type token in the source.
+ * The border colour follows automatically because `findAllCallouts`
+ * re-reads the type and `CALLOUT_COLORS[type]` resolves the new colour.
+ */
+class CalloutTypeSwitcherWidget extends WidgetType {
+	constructor(
+		readonly currentType: string,
+		readonly typeFrom: number,
+		readonly typeTo: number,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		const wrap = document.createElement('span');
+		wrap.className = 'cm-lp-callout-type-switcher';
+
+		const label = document.createElement('button');
+		label.type = 'button';
+		label.className = 'cm-lp-callout-type-label';
+		label.textContent = this.currentType;
+		label.title = 'Change callout type';
+
+		const popover = document.createElement('div');
+		popover.className = 'cm-lp-callout-type-popover';
+		popover.style.display = 'none';
+		for (const type of CALLOUT_TYPES) {
+			const opt = document.createElement('button');
+			opt.type = 'button';
+			opt.className = 'cm-lp-callout-type-option';
+			if (type === this.currentType) opt.classList.add('cm-lp-callout-type-option-current');
+			opt.textContent = type;
+			opt.addEventListener('mousedown', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				view.dispatch({
+					changes: { from: this.typeFrom, to: this.typeTo, insert: type },
+					userEvent: 'input.callout.set-type',
+				});
+				popover.style.display = 'none';
+			});
+			popover.appendChild(opt);
+		}
+
+		label.addEventListener('mousedown', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			popover.style.display = popover.style.display === 'none' ? 'block' : 'none';
+		});
+
+		// Close popover on outside click
+		const onDocMousedown = (e: MouseEvent) => {
+			if (!wrap.contains(e.target as Node)) popover.style.display = 'none';
+		};
+		document.addEventListener('mousedown', onDocMousedown);
+
+		wrap.appendChild(label);
+		wrap.appendChild(popover);
+		return wrap;
+	}
+
+	eq(other: CalloutTypeSwitcherWidget) {
+		return (
+			this.currentType === other.currentType &&
+			this.typeFrom === other.typeFrom &&
+			this.typeTo === other.typeTo
+		);
+	}
+
+	ignoreEvent(event: Event) {
+		// Allow mouse events through so the popover stays interactive
+		return event.type !== 'mousedown' && event.type !== 'click';
+	}
+}
+
 /** Computes callout decorations using the Lezer syntax tree */
 export function computeCallouts(state: EditorState): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
@@ -53,29 +139,54 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			attributes: { style: `border-left-color: ${header.color}` },
 		});
 
-		// Determine fold state
-		const isFoldable = header.foldable !== null;
-		let isCollapsed = false;
-		if (isFoldable) {
-			if (foldedLines.has(callout.startLine)) {
-				// User toggled — inverted from default
-				isCollapsed = header.foldable === '+'; // default expanded, toggled = collapsed
-			} else {
-				// Default state
-				isCollapsed = header.foldable === '-';
-			}
+		// Phase 17: every callout is foldable. Default state for non-foldable
+		// callouts (no `+`/`-` marker) is "expanded"; the `+` marker also
+		// defaults to expanded. `-` defaults to collapsed. Toggle via
+		// `calloutFoldState` inverts the default.
+		const isFoldable = true;
+		let isCollapsed: boolean;
+		if (foldedLines.has(callout.startLine)) {
+			// User toggled — inverted from default
+			isCollapsed = header.foldable === '+' || header.foldable === null;
+		} else {
+			// Default state — `-` starts collapsed, everything else expanded
+			isCollapsed = header.foldable === '-';
 		}
 
 		const markerCls = isTouched
 			? 'cm-formatting-block cm-formatting-block-visible'
 			: 'cm-formatting-block';
 
-		// Header line: line deco + mark on marker + optional fold chevron + optional title mark
+		// Header line: line deco + (optional) type-switcher widget + mark on marker
+		// + (optional) fold chevron + optional title mark.
+		// RangeSetBuilder requires sorted (from, startSide) order — additions are
+		// arranged below to honour that.
 		const headerLine = state.doc.line(callout.startLine);
 		builder.add(headerLine.from, headerLine.from, lineDeco);
+
+		// Type-switcher widget at marker start (side -1 → before the mark below).
+		// Phase 17: every callout gets it (regardless of `+`/`-` marker).
+		if (isFoldable && !isTouched) {
+			const typeBracketIdx = headerLine.text.indexOf('[!');
+			if (typeBracketIdx >= 0) {
+				const typeFrom = headerLine.from + typeBracketIdx + 2;
+				const typeTo = typeFrom + header.type.length;
+				builder.add(
+					header.markerFrom,
+					header.markerFrom,
+					Decoration.widget({
+						widget: new CalloutTypeSwitcherWidget(header.type, typeFrom, typeTo),
+						side: -1,
+					}),
+				);
+			}
+		}
+
+		// Mark hides the marker text (`> [!type]`) — runs after the type-switcher
+		// widget at the same start position thanks to its side-0 default.
 		builder.add(header.markerFrom, header.markerTo, Decoration.mark({ class: markerCls }));
 
-		// Add fold chevron widget after the marker (before title) — only when not editing
+		// Fold chevron widget at markerTo. Phase 17: every callout gets a chevron.
 		if (isFoldable && !isTouched) {
 			builder.add(
 				header.markerTo,
