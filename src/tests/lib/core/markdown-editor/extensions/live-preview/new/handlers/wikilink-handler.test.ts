@@ -71,13 +71,6 @@ describe('wikilinkHandler', () => {
 		expect(decos.find((d) => d.class === 'cm-lp-wikilink')).toBeUndefined();
 	});
 
-	it('reveals source under raw mode', () => {
-		settingsStore.updateEditor({ rawMode: true });
-		const doc = 'See [[Target]] note\n\nplain';
-		const decos = build(doc, doc.length);
-		expect(decos.find((d) => d.class === 'cm-lp-wikilink')).toBeUndefined();
-	});
-
 	it('emits no decoration for plain text', () => {
 		expect(build('plain text without wikilinks')).toEqual([]);
 	});

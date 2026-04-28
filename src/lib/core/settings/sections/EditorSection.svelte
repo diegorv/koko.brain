@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Command from '$lib/components/ui/command';
 	import { settingsStore } from '../settings.store.svelte';
@@ -38,19 +37,6 @@
 
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Editor</h2>
-
-	<SettingItem
-		label="Raw mode"
-		description="Show all markdown source regardless of cursor position. Toggle with Cmd+K."
-	>
-		<Switch
-			checked={settingsStore.editor.rawMode}
-			onCheckedChange={(value) => {
-				settingsStore.updateEditor({ rawMode: value });
-				onchange();
-			}}
-		/>
-	</SettingItem>
 
 	<SettingItem
 		label="Font family"

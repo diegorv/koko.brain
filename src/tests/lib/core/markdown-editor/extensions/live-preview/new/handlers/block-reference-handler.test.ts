@@ -42,14 +42,6 @@ describe('blockReferenceHandler', () => {
 		expect(visible).toBeDefined();
 	});
 
-	it('reveals ^block-id under raw mode regardless of cursor', () => {
-		settingsStore.updateEditor({ rawMode: true });
-		const doc = 'paragraph text ^id-abc\nplain';
-		const decos = build(doc, doc.length);
-		const visible = decos.find((d) => d.class === 'cm-lp-block-ref');
-		expect(visible).toBeDefined();
-	});
-
 	it('emits no decoration for a line without a block reference', () => {
 		const decos = build('plain text without ref');
 		expect(decos).toEqual([]);

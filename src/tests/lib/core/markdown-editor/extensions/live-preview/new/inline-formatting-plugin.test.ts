@@ -124,19 +124,6 @@ describe('buildInlineDecorations', () => {
 			expect(seen).toEqual([false, true]);
 		});
 
-		it('isTouched returns true under raw mode regardless of cursor', () => {
-			settingsStore.updateEditor({ rawMode: true });
-			const seen: boolean[] = [];
-			const handler: NodeHandler = {
-				nodeType: 'StrongEmphasis',
-				decorate({ node, isTouched }) {
-					seen.push(isTouched(node.from, node.to));
-				},
-			};
-			// Cursor at pos 12 ("outside" word — well past the bold range 0-8)
-			build('**bold** outside', { nodeHandlers: [handler], lineHandlers: [] }, 12);
-			expect(seen).toEqual([true]);
-		});
 	});
 
 	describe('line handler dispatch', () => {

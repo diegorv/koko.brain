@@ -10,7 +10,7 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	closeActiveTab: vi.fn(),
 	switchToNextTab: vi.fn(),
 	switchToPreviousTab: vi.fn(),
-	toggleRawMode: vi.fn(),
+	toggleSourceMode: vi.fn(),
 }));
 
 vi.mock('$lib/features/quick-switcher/quick-switcher.store.svelte', () => ({
@@ -80,7 +80,7 @@ vi.mock('$lib/core/zoom/zoom.service', () => ({
 
 import { registerKeybinding } from '$lib/utils/keybindings';
 import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
-import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleRawMode } from '$lib/core/editor/editor.service';
+import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleSourceMode } from '$lib/core/editor/editor.service';
 import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
@@ -242,7 +242,7 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
-	it('registers Cmd+K for raw mode toggle', () => {
+	it('registers Cmd+K for source-mode toggle', () => {
 		registerGlobalKeybindings();
 
 		expect(registerKeybinding).toHaveBeenCalledWith(
@@ -462,13 +462,13 @@ describe('registerGlobalKeybindings', () => {
 			expect(resetZoom).toHaveBeenCalledTimes(1);
 		});
 
-		it('Cmd+K handler calls toggleRawMode', () => {
+		it('Cmd+K handler calls toggleSourceMode', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'k', meta: true });
 
 			handler();
 
-			expect(toggleRawMode).toHaveBeenCalledTimes(1);
+			expect(toggleSourceMode).toHaveBeenCalledTimes(1);
 		});
 	});
 });

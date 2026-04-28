@@ -78,13 +78,6 @@ describe('extendedAutolinkHandler — bare https://… URLs', () => {
 		expect(linkTexts).toHaveLength(1);
 	});
 
-	it('reveals source under raw mode', () => {
-		settingsStore.updateEditor({ rawMode: true });
-		const doc = 'visit https://example.com here\n\nplain';
-		const decos = build(doc, doc.length);
-		expect(decos.find((d) => d.class === 'cm-lp-link')).toBeUndefined();
-	});
-
 	it('emits no decoration for plain text', () => {
 		expect(build('plain text without urls')).toEqual([]);
 	});
