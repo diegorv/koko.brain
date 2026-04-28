@@ -164,11 +164,15 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 		await refreshTree();
 		const { closeTabsForDeletedPath } = await import('$lib/core/editor/editor.service');
 		const { removeFileFromIndex } = await import('$lib/features/backlinks/backlinks.service');
-		const { removeFileFromTagIndex } = await import('$lib/features/tags/tags.service');
+		const { invoke } = await import('@tauri-apps/api/core');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
 		closeTabsForDeletedPath(itemPath);
 		removeFileFromIndex(itemPath);
-		removeFileFromTagIndex(itemPath);
+		// Phase 7.5: drop the entry from the Rust `VaultIndex` (entries +
+		// tags_index + backlinks + by_path) so panels reactively refetch.
+		invoke('remove_note_from_index', { path: itemPath }).catch((err) =>
+			error('FS', 'remove_note_from_index failed:', err)
+		);
 		quickSwitcherStore.removeRecentPath(itemPath);
 		debug('FS', 'deleted item:', itemPath);
 		return true;
@@ -201,8 +205,12 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		updateTabAfterRenameOrMove(oldPath, newPath);
 		await refreshTree();
 
-		const { removeFileFromTagIndex } = await import('$lib/features/tags/tags.service');
-		removeFileFromTagIndex(oldPath);
+		const { invoke } = await import('@tauri-apps/api/core');
+		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
+		// new path will get re-indexed via the watcher (or the next save).
+		invoke('remove_note_from_index', { path: oldPath }).catch((err) =>
+			error('FS', 'remove_note_from_index failed:', err)
+		);
 
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		if (vaultStore.path) {
@@ -235,8 +243,12 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 
 		updateTabAfterRenameOrMove(sourcePath, newPath);
 
-		const { removeFileFromTagIndex } = await import('$lib/features/tags/tags.service');
-		removeFileFromTagIndex(sourcePath);
+		const { invoke } = await import('@tauri-apps/api/core');
+		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
+		// destination path gets re-indexed via the watcher (or the next save).
+		invoke('remove_note_from_index', { path: sourcePath }).catch((err) =>
+			error('FS', 'remove_note_from_index failed:', err)
+		);
 
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		if (vaultStore.path) {

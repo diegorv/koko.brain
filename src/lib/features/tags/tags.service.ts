@@ -1,110 +1,48 @@
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
-import { debug, timeSync } from '$lib/utils/debug';
+import { invoke } from '@tauri-apps/api/core';
+import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
 import { tagsStore } from './tags.store.svelte';
-import {
-	extractAllTags,
-	addFileToTagMap,
-	removeFileFromTagMap,
-	tagMapToEntries,
-	tagsEqual,
-	buildTagTree,
-	sortTagTree,
-	type TagAggregateMap,
-} from './tags.logic';
-
-/** Persistent aggregate of all tags across the vault, keyed by lowercase tag */
-let tagMap: TagAggregateMap = new Map();
-/** Reverse index: which tags each file contributes (original case) */
-let fileTagsIndex = new Map<string, string[]>();
+import { buildTagTree, sortTagTree } from './tags.logic';
+import type { TagAggregateV2 } from '$lib/types/vault-v2.types';
 
 /**
- * Builds the full tag index from all indexed note contents.
- * Populates the persistent tagMap and fileTagsIndex for incremental updates.
+ * Builds the tag tree from the Rust `VaultIndex`. Phase 7.5 — replaces
+ * the previous TS-side `extractAllTags` per-file scan with a single
+ * `invoke('get_all_tags_v2')` call that returns the pre-aggregated tag
+ * info. The TS pure helpers `buildTagTree` and `sortTagTree` still build
+ * the hierarchical UI shape from the flat aggregates.
  */
-export function buildTagIndex() {
-	timeSync('TAGS', 'buildTagIndex', () => {
-		tagsStore.setLoading(true);
-
-		const noteContents = noteIndexStore.noteContents;
-
-		tagMap = new Map();
-		fileTagsIndex = new Map();
-
-		for (const [filePath, content] of noteContents) {
-			const tags = extractAllTags(content);
-			fileTagsIndex.set(filePath, tags);
-			addFileToTagMap(tagMap, filePath, tags);
-		}
-
-		const entries = tagMapToEntries(tagMap);
-		const tree = buildTagTree(entries);
-		const sorted = sortTagTree(tree, tagsStore.sortMode);
-
-		tagsStore.setTagTree(sorted);
-		tagsStore.setTotalTagCount(entries.length);
+export async function buildTagIndex(): Promise<void> {
+	tagsStore.setLoading(true);
+	try {
+		await timeAsync('TAGS', 'buildTagIndex', async () => {
+			const aggregates = await invoke<TagAggregateV2[]>('get_all_tags_v2');
+			const entries = aggregates.map((a) => ({
+				name: a.name,
+				count: a.count,
+				filePaths: a.filePaths,
+			}));
+			const tree = sortTagTree(buildTagTree(entries), tagsStore.sortMode);
+			tagsStore.setTagTree(tree);
+			tagsStore.setTotalTagCount(entries.length);
+			debug('TAGS', `Tags: ${entries.length} unique tags`);
+		});
+	} catch (err) {
+		errorLog('TAGS', 'buildTagIndex failed:', err);
+	} finally {
 		tagsStore.setLoading(false);
-		debug('TAGS', `Tags: ${entries.length} unique tags`);
-	});
+	}
 }
 
 /**
- * Incrementally updates the tag index for a single file's content change.
- * Skips the update entirely if the file's tags haven't changed.
+ * Updates the sort mode and re-sorts the existing tree. No IPC — the
+ * sort is a pure transformation of the in-memory tree.
  */
-export function updateTagIndexForFile(filePath: string, content: string) {
-	const oldTags = fileTagsIndex.get(filePath) ?? [];
-	const newTags = extractAllTags(content);
-
-	if (tagsEqual(oldTags, newTags)) return;
-
-	removeFileFromTagMap(tagMap, filePath, oldTags);
-	addFileToTagMap(tagMap, filePath, newTags);
-	fileTagsIndex.set(filePath, newTags);
-
-	const entries = tagMapToEntries(tagMap);
-	const tree = buildTagTree(entries);
-	const sorted = sortTagTree(tree, tagsStore.sortMode);
-
-	tagsStore.setTagTree(sorted);
-	tagsStore.setTotalTagCount(entries.length);
-}
-
-/**
- * Updates the sort mode and rebuilds the tag tree from the existing aggregate map.
- */
-export function updateTagSort(mode: 'name' | 'count') {
+export function updateTagSort(mode: 'name' | 'count'): void {
 	tagsStore.setSortMode(mode);
-
-	const entries = tagMapToEntries(tagMap);
-	const tree = buildTagTree(entries);
-	const sorted = sortTagTree(tree, mode);
-
-	tagsStore.setTagTree(sorted);
+	tagsStore.setTagTree(sortTagTree(tagsStore.tagTree, mode));
 }
 
-/**
- * Removes a file from the tag index when it is deleted or renamed.
- * Updates tagMap, fileTagsIndex, and rebuilds the tag tree.
- */
-export function removeFileFromTagIndex(filePath: string) {
-	const oldTags = fileTagsIndex.get(filePath);
-	if (!oldTags) return;
-
-	removeFileFromTagMap(tagMap, filePath, oldTags);
-	fileTagsIndex.delete(filePath);
-
-	const entries = tagMapToEntries(tagMap);
-	const tree = buildTagTree(entries);
-	const sorted = sortTagTree(tree, tagsStore.sortMode);
-
-	tagsStore.setTagTree(sorted);
-	tagsStore.setTotalTagCount(entries.length);
-	debug('TAGS', `Removed file from tag index: ${filePath}`);
-}
-
-/** Resets all tag state including the persistent aggregate maps. */
-export function resetTags() {
-	tagMap = new Map();
-	fileTagsIndex = new Map();
+/** Resets all tag state. */
+export function resetTags(): void {
 	tagsStore.reset();
 }

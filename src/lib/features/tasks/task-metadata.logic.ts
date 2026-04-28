@@ -1,4 +1,4 @@
-import type { TaskMetadata, TaskPriority, TaskStatus, RecurrenceRule } from './task-metadata.types';
+import type { TaskMetadata, TaskPriority, TaskStatus } from './task-metadata.types';
 
 /**
  * Date signifier patterns: emoji followed by a YYYY-MM-DD date.
@@ -162,55 +162,6 @@ export function parseTaskMetadata(rawText: string): TaskMetadata {
 }
 
 /**
- * Serializes TaskMetadata back into a text string with emoji signifiers.
- * Useful for round-trip testing and potential future editing.
- */
-export function serializeTaskMetadata(metadata: TaskMetadata): string {
-	const parts: string[] = [metadata.description];
-
-	// Priority
-	if (metadata.priority) {
-		const priorityEmoji = PRIORITY_PATTERNS.find((p) => p.priority === metadata.priority);
-		if (priorityEmoji) parts.push(priorityEmoji.emoji);
-	}
-
-	// Dates
-	for (const { emoji, field } of DATE_PATTERNS) {
-		const value = metadata[field as keyof TaskMetadata];
-		if (typeof value === 'string' && value) {
-			parts.push(`${emoji} ${value}`);
-		}
-	}
-
-	// Recurrence
-	if (metadata.recurrence) {
-		parts.push(`\u{1F501} ${metadata.recurrence.text}`);
-	}
-
-	// ID
-	if (metadata.id) {
-		parts.push(`\u{1F194} ${metadata.id}`);
-	}
-
-	// DependsOn
-	if (metadata.dependsOn && metadata.dependsOn.length > 0) {
-		parts.push(`\u{26D4} ${metadata.dependsOn.join(',')}`);
-	}
-
-	// OnCompletion
-	if (metadata.onCompletion) {
-		parts.push(`\u{1F3C1} ${metadata.onCompletion}`);
-	}
-
-	// Tags
-	for (const tag of metadata.tags) {
-		parts.push(`#${tag}`);
-	}
-
-	return parts.filter(Boolean).join(' ');
-}
-
-/**
  * Maps a checkbox character to a TaskStatus.
  * Supports standard and extended checkbox chars from the Tasks plugin.
  */
@@ -233,31 +184,6 @@ export function mapCheckboxChar(char: string): TaskStatus {
 			return 'important';
 		default:
 			return 'todo';
-	}
-}
-
-/**
- * Maps a TaskStatus back to a checkbox character.
- * Inverse of mapCheckboxChar.
- */
-export function statusToCheckboxChar(status: TaskStatus): string {
-	switch (status) {
-		case 'todo':
-			return ' ';
-		case 'done':
-			return 'x';
-		case 'cancelled':
-			return '-';
-		case 'in-progress':
-			return '/';
-		case 'question':
-			return '?';
-		case 'forwarded':
-			return '>';
-		case 'important':
-			return '!';
-		default:
-			return ' ';
 	}
 }
 

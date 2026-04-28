@@ -126,29 +126,6 @@ export function extractAllTags(content: string): string[] {
 	return Array.from(seen.values());
 }
 
-export function aggregateTags(noteContents: Map<string, string>): TagEntry[] {
-	const tagMap = new Map<string, { name: string; filePaths: Set<string> }>();
-
-	for (const [filePath, content] of noteContents) {
-		const tags = extractAllTags(content);
-		for (const tag of tags) {
-			const lower = tag.toLowerCase();
-			const existing = tagMap.get(lower);
-			if (existing) {
-				existing.filePaths.add(filePath);
-			} else {
-				tagMap.set(lower, { name: tag, filePaths: new Set([filePath]) });
-			}
-		}
-	}
-
-	return Array.from(tagMap.values()).map(({ name, filePaths }) => ({
-		name,
-		count: filePaths.size,
-		filePaths: Array.from(filePaths),
-	}));
-}
-
 export function buildTagTree(entries: TagEntry[]): TagTreeNode[] {
 	const root: TagTreeNode[] = [];
 
@@ -194,81 +171,6 @@ function computeTotalCounts(nodes: TagTreeNode[]): number {
 		total += node.totalCount;
 	}
 	return total;
-}
-
-/** Aggregate map entry: original-cased tag name and set of file paths that use it */
-export interface TagMapEntry {
-	name: string;
-	filePaths: Set<string>;
-}
-
-/** Aggregate map keyed by lowercase tag name */
-export type TagAggregateMap = Map<string, TagMapEntry>;
-
-/**
- * Removes a file's contribution from the tag aggregate map.
- * For each of the file's old tags, removes the filePath from the entry.
- * Deletes the entry entirely if no files reference it anymore.
- */
-export function removeFileFromTagMap(
-	tagMap: TagAggregateMap,
-	filePath: string,
-	oldTags: string[],
-): void {
-	for (const tag of oldTags) {
-		const lower = tag.toLowerCase();
-		const entry = tagMap.get(lower);
-		if (entry) {
-			entry.filePaths.delete(filePath);
-			if (entry.filePaths.size === 0) {
-				tagMap.delete(lower);
-			}
-		}
-	}
-}
-
-/**
- * Adds a file's tags to the tag aggregate map.
- * Creates new entries for tags not yet in the map.
- */
-export function addFileToTagMap(
-	tagMap: TagAggregateMap,
-	filePath: string,
-	tags: string[],
-): void {
-	for (const tag of tags) {
-		const lower = tag.toLowerCase();
-		const existing = tagMap.get(lower);
-		if (existing) {
-			existing.filePaths.add(filePath);
-		} else {
-			tagMap.set(lower, { name: tag, filePaths: new Set([filePath]) });
-		}
-	}
-}
-
-/**
- * Converts the tag aggregate map to a TagEntry array suitable for tree building.
- */
-export function tagMapToEntries(tagMap: TagAggregateMap): TagEntry[] {
-	return Array.from(tagMap.values()).map(({ name, filePaths }) => ({
-		name,
-		count: filePaths.size,
-		filePaths: Array.from(filePaths),
-	}));
-}
-
-/**
- * Checks whether two tag arrays are equivalent (case-insensitive).
- * Uses case-insensitive comparison to match the aggregation logic
- * in buildTagTree(), which deduplicates tags case-insensitively.
- */
-export function tagsEqual(a: string[], b: string[]): boolean {
-	if (a.length !== b.length) return false;
-	const lower = (s: string) => s.toLowerCase();
-	const sortedA = [...a].map(lower).sort();
-	const sortedB = [...b].map(lower).sort();
-	return sortedA.every((tag, i) => tag === sortedB[i]);
 }
 
 /**

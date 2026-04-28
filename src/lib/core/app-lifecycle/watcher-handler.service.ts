@@ -5,10 +5,8 @@ import {
 	removeFileFromIndex,
 } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
-import { buildTagIndex, updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
-import { buildTaskIndex, updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
@@ -75,15 +73,14 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	debug('WATCHER-HANDLER', `Full rebuildAllIndexes executing at ${Date.now()}, paths: ${changedPaths.length}`);
 
 	try { await rebuildIndex(); } catch (err) { error('WATCHER', 'rebuildIndex failed:', err); }
-	try { buildTagIndex(); } catch (err) { error('WATCHER', 'buildTagIndex failed:', err); }
-	try { buildTaskIndex(); } catch (err) { error('WATCHER', 'buildTaskIndex failed:', err); }
 	try { buildPropertyIndex(); } catch (err) { error('WATCHER', 'buildPropertyIndex failed:', err); }
 	try { buildFrontmatterIconIndex(); } catch (err) { error('WATCHER', 'buildFrontmatterIconIndex failed:', err); }
 	try { scanFilesForCalendar(); } catch (err) { error('WATCHER', 'scanFilesForCalendar failed:', err); }
 
 	// rebuildIndex() above already invokes scan_vault_v2 which rebuilds the
-	// Rust VaultIndex AND emits `vault-index-updated` — `BacklinksPanel` and
-	// `OutgoingLinksPanel` both auto-refresh via their reactive `$effect`s.
+	// Rust VaultIndex AND emits `vault-index-updated` — `BacklinksPanel`,
+	// `OutgoingLinksPanel`, `TagsPanel`, and `TasksView` all auto-refresh via
+	// their reactive `$effect`s on `vaultIndexVersion`.
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
 
@@ -110,28 +107,28 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		// and all other systems (file tree, editor tabs, modifiedAtMap) use absolute paths.
 		// Path traversal protection is handled by Rust's read_files_batch (canonicalize + starts_with check).
 		if (result.content !== null) {
-			// File exists — update all indexes for this file
+			// File exists — update all indexes for this file. Tags + tasks no
+			// longer have TS-side updaters; the Rust `update_note_in_index`
+			// below refreshes the per-entry `tags`/`tasks` and emits
+			// `vault-index-updated` which triggers TagsPanel/TasksView refetch.
 			try { updateIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateIndexForFile failed:', err); }
-			try { updateTagIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateTagIndexForFile failed:', err); }
-			try { updateTaskIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateTaskIndexForFile failed:', err); }
 			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
 			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
 			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
-			// Update Rust `VaultIndex` so backlinks reflect the external change.
-			// Fire-and-forget: emits `vault-index-updated` which triggers
-			// `BacklinksPanel`'s reactive `$effect` to re-fetch.
+			// Update Rust `VaultIndex` so backlinks/tags/tasks reflect the
+			// external change. Fire-and-forget: emits `vault-index-updated`
+			// which triggers all the panel `$effect`s to re-fetch.
 			invoke('update_note_in_index', { path: result.path, content: result.content }).catch((err) => {
 				error('WATCHER', 'update_note_in_index failed:', err);
 			});
 		} else {
 			// File doesn't exist (deleted) — remove from indexes.
 			try { removeFileFromIndex(result.path); } catch (err) { error('WATCHER', 'removeFileFromIndex failed:', err); }
-			// Push an empty content into Rust so its index drops the entry's
-			// outgoing-links contributions to other notes' backlinks. Phase 9
-			// will replace this with a dedicated `remove_note_from_index`
-			// command driven by the native Rust watcher.
-			invoke('update_note_in_index', { path: result.path, content: '' }).catch((err) => {
-				error('WATCHER', 'update_note_in_index (deleted file) failed:', err);
+			// Phase 7.5: drop the entry from the Rust `VaultIndex` (entries +
+			// tags_index + backlinks + by_path) via `remove_note_from_index`.
+			// The Rust command emits `vault-index-updated` so all panels refresh.
+			invoke('remove_note_from_index', { path: result.path }).catch((err) => {
+				error('WATCHER', 'remove_note_from_index failed:', err);
 			});
 		}
 	}

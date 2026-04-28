@@ -3,15 +3,9 @@ import {
 	extractFrontmatterTags,
 	extractInlineTags,
 	extractAllTags,
-	aggregateTags,
 	buildTagTree,
 	sortTagTree,
 	filterTagTree,
-	removeFileFromTagMap,
-	addFileToTagMap,
-	tagMapToEntries,
-	tagsEqual,
-	type TagAggregateMap,
 } from '$lib/features/tags/tags.logic';
 
 describe('extractFrontmatterTags', () => {
@@ -191,48 +185,6 @@ describe('extractAllTags', () => {
 	});
 });
 
-describe('aggregateTags', () => {
-	it('aggregates tags across multiple files', () => {
-		const noteContents = new Map([
-			['/vault/note1.md', '#javascript and #svelte'],
-			['/vault/note2.md', '#javascript and #rust'],
-		]);
-
-		const entries = aggregateTags(noteContents);
-		const jsEntry = entries.find((e) => e.name.toLowerCase() === 'javascript');
-		expect(jsEntry).toBeDefined();
-		expect(jsEntry!.count).toBe(2);
-		expect(jsEntry!.filePaths).toHaveLength(2);
-	});
-
-	it('returns empty array for empty contents', () => {
-		expect(aggregateTags(new Map())).toEqual([]);
-	});
-
-	it('counts unique file paths per tag', () => {
-		const noteContents = new Map([
-			['/vault/note1.md', '#tag appears #tag twice'],
-		]);
-
-		const entries = aggregateTags(noteContents);
-		expect(entries).toHaveLength(1);
-		expect(entries[0].count).toBe(1);
-	});
-
-	it('handles frontmatter and inline tags together', () => {
-		const noteContents = new Map([
-			['/vault/note1.md', '---\ntags: [javascript]\n---\n#svelte here'],
-			['/vault/note2.md', '#javascript and #rust'],
-		]);
-
-		const entries = aggregateTags(noteContents);
-		expect(entries.length).toBeGreaterThanOrEqual(3);
-
-		const jsEntry = entries.find((e) => e.name.toLowerCase() === 'javascript');
-		expect(jsEntry!.count).toBe(2);
-	});
-});
-
 describe('buildTagTree', () => {
 	it('builds a flat list for simple tags', () => {
 		const entries = [
@@ -368,166 +320,6 @@ describe('sortTagTree', () => {
 
 	it('handles empty array', () => {
 		expect(sortTagTree([], 'name')).toEqual([]);
-	});
-});
-
-describe('removeFileFromTagMap', () => {
-	it('removes a file from tag entries', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['javascript', { name: 'javascript', filePaths: new Set(['/a.md', '/b.md']) }],
-			['svelte', { name: 'svelte', filePaths: new Set(['/a.md']) }],
-		]);
-
-		removeFileFromTagMap(tagMap, '/a.md', ['javascript', 'svelte']);
-
-		expect(tagMap.get('javascript')!.filePaths.size).toBe(1);
-		expect(tagMap.has('svelte')).toBe(false); // removed because empty
-	});
-
-	it('deletes tag entry when no files remain', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['tag1', { name: 'tag1', filePaths: new Set(['/only.md']) }],
-		]);
-
-		removeFileFromTagMap(tagMap, '/only.md', ['tag1']);
-
-		expect(tagMap.size).toBe(0);
-	});
-
-	it('handles empty oldTags gracefully', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['tag1', { name: 'tag1', filePaths: new Set(['/a.md']) }],
-		]);
-
-		removeFileFromTagMap(tagMap, '/a.md', []);
-
-		expect(tagMap.size).toBe(1);
-	});
-
-	it('handles tags not present in map', () => {
-		const tagMap: TagAggregateMap = new Map();
-
-		removeFileFromTagMap(tagMap, '/a.md', ['nonexistent']);
-
-		expect(tagMap.size).toBe(0);
-	});
-
-	it('matches tags case-insensitively', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['javascript', { name: 'JavaScript', filePaths: new Set(['/a.md']) }],
-		]);
-
-		removeFileFromTagMap(tagMap, '/a.md', ['JavaScript']);
-
-		expect(tagMap.size).toBe(0);
-	});
-});
-
-describe('addFileToTagMap', () => {
-	it('adds a file to existing tag entries', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['javascript', { name: 'javascript', filePaths: new Set(['/a.md']) }],
-		]);
-
-		addFileToTagMap(tagMap, '/b.md', ['javascript']);
-
-		expect(tagMap.get('javascript')!.filePaths.size).toBe(2);
-	});
-
-	it('creates new entries for new tags', () => {
-		const tagMap: TagAggregateMap = new Map();
-
-		addFileToTagMap(tagMap, '/a.md', ['newtag']);
-
-		expect(tagMap.size).toBe(1);
-		expect(tagMap.get('newtag')!.name).toBe('newtag');
-		expect(tagMap.get('newtag')!.filePaths.has('/a.md')).toBe(true);
-	});
-
-	it('handles multiple tags at once', () => {
-		const tagMap: TagAggregateMap = new Map();
-
-		addFileToTagMap(tagMap, '/a.md', ['tag1', 'tag2', 'tag3']);
-
-		expect(tagMap.size).toBe(3);
-	});
-
-	it('handles empty tags array', () => {
-		const tagMap: TagAggregateMap = new Map();
-
-		addFileToTagMap(tagMap, '/a.md', []);
-
-		expect(tagMap.size).toBe(0);
-	});
-
-	it('does not duplicate file paths', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['tag1', { name: 'tag1', filePaths: new Set(['/a.md']) }],
-		]);
-
-		addFileToTagMap(tagMap, '/a.md', ['tag1']);
-
-		expect(tagMap.get('tag1')!.filePaths.size).toBe(1);
-	});
-});
-
-describe('tagMapToEntries', () => {
-	it('converts tag map to entries array', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['javascript', { name: 'JavaScript', filePaths: new Set(['/a.md', '/b.md']) }],
-			['svelte', { name: 'svelte', filePaths: new Set(['/a.md']) }],
-		]);
-
-		const entries = tagMapToEntries(tagMap);
-
-		expect(entries).toHaveLength(2);
-		const js = entries.find((e) => e.name === 'JavaScript');
-		expect(js!.count).toBe(2);
-		expect(js!.filePaths).toEqual(expect.arrayContaining(['/a.md', '/b.md']));
-	});
-
-	it('returns empty array for empty map', () => {
-		expect(tagMapToEntries(new Map())).toEqual([]);
-	});
-
-	it('converts Set to Array for filePaths', () => {
-		const tagMap: TagAggregateMap = new Map([
-			['tag', { name: 'tag', filePaths: new Set(['/a.md']) }],
-		]);
-
-		const entries = tagMapToEntries(tagMap);
-
-		expect(Array.isArray(entries[0].filePaths)).toBe(true);
-	});
-});
-
-describe('tagsEqual', () => {
-	it('returns true for identical tags', () => {
-		expect(tagsEqual(['a', 'b'], ['a', 'b'])).toBe(true);
-	});
-
-	it('returns true for same tags in different order', () => {
-		expect(tagsEqual(['b', 'a'], ['a', 'b'])).toBe(true);
-	});
-
-	it('returns true when only casing differs (case-insensitive to match aggregation)', () => {
-		expect(tagsEqual(['JavaScript', 'Svelte'], ['javascript', 'svelte'])).toBe(true);
-	});
-
-	it('returns true for exact case match', () => {
-		expect(tagsEqual(['JavaScript', 'Svelte'], ['JavaScript', 'Svelte'])).toBe(true);
-	});
-
-	it('returns false for different lengths', () => {
-		expect(tagsEqual(['a'], ['a', 'b'])).toBe(false);
-	});
-
-	it('returns false for different tags', () => {
-		expect(tagsEqual(['a', 'b'], ['a', 'c'])).toBe(false);
-	});
-
-	it('returns true for empty arrays', () => {
-		expect(tagsEqual([], [])).toBe(true);
 	});
 });
 

@@ -1038,3 +1038,68 @@ fn lookup_tasks_in_path_returns_empty_for_unknown() {
 	let idx = VaultIndex::default();
 	assert!(idx.lookup_tasks_in_path("/v/nope.md").is_empty());
 }
+
+// ---------- remove_entry ----------
+
+#[test]
+fn remove_entry_unknown_path_bumps_version_only() {
+	let mut idx = VaultIndex::default();
+	let v0 = idx.version();
+	let result = idx.remove_entry("/v/nope.md");
+	assert!(!result.changed);
+	assert!(result.affected.is_empty());
+	assert_eq!(result.version, v0 + 1);
+}
+
+#[test]
+fn remove_entry_drops_entry_and_returns_changed_true() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
+	let result = idx.remove_entry("/v/a.md");
+	assert!(result.changed);
+	assert!(idx.entries().get("/v/a.md").is_none());
+}
+
+#[test]
+fn remove_entry_cleans_tags_index_pruning_empty_sets() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/a.md", &["solo"]),
+		entry_with_tags("/v/b.md", &["shared"]),
+		entry_with_tags("/v/c.md", &["shared"]),
+	]);
+	idx.remove_entry("/v/a.md");
+	assert!(
+		!idx.tags_index().contains_key("solo"),
+		"empty solo set should be pruned"
+	);
+	idx.remove_entry("/v/b.md");
+	let shared = idx.tags_index().get("shared").expect("shared dropped early");
+	assert_eq!(shared.len(), 1);
+	assert!(shared.contains("/v/c.md"));
+}
+
+#[test]
+fn remove_entry_cleans_backlinks_for_removed_source() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	assert!(idx.backlinks().contains_key("/v/target.md"));
+	let result = idx.remove_entry("/v/source.md");
+	assert!(
+		!idx.backlinks().contains_key("/v/target.md"),
+		"backlinks set should have been pruned (source removed, set empty)"
+	);
+	assert!(result.affected.contains(&"/v/target.md".to_string()));
+}
+
+#[test]
+fn remove_entry_drops_by_path_only_when_slot_matches() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/note.md", &[])]);
+	assert!(idx.by_path().contains_key("note"));
+	idx.remove_entry("/v/note.md");
+	assert!(!idx.by_path().contains_key("note"));
+}

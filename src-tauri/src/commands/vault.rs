@@ -443,6 +443,39 @@ pub fn toggle_task_status(
 	Ok(result)
 }
 
+/// Tauri command: removes a single note from the managed `VaultIndex`.
+/// Used by the FE filesystem service after a delete / rename / move so
+/// the Rust-fed panels (Tags, Backlinks, Outgoing Links, Tasks) drop the
+/// deleted file's contributions immediately. Without this call, deleted
+/// files linger in `tags_index` and `backlinks` until the next
+/// `scan_vault_v2` rebuild. Phase 7.5 (added during the FE migration).
+///
+/// Lock is released BEFORE the emit so consumers reacting to
+/// `vault-index-updated` can immediately re-read the index.
+#[tauri::command]
+pub fn remove_note_from_index(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	path: String,
+) -> Result<UpdateResult, String> {
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		idx.remove_entry(&path)
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"remove_note_from_index: vault-index-updated emit failed: {}",
+				emit_err,
+			),
+		);
+	}
+	Ok(result)
+}
+
 /// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
 /// Returns the same `Vec<NoteEntry>` produced by [`collect_v2_entries`]
 /// so the frontend has the data without an extra round-trip.

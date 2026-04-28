@@ -545,4 +545,85 @@ impl VaultIndex {
 			.map(|e| e.tasks.clone())
 			.unwrap_or_default()
 	}
+
+	/// Removes a single note from the index. Cleans up `entries`,
+	/// `by_path` (only if the slot pointed at this exact path),
+	/// `backlinks` (drops the source from every target's set + prunes
+	/// empty sets), and `tags_index` (drops the path from every tag's
+	/// set + prunes empty sets). Bumps `version` even when the path was
+	/// not present (consumers see a monotonic signal so the panel
+	/// re-fetches and confirms its current view).
+	///
+	/// Phase 7 — replaces the previous TS-only deletion bookkeeping in
+	/// `fs.service.ts` (which mutated `noteIndexStore` and the tags
+	/// `tagMap` in lock-step). Without this, deleted files would linger
+	/// in `tags_index` until the next vault rebuild and visibly leak
+	/// into the panels.
+	pub fn remove_entry(&mut self, path: &str) -> UpdateResult {
+		let removed_entry = self.entries.remove(path);
+		let was_present = removed_entry.is_some();
+		let mut affected: BTreeSet<String> = BTreeSet::new();
+
+		if let Some(entry) = removed_entry {
+			// Backlinks side: drop `path` as a source from every target it
+			// was resolved into. We don't have the resolved-target list cached,
+			// so iterate the entire reverse index. This is O(N) in the number
+			// of targets we link to — typically small.
+			let targets_to_clean: Vec<String> = self
+				.backlinks
+				.iter()
+				.filter(|(_, sources)| sources.contains(path))
+				.map(|(t, _)| t.clone())
+				.collect();
+			for target in targets_to_clean {
+				let became_empty = if let Some(set) = self.backlinks.get_mut(&target) {
+					set.remove(path);
+					set.is_empty()
+				} else {
+					false
+				};
+				if became_empty {
+					self.backlinks.remove(&target);
+				}
+				affected.insert(target);
+			}
+
+			// `backlinks[path]` itself: the deleted entry can no longer have
+			// inbound links rendered for it, so drop the entire set.
+			self.backlinks.remove(path);
+
+			// Tags side: drop `path` from every tag set the entry contributed
+			// to. Same shape as the backlink cleanup; pruning empty sets keeps
+			// `lookup_all_tags` from emitting zero-count entries.
+			for tag in &entry.tags {
+				let key = tag.to_lowercase();
+				let became_empty = if let Some(set) = self.tags_index.get_mut(&key) {
+					set.remove(path);
+					set.is_empty()
+				} else {
+					false
+				};
+				if became_empty {
+					self.tags_index.remove(&key);
+				}
+			}
+
+			// `by_path` cleanup: drop the slot ONLY when it was pointing
+			// at this exact path. If multiple entries shared a stem, the
+			// next entry-rebuild repopulates first-write-wins; until then
+			// the wikilink simply resolves to nothing.
+			let key = note_name_from_target(path).to_lowercase();
+			if self.by_path.get(&key).map(|p| p == path).unwrap_or(false) {
+				self.by_path.remove(&key);
+			}
+		}
+
+		self.version += 1;
+
+		UpdateResult {
+			changed: was_present,
+			affected: affected.into_iter().collect(),
+			version: self.version,
+		}
+	}
 }

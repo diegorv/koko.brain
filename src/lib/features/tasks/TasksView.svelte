@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { Circle, CircleCheckBig, Eye, EyeOff, Hash, Cloud, CloudCheck, RefreshCcw, Loader2 } from 'lucide-svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { tasksStore } from './tasks.store.svelte';
 	import { todoistStore } from './todoist.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { toggleTask, updateSectionTagFilter } from './tasks.service';
+	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { initTodoist, syncTodoistTasks } from './todoist.service';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { filterByDate, filterCompleted, computeTaskStats } from './tasks.logic';
@@ -55,6 +56,15 @@
 
 	onMount(() => {
 		initTodoist();
+	});
+
+	// Refetch task groups whenever the Rust `VaultIndex` version bumps
+	// (save, watcher event, toggle, or remove_note_from_index). Phase 7.6.
+	$effect(() => {
+		void vaultStore.vaultIndexVersion;
+		untrack(() => {
+			void buildTaskIndex();
+		});
 	});
 
 	async function handleSync() {
