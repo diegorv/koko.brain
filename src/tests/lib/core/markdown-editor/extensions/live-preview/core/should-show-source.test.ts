@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { shouldShowSource } from '$lib/core/markdown-editor/extensions/live-preview/core/should-show-source';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 function createState(doc: string, cursor: number): EditorState {
 	return EditorState.create({ doc, selection: EditorSelection.single(cursor) });
@@ -125,5 +126,37 @@ describe('shouldShowSource', () => {
 		const doc = 'hello **bold** world';
 		const state = createState(doc, 8);
 		expect(shouldShowSource(state, 6, 14)).toBe(true);
+	});
+
+	describe('raw mode short-circuit', () => {
+		afterEach(() => {
+			settingsStore.reset();
+		});
+
+		it('returns true regardless of cursor position when editor.rawMode is on', () => {
+			settingsStore.updateEditor({ rawMode: true });
+			// Cursor far outside the queried range
+			const doc = 'hello **bold** world';
+			const state = createState(doc, 0);
+			expect(shouldShowSource(state, 6, 14)).toBe(true);
+		});
+
+		it('returns true even for ranges deep in a multi-line doc when rawMode is on', () => {
+			settingsStore.updateEditor({ rawMode: true });
+			const doc = 'line one\nline two\nline three';
+			const line3From = doc.indexOf('line three');
+			const state = createState(doc, 0); // cursor at start
+			expect(shouldShowSource(state, line3From, doc.length)).toBe(true);
+		});
+
+		it('toggling rawMode off restores per-cursor behaviour', () => {
+			settingsStore.updateEditor({ rawMode: true });
+			const doc = 'hello **bold** world';
+			const state = createState(doc, 0);
+			expect(shouldShowSource(state, 6, 14)).toBe(true);
+
+			settingsStore.updateEditor({ rawMode: false });
+			expect(shouldShowSource(state, 6, 14)).toBe(false);
+		});
 	});
 });
