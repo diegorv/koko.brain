@@ -68,4 +68,4 @@ Adjacent jobs in the same workflow run `pnpm audit --audit-level=moderate`, `rus
 - The pre-commit hook is shell-bash-3.2-compatible (macOS default) and handles both BSD and GNU `date`. It is also quiet on fast-path — no staged `pnpm-lock.yaml` means early exit.
 - Scoped packages (`@scope/name@version`) are parsed by splitting on the last `@`, handling leading `@` correctly.
 - `pnpm audit --audit-level=moderate` and `cargo audit` run alongside as CVE detection — they catch known vulnerabilities rather than brand-new compromises.
-- Re-evaluation triggers: pnpm changes the `minimumReleaseAge` option; a supply-chain attack slips through the 14-day window and we need to lengthen it; the allowlist grows unmanageable, indicating the default is too strict; we adopt a different package manager.
+- Re-evaluation triggers: pnpm changes the `minimumReleaseAge` option; a supply-chain attack slips through the 7-day window and we need to lengthen it; the allowlist grows unmanageable, indicating the default is too strict; we adopt a different package manager.
