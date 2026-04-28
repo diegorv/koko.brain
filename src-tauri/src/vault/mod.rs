@@ -11,3 +11,4 @@
 //! `tasks/todo/performance-architecture-refactor.md`.
 
 pub mod entry;
+pub mod parsing;
