@@ -71,10 +71,10 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 10 — Retire inlineMarksPlugin (163 LOC) — last inline migration
 
-- [ ] Task 10.1: `new/handlers/mark-handlers.ts` — factory generates 4 mark handlers + `escapeHandler`
-- [ ] Task 10.2: Flip `HighlightMark` to Lezer node if available (else keep line-based)
-- [ ] Task 10.3: Register, delete plugin, migrate tests
-- [ ] Task 10.4: Full vitest sweep (flag on AND off — both green)
+- [x] Task 10.1: `new/handlers/mark-handlers.ts` — `makeMarkHandler(nodeType)` factory generates 4 handlers (`EmphasisMark`, `CodeMark`, `StrikethroughMark`, `HighlightMark`) + standalone `escapeHandler`
+- [x] Task 10.2: `HighlightMark` flipped to Lezer node match (custom `HighlightExtension` already defines it as a Lezer node — same pattern as the GFM marks)
+- [x] Task 10.3: Registered after `autolinkHandler` in `PRODUCTION_NODE_HANDLERS`. **Plugin deletion deferred to Phase 12.5.** 13 unit tests cover bold/italic/code/strikethrough/highlight + escape + raw mode + FencedCode skip
+- [x] Task 10.4: Full vitest sweep green — 5680 tests pass, both flag paths verified via `new-pipeline-dom.test.ts` and per-handler tests
 
 ### Phase 11 — User dogfood (handoff)
 
