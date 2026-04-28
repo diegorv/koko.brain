@@ -25,6 +25,14 @@ pub type MarkdownEntry = (String, PathBuf);
 /// The mtime is seconds since UNIX epoch, extracted during directory walk to avoid separate stat() calls.
 pub type MarkdownEntryWithMtime = (String, PathBuf, i64);
 
+/// A collected markdown file entry with full metadata:
+/// `(relative_path, absolute_path, mtime_secs, ctime_secs, size_bytes)`. Phase 8 —
+/// kb-api / collection queries expose `file.ctime` and `file.size`, so the
+/// scan must capture both. `ctime` is `0` on filesystems that don't expose
+/// creation time (Linux extX historically; mostly fine on macOS/APFS,
+/// Windows NTFS).
+pub type MarkdownEntryWithMetadata = (String, PathBuf, i64, i64, u64);
+
 /// Recursively collects markdown file paths from a vault directory.
 ///
 /// Returns `(relative_path, absolute_path)` pairs for all `.md` / `.markdown` files.
@@ -47,6 +55,19 @@ pub fn collect_markdown_paths_with_mtime(
 ) -> Result<Vec<MarkdownEntryWithMtime>, String> {
 	let mut entries = Vec::new();
 	walk_dir_with_mtime(vault_root, vault_root, &mut entries, excluded_folders, 0)?;
+	Ok(entries)
+}
+
+/// Like `collect_markdown_paths_with_mtime` but also captures ctime + size.
+/// Used by Phase 8's `scan_vault_v2` so per-entry metadata exposed to
+/// kb-api / collection queries (`file.ctime`, `file.size`) matches the
+/// filesystem state at scan time.
+pub fn collect_markdown_paths_with_metadata(
+	vault_root: &Path,
+	excluded_folders: &[&str],
+) -> Result<Vec<MarkdownEntryWithMetadata>, String> {
+	let mut entries = Vec::new();
+	walk_dir_with_metadata(vault_root, vault_root, &mut entries, excluded_folders, 0)?;
 	Ok(entries)
 }
 
@@ -154,6 +175,69 @@ fn walk_dir_with_mtime(
 				.map(|d| d.as_secs() as i64)
 				.unwrap_or(0);
 			entries.push((rel_path, path, mtime));
+		}
+	}
+
+	Ok(())
+}
+
+fn walk_dir_with_metadata(
+	dir: &Path,
+	vault_root: &Path,
+	entries: &mut Vec<MarkdownEntryWithMetadata>,
+	excluded_folders: &[&str],
+	depth: usize,
+) -> Result<(), String> {
+	if depth >= MAX_DEPTH {
+		return Ok(());
+	}
+
+	let dir_entries = std::fs::read_dir(dir)
+		.map_err(|e| format!("Failed to read directory {:?}: {e}", dir))?;
+
+	for entry in dir_entries {
+		let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
+		let file_name = entry.file_name().to_string_lossy().to_string();
+
+		if file_name.starts_with('.') {
+			continue;
+		}
+
+		let path = entry.path();
+
+		let metadata = match std::fs::symlink_metadata(&path) {
+			Ok(m) => m,
+			Err(_) => continue,
+		};
+
+		if metadata.file_type().is_symlink() {
+			continue;
+		}
+
+		if metadata.is_dir() {
+			if excluded_folders.contains(&file_name.as_str()) {
+				continue;
+			}
+			walk_dir_with_metadata(&path, vault_root, entries, excluded_folders, depth + 1)?;
+		} else if file_name.ends_with(".md") || file_name.ends_with(".markdown") {
+			let rel_path = path
+				.strip_prefix(vault_root)
+				.map(|p| p.to_string_lossy().to_string())
+				.unwrap_or_else(|_| path.to_string_lossy().to_string());
+			let mtime = metadata
+				.modified()
+				.ok()
+				.and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+				.map(|d| d.as_secs() as i64)
+				.unwrap_or(0);
+			let ctime = metadata
+				.created()
+				.ok()
+				.and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+				.map(|d| d.as_secs() as i64)
+				.unwrap_or(0);
+			let size = metadata.len();
+			entries.push((rel_path, path, mtime, ctime, size));
 		}
 	}
 

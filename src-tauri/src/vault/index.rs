@@ -14,7 +14,8 @@ use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
 use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use serde_json::Value as JsonValue;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// Mirrors `kokobrain_lib::vault::entry` over IPC: the result of a
 /// single `VaultIndex::update_entry` call. Serialised as camelCase to
@@ -48,6 +49,16 @@ fn note_name_from_target(target: &str) -> &str {
 		Some(idx) if idx > 0 => &after_slash[..idx],
 		_ => after_slash,
 	}
+}
+
+/// Canonical-JSON serialisation used as the inner key of
+/// `properties_index`. `serde_json::to_string` produces no whitespace by
+/// default, so equivalent values produce identical strings; differing
+/// numeric forms (`1` vs `1.0`) and quoted vs unquoted scalars stay
+/// distinct as the YAML parser produced them. Errors fall back to an
+/// empty string — never reached for `JsonValue` inputs in practice.
+fn canon_value_key(value: &JsonValue) -> String {
+	serde_json::to_string(value).unwrap_or_default()
 }
 
 /// Resolves a wikilink target against a precomputed `by_path` cache.
@@ -102,6 +113,17 @@ pub struct VaultIndex {
 	/// original casing for display is recovered from `entries[*].tags`
 	/// at lookup time (`lookup_all_tags`).
 	tags_index: HashMap<String, BTreeSet<String>>,
+	/// Reverse property index: frontmatter key -> canonical-JSON-value
+	/// string -> sorted set of paths. Phase 8 — supports
+	/// `query_notes_by_property` and `get_property_values` lookups
+	/// without scanning every entry. Keys are case-sensitive (frontmatter
+	/// keys are user-defined identifiers); values are canonicalised via
+	/// `serde_json::to_string` to satisfy `HashMap`'s `Hash + Eq` bounds
+	/// (`JsonValue` is neither). The lookup commands re-canonicalise the
+	/// query value on read. Array values index by the FULL serialized
+	/// array (one entry per distinct value combination); list-membership
+	/// queries are out of scope for Phase 8.
+	properties_index: HashMap<String, HashMap<String, BTreeSet<String>>>,
 	/// Monotonic counter bumped on every `update_entry` call (even no-ops).
 	/// Consumers listen to `vault-index-updated` and use this to invalidate
 	/// cached views; `UpdateResult.changed` distinguishes real changes from
@@ -128,6 +150,11 @@ impl VaultIndex {
 	/// Returns a read-only view of the reverse tag index.
 	pub fn tags_index(&self) -> &HashMap<String, BTreeSet<String>> {
 		&self.tags_index
+	}
+
+	/// Returns a read-only view of the reverse property index.
+	pub fn properties_index(&self) -> &HashMap<String, HashMap<String, BTreeSet<String>>> {
+		&self.properties_index
 	}
 
 	/// Current monotonic version. Starts at 0 on a fresh index.
@@ -167,6 +194,7 @@ impl VaultIndex {
 		self.by_path.clear();
 		self.backlinks.clear();
 		self.tags_index.clear();
+		self.properties_index.clear();
 
 		// Pass 1: insert entries and build the resolution cache. Done in
 		// one loop so the cache reflects the same source-of-truth set the
@@ -181,6 +209,16 @@ impl VaultIndex {
 			for tag in &entry.tags {
 				self.tags_index
 					.entry(tag.to_lowercase())
+					.or_default()
+					.insert(path.clone());
+			}
+			// Populate `properties_index`. Phase 8.
+			for (prop_key, prop_value) in &entry.frontmatter {
+				let canon = canon_value_key(prop_value);
+				self.properties_index
+					.entry(prop_key.clone())
+					.or_default()
+					.entry(canon)
 					.or_default()
 					.insert(path.clone());
 			}
@@ -278,6 +316,28 @@ impl VaultIndex {
 		let tags_added: Vec<String> =
 			new_tags.difference(&old_tags).cloned().collect();
 
+		// Property diff for the reverse `properties_index`. We compare
+		// the SET of `(key, canonical-value)` pairs — moving a property
+		// from value A to value B counts as "remove A, add B". Phase 8.
+		let old_props: BTreeSet<(String, String)> = old_entry
+			.as_ref()
+			.map(|e| {
+				e.frontmatter
+					.iter()
+					.map(|(k, v)| (k.clone(), canon_value_key(v)))
+					.collect()
+			})
+			.unwrap_or_default();
+		let new_props: BTreeSet<(String, String)> = entry
+			.frontmatter
+			.iter()
+			.map(|(k, v)| (k.clone(), canon_value_key(v)))
+			.collect();
+		let props_removed: Vec<(String, String)> =
+			old_props.difference(&new_props).cloned().collect();
+		let props_added: Vec<(String, String)> =
+			new_props.difference(&old_props).cloned().collect();
+
 		// --- Phase 2: apply mutations under &mut self -----------------------
 		// For each removed target, drop our source from its backlink set and
 		// prune the set if it became empty. The two-step (read -> remove)
@@ -316,6 +376,37 @@ impl VaultIndex {
 		for tag in &tags_added {
 			self.tags_index
 				.entry(tag.clone())
+				.or_default()
+				.insert(path.clone());
+		}
+
+		// Property-side incremental updates. Phase 8. Empty value-set →
+		// drop the inner map entry; empty key-map → drop the outer entry
+		// (so `lookup_property_values` for a removed key returns []).
+		for (key, canon) in &props_removed {
+			let value_set_empty = if let Some(by_value) = self.properties_index.get_mut(key) {
+				let inner_empty = if let Some(paths) = by_value.get_mut(canon) {
+					paths.remove(&path);
+					paths.is_empty()
+				} else {
+					false
+				};
+				if inner_empty {
+					by_value.remove(canon);
+				}
+				by_value.is_empty()
+			} else {
+				false
+			};
+			if value_set_empty {
+				self.properties_index.remove(key);
+			}
+		}
+		for (key, canon) in &props_added {
+			self.properties_index
+				.entry(key.clone())
+				.or_default()
+				.entry(canon.clone())
 				.or_default()
 				.insert(path.clone());
 		}
@@ -546,6 +637,63 @@ impl VaultIndex {
 			.unwrap_or_default()
 	}
 
+	// ------------------------------------------------------------------
+	// Phase 8 — Property lookups
+	// ------------------------------------------------------------------
+
+	/// Returns every `NoteEntry` whose `frontmatter[key]` equals `value`
+	/// (canonical-JSON equality). Sorted by title for stable UI ordering.
+	/// Empty when the key isn't present in the index, when no entry has
+	/// that exact value, or when `path` is unknown to the index.
+	pub fn lookup_notes_by_property(&self, key: &str, value: &JsonValue) -> Vec<NoteEntry> {
+		let canon = canon_value_key(value);
+		let by_value = match self.properties_index.get(key) {
+			Some(m) => m,
+			None => return Vec::new(),
+		};
+		let paths = match by_value.get(&canon) {
+			Some(s) => s,
+			None => return Vec::new(),
+		};
+		let mut sources: Vec<NoteEntry> = paths
+			.iter()
+			.filter_map(|p| self.entries.get(p).cloned())
+			.collect();
+		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		sources
+	}
+
+	/// Returns every distinct value the index has seen for `key`,
+	/// deserialised back from the canonical-JSON keys. Useful for the
+	/// Properties Panel's value autocomplete. Empty when the key is
+	/// unknown to the index.
+	pub fn lookup_property_values(&self, key: &str) -> Vec<JsonValue> {
+		let by_value = match self.properties_index.get(key) {
+			Some(m) => m,
+			None => return Vec::new(),
+		};
+		let mut out: Vec<JsonValue> = by_value
+			.keys()
+			.filter_map(|canon| serde_json::from_str(canon).ok())
+			.collect();
+		// Stable order: lexicographically by canonical string. Numeric
+		// values sort by string form, which is "good enough" for an
+		// autocomplete list.
+		out.sort_by(|a, b| canon_value_key(a).cmp(&canon_value_key(b)));
+		out
+	}
+
+	/// Returns the entry's frontmatter map (cloned) at `path`. Empty
+	/// when `path` is unknown to the index. Phase 8 — the IPC consumer
+	/// re-uses the same shape (`Record<string, FrontmatterValue>`) the
+	/// existing TS `parseFrontmatterProperties` produces.
+	pub fn lookup_note_properties(&self, path: &str) -> BTreeMap<String, JsonValue> {
+		self.entries
+			.get(path)
+			.map(|e| e.frontmatter.clone())
+			.unwrap_or_default()
+	}
+
 	/// Removes a single note from the index. Cleans up `entries`,
 	/// `by_path` (only if the slot pointed at this exact path),
 	/// `backlinks` (drops the source from every target's set + prunes
@@ -605,6 +753,29 @@ impl VaultIndex {
 				};
 				if became_empty {
 					self.tags_index.remove(&key);
+				}
+			}
+
+			// Properties side: drop `path` from every (key, canon-value)
+			// bucket the entry contributed to. Phase 8.
+			for (prop_key, prop_value) in &entry.frontmatter {
+				let canon = canon_value_key(prop_value);
+				let key_empty = if let Some(by_value) = self.properties_index.get_mut(prop_key) {
+					let inner_empty = if let Some(paths) = by_value.get_mut(&canon) {
+						paths.remove(path);
+						paths.is_empty()
+					} else {
+						false
+					};
+					if inner_empty {
+						by_value.remove(&canon);
+					}
+					by_value.is_empty()
+				} else {
+					false
+				};
+				if key_empty {
+					self.properties_index.remove(prop_key);
 				}
 			}
 
