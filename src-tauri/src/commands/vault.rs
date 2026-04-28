@@ -1,12 +1,14 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
-use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
+use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention};
 use crate::vault::index::{UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
+use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
@@ -123,16 +125,22 @@ pub fn collect_v2_entries(path: &str) -> Result<Vec<NoteEntry>, String> {
 		format!("collect_v2_entries: starting on {}", path),
 	);
 	let root = vault_fs::validate_vault_path(path)?;
-	let entries = vault_fs::collect_markdown_paths_with_mtime(&root, &[])?;
+	let entries = vault_fs::collect_markdown_paths_with_metadata(&root, &[])?;
 	let total = entries.len();
 	let mut notes: Vec<NoteEntry> = Vec::with_capacity(total);
 	let mut skipped = 0usize;
 
-	for (_rel, abs, mtime) in entries {
+	for (_rel, abs, mtime, ctime, size) in entries {
 		let abs_path_str = abs.to_string_lossy().to_string();
 		match fs::read_to_string(&abs) {
 			Ok(content) => {
-				notes.push(NoteEntry::from_content(abs_path_str, &content, mtime));
+				notes.push(NoteEntry::from_content_full(
+					abs_path_str,
+					&content,
+					mtime,
+					ctime,
+					size,
+				));
 			}
 			Err(err) => {
 				skipped += 1;
@@ -171,6 +179,31 @@ fn read_file_mtime_secs(path: &str) -> Option<i64> {
 		.map(|d| d.as_secs() as i64)
 }
 
+/// Reads `(mtime, ctime, size)` from the filesystem. Returns `(0, 0, 0)`
+/// when any field can't be obtained — matches the lenient behaviour of
+/// `read_file_mtime_secs`. Phase 8 — `update_note_in_index` uses this to
+/// keep `NoteEntry.{created_at, size}` fresh on every save.
+fn read_file_metadata(path: &str) -> (i64, i64, u64) {
+	let metadata = match std::fs::metadata(path) {
+		Ok(m) => m,
+		Err(_) => return (0, 0, 0),
+	};
+	let mtime = metadata
+		.modified()
+		.ok()
+		.and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+		.map(|d| d.as_secs() as i64)
+		.unwrap_or(0);
+	let ctime = metadata
+		.created()
+		.ok()
+		.and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+		.map(|d| d.as_secs() as i64)
+		.unwrap_or(0);
+	let size = metadata.len();
+	(mtime, ctime, size)
+}
+
 /// Pure-logic implementation behind the `update_note_in_index` Tauri
 /// command. Builds a `NoteEntry` from `(path, content, mtime)` via the
 /// Phase 1.5 constructor and applies it through `VaultIndex::update_entry`.
@@ -182,7 +215,13 @@ pub fn update_note_in_index_inner(
 	content: &str,
 	mtime: i64,
 ) -> UpdateResult {
-	let entry = NoteEntry::from_content(path, content, mtime);
+	// Read ctime + size at call time; Phase 8 added these to `NoteEntry`
+	// for kb-api parity. mtime is the only cheap one to thread through
+	// from the caller (already known by save hooks); the others are read
+	// fresh per call. Cost: one stat per save — well below the watcher
+	// debounce overhead.
+	let (_mtime_disk, ctime, size) = read_file_metadata(&path);
+	let entry = NoteEntry::from_content_full(path, content, mtime, ctime, size);
 	idx.update_entry(entry)
 }
 
@@ -441,6 +480,143 @@ pub fn toggle_task_status(
 		}
 	}
 	Ok(result)
+}
+
+// ============================================================================
+// Phase 8 — Property + file-op commands
+// ============================================================================
+
+/// Projects a `NoteEntry` into the `NoteRecord` shape consumed by the TS
+/// `collection.service` / kb-api. Computes name / basename / folder /
+/// ext from the path, converts seconds → milliseconds for mtime/ctime
+/// (TS-side expectation; matches the existing `FileTreeNode` units).
+fn project_note_record(entry: &NoteEntry) -> NoteRecord {
+	let path = &entry.path;
+	let name = path
+		.rsplit('/')
+		.next()
+		.unwrap_or(path.as_str())
+		.to_string();
+	let (basename, ext) = match name.rfind('.') {
+		Some(idx) if idx > 0 => (name[..idx].to_string(), name[idx..].to_string()),
+		_ => (name.clone(), String::new()),
+	};
+	let folder = match path.rfind('/') {
+		Some(idx) if idx > 0 => path[..idx].to_string(),
+		_ => String::new(),
+	};
+	NoteRecord {
+		path: path.clone(),
+		name,
+		basename,
+		folder,
+		ext,
+		mtime: entry.modified_at.saturating_mul(1000),
+		ctime: entry.created_at.saturating_mul(1000),
+		size: entry.size,
+		properties: entry.frontmatter.clone(),
+	}
+}
+
+/// Returns every `NoteEntry` whose `frontmatter[key]` equals `value`
+/// (canonical-JSON equality). Phase 8.3.
+#[tauri::command]
+pub fn query_notes_by_property(
+	key: String,
+	value: JsonValue,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_notes_by_property(&key, &value))
+}
+
+/// Returns every distinct value the index has seen for `key`. Used by
+/// the Properties Panel's value autocomplete. Phase 8.3.
+#[tauri::command]
+pub fn get_property_values(
+	key: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<JsonValue>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_property_values(&key))
+}
+
+/// Returns the entry's frontmatter map at `path`, or empty when the
+/// path is unknown to the index. Phase 8.3.
+#[tauri::command]
+pub fn get_note_properties(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<BTreeMap<String, JsonValue>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_note_properties(&path))
+}
+
+/// Returns every entry projected as a `NoteRecord` — the shape the TS
+/// `collection.service::buildPropertyIndex` consumes. Replaces the
+/// per-file TS frontmatter parse + metadata join. Phase 8.3.
+#[tauri::command]
+pub fn get_all_property_records(
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteRecord>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	let mut out: Vec<NoteRecord> = idx.entries().values().map(project_note_record).collect();
+	// Stable order — paths aren't guaranteed by HashMap iteration.
+	out.sort_by(|a, b| a.path.cmp(&b.path));
+	Ok(out)
+}
+
+/// Atomically creates a new note at `path` with the given `content`.
+/// Errors when the file already exists OR the parent directory doesn't
+/// exist. Updates the managed `VaultIndex` and emits
+/// `vault-index-updated` after dropping the lock. Phase 8.6.
+///
+/// Caller responsibilities: ensure `path` is absolute (validated against
+/// the vault root by Tauri's plugin-fs ACL at the OS layer); pre-process
+/// any template content (template processing stays TS-side per the plan).
+/// On success, also call `markRecentSave(path)` from the FE so the
+/// watcher's self-save filter picks up this write and skips the rebuild.
+#[tauri::command]
+pub fn create_note(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	path: String,
+	content: String,
+) -> Result<UpdateResult, String> {
+	if Path::new(&path).exists() {
+		return Err(format!("File already exists: {}", path));
+	}
+	std::fs::write(&path, &content).map_err(|e| format!("write failed for {}: {}", path, e))?;
+	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		update_note_in_index_inner(&mut idx, path, &content, mtime)
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+		debug_log(
+			"VAULT-V2",
+			format!("create_note: vault-index-updated emit failed: {}", emit_err),
+		);
+	}
+	Ok(result)
+}
+
+/// Creates a directory (recursive — equivalent to TS `mkdir(path, {
+/// recursive: true })`). No-op when the directory already exists.
+/// Doesn't touch the `VaultIndex` (folders aren't notes). Phase 8.6.
+#[tauri::command]
+pub fn create_folder(path: String) -> Result<(), String> {
+	std::fs::create_dir_all(&path).map_err(|e| format!("mkdir failed for {}: {}", path, e))
 }
 
 /// Tauri command: removes a single note from the managed `VaultIndex`.

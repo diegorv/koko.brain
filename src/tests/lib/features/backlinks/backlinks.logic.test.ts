@@ -399,6 +399,8 @@ describe('noteEntryV2ToBacklinkEntry', () => {
 			outgoingLinks: [],
 			tags: [],
 			modifiedAt: 0,
+			createdAt: 0,
+			size: 0,
 			wordCount: 0,
 			snippet: '',
 			...overrides,

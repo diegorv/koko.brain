@@ -1103,3 +1103,174 @@ fn remove_entry_drops_by_path_only_when_slot_matches() {
 	idx.remove_entry("/v/note.md");
 	assert!(!idx.by_path().contains_key("note"));
 }
+
+// ============================================================================
+// Phase 8 — properties_index + property lookups
+// ============================================================================
+
+use serde_json::json;
+use std::collections::BTreeMap;
+
+/// Builds a minimal `NoteEntry` carrying frontmatter properties.
+fn entry_with_props(path: &str, props: &[(&str, serde_json::Value)]) -> NoteEntry {
+	let title = path
+		.rsplit('/')
+		.next()
+		.unwrap_or(path)
+		.strip_suffix(".md")
+		.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path))
+		.to_string();
+	let mut frontmatter = BTreeMap::new();
+	for (k, v) in props {
+		frontmatter.insert(k.to_string(), v.clone());
+	}
+	NoteEntry {
+		path: path.to_string(),
+		title,
+		frontmatter,
+		..Default::default()
+	}
+}
+
+#[test]
+fn build_with_properties_populates_properties_index() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_props("/v/a.md", &[("status", json!("draft"))]),
+		entry_with_props("/v/b.md", &[("status", json!("draft"))]),
+		entry_with_props("/v/c.md", &[("status", json!("done"))]),
+	]);
+	let by_status = idx.properties_index().get("status").expect("missing key");
+	assert_eq!(by_status.get("\"draft\"").map(|s| s.len()), Some(2));
+	assert_eq!(by_status.get("\"done\"").map(|s| s.len()), Some(1));
+}
+
+#[test]
+fn build_clears_properties_index_on_rebuild() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_props("/v/a.md", &[("status", json!("draft"))])]);
+	idx.build(vec![entry_with_props("/v/b.md", &[("priority", json!(1))])]);
+	assert!(!idx.properties_index().contains_key("status"));
+	assert!(idx.properties_index().contains_key("priority"));
+}
+
+#[test]
+fn update_entry_adds_new_property_inserts_into_index() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_props("/v/a.md", &[])]);
+	let mut entry = idx.entries().get("/v/a.md").unwrap().clone();
+	entry.frontmatter.insert("status".to_string(), json!("draft"));
+	idx.update_entry(entry);
+	assert!(idx.properties_index().contains_key("status"));
+}
+
+#[test]
+fn update_entry_changes_value_drops_old_inserts_new() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_props("/v/a.md", &[("status", json!("draft"))])]);
+	let mut entry = idx.entries().get("/v/a.md").unwrap().clone();
+	entry.frontmatter.insert("status".to_string(), json!("done"));
+	idx.update_entry(entry);
+	let by_status = idx.properties_index().get("status").unwrap();
+	assert!(!by_status.contains_key("\"draft\""));
+	assert!(by_status.contains_key("\"done\""));
+}
+
+#[test]
+fn update_entry_removes_property_prunes_empty_value_set() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_props("/v/a.md", &[("status", json!("solo"))])]);
+	let mut entry = idx.entries().get("/v/a.md").unwrap().clone();
+	entry.frontmatter.clear();
+	idx.update_entry(entry);
+	assert!(!idx.properties_index().contains_key("status"));
+}
+
+#[test]
+fn update_entry_keeps_value_set_when_other_path_still_uses_it() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_props("/v/a.md", &[("status", json!("draft"))]),
+		entry_with_props("/v/b.md", &[("status", json!("draft"))]),
+	]);
+	let mut a = idx.entries().get("/v/a.md").unwrap().clone();
+	a.frontmatter.clear();
+	idx.update_entry(a);
+	let by_status = idx.properties_index().get("status").expect("status dropped");
+	let drafts = by_status.get("\"draft\"").expect("\"draft\" dropped");
+	assert_eq!(drafts.len(), 1);
+	assert!(drafts.contains("/v/b.md"));
+}
+
+#[test]
+fn lookup_notes_by_property_returns_matching_entries_sorted() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_props("/v/zeta.md", &[("status", json!("draft"))]),
+		entry_with_props("/v/alpha.md", &[("status", json!("draft"))]),
+		entry_with_props("/v/done.md", &[("status", json!("done"))]),
+	]);
+	let drafts = idx.lookup_notes_by_property("status", &json!("draft"));
+	let titles: Vec<&str> = drafts.iter().map(|e| e.title.as_str()).collect();
+	assert_eq!(titles, vec!["alpha", "zeta"]);
+}
+
+#[test]
+fn lookup_notes_by_property_returns_empty_for_unknown_key() {
+	let idx = VaultIndex::default();
+	assert!(idx.lookup_notes_by_property("nope", &json!("anything")).is_empty());
+}
+
+#[test]
+fn lookup_notes_by_property_canonical_value_match() {
+	// JSON canonicalisation: numeric 1 vs string "1" stay distinct.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_props("/v/n.md", &[("priority", json!(1))]),
+		entry_with_props("/v/s.md", &[("priority", json!("1"))]),
+	]);
+	let by_int = idx.lookup_notes_by_property("priority", &json!(1));
+	let by_str = idx.lookup_notes_by_property("priority", &json!("1"));
+	assert_eq!(by_int.len(), 1);
+	assert_eq!(by_str.len(), 1);
+	assert_ne!(by_int[0].path, by_str[0].path);
+}
+
+#[test]
+fn lookup_property_values_returns_distinct_values() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_props("/v/a.md", &[("priority", json!(1))]),
+		entry_with_props("/v/b.md", &[("priority", json!(2))]),
+		entry_with_props("/v/c.md", &[("priority", json!(1))]),
+	]);
+	let mut values = idx.lookup_property_values("priority");
+	values.sort_by_key(|v| v.as_i64().unwrap_or(0));
+	assert_eq!(values, vec![json!(1), json!(2)]);
+}
+
+#[test]
+fn lookup_note_properties_returns_full_frontmatter() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_props(
+		"/v/a.md",
+		&[("status", json!("draft")), ("priority", json!(2))],
+	)]);
+	let props = idx.lookup_note_properties("/v/a.md");
+	assert_eq!(props.get("status"), Some(&json!("draft")));
+	assert_eq!(props.get("priority"), Some(&json!(2)));
+}
+
+#[test]
+fn lookup_note_properties_empty_for_unknown_path() {
+	let idx = VaultIndex::default();
+	assert!(idx.lookup_note_properties("/v/nope.md").is_empty());
+}
+
+#[test]
+fn remove_entry_cleans_properties_index() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_props("/v/a.md", &[("status", json!("draft"))])]);
+	idx.remove_entry("/v/a.md");
+	assert!(!idx.properties_index().contains_key("status"));
+}
