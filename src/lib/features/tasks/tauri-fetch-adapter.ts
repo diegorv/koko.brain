@@ -1,5 +1,5 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import type { CustomFetch, CustomFetchResponse } from '@doist/todoist-api-typescript';
+import type { CustomFetch, CustomFetchResponse } from '@doist/todoist-sdk';
 
 /**
  * Creates a CustomFetch adapter for Tauri's HTTP plugin.
