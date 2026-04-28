@@ -94,6 +94,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 			{ id: 'auto-move', label: 'Auto Move' },
 			{ id: 'trash', label: 'Trash' },
 			{ id: 'terminal', label: 'Terminal' },
+			{ id: 'queryjs', label: 'QueryJS' },
 		],
 	},
 	{
