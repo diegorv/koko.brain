@@ -29,6 +29,7 @@ import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
 import { newInlineExtensions } from './new/new-inline-extensions';
+import { pasteTsvHandler } from './handlers/paste-tsv-handler';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 export { forceDecorationRebuild } from './core/effects';
@@ -79,6 +80,8 @@ export function livePreviewExtensions(): Extension[] {
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
+	// Paste handlers (after scroll/click so click takes precedence)
+	exts.push(pasteTsvHandler);
 
 	return exts;
 }
