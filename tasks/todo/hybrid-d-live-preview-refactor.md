@@ -61,13 +61,13 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 9 — Retire linkPlugin (283 LOC) — subdivided
 
-- [ ] Task 9a.1: `new/handlers/markdown-link-handlers.ts` (`Link` + `LinkReference`) + cursor reveal
-- [ ] Task 9a.2: Tests + DOM snapshot
-- [ ] Task 9b.1: `new/handlers/autolink-handlers.ts` (`Autolink` + extended bare-URL line handler with skip-when-covered)
-- [ ] Task 9b.2: Tests
-- [ ] Task 9c.1: `new/handlers/wikilink-handler.ts` covering `[[target]]`, `#heading`, `#^block-id`, `|display`; verify `click-handler.ts` import graph
-- [ ] Task 9c.2: Tests
-- [ ] Task 9.final: Delete `plugins/link-plugin.ts` + remove from legacy branch
+- [x] Task 9a.1: `new/handlers/markdown-link-handlers.ts` (`Link` + `LinkReference`) + cursor reveal
+- [x] Task 9a.2: 8 unit tests
+- [x] Task 9b.1: `new/handlers/autolink-handlers.ts` — `Autolink` NodeHandler + `extendedAutolinkHandler` LineHandler with per-line dedup against Link/Autolink/Image
+- [x] Task 9b.2: 8 unit tests
+- [x] Task 9c.1: `new/handlers/wikilink-handler.ts` covering all 4 wikilink shapes. **`click-handler.ts` confirmed independent** — imports from `parsers/link.ts` not `link-plugin.ts`, no refactor needed
+- [x] Task 9c.2: 8 unit tests
+- [~] Task 9.final: **deferred to Phase 12.5** — `plugins/link-plugin.ts` stays active in flag-off path through dogfood window
 
 ### Phase 10 — Retire inlineMarksPlugin (163 LOC) — last inline migration
 

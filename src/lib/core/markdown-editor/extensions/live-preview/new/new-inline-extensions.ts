@@ -13,6 +13,7 @@ import { blockReferenceHandler } from './handlers/block-reference-handler';
 import { simpleWidgetHandlers } from './handlers/simple-widget-handlers';
 import { linkHandler, linkReferenceHandler } from './handlers/markdown-link-handlers';
 import { autolinkHandler, extendedAutolinkHandler } from './handlers/autolink-handlers';
+import { wikilinkHandler } from './handlers/wikilink-handler';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
@@ -37,6 +38,7 @@ export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 	inlineCommentHandler,
 	blockReferenceHandler,
 	extendedAutolinkHandler,
+	wikilinkHandler,
 ];
 
 /**
