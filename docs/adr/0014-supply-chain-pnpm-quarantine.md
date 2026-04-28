@@ -64,7 +64,7 @@ Adjacent jobs in the same workflow run `pnpm audit --audit-level=moderate`, `rus
 
 ## Consequences
 
-- New package versions cannot be adopted for 14 days after release. For actively tracked ecosystems (CodeMirror, Svelte) this is a mild drag; for security CVE backports, 14 days could be too long — the allowlist at `.dep-age-allowlist` is the escape hatch, and it requires a justification comment.
+- New package versions cannot be adopted for 7 days after release. For actively tracked ecosystems (CodeMirror, Svelte) this is a mild drag; for security CVE backports, 7 days is usually within the patch-availability window — the allowlist at `.dep-age-allowlist` remains the escape hatch when even 7 days is too long, and it requires a justification comment.
 - The pre-commit hook is shell-bash-3.2-compatible (macOS default) and handles both BSD and GNU `date`. It is also quiet on fast-path — no staged `pnpm-lock.yaml` means early exit.
 - Scoped packages (`@scope/name@version`) are parsed by splitting on the last `@`, handling leading `@` correctly.
 - `pnpm audit --audit-level=moderate` and `cargo audit` run alongside as CVE detection — they catch known vulnerabilities rather than brand-new compromises.
