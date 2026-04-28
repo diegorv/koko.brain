@@ -7,8 +7,7 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 ### Phase 0 — Inventory + feature flag
 
 - [x] Task 0.1: Inventory CSS classes emitted by the 8 inline plugins → `tasks/notes/css-classes-inventory.md`
-- [ ] Task 0.2: Add `ExperimentalSettings { newLivePreview: boolean }` to `settings.types.ts` + slot into `AppSettings`
-- [ ] Task 0.3: Default + getter + `updateExperimental` in `settings.store.svelte.ts`; tests
+- [x] Task 0.2 + 0.3 (combined): `ExperimentalSettings` interface + `AppSettings` field + store default/getter/updater + service merge + tests (combined because the type addition must arrive with its default to keep the project type-checking)
 - [ ] Task 0.4: `ExperimentalSection.svelte` (new) wired into `SettingsDialog.svelte` + sidebar nav
 - [ ] Task 0.5: Branch `livePreviewExtensions()` on the flag — `legacyInlineExtensions()` returns current 8 plugins, `newInlineExtensions()` returns `[]`; tests
 
