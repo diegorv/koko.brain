@@ -31,19 +31,25 @@ async function waitForE2eApi(page: Page) {
 /**
  * Populates the virtual FS with a single markdown file, opens the vault,
  * clicks the file in the explorer, and waits for the editor to render.
+ *
+ * `settingsOverride` is shallow-merged into DEFAULT_SETTINGS — pass e.g.
+ * `{ experimental: { newLivePreview: true } }` to drive a flag-on spec.
  */
 export async function openMarkdownFile(
 	page: Page,
 	fileName: string,
 	content: string,
+	settingsOverride: Record<string, unknown> = {},
 ): Promise<void> {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await waitForE2eApi(page);
 
+	const settings = { ...DEFAULT_SETTINGS, ...settingsOverride };
+
 	const files: Record<string, string> = {
 		[`${TEST_VAULT_PATH}/${fileName}`]: content,
 		[`${TEST_VAULT_PATH}/.kokobrain/`]: '',
-		[`${TEST_VAULT_PATH}/.kokobrain/settings.json`]: JSON.stringify(DEFAULT_SETTINGS, null, 2),
+		[`${TEST_VAULT_PATH}/.kokobrain/settings.json`]: JSON.stringify(settings, null, 2),
 	};
 
 	await page.evaluate(({ f }) => window.__e2e.fs.populate(f), { f: files });

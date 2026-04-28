@@ -10,6 +10,7 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	closeActiveTab: vi.fn(),
 	switchToNextTab: vi.fn(),
 	switchToPreviousTab: vi.fn(),
+	toggleSourceMode: vi.fn(),
 }));
 
 vi.mock('$lib/features/quick-switcher/quick-switcher.store.svelte', () => ({
@@ -79,7 +80,7 @@ vi.mock('$lib/core/zoom/zoom.service', () => ({
 
 import { registerKeybinding } from '$lib/utils/keybindings';
 import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
-import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab } from '$lib/core/editor/editor.service';
+import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleSourceMode } from '$lib/core/editor/editor.service';
 import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
@@ -115,10 +116,10 @@ describe('registerGlobalKeybindings', () => {
 		vi.clearAllMocks();
 	});
 
-	it('registers all 19 global keybindings', () => {
+	it('registers all 20 global keybindings', () => {
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(19);
+		expect(registerKeybinding).toHaveBeenCalledTimes(20);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -241,8 +242,16 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
+	it('registers Cmd+K for source-mode toggle', () => {
+		registerGlobalKeybindings();
+
+		expect(registerKeybinding).toHaveBeenCalledWith(
+			expect.objectContaining({ key: 'k', meta: true }),
+		);
+	});
+
 	it('returns a cleanup function that calls all individual cleanups', () => {
-		const cleanupFns = Array.from({ length: 19 }, () => vi.fn());
+		const cleanupFns = Array.from({ length: 20 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {
 			vi.mocked(registerKeybinding).mockReturnValueOnce(fn);
 		});
@@ -451,6 +460,15 @@ describe('registerGlobalKeybindings', () => {
 			handler();
 
 			expect(resetZoom).toHaveBeenCalledTimes(1);
+		});
+
+		it('Cmd+K handler calls toggleSourceMode', () => {
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'k', meta: true });
+
+			handler();
+
+			expect(toggleSourceMode).toHaveBeenCalledTimes(1);
 		});
 	});
 });

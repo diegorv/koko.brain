@@ -12,7 +12,8 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
-import { MetaBindSelectWidget } from '../widgets';
+import { MetaBindSelectWidget, MetaBindNumberWidget, MetaBindDateWidget, MetaBindToggleWidget } from '../widgets';
+import type { WidgetType } from '@codemirror/view';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import { profileStart, profileEnd } from '../core/profiling';
 
@@ -77,14 +78,47 @@ export function buildMetaBindInputDecorations(
 				const prop = fmProperties.find((p) => p.key === range.bindTarget);
 				const currentValue = prop ? String(prop.value) : null;
 
+				const widget = pickWidget(range.inputType, range.options, range.bindTarget, currentValue);
+				if (!widget) continue;
+
 				decorations.push(
-					Decoration.replace({
-						widget: new MetaBindSelectWidget(range.options, range.bindTarget, currentValue),
-					}).range(range.from, range.to),
+					Decoration.replace({ widget }).range(range.from, range.to),
 				);
 			}
 		}
 	}
 
 	return Decoration.set(decorations, true);
+}
+
+/**
+ * Dispatches a meta-bind INPUT type to its widget class. Returns null for
+ * unsupported types so the plugin falls through (the legacy behaviour was
+ * to treat every type as inlineSelect; now unrecognised types just skip
+ * decoration and the user sees the raw `INPUT[...]` source).
+ */
+function pickWidget(
+	inputType: string,
+	options: import('../parsers/meta-bind-input').MetaBindOption[],
+	bindTarget: string,
+	currentValue: string | null,
+): WidgetType | null {
+	switch (inputType) {
+		case 'number':
+			return new MetaBindNumberWidget(bindTarget, currentValue);
+		case 'date':
+			return new MetaBindDateWidget(bindTarget, currentValue);
+		case 'toggle':
+		case 'boolean':
+			return new MetaBindToggleWidget(bindTarget, currentValue);
+		case 'inlineSelect':
+		default:
+			// Default keeps backward compatibility: any input with options renders
+			// as an inline select. Inputs without options + unknown type fall
+			// through to null below.
+			if (options.length > 0) {
+				return new MetaBindSelectWidget(options, bindTarget, currentValue);
+			}
+			return null;
+	}
 }

@@ -6,30 +6,56 @@ import { collectionStore } from '$lib/features/collection/collection.store.svelt
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
 
 /**
- * Module-level cache for queryjs script results.
- * Keyed by `jsContent:version` — reuses cached DOM when the script hasn't
- * changed and no save/tab-switch has occurred since the last execution.
- * Invalidated via incrementing cacheVersion on save (notifyAfterSave) or
- * tab switch, NOT on every keystroke (which would cause 600ms re-execution).
+ * Module-level shim for the legacy `invalidateQueryjsCache()` API. The Phase
+ * 12 refactor moved cache state into `queryjsSessionStore`, but
+ * `editor.hooks.ts → notifyAfterSave` still calls the function by name.
+ *
+ * Forwards to `clearResults()` — drops every cached rendered DOM but KEEPS
+ * the `autoRunOnFirstOpen` markers. If we called `reset()` instead, every
+ * save would also clear the per-file autoRun marker, which would silently
+ * make the `'first-open'` policy auto-execute again on the next render
+ * instead of showing the ▶ Run button (the entire point of cache
+ * invalidation on save). The autoRun marker is per-file, not per-content,
+ * and survives content edits intentionally.
+ *
+ * **Deletion plan:** Phase 12.5 will migrate the call site to per-block
+ * `queryjsSessionStore.invalidate(contentHash)` (more granular, only drops
+ * the just-edited blocks) and remove the shim.
  */
-const scriptResultCache = new Map<string, HTMLElement>();
-let cacheVersion = 0;
-
-/** Invalidates the queryjs cache. Call on save or tab switch. */
 export function invalidateQueryjsCache(): void {
-	cacheVersion++;
-	scriptResultCache.clear();
+	queryjsSessionStore.clearResults();
 }
 
-/** Builds a cache key from script content + current version */
-function cacheKey(jsContent: string): string {
-	return `${jsContent}::${cacheVersion}`;
-}
-
-/** Widget that renders a ```queryjs code block by executing its JavaScript */
+/**
+ * Renders a `` ```queryjs `` fenced block.
+ *
+ * Execution policy is governed by `settingsStore.queryjs.autoRunQueries`:
+ *
+ *   policy        cache hit       cache miss + first-open    cache miss after edit
+ *   ───────────── ─────────────── ────────────────────────── ────────────────────────
+ *   first-open    re-attach DOM   execute + mark autoRun     show ▶ Run button
+ *   always        re-attach DOM   execute + mark autoRun     execute (re-render)
+ *   manual        re-attach DOM   show ▶ Run button (1)      show ▶ Run button
+ *
+ *   (1) **Invariant:** clicking ▶ Run in `manual` mode does NOT mark the
+ *   file as autoRun. A user who later switches the policy back to
+ *   `first-open` should still get fresh execution on the next open of
+ *   each file. Captured in queryjs-session.store.svelte.ts and ADR 0010.
+ *
+ * Cache key uses `jsContent` directly (no version suffix). Invalidation
+ * is per-content via `queryjsSessionStore.invalidate(jsContent)`, called
+ * from notifyAfterSave for each just-edited block.
+ *
+ * No auto-await regex, no canvas/video/iframe exclusions, no clone
+ * semantics — `_pendingViews` (in KBAPI) handles unawaited `kb.view()` and
+ * the cache holds the live element reference, so `<canvas>` / `<video>` /
+ * `<iframe>` survive widget re-mount via shared DOM identity.
+ */
 export class QueryjsBlockWidget extends WidgetType {
 	private readonly isIndexReady: boolean;
 
@@ -50,18 +76,37 @@ export class QueryjsBlockWidget extends WidgetType {
 			return container;
 		}
 
-		// Check cache: if this exact script + index state was already executed, clone the result
-		const key = cacheKey(this.jsContent);
-		const cached = scriptResultCache.get(key);
+		const filePath = editorStore.activeTabPath;
+
+		// Cache hit: re-attach the cached element so its `<canvas>` / `<video>` /
+		// `<iframe>` state survives widget re-mount.
+		const cached = queryjsSessionStore.getResult(this.jsContent);
 		if (cached) {
-			appendLog('QJS-PROFILE', `toDOM() cache HIT — skipping execution for: ${this.jsContent.substring(0, 50)}`);
-			container.appendChild(cached.cloneNode(true));
+			appendLog('QJS-PROFILE', `toDOM() cache HIT — reattach: ${this.jsContent.substring(0, 50)}`);
+			container.appendChild(cached);
 			return container;
 		}
 
-		appendLog('QJS-PROFILE', `toDOM() cache MISS — executing: ${this.jsContent.substring(0, 50)}`);
-		// Execute script asynchronously — errors are caught and shown inline
-		this.execute(container);
+		// Cache miss — decide whether to auto-run or show ▶ Run.
+		const policy = settingsStore.queryjs.autoRunQueries;
+		const shouldAutoRun =
+			policy === 'always' ||
+			(policy === 'first-open' && !queryjsSessionStore.hasAutoRun(filePath));
+
+		if (shouldAutoRun) {
+			appendLog('QJS-PROFILE', `toDOM() cache MISS — auto-run (${policy}): ${this.jsContent.substring(0, 50)}`);
+			// First-open policy marks the file so subsequent renders without a
+			// cache hit show the Run button. `always` also marks but it's
+			// harmless — auto-run still triggers regardless. Manual mode never
+			// reaches this branch.
+			if (policy === 'first-open') queryjsSessionStore.markAutoRun(filePath);
+			this.execute(container);
+			return container;
+		}
+
+		// Manual mode, or first-open after the file has already auto-run once.
+		// Show a ▶ Run placeholder; execution waits for the user click.
+		this.renderRunPrompt(container);
 		return container;
 	}
 
@@ -79,9 +124,39 @@ export class QueryjsBlockWidget extends WidgetType {
 		return false;
 	}
 
-	/** Executes the queryjs script inside the container */
+	/** Renders the placeholder + ▶ Run button shown when no cache and no auto-run. */
+	private renderRunPrompt(container: HTMLElement): void {
+		const placeholder = document.createElement('div');
+		placeholder.className = 'cm-lp-qjs-loading';
+		placeholder.textContent = 'Query not run yet';
+		container.appendChild(placeholder);
+
+		const button = document.createElement('button');
+		button.type = 'button';
+		button.className = 'cm-lp-qjs-run';
+		button.textContent = '▶ Run';
+		button.onclick = () => {
+			// Manual mode never marks autoRun (see the invariant above) — only
+			// first-open after a click "promotes" the file. We're already past
+			// the auto-run branch, so this only fires after the user explicitly
+			// clicks Run.
+			container.replaceChildren();
+			this.execute(container);
+		};
+		container.appendChild(button);
+	}
+
+	/** Executes the queryjs script inside the container. */
 	private async execute(container: HTMLElement): Promise<void> {
 		const _t = profileStart();
+
+		// Render loading indicator immediately. Replaced by the script's DOM on success
+		// or by the structured error block on failure.
+		const loading = document.createElement('div');
+		loading.className = 'cm-lp-qjs-loading';
+		loading.textContent = 'Running query…';
+		container.appendChild(loading);
+
 		try {
 			const api = new KBAPI({
 				container,
@@ -93,47 +168,68 @@ export class QueryjsBlockWidget extends WidgetType {
 				loadScript: loadExternalScript,
 			});
 
-			// Always wrap in an async IIFE so fn() returns a Promise we can await.
-			// Without this, a bare `kb.view("…")` statement (no `await`) would
-			// evaluate — kicking off the async load + render — but fn() would
-			// return undefined synchronously, so the caller below would cache an
-			// EMPTY container before the script finished appending DOM. Next
-			// toDOM() call with the same cacheVersion would then clone the empty
-			// snapshot and render nothing.
-			//
-			// Auto-prepend `await` to top-level `kb.view(…)` / `dv.view(…)` calls
-			// so users don't have to remember — matches works the same whether
-			// their code block writes `await kb.view(…)` or just `kb.view(…)`.
-			// The negative lookbehind avoids touching member accesses like
-			// `foo.kb.view(` and already-awaited calls are idempotent (double
-			// `await` on the same Promise resolves to the same value).
-			const autoAwaited = this.jsContent.replace(
-				/(?<![\w.])(kb|dv)\.view\(/g,
-				'await $1.view(',
-			);
-			const code = `return (async () => { ${autoAwaited} })()`;
-
+			// Wrap in an async IIFE so the user code can `kb.view(...)` without
+			// `await` — `awaitAllPending()` afterwards waits on every `view()`
+			// the script kicked off. No regex rewriting, no string surgery.
+			const code = `return (async () => { ${this.jsContent} })()`;
 			const fn = new Function('kb', 'dv', code);
 			await Promise.resolve(fn(api, api));
-		profileEnd('qjs-execute', _t);
-		// Cache the rendered result for future toDOM() calls with same key,
-		// UNLESS the container holds elements whose visual state isn't
-		// preserved by cloneNode(true). Notably:
-		//   - <canvas>: element is cloned but its pixel buffer is not, so a
-		//     Chart.js radar/bar/etc. would clone as a blank square.
-		//   - <video>/<iframe>: playback state / loaded content aren't cloned.
-		// For those, re-execute every render — slower but correct. The
-		// per-KBAPI _pageCache + O(1) outlinks resolution keep the re-exec
-		// cost reasonable (~200 ms for a 1870-note vault).
-		const hasUnclonable = container.querySelector('canvas, video, iframe') !== null;
-		if (!hasUnclonable) {
-			scriptResultCache.set(cacheKey(this.jsContent), container.cloneNode(true) as HTMLElement);
-		}
+			await api.awaitAllPending();
+			profileEnd('qjs-execute', _t);
+
+			// Strip the loading indicator now that the script finished. The
+			// script may or may not have written DOM into the container.
+			loading.remove();
+
+			// Cache the live container — `<canvas>` / `<video>` / `<iframe>`
+			// state survives the widget being destroyed and re-mounted because
+			// the DOM stays alive via this reference.
+			queryjsSessionStore.setResult(this.jsContent, container);
 		} catch (err) {
-			const errorEl = document.createElement('div');
-			errorEl.className = 'cm-lp-qjs-error';
-			errorEl.textContent = `QueryJS Error: ${err instanceof Error ? err.message : String(err)}`;
-			container.appendChild(errorEl);
+			loading.remove();
+			this.renderStructuredError(container, err);
 		}
+	}
+
+	/**
+	 * Renders a script error as a title + collapsible stack trace + ▶ Run retry.
+	 * Replaces the legacy `errorEl.textContent = "QueryJS Error: …"` flat string.
+	 * The retry button re-runs the script (without re-marking autoRun, since the
+	 * file is already past its first-open by the time an error happened).
+	 */
+	private renderStructuredError(container: HTMLElement, err: unknown): void {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'cm-lp-qjs-error';
+
+		const title = document.createElement('div');
+		title.className = 'cm-lp-qjs-error-title';
+		title.textContent = `QueryJS error: ${err instanceof Error ? err.message : String(err)}`;
+		wrapper.appendChild(title);
+
+		const stack = err instanceof Error ? err.stack : undefined;
+		if (stack) {
+			const details = document.createElement('details');
+			details.className = 'cm-lp-qjs-error-details';
+			const summary = document.createElement('summary');
+			summary.textContent = 'Stack trace';
+			details.appendChild(summary);
+			const pre = document.createElement('pre');
+			pre.className = 'cm-lp-qjs-error-stack';
+			pre.textContent = stack;
+			details.appendChild(pre);
+			wrapper.appendChild(details);
+		}
+
+		const retry = document.createElement('button');
+		retry.type = 'button';
+		retry.className = 'cm-lp-qjs-run';
+		retry.textContent = '▶ Run again';
+		retry.onclick = () => {
+			container.replaceChildren();
+			this.execute(container);
+		};
+		wrapper.appendChild(retry);
+
+		container.appendChild(wrapper);
 	}
 }

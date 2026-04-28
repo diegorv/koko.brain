@@ -291,18 +291,32 @@ function renderCellContent(
 	}
 }
 
-/** Widget that renders a pipe-delimited markdown table as an HTML `<table>` element */
+/** Range info for a table block in the document — used by edit-mode UI. */
+export interface TableSourceRange {
+	from: number;
+	to: number;
+	/** 1-based line number of the header row */
+	startLine: number;
+	/** 1-based line number of the last table row */
+	endLine: number;
+}
+
+/** Widget that renders a pipe-delimited markdown table as an HTML `<table>` element. */
 export class TableWidget extends WidgetType {
 	constructor(
 		readonly headers: string[],
 		readonly alignments: ColumnAlignment[],
 		readonly rows: string[][],
 		readonly properties: Property[],
+		readonly sourceRange: TableSourceRange,
 	) {
 		super();
 	}
 
 	toDOM(view: EditorView) {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'cm-lp-table-wrapper';
+
 		const table = document.createElement('table');
 		table.className = 'cm-lp-table';
 
@@ -334,7 +348,10 @@ export class TableWidget extends WidgetType {
 			table.appendChild(tbody);
 		}
 
-		return table;
+		wrapper.appendChild(table);
+		this.attachAddButtons(wrapper, view);
+
+		return wrapper;
 	}
 
 	eq(other: TableWidget) {
@@ -344,6 +361,14 @@ export class TableWidget extends WidgetType {
 		if (!this.alignments.every((a, i) => a === other.alignments[i])) return false;
 		if (!this.rows.every((row, ri) => row.every((cell, ci) => cell === other.rows[ri][ci]))) return false;
 		if (this.properties.length !== other.properties.length) return false;
+		// sourceRange equality matters — a table that moved (e.g. content edits
+		// above it) must rebuild so click handlers dispatch at the right offset.
+		if (
+			this.sourceRange.from !== other.sourceRange.from ||
+			this.sourceRange.to !== other.sourceRange.to ||
+			this.sourceRange.startLine !== other.sourceRange.startLine ||
+			this.sourceRange.endLine !== other.sourceRange.endLine
+		) return false;
 		return this.properties.every(
 			(p, i) => p.key === other.properties[i].key && String(p.value) === String(other.properties[i].value),
 		);
@@ -352,6 +377,112 @@ export class TableWidget extends WidgetType {
 	ignoreEvent() {
 		return false;
 	}
+
+	/**
+	 * Adds floating `+col` (right edge) and `+row` (bottom edge) buttons to
+	 * the wrapper. CSS handles the hover-only visibility — the buttons are
+	 * always in the DOM but hidden via opacity until the wrapper is hovered.
+	 *
+	 * Click handlers dispatch a single transaction that rewrites every line
+	 * in `sourceRange.startLine..endLine` (header + delimiter + bodies) with
+	 * the column or row appended. We rewrite the full block instead of
+	 * point-inserting because column appends touch every line.
+	 */
+	private attachAddButtons(wrapper: HTMLElement, view: EditorView): void {
+		// `mousedown` must stopPropagation BEFORE CodeMirror's own mousedown
+		// handler runs — otherwise CM moves the cursor into the table range,
+		// `shouldShowSource(...)` becomes true on the next render, the widget
+		// is destroyed, and the button's `click` event never fires (target gone).
+		// Same pattern as MetaBindSelect / language switcher / callout type
+		// popover. Without this, the buttons silently no-op.
+		const addCol = document.createElement('button');
+		addCol.type = 'button';
+		addCol.className = 'cm-lp-table-add cm-lp-table-add-col';
+		addCol.textContent = '+';
+		addCol.title = 'Add column';
+		addCol.addEventListener('mousedown', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		});
+		addCol.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this.dispatchAppendColumn(view);
+		};
+		wrapper.appendChild(addCol);
+
+		const addRow = document.createElement('button');
+		addRow.type = 'button';
+		addRow.className = 'cm-lp-table-add cm-lp-table-add-row';
+		addRow.textContent = '+';
+		addRow.title = 'Add row';
+		addRow.addEventListener('mousedown', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		});
+		addRow.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this.dispatchAppendRow(view);
+		};
+		wrapper.appendChild(addRow);
+	}
+
+	/** Builds the markdown source for the table with one extra trailing column. */
+	private buildAppendColumnSource(): string {
+		const { headers, alignments, rows } = this;
+		const newHeaders = [...headers, ''];
+		const newAlignments = [...alignments, alignments[alignments.length - 1] ?? 'left'];
+		const newRows = rows.map((r) => {
+			const out = [...r];
+			while (out.length < newHeaders.length) out.push('');
+			return out;
+		});
+		return renderTableSource(newHeaders, newAlignments, newRows);
+	}
+
+	/** Builds the markdown source for the table with one extra empty row appended. */
+	private buildAppendRowSource(): string {
+		const { headers, alignments, rows } = this;
+		const newRows = [...rows, headers.map(() => '')];
+		return renderTableSource(headers, alignments, newRows);
+	}
+
+	private dispatchAppendColumn(view: EditorView): void {
+		const newSource = this.buildAppendColumnSource();
+		view.dispatch({
+			changes: { from: this.sourceRange.from, to: this.sourceRange.to, insert: newSource },
+			userEvent: 'input.table.add-column',
+		});
+	}
+
+	private dispatchAppendRow(view: EditorView): void {
+		const newSource = this.buildAppendRowSource();
+		view.dispatch({
+			changes: { from: this.sourceRange.from, to: this.sourceRange.to, insert: newSource },
+			userEvent: 'input.table.add-row',
+		});
+	}
+}
+
+/** Renders headers/alignments/rows as a markdown pipe-table source string. */
+export function renderTableSource(
+	headers: string[],
+	alignments: ColumnAlignment[],
+	rows: string[][],
+): string {
+	const cellEscape = (cell: string) => cell.replace(/\|/g, '\\|');
+	const sep = (a: ColumnAlignment) => (a === 'center' ? ':---:' : a === 'right' ? '---:' : '---');
+
+	const lines: string[] = [];
+	lines.push(`| ${headers.map(cellEscape).join(' | ')} |`);
+	lines.push(`| ${alignments.map(sep).join(' | ')} |`);
+	for (const row of rows) {
+		const padded = [...row];
+		while (padded.length < headers.length) padded.push('');
+		lines.push(`| ${padded.map(cellEscape).join(' | ')} |`);
+	}
+	return lines.join('\n');
 }
 
 /** Widget that renders a wikilink image embed (`![[image.png]]`, `![[image.png|300]]`) */
@@ -590,5 +721,202 @@ export class MetaBindSelectWidget extends WidgetType {
 	ignoreEvent() {
 		return false;
 	}
+}
+
+/**
+ * Dispatches a frontmatter-property update for a meta-bind input. Used by the
+ * number / date / toggle widgets — same single-transaction shape the legacy
+ * select widget performs inline.
+ */
+export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): void {
+	const doc = view.state.doc.toString();
+	const properties = parseFrontmatterProperties(doc);
+	const body = extractBody(doc);
+	const existing = properties.find((p) => p.key === bindTarget);
+	let updated = existing
+		? updatePropertyValue(properties, bindTarget, newValue)
+		: updatePropertyValue(addProperty(properties, bindTarget), bindTarget, newValue);
+	const newContent = rebuildContent(updated, body);
+	const frontmatterEnd = doc.length - body.length;
+	const newFrontmatter = newContent.slice(0, newContent.length - body.length);
+	view.dispatch({ changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter } });
+}
+
+/** Pure validator: an empty string OR a finite number (`Number.isFinite`). */
+export function isNumericString(text: string): boolean {
+	if (text.trim() === '') return true; // empty = clearing the property
+	const n = Number(text);
+	return Number.isFinite(n);
+}
+
+/**
+ * Widget for `INPUT[number():prop]` — text input with inline numeric
+ * validation. Pre-existing malformed frontmatter (e.g. `count: not a number`)
+ * is flagged with `cm-lp-meta-bind-input-invalid` on first render. Commit on
+ * blur/Enter; revert on Escape.
+ */
+export class MetaBindNumberWidget extends WidgetType {
+	constructor(
+		readonly bindTarget: string,
+		readonly currentValue: string | null,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, {
+			type: 'number',
+			validate: isNumericString,
+			invalidMessage: 'Not a number',
+		});
+	}
+
+	eq(other: MetaBindNumberWidget) {
+		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+/** Pure validator: empty string OR a `YYYY-MM-DD` date that round-trips through Date. */
+export function isDateString(text: string): boolean {
+	if (text.trim() === '') return true;
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(text.trim())) return false;
+	const d = new Date(text.trim());
+	return !Number.isNaN(d.getTime());
+}
+
+/**
+ * Widget for `INPUT[date():prop]` — `<input type="date">` with inline
+ * validation (browser provides the date picker; manual paste is validated
+ * via `isDateString` for the YYYY-MM-DD shape).
+ */
+export class MetaBindDateWidget extends WidgetType {
+	constructor(
+		readonly bindTarget: string,
+		readonly currentValue: string | null,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, {
+			type: 'date',
+			validate: isDateString,
+			invalidMessage: 'Use YYYY-MM-DD',
+		});
+	}
+
+	eq(other: MetaBindDateWidget) {
+		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+/**
+ * Widget for `INPUT[toggle():prop]` / `INPUT[boolean():prop]` — native
+ * checkbox styled inline. Truthy frontmatter values (`true`/`yes`/`1`) start
+ * checked; everything else starts unchecked. Toggling immediately commits
+ * `'true'` or `'false'` to frontmatter.
+ */
+export class MetaBindToggleWidget extends WidgetType {
+	constructor(
+		readonly bindTarget: string,
+		readonly currentValue: string | null,
+	) {
+		super();
+	}
+
+	toDOM(view: EditorView) {
+		const wrap = document.createElement('label');
+		wrap.className = 'cm-lp-meta-bind-toggle';
+		const cb = document.createElement('input');
+		cb.type = 'checkbox';
+		cb.className = 'cm-lp-meta-bind-toggle-input';
+		const truthy = ['true', 'yes', '1', 'on'];
+		cb.checked = this.currentValue !== null && truthy.includes(this.currentValue.toLowerCase());
+		cb.addEventListener('mousedown', (e) => e.stopPropagation());
+		cb.addEventListener('change', () => {
+			dispatchMetaBindUpdate(view, this.bindTarget, cb.checked ? 'true' : 'false');
+		});
+		wrap.appendChild(cb);
+		return wrap;
+	}
+
+	eq(other: MetaBindToggleWidget) {
+		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+/** Internal helper: builds the text input for number/date widgets with shared validation behaviour. */
+function buildMetaBindTextInput(
+	view: EditorView,
+	bindTarget: string,
+	currentValue: string | null,
+	opts: { type: 'number' | 'date'; validate: (text: string) => boolean; invalidMessage: string },
+): HTMLElement {
+	const wrap = document.createElement('span');
+	wrap.className = 'cm-lp-meta-bind-input-wrap';
+
+	const input = document.createElement('input');
+	input.type = opts.type;
+	input.className = 'cm-lp-meta-bind-input';
+	const initial = currentValue ?? '';
+	input.value = initial;
+
+	const error = document.createElement('span');
+	error.className = 'cm-lp-meta-bind-input-error';
+	error.textContent = '';
+
+	const isInvalid = !opts.validate(initial);
+	if (isInvalid) {
+		wrap.classList.add('cm-lp-meta-bind-input-invalid');
+		error.textContent = opts.invalidMessage;
+	}
+
+	const validateNow = () => {
+		const ok = opts.validate(input.value);
+		if (ok) {
+			wrap.classList.remove('cm-lp-meta-bind-input-invalid');
+			error.textContent = '';
+		} else {
+			wrap.classList.add('cm-lp-meta-bind-input-invalid');
+			error.textContent = opts.invalidMessage;
+		}
+		return ok;
+	};
+
+	const commit = () => {
+		if (!validateNow()) return;
+		dispatchMetaBindUpdate(view, bindTarget, input.value);
+	};
+
+	input.addEventListener('mousedown', (e) => e.stopPropagation());
+	input.addEventListener('input', validateNow);
+	input.addEventListener('blur', commit);
+	input.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commit();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			input.value = initial;
+			validateNow();
+			input.blur();
+		}
+	});
+
+	wrap.appendChild(input);
+	wrap.appendChild(error);
+	return wrap;
 }
 
