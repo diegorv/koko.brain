@@ -22,6 +22,7 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 	perfStart: vi.fn(() => 0),
 	perfEnd: vi.fn(),
+	perfBaseline: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debounce', () => ({

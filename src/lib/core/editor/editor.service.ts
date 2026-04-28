@@ -8,7 +8,7 @@ import { isCollectionFile, isCanvasFile, isKanbanFile } from '$lib/core/filesyst
 import { applyReadTransform, applyWriteTransform, notifyAfterSave } from './editor.hooks';
 import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
-import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
+import { debug, error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
@@ -20,6 +20,7 @@ import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.
 export async function openFileInEditor(filePath: string) {
 	// [FE-STARTUP-PROBE]
 	const probeStart = performance.now();
+	const baseStart = perfStart();
 	appendLog('FE-STARTUP-PROBE', `openFileInEditor: ENTRY path=${filePath}`);
 
 	const existingIndex = findTabIndex(editorStore.tabs, filePath);
@@ -27,6 +28,7 @@ export async function openFileInEditor(filePath: string) {
 		editorStore.setActiveIndex(existingIndex);
 		fsStore.setSelectedFilePath(filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: tab already open @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		perfBaseline('openFileInEditor:cached', baseStart);
 		return;
 	}
 
@@ -49,6 +51,7 @@ export async function openFileInEditor(filePath: string) {
 		if (raceIndex >= 0) {
 			editorStore.setActiveIndex(raceIndex);
 			fsStore.setSelectedFilePath(filePath);
+			perfBaseline('openFileInEditor:raceCached', baseStart);
 			return;
 		}
 
@@ -61,6 +64,7 @@ export async function openFileInEditor(filePath: string) {
 		fsStore.setSelectedFilePath(filePath);
 		debug('EDITOR', 'opened file:', filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		perfBaseline('openFileInEditor:fresh', baseStart);
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
 		if (msg === 'canceled') return; // Touch ID dismissed — silent
@@ -160,6 +164,7 @@ export function switchTab(index: number) {
 		fsStore.setSelectedFilePath(tab.path);
 	}
 	perfEnd('EDITOR', 'switchTab:sync', t0);
+	perfBaseline('switchTab:sync', t0);
 }
 
 /**
@@ -173,6 +178,7 @@ export async function closeTab(index: number) {
 	if (isTabPinned(tab)) return;
 
 	const tabPath = tab.path;
+	const baseStart = perfStart();
 
 	if (!isVirtualTab(tab)) {
 		if (isTabDirty(tab)) {
@@ -199,6 +205,7 @@ export async function closeTab(index: number) {
 
 	const newActive = editorStore.activeTab;
 	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
+	perfBaseline('closeTab', baseStart);
 }
 
 /** Convenience: closes whichever tab is currently focused */

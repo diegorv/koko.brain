@@ -43,6 +43,7 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 	perfStart: vi.fn(() => 0),
 	perfEnd: vi.fn(),
+	perfBaseline: vi.fn(),
 }));
 
 import { updateIndexForFile, updateBacklinksForFile } from '$lib/features/backlinks/backlinks.service';

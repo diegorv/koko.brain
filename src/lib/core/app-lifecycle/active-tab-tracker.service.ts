@@ -9,7 +9,7 @@ import {
 	updateOutgoingLinksForFile,
 } from '$lib/features/outgoing-links/outgoing-links.service';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
-import { error, perfStart, perfEnd } from '$lib/utils/debug';
+import { error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 
 /**
  * Updates backlinks and outgoing links panels when the active tab changes.
@@ -32,6 +32,7 @@ export function updateActiveTabLinks(path: string | null): void {
 		try { updateOutgoingLinksForFile(path, allFilePaths, cache); } catch (err) { error('ACTIVE-TAB', 'updateOutgoingLinksForFile failed:', err); }
 		backlinksStore.markUnlinkedDirty();
 		perfEnd('ACTIVE-TAB', 'updateActiveTabLinks', t0);
+		perfBaseline('updateActiveTabLinks', t0);
 	} else {
 		backlinksStore.setLinkedMentions([]);
 		backlinksStore.setUnlinkedMentions([]);

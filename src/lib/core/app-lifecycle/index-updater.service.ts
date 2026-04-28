@@ -12,7 +12,7 @@ import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
 import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
-import { error, perfStart, perfEnd } from '$lib/utils/debug';
+import { error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 import { isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
 
 /** Version counter to discard stale in-flight updates when a newer call arrives. */
@@ -76,4 +76,5 @@ export async function updateIndexesForFile(filePath: string, content: string): P
 	try { updateCalendarForFile(filePath, content); } catch (err) { error('INDEX', 'updateCalendarForFile failed:', err); }
 	perfEnd('INDEX', 'Phase3:tags+tasks+collection+icons+calendar', tP3);
 	perfEnd('INDEX', 'updateIndexesForFile(total)', t0);
+	perfBaseline('updateIndexesForFile', t0);
 }

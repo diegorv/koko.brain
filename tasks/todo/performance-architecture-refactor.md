@@ -15,7 +15,7 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 0 - Measurement Baseline
 
-- [ ] **0.1** Unify `PERF-BASELINE` tag across the existing probes:
+- [x] **0.1** Unify `PERF-BASELINE` tag across the existing probes:
   - `editor.service.ts::openFileInEditor` (already has `FE-STARTUP-PROBE`; add a parallel `PERF-BASELINE` line at start/end so both consumers can read it).
   - `editor.service.ts::switchTab` (lines 155-163) and `closeTab` (lines 170-202): add `perfStart`/`perfEnd` with tag `PERF-BASELINE`.
   - `index-updater.service.ts::updateIndexesForFile`: retag the existing perf line with `PERF-BASELINE`.

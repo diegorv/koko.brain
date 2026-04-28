@@ -19,7 +19,7 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { detectPeriodicNoteType } from '$lib/plugins/periodic-notes/periodic-notes.logic';
 	import { openOrCreatePeriodicNoteForDate } from '$lib/plugins/periodic-notes/periodic-notes.service';
-	import { debug, perfStart, perfEnd } from '$lib/utils/debug';
+	import { debug, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 	import { getLanguageEffects } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions } from './setup';
@@ -317,13 +317,16 @@
 		});
 	});
 
-	// Sync external content changes (e.g. from Properties panel) into CodeMirror
+	// Sync external content changes (e.g. from Properties panel) into CodeMirror.
+	// Re-runs on every keystroke because activeTab.content is reactive — Phase 5
+	// will eliminate the per-keystroke toString() round-trip via syncExternalContentToEditor.
 	$effect(() => {
 		const content = editorStore.activeTab?.content;
 
 		untrack(() => {
 			if (!view || content === undefined) return;
 
+			const tBaseline = perfStart();
 			const currentDoc = view.state.doc.toString();
 			if (content !== currentDoc) {
 				const cursorPos = Math.min(view.state.selection.main.head, content.length);
@@ -332,6 +335,9 @@
 					selection: EditorSelection.cursor(cursorPos),
 					annotations: Transaction.addToHistory.of(false),
 				});
+				perfBaseline('contentSyncEffect:dispatched', tBaseline);
+			} else {
+				perfBaseline('contentSyncEffect:noop', tBaseline);
 			}
 		});
 	});
