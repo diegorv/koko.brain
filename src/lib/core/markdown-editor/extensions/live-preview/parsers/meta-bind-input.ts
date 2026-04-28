@@ -24,6 +24,19 @@ const INPUT_RE = /`INPUT\[([^\]]+)\]`/g;
 const OPTION_RE = /option\(([^,]+),\s*([^)]*)\)/g;
 
 /**
+ * Input types that are valid with empty parens — `INPUT[number():prop]` is a
+ * legal shorthand even though `number` takes no options. The legacy parser
+ * required at least one option; this list lets number/date/toggle/boolean
+ * inputs participate without a placeholder option.
+ */
+const TYPES_WITHOUT_OPTIONS: ReadonlySet<string> = new Set([
+	'number',
+	'date',
+	'toggle',
+	'boolean',
+]);
+
+/**
  * Finds all meta-bind INPUT fields in a line of text.
  * Parses the input type, options, and bind target from `INPUT[type(args):bindTarget]` syntax.
  */
@@ -76,7 +89,8 @@ export function findMetaBindInputRanges(text: string, offset: number): MetaBindI
 			}
 		}
 
-		if (options.length === 0) continue;
+		// number/date/toggle/boolean are valid without options.
+		if (options.length === 0 && !TYPES_WITHOUT_OPTIONS.has(inputType)) continue;
 
 		const start = offset + match.index;
 		ranges.push({

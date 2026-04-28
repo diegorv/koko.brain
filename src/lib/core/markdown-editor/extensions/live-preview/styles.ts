@@ -880,6 +880,49 @@ export const livePreviewStyles = EditorView.baseTheme({
 		borderRadius: '6px',
 		border: '1px solid var(--lp-meta-bind-error-border)',
 	},
+	'.cm-lp-meta-bind-input-wrap': {
+		display: 'inline-flex',
+		alignItems: 'center',
+		gap: '4px',
+		verticalAlign: 'middle',
+	},
+	'.cm-lp-meta-bind-input': {
+		appearance: 'none',
+		background: 'var(--lp-meta-bind-select-bg)',
+		color: 'var(--lp-meta-bind-select-text)',
+		border: '1px solid var(--lp-meta-bind-select-border)',
+		borderRadius: '6px',
+		padding: '2px 8px',
+		fontSize: '13px',
+		lineHeight: '1.4',
+		outline: 'none',
+		fontFamily: 'inherit',
+	},
+	'.cm-lp-meta-bind-input:focus': {
+		borderColor: 'hsl(var(--primary))',
+		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
+	},
+	'.cm-lp-meta-bind-input-invalid .cm-lp-meta-bind-input': {
+		borderColor: 'var(--lp-meta-bind-error-border, var(--destructive, #ef4444))',
+	},
+	'.cm-lp-meta-bind-input-error': {
+		fontSize: '11px',
+		color: 'var(--lp-meta-bind-error-text, var(--destructive, #ef4444))',
+		fontStyle: 'italic',
+	},
+	'.cm-lp-meta-bind-toggle': {
+		display: 'inline-flex',
+		alignItems: 'center',
+		verticalAlign: 'middle',
+		cursor: 'pointer',
+	},
+	'.cm-lp-meta-bind-toggle-input': {
+		cursor: 'pointer',
+		margin: '0',
+		width: '14px',
+		height: '14px',
+		accentColor: 'hsl(var(--primary))',
+	},
 	/* ── Mermaid diagrams ── */
 	'.cm-lp-mermaid': {
 		display: 'block',
