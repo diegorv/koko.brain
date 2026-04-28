@@ -1,10 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import {
-	newInlineExtensions,
-	livePreviewExtensions,
-} from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
+import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
+import { newInlineExtensions } from '$lib/core/markdown-editor/extensions/live-preview/new/new-inline-extensions';
 import { simpleWidgetPlugin } from '$lib/core/markdown-editor/extensions/live-preview/plugins/simple-widget-plugin';
 import { inlineMarksPlugin } from '$lib/core/markdown-editor/extensions/live-preview/plugins/inline-marks-plugin';
 import { markdownStylePlugin } from '$lib/core/markdown-editor/extensions/live-preview/plugins/markdown-style-plugin';
@@ -42,8 +40,10 @@ describe('live-preview pipeline branching', () => {
 	});
 
 	describe('newInlineExtensions', () => {
-		it('returns an empty array (Phase 2 will populate it)', () => {
-			expect(newInlineExtensions()).toEqual([]);
+		it('returns the HighlightStyle extension + inline formatting plugin (Phase 2 scaffold)', () => {
+			const exts = newInlineExtensions();
+			// Two top-level entries: HighlightStyle wrapper + ViewPlugin extension
+			expect(exts.length).toBe(2);
 		});
 	});
 
@@ -109,11 +109,13 @@ describe('live-preview pipeline branching', () => {
 		});
 	});
 
-	it('extension array is shorter by exactly 8 with flag on (the retired set)', () => {
+	it('flag-on adds the new pipeline (HighlightStyle + inline plugin) after dropping the 8 retired plugins', () => {
 		settingsStore.updateExperimental({ newLivePreview: false });
 		const offCount = livePreviewExtensions().length;
 		settingsStore.updateExperimental({ newLivePreview: true });
 		const onCount = livePreviewExtensions().length;
-		expect(offCount - onCount).toBe(RETIRED_INLINE_PLUGINS.length);
+		// Off path: 8 retired plugins. On path: 2 new entries (highlight + plugin).
+		// Net = -8 + 2 = -6.
+		expect(offCount - onCount).toBe(RETIRED_INLINE_PLUGINS.length - 2);
 	});
 });
