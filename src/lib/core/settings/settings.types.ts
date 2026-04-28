@@ -171,6 +171,19 @@ export interface SearchSettings {
 	semanticSearchEnabled: boolean;
 }
 
+/**
+ * Opt-in experimental features. All flags default to `false` and are removed
+ * once the feature is default-on and orphans are deleted (see `tasks/todo/performance-architecture-refactor.md`).
+ */
+export interface ExperimentalSettings {
+	/**
+	 * Use the Rust `VaultIndex` for backlinks instead of the TypeScript reverse index.
+	 * Phase 3 of the perf refactor. When `true`, `active-tab-tracker` and
+	 * `BacklinksPanel` consume `get_backlinks_v2`/`vault-index-updated`.
+	 */
+	rustBacklinks: boolean;
+}
+
 /** Configuration for the Todoist integration */
 export interface TodoistSettings {
 	/** Todoist personal API token (from Settings → Integrations → Developer) */
@@ -234,4 +247,6 @@ export interface AppSettings {
 	tagColors: TagColorSettings;
 	/** QueryJS plugin configuration (execution policy, …) */
 	queryjs: QueryjsSettings;
+	/** Opt-in experimental features (Rust-backed indexes, watcher migration, …). All default off. */
+	experimental: ExperimentalSettings;
 }
