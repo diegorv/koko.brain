@@ -152,6 +152,24 @@ pub fn collect_v2_entries(path: &str) -> Result<Vec<NoteEntry>, String> {
 	Ok(notes)
 }
 
+/// Returns every `NoteEntry` whose outgoing links resolve to `path`,
+/// sorted by title (case-insensitive) for stable UI ordering. Reads
+/// from the managed `VaultIndex` under a shared lock; safe to call
+/// concurrently with other readers.
+///
+/// Returns an empty vector when no backlinks are recorded for `path`
+/// (or when the path is unknown to the index entirely).
+#[tauri::command]
+pub fn get_backlinks_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_backlinks(&path))
+}
+
 /// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
 /// Returns the same `Vec<NoteEntry>` produced by [`collect_v2_entries`]
 /// so the frontend has the data without an extra round-trip.

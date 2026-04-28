@@ -287,3 +287,88 @@ fn resolve_method_returns_path_for_known_targets_and_none_for_unknown() {
 	// Empty target.
 	assert_eq!(idx.resolve(""), None);
 }
+
+// --- VaultIndex::lookup_backlinks (Phase 2.4) -------------------------------
+
+#[test]
+fn lookup_backlinks_empty_index_returns_empty() {
+	let idx = VaultIndex::default();
+	assert!(idx.lookup_backlinks("/v/anything.md").is_empty());
+}
+
+#[test]
+fn lookup_backlinks_returns_empty_for_target_with_no_inbound_links() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/lonely.md", &[])]);
+	assert!(idx.lookup_backlinks("/v/lonely.md").is_empty());
+}
+
+#[test]
+fn lookup_backlinks_returns_single_source_for_single_backlink() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let entries = idx.lookup_backlinks("/v/target.md");
+	assert_eq!(entries.len(), 1);
+	assert_eq!(entries[0].path, "/v/source.md");
+}
+
+#[test]
+fn lookup_backlinks_returns_multiple_sources_sorted_by_title_case_insensitive() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/Charlie.md", &["target"]),
+		entry_with_links("/v/alpha.md", &["target"]),
+		entry_with_links("/v/Bravo.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let entries = idx.lookup_backlinks("/v/target.md");
+	let titles: Vec<_> = entries.iter().map(|e| e.title.clone()).collect();
+	// Sorted alphabetically, case-insensitively. Stable across runs.
+	assert_eq!(titles, vec!["alpha", "Bravo", "Charlie"]);
+}
+
+#[test]
+fn lookup_backlinks_unknown_path_returns_empty_not_panic() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/some.md", &[])]);
+	assert!(idx.lookup_backlinks("/v/never-existed.md").is_empty());
+}
+
+#[test]
+fn lookup_backlinks_returns_full_entries_with_metadata() {
+	// Each returned entry must carry the full NoteEntry payload — title,
+	// path, etc. — not just the path. The panel renders snippets and
+	// other fields, so the v2 surface returns the whole record.
+	let mut source = entry_with_links("/v/source.md", &["target"]);
+	source.title = "My Source".to_string();
+	source.snippet = "preview text".to_string();
+	source.tags = vec!["work".to_string()];
+
+	let mut idx = VaultIndex::default();
+	idx.build(vec![source, entry_with_links("/v/target.md", &[])]);
+
+	let entries = idx.lookup_backlinks("/v/target.md");
+	assert_eq!(entries.len(), 1);
+	assert_eq!(entries[0].title, "My Source");
+	assert_eq!(entries[0].snippet, "preview text");
+	assert_eq!(entries[0].tags, vec!["work".to_string()]);
+}
+
+#[test]
+fn lookup_backlinks_preserves_call_site_immutability() {
+	// Sanity check: read methods must not bump version. Two consecutive
+	// reads should observe the same version. This catches accidental
+	// mutations in lookup paths during future refactors.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let v_before = idx.version();
+	let _ = idx.lookup_backlinks("/v/target.md");
+	let _ = idx.lookup_backlinks("/v/target.md");
+	assert_eq!(idx.version(), v_before);
+}
