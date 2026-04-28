@@ -191,6 +191,18 @@ export interface ExperimentalSettings {
 	newLivePreview: boolean;
 }
 
+/** Policy for QueryJS block execution — controls when `kb.pages()`/`dv.view()` blocks run */
+export type AutoRunQueriesPolicy =
+	| 'first-open' // execute the first time the file is opened in this session, then cache for the session
+	| 'always' // execute on every render (legacy behaviour — slower, fresher results)
+	| 'manual'; // never auto-execute — user clicks ▶ Run on each block
+
+/** Configuration for the QueryJS scripting plugin */
+export interface QueryjsSettings {
+	/** When QueryJS blocks should auto-execute. Default 'first-open'. */
+	autoRunQueries: AutoRunQueriesPolicy;
+}
+
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'update' | 'experimental';
 
@@ -230,4 +242,6 @@ export interface AppSettings {
 	tagColors: TagColorSettings;
 	/** Experimental feature flags — opt-in via Settings → Experimental */
 	experimental: ExperimentalSettings;
+	/** QueryJS plugin configuration (execution policy, …) */
+	queryjs: QueryjsSettings;
 }
