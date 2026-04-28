@@ -11,7 +11,29 @@
 //! plan and how this replaces the per-feature TS stores.
 
 use crate::vault::entry::NoteEntry;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
+
+/// Mirrors `kokobrain_lib::vault::entry` over IPC: the result of a
+/// single `VaultIndex::update_entry` call. Serialised as camelCase to
+/// match the TS `UpdateResultV2` declared in
+/// `src/lib/types/vault-v2.types.ts`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateResult {
+	/// Whether the stored entry differs from the previous version (any
+	/// field — outgoing links, tags, frontmatter, snippet, etc. — OR
+	/// this is a brand-new entry). Consumers use this to decide whether
+	/// to re-fetch downstream views.
+	pub changed: bool,
+	/// Absolute paths whose backlinks set was modified by this update —
+	/// either gained the source as a backlink (resolution added) or lost
+	/// it (resolution removed). Empty when no resolved-target diff
+	/// occurred. Sorted for stable IPC payloads.
+	pub affected: Vec<String>,
+	/// The post-update monotonic version of the index.
+	pub version: u64,
+}
 
 /// TS `getNoteName` equivalent for arbitrary input strings (paths AND
 /// wikilink targets). Strips everything after the LAST `/`, then drops
@@ -169,6 +191,102 @@ impl VaultIndex {
 		}
 
 		self.version += 1;
+	}
+
+	/// Inserts or updates a single note's metadata in-place.
+	///
+	/// Computes the diff between the old entry's resolved outgoing-link
+	/// set and the new entry's resolved set, then patches the
+	/// `backlinks` reverse index incrementally — adding the source path
+	/// to backlink sets it newly resolves into and removing it from sets
+	/// it no longer resolves into. Empty backlink sets are pruned. Self-
+	/// links (target resolves to source) are filtered both ways. Always
+	/// bumps `version` after applying the update so consumers reacting to
+	/// `vault-index-updated` have a monotonic signal even when the entry
+	/// itself was logically unchanged.
+	///
+	/// `UpdateResult.changed` reports the full-equality result (every
+	/// `NoteEntry` field compared, plus a `true` short-circuit when the
+	/// entry is new). `UpdateResult.affected` is the union of removed
+	/// and added resolved targets, sorted for stable IPC payloads.
+	pub fn update_entry(&mut self, entry: NoteEntry) -> UpdateResult {
+		let path = entry.path.clone();
+
+		// --- Phase 1: snapshot under &self ----------------------------------
+		// Cloning the old entry decouples us from the borrow checker so the
+		// rest of the function can take &mut self freely. Clone cost is the
+		// usual ~one BTreeMap + a few Vec allocations.
+		let old_entry = self.entries.get(&path).cloned();
+
+		// Compute resolved outgoing-target sets. `resolve` takes &self; we
+		// don't hold any &mut borrow at this point.
+		let old_resolved: BTreeSet<String> = match &old_entry {
+			Some(e) => e
+				.outgoing_links
+				.iter()
+				.filter_map(|link| self.resolve(&link.target))
+				.filter(|p| p != &path)
+				.collect(),
+			None => BTreeSet::new(),
+		};
+		let new_resolved: BTreeSet<String> = entry
+			.outgoing_links
+			.iter()
+			.filter_map(|link| self.resolve(&link.target))
+			.filter(|p| p != &path)
+			.collect();
+
+		// Full-equality check while we still have access to `entry`.
+		let changed = old_entry.as_ref() != Some(&entry);
+
+		let removed: Vec<String> = old_resolved.difference(&new_resolved).cloned().collect();
+		let added: Vec<String> = new_resolved.difference(&old_resolved).cloned().collect();
+
+		// --- Phase 2: apply mutations under &mut self -----------------------
+		// For each removed target, drop our source from its backlink set and
+		// prune the set if it became empty. The two-step (read -> remove)
+		// pattern avoids a borrow conflict between `get_mut` and `remove`.
+		for target in &removed {
+			let became_empty = if let Some(set) = self.backlinks.get_mut(target) {
+				set.remove(&path);
+				set.is_empty()
+			} else {
+				false
+			};
+			if became_empty {
+				self.backlinks.remove(target);
+			}
+		}
+
+		for target in &added {
+			self.backlinks
+				.entry(target.clone())
+				.or_default()
+				.insert(path.clone());
+		}
+
+		// First-write-wins for the resolution cache: only insert when the
+		// entry is genuinely new. An update to an existing path keeps the
+		// cache pointing at the same path it already had.
+		if old_entry.is_none() {
+			let key = note_name_from_target(&path).to_lowercase();
+			self.by_path.entry(key).or_insert_with(|| path.clone());
+		}
+
+		self.entries.insert(path, entry);
+		self.version += 1;
+
+		// affected = removed ∪ added (set-diff already deduped); sort for
+		// stable downstream payloads.
+		let mut affected: Vec<String> = removed;
+		affected.extend(added);
+		affected.sort();
+
+		UpdateResult {
+			changed,
+			affected,
+			version: self.version,
+		}
 	}
 
 	/// Returns every `NoteEntry` whose outgoing links resolve to `path`,
