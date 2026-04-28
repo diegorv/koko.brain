@@ -40,6 +40,15 @@ function isDisabled(name: string): boolean {
 	return settingsStore.disabledDecorators[name] ?? false;
 }
 
+/**
+ * Returns the consolidated inline pipeline (`HighlightStyle` + a single
+ * `inlineFormattingPlugin` with handler registry) used when
+ * `experimental.newLivePreview` is `true`. Empty until Phase 2 wires the scaffold.
+ */
+export function newInlineExtensions(): Extension[] {
+	return [];
+}
+
 export function livePreviewExtensions(): Extension[] {
 	const exts: Extension[] = [
 		mouseSelectingField,
@@ -47,7 +56,7 @@ export function livePreviewExtensions(): Extension[] {
 		calloutFoldState,
 	];
 
-	// Block plugins
+	// Block plugins (unchanged across both pipelines)
 	if (!isDisabled('frontmatter')) { exts.push(frontmatterField, frontmatterGutter); }
 	if (!isDisabled('codeBlock')) { exts.push(codeBlockField); }
 	exts.push(blockCommentField);
@@ -57,16 +66,24 @@ export function livePreviewExtensions(): Extension[] {
 	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
-	// Inline plugins
-	if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
-	if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
-	if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
-	if (!isDisabled('heading')) { exts.push(headingPlugin); }
-	if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
-	if (!isDisabled('link')) { exts.push(linkPlugin); }
-	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
-	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
-	exts.push(inlineCommentPlugin, blockReferencePlugin);
+	// Inline pipeline — selected by experimental.newLivePreview.
+	// Flag OFF preserves exact pre-refactor ordering (decoration precedence
+	// depends on extension order). Flag ON uses the new unified pipeline.
+	if (settingsStore.experimental.newLivePreview) {
+		exts.push(...newInlineExtensions());
+		exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
+		if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
+	} else {
+		if (!isDisabled('simpleWidget')) { exts.push(simpleWidgetPlugin); }
+		if (!isDisabled('inlineMarks')) { exts.push(inlineMarksPlugin); }
+		if (!isDisabled('markdownStyle')) { exts.push(markdownStylePlugin); }
+		if (!isDisabled('heading')) { exts.push(headingPlugin); }
+		if (!isDisabled('blockquote')) { exts.push(blockquotePlugin); }
+		if (!isDisabled('link')) { exts.push(linkPlugin); }
+		exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
+		if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
+		exts.push(inlineCommentPlugin, blockReferencePlugin);
+	}
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
