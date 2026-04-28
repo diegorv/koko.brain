@@ -8,7 +8,7 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 - [x] Task 0.1: Inventory CSS classes emitted by the 8 inline plugins → `tasks/notes/css-classes-inventory.md`
 - [x] Task 0.2 + 0.3 (combined): `ExperimentalSettings` interface + `AppSettings` field + store default/getter/updater + service merge + tests (combined because the type addition must arrive with its default to keep the project type-checking)
-- [ ] Task 0.4: `ExperimentalSection.svelte` (new) wired into `SettingsDialog.svelte` + sidebar nav
+- [x] Task 0.4: `ExperimentalSection.svelte` (new) wired into `SettingsDialog.svelte` + sidebar nav
 - [ ] Task 0.5: Branch `livePreviewExtensions()` on the flag — `legacyInlineExtensions()` returns current 8 plugins, `newInlineExtensions()` returns `[]`; tests
 
 ### Phase 1 — Raw mode (Cmd+K)
