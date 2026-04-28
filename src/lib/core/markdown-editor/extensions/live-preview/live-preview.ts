@@ -20,7 +20,7 @@ import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
-import { newInlineExtensions } from './new/new-inline-extensions';
+import { inlineExtensions } from './inline/inline-extensions';
 import { pasteTsvHandler } from './handlers/paste-tsv-handler';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
@@ -60,7 +60,7 @@ export function livePreviewExtensions(): Extension[] {
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
 	// Unified inline pipeline (ex-Phases 3–10) + always-on inline plugins
-	exts.push(...newInlineExtensions());
+	exts.push(...inlineExtensions());
 	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
 	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
 

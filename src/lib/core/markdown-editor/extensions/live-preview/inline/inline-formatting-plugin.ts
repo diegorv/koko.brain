@@ -132,7 +132,7 @@ export function buildInlineDecorations(
 /**
  * Factory: returns a `ViewPlugin` that runs the inline pipeline with the
  * given handlers. Tests call this with custom handler arrays; production
- * uses the aggregated set from `new-inline-extensions.ts`.
+ * uses the aggregated set from `inline-extensions.ts`.
  *
  * Per CLAUDE.md § Performance rule 4, the update path:
  *   - returns immediately on viewport-only scroll changes

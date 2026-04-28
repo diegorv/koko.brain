@@ -17,8 +17,10 @@ import { wikilinkHandler } from './handlers/wikilink-handler';
 import { markHandlers, escapeHandler } from './handlers/mark-handlers';
 
 /**
- * Production node handlers, registered in the order Phases 3–10 retire their
- * legacy plugin counterparts.
+ * Production node handlers — every NodeHandler the inline pipeline dispatches
+ * on Lezer node names. Order matters only for tie-breaking when multiple
+ * handlers match (rare); the registry's `handlersByType` map gives O(1)
+ * dispatch per node.
  */
 export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 	highlightHandler,
@@ -34,8 +36,8 @@ export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 
 /**
  * Production line handlers — regex-based parsers for markdown features
- * without a usable Lezer node. Phases 6 + 7 covered inline comments and
- * block references; Phase 9 will add wikilinks and extended autolinks.
+ * without a usable Lezer node (inline comments `%%…%%`, block references
+ * `^id`, extended autolinks, wikilinks).
  */
 export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 	inlineCommentHandler,
@@ -45,12 +47,12 @@ export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 ];
 
 /**
- * Returns the full extension array for the new inline pipeline:
+ * Returns the full extension array for the inline pipeline:
  * `HighlightStyle` (tag-based marks/styles) + `inlineFormattingPlugin`
  * (everything that needs cursor reveal, regex parsing, or block-context
  * suppression).
  */
-export function newInlineExtensions(): Extension[] {
+export function inlineExtensions(): Extension[] {
 	return [
 		inlineHighlightExtension(),
 		makeInlineFormattingPlugin({
