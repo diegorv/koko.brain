@@ -32,7 +32,7 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 - [x] **1.3** `vault/parsing.rs::extract_tags_strict`. Unicode-aware, mirrors `tags.logic.ts::extractAllTags` exactly: rejects digit-first, strips HTML comments, normalizes trailing slash, no in-word matches. Coexist with `fts_logic::extract_tags` (do NOT modify the FTS variant).
 - [x] **1.4** `vault/parsing.rs::parse_frontmatter`. Hand-rolled minimal YAML (scalars, inline `[a, b]`, block `- item`, nested -> null entries to preserve sibling parsing). No new crate dep. Malformed YAML -> empty map, no panics. Documented divergences from TS `yaml` lib: comments not stripped, quoted keys not unquoted, no block scalar `|`/`>`, no anchors. Phase 8 revisits if real notes hit those.
 - [x] **1.5** `commands/vault.rs::scan_vault_v2(path) -> Vec<NoteEntry>`. Reuses `utils::fs::collect_markdown_paths_with_mtime`. Per-file errors logged via `debug_log("VAULT-V2", ...)` and skipped. Registered in `lib.rs::generate_handler!`. Also adds `NoteEntry::from_content` constructor + body-scoped `word_count` and concatenated-non-blank-lines `snippet` capped at 280 bytes.
-- [ ] **1.6** `src/lib/types/vault-v2.types.ts`. TS mirror with `@experimental` JSDoc on every exported symbol. Export recursive `FrontmatterValue` type.
+- [x] **1.6** `src/lib/types/vault-v2.types.ts`. TS mirror with `@experimental` JSDoc on every exported symbol. Exports recursive `FrontmatterValue`, `WikiLinkV2`, `NoteEntryV2`, and `UpdateResultV2` (the Phase 2.5 result type, anchored here so the wire-shape definitions stay co-located).
 
 ### Phase 2 - Rust VaultIndex with Backlinks (additive)
 
