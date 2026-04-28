@@ -221,9 +221,18 @@ The live preview system uses ~22 CodeMirror decoration plugins. Key performance 
 
 7. **Scroll debounce** — `scrollDebouncePlugin` defers `forceDecorationRebuild` by 150ms after scroll stops. `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond viewport so content has decorations ready when it scrolls in.
 
-8. **QueryJS widgets auto-await top-level `kb.view(…)` / `dv.view(…)`** — `queryjs-block-widget.ts` wraps every `jsContent` in `return (async () => { … })()` and regex-prepends `await` to top-level `kb.view(` / `dv.view(` calls. Without this, a block like `` ```queryjs\nkb.view("…")\n``` `` (no explicit `await`) runs the script's async IIFE, kicks off `kb.view()`, returns `undefined` synchronously, and `scriptResultCache.set(cloneNode(container))` captures an EMPTY container before the inner script finishes writing DOM. Next cache HIT then clones the blank snapshot and renders nothing.
+8. **QueryJS uses `_pendingViews` instead of an auto-await regex.** `KBAPI.view()` registers its returned Promise on `this._pendingViews`; the widget calls `await api.awaitAllPending()` after running the user script. A block like `` ```queryjs\nkb.view("…")\n``` `` works whether the user wrote `await` or not — the IIFE returns Promise<undefined> immediately, but `awaitAllPending()` waits on every `view()` started during the run, so DOM mutations finish before the result is cached. **Do not add a regex rewrite back** — the legacy `s/(?<![\w.])(kb|dv)\.view\(/await $1.view(/g` was the source of the "function-local `kb.view()` accidentally awaited" footgun and is permanently obsoleted by `_pendingViews`.
 
-9. **`scriptResultCache` skips containers with `<canvas>`, `<video>`, or `<iframe>`** — `cloneNode(true)` clones the element but NOT its pixel buffer / playback state, so Chart.js widgets cache as a blank square. Containers holding any of these re-execute on every `toDOM()`. Re-execution is bounded by the per-KBAPI `_pageCache` + O(1) wikilink resolution (see Indexing rule 8), so a 1870-note vault re-renders in ~200 ms.
+9. **QueryJS `resultCache` holds the LIVE element, not a clone.** `queryjs-session.store.svelte.ts` keeps `Map<contentHash, HTMLElement>` and re-attaches the same DOM node on cache hit. `<canvas>` pixel buffers, `<video>` playback state, and `<iframe>` loaded content survive widget destruction because the element keeps living through the store reference; CodeMirror destroys the widget but the DOM is detached, not garbage-collected. **Do not bring back `cloneNode(true)` + `<canvas>/<video>/<iframe>` exclusion** — the live-ref scheme is correct, simpler, and preserves chart state without the special case.
+
+10. **`autoRunQueries` policy matrix governs when a queryjs block executes.** Set via `settingsStore.queryjs.autoRunQueries`. Each toDOM() lookup runs in this order:
+    - Cache hit (`queryjsSessionStore.hasResult(jsContent)`) → re-attach the cached element. No execution.
+    - Cache miss + `'always'` → execute. Mark autoRun (harmless — not consulted).
+    - Cache miss + `'first-open'` + file not in `autoRunOnFirstOpen` → execute, mark autoRun.
+    - Cache miss + `'first-open'` + file already in `autoRunOnFirstOpen` → render `▶ Run` button.
+    - Cache miss + `'manual'` → render `▶ Run` button.
+
+    **Invariant: manual mode never marks `autoRunOnFirstOpen`.** A user clicking ▶ Run while in manual does NOT promote the file to "auto-run". If they later switch to `'first-open'`, every block re-shows ▶ Run on the first render after the switch. This invariant lives in `queryjs-block-widget.ts → renderRunPrompt` (no markAutoRun call inside the click handler) and is exercised by the session-store + widget tests. Don't break it — the policy switch would silently corrupt user expectations otherwise.
 
 ### Indexing & Watcher
 

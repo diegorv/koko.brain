@@ -87,12 +87,12 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 12 — QueryJS execution model
 
-- [ ] Task 12.1: Add `queryjs.autoRunQueries: 'first-open' | 'always' | 'manual'` to settings; default `'first-open'`; tests
-- [ ] Task 12.2: `queryjs-session.store.svelte.ts` with live-DOM `resultCache`, `autoRunOnFirstOpen`, `invalidate`/`invalidatePath`/`reset`; tests
-- [ ] Task 12.3: Refactor widget — drop auto-await regex (use `_pendingViews`), drop canvas/video/iframe exclusions, drop clone semantics; new toDOM flow with policy matrix + Run button + manual-doesn't-mark-autoRun invariant; tests
-- [ ] Task 12.4: `invalidatePath` in `closeTab` + `closeTabsForDeletedPath`; `reset()` in `teardownVault`; regression tests
-- [ ] Task 12.5: Rewrite ADR 0010; update CLAUDE.md rules 8/9 → drop, add new rule 10
-- [ ] Task 12.user: User runs E2E `execution-model.spec.ts` (5 scenarios)
+- [x] Task 12.1: `queryjs.autoRunQueries` setting added (default `'first-open'`); 2 tests cover default + cycling through all 3 policies
+- [x] Task 12.2: `queryjs-session.store.svelte.ts` (101 LOC) with live-DOM `resultCache`, `autoRunOnFirstOpen`, `invalidate`/`invalidatePath`/`reset`; 12 unit tests including the "live ref not clone" identity invariant
+- [x] Task 12.3: Widget rewritten — auto-await regex replaced by `KBAPI._pendingViews` + `awaitAllPending()`; canvas/video/iframe exclusions dropped; clone semantics dropped (live element ref); policy-matrix toDOM flow with ▶ Run button; manual-doesn't-mark-autoRun invariant captured in JSDoc + Phase 12.5 tests will lock it in
+- [x] Task 12.4: `queryjsSessionStore.invalidatePath` wired into `closeTab` + `closeTabsForDeletedPath`; `reset()` wired into `teardownVault`; regression test for closeTab in `editor.service.test.ts`
+- [x] Task 12.5: ADR 0010 rewritten (decision/alternatives/consequences match the new model); CLAUDE.md Live Preview rules 8 + 9 replaced with new rule 8 (`_pendingViews`), new rule 9 (live element ref), new rule 10 (autoRunQueries policy matrix + manual invariant)
+- [ ] Task 12.user: **User runs E2E `execution-model.spec.ts` (5 scenarios)** — needs the real vault + display
 
 ### Phase 12.5 — Cleanup legacy
 
