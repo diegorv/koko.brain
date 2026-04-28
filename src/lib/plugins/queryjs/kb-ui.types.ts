@@ -131,6 +131,13 @@ export interface KBUITableOptions {
 	footer?: unknown[];
 	/** Returns a background color string for a row, or null for no styling. Overrides striped when provided. */
 	rowStyle?: (row: unknown[], index: number) => string | null;
+	/**
+	 * Page size in rows. When > 0, the table renders only `pageSize` rows at a time
+	 * with Prev/Next controls + a `Page X of Y` indicator beneath the table. Pages
+	 * are 1-indexed in the UI; state lives on the rendered DOM node so the user can
+	 * paginate without re-running the script.
+	 */
+	pageSize?: number;
 }
 
 /** Supported Chart.js chart types for kb.ui.chart() */

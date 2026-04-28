@@ -10,6 +10,7 @@ import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 /**
  * Opens a file in the editor.
@@ -190,6 +191,11 @@ export async function closeTab(index: number) {
 
 	editorStore.removeTab(currentIndex);
 	deleteTabViewState(tabPath);
+	// Drop the file's autoRun marker so reopening the file restarts the
+	// 'first-open' policy. Cached results are invalidated on save, not on
+	// close — keeping them lets the user reopen a recently-viewed note
+	// instantly even mid-session.
+	queryjsSessionStore.invalidatePath(tabPath);
 
 	const newActive = editorStore.activeTab;
 	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
@@ -228,6 +234,17 @@ export function togglePinActiveTab() {
 	}
 }
 
+/**
+ * Toggles between live preview and source mode. Mirrors the toolbar button
+ * (`Code`/`Eye` icon) — Cmd+K binds to the same store flag so both surfaces
+ * stay in sync. When source mode is on, the entire `livePreview` extension
+ * is removed via the compartment, so line numbers + gutters reappear and no
+ * decorations or widgets render. Toggle is per-editor session, not persisted.
+ */
+export function toggleSourceMode() {
+	editorStore.setLivePreview(!editorStore.isLivePreview);
+}
+
 /** Pins a tab identified by file path (used for auto-pin features like daily notes) */
 export function pinTabByPath(filePath: string) {
 	const index = findTabIndex(editorStore.tabs, filePath);
@@ -254,6 +271,9 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 		const tab = editorStore.tabs[i];
 		if (tab.path === deletedPath || tab.path.startsWith(deletedPath + '/')) {
 			deleteTabViewState(tab.path);
+			// Drop autoRun marker — if the user later restores or recreates the
+			// file, treat it as a fresh open.
+			queryjsSessionStore.invalidatePath(tab.path);
 			editorStore.removeTab(i);
 		}
 	}

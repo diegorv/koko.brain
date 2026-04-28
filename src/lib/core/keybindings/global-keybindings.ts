@@ -4,6 +4,7 @@ import {
 	closeActiveTab,
 	switchToNextTab,
 	switchToPreviousTab,
+	toggleSourceMode,
 } from '$lib/core/editor/editor.service';
 import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
@@ -125,6 +126,11 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({ key: '+', meta: true, shift: true, handler: () => { zoomIn().catch(console.error); } }),
 		registerKeybinding({ key: '-', meta: true, handler: () => { zoomOut().catch(console.error); } }),
 		registerKeybinding({ key: '0', meta: true, handler: () => { resetZoom().catch(console.error); } }),
+		registerKeybinding({
+			key: 'k',
+			meta: true,
+			handler: () => toggleSourceMode(),
+		}),
 	];
 
 	return () => cleanups.forEach((cleanup) => cleanup());

@@ -207,6 +207,19 @@ describe('settingsStore', () => {
 			// Second call replaces colors entirely (shallow merge of TagColorSettings)
 			expect(settingsStore.tagColors.colors).toEqual({ personal: '#44cf6e' });
 		});
+
+		it('queryjs defaults to autoRunQueries=first-open', () => {
+			expect(settingsStore.queryjs).toEqual({ autoRunQueries: 'first-open' });
+		});
+
+		it('updateQueryjs cycles through all 3 policy values', () => {
+			settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+			expect(settingsStore.queryjs.autoRunQueries).toBe('always');
+			settingsStore.updateQueryjs({ autoRunQueries: 'manual' });
+			expect(settingsStore.queryjs.autoRunQueries).toBe('manual');
+			settingsStore.updateQueryjs({ autoRunQueries: 'first-open' });
+			expect(settingsStore.queryjs.autoRunQueries).toBe('first-open');
+		});
 	});
 
 	describe('reset', () => {

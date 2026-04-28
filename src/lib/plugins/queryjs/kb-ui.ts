@@ -363,8 +363,14 @@ export class KBUI {
 	}
 
 	/**
-	 * Renders an enhanced table with alignment, striping, conditional row styling, and footer.
-	 * Uses the same CSS class as kb.table() but adds inline style enhancements.
+	 * Renders an enhanced table with alignment, striping, conditional row styling,
+	 * footer, and (when `options.pageSize > 0`) Prev/Next pagination.
+	 *
+	 * Pagination state is local DOM state — the user can flip pages without
+	 * re-running the script. The returned element is the *wrapper* (a `<div>`
+	 * containing the `<table>` + nav controls); when pagination is off, the
+	 * `<table>` is returned directly to keep the no-paging contract identical
+	 * to the legacy single-table return.
 	 */
 	table(
 		headers: string[],
@@ -375,6 +381,36 @@ export class KBUI {
 		const align = options?.align ?? [];
 		const striped = options?.striped ?? false;
 		const oddBg = 'rgba(255,255,255,0.03)';
+		const pageSize = options?.pageSize ?? 0;
+		const paginated = pageSize > 0 && arr.length > pageSize;
+
+		const renderTbody = (sliced: unknown[]): HTMLElement => {
+			const tbody = document.createElement('tbody');
+			for (let rowIdx = 0; rowIdx < sliced.length; rowIdx++) {
+				const row = sliced[rowIdx];
+				const tr = document.createElement('tr');
+				const cells = Array.isArray(row) ? row : [row];
+
+				if (options?.rowStyle) {
+					const bg = options.rowStyle(cells, rowIdx);
+					if (bg) tr.style.backgroundColor = bg;
+				} else if (striped && rowIdx % 2 !== 0) {
+					tr.style.backgroundColor = oddBg;
+				}
+
+				for (let colIdx = 0; colIdx < cells.length; colIdx++) {
+					const td = document.createElement('td');
+					const colAlign = align[colIdx];
+					if (colAlign && colAlign !== 'left') {
+						td.style.textAlign = colAlign;
+					}
+					this.renderValue(td, cells[colIdx]);
+					tr.appendChild(td);
+				}
+				tbody.appendChild(tr);
+			}
+			return tbody;
+		};
 
 		const table = document.createElement('table');
 		table.className = 'cm-lp-qjs-table';
@@ -394,31 +430,9 @@ export class KBUI {
 		thead.appendChild(headerRow);
 		table.appendChild(thead);
 
-		// ── tbody ──
-		const tbody = document.createElement('tbody');
-		for (let rowIdx = 0; rowIdx < arr.length; rowIdx++) {
-			const row = arr[rowIdx];
-			const tr = document.createElement('tr');
-			const cells = Array.isArray(row) ? row : [row];
-
-			if (options?.rowStyle) {
-				const bg = options.rowStyle(cells, rowIdx);
-				if (bg) tr.style.backgroundColor = bg;
-			} else if (striped && rowIdx % 2 !== 0) {
-				tr.style.backgroundColor = oddBg;
-			}
-
-			for (let colIdx = 0; colIdx < cells.length; colIdx++) {
-				const td = document.createElement('td');
-				const colAlign = align[colIdx];
-				if (colAlign && colAlign !== 'left') {
-					td.style.textAlign = colAlign;
-				}
-				this.renderValue(td, cells[colIdx]);
-				tr.appendChild(td);
-			}
-			tbody.appendChild(tr);
-		}
+		// ── tbody (initial slice when paginated, else full) ──
+		const initialRows = paginated ? arr.slice(0, pageSize) : arr;
+		let tbody = renderTbody(initialRows);
 		table.appendChild(tbody);
 
 		// ── tfoot ──
@@ -438,6 +452,65 @@ export class KBUI {
 			}
 			tfoot.appendChild(footerRow);
 			table.appendChild(tfoot);
+		}
+
+		// Pagination — render only when there's at least 2 pages worth of rows.
+		if (paginated) {
+			const wrapper = document.createElement('div');
+			wrapper.className = 'cm-lp-qjs-table-wrapper';
+			wrapper.appendChild(table);
+
+			const totalPages = Math.ceil(arr.length / pageSize);
+			let page = 1;
+
+			const nav = document.createElement('div');
+			nav.className = 'cm-lp-qjs-table-nav';
+
+			const prev = document.createElement('button');
+			prev.type = 'button';
+			prev.className = 'cm-lp-qjs-table-nav-btn';
+			prev.textContent = 'Prev';
+			const next = document.createElement('button');
+			next.type = 'button';
+			next.className = 'cm-lp-qjs-table-nav-btn';
+			next.textContent = 'Next';
+			const indicator = document.createElement('span');
+			indicator.className = 'cm-lp-qjs-table-nav-indicator';
+
+			const refresh = () => {
+				const start = (page - 1) * pageSize;
+				const slice = arr.slice(start, start + pageSize);
+				const fresh = renderTbody(slice);
+				table.replaceChild(fresh, tbody);
+				tbody = fresh;
+				indicator.textContent = `Page ${page} of ${totalPages}`;
+				prev.disabled = page === 1;
+				next.disabled = page === totalPages;
+			};
+			prev.onclick = (e) => {
+				e.preventDefault();
+				if (page > 1) {
+					page--;
+					refresh();
+				}
+			};
+			next.onclick = (e) => {
+				e.preventDefault();
+				if (page < totalPages) {
+					page++;
+					refresh();
+				}
+			};
+
+			nav.appendChild(prev);
+			nav.appendChild(indicator);
+			nav.appendChild(next);
+			wrapper.appendChild(nav);
+
+			refresh();
+
+			this.container.appendChild(wrapper);
+			return wrapper;
 		}
 
 		this.container.appendChild(table);
