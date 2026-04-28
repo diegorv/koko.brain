@@ -8,6 +8,7 @@ import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live
 import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
 
 const SAMPLE = '**bold** *italic* ~~strike~~ `code` ==hi==';
+const HEADINGS = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n';
 
 /**
  * Mounts an EditorView in jsdom with the same extension stack the production
@@ -102,5 +103,24 @@ describe('new pipeline — DOM snapshot (jsdom)', () => {
 		expect(hlEls.length).toBeGreaterThan(0);
 		const hlText = Array.from(hlEls).map((el) => el.textContent ?? '').join('');
 		expect(hlText).toContain('hi');
+	});
+
+	it('flag OFF: legacy headingPlugin emits cm-lp-h1..h6 line decorations', () => {
+		const { view, root } = mountView(HEADINGS);
+		cleanup = () => view.destroy();
+		const classes = classesIn(root);
+		for (const level of [1, 2, 3, 4, 5, 6]) {
+			expect(classes.has(`cm-lp-h${level}`)).toBe(true);
+		}
+	});
+
+	it('flag ON: new heading handlers emit the same cm-lp-h1..h6 line decorations', () => {
+		settingsStore.updateExperimental({ newLivePreview: true });
+		const { view, root } = mountView(HEADINGS);
+		cleanup = () => view.destroy();
+		const classes = classesIn(root);
+		for (const level of [1, 2, 3, 4, 5, 6]) {
+			expect(classes.has(`cm-lp-h${level}`)).toBe(true);
+		}
 	});
 });
