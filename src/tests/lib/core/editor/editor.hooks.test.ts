@@ -9,6 +9,11 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
+import { invoke } from '@tauri-apps/api/core';
 import {
 	setFileReadTransform,
 	setFileWriteTransform,
@@ -21,6 +26,7 @@ import {
 	areAllRecentSaves,
 	clearRecentSaves,
 } from '$lib/core/editor/editor.hooks';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import type { EditorTab } from '$lib/core/editor/editor.types';
 
@@ -95,7 +101,9 @@ describe('applyWriteTransform', () => {
 
 describe('notifyAfterSave', () => {
 	beforeEach(() => {
+		vi.clearAllMocks();
 		resetHooks();
+		settingsStore.reset();
 	});
 
 	it('calls all registered observers', () => {
@@ -160,6 +168,75 @@ describe('notifyAfterSave', () => {
 		// Good observer still called despite bad observer throwing
 		expect(goodObserver).toHaveBeenCalledWith('/vault/note.md', 'content');
 		consoleSpy.mockRestore();
+	});
+
+	describe('experimental.rustBacklinks (Phase 3.5)', () => {
+		it('flag-off: does NOT call update_note_in_index', () => {
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			expect(settingsStore.experimental.rustBacklinks).toBe(false);
+
+			notifyAfterSave('/vault/note.md', 'content');
+
+			expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+		});
+
+		it('flag-on: invokes update_note_in_index with path and content', () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockResolvedValue(undefined);
+
+			notifyAfterSave('/vault/note.md', 'fresh content');
+
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+				path: '/vault/note.md',
+				content: 'fresh content',
+			});
+		});
+
+		it('flag-on: skips Rust call when content was already indexed (dedup honored)', () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			markIndexed('/vault/note.md', 'same');
+
+			notifyAfterSave('/vault/note.md', 'same');
+
+			expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+		});
+
+		it('flag-on: IPC rejection is swallowed and does not block observers', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockRejectedValue(new Error('IPC error'));
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const observer = vi.fn();
+			addAfterSaveObserver(observer);
+
+			notifyAfterSave('/vault/note.md', 'content');
+
+			// Observer fires synchronously (before the rejected IPC promise settles)
+			expect(observer).toHaveBeenCalledWith('/vault/note.md', 'content');
+
+			// Wait a microtask for the .catch to run
+			await new Promise((r) => setTimeout(r, 0));
+			expect(consoleSpy).toHaveBeenCalledWith(
+				'update_note_in_index after save failed:',
+				expect.any(Error),
+			);
+			consoleSpy.mockRestore();
+		});
+
+		it('flag-on: Rust call runs in addition to (parallel with) the TS indexers', () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockResolvedValue(undefined);
+
+			notifyAfterSave('/vault/note.md', 'content');
+
+			// TS dedup signature still recorded
+			expect(isAlreadyIndexed('/vault/note.md', 'content')).toBe(true);
+			// Rust IPC also fired
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', expect.objectContaining({
+				path: '/vault/note.md',
+				content: 'content',
+			}));
+		});
 	});
 });
 
