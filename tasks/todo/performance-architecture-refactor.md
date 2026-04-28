@@ -10,8 +10,8 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase -1 - Archive misleading PoC task file (one commit, no code)
 
-- [ ] **-1.1** Move `tasks/todo/performance-architecture-refactor.md` to `tasks/done/performance-architecture-refactor-poc.md` with a header note marking it as abandoned and superseded.
-- [ ] **-1.2** Create this fresh `tasks/todo/performance-architecture-refactor.md` from the approved plan (all `[ ]`, file paths and line numbers preserved).
+- [x] **-1.1** Move `tasks/todo/performance-architecture-refactor.md` to `tasks/done/performance-architecture-refactor-poc.md` with a header note marking it as abandoned and superseded.
+- [x] **-1.2** Create this fresh `tasks/todo/performance-architecture-refactor.md` from the approved plan (all `[ ]`, file paths and line numbers preserved).
 
 ### Phase 0 - Measurement Baseline
 
@@ -23,7 +23,7 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
   - `MarkdownEditor.svelte` content-sync `$effect` (lines 321-337): new probe wrapping the toString check + dispatch.
 - [x] **0.2** Create `scripts/perf-baseline.py`. Parses the most-recent log under `~/Library/Logs/com.diegorv.kokobrain/` for `PERF-BASELINE`; outputs median/p95 by `<TAG> <label>`. No E2E harness. Mirror style of `scripts/log-watcher.py`.
 - [x] **0.3** Create `docs/perf/baseline-template.md`. Manual repro sequence (open 10 files, switch 20 times, close 5, type 500 chars, save). One-line command to enable debug + parse log. User commits filled-in copy as `docs/perf/baseline-<YYYY-MM-DD>.md`.
-- [ ] **0.4** Create `docs/adr/0025-rust-vault-index.md`. Number is correct: 0024 is highest existing. Link from `docs/adr/README.md` and from `CLAUDE.md` Documentation Index.
+- [x] **0.4** Create `docs/adr/0025-rust-vault-index.md`. Number is correct: 0024 is highest existing. Link from `docs/adr/README.md` and from `CLAUDE.md` Documentation Index.
 
 ### Phase 1 - Rust Entry Enrichment (additive)
 
