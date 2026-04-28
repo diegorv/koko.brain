@@ -74,6 +74,16 @@ export const queryjsSessionStore = {
 		}
 	},
 
+	/**
+	 * Drops every cached result while keeping the autoRunOnFirstOpen markers
+	 * intact. Called by `notifyAfterSave` so subsequent toDOM() calls miss
+	 * the cache and the `'first-open'` policy renders ▶ Run instead of
+	 * silently auto-executing the saved-but-still-marked file.
+	 */
+	clearResults(): void {
+		resultCache = new Map();
+	},
+
 	/** True if this file path has already auto-run at least once this session. */
 	hasAutoRun(filePath: string): boolean {
 		return autoRunOnFirstOpen.has(filePath);

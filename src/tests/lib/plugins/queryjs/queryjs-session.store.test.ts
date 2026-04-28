@@ -91,4 +91,25 @@ describe('queryjsSessionStore', () => {
 			expect(queryjsSessionStore.autoRunOnFirstOpen.size).toBe(0);
 		});
 	});
+
+	describe('clearResults', () => {
+		it('drops every cached result', () => {
+			queryjsSessionStore.setResult('a', makeEl('A'));
+			queryjsSessionStore.setResult('b', makeEl('B'));
+			queryjsSessionStore.clearResults();
+			expect(queryjsSessionStore.resultCache.size).toBe(0);
+		});
+
+		it('keeps autoRunOnFirstOpen markers intact (the on-save invariant)', () => {
+			// Critical: notifyAfterSave calls clearResults so the next render
+			// hits ▶ Run for the saved file in 'first-open' policy. If clearResults
+			// also wiped autoRun markers, first-open would silently auto-run again.
+			queryjsSessionStore.markAutoRun('/vault/a.md');
+			queryjsSessionStore.markAutoRun('/vault/b.md');
+			queryjsSessionStore.setResult('hash-1', makeEl('x'));
+			queryjsSessionStore.clearResults();
+			expect(queryjsSessionStore.hasAutoRun('/vault/a.md')).toBe(true);
+			expect(queryjsSessionStore.hasAutoRun('/vault/b.md')).toBe(true);
+		});
+	});
 });

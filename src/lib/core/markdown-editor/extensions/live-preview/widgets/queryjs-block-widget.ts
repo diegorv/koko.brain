@@ -14,15 +14,21 @@ import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
  * Module-level shim for the legacy `invalidateQueryjsCache()` API. The Phase
  * 12 refactor moved cache state into `queryjsSessionStore`, but
  * `editor.hooks.ts → notifyAfterSave` still calls the function by name.
- * Forwards to the session store's reset (which wipes both result cache and
- * autoRun markers — same scope as the old "clear everything").
  *
- * **Deletion plan:** once Phase 12.5 lands, callers will be migrated to
+ * Forwards to `clearResults()` — drops every cached rendered DOM but KEEPS
+ * the `autoRunOnFirstOpen` markers. If we called `reset()` instead, every
+ * save would also clear the per-file autoRun marker, which would silently
+ * make the `'first-open'` policy auto-execute again on the next render
+ * instead of showing the ▶ Run button (the entire point of cache
+ * invalidation on save). The autoRun marker is per-file, not per-content,
+ * and survives content edits intentionally.
+ *
+ * **Deletion plan:** Phase 12.5 will migrate the call site to per-block
  * `queryjsSessionStore.invalidate(contentHash)` (more granular, only drops
- * the saved file's own blocks).
+ * the just-edited blocks) and remove the shim.
  */
 export function invalidateQueryjsCache(): void {
-	queryjsSessionStore.reset();
+	queryjsSessionStore.clearResults();
 }
 
 /**
