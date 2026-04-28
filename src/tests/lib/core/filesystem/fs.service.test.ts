@@ -43,10 +43,6 @@ vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	removeFileFromIndex: vi.fn(),
 }));
 
-vi.mock('$lib/features/tags/tags.service', () => ({
-	removeFileFromTagIndex: vi.fn(),
-}));
-
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
@@ -70,7 +66,6 @@ import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.
 import { updateFileIconPathsAfterMove } from '$lib/features/file-icons/file-icons.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { removeFileFromIndex } from '$lib/features/backlinks/backlinks.service';
-import { removeFileFromTagIndex } from '$lib/features/tags/tags.service';
 import { moveToTrash } from '$lib/core/trash/trash.service';
 import { error } from '$lib/utils/debug';
 import {
@@ -510,7 +505,7 @@ describe('deleteItem', () => {
 		expect(result).toBe(true);
 		expect(closeTabsForDeletedPath).toHaveBeenCalledWith('/vault/note.md');
 		expect(removeFileFromIndex).toHaveBeenCalledWith('/vault/note.md');
-		expect(removeFileFromTagIndex).toHaveBeenCalledWith('/vault/note.md');
+		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
 	});
 
 	it('falls back to permanent delete when no vault is open', async () => {
@@ -638,7 +633,7 @@ describe('renameItem', () => {
 		const result = await renameItem('/vault/old.md', 'new.md');
 
 		expect(result).toBe('/vault/new.md');
-		expect(removeFileFromTagIndex).toHaveBeenCalledWith('/vault/old.md');
+		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/old.md' });
 	});
 });
 
@@ -723,7 +718,7 @@ describe('moveItem', () => {
 		const result = await moveItem('/vault/note.md', '/vault/folder');
 
 		expect(result).toBe('/vault/folder/note.md');
-		expect(removeFileFromTagIndex).toHaveBeenCalledWith('/vault/note.md');
+		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
 	});
 });
 

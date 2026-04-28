@@ -13,8 +13,11 @@
 //! UTF-8 multi-byte sequences never collide with them.
 
 use crate::vault::entry::WikiLink;
+use crate::vault::task::{RecurrenceRule, Task, TaskMetadata, TaskPriority, TaskStatus};
+use regex::Regex;
 use serde_json::{Number, Value as JsonValue};
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 // --- Strip helpers (shared between extractors) -------------------------------
 
@@ -1036,4 +1039,484 @@ fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
 		i += 1;
 	}
 	None
+}
+
+// ============================================================================
+// Phase 7 — Task / Tag parsing
+//
+// Mirrors:
+//   - `src/lib/features/tasks/tasks.logic.ts::extractTasks`
+//   - `src/lib/features/tasks/tasks.logic.ts::extractTasksFromSection`
+//   - `src/lib/features/tasks/tasks.logic.ts::toggleTaskInContent`
+//   - `src/lib/features/tasks/task-metadata.logic.ts::parseTaskMetadata`
+//   - `src/lib/features/tasks/task-metadata.logic.ts::mapCheckboxChar`
+//
+// Regex parity with TS: the same patterns are used here. The recurrence
+// regex's lookahead-stop list (next signifier OR `#\w`) is mirrored exactly.
+// Tag extraction inside task metadata uses `#([A-Za-z0-9_][A-Za-z0-9_-]*)` —
+// distinct from `extract_tags_strict`'s Unicode rules — so a hyphen-bearing
+// tag inside a task description (e.g. `#in-progress`) is captured.
+// ============================================================================
+
+/// Regex for an unordered task line. Mirrors
+/// `tasks.logic.ts::TASK_RE = /^(\s*[-*+]\s)\[([xX \-/?!>])\]\s(.*)$/`.
+static TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
+	Regex::new(r"^(\s*[-*+]\s)\[([xX \-/?!>])\]\s(.*)$").expect("TASK_RE")
+});
+
+/// Regex for an ordered (numbered) task line. Mirrors
+/// `tasks.logic.ts::ORDERED_TASK_RE = /^(\s*)\d+\.\s\[([xX \-/?!>])\]\s(.*)$/`.
+static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
+	Regex::new(r"^(\s*)\d+\.\s\[([xX \-/?!>])\]\s(.*)$").expect("ORDERED_TASK_RE")
+});
+
+/// Regex for a markdown heading line. Mirrors
+/// `tasks.logic.ts::HEADING_RE = /^(#{1,6})\s+(.*)$/`.
+static HEADING_RE: LazyLock<Regex> =
+	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
+
+/// Regex matching the existing checkbox char on a line, used by
+/// `toggle_task_in_content` to flip checked → unchecked. Mirrors the TS
+/// branch `/\[[xX\-/?!>]\]/`.
+static CHECKED_BOX_RE: LazyLock<Regex> =
+	LazyLock::new(|| Regex::new(r"\[[xX\-/?!>]\]").expect("CHECKED_BOX_RE"));
+
+// --- Date signifiers -----------------------------------------------------
+
+/// Date signifier emojis mapped to their `TaskMetadata` field. Mirrors
+/// `task-metadata.logic.ts::DATE_PATTERNS`.
+const DATE_EMOJIS: &[(&str, DateField)] = &[
+	("\u{1F4C5}", DateField::DueDate),       // 📅
+	("\u{23F3}", DateField::ScheduledDate),  // ⏳
+	("\u{1F6EB}", DateField::StartDate),     // 🛫
+	("\u{2795}", DateField::CreatedDate),    // ➕
+	("\u{2705}", DateField::DoneDate),       // ✅
+	("\u{274C}", DateField::CancelledDate),  // ❌
+];
+
+#[derive(Debug, Clone, Copy)]
+enum DateField {
+	DueDate,
+	ScheduledDate,
+	StartDate,
+	CreatedDate,
+	DoneDate,
+	CancelledDate,
+}
+
+/// Priority signifier emojis mapped to their `TaskPriority`. Mirrors
+/// `task-metadata.logic.ts::PRIORITY_PATTERNS`.
+const PRIORITY_EMOJIS: &[(&str, TaskPriority)] = &[
+	("\u{1F53A}", TaskPriority::Highest), // 🔺
+	("\u{23EB}", TaskPriority::High),     // ⏫
+	("\u{1F53C}", TaskPriority::Medium),  // 🔼
+	("\u{1F53D}", TaskPriority::Low),     // 🔽
+	("\u{23EC}", TaskPriority::Lowest),   // ⏬
+];
+
+const RECURRENCE_EMOJI: &str = "\u{1F501}"; // 🔁
+const ID_EMOJI: &str = "\u{1F194}";         // 🆔
+const DEPENDS_ON_EMOJI: &str = "\u{26D4}";  // ⛔
+const ON_COMPLETION_EMOJI: &str = "\u{1F3C1}"; // 🏁
+
+/// Pattern fragment matching a single emoji followed by optional U+FE0F
+/// (variation selector). Equivalent to TS `emojiRe(emoji)`.
+fn emoji_pattern(emoji: &str) -> String {
+	format!("{}\u{FE0F}?", regex::escape(emoji))
+}
+
+/// Builds a date-signifier regex: emoji + optional space + YYYY-MM-DD.
+fn build_date_regex(emoji: &str) -> Regex {
+	Regex::new(&format!(
+		r"{}\s*(\d{{4}}-\d{{2}}-\d{{2}})",
+		emoji_pattern(emoji)
+	))
+	.expect("date regex")
+}
+
+/// Builds a priority-signifier regex (just the emoji).
+fn build_priority_regex(emoji: &str) -> Regex {
+	Regex::new(&emoji_pattern(emoji)).expect("priority regex")
+}
+
+/// Cached date regexes (one per date emoji).
+static DATE_REGEXES: LazyLock<Vec<(Regex, DateField)>> = LazyLock::new(|| {
+	DATE_EMOJIS
+		.iter()
+		.map(|(emoji, field)| (build_date_regex(emoji), *field))
+		.collect()
+});
+
+/// Cached priority regexes (one per priority emoji).
+static PRIORITY_REGEXES: LazyLock<Vec<(Regex, TaskPriority)>> = LazyLock::new(|| {
+	PRIORITY_EMOJIS
+		.iter()
+		.map(|(emoji, p)| (build_priority_regex(emoji), *p))
+		.collect()
+});
+
+/// Recurrence regex. The TS source uses a lookahead `(?=...)` to peek at
+/// the stop point without consuming it; the Rust `regex` crate does not
+/// support lookahead. We instead match the stop point as part of the full
+/// regex (so the stop signifier is captured in group 0's span) and ONLY
+/// remove `[match0_start, capture1_end)` from the source text — which is
+/// equivalent to the lookahead's behaviour: the stop signifier remains in
+/// place for downstream extractors (tags etc.) to find. Mirrors
+/// `task-metadata.logic.ts::buildRecurrenceRegex` exactly otherwise.
+static RECURRENCE_RE: LazyLock<Regex> = LazyLock::new(|| {
+	let mut alts: Vec<String> = DATE_EMOJIS
+		.iter()
+		.map(|(e, _)| emoji_pattern(e))
+		.collect();
+	alts.extend(PRIORITY_EMOJIS.iter().map(|(e, _)| emoji_pattern(e)));
+	alts.push(emoji_pattern(ID_EMOJI));
+	alts.push(emoji_pattern(DEPENDS_ON_EMOJI));
+	alts.push(emoji_pattern(ON_COMPLETION_EMOJI));
+	alts.push(r"#[A-Za-z0-9_]".to_string());
+	let pattern = format!(
+		r"{}\s*(.+?)(?:\s*(?:{})|$)",
+		emoji_pattern(RECURRENCE_EMOJI),
+		alts.join("|")
+	);
+	Regex::new(&pattern).expect("recurrence regex")
+});
+
+/// ID regex: 🆔 + optional space + non-whitespace identifier.
+static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
+	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ID_EMOJI))).expect("id regex")
+});
+
+/// DependsOn regex: ⛔ + optional space + comma-separated non-whitespace IDs.
+static DEPENDS_ON_RE: LazyLock<Regex> = LazyLock::new(|| {
+	Regex::new(&format!(
+		r"{}\s*(\S+(?:\s*,\s*\S+)*)",
+		emoji_pattern(DEPENDS_ON_EMOJI)
+	))
+	.expect("depends_on regex")
+});
+
+/// OnCompletion regex: 🏁 + optional space + non-whitespace token.
+static ON_COMPLETION_RE: LazyLock<Regex> = LazyLock::new(|| {
+	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ON_COMPLETION_EMOJI)))
+		.expect("on_completion regex")
+});
+
+/// Tag regex inside task metadata: `#word` with optional internal hyphens.
+/// Mirrors `task-metadata.logic.ts::TAG_RE = /#([\w][\w-]*)/g`. Note that
+/// TS `\w` is ASCII `[A-Za-z0-9_]` — encoded explicitly here to avoid
+/// the Rust regex crate's Unicode `\w` semantics and keep parity.
+static TASK_TAG_RE: LazyLock<Regex> =
+	LazyLock::new(|| Regex::new(r"#([A-Za-z0-9_][A-Za-z0-9_-]*)").expect("task tag regex"));
+
+/// Multi-space collapse regex.
+static MULTI_SPACE_RE: LazyLock<Regex> =
+	LazyLock::new(|| Regex::new(r"\s{2,}").expect("multi space regex"));
+
+// --- Public API ----------------------------------------------------------
+
+/// Maps a checkbox character to a `TaskStatus`. Mirrors
+/// `task-metadata.logic.ts::mapCheckboxChar`.
+pub fn map_checkbox_char(c: char) -> TaskStatus {
+	match c {
+		' ' => TaskStatus::Todo,
+		'x' | 'X' => TaskStatus::Done,
+		'-' => TaskStatus::Cancelled,
+		'/' => TaskStatus::InProgress,
+		'?' => TaskStatus::Question,
+		'>' => TaskStatus::Forwarded,
+		'!' => TaskStatus::Important,
+		_ => TaskStatus::Todo,
+	}
+}
+
+/// Calculates the indent level from a leading-whitespace string. Tabs count
+/// as 1 indent level; every 2 spaces count as 1 indent level. Mirrors
+/// `tasks.logic.ts::calculateIndent`.
+fn calculate_indent(ws: &str) -> usize {
+	let mut tabs = 0usize;
+	let mut spaces = 0usize;
+	for c in ws.chars() {
+		match c {
+			'\t' => tabs += 1,
+			' ' => spaces += 1,
+			_ => {}
+		}
+	}
+	tabs + spaces / 2
+}
+
+/// Parses a single line as a task item. Returns `None` for non-task lines
+/// or tasks whose text is empty / whitespace-only. Mirrors
+/// `tasks.logic.ts::parseTaskLine`.
+fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
+	if let Some(caps) = TASK_RE.captures(line) {
+		let check_str = caps.get(2)?.as_str();
+		let check_char = check_str.chars().next()?;
+		let raw_text = caps.get(3)?.as_str();
+		if raw_text.trim().is_empty() {
+			return None;
+		}
+		// Leading-whitespace prefix: everything before the marker character.
+		// TS uses `line.match(/^(\s*)/)?.[1]`; we mirror by counting the
+		// leading whitespace bytes.
+		let leading: String = line.chars().take_while(|c| c.is_whitespace()).collect();
+		return Some(Task {
+			text: raw_text.to_string(),
+			checked: check_char != ' ',
+			indent: calculate_indent(&leading),
+			line_number,
+			status: map_checkbox_char(check_char),
+			metadata: parse_task_metadata(raw_text),
+		});
+	}
+	if let Some(caps) = ORDERED_TASK_RE.captures(line) {
+		let leading = caps.get(1)?.as_str();
+		let check_str = caps.get(2)?.as_str();
+		let check_char = check_str.chars().next()?;
+		let raw_text = caps.get(3)?.as_str();
+		if raw_text.trim().is_empty() {
+			return None;
+		}
+		return Some(Task {
+			text: raw_text.to_string(),
+			checked: check_char != ' ',
+			indent: calculate_indent(leading),
+			line_number,
+			status: map_checkbox_char(check_char),
+			metadata: parse_task_metadata(raw_text),
+		});
+	}
+	None
+}
+
+/// Detects a fenced-code-block opener / closer at the start of `line`.
+/// Returns the fence string (`"```"` or `"~~~"`) when matched, else `None`.
+/// Mirrors `tasks.logic.ts::CODE_FENCE_RE = /^(\s*)(```|~~~)/`.
+fn detect_code_fence(line: &str) -> Option<&str> {
+	let trimmed = line.trim_start_matches([' ', '\t']);
+	if trimmed.starts_with("```") {
+		Some("```")
+	} else if trimmed.starts_with("~~~") {
+		Some("~~~")
+	} else {
+		None
+	}
+}
+
+/// Extracts every task list item from `content` in document order. Skips
+/// lines inside fenced code blocks. Line numbers are 1-based. Mirrors
+/// `tasks.logic.ts::extractTasks`.
+pub fn extract_tasks(content: &str) -> Vec<Task> {
+	let mut out: Vec<Task> = Vec::new();
+	let mut in_code_block = false;
+	let mut fence_char: Option<&str> = None;
+	for (i, line) in content.split('\n').enumerate() {
+		if let Some(fence) = detect_code_fence(line) {
+			if !in_code_block {
+				in_code_block = true;
+				fence_char = Some(fence);
+			} else if Some(fence) == fence_char {
+				in_code_block = false;
+				fence_char = None;
+			}
+			continue;
+		}
+		if in_code_block {
+			continue;
+		}
+		if let Some(task) = parse_task_line(line, i + 1) {
+			out.push(task);
+		}
+	}
+	out
+}
+
+/// Extracts tasks only from sections whose heading text contains
+/// `section_tag`. A "section" spans from a heading line until the next
+/// heading of equal-or-higher level. Empty `section_tag` falls through to
+/// `extract_tasks`. Mirrors `tasks.logic.ts::extractTasksFromSection`.
+pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task> {
+	if section_tag.trim().is_empty() {
+		return extract_tasks(content);
+	}
+	let tag = if section_tag.starts_with('#') {
+		section_tag.to_string()
+	} else {
+		format!("#{}", section_tag)
+	};
+	let mut out: Vec<Task> = Vec::new();
+	let mut in_code_block = false;
+	let mut fence_char: Option<&str> = None;
+	let mut in_matching_section = false;
+	let mut section_level: usize = 0;
+	for (i, line) in content.split('\n').enumerate() {
+		if let Some(fence) = detect_code_fence(line) {
+			if !in_code_block {
+				in_code_block = true;
+				fence_char = Some(fence);
+			} else if Some(fence) == fence_char {
+				in_code_block = false;
+				fence_char = None;
+			}
+			continue;
+		}
+		if in_code_block {
+			continue;
+		}
+		if let Some(caps) = HEADING_RE.captures(line) {
+			let level = caps.get(1).map(|m| m.as_str().len()).unwrap_or(0);
+			let heading_text = caps.get(2).map(|m| m.as_str()).unwrap_or("");
+			if in_matching_section && level <= section_level {
+				in_matching_section = false;
+			}
+			if heading_text.contains(&tag) {
+				in_matching_section = true;
+				section_level = level;
+			}
+			continue;
+		}
+		if in_matching_section {
+			if let Some(task) = parse_task_line(line, i + 1) {
+				out.push(task);
+			}
+		}
+	}
+	out
+}
+
+/// Parses a task's raw text for emoji-signifier metadata. Mirrors
+/// `task-metadata.logic.ts::parseTaskMetadata` exactly. Order of extraction:
+/// dates, priorities (first wins), recurrence, ID, dependsOn, onCompletion,
+/// tags. The cleaned description is the leftover text with multi-spaces
+/// collapsed and trimmed.
+pub fn parse_task_metadata(raw_text: &str) -> TaskMetadata {
+	let mut text = raw_text.to_string();
+	let mut metadata = TaskMetadata::default();
+
+	// Dates
+	for (re, field) in DATE_REGEXES.iter() {
+		if let Some(caps) = re.captures(&text) {
+			let value = caps.get(1).map(|m| m.as_str().to_string());
+			let whole = caps.get(0).map(|m| m.as_str().to_string());
+			if let (Some(v), Some(w)) = (value, whole) {
+				match field {
+					DateField::DueDate => metadata.due_date = Some(v),
+					DateField::ScheduledDate => metadata.scheduled_date = Some(v),
+					DateField::StartDate => metadata.start_date = Some(v),
+					DateField::CreatedDate => metadata.created_date = Some(v),
+					DateField::DoneDate => metadata.done_date = Some(v),
+					DateField::CancelledDate => metadata.cancelled_date = Some(v),
+				}
+				text = text.replacen(&w, "", 1);
+			}
+		}
+	}
+
+	// Priority — first match wins.
+	for (re, p) in PRIORITY_REGEXES.iter() {
+		if let Some(m) = re.find(&text) {
+			let whole = m.as_str().to_string();
+			metadata.priority = Some(*p);
+			text = text.replacen(&whole, "", 1);
+			break;
+		}
+	}
+
+	// Recurrence — the regex's whole-match span includes the trailing stop
+	// signifier (substituting for the TS lookahead). We remove only
+	// `[whole_start, capture1_end)` so the stop signifier stays in `text`
+	// for downstream extractors. Mirrors TS lookahead semantics exactly.
+	if let Some(caps) = RECURRENCE_RE.captures(&text) {
+		if let (Some(whole), Some(cap1)) = (caps.get(0), caps.get(1)) {
+			let consume_span = text[whole.start()..cap1.end()].to_string();
+			let value = cap1.as_str().trim().to_string();
+			if !value.is_empty() {
+				metadata.recurrence = Some(RecurrenceRule { text: value });
+			}
+			text = text.replacen(&consume_span, "", 1);
+		}
+	}
+
+	// ID
+	if let Some(caps) = ID_RE.captures(&text) {
+		let whole = caps.get(0).map(|m| m.as_str().to_string());
+		let value = caps.get(1).map(|m| m.as_str().to_string());
+		if let (Some(v), Some(w)) = (value, whole) {
+			metadata.id = Some(v);
+			text = text.replacen(&w, "", 1);
+		}
+	}
+
+	// DependsOn
+	if let Some(caps) = DEPENDS_ON_RE.captures(&text) {
+		let whole = caps.get(0).map(|m| m.as_str().to_string());
+		let value = caps.get(1).map(|m| m.as_str().to_string());
+		if let (Some(v), Some(w)) = (value, whole) {
+			let ids: Vec<String> = v
+				.split(',')
+				.map(|s| s.trim().to_string())
+				.filter(|s| !s.is_empty())
+				.collect();
+			if !ids.is_empty() {
+				metadata.depends_on = Some(ids);
+			}
+			text = text.replacen(&w, "", 1);
+		}
+	}
+
+	// OnCompletion
+	if let Some(caps) = ON_COMPLETION_RE.captures(&text) {
+		let whole = caps.get(0).map(|m| m.as_str().to_string());
+		let value = caps.get(1).map(|m| m.as_str().to_string());
+		if let (Some(v), Some(w)) = (value, whole) {
+			metadata.on_completion = Some(v);
+			text = text.replacen(&w, "", 1);
+		}
+	}
+
+	// Tags — extract from the cleaned text (post-signifier removal). The TS
+	// version does this on `text.trim()` then removes via `text.replace(TAG_RE, '')`.
+	let cleaned_for_tags = text.trim().to_string();
+	let mut tags: Vec<String> = Vec::new();
+	for caps in TASK_TAG_RE.captures_iter(&cleaned_for_tags) {
+		if let Some(m) = caps.get(1) {
+			tags.push(m.as_str().to_string());
+		}
+	}
+	metadata.tags = tags;
+
+	// Strip tags from `text`, then collapse multi-spaces and trim.
+	text = TASK_TAG_RE.replace_all(&text, "").to_string();
+	text = MULTI_SPACE_RE.replace_all(&text, " ").to_string();
+	metadata.description = text.trim().to_string();
+
+	metadata
+}
+
+/// Toggles a task's checkbox at `line_number` (1-based) inside `content`.
+/// Mirrors `tasks.logic.ts::toggleTaskInContent`:
+///   - `[ ]` -> `[x]` (first occurrence)
+///   - else if `[xX-/?!>]` style box present -> first occurrence -> `[ ]`
+///   - else: unchanged.
+/// Out-of-bounds line numbers return the original content untouched.
+pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
+	if line_number == 0 {
+		return content.to_string();
+	}
+	let mut lines: Vec<String> = content.split('\n').map(|s| s.to_string()).collect();
+	let idx = line_number - 1;
+	if idx >= lines.len() {
+		return content.to_string();
+	}
+	let line = &lines[idx];
+	let new_line = if line.contains("[ ]") {
+		line.replacen("[ ]", "[x]", 1)
+	} else if let Some(m) = CHECKED_BOX_RE.find(line) {
+		let whole = m.as_str().to_string();
+		line.replacen(&whole, "[ ]", 1)
+	} else {
+		return content.to_string();
+	};
+	lines[idx] = new_line;
+	lines.join("\n")
 }

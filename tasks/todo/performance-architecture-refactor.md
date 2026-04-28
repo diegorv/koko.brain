@@ -88,12 +88,12 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 7 - Rust Tag & Task Indexes
 
-- [ ] **7.1** Extend `VaultIndex` with `tags: HashMap<String, HashSet<PathBuf>>` and `tasks: HashMap<PathBuf, Vec<TaskItem>>`.
-- [ ] **7.2** `parsing.rs::extract_tasks`. Checkboxes, statuses, line numbers, due dates. Mirror `tasks.logic.ts::extractTasks` + `task-metadata.logic.ts::parseTaskMetadata`.
-- [ ] **7.3** Wire into `update_entry`: diff old/new tags + tasks; emit `vault-index-updated`.
-- [ ] **7.4** Read commands: `get_notes_with_tag`, `get_all_tags`, `get_all_tasks`, `get_tasks_in_path`.
-- [ ] **7.5** Write commands: `rename_tag`, `add_tag_to_note`, `remove_tag_from_note`, `toggle_task_status(path, line)`. **Critical**: `tasks.service.ts:113` currently writes disk directly via `writeTextFile`. Replace with `invoke('toggle_task_status', ...)`. This is one of the known JS write-surface violators.
-- [ ] **7.6** Add `experimental.rustTagsAndTasks: boolean`. Migrate `TagsPanel.svelte`, `TasksView.svelte`. Default-on after **2 days** of dogfooding, then delete TS orphans (trace-before-remove ritual).
+- [x] **7.1** Task data types in `vault/task.rs` + `extract_tasks`/`extract_tasks_from_section`/`parse_task_metadata`/`toggle_task_in_content` in `parsing.rs`. `NoteEntry.tasks` field wired through `from_content`. `regex` crate added (Option A).
+- [x] **7.2** `VaultIndex.tags_index: HashMap<String, BTreeSet<String>>` reverse index. `update_entry` extended with old/new tag diff + Phase 2 mutation (mirrors backlinks shape). `lookup_notes_with_tag`, `lookup_all_tags`, `lookup_all_tasks`, `lookup_tasks_in_path` methods.
+- [~] **7.3** Wire into `update_entry`: rolled into 7.2 (tasks live on `NoteEntry`, no separate index needed; tag-side diff added to the existing `update_entry`). Emits `vault-index-updated` via the unchanged Phase 2.6 path.
+- [x] **7.4** Read commands `get_all_tags_v2`, `get_notes_with_tag_v2`, `get_all_tasks_v2`, `get_tasks_in_path_v2`, `get_tasks_in_section_v2`. TS mirrors in `vault-v2.types.ts`.
+- [x] **7.5** Write command `toggle_task_status` (replaces the `tasks.service.ts:113` `writeTextFile` violator). Tag write commands (`rename_tag`/`add_tag_to_note`/`remove_tag_from_note`) **DEFERRED** — no equivalent in current TS, would be dead code without a UI consumer. Added `remove_note_from_index` Rust command + Tauri wrapper to fix the deletion leak in `fs.service.ts` (Phase 3/6 left this as a known gap; visible regression here because tag panel reads from Rust).
+- [x] **7.6** Migrated `TagsPanel.svelte` and `TasksView.svelte` to consumer pattern (`vaultIndexVersion` $effect). Compressed: skipped flag + soak (per Phase 3/6 cadence). Deleted TS orphans: `tags.service.ts` indexers, `tags.logic.ts` aggregate helpers, `tasks.service.ts` indexers + `writeTextFile`, `tasks.logic.ts` build/aggregate/toggle helpers, `task-metadata.logic.ts` serializer/inverse helpers. Trace-before-remove ritual in commit body.
 
 ### Phase 8 - Rust Frontmatter / Properties + File Ops
 

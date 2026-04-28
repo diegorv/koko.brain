@@ -13,6 +13,7 @@
 pub mod entry;
 pub mod index;
 pub mod parsing;
+pub mod task;
 
 /// Tauri-managed wrapper around `VaultIndex`. Wires up via
 /// `.manage(VaultIndexState::default())` in `lib.rs`; commands receive it

@@ -12,11 +12,6 @@ vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	removeFileFromIndex: vi.fn(),
 }));
 
-vi.mock('$lib/features/tags/tags.service', () => ({
-	buildTagIndex: vi.fn(),
-	updateTagIndexForFile: vi.fn(),
-}));
-
 vi.mock('$lib/features/collection/collection.service', () => ({
 	buildPropertyIndex: vi.fn(),
 	updateNoteInIndex: vi.fn(),
@@ -32,11 +27,6 @@ vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 	updateCalendarForFile: vi.fn(),
 }));
 
-vi.mock('$lib/features/tasks/tasks.service', () => ({
-	buildTaskIndex: vi.fn(),
-	updateTaskIndexForFile: vi.fn(),
-}));
-
 vi.mock('$lib/core/editor/editor.hooks', () => ({
 	areAllRecentSaves: vi.fn(() => false),
 }));
@@ -50,11 +40,9 @@ vi.mock('$lib/utils/debug', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
 import { rebuildIndex, updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
-import { buildTagIndex, updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
-import { buildTaskIndex, updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -70,8 +58,6 @@ describe('rebuildAllIndexes', () => {
 		await rebuildAllIndexes();
 
 		expect(rebuildIndex).toHaveBeenCalled();
-		expect(buildTagIndex).toHaveBeenCalled();
-		expect(buildTaskIndex).toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
 		expect(scanFilesForCalendar).toHaveBeenCalled();
@@ -80,14 +66,12 @@ describe('rebuildAllIndexes', () => {
 	it('calls rebuildIndex before derived indexes', async () => {
 		const callOrder: string[] = [];
 		vi.mocked(rebuildIndex).mockImplementation(async () => { callOrder.push('rebuildIndex'); });
-		vi.mocked(buildTagIndex).mockImplementation(() => { callOrder.push('buildTagIndex'); });
-		vi.mocked(buildTaskIndex).mockImplementation(() => { callOrder.push('buildTaskIndex'); });
+		vi.mocked(buildPropertyIndex).mockImplementation(() => { callOrder.push('buildPropertyIndex'); });
 
 		await rebuildAllIndexes();
 
 		expect(callOrder[0]).toBe('rebuildIndex');
-		expect(callOrder.indexOf('buildTagIndex')).toBeGreaterThan(0);
-		expect(callOrder.indexOf('buildTaskIndex')).toBeGreaterThan(0);
+		expect(callOrder.indexOf('buildPropertyIndex')).toBeGreaterThan(0);
 	});
 });
 
@@ -104,7 +88,7 @@ describe('rebuildAllIndexes — self-save detection', () => {
 
 		expect(areAllRecentSaves).toHaveBeenCalledWith(['/vault/note.md']);
 		expect(rebuildIndex).not.toHaveBeenCalled();
-		expect(buildTagIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
 	});
 
 	it('does not clear recent saves — lets TTL handle cleanup', async () => {
@@ -122,7 +106,7 @@ describe('rebuildAllIndexes — self-save detection', () => {
 
 		expect(areAllRecentSaves).not.toHaveBeenCalled();
 		expect(rebuildIndex).not.toHaveBeenCalled();
-		expect(buildTagIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
 	});
 
 	it('skips rebuild when mixed directory + self-save file paths', async () => {
@@ -141,7 +125,7 @@ describe('rebuildAllIndexes — self-save detection', () => {
 		await rebuildAllIndexes(['/vault/note.md', '/vault/external.md']);
 
 		expect(rebuildIndex).toHaveBeenCalled();
-		expect(buildTagIndex).toHaveBeenCalled();
+		expect(buildPropertyIndex).toHaveBeenCalled();
 	});
 
 	it('performs full rebuild when no paths are provided', async () => {
@@ -171,21 +155,9 @@ describe('rebuildAllIndexes — error isolation', () => {
 		await rebuildAllIndexes();
 
 		expect(debugError).toHaveBeenCalledWith('WATCHER', 'rebuildIndex failed:', expect.any(Error));
-		expect(buildTagIndex).toHaveBeenCalled();
-		expect(buildTaskIndex).toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
 		expect(scanFilesForCalendar).toHaveBeenCalled();
-	});
-
-	it('continues remaining index builds when a sync builder throws', async () => {
-		vi.mocked(buildTagIndex).mockImplementation(() => { throw new Error('tag fail'); });
-
-		await rebuildAllIndexes();
-
-		expect(debugError).toHaveBeenCalledWith('WATCHER', 'buildTagIndex failed:', expect.any(Error));
-		expect(buildTaskIndex).toHaveBeenCalled();
-		expect(buildPropertyIndex).toHaveBeenCalled();
 	});
 
 	it('error in one builder does not abort the rest of the rebuild', async () => {
@@ -222,7 +194,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 		// Should NOT call full rebuild
 		expect(rebuildIndex).not.toHaveBeenCalled();
-		expect(buildTagIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
 
 		// Should pass absolute paths to read_files_batch
 		expect(invoke).toHaveBeenCalledWith('read_files_batch', {
@@ -231,8 +203,6 @@ describe('rebuildAllIndexes — incremental path', () => {
 		});
 		// Index updaters receive absolute paths (matching buildIndex behavior)
 		expect(updateIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
-		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
-		expect(updateTaskIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 		expect(updateCalendarForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
@@ -245,7 +215,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 		// Incremental failed, should fall back to full rebuild
 		expect(rebuildIndex).toHaveBeenCalled();
-		expect(buildTagIndex).toHaveBeenCalled();
+		expect(buildPropertyIndex).toHaveBeenCalled();
 	});
 
 	it('uses full rebuild for many changed files', async () => {
@@ -274,5 +244,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 		expect(removeFileFromIndex).toHaveBeenCalledWith('/vault/deleted.md');
 		expect(updateIndexForFile).not.toHaveBeenCalled();
+		// Phase 7.5: deletion fans out to remove_note_from_index in Rust.
+		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/deleted.md' });
 	});
 });

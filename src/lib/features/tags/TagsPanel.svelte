@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { ArrowDownAZ, ArrowDown01, Filter } from 'lucide-svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import { tagsStore } from './tags.store.svelte';
-	import { updateTagSort } from './tags.service';
+	import { buildTagIndex, updateTagSort } from './tags.service';
 	import { filterTagTree } from './tags.logic';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -48,6 +49,15 @@
 			? filterTagTree(tagsStore.tagTree, MIN_COUNT_THRESHOLD)
 			: tagsStore.tagTree,
 	);
+
+	// Refetch the tag tree from Rust whenever the `VaultIndex` version
+	// bumps (save, watcher, or remove_note_from_index). Phase 7.5.
+	$effect(() => {
+		void vaultStore.vaultIndexVersion;
+		untrack(() => {
+			void buildTagIndex();
+		});
+	});
 </script>
 
 <div class="flex flex-col">

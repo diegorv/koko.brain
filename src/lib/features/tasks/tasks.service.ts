@@ -1,132 +1,125 @@
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { findTabIndex, TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { tasksStore } from './tasks.store.svelte';
-import {
-	extractTasks,
-	aggregateFileTasks,
-	buildGroupsFromIndex,
-	buildModifiedAtMap,
-	tasksEqual,
-	toggleTaskInContent,
-} from './tasks.logic';
-import type { TaskItem } from './tasks.types';
-import { debug, error, timeSync } from '$lib/utils/debug';
-
-/** Per-file task cache for incremental updates (stores ALL tasks, unfiltered) */
-let fileTasksIndex = new Map<string, TaskItem[]>();
+import type { FileTaskGroup } from './tasks.types';
+import type { FileTaskGroupV2, ToggleTaskResultV2 } from '$lib/types/vault-v2.types';
+import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /**
- * Rebuilds the displayed groups using the current sectionTag filter.
- * When no section filter is active, builds groups directly from the fileTasksIndex cache
- * (avoids re-parsing all noteContents). Falls back to full aggregation when a
- * sectionTag is set, since section filtering requires raw file content.
+ * Converts a `FileTaskGroupV2` (Rust, modifiedAt in seconds) into the
+ * TS-side `FileTaskGroup` shape used by the store. Rust `NoteEntry`
+ * carries `modifiedAt` in seconds since epoch; the FE filter logic
+ * (`filterByDate`) compares against `Date.now()` which is milliseconds.
+ * Multiply by 1000 here so the rest of the TS path keeps using ms.
  */
-function rebuildGroups(): void {
-	const modifiedAtMap = buildModifiedAtMap(fsStore.fileTree);
-	const sectionTag = tasksStore.sectionTag;
-
-	if (sectionTag && sectionTag.trim().length > 0) {
-		const noteContents = noteIndexStore.noteContents;
-		const groups = aggregateFileTasks(noteContents, modifiedAtMap, sectionTag);
-		tasksStore.setFileTaskGroups(groups);
-	} else {
-		const groups = buildGroupsFromIndex(fileTasksIndex, modifiedAtMap);
-		tasksStore.setFileTaskGroups(groups);
-	}
+function fromV2(group: FileTaskGroupV2): FileTaskGroup {
+	return {
+		filePath: group.filePath,
+		fileName: group.fileName,
+		modifiedAt: group.modifiedAt * 1000,
+		tasks: group.tasks.map((t) => ({
+			text: t.text,
+			checked: t.checked,
+			indent: t.indent,
+			lineNumber: t.lineNumber,
+			status: t.status,
+			metadata: {
+				description: t.metadata.description,
+				dueDate: t.metadata.dueDate,
+				scheduledDate: t.metadata.scheduledDate,
+				startDate: t.metadata.startDate,
+				createdDate: t.metadata.createdDate,
+				doneDate: t.metadata.doneDate,
+				cancelledDate: t.metadata.cancelledDate,
+				priority: t.metadata.priority,
+				recurrence: t.metadata.recurrence,
+				id: t.metadata.id,
+				dependsOn: t.metadata.dependsOn,
+				onCompletion: t.metadata.onCompletion,
+				tags: t.metadata.tags,
+			},
+		})),
+	};
 }
 
 /**
- * Builds the full task index from all indexed note contents.
- * Called after buildIndex() completes during vault initialization.
+ * Fetches the full task index from the Rust `VaultIndex`. When a
+ * `sectionTag` is set, fans out to `get_tasks_in_section_v2` instead;
+ * otherwise calls `get_all_tasks_v2`. Phase 7.6 — replaces the previous
+ * TS-side `extractTasks` per-file scan.
  */
-export function buildTaskIndex(): void {
-	timeSync('TASKS', 'buildTaskIndex', () => {
-		tasksStore.setLoading(true);
-
-		const noteContents = noteIndexStore.noteContents;
-
-		fileTasksIndex = new Map();
-
-		for (const [filePath, content] of noteContents) {
-			const tasks = extractTasks(content);
-			if (tasks.length > 0) {
-				fileTasksIndex.set(filePath, tasks);
-			}
-		}
-
-		rebuildGroups();
+export async function buildTaskIndex(): Promise<void> {
+	tasksStore.setLoading(true);
+	try {
+		await timeAsync('TASKS', 'buildTaskIndex', async () => {
+			const sectionTag = tasksStore.sectionTag.trim();
+			const v2 = sectionTag
+				? await invoke<FileTaskGroupV2[]>('get_tasks_in_section_v2', { sectionTag })
+				: await invoke<FileTaskGroupV2[]>('get_all_tasks_v2');
+			const groups = v2.map(fromV2);
+			tasksStore.setFileTaskGroups(groups);
+			let total = 0;
+			for (const g of groups) total += g.tasks.length;
+			debug('TASKS', `Tasks: ${groups.length} files, ${total} tasks`);
+		});
+	} catch (err) {
+		error('TASKS', 'buildTaskIndex failed:', err);
+	} finally {
 		tasksStore.setLoading(false);
-
-		let totalTasks = 0;
-		for (const tasks of fileTasksIndex.values()) totalTasks += tasks.length;
-		debug('TASKS', `Tasks: ${fileTasksIndex.size} files, ${totalTasks} tasks`);
-	});
-}
-
-/**
- * Incrementally updates the task index for a single file.
- * Skips the update if the file's tasks haven't changed.
- */
-export function updateTaskIndexForFile(filePath: string, content: string): void {
-	const oldTasks = fileTasksIndex.get(filePath) ?? [];
-	const newTasks = extractTasks(content);
-
-	if (tasksEqual(oldTasks, newTasks)) return;
-
-	if (newTasks.length > 0) {
-		fileTasksIndex.set(filePath, newTasks);
-	} else {
-		fileTasksIndex.delete(filePath);
 	}
-
-	rebuildGroups();
 }
 
 /**
- * Rebuilds the task groups when the section tag filter changes.
- * Called from the UI when the user changes the section tag input.
+ * Updates the section-tag filter and refetches groups via the Rust
+ * `get_tasks_in_section_v2` command. The Rust scan re-reads each note's
+ * raw content from disk to apply heading-level filtering — acceptable
+ * cost behind the existing 400ms debounce in `TasksView.svelte`.
  */
-export function updateSectionTagFilter(tag: string): void {
+export async function updateSectionTagFilter(tag: string): Promise<void> {
 	tasksStore.setSectionTag(tag);
-	rebuildGroups();
+	await buildTaskIndex();
 }
 
 /**
- * Toggles a task's checked state both in the store and on disk.
- * Uses the freshest content available: editor tab (if open) > backlinks index.
- * Updates stores synchronously after the disk write to minimize race windows.
+ * Toggles a task's checked state via the Rust `toggle_task_status`
+ * command. Replaces the previous direct `writeTextFile` at
+ * `tasks.service.ts:113` (a known JS write-surface violator from the
+ * Phase 11.5 audit list).
+ *
+ * Rust does the read → toggle → write → index-update → emit chain. We
+ * still bump `noteIndexStore` and the editor signal so the (still-alive
+ * until Phase 11.5) TS-side stores and the open editor stay consistent.
  */
 export async function toggleTask(filePath: string, lineNumber: number): Promise<void> {
-	// Prefer editor content (freshest if file is open) over backlinks index
-	const openTab = editorStore.tabs.find((t) => t.path === filePath);
-	const content = openTab?.content ?? noteIndexStore.noteContents.get(filePath);
-	if (!content) return;
-
-	const updatedContent = toggleTaskInContent(content, lineNumber);
-
 	try {
-		await writeTextFile(filePath, updatedContent);
+		const result = await invoke<ToggleTaskResultV2>('toggle_task_status', {
+			path: filePath,
+			lineNumber,
+		});
+		if (!result.updateResult.changed) {
+			return;
+		}
+		const updatedContent = result.updatedContent;
+		// Update note index atomically (content + wikilinks) to keep the still-
+		// alive TS noteIndexStore consistent.
+		noteIndexStore.updateNoteEntry(
+			filePath,
+			updatedContent,
+			parseWikilinks(updatedContent),
+		);
+		// Sync the open tab (if any) with the new content + bump the external
+		// signal so MarkdownEditor.svelte dispatches the doc replace when this
+		// path matches the active tab.
+		syncExternalContentToEditor(filePath, updatedContent, true);
 	} catch (err) {
-		error('TASKS', 'Failed to toggle task on disk:', err);
+		error('TASKS', 'Failed to toggle task:', err);
 		toast.error('Failed to save task change.');
-		return;
 	}
-
-	// Update note index atomically (content + wikilinks) to keep stores consistent
-	noteIndexStore.updateNoteEntry(filePath, updatedContent, parseWikilinks(updatedContent));
-
-	// Sync the open tab (if any) with the new content + bump the external
-	// signal so `MarkdownEditor.svelte` dispatches the doc replace when this
-	// path matches the active tab. For non-active tabs, the content + savedContent
-	// update ensures CodeMirror loads the updated content when switched to.
-	syncExternalContentToEditor(filePath, updatedContent, true);
-	updateTaskIndexForFile(filePath, updatedContent);
 }
 
 /** Opens or focuses the Tasks tab. Creates it if it doesn't exist. */
@@ -165,9 +158,8 @@ export function toggleTasksTab(): void {
 	}
 }
 
-/** Resets all task state including caches */
+/** Resets all task state. */
 export function resetTasks(): void {
-	fileTasksIndex = new Map();
 	tasksStore.reset();
 	closeTasksTab();
 }

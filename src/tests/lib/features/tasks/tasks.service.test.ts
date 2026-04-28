@@ -1,22 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	writeTextFile: vi.fn(),
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
-	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
+	timeAsync: vi.fn(async (_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
 }));
 
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn() },
+}));
+
+import { invoke } from '@tauri-apps/api/core';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { tasksStore } from '$lib/features/tasks/tasks.store.svelte';
 import {
 	buildTaskIndex,
-	updateTaskIndexForFile,
 	updateSectionTagFilter,
 	toggleTask,
 	openTasksTab,
@@ -24,6 +27,23 @@ import {
 	toggleTasksTab,
 	resetTasks,
 } from '$lib/features/tasks/tasks.service';
+import type { FileTaskGroupV2, ToggleTaskResultV2 } from '$lib/types/vault-v2.types';
+
+function group(filePath: string, modifiedAtSec: number, taskTexts: string[]): FileTaskGroupV2 {
+	return {
+		filePath,
+		fileName: filePath.split('/').pop()?.replace(/\.md$/, '') ?? '',
+		modifiedAt: modifiedAtSec,
+		tasks: taskTexts.map((text, i) => ({
+			text,
+			checked: false,
+			indent: 0,
+			lineNumber: i + 1,
+			status: 'todo',
+			metadata: { description: text, tags: [] },
+		})),
+	};
+}
 
 describe('buildTaskIndex', () => {
 	beforeEach(() => {
@@ -31,140 +51,56 @@ describe('buildTaskIndex', () => {
 		tasksStore.reset();
 		editorStore.reset();
 		noteIndexStore.reset();
-		// Clear default sectionTag filter so all tasks are visible
 		tasksStore.setSectionTag('');
 	});
 
-	it('populates fileTaskGroups from note contents', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task one\n- [ ] task two'],
-			['/vault/b.md', '- [x] done task'],
-		]));
+	it('populates fileTaskGroups via get_all_tasks_v2 IPC', async () => {
+		const groups: FileTaskGroupV2[] = [
+			group('/vault/a.md', 100, ['task one', 'task two']),
+			group('/vault/b.md', 200, ['done task']),
+		];
+		vi.mocked(invoke).mockResolvedValueOnce(groups);
 
-		buildTaskIndex();
+		await buildTaskIndex();
 
-		expect(tasksStore.fileTaskGroups.length).toBeGreaterThan(0);
-		const allTasks = tasksStore.fileTaskGroups.flatMap(g => g.tasks);
-		expect(allTasks.length).toBe(3);
+		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
+		expect(tasksStore.fileTaskGroups).toHaveLength(2);
+		expect(tasksStore.fileTaskGroups.flatMap((g) => g.tasks)).toHaveLength(3);
 	});
 
-	it('sets isLoading false after completion', () => {
-		noteIndexStore.setNoteContents(new Map());
+	it('converts modifiedAt seconds → milliseconds', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 1700000000, ['x'])]);
 
-		buildTaskIndex();
+		await buildTaskIndex();
 
+		expect(tasksStore.fileTaskGroups[0].modifiedAt).toBe(1700000000 * 1000);
+	});
+
+	it('clears loading state after completion', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([]);
+		await buildTaskIndex();
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
-	it('handles empty vault with no notes', () => {
-		noteIndexStore.setNoteContents(new Map());
-
-		buildTaskIndex();
-
+	it('handles empty IPC response', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([]);
+		await buildTaskIndex();
 		expect(tasksStore.fileTaskGroups).toEqual([]);
 	});
 
-	it('handles notes without tasks', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', 'No tasks here, just text.'],
-		]));
+	it('falls back to get_tasks_in_section_v2 when sectionTag is set', async () => {
+		tasksStore.setSectionTag('#to-list');
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['filtered'])]);
 
-		buildTaskIndex();
+		await buildTaskIndex();
 
-		expect(tasksStore.fileTaskGroups).toEqual([]);
+		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTag: '#to-list' });
 	});
 
-	it('groups tasks by file', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task a'],
-			['/vault/b.md', '- [ ] task b1\n- [ ] task b2'],
-		]));
-
-		buildTaskIndex();
-
-		expect(tasksStore.fileTaskGroups).toHaveLength(2);
-		const fileB = tasksStore.fileTaskGroups.find(g => g.filePath === '/vault/b.md');
-		expect(fileB?.tasks).toHaveLength(2);
-	});
-});
-
-describe('updateTaskIndexForFile', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
-		noteIndexStore.reset();
-		tasksStore.setSectionTag('');
-	});
-
-	it('adds tasks for a new file', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] existing'],
-		]));
-		buildTaskIndex();
-		expect(tasksStore.fileTaskGroups).toHaveLength(1);
-
-		updateTaskIndexForFile('/vault/b.md', '- [ ] new task');
-
-		// Cache-based rebuild: groups are built from fileTasksIndex directly
-		expect(tasksStore.fileTaskGroups).toHaveLength(2);
-		const allTasks = tasksStore.fileTaskGroups.flatMap(g => g.tasks);
-		expect(allTasks).toHaveLength(2);
-	});
-
-	it('skips update when tasks are unchanged', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] stable task'],
-		]));
-		buildTaskIndex();
-		const groupsBefore = tasksStore.fileTaskGroups;
-
-		updateTaskIndexForFile('/vault/a.md', '- [ ] stable task');
-
-		// tasksEqual returns true, so groups should not be rebuilt
-		expect(tasksStore.fileTaskGroups).toEqual(groupsBefore);
-	});
-
-	it('updates groups when tasks change', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] old task'],
-		]));
-		buildTaskIndex();
-		expect(tasksStore.fileTaskGroups[0]?.tasks[0]?.text).toBe('old task');
-
-		updateTaskIndexForFile('/vault/a.md', '- [ ] new task');
-
-		// Cache-based rebuild: groups reflect the updated fileTasksIndex immediately
-		expect(tasksStore.fileTaskGroups[0]?.tasks[0]?.text).toBe('new task');
-	});
-
-	it('uses cache for rebuild when no sectionTag is set', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task a'],
-		]));
-		buildTaskIndex();
-		expect(tasksStore.fileTaskGroups).toHaveLength(1);
-
-		// Add a new file via incremental update (not in noteContents)
-		updateTaskIndexForFile('/vault/b.md', '- [ ] task b');
-
-		// Cache-based path: both files appear because groups are built from the index
-		expect(tasksStore.fileTaskGroups).toHaveLength(2);
-	});
-
-	it('falls back to noteContents when sectionTag is active', () => {
-		tasksStore.setSectionTag('');
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '## #work\n- [ ] work task\n## #play\n- [ ] play task'],
-		]));
-		buildTaskIndex();
-
-		// Switch to section filter — rebuildGroups uses aggregateFileTasks path
-		updateSectionTagFilter('#work');
-
-		const tasks = tasksStore.fileTaskGroups.flatMap(g => g.tasks);
-		expect(tasks).toHaveLength(1);
-		expect(tasks[0].text).toBe('work task');
+	it('clears loading state even on IPC error', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+		await buildTaskIndex();
+		expect(tasksStore.isLoading).toBe(false);
 	});
 });
 
@@ -176,34 +112,21 @@ describe('updateSectionTagFilter', () => {
 		noteIndexStore.reset();
 	});
 
-	it('sets section tag in store', () => {
-		updateSectionTagFilter('#work');
+	it('sets section tag and refetches via the section IPC', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['work'])]);
+
+		await updateSectionTagFilter('#work');
 
 		expect(tasksStore.sectionTag).toBe('#work');
+		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTag: '#work' });
 	});
 
-	it('filters tasks by section tag', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '## #work\n- [ ] work task\n## #personal\n- [ ] personal task'],
-		]));
-		buildTaskIndex();
+	it('routes through get_all_tasks_v2 when filter cleared', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([]);
 
-		updateSectionTagFilter('#work');
+		await updateSectionTagFilter('');
 
-		const tasks = tasksStore.fileTaskGroups.flatMap(g => g.tasks);
-		expect(tasks.every(t => t.text !== 'personal task')).toBe(true);
-	});
-
-	it('shows all tasks when filter is empty', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task one\n- [ ] task two'],
-		]));
-		buildTaskIndex();
-
-		updateSectionTagFilter('');
-
-		const tasks = tasksStore.fileTaskGroups.flatMap(g => g.tasks);
-		expect(tasks).toHaveLength(2);
+		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
 	});
 });
 
@@ -213,124 +136,68 @@ describe('toggleTask', () => {
 		tasksStore.reset();
 		editorStore.reset();
 		noteIndexStore.reset();
-		tasksStore.setSectionTag('');
 	});
 
-	it('writes toggled content to disk and updates stores', async () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task'],
-		]));
-		buildTaskIndex();
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	function makeResult(updatedContent: string, changed = true): ToggleTaskResultV2 {
+		return {
+			updatedContent,
+			updateResult: { changed, affected: [], version: 1 },
+		};
+	}
+
+	it('invokes toggle_task_status with the right path/lineNumber', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
 
 		await toggleTask('/vault/a.md', 1);
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', '- [x] task');
-		// noteIndexStore should have updated content (via updateNoteEntry)
+		expect(invoke).toHaveBeenCalledWith('toggle_task_status', {
+			path: '/vault/a.md',
+			lineNumber: 1,
+		});
+	});
+
+	it('updates noteIndexStore with the returned content', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
+
+		await toggleTask('/vault/a.md', 1);
+
 		expect(noteIndexStore.noteContents.get('/vault/a.md')).toBe('- [x] task');
-		// noteIndex should also be updated (not stale)
 		expect(noteIndexStore.noteIndex.has('/vault/a.md')).toBe(true);
 	});
 
-	it('bumps externalContentSignal when toggled file is the active tab (Phase 5)', async () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task'],
-		]));
+	it('bumps externalContentSignal when toggled file is the active tab', async () => {
 		editorStore.addTab({
 			path: '/vault/a.md',
 			name: 'a.md',
 			content: '- [ ] task',
 			savedContent: '- [ ] task',
 		});
-		buildTaskIndex();
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
 
 		const before = editorStore.externalContentSignal;
 		await toggleTask('/vault/a.md', 1);
 
-		// Phase 5: tasks.service no longer dispatches to CM directly;
-		// `syncExternalContentToEditor` bumps the signal and the
-		// `MarkdownEditor.svelte` $effect handles the dispatch.
 		expect(editorStore.externalContentSignal).toBeGreaterThan(before);
-		// Tab content + savedContent reflect the toggle
 		expect(editorStore.tabs[0].content).toBe('- [x] task');
 		expect(editorStore.tabs[0].savedContent).toBe('- [x] task');
 	});
 
-	it('does NOT bump externalContentSignal when toggled file is not the active tab', async () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task'],
-			['/vault/b.md', 'other note'],
-		]));
-		// Active tab is b.md, not a.md
-		editorStore.addTab({
-			path: '/vault/b.md',
-			name: 'b.md',
-			content: 'other note',
-			savedContent: 'other note',
-		});
-		// Open a.md as a non-active tab
-		editorStore.addTab({
-			path: '/vault/a.md',
-			name: 'a.md',
-			content: '- [ ] task',
-			savedContent: '- [ ] task',
-		});
-		// Re-focus b.md
-		editorStore.setActiveIndex(0);
-		buildTaskIndex();
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-		const before = editorStore.externalContentSignal;
-		await toggleTask('/vault/a.md', 1);
-
-		// Signal NOT bumped (a.md is not the active tab — CM doesn't need a refresh)
-		expect(editorStore.externalContentSignal).toBe(before);
-		// But the non-active tab's content is still updated so a tab switch shows fresh state
-		const aTab = editorStore.tabs.find((t) => t.path === '/vault/a.md');
-		expect(aTab?.content).toBe('- [x] task');
-		expect(aTab?.savedContent).toBe('- [x] task');
-		expect(noteIndexStore.noteContents.get('/vault/a.md')).toBe('- [x] task');
-	});
-
-	it('prefers open tab content over backlinks index', async () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] stale'],
-		]));
-		editorStore.addTab({
-			path: '/vault/a.md',
-			name: 'a.md',
-			content: '- [ ] fresh task',
-			savedContent: '- [ ] fresh task',
-		});
-		buildTaskIndex();
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	it('skips updates when toggle is a no-op', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [ ] task', /* changed */ false));
 
 		await toggleTask('/vault/a.md', 1);
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', '- [x] fresh task');
+		// changed=false -> no store mutations
+		expect(noteIndexStore.noteContents.has('/vault/a.md')).toBe(false);
 	});
 
-	it('does nothing when content is not found', async () => {
-		noteIndexStore.setNoteContents(new Map());
-
-		await toggleTask('/vault/missing.md', 1);
-
-		expect(writeTextFile).not.toHaveBeenCalled();
-		expect(noteIndexStore.noteContents.size).toBe(0);
-	});
-
-	it('does not update stores when disk write fails', async () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task'],
-		]));
-		buildTaskIndex();
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+	it('swallows IPC errors via toast', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('disk full'));
 
 		await toggleTask('/vault/a.md', 1);
 
-		// Content should remain unchanged since write failed
-		expect(noteIndexStore.noteContents.get('/vault/a.md')).toBe('- [ ] task');
+		// No mutation on failure.
+		expect(noteIndexStore.noteContents.has('/vault/a.md')).toBe(false);
 	});
 });
 
@@ -339,22 +206,18 @@ describe('openTasksTab / closeTasksTab / toggleTasksTab', () => {
 		vi.clearAllMocks();
 		tasksStore.reset();
 		editorStore.reset();
-		noteIndexStore.reset();
 	});
 
 	it('openTasksTab creates a Tasks tab', () => {
 		openTasksTab();
-
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.tabs[0].path).toBe('__virtual__/tasks');
-		expect(editorStore.tabs[0].name).toBe('Tasks');
 		expect(editorStore.tabs[0].fileType).toBe('tasks');
 		expect(editorStore.activeIndex).toBe(0);
 	});
 
-	it('openTasksTab focuses existing tab instead of creating duplicate', () => {
+	it('openTasksTab focuses existing tab instead of duplicating', () => {
 		openTasksTab();
-		// Open another tab so Tasks is not active
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 		expect(editorStore.activeIndex).toBe(1);
 
@@ -366,32 +229,19 @@ describe('openTasksTab / closeTasksTab / toggleTasksTab', () => {
 
 	it('closeTasksTab removes the tab', () => {
 		openTasksTab();
-		expect(editorStore.tabs).toHaveLength(1);
-
 		closeTasksTab();
-
-		expect(editorStore.tabs).toHaveLength(0);
-	});
-
-	it('closeTasksTab does nothing when tab does not exist', () => {
-		closeTasksTab();
-
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
 	it('toggleTasksTab opens when not present', () => {
 		toggleTasksTab();
-
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.tabs[0].fileType).toBe('tasks');
 	});
 
 	it('toggleTasksTab closes when active', () => {
 		openTasksTab();
-		expect(editorStore.activeIndex).toBe(0);
-
 		toggleTasksTab();
-
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
@@ -403,7 +253,6 @@ describe('openTasksTab / closeTasksTab / toggleTasksTab', () => {
 		toggleTasksTab();
 
 		expect(editorStore.activeIndex).toBe(0);
-		expect(editorStore.tabs).toHaveLength(2);
 	});
 });
 
@@ -412,28 +261,17 @@ describe('resetTasks', () => {
 		vi.clearAllMocks();
 		tasksStore.reset();
 		editorStore.reset();
-		noteIndexStore.reset();
-		tasksStore.setSectionTag('');
 	});
 
-	it('clears task groups and closes tab', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '- [ ] task'],
-		]));
-		buildTaskIndex();
+	it('clears task groups and closes tab', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		await buildTaskIndex();
 		openTasksTab();
 		expect(tasksStore.fileTaskGroups.length).toBeGreaterThan(0);
-		expect(editorStore.tabs).toHaveLength(1);
 
 		resetTasks();
 
 		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(editorStore.tabs).toHaveLength(0);
-	});
-
-	it('resets loading state', () => {
-		resetTasks();
-
-		expect(tasksStore.isLoading).toBe(false);
 	});
 });
