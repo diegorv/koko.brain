@@ -10,6 +10,7 @@ import { headingHandlers } from './handlers/heading-handler';
 import { blockquoteHandler } from './handlers/blockquote-handler';
 import { inlineCommentHandler } from './handlers/inline-comment-handler';
 import { blockReferenceHandler } from './handlers/block-reference-handler';
+import { simpleWidgetHandlers } from './handlers/simple-widget-handlers';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
@@ -19,6 +20,7 @@ export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 	highlightHandler,
 	...headingHandlers,
 	blockquoteHandler,
+	...simpleWidgetHandlers,
 ];
 
 /**
