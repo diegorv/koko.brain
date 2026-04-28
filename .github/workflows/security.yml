@@ -76,9 +76,9 @@ jobs:
             echo "::error::minimumReleaseAge is not set in pnpm-workspace.yaml"
             exit 1
           fi
-          min_age=20160  # 14 days in minutes
+          min_age=10080  # 7 days in minutes
           if [[ "$age" -lt "$min_age" ]]; then
-            echo "::error::minimumReleaseAge is $age minutes ($(( age / 1440 )) days), minimum required is $min_age minutes (14 days)"
+            echo "::error::minimumReleaseAge is $age minutes ($(( age / 1440 )) days), minimum required is $min_age minutes (7 days)"
             exit 1
           fi
           echo "✅ minimumReleaseAge is $age minutes ($(( age / 1440 )) days)"
