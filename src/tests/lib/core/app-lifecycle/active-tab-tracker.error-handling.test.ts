@@ -35,6 +35,7 @@ import { updateBacklinksForFile } from '$lib/features/backlinks/backlinks.servic
 import { updateOutgoingLinksForFile } from '$lib/features/outgoing-links/outgoing-links.service';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 
 describe('updateActiveTabLinks — error handling', () => {
@@ -42,46 +43,47 @@ describe('updateActiveTabLinks — error handling', () => {
 		vi.resetAllMocks();
 		backlinksStore.reset();
 		outgoingLinksStore.reset();
+		settingsStore.reset();
 	});
 
-	it('catches error when updateBacklinksForFile throws (does not propagate)', () => {
+	it('catches error when updateBacklinksForFile throws (does not propagate)', async () => {
 		vi.mocked(updateBacklinksForFile).mockImplementation(() => {
 			throw new Error('backlinks computation failed');
 		});
 
-		expect(() => updateActiveTabLinks('/vault/note.md')).not.toThrow();
+		await expect(updateActiveTabLinks('/vault/note.md')).resolves.toBeUndefined();
 	});
 
-	it('still calls updateOutgoingLinksForFile when updateBacklinksForFile throws', () => {
+	it('still calls updateOutgoingLinksForFile when updateBacklinksForFile throws', async () => {
 		vi.mocked(updateBacklinksForFile).mockImplementation(() => {
 			throw new Error('backlinks error');
 		});
 
-		updateActiveTabLinks('/vault/note.md');
+		await updateActiveTabLinks('/vault/note.md');
 
 		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
 	});
 
-	it('catches error when updateOutgoingLinksForFile throws (does not propagate)', () => {
+	it('catches error when updateOutgoingLinksForFile throws (does not propagate)', async () => {
 		vi.mocked(updateOutgoingLinksForFile).mockImplementation(() => {
 			throw new Error('outgoing links failed');
 		});
 
-		expect(() => updateActiveTabLinks('/vault/note.md')).not.toThrow();
+		await expect(updateActiveTabLinks('/vault/note.md')).resolves.toBeUndefined();
 	});
 
-	it('calls updateBacklinksForFile even when updateOutgoingLinksForFile throws', () => {
+	it('calls updateBacklinksForFile even when updateOutgoingLinksForFile throws', async () => {
 		vi.mocked(updateOutgoingLinksForFile).mockImplementation(() => {
 			throw new Error('outgoing links failed');
 		});
 
-		updateActiveTabLinks('/vault/note.md');
+		await updateActiveTabLinks('/vault/note.md');
 
 		// Backlinks should have been updated even though outgoing links threw
 		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
 	});
 
-	it('clears stores without error when path is null (no service calls)', () => {
+	it('clears stores without error when path is null (no service calls)', async () => {
 		// Pre-populate stores
 		backlinksStore.setLinkedMentions([
 			{ sourcePath: '/vault/x.md', sourceName: 'x', snippets: [] },
@@ -90,7 +92,7 @@ describe('updateActiveTabLinks — error handling', () => {
 			{ target: 'y', alias: null, heading: null, resolvedPath: null, position: 0 },
 		]);
 
-		updateActiveTabLinks(null);
+		await updateActiveTabLinks(null);
 
 		expect(updateBacklinksForFile).not.toHaveBeenCalled();
 		expect(updateOutgoingLinksForFile).not.toHaveBeenCalled();
