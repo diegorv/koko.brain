@@ -23,6 +23,7 @@
 	import SecuritySection from './sections/SecuritySection.svelte';
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
 	import UpdateSection from './sections/UpdateSection.svelte';
+	import ExperimentalSection from './sections/ExperimentalSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -39,6 +40,7 @@
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import DownloadIcon from '@lucide/svelte/icons/download';
+	import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical';
 	import type { SettingsSection } from './settings.types';
 	import type { Component } from 'svelte';
 
@@ -59,6 +61,7 @@
 		security: ShieldIcon,
 		troubleshooting: BugIcon,
 		update: DownloadIcon,
+		experimental: FlaskConicalIcon,
 	};
 
 	const debouncedSave = debounce(() => {
@@ -212,6 +215,8 @@
 					<TroubleshootingSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'update'}
 					<UpdateSection />
+				{:else if settingsDialogStore.activeSection === 'experimental'}
+					<ExperimentalSection onchange={debouncedSave} />
 				{/if}
 			</div>
 		</ScrollArea>
