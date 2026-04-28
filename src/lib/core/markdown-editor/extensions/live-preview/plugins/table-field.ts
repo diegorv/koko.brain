@@ -26,7 +26,18 @@ export function computeTables(state: EditorState): DecorationSet {
 			firstLine.from,
 			firstLine.to,
 			Decoration.replace({
-				widget: new TableWidget(table.headers, table.alignments, table.rows, fmProperties),
+				widget: new TableWidget(
+					table.headers,
+					table.alignments,
+					table.rows,
+					fmProperties,
+					{
+						from: table.from,
+						to: table.to,
+						startLine: table.startLine,
+						endLine: table.endLine,
+					},
+				),
 			}),
 		);
 

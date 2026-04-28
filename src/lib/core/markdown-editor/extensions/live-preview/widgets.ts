@@ -291,18 +291,32 @@ function renderCellContent(
 	}
 }
 
-/** Widget that renders a pipe-delimited markdown table as an HTML `<table>` element */
+/** Range info for a table block in the document — used by edit-mode UI. */
+export interface TableSourceRange {
+	from: number;
+	to: number;
+	/** 1-based line number of the header row */
+	startLine: number;
+	/** 1-based line number of the last table row */
+	endLine: number;
+}
+
+/** Widget that renders a pipe-delimited markdown table as an HTML `<table>` element. */
 export class TableWidget extends WidgetType {
 	constructor(
 		readonly headers: string[],
 		readonly alignments: ColumnAlignment[],
 		readonly rows: string[][],
 		readonly properties: Property[],
+		readonly sourceRange: TableSourceRange,
 	) {
 		super();
 	}
 
 	toDOM(view: EditorView) {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'cm-lp-table-wrapper';
+
 		const table = document.createElement('table');
 		table.className = 'cm-lp-table';
 
@@ -334,7 +348,10 @@ export class TableWidget extends WidgetType {
 			table.appendChild(tbody);
 		}
 
-		return table;
+		wrapper.appendChild(table);
+		this.attachAddButtons(wrapper, view);
+
+		return wrapper;
 	}
 
 	eq(other: TableWidget) {
@@ -344,6 +361,14 @@ export class TableWidget extends WidgetType {
 		if (!this.alignments.every((a, i) => a === other.alignments[i])) return false;
 		if (!this.rows.every((row, ri) => row.every((cell, ci) => cell === other.rows[ri][ci]))) return false;
 		if (this.properties.length !== other.properties.length) return false;
+		// sourceRange equality matters — a table that moved (e.g. content edits
+		// above it) must rebuild so click handlers dispatch at the right offset.
+		if (
+			this.sourceRange.from !== other.sourceRange.from ||
+			this.sourceRange.to !== other.sourceRange.to ||
+			this.sourceRange.startLine !== other.sourceRange.startLine ||
+			this.sourceRange.endLine !== other.sourceRange.endLine
+		) return false;
 		return this.properties.every(
 			(p, i) => p.key === other.properties[i].key && String(p.value) === String(other.properties[i].value),
 		);
@@ -352,6 +377,98 @@ export class TableWidget extends WidgetType {
 	ignoreEvent() {
 		return false;
 	}
+
+	/**
+	 * Adds floating `+col` (right edge) and `+row` (bottom edge) buttons to
+	 * the wrapper. CSS handles the hover-only visibility — the buttons are
+	 * always in the DOM but hidden via opacity until the wrapper is hovered.
+	 *
+	 * Click handlers dispatch a single transaction that rewrites every line
+	 * in `sourceRange.startLine..endLine` (header + delimiter + bodies) with
+	 * the column or row appended. We rewrite the full block instead of
+	 * point-inserting because column appends touch every line.
+	 */
+	private attachAddButtons(wrapper: HTMLElement, view: EditorView): void {
+		const addCol = document.createElement('button');
+		addCol.type = 'button';
+		addCol.className = 'cm-lp-table-add cm-lp-table-add-col';
+		addCol.textContent = '+';
+		addCol.title = 'Add column';
+		addCol.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this.dispatchAppendColumn(view);
+		};
+		wrapper.appendChild(addCol);
+
+		const addRow = document.createElement('button');
+		addRow.type = 'button';
+		addRow.className = 'cm-lp-table-add cm-lp-table-add-row';
+		addRow.textContent = '+';
+		addRow.title = 'Add row';
+		addRow.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this.dispatchAppendRow(view);
+		};
+		wrapper.appendChild(addRow);
+	}
+
+	/** Builds the markdown source for the table with one extra trailing column. */
+	private buildAppendColumnSource(): string {
+		const { headers, alignments, rows } = this;
+		const newHeaders = [...headers, ''];
+		const newAlignments = [...alignments, alignments[alignments.length - 1] ?? 'left'];
+		const newRows = rows.map((r) => {
+			const out = [...r];
+			while (out.length < newHeaders.length) out.push('');
+			return out;
+		});
+		return renderTableSource(newHeaders, newAlignments, newRows);
+	}
+
+	/** Builds the markdown source for the table with one extra empty row appended. */
+	private buildAppendRowSource(): string {
+		const { headers, alignments, rows } = this;
+		const newRows = [...rows, headers.map(() => '')];
+		return renderTableSource(headers, alignments, newRows);
+	}
+
+	private dispatchAppendColumn(view: EditorView): void {
+		const newSource = this.buildAppendColumnSource();
+		view.dispatch({
+			changes: { from: this.sourceRange.from, to: this.sourceRange.to, insert: newSource },
+			userEvent: 'input.table.add-column',
+		});
+	}
+
+	private dispatchAppendRow(view: EditorView): void {
+		const newSource = this.buildAppendRowSource();
+		view.dispatch({
+			changes: { from: this.sourceRange.from, to: this.sourceRange.to, insert: newSource },
+			userEvent: 'input.table.add-row',
+		});
+	}
+}
+
+/** Renders headers/alignments/rows as a markdown pipe-table source string. */
+export function renderTableSource(
+	headers: string[],
+	alignments: ColumnAlignment[],
+	rows: string[][],
+): string {
+	const cellEscape = (cell: string) => cell.replace(/\|/g, '\\|');
+	const sep = (a: ColumnAlignment) => (a === 'center' ? ':---:' : a === 'right' ? '---:' : '---');
+
+	const lines: string[] = [];
+	lines.push(`| ${headers.map(cellEscape).join(' | ')} |`);
+	lines.push(`| ${alignments.map(sep).join(' | ')} |`);
+	for (const row of rows) {
+		const padded = [...row];
+		while (padded.length < headers.length) padded.push('');
+		lines.push(`| ${padded.map(cellEscape).join(' | ')} |`);
+	}
+	return lines.join('\n');
 }
 
 /** Widget that renders a wikilink image embed (`![[image.png]]`, `![[image.png|300]]`) */
