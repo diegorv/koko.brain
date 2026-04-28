@@ -3,7 +3,37 @@
 //! Phase 2.1 covers the struct shape, defaults, and read-only getters.
 //! Subsequent phases (2.2 build, 2.5 update_entry) extend this file.
 
+use kokobrain_lib::vault::entry::{NoteEntry, WikiLink};
 use kokobrain_lib::vault::index::VaultIndex;
+use std::collections::BTreeSet;
+
+/// Builds a minimal `NoteEntry` with the given path and outgoing-link
+/// targets. Title is derived; everything else is left at defaults.
+fn entry_with_links(path: &str, link_targets: &[&str]) -> NoteEntry {
+	let title = path
+		.rsplit('/')
+		.next()
+		.unwrap_or(path)
+		.strip_suffix(".md")
+		.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path))
+		.to_string();
+	let outgoing_links = link_targets
+		.iter()
+		.enumerate()
+		.map(|(i, t)| WikiLink {
+			target: t.to_string(),
+			alias: None,
+			heading: None,
+			position: i,
+		})
+		.collect();
+	NoteEntry {
+		path: path.to_string(),
+		title,
+		outgoing_links,
+		..Default::default()
+	}
+}
 
 #[test]
 fn default_index_is_empty_with_version_zero() {
@@ -35,4 +65,225 @@ fn debug_format_does_not_panic_on_empty_index() {
 	let idx = VaultIndex::default();
 	let formatted = format!("{:?}", idx);
 	assert!(!formatted.is_empty());
+}
+
+// --- VaultIndex::build (Phase 2.2) ------------------------------------------
+
+#[test]
+fn build_with_empty_entries_clears_all_maps_and_bumps_version() {
+	let mut idx = VaultIndex::default();
+	idx.build(Vec::new());
+	assert_eq!(idx.version(), 1);
+	assert!(idx.entries().is_empty());
+	assert!(idx.by_path().is_empty());
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn build_with_one_entry_no_links_populates_by_path_only() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/note.md", &[])]);
+	assert_eq!(idx.len(), 1);
+	assert_eq!(idx.by_path().get("note"), Some(&"/v/note.md".to_string()));
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn build_resolves_simple_a_to_b_link() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a.md", &["b"]),
+		entry_with_links("/v/b.md", &[]),
+	]);
+	assert_eq!(idx.backlinks().len(), 1);
+	let sources = idx.backlinks().get("/v/b.md").unwrap();
+	assert!(sources.contains("/v/a.md"));
+	assert_eq!(sources.len(), 1);
+}
+
+#[test]
+fn build_resolves_cross_links_in_both_directions() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a.md", &["b"]),
+		entry_with_links("/v/b.md", &["a"]),
+	]);
+	assert_eq!(
+		idx.backlinks().get("/v/a.md").map(|s| s.iter().collect::<Vec<_>>()),
+		Some(vec![&"/v/b.md".to_string()]),
+	);
+	assert_eq!(
+		idx.backlinks().get("/v/b.md").map(|s| s.iter().collect::<Vec<_>>()),
+		Some(vec![&"/v/a.md".to_string()]),
+	);
+}
+
+#[test]
+fn build_filters_self_links() {
+	// A note linking to itself should NOT appear in its own backlinks set.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/a.md", &["a", "a"])]);
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn build_drops_unresolved_targets() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/a.md", &["nonexistent", "missing-note"])]);
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn build_collects_multiple_sources_per_target_in_sorted_order() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/c.md", &["target"]),
+		entry_with_links("/v/a.md", &["target"]),
+		entry_with_links("/v/b.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let sources = idx.backlinks().get("/v/target.md").unwrap();
+	let collected: Vec<&String> = sources.iter().collect();
+	// BTreeSet iteration is sorted, so the panel can render a stable order.
+	assert_eq!(
+		collected,
+		vec![&"/v/a.md".to_string(), &"/v/b.md".to_string(), &"/v/c.md".to_string()],
+	);
+}
+
+#[test]
+fn build_dedupes_repeated_link_to_same_target_in_one_note() {
+	// `[[b]] then ... [[b]]` in note A should produce ONE entry in
+	// backlinks[b], not two — the reverse index is a Set.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a.md", &["b", "b", "b"]),
+		entry_with_links("/v/b.md", &[]),
+	]);
+	assert_eq!(idx.backlinks().get("/v/b.md").map(BTreeSet::len), Some(1));
+}
+
+#[test]
+fn build_first_path_wins_on_stem_collision() {
+	// Two markdown files with the same basename in different folders. The
+	// resolution cache must keep the first one inserted (matches
+	// buildResolutionCache); subsequent entries do not overwrite.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/area-a/dup.md", &[]),
+		entry_with_links("/v/area-b/dup.md", &[]),
+		entry_with_links("/v/source.md", &["dup"]),
+	]);
+	let resolved = idx.by_path().get("dup").cloned();
+	assert!(
+		resolved == Some("/v/area-a/dup.md".to_string())
+			|| resolved == Some("/v/area-b/dup.md".to_string()),
+		"resolution cache should hold ONE of the two duplicate stems",
+	);
+	// Whichever wins, the other does NOT receive the backlink — only the
+	// resolved path does.
+	assert_eq!(idx.backlinks().len(), 1);
+	let backlink_target = idx.backlinks().keys().next().unwrap().clone();
+	assert_eq!(backlink_target, resolved.unwrap());
+}
+
+#[test]
+fn build_uses_basename_fallback_for_path_prefixed_targets() {
+	// `[[Daily/2026-04-28]]` should resolve via the basename
+	// `2026-04-28` when the full path-prefixed key is absent from
+	// the cache. Mirrors `resolveWikilinkCached`'s second branch.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/2026-04-28.md", &[]),
+		entry_with_links("/v/source.md", &["Daily/2026-04-28"]),
+	]);
+	assert_eq!(
+		idx.backlinks().get("/v/2026-04-28.md").map(BTreeSet::len),
+		Some(1),
+	);
+}
+
+#[test]
+fn build_strips_extension_in_targets_that_carry_one() {
+	// `[[note.md]]` should resolve as if it were `[[note]]`.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/note.md", &[]),
+		entry_with_links("/v/source.md", &["note.md"]),
+	]);
+	assert_eq!(
+		idx.backlinks().get("/v/note.md").map(BTreeSet::len),
+		Some(1),
+	);
+}
+
+#[test]
+fn build_target_with_only_heading_uses_target_part_only() {
+	// Phase 1.2's parseWikilinks already splits `[[t#h]]` into target='t'
+	// and heading='h'. The `target` string is what the index stores; the
+	// resolver only sees `t`.
+	let mut idx = VaultIndex::default();
+	let mut source = entry_with_links("/v/source.md", &[]);
+	source.outgoing_links.push(WikiLink {
+		target: "target".to_string(),
+		alias: None,
+		heading: Some("section".to_string()),
+		position: 0,
+	});
+	idx.build(vec![source, entry_with_links("/v/target.md", &[])]);
+	assert_eq!(
+		idx.backlinks().get("/v/target.md").map(BTreeSet::len),
+		Some(1),
+	);
+}
+
+#[test]
+fn build_target_with_alias_uses_target_part_only() {
+	let mut idx = VaultIndex::default();
+	let mut source = entry_with_links("/v/source.md", &[]);
+	source.outgoing_links.push(WikiLink {
+		target: "target".to_string(),
+		alias: Some("display".to_string()),
+		heading: None,
+		position: 0,
+	});
+	idx.build(vec![source, entry_with_links("/v/target.md", &[])]);
+	assert_eq!(
+		idx.backlinks().get("/v/target.md").map(BTreeSet::len),
+		Some(1),
+	);
+}
+
+#[test]
+fn rebuild_replaces_previous_state_and_bumps_version_again() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/a.md", &["b"]), entry_with_links("/v/b.md", &[])]);
+	assert_eq!(idx.version(), 1);
+	assert!(idx.backlinks().contains_key("/v/b.md"));
+
+	// Rebuild with a totally different vault — old state must be gone.
+	idx.build(vec![entry_with_links("/v/x.md", &["y"]), entry_with_links("/v/y.md", &[])]);
+	assert_eq!(idx.version(), 2);
+	assert!(!idx.backlinks().contains_key("/v/b.md"));
+	assert!(idx.backlinks().contains_key("/v/y.md"));
+	assert!(!idx.by_path().contains_key("a"));
+	assert!(idx.by_path().contains_key("x"));
+}
+
+#[test]
+fn resolve_method_returns_path_for_known_targets_and_none_for_unknown() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/Folder/Note.md", &[]),
+		entry_with_links("/v/Other.md", &[]),
+	]);
+	// Direct lowercase match.
+	assert_eq!(idx.resolve("Note"), Some("/v/Folder/Note.md".to_string()));
+	assert_eq!(idx.resolve("note"), Some("/v/Folder/Note.md".to_string()));
+	// Path-prefixed via basename fallback.
+	assert_eq!(idx.resolve("Folder/Note"), Some("/v/Folder/Note.md".to_string()));
+	// Unknown target.
+	assert_eq!(idx.resolve("DoesNotExist"), None);
+	// Empty target.
+	assert_eq!(idx.resolve(""), None);
 }
