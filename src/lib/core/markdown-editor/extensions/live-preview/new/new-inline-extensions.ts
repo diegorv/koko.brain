@@ -5,17 +5,20 @@ import {
 	type NodeHandler,
 	type LineHandler,
 } from './inline-formatting-plugin';
+import { highlightHandler } from './handlers/highlight-handler';
 
 /**
  * Production node handlers, registered in the order Phases 3–10 retire their
- * legacy plugin counterparts. Currently empty — Phase 3 ships the first entries.
+ * legacy plugin counterparts.
  */
-export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [];
+export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
+	highlightHandler,
+];
 
 /**
  * Production line handlers (regex-based parsers for markdown features without
- * a Lezer node — `==highlight==`, inline comments, block refs, wikilinks,
- * extended autolinks). Currently empty — Phase 3 ships the first entry.
+ * a Lezer node — inline comments, block refs, wikilinks, extended autolinks).
+ * Currently empty — populated by Phases 6, 7, 9.
  */
 export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [];
 

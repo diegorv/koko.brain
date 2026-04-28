@@ -6,11 +6,13 @@ import {
 } from '$lib/core/markdown-editor/extensions/live-preview/new/new-inline-extensions';
 
 describe('new-inline-extensions', () => {
-	it('PRODUCTION_NODE_HANDLERS starts empty (Phase 3 ships the first entry)', () => {
-		expect(PRODUCTION_NODE_HANDLERS).toEqual([]);
+	it('PRODUCTION_NODE_HANDLERS contains the registered handlers in retirement order', () => {
+		const nodeTypes = PRODUCTION_NODE_HANDLERS.map((h) => h.nodeType);
+		// Phase 3 — highlight handler. Phases 4–10 will append more.
+		expect(nodeTypes).toEqual(['Highlight']);
 	});
 
-	it('PRODUCTION_LINE_HANDLERS starts empty (Phase 3 ships the first entry)', () => {
+	it('PRODUCTION_LINE_HANDLERS starts empty (populated by Phases 6, 7, 9)', () => {
 		expect(PRODUCTION_LINE_HANDLERS).toEqual([]);
 	});
 

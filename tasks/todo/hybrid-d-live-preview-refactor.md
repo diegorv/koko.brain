@@ -26,11 +26,10 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 3 — Retire markdownStylePlugin (113 LOC)
 
-- [ ] Task 3.1: Add `class:` keys for `tags.strong/emphasis/strikethrough/monospace` in `markdown-highlight-style.ts`
-- [ ] Task 3.2: `new/handlers/highlight-handler.ts` (line handler reusing `findHighlightRanges`)
-- [ ] Task 3.3: jsdom snapshot test on the new pipeline
-- [ ] Task 3.4: Delete `plugins/markdown-style-plugin.ts` + remove from `live-preview.ts` legacy branch
-- [ ] Task 3.5: New-pipeline spec + parallel legacy spec (both with same assertions)
+- [x] Task 3.1: Add `class:` keys for `tags.strong/emphasis/strikethrough/monospace` in `markdown-highlight-style.ts`
+- [x] Task 3.2: `new/handlers/highlight-handler.ts` — node handler for `Highlight` (Lezer node from custom HighlightExtension; cleaner than the line-handler approach the plan suggested because the node already covers the full `==text==` range)
+- [x] Task 3.3 + 3.5 (combined): jsdom DOM-snapshot test mounts EditorView with `livePreviewExtensions()` for both flag-on and flag-off paths, asserts the same 5 classes (`cm-lp-bold/italic/strikethrough/code/highlight`) appear in both
+- [~] Task 3.4: **deferred to Phase 12.5** — keeping `plugins/markdown-style-plugin.ts` active in the flag-off path until Phase 11 dogfood signs off. Test-branch's approach: dual-pipeline coexistence preserves runtime fallback through the soak window
 
 ### Phase 4 — Retire headingPlugin (121 LOC)
 
