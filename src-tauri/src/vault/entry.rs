@@ -10,8 +10,10 @@
 //! recall and intentionally diverges from this one.
 
 use crate::vault::parsing::{
-	extract_outgoing_links, extract_tags_strict, parse_frontmatter, strip_frontmatter,
+	extract_outgoing_links, extract_tags_strict, extract_tasks, parse_frontmatter,
+	strip_frontmatter,
 };
+use crate::vault::task::Task;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
@@ -113,6 +115,10 @@ pub struct NoteEntry {
 	/// switcher and command-palette previews so they don't have to re-read
 	/// the file.
 	pub snippet: String,
+	/// Markdown task list items in document order. Phase 7 — populated by
+	/// `vault::parsing::extract_tasks` at construction time. Empty Vec when
+	/// the note has no tasks.
+	pub tasks: Vec<Task>,
 }
 
 impl NoteEntry {
@@ -129,6 +135,7 @@ impl NoteEntry {
 		let frontmatter = parse_frontmatter(content);
 		let outgoing_links = extract_outgoing_links(content);
 		let tags = extract_tags_strict(content);
+		let tasks = extract_tasks(content);
 		let body = strip_frontmatter(content);
 		let word_count = compute_word_count(body);
 		let snippet = compute_snippet(body);
@@ -141,6 +148,7 @@ impl NoteEntry {
 			modified_at,
 			word_count,
 			snippet,
+			tasks,
 		}
 	}
 }

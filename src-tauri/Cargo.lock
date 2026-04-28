@@ -2655,6 +2655,7 @@ dependencies = [
  "percent-encoding",
  "portable-pty",
  "rand 0.10.1",
+ "regex",
  "reqwest 0.13.3",
  "rusqlite",
  "security-framework",

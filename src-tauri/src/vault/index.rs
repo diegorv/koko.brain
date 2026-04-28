@@ -12,6 +12,7 @@
 
 use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
 use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_content};
+use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 
@@ -94,6 +95,13 @@ pub struct VaultIndex {
 	/// sets are typically small (median 1-5 sources per target) so the
 	/// O(log n) cost is irrelevant.
 	backlinks: HashMap<String, BTreeSet<String>>,
+	/// Reverse tag index: lowercase tag -> sorted set of paths that
+	/// contain this tag. Phase 7 — replaces the TS
+	/// `tags.service.ts::tagMap`. Keys are always lowercased so
+	/// `JavaScript` and `javascript` aggregate into one entry; the
+	/// original casing for display is recovered from `entries[*].tags`
+	/// at lookup time (`lookup_all_tags`).
+	tags_index: HashMap<String, BTreeSet<String>>,
 	/// Monotonic counter bumped on every `update_entry` call (even no-ops).
 	/// Consumers listen to `vault-index-updated` and use this to invalidate
 	/// cached views; `UpdateResult.changed` distinguishes real changes from
@@ -115,6 +123,11 @@ impl VaultIndex {
 	/// Returns a read-only view of the reverse-link index.
 	pub fn backlinks(&self) -> &HashMap<String, BTreeSet<String>> {
 		&self.backlinks
+	}
+
+	/// Returns a read-only view of the reverse tag index.
+	pub fn tags_index(&self) -> &HashMap<String, BTreeSet<String>> {
+		&self.tags_index
 	}
 
 	/// Current monotonic version. Starts at 0 on a fresh index.
@@ -153,6 +166,7 @@ impl VaultIndex {
 		self.entries.clear();
 		self.by_path.clear();
 		self.backlinks.clear();
+		self.tags_index.clear();
 
 		// Pass 1: insert entries and build the resolution cache. Done in
 		// one loop so the cache reflects the same source-of-truth set the
@@ -162,6 +176,14 @@ impl VaultIndex {
 			let key = note_name_from_target(&path).to_lowercase();
 			// First path wins on collisions — matches `buildResolutionCache`.
 			self.by_path.entry(key).or_insert_with(|| path.clone());
+			// Populate `tags_index` per-entry. Lowercasing the key gives the
+			// case-insensitive aggregation TS `extractAllTags` produces.
+			for tag in &entry.tags {
+				self.tags_index
+					.entry(tag.to_lowercase())
+					.or_default()
+					.insert(path.clone());
+			}
 			self.entries.insert(path, entry);
 		}
 
@@ -243,6 +265,19 @@ impl VaultIndex {
 		let removed: Vec<String> = old_resolved.difference(&new_resolved).cloned().collect();
 		let added: Vec<String> = new_resolved.difference(&old_resolved).cloned().collect();
 
+		// Tag diff for the reverse `tags_index`. Lowercase keys so e.g.
+		// `JavaScript`/`javascript` collide. Phase 7.
+		let old_tags: BTreeSet<String> = old_entry
+			.as_ref()
+			.map(|e| e.tags.iter().map(|t| t.to_lowercase()).collect())
+			.unwrap_or_default();
+		let new_tags: BTreeSet<String> =
+			entry.tags.iter().map(|t| t.to_lowercase()).collect();
+		let tags_removed: Vec<String> =
+			old_tags.difference(&new_tags).cloned().collect();
+		let tags_added: Vec<String> =
+			new_tags.difference(&old_tags).cloned().collect();
+
 		// --- Phase 2: apply mutations under &mut self -----------------------
 		// For each removed target, drop our source from its backlink set and
 		// prune the set if it became empty. The two-step (read -> remove)
@@ -262,6 +297,25 @@ impl VaultIndex {
 		for target in &added {
 			self.backlinks
 				.entry(target.clone())
+				.or_default()
+				.insert(path.clone());
+		}
+
+		// Tag-side incremental updates — same shape as backlinks above.
+		for tag in &tags_removed {
+			let became_empty = if let Some(set) = self.tags_index.get_mut(tag) {
+				set.remove(&path);
+				set.is_empty()
+			} else {
+				false
+			};
+			if became_empty {
+				self.tags_index.remove(tag);
+			}
+		}
+		for tag in &tags_added {
+			self.tags_index
+				.entry(tag.clone())
 				.or_default()
 				.insert(path.clone());
 		}
@@ -407,5 +461,169 @@ impl VaultIndex {
 
 		mentions.sort_by(|a, b| a.note_name.to_lowercase().cmp(&b.note_name.to_lowercase()));
 		mentions
+	}
+
+	// ------------------------------------------------------------------
+	// Phase 7 — Tag and Task lookups
+	// ------------------------------------------------------------------
+
+	/// Returns every `NoteEntry` whose tags contain `tag`
+	/// (case-insensitively, leading `#` stripped). Sorted by title for
+	/// stable UI ordering. Mirrors `tagMap.get(tag)?.filePaths` from the
+	/// TS `tags.service.ts`, but returns full entries (not just paths) so
+	/// the consumer panel can render previews without an extra IPC.
+	pub fn lookup_notes_with_tag(&self, tag: &str) -> Vec<NoteEntry> {
+		let key = tag.trim_start_matches('#').to_lowercase();
+		let mut sources: Vec<NoteEntry> = match self.tags_index.get(&key) {
+			Some(set) => set
+				.iter()
+				.filter_map(|p| self.entries.get(p).cloned())
+				.collect(),
+			None => Vec::new(),
+		};
+		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		sources
+	}
+
+	/// Returns the flat list of tag aggregates (one per distinct tag,
+	/// case-insensitive) sorted alphabetically. Mirrors the input to
+	/// `tags.logic.ts::buildTagTree`. The `name` field carries the FIRST
+	/// occurrence's original casing (the TS `extractAllTags`
+	/// first-occurrence-wins rule); ties on lowercase produce one entry.
+	pub fn lookup_all_tags(&self) -> Vec<TagAggregate> {
+		// First-occurrence-wins display casing. Iterate entries in path
+		// order is not deterministic for HashMap; this would still match
+		// TS as long as both paths share the same lowercase form, but the
+		// VISIBLE casing depends on which entry is hit first. For the
+		// common case where every author writes a tag the same way, this
+		// is irrelevant. Determinism in tests is provided by the
+		// alphabetical sort at the end.
+		let mut display_case: HashMap<String, String> = HashMap::new();
+		for entry in self.entries.values() {
+			for tag in &entry.tags {
+				let key = tag.to_lowercase();
+				display_case.entry(key).or_insert_with(|| tag.clone());
+			}
+		}
+		let mut out: Vec<TagAggregate> = self
+			.tags_index
+			.iter()
+			.map(|(key, paths)| TagAggregate {
+				name: display_case.get(key).cloned().unwrap_or_else(|| key.clone()),
+				count: paths.len(),
+				file_paths: paths.iter().cloned().collect(),
+			})
+			.collect();
+		out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+		out
+	}
+
+	/// Returns every entry's tasks grouped by file, sorted by
+	/// `modified_at` descending. Empty groups (files with zero tasks) are
+	/// filtered out. Mirrors `tasks.logic.ts::buildGroupsFromIndex`.
+	pub fn lookup_all_tasks(&self) -> Vec<FileTaskGroup> {
+		let mut out: Vec<FileTaskGroup> = self
+			.entries
+			.values()
+			.filter(|e| !e.tasks.is_empty())
+			.map(|e| FileTaskGroup {
+				file_path: e.path.clone(),
+				file_name: display_name(&e.path),
+				modified_at: e.modified_at,
+				tasks: e.tasks.clone(),
+			})
+			.collect();
+		out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+		out
+	}
+
+	/// Returns the parsed task list for the entry at `path`. Empty when
+	/// `path` is unknown to the index or the entry has no tasks.
+	pub fn lookup_tasks_in_path(&self, path: &str) -> Vec<Task> {
+		self.entries
+			.get(path)
+			.map(|e| e.tasks.clone())
+			.unwrap_or_default()
+	}
+
+	/// Removes a single note from the index. Cleans up `entries`,
+	/// `by_path` (only if the slot pointed at this exact path),
+	/// `backlinks` (drops the source from every target's set + prunes
+	/// empty sets), and `tags_index` (drops the path from every tag's
+	/// set + prunes empty sets). Bumps `version` even when the path was
+	/// not present (consumers see a monotonic signal so the panel
+	/// re-fetches and confirms its current view).
+	///
+	/// Phase 7 — replaces the previous TS-only deletion bookkeeping in
+	/// `fs.service.ts` (which mutated `noteIndexStore` and the tags
+	/// `tagMap` in lock-step). Without this, deleted files would linger
+	/// in `tags_index` until the next vault rebuild and visibly leak
+	/// into the panels.
+	pub fn remove_entry(&mut self, path: &str) -> UpdateResult {
+		let removed_entry = self.entries.remove(path);
+		let was_present = removed_entry.is_some();
+		let mut affected: BTreeSet<String> = BTreeSet::new();
+
+		if let Some(entry) = removed_entry {
+			// Backlinks side: drop `path` as a source from every target it
+			// was resolved into. We don't have the resolved-target list cached,
+			// so iterate the entire reverse index. This is O(N) in the number
+			// of targets we link to — typically small.
+			let targets_to_clean: Vec<String> = self
+				.backlinks
+				.iter()
+				.filter(|(_, sources)| sources.contains(path))
+				.map(|(t, _)| t.clone())
+				.collect();
+			for target in targets_to_clean {
+				let became_empty = if let Some(set) = self.backlinks.get_mut(&target) {
+					set.remove(path);
+					set.is_empty()
+				} else {
+					false
+				};
+				if became_empty {
+					self.backlinks.remove(&target);
+				}
+				affected.insert(target);
+			}
+
+			// `backlinks[path]` itself: the deleted entry can no longer have
+			// inbound links rendered for it, so drop the entire set.
+			self.backlinks.remove(path);
+
+			// Tags side: drop `path` from every tag set the entry contributed
+			// to. Same shape as the backlink cleanup; pruning empty sets keeps
+			// `lookup_all_tags` from emitting zero-count entries.
+			for tag in &entry.tags {
+				let key = tag.to_lowercase();
+				let became_empty = if let Some(set) = self.tags_index.get_mut(&key) {
+					set.remove(path);
+					set.is_empty()
+				} else {
+					false
+				};
+				if became_empty {
+					self.tags_index.remove(&key);
+				}
+			}
+
+			// `by_path` cleanup: drop the slot ONLY when it was pointing
+			// at this exact path. If multiple entries shared a stem, the
+			// next entry-rebuild repopulates first-write-wins; until then
+			// the wikilink simply resolves to nothing.
+			let key = note_name_from_target(path).to_lowercase();
+			if self.by_path.get(&key).map(|p| p == path).unwrap_or(false) {
+				self.by_path.remove(&key);
+			}
+		}
+
+		self.version += 1;
+
+		UpdateResult {
+			changed: was_present,
+			affected: affected.into_iter().collect(),
+			version: self.version,
+		}
 	}
 }

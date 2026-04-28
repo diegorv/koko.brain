@@ -1,10 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
-import { updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
-import { updateTaskIndexForFile } from '$lib/features/tasks/tasks.service';
 import { error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 import { isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
 
@@ -65,14 +63,15 @@ export async function updateIndexesForFile(filePath: string, content: string): P
 	await yieldToEventLoop();
 	if (updateVersion !== version) return;
 
-	// Phase 3: independent lightweight updates
+	// Phase 3: independent lightweight updates. Tags + tasks no longer here —
+	// `update_note_in_index` (Rust, Phase 2) refreshes the `tags_index` and
+	// per-entry `tasks` and emits `vault-index-updated`; the TagsPanel and
+	// TasksView reactively refetch off `vaultIndexVersion`.
 	const tP3 = perfStart();
-	try { updateTagIndexForFile(filePath, content); } catch (err) { error('INDEX', 'updateTagIndexForFile failed:', err); }
-	try { updateTaskIndexForFile(filePath, content); } catch (err) { error('INDEX', 'updateTaskIndexForFile failed:', err); }
 	try { updateNoteInIndex(filePath, content); } catch (err) { error('INDEX', 'updateNoteInIndex failed:', err); }
 	try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('INDEX', 'updateFrontmatterIconForFile failed:', err); }
 	try { updateCalendarForFile(filePath, content); } catch (err) { error('INDEX', 'updateCalendarForFile failed:', err); }
-	perfEnd('INDEX', 'Phase3:tags+tasks+collection+icons+calendar', tP3);
+	perfEnd('INDEX', 'Phase3:collection+icons+calendar', tP3);
 	perfEnd('INDEX', 'updateIndexesForFile(total)', t0);
 	perfBaseline('updateIndexesForFile', t0);
 }
