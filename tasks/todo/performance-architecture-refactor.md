@@ -27,7 +27,7 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 1 - Rust Entry Enrichment (additive)
 
-- [ ] **1.1** Create `src-tauri/src/vault/mod.rs` and `vault/entry.rs`. Define `NoteEntry { path, title, frontmatter, outgoing_links, tags, modified_at, word_count, snippet }` with `#[serde(rename_all = "camelCase")]`. Wire `pub mod vault;` into `lib.rs`.
+- [x] **1.1** Create `src-tauri/src/vault/mod.rs` and `vault/entry.rs`. Define `NoteEntry { path, title, frontmatter, outgoing_links, tags, modified_at, word_count, snippet }` with `#[serde(rename_all = "camelCase")]`. Wire `pub mod vault;` into `lib.rs`.
 - [ ] **1.2** `vault/parsing.rs::extract_outgoing_links`. Excludes frontmatter and fenced code. Forms: `[[t]]`, `[[t|d]]`, `[[t#h]]`, `[[t#^b]]`. Mirror `backlinks.logic.ts::parseWikilinks`.
 - [ ] **1.3** `vault/parsing.rs::extract_tags_strict`. Unicode-aware, mirrors `tags.logic.ts::extractAllTags` exactly: rejects digit-first, strips HTML comments, normalizes trailing slash, no in-word matches. Coexist with `fts_logic::extract_tags` (do NOT modify the FTS variant).
 - [ ] **1.4** `vault/parsing.rs::parse_frontmatter`. Hand-rolled minimal YAML (scalars, inline `[a, b]`, block `- item`, nested → null entries to preserve sibling parsing). No new crate dep. Malformed YAML → empty map, no panics.
