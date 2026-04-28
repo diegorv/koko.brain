@@ -7,7 +7,7 @@
 //! and compares.
 
 use kokobrain_lib::vault::entry::WikiLink;
-use kokobrain_lib::vault::parsing::extract_outgoing_links;
+use kokobrain_lib::vault::parsing::{extract_outgoing_links, extract_tags_strict};
 
 fn link(target: &str, alias: Option<&str>, heading: Option<&str>, position: usize) -> WikiLink {
 	WikiLink {
@@ -222,4 +222,227 @@ fn empty_alias_after_pipe_is_some_empty_string() {
 fn empty_heading_after_hash_is_some_empty_string() {
 	let result = extract_outgoing_links("[[t#]]");
 	assert_eq!(result, vec![link("t", None, Some(""), 0)]);
+}
+
+// --- extract_tags_strict (Phase 1.3) ----------------------------------------
+//
+// Parity tests for `tags.logic.ts::extractAllTags`. The strict extractor
+// coexists with `search::fts_logic::extract_tags` (the permissive variant
+// kept for FTS recall); cases here lock the strict semantics so the future
+// VaultIndex consumers see the same tag list the TS panels render today.
+
+// Frontmatter cases ----------------------------------------------------------
+
+#[test]
+fn frontmatter_inline_array_is_extracted() {
+	let content = "---\ntags: [foo, bar, baz]\n---\nbody";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar", "baz"]);
+}
+
+#[test]
+fn frontmatter_inline_array_strips_quotes() {
+	let content = "---\ntags: [\"foo\", 'bar']\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+}
+
+#[test]
+fn frontmatter_inline_array_strips_leading_hash() {
+	let content = "---\ntags: [#foo, #bar]\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+}
+
+#[test]
+fn frontmatter_inline_array_drops_empty_entries() {
+	let content = "---\ntags: [foo, ,bar]\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+}
+
+#[test]
+fn frontmatter_inline_array_with_extra_whitespace() {
+	let content = "---\ntags: [  foo ,   bar  ]\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+}
+
+#[test]
+fn frontmatter_single_value_on_same_line() {
+	let content = "---\ntags: solo\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["solo"]);
+}
+
+#[test]
+fn frontmatter_single_value_strips_quotes() {
+	let content = "---\ntags: \"quoted\"\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["quoted"]);
+}
+
+#[test]
+fn frontmatter_single_value_strips_leading_hash() {
+	let content = "---\ntags: \"#hash\"\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["hash"]);
+}
+
+#[test]
+fn frontmatter_block_array_is_extracted() {
+	let content = "---\ntags:\n  - foo\n  - bar\n  - baz\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar", "baz"]);
+}
+
+#[test]
+fn frontmatter_block_array_strips_leading_hash_and_quotes() {
+	let content = "---\ntags:\n  - \"#foo\"\n  - 'bar'\n  - #baz\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar", "baz"]);
+}
+
+#[test]
+fn frontmatter_block_array_skips_blank_lines_then_stops_on_other_content() {
+	let content = "---\ntags:\n  - foo\n\n  - bar\nother: nope\n  - never\n---\n";
+	// Blank lines between block items are tolerated; non-blank, non-list
+	// lines stop the block (so `other: nope` and beyond are ignored).
+	assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+}
+
+#[test]
+fn frontmatter_empty_tags_value_returns_empty() {
+	let content = "---\ntags:\n---\n";
+	assert_eq!(extract_tags_strict(content), Vec::<String>::new());
+}
+
+#[test]
+fn frontmatter_no_tags_key_returns_empty() {
+	let content = "---\nstatus: draft\nauthor: me\n---\n";
+	assert_eq!(extract_tags_strict(content), Vec::<String>::new());
+}
+
+#[test]
+fn no_frontmatter_at_all_returns_empty_from_frontmatter_path() {
+	let content = "no frontmatter here\nbody only\n";
+	assert_eq!(extract_tags_strict(content), Vec::<String>::new());
+}
+
+#[test]
+fn frontmatter_skips_tags_inside_multiline_quoted_scalar() {
+	// The `tags` line is INSIDE a multi-line double-quoted value of `desc`.
+	// findTopLevelKey must skip those lines until the closing quote and
+	// then continue, so the real `tags:` key further down is selected.
+	let content = "---\ndesc: \"this is\nmulti-line\nwith tags: [fake1, fake2]\nstill quoted\"\ntags: [real]\n---\n";
+	assert_eq!(extract_tags_strict(content), vec!["real"]);
+}
+
+// Inline cases ---------------------------------------------------------------
+
+#[test]
+fn inline_tag_after_space() {
+	assert_eq!(extract_tags_strict("text #foo more"), vec!["foo"]);
+}
+
+#[test]
+fn inline_tag_after_newline() {
+	assert_eq!(extract_tags_strict("text\n#foo"), vec!["foo"]);
+}
+
+#[test]
+fn inline_tag_at_start_of_content() {
+	assert_eq!(extract_tags_strict("#foo"), vec!["foo"]);
+}
+
+#[test]
+fn inline_tag_with_path_segments() {
+	assert_eq!(extract_tags_strict("#area/sub/leaf"), vec!["area/sub/leaf"]);
+}
+
+#[test]
+fn inline_tag_with_dashes_and_underscores() {
+	assert_eq!(
+		extract_tags_strict("#a-b #c_d #e-f_g/h"),
+		vec!["a-b", "c_d", "e-f_g/h"],
+	);
+}
+
+#[test]
+fn inline_tag_strips_single_trailing_slash() {
+	assert_eq!(extract_tags_strict("#topic/"), vec!["topic"]);
+}
+
+#[test]
+fn inline_tag_strips_multiple_trailing_slashes() {
+	assert_eq!(extract_tags_strict("#topic///"), vec!["topic"]);
+}
+
+#[test]
+fn inline_tag_digit_first_is_rejected() {
+	assert_eq!(extract_tags_strict("text #1foo"), Vec::<String>::new());
+}
+
+#[test]
+fn inline_tag_in_word_is_rejected() {
+	assert_eq!(extract_tags_strict("foo#bar"), Vec::<String>::new());
+}
+
+#[test]
+fn inline_tag_terminates_at_punctuation() {
+	assert_eq!(extract_tags_strict("hi #foo!"), vec!["foo"]);
+	assert_eq!(extract_tags_strict("hi #foo, bar"), vec!["foo"]);
+	assert_eq!(extract_tags_strict("(#foo)"), Vec::<String>::new());
+	// '(' is not whitespace, so the preceding-char gate rejects this.
+}
+
+#[test]
+fn inline_tag_inside_fenced_code_is_excluded() {
+	let content = "before\n```\n#code-tag\n```\nafter #real";
+	assert_eq!(extract_tags_strict(content), vec!["real"]);
+}
+
+#[test]
+fn inline_tag_inside_inline_code_is_excluded() {
+	assert_eq!(extract_tags_strict("text `#fake` then #real"), vec!["real"]);
+}
+
+#[test]
+fn inline_tag_inside_html_comment_is_excluded() {
+	assert_eq!(
+		extract_tags_strict("body <!-- #commented --> then #real"),
+		vec!["real"],
+	);
+}
+
+#[test]
+fn inline_tag_dedup_is_case_sensitive_within_inline() {
+	// extractInlineTags dedupes via Set on raw bytes (case-sensitive). The
+	// case-insensitive dedup happens later in extractAllTags merging.
+	// Within inline only, `#Foo` and `#foo` would both survive — but the
+	// merge step then folds them. Net result: first occurrence wins.
+	assert_eq!(extract_tags_strict("#Foo #foo"), vec!["Foo"]);
+}
+
+#[test]
+fn inline_tag_unicode_letters_are_supported() {
+	// `\p{L}` matches Unicode letters; `é`, `ü`, CJK chars all qualify.
+	assert_eq!(
+		extract_tags_strict("note #café about #日本語/learning"),
+		vec!["café", "日本語/learning"],
+	);
+}
+
+// Combined frontmatter + inline ---------------------------------------------
+
+#[test]
+fn frontmatter_and_inline_tags_are_merged_in_order() {
+	let content = "---\ntags: [a, b]\n---\nbody #c #d";
+	assert_eq!(extract_tags_strict(content), vec!["a", "b", "c", "d"]);
+}
+
+#[test]
+fn case_insensitive_dedup_keeps_first_occurrence_casing() {
+	// Frontmatter wins because it appears first in the merge order.
+	let content = "---\ntags: [Project]\n---\nbody #project #PROJECT";
+	assert_eq!(extract_tags_strict(content), vec!["Project"]);
+}
+
+#[test]
+fn realistic_document_extraction() {
+	let content = "---\ntitle: Example\ntags:\n  - work\n  - alpha\n  - \"#beta\"\n---\n# Heading\n\nThis note covers #work topics and #area/sub/leaf navigation.\n\n```\n#code-snippet ignored\n```\n\nInline `#also-ignored` and a real #note tag.\n\n<!-- #commented-out -->\n";
+	let tags = extract_tags_strict(content);
+	// Expected order: frontmatter first (work, alpha, beta), then inline
+	// merged dedup-ed (work already present, area/sub/leaf, note).
+	assert_eq!(tags, vec!["work", "alpha", "beta", "area/sub/leaf", "note"]);
 }
