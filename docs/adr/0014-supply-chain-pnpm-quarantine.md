@@ -20,19 +20,19 @@ The project needed a defense that:
 
 ## Decision
 
-**Enforce a 14-day package-age quarantine in three independent layers**, each strong enough on its own that removing one still leaves defense:
+**Enforce a 7-day package-age quarantine in three independent layers**, each strong enough on its own that removing one still leaves defense:
 
 ### Layer 1 — pnpm `minimumReleaseAge` (primary)
 
 `pnpm-workspace.yaml` (complete file):
 
 ```yaml
-minimumReleaseAge: 20160     # 14 days in minutes
+minimumReleaseAge: 10080     # 7 days in minutes
 minimumReleaseAgeExclude:
   - '@tauri-apps/*'
 ```
 
-pnpm 10 refuses to resolve any package version published less than 14 days ago. The `@tauri-apps/*` exclusion is deliberate — Rust (`Cargo.toml`) and TS (`package.json`) Tauri dependencies must stay version-aligned; forcing a 14-day delay on one side and not the other would break Tauri updates.
+pnpm 10 refuses to resolve any package version published less than 7 days ago. The `@tauri-apps/*` exclusion is deliberate — Rust (`Cargo.toml`) and TS (`package.json`) Tauri dependencies must stay version-aligned; forcing a 7-day delay on one side and not the other would break Tauri updates.
 
 ### Layer 2 — Pre-commit hook (`scripts/pre-commit-dep-age.sh`)
 
@@ -40,7 +40,7 @@ Installed via `bash scripts/setup-hooks.sh`. On every commit that stages `pnpm-l
 
 1. Parses newly-added / changed packages from the lockfile diff (scoped-package-aware).
 2. Queries `npm view <pkg> time --json` for each version's publish timestamp.
-3. Blocks the commit if any package version is less than 14 days old, with an explicit violation list.
+3. Blocks the commit if any package version is less than 7 days old, with an explicit violation list.
 4. Supports an allowlist at `.dep-age-allowlist` (`package@version` per line, `#` comments) for justified exceptions.
 5. Emergency bypass: `git commit --no-verify`.
 
