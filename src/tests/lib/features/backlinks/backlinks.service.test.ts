@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import {
 	buildIndex,
 	rebuildIndex,
@@ -20,10 +21,17 @@ import {
 import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { makeFileNode, makeDirNode, makeSuccessResult, makeErrorResult } from '../../../fixtures/tauri-api.fixture';
 
+// Reset shared module state before every test in this file so flag-on
+// tests in the bootstrap suite cannot leak into the other describes.
+beforeEach(() => {
+	settingsStore.reset();
+});
+
 describe('buildIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		settingsStore.reset();
 	});
 
 	it('populates noteIndex and noteContents from vault files', async () => {
@@ -172,6 +180,55 @@ describe('buildIndex', () => {
 
 		expect(noteIndexStore.noteIndex.size).toBe(0);
 		expect(noteIndexStore.noteContents.size).toBe(0);
+	});
+
+	describe('experimental.rustBacklinks bootstrap (Phase 3.5b)', () => {
+		it('flag-off: does NOT call scan_vault_v2', async () => {
+			vi.mocked(invoke)
+				.mockResolvedValueOnce([])
+				.mockResolvedValueOnce([]);
+
+			expect(settingsStore.experimental.rustBacklinks).toBe(false);
+			await buildIndex('/vault');
+
+			expect(invoke).not.toHaveBeenCalledWith('scan_vault_v2', expect.anything());
+		});
+
+		it('flag-on: fires scan_vault_v2 in parallel with the TS scan', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockImplementation((command: string) => {
+				if (command === 'scan_vault_v2') return Promise.resolve([]);
+				if (command === 'scan_vault') return Promise.resolve([]);
+				if (command === 'read_files_batch') return Promise.resolve([]);
+				return Promise.resolve(undefined);
+			});
+
+			await buildIndex('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('scan_vault_v2', { path: '/vault' });
+			expect(invoke).toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'name' });
+		});
+
+		it('flag-on: scan_vault_v2 rejection does not block the TS scan', async () => {
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			vi.mocked(invoke).mockImplementation((command: string) => {
+				if (command === 'scan_vault_v2') return Promise.reject(new Error('Rust scan failed'));
+				if (command === 'scan_vault') return Promise.resolve([]);
+				if (command === 'read_files_batch') return Promise.resolve([]);
+				return Promise.resolve(undefined);
+			});
+
+			await buildIndex('/vault');
+
+			// The TS-side index still populated normally
+			expect(noteIndexStore.isLoading).toBe(false);
+			expect(invoke).toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'name' });
+
+			// Wait a microtask for the rejected promise's catch to run
+			await new Promise((r) => setTimeout(r, 0));
+			consoleSpy.mockRestore();
+		});
 	});
 });
 

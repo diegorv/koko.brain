@@ -248,14 +248,23 @@ pub fn get_backlinks_v2(
 /// source of truth for tree shape. `scan_vault_v2` only emits markdown
 /// leaves and uses absolute paths everywhere (CLAUDE.md Indexing &
 /// Watcher item 5).
+///
+/// After the rebuild commits, emits `vault-index-updated` with
+/// `{ changed: true, affected: [], version: <new> }`. `affected: []`
+/// signals "full rebuild — re-fetch from scratch" to consumers; the
+/// non-empty `affected` slot is reserved for incremental
+/// `update_note_in_index` mutations (Phase 2.6). The lock is dropped
+/// BEFORE emitting so reactive consumers can immediately re-read the
+/// fresh index without contending with the write guard.
 #[tauri::command]
 pub fn scan_vault_v2(
+	app: tauri::AppHandle,
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
 	let notes = collect_v2_entries(&path)?;
 	let build_start = std::time::Instant::now();
-	{
+	let new_version = {
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -267,6 +276,21 @@ pub fn scan_vault_v2(
 				notes.len(),
 				build_start.elapsed().as_millis(),
 				idx.version(),
+			),
+		);
+		idx.version()
+	};
+	let payload = UpdateResult {
+		changed: true,
+		affected: Vec::new(),
+		version: new_version,
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
+		debug_log(
+			"VAULT-V2",
+			format!(
+				"scan_vault_v2: vault-index-updated emit failed: {}",
+				emit_err,
 			),
 		);
 	}
