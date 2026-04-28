@@ -1,50 +1,66 @@
 ---
 type: ADR
 id: "0010"
-title: "QueryJS (kb-api) as Dataview-style scripting with per-session caches"
+title: "QueryJS execution model — session cache + autoRunQueries policy"
 status: active
-date: 2026-04-22
+date: 2026-04-28
 ---
 
 ## Context
 
-Power users want to query their vault from inside a note: "list all pages tagged `#project` modified in the last week," "show a table of meeting notes with their dates and attendees." Obsidian's Dataview fills this role in its ecosystem; adopting Dataview verbatim is not possible (license + JavaScript engine coupling) and would also import a large, complex plugin that does not match the rest of Kokobrain.
+Power users want to query their vault from inside a note: "list all pages tagged `#project` modified in the last week," "show a table of meeting notes with their dates and attendees." The KBAPI scripting layer (`src/lib/plugins/queryjs/kb-api.ts`) provides this through `kb.pages()`, `DataArray`, `KBUI`, `KBDateTime`, and `kb.view()` — a JS-fluent alternative to Dataview without taking on its license / upstream / footprint.
 
-The queries must:
+Two problems shaped how the **execution model** is wired into CodeMirror:
 
-- Run inside `` ```queryjs `` fenced blocks in the editor's live preview.
-- Have access to a rich data model: pages, links, properties, tags, dates.
-- Complete in O(vault) once per widget render, not O(vault²).
-- Survive viewport re-entry without re-executing expensive scripts on every scroll.
-- Handle async scripts (network fetches, `kb.view()` calls that paginate) without returning an empty `undefined` synchronously.
+1. **Re-executing on every `toDOM()` is too expensive.** Real user scripts read the full vault index, render charts, paginate large datasets — anywhere from 50 ms to 500 ms per render. CodeMirror destroys and re-creates widgets when they leave + re-enter the viewport, so a naive "execute on every render" approach ran the script multiple times per scroll cycle.
+2. **The original `scriptResultCache` (clone + regex auto-await) had three coupled hacks:** (a) a regex that prepended `await` to top-level `kb.view(` / `dv.view(` calls so unawaited views wouldn't return `undefined` synchronously and cause cache to capture an empty container; (b) `container.cloneNode(true)` on cache write so multiple cache hits got distinct DOM trees; (c) an exclusion list (`querySelector('canvas, video, iframe')`) because `cloneNode(true)` doesn't clone pixel buffers / playback state. Three coupled workarounds for one underlying gap: no explicit execution control.
 
 ## Decision
 
-**Build a custom scripting API (`KBAPI`) in `src/lib/plugins/queryjs/kb-api.ts`, wired into CodeMirror via a block widget (`queryjs-block-widget.ts`), with three caches: a per-KBAPI `_pageCache`, a per-session `WikilinkResolutionCache` reused across `buildKBPage` calls, and a module-level `scriptResultCache` keyed by script content.** Provide both `kb` (new) and `dv` (Dataview-style alias) entry points for familiarity.
+**Execute QueryJS blocks under a per-session cache + per-file `autoRunQueries` policy, with an explicit ▶ Run button on cache miss when policy says not to auto-execute. The result cache holds live `HTMLElement` references, not clones.**
 
-Key pieces:
+### Pieces
 
-- **`KBAPI` class** (`kb-api.ts:16-80`): instantiated per widget render with `container`, `propertyIndex`, `noteIndex`, `noteContents`, `currentFilePath`, `vaultPath`, `loadScript`. Exposes `pages()`, `pagePaths()`, `current()`, `page(path)`, `.view()`, date/time helpers (`KBDateTime`), UI primitives (`KBUI`), and a `DataArray` fluent iterator.
-- **`_pageCache`** — built on first `pages()` / `current()` / `page()` call, reused for the whole widget execution. Avoids rebuilding `KBPage` objects per chained query.
-- **`WikilinkResolutionCache`** (`CLAUDE.md` Indexing rule 8) — one `Map<basename, absolutePath>` per query session, passed into every `buildKBPage` call. Resolves each outlink via `resolveWikilinkCached` (O(1)) instead of scanning `allFilePaths` per wikilink (O(N)). Drops outlink cost on a full-vault query from O(N² × L) to O(N + N × L) — ~17 M ops → ~10 k on a 1870-note vault.
-- **`scriptResultCache`** (`CLAUDE.md` Live Preview rule 2) — module-level `Map<scriptContent, HTMLElement>`. On cache hit, `cloneNode(true)` the cached DOM and return it from `toDOM()`, skipping script re-execution entirely.
-- **Auto-await wrapping** (`CLAUDE.md` Live Preview rule 8) — `queryjs-block-widget.ts` wraps user scripts in `return (async () => { … })()` and regex-prepends `await` to top-level `kb.view(` / `dv.view(` calls. Without this, `` ```queryjs\nkb.view("…")\n``` `` (no explicit `await`) runs the async IIFE, kicks off `kb.view()`, returns `undefined` synchronously, and `scriptResultCache.set(cloneNode(container))` captures an empty container before the inner script writes DOM. Next cache hit then clones the blank snapshot.
-- **Cache exclusions** (`CLAUDE.md` Live Preview rule 9) — `scriptResultCache` skips containers holding `<canvas>`, `<video>`, or `<iframe>` because `cloneNode(true)` doesn't clone pixel buffers / playback state. Chart.js widgets would otherwise cache as blank squares. These re-execute on every `toDOM()`; the per-KBAPI `_pageCache` + O(1) wikilink resolution keep re-execution bounded — a 1870-note vault re-renders in ~200 ms.
+- **`queryjsSessionStore`** (`src/lib/plugins/queryjs/queryjs-session.store.svelte.ts`):
+    - `resultCache: Map<contentHash, HTMLElement>` — the rendered DOM, keyed by script content. **Live element reference, not a clone.** When CodeMirror destroys the widget, the DOM detaches but stays alive (held by the store); re-mount re-attaches the same node, preserving canvas/video/iframe state through DOM identity.
+    - `autoRunOnFirstOpen: Set<filePath>` — files that have auto-executed at least once this session. Drives the `'first-open'` policy.
+    - Methods: `hasResult` / `getResult` / `setResult` / `invalidate(contentHash)`; `hasAutoRun` / `markAutoRun` / `invalidatePath(filePath)`; `reset()` (vault teardown).
+
+- **`autoRunQueries` setting** (`settingsStore.queryjs.autoRunQueries`, default `'first-open'`):
+    | Policy | Cache hit | Cache miss + first-open | Cache miss after edit | Cache miss + manual |
+    | --- | --- | --- | --- | --- |
+    | `first-open` | re-attach DOM | execute + mark autoRun | ▶ Run | n/a |
+    | `always` | re-attach DOM | execute (always) | execute (always) | n/a |
+    | `manual` | re-attach DOM | n/a | n/a | ▶ Run |
+
+    **Invariant:** clicking ▶ Run in manual mode does NOT mark the file as `autoRun`. A user who switches policy back to `'first-open'` will see the ▶ Run button again until each file is auto-run once.
+
+- **`KBAPI._pendingViews` + `awaitAllPending()`** (`kb-api.ts`): `kb.view()` registers its returned Promise on the array; the widget calls `await api.awaitAllPending()` after the user script's IIFE resolves. Replaces the legacy auto-await regex — same effect (unawaited `kb.view()` no longer caches an empty container) without rewriting the user's source.
+
+- **Lifecycle hooks**:
+    - `closeTab` / `closeTabsForDeletedPath` (editor.service.ts) → `queryjsSessionStore.invalidatePath(path)` (cache stays; only the autoRun marker drops).
+    - `notifyAfterSave` (editor.hooks.ts) → currently calls `invalidateQueryjsCache()` (a shim around `queryjsSessionStore.reset()`). Phase 12.5 will narrow this to `queryjsSessionStore.invalidate(jsContent)` per just-edited block.
+    - `teardownVault` (app-lifecycle.service.ts) → `queryjsSessionStore.reset()`.
+
+### Existing pieces that stay
+
+- **`KBAPI._pageCache`** — built on first `pages()` / `current()` / `page()` call, lives for the duration of one widget execution. Avoids rebuilding `KBPage` objects per chained query.
+- **`WikilinkResolutionCache`** (CLAUDE.md Indexing rule 8) — one `Map<basename, absolutePath>` per query session, drops outlink resolution from O(N²×L) to O(N+N×L). Reused unchanged.
 
 ## Alternatives considered
 
-- **Port Dataview verbatim**: license + upstream velocity + massive codebase make this impractical.
-- **Dataview-compatible syntax only (DQL subset)**: declarative, less flexible, users still need an escape hatch to JavaScript. Rejected — `kb.pages()` chained with `DataArray` gives full JS control without a second language.
-- **No caching — re-execute on every render**: simplest; real user scripts take 50–500 ms, so scroll jank is immediate. Rejected.
-- **Cache by widget identity rather than script content**: fails when the same script appears in multiple notes — we want one cache entry per distinct script body.
-- **Require explicit `await` on `kb.view()`**: punts the footgun onto the user; most `queryjs` blocks are written ad-hoc and the symptom (silent blank render) is hard to debug. Rejected — the regex prepend is boring and correct.
-- **Pre-compute all `KBPage` objects upfront**: wastes memory and work on notes never queried; the per-widget `_pageCache` is lazy and bounded.
+- **Keep auto-await regex + clone semantics.** Simplest patch path. Rejected — the three workarounds (regex / clone / exclusion list) coupled with each other and made `<canvas>` widgets either render blank or re-execute on every scroll. The new model removes all three at once.
+- **Web Worker sandbox for script execution.** Cleaner isolation, but `kb.ui.*` writes directly to the widget's DOM, which a Worker can't do without postMessage marshalling — too invasive for the value gained today.
+- **Per-block "execute" toggle in the markdown source** (e.g. `kb-run`/`kb-norun` fence info). Pollutes the source format. Rejected.
+- **Cache by widget identity, not content.** Fails when the same script appears in two notes — we want one cache entry per distinct script body.
+- **`always` as the default**, matching the legacy "execute on every render" behaviour. Rejected — the cache-hit-on-scroll wins are the reason for the new model. `always` remains available for users who need fresh data on every render (e.g., `kb.view()` calls that fetch live data).
 
 ## Consequences
 
-- `kb`/`dv` are rich enough that most user queries are one-liners: `kb.pages('#project').sort(p => p.file.mtime).limit(10)`.
-- Users writing `<canvas>`-based charts (Chart.js) pay re-execution on every scroll-in. Acceptable: their script is small + vault-bounded; for anything heavier, they use `kb.ui` primitives that do cache.
-- The auto-await regex is fragile — if a user writes `kb.view(args)` *inside* a function they define locally, we still prepend `await`. This is acceptable because the function call either awaits a promise (correct) or awaits a non-promise (effectively a no-op that just returns the value). The regex targets top-level `kb.view(` / `dv.view(` patterns only.
-- Adding a new `kb.*` method requires updating the `KBAPI` class, `queryjs.types.ts`, and often `DataArray` too. Follow the existing method pattern (lazy caches, no hidden I/O inside the chain).
-- `scriptResultCache` is not invalidated on vault content changes — it's keyed on script body, so a script that reads stale data will show stale data. The per-KBAPI `_pageCache` is rebuilt on every new widget render, which re-reads fresh `noteIndex`/`noteContents`, so the visible staleness is bounded to "within a single render."
-- Re-evaluation triggers: users demand Dataview DQL compatibility; we want to move indexes into Rust and query them via IPC (would kill the need for the per-session resolution cache); a sandboxed JS execution layer (Web Workers) is introduced.
+- Most user queries now render instantly when scrolling away and back (cache hit).
+- A new `kb.view()` widget that uses `<canvas>` (Chart.js, custom drawings) keeps its rendered state across scroll-out/in without re-execution. State preservation comes from DOM identity, not cloning — significantly simpler than the legacy approach.
+- Editing a queryjs block invalidates the cached result; on the next render, the user gets ▶ Run unless policy is `'always'`. Removes accidental re-executions while typing inside a block.
+- Users on `'manual'` see ▶ Run for every cache miss. They can flip to `'first-open'` to opt into the cached / first-open auto-execution model.
+- The auto-await footgun is gone: a function-local `kb.view()` defined inside the script no longer accidentally gets `await`-prefixed because there's no regex anymore. The Promise is registered and awaited centrally.
+- New `kb.*` methods that return Promises and want to participate in `awaitAllPending()` should follow the `view()` pattern: register on `_pendingViews`, return the Promise. Otherwise their async work may complete after `setResult()` and miss being captured.
+- Re-evaluation triggers: users want fresh data without picking `'always'` (could add a per-block "stale" indicator + a per-source ttl); we move the index layer to Rust + IPC (would change `_pageCache` lifecycle); a sandboxed JS execution layer (Workers) is introduced.
