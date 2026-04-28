@@ -4,7 +4,7 @@
 //! Subsequent phases (2.2 build, 2.5 update_entry) extend this file.
 
 use kokobrain_lib::vault::entry::{NoteEntry, WikiLink};
-use kokobrain_lib::vault::index::VaultIndex;
+use kokobrain_lib::vault::index::{UpdateResult, VaultIndex};
 use std::collections::BTreeSet;
 
 /// Builds a minimal `NoteEntry` with the given path and outgoing-link
@@ -371,4 +371,237 @@ fn lookup_backlinks_preserves_call_site_immutability() {
 	let _ = idx.lookup_backlinks("/v/target.md");
 	let _ = idx.lookup_backlinks("/v/target.md");
 	assert_eq!(idx.version(), v_before);
+}
+
+// --- VaultIndex::update_entry (Phase 2.5) -----------------------------------
+
+#[test]
+fn update_result_serializes_with_camel_case_keys() {
+	let result = UpdateResult {
+		changed: true,
+		affected: vec!["/a.md".to_string(), "/b.md".to_string()],
+		version: 7,
+	};
+	let json = serde_json::to_value(&result).unwrap();
+	assert_eq!(json["changed"], true);
+	assert_eq!(json["affected"][0], "/a.md");
+	assert_eq!(json["affected"][1], "/b.md");
+	assert_eq!(json["version"], 7);
+	let obj = json.as_object().unwrap();
+	for key in obj.keys() {
+		assert!(!key.contains('_'), "snake_case key leaked: {}", key);
+	}
+}
+
+#[test]
+fn update_inserts_new_entry_and_reports_changed_with_no_affected() {
+	// Brand-new entry with no outgoing links into the empty index.
+	// `changed` is true (was None, now Some); `affected` is empty
+	// because no resolved-target diff occurred.
+	let mut idx = VaultIndex::default();
+	let result = idx.update_entry(entry_with_links("/v/note.md", &[]));
+	assert!(result.changed);
+	assert!(result.affected.is_empty());
+	assert_eq!(result.version, 1);
+	assert_eq!(idx.len(), 1);
+	assert_eq!(idx.by_path().get("note"), Some(&"/v/note.md".to_string()));
+}
+
+#[test]
+fn update_new_entry_with_resolvable_links_records_affected() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/target.md", &[])]);
+	let result = idx.update_entry(entry_with_links("/v/source.md", &["target"]));
+	assert!(result.changed);
+	assert_eq!(result.affected, vec!["/v/target.md".to_string()]);
+	assert_eq!(
+		idx.backlinks().get("/v/target.md").map(BTreeSet::len),
+		Some(1),
+	);
+}
+
+#[test]
+fn update_with_unchanged_entry_reports_not_changed_and_no_affected() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let v_before = idx.version();
+	// Apply the same source again — same outgoing_links, same everything.
+	let result = idx.update_entry(entry_with_links("/v/source.md", &["target"]));
+	assert!(!result.changed);
+	assert!(result.affected.is_empty());
+	// Version still bumps (consumers always see a monotonic signal).
+	assert_eq!(result.version, v_before + 1);
+}
+
+#[test]
+fn update_adding_a_link_records_added_target_in_affected() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &[]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	let result = idx.update_entry(entry_with_links("/v/source.md", &["target"]));
+	assert!(result.changed);
+	assert_eq!(result.affected, vec!["/v/target.md".to_string()]);
+	assert_eq!(
+		idx.backlinks().get("/v/target.md").map(BTreeSet::len),
+		Some(1),
+	);
+}
+
+#[test]
+fn update_removing_a_link_records_removed_target_and_prunes_empty_set() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+	assert!(idx.backlinks().contains_key("/v/target.md"));
+	let result = idx.update_entry(entry_with_links("/v/source.md", &[]));
+	assert!(result.changed);
+	assert_eq!(result.affected, vec!["/v/target.md".to_string()]);
+	// Once the only source is gone, the empty set is pruned from the map.
+	assert!(!idx.backlinks().contains_key("/v/target.md"));
+}
+
+#[test]
+fn update_swapping_one_link_for_another_reports_both_in_affected_sorted() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["alpha"]),
+		entry_with_links("/v/alpha.md", &[]),
+		entry_with_links("/v/beta.md", &[]),
+	]);
+	let result = idx.update_entry(entry_with_links("/v/source.md", &["beta"]));
+	assert!(result.changed);
+	// Sorted output: /v/alpha.md (removed), /v/beta.md (added).
+	assert_eq!(
+		result.affected,
+		vec!["/v/alpha.md".to_string(), "/v/beta.md".to_string()],
+	);
+	assert!(!idx.backlinks().contains_key("/v/alpha.md"));
+	assert_eq!(idx.backlinks().get("/v/beta.md").map(BTreeSet::len), Some(1));
+}
+
+#[test]
+fn update_self_link_is_filtered_in_both_directions() {
+	let mut idx = VaultIndex::default();
+
+	// Brand-new entry with a self-link: changed = true (was absent), but
+	// the resolved set excludes the self-target so backlinks stays empty.
+	let r1 = idx.update_entry(entry_with_links("/v/loner.md", &["loner"]));
+	assert!(r1.changed); // new entry
+	assert!(r1.affected.is_empty()); // self-link filter prevented any backlink diff
+	assert!(idx.backlinks().is_empty());
+
+	// Re-apply the SAME entry: changed = false, affected = empty,
+	// backlinks still empty.
+	let r2 = idx.update_entry(entry_with_links("/v/loner.md", &["loner"]));
+	assert!(!r2.changed);
+	assert!(r2.affected.is_empty());
+	assert!(idx.backlinks().is_empty());
+
+	// Add a second self-link to a stored entry: outgoing_links shape
+	// changes (so changed = true), but affected stays empty because both
+	// the old AND new resolve to self.
+	let r3 = idx.update_entry(entry_with_links("/v/loner.md", &["loner", "loner"]));
+	assert!(r3.changed);
+	assert!(r3.affected.is_empty());
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn update_unresolved_link_is_dropped_silently() {
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/source.md", &["nonexistent"]));
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn update_keeps_existing_entry_with_same_link_when_only_metadata_changes() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/source.md", &["target"]),
+		entry_with_links("/v/target.md", &[]),
+	]);
+
+	let mut updated = entry_with_links("/v/source.md", &["target"]);
+	updated.snippet = "fresh snippet".to_string();
+	updated.tags = vec!["new-tag".to_string()];
+
+	let result = idx.update_entry(updated);
+	// Outgoing didn't shift, so `affected` is empty.
+	assert!(result.affected.is_empty());
+	// But the entry itself differs (snippet/tags changed) -> changed = true.
+	assert!(result.changed);
+	// Stored entry now reflects the updated metadata.
+	let stored = idx.entries().get("/v/source.md").unwrap();
+	assert_eq!(stored.snippet, "fresh snippet");
+	assert_eq!(stored.tags, vec!["new-tag".to_string()]);
+}
+
+#[test]
+fn update_multiple_sources_per_target_dedupes_through_set_semantics() {
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/target.md", &[]));
+	idx.update_entry(entry_with_links("/v/a.md", &["target"]));
+	idx.update_entry(entry_with_links("/v/b.md", &["target"]));
+	idx.update_entry(entry_with_links("/v/c.md", &["target"]));
+
+	let backlinks = idx.backlinks().get("/v/target.md").unwrap();
+	assert_eq!(backlinks.len(), 3);
+	let collected: Vec<&String> = backlinks.iter().collect();
+	assert_eq!(
+		collected,
+		vec![
+			&"/v/a.md".to_string(),
+			&"/v/b.md".to_string(),
+			&"/v/c.md".to_string(),
+		],
+	);
+}
+
+#[test]
+fn update_bumps_version_monotonically_on_each_call() {
+	let mut idx = VaultIndex::default();
+	let v0 = idx.version();
+	idx.update_entry(entry_with_links("/v/a.md", &[]));
+	idx.update_entry(entry_with_links("/v/b.md", &[]));
+	idx.update_entry(entry_with_links("/v/a.md", &[])); // no-op
+	assert_eq!(idx.version(), v0 + 3);
+}
+
+#[test]
+fn update_first_path_wins_in_by_path_when_new_entry_collides_on_stem() {
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/area-a/dup.md", &[]));
+	idx.update_entry(entry_with_links("/v/area-b/dup.md", &[]));
+
+	// First wins: by_path stays at the original.
+	assert_eq!(
+		idx.by_path().get("dup"),
+		Some(&"/v/area-a/dup.md".to_string()),
+	);
+	// Both entries are stored.
+	assert_eq!(idx.len(), 2);
+}
+
+#[test]
+fn update_re_running_on_same_path_does_not_create_phantom_by_path_entries() {
+	// Calling update_entry repeatedly on the same path must not duplicate
+	// or shift the by_path entry. Regression guard for: if we forgot the
+	// `old_entry.is_none()` guard around the by_path insert, repeated
+	// updates on a stem-colliding pair would silently flip which path
+	// wins.
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/x/note.md", &[]));
+	idx.update_entry(entry_with_links("/v/y/note.md", &[]));
+	let original = idx.by_path().get("note").cloned();
+	for _ in 0..3 {
+		idx.update_entry(entry_with_links("/v/y/note.md", &[]));
+	}
+	assert_eq!(idx.by_path().get("note").cloned(), original);
 }
