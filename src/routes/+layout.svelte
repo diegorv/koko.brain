@@ -90,8 +90,9 @@
 			untrack(() => {
 				const tab = editorStore.activeTab;
 				if (path && tab && isVirtualTab(tab)) return;
-				updateActiveTabLinks(path);
-				perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0);
+				updateActiveTabLinks(path)
+					.catch((err) => console.error('updateActiveTabLinks failed:', err))
+					.finally(() => perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0));
 			});
 		}, 150);
 
