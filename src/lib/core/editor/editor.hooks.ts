@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
@@ -177,6 +178,22 @@ export function notifyAfterSave(filePath: string, content: string): void {
 		try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('HOOKS', 'updateFrontmatterIconForFile after save failed:', err); }
 		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
 	}
+
+	// Update the Rust `VaultIndex` so save-driven `vault-index-updated`
+	// events bump `vaultStore.vaultIndexVersion` and `BacklinksPanel.svelte`'s
+	// consumer effect re-fetches via `get_backlinks_v2`. Fire-and-forget —
+	// errors are logged but never propagated.
+	//
+	// IMPORTANT: this call sits OUTSIDE the `!isAlreadyIndexed` guard. The
+	// TS dedup map tracks whether the *TS* indexers were called for an exact
+	// (path, content); the content-effect in `updateIndexesForFile` marks
+	// indexed and *also* calls Rust, so a typing-pause-then-save sequence
+	// (content-effect at 1 s → autosave at 2 s) still updates Rust on the
+	// save side. Calling on every save is cheap (~1-5 ms IPC) and Rust has
+	// its own internal change detection via `UpdateResult.changed`.
+	invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
+		error('HOOKS', 'update_note_in_index after save failed:', err);
+	});
 
 	invalidateQueryjsCache();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);

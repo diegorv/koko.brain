@@ -220,6 +220,7 @@ describe('settingsStore', () => {
 			settingsStore.updateQueryjs({ autoRunQueries: 'first-open' });
 			expect(settingsStore.queryjs.autoRunQueries).toBe('first-open');
 		});
+
 	});
 
 	describe('reset', () => {

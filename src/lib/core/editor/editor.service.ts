@@ -8,9 +8,47 @@ import { isCollectionFile, isCanvasFile, isKanbanFile } from '$lib/core/filesyst
 import { applyReadTransform, applyWriteTransform, notifyAfterSave } from './editor.hooks';
 import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
-import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
+import { debug, error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
+
+/**
+ * Single owner of "external content → CodeMirror" sync (Phase 5 of the
+ * perf refactor). Updates a tab's content (path-keyed) and bumps
+ * `editorStore.externalContentSignal` so `MarkdownEditor.svelte`'s
+ * content-sync `$effect` fires a doc replace.
+ *
+ * Replaces the prior pattern where each external writer touched
+ * `editorStore` directly and the editor effect re-ran on every keystroke
+ * (because it depended on `activeTab.content`). Now the effect only re-runs
+ * on the signal bump, eliminating the per-keystroke `view.state.doc.toString()`
+ * round-trip on the hot path.
+ *
+ * @param markSaved - when `true` (default) the write is treated as
+ *   disk-synced (sets both `content` and `savedContent`). When `false`,
+ *   only `content` is updated and dirty state is preserved (used by the
+ *   Properties panel's in-memory edits).
+ */
+export function syncExternalContentToEditor(
+	path: string,
+	content: string,
+	markSaved: boolean = true,
+): void {
+	const tab = editorStore.tabs.find((t) => t.path === path);
+	if (!tab) return;
+	if (markSaved) {
+		editorStore.updateTabContentByPath(path, content);
+	} else {
+		editorStore.updateTabContentOnly(path, content);
+	}
+	// Only signal CodeMirror if this is the active tab — the tab-switch
+	// effect will handle non-active tabs when the user switches to them.
+	// This avoids a wasted CM dispatch when an external write targets a
+	// background tab.
+	if (editorStore.activeTabPath === path) {
+		editorStore.bumpExternalContentSignal();
+	}
+}
 
 /**
  * Opens a file in the editor.
@@ -20,6 +58,7 @@ import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.
 export async function openFileInEditor(filePath: string) {
 	// [FE-STARTUP-PROBE]
 	const probeStart = performance.now();
+	const baseStart = perfStart();
 	appendLog('FE-STARTUP-PROBE', `openFileInEditor: ENTRY path=${filePath}`);
 
 	const existingIndex = findTabIndex(editorStore.tabs, filePath);
@@ -27,6 +66,7 @@ export async function openFileInEditor(filePath: string) {
 		editorStore.setActiveIndex(existingIndex);
 		fsStore.setSelectedFilePath(filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: tab already open @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		perfBaseline('openFileInEditor:cached', baseStart);
 		return;
 	}
 
@@ -49,6 +89,7 @@ export async function openFileInEditor(filePath: string) {
 		if (raceIndex >= 0) {
 			editorStore.setActiveIndex(raceIndex);
 			fsStore.setSelectedFilePath(filePath);
+			perfBaseline('openFileInEditor:raceCached', baseStart);
 			return;
 		}
 
@@ -61,6 +102,7 @@ export async function openFileInEditor(filePath: string) {
 		fsStore.setSelectedFilePath(filePath);
 		debug('EDITOR', 'opened file:', filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		perfBaseline('openFileInEditor:fresh', baseStart);
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
 		if (msg === 'canceled') return; // Touch ID dismissed — silent
@@ -160,6 +202,7 @@ export function switchTab(index: number) {
 		fsStore.setSelectedFilePath(tab.path);
 	}
 	perfEnd('EDITOR', 'switchTab:sync', t0);
+	perfBaseline('switchTab:sync', t0);
 }
 
 /**
@@ -173,6 +216,7 @@ export async function closeTab(index: number) {
 	if (isTabPinned(tab)) return;
 
 	const tabPath = tab.path;
+	const baseStart = perfStart();
 
 	if (!isVirtualTab(tab)) {
 		if (isTabDirty(tab)) {
@@ -199,6 +243,7 @@ export async function closeTab(index: number) {
 
 	const newActive = editorStore.activeTab;
 	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
+	perfBaseline('closeTab', baseStart);
 }
 
 /** Convenience: closes whichever tab is currently focused */
@@ -317,7 +362,8 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 		// Re-check tab state — it may have changed during parallel reads
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
 		if (!tab || diskContent === tab.savedContent) continue;
-		editorStore.updateTabContentByPath(filePath, diskContent);
+		// Disk-synced: content + savedContent both reflect the new disk state.
+		syncExternalContentToEditor(filePath, diskContent, true);
 		debug('EDITOR', 'Reloaded externally changed file:', filePath);
 	}
 }

@@ -1,4 +1,6 @@
-use kokobrain_lib::commands::vault::scan_vault;
+use kokobrain_lib::commands::vault::{collect_v2_entries, scan_vault, update_note_in_index_inner};
+use kokobrain_lib::vault::index::VaultIndex;
+use kokobrain_lib::vault::VAULT_INDEX_UPDATED_EVENT;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -228,4 +230,266 @@ fn canonicalizes_symlinked_vault_path() {
     let nodes = scan_vault(link_path.to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].name, "note.md");
+}
+
+// --- collect_v2_entries (Phase 1.5 + 2.3) -----------------------------------
+//
+// `collect_v2_entries` is the pure I/O + parsing path used by both the
+// Tauri command `scan_vault_v2` and these tests. It returns a flat
+// Vec<NoteEntry> for every markdown file under the vault (populated via
+// NoteEntry::from_content). The Tauri command wraps this with a
+// VaultIndex.build call against the managed VaultIndexState; that
+// integration is exercised through the index's own tests in
+// vault_index_test.rs (Phases 2.1-2.5).
+
+#[test]
+fn v2_empty_vault_returns_empty_vec() {
+    let dir = TempDir::new().unwrap();
+    let result = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert!(result.is_empty());
+}
+
+#[test]
+fn v2_single_file_populates_entry_fields() {
+    let dir = TempDir::new().unwrap();
+    let note = dir.path().join("welcome.md");
+    fs::write(
+        &note,
+        "---\ntitle: Welcome\ntags: [intro]\n---\nFirst paragraph with a [[Linked Note]] and #onboarding tag.\n",
+    )
+    .unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert_eq!(entries.len(), 1);
+
+    let e = &entries[0];
+    assert_eq!(e.title, "welcome");
+    // Path returned is absolute (canonicalized vault root + file).
+    assert!(e.path.ends_with("welcome.md"));
+    assert!(std::path::Path::new(&e.path).is_absolute());
+    assert!(e.modified_at > 0);
+
+    // Frontmatter: title + tags.
+    assert_eq!(
+        e.frontmatter.get("title"),
+        Some(&serde_json::Value::String("Welcome".to_string())),
+    );
+    assert_eq!(
+        e.frontmatter.get("tags"),
+        Some(&serde_json::json!(["intro"])),
+    );
+
+    // Outgoing links: the wikilink in the body.
+    assert_eq!(e.outgoing_links.len(), 1);
+    assert_eq!(e.outgoing_links[0].target, "Linked Note");
+
+    // Tags: intro (frontmatter) + onboarding (inline) merged.
+    assert_eq!(e.tags, vec!["intro", "onboarding"]);
+
+    // Snippet picks up the lead paragraph.
+    assert!(e.snippet.starts_with("First paragraph"));
+    assert!(e.snippet.contains("[[Linked Note]]"));
+}
+
+#[test]
+fn v2_collects_multiple_files_across_subdirectories() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha").unwrap();
+    let sub = dir.path().join("folder/sub");
+    fs::create_dir_all(&sub).unwrap();
+    fs::write(sub.join("b.md"), "Beta body").unwrap();
+    fs::write(dir.path().join("c.markdown"), "Gamma").unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert_eq!(entries.len(), 3);
+
+    let titles: Vec<_> = entries.iter().map(|e| e.title.clone()).collect();
+    assert!(titles.iter().any(|t| t == "a"));
+    assert!(titles.iter().any(|t| t == "b"));
+    assert!(titles.iter().any(|t| t == "c"));
+}
+
+#[test]
+fn v2_skips_non_markdown_files() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("note.md"), "real").unwrap();
+    fs::write(dir.path().join("readme.txt"), "ignored").unwrap();
+    fs::write(dir.path().join("image.png"), "ignored").unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].title, "note");
+}
+
+#[test]
+fn v2_skips_hidden_directories_and_their_contents() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("public.md"), "visible").unwrap();
+    let hidden = dir.path().join(".kokobrain");
+    fs::create_dir_all(&hidden).unwrap();
+    fs::write(hidden.join("internal.md"), "hidden").unwrap();
+    let git = dir.path().join(".git/info");
+    fs::create_dir_all(&git).unwrap();
+    fs::write(git.join("inside-git.md"), "vcs").unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].title, "public");
+}
+
+#[test]
+fn v2_invalid_vault_path_returns_error() {
+    let result = collect_v2_entries("/nonexistent/vault/path/does/not/exist");
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.contains("Failed to resolve vault path") || err.contains("not a directory"),
+        "unexpected error message: {}",
+        err,
+    );
+}
+
+#[test]
+fn v2_path_to_a_file_not_a_directory_returns_error() {
+    let dir = TempDir::new().unwrap();
+    let file = dir.path().join("not-a-vault.md");
+    fs::write(&file, "x").unwrap();
+
+    let result = collect_v2_entries(&file.to_string_lossy());
+    assert!(result.is_err());
+}
+
+#[test]
+fn v2_word_count_is_body_scoped() {
+    let dir = TempDir::new().unwrap();
+    fs::write(
+        dir.path().join("n.md"),
+        "---\ntitle: heavy\ndescription: lots of frontmatter words here\n---\nbody one two\n",
+    )
+    .unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].word_count, 3); // "body one two"
+}
+
+#[test]
+fn v2_modified_at_is_seconds_since_epoch_and_recent() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("n.md"), "x").unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let mtime = entries[0].modified_at;
+    assert!(mtime > 0);
+    // Allow a 60s skew to keep the test robust on slow CI.
+    assert!((now - mtime).abs() < 60, "mtime drift: now={} mtime={}", now, mtime);
+}
+
+#[cfg(unix)]
+#[test]
+fn v2_skips_symlinked_files_and_dirs() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("real.md"), "real").unwrap();
+
+    let other = TempDir::new().unwrap();
+    fs::write(other.path().join("outside.md"), "outside").unwrap();
+    symlink(other.path(), dir.path().join("symlink-dir")).unwrap();
+    symlink(other.path().join("outside.md"), dir.path().join("symlink-file.md")).unwrap();
+
+    let entries = collect_v2_entries(&dir.path().to_string_lossy()).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].title, "real");
+}
+
+// --- update_note_in_index_inner (Phase 2.6) ---------------------------------
+//
+// `update_note_in_index_inner` is the pure-logic core of the
+// `update_note_in_index` Tauri command. The thin Tauri wrapper around it
+// reads mtime from disk and emits `vault-index-updated`; both behaviors
+// are tested separately here without needing a Tauri AppHandle.
+
+#[test]
+fn vault_index_updated_event_constant_matches_frontend_listener_name() {
+    // The frontend listens via `listen('vault-index-updated', ...)`. A
+    // rename of the constant without the matching frontend update would
+    // silently break Phase 3+ panel invalidation, so we lock the literal.
+    assert_eq!(VAULT_INDEX_UPDATED_EVENT, "vault-index-updated");
+}
+
+#[test]
+fn update_inner_inserts_a_new_note_into_the_managed_index() {
+    let mut idx = VaultIndex::default();
+    let result = update_note_in_index_inner(
+        &mut idx,
+        "/v/note.md".to_string(),
+        "# Heading\n\nSome body content.",
+        1714305600,
+    );
+    assert!(result.changed);
+    assert!(result.affected.is_empty());
+    assert_eq!(result.version, 1);
+    assert_eq!(idx.len(), 1);
+    let stored = idx.entries().get("/v/note.md").unwrap();
+    assert_eq!(stored.title, "note");
+    assert_eq!(stored.modified_at, 1714305600);
+}
+
+#[test]
+fn update_inner_records_backlink_when_target_is_already_indexed() {
+    let mut idx = VaultIndex::default();
+    update_note_in_index_inner(&mut idx, "/v/target.md".to_string(), "body", 0);
+    let result = update_note_in_index_inner(
+        &mut idx,
+        "/v/source.md".to_string(),
+        "Body with [[target]] link.",
+        0,
+    );
+    assert!(result.changed);
+    assert_eq!(result.affected, vec!["/v/target.md".to_string()]);
+    let backlinks = idx.backlinks().get("/v/target.md").unwrap();
+    assert!(backlinks.contains("/v/source.md"));
+}
+
+#[test]
+fn update_inner_called_twice_with_same_content_reports_unchanged_second_time() {
+    let mut idx = VaultIndex::default();
+    let content = "Hello [[target]]";
+    update_note_in_index_inner(&mut idx, "/v/target.md".to_string(), "", 0);
+    let r1 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), content, 0);
+    let r2 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), content, 0);
+    assert!(r1.changed);
+    assert!(!r2.changed);
+    assert!(r2.affected.is_empty());
+    // Versions are still monotonic across both calls.
+    assert!(r2.version > r1.version);
+}
+
+#[test]
+fn update_inner_round_trip_through_save_event_pattern() {
+    // Simulates the editor.hooks.ts::notifyAfterSave flow: each save
+    // calls update with the post-save content; backlinks shift as the
+    // user adds/removes wikilinks across save events.
+    let mut idx = VaultIndex::default();
+    update_note_in_index_inner(&mut idx, "/v/a.md".to_string(), "", 0);
+    update_note_in_index_inner(&mut idx, "/v/b.md".to_string(), "", 0);
+
+    // Save 1: source -> a
+    let r1 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), "[[a]]", 0);
+    assert_eq!(r1.affected, vec!["/v/a.md".to_string()]);
+
+    // Save 2: source switches link to b
+    let r2 = update_note_in_index_inner(&mut idx, "/v/source.md".to_string(), "[[b]]", 0);
+    assert!(r2.changed);
+    assert_eq!(
+        r2.affected,
+        vec!["/v/a.md".to_string(), "/v/b.md".to_string()],
+    );
+    // a's backlink set is pruned because no source remains.
+    assert!(!idx.backlinks().contains_key("/v/a.md"));
+    // b gains the source.
+    assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/source.md"));
 }

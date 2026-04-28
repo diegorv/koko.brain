@@ -1,22 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	updateIndexForFile: vi.fn(),
-	updateBacklinksForFile: vi.fn(),
-}));
-
-vi.mock('$lib/features/backlinks/note-index.store.svelte', () => ({
-	noteIndexStore: {
-		get noteContents() { return new Map(); },
-	},
-}));
-
-vi.mock('$lib/features/backlinks/backlinks.logic', () => ({
-	buildResolutionCache: vi.fn(() => new Map()),
-}));
-
-vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
-	updateOutgoingLinksForFile: vi.fn(),
 }));
 
 vi.mock('$lib/features/tags/tags.service', () => ({
@@ -43,10 +32,11 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 	perfStart: vi.fn(() => 0),
 	perfEnd: vi.fn(),
+	perfBaseline: vi.fn(),
 }));
 
-import { updateIndexForFile, updateBacklinksForFile } from '$lib/features/backlinks/backlinks.service';
-import { updateOutgoingLinksForFile } from '$lib/features/outgoing-links/outgoing-links.service';
+import { invoke } from '@tauri-apps/api/core';
+import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
 import { updateTagIndexForFile } from '$lib/features/tags/tags.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
@@ -59,6 +49,7 @@ import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index
 describe('updateIndexesForFile', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(invoke).mockResolvedValue(undefined);
 		// Dedup state is module-level and would otherwise leak between tests
 		// (second call to updateIndexesForFile with the same path/content would
 		// short-circuit before invoking any mocked updater).
@@ -69,8 +60,7 @@ describe('updateIndexesForFile', () => {
 		await updateIndexesForFile('/vault/note.md', '# Hello world');
 
 		expect(updateIndexForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('/vault/note.md', expect.any(Array), expect.any(Map));
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/note.md', content: '# Hello world' });
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
 		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('/vault/note.md', '# Hello world');
@@ -82,8 +72,7 @@ describe('updateIndexesForFile', () => {
 		await updateIndexesForFile('', '');
 
 		expect(updateIndexForFile).toHaveBeenCalledWith('', '');
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('', expect.any(Array), expect.any(Map));
-		expect(updateOutgoingLinksForFile).toHaveBeenCalledWith('', expect.any(Array), expect.any(Map));
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '', content: '' });
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('', '');
 		expect(updateNoteInIndex).toHaveBeenCalledWith('', '');
 		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('', '');
@@ -91,22 +80,9 @@ describe('updateIndexesForFile', () => {
 		expect(updateTaskIndexForFile).toHaveBeenCalledWith('', '');
 	});
 
-	it('shares the same allFilePaths and cache between backlinks and outgoing-links', async () => {
-		await updateIndexesForFile('/vault/note.md', 'content');
-
-		const backlinksArgs = vi.mocked(updateBacklinksForFile).mock.calls[0];
-		const outgoingArgs = vi.mocked(updateOutgoingLinksForFile).mock.calls[0];
-		// Both receive the same array reference
-		expect(backlinksArgs[1]).toBe(outgoingArgs[1]);
-		// Both receive the same cache reference
-		expect(backlinksArgs[2]).toBe(outgoingArgs[2]);
-	});
-
-	it('calls updateIndexForFile before dependent index updates', async () => {
+	it('calls updateIndexForFile before dependent updates', async () => {
 		const callOrder: string[] = [];
 		vi.mocked(updateIndexForFile).mockImplementation(() => { callOrder.push('updateIndexForFile'); });
-		vi.mocked(updateBacklinksForFile).mockImplementation(() => { callOrder.push('updateBacklinksForFile'); });
-		vi.mocked(updateOutgoingLinksForFile).mockImplementation(() => { callOrder.push('updateOutgoingLinksForFile'); });
 		vi.mocked(updateTagIndexForFile).mockImplementation(() => { callOrder.push('updateTagIndexForFile'); });
 
 		await updateIndexesForFile('/vault/note.md', 'content');
@@ -121,11 +97,8 @@ describe('updateIndexesForFile', () => {
 
 		await updateIndexesForFile('/vault/note.md', 'content');
 
-		// Updaters before the failure should have been called
 		expect(updateIndexForFile).toHaveBeenCalled();
-		expect(updateBacklinksForFile).toHaveBeenCalled();
-		expect(updateOutgoingLinksForFile).toHaveBeenCalled();
-		// Updaters after the failure should also be called
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', expect.any(Object));
 		expect(updateTaskIndexForFile).toHaveBeenCalled();
 		expect(updateNoteInIndex).toHaveBeenCalled();
 		expect(updateFrontmatterIconForFile).toHaveBeenCalled();
@@ -143,6 +116,16 @@ describe('updateIndexesForFile', () => {
 		expect(debugError).toHaveBeenCalledWith('INDEX', 'updateCalendarForFile failed:', testError);
 	});
 
+	it('logs error when update_note_in_index IPC rejects', async () => {
+		vi.mocked(invoke).mockRejectedValue(new Error('ipc fail'));
+
+		await updateIndexesForFile('/vault/note.md', 'content');
+		// Wait for the catch
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(debugError).toHaveBeenCalledWith('INDEX', 'update_note_in_index failed:', expect.any(Error));
+	});
+
 	it('skips phases 2 and 3 when a newer call supersedes', async () => {
 		// Start first call but don't await — it will be superseded
 		const first = updateIndexesForFile('/vault/old.md', 'old content');
@@ -154,8 +137,6 @@ describe('updateIndexesForFile', () => {
 		// Phase 1 of both calls runs (updateIndexForFile is synchronous before yield)
 		expect(updateIndexForFile).toHaveBeenCalledTimes(2);
 		// Phases 2/3 only run for the second (latest) call
-		expect(updateBacklinksForFile).toHaveBeenCalledTimes(1);
-		expect(updateBacklinksForFile).toHaveBeenCalledWith('/vault/new.md', expect.any(Array), expect.any(Map));
 		expect(updateTagIndexForFile).toHaveBeenCalledTimes(1);
 		expect(updateTagIndexForFile).toHaveBeenCalledWith('/vault/new.md', 'new content');
 	});
@@ -167,7 +148,7 @@ describe('updateIndexesForFile', () => {
 		await updateIndexesForFile('/vault/note.md', 'same content');
 
 		expect(updateIndexForFile).not.toHaveBeenCalled();
-		expect(updateBacklinksForFile).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
 		expect(updateTagIndexForFile).not.toHaveBeenCalled();
 		expect(updateNoteInIndex).not.toHaveBeenCalled();
 		expect(updateCalendarForFile).not.toHaveBeenCalled();
@@ -177,10 +158,8 @@ describe('updateIndexesForFile', () => {
 		await updateIndexesForFile('/vault/note.md', 'hello');
 		expect(isAlreadyIndexed('/vault/note.md', 'hello')).toBe(true);
 
-		// Second call with same content: all mocks stay at 1 invocation from the first call.
 		await updateIndexesForFile('/vault/note.md', 'hello');
 		expect(updateIndexForFile).toHaveBeenCalledTimes(1);
-		expect(updateBacklinksForFile).toHaveBeenCalledTimes(1);
 		expect(updateCalendarForFile).toHaveBeenCalledTimes(1);
 	});
 

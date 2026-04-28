@@ -40,6 +40,6 @@ Key anchors:
 
 - Every feature is split across two languages: TypeScript (UI, editor, orchestration) and Rust (filesystem, sqlite, ONNX, crypto, PTY). Developers must switch contexts; the upside is each side can use idiomatic libraries.
 - SvelteKit is used only for routing and SSR-style preprocessing; there is no server runtime. `+layout.ts` and `+page.svelte` run entirely in the Tauri WebView. See `vite.config.js:80-87` (port 1420 dev, 1421 Playwright).
-- Updates to Tauri are tightly coupled across `package.json` (`@tauri-apps/*`) and `Cargo.toml` (`tauri*`); `pnpm-workspace.yaml:6` excludes `@tauri-apps/*` from the 14-day quarantine so the two sides can stay in lockstep.
+- Updates to Tauri are tightly coupled across `package.json` (`@tauri-apps/*`) and `Cargo.toml` (`tauri*`); `pnpm-workspace.yaml:6` excludes `@tauri-apps/*` from the 7-day quarantine so the two sides can stay in lockstep.
 - Svelte 5 runes are new; several reactivity rules (ADR-0005, ADR-0006) are required workarounds for rune semantics in tests and `$effect` tracking.
 - Re-evaluation triggers: Tauri 2 ships a breaking v3 and the cost of migrating both Rust and TS at once becomes prohibitive; Svelte 6 removes or reshapes runes; SwiftUI/UIKit parity becomes a product requirement (see ADR to be written for iPad).

@@ -7,6 +7,7 @@ import {
 	codeHighlight,
 	markdownLanguage,
 	getLanguageEffects,
+	getLanguageEffectsSync,
 } from '$lib/core/markdown-editor/highlight-styles';
 
 describe('markdownHighlight', () => {
@@ -283,5 +284,65 @@ describe('getLanguageEffects', () => {
 		// The reconfigure values should differ (different language + different highlight style)
 		expect(mdEffects[0].value).not.toBe(jsEffects[0].value);
 		expect(mdEffects[1].value).not.toBe(jsEffects[1].value);
+	});
+});
+
+describe('getLanguageEffectsSync', () => {
+	it('returns two effects synchronously for .md files (markdown fast-path)', () => {
+		const effects = getLanguageEffectsSync('note.md', new Compartment(), new Compartment());
+		expect(effects).not.toBeNull();
+		expect(effects).toHaveLength(2);
+	});
+
+	it('returns two effects synchronously for .markdown files', () => {
+		const effects = getLanguageEffectsSync('readme.markdown', new Compartment(), new Compartment());
+		expect(effects).not.toBeNull();
+		expect(effects).toHaveLength(2);
+	});
+
+	it('returns two effects synchronously for .kanban.md files (kanban is markdown)', () => {
+		const effects = getLanguageEffectsSync('board.kanban.md', new Compartment(), new Compartment());
+		expect(effects).not.toBeNull();
+		expect(effects).toHaveLength(2);
+	});
+
+	it('returns null for .js files (require async load)', () => {
+		expect(getLanguageEffectsSync('script.js', new Compartment(), new Compartment())).toBeNull();
+	});
+
+	it('returns null for .ts, .py, .rs (all need async load)', () => {
+		expect(getLanguageEffectsSync('app.ts', new Compartment(), new Compartment())).toBeNull();
+		expect(getLanguageEffectsSync('main.py', new Compartment(), new Compartment())).toBeNull();
+		expect(getLanguageEffectsSync('lib.rs', new Compartment(), new Compartment())).toBeNull();
+	});
+
+	it('returns null for .collection (YAML — async load)', () => {
+		expect(getLanguageEffectsSync('database.collection', new Compartment(), new Compartment())).toBeNull();
+	});
+
+	it('returns null for .canvas (JSON — async load)', () => {
+		expect(getLanguageEffectsSync('diagram.canvas', new Compartment(), new Compartment())).toBeNull();
+	});
+
+	it('falls back to markdown (sync) for unknown extensions', () => {
+		const effects = getLanguageEffectsSync('Makefile', new Compartment(), new Compartment());
+		// Makefile has no specific language match — getLanguageForFile returns null → markdown sync.
+		expect(effects).not.toBeNull();
+	});
+
+	it('returned effects are StateEffects with reconfigure values', () => {
+		const effects = getLanguageEffectsSync('note.md', new Compartment(), new Compartment())!;
+		for (const e of effects) {
+			expect(e.value).toBeDefined();
+		}
+	});
+
+	it('matches the markdown branch of getLanguageEffects exactly', async () => {
+		const langComp = new Compartment();
+		const hlComp = new Compartment();
+		const syncEffects = getLanguageEffectsSync('note.md', langComp, hlComp);
+		const asyncEffects = await getLanguageEffects('note.md', langComp, hlComp);
+		expect(syncEffects).not.toBeNull();
+		expect(syncEffects).toHaveLength(asyncEffects.length);
 	});
 });

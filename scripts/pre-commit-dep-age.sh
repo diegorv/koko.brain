@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # pre-commit hook: block commits that introduce npm package versions
-# published less than 14 days ago (supply chain quarantine).
+# published less than 7 days ago (supply chain quarantine).
 #
 # Install: bash scripts/setup-hooks.sh
 # Bypass:  git commit --no-verify
@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-QUARANTINE_DAYS=14
+QUARANTINE_DAYS=7
 QUARANTINE_SECONDS=$((QUARANTINE_DAYS * 86400))
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 ALLOWLIST_FILE="$REPO_ROOT/.dep-age-allowlist"

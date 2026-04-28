@@ -6,12 +6,12 @@ import {
 	buildResolutionCache,
 	resolveWikilinkCached,
 	getContextSnippet,
-	findLinkedMentions,
-	findLinkedMentionsFromReverse,
 	findUnlinkedMentions,
 	findPlainTextMentionPositions,
 	stripNonBodyContent,
+	noteEntryV2ToBacklinkEntry,
 } from '$lib/features/backlinks/backlinks.logic';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 describe('parseWikilinks', () => {
 	it('parses a basic wikilink', () => {
@@ -209,192 +209,6 @@ describe('getContextSnippet', () => {
 		expect(snippet.text).not.toContain('Line three');
 	});
 });
-
-describe('findLinkedMentions', () => {
-	const allPaths = [
-		'/vault/Current.md',
-		'/vault/Note A.md',
-		'/vault/Note B.md',
-		'/vault/Note C.md',
-	];
-
-	it('finds notes that link to the current note', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('See [[Current]] for info')],
-			['/vault/Note B.md', parseWikilinks('No links here')],
-			['/vault/Note C.md', parseWikilinks('Also [[Current]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'See [[Current]] for info'],
-			['/vault/Note B.md', 'No links here'],
-			['/vault/Note C.md', 'Also [[Current]]'],
-		]);
-
-		const result = findLinkedMentions('/vault/Current.md', noteIndex, noteContents, allPaths);
-		expect(result).toHaveLength(2);
-		expect(result.map((e) => e.sourceName)).toContain('Note A');
-		expect(result.map((e) => e.sourceName)).toContain('Note C');
-	});
-
-	it('excludes self-references', () => {
-		const noteIndex = new Map([
-			['/vault/Current.md', parseWikilinks('Self: [[Current]]')],
-			['/vault/Note A.md', parseWikilinks('Link: [[Current]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Current.md', 'Self: [[Current]]'],
-			['/vault/Note A.md', 'Link: [[Current]]'],
-		]);
-
-		const result = findLinkedMentions('/vault/Current.md', noteIndex, noteContents, allPaths);
-		expect(result).toHaveLength(1);
-		expect(result[0].sourceName).toBe('Note A');
-	});
-
-	it('returns empty when no notes link to current', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('See [[Note B]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'See [[Note B]]'],
-		]);
-
-		const result = findLinkedMentions('/vault/Current.md', noteIndex, noteContents, allPaths);
-		expect(result).toHaveLength(0);
-	});
-
-	it('includes context snippets for each mention', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('First [[Current]] and second [[Current]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'First [[Current]] and second [[Current]]'],
-		]);
-
-		const result = findLinkedMentions('/vault/Current.md', noteIndex, noteContents, allPaths);
-		expect(result).toHaveLength(1);
-		expect(result[0].snippets).toHaveLength(2);
-	});
-
-	it('finds backlinks from full-path wikilinks', () => {
-		const content = '# [[folder/Current|15-02-2026]] - 1:1';
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks(content)],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', content],
-		]);
-
-		const result = findLinkedMentions('/vault/Current.md', noteIndex, noteContents, allPaths);
-		expect(result).toHaveLength(1);
-		expect(result[0].sourceName).toBe('Note A');
-	});
-
-	it('does not show false positive backlinks for same-named files in different folders', () => {
-		const paths = [
-			'/vault/A/Note.md',
-			'/vault/B/Note.md',
-			'/vault/Other.md',
-		];
-		const noteIndex = new Map([
-			['/vault/Other.md', parseWikilinks('Link to [[Note]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Other.md', 'Link to [[Note]]'],
-		]);
-
-		// [[Note]] resolves to the first match (/vault/A/Note.md)
-		// So /vault/B/Note.md should NOT get a false backlink
-		const resultB = findLinkedMentions('/vault/B/Note.md', noteIndex, noteContents, paths);
-		expect(resultB).toHaveLength(0);
-
-		// /vault/A/Note.md SHOULD get the backlink (it's the resolved target)
-		const resultA = findLinkedMentions('/vault/A/Note.md', noteIndex, noteContents, paths);
-		expect(resultA).toHaveLength(1);
-		expect(resultA[0].sourceName).toBe('Other');
-	});
-});
-
-describe('findLinkedMentionsFromReverse', () => {
-	const allPaths = [
-		'/vault/Current.md',
-		'/vault/Note A.md',
-		'/vault/Note B.md',
-		'/vault/Note C.md',
-	];
-
-	function buildReverseIndex(noteIndex: Map<string, ReturnType<typeof parseWikilinks>>, paths: string[]) {
-		const cache = buildResolutionCache(paths);
-		const reverse = new Map<string, Set<string>>();
-		for (const [sourcePath, links] of noteIndex) {
-			for (const link of links) {
-				const resolved = resolveWikilinkCached(link.target, cache);
-				if (resolved) {
-					let set = reverse.get(resolved);
-					if (!set) { set = new Set(); reverse.set(resolved, set); }
-					set.add(sourcePath);
-				}
-			}
-		}
-		return reverse;
-	}
-
-	it('finds notes that link to the current note using reverse index', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('See [[Current]] for info')],
-			['/vault/Note B.md', parseWikilinks('No links here')],
-			['/vault/Note C.md', parseWikilinks('Also [[Current]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'See [[Current]] for info'],
-			['/vault/Note B.md', 'No links here'],
-			['/vault/Note C.md', 'Also [[Current]]'],
-		]);
-		const cache = buildResolutionCache(allPaths);
-		const reverse = buildReverseIndex(noteIndex, allPaths);
-
-		const result = findLinkedMentionsFromReverse('/vault/Current.md', reverse, noteIndex, noteContents, cache);
-		expect(result).toHaveLength(2);
-		expect(result.map((e) => e.sourceName)).toContain('Note A');
-		expect(result.map((e) => e.sourceName)).toContain('Note C');
-	});
-
-	it('returns empty when no reverse entries exist for current path', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('See [[Note B]]')],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'See [[Note B]]'],
-		]);
-		const cache = buildResolutionCache(allPaths);
-		const reverse = buildReverseIndex(noteIndex, allPaths);
-
-		const result = findLinkedMentionsFromReverse('/vault/Current.md', reverse, noteIndex, noteContents, cache);
-		expect(result).toHaveLength(0);
-	});
-
-	it('produces same results as findLinkedMentions', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('See [[Current]] for info')],
-			['/vault/Note B.md', parseWikilinks('Also [[Current]] and [[Note A]]')],
-			['/vault/Note C.md', parseWikilinks('No links')],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'See [[Current]] for info'],
-			['/vault/Note B.md', 'Also [[Current]] and [[Note A]]'],
-			['/vault/Note C.md', 'No links'],
-		]);
-		const cache = buildResolutionCache(allPaths);
-		const reverse = buildReverseIndex(noteIndex, allPaths);
-
-		const slow = findLinkedMentions('/vault/Current.md', noteIndex, noteContents, allPaths, cache);
-		const fast = findLinkedMentionsFromReverse('/vault/Current.md', reverse, noteIndex, noteContents, cache);
-
-		expect(fast.map(e => e.sourcePath)).toEqual(slow.map(e => e.sourcePath));
-		expect(fast.map(e => e.snippets.length)).toEqual(slow.map(e => e.snippets.length));
-	});
-});
-
 describe('findUnlinkedMentions', () => {
 	it('finds plain text mentions of the note name', () => {
 		const noteContents = new Map([
@@ -573,5 +387,56 @@ describe('findPlainTextMentionPositions', () => {
 	it('returns empty for empty content', () => {
 		const positions = findPlainTextMentionPositions('', '', 'Current');
 		expect(positions).toHaveLength(0);
+	});
+});
+
+describe('noteEntryV2ToBacklinkEntry', () => {
+	function makeEntry(overrides: Partial<NoteEntryV2> = {}): NoteEntryV2 {
+		return {
+			path: '/vault/note.md',
+			title: 'note',
+			frontmatter: {},
+			outgoingLinks: [],
+			tags: [],
+			modifiedAt: 0,
+			wordCount: 0,
+			snippet: '',
+			...overrides,
+		};
+	}
+
+	it('maps path to sourcePath and title to sourceName', () => {
+		const result = noteEntryV2ToBacklinkEntry(makeEntry({
+			path: '/vault/folder/foo.md',
+			title: 'foo',
+			snippet: 'preview',
+		}));
+		expect(result.sourcePath).toBe('/vault/folder/foo.md');
+		expect(result.sourceName).toBe('foo');
+	});
+
+	it('wraps a non-empty snippet in a single positioned entry with linkStart/linkEnd both 0', () => {
+		const result = noteEntryV2ToBacklinkEntry(makeEntry({ snippet: 'Hello world' }));
+		expect(result.snippets).toEqual([{ text: 'Hello world', linkStart: 0, linkEnd: 0 }]);
+	});
+
+	it('returns an empty snippets array for empty snippet (suppresses preview row)', () => {
+		const result = noteEntryV2ToBacklinkEntry(makeEntry({ snippet: '' }));
+		expect(result.snippets).toEqual([]);
+	});
+
+	it('preserves whitespace-only snippet (Rust trims; truthy strings render)', () => {
+		const result = noteEntryV2ToBacklinkEntry(makeEntry({ snippet: '   ' }));
+		expect(result.snippets).toEqual([{ text: '   ', linkStart: 0, linkEnd: 0 }]);
+	});
+
+	it('does not read tags / outgoingLinks / frontmatter (they map to nothing in BacklinkEntry)', () => {
+		const result = noteEntryV2ToBacklinkEntry(makeEntry({
+			tags: ['#x', '#y'],
+			outgoingLinks: [{ target: 'a', alias: null, heading: null, position: 0 }],
+			frontmatter: { title: 'override' },
+			snippet: 'body',
+		}));
+		expect(Object.keys(result).sort()).toEqual(['snippets', 'sourceName', 'sourcePath']);
 	});
 });

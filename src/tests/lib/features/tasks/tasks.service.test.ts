@@ -12,7 +12,6 @@ vi.mock('$lib/utils/debug', () => ({
 
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { tasksStore } from '$lib/features/tasks/tasks.store.svelte';
 import {
@@ -233,7 +232,7 @@ describe('toggleTask', () => {
 		expect(noteIndexStore.noteIndex.has('/vault/a.md')).toBe(true);
 	});
 
-	it('dispatches to CodeMirror EditorView when toggled file is the active tab', async () => {
+	it('bumps externalContentSignal when toggled file is the active tab (Phase 5)', async () => {
 		noteIndexStore.setNoteContents(new Map([
 			['/vault/a.md', '- [ ] task'],
 		]));
@@ -246,21 +245,19 @@ describe('toggleTask', () => {
 		buildTaskIndex();
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
-		// Set up a mock EditorView
-		const dispatchSpy = vi.fn();
-		editorStore.setEditorView({
-			dispatch: dispatchSpy,
-			state: { doc: { length: '- [ ] task'.length } },
-		} as any);
-
+		const before = editorStore.externalContentSignal;
 		await toggleTask('/vault/a.md', 1);
 
-		expect(dispatchSpy).toHaveBeenCalledWith({
-			changes: { from: 0, to: '- [ ] task'.length, insert: '- [x] task' },
-		});
+		// Phase 5: tasks.service no longer dispatches to CM directly;
+		// `syncExternalContentToEditor` bumps the signal and the
+		// `MarkdownEditor.svelte` $effect handles the dispatch.
+		expect(editorStore.externalContentSignal).toBeGreaterThan(before);
+		// Tab content + savedContent reflect the toggle
+		expect(editorStore.tabs[0].content).toBe('- [x] task');
+		expect(editorStore.tabs[0].savedContent).toBe('- [x] task');
 	});
 
-	it('does not dispatch to EditorView when toggled file is not the active tab', async () => {
+	it('does NOT bump externalContentSignal when toggled file is not the active tab', async () => {
 		noteIndexStore.setNoteContents(new Map([
 			['/vault/a.md', '- [ ] task'],
 			['/vault/b.md', 'other note'],
@@ -272,20 +269,27 @@ describe('toggleTask', () => {
 			content: 'other note',
 			savedContent: 'other note',
 		});
+		// Open a.md as a non-active tab
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '- [ ] task',
+			savedContent: '- [ ] task',
+		});
+		// Re-focus b.md
+		editorStore.setActiveIndex(0);
 		buildTaskIndex();
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
-		const dispatchSpy = vi.fn();
-		editorStore.setEditorView({
-			dispatch: dispatchSpy,
-			state: { doc: { length: 'other note'.length } },
-		} as any);
-
+		const before = editorStore.externalContentSignal;
 		await toggleTask('/vault/a.md', 1);
 
-		// Should NOT dispatch since a.md is not the active tab
-		expect(dispatchSpy).not.toHaveBeenCalled();
-		// But tab content should still be updated via updateTabContentByPath
+		// Signal NOT bumped (a.md is not the active tab — CM doesn't need a refresh)
+		expect(editorStore.externalContentSignal).toBe(before);
+		// But the non-active tab's content is still updated so a tab switch shows fresh state
+		const aTab = editorStore.tabs.find((t) => t.path === '/vault/a.md');
+		expect(aTab?.content).toBe('- [x] task');
+		expect(aTab?.savedContent).toBe('- [x] task');
 		expect(noteIndexStore.noteContents.get('/vault/a.md')).toBe('- [x] task');
 	});
 

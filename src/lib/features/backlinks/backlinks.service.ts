@@ -1,12 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
-import { debug, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
+import { debug, error as errorLog, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
 import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteIndexStore } from './note-index.store.svelte';
-import { parseWikilinks, getNoteName, buildResolutionCache, findLinkedMentions, findLinkedMentionsFromReverse, findUnlinkedMentions } from './backlinks.logic';
-import type { WikilinkResolutionCache } from './backlinks.logic';
+import { parseWikilinks, getNoteName, findUnlinkedMentions, noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { WikiLink } from './backlinks.types';
 import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 let vaultPath: string | null = null;
 let isBuilding = false;
@@ -35,6 +35,19 @@ export async function buildIndex(path: string) {
 	noteIndexStore.setLoading(true);
 
 	try {
+		// Bootstrap the Rust `VaultIndex` in parallel with the TS scan.
+		// `scan_vault_v2` does its own filesystem scan, builds the Rust index,
+		// and emits `vault-index-updated` so `BacklinksPanel.svelte`'s reactive
+		// `$effect` re-fetches once the Rust side is ready. Fire-and-forget —
+		// errors logged via `errorLog('BACKLINKS', ...)`. The TS scan below
+		// still populates `noteIndexStore.noteContents`/`noteIndex` because
+		// the unlinked-mentions, outgoing-links, and link-updater paths still
+		// read from those maps (Phase 6/8 will migrate those too).
+		const tV2 = perfStart();
+		invoke('scan_vault_v2', { path })
+			.then(() => perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2(IPC, parallel)', tV2))
+			.catch((err) => errorLog('BACKLINKS', 'scan_vault_v2 failed:', err));
+
 		await timeAsync('BACKLINKS', 'buildIndex', async () => {
 			const tScan = perfStart();
 			const tree = await invoke<FileTreeNode[]>('scan_vault', {
@@ -70,6 +83,10 @@ export async function buildIndex(path: string) {
 			// rebuildReverseIndex, which resolves wikilinks using noteContents.keys().
 			// If reversed, the resolution cache is empty and reverseIndex stays empty
 			// until an incremental update happens to populate it file-by-file.
+			//
+			// `noteIndexStore.reverseIndex` is no longer consumed by the backlinks
+			// panel (Rust path replaces it) but is still read as a fallback by
+			// `link-updater.service.ts` on rename — so we keep building it.
 			const tStore = perfStart();
 			noteIndexStore.setNoteContents(contents);
 			noteIndexStore.setNoteIndex(index);
@@ -117,32 +134,24 @@ export function removeFileFromIndex(filePath: string) {
 }
 
 /**
- * Updates only linked mentions for a file.
- * Does NOT mark unlinked mentions as dirty — callers that need unlinked
- * recomputation (tab switch, save, external change) should call
- * `backlinksStore.markUnlinkedDirty()` explicitly.
- * This keeps the keystroke path (index-updater) free of the ~30ms unlinked cost.
+ * Fetches backlinks for a file from the Rust `VaultIndex` via
+ * `invoke('get_backlinks_v2')` and writes them to `backlinksStore.linkedMentions`.
+ *
+ * Used by both the active-tab tracker (path change) and `BacklinksPanel.svelte`
+ * (path change OR `vaultStore.vaultIndexVersion` bump). Errors are logged via
+ * `errorLog('BACKLINKS', ...)` and swallowed — the linked-mentions panel keeps
+ * its prior contents on IPC failure.
  */
-export function updateBacklinksForFile(
-	filePath: string,
-	sharedFilePaths?: string[],
-	sharedCache?: WikilinkResolutionCache,
-) {
+export async function fetchBacklinksV2(path: string): Promise<void> {
 	const t0 = perfStart();
-	const noteIndex = noteIndexStore.noteIndex;
-	const noteContents = noteIndexStore.noteContents;
-	const allFilePaths = sharedFilePaths ?? Array.from(noteContents.keys());
-
-	const t1 = perfStart();
-	const reverseIdx = noteIndexStore.reverseIndex;
-	const cache = sharedCache ?? buildResolutionCache(allFilePaths);
-	const linked = reverseIdx.size > 0
-		? findLinkedMentionsFromReverse(filePath, reverseIdx, noteIndex, noteContents, cache)
-		: findLinkedMentions(filePath, noteIndex, noteContents, allFilePaths, sharedCache);
-	perfEnd('BACKLINKS', 'findLinkedMentions', t1);
-
-	backlinksStore.setLinkedMentions(linked);
-	perfEnd('BACKLINKS', 'updateBacklinksForFile', t0);
+	try {
+		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
+		const linked = entries.map(noteEntryV2ToBacklinkEntry);
+		backlinksStore.setLinkedMentions(linked);
+		perfEnd('BACKLINKS', 'fetchBacklinksV2', t0);
+	} catch (err) {
+		errorLog('BACKLINKS', 'fetchBacklinksV2 failed:', err);
+	}
 }
 
 /**

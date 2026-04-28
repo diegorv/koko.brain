@@ -4,11 +4,13 @@ pub mod search;
 pub mod security;
 pub mod semantic;
 pub mod utils;
+pub mod vault;
 
 use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::Emitter;
 use utils::logger::init_logger;
+use vault::VaultIndexState;
 
 fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let settings_item = MenuItemBuilder::new("Settings...")
@@ -83,6 +85,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(TerminalState::new())
+        .manage(VaultIndexState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -92,6 +95,11 @@ pub fn run() {
             commands::history::compute_diff,
             commands::history::cleanup_history,
             commands::vault::scan_vault,
+            commands::vault::scan_vault_v2,
+            commands::vault::get_backlinks_v2,
+            commands::vault::get_outgoing_links_v2,
+            commands::vault::get_outgoing_unlinked_mentions_v2,
+            commands::vault::update_note_in_index,
             commands::files::read_files_batch,
             commands::search::search_vault,
             commands::terminal::spawn_terminal,
