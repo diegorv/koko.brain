@@ -4,7 +4,7 @@ import {
 	closeActiveTab,
 	switchToNextTab,
 	switchToPreviousTab,
-	toggleRawMode,
+	toggleSourceMode,
 } from '$lib/core/editor/editor.service';
 import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
@@ -129,7 +129,7 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({
 			key: 'k',
 			meta: true,
-			handler: () => toggleRawMode(),
+			handler: () => toggleSourceMode(),
 		}),
 	];
 

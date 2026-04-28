@@ -47,14 +47,6 @@ describe('linkHandler — inline `[text](url)`', () => {
 		expect(linkText).toBeUndefined();
 	});
 
-	it('reveals source under raw mode regardless of cursor', () => {
-		settingsStore.updateEditor({ rawMode: true });
-		const doc = '[label](https://example.com)\n\nplain';
-		const decos = build(doc, doc.length);
-		const linkText = decos.find((d) => d.class === 'cm-lp-link');
-		expect(linkText).toBeUndefined();
-	});
-
 	it('emits no decoration for a non-link line', () => {
 		expect(build('plain text')).toEqual([]);
 	});

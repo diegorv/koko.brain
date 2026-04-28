@@ -69,9 +69,8 @@ import {
 	flushPendingSaves,
 	saveAllDirtyTabs,
 	reloadExternallyChangedTabs,
-	toggleRawMode,
+	toggleSourceMode,
 } from '$lib/core/editor/editor.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
@@ -736,23 +735,18 @@ describe('togglePinTab', () => {
 	});
 });
 
-describe('toggleRawMode', () => {
+describe('toggleSourceMode', () => {
 	beforeEach(() => {
-		settingsStore.reset();
+		editorStore.reset();
 	});
 
-	it('flips editor.rawMode from false to true and back', () => {
-		expect(settingsStore.editor.rawMode).toBe(false);
-		toggleRawMode();
-		expect(settingsStore.editor.rawMode).toBe(true);
-		toggleRawMode();
-		expect(settingsStore.editor.rawMode).toBe(false);
-	});
-
-	it('does not disturb other editor fields', () => {
-		const originalFontSize = settingsStore.editor.fontSize;
-		toggleRawMode();
-		expect(settingsStore.editor.fontSize).toBe(originalFontSize);
+	it('flips editorStore.isLivePreview from true to false and back', () => {
+		// Default: live preview ON
+		expect(editorStore.isLivePreview).toBe(true);
+		toggleSourceMode();
+		expect(editorStore.isLivePreview).toBe(false);
+		toggleSourceMode();
+		expect(editorStore.isLivePreview).toBe(true);
 	});
 });
 

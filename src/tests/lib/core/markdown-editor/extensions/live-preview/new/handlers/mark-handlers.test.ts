@@ -113,12 +113,6 @@ describe('escapeHandler', () => {
 		expect(visible).toBeDefined();
 	});
 
-	it('shows escapes raw under raw mode', () => {
-		settingsStore.updateEditor({ rawMode: true });
-		const decos = build('text \\* asterisk\nnext', 18);
-		const hidden = decos.find((d) => d.class === 'cm-formatting-inline');
-		expect(hidden).toBeUndefined();
-	});
 });
 
 describe('block context skip', () => {

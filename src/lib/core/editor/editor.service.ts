@@ -10,7 +10,6 @@ import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
 import { debug, error, perfStart, perfEnd } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 /**
@@ -236,12 +235,14 @@ export function togglePinActiveTab() {
 }
 
 /**
- * Toggles raw mode — when on, every cursor-aware live-preview decoration
- * shows its markdown source regardless of cursor position. Bound to Cmd+K
- * via global-keybindings.
+ * Toggles between live preview and source mode. Mirrors the toolbar button
+ * (`Code`/`Eye` icon) — Cmd+K binds to the same store flag so both surfaces
+ * stay in sync. When source mode is on, the entire `livePreview` extension
+ * is removed via the compartment, so line numbers + gutters reappear and no
+ * decorations or widgets render. Toggle is per-editor session, not persisted.
  */
-export function toggleRawMode() {
-	settingsStore.updateEditor({ rawMode: !settingsStore.editor.rawMode });
+export function toggleSourceMode() {
+	editorStore.setLivePreview(!editorStore.isLivePreview);
 }
 
 /** Pins a tab identified by file path (used for auto-pin features like daily notes) */

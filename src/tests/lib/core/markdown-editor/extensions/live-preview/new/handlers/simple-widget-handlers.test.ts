@@ -133,16 +133,9 @@ describe('simpleWidgetHandlers', () => {
 		});
 	});
 
-	describe('block context skip + raw mode', () => {
+	describe('block context skip', () => {
 		it('does not decorate `---` inside a fenced code block', () => {
 			const decos = build('```\n---\n```');
-			expect(decos.find((d) => d.class === 'cm-formatting-hr')).toBeUndefined();
-		});
-
-		it('shows source under raw mode regardless of cursor', () => {
-			settingsStore.updateEditor({ rawMode: true });
-			const doc = 'para\n\n---\n\nmore';
-			const decos = build(doc, 0);
 			expect(decos.find((d) => d.class === 'cm-formatting-hr')).toBeUndefined();
 		});
 	});

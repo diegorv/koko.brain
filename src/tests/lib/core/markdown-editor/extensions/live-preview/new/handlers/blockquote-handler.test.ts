@@ -44,13 +44,6 @@ describe('blockquoteHandler', () => {
 			expect(markDeco).toBeDefined();
 		});
 
-		it('reveals the > mark under raw mode regardless of cursor', () => {
-			settingsStore.updateEditor({ rawMode: true });
-			const decos = build('> hello\n\nplain', 9);
-			const markDeco = decos.find((d) => d.class === 'cm-formatting-block cm-formatting-block-visible');
-			expect(markDeco).toBeDefined();
-		});
-
 		it('mark range covers `> ` (the > plus the trailing space)', () => {
 			const decos = build('> hello');
 			const markDeco = decos.find((d) => d.class.startsWith('cm-formatting-block'));

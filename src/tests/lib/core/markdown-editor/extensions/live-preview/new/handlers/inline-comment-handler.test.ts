@@ -47,14 +47,6 @@ describe('inlineCommentHandler', () => {
 		expect(visible).toBeDefined();
 	});
 
-	it('reveals %%comment%% as visible (non-hidden) under raw mode', () => {
-		settingsStore.updateEditor({ rawMode: true });
-		const doc = 'before %%hidden%% after\nplain';
-		const decos = build(doc, doc.length);
-		const visible = decos.find((d) => d.class === 'cm-lp-inline-comment');
-		expect(visible).toBeDefined();
-	});
-
 	it('emits no decoration when there is no %%…%% syntax', () => {
 		const decos = build('plain text without comments');
 		expect(decos).toEqual([]);
