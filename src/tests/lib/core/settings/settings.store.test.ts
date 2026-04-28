@@ -218,6 +218,19 @@ describe('settingsStore', () => {
 			settingsStore.updateExperimental({ newLivePreview: false });
 			expect(settingsStore.experimental.newLivePreview).toBe(false);
 		});
+
+		it('editor.rawMode defaults to false', () => {
+			expect(settingsStore.editor.rawMode).toBe(false);
+		});
+
+		it('updateEditor toggles rawMode without disturbing other editor fields', () => {
+			const originalFontSize = settingsStore.editor.fontSize;
+			settingsStore.updateEditor({ rawMode: true });
+			expect(settingsStore.editor.rawMode).toBe(true);
+			expect(settingsStore.editor.fontSize).toBe(originalFontSize);
+			settingsStore.updateEditor({ rawMode: false });
+			expect(settingsStore.editor.rawMode).toBe(false);
+		});
 	});
 
 	describe('reset', () => {
