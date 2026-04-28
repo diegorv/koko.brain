@@ -178,18 +178,27 @@ export function notifyAfterSave(filePath: string, content: string): void {
 		try { updateNoteInIndex(filePath, content); } catch (err) { error('HOOKS', 'updateNoteInIndex after save failed:', err); }
 		try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('HOOKS', 'updateFrontmatterIconForFile after save failed:', err); }
 		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
+	}
 
-		// Phase 3.5: parallel-run the Rust VaultIndex update so save-driven
-		// `vault-index-updated` events bump `vaultStore.vaultIndexVersion` and
-		// the `BacklinksPanel.svelte` consumer effect re-fetches via
-		// `get_backlinks_v2`. Fire-and-forget — the Rust side is still being
-		// validated for parity with the TS indexers above (Phase 3.6
-		// comparison), so a failure here must not block the TS path.
-		if (settingsStore.experimental.rustBacklinks) {
-			invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
-				error('HOOKS', 'update_note_in_index after save failed:', err);
-			});
-		}
+	// Phase 3.5: parallel-run the Rust VaultIndex update so save-driven
+	// `vault-index-updated` events bump `vaultStore.vaultIndexVersion` and
+	// `BacklinksPanel.svelte`'s consumer effect re-fetches via
+	// `get_backlinks_v2`. Fire-and-forget — failures must not block the
+	// TS path.
+	//
+	// IMPORTANT: the call sits OUTSIDE the `!isAlreadyIndexed` guard. The TS
+	// dedup map only tracks whether the *TS* indexers were called for this
+	// exact (path, content); the content-effect in `updateIndexesForFile`
+	// marks indexed but never calls Rust. If we gated this call on the same
+	// flag, a typing-pause-then-save sequence (content-effect at 1 s →
+	// autosave at 2 s) would leave Rust permanently stale because the dedup
+	// fires `true` on the save and skipped the Rust call. The Rust side has
+	// its own internal dedup (UpdateResult.changed) — calling it on every
+	// save is cheap (~1-5 ms IPC) and correct.
+	if (settingsStore.experimental.rustBacklinks) {
+		invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
+			error('HOOKS', 'update_note_in_index after save failed:', err);
+		});
 	}
 
 	invalidateQueryjsCache();

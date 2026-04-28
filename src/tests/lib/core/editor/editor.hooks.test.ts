@@ -192,14 +192,40 @@ describe('notifyAfterSave', () => {
 			});
 		});
 
-		it('flag-on: skips Rust call when content was already indexed (dedup honored)', () => {
+		it('flag-on: STILL fires Rust call when TS dedup says already-indexed (Rust has its own dedup)', () => {
+			// The TS dedup tracks whether the TS indexers were called for this
+			// exact (path, content). The content-effect in updateIndexesForFile
+			// marks indexed but never calls Rust — so a typing-pause-then-save
+			// sequence (content-effect at 1 s → autosave at 2 s) would otherwise
+			// leave Rust permanently stale. Rust has internal change detection
+			// via UpdateResult.changed; calling on every save is cheap and correct.
 			settingsStore.updateExperimental({ rustBacklinks: true });
 			vi.mocked(invoke).mockResolvedValue(undefined);
 			markIndexed('/vault/note.md', 'same');
 
 			notifyAfterSave('/vault/note.md', 'same');
 
-			expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+				path: '/vault/note.md',
+				content: 'same',
+			});
+		});
+
+		it('flag-on: TS dedup STILL skips the TS indexers when content is unchanged', () => {
+			// Same scenario as above, but verifying the TS path remains gated by
+			// the dedup. Only the Rust call jumped outside the guard.
+			settingsStore.updateExperimental({ rustBacklinks: true });
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			markIndexed('/vault/note.md', 'same');
+			const tsCallsBefore = vi.mocked(invoke).mock.calls.length;
+
+			notifyAfterSave('/vault/note.md', 'same');
+
+			// Rust call fires (1 new invoke)
+			expect(vi.mocked(invoke).mock.calls.length).toBe(tsCallsBefore + 1);
+			expect(vi.mocked(invoke).mock.calls[tsCallsBefore][0]).toBe('update_note_in_index');
+			// dedup signature unchanged (still marked, no re-mark needed)
+			expect(isAlreadyIndexed('/vault/note.md', 'same')).toBe(true);
 		});
 
 		it('flag-on: IPC rejection is swallowed and does not block observers', async () => {
