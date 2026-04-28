@@ -12,12 +12,18 @@ import { profileStart, profileEnd } from '../core/profiling';
  * Arguments passed to a node-handler's `decorate` function. `isTouched(from,
  * to)` is the cursor-reveal helper — every handler that wants to toggle a
  * `*-visible` modifier class on its mark calls it with the parent range.
+ *
+ * `scratch` is a per-build Map handlers can use to dedupe across multiple
+ * dispatches — e.g. the blockquote handler matches `QuoteMark` (which fires
+ * once per `>` on each line) and uses scratch to track which line numbers it
+ * has already decorated.
  */
 export interface NodeDecorateArgs {
 	node: SyntaxNodeRef;
 	state: EditorState;
 	isTouched: (from: number, to: number) => boolean;
 	decorations: Range<Decoration>[];
+	scratch: Map<string, unknown>;
 }
 
 /** Handler that decorates a Lezer node by name. */
@@ -34,6 +40,7 @@ export interface LineDecorateArgs {
 	state: EditorState;
 	isTouched: (from: number, to: number) => boolean;
 	decorations: Range<Decoration>[];
+	scratch: Map<string, unknown>;
 }
 
 /**
@@ -80,6 +87,7 @@ export function buildInlineDecorations(
 
 	const seenNodes = new Set<string>();
 	const seenLines = new Set<number>();
+	const scratch = new Map<string, unknown>();
 	const isTouched = (from: number, to: number) => shouldShowSource(state, from, to);
 
 	for (const range of ranges) {
@@ -96,7 +104,7 @@ export function buildInlineDecorations(
 					if (seenNodes.has(dedupKey)) return;
 					seenNodes.add(dedupKey);
 					for (const handler of matched) {
-						handler.decorate({ node, state, isTouched, decorations });
+						handler.decorate({ node, state, isTouched, decorations, scratch });
 					}
 				},
 			});
@@ -113,7 +121,7 @@ export function buildInlineDecorations(
 			const nodeAt = syntaxTree(state).resolveInner(line.from);
 			if (isInsideBlockContext(nodeAt)) continue;
 			for (const handler of handlers.lineHandlers) {
-				handler.decorate({ line, state, isTouched, decorations });
+				handler.decorate({ line, state, isTouched, decorations, scratch });
 			}
 		}
 	}

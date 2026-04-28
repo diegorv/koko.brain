@@ -40,8 +40,8 @@ Consolidates the 8 inline plugins (~1 287 LOC across `markdown-style`, `heading`
 
 ### Phase 5 — Retire blockquotePlugin (133 LOC)
 
-- [ ] Task 5.1: `new/handlers/blockquote-handler.ts` — single Blockquote node handler with depth + callout exclusion (reuses `blockquoteLineDeco`, `CALLOUT_RE`)
-- [ ] Task 5.2: Register, delete plugin, migrate tests, add E2E
+- [x] Task 5.1: `new/handlers/blockquote-handler.ts` — `QuoteMark` node handler with per-line dedup via shared `scratch` Map, depth 1/2/3 via `findBlockquoteMarkRange` (reuses `blockquoteLineDeco`, `CALLOUT_RE` exclusion). Added `scratch: Map<string, unknown>` to `NodeDecorateArgs`/`LineDecorateArgs` for cross-dispatch handler state
+- [x] Task 5.2: Registered in `new-inline-extensions.ts`. **Plugin deletion deferred to Phase 12.5.** Unit tests (15 cases) + E2E `blockquotes-new-pipeline.spec.ts` (7 cases) + DOM-snapshot test extended for both flag paths
 
 ### Phase 6 — Retire inlineCommentPlugin (95 LOC)
 
