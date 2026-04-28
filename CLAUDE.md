@@ -205,25 +205,27 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing guide: mock rules, a
 
 ### Live Preview (CodeMirror Decorations)
 
-The live preview system uses ~22 CodeMirror decoration plugins. Key performance rules:
+The live-preview system splits decoration into two tracks: per-feature `StateField`s for **block** widgets (frontmatter, code-block, table, callout, queryjs, mermaid, math, …) and **one** unified `inlineFormattingPlugin` for inline marks/styles (driven by a node + line handler registry from `live-preview/inline/`). Tag-based styling (bold/italic/strikethrough/monospace) goes through `HighlightStyle` in `inline/markdown-highlight-style.ts` — same `cm-lp-*` class names themes already target. Key performance rules:
 
-1. **Use `Decoration.mark()` + CSS over `Decoration.replace()` + widgets** — marks are CSS-only (GPU-accelerated paint), widgets cause DOM reflow. Only use widgets for complex interactive elements (tables, code blocks, meta-bind selects). For simple visual replacements (bullets, HR, hard breaks), use marks with `font-size: 0` + `::before`/`::after` pseudo-elements.
+1. **Use `Decoration.mark()` + CSS over `Decoration.replace()` + widgets** — marks are CSS-only (GPU-accelerated paint), widgets cause DOM reflow. Only use widgets for complex interactive elements (tables, code blocks, meta-bind selects, queryjs blocks). For simple visual replacements (bullets, HR, hard breaks), use marks with `font-size: 0` + `::before`/`::after` pseudo-elements.
 
-2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache expensive results (scripts, API calls) at module level and clone cached DOM in `toDOM()`. See `queryjs-block-widget.ts` for the cache pattern.
+2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache expensive results (scripts, API calls) and re-attach the cached DOM in `toDOM()`. See `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts` for the live-DOM cache pattern.
 
 3. **Widgets with `eq()` don't prevent `toDOM()` calls** — `eq()` returning `true` keeps existing DOM, but when the widget is removed from viewport and re-enters, CM calls `toDOM()` fresh. Cache is the only way to avoid re-execution.
 
-4. **Block plugins must skip viewport-only scroll** — add `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` as the first line of `update()` in any plugin that scans the full document.
+4. **Block plugins must skip viewport-only scroll** — add `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` as the first line of `update()` in any plugin that scans the full document. Same guard applies to the inline `inlineFormattingPlugin`.
 
-5. **`checkUpdateAction` with `lastCursorLine`** — pass cursor line to skip rebuilds when cursor stays on the same line. All plugins already do this.
+5. **`checkUpdateAction` with `lastCursorLine`** — pass cursor line to skip rebuilds when cursor stays on the same line. All plugins use this.
 
-6. **Profile before optimizing** — the LP-PROFILE timing logs (currently in all plugins via `appendLog`) measure JS computation. If JS is fast (~1ms per plugin), the bottleneck is DOM rendering, not JS. Disable plugins one by one via the `DISABLE` flags in `live-preview.ts` to isolate which plugin causes lag.
+6. **Profile before optimizing** — the LP-PROFILE timing logs (via `appendLog` from `core/profiling.ts`) measure JS computation. If JS is fast (~1ms per plugin), the bottleneck is DOM rendering, not JS. Disable per-feature decorators via `settingsStore.disabledDecorators` to isolate which plugin causes lag.
 
 7. **Scroll debounce** — `scrollDebouncePlugin` defers `forceDecorationRebuild` by 150ms after scroll stops. `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond viewport so content has decorations ready when it scrolls in.
 
 8. **QueryJS uses `_pendingViews` instead of an auto-await regex.** `KBAPI.view()` registers its returned Promise on `this._pendingViews`; the widget calls `await api.awaitAllPending()` after running the user script. A block like `` ```queryjs\nkb.view("…")\n``` `` works whether the user wrote `await` or not — the IIFE returns Promise<undefined> immediately, but `awaitAllPending()` waits on every `view()` started during the run, so DOM mutations finish before the result is cached. **Do not add a regex rewrite back** — the legacy `s/(?<![\w.])(kb|dv)\.view\(/await $1.view(/g` was the source of the "function-local `kb.view()` accidentally awaited" footgun and is permanently obsoleted by `_pendingViews`.
 
 9. **QueryJS `resultCache` holds the LIVE element, not a clone.** `queryjs-session.store.svelte.ts` keeps `Map<contentHash, HTMLElement>` and re-attaches the same DOM node on cache hit. `<canvas>` pixel buffers, `<video>` playback state, and `<iframe>` loaded content survive widget destruction because the element keeps living through the store reference; CodeMirror destroys the widget but the DOM is detached, not garbage-collected. **Do not bring back `cloneNode(true)` + `<canvas>/<video>/<iframe>` exclusion** — the live-ref scheme is correct, simpler, and preserves chart state without the special case.
+
+11. **Interactive widget elements must `stopPropagation` on `mousedown`** — CodeMirror processes mousedown for cursor positioning. Without explicit stopPropagation, clicking a button inside a widget moves the cursor → `shouldShowSource(...)` returns true → widget destroyed → click fires on detached DOM → handler never runs. Pattern used by every interactive control: meta-bind select/inputs, code-block language switcher, callout type popover, table +col/+row buttons, queryjs ▶ Run button.
 
 10. **`autoRunQueries` policy matrix governs when a queryjs block executes.** Set via `settingsStore.queryjs.autoRunQueries`. Each toDOM() lookup runs in this order:
     - Cache hit (`queryjsSessionStore.hasResult(jsContent)`) → re-attach the cached element. No execution.
