@@ -207,6 +207,17 @@ describe('settingsStore', () => {
 			// Second call replaces colors entirely (shallow merge of TagColorSettings)
 			expect(settingsStore.tagColors.colors).toEqual({ personal: '#44cf6e' });
 		});
+
+		it('experimental defaults to newLivePreview=false', () => {
+			expect(settingsStore.experimental).toEqual({ newLivePreview: false });
+		});
+
+		it('updateExperimental merges with existing flags', () => {
+			settingsStore.updateExperimental({ newLivePreview: true });
+			expect(settingsStore.experimental.newLivePreview).toBe(true);
+			settingsStore.updateExperimental({ newLivePreview: false });
+			expect(settingsStore.experimental.newLivePreview).toBe(false);
+		});
 	});
 
 	describe('reset', () => {

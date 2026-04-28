@@ -183,6 +183,12 @@ export interface TagColorSettings {
 	colors: Record<string, string>;
 }
 
+/** Experimental feature flags — disabled by default, opt-in via Settings → Experimental */
+export interface ExperimentalSettings {
+	/** Use the consolidated live-preview pipeline (HighlightStyle + unified inline plugin). Default false. */
+	newLivePreview: boolean;
+}
+
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'security' | 'troubleshooting' | 'update';
 
@@ -220,4 +226,6 @@ export interface AppSettings {
 	disabledDecorators: Record<string, boolean>;
 	/** Tag color assignments (persisted per-vault) */
 	tagColors: TagColorSettings;
+	/** Experimental feature flags — opt-in via Settings → Experimental */
+	experimental: ExperimentalSettings;
 }
