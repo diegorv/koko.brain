@@ -169,3 +169,130 @@ export interface UpdateResultV2 {
 	/** Monotonic version counter from the `VaultIndex`. */
 	version: number;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 7 — Tag and Task IPC types
+//
+// Mirrors `src-tauri/src/vault/task.rs`. The TS equivalents in
+// `src/lib/features/tasks/{tasks.types.ts, task-metadata.types.ts}` and
+// `src/lib/features/tags/tags.types.ts` will be retired once the FE
+// migration commit (7.5–7.6) lands; until then both type sets coexist.
+// ---------------------------------------------------------------------------
+
+/**
+ * Task status parsed from the checkbox character. Mirrors the Rust
+ * `TaskStatus` enum (kebab-case JSON) and the TS `TaskStatus` string union
+ * already defined in `task-metadata.types.ts` — the values match.
+ *
+ * @experimental
+ */
+export type TaskStatusV2 =
+	| 'todo'
+	| 'done'
+	| 'cancelled'
+	| 'in-progress'
+	| 'question'
+	| 'forwarded'
+	| 'important';
+
+/**
+ * Task priority parsed from emoji signifiers. Mirrors the Rust
+ * `TaskPriority` enum. Note: includes `'none'` (a documented value in
+ * the TS surface) for parity.
+ *
+ * @experimental
+ */
+export type TaskPriorityV2 = 'highest' | 'high' | 'medium' | 'none' | 'low' | 'lowest';
+
+/**
+ * Recurrence rule. Mirrors `RecurrenceRule` in
+ * `task-metadata.types.ts`. The `text` field carries the raw recurrence
+ * text (e.g. `"every week"`) verbatim.
+ *
+ * @experimental
+ */
+export interface RecurrenceRuleV2 {
+	text: string;
+}
+
+/**
+ * Structured task metadata extracted from emoji signifiers in the
+ * task's raw text. Every field except `description` and `tags` is
+ * optional — the Rust serializer skips `None` values.
+ *
+ * @experimental
+ */
+export interface TaskMetadataV2 {
+	description: string;
+	dueDate?: string;
+	scheduledDate?: string;
+	startDate?: string;
+	createdDate?: string;
+	doneDate?: string;
+	cancelledDate?: string;
+	priority?: TaskPriorityV2;
+	recurrence?: RecurrenceRuleV2;
+	id?: string;
+	dependsOn?: string[];
+	onCompletion?: string;
+	tags: string[];
+}
+
+/**
+ * One task list item parsed from a note's body. Mirrors the Rust `Task`
+ * struct and the TS `TaskItem` interface. `lineNumber` is 1-based.
+ *
+ * @experimental
+ */
+export interface TaskV2 {
+	text: string;
+	checked: boolean;
+	indent: number;
+	lineNumber: number;
+	status: TaskStatusV2;
+	metadata: TaskMetadataV2;
+}
+
+/**
+ * Aggregate tag info returned by `invoke('get_all_tags_v2')`. Carries the
+ * original-case display name (first occurrence wins per `extractAllTags`
+ * semantics), the count of distinct notes using the tag, and the sorted
+ * list of paths. Phase 7.3.
+ *
+ * @experimental
+ */
+export interface TagAggregateV2 {
+	name: string;
+	count: number;
+	filePaths: string[];
+}
+
+/**
+ * One file's worth of tasks, returned by `invoke('get_all_tasks_v2')` and
+ * `invoke('get_tasks_in_section_v2', { sectionTag })`. `modifiedAt` is in
+ * SECONDS (matches `NoteEntryV2.modifiedAt`); the legacy `FileNode.modifiedAt`
+ * from `scan_vault` is in MILLISECONDS — do not mix the two units.
+ *
+ * @experimental
+ */
+export interface FileTaskGroupV2 {
+	filePath: string;
+	fileName: string;
+	modifiedAt: number;
+	tasks: TaskV2[];
+}
+
+/**
+ * Result of `invoke('toggle_task_status', { path, lineNumber })`. The
+ * `updatedContent` field carries the new file content so the caller can
+ * sync `noteIndexStore` and the open editor without re-reading the file.
+ * `updateResult.changed === false` means the toggle was a no-op
+ * (out-of-bounds line or no checkbox); the disk file is untouched in
+ * that case and `updatedContent` equals the pre-call content.
+ *
+ * @experimental
+ */
+export interface ToggleTaskResultV2 {
+	updatedContent: string;
+	updateResult: UpdateResultV2;
+}
