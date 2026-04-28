@@ -41,6 +41,39 @@ pub struct WikiLink {
 	pub position: usize,
 }
 
+/// One outgoing wikilink already resolved against the `VaultIndex` —
+/// returned by `get_outgoing_links_v2` to the `OutgoingLinksPanel`.
+/// Mirrors `outgoing-links.types.ts::OutgoingLink`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutgoingLink {
+	/// The wikilink target as written, after trimming the alias / heading.
+	pub target: String,
+	/// Optional alias following `|`, e.g. `[[target|alias]]`. `None` when absent.
+	pub alias: Option<String>,
+	/// Optional heading or block reference following `#`. `None` when absent.
+	pub heading: Option<String>,
+	/// Absolute path the wikilink resolved to via the `by_path` cache.
+	/// `None` for broken links (target file does not exist in the vault).
+	pub resolved_path: Option<String>,
+	/// Byte offset of the opening `[[` in the source content.
+	pub position: usize,
+}
+
+/// One unlinked mention of a vault note in the active note's body —
+/// returned by `get_outgoing_unlinked_mentions_v2`. Mirrors
+/// `outgoing-links.types.ts::OutgoingUnlinkedMention`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutgoingUnlinkedMention {
+	/// Note name (basename without `.md` / `.markdown`).
+	pub note_name: String,
+	/// Absolute path of the mentioned note.
+	pub note_path: String,
+	/// Number of plain-text occurrences of `note_name` in the active body.
+	pub count: usize,
+}
+
 /// Canonical per-note metadata used by the Rust `VaultIndex`.
 ///
 /// Constructed by Phase 1.5's `scan_vault_v2` and Phase 2's

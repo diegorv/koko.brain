@@ -10,7 +10,8 @@
 //! See ADR 0025 (`docs/adr/0025-rust-vault-index.md`) for the migration
 //! plan and how this replaces the per-feature TS stores.
 
-use crate::vault::entry::NoteEntry;
+use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
+use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_content};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 
@@ -308,5 +309,103 @@ impl VaultIndex {
 		};
 		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
 		sources
+	}
+
+	/// Returns the outgoing wikilinks of the entry at `path`, each with its
+	/// resolved target path filled in via the index's `by_path` cache.
+	/// Empty when `path` is unknown to the index.
+	///
+	/// Mirrors the consumer side of `outgoing-links.logic.ts::getOutgoingLinks`
+	/// — the parsing was done at scan time, only resolution happens here.
+	/// `resolved_path` is `None` for broken links.
+	pub fn lookup_outgoing_links(&self, path: &str) -> Vec<OutgoingLink> {
+		let entry = match self.entries.get(path) {
+			Some(e) => e,
+			None => return Vec::new(),
+		};
+		entry
+			.outgoing_links
+			.iter()
+			.map(|link| OutgoingLink {
+				target: link.target.clone(),
+				alias: link.alias.clone(),
+				heading: link.heading.clone(),
+				resolved_path: resolve_with_cache(&link.target, &self.by_path),
+				position: link.position,
+			})
+			.collect()
+	}
+
+	/// Returns notes whose names appear as plain text in `content` but are
+	/// NOT already linked from `path` via wikilinks. The result is sorted
+	/// by `note_name` (case-insensitive) for stable UI ordering.
+	///
+	/// Mirrors `outgoing-links.logic.ts::findOutgoingUnlinkedMentions`. The
+	/// caller passes `content` because the index does not store full
+	/// per-note content; for the active-tab panel the content is already
+	/// in `editorStore.activeTab.content`, so the IPC roundtrip carries it
+	/// once and avoids cache invalidation problems.
+	///
+	/// Empty `content` returns an empty list (matches TS short-circuit).
+	pub fn lookup_outgoing_unlinked_mentions(
+		&self,
+		path: &str,
+		content: &str,
+	) -> Vec<OutgoingUnlinkedMention> {
+		if content.is_empty() {
+			return Vec::new();
+		}
+
+		// Build the "already-linked" set from the current note's outgoing
+		// links — match by lowercased target AND by lowercased basename of
+		// the target (mirrors `getNoteName(t).toLowerCase()` from TS).
+		let current_links: Vec<String> = self
+			.entries
+			.get(path)
+			.map(|e| {
+				e.outgoing_links
+					.iter()
+					.flat_map(|l| {
+						let target_lower = l.target.to_lowercase();
+						let basename_lower = note_name_from_target(&l.target).to_lowercase();
+						if target_lower == basename_lower {
+							vec![target_lower]
+						} else {
+							vec![target_lower, basename_lower]
+						}
+					})
+					.collect()
+			})
+			.unwrap_or_default();
+
+		let stripped = strip_non_body_content(content);
+		let stripped_lower = stripped.to_lowercase();
+		let mut mentions: Vec<OutgoingUnlinkedMention> = Vec::new();
+
+		for other_path in self.entries.keys() {
+			if other_path == path {
+				continue;
+			}
+			let note_name = note_name_from_target(other_path);
+			if note_name.is_empty() {
+				continue;
+			}
+			let note_name_lower = note_name.to_lowercase();
+			if current_links.iter().any(|t| t == &note_name_lower) {
+				continue;
+			}
+			let positions = find_plain_text_mention_positions(content, &stripped_lower, note_name);
+			let count = positions.len();
+			if count > 0 {
+				mentions.push(OutgoingUnlinkedMention {
+					note_name: note_name.to_string(),
+					note_path: other_path.clone(),
+					count,
+				});
+			}
+		}
+
+		mentions.sort_by(|a, b| a.note_name.to_lowercase().cmp(&b.note_name.to_lowercase()));
+		mentions
 	}
 }

@@ -110,6 +110,45 @@ export interface NoteEntryV2 {
 }
 
 /**
+ * One outgoing wikilink already resolved by the Rust `VaultIndex` —
+ * returned by `invoke('get_outgoing_links_v2', { path })`. Mirrors
+ * `kokobrain_lib::vault::entry::OutgoingLink` and the legacy TS
+ * `outgoing-links.types.ts::OutgoingLink` shape one-for-one.
+ *
+ * Phase 6.1 of the perf refactor.
+ */
+export interface OutgoingLinkV2 {
+	/** Wikilink target as written. */
+	target: string;
+	/** Optional alias following `|`, e.g. `[[target|alias]]`. */
+	alias: string | null;
+	/** Optional heading or block reference following `#`. */
+	heading: string | null;
+	/** Absolute path the wikilink resolved to, or `null` for broken links. */
+	resolvedPath: string | null;
+	/** Byte offset of the opening `[[` in the source content. */
+	position: number;
+}
+
+/**
+ * One unlinked mention of a vault note in the active note's body —
+ * returned by `invoke('get_outgoing_unlinked_mentions_v2', { path, content })`.
+ * Mirrors `kokobrain_lib::vault::entry::OutgoingUnlinkedMention`.
+ *
+ * Phase 6.2 of the perf refactor. The `count` field is the number of
+ * plain-text occurrences after Unicode word-boundary checks and
+ * frontmatter / fenced-code stripping.
+ */
+export interface OutgoingUnlinkedMentionV2 {
+	/** Note basename without `.md` / `.markdown` suffix. */
+	noteName: string;
+	/** Absolute path of the mentioned note. */
+	notePath: string;
+	/** Number of plain-text occurrences in the active body. */
+	count: number;
+}
+
+/**
  * Result of a single `update_note_in_index` mutation. Returned over IPC
  * so consumers know whether the mutation produced any change and which
  * other notes' backlinks were affected (the `affected` paths set is what

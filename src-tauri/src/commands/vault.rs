@@ -1,6 +1,6 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
-use crate::vault::entry::NoteEntry;
+use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
 use crate::vault::index::{UpdateResult, VaultIndex};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
@@ -237,6 +237,46 @@ pub fn get_backlinks_v2(
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	Ok(idx.lookup_backlinks(&path))
+}
+
+/// Returns the outgoing wikilinks of `path`, each resolved against the
+/// managed `VaultIndex.by_path` cache (so callers know which links are
+/// broken vs which target real notes). Reads under a shared lock; empty
+/// vector when `path` is unknown to the index.
+///
+/// Phase 6.1 of the perf refactor — moves outgoing-link resolution off
+/// the JS main thread.
+#[tauri::command]
+pub fn get_outgoing_links_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<OutgoingLink>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_outgoing_links(&path))
+}
+
+/// Returns notes whose names appear as plain text in `content` but are
+/// NOT already linked from `path` via wikilinks. Sorted by `note_name`
+/// (case-insensitive) for stable UI ordering. Reads under a shared lock.
+///
+/// `content` is passed in by the frontend (active tab content) because
+/// the index doesn't store full per-note bodies — only `snippet`.
+///
+/// Phase 6.2 of the perf refactor — moves the unlinked-mention scan
+/// (Unicode word-boundary checks, frontmatter/code stripping) off the
+/// JS main thread.
+#[tauri::command]
+pub fn get_outgoing_unlinked_mentions_v2(
+	path: String,
+	content: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<OutgoingUnlinkedMention>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_outgoing_unlinked_mentions(&path, &content))
 }
 
 /// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
