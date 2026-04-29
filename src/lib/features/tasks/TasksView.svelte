@@ -11,6 +11,7 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { filterByDate, filterCompleted, computeTaskStats } from './tasks.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
+	import { debounce } from '$lib/utils/debounce';
 	import type { TaskDateFilter } from './tasks.types';
 
 	const DATE_FILTERS: { label: string; value: TaskDateFilter }[] = [
@@ -58,12 +59,22 @@
 		initTodoist();
 	});
 
+	// 200 ms debounce coalesce — same shape as TagsPanel. A burst of
+	// `vault-index-updated` emits (e.g. rename → 3 paths → 3 emits) used
+	// to fire 3 concurrent `buildTaskIndex` calls; with a `sectionTag`
+	// set, each call iterates every entry and re-reads file content
+	// inside Rust. Coalescing prevents the thrash.
+	const refetchTasks = debounce(() => {
+		void buildTaskIndex();
+	}, 200);
+
 	// Refetch task groups whenever the Rust `VaultIndex` version bumps
-	// (save, watcher event, toggle, or remove_note_from_index). Phase 7.6.
+	// (save, watcher event, toggle, or remove_note_from_index). Phase 7.6,
+	// debounced 2026-04-29 (audit follow-up #fix1).
 	$effect(() => {
 		void vaultStore.vaultIndexVersion;
 		untrack(() => {
-			void buildTaskIndex();
+			refetchTasks();
 		});
 	});
 

@@ -50,12 +50,25 @@
 			: tagsStore.tagTree,
 	);
 
+	// 200 ms debounce coalesce window. A rename of a single file in a
+	// 2k-note vault can fire 3+ `vault-index-updated` emits in <50 ms
+	// (one per affected path: source, target, parent dir). Each emit
+	// previously triggered a full `buildTagIndex` — three concurrent runs
+	// of `get_all_tags_v2` + `buildTagTree` over 3.6k unique tags landed
+	// at 250 ms / 631 ms / 893 ms in the 2026-04-29 freeze repro
+	// (`docs/perf/...`). The 200 ms window is wide enough to coalesce a
+	// natural watcher burst yet narrow enough to feel instant on save.
+	const refetchTags = debounce(() => {
+		void buildTagIndex();
+	}, 200);
+
 	// Refetch the tag tree from Rust whenever the `VaultIndex` version
-	// bumps (save, watcher, or remove_note_from_index). Phase 7.5.
+	// bumps (save, watcher, or remove_note_from_index). Phase 7.5,
+	// debounced 2026-04-29 (audit follow-up #fix1).
 	$effect(() => {
 		void vaultStore.vaultIndexVersion;
 		untrack(() => {
-			void buildTagIndex();
+			refetchTags();
 		});
 	});
 </script>

@@ -21,6 +21,7 @@
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { debounce } from '$lib/utils/debounce';
 	import { error } from '$lib/utils/debug';
 	import GraphControls from './GraphControls.svelte';
 
@@ -385,13 +386,22 @@
 		});
 	});
 
+	// 200 ms debounce coalesce — same shape as TagsPanel / TasksView.
+	// `loadAndRebuild` fetches `get_all_vault_entries_v2` (~2-3 MB clone
+	// for a 2k-note vault) and re-runs the d3-force simulation, both
+	// expensive. Bursts of `vault-index-updated` (e.g. rename → 3 emits)
+	// would otherwise rebuild the graph 3× back-to-back.
+	const refetchGraph = debounce(() => {
+		loadAndRebuild();
+	}, 200);
+
 	// Refetch the full graph snapshot from Rust whenever the vault index
 	// signals a change. Initial mount also runs through here via the
-	// version-0 read.
+	// version-0 read. Debounced 2026-04-29 (audit follow-up #fix1).
 	$effect(() => {
 		vaultStore.vaultIndexVersion;
 		untrack(() => {
-			loadAndRebuild();
+			refetchGraph();
 		});
 	});
 
