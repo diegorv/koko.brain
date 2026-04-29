@@ -78,6 +78,8 @@ describe('vault-v2.types', () => {
 				],
 				tags: ['a', 'b'],
 				modifiedAt: 1714305600,
+				createdAt: 1714000000,
+				size: 1024,
 				wordCount: 5,
 				snippet: 'Hello world',
 			};
@@ -90,16 +92,20 @@ describe('vault-v2.types', () => {
 			expectTypeOf(entry.outgoingLinks).toEqualTypeOf<WikiLinkV2[]>();
 			expectTypeOf(entry.tags).toEqualTypeOf<string[]>();
 			expectTypeOf(entry.modifiedAt).toBeNumber();
+			expectTypeOf(entry.createdAt).toBeNumber();
+			expectTypeOf(entry.size).toBeNumber();
 			expectTypeOf(entry.wordCount).toBeNumber();
 			expectTypeOf(entry.snippet).toBeString();
 
 			// Runtime sanity-check that the keys exist (no rogue snake_case).
 			const keys = Object.keys(entry).sort();
 			expect(keys).toEqual([
+				'createdAt',
 				'frontmatter',
 				'modifiedAt',
 				'outgoingLinks',
 				'path',
+				'size',
 				'snippet',
 				'tags',
 				'title',

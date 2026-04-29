@@ -103,6 +103,10 @@ export interface NoteEntryV2 {
 	tags: string[];
 	/** Last-modified time in **seconds** since the UNIX epoch. */
 	modifiedAt: number;
+	/** Created time in **seconds** since the UNIX epoch. `0` when the FS doesn't expose it. Phase 8. */
+	createdAt: number;
+	/** File size in bytes. Phase 8. */
+	size: number;
 	/** Whitespace-split word count of the body (post-frontmatter). */
 	wordCount: number;
 	/** Leading body content, capped at 280 bytes at a codepoint boundary. */
@@ -295,4 +299,37 @@ export interface FileTaskGroupV2 {
 export interface ToggleTaskResultV2 {
 	updatedContent: string;
 	updateResult: UpdateResultV2;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 8 — Property + file-op IPC types
+//
+// Mirrors the Rust `vault::entry::NoteRecord` projection. The TS-side
+// `collection.service` and `kb-api` consume `NoteRecord` directly (NOT
+// `NoteEntry` — they need the rich path-derived fields and ms-units for
+// timestamps). The Rust side projects from `NoteEntry` at IPC time.
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-note record returned by `invoke('get_all_property_records')` and
+ * the per-key query commands. Mirrors `kokobrain_lib::vault::entry::NoteRecord`
+ * one-for-one.
+ *
+ * IMPORTANT: `mtime` and `ctime` are MILLISECONDS here (matching the
+ * existing TS `FileNode.modifiedAt` units consumed by the collection
+ * panel), NOT the seconds the parent `NoteEntryV2` carries. Conversion
+ * happens server-side in `commands::vault::project_note_record`.
+ *
+ * @experimental
+ */
+export interface NoteRecordV2 {
+	path: string;
+	name: string;
+	basename: string;
+	folder: string;
+	ext: string;
+	mtime: number;
+	ctime: number;
+	size: number;
+	properties: Record<string, FrontmatterValue>;
 }
