@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
+import { dedupeInflight } from '$lib/utils/inflight';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -50,12 +51,15 @@ export async function rebuildIndex() {
  * Fetches backlinks for a file from the Rust `VaultIndex` via
  * `invoke('get_backlinks_v2')` and writes them to `backlinksStore.linkedMentions`.
  *
- * Used by both the active-tab tracker (path change) and `BacklinksPanel.svelte`
- * (path change OR `vaultStore.vaultIndexVersion` bump). Errors are logged via
- * `errorLog('BACKLINKS', ...)` and swallowed — the linked-mentions panel keeps
- * its prior contents on IPC failure.
+ * Used by both the +layout.svelte tab-switch effect (path change) and
+ * `BacklinksPanel.svelte` (path change OR `vaultStore.vaultIndexVersion`
+ * bump). Wrapped in `dedupeInflight` so concurrent calls for the same
+ * `path` collapse into a single IPC — this is the common case during a
+ * tab switch + version bump landing in the same JS turn. Errors are
+ * logged via `errorLog('BACKLINKS', ...)` and swallowed — the linked-
+ * mentions panel keeps its prior contents on IPC failure.
  */
-export async function fetchBacklinksV2(path: string): Promise<void> {
+async function fetchBacklinksV2Inner(path: string): Promise<void> {
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
@@ -66,6 +70,7 @@ export async function fetchBacklinksV2(path: string): Promise<void> {
 		errorLog('BACKLINKS', 'fetchBacklinksV2 failed:', err);
 	}
 }
+export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: string) => path);
 
 /**
  * Computes unlinked mentions on demand by invoking the Rust
@@ -77,10 +82,13 @@ export async function fetchBacklinksV2(path: string): Promise<void> {
  * frontmatter/code-stripping rules the TS-side `findUnlinkedMentions`
  * used.
  *
- * Errors are logged via `errorLog('BACKLINKS', ...)` and swallowed —
- * the panel keeps its prior contents on IPC failure.
+ * Wrapped in `dedupeInflight` because the BacklinksPanel `$effect`
+ * tracks `(unlinkedDirty, activeTabPath, unlinkedOpen)` and can re-fire
+ * for the same `filePath` while a prior IPC is still in flight (e.g. a
+ * dirty-bump arrives during a 400 ms disk scan). Errors are logged
+ * via `errorLog('BACKLINKS', ...)` and swallowed.
  */
-export async function computeUnlinkedMentionsForFile(filePath: string): Promise<void> {
+async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<void> {
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_unlinked_mentions_v2', { path: filePath });
@@ -91,6 +99,10 @@ export async function computeUnlinkedMentionsForFile(filePath: string): Promise<
 		errorLog('BACKLINKS', 'computeUnlinkedMentionsForFile failed:', err);
 	}
 }
+export const computeUnlinkedMentionsForFile = dedupeInflight(
+	computeUnlinkedMentionsForFileInner,
+	(filePath: string) => filePath,
+);
 
 export function resetBacklinks() {
 	vaultPath = null;
