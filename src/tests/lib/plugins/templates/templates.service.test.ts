@@ -24,6 +24,10 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 	openOrCreateNote: vi.fn(),
 }));
@@ -178,12 +182,13 @@ describe('ensureTemplatesFolder', () => {
 
 	it('creates folder and empty template files when everything is missing', async () => {
 		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await ensureTemplatesFolder();
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/_system/templates', { recursive: true });
+		// Phase 8.8: folder creation routes through Rust `create_folder`.
+		const { invoke } = await import('@tauri-apps/api/core');
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/_system/templates' });
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Monthly Note.md', '');
@@ -204,7 +209,6 @@ describe('ensureTemplatesFolder', () => {
 		settingsStore.updateOneOnOne({ templatePath: '_system/templates/One on One.md' });
 
 		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await ensureTemplatesFolder();

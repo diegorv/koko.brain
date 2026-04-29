@@ -1,70 +1,85 @@
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import { debug, timeSync } from '$lib/utils/debug';
+import { invoke } from '@tauri-apps/api/core';
+import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
 import { collectionStore } from './collection.store.svelte';
-import { buildNoteRecord } from './collection.logic';
 import type { NoteRecord } from './collection.types';
-
-/** Flattens a FileTreeNode tree into a Map of path → { mtime, ctime } */
-function buildMetadataMap(nodes: FileTreeNode[]): Map<string, { mtime: number; ctime: number }> {
-	const map = new Map<string, { mtime: number; ctime: number }>();
-	function walk(items: FileTreeNode[]) {
-		for (const node of items) {
-			if (!node.isDirectory) {
-				map.set(node.path, {
-					mtime: node.modifiedAt ?? 0,
-					ctime: node.createdAt ?? 0,
-				});
-			}
-			if (node.children) walk(node.children);
-		}
-	}
-	walk(nodes);
-	return map;
-}
+import type { NoteRecordV2 } from '$lib/types/vault-v2.types';
+import { buildNoteRecord } from './collection.logic';
 
 /**
- * Builds the full property index from all indexed note contents.
- * Uses noteIndexStore.noteContents as the source of truth and
- * fsStore.fileTree for file metadata (timestamps).
+ * Converts a `NoteRecordV2` (Rust IPC, properties as a JSON object)
+ * into the TS-side `NoteRecord` (properties as a Map<string, unknown>
+ * — kb-api / collection consumers iterate via `.get(key)`). Unit
+ * conversion happens server-side in `commands::vault::project_note_record`,
+ * so `mtime` / `ctime` arrive in milliseconds already.
  */
-export function buildPropertyIndex() {
-	timeSync('COLLECTION', 'buildPropertyIndex', () => {
-		const noteContents = noteIndexStore.noteContents;
-		const metadata = buildMetadataMap(fsStore.fileTree);
-		const index = new Map<string, NoteRecord>();
-
-		for (const [path, content] of noteContents) {
-			const meta = metadata.get(path);
-			const record = buildNoteRecord(path, content, meta?.mtime ?? 0, meta?.ctime ?? 0);
-			index.set(path, record);
-		}
-
-		collectionStore.setPropertyIndex(index);
-		debug('COLLECTION', `Properties: ${index.size} notes`);
-	});
+function fromV2(record: NoteRecordV2): NoteRecord {
+	const properties = new Map<string, unknown>();
+	for (const [k, v] of Object.entries(record.properties)) {
+		properties.set(k, v);
+	}
+	return {
+		path: record.path,
+		name: record.name,
+		basename: record.basename,
+		folder: record.folder,
+		ext: record.ext,
+		mtime: record.mtime,
+		ctime: record.ctime,
+		size: record.size,
+		properties,
+	};
 }
 
 /**
- * Updates a single note's record in the property index.
- * Called when a note's content changes (typing).
- * Preserves existing file metadata from the current index entry since
- * timestamps don't change during editing — the watcher triggers a full
- * rebuild with fresh metadata when the file is saved to disk.
+ * Builds the property index from the Rust `VaultIndex`. Phase 8 —
+ * replaces the previous TS-side per-file `parseFrontmatterProperties`
+ * scan + `buildMetadataMap(fsStore.fileTree)` join with a single
+ * `invoke('get_all_property_records')` call. The Rust side has already
+ * parsed every entry's frontmatter at scan / save time and projects
+ * the kb-api shape on the way out.
+ */
+export async function buildPropertyIndex(): Promise<void> {
+	try {
+		await timeAsync('COLLECTION', 'buildPropertyIndex', async () => {
+			const records = await invoke<NoteRecordV2[]>('get_all_property_records');
+			const index = new Map<string, NoteRecord>();
+			for (const record of records) {
+				index.set(record.path, fromV2(record));
+			}
+			collectionStore.setPropertyIndex(index);
+			debug('COLLECTION', `Properties: ${index.size} notes`);
+		});
+	} catch (err) {
+		errorLog('COLLECTION', 'buildPropertyIndex failed:', err);
+	}
+}
+
+/**
+ * Updates a single note's record in the property index. Phase 8 — kept
+ * as a TS-only fast path because the content effect fires within ~1 s
+ * of typing and Rust has already updated its index via Phase 2's
+ * `update_note_in_index`. We just keep the TS cache fresh so kb-api
+ * queries off the in-memory index see the new properties immediately.
+ *
+ * Preserves existing file metadata (mtime/ctime/size) since timestamps
+ * don't change during editing — the watcher / save path triggers a Rust
+ * `update_note_in_index` with fresh metadata, which bumps
+ * `vault-index-updated` and (eventually) refetches via `buildPropertyIndex`.
  */
 export function updateNoteInIndex(path: string, content: string) {
 	const existing = collectionStore.propertyIndex.get(path);
 	const record = buildNoteRecord(
-		path, content,
-		existing?.mtime ?? 0, existing?.ctime ?? 0, existing?.size ?? 0,
+		path,
+		content,
+		existing?.mtime ?? 0,
+		existing?.ctime ?? 0,
+		existing?.size ?? 0,
 	);
 	collectionStore.updateRecord(path, record);
 }
 
 /**
- * Removes a note from the property index.
- * Called when a note is deleted.
+ * Removes a note from the property index. Called when a note is deleted.
  */
 export function removeNoteFromIndex(path: string) {
 	collectionStore.removeRecord(path);

@@ -97,18 +97,18 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 8 - Rust Frontmatter / Properties + File Ops
 
-- [ ] **8.1** Extend `VaultIndex` with `properties: HashMap<String, HashMap<Value, Vec<PathBuf>>>` (key → value → paths).
-- [ ] **8.2** Wire into `update_entry`.
-- [ ] **8.3** Read commands: `query_notes_by_property`, `get_property_values`, `get_note_properties`.
-- [ ] **8.4** Write commands: `update_frontmatter`, `delete_frontmatter_key`, `rename_frontmatter_key`.
-- [ ] **8.5** Add `experimental.rustProperties: boolean`. Migrate `PropertiesView.svelte` and `collection.service.ts`.
-- [ ] **8.6** File-op commands: `create_note`, `rename_note`, `delete_note`, `create_folder`. Wraps current `writeTextFile`/`mkdir`/`rename` write surfaces.
-- [ ] **8.7** Migrate `note-creator.service.ts:64` to `invoke('create_note', ...)` (template processing stays TS).
-- [ ] **8.8** Migrate `templates.service.ts::ensureTemplatesFolder` to `invoke('create_folder', ...)`.
-- [ ] **8.9** Audit `trash.service.ts:56,60,64,103,185` (mkdir/rename/remove). Decide per-call whether to invoke or stay TS (trash is complex; permanent delete + manifest may stay TS for now).
-- [ ] **8.10** Properties Panel write branching: tab-open → `view.dispatch` (preserves CodeMirror history); tab-closed → `invoke('update_frontmatter', ...)`. Replace `properties.service.ts:42` `editorStore.updateContent()` with the split. Test specifically with a tab-switch in the middle of edits.
-- [ ] **8.11** Default-on after **2 days** of dogfooding, then delete TS orphans (trace-before-remove ritual on each).
-- [ ] **8.12** Meta-bind migration: wherever meta-bind triggers note creation, swap to `invoke('create_note', ...)`. `updateMetadata` stays on `view.dispatch`. Cache `parseFrontmatterProperties` by frontmatter substring.
+- [x] **8.1** `NoteEntry` gains `created_at` + `size`; `from_content_full` threads them through. `utils/fs.rs::collect_markdown_paths_with_metadata` walker pre-fetches mtime/ctime/size during the directory walk so `scan_vault_v2` doesn't re-stat per file. `update_note_in_index_inner` re-reads mtime/ctime/size on every save.
+- [x] **8.2** `VaultIndex.properties_index: HashMap<String, HashMap<String, BTreeSet<String>>>` (key → canonical-JSON-value-string → paths). Wired into `build` / `update_entry` (set-diff over `(key, canon)` pairs) / `remove_entry`. Plus 3 lookup methods.
+- [x] **8.3** Read commands `query_notes_by_property`, `get_property_values`, `get_note_properties`, `get_all_property_records`. `NoteRecord` IPC type with s→ms conversion server-side. TS mirror in `vault-v2.types.ts`.
+- [~] **8.4** Frontmatter write commands (`update_frontmatter`/`delete_frontmatter_key`/`rename_frontmatter_key`) **DEFERRED**. The TS path goes through `syncExternalContentToEditor` → editor save (Phase 5 + permitted by Phase 11.5). Phase 8.10's premise of `editorStore.updateContent()` was already obsolete pre-Phase 8.
+- [x] **8.5** Migrated `collection.service.ts::buildPropertyIndex` to async IPC consumer (`get_all_property_records`). PropertiesView.svelte unchanged (it already only operates on the active tab via the editor-save flow, which is permitted).
+- [x] **8.6** File-op commands `create_note(path, content)` (atomic write-if-not-exists + index update + emit) and `create_folder(path)` (recursive, no-op when present).
+- [x] **8.7** Migrated `note-creator.service.ts:64` `writeTextFile` → `invoke('create_note')` and the parent `mkdir` → `invoke('create_folder')`. Template processing stays TS.
+- [x] **8.8** Migrated `templates.service.ts::ensureTemplatesFolder` `mkdir` → `invoke('create_folder')`. The empty placeholder template `writeTextFile` calls stay TS (initialization, not vault notes).
+- [~] **8.9** Trash audit completed: only the vault-init `mkdir`s are migration candidates (`trash.service.ts:56,60`). Trash-internal UUID containers (line 64), restore-time parent reconstruction (103), and manifest-write defensive guard (185) stay TS — they're trash-internal transactions that don't need Rust-side index updates. Phase 9's native watcher will pick up trash deletions end-to-end. **Migration of 56/60 deferred to a follow-up — they're already inside an exists-check guard so the practical impact is low.**
+- [~] **8.10** Tab-open vs tab-closed write branching **N/A in current code**. PropertiesView only mutates the active tab; the write goes through `syncExternalContentToEditor` (post-Phase 5), which is permitted. No new feature added in Phase 8 to edit unopened-file properties.
+- [x] **8.11** Default-on (compressed pattern). TS orphans deleted via the FE migration commit's trace-before-remove ritual.
+- [x] **8.12** Meta-bind `createNote` already routes through `openOrCreateNote` (which now uses `invoke('create_note')`) — no separate change needed. `parseFrontmatterProperties` now LRU-cached (capacity 16) by raw frontmatter substring; meta-bind's per-keystroke rebuild path no longer re-parses identical YAML.
 
 ### Phase 9 - Watcher Migration to Rust BEHAVIORAL (after 2-8 live)
 

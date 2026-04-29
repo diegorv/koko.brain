@@ -62,6 +62,44 @@ pub struct OutgoingLink {
 	pub position: usize,
 }
 
+/// One per-note record returned by `get_all_property_records` — the
+/// projection consumed by the TS `collection.service` / kb-api. Mirrors
+/// the existing TS `NoteRecord` shape one-for-one (`name`, `basename`,
+/// `folder`, `ext`, `mtime` ms, `ctime` ms, `size`, `properties`).
+///
+/// IMPORTANT: `mtime` and `ctime` are MILLISECONDS here (TS-side
+/// expectation) — the source `NoteEntry.modified_at` / `created_at` are
+/// SECONDS. The conversion happens in `commands::vault::all_records`.
+/// Phase 8.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteRecord {
+	/// Absolute filesystem path.
+	pub path: String,
+	/// Basename including extension (e.g. `note.md`).
+	pub name: String,
+	/// Basename without extension (e.g. `note`).
+	pub basename: String,
+	/// Parent directory's absolute path (no trailing slash). Empty for
+	/// root-level files.
+	pub folder: String,
+	/// Extension including the leading dot (e.g. `.md`). Empty for
+	/// extensionless files.
+	pub ext: String,
+	/// Modified timestamp in MILLISECONDS since UNIX epoch. Converted
+	/// from `NoteEntry.modified_at` (seconds) at projection time.
+	pub mtime: i64,
+	/// Created timestamp in MILLISECONDS since UNIX epoch. `0` when the
+	/// filesystem doesn't expose creation time.
+	pub ctime: i64,
+	/// File size in bytes.
+	pub size: u64,
+	/// Frontmatter as a flat map. Mirrors TS `parseFrontmatterProperties`
+	/// output minus the `Property` wrapper (the TS service maps it back
+	/// after IPC).
+	pub properties: BTreeMap<String, JsonValue>,
+}
+
 /// One unlinked mention of a vault note in the active note's body —
 /// returned by `get_outgoing_unlinked_mentions_v2`. Mirrors
 /// `outgoing-links.types.ts::OutgoingUnlinkedMention`.
@@ -108,6 +146,14 @@ pub struct NoteEntry {
 	/// Last-modified time in seconds since the UNIX epoch. Sourced from the
 	/// filesystem at scan time, not from the file's frontmatter.
 	pub modified_at: i64,
+	/// Created time in seconds since the UNIX epoch. Phase 8 — needed for
+	/// kb-api / collection queries that expose `file.ctime`. `0` when the
+	/// underlying filesystem doesn't expose creation time (Linux extX).
+	pub created_at: i64,
+	/// File size in bytes. Phase 8 — needed for kb-api / collection
+	/// queries that expose `file.size`. Sourced from `fs::metadata` at
+	/// scan time and at every save (`update_note_in_index` re-stats).
+	pub size: u64,
 	/// Whitespace-delimited word count of the body (post-frontmatter).
 	pub word_count: usize,
 	/// First non-empty body paragraph, capped at `SNIPPET_MAX_LEN` bytes
@@ -131,6 +177,20 @@ impl NoteEntry {
 	/// frontmatter) so heavy frontmatter does not inflate counts or
 	/// produce useless previews.
 	pub fn from_content(path: String, content: &str, modified_at: i64) -> Self {
+		Self::from_content_full(path, content, modified_at, 0, 0)
+	}
+
+	/// Like `from_content` but takes the file's `created_at` and `size`
+	/// directly. Phase 8 — `scan_vault_v2` and `update_note_in_index` pass
+	/// these in from `fs::metadata`. The simpler `from_content` keeps
+	/// existing callers (and tests) working with default `0` values.
+	pub fn from_content_full(
+		path: String,
+		content: &str,
+		modified_at: i64,
+		created_at: i64,
+		size: u64,
+	) -> Self {
 		let title = extract_title_from_path(&path);
 		let frontmatter = parse_frontmatter(content);
 		let outgoing_links = extract_outgoing_links(content);
@@ -146,6 +206,8 @@ impl NoteEntry {
 			outgoing_links,
 			tags,
 			modified_at,
+			created_at,
+			size,
 			word_count,
 			snippet,
 			tasks,

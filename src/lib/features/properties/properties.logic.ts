@@ -74,30 +74,99 @@ function convertToProperty(key: string, value: unknown): Property {
 }
 
 /**
- * Parses frontmatter YAML into an array of Property objects.
- * Uses the `yaml` library for spec-compliant parsing. Handles all YAML features
- * including block scalars, quoted strings, inline/block arrays, and special characters.
- * Nested objects are skipped (not supported in the Properties panel).
+ * LRU cache for `parseFrontmatterProperties`. Phase 8.12 — meta-bind's
+ * input plugin calls this on every CodeMirror update during typing,
+ * which means the full document text is parsed at least once per
+ * keystroke. The frontmatter usually doesn't change between calls
+ * (you're editing the body), so caching by raw frontmatter text
+ * eliminates the repeat YAML parse cost.
+ *
+ * Capacity is intentionally small (16): the same notebook holds a few
+ * "current" frontmatter shapes at once (active tab + nearby tabs +
+ * meta-bind input rebuilds). LRU eviction handles tab churn.
+ *
+ * Cache key: the raw frontmatter substring (between `---` delimiters).
+ * Cache value: a frozen `Property[]` clone so callers can't accidentally
+ * mutate the cached entry. (`Property[]` is otherwise treated as
+ * immutable by every consumer; the freeze is defence-in-depth.)
  */
-export function parseFrontmatterProperties(content: string): Property[] {
-	const raw = extractRawFrontmatter(content);
-	if (!raw) return [];
+const PARSE_CACHE_CAPACITY = 16;
+const parseCache = new Map<string, ReadonlyArray<Property>>();
 
+function cloneProperty(p: Property): Property {
+	return Array.isArray(p.value)
+		? { key: p.key, value: [...p.value], type: p.type }
+		: { key: p.key, value: p.value, type: p.type };
+}
+
+function cachedParse(rawFrontmatter: string): Property[] {
+	const cached = parseCache.get(rawFrontmatter);
+	if (cached !== undefined) {
+		// Touch ordering: re-insert to mark as most recently used.
+		parseCache.delete(rawFrontmatter);
+		parseCache.set(rawFrontmatter, cached);
+		return cached.map(cloneProperty);
+	}
+	return computeAndCache(rawFrontmatter);
+}
+
+function computeAndCache(rawFrontmatter: string): Property[] {
 	let parsed: unknown;
 	try {
-		parsed = yamlParse(raw, { uniqueKeys: false });
+		parsed = yamlParse(rawFrontmatter, { uniqueKeys: false });
 	} catch {
+		// Cache the failure too — repeated parses of malformed YAML are
+		// the most expensive case (full parse + throw + catch).
+		parseCache.set(rawFrontmatter, Object.freeze([]));
+		evictLru();
 		return [];
 	}
 
-	if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+	if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		parseCache.set(rawFrontmatter, Object.freeze([]));
+		evictLru();
+		return [];
+	}
 
 	const properties: Property[] = [];
 	for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
 		if (value !== null && typeof value === 'object' && !Array.isArray(value)) continue;
 		properties.push(convertToProperty(key, value));
 	}
+	parseCache.set(rawFrontmatter, Object.freeze(properties.map(cloneProperty)));
+	evictLru();
 	return properties;
+}
+
+function evictLru(): void {
+	while (parseCache.size > PARSE_CACHE_CAPACITY) {
+		// Map iteration order is insertion order; the FIRST entry is the
+		// least-recently used (oldest cache miss / oldest access).
+		const oldest = parseCache.keys().next().value;
+		if (oldest === undefined) return;
+		parseCache.delete(oldest);
+	}
+}
+
+/** Test-only: clears the cache so module-level state doesn't leak between tests. */
+export function _resetParseFrontmatterCache(): void {
+	parseCache.clear();
+}
+
+/**
+ * Parses frontmatter YAML into an array of Property objects.
+ * Uses the `yaml` library for spec-compliant parsing. Handles all YAML features
+ * including block scalars, quoted strings, inline/block arrays, and special characters.
+ * Nested objects are skipped (not supported in the Properties panel).
+ *
+ * Phase 8.12: results are cached by raw frontmatter substring so
+ * meta-bind's per-keystroke rebuild path doesn't re-parse identical
+ * YAML. See `cachedParse` for the cache contract.
+ */
+export function parseFrontmatterProperties(content: string): Property[] {
+	const raw = extractRawFrontmatter(content);
+	if (!raw) return [];
+	return cachedParse(raw);
 }
 
 /**
