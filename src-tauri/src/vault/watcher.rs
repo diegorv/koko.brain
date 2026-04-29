@@ -260,6 +260,16 @@ where
 /// Tauri command: starts (or replaces) the vault watcher. Stops any
 /// existing watcher before installing a new one — mirrors the TS
 /// `fs.watcher.ts::startWatching`'s `await stopWatching()` precondition.
+///
+/// Audit Tier 2 #7 (2026-04-29): the previous implementation built the
+/// new watcher BEFORE acquiring the state lock and dropping the old one.
+/// That left a narrow window where the old bridge thread's "final flush"
+/// (triggered by Drop closing the notify channel) could emit a
+/// `vault-files-changed` event AFTER the new watcher was installed, with
+/// paths from the OLD vault. The TS handler has no way to attribute the
+/// event to the old vault, so it would queue stale paths through the
+/// new vault's update pipeline. Fix: drop the old watcher inside the
+/// lock guard scope BEFORE building the new one.
 #[tauri::command]
 pub fn start_vault_watcher(
 	app: tauri::AppHandle,
@@ -274,13 +284,25 @@ pub fn start_vault_watcher(
 		}
 	};
 
-	let watcher = start_watcher_inner(&path, on_change)?;
+	// Take + drop the old watcher WHILE holding the lock so its bridge
+	// thread's final flush completes before any new watcher can be
+	// installed. The drop chain: `take()` returns Some(VaultWatcher) →
+	// the temporary is dropped at the end of the `if let` body →
+	// notify::Watcher dropped → channel sender dropped → bridge thread
+	// sees Disconnected → final flush emit fires (with old vault's paths)
+	// → bridge thread exits. The `drop(old)` is explicit to make the
+	// timing intent clear.
 	let mut guard = state
 		.lock()
 		.map_err(|e| format!("watcher state lock poisoned: {}", e))?;
-	// Stopping is implicit via Drop on the previous `VaultWatcher`. The
-	// notify watcher's Drop drops the inner channel sender, which closes
-	// `event_rx` and exits the bridge thread.
+	if let Some(mut old) = guard.take() {
+		if let Some(stop_tx) = old.stop_tx.take() {
+			let _ = stop_tx.send(());
+		}
+		drop(old);
+	}
+
+	let watcher = start_watcher_inner(&path, on_change)?;
 	*guard = Some(watcher);
 	Ok(())
 }
