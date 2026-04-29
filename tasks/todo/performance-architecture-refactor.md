@@ -137,16 +137,23 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 - [ ] **11.2** 10 s periodic poll while focused (configurable 5-60 s, 0 disables).
 - [ ] **11.3** Cmd+R forces full rescan via `scan_vault_cached { force: true }`.
 - [ ] **11.4** Verify watcher is sole in-session producer. Write ADR (next-available number, confirm at commit time).
-- [ ] **11.5** Remove `noteIndexStore`, all TS index orphans (`backlinks.service.ts`, `outgoing-links.service.ts`, `tags.service.ts`, `tasks.service.ts`, `properties.service.ts`, `index-updater.service.ts`, `index-dedupe.ts`). Keep `legacyTsIndexers` flag for first release.
-- [ ] **11.5b** Final write-surface audit. Grep `writeTextFile`, `mkdir`, `rename`, `removeFile`, `removeDir`, `@tauri-apps/plugin-fs`. Every remaining call must fall in one of three categories: editor save (`editor.service.ts:98` `saveFileByPath`), live-preview widget via `view.dispatch` (no direct fs), user-initiated op via Rust invoke. Known violators that earlier phases must clean up:
-  - `tasks.service.ts:113` → Phase 7.5 invoke.
-  - `properties.service.ts:42` → Phase 8.10 branching.
-  - `note-creator.service.ts:64` → Phase 8.7 invoke.
-  - `trash.service.ts:56,60,64,103,185` → Phase 8.9 decision.
-  - `settings.service.ts:172` → stays (settings is not vault content).
-- [ ] **11.6** Delete `active-tab-tracker.service.ts`. Trace-before-remove ritual.
-- [ ] **11.7** Update `CLAUDE.md` Performance Guidelines (Indexing & Watcher section) and `docs/PATTERNS.md`.
-- [ ] **11.8** Final `python3 scripts/perf-baseline.py` comparison → `docs/perf/final-<YYYY-MM-DD>.md`.
+- [ ] **11.5** Remove `noteIndexStore`, all TS index orphans (`backlinks.service.ts`, `outgoing-links.service.ts`, `tags.service.ts`, `index-updater.service.ts`, `index-dedupe.ts`). `properties.service.ts` and `tasks.service.ts` are NOT index orphans (editor-side / tab management) and stay. Compressed pattern: skip the `legacyTsIndexers` flag (no soak window). Broken into sub-tasks 11.5a-11.5l (one commit each):
+  - [ ] **11.5a** Add Rust IPCs `get_all_vault_entries_v2` + `get_unlinked_mentions_v2` (`src-tauri/src/commands/vault.rs`, `src-tauri/src/vault/index.rs::lookup_incoming_unlinked_mentions`). TS mirrors in `vault-v2.types.ts`.
+  - [ ] **11.5b-mig** Migrate `link-updater.service.ts` to `get_backlinks_v2` for rename. Drop `noteIndexStore` re-key in `updateTabAfterRenameOrMove`. Trace-before-remove ritual.
+  - [ ] **11.5c** Migrate `graph-view.service.ts` + `GraphView.svelte` to `get_all_vault_entries_v2`. `buildGraphData` takes `NoteEntryV2[]`.
+  - [ ] **11.5d** Migrate `kanban.service.ts::loadLinkedFileContent` to `flattenFileTree(fsStore.fileTree)`.
+  - [ ] **11.5e** Migrate `wikilink-completion.ts` to async source, cached `NoteEntryV2[]` snapshot for aliases.
+  - [ ] **11.5f** Migrate QueryJS `KBAPI` to consume `NoteEntryV2[]` snapshot.
+  - [ ] **11.5g** Migrate `file-icons.service.ts::buildFrontmatterIconIndex` to iterate Rust entries.
+  - [ ] **11.5h** Migrate `search.service.ts` operator/fallback paths to Rust IPCs.
+  - [ ] **11.5i** Migrate `BacklinksPanel` unlinked mentions to `get_unlinked_mentions_v2`.
+  - [ ] **11.5j** Drop dead `noteIndexStore` reads in `tasks.service.ts:110-114`, `active-tab-tracker.service.ts:20`, `BacklinksPanel.svelte:49`.
+  - [ ] **11.5k** Delete `noteIndexStore` + slim `backlinks.service.ts::buildIndex` + drop Phase 1 from `index-updater.service.ts`. Trace-before-remove ritual.
+  - [ ] **11.5l** Drop dead helpers in `backlinks.logic.ts` (skip if empty after grep).
+- [~] **11.5audit** Final write-surface audit (the original 11.5b in this plan). **CONFIRMED CLEAN during 2026-04-29 planning** — every `writeTextFile` / `mkdir` / `rename` call across `src/` falls in one of three categories: editor save (`editor.service.ts:140`), settings/internal metadata (`settings.service.ts:169-172`, `file-icons.service.ts:34,84,96`, `log.service.ts:48,67,96`, etc.), or user-initiated op via Rust invoke / direct fs (`trash.service.ts:56,60,64,103,185`, `link-updater.service.ts:38`, `note-creator.service.ts` already migrated, etc.). Known violators from earlier phases all resolved: `tasks.service.ts:113` (Phase 7.5 ✓), `properties.service.ts:42` was a `skipNextParse=true` not a write (audit error in original plan ✓), `note-creator.service.ts:64` (Phase 8.7 ✓), `trash.service.ts` reviewed in Phase 8.9, `settings.service.ts:172` allowed (settings is not vault content).
+- [ ] **11.6** Delete `active-tab-tracker.service.ts`. Inline `updateActiveTabLinks` body into `+layout.svelte:84-100`. Trace-before-remove ritual.
+- [ ] **11.7** Update `CLAUDE.md` § Indexing & Watcher (rules 1, 3, 4, 5, 7, 8, 9, 10 are obsolete; rewrite for Rust `VaultIndex` reality). `docs/PATTERNS.md` no changes (no index-specific content).
+- [ ] **11.8** Final `python3 scripts/perf-baseline.py` comparison → `docs/perf/final-2026-04-29.md`.
 
 ## Notes
 
