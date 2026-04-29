@@ -45,7 +45,7 @@ export const wikilinkEmbedPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
+				const _t = profileStart('wikilink-embed');
 				this.decorations = buildWikilinkEmbedDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),

@@ -71,6 +71,23 @@ pub fn collect_markdown_paths_with_metadata(
 	Ok(entries)
 }
 
+/// Returns true when `file_name` ends with `.md` or `.markdown`,
+/// case-INSENSITIVELY. Audit Tier 1 #6 (2026-04-29).
+///
+/// Pre-fix the check was `ends_with(".md") || ends_with(".markdown")` —
+/// a file named `Note.MD` (capital extension on case-preserving APFS) was
+/// silently skipped from indexing. The user could open the file in the
+/// editor (Tauri's `readTextFile` is case-insensitive on APFS) but
+/// backlinks / tags / properties were missing because the index never
+/// contained an entry for it.
+///
+/// Cost: one `to_lowercase()` per filename during walk. Negligible at
+/// 2k-note vault scale; would need profiling at 100k+ notes if cost matters.
+pub fn is_markdown_filename(file_name: &str) -> bool {
+	let lower = file_name.to_ascii_lowercase();
+	lower.ends_with(".md") || lower.ends_with(".markdown")
+}
+
 fn walk_dir(
 	dir: &Path,
 	vault_root: &Path,
@@ -113,7 +130,7 @@ fn walk_dir(
 				continue;
 			}
 			walk_dir(&path, vault_root, entries, excluded_folders, depth + 1)?;
-		} else if file_name.ends_with(".md") || file_name.ends_with(".markdown") {
+		} else if is_markdown_filename(&file_name) {
 			let rel_path = path
 				.strip_prefix(vault_root)
 				.map(|p| p.to_string_lossy().to_string())
@@ -163,7 +180,7 @@ fn walk_dir_with_mtime(
 				continue;
 			}
 			walk_dir_with_mtime(&path, vault_root, entries, excluded_folders, depth + 1)?;
-		} else if file_name.ends_with(".md") || file_name.ends_with(".markdown") {
+		} else if is_markdown_filename(&file_name) {
 			let rel_path = path
 				.strip_prefix(vault_root)
 				.map(|p| p.to_string_lossy().to_string())
@@ -219,7 +236,7 @@ fn walk_dir_with_metadata(
 				continue;
 			}
 			walk_dir_with_metadata(&path, vault_root, entries, excluded_folders, depth + 1)?;
-		} else if file_name.ends_with(".md") || file_name.ends_with(".markdown") {
+		} else if is_markdown_filename(&file_name) {
 			let rel_path = path
 				.strip_prefix(vault_root)
 				.map(|p| p.to_string_lossy().to_string())

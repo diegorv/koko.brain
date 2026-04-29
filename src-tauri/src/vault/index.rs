@@ -470,6 +470,43 @@ impl VaultIndex {
 		if old_entry.is_none() {
 			let key = note_name_from_target(&path).to_lowercase();
 			self.by_path.entry(key).or_insert_with(|| path.clone());
+
+			// Audit #1 (2026-04-29): retroactive backlinks for newly created
+			// notes. When a source S was inserted with `[[NewName]]` BEFORE
+			// NewName.md existed, the resolve() call at S's insert time
+			// returned None — so backlinks[NewName_path] stayed empty even
+			// after NewName.md is later added. The user-visible bug: opening
+			// the new note shows "no backlinks" despite real wikilinks in S.
+			//
+			// Now that the new path is in by_path (above), any existing
+			// entry's outgoing wikilink that resolves to it is reachable
+			// again. Re-scan all other entries; collect those whose links
+			// resolve to this new path; add them to backlinks[new_path].
+			//
+			// Cost: O(N * L) per genuinely-new insert, where N = total entries
+			// and L = average outgoing-link count. For a 1944-note vault with
+			// ~5 links each, ~10k cheap string compares per new note. Only
+			// runs on `old_entry.is_none()`, so saves do not pay this cost.
+			let new_path_ref = path.as_str();
+			let by_path_ref = &self.by_path;
+			let retro_sources: Vec<String> = self
+				.entries
+				.iter()
+				.filter(|(src_path, _)| src_path.as_str() != new_path_ref)
+				.filter_map(|(src_path, src_entry)| {
+					let resolves_to_new = src_entry.outgoing_links.iter().any(|link| {
+						resolve_with_cache(&link.target, by_path_ref).as_deref()
+							== Some(new_path_ref)
+					});
+					resolves_to_new.then(|| src_path.clone())
+				})
+				.collect();
+			if !retro_sources.is_empty() {
+				let set = self.backlinks.entry(path.clone()).or_default();
+				for src in retro_sources {
+					set.insert(src);
+				}
+			}
 		}
 
 		self.entries.insert(path, entry);
