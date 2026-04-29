@@ -311,14 +311,28 @@ pub fn update_note_in_index(
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 		update_note_in_index_inner(&mut idx, path, &content, mtime)
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"update_note_in_index: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
+	// Skip the emit when nothing observable changed in the index. The
+	// 2026-04-29 freeze repro showed a single rename fans 3 watcher events
+	// → 3 `update_note_in_index` calls → 3 `vault-index-updated` cascades →
+	// triple `buildTagIndex` (3629 tags), `loadAndRebuild`, etc. Two of the
+	// three Rust calls almost always come back with `changed=false` (the
+	// parent-dir / sibling-path events). Gating the emit on `result.changed`
+	// drops those redundant cascades. `toggle_task_status` already follows
+	// this pattern (see below). The TS-side `vaultStore.bumpVaultIndexVersion`
+	// listener simply assigns the payload's `version`, so skipping no-op
+	// emits keeps the frontend's view of the version slightly behind Rust's
+	// internal counter — that's harmless because the next genuinely-changed
+	// emit catches the frontend up to whatever the latest Rust version is.
+	if result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+			debug_log(
+				"VAULT-V2",
+				format!(
+					"update_note_in_index: vault-index-updated emit failed: {}",
+					emit_err,
+				),
+			);
+		}
 	}
 	Ok(result)
 }
