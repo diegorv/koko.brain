@@ -127,7 +127,7 @@ export function tsvRowsToMarkdownTable(rows: string[][]): string {
 	});
 
 	const escape = (cell: string) =>
-		cell.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+		cell.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
 
 	const lines: string[] = [];
 	const header = padded[0].map(escape);
