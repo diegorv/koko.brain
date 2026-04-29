@@ -10,6 +10,7 @@ use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::Emitter;
 use utils::logger::init_logger;
+use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
 
 fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
@@ -86,6 +87,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(TerminalState::new())
         .manage(VaultIndexState::default())
+        .manage(VaultWatcherState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -113,6 +115,8 @@ pub fn run() {
             commands::vault::get_all_property_records,
             commands::vault::create_note,
             commands::vault::create_folder,
+            vault::watcher::start_vault_watcher,
+            vault::watcher::stop_vault_watcher,
             commands::files::read_files_batch,
             commands::search::search_vault,
             commands::terminal::spawn_terminal,
