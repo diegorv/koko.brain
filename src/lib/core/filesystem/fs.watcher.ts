@@ -1,38 +1,41 @@
-import { watch, type UnwatchFn, type WatchEvent } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, applyFolderOrder, attachFileCounts } from './fs.logic';
-import { debounce } from '$lib/utils/debounce';
 import { debug, error } from '$lib/utils/debug';
 import type { FileTreeNode } from './fs.types';
+
+/**
+ * Phase 9 — Native Rust watcher consumer.
+ *
+ * The TS-side debounce, hidden-dir filter, ancestor filter, and path
+ * accumulation now live in `src-tauri/src/vault/watcher.rs`. This
+ * module is a thin event consumer:
+ *
+ *   1. `startWatching` invokes `start_vault_watcher` (Rust) which
+ *      installs a `notify::recommended_watcher` rooted at the vault.
+ *   2. `listen('vault-files-changed', ...)` receives the already-
+ *      filtered, already-debounced path bursts and runs the
+ *      tree-rebuild orchestration (incremental vs full rescan, listener
+ *      fan-out).
+ *   3. `stopWatching` invokes `stop_vault_watcher` and detaches the
+ *      Tauri event listener.
+ *
+ * The external `onFileChange(listener)` API is preserved verbatim;
+ * `app-lifecycle.service.ts` and any future consumer don't notice the
+ * swap.
+ */
 
 /** Watcher session counters for debug metrics */
 let counters = {
 	rawEvents: 0,
-	skippedKokobrain: 0,
-	skippedVaultRoot: 0,
-	accepted: 0,
 	skippedAncestorPaths: 0,
 	debounceFires: 0,
 	fullRefreshes: 0,
 	incrementalRefreshes: 0,
 };
 
-/**
- * Checks whether a path is inside a hidden (dot-prefixed) directory relative to the vault.
- * e.g. /vault/.git/foo → true, /vault/.kokobrain/db → true, /vault/notes/foo.md → false
- */
-function isInsideHiddenDir(pathStr: string, vaultPrefix: string): boolean {
-	if (!pathStr.startsWith(vaultPrefix)) return false;
-	const relative = pathStr.substring(vaultPrefix.length);
-	// Check if the first path segment starts with a dot
-	const firstSlash = relative.indexOf('/');
-	const firstSegment = firstSlash >= 0 ? relative.substring(0, firstSlash) : relative;
-	return firstSegment.startsWith('.');
-}
-
-/** Logs the current counter summary */
 function logCounters() {
 	debug('WATCHER', `Counters: ${JSON.stringify(counters)}`);
 }
@@ -42,21 +45,20 @@ export function getWatcherCounters() {
 	return { ...counters };
 }
 
-/** Cleanup function returned by Tauri's watch API */
-let unwatch: UnwatchFn | null = null;
 /** External subscribers notified whenever the vault's files change on disk */
 let changeListeners: Array<(paths: string[]) => void> = [];
-/** Current vault path being watched */
+/** Current vault path being watched (for `patchSubtree` ancestor checks) */
 let currentVaultPath: string | null = null;
-/** Accumulated changed paths within the debounce window */
-let pendingChangedPaths: Set<string> = new Set();
+/** Detach function for the Tauri event listener; null when not watching */
+let unlisten: UnlistenFn | null = null;
 /** Version counter — incremented on stopWatching to invalidate in-flight callbacks */
 let watchVersion = 0;
 
 /**
  * Registers a callback that fires whenever the vault's files change.
- * The callback receives the list of changed file paths so consumers
- * can decide whether to act (e.g. skip rebuilds for self-saved files).
+ * The callback receives the list of changed file paths (already
+ * filtered + ancestor-collapsed by the Rust watcher) so consumers can
+ * decide whether to act (e.g. skip rebuilds for self-saved files).
  * Returns an unsubscribe function.
  */
 export function onFileChange(listener: (paths: string[]) => void): () => void {
@@ -76,16 +78,6 @@ function notifyListeners(paths: string[]) {
 			debug('WATCHER', 'File change listener error:', err);
 		}
 	}
-}
-
-/**
- * Filters out paths that are ancestors of other paths in the set.
- * macOS FSEvents reports parent directories as changed when files inside them
- * change (metadata propagation). This keeps only the most specific (deepest)
- * paths, eliminating redundant parent directory rescans.
- */
-export function filterAncestorPaths(paths: string[]): string[] {
-	return paths.filter((p) => !paths.some((other) => other !== p && other.startsWith(p + '/')));
 }
 
 /**
@@ -120,31 +112,29 @@ export function patchSubtree(
 	return changed ? result : tree;
 }
 
-/** Debounced handler — performs incremental or full refresh after 500ms of quiet */
-const debouncedRefresh = debounce(async () => {
-	counters.debounceFires++;
-	const refreshStart = performance.now();
-	// Capture version at start — if stopWatching runs mid-flight, we bail out
-	const version = watchVersion;
-	const rawPaths = [...pendingChangedPaths];
-	pendingChangedPaths = new Set();
+/** Payload of the `vault-files-changed` event emitted by the Rust watcher. */
+interface VaultFilesChangedPayload {
+	paths: string[];
+}
 
-	// Filter out ancestor directory paths — macOS FSEvents reports parent directories
-	// as changed when files inside them change (metadata propagation). Keeping only the
-	// deepest paths avoids redundant scan_vault calls on intermediate directories.
-	const changedPaths = filterAncestorPaths(rawPaths);
-	if (changedPaths.length < rawPaths.length) {
-		counters.skippedAncestorPaths += rawPaths.length - changedPaths.length;
-	}
-	debug('WATCHER', `debouncedRefresh fired — paths: ${changedPaths.length} (filtered from ${rawPaths.length})`, changedPaths);
+/**
+ * Handles a single Rust-emitted batch. Decides between incremental
+ * (subtree rescan for ≤5 unique parent dirs) and full (`refreshTree`)
+ * refresh, then notifies listeners. Mirrors the previous TS handler
+ * minus the debounce + filter (now Rust-side).
+ */
+async function handleChangedPaths(changedPaths: string[]) {
+	if (changedPaths.length === 0) return;
+	counters.debounceFires++;
+	counters.rawEvents += changedPaths.length;
+	const refreshStart = performance.now();
+	const version = watchVersion;
 
 	const logElapsed = (type: string) => {
-		debug('WATCHER', `debouncedRefresh (${type}) completed in ${(performance.now() - refreshStart).toFixed(1)}ms`);
+		debug('WATCHER', `handleChangedPaths (${type}) completed in ${(performance.now() - refreshStart).toFixed(1)}ms`);
 		logCounters();
 	};
 
-	// Capture vault path into a local variable — currentVaultPath can become null
-	// after stopWatching() runs mid-flight (race between debounce fire and teardown).
 	const vaultPath = currentVaultPath;
 	if (!vaultPath) {
 		counters.fullRefreshes++;
@@ -155,7 +145,7 @@ const debouncedRefresh = debounce(async () => {
 		return;
 	}
 
-	// Determine unique parent directories that need rescanning
+	// Determine unique parent directories that need rescanning.
 	const parentsToRescan = new Set<string>();
 	for (const changedPath of changedPaths) {
 		const parent = getParentPath(changedPath);
@@ -164,7 +154,7 @@ const debouncedRefresh = debounce(async () => {
 		}
 	}
 
-	// Too many changes or no specific paths — full rescan
+	// Too many changes or no specific paths — full rescan.
 	if (parentsToRescan.size === 0 || parentsToRescan.size > 5) {
 		counters.fullRefreshes++;
 		await refreshTree();
@@ -174,7 +164,7 @@ const debouncedRefresh = debounce(async () => {
 		return;
 	}
 
-	// Incremental: rescan only affected parent directories
+	// Incremental: rescan only affected parent directories.
 	let currentTree = [...fsStore.fileTree];
 	const order = fsStore.folderOrder;
 	for (const parentDir of parentsToRescan) {
@@ -204,61 +194,43 @@ const debouncedRefresh = debounce(async () => {
 	fsStore.setFileTree(currentTree);
 	notifyListeners(changedPaths);
 	logElapsed(`incremental — ${parentsToRescan.size} parents`);
-}, 500);
+}
 
-/** Starts recursively watching the vault directory for file system changes */
+/** Starts the Rust-native vault watcher and subscribes to its events. */
 export async function startWatching(vaultPath: string) {
 	await stopWatching();
 	currentVaultPath = vaultPath;
 
-	const vaultPrefix = `${vaultPath}/`;
 	try {
-		unwatch = await watch(vaultPath, (event: WatchEvent) => {
-			let addedAny = false;
-			// Pre-filter paths: discard hidden directories (dot-prefixed like .git,
-			// .kokobrain, .claude, .obsidian, etc.) before logging to keep the debug
-			// output clean — these directories generate high-frequency noise.
-			const relevantPaths: string[] = [];
-			for (const p of event.paths) {
-				const pathStr = String(p);
-				if (isInsideHiddenDir(pathStr, vaultPrefix)) {
-					counters.skippedKokobrain++;
-					continue;
-				}
-				if (pathStr === vaultPath) {
-					counters.skippedVaultRoot++;
-					continue;
-				}
-				relevantPaths.push(pathStr);
-			}
-			if (relevantPaths.length === 0) return;
-
-			counters.rawEvents++;
-			debug('WATCHER', `Raw event — type: ${JSON.stringify(event.type)}, paths: [${relevantPaths.join(', ')}]`);
-			for (const pathStr of relevantPaths) {
-				counters.accepted++;
-				debug('WATCHER', `Accepted: ${pathStr}`);
-				pendingChangedPaths.add(pathStr);
-				addedAny = true;
-			}
-			if (addedAny) {
-				debouncedRefresh();
-			}
-		}, { recursive: true, delayMs: 1000 });
+		// Register the event listener BEFORE starting the watcher to
+		// avoid losing the first burst from a fast filesystem (e.g. a
+		// rapid post-init save).
+		unlisten = await listen<VaultFilesChangedPayload>('vault-files-changed', (event) => {
+			void handleChangedPaths(event.payload.paths);
+		});
+		await invoke('start_vault_watcher', { path: vaultPath });
 	} catch (err) {
 		error('WATCHER', 'Failed to start file watcher:', err);
+		// Tear down the listener if invoke failed so we don't leak it.
+		if (unlisten) {
+			unlisten();
+			unlisten = null;
+		}
 	}
 }
 
-/** Stops the file watcher and cancels any pending or in-flight debounced refresh */
+/** Stops the Rust-native vault watcher and detaches the event listener. */
 export async function stopWatching() {
 	watchVersion++;
-	debouncedRefresh.cancel();
-	pendingChangedPaths = new Set();
-	if (unwatch) {
-		unwatch();
-		unwatch = null;
+	if (unlisten) {
+		unlisten();
+		unlisten = null;
+	}
+	try {
+		await invoke('stop_vault_watcher');
+	} catch (err) {
+		debug('WATCHER', 'stop_vault_watcher invoke failed (likely already stopped):', err);
 	}
 	currentVaultPath = null;
-	counters = { rawEvents: 0, skippedKokobrain: 0, skippedVaultRoot: 0, accepted: 0, skippedAncestorPaths: 0, debounceFires: 0, fullRefreshes: 0, incrementalRefreshes: 0 };
+	counters = { rawEvents: 0, skippedAncestorPaths: 0, debounceFires: 0, fullRefreshes: 0, incrementalRefreshes: 0 };
 }

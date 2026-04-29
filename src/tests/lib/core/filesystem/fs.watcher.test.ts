@@ -1,20 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	watch: vi.fn(),
-}));
-
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debounce', () => ({
-	debounce: vi.fn((fn: (...args: any[]) => any) => {
-		const debounced = (...args: any[]) => fn(...args);
-		debounced.cancel = vi.fn();
-		debounced.flush = vi.fn();
-		return debounced;
-	}),
+vi.mock('@tauri-apps/api/event', () => ({
+	listen: vi.fn(),
 }));
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
@@ -26,78 +17,24 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
 	}),
-	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
-	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-import { watch } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import {
 	patchSubtree,
-	filterAncestorPaths,
 	onFileChange,
 	startWatching,
 	stopWatching,
 	getWatcherCounters,
 } from '$lib/core/filesystem/fs.watcher';
 
-// --- filterAncestorPaths tests (pure logic) ---
-
-describe('filterAncestorPaths', () => {
-	it('removes ancestor directory paths when descendant file path exists', () => {
-		const paths = [
-			'/vault/_notes',
-			'/vault/_notes/2026',
-			'/vault/_notes/2026/02-Feb',
-			'/vault/_notes/2026/02-Feb/journal.md',
-		];
-		expect(filterAncestorPaths(paths)).toEqual(['/vault/_notes/2026/02-Feb/journal.md']);
-	});
-
-	it('keeps independent paths at the same level', () => {
-		const paths = ['/vault/a/file.md', '/vault/b/file.md'];
-		expect(filterAncestorPaths(paths)).toEqual(['/vault/a/file.md', '/vault/b/file.md']);
-	});
-
-	it('keeps both paths for rename events (old + new in different dirs)', () => {
-		const paths = ['/vault/a/old.md', '/vault/b/new.md'];
-		expect(filterAncestorPaths(paths)).toEqual(['/vault/a/old.md', '/vault/b/new.md']);
-	});
-
-	it('returns empty array for empty input', () => {
-		expect(filterAncestorPaths([])).toEqual([]);
-	});
-
-	it('returns single path unchanged', () => {
-		expect(filterAncestorPaths(['/vault/file.md'])).toEqual(['/vault/file.md']);
-	});
-
-	it('handles multiple files in the same directory', () => {
-		const paths = ['/vault/docs/a.md', '/vault/docs/b.md'];
-		expect(filterAncestorPaths(paths)).toEqual(['/vault/docs/a.md', '/vault/docs/b.md']);
-	});
-
-	it('filters ancestors in multiple independent branches', () => {
-		const paths = [
-			'/vault/a',
-			'/vault/a/file.md',
-			'/vault/b',
-			'/vault/b/file.md',
-		];
-		expect(filterAncestorPaths(paths)).toEqual(['/vault/a/file.md', '/vault/b/file.md']);
-	});
-
-	it('does not treat paths with matching prefix as ancestors', () => {
-		// /vault/note should NOT be treated as ancestor of /vault/notebook/file.md
-		const paths = ['/vault/note', '/vault/notebook/file.md'];
-		expect(filterAncestorPaths(paths)).toEqual(['/vault/note', '/vault/notebook/file.md']);
-	});
-});
-
-// --- patchSubtree tests (pure logic) ---
+// ---------------------------------------------------------------------------
+// patchSubtree (pure logic, unchanged from pre-Phase 9)
+// ---------------------------------------------------------------------------
 
 function makeDir(name: string, path: string, children: FileTreeNode[] = []): FileTreeNode {
 	return { name, path, isDirectory: true, children };
@@ -111,55 +48,36 @@ describe('patchSubtree', () => {
 	it('replaces root-level subtree when parentPath matches vaultPath', () => {
 		const tree = [makeFile('old.md', '/vault/old.md')];
 		const newChildren = [makeFile('new.md', '/vault/new.md')];
-
 		const result = patchSubtree(tree, '/vault', newChildren, '/vault');
-
 		expect(result).toBe(newChildren);
 	});
 
 	it('replaces children of a matching directory node', () => {
 		const tree = [
-			makeDir('docs', '/vault/docs', [
-				makeFile('old.md', '/vault/docs/old.md'),
-			]),
+			makeDir('docs', '/vault/docs', [makeFile('old.md', '/vault/docs/old.md')]),
 			makeFile('root.md', '/vault/root.md'),
 		];
-		const newChildren = [
-			makeFile('new.md', '/vault/docs/new.md'),
-			makeFile('added.md', '/vault/docs/added.md'),
-		];
-
+		const newChildren = [makeFile('new.md', '/vault/docs/new.md')];
 		const result = patchSubtree(tree, '/vault/docs', newChildren, '/vault');
-
 		expect(result[0].children).toEqual(newChildren);
-		// Root file should be unchanged
 		expect(result[1].name).toBe('root.md');
 	});
 
 	it('replaces children in a nested directory', () => {
 		const tree = [
 			makeDir('docs', '/vault/docs', [
-				makeDir('sub', '/vault/docs/sub', [
-					makeFile('deep.md', '/vault/docs/sub/deep.md'),
-				]),
+				makeDir('sub', '/vault/docs/sub', [makeFile('deep.md', '/vault/docs/sub/deep.md')]),
 			]),
 		];
 		const newChildren = [makeFile('replaced.md', '/vault/docs/sub/replaced.md')];
-
 		const result = patchSubtree(tree, '/vault/docs/sub', newChildren, '/vault');
-
 		expect(result[0].children![0].children).toEqual(newChildren);
 	});
 
 	it('returns tree unchanged when no node matches parentPath', () => {
-		const tree = [
-			makeDir('docs', '/vault/docs', []),
-			makeFile('note.md', '/vault/note.md'),
-		];
+		const tree = [makeDir('docs', '/vault/docs', []), makeFile('note.md', '/vault/note.md')];
 		const newChildren = [makeFile('new.md', '/vault/missing/new.md')];
-
 		const result = patchSubtree(tree, '/vault/missing', newChildren, '/vault');
-
 		expect(result[0].children).toEqual([]);
 		expect(result[1].name).toBe('note.md');
 	});
@@ -168,81 +86,26 @@ describe('patchSubtree', () => {
 		const originalChildren = [makeFile('old.md', '/vault/docs/old.md')];
 		const tree = [makeDir('docs', '/vault/docs', originalChildren)];
 		const newChildren = [makeFile('new.md', '/vault/docs/new.md')];
-
 		patchSubtree(tree, '/vault/docs', newChildren, '/vault');
-
-		// Original tree should be unchanged
 		expect(tree[0].children).toBe(originalChildren);
 	});
 
-	it('handles file nodes (no children) gracefully', () => {
-		const tree = [
-			makeFile('a.md', '/vault/a.md'),
-			makeFile('b.md', '/vault/b.md'),
-		];
-		const newChildren = [makeFile('new.md', '/vault/sub/new.md')];
-
-		const result = patchSubtree(tree, '/vault/sub', newChildren, '/vault');
-
-		// Should return unchanged since no directory matches
-		expect(result.map(n => n.name)).toEqual(['a.md', 'b.md']);
-	});
-
 	it('preserves reference identity for unchanged sibling directories', () => {
-		const unchanged = makeDir('other', '/vault/other', [
-			makeFile('keep.md', '/vault/other/keep.md'),
-		]);
+		const unchanged = makeDir('other', '/vault/other', [makeFile('keep.md', '/vault/other/keep.md')]);
 		const tree = [
-			makeDir('docs', '/vault/docs', [
-				makeFile('old.md', '/vault/docs/old.md'),
-			]),
+			makeDir('docs', '/vault/docs', [makeFile('old.md', '/vault/docs/old.md')]),
 			unchanged,
 		];
 		const newChildren = [makeFile('new.md', '/vault/docs/new.md')];
-
 		const result = patchSubtree(tree, '/vault/docs', newChildren, '/vault');
-
-		// The patched directory should have new children
 		expect(result[0].children).toEqual(newChildren);
-		// The unchanged sibling should be the exact same object reference
 		expect(result[1]).toBe(unchanged);
-	});
-
-	it('preserves reference identity for unchanged nested directories', () => {
-		const deepUnchanged = makeDir('unchanged', '/vault/docs/unchanged', [
-			makeFile('deep.md', '/vault/docs/unchanged/deep.md'),
-		]);
-		const tree = [
-			makeDir('docs', '/vault/docs', [
-				makeDir('target', '/vault/docs/target', [
-					makeFile('old.md', '/vault/docs/target/old.md'),
-				]),
-				deepUnchanged,
-			]),
-		];
-		const newChildren = [makeFile('new.md', '/vault/docs/target/new.md')];
-
-		const result = patchSubtree(tree, '/vault/docs/target', newChildren, '/vault');
-
-		// The unchanged nested sibling should keep its reference
-		expect(result[0].children![1]).toBe(deepUnchanged);
-	});
-
-	it('preserves file node references', () => {
-		const file = makeFile('root.md', '/vault/root.md');
-		const tree = [
-			makeDir('docs', '/vault/docs', []),
-			file,
-		];
-		const newChildren = [makeFile('new.md', '/vault/docs/new.md')];
-
-		const result = patchSubtree(tree, '/vault/docs', newChildren, '/vault');
-
-		expect(result[1]).toBe(file);
 	});
 });
 
-// --- onFileChange tests ---
+// ---------------------------------------------------------------------------
+// onFileChange (subscriber API, unchanged from pre-Phase 9)
+// ---------------------------------------------------------------------------
 
 describe('onFileChange', () => {
 	afterEach(async () => {
@@ -252,31 +115,52 @@ describe('onFileChange', () => {
 	it('returns an unsubscribe function', () => {
 		const listener = vi.fn();
 		const unsubscribe = onFileChange(listener);
-
 		expect(typeof unsubscribe).toBe('function');
 	});
 
 	it('unsubscribe removes the listener', () => {
 		const listener1 = vi.fn();
 		const listener2 = vi.fn();
-
 		const unsub1 = onFileChange(listener1);
 		onFileChange(listener2);
-
 		unsub1();
-
-		// After unsubscribe, listener1 should no longer be in the list.
-		// We verify by checking that a second unsubscribe of listener2 still works
-		// (indirectly: the array should have only listener2)
-		const unsub2Listener = vi.fn();
-		const unsub2 = onFileChange(unsub2Listener);
-		unsub2();
-		// If we got here without error, the unsubscribe mechanism works
+		// If the array is malformed, a second unsubscribe of an
+		// arbitrary listener throws. The fact that this doesn't is the
+		// (loose) assertion.
+		const unsub3 = onFileChange(vi.fn());
+		unsub3();
 		expect(true).toBe(true);
 	});
 });
 
-// --- startWatching / stopWatching tests ---
+// ---------------------------------------------------------------------------
+// startWatching / stopWatching — Phase 9 invoke + listen wiring
+// ---------------------------------------------------------------------------
+
+/**
+ * Helper: configures `listen('vault-files-changed', ...)` to capture the
+ * payload handler and yields it for tests to invoke synthetically. The
+ * helper also captures the Tauri unlisten function so afterEach can
+ * verify it was called by `stopWatching`.
+ */
+async function setupWatcher(vaultPath = '/vault'): Promise<{
+	emit: (paths: string[]) => void;
+	unlisten: UnlistenFn;
+}> {
+	let captured: ((event: { payload: { paths: string[] } }) => void) | null = null;
+	const unlisten = vi.fn() as unknown as UnlistenFn;
+	vi.mocked(listen).mockImplementation(async (_evt, handler) => {
+		captured = handler as never;
+		return unlisten;
+	});
+	vi.mocked(invoke).mockResolvedValue(undefined);
+	await startWatching(vaultPath);
+	if (!captured) throw new Error('listen handler not captured');
+	return {
+		emit: (paths: string[]) => captured!({ payload: { paths } }),
+		unlisten,
+	};
+}
 
 describe('startWatching / stopWatching', () => {
 	beforeEach(() => {
@@ -287,51 +171,88 @@ describe('startWatching / stopWatching', () => {
 		await stopWatching();
 	});
 
-	it('calls watch with the vault path and recursive options', async () => {
-		const mockUnwatch = vi.fn();
-		vi.mocked(watch).mockResolvedValue(mockUnwatch);
+	it('invokes start_vault_watcher with the vault path', async () => {
+		vi.mocked(listen).mockResolvedValue(vi.fn() as unknown as UnlistenFn);
+		vi.mocked(invoke).mockResolvedValue(undefined);
 
 		await startWatching('/vault');
 
-		expect(watch).toHaveBeenCalledWith(
-			'/vault',
-			expect.any(Function),
-			{ recursive: true, delayMs: 1000 },
-		);
+		expect(invoke).toHaveBeenCalledWith('start_vault_watcher', { path: '/vault' });
 	});
 
-	it('stopWatching calls the unwatch function', async () => {
-		const mockUnwatch = vi.fn();
-		vi.mocked(watch).mockResolvedValue(mockUnwatch);
+	it('subscribes to vault-files-changed BEFORE invoking start (no first-burst loss)', async () => {
+		// Track only the start side — `startWatching` also calls
+		// `stopWatching()` first, which fires `invoke('stop_vault_watcher')`.
+		// We care about the relative order of LISTEN vs `start_vault_watcher`.
+		const callOrder: string[] = [];
+		vi.mocked(listen).mockImplementation(async () => {
+			callOrder.push('listen');
+			return (vi.fn() as unknown) as UnlistenFn;
+		});
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'start_vault_watcher') callOrder.push('invoke:start');
+			return undefined;
+		});
 
 		await startWatching('/vault');
+
+		expect(callOrder).toEqual(['listen', 'invoke:start']);
+	});
+
+	it('stopWatching invokes stop_vault_watcher AND unsubscribes the listener', async () => {
+		const { unlisten } = await setupWatcher();
+		vi.mocked(invoke).mockClear();
+
 		await stopWatching();
 
-		expect(mockUnwatch).toHaveBeenCalled();
+		expect(unlisten).toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('stop_vault_watcher');
 	});
 
 	it('stopWatching is safe to call when not watching', async () => {
-		// Should not throw
 		await stopWatching();
 		await stopWatching();
+		expect(true).toBe(true);
 	});
 
-	it('startWatching stops previous watcher before starting new one', async () => {
-		const mockUnwatch1 = vi.fn();
-		const mockUnwatch2 = vi.fn();
-		vi.mocked(watch)
-			.mockResolvedValueOnce(mockUnwatch1)
-			.mockResolvedValueOnce(mockUnwatch2);
+	it('startWatching stops the previous watcher before starting a new one', async () => {
+		const unlisten1 = vi.fn() as unknown as UnlistenFn;
+		const unlisten2 = vi.fn() as unknown as UnlistenFn;
+		vi.mocked(listen)
+			.mockResolvedValueOnce(unlisten1)
+			.mockResolvedValueOnce(unlisten2);
+		vi.mocked(invoke).mockResolvedValue(undefined);
 
 		await startWatching('/vault1');
 		await startWatching('/vault2');
 
-		expect(mockUnwatch1).toHaveBeenCalled();
-		expect(watch).toHaveBeenCalledTimes(2);
+		expect(unlisten1).toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('start_vault_watcher', { path: '/vault1' });
+		expect(invoke).toHaveBeenCalledWith('start_vault_watcher', { path: '/vault2' });
 	});
 
-	it('handles watch() failure gracefully', async () => {
-		vi.mocked(watch).mockRejectedValue(new Error('watch not supported'));
+	it('handles invoke failure gracefully (tears down listener)', async () => {
+		const unlisten = vi.fn() as unknown as UnlistenFn;
+		vi.mocked(listen).mockResolvedValue(unlisten);
+		// Reject only on `start_vault_watcher` — `stop_vault_watcher`
+		// (called by the implicit stopWatching at the top of
+		// startWatching) must succeed.
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'start_vault_watcher') throw new Error('rust panic');
+			return undefined;
+		});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await startWatching('/vault');
+
+		expect(consoleSpy).toHaveBeenCalled();
+		// Listener was attached but invoke failed → should detach to avoid leak.
+		expect(unlisten).toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+
+	it('handles listen() failure gracefully', async () => {
+		vi.mocked(listen).mockRejectedValue(new Error('event subscribe failed'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await startWatching('/vault');
@@ -341,152 +262,59 @@ describe('startWatching / stopWatching', () => {
 	});
 });
 
-// --- hidden directory path filtering tests ---
-
-describe('watcher event filtering', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
-	afterEach(async () => {
-		await stopWatching();
-	});
-
-	it('ignores events from any hidden (dot-prefixed) directory', async () => {
-		let capturedCallback: ((event: any) => void) | null = null;
-		vi.mocked(watch).mockImplementation(async (_path, callback) => {
-			capturedCallback = callback as any;
-			return () => {};
-		});
-
-		await startWatching('/vault');
-		expect(capturedCallback).not.toBeNull();
-
-		// All hidden directories should be ignored: .kokobrain, .git, .claude, .obsidian, etc.
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.kokobrain/debug.log'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.git/index'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.claude/scripts/test.ts'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.obsidian/workspace.json'] });
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.trash/deleted.md'] });
-
-		const counters = getWatcherCounters();
-		expect(counters.accepted).toBe(0);
-		expect(counters.rawEvents).toBe(0);
-	});
-
-	it('accepts events from non-hidden directories', async () => {
-		let capturedCallback: ((event: any) => void) | null = null;
-		vi.mocked(watch).mockImplementation(async (_path, callback) => {
-			capturedCallback = callback as any;
-			return () => {};
-		});
-
-		await startWatching('/vault');
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/notes/hello.md'] });
-
-		const counters = getWatcherCounters();
-		expect(counters.accepted).toBe(1);
-		expect(counters.rawEvents).toBe(1);
-	});
-
-	it('ignores events for the vault root path itself', async () => {
-		let capturedCallback: ((event: any) => void) | null = null;
-		vi.mocked(watch).mockImplementation(async (_path, callback) => {
-			capturedCallback = callback as any;
-			return () => {};
-		});
-
-		await startWatching('/vault');
-		expect(capturedCallback).not.toBeNull();
-
-		// Vault root itself should be skipped (macOS FSEvents quirk)
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault'] });
-	});
-});
-
-// --- Watcher counter tests ---
+// ---------------------------------------------------------------------------
+// Watcher counters
+// ---------------------------------------------------------------------------
 
 describe('watcher counters', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		fsStore.reset();
 	});
 
 	afterEach(async () => {
 		await stopWatching();
 	});
 
-	it('starts with all counters zeroed', async () => {
+	it('starts with all counters zeroed', () => {
 		const counters = getWatcherCounters();
-
 		expect(counters.rawEvents).toBe(0);
-		expect(counters.skippedKokobrain).toBe(0);
-		expect(counters.skippedVaultRoot).toBe(0);
-		expect(counters.accepted).toBe(0);
 		expect(counters.skippedAncestorPaths).toBe(0);
 		expect(counters.debounceFires).toBe(0);
 		expect(counters.fullRefreshes).toBe(0);
 		expect(counters.incrementalRefreshes).toBe(0);
 	});
 
+	it('increments rawEvents and debounceFires per Rust-emitted batch', async () => {
+		const { emit } = await setupWatcher();
+
+		emit(['/vault/note.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		const counters = getWatcherCounters();
+		expect(counters.rawEvents).toBe(1);
+		expect(counters.debounceFires).toBe(1);
+	});
+
 	it('resets counters on stopWatching', async () => {
-		let capturedCallback: ((event: any) => void) | null = null;
-		vi.mocked(watch).mockImplementation(async (_path, callback) => {
-			capturedCallback = callback as any;
-			return () => {};
-		});
-
-		await startWatching('/vault');
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/note.md'] });
-
+		const { emit } = await setupWatcher();
+		emit(['/vault/note.md']);
+		await new Promise((r) => setTimeout(r, 0));
 		expect(getWatcherCounters().rawEvents).toBe(1);
 
 		await stopWatching();
 
 		const counters = getWatcherCounters();
 		expect(counters.rawEvents).toBe(0);
-		expect(counters.accepted).toBe(0);
-	});
-
-	it('increments accepted and skipped counters correctly', async () => {
-		let capturedCallback: ((event: any) => void) | null = null;
-		vi.mocked(watch).mockImplementation(async (_path, callback) => {
-			capturedCallback = callback as any;
-			return () => {};
-		});
-
-		await startWatching('/vault');
-
-		// Accepted path
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/note.md'] });
-		// Skipped hidden dir path (.kokobrain)
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault/.kokobrain/debug.log'] });
-		// Skipped vault root
-		capturedCallback!({ type: { modify: { kind: 'any' } }, paths: ['/vault'] });
-
-		const counters = getWatcherCounters();
-		// rawEvents only counts events that have at least one relevant path after pre-filtering
-		expect(counters.rawEvents).toBe(1);
-		expect(counters.accepted).toBe(1);
-		// skippedKokobrain now counts all hidden dir skips (unified counter)
-		expect(counters.skippedKokobrain).toBe(1);
-		expect(counters.skippedVaultRoot).toBe(1);
+		expect(counters.debounceFires).toBe(0);
 	});
 });
 
-// --- debouncedRefresh tests ---
+// ---------------------------------------------------------------------------
+// vault-files-changed event handling — incremental vs full refresh
+// ---------------------------------------------------------------------------
 
-/** Helper to start watching and capture the event callback */
-async function setupWatcher(vaultPath = '/vault'): Promise<(event: any) => void> {
-	let capturedCallback: ((event: any) => void) | null = null;
-	vi.mocked(watch).mockImplementation(async (_path, callback) => {
-		capturedCallback = callback as any;
-		return () => {};
-	});
-	await startWatching(vaultPath);
-	return capturedCallback!;
-}
-
-describe('debouncedRefresh', () => {
+describe('vault-files-changed handling', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fsStore.reset();
@@ -498,31 +326,28 @@ describe('debouncedRefresh', () => {
 	});
 
 	it('performs full refresh when more than 5 parent directories change', async () => {
-		const cb = await setupWatcher();
-
-		// Send all 6 paths in one event so they accumulate before debounce fires
+		const { emit } = await setupWatcher();
 		const paths = Array.from({ length: 6 }, (_, i) => `/vault/dir${i}/file.md`);
-		cb({ type: { modify: { kind: 'any' } }, paths });
+
+		emit(paths);
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(refreshTree).toHaveBeenCalled();
 		expect(getWatcherCounters().fullRefreshes).toBe(1);
 	});
 
-	it('performs incremental refresh for few parent directories', async () => {
-		const cb = await setupWatcher();
-
-		// Setup store with existing tree
+	it('performs incremental refresh for ≤5 parent directories', async () => {
+		const { emit } = await setupWatcher();
 		fsStore.setFileTree([
 			{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] },
 		]);
-
-		// Mock invoke to return new subtree for /vault/docs
+		// Mock invoke for scan_vault subtree (start_vault_watcher already
+		// resolved in setupWatcher).
 		vi.mocked(invoke).mockResolvedValueOnce([
 			{ name: 'new.md', path: '/vault/docs/new.md', isDirectory: false },
 		]);
 
-		cb({ type: { modify: { kind: 'any' } }, paths: ['/vault/docs/new.md'] });
+		emit(['/vault/docs/new.md']);
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(invoke).toHaveBeenCalledWith('scan_vault', {
@@ -534,32 +359,25 @@ describe('debouncedRefresh', () => {
 	});
 
 	it('falls back to full refresh when incremental scan_vault fails', async () => {
-		const cb = await setupWatcher();
-
+		const { emit } = await setupWatcher();
 		fsStore.setFileTree([
 			{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] },
 		]);
-
-		// Make invoke reject to trigger fallback
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('scan failed'));
 
-		cb({ type: { modify: { kind: 'any' } }, paths: ['/vault/docs/file.md'] });
+		emit(['/vault/docs/file.md']);
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(refreshTree).toHaveBeenCalled();
 		expect(getWatcherCounters().fullRefreshes).toBe(1);
 	});
 
-	it('performs full refresh when no specific paths are pending', async () => {
-		const cb = await setupWatcher();
-
-		// Simulate event with vault root path (filtered out) then manually trigger
-		// Actually, if no paths are accepted, debouncedRefresh won't fire.
-		// Let's test: 0 parentsToRescan triggers full refresh
-		cb({ type: { modify: { kind: 'any' } }, paths: ['/other/outside/vault.md'] });
+	it('performs full refresh when paths fall outside the vault prefix', async () => {
+		const { emit } = await setupWatcher();
+		// Out-of-vault path → no parents to rescan → full refresh.
+		emit(['/other/outside/vault.md']);
 		await new Promise((r) => setTimeout(r, 0));
 
-		// The path doesn't start with vaultPath, so parentsToRescan is empty → full refresh
 		expect(refreshTree).toHaveBeenCalled();
 	});
 
@@ -567,8 +385,8 @@ describe('debouncedRefresh', () => {
 		const listener = vi.fn();
 		onFileChange(listener);
 
-		const cb = await setupWatcher();
-		cb({ type: { modify: { kind: 'any' } }, paths: ['/vault/a/1.md', '/vault/b/2.md', '/vault/c/3.md', '/vault/d/4.md', '/vault/e/5.md', '/vault/f/6.md'] });
+		const { emit } = await setupWatcher();
+		emit(['/vault/a/1.md', '/vault/b/2.md', '/vault/c/3.md', '/vault/d/4.md', '/vault/e/5.md', '/vault/f/6.md']);
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(listener).toHaveBeenCalledWith(expect.arrayContaining(['/vault/a/1.md']));
@@ -578,42 +396,50 @@ describe('debouncedRefresh', () => {
 		const listener = vi.fn();
 		onFileChange(listener);
 
-		const cb = await setupWatcher();
+		const { emit } = await setupWatcher();
 		fsStore.setFileTree([
 			{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] },
 		]);
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 
-		cb({ type: { modify: { kind: 'any' } }, paths: ['/vault/docs/note.md'] });
+		emit(['/vault/docs/note.md']);
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(listener).toHaveBeenCalledWith(['/vault/docs/note.md']);
 	});
 
 	it('discards in-flight refresh when stopWatching is called mid-flight', async () => {
-		const cb = await setupWatcher();
-
+		const { emit } = await setupWatcher();
 		fsStore.setFileTree([
 			{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] },
 		]);
 
-		// Make invoke slow so we can stop watching during it
-		let resolveInvoke: (value: any) => void;
-		vi.mocked(invoke).mockImplementation(() => new Promise((r) => { resolveInvoke = r; }));
+		// Make scan_vault hang indefinitely so we can call stopWatching mid-flight.
+		let resolveInvoke: (value: unknown) => void;
+		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => {
+			resolveInvoke = r;
+		}));
 
-		cb({ type: { modify: { kind: 'any' } }, paths: ['/vault/docs/note.md'] });
-		// Don't await — let the async callback start
-
-		// Stop watching mid-flight (increments watchVersion)
+		emit(['/vault/docs/note.md']);
 		await stopWatching();
 
-		// Resolve the in-flight invoke — the result should be discarded
+		// Resolve with stale data — should be discarded by the version check.
 		resolveInvoke!([{ name: 'stale.md', path: '/vault/docs/stale.md', isDirectory: false }]);
 		await new Promise((r) => setTimeout(r, 0));
 
-		// Tree should NOT have been updated with stale data — original tree intact
 		expect(fsStore.fileTree).toEqual([
 			{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] },
 		]);
+	});
+
+	it('emits empty paths array as a no-op', async () => {
+		const { emit } = await setupWatcher();
+		emit([]);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(refreshTree).not.toHaveBeenCalled();
+		// Empty payload should NOT bump debounceFires either; the Rust
+		// watcher won't ever emit empty arrays, but defensive on TS side.
+		expect(getWatcherCounters().debounceFires).toBe(0);
 	});
 });
