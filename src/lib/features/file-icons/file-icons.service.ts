@@ -1,10 +1,18 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import type { FileIconEntry, IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore } from './file-icons.store.svelte';
-import { setFileIcon, removeFileIcon, updateFileIconPaths, addRecentIcon, extractIconFromFrontmatter } from './file-icons.logic';
+import {
+	setFileIcon,
+	removeFileIcon,
+	updateFileIconPaths,
+	addRecentIcon,
+	extractIconFromFrontmatter,
+	extractIconFromParsedFrontmatter,
+} from './file-icons.logic';
 import { preloadPacks } from './file-icons.icon-data';
-import { debug, error, timeSync } from '$lib/utils/debug';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { debug, error, timeAsync } from '$lib/utils/debug';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 /** Internal directory inside the vault that stores app metadata */
 const KOKOBRAIN_DIR = '.kokobrain';
@@ -139,19 +147,23 @@ export async function updateFileIconPathsAfterMove(
 }
 
 /**
- * Scans all indexed note contents for frontmatter `icon` properties.
- * Uses noteIndexStore.noteContents as the source of truth (same pattern as tags/properties).
- * Call after buildIndex completes.
+ * Scans all vault notes for the frontmatter `icon` property and
+ * populates `fileIconsStore.frontmatterIcons`. Reads pre-parsed
+ * frontmatter from the Rust `VaultIndex` via `get_all_vault_entries_v2`
+ * — no per-file YAML re-parse on the JS side.
+ *
+ * Phase 11.5g — replaces the previous noteIndexStore.noteContents
+ * iteration. Call after the Rust index is bootstrapped (Phase 3.5b).
  */
-export function buildFrontmatterIconIndex(): void {
-	timeSync('FILE_ICONS', 'buildFrontmatterIconIndex', () => {
-		const noteContents = noteIndexStore.noteContents;
+export async function buildFrontmatterIconIndex(): Promise<void> {
+	await timeAsync('FILE_ICONS', 'buildFrontmatterIconIndex', async () => {
+		const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
 		const index = new Map<string, { iconPack: IconPackId; iconName: string }>();
 
-		for (const [path, content] of noteContents) {
-			const ref = extractIconFromFrontmatter(content);
+		for (const entry of entries) {
+			const ref = extractIconFromParsedFrontmatter(entry.frontmatter);
 			if (ref) {
-				index.set(path, ref);
+				index.set(entry.path, ref);
 			}
 		}
 

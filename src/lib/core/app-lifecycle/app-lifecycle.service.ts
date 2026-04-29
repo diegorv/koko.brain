@@ -221,7 +221,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		buildTagIndex();
 		buildTaskIndex();
 		buildPropertyIndex();
-		buildFrontmatterIconIndex();
+		buildFrontmatterIconIndex().catch((err) =>
+			error('LIFECYCLE', 'buildFrontmatterIconIndex failed:', err),
+		);
 		scanFilesForCalendar();
 		perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons+calendar)', t5b);
 	}, 0);

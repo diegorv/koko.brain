@@ -7,14 +7,18 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 	preloadPacks: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import {
 	loadFileIcons,
 	loadRecentIcons,
@@ -27,12 +31,21 @@ import {
 	updateFrontmatterIconForFile,
 	resetFileIcons,
 } from '$lib/features/file-icons/file-icons.service';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+
+/** Configures `invoke('get_all_vault_entries_v2')` to return `entries`. */
+function mockEntriesV2(entries: NoteEntryV2[]): void {
+	vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+		if (cmd === 'get_all_vault_entries_v2') return entries as unknown;
+		return undefined;
+	});
+}
 
 describe('loadFileIcons', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		noteIndexStore.reset();
 	});
 
 	it('sets empty entries if file does not exist', async () => {
@@ -256,40 +269,40 @@ describe('buildFrontmatterIconIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		noteIndexStore.reset();
 	});
 
-	it('extracts frontmatter icons from note contents into store', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '---\nicon: lucide:star\n---\n# Hello'],
-			['/vault/b.md', '---\ntitle: No icon\n---\nBody'],
-			['/vault/c.md', '---\nicon: feather:heart\n---\nBody'],
-		]));
+	it('extracts frontmatter icons from Rust entries into store', async () => {
+		mockEntriesV2([
+			entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } }),
+			entryV2('/vault/b.md', { frontmatter: { title: 'No icon' } }),
+			entryV2('/vault/c.md', { frontmatter: { icon: 'feather:heart' } }),
+		]);
 
-		buildFrontmatterIconIndex();
+		await buildFrontmatterIconIndex();
 
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
 		expect(fileIconsStore.frontmatterIcons.size).toBe(2);
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ iconPack: 'lucide', iconName: 'star' });
 		expect(fileIconsStore.getFrontmatterIcon('/vault/c.md')).toEqual({ iconPack: 'feather', iconName: 'heart' });
 		expect(fileIconsStore.getFrontmatterIcon('/vault/b.md')).toBeUndefined();
 	});
 
-	it('preloads packs referenced by frontmatter icons', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '---\nicon: tabler:rocket\n---\nBody'],
-		]));
+	it('preloads packs referenced by frontmatter icons', async () => {
+		mockEntriesV2([
+			entryV2('/vault/a.md', { frontmatter: { icon: 'tabler:rocket' } }),
+		]);
 
-		buildFrontmatterIconIndex();
+		await buildFrontmatterIconIndex();
 
 		expect(preloadPacks).toHaveBeenCalledWith(['tabler']);
 		expect(fileIconsStore.frontmatterIcons.size).toBe(1);
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ iconPack: 'tabler', iconName: 'rocket' });
 	});
 
-	it('handles empty note contents', () => {
-		noteIndexStore.setNoteContents(new Map());
+	it('handles empty entries', async () => {
+		mockEntriesV2([]);
 
-		buildFrontmatterIconIndex();
+		await buildFrontmatterIconIndex();
 
 		expect(fileIconsStore.frontmatterIcons.size).toBe(0);
 	});
@@ -299,7 +312,6 @@ describe('updateFrontmatterIconForFile', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		noteIndexStore.reset();
 	});
 
 	it('skips update when both old and new are null', () => {
@@ -308,12 +320,10 @@ describe('updateFrontmatterIconForFile', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
 	});
 
-	it('skips update when icon is unchanged', () => {
-		// Set initial state via buildFrontmatterIconIndex
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '---\nicon: lucide:star\n---\nBody'],
-		]));
-		buildFrontmatterIconIndex();
+	it('skips update when icon is unchanged', async () => {
+		// Seed initial state via the migrated builder.
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		await buildFrontmatterIconIndex();
 		vi.clearAllMocks();
 
 		updateFrontmatterIconForFile('/vault/a.md', '---\nicon: lucide:star\n---\nBody');
@@ -329,11 +339,9 @@ describe('updateFrontmatterIconForFile', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ iconPack: 'lucide', iconName: 'star' });
 	});
 
-	it('updates store when icon is removed', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '---\nicon: lucide:star\n---\nBody'],
-		]));
-		buildFrontmatterIconIndex();
+	it('updates store when icon is removed', async () => {
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		await buildFrontmatterIconIndex();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeDefined();
 
 		updateFrontmatterIconForFile('/vault/a.md', '---\ntitle: No icon\n---\nBody');
@@ -341,11 +349,9 @@ describe('updateFrontmatterIconForFile', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
 	});
 
-	it('updates store when icon pack changes', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '---\nicon: lucide:star\n---\nBody'],
-		]));
-		buildFrontmatterIconIndex();
+	it('updates store when icon pack changes', async () => {
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		await buildFrontmatterIconIndex();
 
 		updateFrontmatterIconForFile('/vault/a.md', '---\nicon: feather:star\n---\nBody');
 
@@ -359,11 +365,9 @@ describe('updateFrontmatterIconForFile', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ iconPack: 'tabler', iconName: 'rocket' });
 	});
 
-	it('does not preload when icon is removed', () => {
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', '---\nicon: lucide:star\n---\nBody'],
-		]));
-		buildFrontmatterIconIndex();
+	it('does not preload when icon is removed', async () => {
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		await buildFrontmatterIconIndex();
 		vi.clearAllMocks();
 
 		updateFrontmatterIconForFile('/vault/a.md', '# No frontmatter');
