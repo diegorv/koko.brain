@@ -1,5 +1,5 @@
 import { Decoration } from '@codemirror/view';
-import { TaskCheckboxWidget, OrderedListMarkerWidget } from '../../widgets';
+import { TaskCheckboxWidget, OrderedListMarkerWidget, UnorderedListMarkerWidget } from '../../widgets';
 import { InlineMathWidget } from '../../widgets/inline-math-widget';
 import type { NodeHandler } from '../inline-formatting-plugin';
 
@@ -91,7 +91,8 @@ export const listMarkHandler: NodeHandler = {
 			const rest = state.doc.sliceString(markTo, line.to).trim();
 			if (/^\[.\]$/.test(rest)) return;
 			decorations.push(
-				Decoration.mark({ class: 'cm-formatting-ul-marker' }).range(node.from, markTo),
+				Decoration.replace({ widget: new UnorderedListMarkerWidget() })
+					.range(node.from, markTo),
 			);
 		}
 	},
