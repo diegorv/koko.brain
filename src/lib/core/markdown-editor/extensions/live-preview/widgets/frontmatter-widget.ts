@@ -13,6 +13,7 @@ import { WIKILINK_DECORATION_RE } from '../../wikilink/decoration.logic';
 import { openWikilinkTarget } from '../wikilink-navigation';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { getTagColor } from '$lib/features/tags/tag-colors.logic';
+import { profileWidget } from '../core/profiling';
 
 /** SVG icon strings for property type indicators */
 const ICON_DATE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
@@ -125,6 +126,11 @@ export class FrontmatterWidget extends WidgetType {
 	}
 
 	toDOM(view: EditorView) {
+		return profileWidget('frontmatter-widget', () => this.renderDOM(view));
+	}
+
+	/** Internal — wrapped by `toDOM` for freeze-investigation tracing. */
+	private renderDOM(view: EditorView): HTMLElement {
 		const container = document.createElement('div');
 		container.className = 'cm-lp-frontmatter';
 

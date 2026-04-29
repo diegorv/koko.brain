@@ -34,3 +34,48 @@ export function profileEnd(label: string, start: number, threshold: number = 0.5
 	}
 	appendLog('LP-TRACE', `exit: ${label}`);
 }
+
+/**
+ * Wraps a CodeMirror `WidgetType.toDOM()` body so its entry / exit / duration
+ * are visible in the log when `livePreviewProfiling` is on. Audit follow-up
+ * for the 2026-04-29 freeze investigation: plugin-level `update()` traces
+ * already exist via `profileStart` / `profileEnd`, but widget `toDOM()`
+ * fires OUTSIDE the plugin's update window (called by CodeMirror when a
+ * widget enters the viewport). A widget that hangs in `toDOM()` would
+ * therefore leave no trace in `LP-TRACE` — `LP-WIDGET-TRACE` plugs that
+ * gap. The label is the widget's own name (e.g. `frontmatter`,
+ * `meta-bind-select`, `wikilink-note-embed`).
+ *
+ * Behaviour matches `profileStart` / `profileEnd`: a single zero-overhead
+ * fast-path when profiling is off (no `performance.now()` call); when on,
+ * always emits `enter:` and `exit:` lines, plus a `LP-WIDGET-PROFILE` line
+ * when elapsed exceeds `threshold` ms (default 0.5 ms — same as plugins).
+ *
+ * Usage inside a `WidgetType` subclass:
+ *
+ * ```ts
+ * toDOM(view: EditorView): HTMLElement {
+ *   return profileWidget('frontmatter', () => {
+ *     // ... existing toDOM logic
+ *     return node;
+ *   });
+ * }
+ * ```
+ *
+ * The helper guarantees the `exit:` line via try/finally so a thrown error
+ * inside `fn` still flushes the trace before propagating.
+ */
+export function profileWidget<T>(label: string, fn: () => T): T {
+	if (!settingsStore.livePreviewProfiling) return fn();
+	appendLog('LP-WIDGET-TRACE', `enter: ${label}`);
+	const start = performance.now();
+	try {
+		return fn();
+	} finally {
+		const elapsed = performance.now() - start;
+		if (elapsed > 0.5) {
+			appendLog('LP-WIDGET-PROFILE', `${label}: ${elapsed.toFixed(1)}ms`);
+		}
+		appendLog('LP-WIDGET-TRACE', `exit: ${label}`);
+	}
+}

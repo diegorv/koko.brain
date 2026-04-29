@@ -18,6 +18,7 @@ vi.mock('$lib/core/settings/settings.store.svelte', () => ({
 import {
 	profileStart,
 	profileEnd,
+	profileWidget,
 } from '$lib/core/markdown-editor/extensions/live-preview/core/profiling';
 
 describe('live-preview profiling', () => {
@@ -124,6 +125,89 @@ describe('live-preview profiling', () => {
 			);
 			expect(enters).toHaveLength(1);
 			expect(exits).toHaveLength(0);
+		});
+	});
+
+	describe('profileWidget (toDOM tracing for freeze investigation)', () => {
+		it('returns the wrapped function result regardless of profiling state', () => {
+			mockSettings.livePreviewProfiling = false;
+			expect(profileWidget('w', () => 42)).toBe(42);
+
+			mockSettings.livePreviewProfiling = true;
+			expect(profileWidget('w', () => 'hello')).toBe('hello');
+		});
+
+		it('is silent when profiling is disabled (zero overhead)', () => {
+			mockSettings.livePreviewProfiling = false;
+			// Avoid `document` here — vitest's default env doesn't expose it.
+			// In production the wrapped fn returns the toDOM-built HTMLElement;
+			// the mocked one returns a plain object as a stand-in.
+			const fakeNode = { tagName: 'DIV' };
+			expect(profileWidget('frontmatter-widget', () => fakeNode)).toBe(fakeNode);
+			expect(mockAppendLog).not.toHaveBeenCalled();
+		});
+
+		it('emits LP-WIDGET-TRACE enter + exit when profiling is enabled', () => {
+			mockSettings.livePreviewProfiling = true;
+			profileWidget('frontmatter-widget', () => 0);
+			const enters = mockAppendLog.mock.calls.filter(
+				(c) => c[0] === 'LP-WIDGET-TRACE' && (c[1] as string).startsWith('enter:'),
+			);
+			const exits = mockAppendLog.mock.calls.filter(
+				(c) => c[0] === 'LP-WIDGET-TRACE' && (c[1] as string).startsWith('exit:'),
+			);
+			expect(enters).toHaveLength(1);
+			expect(enters[0][1]).toBe('enter: frontmatter-widget');
+			expect(exits).toHaveLength(1);
+			expect(exits[0][1]).toBe('exit: frontmatter-widget');
+		});
+
+		it('emits LP-WIDGET-PROFILE timing line when work exceeds threshold', () => {
+			mockSettings.livePreviewProfiling = true;
+			// Simulate 5 ms of work via a busy-loop (real, not mocked).
+			profileWidget('slow-widget', () => {
+				const target = performance.now() + 5;
+				while (performance.now() < target) {
+					// busy-wait
+				}
+			});
+			const profile = mockAppendLog.mock.calls.find((c) => c[0] === 'LP-WIDGET-PROFILE');
+			expect(profile).toBeDefined();
+			expect(profile![1]).toMatch(/slow-widget: \d+\.\dms/);
+		});
+
+		it('still emits exit trace when fn throws (try/finally guarantee)', () => {
+			mockSettings.livePreviewProfiling = true;
+			expect(() =>
+				profileWidget('throwing-widget', () => {
+					throw new Error('boom');
+				}),
+			).toThrow('boom');
+
+			const exits = mockAppendLog.mock.calls.filter(
+				(c) => c[0] === 'LP-WIDGET-TRACE' && c[1] === 'exit: throwing-widget',
+			);
+			expect(exits).toHaveLength(1);
+		});
+
+		it('an enter-only sequence localises a hung toDOM (simulated freeze)', () => {
+			mockSettings.livePreviewProfiling = true;
+			// We can't actually hang here, but we can verify the contract:
+			// before fn returns, only `enter` is in the log; on a real freeze
+			// the user would see the same partial state in the file.
+			let traceMidFlight: { enters: number; exits: number } | null = null;
+			profileWidget('mid-flight-widget', () => {
+				traceMidFlight = {
+					enters: mockAppendLog.mock.calls.filter(
+						(c) => c[0] === 'LP-WIDGET-TRACE' && (c[1] as string).startsWith('enter:'),
+					).length,
+					exits: mockAppendLog.mock.calls.filter(
+						(c) => c[0] === 'LP-WIDGET-TRACE' && (c[1] as string).startsWith('exit:'),
+					).length,
+				};
+				return 0;
+			});
+			expect(traceMidFlight).toEqual({ enters: 1, exits: 0 });
 		});
 	});
 });

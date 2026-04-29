@@ -14,6 +14,7 @@ import {
 } from '$lib/features/properties/properties.logic';
 import { isSafeUrl } from '$lib/utils/sanitize-url';
 import { openWikilinkTarget } from './wikilink-navigation';
+import { profileWidget } from './core/profiling';
 
 export class HorizontalRuleWidget extends WidgetType {
 	toDOM() {
@@ -706,7 +707,9 @@ export class MetaBindSelectWidget extends WidgetType {
 	}
 
 	toDOM(view: EditorView) {
-		return createMetaBindSelect(this.options, this.bindTarget, this.currentValue, view);
+		return profileWidget('meta-bind-select-widget', () =>
+			createMetaBindSelect(this.options, this.bindTarget, this.currentValue, view),
+		);
 	}
 
 	eq(other: MetaBindSelectWidget) {
