@@ -112,15 +112,15 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 
 ### Phase 9 - Watcher Migration to Rust BEHAVIORAL (after 2-8 live)
 
-- [ ] **9.1** Audit current TS watcher consumers (`fs.watcher.ts::onFileChange` listeners). Existing flow: 500 ms debounce → ≤10 files incremental, else full rebuild. `areAllRecentSaves` self-save filter; `isInsideHiddenDir` hidden-dir filter. Document the order.
-- [ ] **9.2** Add `notify` crate to `src-tauri/Cargo.toml`. Verify version compatible with tokio 1.x. Implement native Rust watcher on a dedicated tokio task. 500 ms debounce. Emits a single `vault-index-updated` event after running through `update_entry` for each changed path. Add `experimental.rustWatcher: boolean` flag; emit events **parallel** to existing TS watcher for **4 hours** of dogfooding for parity verification.
-- [ ] **9.2b** After parity verification (event-count delta < 1 percent via `debug_log` over the 4-hour window): flip `experimental.rustWatcher` default-on. Remove every frontend raw-watcher listener in a separate commit immediately after. Only `vault-index-updated` allowed thereafter.
-- [ ] **9.3** Unconditionally ignore `.git/`, `.kokobrain/`, all dot-prefixed dirs (mirror `isInsideHiddenDir`).
-- [ ] **9.4** Single Rust orchestrator: debounced paths → `update_entry` + `update_search_index_file` (existing FTS command) + `update_semantic_file` (existing semantic command).
-- [ ] **9.5** Delete TS watcher fan-out: `fs.watcher.ts`, `watcher-handler.service.ts`. Trace-before-remove ritual.
-- [ ] **9.6** `git_conflict_check` command via `std::process::Command` (`git status --porcelain`).
-- [ ] **9.7** Startup + post-event check; conflict toast banner.
-- [ ] **9.8** Exponential backoff on commit failures.
+- [x] **9.1** Audit complete. Single TS consumer of `onFileChange` (`app-lifecycle.service.ts:294`). 500 ms TS debounce + 1000 ms Tauri delayMs + 300 ms app-level debounce. `areAllRecentSaves` (15 s TTL) only used at the top of the rebuild handler. FTS / semantic invokes are SAVE-time only (via `addAfterSaveObserver`), NOT watcher-time — Phase 9.4 was greenfield, not a migration.
+- [x] **9.2** Native Rust watcher in `src-tauri/src/vault/watcher.rs`. `notify = "8"` crate. Dedicated thread (std::thread, not tokio — simpler and the watcher doesn't need async I/O). 500 ms debounce in `run_debounce_loop`. Emits `vault-files-changed` event with `{ paths: string[] }`. **Compressed: skipped the `experimental.rustWatcher` flag + 4 h parallel dogfood per user direction.**
+- [~] **9.2b** N/A — flag was skipped.
+- [x] **9.3** `is_inside_hidden_dir` mirrors TS exactly (first-segment-dot-prefix check). Includes `.git`, `.kokobrain`, `.obsidian`, `.claude`, all dot-prefixed dirs. 8 unit tests + integration test covering creation events inside `.kokobrain/`.
+- [~] **9.4** Single-orchestrator (FTS + semantic from watcher) **DEFERRED**. Today FTS/semantic invokes are SAVE-time (see 9.1 audit). Triggering them from the watcher is a NEW feature (catches external git pulls / sync events that bypass the editor save path). Not strictly part of the watcher migration; can be a follow-up phase or rolled into Phase 11.
+- [x] **9.5** TS `fs.watcher.ts` rewritten as a thin event consumer. Trace-before-remove ritual in commit body. Old debounce + filter helpers deleted from TS (now Rust-side).
+- [~] **9.6** `git_conflict_check` **DEFERRED to a future phase**. Greenfield feature (no existing TS code to preserve). Independent of the watcher migration; can be its own PR.
+- [~] **9.7** Conflict toast / startup check **DEFERRED** alongside 9.6.
+- [~] **9.8** Exponential backoff on commit failures **DEFERRED** alongside 9.6.
 
 ### Phase 10 - Git-Commit-Hash Cache OPT-IN
 
