@@ -169,13 +169,17 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 		}
 		await refreshTree();
 		const { closeTabsForDeletedPath } = await import('$lib/core/editor/editor.service');
-		const { removeFileFromIndex } = await import('$lib/features/backlinks/backlinks.service');
+		const { clearIndexedEntry } = await import('$lib/utils/index-dedupe');
 		const { invoke } = await import('@tauri-apps/api/core');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
 		closeTabsForDeletedPath(itemPath);
-		removeFileFromIndex(itemPath);
-		// Phase 7.5: drop the entry from the Rust `VaultIndex` (entries +
-		// tags_index + backlinks + by_path) so panels reactively refetch.
+		// Drop the dedup signature so a later re-creation with identical
+		// content doesn't get silently skipped by the post-Phase-11.5 index-
+		// updater (Rust still gets the new content via the watcher).
+		clearIndexedEntry(itemPath);
+		// Drop the entry from the Rust `VaultIndex` (entries + tags_index +
+		// backlinks + properties_index + by_path); the command emits
+		// `vault-index-updated` so panels reactively refetch.
 		invoke('remove_note_from_index', { path: itemPath }).catch((err) =>
 			error('FS', 'remove_note_from_index failed:', err)
 		);

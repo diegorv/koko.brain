@@ -21,7 +21,7 @@ import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard } from '$lib/plugins/kanban/kanban.logic';
 import { createKanbanFile, resetKanban, loadLinkedFileContent } from '$lib/plugins/kanban/kanban.service';
 import { kanbanStore } from '$lib/plugins/kanban/kanban.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 
 describe('createKanbanFile', () => {
 	beforeEach(() => {
@@ -80,10 +80,23 @@ describe('loadLinkedFileContent', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetKanban(); // clears content cache
-		// Populate real store so resolveWikilinkCached can resolve "My Note"
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/notes/My Note.md', 'file content'],
-		]));
+		// Populate fsStore.fileTree so resolveWikilinkCached can resolve "My Note".
+		// flattenFileTree walks directory nodes and surfaces leaf files, so we
+		// shape one root dir wrapping the leaf — same shape `scan_vault` returns.
+		fsStore.setFileTree([
+			{
+				name: 'notes',
+				path: '/vault/notes',
+				isDirectory: true,
+				children: [
+					{
+						name: 'My Note.md',
+						path: '/vault/notes/My Note.md',
+						isDirectory: false,
+					},
+				],
+			},
+		]);
 	});
 
 	it('returns empty string for card without wikilinks', async () => {

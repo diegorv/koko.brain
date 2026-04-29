@@ -121,7 +121,10 @@ vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
 vi.mock('$lib/features/file-icons/file-icons.service', () => ({
 	loadFileIcons: vi.fn(),
 	loadRecentIcons: vi.fn(),
-	buildFrontmatterIconIndex: vi.fn(),
+	// Phase 11.5g: buildFrontmatterIconIndex is async (awaits Rust IPC).
+	// Mock with a resolved promise so the `.catch()` chain in the
+	// app-lifecycle caller doesn't blow up.
+	buildFrontmatterIconIndex: vi.fn().mockResolvedValue(undefined),
 	resetFileIcons: vi.fn(),
 }));
 

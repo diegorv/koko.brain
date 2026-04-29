@@ -1274,3 +1274,280 @@ fn remove_entry_cleans_properties_index() {
 	idx.remove_entry("/v/a.md");
 	assert!(!idx.properties_index().contains_key("status"));
 }
+
+// ============================================================================
+// Phase 11.5a — lookup_incoming_unlinked_mentions
+// ============================================================================
+//
+// Reads files from disk, so tests use `tempfile::TempDir` to lay out fixture
+// vault files and build a VaultIndex with real absolute paths.
+
+use std::fs;
+use tempfile::TempDir;
+
+/// Lays out one file per `(filename, content)` pair in `dir`, then builds a
+/// VaultIndex of NoteEntry constructed from those files via
+/// `NoteEntry::from_content`. Returns the (dir, idx, paths) tuple where
+/// `paths[i]` is the absolute path of `files[i]`.
+fn build_index_with_fixtures(
+	files: &[(&str, &str)],
+) -> (TempDir, VaultIndex, Vec<String>) {
+	let dir = TempDir::new().unwrap();
+	let mut paths: Vec<String> = Vec::new();
+	let mut entries: Vec<NoteEntry> = Vec::new();
+	for (name, content) in files {
+		let path = dir.path().join(name);
+		fs::write(&path, content).unwrap();
+		let abs = path.to_string_lossy().to_string();
+		entries.push(NoteEntry::from_content(abs.clone(), content, 0));
+		paths.push(abs);
+	}
+	let mut idx = VaultIndex::default();
+	idx.build(entries);
+	(dir, idx, paths)
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_finds_plain_text_mention() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "no references here"),
+		("b.md", "I mention a in plain text body"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert_eq!(result.len(), 1);
+	assert_eq!(result[0].title, "b");
+	assert_eq!(result[0].path, paths[1]);
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_excludes_self() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "I mention a here in my own body"),
+		("b.md", "I mention a too"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert_eq!(result.len(), 1);
+	assert_eq!(result[0].path, paths[1]);
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_skips_already_linked_sources() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "target note"),
+		("b.md", "See [[a]] and also a in plain text body"),
+	]);
+	// b links to a via wikilink → b is in a's backlinks, so the
+	// unlinked-mentions panel must not also list b.
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert!(result.is_empty());
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_returns_empty_for_unknown_path() {
+	let (_dir, idx, _paths) = build_index_with_fixtures(&[
+		("a.md", "some content"),
+	]);
+	// Path that's not in the index AND not a real file → empty result, no panic.
+	let result = idx.lookup_incoming_unlinked_mentions("/v/never-existed.md");
+	// May still scan a.md looking for "never-existed" — but a.md doesn't
+	// contain it, so result is empty.
+	assert!(result.is_empty());
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_skips_mentions_in_frontmatter_and_code() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		(
+			"source.md",
+			"---\nrelated: target\n---\n```\ntarget appears in code\n```\nbody without that name",
+		),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	// "target" appears only in frontmatter (`related: target`) and code
+	// block — both stripped by `strip_non_body_content` before mention scan.
+	// The plain body "body without that name" has no mention.
+	assert!(result.is_empty(), "frontmatter+code mentions should be stripped");
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_sorts_by_title_case_insensitive() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		("Zebra.md", "I link to target"),
+		("alpha.md", "I link to target"),
+		("Mango.md", "I link to target"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	let titles: Vec<&str> = result.iter().map(|e| e.title.as_str()).collect();
+	assert_eq!(titles, vec!["alpha", "Mango", "Zebra"]);
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_returns_empty_when_no_mentions() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		("other.md", "totally unrelated body"),
+		("more.md", "different content here"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert!(result.is_empty());
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_word_boundary_excludes_substring_matches() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("foo.md", "the searched note"),
+		// "foobar" is NOT a word-boundary match for "foo" — punctuation/whitespace
+		// boundaries required on both sides.
+		("source.md", "this body contains foobar but not the standalone word"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert!(result.is_empty());
+}
+
+// ---- Three-phase split (Phase 1 + Phase 3 of get_unlinked_mentions_v2)
+
+use kokobrain_lib::vault::index::{match_unlinked_mentions, UnlinkedMentionsCandidates};
+
+#[test]
+fn unlinked_mentions_candidates_returns_paths_only_excluding_self_and_already_linked() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "target"),
+		("b.md", "I mention a in plain text"),
+		("c.md", "See [[a]] — already linked"),
+		("d.md", "unrelated content"),
+	]);
+	let UnlinkedMentionsCandidates { note_name, candidate_paths } =
+		idx.unlinked_mentions_candidates(&paths[0]);
+
+	assert_eq!(note_name, "a");
+	// Candidates exclude self (a.md) and already-linked (c.md).
+	let mut sorted = candidate_paths.clone();
+	sorted.sort();
+	let mut expected = vec![paths[1].clone(), paths[3].clone()];
+	expected.sort();
+	assert_eq!(sorted, expected);
+}
+
+#[test]
+fn unlinked_mentions_candidates_returns_empty_for_unresolvable_path() {
+	let (_dir, idx, _paths) = build_index_with_fixtures(&[("a.md", "")]);
+	// Path with no basename — `note_name_from_target` returns "" and
+	// the function short-circuits to empty candidates.
+	let UnlinkedMentionsCandidates { note_name, candidate_paths } =
+		idx.unlinked_mentions_candidates("");
+	assert_eq!(note_name, "");
+	assert!(candidate_paths.is_empty());
+}
+
+#[test]
+fn match_unlinked_mentions_filters_to_paths_with_word_boundary_match() {
+	let dir = TempDir::new().unwrap();
+	let path_match = dir.path().join("match.md");
+	let path_substring = dir.path().join("substring.md");
+	let path_no_match = dir.path().join("no-match.md");
+	fs::write(&path_match, "I mention foo in plain text").unwrap();
+	fs::write(&path_substring, "this contains foobar substring").unwrap();
+	fs::write(&path_no_match, "totally unrelated").unwrap();
+
+	let candidate_paths = vec![
+		path_match.to_string_lossy().to_string(),
+		path_substring.to_string_lossy().to_string(),
+		path_no_match.to_string_lossy().to_string(),
+	];
+	let matched = match_unlinked_mentions("foo", candidate_paths);
+
+	assert_eq!(matched.len(), 1);
+	assert_eq!(matched[0], path_match.to_string_lossy());
+}
+
+#[test]
+fn match_unlinked_mentions_returns_empty_for_empty_note_name() {
+	let dir = TempDir::new().unwrap();
+	let p = dir.path().join("a.md");
+	fs::write(&p, "any body").unwrap();
+	let matched = match_unlinked_mentions("", vec![p.to_string_lossy().to_string()]);
+	assert!(matched.is_empty());
+}
+
+#[test]
+fn match_unlinked_mentions_skips_unreadable_paths_silently() {
+	let dir = TempDir::new().unwrap();
+	let real_path = dir.path().join("real.md");
+	fs::write(&real_path, "I mention foo").unwrap();
+	let missing_path = dir.path().join("never-existed.md").to_string_lossy().to_string();
+
+	let matched = match_unlinked_mentions(
+		"foo",
+		vec![real_path.to_string_lossy().to_string(), missing_path],
+	);
+
+	// real.md matched, missing path silently skipped.
+	assert_eq!(matched.len(), 1);
+	assert_eq!(matched[0], real_path.to_string_lossy());
+}
+
+#[test]
+fn match_unlinked_mentions_strips_frontmatter_and_code_blocks() {
+	let dir = TempDir::new().unwrap();
+	let p = dir.path().join("source.md");
+	fs::write(
+		&p,
+		"---\nrelated: target\n---\n```\ntarget appears in code\n```\nbody without that name",
+	)
+	.unwrap();
+	let matched = match_unlinked_mentions("target", vec![p.to_string_lossy().to_string()]);
+	assert!(matched.is_empty(), "frontmatter+code mentions should be stripped");
+}
+
+#[test]
+fn lookup_entries_clones_full_NoteEntry_for_matched_paths() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("alpha.md", "alpha body"),
+		("beta.md", "beta body"),
+		("gamma.md", "gamma body"),
+	]);
+	let entries = idx.lookup_entries(&[paths[0].clone(), paths[2].clone()]);
+	assert_eq!(entries.len(), 2);
+	let titles: Vec<_> = entries.iter().map(|e| e.title.as_str()).collect();
+	assert!(titles.contains(&"alpha"));
+	assert!(titles.contains(&"gamma"));
+	assert!(!titles.contains(&"beta"));
+}
+
+#[test]
+fn lookup_entries_skips_paths_missing_from_index() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[("a.md", "body")]);
+	let entries = idx.lookup_entries(&[paths[0].clone(), "/never/existed.md".to_string()]);
+	// Only the real entry survives; missing path silently dropped.
+	assert_eq!(entries.len(), 1);
+	assert_eq!(entries[0].title, "a");
+}
+
+#[test]
+fn three_phase_pipeline_matches_legacy_lookup_incoming_unlinked_mentions() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		("zebra.md", "I link to target"),
+		("alpha.md", "I link to target"),
+		("Mango.md", "I link to target"),
+		("unrelated.md", "totally unrelated"),
+	]);
+
+	// Legacy synchronous wrapper — uses all three phases internally.
+	let legacy = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+
+	// Manual three-phase reproduction matching the async command path.
+	let UnlinkedMentionsCandidates { note_name, candidate_paths } =
+		idx.unlinked_mentions_candidates(&paths[0]);
+	let matched_paths = match_unlinked_mentions(&note_name, candidate_paths);
+	let mut three_phase = idx.lookup_entries(&matched_paths);
+	three_phase.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+
+	assert_eq!(legacy.len(), three_phase.len());
+	assert_eq!(
+		legacy.iter().map(|e| &e.title).collect::<Vec<_>>(),
+		three_phase.iter().map(|e| &e.title).collect::<Vec<_>>(),
+	);
+}
