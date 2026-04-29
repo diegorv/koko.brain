@@ -1,4 +1,7 @@
-use kokobrain_lib::commands::vault::{collect_v2_entries, scan_vault, update_note_in_index_inner};
+use kokobrain_lib::commands::vault::{
+	check_content_size_with_limit, collect_v2_entries, scan_vault, update_note_in_index_inner,
+	MAX_NOTE_SIZE_BYTES,
+};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::VAULT_INDEX_UPDATED_EVENT;
 use std::fs;
@@ -492,4 +495,45 @@ fn update_inner_round_trip_through_save_event_pattern() {
     assert!(!idx.backlinks().contains_key("/v/a.md"));
     // b gains the source.
     assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/source.md"));
+}
+
+// --- Audit Tier 1 #4: MAX_NOTE_SIZE bound on update_note_in_index ---
+
+#[test]
+fn check_content_size_accepts_normal_content() {
+	assert!(check_content_size_with_limit(0, 1024).is_ok());
+	assert!(check_content_size_with_limit(1, 1024).is_ok());
+	assert!(check_content_size_with_limit(512, 1024).is_ok());
+	assert!(check_content_size_with_limit(1024, 1024).is_ok());
+}
+
+#[test]
+fn check_content_size_rejects_oversized() {
+	let err = check_content_size_with_limit(1025, 1024).unwrap_err();
+	assert!(err.contains("too large"));
+	assert!(err.contains("1025"));
+	assert!(err.contains("1024"));
+}
+
+#[test]
+fn check_content_size_at_zero_limit_rejects_any_nonempty() {
+	assert!(check_content_size_with_limit(0, 0).is_ok());
+	assert!(check_content_size_with_limit(1, 0).is_err());
+}
+
+#[test]
+fn check_content_size_far_above_threshold_includes_actual_size_in_message() {
+	// Sanity-check: error message surfaces both the actual size and the
+	// limit so the TS callsite or a user can debug.
+	let err = check_content_size_with_limit(2_000_000, 1_000).unwrap_err();
+	assert!(err.contains("2000000"));
+	assert!(err.contains("1000"));
+}
+
+#[test]
+fn max_note_size_constant_is_100_mb() {
+	// Lock the constant so future changes are intentional. 100 MB matches
+	// the documented design ceiling — typical notes are 1-10 KB; we want
+	// to reject buggy/malicious 1 GB payloads, not legitimate ones.
+	assert_eq!(MAX_NOTE_SIZE_BYTES, 100 * 1024 * 1024);
 }
