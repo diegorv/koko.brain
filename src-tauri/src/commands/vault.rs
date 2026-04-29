@@ -539,7 +539,26 @@ pub fn get_tasks_in_section_v2(
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	let mut out: Vec<FileTaskGroup> = Vec::new();
 	for entry in idx.entries().values() {
-		let content = std::fs::read_to_string(&entry.path).unwrap_or_default();
+		// Audit Tier 2 #8: log read failures instead of silently treating the
+		// file as empty. A file that vanished between the index scan and this
+		// read (deleted via Finder, moved, permission flipped) used to drop
+		// out of the result without any signal — the user's tasks panel
+		// would silently miss tasks for that file. Logging makes the partial
+		// result auditable; we still continue so a single bad file doesn't
+		// block the rest of the section query.
+		let content = match std::fs::read_to_string(&entry.path) {
+			Ok(c) => c,
+			Err(err) => {
+				debug_log(
+					"VAULT-V2",
+					format!(
+						"get_tasks_in_section_v2: read failed for {} ({}); skipping",
+						entry.path, err
+					),
+				);
+				continue;
+			}
+		};
 		let tasks = extract_tasks_from_section(&content, &section_tag);
 		if !tasks.is_empty() {
 			out.push(FileTaskGroup {
