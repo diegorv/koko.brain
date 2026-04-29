@@ -48,8 +48,8 @@ function fromV2(group: FileTaskGroupV2): FileTaskGroup {
 /**
  * Fetches the full task index from the Rust `VaultIndex`. When a
  * `sectionTag` is set, fans out to `get_tasks_in_section_v2` instead;
- * otherwise calls `get_all_tasks_v2`. Phase 7.6 — replaces the previous
- * TS-side `extractTasks` per-file scan.
+ * otherwise calls `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
+ * parsing end-to-end (see `src-tauri/src/vault/parsing.rs::extract_tasks`).
  */
 export async function buildTaskIndex(): Promise<void> {
 	tasksStore.setLoading(true);
