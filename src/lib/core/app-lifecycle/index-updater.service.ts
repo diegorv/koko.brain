@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
@@ -13,19 +12,25 @@ let updateVersion = 0;
 const yieldToEventLoop = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
 /**
- * Updates all per-file indexes for a single file's content change.
- * Called with a 1 s debounce from the layout content-effect when the active
- * tab's content changes.
+ * Updates per-file indexes for a single file's content change. Called with
+ * a 1 s debounce from the layout content-effect when the active tab's
+ * content changes.
  *
- * Split into 3 phases with event-loop yields between them to avoid blocking
- * the main thread for the full duration:
- *   Phase 1 (immediate): updateIndexForFile — stores parsed wikilinks for noteIndexStore
- *   Phase 2 (after yield): Rust `update_note_in_index` — bumps `vaultIndexVersion`
- *     so `BacklinksPanel` and `OutgoingLinksPanel` reactive effects re-fetch.
- *   Phase 3 (after yield): tags, tasks, collection, icons, calendar (still TS).
+ * Two phases with an event-loop yield between them so we don't block the
+ * main thread for the full duration:
  *
- * A version counter discards phases 2/3 if a newer call has started.
- * Each updater is wrapped in try/catch so one failure doesn't block the rest.
+ *   Phase 1 (immediate): Rust `update_note_in_index` — fire-and-forget IPC
+ *     (~1-5 ms). Updates VaultIndex.entries / by_path / backlinks /
+ *     tags_index / properties_index and emits `vault-index-updated`. All
+ *     panels (`BacklinksPanel`, `OutgoingLinksPanel`, `TagsPanel`,
+ *     `TasksView`, `GraphView`) reactively refetch via the version bump.
+ *
+ *   Phase 2 (after yield): TS-side updaters that are not yet covered by
+ *     the Rust path — `updateNoteInIndex` (collection panel),
+ *     `updateFrontmatterIconForFile`, `updateCalendarForFile`.
+ *
+ * A version counter discards Phase 2 if a newer call has started. Each
+ * updater is wrapped in try/catch so one failure doesn't block the rest.
  */
 export async function updateIndexesForFile(filePath: string, content: string): Promise<void> {
 	// Dedup against the shared signature map: if `notifyAfterSave` (or a
@@ -38,40 +43,23 @@ export async function updateIndexesForFile(filePath: string, content: string): P
 	const version = ++updateVersion;
 	const t0 = perfStart();
 
-	// Phase 1: immediate — must run first, stores parsed wikilinks for Phase 2
+	// Phase 1: Rust VaultIndex update.
 	const tP1 = perfStart();
-	try { updateIndexForFile(filePath, content); } catch (err) { error('INDEX', 'updateIndexForFile failed:', err); }
-	perfEnd('INDEX', 'Phase1:updateIndexForFile', tP1);
+	invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
+		error('INDEX', 'update_note_in_index failed:', err);
+	});
+	perfEnd('INDEX', 'Phase1:rust-update', tP1);
 
 	// Yield to let the browser process pending frames/input
 	await yieldToEventLoop();
 	if (updateVersion !== version) return;
 
-	// Phase 2: Rust VaultIndex update. Fire-and-forget IPC (~1-5 ms) — the
-	// Rust side emits `vault-index-updated` which bumps
-	// `vaultStore.vaultIndexVersion`, triggering `BacklinksPanel` AND
-	// `OutgoingLinksPanel` reactive `$effect`s to re-fetch via
-	// `get_backlinks_v2` / `get_outgoing_links_v2`. No TS-side outgoing
-	// computation needed (Phase 6).
+	// Phase 2: TS-side updaters not yet covered by the Rust path.
 	const tP2 = perfStart();
-	invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
-		error('INDEX', 'update_note_in_index failed:', err);
-	});
-	perfEnd('INDEX', 'Phase2:rust-update', tP2);
-
-	// Yield again before the remaining lightweight updates
-	await yieldToEventLoop();
-	if (updateVersion !== version) return;
-
-	// Phase 3: independent lightweight updates. Tags + tasks no longer here —
-	// `update_note_in_index` (Rust, Phase 2) refreshes the `tags_index` and
-	// per-entry `tasks` and emits `vault-index-updated`; the TagsPanel and
-	// TasksView reactively refetch off `vaultIndexVersion`.
-	const tP3 = perfStart();
 	try { updateNoteInIndex(filePath, content); } catch (err) { error('INDEX', 'updateNoteInIndex failed:', err); }
 	try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('INDEX', 'updateFrontmatterIconForFile failed:', err); }
 	try { updateCalendarForFile(filePath, content); } catch (err) { error('INDEX', 'updateCalendarForFile failed:', err); }
-	perfEnd('INDEX', 'Phase3:collection+icons+calendar', tP3);
+	perfEnd('INDEX', 'Phase2:collection+icons+calendar', tP2);
 	perfEnd('INDEX', 'updateIndexesForFile(total)', t0);
 	perfBaseline('updateIndexesForFile', t0);
 }

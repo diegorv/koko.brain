@@ -8,8 +8,6 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	rebuildIndex: vi.fn(() => Promise.resolve()),
-	updateIndexForFile: vi.fn(),
-	removeFileFromIndex: vi.fn(),
 }));
 
 vi.mock('$lib/features/collection/collection.service', () => ({
@@ -18,8 +16,12 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 }));
 
 vi.mock('$lib/features/file-icons/file-icons.service', () => ({
-	buildFrontmatterIconIndex: vi.fn(),
+	buildFrontmatterIconIndex: vi.fn().mockResolvedValue(undefined),
 	updateFrontmatterIconForFile: vi.fn(),
+}));
+
+vi.mock('$lib/utils/index-dedupe', () => ({
+	clearIndexedEntry: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/calendar/calendar.service', () => ({
@@ -39,10 +41,11 @@ vi.mock('$lib/utils/debug', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
-import { rebuildIndex, updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
+import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -201,8 +204,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 			vaultPath: '/vault',
 			paths: ['/vault/note.md'],
 		});
-		// Index updaters receive absolute paths (matching buildIndex behavior)
-		expect(updateIndexForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		// TS-side updaters receive absolute paths (matching VaultIndex behavior)
 		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 		expect(updateCalendarForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
@@ -238,13 +240,13 @@ describe('rebuildAllIndexes — incremental path', () => {
 			{ path: '/vault/deleted.md', content: null },
 		]);
 
-		const { removeFileFromIndex } = await import('$lib/features/backlinks/backlinks.service');
-
 		await rebuildAllIndexes(['/vault/deleted.md']);
 
-		expect(removeFileFromIndex).toHaveBeenCalledWith('/vault/deleted.md');
-		expect(updateIndexForFile).not.toHaveBeenCalled();
-		// Phase 7.5: deletion fans out to remove_note_from_index in Rust.
+		// Drop the dedup signature so a re-creation re-indexes.
+		expect(clearIndexedEntry).toHaveBeenCalledWith('/vault/deleted.md');
+		// TS-side update_note_in_index path is NOT taken for deletions.
+		expect(updateNoteInIndex).not.toHaveBeenCalled();
+		// Deletion fans out to remove_note_from_index in Rust.
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/deleted.md' });
 	});
 });
