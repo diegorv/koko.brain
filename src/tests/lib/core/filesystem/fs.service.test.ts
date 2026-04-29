@@ -39,8 +39,8 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	closeTabsForDeletedPath: vi.fn(),
 }));
 
-vi.mock('$lib/features/backlinks/backlinks.service', () => ({
-	removeFileFromIndex: vi.fn(),
+vi.mock('$lib/utils/index-dedupe', () => ({
+	clearIndexedEntry: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debug', () => ({
@@ -65,7 +65,7 @@ import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/fi
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { updateFileIconPathsAfterMove } from '$lib/features/file-icons/file-icons.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
-import { removeFileFromIndex } from '$lib/features/backlinks/backlinks.service';
+import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { moveToTrash } from '$lib/core/trash/trash.service';
 import { error } from '$lib/utils/debug';
 import {
@@ -505,12 +505,12 @@ describe('deleteItem', () => {
 		expect(moveToTrash).toHaveBeenCalledWith('/vault', '/vault/folder', true);
 	});
 
-	it('closes tabs and removes from backlinks index on delete', async () => {
+	it('closes tabs and removes from index on delete', async () => {
 		const result = await deleteItem('/vault/note.md');
 
 		expect(result).toBe(true);
 		expect(closeTabsForDeletedPath).toHaveBeenCalledWith('/vault/note.md');
-		expect(removeFileFromIndex).toHaveBeenCalledWith('/vault/note.md');
+		expect(clearIndexedEntry).toHaveBeenCalledWith('/vault/note.md');
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
 	});
 

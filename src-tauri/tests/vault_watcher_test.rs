@@ -156,9 +156,15 @@ fn watcher_stops_when_handle_dropped() {
 		std::thread::sleep(Duration::from_millis(100));
 	} // _watcher drops here; bridge thread should exit.
 
-	// Wait long enough for the bridge thread to flush + exit on
-	// channel disconnect.
-	std::thread::sleep(Duration::from_millis(200));
+	// Wait at least one debounce window (500 ms) for the bridge thread to
+	// notice the channel disconnect, perform its final flush, and exit.
+	// On macOS CI, FSEvents may surface a stray event during the warm-up
+	// window (e.g. attributes propagating from tempdir creation); the
+	// final flush would then legitimately emit it. That emit is unrelated
+	// to the post-drop write being asserted below, so drain everything
+	// pending before exercising the real assertion.
+	std::thread::sleep(Duration::from_millis(700));
+	while emit_rx.try_recv().is_ok() {}
 
 	// New file should NOT trigger an emit (watcher dropped).
 	fs::write(tmp.path().join("after.md"), "x").expect("write");

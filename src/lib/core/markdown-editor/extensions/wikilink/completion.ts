@@ -1,29 +1,80 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { autocompletion } from '@codemirror/autocomplete';
 import type { Extension } from '@codemirror/state';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { resolveWikilink, getNoteName } from '$lib/features/backlinks/backlinks.logic';
 import { fuzzyMatch } from '$lib/utils/fuzzy-match';
+import { error } from '$lib/utils/debug';
+import type { NoteEntryV2, FrontmatterValue } from '$lib/types/vault-v2.types';
 import {
 	detectWikilinkContext,
 	matchFilesForWikilink,
 	extractHeadingsFromContent,
 	extractBlockIdsFromContent,
-	extractAliasesFromContent,
 } from './completion.logic';
 
-/** Returns the content for a resolved note target, or null */
-function resolveTargetContent(target: string): string | null {
+/**
+ * Module-level cache of `NoteEntryV2[]` keyed by
+ * `vaultStore.vaultIndexVersion`. The completion source is invoked on
+ * every keystroke; without this cache each invocation would refetch the
+ * full vault snapshot via IPC. Refresh happens lazily — when the version
+ * differs from the last successful fetch.
+ *
+ * `pendingFetch` deduplicates concurrent calls (e.g. fast keystrokes
+ * during the IPC roundtrip).
+ */
+let cachedEntries: NoteEntryV2[] = [];
+let cachedVersion = -1;
+let pendingFetch: Promise<NoteEntryV2[]> | null = null;
+
+async function ensureEntriesCached(): Promise<NoteEntryV2[]> {
+	const current = vaultStore.vaultIndexVersion;
+	if (current === cachedVersion) return cachedEntries;
+	if (pendingFetch) return pendingFetch;
+	pendingFetch = (async () => {
+		try {
+			const fresh = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+			cachedEntries = fresh;
+			cachedVersion = current;
+			return fresh;
+		} finally {
+			pendingFetch = null;
+		}
+	})();
+	return pendingFetch;
+}
+
+/** Reads the resolved target's content from disk. Returns null on read failure or when the target doesn't resolve. */
+async function resolveTargetContent(target: string): Promise<string | null> {
 	const files = flattenFileTree(fsStore.fileTree);
 	const allPaths = files.map((f) => f.path);
 	const resolved = resolveWikilink(target, allPaths);
 	if (!resolved) return null;
-	return noteIndexStore.noteContents.get(resolved) ?? null;
+	try {
+		return await readTextFile(resolved);
+	} catch (err) {
+		error('WIKILINK_COMPLETION', 'readTextFile failed:', err);
+		return null;
+	}
 }
 
-function wikilinkCompletionSource(context: CompletionContext): CompletionResult | null {
+/** Pulls aliases from a Rust-parsed `NoteEntryV2.frontmatter`. Accepts both `aliases: [a, b]` and `alias: a`. */
+function getAliasesFromEntry(entry: NoteEntryV2): string[] {
+	const value: FrontmatterValue | undefined =
+		entry.frontmatter['aliases'] ?? entry.frontmatter['alias'];
+	if (value == null) return [];
+	if (Array.isArray(value)) {
+		return value.filter((v): v is string => typeof v === 'string');
+	}
+	if (typeof value === 'string') return [value];
+	return [];
+}
+
+async function wikilinkCompletionSource(context: CompletionContext): Promise<CompletionResult | null> {
 	const { state, pos } = context;
 	const docText = state.doc.toString();
 
@@ -41,11 +92,11 @@ function wikilinkCompletionSource(context: CompletionContext): CompletionResult 
 	return buildFileCompletions(match, context);
 }
 
-/** Builds file completions with alias support */
-function buildFileCompletions(
+/** Builds file completions with alias support (alias entries come from cached Rust frontmatter). */
+async function buildFileCompletions(
 	match: ReturnType<typeof detectWikilinkContext> & {},
 	context: CompletionContext,
-): CompletionResult | null {
+): Promise<CompletionResult | null> {
 	const { state } = context;
 	const files = flattenFileTree(fsStore.fileTree);
 
@@ -63,12 +114,14 @@ function buildFileCompletions(
 		},
 	}));
 
-	// Build options from aliases
+	// Build options from aliases (Rust pre-parsed frontmatter — no per-file YAML re-parsing)
 	const aliasOptions: Completion[] = [];
 	if (match.query.length > 0) {
-		for (const [filePath, content] of noteIndexStore.noteContents) {
-			const aliases = extractAliasesFromContent(content);
-			const noteName = getNoteName(filePath);
+		const entries = await ensureEntriesCached();
+		for (const entry of entries) {
+			const aliases = getAliasesFromEntry(entry);
+			if (aliases.length === 0) continue;
+			const noteName = getNoteName(entry.path);
 			for (const alias of aliases) {
 				const result = fuzzyMatch(match.query, alias);
 				if (result.match) {
@@ -105,10 +158,10 @@ function buildFileCompletions(
 }
 
 /** Builds heading completions for `[[Note#query` */
-function buildHeadingCompletions(
+async function buildHeadingCompletions(
 	match: ReturnType<typeof detectWikilinkContext> & {},
 	context: CompletionContext,
-): CompletionResult | null {
+): Promise<CompletionResult | null> {
 	const { state } = context;
 	const target = match.target ?? '';
 
@@ -117,7 +170,7 @@ function buildHeadingCompletions(
 		// [[#heading → current document headings
 		content = state.doc.toString();
 	} else {
-		content = resolveTargetContent(target);
+		content = await resolveTargetContent(target);
 	}
 	if (content === null) return null;
 
@@ -157,10 +210,10 @@ function buildHeadingCompletions(
 }
 
 /** Builds block ID completions for `[[Note#^query` */
-function buildBlockIdCompletions(
+async function buildBlockIdCompletions(
 	match: ReturnType<typeof detectWikilinkContext> & {},
 	context: CompletionContext,
-): CompletionResult | null {
+): Promise<CompletionResult | null> {
 	const { state } = context;
 	const target = match.target ?? '';
 
@@ -169,7 +222,7 @@ function buildBlockIdCompletions(
 		// [[#^blockId → current document block IDs
 		content = state.doc.toString();
 	} else {
-		content = resolveTargetContent(target);
+		content = await resolveTargetContent(target);
 	}
 	if (content === null) return null;
 

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
+import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { graphViewStore } from '$lib/plugins/graph-view/graph-view.store.svelte';
 import { GRAPH_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
@@ -11,27 +15,24 @@ import {
 	toggleGraphTab,
 	resetGraphView,
 } from '$lib/plugins/graph-view/graph-view.service';
+import { entryV2, entryV2WithContent } from '../../../fixtures/vault-entries.fixture';
 
 describe('buildGraph', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		noteIndexStore.reset();
 		editorStore.reset();
 		graphViewStore.reset();
 	});
 
-	it('builds graph data from backlinks store with real nodes and links', () => {
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/a.md', [{ target: 'b', alias: null, heading: null, position: 0 }]],
-			['/vault/b.md', []],
-		]));
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', 'content a'],
-			['/vault/b.md', 'content b'],
-		]));
+	it('builds graph data from Rust entries with real nodes and links', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2WithContent('/vault/a.md', 'Link to [[b]]'),
+			entryV2('/vault/b.md'),
+		]);
 
-		const result = buildGraph();
+		const result = await buildGraph();
 
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
 		expect(result.nodes).toHaveLength(2);
 		expect(result.nodes.map(n => n.id)).toContain('/vault/a.md');
 		expect(result.nodes.map(n => n.id)).toContain('/vault/b.md');
@@ -40,17 +41,13 @@ describe('buildGraph', () => {
 		expect(result.links[0].target).toBe('/vault/b.md');
 	});
 
-	it('computes link counts correctly', () => {
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/a.md', [{ target: 'b', alias: null, heading: null, position: 0 }]],
-			['/vault/b.md', [{ target: 'a', alias: null, heading: null, position: 0 }]],
-		]));
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', ''],
-			['/vault/b.md', ''],
-		]));
+	it('computes link counts correctly', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2WithContent('/vault/a.md', 'Link to [[b]]'),
+			entryV2WithContent('/vault/b.md', 'Link to [[a]]'),
+		]);
 
-		const result = buildGraph();
+		const result = await buildGraph();
 
 		// a->b edge is deduplicated (sorted edge key), so only 1 link
 		expect(result.links).toHaveLength(1);
@@ -60,40 +57,30 @@ describe('buildGraph', () => {
 		expect(nodeB!.linkCount).toBe(1);
 	});
 
-	it('extracts tags from note contents', () => {
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/a.md', []],
-		]));
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/a.md', 'Some text with #javascript and #svelte'],
-		]));
+	it('uses tags from the Rust entry directly (no re-parsing)', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2('/vault/a.md', { tags: ['javascript', 'svelte'] }),
+		]);
 
-		const result = buildGraph();
+		const result = await buildGraph();
 
 		const node = result.nodes.find(n => n.id === '/vault/a.md');
-		expect(node!.tags).toContain('javascript');
-		expect(node!.tags).toContain('svelte');
+		expect(node!.tags).toEqual(['javascript', 'svelte']);
 	});
 
-	it('returns empty graph when no notes exist', () => {
-		noteIndexStore.setNoteIndex(new Map());
-		noteIndexStore.setNoteContents(new Map());
+	it('returns empty graph when no notes exist', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
 
-		const result = buildGraph();
+		const result = await buildGraph();
 
 		expect(result.nodes).toHaveLength(0);
 		expect(result.links).toHaveLength(0);
 	});
 
-	it('computes folder from file path', () => {
-		noteIndexStore.setNoteIndex(new Map([
-			['/vault/sub/note.md', []],
-		]));
-		noteIndexStore.setNoteContents(new Map([
-			['/vault/sub/note.md', ''],
-		]));
+	it('computes folder from file path', async () => {
+		vi.mocked(invoke).mockResolvedValue([entryV2('/vault/sub/note.md')]);
 
-		const result = buildGraph();
+		const result = await buildGraph();
 
 		expect(result.nodes[0].folder).toBe('/vault/sub');
 	});

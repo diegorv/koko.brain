@@ -17,10 +17,11 @@
 	import { graphViewStore } from './graph-view.store.svelte';
 	import { buildGraph } from './graph-view.service';
 	import { filterGraphData, getLocalGraph, getNodeRadius } from './graph-view.logic';
-	import type { GraphNode, GraphLink } from './graph-view.types';
+	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { error } from '$lib/utils/debug';
 	import GraphControls from './GraphControls.svelte';
 
 	type SimNode = GraphNode & SimulationNodeDatum;
@@ -37,6 +38,11 @@
 	let width = 0;
 	let height = 0;
 
+	// Cached snapshot of the full graph (post-resolution). Refreshed via
+	// `loadAndRebuild()` whenever `vaultStore.vaultIndexVersion` bumps; the
+	// filter/mode/tab effects below do NOT refetch — they reuse this cache.
+	let fullData: GraphData = { nodes: [], links: [] };
+
 	const NODE_COLOR = '#8b8b8b';
 	const NODE_ACTIVE_COLOR = '#c084fc';
 	const EDGE_COLOR = 'rgba(160, 160, 180, 0.6)';
@@ -45,8 +51,6 @@
 	const BG_COLOR = '#1a1a1e';
 
 	function getDisplayData() {
-		const fullData = buildGraph();
-
 		let data = graphViewStore.mode === 'local' && editorStore.activeTabPath
 			? getLocalGraph(fullData, editorStore.activeTabPath, 1)
 			: fullData;
@@ -57,6 +61,23 @@
 		}
 
 		return data;
+	}
+
+	/**
+	 * Fetches a fresh `GraphData` snapshot from Rust and re-runs
+	 * `initSimulation`. Called from onMount and whenever
+	 * `vaultStore.vaultIndexVersion` bumps.
+	 */
+	async function loadAndRebuild() {
+		try {
+			fullData = await buildGraph();
+		} catch (err) {
+			error('GRAPH_VIEW', 'buildGraph failed:', err);
+			return;
+		}
+		if (canvasEl && width > 0) {
+			initSimulation();
+		}
 	}
 
 	function initSimulation() {
@@ -350,13 +371,12 @@
 		zoomBehavior.scaleBy(canvasSel, 1 / 1.4);
 	}
 
-	// Reinitialize simulation when mode, filters, or backlinks change
+	// Reinitialize simulation when mode / filters / active tab change. These
+	// are pure UI knobs over the cached `fullData` — no IPC needed.
 	$effect(() => {
-		// Track dependencies
 		graphViewStore.mode;
 		graphViewStore.filters;
 		editorStore.activeTabPath;
-		noteIndexStore.noteIndex;
 
 		untrack(() => {
 			if (canvasEl && width > 0) {
@@ -365,10 +385,22 @@
 		});
 	});
 
+	// Refetch the full graph snapshot from Rust whenever the vault index
+	// signals a change. Initial mount also runs through here via the
+	// version-0 read.
+	$effect(() => {
+		vaultStore.vaultIndexVersion;
+		untrack(() => {
+			loadAndRebuild();
+		});
+	});
+
 	onMount(() => {
 		resizeCanvas();
 		setupInteractions();
-		initSimulation();
+		// First IPC fetch is triggered by the `vaultIndexVersion` $effect
+		// above (which runs once on mount). No explicit call here to avoid
+		// duplicate fetches.
 
 		// Apply a default zoom level slightly zoomed in
 		if (zoomBehavior && canvasEl) {

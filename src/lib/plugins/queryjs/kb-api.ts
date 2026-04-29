@@ -1,5 +1,5 @@
 import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import type { KBPage, KBLink, KBElOptions } from './queryjs.types';
 import { DataArray } from './data-array';
 import { KBDateTime } from './kb-datetime';
@@ -18,8 +18,7 @@ export class KBAPI {
 	readonly container: HTMLElement;
 
 	private readonly propertyIndex: Map<string, NoteRecord>;
-	private readonly noteIndex: Map<string, WikiLink[]>;
-	private readonly noteContents: Map<string, string>;
+	private readonly entriesByPath: Map<string, NoteEntryV2>;
 	private readonly currentFilePath: string;
 	private readonly vaultPath: string;
 	private readonly loadScript: (path: string) => Promise<string>;
@@ -38,16 +37,14 @@ export class KBAPI {
 	constructor(opts: {
 		container: HTMLElement;
 		propertyIndex: Map<string, NoteRecord>;
-		noteIndex: Map<string, WikiLink[]>;
-		noteContents: Map<string, string>;
+		entries: NoteEntryV2[];
 		currentFilePath: string;
 		vaultPath: string;
 		loadScript: (path: string) => Promise<string>;
 	}) {
 		this.container = opts.container;
 		this.propertyIndex = opts.propertyIndex;
-		this.noteIndex = opts.noteIndex;
-		this.noteContents = opts.noteContents;
+		this.entriesByPath = new Map(opts.entries.map((e) => [e.path, e]));
 		this.currentFilePath = opts.currentFilePath;
 		this.vaultPath = opts.vaultPath;
 		this.loadScript = opts.loadScript;
@@ -370,7 +367,8 @@ export class KBAPI {
 	private ensureCache(): { list: KBPage[]; byPath: Map<string, KBPage> } {
 		if (!this._pageCache) {
 			const allFilePaths = Array.from(this.propertyIndex.keys());
-			const reverseIndex = buildReverseIndex(this.noteIndex);
+			const allEntries = Array.from(this.entriesByPath.values());
+			const reverseIndex = buildReverseIndex(allEntries);
 			// Build the wikilink resolution cache ONCE (O(N)) instead of letting
 			// buildKBPage rescan allFilePaths for every outgoing wikilink of every
 			// page. Without this, outlink resolution is O(N×L) per page and
@@ -379,10 +377,10 @@ export class KBAPI {
 			const resolutionCache = buildResolutionCache(allFilePaths);
 			const list = allFilePaths.map((fp) => {
 				const record = this.propertyIndex.get(fp)!;
+				const entry = this.entriesByPath.get(fp);
 				return buildKBPage(
 					record,
-					this.noteIndex,
-					this.noteContents,
+					entry,
 					allFilePaths,
 					reverseIndex,
 					resolutionCache,

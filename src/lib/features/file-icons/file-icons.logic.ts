@@ -1,4 +1,5 @@
 import type { FileIconEntry, IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
+import type { FrontmatterValue } from '$lib/types/vault-v2.types';
 
 /** Adds or updates a file icon entry. Returns a new array. */
 export function setFileIcon(
@@ -56,9 +57,33 @@ export function addRecentIcon(recent: RecentIcon[], iconPack: IconPackId, iconNa
 	return [{ iconPack, iconName }, ...filtered].slice(0, MAX_RECENT_ICONS);
 }
 
+const VALID_ICON_PACKS: IconPackId[] = [
+	'lucide', 'feather', 'fa-solid', 'fa-regular', 'fa-brands',
+	'octicons', 'boxicons', 'coolicons', 'simple-icons', 'tabler', 'remix', 'emoji',
+];
+
+/** Parses an `icon: pack:name` value into a typed icon ref, validating the pack name. */
+function parseIconValue(raw: string): { iconPack: IconPackId; iconName: string } | null {
+	const colonIdx = raw.indexOf(':');
+	if (colonIdx === -1) return null;
+
+	const pack = raw.slice(0, colonIdx) as IconPackId;
+	const name = raw.slice(colonIdx + 1);
+	if (!pack || !name) return null;
+	if (!VALID_ICON_PACKS.includes(pack)) return null;
+
+	return { iconPack: pack, iconName: name };
+}
+
 /**
- * Extracts icon assignment from frontmatter properties.
+ * Extracts icon assignment from raw markdown content's YAML frontmatter.
  * Looks for `icon` property in format `pack:name` (e.g. `lucide:star`).
+ *
+ * Used by the per-save updater path (`updateFrontmatterIconForFile`)
+ * which receives raw content from `notifyAfterSave`. The bulk indexer
+ * `buildFrontmatterIconIndex` uses `extractIconFromParsedFrontmatter`
+ * instead — it walks Rust-pre-parsed entries and avoids re-running
+ * this regex per file.
  */
 export function extractIconFromFrontmatter(content: string): { iconPack: IconPackId; iconName: string } | null {
 	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -69,20 +94,23 @@ export function extractIconFromFrontmatter(content: string): { iconPack: IconPac
 	if (!iconMatch) return null;
 
 	const raw = iconMatch[1].trim().replace(/^['"]|['"]$/g, '');
-	const colonIdx = raw.indexOf(':');
-	if (colonIdx === -1) return null;
+	return parseIconValue(raw);
+}
 
-	const pack = raw.slice(0, colonIdx) as IconPackId;
-	const name = raw.slice(colonIdx + 1);
-	if (!pack || !name) return null;
-
-	const validPacks: IconPackId[] = [
-		'lucide', 'feather', 'fa-solid', 'fa-regular', 'fa-brands',
-		'octicons', 'boxicons', 'coolicons', 'simple-icons', 'tabler', 'remix', 'emoji',
-	];
-	if (!validPacks.includes(pack)) return null;
-
-	return { iconPack: pack, iconName: name };
+/**
+ * Extracts the icon assignment from already-parsed frontmatter (from a
+ * Rust `NoteEntryV2.frontmatter` snapshot). Returns null when the
+ * `icon` key is absent, non-string, or not in the `pack:name` format.
+ *
+ * Phase 11.5g — replaces the per-file regex re-parse for the bulk
+ * indexer; the save-time path keeps using `extractIconFromFrontmatter`.
+ */
+export function extractIconFromParsedFrontmatter(
+	frontmatter: Record<string, FrontmatterValue>,
+): { iconPack: IconPackId; iconName: string } | null {
+	const value = frontmatter['icon'];
+	if (typeof value !== 'string') return null;
+	return parseIconValue(value.trim());
 }
 
 /** Filters icons by a search query matching name or keywords */

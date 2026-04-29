@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import {
 	buildGraphData,
 	filterGraphData,
@@ -10,6 +9,7 @@ import {
 	getUniqueTags,
 } from '$lib/plugins/graph-view/graph-view.logic';
 import type { GraphData, GraphNode } from '$lib/plugins/graph-view/graph-view.types';
+import { entryV2, entryV2WithContent } from '../../../fixtures/vault-entries.fixture';
 
 describe('getFolderFromPath', () => {
 	it('extracts folder from a file path', () => {
@@ -37,128 +37,87 @@ describe('buildGraphData', () => {
 		'/vault/Orphan.md',
 	];
 
-	it('creates nodes for all file paths', () => {
-		const noteIndex = new Map<string, ReturnType<typeof parseWikilinks>>();
-		const noteContents = new Map<string, string>();
-		for (const p of allPaths) {
-			noteIndex.set(p, []);
-			noteContents.set(p, '');
-		}
+	it('creates nodes for all entries', () => {
+		const entries = allPaths.map((p) => entryV2(p));
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		expect(data.nodes).toHaveLength(4);
 		expect(data.nodes.map((n) => n.id)).toEqual(allPaths);
 	});
 
-	it('creates edges from wikilinks', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('Link to [[Note B]]')],
-			['/vault/Note B.md', parseWikilinks('Link to [[Note C]]')],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'Link to [[Note B]]'],
-			['/vault/Note B.md', 'Link to [[Note C]]'],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+	it('creates edges from outgoing wikilinks', () => {
+		const entries = [
+			entryV2WithContent('/vault/Note A.md', 'Link to [[Note B]]'),
+			entryV2WithContent('/vault/Note B.md', 'Link to [[Note C]]'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		expect(data.links).toHaveLength(2);
 		expect(data.links).toContainEqual({ source: '/vault/Note A.md', target: '/vault/Note B.md', bidirectional: false });
 		expect(data.links).toContainEqual({ source: '/vault/Note B.md', target: '/vault/folder/Note C.md', bidirectional: false });
 	});
 
 	it('deduplicates bidirectional edges and marks them', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('Link to [[Note B]]')],
-			['/vault/Note B.md', parseWikilinks('Link to [[Note A]]')],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'Link to [[Note B]]'],
-			['/vault/Note B.md', 'Link to [[Note A]]'],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+		const entries = [
+			entryV2WithContent('/vault/Note A.md', 'Link to [[Note B]]'),
+			entryV2WithContent('/vault/Note B.md', 'Link to [[Note A]]'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		expect(data.links).toHaveLength(1);
 		expect(data.links[0].bidirectional).toBe(true);
 	});
 
 	it('marks one-way links as not bidirectional', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('Link to [[Note B]]')],
-			['/vault/Note B.md', []],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'Link to [[Note B]]'],
-			['/vault/Note B.md', ''],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+		const entries = [
+			entryV2WithContent('/vault/Note A.md', 'Link to [[Note B]]'),
+			entryV2('/vault/Note B.md'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		expect(data.links).toHaveLength(1);
 		expect(data.links[0].bidirectional).toBe(false);
 	});
 
 	it('excludes self-links', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('Link to [[Note A]]')],
-			['/vault/Note B.md', []],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'Link to [[Note A]]'],
-			['/vault/Note B.md', ''],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+		const entries = [
+			entryV2WithContent('/vault/Note A.md', 'Link to [[Note A]]'),
+			entryV2('/vault/Note B.md'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		expect(data.links).toHaveLength(0);
 	});
 
 	it('excludes unresolved links', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('Link to [[Nonexistent]]')],
-			['/vault/Note B.md', []],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'Link to [[Nonexistent]]'],
-			['/vault/Note B.md', ''],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+		const entries = [
+			entryV2WithContent('/vault/Note A.md', 'Link to [[Nonexistent]]'),
+			entryV2('/vault/Note B.md'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		expect(data.links).toHaveLength(0);
 	});
 
 	it('computes linkCount correctly', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', parseWikilinks('Link to [[Note B]] and [[Note C]]')],
-			['/vault/Note B.md', parseWikilinks('Link to [[Note C]]')],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', 'Link to [[Note B]] and [[Note C]]'],
-			['/vault/Note B.md', 'Link to [[Note C]]'],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+		const entries = [
+			entryV2WithContent('/vault/Note A.md', 'Link to [[Note B]] and [[Note C]]'),
+			entryV2WithContent('/vault/Note B.md', 'Link to [[Note C]]'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		const nodeA = data.nodes.find((n) => n.id === '/vault/Note A.md')!;
 		const nodeB = data.nodes.find((n) => n.id === '/vault/Note B.md')!;
 		const nodeC = data.nodes.find((n) => n.id === '/vault/folder/Note C.md')!;
@@ -170,21 +129,15 @@ describe('buildGraphData', () => {
 		expect(orphan.linkCount).toBe(0);
 	});
 
-	it('extracts tags from note contents', () => {
-		const noteIndex = new Map([
-			['/vault/Note A.md', []],
-			['/vault/Note B.md', []],
-			['/vault/folder/Note C.md', []],
-			['/vault/Orphan.md', []],
-		]);
-		const noteContents = new Map([
-			['/vault/Note A.md', '# Note\n\nSome text with #project and #work'],
-			['/vault/Note B.md', '---\ntags: [journal]\n---\nContent'],
-			['/vault/folder/Note C.md', ''],
-			['/vault/Orphan.md', ''],
-		]);
+	it('uses tags from entries directly (Rust pre-parses)', () => {
+		const entries = [
+			entryV2('/vault/Note A.md', { tags: ['project', 'work'] }),
+			entryV2('/vault/Note B.md', { tags: ['journal'] }),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		const nodeA = data.nodes.find((n) => n.id === '/vault/Note A.md')!;
 		const nodeB = data.nodes.find((n) => n.id === '/vault/Note B.md')!;
 
@@ -194,14 +147,14 @@ describe('buildGraphData', () => {
 	});
 
 	it('sets correct folder for each node', () => {
-		const noteIndex = new Map<string, ReturnType<typeof parseWikilinks>>();
-		const noteContents = new Map<string, string>();
-		for (const p of allPaths) {
-			noteIndex.set(p, []);
-			noteContents.set(p, '');
-		}
+		const entries = [
+			entryV2('/vault/Note A.md'),
+			entryV2('/vault/Note B.md'),
+			entryV2('/vault/folder/Note C.md'),
+			entryV2('/vault/Orphan.md'),
+		];
 
-		const data = buildGraphData(noteIndex, noteContents, allPaths);
+		const data = buildGraphData(entries);
 		const nodeA = data.nodes.find((n) => n.id === '/vault/Note A.md')!;
 		const nodeC = data.nodes.find((n) => n.id === '/vault/folder/Note C.md')!;
 

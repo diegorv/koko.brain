@@ -1,30 +1,38 @@
 import { invoke } from '@tauri-apps/api/core';
-import { debug, error as errorLog, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
-import { clearIndexedEntry } from '$lib/utils/index-dedupe';
+import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
+import { dedupeInflight } from '$lib/utils/inflight';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { backlinksStore } from './backlinks.store.svelte';
-import { noteIndexStore } from './note-index.store.svelte';
-import { parseWikilinks, getNoteName, findUnlinkedMentions, noteEntryV2ToBacklinkEntry } from './backlinks.logic';
-import type { WikiLink } from './backlinks.types';
-import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
+import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+
+/**
+ * Returns true when the IPC result for `fetchedPath` is still relevant
+ * to the current UI: either no tab is active (e.g. headless tests) or
+ * the active tab still matches the path the IPC was fired for.
+ *
+ * Used by the panel-fetch services as a stale-result guard: when the
+ * user switches tabs while a fetch is in flight, the in-flight call's
+ * result is discarded instead of briefly overwriting the new tab's
+ * panel data — the "pisca o backlink" race observed during the
+ * 2026-04-29 dogfood after the wikilink cmd-click flow.
+ */
+function isStillCurrentPath(fetchedPath: string): boolean {
+	const current = editorStore.activeTabPath;
+	return current == null || current === fetchedPath;
+}
 
 let vaultPath: string | null = null;
 let isBuilding = false;
 let pendingRebuild = false;
 
-/** Recursively collects all markdown file paths from a pre-scanned file tree */
-function collectMarkdownPaths(nodes: FileTreeNode[]): string[] {
-	const paths: string[] = [];
-	for (const node of nodes) {
-		if (node.isDirectory && node.children) {
-			paths.push(...collectMarkdownPaths(node.children));
-		} else if (node.name.endsWith('.md') || node.name.endsWith('.markdown')) {
-			paths.push(node.path);
-		}
-	}
-	return paths;
-}
-
+/**
+ * Bootstraps the Rust `VaultIndex` for the given vault path. Replaces
+ * the old TS scan + parse loop that populated `noteIndexStore`. The
+ * Rust `scan_vault_v2` command walks the filesystem, builds VaultIndex,
+ * and emits `vault-index-updated` once complete; `vaultStore.vaultIndexVersion`
+ * bumps and every panel `$effect` reactively refetches.
+ */
 export async function buildIndex(path: string) {
 	if (isBuilding) {
 		pendingRebuild = true;
@@ -32,74 +40,18 @@ export async function buildIndex(path: string) {
 	}
 	isBuilding = true;
 	vaultPath = path;
-	noteIndexStore.setLoading(true);
 
+	const t0 = perfStart();
 	try {
-		// Bootstrap the Rust `VaultIndex` in parallel with the TS scan.
-		// `scan_vault_v2` does its own filesystem scan, builds the Rust index,
-		// and emits `vault-index-updated` so `BacklinksPanel.svelte`'s reactive
-		// `$effect` re-fetches once the Rust side is ready. Fire-and-forget —
-		// errors logged via `errorLog('BACKLINKS', ...)`. The TS scan below
-		// still populates `noteIndexStore.noteContents`/`noteIndex` because
-		// the unlinked-mentions, outgoing-links, and link-updater paths still
-		// read from those maps (Phase 6/8 will migrate those too).
-		const tV2 = perfStart();
-		invoke('scan_vault_v2', { path })
-			.then(() => perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2(IPC, parallel)', tV2))
-			.catch((err) => errorLog('BACKLINKS', 'scan_vault_v2 failed:', err));
-
-		await timeAsync('BACKLINKS', 'buildIndex', async () => {
-			const tScan = perfStart();
-			const tree = await invoke<FileTreeNode[]>('scan_vault', {
-				path,
-				sortBy: 'name',
-			});
-			perfEnd('BACKLINKS', 'buildIndex:scan_vault(IPC)', tScan);
-
-			const tCollect = perfStart();
-			const filePaths = collectMarkdownPaths(tree);
-			perfEnd('BACKLINKS', `buildIndex:collectMarkdownPaths(${filePaths.length} files)`, tCollect);
-
-			const tRead = perfStart();
-			const readResults = await invoke<FileReadResult[]>('read_files_batch', {
-				vaultPath: path,
-				paths: filePaths,
-			});
-			perfEnd('BACKLINKS', `buildIndex:read_files_batch(IPC, ${readResults.length} files)`, tRead);
-
-			const tParse = perfStart();
-			const index = new Map<string, WikiLink[]>();
-			const contents = new Map<string, string>();
-
-			for (const result of readResults) {
-				if (result.content !== null) {
-					contents.set(result.path, result.content);
-					index.set(result.path, parseWikilinks(result.content));
-				}
-			}
-			perfEnd('BACKLINKS', `buildIndex:parseWikilinks(${index.size} files)`, tParse);
-
-			// Contents must be set BEFORE the index: setNoteIndex triggers
-			// rebuildReverseIndex, which resolves wikilinks using noteContents.keys().
-			// If reversed, the resolution cache is empty and reverseIndex stays empty
-			// until an incremental update happens to populate it file-by-file.
-			//
-			// `noteIndexStore.reverseIndex` is no longer consumed by the backlinks
-			// panel (Rust path replaces it) but is still read as a fallback by
-			// `link-updater.service.ts` on rename — so we keep building it.
-			const tStore = perfStart();
-			noteIndexStore.setNoteContents(contents);
-			noteIndexStore.setNoteIndex(index);
-			perfEnd('BACKLINKS', 'buildIndex:setStores(incl. rebuildReverseIndex)', tStore);
-			debug('BACKLINKS', `Index: ${index.size} notes, ${contents.size} contents`);
-		});
+		await invoke('scan_vault_v2', { path });
+		perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2', t0);
+		debug('BACKLINKS', 'Rust VaultIndex bootstrapped');
+	} catch (err) {
+		errorLog('BACKLINKS', 'scan_vault_v2 failed:', err);
 	} finally {
-		noteIndexStore.setLoading(false);
 		isBuilding = false;
 		if (pendingRebuild && vaultPath) {
 			pendingRebuild = false;
-			// Use module-level vaultPath (not the argument 'path') to ensure
-			// the rebuild uses the current vault, not a stale one
 			await buildIndex(vaultPath);
 		}
 	}
@@ -112,40 +64,30 @@ export async function rebuildIndex() {
 	}
 }
 
-export function updateIndexForFile(filePath: string, content: string) {
-	noteIndexStore.updateNoteEntry(filePath, content, parseWikilinks(content));
-}
-
-/** Removes a file from both noteIndex and noteContents (e.g. when a file is deleted) */
-export function removeFileFromIndex(filePath: string) {
-	// Drop the dedup signature so a later re-creation with the same content
-	// isn't silently skipped by `isAlreadyIndexed`.
-	clearIndexedEntry(filePath);
-
-	const nextContents = new Map(noteIndexStore.noteContents);
-	const nextIndex = new Map(noteIndexStore.noteIndex);
-	const deletedContents = nextContents.delete(filePath);
-	const deletedIndex = nextIndex.delete(filePath);
-
-	if (deletedContents || deletedIndex) {
-		noteIndexStore.setNoteContents(nextContents);
-		noteIndexStore.setNoteIndex(nextIndex);
-	}
-}
-
 /**
  * Fetches backlinks for a file from the Rust `VaultIndex` via
  * `invoke('get_backlinks_v2')` and writes them to `backlinksStore.linkedMentions`.
  *
- * Used by both the active-tab tracker (path change) and `BacklinksPanel.svelte`
- * (path change OR `vaultStore.vaultIndexVersion` bump). Errors are logged via
- * `errorLog('BACKLINKS', ...)` and swallowed — the linked-mentions panel keeps
- * its prior contents on IPC failure.
+ * Used by both the +layout.svelte tab-switch effect (path change) and
+ * `BacklinksPanel.svelte` (path change OR `vaultStore.vaultIndexVersion`
+ * bump). Wrapped in `dedupeInflight` so concurrent calls for the same
+ * `path` collapse into a single IPC — this is the common case during a
+ * tab switch + version bump landing in the same JS turn. Errors are
+ * logged via `errorLog('BACKLINKS', ...)` and swallowed — the linked-
+ * mentions panel keeps its prior contents on IPC failure.
  */
-export async function fetchBacklinksV2(path: string): Promise<void> {
+async function fetchBacklinksV2Inner(path: string): Promise<void> {
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
+		// Active-path guard: the user may have switched tabs while this
+		// IPC was in flight. Writing the stale result would briefly
+		// flash the previous tab's backlinks before the new tab's fetch
+		// overwrites it.
+		if (!isStillCurrentPath(path)) {
+			perfEnd('BACKLINKS', 'fetchBacklinksV2(stale, dropped)', t0);
+			return;
+		}
 		const linked = entries.map(noteEntryV2ToBacklinkEntry);
 		backlinksStore.setLinkedMentions(linked);
 		perfEnd('BACKLINKS', 'fetchBacklinksV2', t0);
@@ -153,21 +95,46 @@ export async function fetchBacklinksV2(path: string): Promise<void> {
 		errorLog('BACKLINKS', 'fetchBacklinksV2 failed:', err);
 	}
 }
+export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: string) => path);
 
 /**
- * Computes unlinked mentions on demand. Called by the BacklinksPanel when
- * the unlinked section is visible and the dirty flag is set.
- * This is the expensive O(N) operation that scans all note contents.
+ * Computes unlinked mentions on demand by invoking the Rust
+ * `get_unlinked_mentions_v2` command (Phase 11.5a). Called by the
+ * BacklinksPanel when the unlinked section is visible and the dirty
+ * flag is set. The Rust side iterates `VaultIndex.entries`, skips
+ * already-linked sources via the reverse-link index, reads each
+ * candidate's body from disk, and applies the same word-boundary +
+ * frontmatter/code-stripping rules the TS-side `findUnlinkedMentions`
+ * used.
+ *
+ * Wrapped in `dedupeInflight` because the BacklinksPanel `$effect`
+ * tracks `(unlinkedDirty, activeTabPath, unlinkedOpen)` and can re-fire
+ * for the same `filePath` while a prior IPC is still in flight (e.g. a
+ * dirty-bump arrives during a 400 ms disk scan). Errors are logged
+ * via `errorLog('BACKLINKS', ...)` and swallowed.
  */
-export function computeUnlinkedMentionsForFile(filePath: string) {
+async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<void> {
 	const t0 = perfStart();
-	const noteIndex = noteIndexStore.noteIndex;
-	const noteContents = noteIndexStore.noteContents;
-	const noteName = getNoteName(filePath);
-	const unlinked = findUnlinkedMentions(filePath, noteName, noteContents, noteIndex);
-	backlinksStore.setUnlinkedMentions(unlinked);
-	perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);
+	try {
+		const entries = await invoke<NoteEntryV2[]>('get_unlinked_mentions_v2', { path: filePath });
+		// Same active-path guard as `fetchBacklinksV2Inner` — the
+		// 400 ms unlinked-mentions disk scan is the LONGEST window
+		// where a tab switch could land mid-flight.
+		if (!isStillCurrentPath(filePath)) {
+			perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile(stale, dropped)', t0);
+			return;
+		}
+		const unlinked = entries.map(noteEntryV2ToBacklinkEntry);
+		backlinksStore.setUnlinkedMentions(unlinked);
+		perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);
+	} catch (err) {
+		errorLog('BACKLINKS', 'computeUnlinkedMentionsForFile failed:', err);
+	}
 }
+export const computeUnlinkedMentionsForFile = dedupeInflight(
+	computeUnlinkedMentionsForFileInner,
+	(filePath: string) => filePath,
+);
 
 export function resetBacklinks() {
 	vaultPath = null;

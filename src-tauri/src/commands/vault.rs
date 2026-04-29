@@ -1,7 +1,7 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention};
-use crate::vault::index::{UpdateResult, VaultIndex};
+use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
@@ -318,6 +318,84 @@ pub fn get_outgoing_unlinked_mentions_v2(
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	Ok(idx.lookup_outgoing_unlinked_mentions(&path, &content))
+}
+
+/// Returns every `NoteEntry` in the vault index, sorted by path. Phase
+/// 11.5a — supports TS-side consumers (graph view, kb-api / queryjs,
+/// file-icons frontmatter scan, search fallback, wikilink completion
+/// alias loop) that previously iterated `noteIndexStore.noteContents` /
+/// `noteIndexStore.noteIndex` to walk every note's metadata.
+///
+/// The returned `Vec<NoteEntry>` is a clone of the index entries — safe
+/// for downstream sort/filter without affecting the live index. Reads
+/// under a shared lock; safe to call concurrently with other readers.
+#[tauri::command]
+pub fn get_all_vault_entries_v2(
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	let mut out: Vec<NoteEntry> = idx.entries().values().cloned().collect();
+	out.sort_by(|a, b| a.path.cmp(&b.path));
+	Ok(out)
+}
+
+/// Returns notes whose body mentions `path`'s note name in plain text
+/// (after frontmatter / fenced-code stripping and Unicode word-boundary
+/// checks) but do NOT have a wikilink to `path`. Sorted by title for
+/// stable UI ordering.
+///
+/// Three-phase split so the runtime worker is freed almost immediately:
+///   Phase 1 (locked, ~1-5 ms): snapshot the search term + candidate
+///     path strings via `unlinked_mentions_candidates`. Cheap — just
+///     clones ~2000 String paths.
+///   Phase 2 (unlocked, ~400-600 ms, spawn_blocking): disk reads +
+///     word-boundary matching via `match_unlinked_mentions`. Returns
+///     the matched-path subset (typically 1-20 paths).
+///   Phase 3 (locked, ~µs): re-acquire the read lock to clone the
+///     full `NoteEntry` for each matched path. Tiny because M is tiny.
+///
+/// The 2026-04-29 dogfood showed that an earlier two-phase split —
+/// where Phase 1 cloned the full candidate `NoteEntry`s before the
+/// `spawn_blocking` — left the runtime worker busy on ~50-100 ms of
+/// allocations, queueing concurrent `readTextFile` and
+/// `fetchBacklinksV2` IPCs behind it (`openFileInEditor:fresh` p95
+/// climbed back to 85 ms). Cloning JUST the path strings drops Phase 1
+/// to ~1-5 ms; the runtime worker is freed within microseconds of the
+/// `spawn_blocking`, and concurrent IPCs flow through other workers.
+#[tauri::command]
+pub async fn get_unlinked_mentions_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	// Phase 1: cheap snapshot under a brief read lock.
+	let candidates = {
+		let idx = state
+			.read()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		idx.unlinked_mentions_candidates(&path)
+	};
+
+	let note_name = candidates.note_name;
+	let candidate_paths = candidates.candidate_paths;
+
+	// Phase 2: disk reads + matching. No lock; runs on a blocking
+	// thread so the runtime worker is free for other commands.
+	let matched_paths: Vec<String> =
+		tokio::task::spawn_blocking(move || match_unlinked_mentions(&note_name, candidate_paths))
+			.await
+			.map_err(|e| format!("get_unlinked_mentions_v2 task join error: {}", e))?;
+
+	// Phase 3: re-acquire the read lock for a tiny per-match lookup.
+	let mut results = {
+		let idx = state
+			.read()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		idx.lookup_entries(&matched_paths)
+	};
+	results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	Ok(results)
 }
 
 /// Returns the flat list of tag aggregates (one per distinct tag), sorted

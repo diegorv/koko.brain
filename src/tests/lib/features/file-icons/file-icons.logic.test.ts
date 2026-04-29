@@ -7,6 +7,7 @@ import {
 	filterIcons,
 	addRecentIcon,
 	extractIconFromFrontmatter,
+	extractIconFromParsedFrontmatter,
 } from '$lib/features/file-icons/file-icons.logic';
 import type { FileIconEntry, NormalizedIcon, RecentIcon } from '$lib/features/file-icons/file-icons.types';
 
@@ -290,5 +291,41 @@ describe('extractIconFromFrontmatter', () => {
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toEqual({ iconPack: 'emoji', iconName: '🎯' });
+	});
+});
+
+describe('extractIconFromParsedFrontmatter', () => {
+	it('extracts a valid pack:name icon string', () => {
+		const result = extractIconFromParsedFrontmatter({ icon: 'lucide:star' });
+		expect(result).toEqual({ iconPack: 'lucide', iconName: 'star' });
+	});
+
+	it('returns null when icon key is missing', () => {
+		const result = extractIconFromParsedFrontmatter({ title: 'No icon' });
+		expect(result).toBeNull();
+	});
+
+	it('returns null when icon value is not a string (parsed YAML edge case)', () => {
+		const result = extractIconFromParsedFrontmatter({ icon: ['lucide', 'star'] });
+		expect(result).toBeNull();
+	});
+
+	it('returns null when icon string lacks a colon', () => {
+		const result = extractIconFromParsedFrontmatter({ icon: 'star' });
+		expect(result).toBeNull();
+	});
+
+	it('returns null when pack is invalid', () => {
+		const result = extractIconFromParsedFrontmatter({ icon: 'unknown-pack:star' });
+		expect(result).toBeNull();
+	});
+
+	it('handles emoji pack', () => {
+		const result = extractIconFromParsedFrontmatter({ icon: 'emoji:🎯' });
+		expect(result).toEqual({ iconPack: 'emoji', iconName: '🎯' });
+	});
+
+	it('returns null for empty frontmatter', () => {
+		expect(extractIconFromParsedFrontmatter({})).toBeNull();
 	});
 });

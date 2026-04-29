@@ -1,15 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
-import {
-	rebuildIndex,
-	updateIndexForFile,
-	removeFileFromIndex,
-} from '$lib/features/backlinks/backlinks.service';
+import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
 import type { FileReadResult } from '$lib/core/filesystem/fs.types';
@@ -32,7 +29,7 @@ const INCREMENTAL_THRESHOLD = 10;
  *
  * @param changedPaths - File paths that triggered the watcher (absolute)
  * @see index-updater.service.ts — incremental per-file updates (typing)
- * @see active-tab-tracker.service.ts — tab-switch backlinks/outgoing refresh
+ * @see +layout.svelte — tab-switch backlinks/outgoing refresh ($effect)
  */
 export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<void> {
 	// Filter to actual file paths — macOS reports metadata changes on parent
@@ -74,7 +71,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 
 	try { await rebuildIndex(); } catch (err) { error('WATCHER', 'rebuildIndex failed:', err); }
 	try { buildPropertyIndex(); } catch (err) { error('WATCHER', 'buildPropertyIndex failed:', err); }
-	try { buildFrontmatterIconIndex(); } catch (err) { error('WATCHER', 'buildFrontmatterIconIndex failed:', err); }
+	try { await buildFrontmatterIconIndex(); } catch (err) { error('WATCHER', 'buildFrontmatterIconIndex failed:', err); }
 	try { scanFilesForCalendar(); } catch (err) { error('WATCHER', 'scanFilesForCalendar failed:', err); }
 
 	// rebuildIndex() above already invokes scan_vault_v2 which rebuilds the
@@ -103,30 +100,26 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 	});
 
 	for (const result of readResults) {
-		// Use absolute paths directly — buildIndex stores absolute paths as map keys,
-		// and all other systems (file tree, editor tabs, modifiedAtMap) use absolute paths.
-		// Path traversal protection is handled by Rust's read_files_batch (canonicalize + starts_with check).
+		// Use absolute paths directly — buildIndex stores absolute paths as
+		// map keys, and all other systems (file tree, editor tabs,
+		// modifiedAtMap) use absolute paths. Path traversal protection is
+		// handled by Rust's read_files_batch (canonicalize + starts_with).
 		if (result.content !== null) {
-			// File exists — update all indexes for this file. Tags + tasks no
-			// longer have TS-side updaters; the Rust `update_note_in_index`
-			// below refreshes the per-entry `tags`/`tasks` and emits
-			// `vault-index-updated` which triggers TagsPanel/TasksView refetch.
-			try { updateIndexForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateIndexForFile failed:', err); }
+			// File exists — update Rust `VaultIndex` so backlinks/tags/tasks/
+			// properties reflect the external change. The Rust call emits
+			// `vault-index-updated`; panel `$effect`s re-fetch via that event.
 			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
 			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
 			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
-			// Update Rust `VaultIndex` so backlinks/tags/tasks reflect the
-			// external change. Fire-and-forget: emits `vault-index-updated`
-			// which triggers all the panel `$effect`s to re-fetch.
 			invoke('update_note_in_index', { path: result.path, content: result.content }).catch((err) => {
 				error('WATCHER', 'update_note_in_index failed:', err);
 			});
 		} else {
-			// File doesn't exist (deleted) — remove from indexes.
-			try { removeFileFromIndex(result.path); } catch (err) { error('WATCHER', 'removeFileFromIndex failed:', err); }
-			// Phase 7.5: drop the entry from the Rust `VaultIndex` (entries +
-			// tags_index + backlinks + by_path) via `remove_note_from_index`.
-			// The Rust command emits `vault-index-updated` so all panels refresh.
+			// File doesn't exist (deleted) — drop the dedup signature so a
+			// later re-creation with identical bytes still re-indexes, then
+			// drop the Rust entry (entries + tags_index + backlinks +
+			// properties_index + by_path) which emits `vault-index-updated`.
+			clearIndexedEntry(result.path);
 			invoke('remove_note_from_index', { path: result.path }).catch((err) => {
 				error('WATCHER', 'remove_note_from_index failed:', err);
 			});

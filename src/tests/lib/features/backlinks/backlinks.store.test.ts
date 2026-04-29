@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 
 describe('backlinksStore', () => {
 	beforeEach(() => {
@@ -39,19 +38,14 @@ describe('backlinksStore', () => {
 		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 
-	it('reset clears backlinks state including dirty flag and resets noteIndexStore', () => {
+	it('reset clears backlinks state including dirty flag', () => {
 		backlinksStore.setLinkedMentions([{}] as any);
 		backlinksStore.markUnlinkedDirty();
-		noteIndexStore.setLoading(true);
-		noteIndexStore.setNoteContents(new Map([['a', 'b']]));
 
 		backlinksStore.reset();
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedDirty).toBe(false);
-		expect(noteIndexStore.isLoading).toBe(false);
-		expect(noteIndexStore.noteIndex.size).toBe(0);
-		expect(noteIndexStore.noteContents.size).toBe(0);
 	});
 });

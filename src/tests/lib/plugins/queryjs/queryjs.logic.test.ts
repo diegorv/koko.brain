@@ -10,7 +10,8 @@ import {
 import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
+import type { NoteEntryV2, TaskV2, WikiLinkV2 } from '$lib/types/vault-v2.types';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
 	return {
@@ -27,8 +28,19 @@ function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
 	};
 }
 
-function makeWikiLink(target: string): WikiLink {
+function makeLink(target: string): WikiLinkV2 {
 	return { target, alias: null, heading: null, position: 0 };
+}
+
+function makeTask(text: string, line: number, completed = false): TaskV2 {
+	return {
+		text,
+		checked: completed,
+		indent: 0,
+		lineNumber: line,
+		status: completed ? 'done' : 'todo',
+		metadata: { description: text, tags: [] },
+	};
 }
 
 describe('buildKBLink', () => {
@@ -74,37 +86,37 @@ describe('resolveWikiLinkTarget', () => {
 
 describe('buildReverseIndex', () => {
 	it('builds basename-to-sources mapping', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/a.md', [makeWikiLink('test'), makeWikiLink('other')]],
-			['/vault/b.md', [makeWikiLink('test')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/a.md', { outgoingLinks: [makeLink('test'), makeLink('other')] }),
+			entryV2('/vault/b.md', { outgoingLinks: [makeLink('test')] }),
+		];
+		const reverse = buildReverseIndex(entries);
 		expect(reverse.get('test')).toEqual(new Set(['/vault/a.md', '/vault/b.md']));
 		expect(reverse.get('other')).toEqual(new Set(['/vault/a.md']));
 	});
 
 	it('normalizes nested path targets to basename', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/a.md', [makeWikiLink('folder/sub/note')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/a.md', { outgoingLinks: [makeLink('folder/sub/note')] }),
+		];
+		const reverse = buildReverseIndex(entries);
 		expect(reverse.get('note')).toEqual(new Set(['/vault/a.md']));
 	});
 
-	it('returns empty map for empty noteIndex', () => {
-		const reverse = buildReverseIndex(new Map());
+	it('returns empty map for no entries', () => {
+		const reverse = buildReverseIndex([]);
 		expect(reverse.size).toBe(0);
 	});
 });
 
 describe('resolveInlinks', () => {
 	it('finds files linking to target', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/a.md', [makeWikiLink('test')]],
-			['/vault/b.md', [makeWikiLink('other')]],
-			['/vault/c.md', [makeWikiLink('Test')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/a.md', { outgoingLinks: [makeLink('test')] }),
+			entryV2('/vault/b.md', { outgoingLinks: [makeLink('other')] }),
+			entryV2('/vault/c.md', { outgoingLinks: [makeLink('Test')] }),
+		];
+		const reverse = buildReverseIndex(entries);
 
 		const inlinks = resolveInlinks('/vault/notes/test.md', reverse);
 		expect(inlinks).toHaveLength(2);
@@ -112,39 +124,41 @@ describe('resolveInlinks', () => {
 	});
 
 	it('does not include self-links', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/test.md', [makeWikiLink('test')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/test.md', { outgoingLinks: [makeLink('test')] }),
+		];
+		const reverse = buildReverseIndex(entries);
 		const inlinks = resolveInlinks('/vault/test.md', reverse);
 		expect(inlinks).toHaveLength(0);
 	});
 
 	it('returns empty for no inlinks', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/a.md', [makeWikiLink('other')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/a.md', { outgoingLinks: [makeLink('other')] }),
+		];
+		const reverse = buildReverseIndex(entries);
 		const inlinks = resolveInlinks('/vault/notes/test.md', reverse);
 		expect(inlinks).toHaveLength(0);
 	});
 
 	it('resolves inlinks from full-path wikilinks', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/meeting.md', [makeWikiLink('_notes/2026/02-Feb/_journal-day-15')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/meeting.md', {
+				outgoingLinks: [makeLink('_notes/2026/02-Feb/_journal-day-15')],
+			}),
+		];
+		const reverse = buildReverseIndex(entries);
 		const inlinks = resolveInlinks('/vault/notes/_journal-day-15.md', reverse);
 		expect(inlinks).toHaveLength(1);
 		expect(inlinks[0].path).toBe('/vault/meeting.md');
 	});
 
 	it('resolves inlinks from deeply nested path targets', () => {
-		const noteIndex = new Map<string, WikiLink[]>([
-			['/vault/a.md', [makeWikiLink('folder/sub/test')]],
-			['/vault/b.md', [makeWikiLink('other/path/test')]],
-		]);
-		const reverse = buildReverseIndex(noteIndex);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/a.md', { outgoingLinks: [makeLink('folder/sub/test')] }),
+			entryV2('/vault/b.md', { outgoingLinks: [makeLink('other/path/test')] }),
+		];
+		const reverse = buildReverseIndex(entries);
 		const inlinks = resolveInlinks('/vault/notes/test.md', reverse);
 		expect(inlinks).toHaveLength(2);
 	});
@@ -157,13 +171,12 @@ describe('resolveInlinks', () => {
 });
 
 describe('buildKBPage', () => {
-	const noteIndex = new Map<string, WikiLink[]>();
-	const noteContents = new Map<string, string>();
 	const allPaths = ['/vault/notes/test.md'];
 
 	it('maps NoteRecord correctly', () => {
 		const record = makeRecord();
-		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
+		const entry = entryV2('/vault/notes/test.md');
+		const page = buildKBPage(record, entry, allPaths);
 
 		expect(page.file.path).toBe('/vault/notes/test.md');
 		expect(page.file.name).toBe('test.md');
@@ -173,51 +186,47 @@ describe('buildKBPage', () => {
 		expect(page.file.link.display).toBe('test');
 	});
 
-	it('extracts tags from content', () => {
-		const contents = new Map([
-			['/vault/notes/test.md', '---\ntags: [journal]\n---\nSome #inline-tag content'],
-		]);
-		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
+	it('uses tags from entry directly (Rust pre-parses)', () => {
+		const entry = entryV2('/vault/notes/test.md', { tags: ['journal', 'inline-tag'] });
+		const page = buildKBPage(makeRecord(), entry, allPaths);
 		expect(page.file.tags).toContain('journal');
 		expect(page.file.tags).toContain('inline-tag');
 	});
 
 	it('populates inlinks', () => {
-		const index = new Map<string, WikiLink[]>([
-			['/vault/other.md', [makeWikiLink('test')]],
-		]);
-		const reverse = buildReverseIndex(index);
-		const page = buildKBPage(makeRecord(), index, noteContents, allPaths, reverse);
+		const entries: NoteEntryV2[] = [
+			entryV2('/vault/other.md', { outgoingLinks: [makeLink('test')] }),
+		];
+		const reverse = buildReverseIndex(entries);
+		const page = buildKBPage(makeRecord(), entryV2('/vault/notes/test.md'), allPaths, reverse);
 		expect(page.file.inlinks).toHaveLength(1);
 		expect(page.file.inlinks[0].path).toBe('/vault/other.md');
 	});
 
 	it('populates outlinks', () => {
-		const index = new Map<string, WikiLink[]>([
-			['/vault/notes/test.md', [makeWikiLink('test')]],
-		]);
+		const entry = entryV2('/vault/notes/test.md', { outgoingLinks: [makeLink('test')] });
 		const paths = ['/vault/notes/test.md'];
-		const page = buildKBPage(makeRecord(), index, noteContents, paths);
+		const page = buildKBPage(makeRecord(), entry, paths);
 		expect(page.file.outlinks).toHaveLength(1);
 	});
 
 	it('outlinks resolved via resolutionCache match the O(N) fallback', () => {
-		const index = new Map<string, WikiLink[]>([
-			['/vault/notes/test.md', [
-				makeWikiLink('Alpha'),
-				makeWikiLink('other/Gamma'),
-				makeWikiLink('missing'),
-			]],
-		]);
+		const entry = entryV2('/vault/notes/test.md', {
+			outgoingLinks: [
+				makeLink('Alpha'),
+				makeLink('other/Gamma'),
+				makeLink('missing'),
+			],
+		});
 		const paths = [
 			'/vault/notes/test.md',
 			'/vault/notes/Alpha.md',
 			'/vault/other/Gamma.md',
 		];
 
-		const pageSlow = buildKBPage(makeRecord(), index, noteContents, paths);
+		const pageSlow = buildKBPage(makeRecord(), entry, paths);
 		const cache = buildResolutionCache(paths);
-		const pageFast = buildKBPage(makeRecord(), index, noteContents, paths, undefined, cache);
+		const pageFast = buildKBPage(makeRecord(), entry, paths, undefined, cache);
 
 		expect(pageFast.file.outlinks).toEqual(pageSlow.file.outlinks);
 		expect(pageFast.file.outlinks).toHaveLength(2);
@@ -232,7 +241,7 @@ describe('buildKBPage', () => {
 				['priority', 5],
 			]),
 		});
-		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
+		const page = buildKBPage(record, entryV2('/vault/notes/test.md'), allPaths);
 		expect(page.status).toBe('active');
 		expect(page.priority).toBe(5);
 	});
@@ -241,7 +250,7 @@ describe('buildKBPage', () => {
 		const record = makeRecord({
 			properties: new Map<string, unknown>([['created', '2024-06-15']]),
 		});
-		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
+		const page = buildKBPage(record, entryV2('/vault/notes/test.md'), allPaths);
 		expect(page.created).toBeInstanceOf(KBDateTime);
 		expect((page.created as KBDateTime).year).toBe(2024);
 	});
@@ -250,26 +259,28 @@ describe('buildKBPage', () => {
 		const record = makeRecord({
 			properties: new Map<string, unknown>([['file', 'should-not-override']]),
 		});
-		const page = buildKBPage(record, noteIndex, noteContents, allPaths);
+		const page = buildKBPage(record, entryV2('/vault/notes/test.md'), allPaths);
 		expect(page.file.path).toBe('/vault/notes/test.md');
 	});
 
-	it('returns empty tasks when content has no tasks', () => {
-		const contents = new Map([['/vault/notes/test.md', 'Just some text\nNo tasks here']]);
-		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
+	it('returns empty tasks when entry has no tasks', () => {
+		const page = buildKBPage(makeRecord(), entryV2('/vault/notes/test.md'), allPaths);
 		expect(page.file.tasks).toEqual([]);
 	});
 
-	it('returns empty tasks when content is empty', () => {
-		const page = buildKBPage(makeRecord(), noteIndex, noteContents, allPaths);
+	it('returns empty tasks when entry is undefined', () => {
+		const page = buildKBPage(makeRecord(), undefined, allPaths);
 		expect(page.file.tasks).toEqual([]);
 	});
 
-	it('extracts tasks from content', () => {
-		const contents = new Map([
-			['/vault/notes/test.md', '# My note\n- [ ] Buy milk\n- [x] Write tests\nSome text'],
-		]);
-		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
+	it('maps TaskV2 fields to KBTask correctly', () => {
+		const entry = entryV2('/vault/notes/test.md', {
+			tasks: [
+				makeTask('Buy milk', 2, false),
+				makeTask('Write tests', 3, true),
+			],
+		});
+		const page = buildKBPage(makeRecord(), entry, allPaths);
 		expect(page.file.tasks).toHaveLength(2);
 		expect(page.file.tasks[0]).toEqual({
 			text: 'Buy milk',
@@ -285,25 +296,11 @@ describe('buildKBPage', () => {
 		});
 	});
 
-	it('skips tasks inside code blocks', () => {
-		const contents = new Map([
-			[
-				'/vault/notes/test.md',
-				'- [ ] Real task\n```\n- [ ] Fake task\n```\n- [x] Another real task',
-			],
-		]);
-		const page = buildKBPage(makeRecord(), noteIndex, contents, allPaths);
-		expect(page.file.tasks).toHaveLength(2);
-		expect(page.file.tasks[0].text).toBe('Real task');
-		expect(page.file.tasks[1].text).toBe('Another real task');
-	});
-
 	it('sets correct path on each task', () => {
 		const customPath = '/vault/journal/2026-02-16.md';
 		const record = makeRecord({ path: customPath });
-		const contents = new Map([[customPath, '- [ ] Task one']]);
-		const paths = [customPath];
-		const page = buildKBPage(record, noteIndex, contents, paths);
+		const entry = entryV2(customPath, { tasks: [makeTask('Task one', 1, false)] });
+		const page = buildKBPage(record, entry, [customPath]);
 		expect(page.file.tasks[0].path).toBe(customPath);
 	});
 });

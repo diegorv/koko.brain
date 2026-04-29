@@ -15,7 +15,6 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { tasksStore } from '$lib/features/tasks/tasks.store.svelte';
 import {
@@ -50,7 +49,6 @@ describe('buildTaskIndex', () => {
 		vi.clearAllMocks();
 		tasksStore.reset();
 		editorStore.reset();
-		noteIndexStore.reset();
 		tasksStore.setSectionTag('');
 	});
 
@@ -109,7 +107,6 @@ describe('updateSectionTagFilter', () => {
 		vi.clearAllMocks();
 		tasksStore.reset();
 		editorStore.reset();
-		noteIndexStore.reset();
 	});
 
 	it('sets section tag and refetches via the section IPC', async () => {
@@ -135,7 +132,6 @@ describe('toggleTask', () => {
 		vi.clearAllMocks();
 		tasksStore.reset();
 		editorStore.reset();
-		noteIndexStore.reset();
 	});
 
 	function makeResult(updatedContent: string, changed = true): ToggleTaskResultV2 {
@@ -156,13 +152,19 @@ describe('toggleTask', () => {
 		});
 	});
 
-	it('updates noteIndexStore with the returned content', async () => {
+	it('does not invoke any TS-side index update beyond toggle_task_status', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
 
 		await toggleTask('/vault/a.md', 1);
 
-		expect(noteIndexStore.noteContents.get('/vault/a.md')).toBe('- [x] task');
-		expect(noteIndexStore.noteIndex.has('/vault/a.md')).toBe(true);
+		// Rust `toggle_task_status` already updated VaultIndex and emitted
+		// `vault-index-updated`; panels react via vaultIndexVersion. No
+		// secondary IPC fires from the TS side after the toggle.
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(invoke).toHaveBeenCalledWith('toggle_task_status', {
+			path: '/vault/a.md',
+			lineNumber: 1,
+		});
 	});
 
 	it('bumps externalContentSignal when toggled file is the active tab', async () => {
@@ -182,22 +184,23 @@ describe('toggleTask', () => {
 		expect(editorStore.tabs[0].savedContent).toBe('- [x] task');
 	});
 
-	it('skips updates when toggle is a no-op', async () => {
+	it('skips editor sync when toggle is a no-op', async () => {
+		const tabBefore = editorStore.externalContentSignal;
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [ ] task', /* changed */ false));
 
 		await toggleTask('/vault/a.md', 1);
 
-		// changed=false -> no store mutations
-		expect(noteIndexStore.noteContents.has('/vault/a.md')).toBe(false);
+		// changed=false → no editor signal bump (no doc replace).
+		expect(editorStore.externalContentSignal).toBe(tabBefore);
 	});
 
-	it('swallows IPC errors via toast', async () => {
+	it('swallows IPC errors via toast and does not bump editor signal', async () => {
+		const tabBefore = editorStore.externalContentSignal;
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('disk full'));
 
 		await toggleTask('/vault/a.md', 1);
 
-		// No mutation on failure.
-		expect(noteIndexStore.noteContents.has('/vault/a.md')).toBe(false);
+		expect(editorStore.externalContentSignal).toBe(tabBefore);
 	});
 });
 

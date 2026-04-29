@@ -1,9 +1,7 @@
 import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
 import type { KBPage, KBLink, KBTask } from './queryjs.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { KBDateTime } from './kb-datetime';
-import { extractAllTags } from '$lib/features/tags/tags.logic';
-import { extractTasks } from '$lib/features/tasks/tasks.logic';
 import {
 	resolveWikilinkCached,
 	type WikilinkResolutionCache,
@@ -46,18 +44,18 @@ export function resolveWikiLinkTarget(target: string, allFilePaths: string[]): s
  * that link to that basename. Built once, then used by resolveInlinks for O(1) lookups.
  */
 export function buildReverseIndex(
-	noteIndex: Map<string, WikiLink[]>,
+	entries: NoteEntryV2[],
 ): Map<string, Set<string>> {
 	const reverse = new Map<string, Set<string>>();
-	for (const [sourcePath, links] of noteIndex) {
-		for (const link of links) {
+	for (const entry of entries) {
+		for (const link of entry.outgoingLinks) {
 			const basename = getBasename(link.target).toLowerCase();
 			let sources = reverse.get(basename);
 			if (!sources) {
 				sources = new Set();
 				reverse.set(basename, sources);
 			}
-			sources.add(sourcePath);
+			sources.add(entry.path);
 		}
 	}
 	return reverse;
@@ -98,35 +96,38 @@ function maybeParseDate(value: unknown): unknown {
 }
 
 /**
- * Builds a KBPage from a NoteRecord.
- * Merges file metadata, computed links, tags, and frontmatter properties.
+ * Builds a KBPage from a NoteRecord and its corresponding Rust-parsed
+ * `NoteEntryV2` (matched by absolute path). Tags, tasks, and outgoing
+ * wikilinks come pre-parsed from `entry`; this function only does the
+ * shape mapping (TaskV2 → KBTask) and the wikilink-target resolution.
+ *
+ * `entry` is optional so test fixtures can pass minimal records when
+ * tags/tasks/outlinks aren't relevant — those default to empty.
  */
 export function buildKBPage(
 	record: NoteRecord,
-	noteIndex: Map<string, WikiLink[]>,
-	noteContents: Map<string, string>,
+	entry: NoteEntryV2 | undefined,
 	allFilePaths: string[],
 	reverseIndex?: Map<string, Set<string>>,
 	resolutionCache?: WikilinkResolutionCache,
 ): KBPage {
-	const content = noteContents.get(record.path) ?? '';
-	const tags = extractAllTags(content);
+	const tags = entry?.tags ?? [];
 	const inlinks = reverseIndex
 		? resolveInlinks(record.path, reverseIndex)
 		: [];
-	const tasks: KBTask[] = extractTasks(content).map((t) => ({
+	const tasks: KBTask[] = (entry?.tasks ?? []).map((t) => ({
 		text: t.text,
 		completed: t.checked,
 		line: t.lineNumber,
 		path: record.path,
 	}));
 
-	// Compute outlinks from this file's wikilinks.
+	// Compute outlinks from this file's pre-parsed wikilinks.
 	// Uses the pre-built O(1) resolution cache when provided — falls back to
 	// the O(N) scan for callers (e.g. tests) that don't pass it. Building
 	// the cache once per vault scan and passing it in turns the outlinks
 	// computation from O(N²×L) to O(N×L) across all pages.
-	const outWikiLinks = noteIndex.get(record.path) ?? [];
+	const outWikiLinks = entry?.outgoingLinks ?? [];
 	const outlinks: KBLink[] = [];
 	for (const wl of outWikiLinks) {
 		const resolved = resolutionCache

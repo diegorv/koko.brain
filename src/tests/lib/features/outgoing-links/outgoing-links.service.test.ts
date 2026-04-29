@@ -6,6 +6,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { fetchOutgoingLinksV2, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
 
 describe('fetchOutgoingLinksV2 (Phase 6)', () => {
@@ -132,5 +133,146 @@ describe('resetOutgoingLinks', () => {
 
 		expect(outgoingLinksStore.outgoingLinks).toEqual([]);
 		expect(outgoingLinksStore.unlinkedMentions).toEqual([]);
+	});
+});
+
+describe('fetchOutgoingLinksV2 — in-flight deduplication', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		outgoingLinksStore.reset();
+	});
+
+	it('collapses concurrent same-path calls into one batch of IPCs', async () => {
+		// Resolver-controlled IPC mock so the test can verify both calls
+		// share the same in-flight promise BEFORE settling.
+		let resolveLinks!: (v: unknown) => void;
+		let resolveUnlinked!: (v: unknown) => void;
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return new Promise((r) => { resolveLinks = r; });
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return new Promise((r) => { resolveUnlinked = r; });
+			}
+			return Promise.resolve(undefined);
+		});
+
+		const p1 = fetchOutgoingLinksV2('/vault/a.md', 'content');
+		const p2 = fetchOutgoingLinksV2('/vault/a.md', 'content');
+		const p3 = fetchOutgoingLinksV2('/vault/a.md', 'different content');
+
+		// Three callers, but Rust only saw ONE pair of IPCs.
+		expect(invoke).toHaveBeenCalledTimes(2);
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/a.md' });
+
+		// All three callers got the same in-flight Promise.
+		expect(p1).toBe(p2);
+		expect(p2).toBe(p3);
+
+		resolveLinks([]);
+		resolveUnlinked([]);
+		await Promise.all([p1, p2, p3]);
+	});
+
+	it('different paths fire independent IPC pairs', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await Promise.all([
+			fetchOutgoingLinksV2('/vault/a.md', 'a-content'),
+			fetchOutgoingLinksV2('/vault/b.md', 'b-content'),
+		]);
+
+		// Two IPCs per call × two paths = 4 invokes.
+		expect(invoke).toHaveBeenCalledTimes(4);
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/a.md' });
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/b.md' });
+	});
+
+	it('clears the dedup cache after settle so the next call re-fires the IPCs', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchOutgoingLinksV2('/vault/a.md', 'content');
+		expect(invoke).toHaveBeenCalledTimes(2);
+
+		await fetchOutgoingLinksV2('/vault/a.md', 'content');
+		// Fresh IPCs after the first settled.
+		expect(invoke).toHaveBeenCalledTimes(4);
+	});
+});
+
+describe('fetchOutgoingLinksV2 — active-path guard', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		outgoingLinksStore.reset();
+		editorStore.reset();
+	});
+
+	it('drops stale outgoing links when the active tab changed mid-IPC', async () => {
+		let resolveLinks!: (v: unknown) => void;
+		let resolveUnlinked!: (v: unknown) => void;
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return new Promise((r) => { resolveLinks = r; });
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return new Promise((r) => { resolveUnlinked = r; });
+			}
+			return Promise.resolve(undefined);
+		});
+
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: 'content',
+			savedContent: 'content',
+		});
+
+		const fetchPromise = fetchOutgoingLinksV2('/vault/a.md', 'content');
+
+		// Tab switch mid-IPC.
+		editorStore.addTab({
+			path: '/vault/b.md',
+			name: 'b.md',
+			content: '',
+			savedContent: '',
+		});
+
+		// Resolve A's IPCs with stale data.
+		resolveLinks([
+			{ target: 'stale', alias: null, heading: null, resolvedPath: null, position: 0 },
+		]);
+		resolveUnlinked([
+			{ noteName: 'stale', notePath: '/vault/stale.md', count: 1 },
+		]);
+		await fetchPromise;
+
+		// Stale result dropped.
+		expect(outgoingLinksStore.outgoingLinks).toEqual([]);
+		expect(outgoingLinksStore.unlinkedMentions).toEqual([]);
+	});
+
+	it('writes the result when the active tab still matches', async () => {
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: 'content',
+			savedContent: 'content',
+		});
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return Promise.resolve([
+					{ target: 'fresh', alias: null, heading: null, resolvedPath: '/vault/fresh.md', position: 0 },
+				]);
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return Promise.resolve([]);
+			}
+			return Promise.resolve(undefined);
+		});
+
+		await fetchOutgoingLinksV2('/vault/a.md', 'content');
+
+		expect(outgoingLinksStore.outgoingLinks).toHaveLength(1);
+		expect(outgoingLinksStore.outgoingLinks[0].target).toBe('fresh');
 	});
 });

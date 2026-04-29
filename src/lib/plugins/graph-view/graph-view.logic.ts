@@ -1,32 +1,36 @@
-import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
-import { getNoteName, buildResolutionCache, resolveWikilinkCached } from '$lib/features/backlinks/backlinks.logic';
-import { extractAllTags } from '$lib/features/tags/tags.logic';
+import { buildResolutionCache, resolveWikilinkCached } from '$lib/features/backlinks/backlinks.logic';
 import type { GraphNode, GraphLink, GraphData, GraphFilters } from './graph-view.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 export function getFolderFromPath(filePath: string): string {
 	const lastSlash = filePath.lastIndexOf('/');
 	return lastSlash > 0 ? filePath.substring(0, lastSlash) : '/';
 }
 
-export function buildGraphData(
-	noteIndex: Map<string, WikiLink[]>,
-	noteContents: Map<string, string>,
-	allFilePaths: string[],
-): GraphData {
+/**
+ * Builds a graph view from a snapshot of Rust `VaultIndex` entries.
+ *
+ * Each entry already carries the parsed wikilinks (`outgoingLinks`), the
+ * deduplicated tag list, and the title — we don't re-parse content.
+ * Wikilink resolution still happens TS-side via the standard
+ * `buildResolutionCache` + `resolveWikilinkCached` over `entries[*].path`,
+ * so collision handling stays identical to backlinks resolution.
+ */
+export function buildGraphData(entries: NoteEntryV2[]): GraphData {
 	const nodes: GraphNode[] = [];
 	const linkCountMap = new Map<string, number>();
 	const directedEdges = new Set<string>();
 	const linkMap = new Map<string, GraphLink>();
-	const cache = buildResolutionCache(allFilePaths);
+	const cache = buildResolutionCache(entries.map((e) => e.path));
 
 	// Single pass: build directed edges and deduplicated links simultaneously
-	for (const [sourcePath, wikilinks] of noteIndex) {
-		for (const link of wikilinks) {
+	for (const entry of entries) {
+		for (const link of entry.outgoingLinks) {
 			const resolvedPath = resolveWikilinkCached(link.target, cache);
-			if (!resolvedPath || resolvedPath === sourcePath) continue;
+			if (!resolvedPath || resolvedPath === entry.path) continue;
 
-			directedEdges.add(`${sourcePath}->${resolvedPath}`);
-			const canonicalKey = [sourcePath, resolvedPath].sort().join('->');
+			directedEdges.add(`${entry.path}->${resolvedPath}`);
+			const canonicalKey = [entry.path, resolvedPath].sort().join('->');
 
 			const existing = linkMap.get(canonicalKey);
 			if (existing) {
@@ -34,9 +38,9 @@ export function buildGraphData(
 				existing.bidirectional = true;
 			} else {
 				// First encounter — check if reverse was already seen
-				const reverseExists = directedEdges.has(`${resolvedPath}->${sourcePath}`);
-				linkMap.set(canonicalKey, { source: sourcePath, target: resolvedPath, bidirectional: reverseExists });
-				linkCountMap.set(sourcePath, (linkCountMap.get(sourcePath) ?? 0) + 1);
+				const reverseExists = directedEdges.has(`${resolvedPath}->${entry.path}`);
+				linkMap.set(canonicalKey, { source: entry.path, target: resolvedPath, bidirectional: reverseExists });
+				linkCountMap.set(entry.path, (linkCountMap.get(entry.path) ?? 0) + 1);
 				linkCountMap.set(resolvedPath, (linkCountMap.get(resolvedPath) ?? 0) + 1);
 			}
 		}
@@ -44,17 +48,14 @@ export function buildGraphData(
 
 	const links = Array.from(linkMap.values());
 
-	// Build nodes from all file paths
-	for (const filePath of allFilePaths) {
-		const content = noteContents.get(filePath) ?? '';
-		const tags = extractAllTags(content);
-
+	// Build nodes from entries
+	for (const entry of entries) {
 		nodes.push({
-			id: filePath,
-			name: getNoteName(filePath),
-			folder: getFolderFromPath(filePath),
-			tags,
-			linkCount: linkCountMap.get(filePath) ?? 0,
+			id: entry.path,
+			name: entry.title,
+			folder: getFolderFromPath(entry.path),
+			tags: entry.tags,
+			linkCount: linkCountMap.get(entry.path) ?? 0,
 		});
 	}
 
