@@ -1,12 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { searchStore } from './search.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { mergeResults } from './search-hybrid.logic';
-import { parseSearchQuery, performSearchOverFiles, matchesTagFilter, matchesPathFilter } from './search.logic';
+import { parseSearchQuery, performSearchOverFiles, matchesPathFilter } from './search.logic';
 import { debug, error } from '$lib/utils/debug';
+import type { FileReadResult } from '$lib/core/filesystem/fs.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import type {
 	FtsSearchResult,
 	SemanticSearchResult,
@@ -14,6 +15,46 @@ import type {
 	SemanticStats,
 	SemanticProgress,
 } from './search.types';
+
+/**
+ * Loads a fresh `Map<absolutePath, content>` by snapshotting the Rust
+ * `VaultIndex` for paths and using `read_files_batch` for content. Used
+ * by the operator-only and FTS-fallback search paths that previously
+ * read from `noteIndexStore.noteContents`.
+ *
+ * Phase 11.5h — replaces the in-memory mirror. Cost is one `*_v2` IPC
+ * for the path list plus one `read_files_batch` IPC for the content
+ * (~50–200 ms on a 1944-note vault). Both paths fire only on rare
+ * conditions (operator-only query OR FTS5 unavailable), so the
+ * amortized impact is negligible.
+ */
+async function loadVaultContentMap(vaultPath: string): Promise<Map<string, string>> {
+	const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+	const paths = entries.map((e) => e.path);
+	const results = await invoke<FileReadResult[]>('read_files_batch', {
+		vaultPath,
+		paths,
+	});
+	const map = new Map<string, string>();
+	for (const r of results) {
+		if (r.content !== null) map.set(r.path, r.content);
+	}
+	return map;
+}
+
+/**
+ * Builds a `Map<absolutePath, Set<tag>>` for the FTS-with-operators
+ * tag filter. Tags come from `entry.tags` (Rust pre-parsed); no
+ * content read needed. Phase 11.5h.
+ */
+async function loadVaultTagMap(): Promise<Map<string, Set<string>>> {
+	const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+	const map = new Map<string, Set<string>>();
+	for (const e of entries) {
+		map.set(e.path, new Set(e.tags.map((t) => t.toLowerCase())));
+	}
+	return map;
+}
 
 /** Active listener for semantic progress events */
 let progressUnlisten: UnlistenFn | null = null;
@@ -113,12 +154,13 @@ export async function performSearch(): Promise<void> {
 				const query = parseSearchQuery(raw);
 				const hasOperators = query.tags.length > 0 || query.paths.length > 0;
 				const ftsQuery = hasOperators ? query.text : raw;
+				const vaultPath = vaultStore.path ?? '';
 
 				if (hasOperators && !ftsQuery.trim()) {
-					// Operator-only query (e.g., "tag:javascript") — use in-memory search
+					// Operator-only query (e.g., "tag:javascript") — fetch a fresh
+					// content map from Rust + run the existing in-memory query.
+					const noteContents = await loadVaultContentMap(vaultPath);
 					if (searchVersion !== version) return;
-					const noteContents = noteIndexStore.noteContents;
-					const vaultPath = vaultStore.path ?? '';
 					const results = performSearchOverFiles(noteContents, query, vaultPath);
 					debug('SEARCH', `Operator-only query: ${results.length} results`);
 					searchStore.setResults(results);
@@ -132,14 +174,15 @@ export async function performSearch(): Promise<void> {
 					if (searchVersion !== version) return;
 
 					if (hasOperators) {
-						// Filter FTS results by tag/path operators
-						const noteContents = noteIndexStore.noteContents;
-						const vaultPath = vaultStore.path ?? '';
+						// Filter FTS results by tag/path operators. Tags come from
+						// Rust-pre-parsed `entry.tags` (no content read).
+						const tagMap = query.tags.length > 0 ? await loadVaultTagMap() : null;
+						if (searchVersion !== version) return;
 						const filtered = results.filter((r) => {
 							const fullPath = `${vaultPath}/${r.path}`;
-							if (query.tags.length > 0) {
-								const content = noteContents.get(fullPath) ?? '';
-								if (!query.tags.every((tag) => matchesTagFilter(content, tag))) return false;
+							if (query.tags.length > 0 && tagMap) {
+								const tagSet = tagMap.get(fullPath) ?? new Set<string>();
+								if (!query.tags.every((tag) => tagSet.has(tag.toLowerCase()))) return false;
 							}
 							if (query.paths.length > 0) {
 								if (!query.paths.some((p) => matchesPathFilter(r.path, p))) return false;
@@ -157,8 +200,9 @@ export async function performSearch(): Promise<void> {
 				if (searchVersion !== version) return;
 				debug('SEARCH', 'FTS failed, falling back to in-memory search:', ftsErr);
 				const query = parseSearchQuery(raw);
-				const noteContents = noteIndexStore.noteContents;
 				const vaultPath = vaultStore.path ?? '';
+				const noteContents = await loadVaultContentMap(vaultPath);
+				if (searchVersion !== version) return;
 				const results = performSearchOverFiles(noteContents, query, vaultPath);
 				debug('SEARCH', `In-memory fallback returned ${results.length} results`);
 				searchStore.setResults(results);

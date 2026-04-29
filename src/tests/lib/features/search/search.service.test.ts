@@ -29,7 +29,6 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import {
 	performSearch,
 	resetSearch,
@@ -41,13 +40,49 @@ import {
 	stopSemanticProgressListener,
 } from '$lib/features/search/search.service';
 import type { SemanticProgress } from '$lib/features/search/search.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { FileReadResult } from '$lib/core/filesystem/fs.types';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+
+/**
+ * Builds an `invoke` implementation that responds to `search_fts`,
+ * `get_all_vault_entries_v2`, and `read_files_batch` calls. Phase 11.5h —
+ * the operator-only and FTS-fallback paths now load content via these
+ * IPCs rather than reading a TS-side noteIndexStore mirror.
+ */
+function mockSearchIPCs(opts: {
+	ftsResult?: FtsResult[] | Error;
+	entries?: NoteEntryV2[];
+	contents?: Record<string, string>;
+}): void {
+	const fts = opts.ftsResult;
+	const entries = opts.entries ?? [];
+	const contents = opts.contents ?? {};
+	mockInvoke.mockImplementation(async (cmd: string, _args: unknown) => {
+		if (cmd === 'search_fts') {
+			if (fts instanceof Error) throw fts;
+			return fts ?? [];
+		}
+		if (cmd === 'get_all_vault_entries_v2') return entries;
+		if (cmd === 'read_files_batch') {
+			const out: FileReadResult[] = entries.map((e) => ({
+				path: e.path,
+				content: contents[e.path] ?? null,
+				error: null,
+			}));
+			return out;
+		}
+		return undefined;
+	});
+}
+
+type FtsResult = { path: string; title: string; score: number; snippet: string; tags: string };
 
 describe('performSearch', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
 		searchStore.reset();
-		noteIndexStore.reset();
 		vaultStore._reset();
 		vaultStore.open('/vault');
 	});
@@ -91,13 +126,14 @@ describe('performSearch', () => {
 	});
 
 	it('falls back to in-memory search when FTS5 fails', async () => {
-		mockInvoke.mockRejectedValueOnce(new Error('No DB'));
-		noteIndexStore.setNoteContents(
-			new Map([
-				['/vault/match.md', 'This file contains hello'],
-				['/vault/no-match.md', 'Nothing here'],
-			]),
-		);
+		mockSearchIPCs({
+			ftsResult: new Error('No DB'),
+			entries: [entryV2('/vault/match.md'), entryV2('/vault/no-match.md')],
+			contents: {
+				'/vault/match.md': 'This file contains hello',
+				'/vault/no-match.md': 'Nothing here',
+			},
+		});
 		searchStore.setQuery('hello');
 		searchStore.setMode('text');
 
@@ -112,10 +148,11 @@ describe('performSearch', () => {
 		searchStore.setFtsResults([
 			{ path: 'stale.md', title: 'Stale', score: -1, snippet: '', tags: '' },
 		]);
-		mockInvoke.mockRejectedValueOnce(new Error('No DB'));
-		noteIndexStore.setNoteContents(
-			new Map([['/vault/match.md', 'hello world']]),
-		);
+		mockSearchIPCs({
+			ftsResult: new Error('No DB'),
+			entries: [entryV2('/vault/match.md')],
+			contents: { '/vault/match.md': 'hello world' },
+		});
 		searchStore.setQuery('hello');
 		searchStore.setMode('text');
 
@@ -254,13 +291,14 @@ describe('performSearch', () => {
 			{ path: 'a.md', title: 'A', score: -2.0, snippet: '<mark>fix</mark>', tags: '' },
 			{ path: 'b.md', title: 'B', score: -1.0, snippet: '<mark>fix</mark>', tags: '' },
 		];
-		mockInvoke.mockResolvedValueOnce(ftsResults);
-		noteIndexStore.setNoteContents(
-			new Map([
-				['/vault/a.md', '---\ntags: [javascript]\n---\nfix this bug'],
-				['/vault/b.md', 'fix another bug without tags'],
-			]),
-		);
+		// FTS returns both; tag map narrows to /vault/a.md only.
+		mockSearchIPCs({
+			ftsResult: ftsResults,
+			entries: [
+				entryV2('/vault/a.md', { tags: ['javascript'] }),
+				entryV2('/vault/b.md'),
+			],
+		});
 		searchStore.setQuery('tag:javascript fix');
 		searchStore.setMode('text');
 
@@ -278,19 +316,21 @@ describe('performSearch', () => {
 	});
 
 	it('uses in-memory search for operator-only queries', async () => {
-		noteIndexStore.setNoteContents(
-			new Map([
-				['/vault/a.md', '---\ntags: [review]\n---\nSome content'],
-				['/vault/b.md', 'No tags here'],
-			]),
-		);
+		mockSearchIPCs({
+			entries: [entryV2('/vault/a.md'), entryV2('/vault/b.md')],
+			contents: {
+				'/vault/a.md': '---\ntags: [review]\n---\nSome content',
+				'/vault/b.md': 'No tags here',
+			},
+		});
 		searchStore.setQuery('tag:review');
 		searchStore.setMode('text');
 
 		await performSearch();
 
-		// FTS should NOT be called for operator-only queries
-		expect(mockInvoke).not.toHaveBeenCalled();
+		// FTS should NOT be called for operator-only queries — only the
+		// content-loading IPCs (`get_all_vault_entries_v2` + `read_files_batch`).
+		expect(mockInvoke).not.toHaveBeenCalledWith('search_fts', expect.anything());
 		expect(searchStore.results).toHaveLength(1);
 		expect(searchStore.results[0].filePath).toBe('/vault/a.md');
 	});
