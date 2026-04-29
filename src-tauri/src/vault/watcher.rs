@@ -18,7 +18,6 @@
 //!   takes a callback) so tests can substitute the emit with a channel.
 
 use crate::utils::logger::debug_log;
-use notify::event::{EventKind, ModifyKind};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::HashSet;
@@ -49,35 +48,6 @@ pub struct VaultFilesChangedPayload {
 // ============================================================================
 // Pure-logic helpers (testable without spawning notify or tokio)
 // ============================================================================
-
-/// Returns `true` when a `notify::EventKind` represents a real file mutation
-/// the index should care about: creation, content / rename modification, or
-/// removal. Pure metadata events (chmod, atime / xattr touches) and access
-/// events (file read / closed) are filtered out — they would otherwise
-/// trigger spurious `update_note_in_index` IPCs and `vault-index-updated`
-/// emits. Audit Tier 1 #2 (2026-04-29).
-///
-/// Filter rules (notify 8.x):
-/// - `Create(_)` → keep (new files / dirs)
-/// - `Modify(ModifyKind::Data(_))` → keep (content rewrite)
-/// - `Modify(ModifyKind::Name(_))` → keep (rename — covers atomic save)
-/// - `Modify(ModifyKind::Other)` → keep (platform-defensive — macOS FSEvents
-///    occasionally reports Other when granularity is unknown)
-/// - `Modify(ModifyKind::Any)` → keep (same defensive rationale)
-/// - `Modify(ModifyKind::Metadata(_))` → DROP (chmod / touch / xattr)
-/// - `Remove(_)` → keep (deletion)
-/// - `Access(_)` → DROP (read / open / close — never index-relevant)
-/// - `Any` → keep (fallback — always processed historically)
-/// - `Other` → DROP (unspecified non-mutation)
-pub fn is_index_relevant_event_kind(kind: &EventKind) -> bool {
-	match kind {
-		EventKind::Create(_) => true,
-		EventKind::Modify(modify) => !matches!(modify, ModifyKind::Metadata(_)),
-		EventKind::Remove(_) => true,
-		EventKind::Any => true,
-		EventKind::Access(_) | EventKind::Other => false,
-	}
-}
 
 /// Returns `true` when `path` is inside a hidden (dot-prefixed)
 /// top-level directory relative to `vault_prefix`. The vault prefix
@@ -222,14 +192,6 @@ where
 	let mut watcher: RecommendedWatcher = notify::recommended_watcher(
 		move |res: notify::Result<notify::Event>| match res {
 			Ok(event) => {
-				if !is_index_relevant_event_kind(&event.kind) {
-					// Audit Tier 1 #2: filter out Access / Metadata-only /
-					// Other events at the source. Without this guard, atime
-					// touches and Spotlight reads queue spurious paths into
-					// the bridge thread, then onward to TS where they trigger
-					// dedupable-but-still-costly `update_note_in_index` IPCs.
-					return;
-				}
 				for path in event.paths {
 					let path_str = path.to_string_lossy().to_string();
 					// Send is best-effort; if the bridge thread is gone
@@ -429,117 +391,6 @@ mod tests {
 		// guard prevents that false positive.
 		let paths = vec!["/v/foo".to_string(), "/v/foobar".to_string()];
 		assert_eq!(filter_ancestor_paths(&paths), paths);
-	}
-
-	// ---------- is_index_relevant_event_kind (audit Tier 1 #2) ----------
-
-	use notify::event::{
-		AccessKind, CreateKind, DataChange, MetadataKind, ModifyKind, RemoveKind, RenameMode,
-	};
-
-	#[test]
-	fn event_filter_keeps_create_kinds() {
-		assert!(is_index_relevant_event_kind(&EventKind::Create(CreateKind::File)));
-		assert!(is_index_relevant_event_kind(&EventKind::Create(CreateKind::Folder)));
-		assert!(is_index_relevant_event_kind(&EventKind::Create(CreateKind::Any)));
-	}
-
-	#[test]
-	fn event_filter_keeps_modify_data() {
-		// Content rewrite (typical save).
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Data(DataChange::Content)
-		)));
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Data(DataChange::Size)
-		)));
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Data(DataChange::Any)
-		)));
-	}
-
-	#[test]
-	fn event_filter_keeps_modify_name_for_atomic_save() {
-		// Atomic save pattern: write `.tmp`, rename to real path. The rename
-		// MUST pass through so the index sees the final name.
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Name(RenameMode::Both)
-		)));
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Name(RenameMode::From)
-		)));
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Name(RenameMode::To)
-		)));
-	}
-
-	#[test]
-	fn event_filter_keeps_modify_other_and_any_defensively() {
-		// macOS FSEvents reports coarse-grained `Other` / `Any` for some
-		// content edits. Drop them and we miss real saves.
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(ModifyKind::Other)));
-		assert!(is_index_relevant_event_kind(&EventKind::Modify(ModifyKind::Any)));
-	}
-
-	#[test]
-	fn event_filter_drops_modify_metadata() {
-		// chmod / atime / xattr changes — never relevant to the markdown index.
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::Permissions)
-		)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::AccessTime)
-		)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::WriteTime)
-		)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::Ownership)
-		)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::Extended)
-		)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::Any)
-		)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Modify(
-			ModifyKind::Metadata(MetadataKind::Other)
-		)));
-	}
-
-	#[test]
-	fn event_filter_keeps_remove_kinds() {
-		assert!(is_index_relevant_event_kind(&EventKind::Remove(RemoveKind::File)));
-		assert!(is_index_relevant_event_kind(&EventKind::Remove(RemoveKind::Folder)));
-		assert!(is_index_relevant_event_kind(&EventKind::Remove(RemoveKind::Any)));
-	}
-
-	#[test]
-	fn event_filter_drops_access_kinds() {
-		// File reads / opens / closes — NOT mutations. Filtering these is
-		// the headline win of the audit fix.
-		assert!(!is_index_relevant_event_kind(&EventKind::Access(AccessKind::Read)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Access(AccessKind::Open(
-			notify::event::AccessMode::Read
-		))));
-		assert!(!is_index_relevant_event_kind(&EventKind::Access(AccessKind::Close(
-			notify::event::AccessMode::Write
-		))));
-		assert!(!is_index_relevant_event_kind(&EventKind::Access(AccessKind::Any)));
-		assert!(!is_index_relevant_event_kind(&EventKind::Access(AccessKind::Other)));
-	}
-
-	#[test]
-	fn event_filter_keeps_any_for_defensive_fallback() {
-		// `Any` means notify can't classify the event — keep it to avoid
-		// silently dropping unknown-but-real changes.
-		assert!(is_index_relevant_event_kind(&EventKind::Any));
-	}
-
-	#[test]
-	fn event_filter_drops_other_kind() {
-		// `Other` is documented as a non-mutation fallback; safe to drop.
-		assert!(!is_index_relevant_event_kind(&EventKind::Other));
 	}
 
 	// ---------- run_debounce_loop ----------
