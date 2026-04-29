@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+setupLocalStorage();
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -6,14 +9,6 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	fetchBacklinksV2: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock('$lib/features/backlinks/note-index.store.svelte', () => ({
-	noteIndexStore: {
-		get noteContents() { return new Map(); },
-		get isLoading() { return false; },
-		reset: vi.fn(),
-	},
 }));
 
 vi.mock('$lib/utils/debug', () => ({
@@ -26,14 +21,19 @@ vi.mock('$lib/utils/debug', () => ({
 import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 
 describe('updateActiveTabLinks — error handling', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		clearLocalStorage();
 		vi.mocked(fetchBacklinksV2).mockResolvedValue(undefined);
 		backlinksStore.reset();
 		outgoingLinksStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vaultStore.bumpVaultIndexVersion(1);
 	});
 
 	it('propagates rejection from fetchBacklinksV2 (caller in +layout.svelte applies .catch)', async () => {

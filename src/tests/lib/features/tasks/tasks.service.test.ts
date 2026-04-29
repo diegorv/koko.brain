@@ -156,13 +156,16 @@ describe('toggleTask', () => {
 		});
 	});
 
-	it('updates noteIndexStore with the returned content', async () => {
+	it('does not write to any TS-side index (Rust handles index update + emit)', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
 
 		await toggleTask('/vault/a.md', 1);
 
-		expect(noteIndexStore.noteContents.get('/vault/a.md')).toBe('- [x] task');
-		expect(noteIndexStore.noteIndex.has('/vault/a.md')).toBe(true);
+		// Phase 11.5j: noteIndexStore is going away in 11.5k. The Rust
+		// `toggle_task_status` already updated VaultIndex and emitted
+		// `vault-index-updated`; panels react via vaultIndexVersion.
+		expect(noteIndexStore.noteContents.has('/vault/a.md')).toBe(false);
+		expect(noteIndexStore.noteIndex.has('/vault/a.md')).toBe(false);
 	});
 
 	it('bumps externalContentSignal when toggled file is the active tab', async () => {

@@ -6,7 +6,6 @@
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { backlinksStore } from './backlinks.store.svelte';
-	import { noteIndexStore } from './note-index.store.svelte';
 	import { computeUnlinkedMentionsForFile, fetchBacklinksV2 } from './backlinks.service';
 	import LinkItem from './LinkItem.svelte';
 
@@ -46,7 +45,7 @@
 	<div class="max-h-[50vh] overflow-y-auto p-2">
 		{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
 			<p class="text-muted-foreground px-2 py-4 text-center">Not available</p>
-		{:else if noteIndexStore.isLoading}
+		{:else if vaultStore.isOpen && vaultStore.vaultIndexVersion === 0}
 			<p class="text-muted-foreground px-2 py-4 text-center">Indexing vault...</p>
 		{:else if backlinksStore.linkedMentions.length === 0 && backlinksStore.unlinkedMentions.length === 0}
 			<p class="text-muted-foreground px-2 py-4 text-center">No backlinks found</p>
