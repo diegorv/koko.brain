@@ -471,7 +471,7 @@ export function renderTableSource(
 	alignments: ColumnAlignment[],
 	rows: string[][],
 ): string {
-	const cellEscape = (cell: string) => cell.replace(/\|/g, '\\|');
+	const cellEscape = (cell: string) => cell.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 	const sep = (a: ColumnAlignment) => (a === 'center' ? ':---:' : a === 'right' ? '---:' : '---');
 
 	const lines: string[] = [];
