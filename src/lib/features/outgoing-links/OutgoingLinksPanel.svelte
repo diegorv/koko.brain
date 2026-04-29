@@ -8,9 +8,19 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { outgoingLinksStore } from './outgoing-links.store.svelte';
 	import { fetchOutgoingLinksV2 } from './outgoing-links.service';
+	import { debounce } from '$lib/utils/debounce';
 
 	let linksOpen = $state(true);
 	let unlinkedOpen = $state(true);
+
+	// 150 ms coalesce window matches +layout.svelte's tab-switch debounce.
+	// During a burst-open the panel effect re-fires for every path change;
+	// without this debounce each fire dispatches a pair of IPCs (links +
+	// unlinked-mentions), queueing on the Tauri command bus. With the
+	// debounce only the LAST path triggers a fetch.
+	const refetchOutgoing = debounce((path: string, content: string) => {
+		fetchOutgoingLinksV2(path, content).catch(() => { /* already logs */ });
+	}, 150);
 
 	// Refresh outgoing links + unlinked mentions on active path change OR
 	// on `vaultIndexVersion` bumps (save / watcher / external mutation).
@@ -21,11 +31,12 @@
 		const _version = vaultStore.vaultIndexVersion;
 		if (!path) {
 			outgoingLinksStore.reset();
+			untrack(() => refetchOutgoing.cancel());
 			return;
 		}
 		untrack(() => {
 			const content = editorStore.activeTab?.content ?? '';
-			fetchOutgoingLinksV2(path, content).catch(() => { /* fetchOutgoingLinksV2 already logs */ });
+			refetchOutgoing(path, content);
 		});
 	});
 </script>

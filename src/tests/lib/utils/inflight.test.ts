@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { dedupeInflight } from '$lib/utils/inflight';
+import { debounce } from '$lib/utils/debounce';
 
 /**
  * Returns a controllable promise factory. Each call to `make()` produces
@@ -161,6 +162,70 @@ describe('dedupeInflight', () => {
 		dedupeInflight(fn, (arg: string) => arg);
 		// Wrapper produced; no calls yet.
 		expect(fn).not.toHaveBeenCalled();
+	});
+
+	it('composition with debounce: burst of N calls collapses into 1 IPC', async () => {
+		// Simulates the panel-effect pattern: debounce(150ms) → dedupeInflight.
+		// During a burst-open the panel $effect re-fires for every path
+		// change; the debounced scheduler coalesces them into one fire after
+		// 150ms of stability, and the in-flight dedupe ensures it stays
+		// one IPC even if multiple effects converge on the same path.
+		vi.useFakeTimers();
+		try {
+			const ipc = vi.fn(async (_path: string) => 'ok');
+			const dedupedIpc = dedupeInflight(ipc, (path: string) => path);
+			const scheduleFetch = debounce((path: string) => {
+				void dedupedIpc(path);
+			}, 150);
+
+			// Burst: 5 path changes within 50ms.
+			scheduleFetch('/vault/a.md');
+			vi.advanceTimersByTime(10);
+			scheduleFetch('/vault/b.md');
+			vi.advanceTimersByTime(10);
+			scheduleFetch('/vault/c.md');
+			vi.advanceTimersByTime(10);
+			scheduleFetch('/vault/d.md');
+			vi.advanceTimersByTime(10);
+			scheduleFetch('/vault/e.md');
+
+			// Before debounce window elapses, no IPC fired.
+			expect(ipc).not.toHaveBeenCalled();
+
+			// Advance past the debounce window.
+			vi.advanceTimersByTime(150);
+
+			// Only the LAST path fired — debounce coalesced the burst.
+			expect(ipc).toHaveBeenCalledTimes(1);
+			expect(ipc).toHaveBeenCalledWith('/vault/e.md');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('composition: two debounced schedulers converging on the same path → 1 IPC via dedupe', async () => {
+		vi.useFakeTimers();
+		try {
+			const ipc = vi.fn(async (_path: string) => 'ok');
+			const dedupedIpc = dedupeInflight(ipc, (path: string) => path);
+
+			// Two independent debounced schedulers (think: BacklinksPanel
+			// effect AND +layout.svelte tab-switch effect, both calling
+			// fetchBacklinksV2 for the same path).
+			const schedA = debounce((path: string) => { void dedupedIpc(path); }, 150);
+			const schedB = debounce((path: string) => { void dedupedIpc(path); }, 150);
+
+			schedA('/vault/x.md');
+			schedB('/vault/x.md');
+
+			vi.advanceTimersByTime(150);
+			// Both debounced schedulers fire at the same tick → both call
+			// dedupedIpc('/vault/x.md') synchronously → second call hits the
+			// in-flight cache → only 1 underlying IPC.
+			expect(ipc).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('handles synchronously-thrown errors inside fn (still rejected promise)', async () => {
