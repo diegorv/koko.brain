@@ -554,6 +554,71 @@ impl VaultIndex {
 		mentions
 	}
 
+	/// Returns every `NoteEntry` whose body contains a plain-text mention
+	/// of `path`'s note name (basename without `.md`/`.markdown`) but does
+	/// NOT have a wikilink to it. Sorted by title (case-insensitive) for
+	/// stable UI ordering.
+	///
+	/// Mirrors `findUnlinkedMentions` from
+	/// `src/lib/features/backlinks/backlinks.logic.ts:217`, which is the
+	/// incoming counterpart of `lookup_outgoing_unlinked_mentions`. The
+	/// already-linked exclusion uses the same reverse-link index that
+	/// `lookup_backlinks` consumes — every source the wikilink reverse
+	/// resolution placed into `backlinks[path]` is filtered out.
+	///
+	/// The `VaultIndex` does not store full per-note bodies (only a 280-
+	/// byte snippet), so this function re-reads each candidate file from
+	/// disk inside Rust. Files that fail to read are silently skipped.
+	/// Phase 11.5a — replaces the TS-side full-content scan that the
+	/// `BacklinksPanel` previously ran over `noteIndexStore.noteContents`.
+	pub fn lookup_incoming_unlinked_mentions(&self, path: &str) -> Vec<NoteEntry> {
+		let note_name = note_name_from_target(path);
+		if note_name.is_empty() {
+			return Vec::new();
+		}
+
+		// Build the exclusion set from the existing reverse-link index:
+		// every source path already linking TO `path` via a wikilink is
+		// rendered in the linked-mentions panel and must not appear here.
+		let already_linked: BTreeSet<String> = self
+			.backlinks
+			.get(path)
+			.cloned()
+			.unwrap_or_default();
+
+		let mut results: Vec<NoteEntry> = Vec::new();
+
+		for (other_path, entry) in &self.entries {
+			if other_path == path {
+				continue;
+			}
+			if already_linked.contains(other_path) {
+				continue;
+			}
+
+			// Read the candidate's body from disk. Skip on read errors —
+			// the file may have been removed between the last index update
+			// and this call (watcher race), in which case it shouldn't
+			// appear in the panel anyway.
+			let content = match std::fs::read_to_string(other_path) {
+				Ok(c) => c,
+				Err(_) => continue,
+			};
+
+			let stripped = strip_non_body_content(&content);
+			let stripped_lower = stripped.to_lowercase();
+			let positions =
+				find_plain_text_mention_positions(&content, &stripped_lower, note_name);
+
+			if !positions.is_empty() {
+				results.push(entry.clone());
+			}
+		}
+
+		results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		results
+	}
+
 	// ------------------------------------------------------------------
 	// Phase 7 — Tag and Task lookups
 	// ------------------------------------------------------------------

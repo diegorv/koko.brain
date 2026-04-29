@@ -320,6 +320,50 @@ pub fn get_outgoing_unlinked_mentions_v2(
 	Ok(idx.lookup_outgoing_unlinked_mentions(&path, &content))
 }
 
+/// Returns every `NoteEntry` in the vault index, sorted by path. Phase
+/// 11.5a — supports TS-side consumers (graph view, kb-api / queryjs,
+/// file-icons frontmatter scan, search fallback, wikilink completion
+/// alias loop) that previously iterated `noteIndexStore.noteContents` /
+/// `noteIndexStore.noteIndex` to walk every note's metadata.
+///
+/// The returned `Vec<NoteEntry>` is a clone of the index entries — safe
+/// for downstream sort/filter without affecting the live index. Reads
+/// under a shared lock; safe to call concurrently with other readers.
+#[tauri::command]
+pub fn get_all_vault_entries_v2(
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	let mut out: Vec<NoteEntry> = idx.entries().values().cloned().collect();
+	out.sort_by(|a, b| a.path.cmp(&b.path));
+	Ok(out)
+}
+
+/// Returns notes whose body mentions `path`'s note name in plain text
+/// (after frontmatter / fenced-code stripping and Unicode word-boundary
+/// checks) but do NOT have a wikilink to `path`. Sorted by title for
+/// stable UI ordering. Phase 11.5a — replaces the TS-side
+/// `findUnlinkedMentions` from `backlinks.logic.ts:217` which iterated
+/// `noteIndexStore.noteContents` over the whole vault.
+///
+/// Reads each candidate file's body from disk inside Rust (the index
+/// only stores a 280-byte snippet, not the full content). Reads are
+/// serial; the function is invoked lazily by the BacklinksPanel only
+/// when the unlinked section is expanded AND the dirty flag is set, so
+/// the cost is amortized.
+#[tauri::command]
+pub fn get_unlinked_mentions_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<NoteEntry>, String> {
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_incoming_unlinked_mentions(&path))
+}
+
 /// Returns the flat list of tag aggregates (one per distinct tag), sorted
 /// alphabetically. Phase 7.3 — replaces `tags.service.ts::buildTagIndex`'s
 /// JS-side aggregation. The frontend builds the tree from this output via
