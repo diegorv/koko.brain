@@ -1,7 +1,7 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention};
-use crate::vault::index::{finalize_unlinked_mentions, UpdateResult, VaultIndex};
+use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
@@ -346,33 +346,56 @@ pub fn get_all_vault_entries_v2(
 /// checks) but do NOT have a wikilink to `path`. Sorted by title for
 /// stable UI ordering.
 ///
-/// Phase 11.5a added the IPC; the post-Phase-11 perf repro showed that
-/// the synchronous version held a Tauri command worker for the entire
-/// disk scan, queueing concurrent IPCs (`readTextFile` for a
-/// just-clicked file, `fetchBacklinksV2` / `fetchOutgoingLinksV2` from
-/// other panels reacting to the same `vault-index-updated` event)
-/// behind it. Burst opens of multiple files saw `readTextFile` blocked
-/// for 100+ ms.
+/// Three-phase split so the runtime worker is freed almost immediately:
+///   Phase 1 (locked, ~1-5 ms): snapshot the search term + candidate
+///     path strings via `unlinked_mentions_candidates`. Cheap — just
+///     clones ~2000 String paths.
+///   Phase 2 (unlocked, ~400-600 ms, spawn_blocking): disk reads +
+///     word-boundary matching via `match_unlinked_mentions`. Returns
+///     the matched-path subset (typically 1-20 paths).
+///   Phase 3 (locked, ~µs): re-acquire the read lock to clone the
+///     full `NoteEntry` for each matched path. Tiny because M is tiny.
 ///
-/// Now: take a snapshot under the read lock (cheap — just clones the
-/// candidate `NoteEntry`s from `entries`), drop the lock, then run the
-/// disk-bound matching on a `spawn_blocking` thread. Other Tauri
-/// commands keep flowing through the IPC bus while this runs.
+/// The 2026-04-29 dogfood showed that an earlier two-phase split —
+/// where Phase 1 cloned the full candidate `NoteEntry`s before the
+/// `spawn_blocking` — left the runtime worker busy on ~50-100 ms of
+/// allocations, queueing concurrent `readTextFile` and
+/// `fetchBacklinksV2` IPCs behind it (`openFileInEditor:fresh` p95
+/// climbed back to 85 ms). Cloning JUST the path strings drops Phase 1
+/// to ~1-5 ms; the runtime worker is freed within microseconds of the
+/// `spawn_blocking`, and concurrent IPCs flow through other workers.
 #[tauri::command]
 pub async fn get_unlinked_mentions_v2(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
-	let snapshot = {
+	// Phase 1: cheap snapshot under a brief read lock.
+	let candidates = {
 		let idx = state
 			.read()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		idx.unlinked_mentions_snapshot(&path)
+		idx.unlinked_mentions_candidates(&path)
 	};
 
-	tokio::task::spawn_blocking(move || finalize_unlinked_mentions(snapshot))
-		.await
-		.map_err(|e| format!("get_unlinked_mentions_v2 task join error: {}", e))
+	let note_name = candidates.note_name;
+	let candidate_paths = candidates.candidate_paths;
+
+	// Phase 2: disk reads + matching. No lock; runs on a blocking
+	// thread so the runtime worker is free for other commands.
+	let matched_paths: Vec<String> =
+		tokio::task::spawn_blocking(move || match_unlinked_mentions(&note_name, candidate_paths))
+			.await
+			.map_err(|e| format!("get_unlinked_mentions_v2 task join error: {}", e))?;
+
+	// Phase 3: re-acquire the read lock for a tiny per-match lookup.
+	let mut results = {
+		let idx = state
+			.read()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		idx.lookup_entries(&matched_paths)
+	};
+	results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	Ok(results)
 }
 
 /// Returns the flat list of tag aggregates (one per distinct tag), sorted

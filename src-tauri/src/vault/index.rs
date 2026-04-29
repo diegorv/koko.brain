@@ -84,55 +84,57 @@ fn resolve_with_cache(target: &str, cache: &HashMap<String, String>) -> Option<S
 	}
 }
 
-/// Owned snapshot for an incoming-unlinked-mentions scan. Produced under
-/// the index read lock (cheap), consumed without the lock (slow disk
-/// reads). See `VaultIndex::unlinked_mentions_snapshot` and
-/// `finalize_unlinked_mentions`.
+/// Cheap snapshot for an incoming-unlinked-mentions scan: just the
+/// search term and the candidate paths. Produced under the index read
+/// lock with O(N) string clones (NOT full `NoteEntry` clones — those
+/// happen later, only for matched paths, in `lookup_entries`).
+///
+/// The async command path uses this to drop the lock + free the Tauri
+/// runtime worker before spawn_blocking the disk reads. Cloning ~2000
+/// strings is ~1-5 ms; cloning ~2000 full NoteEntry structs (with their
+/// frontmatter BTreeMaps and outgoing-link Vecs) was 50-100 ms — that
+/// overhead serialised concurrent IPCs (`get_backlinks_v2`,
+/// `readTextFile`) waiting on the same runtime worker, blowing
+/// `openFileInEditor:fresh` p95 to 85 ms during burst opens.
 #[derive(Debug, Clone)]
-pub struct UnlinkedMentionsSnapshot {
+pub struct UnlinkedMentionsCandidates {
 	/// Basename of the target note (without `.md`/`.markdown`). Empty
-	/// when the input path had no resolvable basename — `finalize_*`
+	/// when the input path had no resolvable basename — `match_*`
 	/// short-circuits to an empty result.
 	pub note_name: String,
-	/// Candidate entries to scan. Already filtered to exclude the target
+	/// Absolute paths to scan. Already filtered to exclude the target
 	/// itself and every source already in `backlinks[path]`.
-	pub candidates: Vec<NoteEntry>,
+	pub candidate_paths: Vec<String>,
 }
 
-/// Filters `snapshot.candidates` down to entries whose body contains a
-/// plain-text mention of `snapshot.note_name`. Reads each candidate's
-/// content from disk; safe (and intended) to call from a
-/// `tokio::task::spawn_blocking` task so the Tauri command bus stays
-/// free to handle other IPCs concurrently.
+/// Reads each `candidate_paths` file from disk and returns the subset
+/// whose body contains a plain-text mention of `note_name` (after
+/// frontmatter / fenced-code stripping and Unicode word-boundary
+/// checks). No lock; safe (and intended) to call from a
+/// `tokio::task::spawn_blocking` task.
 ///
 /// Files that fail to read are silently skipped (e.g. deleted between
 /// the snapshot and the read — same race tolerance as the legacy TS
 /// `findUnlinkedMentions`).
-pub fn finalize_unlinked_mentions(snapshot: UnlinkedMentionsSnapshot) -> Vec<NoteEntry> {
-	if snapshot.note_name.is_empty() {
+pub fn match_unlinked_mentions(note_name: &str, candidate_paths: Vec<String>) -> Vec<String> {
+	if note_name.is_empty() {
 		return Vec::new();
 	}
-
-	let mut results: Vec<NoteEntry> = Vec::new();
-	for entry in snapshot.candidates {
-		let content = match std::fs::read_to_string(&entry.path) {
+	let mut matched: Vec<String> = Vec::new();
+	for candidate_path in candidate_paths {
+		let content = match std::fs::read_to_string(&candidate_path) {
 			Ok(c) => c,
 			Err(_) => continue,
 		};
 		let stripped = strip_non_body_content(&content);
 		let stripped_lower = stripped.to_lowercase();
-		let positions = find_plain_text_mention_positions(
-			&content,
-			&stripped_lower,
-			&snapshot.note_name,
-		);
+		let positions =
+			find_plain_text_mention_positions(&content, &stripped_lower, note_name);
 		if !positions.is_empty() {
-			results.push(entry);
+			matched.push(candidate_path);
 		}
 	}
-
-	results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
-	results
+	matched
 }
 
 /// Canonical vault metadata index.
@@ -614,52 +616,69 @@ impl VaultIndex {
 	/// `src/lib/features/backlinks/backlinks.logic.ts:217`, which is the
 	/// incoming counterpart of `lookup_outgoing_unlinked_mentions`.
 	///
-	/// This is a thin convenience wrapper that snapshots under the read
-	/// lock + finishes the disk-bound work synchronously. Production
-	/// callers from `commands::vault::get_unlinked_mentions_v2` go through
-	/// the async version (snapshot + `spawn_blocking`) so they don't
-	/// monopolise the Tauri command bus during the disk reads.
+	/// This is a thin convenience wrapper that runs the three-phase
+	/// scan synchronously: cheap snapshot, disk-bound matching, full-
+	/// entry lookup. Production callers from
+	/// `commands::vault::get_unlinked_mentions_v2` invoke the phases
+	/// individually so the disk-bound phase runs on a `spawn_blocking`
+	/// thread without holding the `VaultIndexState` lock or the Tauri
+	/// runtime worker.
 	pub fn lookup_incoming_unlinked_mentions(&self, path: &str) -> Vec<NoteEntry> {
-		finalize_unlinked_mentions(self.unlinked_mentions_snapshot(path))
+		let UnlinkedMentionsCandidates { note_name, candidate_paths } =
+			self.unlinked_mentions_candidates(path);
+		let matched = match_unlinked_mentions(&note_name, candidate_paths);
+		let mut results = self.lookup_entries(&matched);
+		results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		results
 	}
 
-	/// Returns the data needed for an incoming-unlinked-mentions scan:
-	/// the search term (note name) and the candidate set (every entry
-	/// whose path is not `path` and not already in `backlinks[path]`).
+	/// Phase 1 of the incoming-unlinked-mentions scan: produce the
+	/// search term + candidate path list. Cheap O(N) string clones —
+	/// designed to be called under a brief read lock and the result
+	/// moved to a `spawn_blocking` task without keeping the lock.
 	///
-	/// Owned data — caller can drop the read lock before touching the
-	/// disk. Phase 11.6+ — splits the lock-held bookkeeping from the
-	/// I/O-bound matching so the latter can run on a `spawn_blocking`
-	/// thread without holding `VaultIndexState`.
-	pub fn unlinked_mentions_snapshot(&self, path: &str) -> UnlinkedMentionsSnapshot {
+	/// Excludes the target itself and every source already in
+	/// `backlinks[path]` (those render in the linked-mentions panel).
+	pub fn unlinked_mentions_candidates(&self, path: &str) -> UnlinkedMentionsCandidates {
 		let note_name = note_name_from_target(path).to_string();
 		if note_name.is_empty() {
-			return UnlinkedMentionsSnapshot {
+			return UnlinkedMentionsCandidates {
 				note_name,
-				candidates: Vec::new(),
+				candidate_paths: Vec::new(),
 			};
 		}
 
-		// Build the exclusion set from the existing reverse-link index:
-		// every source path already linking TO `path` via a wikilink is
-		// rendered in the linked-mentions panel and must not appear here.
 		let already_linked: BTreeSet<String> = self
 			.backlinks
 			.get(path)
 			.cloned()
 			.unwrap_or_default();
 
-		let candidates: Vec<NoteEntry> = self
+		let candidate_paths: Vec<String> = self
 			.entries
-			.iter()
-			.filter(|(p, _)| p.as_str() != path && !already_linked.contains(p.as_str()))
-			.map(|(_, e)| e.clone())
+			.keys()
+			.filter(|p| p.as_str() != path && !already_linked.contains(p.as_str()))
+			.cloned()
 			.collect();
 
-		UnlinkedMentionsSnapshot {
+		UnlinkedMentionsCandidates {
 			note_name,
-			candidates,
+			candidate_paths,
 		}
+	}
+
+	/// Phase 3 of the incoming-unlinked-mentions scan: clone the full
+	/// `NoteEntry` for each path in `paths`. Skips paths missing from
+	/// `entries` (race with concurrent removes between phases 1-3).
+	///
+	/// Typically called with the matched-paths Vec returned by
+	/// `match_unlinked_mentions`, so M is small (1-20) and the clone
+	/// cost is negligible.
+	pub fn lookup_entries(&self, paths: &[String]) -> Vec<NoteEntry> {
+		paths
+			.iter()
+			.filter_map(|p| self.entries.get(p).cloned())
+			.collect()
 	}
 
 	// ------------------------------------------------------------------
