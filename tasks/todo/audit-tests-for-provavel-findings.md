@@ -8,7 +8,7 @@ Plano de auditoria completo: `~/.claude/plans/atue-como-um-auditor-witty-minsky.
 
 - [x] Task 1: Adicionar teste para finding #12 (chunks_exact silent truncation) em `src-tauri/tests/db_semantic_repo_test.rs`. DETERMINÍSTICO. Roda no CI sem `#[ignore]`.
 - [x] Task 2: Adicionar teste para finding #11 (update_entry retroactive race) em `src-tauri/tests/vault_index_test.rs`. NÃO-DETERMINÍSTICO. Marcado `#[ignore]`.
-- [ ] Task 3: Adicionar teste para finding #9 (toggle_task FS race) em `src-tauri/tests/vault_task_test.rs`. NÃO-DETERMINÍSTICO. Marcado `#[ignore]`.
+- [x] Task 3: Adicionar teste para finding #9 (toggle_task FS race) em `src-tauri/tests/vault_task_test.rs`. NÃO-DETERMINÍSTICO. Marcado `#[ignore]`. **Confirmou o bug: 22/200 iterações perderam edição externa.**
 
 ## Notas
 
