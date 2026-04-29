@@ -4,7 +4,8 @@ import { KBAPI } from '$lib/plugins/queryjs/kb-api';
 import { DataArray } from '$lib/plugins/queryjs/data-array';
 import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { WikiLink } from '$lib/features/backlinks/backlinks.types';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
@@ -27,8 +28,7 @@ function makeRecord(path: string, basename: string, props?: Record<string, unkno
 
 function createAPI(opts?: {
 	records?: NoteRecord[];
-	noteContents?: Map<string, string>;
-	noteIndex?: Map<string, WikiLink[]>;
+	entries?: NoteEntryV2[];
 	currentFilePath?: string;
 }) {
 	const records = opts?.records ?? [
@@ -40,21 +40,18 @@ function createAPI(opts?: {
 	const propertyIndex = new Map<string, NoteRecord>();
 	for (const r of records) propertyIndex.set(r.path, r);
 
-	const noteContents = opts?.noteContents ?? new Map<string, string>([
-		['/vault/alpha.md', '---\ntags: [journal, type/meeting]\n---\nContent'],
-		['/vault/beta.md', '---\ntags: [journal]\n---\nBeta content'],
-		['/vault/sub/gamma.md', 'No frontmatter #inline-tag'],
-	]);
-
-	const noteIndex = opts?.noteIndex ?? new Map<string, WikiLink[]>();
+	const entries = opts?.entries ?? [
+		entryV2('/vault/alpha.md', { tags: ['journal', 'type/meeting'] }),
+		entryV2('/vault/beta.md', { tags: ['journal'] }),
+		entryV2('/vault/sub/gamma.md', { tags: ['inline-tag'] }),
+	];
 
 	const container = document.createElement('div');
 
 	return new KBAPI({
 		container,
 		propertyIndex,
-		noteIndex,
-		noteContents,
+		entries,
 		currentFilePath: opts?.currentFilePath ?? '/vault/alpha.md',
 		vaultPath: '/vault',
 		loadScript: vi.fn().mockResolvedValue('kb.paragraph("loaded")'),
@@ -495,8 +492,7 @@ describe('KBAPI', () => {
 			const kb = new KBAPI({
 				container,
 				propertyIndex,
-				noteIndex: new Map(),
-				noteContents: new Map([['/vault/test.md', '']]),
+				entries: [entryV2('/vault/test.md')],
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -518,8 +514,7 @@ describe('KBAPI', () => {
 			const kb = new KBAPI({
 				container,
 				propertyIndex,
-				noteIndex: new Map(),
-				noteContents: new Map([['/vault/test.md', '']]),
+				entries: [entryV2('/vault/test.md')],
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -542,8 +537,7 @@ describe('KBAPI', () => {
 			const kb = new KBAPI({
 				container,
 				propertyIndex,
-				noteIndex: new Map(),
-				noteContents: new Map([['/vault/test.md', '']]),
+				entries: [entryV2('/vault/test.md')],
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -564,8 +558,7 @@ describe('KBAPI', () => {
 			const kb = new KBAPI({
 				container: document.createElement('div'),
 				propertyIndex,
-				noteIndex: new Map(),
-				noteContents: new Map([['/vault/test.md', '']]),
+				entries: [entryV2('/vault/test.md')],
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -586,8 +579,7 @@ describe('KBAPI', () => {
 			const kb = new KBAPI({
 				container,
 				propertyIndex,
-				noteIndex: new Map(),
-				noteContents: new Map([['/vault/test.md', '']]),
+				entries: [entryV2('/vault/test.md')],
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,

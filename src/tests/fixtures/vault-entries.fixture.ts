@@ -28,6 +28,7 @@ export function entryV2(
 		size: 0,
 		wordCount: 0,
 		snippet: '',
+		tasks: [],
 		...overrides,
 	};
 }

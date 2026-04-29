@@ -403,6 +403,7 @@ describe('noteEntryV2ToBacklinkEntry', () => {
 			size: 0,
 			wordCount: 0,
 			snippet: '',
+			tasks: [],
 			...overrides,
 		};
 	}

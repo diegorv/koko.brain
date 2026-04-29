@@ -112,6 +112,8 @@ export interface NoteEntryV2 {
 	wordCount: number;
 	/** Leading body content, capped at 280 bytes at a codepoint boundary. */
 	snippet: string;
+	/** Markdown task list items in document order. Phase 7. */
+	tasks: TaskV2[];
 }
 
 /**
