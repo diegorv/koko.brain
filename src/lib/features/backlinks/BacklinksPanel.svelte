@@ -7,10 +7,25 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { backlinksStore } from './backlinks.store.svelte';
 	import { computeUnlinkedMentionsForFile, fetchBacklinksV2 } from './backlinks.service';
+	import { debounce } from '$lib/utils/debounce';
 	import LinkItem from './LinkItem.svelte';
 
 	let linkedOpen = $state(true);
 	let unlinkedOpen = $state(true);
+
+	// 150 ms coalesce window matches +layout.svelte's tab-switch debounce.
+	// During a burst-open (5 files in <200 ms) the panel effect re-fires
+	// for every path change; without this debounce each fire dispatches
+	// an IPC, queueing on the Tauri command bus. With the debounce only
+	// the LAST path triggers a fetch — combined with `dedupeInflight` in
+	// the service this collapses 5 burst opens into 1 fetch per panel.
+	const refetchBacklinks = debounce((path: string) => {
+		fetchBacklinksV2(path).catch(() => { /* fetchBacklinksV2 already logs */ });
+	}, 150);
+
+	const recomputeUnlinked = debounce((path: string) => {
+		computeUnlinkedMentionsForFile(path).catch(() => { /* already logs */ });
+	}, 150);
 
 	// Compute unlinked mentions on demand when the section is open and dirty
 	$effect(() => {
@@ -18,22 +33,25 @@
 		const open = unlinkedOpen;
 		const path = editorStore.activeTabPath;
 		if (dirty && open && path) {
-			untrack(() => computeUnlinkedMentionsForFile(path));
+			untrack(() => recomputeUnlinked(path));
+		} else {
+			untrack(() => recomputeUnlinked.cancel());
 		}
 	});
 
 	// Refresh linked mentions on active path change OR on `vaultIndexVersion`
-	// bumps (save / watcher / etc.). The active-tab tracker also fires
-	// fetchBacklinksV2 on tab switch — both paths overwrite the same store
-	// with the same result, so the duplication is wasteful but not incorrect.
+	// bumps (save / watcher / etc.). +layout.svelte's tab-switch effect also
+	// fires fetchBacklinksV2 — both paths land on the same `dedupeInflight`-
+	// wrapped function, so duplicate IPCs collapse before reaching Rust.
 	$effect(() => {
 		const path = editorStore.activeTabPath;
 		// Read so the effect re-runs on bump even if path is unchanged.
 		const _version = vaultStore.vaultIndexVersion;
-		if (!path) return;
-		untrack(() => {
-			fetchBacklinksV2(path).catch(() => { /* fetchBacklinksV2 already logs */ });
-		});
+		if (!path) {
+			untrack(() => refetchBacklinks.cancel());
+			return;
+		}
+		untrack(() => refetchBacklinks(path));
 	});
 </script>
 
