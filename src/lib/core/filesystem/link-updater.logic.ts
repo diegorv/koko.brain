@@ -38,38 +38,3 @@ export function replaceWikilinks(content: string, oldName: string, newName: stri
 		return result;
 	});
 }
-
-/**
- * Checks whether a content string contains any wikilinks targeting the given name.
- * Case-insensitive. Useful for quickly filtering which files need updating.
- */
-export function contentHasWikilinkTo(content: string, noteName: string): boolean {
-	const noteNameLower = noteName.toLowerCase();
-	const re = new RegExp(WIKILINK_RE.source, 'g');
-	let match: RegExpExecArray | null;
-	while ((match = re.exec(content)) !== null) {
-		if (match[1].trim().toLowerCase() === noteNameLower) {
-			return true;
-		}
-	}
-	return false;
-}
-
-/**
- * Finds all file paths whose content contains a wikilink to the given note name.
- * Excludes the source file itself to avoid self-referencing updates.
- */
-export function findFilesLinkingTo(
-	noteName: string,
-	noteContents: Map<string, string>,
-	excludePath: string,
-): string[] {
-	const results: string[] = [];
-	for (const [filePath, content] of noteContents) {
-		if (filePath === excludePath) continue;
-		if (contentHasWikilinkTo(content, noteName)) {
-			results.push(filePath);
-		}
-	}
-	return results;
-}
