@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+setupLocalStorage();
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -6,15 +9,20 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateActiveTabLinks } from '$lib/core/app-lifecycle/active-tab-tracker.service';
 
 describe('updateActiveTabLinks', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearLocalStorage();
 		backlinksStore.reset();
 		outgoingLinksStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		// Mark the index as bootstrapped so the readiness guard doesn't skip.
+		vaultStore.bumpVaultIndexVersion(1);
 		// Default invoke mock returns empty array (Rust returns no backlinks)
 		vi.mocked(invoke).mockResolvedValue([]);
 	});
@@ -39,30 +47,30 @@ describe('updateActiveTabLinks', () => {
 		expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/note-b.md');
 	});
 
-	it('skips computation when noteIndexStore is still loading', async () => {
-		noteIndexStore.setLoading(true);
+	it('skips computation when the vault index has not bootstrapped yet (version=0)', async () => {
+		// Bypass the version=1 default seeded in beforeEach.
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		// vaultIndexVersion is 0 right after open — bootstrap hasn't fired yet.
 
 		await updateActiveTabLinks('/vault/note-a.md');
 
 		expect(invoke).not.toHaveBeenCalled();
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(outgoingLinksStore.outgoingLinks).toEqual([]);
-
-		noteIndexStore.setLoading(false);
 	});
 
-	it('still clears stores when path is null even if loading', async () => {
+	it('still clears stores when path is null even if the index is unbootstrapped', async () => {
 		backlinksStore.setLinkedMentions([
 			{ sourcePath: '/vault/x.md', sourceName: 'x', snippets: [] },
 		]);
-		noteIndexStore.setLoading(true);
+		vaultStore._reset();
+		vaultStore.open('/vault');
 
 		await updateActiveTabLinks(null);
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
-
-		noteIndexStore.setLoading(false);
 	});
 
 	it('clears all link stores when path is null', async () => {

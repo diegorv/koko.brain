@@ -1,7 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
-import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { findTabIndex, TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
@@ -87,13 +85,13 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
 
 /**
  * Toggles a task's checked state via the Rust `toggle_task_status`
- * command. Replaces the previous direct `writeTextFile` at
- * `tasks.service.ts:113` (a known JS write-surface violator from the
- * Phase 11.5 audit list).
+ * command. Rust does the read → toggle → write → index-update → emit
+ * chain — no TS-side index sync remains. The Rust update emits
+ * `vault-index-updated`; panels react via `vaultStore.vaultIndexVersion`.
  *
- * Rust does the read → toggle → write → index-update → emit chain. We
- * still bump `noteIndexStore` and the editor signal so the (still-alive
- * until Phase 11.5) TS-side stores and the open editor stay consistent.
+ * The open editor tab still gets `syncExternalContentToEditor` so the
+ * checkbox toggle is visible without waiting for the watcher to
+ * round-trip the file change.
  */
 export async function toggleTask(filePath: string, lineNumber: number): Promise<void> {
 	try {
@@ -105,13 +103,6 @@ export async function toggleTask(filePath: string, lineNumber: number): Promise<
 			return;
 		}
 		const updatedContent = result.updatedContent;
-		// Update note index atomically (content + wikilinks) to keep the still-
-		// alive TS noteIndexStore consistent.
-		noteIndexStore.updateNoteEntry(
-			filePath,
-			updatedContent,
-			parseWikilinks(updatedContent),
-		);
 		// Sync the open tab (if any) with the new content + bump the external
 		// signal so MarkdownEditor.svelte dispatches the doc replace when this
 		// path matches the active tab.
