@@ -34,6 +34,7 @@ function entry(path: string, title?: string): NoteEntryV2 {
 		size: 0,
 		wordCount: 0,
 		snippet: '',
+		tasks: [],
 	};
 }
 

@@ -82,6 +82,7 @@ describe('vault-v2.types', () => {
 				size: 1024,
 				wordCount: 5,
 				snippet: 'Hello world',
+				tasks: [],
 			};
 
 			// Type-level checks lock the field names + types so a Rust-side
@@ -108,6 +109,7 @@ describe('vault-v2.types', () => {
 				'size',
 				'snippet',
 				'tags',
+				'tasks',
 				'title',
 				'wordCount',
 			]);
