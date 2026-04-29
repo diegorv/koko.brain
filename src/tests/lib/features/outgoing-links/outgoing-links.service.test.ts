@@ -134,3 +134,67 @@ describe('resetOutgoingLinks', () => {
 		expect(outgoingLinksStore.unlinkedMentions).toEqual([]);
 	});
 });
+
+describe('fetchOutgoingLinksV2 — in-flight deduplication', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		outgoingLinksStore.reset();
+	});
+
+	it('collapses concurrent same-path calls into one batch of IPCs', async () => {
+		// Resolver-controlled IPC mock so the test can verify both calls
+		// share the same in-flight promise BEFORE settling.
+		let resolveLinks!: (v: unknown) => void;
+		let resolveUnlinked!: (v: unknown) => void;
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return new Promise((r) => { resolveLinks = r; });
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return new Promise((r) => { resolveUnlinked = r; });
+			}
+			return Promise.resolve(undefined);
+		});
+
+		const p1 = fetchOutgoingLinksV2('/vault/a.md', 'content');
+		const p2 = fetchOutgoingLinksV2('/vault/a.md', 'content');
+		const p3 = fetchOutgoingLinksV2('/vault/a.md', 'different content');
+
+		// Three callers, but Rust only saw ONE pair of IPCs.
+		expect(invoke).toHaveBeenCalledTimes(2);
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/a.md' });
+
+		// All three callers got the same in-flight Promise.
+		expect(p1).toBe(p2);
+		expect(p2).toBe(p3);
+
+		resolveLinks([]);
+		resolveUnlinked([]);
+		await Promise.all([p1, p2, p3]);
+	});
+
+	it('different paths fire independent IPC pairs', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await Promise.all([
+			fetchOutgoingLinksV2('/vault/a.md', 'a-content'),
+			fetchOutgoingLinksV2('/vault/b.md', 'b-content'),
+		]);
+
+		// Two IPCs per call × two paths = 4 invokes.
+		expect(invoke).toHaveBeenCalledTimes(4);
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/a.md' });
+		expect(invoke).toHaveBeenCalledWith('get_outgoing_links_v2', { path: '/vault/b.md' });
+	});
+
+	it('clears the dedup cache after settle so the next call re-fires the IPCs', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchOutgoingLinksV2('/vault/a.md', 'content');
+		expect(invoke).toHaveBeenCalledTimes(2);
+
+		await fetchOutgoingLinksV2('/vault/a.md', 'content');
+		// Fresh IPCs after the first settled.
+		expect(invoke).toHaveBeenCalledTimes(4);
+	});
+});

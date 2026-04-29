@@ -234,3 +234,102 @@ describe('fetchBacklinksV2', () => {
 		]);
 	});
 });
+
+describe('fetchBacklinksV2 — in-flight deduplication', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+	});
+
+	it('collapses concurrent same-path calls into one IPC', async () => {
+		let resolveIpc!: (v: unknown) => void;
+		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveIpc = r; }));
+
+		const p1 = fetchBacklinksV2('/vault/a.md');
+		const p2 = fetchBacklinksV2('/vault/a.md');
+		const p3 = fetchBacklinksV2('/vault/a.md');
+
+		// Three callers, one IPC.
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(p1).toBe(p2);
+		expect(p2).toBe(p3);
+
+		resolveIpc([]);
+		await Promise.all([p1, p2, p3]);
+	});
+
+	it('different paths fire independent IPCs', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await Promise.all([
+			fetchBacklinksV2('/vault/a.md'),
+			fetchBacklinksV2('/vault/b.md'),
+		]);
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/a.md' });
+		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/b.md' });
+	});
+
+	it('clears the dedup cache after settle', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/a.md');
+		await fetchBacklinksV2('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('computeUnlinkedMentionsForFile — in-flight deduplication', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+	});
+
+	it('collapses concurrent same-path calls into one IPC', async () => {
+		let resolveIpc!: (v: unknown) => void;
+		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveIpc = r; }));
+
+		const p1 = computeUnlinkedMentionsForFile('/vault/a.md');
+		const p2 = computeUnlinkedMentionsForFile('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(invoke).toHaveBeenCalledWith('get_unlinked_mentions_v2', { path: '/vault/a.md' });
+		expect(p1).toBe(p2);
+
+		resolveIpc([]);
+		await Promise.all([p1, p2]);
+	});
+
+	it('different paths fire independent IPCs', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await Promise.all([
+			computeUnlinkedMentionsForFile('/vault/a.md'),
+			computeUnlinkedMentionsForFile('/vault/b.md'),
+		]);
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('clears the dedup cache after settle', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('cache cleared on rejection — next call retries', async () => {
+		vi.mocked(invoke)
+			.mockRejectedValueOnce(new Error('first failed'))
+			.mockResolvedValueOnce([]);
+
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+});
