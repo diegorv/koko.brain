@@ -11,11 +11,43 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
-use std::time::UNIX_EPOCH;
+use std::time::{Instant, UNIX_EPOCH};
 use tauri::Emitter;
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
+
+/// RAII guard that traces the entry and exit of a Tauri command body to the
+/// debug log (only when debug mode is on — `debug_log` is a no-op otherwise).
+/// Construction emits `enter <name>`; drop emits `exit <name> after Nms`.
+///
+/// Used to localise UI freezes that may be caused by long-running Rust IPCs
+/// during the 2026-04-29 freeze investigation. If a command enters but never
+/// exits in the log, we know which command stalled. Drop fires on every
+/// return path (including `?` propagation), so coverage is automatic.
+struct CmdTrace {
+	name: &'static str,
+	start: Instant,
+}
+
+impl CmdTrace {
+	fn new(name: &'static str) -> Self {
+		debug_log("VAULT-CMD", format!("enter {}", name));
+		CmdTrace {
+			name,
+			start: Instant::now(),
+		}
+	}
+}
+
+impl Drop for CmdTrace {
+	fn drop(&mut self) {
+		debug_log(
+			"VAULT-CMD",
+			format!("exit {} after {}ms", self.name, self.start.elapsed().as_millis()),
+		);
+	}
+}
 
 /// A single entry (file or folder) in the vault's file tree.
 /// Serializes to camelCase to match the TypeScript `FileTreeNode` interface.
@@ -38,6 +70,7 @@ pub struct FileNode {
 /// Sorting is applied at each level: directories first, then by `sort_by` strategy.
 #[tauri::command]
 pub fn scan_vault(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
+	let _trace = CmdTrace::new("scan_vault");
     let start = std::time::Instant::now();
     debug_log("VAULT", format!("Scanning: {}, sort: {}", path, sort_by));
     let root = vault_fs::validate_vault_path(&path)?;
@@ -243,6 +276,7 @@ pub fn update_note_in_index(
 	path: String,
 	content: String,
 ) -> Result<UpdateResult, String> {
+	let _trace = CmdTrace::new("update_note_in_index");
 	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
 	let result = {
 		let mut idx = state
@@ -274,6 +308,7 @@ pub fn get_backlinks_v2(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	let _trace = CmdTrace::new("get_backlinks_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -292,6 +327,7 @@ pub fn get_outgoing_links_v2(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<OutgoingLink>, String> {
+	let _trace = CmdTrace::new("get_outgoing_links_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -314,6 +350,7 @@ pub fn get_outgoing_unlinked_mentions_v2(
 	content: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<OutgoingUnlinkedMention>, String> {
+	let _trace = CmdTrace::new("get_outgoing_unlinked_mentions_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -333,6 +370,7 @@ pub fn get_outgoing_unlinked_mentions_v2(
 pub fn get_all_vault_entries_v2(
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	let _trace = CmdTrace::new("get_all_vault_entries_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -369,6 +407,7 @@ pub async fn get_unlinked_mentions_v2(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	let _trace = CmdTrace::new("get_unlinked_mentions_v2");
 	// Phase 1: cheap snapshot under a brief read lock.
 	let candidates = {
 		let idx = state
@@ -406,6 +445,7 @@ pub async fn get_unlinked_mentions_v2(
 pub fn get_all_tags_v2(
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<TagAggregate>, String> {
+	let _trace = CmdTrace::new("get_all_tags_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -419,6 +459,7 @@ pub fn get_notes_with_tag_v2(
 	tag: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	let _trace = CmdTrace::new("get_notes_with_tag_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -432,6 +473,7 @@ pub fn get_notes_with_tag_v2(
 pub fn get_all_tasks_v2(
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<FileTaskGroup>, String> {
+	let _trace = CmdTrace::new("get_all_tasks_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -445,6 +487,7 @@ pub fn get_tasks_in_path_v2(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<Task>, String> {
+	let _trace = CmdTrace::new("get_tasks_in_path_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -463,6 +506,7 @@ pub fn get_tasks_in_section_v2(
 	section_tag: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<FileTaskGroup>, String> {
+	let _trace = CmdTrace::new("get_tasks_in_section_v2");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -540,6 +584,7 @@ pub fn toggle_task_status(
 	path: String,
 	line_number: usize,
 ) -> Result<ToggleTaskResult, String> {
+	let _trace = CmdTrace::new("toggle_task_status");
 	let result = {
 		let mut idx = state
 			.write()
@@ -604,6 +649,7 @@ pub fn query_notes_by_property(
 	value: JsonValue,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	let _trace = CmdTrace::new("query_notes_by_property");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -617,6 +663,7 @@ pub fn get_property_values(
 	key: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<JsonValue>, String> {
+	let _trace = CmdTrace::new("get_property_values");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -630,6 +677,7 @@ pub fn get_note_properties(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<BTreeMap<String, JsonValue>, String> {
+	let _trace = CmdTrace::new("get_note_properties");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -643,6 +691,7 @@ pub fn get_note_properties(
 pub fn get_all_property_records(
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteRecord>, String> {
+	let _trace = CmdTrace::new("get_all_property_records");
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -669,6 +718,7 @@ pub fn create_note(
 	path: String,
 	content: String,
 ) -> Result<UpdateResult, String> {
+	let _trace = CmdTrace::new("create_note");
 	if Path::new(&path).exists() {
 		return Err(format!("File already exists: {}", path));
 	}
@@ -694,6 +744,7 @@ pub fn create_note(
 /// Doesn't touch the `VaultIndex` (folders aren't notes). Phase 8.6.
 #[tauri::command]
 pub fn create_folder(path: String) -> Result<(), String> {
+	let _trace = CmdTrace::new("create_folder");
 	std::fs::create_dir_all(&path).map_err(|e| format!("mkdir failed for {}: {}", path, e))
 }
 
@@ -712,6 +763,7 @@ pub fn remove_note_from_index(
 	state: tauri::State<'_, VaultIndexState>,
 	path: String,
 ) -> Result<UpdateResult, String> {
+	let _trace = CmdTrace::new("remove_note_from_index");
 	let result = {
 		let mut idx = state
 			.write()
@@ -753,6 +805,7 @@ pub fn scan_vault_v2(
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	let _trace = CmdTrace::new("scan_vault_v2");
 	let notes = collect_v2_entries(&path)?;
 	let build_start = std::time::Instant::now();
 	let new_version = {

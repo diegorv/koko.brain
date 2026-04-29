@@ -32,7 +32,7 @@ export const scrollDebouncePlugin = ViewPlugin.fromClass(
 				if (this.timer) clearTimeout(this.timer);
 				this.timer = setTimeout(() => {
 					this.timer = null;
-					(this as any)._rebuildStart = profileStart();
+					(this as any)._rebuildStart = profileStart('forceDecorationRebuild total');
 					update.view.dispatch({
 						effects: forceDecorationRebuild.of(null),
 					});

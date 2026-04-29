@@ -64,7 +64,7 @@ export const audioPlugin = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
+				const _t = profileStart('audio');
 				this.decorations = computeAudioBlocks(update.state);
 				profileEnd('audio', _t);
 			}

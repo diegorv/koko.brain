@@ -78,7 +78,7 @@ export const queryjsBlockField = ViewPlugin.fromClass(
 				// Only recompute if document actually changed (not just cursor move
 				// between lines, which can toggle shouldShowSource for the block).
 				// For cursor moves, we still need to rebuild to show/hide source.
-				const _t = profileStart();
+				const _t = profileStart('queryjs-block');
 				this.decorations = computeQueryjsBlocks(update.state);
 				profileEnd('queryjs-block', _t);
 			}

@@ -50,7 +50,7 @@ export const frontmatterField = StateField.define<DecorationSet>({
 	},
 	update(value, tr) {
 		if (tr.docChanged || tr.effects.some((e) => e.is(forceDecorationRebuild))) {
-			const _t = profileStart();
+			const _t = profileStart('frontmatter');
 			const _r = computeFrontmatter(tr.state);
 			profileEnd('frontmatter', _t);
 			return _r;

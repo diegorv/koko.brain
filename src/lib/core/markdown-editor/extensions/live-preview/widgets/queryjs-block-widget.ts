@@ -149,7 +149,7 @@ export class QueryjsBlockWidget extends WidgetType {
 
 	/** Executes the queryjs script inside the container. */
 	private async execute(container: HTMLElement): Promise<void> {
-		const _t = profileStart();
+		const _t = profileStart('qjs-execute');
 
 		// Render loading indicator immediately. Replaced by the script's DOM on success
 		// or by the structured error block on failure.
