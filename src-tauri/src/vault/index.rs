@@ -84,6 +84,57 @@ fn resolve_with_cache(target: &str, cache: &HashMap<String, String>) -> Option<S
 	}
 }
 
+/// Owned snapshot for an incoming-unlinked-mentions scan. Produced under
+/// the index read lock (cheap), consumed without the lock (slow disk
+/// reads). See `VaultIndex::unlinked_mentions_snapshot` and
+/// `finalize_unlinked_mentions`.
+#[derive(Debug, Clone)]
+pub struct UnlinkedMentionsSnapshot {
+	/// Basename of the target note (without `.md`/`.markdown`). Empty
+	/// when the input path had no resolvable basename — `finalize_*`
+	/// short-circuits to an empty result.
+	pub note_name: String,
+	/// Candidate entries to scan. Already filtered to exclude the target
+	/// itself and every source already in `backlinks[path]`.
+	pub candidates: Vec<NoteEntry>,
+}
+
+/// Filters `snapshot.candidates` down to entries whose body contains a
+/// plain-text mention of `snapshot.note_name`. Reads each candidate's
+/// content from disk; safe (and intended) to call from a
+/// `tokio::task::spawn_blocking` task so the Tauri command bus stays
+/// free to handle other IPCs concurrently.
+///
+/// Files that fail to read are silently skipped (e.g. deleted between
+/// the snapshot and the read — same race tolerance as the legacy TS
+/// `findUnlinkedMentions`).
+pub fn finalize_unlinked_mentions(snapshot: UnlinkedMentionsSnapshot) -> Vec<NoteEntry> {
+	if snapshot.note_name.is_empty() {
+		return Vec::new();
+	}
+
+	let mut results: Vec<NoteEntry> = Vec::new();
+	for entry in snapshot.candidates {
+		let content = match std::fs::read_to_string(&entry.path) {
+			Ok(c) => c,
+			Err(_) => continue,
+		};
+		let stripped = strip_non_body_content(&content);
+		let stripped_lower = stripped.to_lowercase();
+		let positions = find_plain_text_mention_positions(
+			&content,
+			&stripped_lower,
+			&snapshot.note_name,
+		);
+		if !positions.is_empty() {
+			results.push(entry);
+		}
+	}
+
+	results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	results
+}
+
 /// Canonical vault metadata index.
 ///
 /// Fields are private; access is via the inherent getter methods. This is
@@ -561,20 +612,32 @@ impl VaultIndex {
 	///
 	/// Mirrors `findUnlinkedMentions` from
 	/// `src/lib/features/backlinks/backlinks.logic.ts:217`, which is the
-	/// incoming counterpart of `lookup_outgoing_unlinked_mentions`. The
-	/// already-linked exclusion uses the same reverse-link index that
-	/// `lookup_backlinks` consumes — every source the wikilink reverse
-	/// resolution placed into `backlinks[path]` is filtered out.
+	/// incoming counterpart of `lookup_outgoing_unlinked_mentions`.
 	///
-	/// The `VaultIndex` does not store full per-note bodies (only a 280-
-	/// byte snippet), so this function re-reads each candidate file from
-	/// disk inside Rust. Files that fail to read are silently skipped.
-	/// Phase 11.5a — replaces the TS-side full-content scan that the
-	/// `BacklinksPanel` previously ran over `noteIndexStore.noteContents`.
+	/// This is a thin convenience wrapper that snapshots under the read
+	/// lock + finishes the disk-bound work synchronously. Production
+	/// callers from `commands::vault::get_unlinked_mentions_v2` go through
+	/// the async version (snapshot + `spawn_blocking`) so they don't
+	/// monopolise the Tauri command bus during the disk reads.
 	pub fn lookup_incoming_unlinked_mentions(&self, path: &str) -> Vec<NoteEntry> {
-		let note_name = note_name_from_target(path);
+		finalize_unlinked_mentions(self.unlinked_mentions_snapshot(path))
+	}
+
+	/// Returns the data needed for an incoming-unlinked-mentions scan:
+	/// the search term (note name) and the candidate set (every entry
+	/// whose path is not `path` and not already in `backlinks[path]`).
+	///
+	/// Owned data — caller can drop the read lock before touching the
+	/// disk. Phase 11.6+ — splits the lock-held bookkeeping from the
+	/// I/O-bound matching so the latter can run on a `spawn_blocking`
+	/// thread without holding `VaultIndexState`.
+	pub fn unlinked_mentions_snapshot(&self, path: &str) -> UnlinkedMentionsSnapshot {
+		let note_name = note_name_from_target(path).to_string();
 		if note_name.is_empty() {
-			return Vec::new();
+			return UnlinkedMentionsSnapshot {
+				note_name,
+				candidates: Vec::new(),
+			};
 		}
 
 		// Build the exclusion set from the existing reverse-link index:
@@ -586,37 +649,17 @@ impl VaultIndex {
 			.cloned()
 			.unwrap_or_default();
 
-		let mut results: Vec<NoteEntry> = Vec::new();
+		let candidates: Vec<NoteEntry> = self
+			.entries
+			.iter()
+			.filter(|(p, _)| p.as_str() != path && !already_linked.contains(p.as_str()))
+			.map(|(_, e)| e.clone())
+			.collect();
 
-		for (other_path, entry) in &self.entries {
-			if other_path == path {
-				continue;
-			}
-			if already_linked.contains(other_path) {
-				continue;
-			}
-
-			// Read the candidate's body from disk. Skip on read errors —
-			// the file may have been removed between the last index update
-			// and this call (watcher race), in which case it shouldn't
-			// appear in the panel anyway.
-			let content = match std::fs::read_to_string(other_path) {
-				Ok(c) => c,
-				Err(_) => continue,
-			};
-
-			let stripped = strip_non_body_content(&content);
-			let stripped_lower = stripped.to_lowercase();
-			let positions =
-				find_plain_text_mention_positions(&content, &stripped_lower, note_name);
-
-			if !positions.is_empty() {
-				results.push(entry.clone());
-			}
+		UnlinkedMentionsSnapshot {
+			note_name,
+			candidates,
 		}
-
-		results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
-		results
 	}
 
 	// ------------------------------------------------------------------
