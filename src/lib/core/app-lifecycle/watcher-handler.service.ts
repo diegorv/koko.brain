@@ -29,7 +29,7 @@ const INCREMENTAL_THRESHOLD = 10;
  *
  * @param changedPaths - File paths that triggered the watcher (absolute)
  * @see index-updater.service.ts — incremental per-file updates (typing)
- * @see active-tab-tracker.service.ts — tab-switch backlinks/outgoing refresh
+ * @see +layout.svelte — tab-switch backlinks/outgoing refresh ($effect)
  */
 export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<void> {
 	// Filter to actual file paths — macOS reports metadata changes on parent
