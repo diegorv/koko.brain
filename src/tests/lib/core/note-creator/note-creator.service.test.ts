@@ -30,11 +30,16 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
+vi.mock('$lib/features/collection/collection.service', () => ({
+	updateNoteInIndex: vi.fn(),
+}));
+
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 
 describe('openOrCreateNote', () => {
@@ -60,8 +65,26 @@ describe('openOrCreateNote', () => {
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/sub' });
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/sub/note.md', content: '' });
 		expect(markRecentSave).toHaveBeenCalledWith('/vault/sub/note.md');
+		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/sub/note.md', '');
 		expect(refreshTree).toHaveBeenCalled();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/sub/note.md');
+	});
+
+	it('still opens the file when updateNoteInIndex throws', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(updateNoteInIndex).mockImplementation(() => {
+			throw new Error('index update failed');
+		});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
+
+		expect(consoleSpy).toHaveBeenCalledWith(
+			'updateNoteInIndex after create_note failed:',
+			expect.any(Error),
+		);
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
+		consoleSpy.mockRestore();
 	});
 
 	it('does not mark recent save when file already exists', async () => {
