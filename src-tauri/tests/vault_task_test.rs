@@ -426,3 +426,103 @@ fn toggle_task_in_content_preserves_other_lines() {
 	let result = toggle_task_in_content(content, 2);
 	assert_eq!(result, "line one\n- [x] task on line two\nline three");
 }
+
+// --- Audit finding #9 — toggle_task_status FS-level TOCTOU --------------------
+//
+// `commands/vault.rs::toggle_task_status_inner` faz read → modify → write
+// no arquivo em disco (linhas 559, 561, 574). O write-lock em VaultIndex
+// é segurado durante toda a operação, mas o ARQUIVO não tem lock.
+// Outro processo (vim externo, Obsidian rodando em paralelo, app de sync
+// como iCloud/Dropbox/Syncthing) que reescreva o arquivo entre o read
+// e o write tem suas mudanças silenciosamente sobrescritas.
+//
+// Marcado #[ignore] porque o resultado depende de timing — o sleep de
+// poucos microssegundos da thread B pode cair antes/durante/depois da
+// janela read-write da thread A. Repete N iterações para aumentar a
+// chance de pelo menos uma cair na janela ruim.
+//
+// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Apêndice A.3).
+
+use kokobrain_lib::commands::vault::toggle_task_status_inner;
+use kokobrain_lib::vault::index::VaultIndex;
+use std::sync::{Arc, Barrier};
+use std::thread;
+
+#[test]
+#[ignore]
+fn audit_finding_9_toggle_task_loses_concurrent_external_edit() {
+	const ITERATIONS: usize = 200;
+	let mut lost = 0;
+
+	for _i in 0..ITERATIONS {
+		let dir = tempfile::tempdir().unwrap();
+		let path = dir.path().join("note.md");
+		std::fs::write(&path, "- [ ] Buy milk\n- [ ] Write tests\n").unwrap();
+		let path_str = path.to_string_lossy().to_string();
+		let path_b = path_str.clone();
+
+		// Barrier sincroniza para que ambas as threads partam ~ao mesmo tempo.
+		let barrier = Arc::new(Barrier::new(2));
+		let barrier_b = Arc::clone(&barrier);
+
+		let h = thread::spawn(move || {
+			barrier_b.wait();
+			// Sleep curto para tentar aterrissar entre o read (l. 559) e o
+			// write (l. 574) de toggle_task_status_inner. Valor escolhido
+			// empiricamente; pequeno demais cai antes do read, grande demais
+			// cai depois do write.
+			thread::sleep(std::time::Duration::from_micros(10));
+			let _ = std::fs::write(
+				&path_b,
+				"- [ ] Buy milk\n- [ ] Write tests\n- [ ] Externally added\n",
+			);
+		});
+
+		let mut idx = VaultIndex::default();
+		barrier.wait();
+		let _ = toggle_task_status_inner(&mut idx, &path_str, 1);
+		h.join().unwrap();
+
+		let final_content = std::fs::read_to_string(&path).unwrap();
+		// Se a edição externa foi perdida (toggle_task escreveu DEPOIS do
+		// write da thread B), "Externally added" não estará no arquivo.
+		if !final_content.contains("Externally added") {
+			lost += 1;
+		}
+	}
+
+	// Não asseveramos `lost == 0` porque o teste é probabilístico — o objetivo
+	// é DETECTAR quando a janela TOCTOU é exercitada na prática. Imprime
+	// e falha somente se NUNCA caiu na janela (improvável em 200 iterações;
+	// se zero, o test setup precisa ser revisto, e.g. sleep timing). Usuários
+	// que rodarem manualmente vão observar "lost > 0" como confirmação do bug.
+	eprintln!(
+		"audit_finding_9: {} de {} iterações perderam edição externa (race FS confirmada quando >0)",
+		lost, ITERATIONS
+	);
+	assert!(
+		lost > 0 || ITERATIONS == 0,
+		"esperado ao menos 1 perda em {} iterações para confirmar a janela TOCTOU; \
+		se sempre 0, ajuste o sleep timing da thread B",
+		ITERATIONS
+	);
+}
+
+#[test]
+#[ignore]
+fn audit_finding_9_toggle_task_no_concurrent_writer_preserves_state() {
+	// Counterpart deterministico: SEM thread concorrente, toggle_task_inner
+	// produz o resultado esperado. Serve de baseline e como sanity para
+	// distinguir bug TOCTOU (#9) de bug de toggle propriamente dito.
+	let dir = tempfile::tempdir().unwrap();
+	let path = dir.path().join("note.md");
+	std::fs::write(&path, "- [ ] Buy milk\n- [ ] Write tests\n").unwrap();
+	let path_str = path.to_string_lossy().to_string();
+
+	let mut idx = VaultIndex::default();
+	let result = toggle_task_status_inner(&mut idx, &path_str, 1).unwrap();
+
+	let final_content = std::fs::read_to_string(&path).unwrap();
+	assert_eq!(final_content, "- [x] Buy milk\n- [ ] Write tests\n");
+	assert_eq!(result.updated_content, final_content);
+}
