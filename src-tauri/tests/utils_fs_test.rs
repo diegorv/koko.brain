@@ -1,4 +1,6 @@
-use kokobrain_lib::utils::fs::{collect_markdown_paths, collect_markdown_paths_with_mtime};
+use kokobrain_lib::utils::fs::{
+	collect_markdown_paths, collect_markdown_paths_with_mtime, is_markdown_filename,
+};
 use std::fs;
 use tempfile::TempDir;
 
@@ -234,4 +236,69 @@ fn with_mtime_excludes_folders() {
 	let entries = collect_markdown_paths_with_mtime(tmp.path(), &["hidden"]).unwrap();
 	assert_eq!(entries.len(), 1);
 	assert_eq!(entries[0].0, "visible.md");
+}
+
+// --- Audit Tier 1 #6: case-insensitive markdown extension matching ---
+
+#[test]
+fn is_markdown_filename_lowercase_md() {
+	assert!(is_markdown_filename("note.md"));
+	assert!(is_markdown_filename("note.markdown"));
+}
+
+#[test]
+fn is_markdown_filename_uppercase_md() {
+	// On case-preserving APFS, files saved with capital extension exist as
+	// `Note.MD` on disk. Pre-fix they were silently dropped from the index.
+	assert!(is_markdown_filename("Note.MD"));
+	assert!(is_markdown_filename("Note.MARKDOWN"));
+}
+
+#[test]
+fn is_markdown_filename_mixed_case() {
+	assert!(is_markdown_filename("note.Md"));
+	assert!(is_markdown_filename("note.mD"));
+	assert!(is_markdown_filename("Note.MarkDown"));
+}
+
+#[test]
+fn is_markdown_filename_rejects_other_extensions() {
+	assert!(!is_markdown_filename("note.txt"));
+	assert!(!is_markdown_filename("note.mdx"));
+	assert!(!is_markdown_filename("note"));
+	assert!(!is_markdown_filename(""));
+	assert!(!is_markdown_filename("note.md.tmp")); // editor's atomic-save tmp file
+}
+
+#[test]
+fn is_markdown_filename_handles_dotfiles() {
+	// `.md` as the only "name" — edge case but must not panic.
+	assert!(is_markdown_filename(".md"));
+	assert!(is_markdown_filename(".MD"));
+}
+
+#[test]
+fn collects_uppercase_md_files() {
+	// End-to-end: create `Note.MD` and verify it shows up in the walk.
+	// On case-preserving APFS, the file lives as-named.
+	let tmp = setup();
+	fs::write(tmp.path().join("Note.MD"), "# Hello").unwrap();
+	fs::write(tmp.path().join("Other.MARKDOWN"), "# Other").unwrap();
+	fs::write(tmp.path().join("nope.txt"), "ignored").unwrap();
+
+	let entries = collect_markdown_paths(tmp.path(), &[]).unwrap();
+	let mut names: Vec<&str> = entries.iter().map(|(p, _)| p.as_str()).collect();
+	names.sort();
+	assert_eq!(names, vec!["Note.MD", "Other.MARKDOWN"]);
+}
+
+#[test]
+fn collects_mixed_case_md_files() {
+	let tmp = setup();
+	fs::write(tmp.path().join("a.md"), "lower").unwrap();
+	fs::write(tmp.path().join("B.Md"), "title").unwrap();
+	fs::write(tmp.path().join("c.mD"), "tail").unwrap();
+
+	let entries = collect_markdown_paths(tmp.path(), &[]).unwrap();
+	assert_eq!(entries.len(), 3);
 }

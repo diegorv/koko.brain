@@ -163,7 +163,7 @@ export function makeInlineFormattingPlugin(handlers: InlineFormattingHandlers): 
 				if (action !== 'rebuild') return;
 
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
+				const _t = profileStart('inline-formatting');
 				this.decorations = buildInlineDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),

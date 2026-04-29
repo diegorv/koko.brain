@@ -20,7 +20,16 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 	openPath: (...args: unknown[]) => mockOpenPath(...args),
 }));
 
-import { initLogSession, appendLog, flushLog, teardownLogSession, isLogSessionActive, openLogDir } from '$lib/utils/log.service';
+import {
+	initLogSession,
+	appendLog,
+	flushLog,
+	teardownLogSession,
+	isLogSessionActive,
+	openLogDir,
+	startHeartbeat,
+	stopHeartbeat,
+} from '$lib/utils/log.service';
 
 const TEST_LOG_DIR = '/Users/test/Library/Logs/com.kokobrain.app';
 
@@ -211,6 +220,109 @@ describe('log.service', () => {
 			mockAppLogDir.mockRejectedValue(new Error('path unavailable'));
 
 			await expect(openLogDir()).rejects.toThrow('path unavailable');
+		});
+	});
+
+	describe('heartbeat', () => {
+		it('initLogSession auto-starts heartbeat which writes [HB] alive every 250ms', async () => {
+			vi.useFakeTimers();
+			try {
+				mockExists.mockResolvedValue(true);
+				mockWriteTextFile.mockResolvedValue(undefined);
+
+				await initLogSession();
+				expect(isLogSessionActive()).toBe(true);
+
+				// Pre-tick: no HB writes yet (interval has not fired).
+				const callsBefore = mockWriteTextFile.mock.calls.length;
+
+				// Advance two ticks; expect TWO HB writes scheduled.
+				vi.advanceTimersByTime(500);
+				await flushLog();
+
+				const hbWrites = mockWriteTextFile.mock.calls
+					.slice(callsBefore)
+					.filter((call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'));
+				expect(hbWrites.length).toBeGreaterThanOrEqual(2);
+				expect(hbWrites[0][1]).toMatch(/\[HB\] alive/);
+			} finally {
+				vi.useRealTimers();
+				teardownLogSession();
+			}
+		});
+
+		it('teardownLogSession stops the heartbeat', async () => {
+			vi.useFakeTimers();
+			try {
+				mockExists.mockResolvedValue(true);
+				mockWriteTextFile.mockResolvedValue(undefined);
+
+				await initLogSession();
+				vi.advanceTimersByTime(500);
+				await flushLog();
+				const callsAtTeardown = mockWriteTextFile.mock.calls.length;
+
+				teardownLogSession();
+				expect(isLogSessionActive()).toBe(false);
+
+				// After teardown, advancing time should yield no further HB writes.
+				vi.advanceTimersByTime(2000);
+				await flushLog();
+				expect(mockWriteTextFile.mock.calls.length).toBe(callsAtTeardown);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('startHeartbeat is idempotent (second call does not double-tick)', async () => {
+			vi.useFakeTimers();
+			try {
+				mockExists.mockResolvedValue(true);
+				mockWriteTextFile.mockResolvedValue(undefined);
+
+				await initLogSession();
+				// initLogSession already started one heartbeat. A second start must
+				// be a no-op (else we'd see two writes per tick).
+				startHeartbeat();
+				vi.advanceTimersByTime(250);
+				await flushLog();
+
+				const hbCount = mockWriteTextFile.mock.calls.filter(
+					(call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'),
+				).length;
+				expect(hbCount).toBe(1);
+			} finally {
+				vi.useRealTimers();
+				teardownLogSession();
+			}
+		});
+
+		it('stopHeartbeat is idempotent (callable when not running)', () => {
+			// No init — heartbeat was never started. Should not throw.
+			expect(() => stopHeartbeat()).not.toThrow();
+			expect(() => stopHeartbeat()).not.toThrow();
+		});
+
+		it('heartbeat tick is a no-op when log session is torn down mid-tick', async () => {
+			vi.useFakeTimers();
+			try {
+				mockExists.mockResolvedValue(true);
+				mockWriteTextFile.mockResolvedValue(undefined);
+
+				await initLogSession();
+				teardownLogSession();
+				// At this point heartbeat is stopped. But even if a stale tick
+				// were to fire (shouldn't), appendLog short-circuits when no
+				// session is active. Belt-and-braces.
+				vi.advanceTimersByTime(2000);
+				await flushLog();
+				const hbWrites = mockWriteTextFile.mock.calls.filter(
+					(call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'),
+				);
+				expect(hbWrites.length).toBe(0);
+			} finally {
+				vi.useRealTimers();
+			}
 		});
 	});
 });

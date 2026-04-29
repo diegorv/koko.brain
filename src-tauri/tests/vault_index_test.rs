@@ -606,6 +606,106 @@ fn update_re_running_on_same_path_does_not_create_phantom_by_path_entries() {
 	assert_eq!(idx.by_path().get("note").cloned(), original);
 }
 
+// --- Audit Tier 3 #10 / Tier 1 #1: retroactive backlinks for new file ----------
+
+#[test]
+fn update_entry_resolves_pre_existing_unresolved_links_when_target_added() {
+	// Repro of the audit's Tier 1 #1 bug. When a note A is inserted with
+	// `[[NewName]]` BEFORE NewName exists in the index, `self.resolve("NewName")`
+	// returns None — so backlinks[NewName_path] stays empty even after NewName
+	// is later inserted via update_entry. This breaks the user-visible
+	// backlinks panel: opening NewName shows "no backlinks" despite A linking to it.
+	//
+	// Expected behaviour: when a new entry is inserted whose path resolves any
+	// other entry's previously-unresolved wikilink, the reverse index for the
+	// new entry MUST contain those source paths.
+	//
+	// This test will FAIL with the current implementation (motivates audit #1).
+	let mut idx = VaultIndex::default();
+
+	// Step 1: insert source A with wikilink targeting a nonexistent NewName.
+	// At this point `resolve("NewName")` returns None, so backlinks for the
+	// future NewName.md path are not populated.
+	idx.update_entry(entry_with_links("/v/A.md", &["NewName"]));
+	assert!(
+		idx.lookup_backlinks("/v/NewName.md").is_empty(),
+		"sanity: target does not exist yet → no backlinks"
+	);
+
+	// Step 2: insert NewName.md — it appears in `entries` and `by_path`.
+	// At this moment, A's outgoing wikilink `[[NewName]]` SHOULD resolve to
+	// /v/NewName.md and A's path SHOULD be added to backlinks[/v/NewName.md].
+	idx.update_entry(entry_with_links("/v/NewName.md", &[]));
+
+	let backlinks = idx.lookup_backlinks("/v/NewName.md");
+	let backlink_paths: Vec<&str> = backlinks.iter().map(|e| e.path.as_str()).collect();
+	assert_eq!(
+		backlink_paths,
+		vec!["/v/A.md"],
+		"newly-inserted target must inherit backlinks from previously-unresolved source wikilinks"
+	);
+}
+
+#[test]
+fn update_entry_resolves_pre_existing_unresolved_links_via_full_path_target() {
+	// Same bug, full-path target form: source uses `[[notes/Deep]]`. When
+	// /v/notes/Deep.md is created later, its backlinks must include the source.
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/A.md", &["notes/Deep"]));
+	assert!(idx.lookup_backlinks("/v/notes/Deep.md").is_empty());
+
+	idx.update_entry(entry_with_links("/v/notes/Deep.md", &[]));
+
+	let backlinks = idx.lookup_backlinks("/v/notes/Deep.md");
+	assert_eq!(backlinks.len(), 1);
+	assert_eq!(backlinks[0].path, "/v/A.md");
+}
+
+#[test]
+fn update_entry_does_not_falsely_add_backlinks_for_unrelated_new_file() {
+	// Inverse safety check: inserting a NEW file whose name is NOT referenced
+	// by any existing source must NOT add anyone to its backlink set.
+	// Guards against an over-eager retroactive-fix that scans too broadly.
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/A.md", &["DifferentTarget"]));
+	idx.update_entry(entry_with_links("/v/B.md", &[]));
+	idx.update_entry(entry_with_links("/v/Unrelated.md", &[]));
+
+	assert!(idx.lookup_backlinks("/v/Unrelated.md").is_empty());
+	assert!(idx.lookup_backlinks("/v/B.md").is_empty());
+}
+
+#[test]
+fn update_entry_retroactive_resolution_is_case_insensitive_via_by_path() {
+	// `by_path` keys are lowercased (via note_name_from_target.to_lowercase()).
+	// When source uses `[[newname]]` (lowercase) and target is `NewName.md`
+	// (uppercase), retroactive resolution must still wire backlinks correctly.
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/A.md", &["newname"]));
+	idx.update_entry(entry_with_links("/v/NewName.md", &[]));
+
+	let backlinks = idx.lookup_backlinks("/v/NewName.md");
+	assert_eq!(backlinks.len(), 1);
+	assert_eq!(backlinks[0].path, "/v/A.md");
+}
+
+#[test]
+fn update_entry_retroactive_resolution_handles_multiple_sources() {
+	// Several sources all link to the same yet-to-exist target.
+	// All MUST be added to the new target's backlinks on insertion.
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links("/v/A.md", &["NewName"]));
+	idx.update_entry(entry_with_links("/v/B.md", &["NewName"]));
+	idx.update_entry(entry_with_links("/v/C.md", &["DifferentTarget"]));
+	assert!(idx.lookup_backlinks("/v/NewName.md").is_empty());
+
+	idx.update_entry(entry_with_links("/v/NewName.md", &[]));
+
+	let backlinks = idx.lookup_backlinks("/v/NewName.md");
+	let paths: BTreeSet<&str> = backlinks.iter().map(|e| e.path.as_str()).collect();
+	assert_eq!(paths, BTreeSet::from(["/v/A.md", "/v/B.md"]));
+}
+
 // --- Phase 6.1+6.2: lookup_outgoing_links + lookup_outgoing_unlinked_mentions ---
 
 use kokobrain_lib::vault::entry::{OutgoingLink, OutgoingUnlinkedMention};

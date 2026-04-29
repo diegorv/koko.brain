@@ -52,7 +52,7 @@ export const blockCommentField = ViewPlugin.fromClass(
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
+				const _t = profileStart('block-comment');
 				this.decorations = computeBlockComments(update.state);
 				profileEnd('block-comment', _t);
 			}
