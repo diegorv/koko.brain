@@ -1651,3 +1651,162 @@ fn three_phase_pipeline_matches_legacy_lookup_incoming_unlinked_mentions() {
 		three_phase.iter().map(|e| &e.title).collect::<Vec<_>>(),
 	);
 }
+
+// --- Audit finding #11 — concurrent update_entry invariants (regression guard) ---
+//
+// Hipótese da auditoria: se duas threads chamarem `update_entry` para o mesmo
+// path concorrentemente, o retroactive scan da primeira pode iterar
+// `self.entries` enquanto a segunda muta o mapa, deixando `backlinks`
+// inconsistente.
+//
+// Realidade: `update_entry` toma `&mut self`. Acesso concorrente exige uma
+// `RwLock<VaultIndex>` externa que serializa as escritas. Estes testes
+// confirmam que com a serialização correta a invariante de backlinks é
+// mantida — servem de regression guard contra refactors futuros que
+// fragmentem ou liberem o write-lock no meio do retroactive scan.
+//
+// Marcados `#[ignore]` por serem probabilísticos: o N de iterações busca
+// aumentar a chance de uma corrida real disparar uma falha caso a
+// serialização seja quebrada por refactor.
+//
+// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Apêndice A.2).
+
+use std::sync::{Arc, Barrier as StdBarrier, RwLock};
+use std::thread;
+
+#[test]
+#[ignore]
+fn audit_finding_11_concurrent_update_entry_keeps_backlinks_consistent() {
+	const ITERATIONS: usize = 50;
+	const SOURCE_COUNT: usize = 30;
+
+	for iteration in 0..ITERATIONS {
+		let idx = Arc::new(RwLock::new(VaultIndex::default()));
+
+		// Popula com SOURCE_COUNT notas que linkam para "Target".
+		{
+			let mut g = idx.write().unwrap();
+			let entries: Vec<NoteEntry> = (0..SOURCE_COUNT)
+				.map(|n| entry_with_links(&format!("/v/note{}.md", n), &["Target"]))
+				.collect();
+			g.build(entries);
+		}
+
+		// Sanity: antes de inserir Target, backlinks vazio (Target não existe).
+		assert!(
+			idx.read().unwrap().backlinks().get("/v/Target.md").is_none(),
+			"iteration {}: pre-insert sanity failed",
+			iteration
+		);
+
+		// Threads A e B disputam o write-lock para inserir/atualizar Target.md.
+		// O barrier garante que ambas pulem para `update_entry` no mesmo instante.
+		let barrier = Arc::new(StdBarrier::new(2));
+
+		let idx_a = Arc::clone(&idx);
+		let bar_a = Arc::clone(&barrier);
+		let a = thread::spawn(move || {
+			bar_a.wait();
+			let mut g = idx_a.write().unwrap();
+			g.update_entry(entry_with_links("/v/Target.md", &[]));
+		});
+
+		let idx_b = Arc::clone(&idx);
+		let bar_b = Arc::clone(&barrier);
+		let b = thread::spawn(move || {
+			bar_b.wait();
+			let mut g = idx_b.write().unwrap();
+			// Conteúdo levemente diferente (entry sem links também, mas o segundo
+			// update vê old_entry == Some, não dispara retroactive).
+			g.update_entry(entry_with_links("/v/Target.md", &[]));
+		});
+
+		a.join().unwrap();
+		b.join().unwrap();
+
+		// Invariante: backlinks[/v/Target.md] deve conter EXATAMENTE os
+		// SOURCE_COUNT paths das notas-fonte. Nenhum a mais, nenhum a menos.
+		let g = idx.read().unwrap();
+		let bl = g.backlinks().get("/v/Target.md").cloned().unwrap_or_default();
+		assert_eq!(
+			bl.len(),
+			SOURCE_COUNT,
+			"iteration {}: backlinks mismatch — expected {} sources, got {}: {:?}",
+			iteration,
+			SOURCE_COUNT,
+			bl.len(),
+			bl
+		);
+	}
+}
+
+#[test]
+#[ignore]
+fn audit_finding_11_many_concurrent_writers_against_growing_index() {
+	// Cenário mais agressivo: N threads escrevem simultaneamente em paths
+	// diferentes que TODOS linkam para o mesmo Target. A última inserção é
+	// Target.md (deve fazer retroactive scan e capturar todos os N sources).
+	//
+	// Com RwLock honrado, exatamente um thread vê `old_entry.is_none()` para
+	// Target e dispara o retroactive scan. Os outros threads que tentaram
+	// escrever Target.md depois veem `old_entry.is_some()` e não re-rodam
+	// o scan. Invariante: backlinks final tem N sources.
+	const N_WRITERS: usize = 16;
+	const ITERATIONS: usize = 20;
+
+	for iter in 0..ITERATIONS {
+		let idx = Arc::new(RwLock::new(VaultIndex::default()));
+		let barrier = Arc::new(StdBarrier::new(N_WRITERS + 1));
+
+		let mut handles = Vec::new();
+		for n in 0..N_WRITERS {
+			let idx_n = Arc::clone(&idx);
+			let bar_n = Arc::clone(&barrier);
+			let path = format!("/v/source{}.md", n);
+			handles.push(thread::spawn(move || {
+				bar_n.wait();
+				let mut g = idx_n.write().unwrap();
+				g.update_entry(entry_with_links(&path, &["Target"]));
+			}));
+		}
+
+		// Thread que insere Target.md em paralelo.
+		let idx_t = Arc::clone(&idx);
+		let bar_t = Arc::clone(&barrier);
+		let target_handle = thread::spawn(move || {
+			bar_t.wait();
+			let mut g = idx_t.write().unwrap();
+			g.update_entry(entry_with_links("/v/Target.md", &[]));
+		});
+
+		for h in handles {
+			h.join().unwrap();
+		}
+		target_handle.join().unwrap();
+
+		// Invariante: backlinks[/v/Target.md] = exato conjunto {/v/source0.md, ..., /v/source{N-1}.md}.
+		// Independente da ordem em que os locks foram concedidos, o estado final
+		// deve refletir TODOS os sources que linkam para Target.
+		let g = idx.read().unwrap();
+		let bl = g.backlinks().get("/v/Target.md").cloned().unwrap_or_default();
+		assert_eq!(
+			bl.len(),
+			N_WRITERS,
+			"iter {}: expected {} backlinks, got {}: {:?}",
+			iter,
+			N_WRITERS,
+			bl.len(),
+			bl
+		);
+		for n in 0..N_WRITERS {
+			let p = format!("/v/source{}.md", n);
+			assert!(
+				bl.contains(&p),
+				"iter {}: backlinks missing {} (got {:?})",
+				iter,
+				p,
+				bl
+			);
+		}
+	}
+}
