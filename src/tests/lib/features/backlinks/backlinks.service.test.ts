@@ -6,6 +6,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import {
 	buildIndex,
 	rebuildIndex,
@@ -278,6 +279,145 @@ describe('fetchBacklinksV2 — in-flight deduplication', () => {
 		await fetchBacklinksV2('/vault/a.md');
 
 		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('fetchBacklinksV2 — active-path guard', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+		editorStore.reset();
+	});
+
+	it('drops stale results when the active tab changed mid-IPC', async () => {
+		// Simulate the bug repro: user fires fetchBacklinksV2(A), then
+		// switches to tab B before the IPC settles. The A result must
+		// NOT overwrite B's panel state.
+		let resolveIpc!: (v: unknown) => void;
+		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveIpc = r; }));
+
+		// Simulate tab A being active when fetch fires.
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '',
+			savedContent: '',
+		});
+
+		const fetchPromise = fetchBacklinksV2('/vault/a.md');
+
+		// User switches to a different tab while A's IPC is in flight.
+		editorStore.addTab({
+			path: '/vault/b.md',
+			name: 'b.md',
+			content: '',
+			savedContent: '',
+		});
+		// The just-added tab is now active (addTab sets activeIndex to last).
+
+		// A's IPC resolves with results — but those results are now stale.
+		resolveIpc([
+			{
+				path: '/vault/x.md',
+				title: 'x',
+				frontmatter: {},
+				outgoingLinks: [],
+				tags: [],
+				modifiedAt: 0,
+				wordCount: 0,
+				snippet: 'stale snippet',
+			},
+		]);
+		await fetchPromise;
+
+		// linkedMentions stays empty — the stale A result was dropped.
+		expect(backlinksStore.linkedMentions).toEqual([]);
+	});
+
+	it('writes the result when the active tab still matches', async () => {
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '',
+			savedContent: '',
+		});
+		vi.mocked(invoke).mockResolvedValue([
+			{
+				path: '/vault/x.md',
+				title: 'x',
+				frontmatter: {},
+				outgoingLinks: [],
+				tags: [],
+				modifiedAt: 0,
+				wordCount: 0,
+				snippet: 'fresh',
+			},
+		]);
+
+		await fetchBacklinksV2('/vault/a.md');
+
+		// Active tab is still A → result was written.
+		expect(backlinksStore.linkedMentions).toHaveLength(1);
+		expect(backlinksStore.linkedMentions[0].sourcePath).toBe('/vault/x.md');
+	});
+
+	it('writes when no tab is active (headless / vault closed)', async () => {
+		// editorStore has no tabs → activeTabPath is null. Guard
+		// permits the write (mostly for tests / startup races).
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/a.md');
+
+		expect(backlinksStore.linkedMentions).toEqual([]);
+		// IPC was invoked — guard did not suppress the call itself.
+		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/a.md' });
+	});
+});
+
+describe('computeUnlinkedMentionsForFile — active-path guard', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+		editorStore.reset();
+	});
+
+	it('drops stale unlinked-mentions when the active tab changed mid-IPC', async () => {
+		let resolveIpc!: (v: unknown) => void;
+		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveIpc = r; }));
+
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '',
+			savedContent: '',
+		});
+
+		const fetchPromise = computeUnlinkedMentionsForFile('/vault/a.md');
+
+		// Tab switch mid-IPC.
+		editorStore.addTab({
+			path: '/vault/b.md',
+			name: 'b.md',
+			content: '',
+			savedContent: '',
+		});
+
+		resolveIpc([
+			{
+				path: '/vault/c.md',
+				title: 'c',
+				frontmatter: {},
+				outgoingLinks: [],
+				tags: [],
+				modifiedAt: 0,
+				wordCount: 0,
+				snippet: 'stale',
+			},
+		]);
+		await fetchPromise;
+
+		// Stale result dropped.
+		expect(backlinksStore.unlinkedMentions).toEqual([]);
 	});
 });
 

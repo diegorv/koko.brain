@@ -1,9 +1,26 @@
 import { invoke } from '@tauri-apps/api/core';
 import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { dedupeInflight } from '$lib/utils/inflight';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+
+/**
+ * Returns true when the IPC result for `fetchedPath` is still relevant
+ * to the current UI: either no tab is active (e.g. headless tests) or
+ * the active tab still matches the path the IPC was fired for.
+ *
+ * Used by the panel-fetch services as a stale-result guard: when the
+ * user switches tabs while a fetch is in flight, the in-flight call's
+ * result is discarded instead of briefly overwriting the new tab's
+ * panel data — the "pisca o backlink" race observed during the
+ * 2026-04-29 dogfood after the wikilink cmd-click flow.
+ */
+function isStillCurrentPath(fetchedPath: string): boolean {
+	const current = editorStore.activeTabPath;
+	return current == null || current === fetchedPath;
+}
 
 let vaultPath: string | null = null;
 let isBuilding = false;
@@ -63,6 +80,14 @@ async function fetchBacklinksV2Inner(path: string): Promise<void> {
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
+		// Active-path guard: the user may have switched tabs while this
+		// IPC was in flight. Writing the stale result would briefly
+		// flash the previous tab's backlinks before the new tab's fetch
+		// overwrites it.
+		if (!isStillCurrentPath(path)) {
+			perfEnd('BACKLINKS', 'fetchBacklinksV2(stale, dropped)', t0);
+			return;
+		}
 		const linked = entries.map(noteEntryV2ToBacklinkEntry);
 		backlinksStore.setLinkedMentions(linked);
 		perfEnd('BACKLINKS', 'fetchBacklinksV2', t0);
@@ -92,6 +117,13 @@ async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<vo
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_unlinked_mentions_v2', { path: filePath });
+		// Same active-path guard as `fetchBacklinksV2Inner` — the
+		// 400 ms unlinked-mentions disk scan is the LONGEST window
+		// where a tab switch could land mid-flight.
+		if (!isStillCurrentPath(filePath)) {
+			perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile(stale, dropped)', t0);
+			return;
+		}
 		const unlinked = entries.map(noteEntryV2ToBacklinkEntry);
 		backlinksStore.setUnlinkedMentions(unlinked);
 		perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);

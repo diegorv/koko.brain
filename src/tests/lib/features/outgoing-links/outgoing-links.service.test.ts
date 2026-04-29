@@ -6,6 +6,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { fetchOutgoingLinksV2, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
 
 describe('fetchOutgoingLinksV2 (Phase 6)', () => {
@@ -196,5 +197,82 @@ describe('fetchOutgoingLinksV2 — in-flight deduplication', () => {
 		await fetchOutgoingLinksV2('/vault/a.md', 'content');
 		// Fresh IPCs after the first settled.
 		expect(invoke).toHaveBeenCalledTimes(4);
+	});
+});
+
+describe('fetchOutgoingLinksV2 — active-path guard', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		outgoingLinksStore.reset();
+		editorStore.reset();
+	});
+
+	it('drops stale outgoing links when the active tab changed mid-IPC', async () => {
+		let resolveLinks!: (v: unknown) => void;
+		let resolveUnlinked!: (v: unknown) => void;
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return new Promise((r) => { resolveLinks = r; });
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return new Promise((r) => { resolveUnlinked = r; });
+			}
+			return Promise.resolve(undefined);
+		});
+
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: 'content',
+			savedContent: 'content',
+		});
+
+		const fetchPromise = fetchOutgoingLinksV2('/vault/a.md', 'content');
+
+		// Tab switch mid-IPC.
+		editorStore.addTab({
+			path: '/vault/b.md',
+			name: 'b.md',
+			content: '',
+			savedContent: '',
+		});
+
+		// Resolve A's IPCs with stale data.
+		resolveLinks([
+			{ target: 'stale', alias: null, heading: null, resolvedPath: null, position: 0 },
+		]);
+		resolveUnlinked([
+			{ noteName: 'stale', notePath: '/vault/stale.md', count: 1 },
+		]);
+		await fetchPromise;
+
+		// Stale result dropped.
+		expect(outgoingLinksStore.outgoingLinks).toEqual([]);
+		expect(outgoingLinksStore.unlinkedMentions).toEqual([]);
+	});
+
+	it('writes the result when the active tab still matches', async () => {
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: 'content',
+			savedContent: 'content',
+		});
+		vi.mocked(invoke).mockImplementation((command: string) => {
+			if (command === 'get_outgoing_links_v2') {
+				return Promise.resolve([
+					{ target: 'fresh', alias: null, heading: null, resolvedPath: '/vault/fresh.md', position: 0 },
+				]);
+			}
+			if (command === 'get_outgoing_unlinked_mentions_v2') {
+				return Promise.resolve([]);
+			}
+			return Promise.resolve(undefined);
+		});
+
+		await fetchOutgoingLinksV2('/vault/a.md', 'content');
+
+		expect(outgoingLinksStore.outgoingLinks).toHaveLength(1);
+		expect(outgoingLinksStore.outgoingLinks[0].target).toBe('fresh');
 	});
 });

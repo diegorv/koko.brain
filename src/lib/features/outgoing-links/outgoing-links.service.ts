@@ -1,9 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
 import { error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { dedupeInflight } from '$lib/utils/inflight';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { outgoingLinksStore } from './outgoing-links.store.svelte';
 import type { OutgoingLink, OutgoingUnlinkedMention } from './outgoing-links.types';
 import type { OutgoingLinkV2, OutgoingUnlinkedMentionV2 } from '$lib/types/vault-v2.types';
+
+/** Same stale-tab guard as `backlinks.service.ts::isStillCurrentPath`. */
+function isStillCurrentPath(fetchedPath: string): boolean {
+	const current = editorStore.activeTabPath;
+	return current == null || current === fetchedPath;
+}
 
 /**
  * Deduplicates outgoing links by lowercase target, preserving first-occurrence order.
@@ -51,6 +58,12 @@ async function fetchOutgoingLinksV2Inner(path: string, content: string): Promise
 			invoke<OutgoingLinkV2[]>('get_outgoing_links_v2', { path }),
 			invoke<OutgoingUnlinkedMentionV2[]>('get_outgoing_unlinked_mentions_v2', { path, content }),
 		]);
+		// Active-path guard: discard the result if the user already
+		// switched tabs while the IPCs were in flight.
+		if (!isStillCurrentPath(path)) {
+			perfEnd('OUTGOING', 'fetchOutgoingLinksV2(stale, dropped)', t0);
+			return;
+		}
 		outgoingLinksStore.setOutgoingLinks(deduplicateByTarget(linksRaw));
 		outgoingLinksStore.setUnlinkedMentions(unlinkedRaw as OutgoingUnlinkedMention[]);
 		perfEnd('OUTGOING', 'fetchOutgoingLinksV2', t0);
