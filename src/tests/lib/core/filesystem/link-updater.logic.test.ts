@@ -2,8 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
 	extractNoteName,
 	replaceWikilinks,
-	contentHasWikilinkTo,
-	findFilesLinkingTo,
 } from '$lib/core/filesystem/link-updater.logic';
 
 describe('extractNoteName', () => {
@@ -120,58 +118,3 @@ describe('replaceWikilinks', () => {
 	});
 });
 
-describe('contentHasWikilinkTo', () => {
-	it('returns true when content has matching wikilink', () => {
-		expect(contentHasWikilinkTo('See [[My Note]]', 'My Note')).toBe(true);
-	});
-
-	it('is case-insensitive', () => {
-		expect(contentHasWikilinkTo('See [[my note]]', 'My Note')).toBe(true);
-	});
-
-	it('returns false when no matching wikilink', () => {
-		expect(contentHasWikilinkTo('See [[Other Note]]', 'My Note')).toBe(false);
-	});
-
-	it('returns false for content without wikilinks', () => {
-		expect(contentHasWikilinkTo('Plain text', 'My Note')).toBe(false);
-	});
-
-	it('matches wikilinks with fragments', () => {
-		expect(contentHasWikilinkTo('See [[My Note#heading]]', 'My Note')).toBe(true);
-	});
-});
-
-describe('findFilesLinkingTo', () => {
-	it('finds files that contain wikilinks to the given name', () => {
-		const noteContents = new Map([
-			['/vault/A.md', 'See [[Target]]'],
-			['/vault/B.md', 'No links here'],
-			['/vault/C.md', 'Also [[Target#heading]]'],
-		]);
-		const result = findFilesLinkingTo('Target', noteContents, '/vault/Target.md');
-		expect(result).toEqual(['/vault/A.md', '/vault/C.md']);
-	});
-
-	it('excludes the source file', () => {
-		const noteContents = new Map([
-			['/vault/Target.md', 'Self-link [[Target]]'],
-			['/vault/A.md', 'See [[Target]]'],
-		]);
-		const result = findFilesLinkingTo('Target', noteContents, '/vault/Target.md');
-		expect(result).toEqual(['/vault/A.md']);
-	});
-
-	it('returns empty array when no files link to the name', () => {
-		const noteContents = new Map([
-			['/vault/A.md', 'See [[Other]]'],
-		]);
-		const result = findFilesLinkingTo('Target', noteContents, '/vault/Target.md');
-		expect(result).toEqual([]);
-	});
-
-	it('returns empty array for empty map', () => {
-		const result = findFilesLinkingTo('Target', new Map(), '/vault/Target.md');
-		expect(result).toEqual([]);
-	});
-});
