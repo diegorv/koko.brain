@@ -80,15 +80,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-formatting-task-marker': {
 		fontSize: '0',
 	},
-	/** Unordered list marker (-, *, +) — text hidden, bullet shown via ::before */
-	'.cm-formatting-ul-marker': {
-		fontSize: '0',
-	},
-	'.cm-formatting-ul-marker::before': {
-		content: '"•  "',
-		fontSize: '1rem',
-		color: 'var(--lp-list-marker, var(--syntax-list, inherit))',
-	},
+	/** Unordered list marker (-, *, +) — replaced by UnorderedListMarkerWidget */
 	/** Hard break (\\, trailing spaces) — hidden, ↵ shown via ::after */
 	'.cm-formatting-hard-break': {
 		fontSize: '0',

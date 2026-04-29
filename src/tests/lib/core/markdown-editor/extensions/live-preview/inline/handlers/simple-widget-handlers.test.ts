@@ -74,17 +74,17 @@ describe('simpleWidgetHandlers', () => {
 	});
 
 	describe('ListMark — bullet', () => {
-		it('hides `- ` for an unordered list item when cursor away', () => {
+		it('replaces `- ` with UnorderedListMarkerWidget when cursor away', () => {
 			const doc = '- item one\n\nplain';
 			const decos = build(doc, doc.length);
-			const ulMark = decos.find((d) => d.class === 'cm-formatting-ul-marker');
-			expect(ulMark).toBeDefined();
+			const widget = decos.find((d) => d.kind === 'UnorderedListMarkerWidget');
+			expect(widget).toBeDefined();
 		});
 
-		it('does not hide bullet when cursor is on the list line', () => {
+		it('does not replace bullet when cursor is on the list line', () => {
 			const decos = build('- item one\n\nplain', 5);
-			const ulMark = decos.find((d) => d.class === 'cm-formatting-ul-marker');
-			expect(ulMark).toBeUndefined();
+			const widget = decos.find((d) => d.kind === 'UnorderedListMarkerWidget');
+			expect(widget).toBeUndefined();
 		});
 	});
 
