@@ -3,7 +3,7 @@ import { debug, error as errorLog, timeAsync, perfStart, perfEnd } from '$lib/ut
 import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteIndexStore } from './note-index.store.svelte';
-import { parseWikilinks, getNoteName, findUnlinkedMentions, noteEntryV2ToBacklinkEntry } from './backlinks.logic';
+import { parseWikilinks, noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { WikiLink } from './backlinks.types';
 import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -155,18 +155,28 @@ export async function fetchBacklinksV2(path: string): Promise<void> {
 }
 
 /**
- * Computes unlinked mentions on demand. Called by the BacklinksPanel when
- * the unlinked section is visible and the dirty flag is set.
- * This is the expensive O(N) operation that scans all note contents.
+ * Computes unlinked mentions on demand by invoking the Rust
+ * `get_unlinked_mentions_v2` command (Phase 11.5a). Called by the
+ * BacklinksPanel when the unlinked section is visible and the dirty
+ * flag is set. The Rust side iterates `VaultIndex.entries`, skips
+ * already-linked sources via the reverse-link index, reads each
+ * candidate's body from disk, and applies the same word-boundary +
+ * frontmatter/code-stripping rules the TS-side `findUnlinkedMentions`
+ * used.
+ *
+ * Errors are logged via `errorLog('BACKLINKS', ...)` and swallowed —
+ * the panel keeps its prior contents on IPC failure.
  */
-export function computeUnlinkedMentionsForFile(filePath: string) {
+export async function computeUnlinkedMentionsForFile(filePath: string): Promise<void> {
 	const t0 = perfStart();
-	const noteIndex = noteIndexStore.noteIndex;
-	const noteContents = noteIndexStore.noteContents;
-	const noteName = getNoteName(filePath);
-	const unlinked = findUnlinkedMentions(filePath, noteName, noteContents, noteIndex);
-	backlinksStore.setUnlinkedMentions(unlinked);
-	perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);
+	try {
+		const entries = await invoke<NoteEntryV2[]>('get_unlinked_mentions_v2', { path: filePath });
+		const unlinked = entries.map(noteEntryV2ToBacklinkEntry);
+		backlinksStore.setUnlinkedMentions(unlinked);
+		perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);
+	} catch (err) {
+		errorLog('BACKLINKS', 'computeUnlinkedMentionsForFile failed:', err);
+	}
 }
 
 export function resetBacklinks() {

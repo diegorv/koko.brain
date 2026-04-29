@@ -362,34 +362,60 @@ describe('removeFileFromIndex', () => {
 
 describe('computeUnlinkedMentionsForFile', () => {
 	beforeEach(() => {
+		vi.clearAllMocks();
 		resetBacklinks();
 	});
 
-	it('computes unlinked mentions on demand and clears dirty flag', () => {
-		updateIndexForFile('/vault/note-a.md', 'Hello world');
-		updateIndexForFile('/vault/note-b.md', 'I mention note-a without linking');
+	it('invokes get_unlinked_mentions_v2 and writes to backlinksStore', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{
+				path: '/vault/note-b.md',
+				title: 'note-b',
+				frontmatter: {},
+				outgoingLinks: [],
+				tags: [],
+				modifiedAt: 0,
+				createdAt: 0,
+				size: 0,
+				wordCount: 0,
+				snippet: 'I mention note-a without linking',
+				tasks: [],
+			},
+		]);
 
 		// Simulate save/tab-switch marking dirty
 		backlinksStore.markUnlinkedDirty();
 		expect(backlinksStore.unlinkedDirty).toBe(true);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
 
-		// Now compute unlinked on demand
-		computeUnlinkedMentionsForFile('/vault/note-a.md');
+		await computeUnlinkedMentionsForFile('/vault/note-a.md');
 
+		expect(invoke).toHaveBeenCalledWith('get_unlinked_mentions_v2', { path: '/vault/note-a.md' });
 		expect(backlinksStore.unlinkedMentions).toHaveLength(1);
 		expect(backlinksStore.unlinkedMentions[0].sourcePath).toBe('/vault/note-b.md');
 		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 
-	it('returns empty when no unlinked mentions exist', () => {
-		updateIndexForFile('/vault/note-a.md', 'Hello world');
-		updateIndexForFile('/vault/note-b.md', 'No mention of the other note');
+	it('writes empty array when Rust returns no unlinked mentions', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([]);
 
-		computeUnlinkedMentionsForFile('/vault/note-a.md');
+		await computeUnlinkedMentionsForFile('/vault/note-a.md');
 
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedDirty).toBe(false);
+	});
+
+	it('keeps prior contents on IPC failure', async () => {
+		backlinksStore.setUnlinkedMentions([
+			{ sourcePath: '/vault/prior.md', sourceName: 'prior', snippets: [] },
+		]);
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('Rust panic'));
+
+		await computeUnlinkedMentionsForFile('/vault/note-a.md');
+
+		// Failure swallowed; prior store contents preserved.
+		expect(backlinksStore.unlinkedMentions).toHaveLength(1);
+		expect(backlinksStore.unlinkedMentions[0].sourcePath).toBe('/vault/prior.md');
 	});
 });
 
