@@ -1,5 +1,4 @@
 import type { BacklinkEntry } from './backlinks.types';
-import { noteIndexStore } from './note-index.store.svelte';
 
 let linkedMentions = $state<BacklinkEntry[]>([]);
 let unlinkedMentions = $state<BacklinkEntry[]>([]);
@@ -23,6 +22,5 @@ export const backlinksStore = {
 		linkedMentions = [];
 		unlinkedMentions = [];
 		unlinkedDirty = false;
-		noteIndexStore.reset();
 	},
 };

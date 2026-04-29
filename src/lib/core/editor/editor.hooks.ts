@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { updateIndexForFile } from '$lib/features/backlinks/backlinks.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
@@ -169,7 +168,6 @@ export function notifyAfterSave(filePath: string, content: string): void {
 	// the rest (mirrors the pattern in index-updater.service.ts).
 	if (!isAlreadyIndexed(filePath, content)) {
 		markIndexed(filePath, content);
-		try { updateIndexForFile(filePath, content); } catch (err) { error('HOOKS', 'updateIndexForFile after save failed:', err); }
 		try { updateNoteInIndex(filePath, content); } catch (err) { error('HOOKS', 'updateNoteInIndex after save failed:', err); }
 		try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('HOOKS', 'updateFrontmatterIconForFile after save failed:', err); }
 		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }

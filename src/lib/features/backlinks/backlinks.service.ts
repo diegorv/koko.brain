@@ -1,30 +1,20 @@
 import { invoke } from '@tauri-apps/api/core';
-import { debug, error as errorLog, timeAsync, perfStart, perfEnd } from '$lib/utils/debug';
-import { clearIndexedEntry } from '$lib/utils/index-dedupe';
+import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { backlinksStore } from './backlinks.store.svelte';
-import { noteIndexStore } from './note-index.store.svelte';
-import { parseWikilinks, noteEntryV2ToBacklinkEntry } from './backlinks.logic';
-import type { WikiLink } from './backlinks.types';
-import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
+import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 let vaultPath: string | null = null;
 let isBuilding = false;
 let pendingRebuild = false;
 
-/** Recursively collects all markdown file paths from a pre-scanned file tree */
-function collectMarkdownPaths(nodes: FileTreeNode[]): string[] {
-	const paths: string[] = [];
-	for (const node of nodes) {
-		if (node.isDirectory && node.children) {
-			paths.push(...collectMarkdownPaths(node.children));
-		} else if (node.name.endsWith('.md') || node.name.endsWith('.markdown')) {
-			paths.push(node.path);
-		}
-	}
-	return paths;
-}
-
+/**
+ * Bootstraps the Rust `VaultIndex` for the given vault path. Replaces
+ * the old TS scan + parse loop that populated `noteIndexStore`. The
+ * Rust `scan_vault_v2` command walks the filesystem, builds VaultIndex,
+ * and emits `vault-index-updated` once complete; `vaultStore.vaultIndexVersion`
+ * bumps and every panel `$effect` reactively refetches.
+ */
 export async function buildIndex(path: string) {
 	if (isBuilding) {
 		pendingRebuild = true;
@@ -32,74 +22,18 @@ export async function buildIndex(path: string) {
 	}
 	isBuilding = true;
 	vaultPath = path;
-	noteIndexStore.setLoading(true);
 
+	const t0 = perfStart();
 	try {
-		// Bootstrap the Rust `VaultIndex` in parallel with the TS scan.
-		// `scan_vault_v2` does its own filesystem scan, builds the Rust index,
-		// and emits `vault-index-updated` so `BacklinksPanel.svelte`'s reactive
-		// `$effect` re-fetches once the Rust side is ready. Fire-and-forget —
-		// errors logged via `errorLog('BACKLINKS', ...)`. The TS scan below
-		// still populates `noteIndexStore.noteContents`/`noteIndex` because
-		// the unlinked-mentions, outgoing-links, and link-updater paths still
-		// read from those maps (Phase 6/8 will migrate those too).
-		const tV2 = perfStart();
-		invoke('scan_vault_v2', { path })
-			.then(() => perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2(IPC, parallel)', tV2))
-			.catch((err) => errorLog('BACKLINKS', 'scan_vault_v2 failed:', err));
-
-		await timeAsync('BACKLINKS', 'buildIndex', async () => {
-			const tScan = perfStart();
-			const tree = await invoke<FileTreeNode[]>('scan_vault', {
-				path,
-				sortBy: 'name',
-			});
-			perfEnd('BACKLINKS', 'buildIndex:scan_vault(IPC)', tScan);
-
-			const tCollect = perfStart();
-			const filePaths = collectMarkdownPaths(tree);
-			perfEnd('BACKLINKS', `buildIndex:collectMarkdownPaths(${filePaths.length} files)`, tCollect);
-
-			const tRead = perfStart();
-			const readResults = await invoke<FileReadResult[]>('read_files_batch', {
-				vaultPath: path,
-				paths: filePaths,
-			});
-			perfEnd('BACKLINKS', `buildIndex:read_files_batch(IPC, ${readResults.length} files)`, tRead);
-
-			const tParse = perfStart();
-			const index = new Map<string, WikiLink[]>();
-			const contents = new Map<string, string>();
-
-			for (const result of readResults) {
-				if (result.content !== null) {
-					contents.set(result.path, result.content);
-					index.set(result.path, parseWikilinks(result.content));
-				}
-			}
-			perfEnd('BACKLINKS', `buildIndex:parseWikilinks(${index.size} files)`, tParse);
-
-			// Contents must be set BEFORE the index: setNoteIndex triggers
-			// rebuildReverseIndex, which resolves wikilinks using noteContents.keys().
-			// If reversed, the resolution cache is empty and reverseIndex stays empty
-			// until an incremental update happens to populate it file-by-file.
-			//
-			// `noteIndexStore.reverseIndex` is no longer consumed by the backlinks
-			// panel (Rust path replaces it) but is still read as a fallback by
-			// `link-updater.service.ts` on rename — so we keep building it.
-			const tStore = perfStart();
-			noteIndexStore.setNoteContents(contents);
-			noteIndexStore.setNoteIndex(index);
-			perfEnd('BACKLINKS', 'buildIndex:setStores(incl. rebuildReverseIndex)', tStore);
-			debug('BACKLINKS', `Index: ${index.size} notes, ${contents.size} contents`);
-		});
+		await invoke('scan_vault_v2', { path });
+		perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2', t0);
+		debug('BACKLINKS', 'Rust VaultIndex bootstrapped');
+	} catch (err) {
+		errorLog('BACKLINKS', 'scan_vault_v2 failed:', err);
 	} finally {
-		noteIndexStore.setLoading(false);
 		isBuilding = false;
 		if (pendingRebuild && vaultPath) {
 			pendingRebuild = false;
-			// Use module-level vaultPath (not the argument 'path') to ensure
-			// the rebuild uses the current vault, not a stale one
 			await buildIndex(vaultPath);
 		}
 	}
@@ -109,27 +43,6 @@ export async function rebuildIndex() {
 	debug('BACKLINKS', `rebuildIndex() called at ${Date.now()}`);
 	if (vaultPath) {
 		await buildIndex(vaultPath);
-	}
-}
-
-export function updateIndexForFile(filePath: string, content: string) {
-	noteIndexStore.updateNoteEntry(filePath, content, parseWikilinks(content));
-}
-
-/** Removes a file from both noteIndex and noteContents (e.g. when a file is deleted) */
-export function removeFileFromIndex(filePath: string) {
-	// Drop the dedup signature so a later re-creation with the same content
-	// isn't silently skipped by `isAlreadyIndexed`.
-	clearIndexedEntry(filePath);
-
-	const nextContents = new Map(noteIndexStore.noteContents);
-	const nextIndex = new Map(noteIndexStore.noteIndex);
-	const deletedContents = nextContents.delete(filePath);
-	const deletedIndex = nextIndex.delete(filePath);
-
-	if (deletedContents || deletedIndex) {
-		noteIndexStore.setNoteContents(nextContents);
-		noteIndexStore.setNoteIndex(nextIndex);
 	}
 }
 
