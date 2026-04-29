@@ -17,29 +17,6 @@ use tauri::Emitter;
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
 
-/// Maximum content size accepted by `update_note_in_index` (audit Tier 1 #4).
-/// 100 MB is a generous ceiling — typical markdown notes are 1-10 KB; even
-/// a long-running journal is rarely above 1 MB. The bound exists to prevent
-/// a buggy / malicious caller from allocating 1 GB into the worker thread,
-/// blocking the Tauri command bus and risking OOM. The error message is
-/// human-readable so a TS callsite can surface it via toast if needed.
-pub const MAX_NOTE_SIZE_BYTES: usize = 100 * 1024 * 1024;
-
-/// Pure size check used by `update_note_in_index` and exposed for testing.
-/// Returns `Err` when `content_len` exceeds `max`. The byte length comparison
-/// is intentionally on `usize` (UTF-8 byte count) — Tauri's IPC carries
-/// strings as UTF-8 so byte-length is the actual transport cost.
-pub fn check_content_size_with_limit(content_len: usize, max: usize) -> Result<(), String> {
-	if content_len > max {
-		Err(format!(
-			"Note content too large: {} bytes exceeds maximum {} bytes",
-			content_len, max
-		))
-	} else {
-		Ok(())
-	}
-}
-
 /// RAII guard that traces the entry and exit of a Tauri command body to the
 /// debug log (only when debug mode is on — `debug_log` is a no-op otherwise).
 /// Construction emits `enter <name>`; drop emits `exit <name> after Nms`.
@@ -300,10 +277,6 @@ pub fn update_note_in_index(
 	content: String,
 ) -> Result<UpdateResult, String> {
 	let _trace = CmdTrace::new("update_note_in_index");
-	// Audit Tier 1 #4: reject oversized payloads at the IPC boundary so the
-	// worker thread doesn't allocate hundreds of MB / GB and stall the
-	// command bus during the parse + index update.
-	check_content_size_with_limit(content.len(), MAX_NOTE_SIZE_BYTES)?;
 	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
 	let result = {
 		let mut idx = state
