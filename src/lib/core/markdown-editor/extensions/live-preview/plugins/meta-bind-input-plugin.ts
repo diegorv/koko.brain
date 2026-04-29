@@ -40,7 +40,7 @@ export const metaBindInputPlugin = ViewPlugin.fromClass(
 			const action = checkUpdateAction(update, this.lastCursorLine);
 			if (action === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart();
+				const _t = profileStart('meta-bind-input');
 				this.decorations = buildMetaBindInputDecorations(
 					update.view.state,
 					expandedVisibleRanges(update.view),

@@ -49,6 +49,7 @@ export async function initLogSession(): Promise<void> {
 		}
 		const filename = `${formatTimestamp(new Date())}.log`;
 		activeLogPath = `${logsDir}/${filename}`;
+		startHeartbeat();
 	} catch (err) {
 		console.error('Failed to init log session:', err);
 	}
@@ -73,9 +74,36 @@ export function appendLog(tag: string, ...args: unknown[]): void {
 
 /** Tears down the active log session, clearing the log file path and cached directory. */
 export function teardownLogSession(): void {
+	stopHeartbeat();
 	activeLogPath = null;
 	resolvedLogDir = null;
 	writeChain = Promise.resolve();
+}
+
+/** Heartbeat interval handle (null when not running). */
+let heartbeatHandle: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Starts a 250 ms heartbeat that emits a `[HB]` log line each tick. Used
+ * to investigate UI freezes — the gap between consecutive HB lines pinpoints
+ * the wall-clock window the JS event loop was stuck.
+ *
+ * `setInterval` callbacks fire only when the event loop is free, so a long
+ * synchronous block (regex backtracking, locked Rust IPC, etc.) shows up as
+ * a missing HB tick. Idempotent — calling twice is a no-op.
+ */
+export function startHeartbeat(): void {
+	if (heartbeatHandle !== null) return;
+	heartbeatHandle = setInterval(() => {
+		appendLog('HB', 'alive');
+	}, 250);
+}
+
+/** Stops the heartbeat. Idempotent. Called automatically by `teardownLogSession`. */
+export function stopHeartbeat(): void {
+	if (heartbeatHandle === null) return;
+	clearInterval(heartbeatHandle);
+	heartbeatHandle = null;
 }
 
 /** Returns whether a log session is currently active. */
