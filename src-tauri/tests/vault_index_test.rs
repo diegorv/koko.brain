@@ -1274,3 +1274,134 @@ fn remove_entry_cleans_properties_index() {
 	idx.remove_entry("/v/a.md");
 	assert!(!idx.properties_index().contains_key("status"));
 }
+
+// ============================================================================
+// Phase 11.5a — lookup_incoming_unlinked_mentions
+// ============================================================================
+//
+// Reads files from disk, so tests use `tempfile::TempDir` to lay out fixture
+// vault files and build a VaultIndex with real absolute paths.
+
+use std::fs;
+use tempfile::TempDir;
+
+/// Lays out one file per `(filename, content)` pair in `dir`, then builds a
+/// VaultIndex of NoteEntry constructed from those files via
+/// `NoteEntry::from_content`. Returns the (dir, idx, paths) tuple where
+/// `paths[i]` is the absolute path of `files[i]`.
+fn build_index_with_fixtures(
+	files: &[(&str, &str)],
+) -> (TempDir, VaultIndex, Vec<String>) {
+	let dir = TempDir::new().unwrap();
+	let mut paths: Vec<String> = Vec::new();
+	let mut entries: Vec<NoteEntry> = Vec::new();
+	for (name, content) in files {
+		let path = dir.path().join(name);
+		fs::write(&path, content).unwrap();
+		let abs = path.to_string_lossy().to_string();
+		entries.push(NoteEntry::from_content(abs.clone(), content, 0));
+		paths.push(abs);
+	}
+	let mut idx = VaultIndex::default();
+	idx.build(entries);
+	(dir, idx, paths)
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_finds_plain_text_mention() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "no references here"),
+		("b.md", "I mention a in plain text body"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert_eq!(result.len(), 1);
+	assert_eq!(result[0].title, "b");
+	assert_eq!(result[0].path, paths[1]);
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_excludes_self() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "I mention a here in my own body"),
+		("b.md", "I mention a too"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert_eq!(result.len(), 1);
+	assert_eq!(result[0].path, paths[1]);
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_skips_already_linked_sources() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("a.md", "target note"),
+		("b.md", "See [[a]] and also a in plain text body"),
+	]);
+	// b links to a via wikilink → b is in a's backlinks, so the
+	// unlinked-mentions panel must not also list b.
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert!(result.is_empty());
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_returns_empty_for_unknown_path() {
+	let (_dir, idx, _paths) = build_index_with_fixtures(&[
+		("a.md", "some content"),
+	]);
+	// Path that's not in the index AND not a real file → empty result, no panic.
+	let result = idx.lookup_incoming_unlinked_mentions("/v/never-existed.md");
+	// May still scan a.md looking for "never-existed" — but a.md doesn't
+	// contain it, so result is empty.
+	assert!(result.is_empty());
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_skips_mentions_in_frontmatter_and_code() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		(
+			"source.md",
+			"---\nrelated: target\n---\n```\ntarget appears in code\n```\nbody without that name",
+		),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	// "target" appears only in frontmatter (`related: target`) and code
+	// block — both stripped by `strip_non_body_content` before mention scan.
+	// The plain body "body without that name" has no mention.
+	assert!(result.is_empty(), "frontmatter+code mentions should be stripped");
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_sorts_by_title_case_insensitive() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		("Zebra.md", "I link to target"),
+		("alpha.md", "I link to target"),
+		("Mango.md", "I link to target"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	let titles: Vec<&str> = result.iter().map(|e| e.title.as_str()).collect();
+	assert_eq!(titles, vec!["alpha", "Mango", "Zebra"]);
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_returns_empty_when_no_mentions() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("target.md", "the searched note"),
+		("other.md", "totally unrelated body"),
+		("more.md", "different content here"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert!(result.is_empty());
+}
+
+#[test]
+fn lookup_incoming_unlinked_mentions_word_boundary_excludes_substring_matches() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("foo.md", "the searched note"),
+		// "foobar" is NOT a word-boundary match for "foo" — punctuation/whitespace
+		// boundaries required on both sides.
+		("source.md", "this body contains foobar but not the standalone word"),
+	]);
+	let result = idx.lookup_incoming_unlinked_mentions(&paths[0]);
+	assert!(result.is_empty());
+}
