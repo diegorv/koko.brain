@@ -40,7 +40,7 @@ rusqlite = { version = "0.39", features = ["bundled"] }
 sha2 = "0.10"
 
 # File History
-similar = "2.7"
+similar = "3.1"
 percent-encoding = "2"
 
 # Encrypted Notes
