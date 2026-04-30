@@ -23,6 +23,7 @@
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions } from './setup';
+	import { findWikilinkElement } from './wikilink-click-target';
 
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -50,13 +51,18 @@
 
 	async function handleEditorClick(e: MouseEvent) {
 		if (!view) return;
-		const el = (e.target as HTMLElement).closest('.cm-wikilink-target, .cm-wikilink-heading, .cm-wikilink-block-id, .cm-wikilink-display, .cm-wikilink-bracket, .cm-lp-wikilink') as HTMLElement | null;
+		const el = findWikilinkElement(e.target);
 		if (!el) return;
 
-		// Prevent CodeMirror from moving cursor (which would strip live preview decorations)
-		// and stop propagation so mouseup on a switched tab doesn't create a selection
+		// Capture-phase interception: this listener is registered with
+		// `{ capture: true }` on the container, so it runs before any handler
+		// inside `cm-editor`. `stopImmediatePropagation` prevents CodeMirror's
+		// internal mousedown handler from firing — without that, CM would arm
+		// its drag-select state machine, and the mouseup that lands AFTER the
+		// async tab switch would commit a multi-line selection in the new doc
+		// (which `shouldShowSource` then expands to source across blocks).
 		e.preventDefault();
-		e.stopPropagation();
+		e.stopImmediatePropagation();
 
 		try {
 			const pos = view.posAtDOM(el);
@@ -192,12 +198,12 @@
 		}
 
 		lastTabPath = tab.path;
-		container.addEventListener('mousedown', handleEditorClick);
+		container.addEventListener('mousedown', handleEditorClick, { capture: true });
 	});
 
 	onDestroy(() => {
 		editorStore.setEditorView(null);
-		container?.removeEventListener('mousedown', handleEditorClick);
+		container?.removeEventListener('mousedown', handleEditorClick, { capture: true });
 		// Abort any pending tab-switch rAF chain so it does not fire on a
 		// destroyed view.
 		tabSwitchRafAbort?.abort();
