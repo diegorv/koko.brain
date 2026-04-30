@@ -1654,22 +1654,22 @@ fn three_phase_pipeline_matches_legacy_lookup_incoming_unlinked_mentions() {
 
 // --- Audit finding #11 — concurrent update_entry invariants (regression guard) ---
 //
-// Hipótese da auditoria: se duas threads chamarem `update_entry` para o mesmo
-// path concorrentemente, o retroactive scan da primeira pode iterar
-// `self.entries` enquanto a segunda muta o mapa, deixando `backlinks`
-// inconsistente.
+// Audit hypothesis: if two threads call `update_entry` for the same path
+// concurrently, the first one's retroactive scan over `self.entries`
+// could be corrupted by the second one's mutation, leaving `backlinks`
+// inconsistent.
 //
-// Realidade: `update_entry` toma `&mut self`. Acesso concorrente exige uma
-// `RwLock<VaultIndex>` externa que serializa as escritas. Estes testes
-// confirmam que com a serialização correta a invariante de backlinks é
-// mantida — servem de regression guard contra refactors futuros que
-// fragmentem ou liberem o write-lock no meio do retroactive scan.
+// Reality: `update_entry` takes `&mut self`. Concurrent access requires
+// an external `RwLock<VaultIndex>` that serializes writes. These tests
+// confirm that with serialization honored the backlink invariant holds —
+// they serve as a regression guard against future refactors that
+// fragment or release the write-lock mid retroactive scan.
 //
-// Marcados `#[ignore]` por serem probabilísticos: o N de iterações busca
-// aumentar a chance de uma corrida real disparar uma falha caso a
-// serialização seja quebrada por refactor.
+// Marked `#[ignore]` because they're probabilistic: the iteration count
+// raises the chance of a real race surfacing a failure if the
+// serialization gets broken by a refactor.
 //
-// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Apêndice A.2).
+// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Appendix A.2).
 
 use std::sync::{Arc, Barrier as StdBarrier, RwLock};
 use std::thread;
@@ -1683,7 +1683,7 @@ fn audit_finding_11_concurrent_update_entry_keeps_backlinks_consistent() {
 	for iteration in 0..ITERATIONS {
 		let idx = Arc::new(RwLock::new(VaultIndex::default()));
 
-		// Popula com SOURCE_COUNT notas que linkam para "Target".
+		// Seed with SOURCE_COUNT notes that link to "Target".
 		{
 			let mut g = idx.write().unwrap();
 			let entries: Vec<NoteEntry> = (0..SOURCE_COUNT)
@@ -1692,15 +1692,15 @@ fn audit_finding_11_concurrent_update_entry_keeps_backlinks_consistent() {
 			g.build(entries);
 		}
 
-		// Sanity: antes de inserir Target, backlinks vazio (Target não existe).
+		// Sanity: before Target is inserted, backlinks is empty (Target does not exist).
 		assert!(
 			idx.read().unwrap().backlinks().get("/v/Target.md").is_none(),
 			"iteration {}: pre-insert sanity failed",
 			iteration
 		);
 
-		// Threads A e B disputam o write-lock para inserir/atualizar Target.md.
-		// O barrier garante que ambas pulem para `update_entry` no mesmo instante.
+		// Threads A and B contend for the write-lock to insert/update Target.md.
+		// The barrier ensures both jump into `update_entry` at roughly the same instant.
 		let barrier = Arc::new(StdBarrier::new(2));
 
 		let idx_a = Arc::clone(&idx);
@@ -1716,16 +1716,16 @@ fn audit_finding_11_concurrent_update_entry_keeps_backlinks_consistent() {
 		let b = thread::spawn(move || {
 			bar_b.wait();
 			let mut g = idx_b.write().unwrap();
-			// Conteúdo levemente diferente (entry sem links também, mas o segundo
-			// update vê old_entry == Some, não dispara retroactive).
+			// Same shape entry; the second update sees old_entry == Some and
+			// does not re-run the retroactive scan.
 			g.update_entry(entry_with_links("/v/Target.md", &[]));
 		});
 
 		a.join().unwrap();
 		b.join().unwrap();
 
-		// Invariante: backlinks[/v/Target.md] deve conter EXATAMENTE os
-		// SOURCE_COUNT paths das notas-fonte. Nenhum a mais, nenhum a menos.
+		// Invariant: backlinks[/v/Target.md] must contain EXACTLY the
+		// SOURCE_COUNT source paths. No more, no less.
 		let g = idx.read().unwrap();
 		let bl = g.backlinks().get("/v/Target.md").cloned().unwrap_or_default();
 		assert_eq!(
@@ -1743,14 +1743,15 @@ fn audit_finding_11_concurrent_update_entry_keeps_backlinks_consistent() {
 #[test]
 #[ignore]
 fn audit_finding_11_many_concurrent_writers_against_growing_index() {
-	// Cenário mais agressivo: N threads escrevem simultaneamente em paths
-	// diferentes que TODOS linkam para o mesmo Target. A última inserção é
-	// Target.md (deve fazer retroactive scan e capturar todos os N sources).
+	// More aggressive scenario: N threads write simultaneously to
+	// different paths that ALL link to the same Target. The last
+	// insertion is Target.md (which must run the retroactive scan and
+	// pick up all N sources).
 	//
-	// Com RwLock honrado, exatamente um thread vê `old_entry.is_none()` para
-	// Target e dispara o retroactive scan. Os outros threads que tentaram
-	// escrever Target.md depois veem `old_entry.is_some()` e não re-rodam
-	// o scan. Invariante: backlinks final tem N sources.
+	// With RwLock honored, exactly one thread sees `old_entry.is_none()`
+	// for Target and runs the retroactive scan. Other threads that try
+	// to write Target.md afterwards see `old_entry.is_some()` and skip
+	// the scan. Invariant: final backlinks contain all N sources.
 	const N_WRITERS: usize = 16;
 	const ITERATIONS: usize = 20;
 
@@ -1770,7 +1771,7 @@ fn audit_finding_11_many_concurrent_writers_against_growing_index() {
 			}));
 		}
 
-		// Thread que insere Target.md em paralelo.
+		// Thread that inserts Target.md in parallel.
 		let idx_t = Arc::clone(&idx);
 		let bar_t = Arc::clone(&barrier);
 		let target_handle = thread::spawn(move || {
@@ -1784,9 +1785,9 @@ fn audit_finding_11_many_concurrent_writers_against_growing_index() {
 		}
 		target_handle.join().unwrap();
 
-		// Invariante: backlinks[/v/Target.md] = exato conjunto {/v/source0.md, ..., /v/source{N-1}.md}.
-		// Independente da ordem em que os locks foram concedidos, o estado final
-		// deve refletir TODOS os sources que linkam para Target.
+		// Invariant: backlinks[/v/Target.md] = exact set {/v/source0.md, ..., /v/source{N-1}.md}.
+		// Regardless of the order locks were granted, the final state
+		// must reflect ALL sources that link to Target.
 		let g = idx.read().unwrap();
 		let bl = g.backlinks().get("/v/Target.md").cloned().unwrap_or_default();
 		assert_eq!(

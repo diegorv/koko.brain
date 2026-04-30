@@ -309,10 +309,10 @@ fn delete_orphaned_mtimes_preserves_non_mtime_meta() {
 // `commands/semantic.rs::get_or_load_cache` deserializes embedding bytes via
 // `chunks_exact(4)`. If `embedding_bytes.len() % 4 != 0`, the trailing
 // orphan bytes are silently discarded with no error. The DB layer accepts
-// any byte length on insert. Together this produces a vetor de tamanho
-// inesperado em cosine similarity sem nenhum sinal ao caller.
+// any byte length on insert. Together this produces a vector of unexpected
+// length in cosine similarity with no signal to the caller.
 //
-// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Apêndice A.1).
+// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Appendix A.1).
 
 #[test]
 fn audit_finding_12_db_persists_malformed_embedding_bytes_unchanged() {
@@ -335,24 +335,23 @@ fn audit_finding_12_db_persists_malformed_embedding_bytes_unchanged() {
 
 #[test]
 fn audit_finding_12_chunks_exact_drops_trailing_byte_without_error() {
-	// Reproduz exatamente a deserialização que vive em
-	// commands/semantic.rs:69-73. Espelha-se aqui porque a função real
-	// é `fn` privada dentro de um command module e não dá pra chamar
-	// direto do test crate.
+	// Mirrors the deserialization at commands/semantic.rs:69-73. Reproduced
+	// here because the real function is private inside a command module
+	// and cannot be called directly from the integration test crate.
 	let bad_emb: Vec<u8> = vec![0x00, 0x00, 0x80, 0x3F, 0xFF];
 	let deserialized: Vec<f32> = bad_emb
 		.chunks_exact(4)
 		.map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
 		.collect();
 
-	// Esperado se o bug fosse corrigido: erro explícito ou panic.
-	// Atual: vetor de 1 elemento, byte 0xFF descartado em silêncio.
+	// Expected (if the bug were fixed): explicit error or panic.
+	// Current: 1-element vector, the trailing 0xFF byte silently dropped.
 	assert_eq!(deserialized.len(), 1, "trailing 0xFF byte silently dropped");
 	assert!((deserialized[0] - 1.0_f32).abs() < f32::EPSILON);
 
-	// Demonstrar que `chunks_exact` ignora o resto sem nenhum sinal:
+	// Demonstrates that `chunks_exact` discards the remainder without signalling:
 	let mut iter = bad_emb.chunks_exact(4);
 	let _first = iter.next().unwrap();
 	assert!(iter.next().is_none(), "no second chunk");
-	assert_eq!(iter.remainder(), &[0xFF], "remainder está disponível mas ninguém consulta");
+	assert_eq!(iter.remainder(), &[0xFF], "remainder is available but no caller consults it");
 }
