@@ -24,7 +24,14 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://cdn.jsdelivr.net https://github.com https://objects.githubusercontent.com"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://cdn.jsdelivr.net https://github.com https://objects.githubusercontent.com",
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$DOCUMENT/**",
+          "$HOME/MyFiles/**"
+        ]
+      }
     }
   },
   "plugins": {
