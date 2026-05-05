@@ -9,6 +9,7 @@
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { applyHeadingTypography } from '$lib/core/settings/settings.service';
 	import { onContentChange, openFileInEditor } from '$lib/core/editor/editor.service';
+	import { isBinaryFile } from '$lib/core/filesystem/fs.logic';
 	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
 	import { livePreviewCompartment, livePreviewExtensions, forceDecorationRebuild } from './extensions/live-preview';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
@@ -88,6 +89,15 @@
 				}
 				return;
 			}
+
+			// Image / audio / video / pdf wikilinks (`![[image.png]]`) — clicking
+			// them in source view used to call `openFileInEditor` on the binary
+			// path, which loaded the bytes as UTF-8 text and crashed the renderer.
+			// The embed widget renders the asset; the click in source mode is a
+			// no-op. (Defensive guard against the same crash also lives in
+			// `openFileInEditor`, but that path would surface a toast — silent
+			// is the better UX here since the user is just editing the source.)
+			if (isBinaryFile(info.target)) return;
 
 			// Cross-note reference
 			const files = flattenFileTree(fsStore.fileTree);

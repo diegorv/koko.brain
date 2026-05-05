@@ -76,6 +76,36 @@ export function isKanbanFile(fileName: string): boolean {
 }
 
 /**
+ * File extensions that hold binary or non-textual content. Reading these via
+ * `readTextFile` produces UTF-8 garbage that can crash the editor renderer
+ * (large images decoded as text, then iterated by every live-preview plugin
+ * over malformed surrogate pairs). Used to gate `openFileInEditor` and
+ * wikilink navigation against accidentally opening a binary path as a tab.
+ *
+ * Kept here next to `isMarkdownFile`/`isCanvasFile` so any new file-type
+ * predicate lives in the same module.
+ */
+const BINARY_FILE_EXTENSIONS: ReadonlySet<string> = new Set([
+	// Images
+	'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico', '.avif', '.heic', '.tiff', '.tif',
+	// Audio
+	'.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac', '.opus',
+	// Video
+	'.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v',
+	// Documents / archives — anything we should never load as raw text in the editor
+	'.pdf', '.zip', '.tar', '.gz', '.7z', '.rar',
+]);
+
+/**
+ * Checks whether the file's extension marks it as binary content that must
+ * never be opened in the markdown text editor. See `BINARY_FILE_EXTENSIONS`
+ * for the exact list. Case-insensitive.
+ */
+export function isBinaryFile(fileName: string): boolean {
+	return BINARY_FILE_EXTENSIONS.has(getFileExtension(fileName).toLowerCase());
+}
+
+/**
  * Returns the CodeMirror LanguageDescription for the given file, or null if
  * the file is markdown or the extension is unrecognized.
  * Maps custom extensions (.collection → YAML, .canvas → JSON) to their underlying languages.

@@ -4,7 +4,7 @@ import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
-import { isCollectionFile, isCanvasFile, isKanbanFile } from '$lib/core/filesystem/fs.logic';
+import { isCollectionFile, isCanvasFile, isKanbanFile, isBinaryFile } from '$lib/core/filesystem/fs.logic';
 import { applyReadTransform, applyWriteTransform, notifyAfterSave } from './editor.hooks';
 import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
@@ -60,6 +60,16 @@ export async function openFileInEditor(filePath: string) {
 	const probeStart = performance.now();
 	const baseStart = perfStart();
 	appendLog('FE-STARTUP-PROBE', `openFileInEditor: ENTRY path=${filePath}`);
+
+	// Defensive guard: never load binary content (images / audio / video / pdf / archives)
+	// into the markdown editor. `readTextFile` decodes the bytes as UTF-8 and the
+	// resulting string crashes the renderer when CodeMirror + live-preview plugins
+	// iterate over malformed surrogate pairs (kokobrain crash on `![[image.png]]` click).
+	if (isBinaryFile(filePath)) {
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: rejected binary path ${filePath}`);
+		toast.error(`Cannot open binary file in the editor: ${getFileName(filePath)}`);
+		return;
+	}
 
 	const existingIndex = findTabIndex(editorStore.tabs, filePath);
 	if (existingIndex >= 0) {
