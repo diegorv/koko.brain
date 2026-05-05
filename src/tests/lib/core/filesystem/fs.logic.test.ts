@@ -9,6 +9,7 @@ import {
 	isCollectionFile,
 	isCanvasFile,
 	isKanbanFile,
+	isBinaryFile,
 	isValidFileName,
 	getLanguageForFile,
 	collectAllDirPaths,
@@ -247,6 +248,67 @@ describe('isKanbanFile', () => {
 
 	it('is case insensitive', () => {
 		expect(isKanbanFile('test.KANBAN')).toBe(true);
+	});
+});
+
+describe('isBinaryFile', () => {
+	it('returns true for image extensions', () => {
+		for (const ext of ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'avif', 'heic', 'tiff', 'tif']) {
+			expect(isBinaryFile(`asset.${ext}`)).toBe(true);
+		}
+	});
+
+	it('returns true for audio extensions', () => {
+		for (const ext of ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'opus']) {
+			expect(isBinaryFile(`song.${ext}`)).toBe(true);
+		}
+	});
+
+	it('returns true for video extensions', () => {
+		for (const ext of ['mp4', 'webm', 'mov', 'mkv', 'avi', 'm4v']) {
+			expect(isBinaryFile(`clip.${ext}`)).toBe(true);
+		}
+	});
+
+	it('returns true for document and archive extensions', () => {
+		for (const ext of ['pdf', 'zip', 'tar', 'gz', '7z', 'rar']) {
+			expect(isBinaryFile(`bundle.${ext}`)).toBe(true);
+		}
+	});
+
+	it('returns false for text and markdown extensions', () => {
+		expect(isBinaryFile('note.md')).toBe(false);
+		expect(isBinaryFile('readme.markdown')).toBe(false);
+		expect(isBinaryFile('script.js')).toBe(false);
+		expect(isBinaryFile('config.json')).toBe(false);
+		expect(isBinaryFile('plain.txt')).toBe(false);
+		expect(isBinaryFile('board.kanban')).toBe(false);
+		expect(isBinaryFile('view.collection')).toBe(false);
+		expect(isBinaryFile('graph.canvas')).toBe(false);
+	});
+
+	it('is case insensitive', () => {
+		expect(isBinaryFile('Photo.PNG')).toBe(true);
+		expect(isBinaryFile('SONG.Mp3')).toBe(true);
+		expect(isBinaryFile('Doc.PDF')).toBe(true);
+	});
+
+	it('handles full paths, not just bare names', () => {
+		expect(isBinaryFile('/abs/Resources/img/9902bb9ff321.png')).toBe(true);
+		expect(isBinaryFile('Resources/img/9902bb9ff321.png')).toBe(true);
+	});
+
+	it('returns false for files with no extension', () => {
+		expect(isBinaryFile('Makefile')).toBe(false);
+		expect(isBinaryFile('LICENSE')).toBe(false);
+	});
+
+	it('returns false for empty string', () => {
+		expect(isBinaryFile('')).toBe(false);
+	});
+
+	it('returns false for unknown extensions', () => {
+		expect(isBinaryFile('weird.xyz')).toBe(false);
 	});
 });
 

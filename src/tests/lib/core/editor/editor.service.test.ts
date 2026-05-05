@@ -174,6 +174,33 @@ describe('openFileInEditor', () => {
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.activeIndex).toBe(0);
 	});
+
+	it('rejects binary file paths without reading them, surfaces a toast', async () => {
+		await openFileInEditor('/vault/Resources/img.png');
+
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(toast.error).toHaveBeenCalledWith(
+			expect.stringContaining('Cannot open binary file'),
+		);
+	});
+
+	it('rejects binary paths regardless of case', async () => {
+		await openFileInEditor('/vault/song.MP3');
+
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(toast.error).toHaveBeenCalledWith(
+			expect.stringContaining('Cannot open binary file'),
+		);
+	});
+
+	it('rejects PDF paths so wikilink-driven opens do not crash', async () => {
+		await openFileInEditor('/vault/spec.pdf');
+
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+	});
 });
 
 describe('saveCurrentFile', () => {
