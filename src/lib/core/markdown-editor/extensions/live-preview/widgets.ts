@@ -485,8 +485,26 @@ export function renderTableSource(
 	return lines.join('\n');
 }
 
+/**
+ * Resolves a wikilink image embed target to a webview-loadable asset URL.
+ * Returns `null` when the target cannot be resolved against the current vault.
+ *
+ * The vault-relative path comes from the wikilink (e.g. `image.png` or
+ * `Resources/foo/image.png`); `resolveWikilink` looks it up against the live
+ * file tree, and `convertFileSrc` produces an `asset://` URL the webview can
+ * load (gated by the asset-protocol scope in `tauri.conf.json`).
+ */
+export async function resolveImageEmbedAssetUrl(target: string): Promise<string | null> {
+	const resolved = await resolveEmbedTarget(target);
+	if (!resolved) return null;
+	const { convertFileSrc } = await import('@tauri-apps/api/core');
+	return convertFileSrc(resolved);
+}
+
 /** Widget that renders a wikilink image embed (`![[image.png]]`, `![[image.png|300]]`) */
 export class WikilinkImageEmbedWidget extends WidgetType {
+	private mounted = true;
+
 	constructor(
 		readonly target: string,
 		readonly width: number | null,
@@ -495,19 +513,38 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 	}
 
 	toDOM() {
+		this.mounted = true;
 		const wrapper = document.createElement('div');
 		wrapper.className = 'cm-lp-image-wrapper';
 		const img = document.createElement('img');
-		if (isSafeUrl(this.target)) {
-			img.src = this.target;
-		}
 		img.alt = this.target;
 		img.className = 'cm-lp-image';
 		if (this.width !== null) {
 			img.style.maxWidth = `${this.width}px`;
 		}
 		wrapper.appendChild(img);
+
+		resolveImageEmbedAssetUrl(this.target)
+			.then((url) => {
+				if (!this.mounted) return;
+				if (url) {
+					img.src = url;
+				} else {
+					wrapper.classList.add('cm-lp-image-missing');
+					wrapper.textContent = `"${this.target}" not found`;
+				}
+			})
+			.catch(() => {
+				if (!this.mounted) return;
+				wrapper.classList.add('cm-lp-image-missing');
+				wrapper.textContent = `Failed to load "${this.target}"`;
+			});
+
 		return wrapper;
+	}
+
+	destroy() {
+		this.mounted = false;
 	}
 
 	eq(other: WikilinkImageEmbedWidget) {

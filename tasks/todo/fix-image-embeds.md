@@ -8,7 +8,7 @@ Currently `![[image.png]]` does not render the image and clicking the source `[[
 ## Tasks
 
 - [x] Task 1: Enable Tauri v2 asset protocol with a scope matching the existing `fs:allow-read-text-file` scope (`$DOCUMENT/**`, `$HOME/MyFiles/**`). This is the supported way to expose local files to `<img>` tags in Tauri 2; the CSP already permits `asset:` for `img-src`.
-- [ ] Task 2: Fix image-embed rendering. `WikilinkImageEmbedWidget` resolves the target via `resolveWikilink` against `fsStore.fileTree`, then converts the absolute path through `convertFileSrc` and sets the result on `img.src`. Show an inline error placeholder on resolution miss. Add unit tests for the resolution + conversion pipeline (mock `convertFileSrc` and `fsStore.fileTree`).
+- [x] Task 2: Fix image-embed rendering. `WikilinkImageEmbedWidget` resolves the target via `resolveWikilink` against `fsStore.fileTree`, then converts the absolute path through `convertFileSrc` and sets the result on `img.src`. Show an inline error placeholder on resolution miss. Add unit tests for the resolution + conversion pipeline (mock `convertFileSrc` and `fsStore.fileTree`).
 - [ ] Task 3: Stop the click crash. Add an `isImageEmbed(target)` guard in (a) `MarkdownEditor.svelte:handleEditorClick` before `openFileInEditor`, (b) `wikilink-navigation.ts:openWikilinkTarget`. Also add a defensive guard in `editor.service.ts:openFileInEditor` that rejects known binary extensions (image / audio / video / pdf) with a toast error, so any other call site is protected. Tests: clicking an image-target wikilink does not call `openFileInEditor`; `openFileInEditor` returns early for binary paths.
 
 ## Notes
