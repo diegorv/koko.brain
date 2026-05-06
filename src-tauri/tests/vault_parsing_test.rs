@@ -943,3 +943,33 @@ fn find_plain_text_mention_case_insensitive() {
 	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
 	assert_eq!(positions.len(), 2);
 }
+
+#[test]
+fn find_plain_text_mention_does_not_panic_when_lowercase_shifts_bytes_into_multibyte_char() {
+	// İ (U+0130, 2 bytes UTF-8) lowercases to "i" + U+0307 combining dot
+	// above (1 + 2 = 3 bytes), so every İ in `content` makes subsequent
+	// byte positions in `stripped_lower` lag `content` by +1. When the
+	// search term's match position in `stripped_lower` corresponds to a
+	// byte inside a multi-byte codepoint in `content` (e.g. the 4-byte 🔴),
+	// the previous implementation panicked on `char_before_byte`'s
+	// `content[..idx]` slice with "is not a char boundary; it is inside
+	// '🔴'". Regression for that crash: the function must not panic and
+	// instead skips the unsafe match.
+	let content = "İ🔴abc";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "🔴abc");
+	// Match's idx in stripped_lower lands inside the emoji's bytes in
+	// content, so the match is dropped — no positions, no panic.
+	assert!(positions.is_empty());
+}
+
+#[test]
+fn find_plain_text_mention_still_finds_match_before_lowercase_byte_shift() {
+	// Sanity check that the panic-guard didn't break the happy path: a
+	// match BEFORE the case-shifting char is still returned even though
+	// the document also contains an İ later on.
+	let content = "Note A starts here. İ later in the file.";
+	let stripped_lower = strip_non_body_content(content).to_lowercase();
+	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
+	assert_eq!(positions, vec![0]);
+}

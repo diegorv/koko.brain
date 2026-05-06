@@ -922,11 +922,24 @@ pub fn find_plain_text_mention_positions(
 			None => break,
 		};
 
+		// Validate that idx is a char boundary in content before using it.
+		// This prevents panics when stripped_lower and content have different byte lengths due to emojis.
+		if idx > content.len() || !is_char_boundary(content, idx) {
+			search_from = idx + term_byte_len;
+			continue;
+		}
+
 		// Word-boundary check on the ORIGINAL content (chars, not bytes,
 		// to avoid splitting multi-byte codepoints).
 		let before_char = char_before_byte(content, idx).unwrap_or(' ');
 		let after_byte_pos = idx + term_byte_len;
-		let after_char = char_at_byte(content, after_byte_pos).unwrap_or(' ');
+		// after_byte_pos may also not be a valid boundary; clamp to content length
+		let after_byte_pos_clamped = after_byte_pos.min(content.len());
+		let after_char = if after_byte_pos_clamped < content.len() && is_char_boundary(content, after_byte_pos_clamped) {
+			char_at_byte(content, after_byte_pos_clamped).unwrap_or(' ')
+		} else {
+			' '
+		};
 		let is_word_boundary = is_word_boundary_char(before_char) && is_word_boundary_char(after_char);
 
 		if is_word_boundary && !is_inside_wikilink(content, idx) {
@@ -937,6 +950,11 @@ pub fn find_plain_text_mention_positions(
 	}
 
 	positions
+}
+
+/// Check if `byte_pos` is a valid char boundary in `s`.
+fn is_char_boundary(s: &str, byte_pos: usize) -> bool {
+	byte_pos == 0 || byte_pos == s.len() || s.is_char_boundary(byte_pos)
 }
 
 /// Returns the char that ends at byte offset `byte_pos` in `s`, or `None`
