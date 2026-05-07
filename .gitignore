@@ -10,6 +10,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 references
 graphify-out/
+docs/graphify-tauri/
 
 # Playwright
 test-results/
