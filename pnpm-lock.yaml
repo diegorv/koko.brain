@@ -162,11 +162,11 @@ importers:
         specifier: ^3.3.0
         version: 3.3.0
       lucide-static:
-        specifier: ^0.577.0
-        version: 0.577.0
+        specifier: ^1.14.0
+        version: 1.14.0
       lucide-svelte:
-        specifier: ^0.577.0
-        version: 0.577.0(svelte@5.55.5(@typescript-eslint/types@8.58.0))
+        specifier: ^1.0.1
+        version: 1.0.1(svelte@5.55.5(@typescript-eslint/types@8.58.0))
       marked:
         specifier: ^18.0.3
         version: 18.0.3
@@ -196,8 +196,8 @@ importers:
         specifier: ^1.5.2
         version: 1.5.2
       '@lucide/svelte':
-        specifier: ^0.577.0
-        version: 0.577.0(svelte@5.55.5(@typescript-eslint/types@8.58.0))
+        specifier: ^1.14.0
+        version: 1.14.0(svelte@5.55.5(@typescript-eslint/types@8.58.0))
       '@playwright/test':
         specifier: ^1.59.1
         version: 1.59.1
@@ -736,8 +736,8 @@ packages:
   '@lezer/yaml@1.0.4':
     resolution: {integrity: sha512-2lrrHqxalACEbxIbsjhqGpSW8kWpUKuY6RHgnSAFZa6qK62wvnPxA8hGOwOoDbwHcOFs5M4o27mjGu+P7TvBmw==}
 
-  '@lucide/svelte@0.577.0':
-    resolution: {integrity: sha512-0P6mkySd2MapIEgq08tADPmcN4DHndC/02PWwaLkOerXlx5Sv9aT4BxyXLIY+eccr0g/nEyCYiJesqS61YdBZQ==}
+  '@lucide/svelte@1.14.0':
+    resolution: {integrity: sha512-MVuP5VRCBQa2OaIpaRbuEV4k5OV2dy9MyxA6Tf4Sz/IN0v3zzUU72ObHc9r2Zn/wSMXDg6lLrHrczqI7w7gCzQ==}
     peerDependencies:
       svelte: ^5
 
@@ -1860,11 +1860,11 @@ packages:
     resolution: {integrity: sha512-NxVFwLAnrd9i7KUBxC4DrUhmgjzOs+1Qm50D3oF1/oL+r1NpZ4gA7xvG0/zJ8evR7zIKn4vLf7qTNduWFtCrRw==}
     engines: {node: 20 || >=22}
 
-  lucide-static@0.577.0:
-    resolution: {integrity: sha512-hx39J5Tq4JWF2ALY+5YRg+SxQLpeAmLJDXNcqiBJH/UuVwp43it9fyki/onZO7AVFgG5ZbB+fWwZR9mwGHE2XQ==}
+  lucide-static@1.14.0:
+    resolution: {integrity: sha512-QnAHXC1nk8IXRBmO5ee9JcPiKEVeqf06tKF0bZipxlV++bwUVqvvliC3KA+beDg2lod+WXYIhHde5pQRHkUmqA==}
 
-  lucide-svelte@0.577.0:
-    resolution: {integrity: sha512-0i88o57KsaHWnc80J57fY99CWzlZsSdtH5kKjLUJa7z8dum/9/AbINNLzJ7NiRFUdOgMnfAmJt8jFbW2zeC5qQ==}
+  lucide-svelte@1.0.1:
+    resolution: {integrity: sha512-WvzZgk0pqzgda+AErLvgWxHkfg/+GgUwqKMRHvzt0IqyMdmyEDzDCk3Z+Wo/3y753oIgx8u9Q4eUbWkghFa8Jg==}
     peerDependencies:
       svelte: ^3 || ^4 || ^5.0.0-next.42
 
@@ -2948,7 +2948,7 @@ snapshots:
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.10
 
-  '@lucide/svelte@0.577.0(svelte@5.55.5(@typescript-eslint/types@8.58.0))':
+  '@lucide/svelte@1.14.0(svelte@5.55.5(@typescript-eslint/types@8.58.0))':
     dependencies:
       svelte: 5.55.5(@typescript-eslint/types@8.58.0)
 
@@ -4042,9 +4042,9 @@ snapshots:
 
   lru-cache@11.3.5: {}
 
-  lucide-static@0.577.0: {}
+  lucide-static@1.14.0: {}
 
-  lucide-svelte@0.577.0(svelte@5.55.5(@typescript-eslint/types@8.58.0)):
+  lucide-svelte@1.0.1(svelte@5.55.5(@typescript-eslint/types@8.58.0)):
     dependencies:
       svelte: 5.55.5(@typescript-eslint/types@8.58.0)
 
