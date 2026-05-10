@@ -4,7 +4,7 @@ Land each remaining major bump in its own branch + PR so risk is isolated and ea
 
 ## Tasks
 
-- [ ] Task 1: Rust `tokenizers` 0.22 → 0.23. Branch `claude/deps-round-2-tokenizers`. Used only in `src-tauri/src/semantic/embedder.rs`.
+- [x] Task 1: Rust `tokenizers` 0.22 → 0.23. Branch `claude/deps-round-2-tokenizers`. Used only in `src-tauri/src/semantic/embedder.rs`.
 - [ ] Task 2: Rust `sysinfo` 0.38 → 0.39. Branch `claude/deps-round-2-sysinfo`. Used only in `src-tauri/src/commands/debug.rs`.
 - [ ] Task 3: Rust `sha2` 0.10 → 0.11. Branch `claude/deps-round-2-sha2`. Used in 4 files (history, semantic chunker, semantic command, crypto) but trivial `Digest` + `Sha256::digest/new()` calls.
 - [ ] Task 4: NPM `marked` 17 → 18. Branch `claude/deps-round-2-marked`. Markdown HTML rendering library — verify CHANGELOG.
