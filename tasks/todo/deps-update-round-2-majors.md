@@ -9,7 +9,7 @@ Land each remaining major bump in its own branch + PR so risk is isolated and ea
 - [x] Task 3: Rust `sha2` 0.10 → 0.11. Branch `claude/deps-round-2-sha2`. `digest 0.11` switched `Sha256::digest` return type from `GenericArray` (which impl'd `LowerHex`) to `Array` (which doesn't), so two `format!("{:x}", …)` call sites were inlined to `iter().map(|b| format!("{:02x}", b)).collect()` (same byte-by-byte hex pattern already used elsewhere in the codebase).
 - [x] Task 4: NPM `marked` 17 → 18. Branch `claude/deps-round-2-marked`. Markdown HTML rendering library — verify CHANGELOG.
 - [x] Task 5: NPM unify lucide family on 1.x (`lucide-svelte`, `@lucide/svelte`, `lucide-static`). Branch `claude/deps-round-2-lucide`. Bumped all three packages to 1.x — zero source changes needed (no icons we use were renamed/removed; `pnpm check` clean, all 5481 tests passing).
-- [ ] Task 6: NPM `@doist/todoist-sdk` 9 → 10. Branch `claude/deps-round-2-todoist`. Affects the Todoist plugin only.
+- [x] Task 6: NPM `@doist/todoist-sdk` 9 → 10. Branch `claude/deps-round-2-todoist`. Pinned at 10.1.1 (10.1.2 / 10.1.3 fail the 7-day quarantine). 10.0 breaking change only typed `ProductivityStats` goal flags / ignoreDays — not used by this codebase (only `TodoistApi`, `CustomFetch`, `CustomFetchResponse`, `AddTaskArgs` are imported).
 
 ## Process per task
 
