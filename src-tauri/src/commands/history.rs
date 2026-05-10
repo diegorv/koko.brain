@@ -35,7 +35,10 @@ fn now_ms() -> u64 {
 #[tauri::command]
 pub fn save_snapshot(file_path: String, content: String) -> Result<bool, String> {
 	debug_log("HISTORY", format!("Saving snapshot: {} ({} bytes)", file_path, content.len()));
-	let hash = format!("{:x}", Sha256::digest(content.as_bytes()));
+	let hash: String = Sha256::digest(content.as_bytes())
+		.iter()
+		.map(|b| format!("{:02x}", b))
+		.collect();
 	let size = content.len() as i64;
 	let created_at = now_ms() as i64;
 
