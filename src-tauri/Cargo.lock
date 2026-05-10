@@ -2586,7 +2586,7 @@ dependencies = [
 
 [[package]]
 name = "kokobrain"
-version = "2.0.6-alpha"
+version = "2.0.7-alpha"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
