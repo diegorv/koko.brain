@@ -32,7 +32,7 @@ regex = "1"
 notify = "8"
 
 # Debug / metrics
-sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 
 # Shared infrastructure
 chrono = "0.4"
