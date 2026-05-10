@@ -5,7 +5,7 @@ Bring all npm and Cargo dependencies up to date for the safe (patch/minor) range
 ## Tasks
 
 - [x] Task 1: NPM patch/minor updates (`pnpm update -L` for non-major upgrades), then `pnpm check` + `pnpm vitest run`. Commit.
-- [ ] Task 2: Cargo patch/minor updates (`cargo update`), then `cargo test --manifest-path src-tauri/Cargo.toml`. Commit.
+- [x] Task 2: Cargo patch/minor updates (`cargo update`), then `cargo test --manifest-path src-tauri/Cargo.toml`. Commit.
 
 ## Notes
 
