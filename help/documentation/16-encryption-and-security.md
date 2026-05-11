@@ -23,6 +23,26 @@ Open the Command Palette (`Cmd+P`) and select **"Toggle Note Encryption"** again
 
 Open the Command Palette and select **"Lock Encrypted Notes"**. This clears the in-memory key — the next time you open an encrypted note, Touch ID will be required again. Use this when stepping away from your computer.
 
+## Recovery Keys
+
+The first time you encrypt a note in a vault, Kokobrain generates a fresh AES-256 key and stores it in the macOS Keychain. It also shows you a **recovery key** — the same 32 random bytes encoded in base64, looking something like `oZxJp0bRYj…=` (around 44 characters). The recovery key is the only way to restore access if the Keychain entry is ever lost.
+
+> [!IMPORTANT]
+> Copy the recovery key into a password manager or print it. Without it, encrypted notes are unreadable if your Keychain entry disappears.
+
+### Show the recovery key again later
+
+Open the Command Palette and select **"Show Encryption Recovery Key"**. Touch ID is required to read the key from Keychain. The same dialog includes a "Copy" button.
+
+### Restore on a new Mac (or after Keychain loss)
+
+1. Copy your encrypted notes (and the rest of the vault) to the new machine.
+2. Open the vault in Kokobrain.
+3. Run **"Restore Encryption from Recovery Key"** from the Command Palette.
+4. Paste the recovery key. Kokobrain rebuilds the Keychain entry for this vault and immediately decrypts notes again.
+
+The recovery key is interchangeable with the in-Keychain key — they are the same 32 bytes, just stored differently. Keep it offline and somewhere you can find it years from now.
+
 ## What the Encrypted File Looks Like on Disk
 
 When a note is encrypted, the `.md` file content is replaced with a JSON payload containing the ciphertext:
@@ -60,7 +80,7 @@ The original Markdown content is completely gone from the file — it exists onl
 - **Prompt:** A system authentication dialog appears, reading "Kokobrain wants to access the encryption key for this vault."
 
 > [!WARNING]
-> If you lose access to your Mac's Keychain (e.g., factory reset without backup), encrypted notes are **permanently unreadable**. There is no recovery mechanism. Make sure your Keychain is backed up.
+> If you lose access to your Mac's Keychain (e.g., factory reset without backup) **and** you do not have your recovery key, encrypted notes are permanently unreadable. The recovery key shown when you first enable encryption is the only out-of-band escape hatch — save it somewhere safe. See [Recovery Keys](#recovery-keys) above.
 
 > [!NOTE]
 > Note encryption is currently a **macOS-only** feature. It relies on the macOS Keychain and LocalAuthentication framework (Touch ID).
