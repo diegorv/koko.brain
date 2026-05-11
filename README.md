@@ -206,7 +206,7 @@ Some features in Kokobrain were inspired by ideas from Obsidian community plugin
 [e2e-url]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml
 [security-badge]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml/badge.svg
 [security-url]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml
-[codeql-badge]: https://github.com/diegorv/koko.brain/actions/workflows/github-code-scanning%2Fcodeql/badge.svg
+[codeql-badge]: https://img.shields.io/badge/CodeQL-enabled-2ea44f?logo=github&logoColor=white
 [codeql-url]: https://github.com/diegorv/koko.brain/security/code-scanning
 [privacy-badge]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml/badge.svg
 [privacy-url]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml
