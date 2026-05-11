@@ -4,20 +4,33 @@ name: E2E
 #
 # Scope:
 #   - pull_request against `main`: gate before merge.
+#   - push to `main`: covers the "commit straight to main without a tag"
+#     flow. Without this trigger, a direct commit that breaks Playwright
+#     is invisible until the next time someone tags a release — the
+#     PR run never happened and release-time re-run lives in the future.
 #   - workflow_call: invoked by release.yml on tag push and by run-all.yml
 #     for manual full-sweep runs.
-#
-# Intentionally NOT triggered on direct pushes to `main`. The project
-# workflow is "PR -> merge, or commit + tag together". The PR run before
-# merge already covered the diff, and release.yml re-runs E2E on the
-# tagged SHA before building — so a push-to-main trigger would only
-# duplicate work.
 
 permissions:
   contents: read
 
 on:
   pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "static/**"
+      - "e2e/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - "tsconfig.json"
+      - "svelte.config.*"
+      - "vite.config.*"
+      - "tailwind.config.*"
+      - "postcss.config.*"
+      - "components.json"
+      - "scripts/e2e.sh"
+  push:
     branches: [main]
     paths:
       - "src/**"
