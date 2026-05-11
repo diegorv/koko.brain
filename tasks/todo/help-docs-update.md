@@ -1,0 +1,31 @@
+# Help Documentation Update
+
+Bring `help/documentation/` back in sync with the current code. Spot-checks confirmed 10 docs are accurate, 14 need targeted edits, and meta-bind (INPUT/SELECT/BUTTON syntax handled in `src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-{input,button}.ts`) has zero user documentation. This task addresses every confirmed gap. Docs-only — no `src/` or `src-tauri/` changes.
+
+Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
+
+## Tasks
+
+- [ ] Task 1: `02-file-explorer.md` — add "New Kanban Board" context-menu entry, document icon color picker, mention frontmatter `tabTextColor`.
+- [ ] Task 2: `03-editor.md` — add Kanban to file-type list, clarify Canvas/Collection/Kanban source-toggle lives in their own toolbars.
+- [ ] Task 3: `05-wikilinks.md` — document HTML `<audio>`/`<video>` embeds, verify or remove PDF embed claim.
+- [ ] Task 4: `07-sidebar-panels.md` — document tag color picker (right-click).
+- [ ] Task 5: `09-quick-notes-and-templates.md` — document `workPeopleFolder` vs `peopleFolder`, clarify `folderFormat` default.
+- [ ] Task 6: `11-canvas.md` — add Shift+1 / Shift+2 zoom shortcuts, fix color count (6, not 5).
+- [ ] Task 7: `14-graph-view.md` — clarify force parameters are auto-tuned, not user-configurable.
+- [ ] Task 8: `15-file-history.md` — document `history.snapshotBackupEnabled` key, remove or substantiate the trash-preservation claim.
+- [ ] Task 9: `16-encryption-and-security.md` — add recovery key format paragraph (32-byte AES key, base64).
+- [ ] Task 10: `21-kanban.md` — document List and Table view modes.
+- [ ] Task 11: `13-queryjs.md` — add `autoRunQueries` policy section, fix `kb.query()` mention, note `_pendingViews` + live-DOM cache.
+- [ ] Task 12: `19-settings.md` — add missing sections: heading typography, content width, paragraph spacing, `workPeopleFolder`, tag colors, queryjs autoRunQueries, disabledDecorators, theme editor.
+- [ ] Task 13: `12-collection.md` — fix property types list (5 actual: text, list, number, date, boolean; not 7).
+- [ ] Task 14: Create new `24-meta-bind.md` — INPUT/SELECT/BUTTON syntax reference + cross-link to examples.
+- [ ] Task 15: `04-markdown.md` — add short "Interactive elements" section pointing to `24-meta-bind.md`.
+- [ ] Task 16: `README.md` — add entry 24 to the index + learning-path narrative.
+
+## Notes
+
+- Docs-only commits — CLAUDE.md rule 11 (test file per source change) is N/A. Every commit body should note this.
+- One commit per task per CLAUDE.md plan-mode rules and `docs/COMMITS.md` format (Context, Problem, Solution, Behavior, Files with line ranges).
+- Order optimized so the new `24-meta-bind.md` exists before docs that link to it (Tasks 15 and 16 run last).
+- When complete: `mv tasks/todo/help-docs-update.md tasks/done/`.
