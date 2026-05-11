@@ -14,8 +14,21 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Third-party actions (pnpm/action-setup, Swatinem/rust-cache) are
+    # pinned by commit SHA to harden against a maintainer-account
+    # compromise that could ship a malicious tag move. Dependabot still
+    # updates each entry via the trailing `# vX` tag comment.
+    #
+    # `actions/*` (setup-node) is left on a version tag — those are
+    # GitHub-published and considered part of the trusted base.
+    #
+    # `dtolnay/rust-toolchain@stable` is intentionally NOT pinned by
+    # SHA: `stable` is a branch reference that tracks the rolling
+    # rustc stable channel, and pinning by SHA would freeze both the
+    # action code AND the channel (defeating the whole point of
+    # `stable`). The action is small and well-audited.
     - name: Setup pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v6
@@ -35,7 +48,7 @@ runs:
 
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
-      uses: Swatinem/rust-cache@v2
+      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
       with:
         workspaces: "src-tauri -> target"
         cache-on-failure: true

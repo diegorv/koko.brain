@@ -34,7 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: dorny/paths-filter@v4
+      # Pinned by commit SHA, not tag, so a compromised maintainer
+      # account can't ship a malicious "v4" that we pick up silently.
+      # Dependabot still updates this entry (it reads the trailing
+      # `# v4` tag comment).
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           filters: |
