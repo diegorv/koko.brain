@@ -16,7 +16,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 - [x] Task 8: `15-file-history.md` — added settings-key column and a Snapshots-and-Trash subsection.
 - [x] Task 9: `16-encryption-and-security.md` — added full Recovery Keys section and corrected the "no recovery" warning.
 - [x] Task 10: `21-kanban.md` — added View Modes section and `viewMode` settings-block key.
-- [ ] Task 11: `13-queryjs.md` — add `autoRunQueries` policy section, fix `kb.query()` mention, note `_pendingViews` + live-DOM cache.
+- [x] Task 11: `13-queryjs.md` — added Execution policy, Result cache, and Awaitless `kb.view()` subsections. (No `kb.query()` mention existed in the doc; that part was a false positive from the review.)
 - [ ] Task 12: `19-settings.md` — add missing sections: heading typography, content width, paragraph spacing, `workPeopleFolder`, tag colors, queryjs autoRunQueries, disabledDecorators, theme editor.
 - [ ] Task 13: `12-collection.md` — fix property types list (5 actual: text, list, number, date, boolean; not 7).
 - [ ] Task 14: Create new `24-meta-bind.md` — INPUT/SELECT/BUTTON syntax reference + cross-link to examples.

@@ -19,6 +19,38 @@ Write JavaScript inside a ` ```queryjs ` fenced code block. When your cursor is 
 
 Scripts support `async`/`await` — if `await` is detected, the script is automatically wrapped in an async function.
 
+### Execution policy
+
+By default, queryjs blocks do **not** auto-run when you open a note. The policy is controlled by the **Settings → QueryJS → Auto-run policy** dropdown (`queryjs.autoRunQueries` in settings):
+
+| Policy | Behavior |
+|--------|----------|
+| **Manual** (default) | The block renders a ▶ Run button. Click it to execute. Results are cached for the session — switching tabs and back replays the cached output instantly. |
+| **First open** | The block runs the first time you open the note in the current session, then caches. Re-opening the same note does not re-run; subsequent edits or a different note still need a manual click. |
+| **Always** | The block runs every time you open or scroll to it. Use sparingly for queries that read live external data. |
+
+A manual run in the **Manual** policy does *not* promote the file to "auto-run on first open" — even if you switch the policy later, the block re-shows ▶ Run on next render until the policy explicitly says otherwise.
+
+### Result cache and DOM persistence
+
+When a query runs, its rendered DOM tree is stored in a per-session cache keyed by the script's content hash. Scrolling the block out of the viewport destroys the CodeMirror widget, but the cache keeps the **live** DOM element (not a clone). When the widget re-renders, the same element is re-attached. That means:
+
+- `<canvas>` charts keep their pixel buffer — no flicker, no re-draw cost.
+- `<video>` playback state, `<iframe>` content, and any imperatively attached event listeners survive viewport scrolls.
+- Cache invalidates when the script text changes, when you reload the vault, or when you re-run manually.
+
+### Awaitless `kb.view()`
+
+You can call `kb.view("script-name")` without `await` and the block still waits for the loaded script's render to finish before caching. Internally, each `kb.view()` promise is registered on a pending list that the widget awaits after the user code returns. Both forms work:
+
+```javascript
+// Both render correctly.
+kb.view("scripts/my-dashboard");
+await kb.view("scripts/my-dashboard");
+```
+
+Use `await` only if you need to act on the resolved value or sequence multiple views deterministically.
+
 ## Core API Methods
 
 ### `kb.pages(source?)` — Query pages
