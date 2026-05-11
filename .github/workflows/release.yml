@@ -33,11 +33,44 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
 
-      - name: Run TypeScript checks
-        run: pnpm check
-
-      - name: Run frontend tests
-        run: pnpm vitest run
+      - name: Verify CI passed on this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The previous "Validate tag is on main branch" step guarantees the
+          # tagged commit is on `main`. CI (ci.yml) runs on every push to
+          # `main`, so a CI run for this exact SHA must exist by the time
+          # someone tags it. We check the run conclusion instead of re-running
+          # `pnpm check` + `pnpm vitest run` inline (which were duplicating
+          # the work CI already did and which didn't cover E2E at all).
+          SHA="${GITHUB_SHA}"
+          STATE=$(gh run list \
+            --workflow=ci.yml \
+            --commit "$SHA" \
+            --json status,conclusion \
+            --jq '.[0] | "\(.status):\(.conclusion // "none")"' \
+            || echo "")
+          if [ -z "$STATE" ] || [ "$STATE" = ":none" ]; then
+            echo "::error::No CI run found for commit ${SHA}."
+            echo "::error::Push the commit to main and wait for CI to finish before tagging."
+            exit 1
+          fi
+          case "$STATE" in
+            completed:success)
+              echo "✓ CI succeeded for commit ${SHA}"
+              ;;
+            completed:*)
+              echo "::error::CI for commit ${SHA} did not succeed: ${STATE}"
+              echo "::error::Fix CI and retag, or re-run the failing CI workflow."
+              exit 1
+              ;;
+            *)
+              echo "::error::CI for commit ${SHA} is still ${STATE}."
+              echo "::error::Wait for CI to finish before tagging."
+              exit 1
+              ;;
+          esac
 
       - name: Generate changelog
         id: changelog
