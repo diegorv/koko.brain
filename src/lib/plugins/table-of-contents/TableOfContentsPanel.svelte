@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { ChevronRight } from 'lucide-svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { tocStore } from './toc.store.svelte';
@@ -34,12 +35,13 @@
 					{@const depth = heading.level - 1}
 					<button
 						type="button"
-						class="relative block w-full truncate rounded-md py-1 pr-2 text-left text-sm hover:bg-accent cursor-pointer {depth > 0 ? 'toc-indent-lines' : ''}"
+						class="relative flex w-full items-center gap-1 rounded-md py-[5px] pr-2 text-left text-[15px] hover:bg-primary/10 hover:text-primary cursor-pointer select-none {depth > 0 ? 'toc-indent-lines' : ''}"
 						style="padding-left: {depth * 16 + 8}px; --toc-indent-depth: {depth};"
 						title={heading.text}
 						onclick={() => scrollToHeading(heading.pos)}
 					>
-						{heading.text}
+						<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" />
+						<span class="truncate">{heading.text}</span>
 					</button>
 				{/each}
 			</div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractTocHeadings } from '$lib/plugins/table-of-contents/toc.logic';
+import { extractTocHeadings, stripHeadingChrome } from '$lib/plugins/table-of-contents/toc.logic';
 
 describe('extractTocHeadings', () => {
 	it('returns [] for empty string', () => {
@@ -72,15 +72,75 @@ describe('extractTocHeadings', () => {
 		expect(result.map((h) => h.text)).toEqual(['top', 'bottom']);
 	});
 
-	it('keeps inline markdown formatting verbatim in heading text', () => {
+	it('strips inline markdown formatting from heading text', () => {
 		const content = '## **bold** and `code`';
 		expect(extractTocHeadings(content)).toEqual([
-			{ level: 2, text: '**bold** and `code`', line: 0, pos: 0 },
+			{ level: 2, text: 'bold and code', line: 0, pos: 0 },
 		]);
+	});
+
+	it('strips emojis from heading text', () => {
+		const content = '## 🔥 Hot Title 👨‍💻';
+		expect(extractTocHeadings(content)[0].text).toBe('Hot Title');
 	});
 
 	it('only accepts up to 6 hashes', () => {
 		const content = '####### Seven hashes';
 		expect(extractTocHeadings(content)).toEqual([]);
+	});
+});
+
+describe('stripHeadingChrome', () => {
+	it('returns plain text unchanged (modulo whitespace)', () => {
+		expect(stripHeadingChrome('Plain heading')).toBe('Plain heading');
+	});
+
+	it('strips bold (** and __)', () => {
+		expect(stripHeadingChrome('**bold one** and __bold two__')).toBe('bold one and bold two');
+	});
+
+	it('strips italic (* and _)', () => {
+		expect(stripHeadingChrome('*italic one* and _italic two_')).toBe('italic one and italic two');
+	});
+
+	it('strips strikethrough', () => {
+		expect(stripHeadingChrome('~~old~~ new')).toBe('old new');
+	});
+
+	it('strips inline code', () => {
+		expect(stripHeadingChrome('Use `kb.pages()` here')).toBe('Use kb.pages() here');
+	});
+
+	it('keeps wikilink target without brackets', () => {
+		expect(stripHeadingChrome('See [[Other Note]]')).toBe('See Other Note');
+	});
+
+	it('keeps wikilink alias when present', () => {
+		expect(stripHeadingChrome('See [[file/path|the alias]]')).toBe('See the alias');
+	});
+
+	it('keeps markdown link text without URL', () => {
+		expect(stripHeadingChrome('Read [the docs](https://example.com)')).toBe('Read the docs');
+	});
+
+	it('strips single emoji', () => {
+		expect(stripHeadingChrome('🔥 Hot')).toBe('Hot');
+	});
+
+	it('strips composite emoji with ZWJ', () => {
+		expect(stripHeadingChrome('👨‍💻 Coding session')).toBe('Coding session');
+	});
+
+	it('collapses whitespace left behind by stripped tokens', () => {
+		expect(stripHeadingChrome('**A**   `B`   ~~C~~')).toBe('A B C');
+	});
+
+	it('handles mixed chrome end-to-end', () => {
+		const input = '🚀 **Launch** of [[v2|the new version]] — `prod` only ✨';
+		expect(stripHeadingChrome(input)).toBe('Launch of the new version — prod only');
+	});
+
+	it('returns empty string when input is only chrome', () => {
+		expect(stripHeadingChrome('🔥✨')).toBe('');
 	});
 });
