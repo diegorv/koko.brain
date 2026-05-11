@@ -71,10 +71,9 @@ Playwright end-to-end suite, separated from CI so it can evolve independently (d
 **Triggers**
 
 - `pull_request` against `main`, filtered to paths that could affect the rendered frontend (`src/**`, `static/**`, `e2e/**`, lockfile, configs, `scripts/e2e.sh`).
+- `push` to `main` with the same path filter. Covers the "commit straight to main without a tag" flow — without this trigger, a direct commit that breaks Playwright stays invisible until someone tags a release (the PR run never happened, and the release-time re-run lives in the future).
 - `workflow_dispatch` (manual rerun without a new commit).
 - `workflow_call` (invoked by `release.yml` as a release gate on the tagged SHA, and by `run-all.yml`).
-
-Intentionally NOT triggered on direct pushes to `main`. The project workflow is "PR → merge, or commit + tag together". The PR run before merge already covered the diff, and `release.yml` re-runs E2E on the tagged SHA before building — so a push-to-main trigger would only duplicate work.
 
 **Jobs**
 
