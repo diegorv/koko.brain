@@ -1,29 +1,42 @@
+/**
+ * Test vault loaded by the `vaultPage` fixture. The content is shaped to
+ * exercise every panel a golden-path spec might assert on:
+ *
+ *   - Welcome.md          → links [[Projects/Roadmap]], inline tag #intro
+ *   - Inbox.md            → contains the literal "Welcome" so unlinked
+ *                           mentions has something to find
+ *   - Projects/Roadmap.md → frontmatter (status, priority, tags), links
+ *                           [[Welcome]] + [[Projects/2026-Q2]], two backlinks
+ *   - Projects/2026-Q2.md → tasks (- [ ] / - [x]), links [[Projects/Roadmap]]
+ *   - Projects/archive/2025-Q4.md → archived note in nested folder
+ *   - Daily/2026-05-01.md → daily note with tasks, links [[Welcome]]
+ *
+ * Adjusting this file ripples into every spec that uses `vaultPage` —
+ * keep changes additive when possible.
+ */
+
 import { test as base, type Page } from '@playwright/test';
 
 export const TEST_VAULT_PATH = '/test-vault';
 
 const DEFAULT_SETTINGS = {
 	periodicNotes: {
-		folder: '_notes',
-		daily: {
-			format: 'YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY',
-			template: '',
-			templatePath: '_templates/Daily Note.md',
-		},
-		weekly: { format: 'YYYY/MM-MMM/[__journal-week-]WW[-]YYYY', templatePath: '_templates/Weekly Note.md' },
-		monthly: { format: 'YYYY/MM-MMM/MM-MMM', templatePath: '_templates/Monthly Note.md' },
-		quarterly: { format: 'YYYY/[_journal-quarter-]YYYY[-Q]Q', templatePath: '_templates/Quarterly Note.md' },
+		folder: 'Daily',
+		daily: { format: 'YYYY-MM-DD', template: '', templatePath: '' },
+		weekly: { format: 'YYYY-[W]WW', templatePath: '' },
+		monthly: { format: 'YYYY-MM', templatePath: '' },
+		quarterly: { format: 'YYYY-[Q]Q', templatePath: '' },
 	},
 	quickNote: {
-		folderFormat: 'YYYY/MM-MMM',
-		filenameFormat: '[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS',
-		templatePath: '_templates/Quick Note.md',
+		folderFormat: 'Inbox',
+		filenameFormat: 'capture-YYYY-MM-DD-HH-mm-ss',
+		templatePath: '',
 	},
 	oneOnOne: {
-		peopleFolder: '_people',
-		folderFormat: 'YYYY/MM-MMM',
-		filenameFormat: '[-1on1-]{person}[-]DD-MM-YYYY',
-		templatePath: '_templates/One on One.md',
+		peopleFolder: 'People',
+		folderFormat: 'YYYY/MM',
+		filenameFormat: '{person}-DD-MM-YYYY',
+		templatePath: '',
 	},
 	layout: {
 		rightSidebarVisible: true,
@@ -43,21 +56,75 @@ const DEFAULT_SETTINGS = {
 	appearance: {},
 };
 
-const FOLDER_ORDER_TEMPLATE = {
-	_comment: 'Custom folder order for the file explorer.',
-	_example: { '.': ['Projects', 'Archive', 'Daily'], Projects: ['active', 'backlog'] },
-};
+const WELCOME = `# Welcome
+
+This is the test vault. Visit [[Projects/Roadmap]] to see the active plan.
+
+#intro
+`;
+
+const INBOX = `# Inbox
+
+Quick capture area. The string Welcome appears here as plain text so the
+unlinked mentions panel has something to surface.
+`;
+
+const ROADMAP = `---
+status: active
+priority: 1
+tags: [plan, project]
+---
+
+# Roadmap
+
+The current high-level plan. Linked from [[Welcome]] and references
+[[Projects/2026-Q2]] for the next milestone.
+
+#plan
+`;
+
+const Q2 = `---
+status: in-progress
+quarter: 2
+---
+
+# 2026 Q2
+
+Driven by [[Projects/Roadmap]].
+
+## Tasks
+- [ ] Ship feature A
+- [x] Draft RFC
+- [ ] Review pending PRs
+
+#plan
+`;
+
+const ARCHIVED = `# 2025 Q4 (archived)
+
+Historical content. No outgoing links.
+`;
+
+const DAILY = `# 2026-05-01
+
+Daily note. Linked back to [[Welcome]] for navigation.
+
+- [ ] Reply to email thread
+- [x] Morning stand-up
+`;
 
 export const TEST_FILES: Record<string, string> = {
-	[`${TEST_VAULT_PATH}/Welcome.md`]: '# Welcome\nThis is a test vault.\n\nSee also [[Projects/todo]].',
+	[`${TEST_VAULT_PATH}/Welcome.md`]: WELCOME,
+	[`${TEST_VAULT_PATH}/Inbox.md`]: INBOX,
 	[`${TEST_VAULT_PATH}/Projects/`]: '',
-	[`${TEST_VAULT_PATH}/Projects/todo.md`]: '# Todo\n- [ ] First task\n- [x] Done task',
-	[`${TEST_VAULT_PATH}/Projects/notes.md`]: '# Notes\nSome [[Welcome]] link here.',
+	[`${TEST_VAULT_PATH}/Projects/Roadmap.md`]: ROADMAP,
+	[`${TEST_VAULT_PATH}/Projects/2026-Q2.md`]: Q2,
+	[`${TEST_VAULT_PATH}/Projects/archive/`]: '',
+	[`${TEST_VAULT_PATH}/Projects/archive/2025-Q4.md`]: ARCHIVED,
 	[`${TEST_VAULT_PATH}/Daily/`]: '',
-	[`${TEST_VAULT_PATH}/Daily/2024-01-15.md`]: '# Daily Note\nToday was productive.',
+	[`${TEST_VAULT_PATH}/Daily/2026-05-01.md`]: DAILY,
 	[`${TEST_VAULT_PATH}/.kokobrain/`]: '',
 	[`${TEST_VAULT_PATH}/.kokobrain/settings.json`]: JSON.stringify(DEFAULT_SETTINGS, null, 2),
-	[`${TEST_VAULT_PATH}/.kokobrain/folder-order.json`]: JSON.stringify(FOLDER_ORDER_TEMPLATE, null, 2),
 };
 
 async function waitForE2eApi(page: Page) {
@@ -71,26 +138,12 @@ async function populateAndOpenVault(page: Page) {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await waitForE2eApi(page);
 
-	// Populate virtual FS
-	await page.evaluate(
-		({ files }) => {
-			window.__e2e.fs.populate(files);
-		},
-		{ files: TEST_FILES },
-	);
+	await page.evaluate(({ files }) => window.__e2e.fs.populate(files), { files: TEST_FILES });
+	await page.evaluate(({ vaultPath }) => window.__e2e.dialog.setOpenResponse(vaultPath), {
+		vaultPath: TEST_VAULT_PATH,
+	});
 
-	// Set dialog response so "Open Vault" returns our test vault path
-	await page.evaluate(
-		({ vaultPath }) => {
-			window.__e2e.dialog.setOpenResponse(vaultPath);
-		},
-		{ vaultPath: TEST_VAULT_PATH },
-	);
-
-	// Click "Open Vault" button
 	await page.getByRole('button', { name: 'Open Vault' }).click();
-
-	// Wait for file explorer to render (tree container appears)
 	await page.locator('[role="tree"]').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
