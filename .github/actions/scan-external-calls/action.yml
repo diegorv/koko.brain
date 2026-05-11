@@ -1,0 +1,157 @@
+name: "Scan External Calls"
+description: >-
+  Greps a directory tree for patterns that look like external-network
+  calls (HTTP clients, sockets, hardcoded URLs, …) and fails the build
+  if any unknown match is found. Caller supplies the language-specific
+  pattern / skip / known lists as multiline-string inputs (one entry
+  per line). Empty lines and lines starting with `#` are ignored so
+  callers can comment their lists.
+
+inputs:
+  language-label:
+    description: "Display name printed in the scan header (e.g. 'TypeScript/Svelte')"
+    required: true
+  root:
+    description: "Filesystem root grep should descend from (relative to repo)"
+    required: true
+  include-globs:
+    description: "Comma-separated grep --include globs (e.g. '*.ts,*.svelte,*.js')"
+    required: true
+  patterns:
+    description: "Newline-separated regex patterns that indicate a network call"
+    required: true
+  skip:
+    description: "Newline-separated regex patterns whose matching lines are silently dropped"
+    required: false
+    default: ""
+  known:
+    description: >-
+      Newline-separated regex patterns for matches that are reviewed
+      and expected. They surface as `::notice::` annotations but don't
+      fail the build.
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Scan ${{ inputs.language-label }} files
+      shell: bash
+      env:
+        LANG_LABEL: ${{ inputs.language-label }}
+        ROOT: ${{ inputs.root }}
+        INCLUDE_GLOBS: ${{ inputs.include-globs }}
+        PATTERNS_INPUT: ${{ inputs.patterns }}
+        SKIP_INPUT: ${{ inputs.skip }}
+        KNOWN_INPUT: ${{ inputs.known }}
+      run: |
+        set -euo pipefail
+
+        # `read -ra` splits on commas, then we trim each entry to build
+        # the per-extension `--include` flags grep needs.
+        IFS=',' read -ra GLOBS <<< "$INCLUDE_GLOBS"
+        INCLUDE_ARGS=()
+        for g in "${GLOBS[@]}"; do
+          g_trimmed="$(echo "$g" | xargs)"
+          [ -n "$g_trimmed" ] && INCLUDE_ARGS+=( "--include=$g_trimmed" )
+        done
+
+        # Parse a multiline input into a bash array, dropping blank lines
+        # and `#` comments so callers can annotate the lists.
+        parse_list() {
+          local input="$1"
+          local arr_name="$2"
+          local line
+          while IFS= read -r line; do
+            # Trim surrounding whitespace
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+            [ -z "$line" ] && continue
+            [[ "$line" =~ ^# ]] && continue
+            eval "${arr_name}+=( \"\$line\" )"
+          done <<< "$input"
+        }
+
+        PATTERNS=()
+        SKIP=()
+        KNOWN=()
+        parse_list "$PATTERNS_INPUT" PATTERNS
+        parse_list "$SKIP_INPUT" SKIP
+        parse_list "$KNOWN_INPUT" KNOWN
+
+        echo "Scanning $LANG_LABEL files under $ROOT/ for external calls..."
+
+        SKIPPED_MATCHES=()
+        KNOWN_MATCHES=()
+        UNKNOWN_MATCHES=()
+
+        for pattern in "${PATTERNS[@]}"; do
+          while IFS= read -r match; do
+            # Apply skip filters first
+            SKIP_MATCH=false
+            for skip in "${SKIP[@]}"; do
+              if echo "$match" | grep -qE "$skip"; then
+                SKIP_MATCH=true
+                break
+              fi
+            done
+            if [ "$SKIP_MATCH" = true ]; then
+              SKIPPED_MATCHES+=("$match")
+              continue
+            fi
+
+            # Then known-list (reviewed, allowed)
+            IS_KNOWN=false
+            for known in "${KNOWN[@]}"; do
+              if echo "$match" | grep -qE "$known"; then
+                IS_KNOWN=true
+                break
+              fi
+            done
+
+            if [ "$IS_KNOWN" = true ]; then
+              KNOWN_MATCHES+=("$match")
+            else
+              UNKNOWN_MATCHES+=("$match")
+            fi
+          done < <(grep -rnE "$pattern" "${INCLUDE_ARGS[@]}" "$ROOT/" 2>/dev/null || true)
+        done
+
+        echo ""
+        echo "=== Results ($LANG_LABEL) ==="
+
+        if [ ${#SKIPPED_MATCHES[@]} -gt 0 ]; then
+          echo ""
+          echo "Skipped (${#SKIPPED_MATCHES[@]} matches excluded by skip rules):"
+          for m in "${SKIPPED_MATCHES[@]}"; do
+            echo "  --  $m"
+          done
+        fi
+
+        if [ ${#KNOWN_MATCHES[@]} -gt 0 ]; then
+          echo ""
+          echo "Known (expected, not blocking):"
+          for m in "${KNOWN_MATCHES[@]}"; do
+            echo "  ok  $m"
+            echo "::notice::$m"
+          done
+        fi
+
+        if [ ${#UNKNOWN_MATCHES[@]} -gt 0 ]; then
+          echo ""
+          echo "Unknown (blocking):"
+          for m in "${UNKNOWN_MATCHES[@]}"; do
+            echo "  !!  $m"
+            echo "::warning::$m"
+          done
+          echo ""
+          echo "Found ${#UNKNOWN_MATCHES[@]} unknown external call(s) in $LANG_LABEL files."
+          echo "If a call is intentional, add it to the 'known' input of this action or"
+          echo "add '// privacy-ok' (or '# privacy-ok' / '/* privacy-ok */') on the same line."
+          exit 1
+        fi
+
+        if [ ${#KNOWN_MATCHES[@]} -eq 0 ] && [ ${#SKIPPED_MATCHES[@]} -eq 0 ]; then
+          echo ""
+          echo "No external calls found."
+        fi
