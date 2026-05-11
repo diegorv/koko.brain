@@ -12,7 +12,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 - [x] Task 4: `07-sidebar-panels.md` — document tag color picker (click the dot, not right-click).
 - [x] Task 5: `09-quick-notes-and-templates.md` — document `workPeopleFolder` + `peopleFolder` and fix default values.
 - [x] Task 6: `11-canvas.md` — added keyboard shortcut table (Shift+1, Shift+2, Cmd+A, Escape, Delete). Color count was already correct.
-- [ ] Task 7: `14-graph-view.md` — clarify force parameters are auto-tuned, not user-configurable.
+- [x] Task 7: `14-graph-view.md` — added Layout note (auto-tuned force params) and "Show orphans" filter.
 - [ ] Task 8: `15-file-history.md` — document `history.snapshotBackupEnabled` key, remove or substantiate the trash-preservation claim.
 - [ ] Task 9: `16-encryption-and-security.md` — add recovery key format paragraph (32-byte AES key, base64).
 - [ ] Task 10: `21-kanban.md` — document List and Table view modes.
