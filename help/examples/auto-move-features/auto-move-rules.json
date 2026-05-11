@@ -1,0 +1,59 @@
+{
+  "rules": [
+    {
+      "id": "1709827200000",
+      "name": "Archive done projects",
+      "expression": "status == 'done' && file.hasTag('project')",
+      "destination": "Archive/Projects",
+      "enabled": true,
+      "icon": {
+        "iconPack": "lucide",
+        "iconName": "archive",
+        "color": "#9ca3af"
+      }
+    },
+    {
+      "id": "1709827300000",
+      "name": "Move recipes to Cooking folder",
+      "expression": "file.hasTag('recipe')",
+      "destination": "Cooking",
+      "enabled": true,
+      "icon": {
+        "iconPack": "emoji",
+        "iconName": "🍳"
+      }
+    },
+    {
+      "id": "1709827400000",
+      "name": "Tag-as-bug → Bug Tracker",
+      "expression": "file.hasTag('bug') && status != 'closed'",
+      "destination": "Inbox/Bugs",
+      "enabled": true,
+      "icon": {
+        "iconPack": "lucide",
+        "iconName": "bug",
+        "color": "#dc2626",
+        "textColor": "#dc2626"
+      }
+    },
+    {
+      "id": "1709827500000",
+      "name": "Daily journals to year folder",
+      "expression": "type == 'journal' && file.hasTag('daily')",
+      "destination": "Journal/2026",
+      "enabled": true
+    },
+    {
+      "id": "1709827600000",
+      "name": "Deprecated rule (kept for reference)",
+      "expression": "file.hasTag('old-format')",
+      "destination": "Archive/Legacy",
+      "enabled": false
+    }
+  ],
+  "excludedFolders": [
+    "Templates",
+    "_system",
+    "Archive"
+  ]
+}
