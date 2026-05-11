@@ -1,6 +1,6 @@
 # Kokobrain
 
-[![CI](https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/ci.yml) [![Security](https://github.com/diegorv/koko.brain/actions/workflows/security.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/security.yml) [![Release](https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/release.yml) [![Sync Wiki](https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml) [![Dependabot Updates](https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates)
+[![CI](https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/ci.yml) [![Security](https://github.com/diegorv/koko.brain/actions/workflows/security.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/security.yml) [![Privacy](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml) [![Release](https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/release.yml) [![Wiki Sync](https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml) [![Dependabot Updates](https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates)
 
 A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md), built with Svelte 5 and Tauri 2
 
@@ -116,6 +116,7 @@ src-tauri/src/
 - **[Testing Guide](docs/TESTING.md)** — Mock rules, assertion patterns, service/store tests
 - **[Commit Conventions](docs/COMMITS.md)** — Commit message format and examples
 - **[Live Preview Architecture](docs/LIVE-PREVIEW.md)** — Editor live preview plugin system
+- **[GitHub Workflows](GITHUB-WORKFLOW.md)** — What each CI workflow tests, when it runs, and what it does not cover
 
 ## IDE Setup
 
