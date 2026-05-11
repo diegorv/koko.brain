@@ -26,8 +26,8 @@ Primary validation pipeline for code changes.
 - `push` to `main`
 - `pull_request` against `main`
 - `workflow_dispatch` (manual)
-- `workflow_call` (invoked by `run-all.yml`)
-- Skipped automatically when the changeset only touches `**/*.md` or `.github/workflows/**`.
+- `workflow_call` (invoked by `run-all.yml` and by `release.yml` to revalidate the tagged SHA before building)
+- Skipped automatically when the changeset only touches `**/*.md`.
 
 **Jobs**
 
@@ -36,13 +36,14 @@ Primary validation pipeline for code changes.
 | `changes` | Detect Changes | ubuntu-latest | Always |
 | `frontend` | Frontend (typecheck + tests) | ubuntu-latest | Only if `frontend` paths changed |
 | `rust` | Rust (cargo test) | macos-latest | Only if `rust` paths changed |
+| `ci-success` | CI success | ubuntu-latest | Always (sentinel for branch protection — passes when every preceding job either succeeded or was deliberately skipped, fails on any failure or cancellation) |
 
 `changes` uses [`dorny/paths-filter`](https://github.com/dorny/paths-filter) with two filters:
 
 - `frontend`: `src/**`, `static/**`, `pnpm-lock.yaml`, `package.json`, `tsconfig.json`, `svelte.config.*`, `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, `components.json`
 - `rust`: `src-tauri/**`
 
-The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml)) so a flaky end-to-end run does not block the deterministic CI matrix or the release pipeline.
+The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml)) so it can evolve independently — different runner needs (Playwright browser cache), different cadence (heavier than `pnpm vitest`), and a different invocation contract (`bash scripts/e2e.sh`).
 
 **What CI tests**
 
@@ -64,16 +65,15 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
 
 ## E2E (`e2e.yml`)
 
-Playwright end-to-end suite, separated from CI so flakiness in the browser layer cannot block the deterministic checks or the release pipeline.
+Playwright end-to-end suite, separated from CI so it can evolve independently (different cache strategy for the Chromium binary, different invocation via `bash scripts/e2e.sh`, different failure artifact set).
 
 **Triggers**
 
 - `pull_request` against `main`, filtered to paths that could affect the rendered frontend (`src/**`, `static/**`, `e2e/**`, lockfile, configs, `scripts/e2e.sh`).
-- `push` of tags matching `*.*.*-alpha`. Runs alongside `release.yml` as a safety net visible on the release commit. Release does NOT wait on it — the binary still builds, signs, and ships even if the E2E run flakes; the real gate is the PR run before merge.
 - `workflow_dispatch` (manual rerun without a new commit).
-- `workflow_call` (invoked by `run-all.yml`).
+- `workflow_call` (invoked by `release.yml` as a release gate on the tagged SHA, and by `run-all.yml`).
 
-Intentionally NOT triggered on direct pushes to `main`. The project workflow is "PR -> merge, or commit + tag together". Running E2E on every commit-to-main push doubles the cost without adding signal: the PR run before the merge already covered the diff, and the tag run will cover it again before release.
+Intentionally NOT triggered on direct pushes to `main`. The project workflow is "PR → merge, or commit + tag together". The PR run before merge already covered the diff, and `release.yml` re-runs E2E on the tagged SHA before building — so a push-to-main trigger would only duplicate work.
 
 **Jobs**
 
@@ -110,7 +110,7 @@ Dependency and supply-chain auditing.
 - `schedule`: every Monday at 09:00 UTC (catches new CVEs even when no code changes)
 - `workflow_dispatch`
 - `workflow_call`
-- Skipped when only `**/*.md` or `.github/workflows/**` changed.
+- Skipped when only `**/*.md` changed.
 
 **Jobs**
 
@@ -186,22 +186,24 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `build-macos` | macos-latest | The release pipeline. |
+| `validate` | ubuntu-latest | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
+| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml`. Re-runs the full CI matrix (changes / frontend / rust / ci-success) on the tagged SHA. |
+| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Re-runs the Playwright suite on the tagged SHA. Blocks the release. |
+| `build-macos` | macos-latest | `needs: [ci, e2e]`. The build/sign/publish pipeline. Only starts after both gates passed. |
 
-Pipeline steps:
+`build-macos` pipeline:
 
-1. `checkout` with full history.
-2. Validate the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Aborts if someone tagged a feature branch.
-3. Setup environment (pnpm, Node, Rust toolchain for `aarch64-apple-darwin`).
-4. Verify CI passed on this commit. Queries `gh run list --workflow=ci.yml --commit "$GITHUB_SHA"` and aborts unless the conclusion is `success`. This gates release on the full CI matrix (frontend typecheck, vitest, E2E, Rust).
-5. Generate changelog from `git log` between the previous tag and the new tag.
-6. `tauri-apps/tauri-action@v0.6` builds the Tauri app, code-signs with the Apple Developer cert, notarizes with the Apple ID, signs the auto-update payload with the Tauri signing key. Required secrets: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-7. Generate SHA-256 checksums for `*.dmg`, `*.app.tar.gz`, and `*.app.tar.gz.sig`.
-8. Upload `checksums-sha256.txt` to the GitHub release.
+1. Checkout with full history, setup environment (pnpm, Node, Rust toolchain for `aarch64-apple-darwin`).
+2. Generate changelog from `git log` between the previous tag and the new tag (filters out `chore: bump version` lines).
+3. `tauri-apps/tauri-action@v0.6` builds the Tauri app, code-signs with the Apple Developer cert, notarizes with the Apple ID, signs the auto-update payload with the Tauri signing key. Required secrets: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+4. Generate SHA-256 checksums for `*.dmg`, `*.app.tar.gz`, and `*.app.tar.gz.sig`.
+5. Upload `checksums-sha256.txt` to the GitHub release.
+
+The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run list` poll followed by `gh run watch --exit-status`) is gone. CI and E2E are now native dependencies via `workflow_call` — no race conditions, no path-filter edge cases, and the UI shows the pipeline stages explicitly.
 
 **What Release tests**
 
-- That the tagged commit is on `main` AND that CI passed on that exact commit before building.
+- That the tagged commit is on `main`, that CI passes on the exact tagged SHA, and that the Playwright E2E suite passes on the exact tagged SHA.
 - That the macOS build succeeds end-to-end (compilation, bundling, signing, notarization).
 
 **What Release does NOT test**
@@ -316,9 +318,9 @@ The 14-day cooldown aligns with the pnpm `minimumReleaseAge` setting (7 days at 
 
 ### Path filters
 
-CI, Security, and Privacy use path filters to skip when only documentation or workflow files changed:
+CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- CI and Security use `paths-ignore: [**/*.md, .github/workflows/**]`.
+- CI and Security use `paths-ignore: [**/*.md]`. Workflow file edits are NOT excluded — when you change a workflow, CI and Security run on that change so you can catch breakage before merge.
 - Privacy uses an `allow-list` instead: `paths: [src/**, src-tauri/src/**]`. It only cares about source code.
 
 ### Concurrency
@@ -327,16 +329,19 @@ Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use
 
 ### Permissions
 
-Default to `contents: read`. Jobs that need more declare it inline (e.g. `cargo-audit` needs `checks: write`, `tauri-action` needs `contents: write` for the release job).
+Every workflow declares `permissions: contents: read` at the file level. Jobs that need more escalate at the job level — and because GitHub Actions REPLACES (not merges) workflow-level permissions when a job declares its own, escalating jobs re-state the `contents: read` baseline alongside the extra scope they need. Current escalations:
+
+- `security.yml` → `cargo-audit`: `contents: read` + `checks: write` (for `rustsec/audit-check` to post annotations).
+- `release.yml` → `build-macos`: `contents: write` (for `tauri-action` to create the release and upload assets).
+- `sync-wiki.yml`: workflow-level `contents: write` (publishes to the `<repo>.wiki` Git repo).
 
 ### Required status checks
 
-When updating branch protection rules in the GitHub UI, refer to the current job display names. The E2E check now belongs to a separate workflow file, so the workflow column matters:
+When updating branch protection rules in the GitHub UI, refer to the current job display names. The recommended required check is the single sentinel from CI, which aggregates the rest:
 
-| Display name | Workflow file |
-|---|---|
-| `Frontend (typecheck + tests)` | `ci.yml` |
-| `Rust (cargo test)` | `ci.yml` |
-| `Frontend (Playwright E2E)` | `e2e.yml` |
+| Display name | Workflow file | Notes |
+|---|---|---|
+| `CI success` | `ci.yml` | **Recommended** required check. Aggregates `changes` + `frontend` + `rust`; passes when each either succeeded or was deliberately skipped, fails on any real failure. Required because `frontend` and `rust` individually are skipped by paths-filter on changes that don't touch their tree, which makes them unusable as required checks directly. |
+| `Frontend (Playwright E2E)` | `e2e.yml` | Can be required separately if you want a hard E2E gate on PRs. |
 
-Historical names that should be removed from branch protection: `TypeScript Check`, `Frontend Tests`, `Rust Tests`, and any `Playwright E2E` entry pinned to `ci.yml` (it moved to `e2e.yml`).
+Historical names that should be removed from branch protection: `TypeScript Check`, `Frontend Tests`, `Rust Tests`, `Frontend (typecheck + tests)`, `Rust (cargo test)`, and any `Playwright E2E` entry pinned to `ci.yml` (it moved to `e2e.yml`).
