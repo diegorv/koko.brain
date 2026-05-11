@@ -25,7 +25,7 @@ tags:
 -----
 ## Meeting file list:
 ```queryjs
-await kb.view("__system/queryjs/meeting-list")
+await kb.view("_system/queryjs/meeting-list")
 ```
 -----
 -----

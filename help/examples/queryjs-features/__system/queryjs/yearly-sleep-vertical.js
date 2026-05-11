@@ -1,8 +1,12 @@
 // Yearly Sleep Quality — Vertical calendar (months as columns, days as rows)
-const dailies = kb.pages('#type/journal/daily');
+const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const year = ref.year;
+
+const dailies = kb.pages('#type/journal/daily')
+  .whereDate('created', ref.startOf('year'), ref.endOf('year'));
 
 if (dailies.length === 0) {
-  kb.paragraph("*No daily notes found.*");
+  kb.paragraph(`*No daily notes found for ${year}.*`);
   return;
 }
 
@@ -15,7 +19,7 @@ kb.ui.yearlyCalendar(
     };
   }).array(),
   {
-    year: 2026,
+    year,
     colors: {
       default: ['#dbeafe', '#93c5fd', '#3b82f6', '#1d4ed8', '#1e3a8a'],
     },

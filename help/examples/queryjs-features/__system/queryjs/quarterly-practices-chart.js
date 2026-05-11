@@ -1,79 +1,29 @@
-// Quarterly Practices Chart - Radar chart with monthly practices for the quarter
-const current = kb.current();
-if (!current || !current.created) {
-  kb.paragraph("*No created date found on this note.*");
-  return;
-}
-
-const quarterDate = kb.tryDate(current.created);
-if (!quarterDate) {
-  kb.paragraph("*Invalid created date.*");
-  return;
-}
-
-const fields = [
-  { key: 'practice_exercise', label: 'Exercise' },
-  { key: 'practice_eating', label: 'Eating' },
-  { key: 'practice_sleep', label: 'Sleep' },
-  { key: 'practice_journaling', label: 'Journaling' },
-  { key: 'practice_inputs', label: 'Inputs' },
-  { key: 'practice_focus', label: 'Focus' },
-  { key: 'practice_presence', label: 'Presence' },
-  { key: 'practice_relationships', label: 'Relationships' },
-  { key: 'practice_projects', label: 'Projects' },
-  { key: 'practice_outdoors', label: 'Outdoors' },
-];
-
-const quarterStart = quarterDate.startOf('quarter');
-const quarterEnd = quarterDate.endOf('quarter');
-
-const monthColors = [
-  'rgba(66,153,225,1)',   // Month 1
-  'rgba(72,187,120,1)',   // Month 2
-  'rgba(237,137,54,1)',   // Month 3
-];
-
-// Find monthly notes in this quarter
-const monthlyNotes = kb.pages('#type/journal/monthly')
-  .whereDate('created', quarterStart, quarterEnd);
-
-const sorted = monthlyNotes.sort(p => p.created, 'asc').array();
-
-// Build radar datasets — one line per month that has data
-const datasets = sorted
-  .map((nota, i) => {
-    const data = fields.map(f => kb.number(nota[f.key]));
-    if (!data.some(v => v > 0)) return null;
-    const monthDate = kb.tryDate(nota.created);
-    const label = monthDate ? monthDate.toFormat('MMMM') : `Month ${i + 1}`;
-    return { label, data, color: monthColors[i % monthColors.length] };
-  })
-  .filter(Boolean);
-
-if (datasets.length === 0) {
-  kb.paragraph("*No practices data found for this quarter.*");
-  return;
-}
-
-await kb.ui.chart('radar', {
-  labels: fields.map(f => f.label),
-  datasets,
-  max: 5,
-  stepSize: 1,
+// Quarterly Practices Chart — monthly practices for the quarter
+await kb.view('_system/queryjs/_shared-period-radar', {
+  fields: [
+    { key: 'practice_exercise', label: 'Exercise' },
+    { key: 'practice_eating', label: 'Eating' },
+    { key: 'practice_sleep', label: 'Sleep' },
+    { key: 'practice_journaling', label: 'Journaling' },
+    { key: 'practice_inputs', label: 'Inputs' },
+    { key: 'practice_focus', label: 'Focus' },
+    { key: 'practice_presence', label: 'Presence' },
+    { key: 'practice_relationships', label: 'Relationships' },
+    { key: 'practice_projects', label: 'Projects' },
+    { key: 'practice_outdoors', label: 'Outdoors' },
+  ],
+  tag: 'type/journal/monthly',
+  periodType: 'quarter',
+  colors: [
+    'rgba(66,153,225,1)',   // M1
+    'rgba(72,187,120,1)',   // M2
+    'rgba(237,137,54,1)',   // M3
+  ],
+  header: 'Quarterly Averages',
+  headerRow: 'Practice',
+  emptyMessage: "*No practices data found for this quarter.*",
+  labelFn: (note, i) => {
+    const d = kb.tryDate(note.created);
+    return d ? d.toFormat('MMMM') : `Month ${i + 1}`;
+  },
 });
-
-// Quarterly averages table
-kb.header(3, 'Quarterly Averages');
-
-const notesWithData = sorted.filter(n => fields.some(f => kb.number(n[f.key]) > 0));
-const count = notesWithData.length || 1;
-
-const averages = fields.map(f => {
-  const sum = notesWithData.reduce((acc, nota) => acc + kb.number(nota[f.key]), 0);
-  return Math.round((sum / count) * 10) / 10;
-});
-
-kb.table(
-  ["Practice", "Avg", "Visual"],
-  fields.map((f, i) => [f.label, averages[i].toFixed(1), kb.progressBar(averages[i], 5)])
-);
