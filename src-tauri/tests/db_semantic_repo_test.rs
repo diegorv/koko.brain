@@ -304,6 +304,47 @@ fn delete_orphaned_mtimes_preserves_non_mtime_meta() {
 	assert_eq!(val.as_deref(), Some("abc123"));
 }
 
+// --- get_file_index_info ---
+
+#[test]
+fn get_file_index_info_returns_zero_for_unknown_path() {
+	let conn = setup();
+	let (count, last) = semantic_repo::get_file_index_info(&conn, "missing.md").unwrap();
+	assert_eq!(count, 0);
+	assert!(last.is_none());
+}
+
+#[test]
+fn get_file_index_info_returns_count_and_latest_embedded_at() {
+	let conn = setup();
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+		.unwrap();
+	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, 6, 10, "h2", b"e", 4500)
+		.unwrap();
+	semantic_repo::insert_chunk(&conn, "k3", "a.md", "t3", None, 11, 15, "h3", b"e", 2200)
+		.unwrap();
+	// Unrelated file — must not leak into the result.
+	semantic_repo::insert_chunk(&conn, "k4", "b.md", "t4", None, 1, 5, "h4", b"e", 9000)
+		.unwrap();
+
+	let (count, last) = semantic_repo::get_file_index_info(&conn, "a.md").unwrap();
+	assert_eq!(count, 3);
+	assert_eq!(last, Some(4500), "latest embedded_at among a.md chunks");
+}
+
+#[test]
+fn get_file_index_info_isolates_by_source_path() {
+	let conn = setup();
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+		.unwrap();
+	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, 1, 5, "h2", b"e", 2000)
+		.unwrap();
+
+	let (count_b, last_b) = semantic_repo::get_file_index_info(&conn, "b.md").unwrap();
+	assert_eq!(count_b, 1);
+	assert_eq!(last_b, Some(2000));
+}
+
 // --- Audit finding #12 — silent truncation of malformed embeddings -----------
 //
 // `commands/semantic.rs::get_or_load_cache` deserializes embedding bytes via

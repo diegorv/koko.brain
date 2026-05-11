@@ -247,6 +247,25 @@ pub fn count_sources(conn: &Connection) -> Result<u64, String> {
 	.map_err(|e| format!("Failed to count sources: {e}"))
 }
 
+/// Returns indexing info for a single source file: number of chunks and the
+/// most recent `embedded_at` timestamp (None if the file has no chunks).
+/// Single round-trip; uses the `idx_chunks_source` index.
+pub fn get_file_index_info(
+	conn: &Connection,
+	source_path: &str,
+) -> Result<(u64, Option<i64>), String> {
+	conn.query_row(
+		"SELECT COUNT(*), MAX(embedded_at) FROM chunks WHERE source_path = ?1",
+		[source_path],
+		|row| {
+			let count: i64 = row.get(0)?;
+			let last: Option<i64> = row.get(1)?;
+			Ok((count.max(0) as u64, last))
+		},
+	)
+	.map_err(|e| format!("Failed to query file index info for {}: {e}", source_path))
+}
+
 /// Gets a sample of chunks for diagnostics.
 pub fn get_sample_chunks(conn: &Connection, limit: usize) -> Result<Vec<ChunkSample>, String> {
 	let mut stmt = conn
