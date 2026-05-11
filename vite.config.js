@@ -66,6 +66,22 @@ export default defineConfig(async () => ({
 
   optimizeDeps: {
     include: ["mermaid"],
+    // In PLAYWRIGHT mode, exclude all Tauri packages so the dep optimizer
+    // doesn't bundle a second copy of the mock layer (which would create a
+    // duplicate virtual-fs.ts instance with its own store).
+    exclude: isPlaywright
+      ? [
+          "@tauri-apps/api/core",
+          "@tauri-apps/api/event",
+          "@tauri-apps/api/window",
+          "@tauri-apps/plugin-fs",
+          "@tauri-apps/plugin-dialog",
+          "@tauri-apps/plugin-opener",
+          "@tauri-apps/plugin-http",
+          "@tauri-apps/plugin-deep-link",
+          "@tauri-apps/plugin-updater",
+        ]
+      : [],
   },
 
   resolve: {
