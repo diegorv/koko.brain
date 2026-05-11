@@ -14,7 +14,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 - [x] Task 6: `11-canvas.md` — added keyboard shortcut table (Shift+1, Shift+2, Cmd+A, Escape, Delete). Color count was already correct.
 - [x] Task 7: `14-graph-view.md` — added Layout note (auto-tuned force params) and "Show orphans" filter.
 - [x] Task 8: `15-file-history.md` — added settings-key column and a Snapshots-and-Trash subsection.
-- [ ] Task 9: `16-encryption-and-security.md` — add recovery key format paragraph (32-byte AES key, base64).
+- [x] Task 9: `16-encryption-and-security.md` — added full Recovery Keys section and corrected the "no recovery" warning.
 - [ ] Task 10: `21-kanban.md` — document List and Table view modes.
 - [ ] Task 11: `13-queryjs.md` — add `autoRunQueries` policy section, fix `kb.query()` mention, note `_pendingViews` + live-DOM cache.
 - [ ] Task 12: `19-settings.md` — add missing sections: heading typography, content width, paragraph spacing, `workPeopleFolder`, tag colors, queryjs autoRunQueries, disabledDecorators, theme editor.
