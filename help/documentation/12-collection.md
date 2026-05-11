@@ -25,9 +25,30 @@ There are two ways to create a collection:
 
 When you open a `.collection` file for the first time, Kokobrain will present an empty table ready for configuration.
 
+## View Types
+
+Each view inside a `.collection` file has a `type:` field selecting how the results are rendered. Three types ship today:
+
+| Type | What it looks like |
+|------|--------------------|
+| `table` (default) | Spreadsheet-like grid with one row per matching note and one column per property. |
+| `calendar` | Monthly calendar grid. Notes are placed on the day matching their `dateProperty`. Multi-day events span from `dateProperty` to `endDateProperty`. |
+| `linear-calendar` | Horizontal timeline — same data as `calendar` but laid out as a Gantt-like bar chart. |
+
+Calendar-style views accept extra view fields:
+
+| Field | Description |
+|-------|-------------|
+| `dateProperty` | Frontmatter property to use as the event start date. Required for `calendar` and `linear-calendar`. |
+| `endDateProperty` | Optional. Property for multi-day event end dates. |
+| `weekStartDay` | 0 = Sunday … 6 = Saturday. Default `1` (Monday). |
+| `colorProperty` | Property whose value picks the event bar color. |
+
+See `help/examples/collection-features/` for ready-to-run examples of each view type.
+
 ## The Table View
 
-When you open a `.collection` file, you see a spreadsheet-like table:
+When you open a `.collection` file, you see a spreadsheet-like table (the default view type):
 
 - **Rows**: Each row represents a note from your vault that matches the query filters you have defined.
 - **Columns**: Each column corresponds to a frontmatter property (e.g., `title`, `status`, `date`, `tags`).
