@@ -4,8 +4,8 @@ Add an optional right-sidebar plugin that lists every ATX heading (H1-H6) of the
 
 ## Tasks
 
-- [ ] Add `tableOfContentsVisible` flag to `LayoutSettings` (types + default)
-- [ ] Create `toc.types.ts` with `TocHeading` interface
+- [x] Add `tableOfContentsVisible` flag to `LayoutSettings` (types + default)
+- [x] Create `toc.types.ts` with `TocHeading` interface
 - [ ] Create `toc.logic.ts` with `extractTocHeadings`, reusing `HEADING_RE`, skipping fenced code blocks
 - [ ] Create `toc.logic.test.ts` covering empty, no headings, mixed levels, trailing whitespace, ``` fence, ~~~ fence, `#NotAHeading`, inline formatting
 - [ ] Create `toc.store.svelte.ts` with getter-based access pattern
