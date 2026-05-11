@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
+# Run the Playwright E2E suite against a fresh dev server.
+#
+# Usage:
+#   bash scripts/e2e.sh                       # run every spec under e2e/specs/
+#   bash scripts/e2e.sh path/to/spec.ts ...   # run only the given specs
+#   bash scripts/e2e.sh --ui                  # open Playwright UI mode
+#
+# What this does:
+#   1. Kills anything still listening on the E2E port (zombie vite processes)
+#   2. Starts `PLAYWRIGHT=true pnpm dev` in the background, captures logs to
+#      $E2E_LOG so they don't pollute stdout
+#   3. Waits up to MAX_WAIT seconds for the server to respond on /
+#   4. Forwards every argument to `npx playwright test`
+#   5. Cleans up the server (and any leaked port-1421 processes) on exit
+
 set -euo pipefail
 
 # ─── Config ───────────────────────────────────────────────────────────
