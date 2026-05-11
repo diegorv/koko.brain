@@ -30,7 +30,7 @@ Cada tarefa = um commit. Seguir CLAUDE.md (Plan Mode Workflow): rodar testes rel
 - [ ] (deferido) Testes vitest do parser — pulado por hora; o parser será exercitado pelos specs E2E em Task 8.
 
 ### 2. Mock layer: reescrita do `tauri-core.ts`
-- [ ] Reescrever `e2e/mocks/tauri-core.ts` com switch que cobre todos os 49 comandos. Cada caso documentado em comentário curto. Estrutura sugerida: split em handlers por categoria (`vaultV2Handlers`, `legacyVaultHandlers`, `searchHandlers`, `encryptionHandlers`, `historyHandlers`, `terminalHandlers`, `systemHandlers`) num único arquivo, ainda usando `switch`. Comandos v2 delegam para `vaultIndex`. Comandos legacy (`scan_vault`, `read_files_batch`, `search_vault`) continuam delegando para `virtualFS`. No-ops retornam tipos sensatos: `false` para `is_semantic_model_available` / `has_encryption_key`, `[]` para `search_fts` / `search_semantic` / `get_file_history` / `list_system_fonts`, `0` para `get_process_memory`, `''` para `get_recovery_key`, `null` para `download_semantic_model`. `decrypt_content`/`encrypt_content` retornam o conteúdo passado sem alteração (passthrough — encryption não é golden path).
+- [x] Reescrever com handlers tipados por categoria + dispatch table `HANDLERS`. Cobre 49 comandos. Comandos v2 delegam para `vaultIndex`, legacy para `virtualFS`, no-ops para encryption/semantic/history/terminal/font/db. Stub de `download_semantic_model` retorna `null`, `is_semantic_model_available`/`has_encryption_key` retornam `false`, `decrypt`/`encrypt` em passthrough.
 
 ### 3. Mock layer: sync entre `virtualFS` e `vaultIndex` (combinado com Task 1)
 - [x] Em `e2e/mocks/virtual-fs.ts`, adicionar API `subscribe()` com hooks `onWrite/onRemove/onRename/onPopulate`. Helpers `readFileSafe()` e `statRaw()`.
