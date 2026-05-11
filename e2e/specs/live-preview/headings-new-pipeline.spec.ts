@@ -77,6 +77,9 @@ test.describe('Live Preview - Headings (new pipeline)', () => {
 	test('bold inside an h1 emits both cm-lp-h1 and cm-lp-bold', async ({ lpPage: page }) => {
 		const boldH1Line = page.locator('.cm-line').filter({ hasText: 'Bold inside heading' });
 		await expect(boldH1Line).toHaveClass(/cm-lp-h1/);
-		await expect(boldH1Line.locator('.cm-lp-bold').first()).toBeVisible();
+		// Filter to the content span — see note in inline-formatting.spec.ts.
+		await expect(
+			boldH1Line.locator('.cm-lp-bold').filter({ hasText: 'Bold inside heading' }).first(),
+		).toBeVisible();
 	});
 });

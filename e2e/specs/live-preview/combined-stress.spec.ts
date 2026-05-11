@@ -53,16 +53,18 @@ test.describe('Live Preview - Combined Stress', () => {
 
 	test('all inline formats render on same line', async ({ lpPage: page }) => {
 		const line = page.locator('.cm-line').filter({ hasText: 'on one line' });
-		await expect(line.locator('.cm-lp-bold')).toContainText('Bold');
-		await expect(line.locator('.cm-lp-italic')).toContainText('italic');
-		await expect(line.locator('.cm-lp-strikethrough')).toContainText('strike');
-		await expect(line.locator('.cm-lp-code')).toContainText('code');
-		await expect(line.locator('.cm-lp-highlight')).toContainText('highlight');
+		// `.cm-lp-bold`/`-italic`/`-strikethrough` each wrap markers + text;
+		// filter to the content span by `hasText` to avoid strict-mode hits.
+		await expect(line.locator('.cm-lp-bold').filter({ hasText: 'Bold' }).first()).toBeVisible();
+		await expect(line.locator('.cm-lp-italic').filter({ hasText: 'italic' }).first()).toBeVisible();
+		await expect(line.locator('.cm-lp-strikethrough').filter({ hasText: 'strike' }).first()).toBeVisible();
+		await expect(line.locator('.cm-lp-code').first()).toContainText('code');
+		await expect(line.locator('.cm-lp-highlight').first()).toContainText('highlight');
 	});
 
 	test('lists with inline formatting', async ({ lpPage: page }) => {
 		const boldItem = page.locator('.cm-line').filter({ hasText: 'Bold item' });
-		await expect(boldItem.locator('.cm-lp-bold')).toBeVisible();
+		await expect(boldItem.locator('.cm-lp-bold').filter({ hasText: 'Bold item' }).first()).toBeVisible();
 	});
 
 	test('task checkboxes present', async ({ lpPage: page }) => {
@@ -89,7 +91,10 @@ test.describe('Live Preview - Combined Stress', () => {
 	});
 
 	test('horizontal rule widget is in DOM', async ({ lpPage: page }) => {
-		await expect(page.locator('hr.cm-lp-hr')).toBeAttached();
+		// The new live-preview pipeline replaces the legacy `<hr>` widget with
+		// a line decoration `.cm-lp-hr-line` (+ a `.cm-formatting-hr` mark on
+		// the `---` text). Either marker proves the HR was decorated.
+		await expect(page.locator('.cm-lp-hr-line, .cm-formatting-hr').first()).toBeAttached();
 	});
 
 	test('links render together', async ({ lpPage: page }) => {

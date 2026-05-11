@@ -24,16 +24,24 @@ test.describe('Live Preview - Inline Formatting', () => {
 		await openMarkdownFile(page, 'test.md', CONTENT);
 	});
 
+	// `.cm-lp-bold` (and italic / strikethrough) wraps BOTH the `**`/`_`/`~~`
+	// markers AND the inner text. When the cursor is away the marker spans are
+	// hidden via `font-size: 0`; the inner text span stays visible. `.first()`
+	// picks a marker, so assertions about the rendered word must filter by
+	// `hasText` to target the visible content span instead.
+
 	test('bold text renders with cm-lp-bold class', async ({ lpPage: page }) => {
-		await expect(page.locator('.cm-lp-bold').first()).toContainText('bold');
+		await expect(page.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
 	});
 
 	test('italic text renders with cm-lp-italic class', async ({ lpPage: page }) => {
-		await expect(page.locator('.cm-lp-italic').first()).toContainText('italic');
+		await expect(page.locator('.cm-lp-italic').filter({ hasText: 'italic' }).first()).toBeVisible();
 	});
 
 	test('strikethrough text renders with cm-lp-strikethrough class', async ({ lpPage: page }) => {
-		await expect(page.locator('.cm-lp-strikethrough').first()).toContainText('strikethrough');
+		await expect(
+			page.locator('.cm-lp-strikethrough').filter({ hasText: 'strikethrough' }).first(),
+		).toBeVisible();
 	});
 
 	test('inline code renders with cm-lp-code class', async ({ lpPage: page }) => {
@@ -46,15 +54,15 @@ test.describe('Live Preview - Inline Formatting', () => {
 
 	test('multiple inline formats on same line', async ({ lpPage: page }) => {
 		const line = page.locator('.cm-line').filter({ hasText: 'on same line' });
-		await expect(line.locator('.cm-lp-bold')).toContainText('bold');
-		await expect(line.locator('.cm-lp-italic')).toContainText('italic');
-		await expect(line.locator('.cm-lp-strikethrough')).toContainText('strike');
+		await expect(line.locator('.cm-lp-bold').filter({ hasText: 'bold' })).toHaveCount(1);
+		await expect(line.locator('.cm-lp-italic').filter({ hasText: 'italic' })).toHaveCount(1);
+		await expect(line.locator('.cm-lp-strikethrough').filter({ hasText: 'strike' })).toHaveCount(1);
 	});
 
 	test('bold+italic combined renders both classes', async ({ lpPage: page }) => {
 		const el = page.locator('.cm-line').filter({ hasText: 'bold italic' });
-		await expect(el.locator('.cm-lp-bold')).toBeVisible();
-		await expect(el.locator('.cm-lp-italic')).toBeVisible();
+		await expect(el.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
+		await expect(el.locator('.cm-lp-italic').filter({ hasText: 'bold italic' }).first()).toBeVisible();
 	});
 
 	test('inline marks hidden when cursor is away', async ({ lpPage: page }) => {

@@ -43,6 +43,10 @@ test.describe('Live Preview - Mermaid', () => {
 		await clickOnLine(page, 'Plain text at the end');
 		const svg = page.locator('.cm-lp-mermaid-diagram svg');
 		await expect(svg).toBeVisible({ timeout: 5000 });
-		await expect(svg).toHaveAttribute('role', 'graphics-document document');
+		// Mermaid 10+ emits `aria-roledescription="flowchart-v2"` (or the
+		// equivalent for other diagram types) instead of the older
+		// `role="graphics-document document"`. Assert on the aria attribute
+		// instead — it's the stable signal that the diagram rendered.
+		await expect(svg).toHaveAttribute('aria-roledescription', /flowchart/);
 	});
 });

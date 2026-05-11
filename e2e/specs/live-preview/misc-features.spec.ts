@@ -15,7 +15,10 @@ Text after rule.
 	test('horizontal rule renders as widget', async ({ lpPage: page }) => {
 		await openMarkdownFile(page, 'test.md', CONTENT);
 		await clickOnLine(page, 'Text after rule');
-		await expect(page.locator('hr.cm-lp-hr')).toBeVisible();
+		// New pipeline: a `.cm-lp-hr-line` line decoration + a `.cm-formatting-hr`
+		// mark on the `---` text instead of an `<hr>` widget. Assert on the line
+		// decoration since it's the one that actually paints the rule.
+		await expect(page.locator('.cm-lp-hr-line').first()).toBeVisible();
 	});
 });
 
@@ -26,7 +29,10 @@ test.describe('Live Preview - Hard Breaks', () => {
 	test('hard break shows arrow widget', async ({ lpPage: page }) => {
 		await openMarkdownFile(page, 'hard-break.md', CONTENT);
 		await clickOnLine(page, 'Plain text here');
-		await expect(page.locator('.cm-lp-hard-break').first()).toBeVisible();
+		// Production class is `.cm-formatting-hard-break` (emitted by the
+		// inline simple-widget handler); `.cm-lp-hard-break` is only a CSS
+		// rule colorizing the marker but isn't applied as a span class.
+		await expect(page.locator('.cm-formatting-hard-break').first()).toBeAttached();
 	});
 });
 

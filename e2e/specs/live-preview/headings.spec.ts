@@ -71,6 +71,8 @@ test.describe('Live Preview - Headings', () => {
 	test('heading with inline formatting', async ({ lpPage: page }) => {
 		const boldHeading = page.locator('.cm-lp-h1').filter({ hasText: 'Bold' });
 		await expect(boldHeading).toBeVisible();
-		await expect(boldHeading.locator('.cm-lp-bold')).toContainText('Bold');
+		// `.cm-lp-bold` wraps the `**` markers and the inner text; filter to
+		// the content span so the assertion isn't a strict-mode violation.
+		await expect(boldHeading.locator('.cm-lp-bold').filter({ hasText: 'Bold' }).first()).toBeVisible();
 	});
 });

@@ -25,7 +25,9 @@ test.describe('Live Preview - Source Mode (Cmd+K)', () => {
 	test('default: live preview decorations are present', async ({ lpPage: page }) => {
 		// Heading rendered as a styled line, not raw `# Heading One`
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
-		await expect(page.locator('.cm-lp-bold').first()).toBeVisible();
+		// `.cm-lp-bold` wraps both `**` markers (hidden when cursor is away)
+		// and the inner text; filter to the content span by `hasText`.
+		await expect(page.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
 	});
 
 	test('Cmd+K removes live preview decorations', async ({ lpPage: page }) => {
@@ -44,6 +46,6 @@ test.describe('Live Preview - Source Mode (Cmd+K)', () => {
 		await page.waitForTimeout(150);
 
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
-		await expect(page.locator('.cm-lp-bold').first()).toBeVisible();
+		await expect(page.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
 	});
 });
