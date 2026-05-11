@@ -14,10 +14,14 @@ The Settings dialog has a sidebar for navigation on the left and a content area 
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Theme** | Select the active color theme. Click a theme to preview its colors. | Dark |
+| **Active theme** | Select the active color theme. Click a theme to preview its colors. | Dark |
 
 > [!TIP]
 > Themes define all colors used in the app (background, text, borders, accents). The selection shows color swatches for each theme.
+
+### Theme Editor
+
+Below the theme picker, the **Theme Editor** lets you build or tweak a custom theme. Every color token in the UI (background, foreground, card, popover, primary, secondary, accent, destructive, border, ring, tab bar, divider, status-bar segments, syntax highlighting, etc.) is editable as a hex value with a live preview against your current notes. Built-in themes can be cloned into editable copies; user-created themes are saved into `appearance.themes` in `settings.json` and selected via `appearance.activeTheme`.
 
 ## Sidebar
 
@@ -39,6 +43,21 @@ The Settings dialog has a sidebar for navigation on the left and a content area 
 | **Font family** | CSS font-family string for the editor | `MonoLisa, monospace` |
 | **Font size** | Font size in pixels (8--32) | `14` |
 | **Line height** | Line spacing multiplier (1.0--3.0) | `1.6` |
+| **Content width** | Maximum width of the editor content in pixels. `0` removes the cap so the editor fills the pane. | `0` |
+| **Paragraph spacing** | Extra vertical space after each paragraph, in `em`. `0` keeps the default Markdown spacing. | `0` |
+
+### Heading Typography
+
+Each heading level (`h1`–`h6`) has its own typography block under `editor.headingTypography.<level>`:
+
+| Field | Description | Range |
+|-------|-------------|-------|
+| `fontSize` | Size relative to the base font, in `em` | 0.5 – 5.0 |
+| `lineHeight` | Line height multiplier | 1.0 – 3.0 |
+| `fontWeight` | One of `bold`, `semibold`, `normal` | — |
+| `letterSpacing` | Tracking in `em` | -0.1 – 0.1 |
+
+Use the **Heading Typography** editor in the Editor section to adjust each level visually with a live preview against a sample note.
 
 ## Periodic Notes
 
@@ -78,13 +97,20 @@ Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Not
 | Format | dayjs format string | `YYYY/_review-quarter-Q` |
 | Template | Path to template file | -- |
 
+**Yearly:**
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Format | dayjs format string | `YYYY/YYYY` |
+| Template | Path to template file | `_system/templates/Yearly Note.md` |
+
 ## Quick Note
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Folder format** | dayjs format for the subfolder path | `YYYY/MM-MMM` |
-| **Filename format** | dayjs format for the note filename | `capture-note-YYYY-MM-DD_HH-mm-ss-SSS` |
-| **Template** | Path to a template file | -- |
+| **Filename format** | dayjs format for the note filename | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
+| **Template** | Path to a template file | `_system/templates/Quick Note.md` |
 
 See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 
@@ -92,10 +118,11 @@ See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **People folder** | Folder containing person files | `_people` |
-| **Folder format** | dayjs format for meeting note subfolder | -- |
+| **Personal people folder** (`peopleFolder`) | Folder containing personal person files | `Personal/_people` |
+| **Work people folder** (`workPeopleFolder`) | Folder containing work person files | `Work/_people` |
+| **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
-| **Template** | Path to a template file | -- |
+| **Template** | Path to a template file | `_system/templates/One on One.md` |
 
 See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 
@@ -166,6 +193,40 @@ Get your token from: [todoist.com/prefs/integrations](https://todoist.com/prefs/
 
 See [Tasks & Todoist](10-tasks-and-todoist.md) for details on the integration.
 
+## QueryJS
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Auto-run policy** (`queryjs.autoRunQueries`) | When `` ```queryjs `` blocks should execute. `manual` shows a ▶ Run button; `first-open` runs once per session and caches; `always` re-runs on every render. | `first-open` |
+
+See [QueryJS → Execution policy](13-queryjs.md#execution-policy) for the full behavior matrix and notes on the per-session result cache.
+
+## Tag Colors
+
+The per-tag color assignments shown in the Tags sidebar (and inline `#tags` in notes) are stored under `tagColors.colors` as a map of `lowercase/tag/path → #hex`:
+
+```json
+{
+  "tagColors": {
+    "colors": {
+      "work": "#fb464c",
+      "personal/health": "#44cf6e"
+    }
+  }
+}
+```
+
+You set colors interactively from the Tags panel by clicking the dot next to a tag (see [Sidebar Panels → Tag colors](07-sidebar-panels.md#tag-colors)). There is no dedicated section in the Settings dialog for these assignments — they live in `settings.json` only.
+
+## Security
+
+Manage per-vault encryption keys. See [Encryption & Security](16-encryption-and-security.md) for the full feature description.
+
+| Button | Description |
+|--------|-------------|
+| **Show recovery key** | Reveals the base64 recovery key for this vault. Requires Touch ID. Disabled until you encrypt at least one note. |
+| **Restore from recovery key** | Pastes a previously saved recovery key to rebuild the Keychain entry — used on a new Mac or after a Keychain wipe. |
+
 ## Troubleshooting
 
 | Setting | Description | Default |
@@ -175,6 +236,8 @@ See [Tasks & Todoist](10-tasks-and-todoist.md) for details on the integration.
 | **Open Log Folder** | Opens the log directory in the system file manager | -- |
 | **Debug Mode (Tauri)** | Forwards Rust backend logs to browser DevTools | Disabled |
 | **Save Tauri Log to File** | Writes backend logs to the system log directory | Disabled |
+| **Live preview profiling** (`livePreviewProfiling`) | Emit `LP-PROFILE` timing entries to the log so you can measure per-plugin decoration cost | Disabled |
+| **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations (e.g. math, mermaid, queryjs, tables). Stored as a map keyed by decorator name. Useful for isolating which decoration causes lag on a specific file. | `{}` |
 
 > [!NOTE]
 > These settings are only useful when diagnosing bugs. Enable them before reproducing an issue, then share the log files when reporting a bug.

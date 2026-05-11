@@ -16,7 +16,7 @@
     "test:e2e": "./scripts/e2e.sh",
     "test:e2e:ui": "./scripts/e2e.sh --ui"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"

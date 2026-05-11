@@ -13,7 +13,7 @@
 [![Dependabot Updates][dependabot-badge]][dependabot-url]
 
 <!-- Project metadata -->
-[![Latest release][version-badge]][version-url] [![License: Source-Available][license-badge]][license-url] [![Platform: macOS][platform-badge]][platform-url] [![Built with Claude Code][claude-badge]][claude-url]
+[![Latest release][version-badge]][version-url] [![License: Apache 2.0][license-badge]][license-url] [![Platform: macOS][platform-badge]][platform-url] [![Built with Claude Code][claude-badge]][claude-url]
 
 A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md), built with Svelte 5 and Tauri 2
 
@@ -24,8 +24,8 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 > **macOS only** — this app is built exclusively for macOS and there are no plans to support other operating systems.
 > **We do not recommend using this for anything important.**
 
-> [!WARNING]
-> **We are not accepting pull requests, issues, or external contributions at this time.**
+> [!NOTE]
+> Pull requests, issues, and external contributions are not being accepted at this time — this is a solo project without the bandwidth to review or maintain external changes. You are welcome to fork under the Apache 2.0 license if you want to take it in a different direction.
 
 > [!TIP]
 > If you're looking for a mature, well-supported note-taking app, I recommend [Obsidian](https://obsidian.md) or [Logseq](https://logseq.com). Both are excellent tools with active communities and plugin ecosystems.
@@ -198,6 +198,10 @@ Some features in Kokobrain were inspired by ideas from Obsidian community plugin
 - **Folder notes** — inspired by [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes)
 - **Auto open & Pin tab** — inspired by [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage)
 
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and redistribute the code, including for commercial purposes, subject to the license's notice and patent terms.
+
 <!-- ─── Badge reference definitions ────────────────────────────── -->
 
 [ci-badge]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg
@@ -218,7 +222,7 @@ Some features in Kokobrain were inspired by ideas from Obsidian community plugin
 [dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
 [version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue
 [version-url]: https://github.com/diegorv/koko.brain/releases
-[license-badge]: https://img.shields.io/badge/license-Source--Available-orange
+[license-badge]: https://img.shields.io/badge/license-Apache_2.0-blue
 [license-url]: ./LICENSE
 [platform-badge]: https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple&logoColor=white
 [platform-url]: https://github.com/diegorv/koko.brain#kokobrain
