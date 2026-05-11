@@ -1,0 +1,28 @@
+## Todo
+
+- [ ] Implement filter chip component {2026-03-12} #frontend
+- [ ] Wire empty state into the Tasks panel {2026-03-13} #frontend
+- [ ] Add cursor-keyboard navigation to the file tree {2026-03-15} #frontend #a11y
+
+## Code Review
+
+- [ ] PR #842 — semantic search progress bar {2026-03-10} #review
+- [ ] PR #845 — kanban table view {color:orange} #review
+
+## Done
+
+- [x] PR #840 — tag color picker {2026-03-08} #frontend
+- [x] PR #841 — file-history retention policy {2026-03-09} #backend
+
+%% kanban:settings
+{
+  "viewMode": "table",
+  "sortMode": "date-asc",
+  "tagColors": {
+    "frontend": "blue",
+    "backend": "purple",
+    "review": "orange",
+    "a11y": "green"
+  }
+}
+%%
