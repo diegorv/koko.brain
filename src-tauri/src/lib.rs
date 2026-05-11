@@ -144,6 +144,7 @@ pub fn run() {
             commands::semantic::build_semantic_index,
             commands::semantic::search_semantic,
             commands::semantic::get_semantic_stats,
+            commands::semantic::get_semantic_file_status,
             commands::semantic::update_semantic_file,
             commands::semantic::download_semantic_model,
             commands::semantic::debug_semantic_embeddings,

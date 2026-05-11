@@ -3,7 +3,7 @@ use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, Embedder};
 use crate::semantic::filtering;
 use crate::semantic::model::ModelManager;
-use crate::semantic::types::{SemanticProgress, SemanticResult, SemanticStats};
+use crate::semantic::types::{SemanticFileStatus, SemanticProgress, SemanticResult, SemanticStats};
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use sha2::{Digest, Sha256};
@@ -550,6 +550,25 @@ pub async fn search_semantic(
 #[tauri::command]
 pub fn get_semantic_stats() -> Result<SemanticStats, String> {
 	get_semantic_stats_inner()
+}
+
+/// Returns per-file indexing status for the given vault-relative path.
+/// Used by the status-bar widget on the active markdown tab.
+///
+/// `file_path` must be vault-relative (same convention as `update_semantic_file`).
+/// Returns `chunkCount = 0` and `lastEmbeddedAt = None` when the file is not
+/// indexed; `modelLoaded` reflects the live embedder state independent of the
+/// per-file query so the UI can distinguish "not indexed" from "semantic off".
+#[tauri::command]
+pub fn get_semantic_file_status(file_path: String) -> Result<SemanticFileStatus, String> {
+	let model_loaded = EMBEDDER.lock().map(|g| g.is_some()).unwrap_or(false);
+	let (chunk_count, last_embedded_at) =
+		db::with_db(|conn| db::semantic_repo::get_file_index_info(conn, &file_path))?;
+	Ok(SemanticFileStatus {
+		chunk_count,
+		last_embedded_at,
+		model_loaded,
+	})
 }
 
 /// Releases the ONNX model and clears the search cache.
