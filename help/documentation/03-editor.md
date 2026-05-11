@@ -6,7 +6,7 @@ Learn about tabs, editing modes, and the status bar.
 
 Every file you open appears as a tab at the top of the editor area. The active tab has a highlighted bottom border so you always know which note you're working on.
 
-Tabs also show different icons based on file type — markdown, canvas, tasks, graph, and others each have their own icon for quick identification.
+Tabs also show different icons based on file type — markdown, canvas, kanban, tasks, graph, and others each have their own icon for quick identification.
 
 ### Dirty Indicator
 
@@ -46,7 +46,7 @@ Renders Markdown inline as you type — headings appear styled, bold text looks 
 ![Source mode vs live preview comparison](screenshots/editor-modes.png)
 
 > [!NOTE]
-> The mode toggle only appears for Markdown (`.md`) files. Canvas and Collection files have their own specialized editors.
+> The Source / Live Preview toggle described here applies to Markdown (`.md`) files. Canvas, Collection, and Kanban files have their own specialized editors with a separate **Source mode** toggle (see "File Types in the Editor" below).
 
 ## Scroll and Cursor Position
 
@@ -61,12 +61,13 @@ Different file types open with different editors:
 | `.md` | Markdown editor | The main editor with source/live preview modes |
 | `.canvas` | Canvas editor | Visual infinite canvas (see [Canvas](11-canvas.md)) |
 | `.collection` | Table/database | Spreadsheet-like view (see [Collection](12-collection.md)) |
+| `.kanban` | Kanban board | Drag-and-drop board (see [Kanban](21-kanban.md)) |
 | Tasks (virtual) | Tasks view | Aggregated tasks from all notes (see [Tasks](10-tasks-and-todoist.md)) |
 | Graph (virtual) | Graph view | Knowledge graph visualization (see [Graph View](14-graph-view.md)) |
 
 "Virtual" tabs don't correspond to a file on disk — they are generated views.
 
-For Canvas and Collection files, a toggle button in the bottom-right lets you switch between the visual editor and raw source (JSON for canvas, YAML for collection).
+For Canvas, Collection, and Kanban files, a toggle button in the bottom-right lets you switch between the visual editor and raw source — JSON for canvas, YAML for collection, Markdown for kanban. The source-mode preference resets when you switch tabs.
 
 ## Wikilink Navigation
 
