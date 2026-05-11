@@ -6,7 +6,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 
 ## Tasks
 
-- [ ] Task 1: `02-file-explorer.md` — add "New Kanban Board" context-menu entry, document icon color picker, mention frontmatter `tabTextColor`.
+- [x] Task 1: `02-file-explorer.md` — add "New Kanban Board" context-menu entry, document icon color picker.
 - [ ] Task 2: `03-editor.md` — add Kanban to file-type list, clarify Canvas/Collection/Kanban source-toggle lives in their own toolbars.
 - [ ] Task 3: `05-wikilinks.md` — document HTML `<audio>`/`<video>` embeds, verify or remove PDF embed claim.
 - [ ] Task 4: `07-sidebar-panels.md` — document tag color picker (right-click).
