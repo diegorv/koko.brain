@@ -88,10 +88,10 @@ jobs:
         # Pinned by commit SHA, not tag — this action handles Apple
         # signing certs, notarization credentials, and the Tauri
         # auto-update signing key. A compromised maintainer account
-        # publishing a malicious "v0.6" could exfiltrate every secret
+        # publishing a malicious "v0.6.x" could exfiltrate every secret
         # in the env block below. Dependabot still bumps this entry
-        # because of the trailing `# v0.6` tag comment.
-        uses: tauri-apps/tauri-action@4d285e1880165511a32eafd8616624dd75d05513 # v0.6
+        # because of the trailing `# v0.6.2` tag comment.
+        uses: tauri-apps/tauri-action@1ddc7b49b13c3038297360482fcb3e058764d7c9 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: "--max-old-space-size=4096"
