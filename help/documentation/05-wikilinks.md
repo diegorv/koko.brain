@@ -107,6 +107,20 @@ Embed images from your vault using wikilink syntax. Use the pipe `|` to set disp
 ![[photo.jpg|300x200]]      300px width, 200px height
 ```
 
+Supported image extensions: `png`, `jpg`, `jpeg`, `gif`, `svg`, `webp`, `bmp`, `ico`, `avif`. Any other extension inside `![[…]]` is treated as a note embed.
+
+### Audio and video embeds
+
+Audio and video files are embedded with the standard HTML `<audio>` and `<video>` tags — not with wikilink syntax. The editor renders an inline player in live preview:
+
+```html
+<audio src="recordings/standup-2026-04-08.mp3" controls></audio>
+
+<video src="demos/onboarding-flow.mp4" controls width="480"></video>
+```
+
+Single-line and multi-line tags are both recognized. Use any standard HTML attributes (`controls`, `autoplay`, `loop`, `muted`, `width`, `height`).
+
 Embeds are useful for reusing content across multiple notes — for example, embedding a shared header, a checklist template, or a key definition.
 
 ## Unresolved Links
