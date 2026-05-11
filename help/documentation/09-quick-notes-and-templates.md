@@ -15,8 +15,8 @@ Quick Note creates a new timestamped note immediately, without any prompt or dia
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Folder format** | dayjs format for the subfolder | `YYYY/MM-MMM` |
-| **Filename format** | dayjs format for the note name | `capture-note-YYYY-MM-DD_HH-mm-ss-SSS` |
-| **Template** | Path to a template file (optional) | — |
+| **Filename format** | dayjs format for the note name | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
+| **Template** | Path to a template file (optional) | `_system/templates/Quick Note.md` |
 
 ### Example
 
@@ -35,39 +35,41 @@ With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 
 **Shortcut:** `Cmd+Shift+N`
 
-1:1 Notes open a person picker dialog showing people from your configured "people folder." Select a person to create a dated meeting note for that individual.
+1:1 Notes open a person picker dialog that lists people from two configured folders — a **personal** people folder and a **work** people folder — so you can keep contexts separate while sharing one shortcut. Select a person to create a dated meeting note for that individual.
 
 ![Person picker for 1:1 notes](screenshots/one-on-one-picker.png)
 
 ### How it works
 
 1. Press `Cmd+Shift+N` — the picker dialog opens.
-2. Type to search for a person's name.
+2. Type to search for a person's name. Personal and work people are listed together, each badged with its origin.
 3. Press Enter to select — a new meeting note is created from your template.
 
 ### Setting up people
 
-- Create a folder in your vault for people files (e.g., `_people/`).
-- Add a `.md` file for each person: `_people/Alice Smith.md`, `_people/Bob Jones.md`.
+- Create one or two folders in your vault for people files. The defaults are `Personal/_people` and `Work/_people`, but any path works.
+- Add a `.md` file for each person: `Personal/_people/Alice Smith.md`, `Work/_people/Bob Jones.md`.
 - The file content can be anything (contact info, notes about them, etc.).
+- Leave one of the folder settings blank if you only want a single people list.
 
 ### Configuration (Settings → 1:1 Notes)
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **People folder** | Folder containing person files | `_people` |
-| **Folder format** | dayjs format for meeting note subfolder | — |
+| **Personal people folder** (`peopleFolder`) | Folder containing personal person files | `Personal/_people` |
+| **Work people folder** (`workPeopleFolder`) | Folder containing work person files | `Work/_people` |
+| **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
-| **Template** | Path to a template file (optional) | — |
+| **Template** | Path to a template file | `_system/templates/One on One.md` |
 
 The `{person}` placeholder is replaced with the selected person's name.
 
 ### Example
 
-Selecting "Alice Smith" on Feb 17, 2026 with the default format creates:
+Selecting "Alice Smith" on Feb 17, 2026 with the default settings creates:
 
 ```
-<vault>/-1on1-Alice Smith-17-02-2026.md
+<vault>/2026/02-Feb/-1on1-Alice Smith-17-02-2026.md
 ```
 
 ---
