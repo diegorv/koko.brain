@@ -27,8 +27,13 @@ runs:
     # rustc stable channel, and pinning by SHA would freeze both the
     # action code AND the channel (defeating the whole point of
     # `stable`). The action is small and well-audited.
+    # The pinned pnpm version comes from `package.json#packageManager`
+    # (currently `pnpm@10.30.3`). action-setup honors that field, so the
+    # action's own major version is independent of the pnpm version it
+    # installs — v6 supports pnpm v11 internally but happily installs
+    # v10 when packageManager pins it.
     - name: Setup pnpm
-      uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      uses: pnpm/action-setup@ab5d408e9d066b8ffe7503f789d50fd7e35c0c92 # v6.0.7
 
     - name: Setup Node.js
       uses: actions/setup-node@v6
@@ -48,7 +53,7 @@ runs:
 
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
-      uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
       with:
         workspaces: "src-tauri -> target"
         cache-on-failure: true
