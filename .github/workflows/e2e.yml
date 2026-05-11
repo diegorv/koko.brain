@@ -2,19 +2,16 @@ name: E2E
 
 # Playwright end-to-end suite, in its own workflow rather than as a CI job.
 #
-# Scope: PRs against `main` and release tags only.
-#
-#   - pull_request: catches regressions before merge.
-#   - push of `*.*.*-alpha` tags: safety-net run alongside the release
-#     pipeline. Release itself does NOT wait on this — if E2E flakes on
-#     tag push, the binary still builds, signs, and ships. The PR run
-#     before the merge is the real gate; this tag run is informational.
+# Scope:
+#   - pull_request against `main`: gate before merge.
+#   - workflow_call: invoked by release.yml on tag push and by run-all.yml
+#     for manual full-sweep runs.
 #
 # Intentionally NOT triggered on direct pushes to `main`. The project
-# workflow is "PR -> merge, or commit + tag together". Running E2E on
-# every commit-to-main push would double the cost without adding signal:
-# the PR run before the merge already covered the diff, and the tag run
-# will cover it again before release.
+# workflow is "PR -> merge, or commit + tag together". The PR run before
+# merge already covered the diff, and release.yml re-runs E2E on the
+# tagged SHA before building — so a push-to-main trigger would only
+# duplicate work.
 
 permissions:
   contents: read
@@ -35,13 +32,9 @@ on:
       - "postcss.config.*"
       - "components.json"
       - "scripts/e2e.sh"
-  push:
-    # Release tags only. No `paths:` filter — tag refs don't carry a
-    # diff, so GitHub ignores the filter on tag events anyway.
-    tags:
-      - "*.*.*-alpha"
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/run-all.yml`.
+  # Reusable: invoked by `.github/workflows/release.yml` (as a gate
+  # before build-macos) and `.github/workflows/run-all.yml`.
   workflow_call:
 
 concurrency:

@@ -10,11 +10,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-macos:
-    runs-on: macos-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
+  # Cheap pre-flight gate. Runs on ubuntu in seconds and fails fast if the
+  # tag was pushed from a branch that isn't on main, before we spin up the
+  # macOS runner or revalidate CI.
+  validate:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,77 +32,50 @@ jobs:
           fi
           echo "Validated: ${{ github.ref_name }} is on main branch"
 
+  # Re-run the full CI suite on the exact tagged SHA via workflow_call.
+  # This replaces the previous "wait for ci.yml on this commit" polling
+  # step: instead of racing GitHub's run registration with `gh run watch`,
+  # we own the run as a dependency. If CI fails here, build-macos never
+  # starts and we don't pay for a macOS runner.
+  ci:
+    name: CI
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+
+  # Playwright suite on the tagged SHA. Runs in parallel with `ci` (no
+  # shared dependencies), and `build-macos` waits on both. A failing E2E
+  # blocks the release — see e2e.yml for why this is the gate.
+  e2e:
+    name: E2E
+    needs: validate
+    uses: ./.github/workflows/e2e.yml
+
+  build-macos:
+    name: Build macOS
+    needs: [ci, e2e]
+    runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Setup environment
         uses: ./.github/actions/setup
-
-      - name: Wait for CI to pass on this commit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          # The previous "Validate tag is on main branch" step guarantees the
-          # tagged commit is on `main`. CI (ci.yml) runs on every push to
-          # `main`, so a CI run for this SHA must EITHER already exist
-          # (commit pushed earlier, CI completed) OR be about to start
-          # (commit + tag pushed together via `git push --follow-tags`).
-          #
-          # Both flows are valid. We don't want to force the user through
-          # a PR before every release — sometimes you bump version locally,
-          # commit, tag, and push everything at once. So this step:
-          #
-          #   1. Waits up to 5 min for a CI run to appear on this SHA
-          #      (handles the race where Release fires before CI is
-          #      registered by GitHub).
-          #   2. Uses `gh run watch --exit-status` to poll the run until
-          #      it completes, then propagates its exit code as ours.
-          #
-          # If CI fails or is cancelled, this step fails and Release
-          # aborts before building / signing / publishing anything.
-
-          SHA="${GITHUB_SHA}"
-
-          echo "Waiting for a CI run to appear for commit ${SHA}..."
-          RUN_ID=""
-          for i in $(seq 1 30); do
-            RUN_ID=$(gh run list \
-              --workflow=ci.yml \
-              --commit "$SHA" \
-              --json databaseId \
-              --jq '.[0].databaseId // ""' \
-              2>/dev/null || true)
-            if [ -n "$RUN_ID" ]; then
-              echo "Found CI run #${RUN_ID} after $((i * 10))s"
-              break
-            fi
-            echo "  ($i/30) no CI run yet, sleeping 10s..."
-            sleep 10
-          done
-
-          if [ -z "$RUN_ID" ]; then
-            echo "::error::No CI run appeared for commit ${SHA} after 5 minutes."
-            echo "::error::CI's path filter may have skipped this commit (only docs / workflow file changes?)."
-            echo "::error::Either push a real code change or re-run this release via workflow_dispatch."
-            exit 1
-          fi
-
-          echo ""
-          echo "Watching CI run #${RUN_ID} until it completes..."
-          gh run watch "$RUN_ID" --exit-status
 
       - name: Generate changelog
         id: changelog
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
-          # Find the previous tag
           PREV_TAG=$(git tag --list --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
           if [ -z "$PREV_TAG" ]; then
-            # First release — use all commits
             COMMITS=$(git log --pretty=format:"- %s (%h)" "$TAG" | grep -v "^- chore: bump version")
           else
             COMMITS=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..${TAG}" | grep -v "^- chore: bump version")
           fi
-          # Store in output (handle multiline)
           {
             echo "commits<<CHANGELOG_EOF"
             echo "$COMMITS"
