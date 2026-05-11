@@ -1,0 +1,128 @@
+{
+  "nodes": [
+    {
+      "id": "group-research",
+      "type": "group",
+      "x": -700,
+      "y": -350,
+      "width": 700,
+      "height": 480,
+      "label": "Research",
+      "color": "5"
+    },
+    {
+      "id": "text-question",
+      "type": "text",
+      "x": -660,
+      "y": -300,
+      "width": 280,
+      "height": 80,
+      "text": "## Driving question\nWhat blocks teams from adopting offline-first tools?",
+      "color": "1"
+    },
+    {
+      "id": "file-interview",
+      "type": "file",
+      "x": -660,
+      "y": -180,
+      "width": 280,
+      "height": 120,
+      "file": "help/examples/canvas-features/interview-notes.md",
+      "color": "4"
+    },
+    {
+      "id": "link-jsoncanvas",
+      "type": "link",
+      "x": -660,
+      "y": -40,
+      "width": 280,
+      "height": 100,
+      "url": "https://jsoncanvas.org",
+      "label": "JSON Canvas 1.0 spec"
+    },
+    {
+      "id": "image-mockup",
+      "type": "image",
+      "x": -360,
+      "y": -300,
+      "width": 320,
+      "height": 380,
+      "file": "help/examples/canvas-features/dashboard-mockup.png"
+    },
+    {
+      "id": "text-hypothesis",
+      "type": "text",
+      "x": 80,
+      "y": -260,
+      "width": 320,
+      "height": 100,
+      "text": "**Hypothesis**\nUsers stay on cloud-only tools because *moving the data* feels lossy. Show a one-click roundtrip to disarm that fear.",
+      "color": "3"
+    },
+    {
+      "id": "text-experiment",
+      "type": "text",
+      "x": 80,
+      "y": -120,
+      "width": 320,
+      "height": 100,
+      "text": "**Experiment**\nLanding page A/B with an animated import → edit → export loop. Track sign-up rate vs control.",
+      "color": "6"
+    },
+    {
+      "id": "text-risk",
+      "type": "text",
+      "x": 80,
+      "y": 20,
+      "width": 320,
+      "height": 100,
+      "text": "**Risk**\nAnimation looks slick but obscures the actual data shape — could over-promise.",
+      "color": "#d62828"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-interview-hypothesis",
+      "fromNode": "file-interview",
+      "fromSide": "right",
+      "toNode": "text-hypothesis",
+      "toSide": "left",
+      "label": "supports"
+    },
+    {
+      "id": "edge-question-hypothesis",
+      "fromNode": "text-question",
+      "fromSide": "right",
+      "toNode": "text-hypothesis",
+      "toSide": "left",
+      "color": "4"
+    },
+    {
+      "id": "edge-hypothesis-experiment",
+      "fromNode": "text-hypothesis",
+      "fromSide": "bottom",
+      "toNode": "text-experiment",
+      "toSide": "top",
+      "label": "tested by",
+      "color": "6"
+    },
+    {
+      "id": "edge-experiment-risk",
+      "fromNode": "text-experiment",
+      "fromSide": "bottom",
+      "toNode": "text-risk",
+      "toSide": "top",
+      "label": "watch out for",
+      "color": "1"
+    },
+    {
+      "id": "edge-spec-mockup",
+      "fromNode": "link-jsoncanvas",
+      "fromSide": "right",
+      "toNode": "image-mockup",
+      "toSide": "left",
+      "fromEnd": "none",
+      "toEnd": "none"
+    }
+  ]
+}
