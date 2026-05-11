@@ -15,6 +15,9 @@ on:
       - "**/*.md"
       - ".github/workflows/**"
   workflow_dispatch:
+  # Reusable: invoked by `.github/workflows/run-all.yml` so the dispatch
+  # wrapper can fan out CI + Security + Privacy from a single button.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -12,6 +12,8 @@ on:
       - "src/**"
       - "src-tauri/src/**"
   workflow_dispatch:
+  # Reusable: invoked by `.github/workflows/run-all.yml`.
+  workflow_call:
 
 concurrency:
   group: privacy-${{ github.ref }}
