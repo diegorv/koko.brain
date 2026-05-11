@@ -644,6 +644,17 @@ You can add **any custom fields** you want — they all become visible in the Pr
 
 ---
 
+## Interactive Elements (Meta-Bind)
+
+Kokobrain supports two interactive widgets that read and write the current note's frontmatter directly from the body of the note:
+
+- Inline inputs: `` `INPUT[inlineSelect(todo, doing, done):status]` `` renders an inline dropdown bound to the `status` property.
+- Button blocks: a ` ```meta-bind-button ` fenced block defines a clickable button that runs one or more actions (update frontmatter, open a note, create a note).
+
+See [Meta-Bind](24-meta-bind.md) for the full reference and a copy-pasteable example for every input type and button action.
+
+---
+
 ## Quick Reference Card
 
 Here's a compact cheat sheet of the most commonly used syntax:
@@ -680,3 +691,4 @@ Here's a compact cheat sheet of the most commonly used syntax:
 
 - [Wikilinks & References](05-wikilinks.md) -- Connect notes to each other with `[[internal links]]`
 - [Sidebar Panels](07-sidebar-panels.md) -- See your frontmatter properties visually and explore the outline
+- [Meta-Bind](24-meta-bind.md) -- Add interactive inputs and buttons inline in your notes

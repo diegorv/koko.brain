@@ -20,7 +20,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 - [x] Task 12: `19-settings.md` — added Theme Editor, content width / paragraph spacing / heading typography, yearly periodic notes, Personal/Work people folders, QueryJS section, Tag Colors section, Security section, and disabledDecorators / livePreviewProfiling.
 - [x] Task 13: `12-collection.md` — added View Types section (table / calendar / linear-calendar). The "7 property types" claim was a false positive — the doc has no such list. The accurate 5-type list lives in 07-sidebar-panels.md and matches code.
 - [x] Task 14: Create `24-meta-bind.md` covering inline `INPUT[...]` inputs and ` ```meta-bind-button ` blocks (all action types).
-- [ ] Task 15: `04-markdown.md` — add short "Interactive elements" section pointing to `24-meta-bind.md`.
+- [x] Task 15: `04-markdown.md` — added Interactive Elements section + Next Steps link to `24-meta-bind.md`.
 - [ ] Task 16: `README.md` — add entry 24 to the index + learning-path narrative.
 
 ## Notes
