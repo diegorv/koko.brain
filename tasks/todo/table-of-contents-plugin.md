@@ -14,7 +14,7 @@ Add an optional right-sidebar plugin that lists every ATX heading (H1-H6) of the
 - [x] Create `TableOfContentsPanel.svelte` with `$effect` + `untrack()`, indented list, click-to-scroll
 - [x] Wire `AppShell.svelte`: import + conditional mount after TagsPanel
 - [x] Add `layout:toggle-table-of-contents` command in `command-palette.service.ts`
-- [ ] Add "Table of Contents" Switch in `GeneralSection.svelte`
+- [x] Add "Table of Contents" Switch in `GeneralSection.svelte`
 
 ## Notes
 
