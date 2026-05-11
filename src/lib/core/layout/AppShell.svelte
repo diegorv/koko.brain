@@ -15,6 +15,7 @@
 	import PropertiesView from '$lib/features/properties/PropertiesView.svelte';
 	import SearchPanel from '$lib/features/search/SearchPanel.svelte';
 	import CalendarPanel from '$lib/plugins/calendar/CalendarPanel.svelte';
+	import TableOfContentsPanel from '$lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
 	import StatusBar from '$lib/core/status-bar/StatusBar.svelte';
 	import WordCount from '$lib/plugins/word-count/WordCount.svelte';
 	import EncryptionToggle from '$lib/plugins/encrypted-notes/EncryptionToggle.svelte';
@@ -116,6 +117,9 @@
 									{/if}
 									{#if settingsStore.layout.tagsVisible}
 										<TagsPanel />
+									{/if}
+									{#if settingsStore.layout.tableOfContentsVisible}
+										<TableOfContentsPanel />
 									{/if}
 								</ScrollArea>
 							</div>
