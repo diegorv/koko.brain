@@ -20,8 +20,8 @@ A **sort dropdown** lets you switch between sorting by Name or Date Modified. At
 There are three ways to create new items:
 
 1. **Header buttons** — Click the New File (page+) or New Folder (folder+) icon in the file explorer header.
-2. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", or "New Canvas".
-3. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", or "New Canvas".
+2. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", or "New Kanban Board".
+3. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board".
 
 New items are created inside the currently selected folder. If nothing is selected, they are placed at the vault root.
 
@@ -69,6 +69,7 @@ Right-clicking a file or folder opens a context menu with the following options:
 | **New File** | Creates a new `.md` file in this location |
 | **New Folder** | Creates a new folder in this location |
 | **New Canvas** | Creates a new `.canvas` file in this location |
+| **New Kanban Board** | Creates a new `.kanban` file in this location |
 | **Duplicate** | Creates a copy with a "-copy" suffix |
 | **Bookmark / Remove Bookmark** | Adds or removes the item from your bookmarks |
 | **Change Icon** | Opens the icon picker to assign a custom icon (see [Custom File Icons](#custom-file-icons) below) |
@@ -127,7 +128,8 @@ Lucide, Feather, Font Awesome (Solid, Regular, Brands), Octicons, Boxicons, Cool
 ### Features
 
 - **Search**: Filter icons by name to quickly find the one you want.
-- **Color picker**: Tint any SVG icon with 8 preset colors or a custom color of your choice.
+- **Icon color**: Tint any SVG icon with one of 8 preset colors or a custom hex/HSL color.
+- **Tab text color**: Independently tint the tab title shown in the editor when the file is open. Useful for visually grouping notes by topic without changing the icon color.
 - **Recently used**: Your recently picked icons appear at the top for quick access.
 - **Remove icon**: Reset to the default file or folder icon.
 
