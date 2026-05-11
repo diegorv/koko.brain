@@ -63,6 +63,8 @@ test.describe('Live Preview - Lists', () => {
 
 	test('list item with inline formatting', async ({ lpPage: page }) => {
 		const line = page.locator('.cm-line').filter({ hasText: 'Bold' }).filter({ hasText: 'list item' });
-		await expect(line.locator('.cm-lp-bold')).toContainText('Bold');
+		// `.cm-lp-bold` wraps the `**` markers and the inner text; filter to
+		// the content span instead of `.first()` (which is the opening marker).
+		await expect(line.locator('.cm-lp-bold').filter({ hasText: 'Bold' }).first()).toBeVisible();
 	});
 });
