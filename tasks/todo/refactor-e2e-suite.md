@@ -37,9 +37,9 @@ Cada tarefa = um commit. Seguir CLAUDE.md (Plan Mode Workflow): rodar testes rel
 - [x] `vault-index.ts` registra-se no boot. `populate()` chama `onPopulate` → `vaultIndex.rebuildAll()`.
 
 ### 4. Reformar fixture principal
-- [ ] Reescrever `e2e/fixtures/test-vault.ts`: novo `TEST_FILES` com vault que de fato exercita backlinks (notas A→B→C), tags (`#projeto`, `#urgente`), tasks (`- [ ]`, `- [x]`), properties (frontmatter com strings, números, arrays). Documentar em comentário "Quem usa o quê". Manter shape do fixture `vaultPage`.
-- [ ] `e2e/fixtures/live-preview.ts` fica intocado (16 specs dependem dele). Confirmar que `populate()` rebuilda o índice — se não rebuildar, ajustar só essa linha.
-- [ ] Criar `e2e/fixtures/helpers.ts` com utilities: `openTreeItem(page, name)`, `pressShortcut(page, combo)`, `expectTabActive(page, name)`, `typeInEditor(page, text)`, `saveCurrentFile(page)`, `openCommandPalette(page)`, `openQuickSwitcher(page)`. Selectors role/CSS (sem `data-testid`).
+- [x] Reescrever `e2e/fixtures/test-vault.ts`: novo `TEST_FILES` com Welcome/Inbox/Projects (Roadmap+Q2+archive)/Daily, frontmatter (`status`, `priority`, `tags`, `quarter`), tasks `- [ ]` / `- [x]`, tags `#intro`/`#plan`/`#project`. Comentário documenta uso por panel.
+- [x] `e2e/fixtures/live-preview.ts` automaticamente re-parseia índice via `virtualFS.subscribe(onPopulate)` registrado em `vault-index.ts`. Sem mudança necessária.
+- [x] Criar `e2e/fixtures/helpers.ts` com `pressShortcut(Mod+...)`, `openTreeItem`, `typeInEditor`, `saveCurrentFile`, `openCommandPalette`, `openQuickSwitcher`, `openSearch`, `expectTabActive`, `tree`, `treeItem`, `activeTab`. Cross-platform via `Mod` placeholder.
 
 ### 5. Apagar 16 specs root antigos
 - [ ] `git rm e2e/specs/*.spec.ts`. NÃO tocar em `e2e/specs/live-preview/`. Commit isolado, histórico preservado.
