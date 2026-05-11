@@ -59,17 +59,17 @@ ESPERADO:
 
 %%
 Este teste carrega o script meeting-list.js do vault via kb.view().
-So funciona se markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list.js existir no vault.
+So funciona se __system/queryjs/meeting-list.js existir no vault.
 Como este arquivo nao tem inlinks para meetings, o resultado sera vazio.
 Para testar de verdade, abra o daily-2026-02-13.md.
 %%
 
 ```queryjs
 try {
-    await kb.view("markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list")
+    await kb.view("__system/queryjs/meeting-list")
 } catch (e) {
     kb.paragraph(`Erro ao carregar script: ${e.message}`)
-    kb.paragraph("Certifique-se de que markdown-manual-test/queryjs-examples/__system/queryjs/meeting-list.js esta no vault")
+    kb.paragraph("Certifique-se de que __system/queryjs/meeting-list.js esta no vault")
 }
 ```
 
@@ -145,10 +145,10 @@ Requer conexao com internet para carregar Chart.js do CDN.
 
 ```queryjs
 try {
-    await kb.view("markdown-manual-test/queryjs-examples/__system/queryjs/weekly-wellness-chart")
+    await kb.view("__system/queryjs/weekly-wellness-chart")
 } catch (e) {
     kb.paragraph(`Erro ao carregar script: ${e.message}`)
-    kb.paragraph("Certifique-se de que markdown-manual-test/queryjs-examples/__system/queryjs/weekly-wellness-chart.js esta no vault")
+    kb.paragraph("Certifique-se de que __system/queryjs/weekly-wellness-chart.js esta no vault")
 }
 ```
 
