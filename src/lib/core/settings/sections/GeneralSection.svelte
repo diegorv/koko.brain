@@ -74,6 +74,16 @@
 		/>
 	</SettingItem>
 
+	<SettingItem label="Table of Contents" description="Show the document outline panel in the right sidebar">
+		<Switch
+			checked={settingsStore.layout.tableOfContentsVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ tableOfContentsVisible: v });
+				onchange();
+			}}
+		/>
+	</SettingItem>
+
 	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Other</h3>
 
 	<SettingItem
