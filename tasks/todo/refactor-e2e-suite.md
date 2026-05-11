@@ -42,7 +42,7 @@ Cada tarefa = um commit. Seguir CLAUDE.md (Plan Mode Workflow): rodar testes rel
 - [x] Criar `e2e/fixtures/helpers.ts` com `pressShortcut(Mod+...)`, `openTreeItem`, `typeInEditor`, `saveCurrentFile`, `openCommandPalette`, `openQuickSwitcher`, `openSearch`, `expectTabActive`, `tree`, `treeItem`, `activeTab`. Cross-platform via `Mod` placeholder.
 
 ### 5. Apagar 16 specs root antigos
-- [ ] `git rm e2e/specs/*.spec.ts`. NÃO tocar em `e2e/specs/live-preview/`. Commit isolado, histórico preservado.
+- [x] Removidos 16 specs (1.163 LOC). `e2e/specs/live-preview/` intocado.
 
 ### 6. Escrever specs novos (golden paths)
 Cada spec é um commit separado. Manter cada um < 100 LOC, focado, asserts em conteúdo renderizado (não só presença de container, conforme CLAUDE.md regra 8).
