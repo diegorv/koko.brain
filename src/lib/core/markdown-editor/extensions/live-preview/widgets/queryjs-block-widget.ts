@@ -136,6 +136,13 @@ export class QueryjsBlockWidget extends WidgetType {
 		button.type = 'button';
 		button.className = 'cm-lp-qjs-run';
 		button.textContent = '▶ Run';
+		// CodeMirror's `mousedown` handler moves the cursor onto the line of
+		// the widget — which makes `shouldShowSource(...)` return true and
+		// destroys the widget BEFORE the click handler can fire. Stopping
+		// propagation at mousedown keeps the widget mounted long enough for
+		// the click to reach our handler. Same pattern as
+		// `code-block-widget.ts` and the meta-bind / callout / table buttons.
+		button.addEventListener('mousedown', (e) => e.stopPropagation());
 		button.onclick = () => {
 			// Manual mode never marks autoRun (see the invariant above) — only
 			// first-open after a click "promotes" the file. We're already past
@@ -228,6 +235,10 @@ export class QueryjsBlockWidget extends WidgetType {
 		retry.type = 'button';
 		retry.className = 'cm-lp-qjs-run';
 		retry.textContent = '▶ Run again';
+		// Same `mousedown` stopPropagation as the initial Run button —
+		// without it, CodeMirror moves the cursor to this line, destroys the
+		// error widget, and the click lands on detached DOM.
+		retry.addEventListener('mousedown', (e) => e.stopPropagation());
 		retry.onclick = () => {
 			container.replaceChildren();
 			this.execute(container);

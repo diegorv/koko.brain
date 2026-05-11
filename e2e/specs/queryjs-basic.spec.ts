@@ -85,13 +85,10 @@ test.describe('QueryJS basics', () => {
 
 	test('clicking ▶ Run executes the script and renders the output', async ({ qjsPage: page }) => {
 		await openNote(page, 'Query.md');
-		// Use `evaluate(el => el.click())` instead of Playwright's mouse click:
-		// CodeMirror processes `mousedown` to move the cursor, which destroys
-		// the widget before the click handler can fire (the
-		// `stopPropagation`-on-mousedown pattern documented in CLAUDE.md is
-		// not yet applied to the Run button). Dispatching `click()` directly
-		// on the DOM node skips mousedown entirely.
-		await page.locator('button.cm-lp-qjs-run').first().evaluate((el: HTMLElement) => el.click());
+		// Run button stops `mousedown` propagation so CodeMirror can't move
+		// the cursor and destroy the widget mid-click — Playwright's normal
+		// click works end-to-end.
+		await page.locator('button.cm-lp-qjs-run').first().click();
 
 		await expect(page.locator('text=QUERYJS_OUTPUT_2026')).toBeVisible({ timeout: 5_000 });
 		await expect(page.locator('button.cm-lp-qjs-run')).toHaveCount(0);
@@ -101,7 +98,7 @@ test.describe('QueryJS basics', () => {
 		qjsPage: page,
 	}) => {
 		await openNote(page, 'Query.md');
-		await page.locator('button.cm-lp-qjs-run').first().evaluate((el: HTMLElement) => el.click());
+		await page.locator('button.cm-lp-qjs-run').first().click();
 		await expect(page.locator('text=QUERYJS_OUTPUT_2026')).toBeVisible({ timeout: 5_000 });
 
 		// Switch away to discard the widget DOM, then switch back. The cached
