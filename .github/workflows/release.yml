@@ -33,44 +33,59 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
 
-      - name: Verify CI passed on this commit
+      - name: Wait for CI to pass on this commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           # The previous "Validate tag is on main branch" step guarantees the
           # tagged commit is on `main`. CI (ci.yml) runs on every push to
-          # `main`, so a CI run for this exact SHA must exist by the time
-          # someone tags it. We check the run conclusion instead of re-running
-          # `pnpm check` + `pnpm vitest run` inline (which were duplicating
-          # the work CI already did and which didn't cover E2E at all).
+          # `main`, so a CI run for this SHA must EITHER already exist
+          # (commit pushed earlier, CI completed) OR be about to start
+          # (commit + tag pushed together via `git push --follow-tags`).
+          #
+          # Both flows are valid. We don't want to force the user through
+          # a PR before every release — sometimes you bump version locally,
+          # commit, tag, and push everything at once. So this step:
+          #
+          #   1. Waits up to 5 min for a CI run to appear on this SHA
+          #      (handles the race where Release fires before CI is
+          #      registered by GitHub).
+          #   2. Uses `gh run watch --exit-status` to poll the run until
+          #      it completes, then propagates its exit code as ours.
+          #
+          # If CI fails or is cancelled, this step fails and Release
+          # aborts before building / signing / publishing anything.
+
           SHA="${GITHUB_SHA}"
-          STATE=$(gh run list \
-            --workflow=ci.yml \
-            --commit "$SHA" \
-            --json status,conclusion \
-            --jq '.[0] | "\(.status):\(.conclusion // "none")"' \
-            || echo "")
-          if [ -z "$STATE" ] || [ "$STATE" = ":none" ]; then
-            echo "::error::No CI run found for commit ${SHA}."
-            echo "::error::Push the commit to main and wait for CI to finish before tagging."
+
+          echo "Waiting for a CI run to appear for commit ${SHA}..."
+          RUN_ID=""
+          for i in $(seq 1 30); do
+            RUN_ID=$(gh run list \
+              --workflow=ci.yml \
+              --commit "$SHA" \
+              --json databaseId \
+              --jq '.[0].databaseId // ""' \
+              2>/dev/null || true)
+            if [ -n "$RUN_ID" ]; then
+              echo "Found CI run #${RUN_ID} after $((i * 10))s"
+              break
+            fi
+            echo "  ($i/30) no CI run yet, sleeping 10s..."
+            sleep 10
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No CI run appeared for commit ${SHA} after 5 minutes."
+            echo "::error::CI's path filter may have skipped this commit (only docs / workflow file changes?)."
+            echo "::error::Either push a real code change or re-run this release via workflow_dispatch."
             exit 1
           fi
-          case "$STATE" in
-            completed:success)
-              echo "✓ CI succeeded for commit ${SHA}"
-              ;;
-            completed:*)
-              echo "::error::CI for commit ${SHA} did not succeed: ${STATE}"
-              echo "::error::Fix CI and retag, or re-run the failing CI workflow."
-              exit 1
-              ;;
-            *)
-              echo "::error::CI for commit ${SHA} is still ${STATE}."
-              echo "::error::Wait for CI to finish before tagging."
-              exit 1
-              ;;
-          esac
+
+          echo ""
+          echo "Watching CI run #${RUN_ID} until it completes..."
+          gh run watch "$RUN_ID" --exit-status
 
       - name: Generate changelog
         id: changelog
