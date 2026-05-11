@@ -11,7 +11,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md` (extended
 
 ## Tasks
 
-- [ ] Task 1: `canvas-features/` — runnable `.canvas` sample showing all 5 node types, edges, colors, group.
+- [x] Task 1: `canvas-features/` — `product-brainstorm.canvas` + `interview-notes.md` + README, covering all 5 node types, preset + hex colors, labeled / sided / no-arrow edges.
 - [ ] Task 2: `kanban-features/` — `.kanban` sample exercising lanes, archive, settings block, dates, colors, tags, and a `viewMode` switch.
 - [ ] Task 3: `auto-move-features/` — `auto-move-rules.json` plus 2-3 sample notes that match the rules.
 - [ ] Task 4: queryjs new scripts under `__system/queryjs/` covering `kb.ui.cards`, `statusCards`, `timeline`, `tagCloud`, `progressBar`, `heatmap`, plus a `kb.list` + `kb.fileLink` example.
