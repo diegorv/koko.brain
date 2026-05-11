@@ -14,6 +14,18 @@ A Kanban board is a special file with the `.kanban` extension. When you open it,
 
 Open the Command Palette (`Cmd+P`) and run **"New Kanban Board"**. Kokobrain creates a `.kanban` file in your current folder with three default lanes: **To Do**, **In Progress**, and **Done**.
 
+## View Modes
+
+The board toolbar exposes three views of the same `.kanban` file. The selected view is stored in the board settings block and persists per file.
+
+| View | Icon | What it shows |
+|------|------|---------------|
+| **Board** (default) | Grid | The classic swimlane board: one column per lane, drag-and-drop between lanes, lane settings, archive separator. |
+| **List** | List | A stacked-list view: each lane becomes a section with a card count and a vertical list of cards. Useful for narrow windows or screen readers. |
+| **Table** | Table | A flat table with columns for *Lane*, *Card*, *Tags*, *Date*, and *Status*. Best for scanning many cards at once or copy-pasting card text. |
+
+List and Table are read-only with respect to layout (no drag-and-drop, no lane settings, no archive section), but you can still check / uncheck cards and click wikilinks. Switch back to **Board** to edit the structure.
+
 ## Board Anatomy
 
 ### Lanes (Columns)
@@ -146,6 +158,7 @@ Board-level settings (lane widths, collapsed state, sort mode, tag colors, etc.)
 %% kanban:settings
 {
   "sortMode": "manual",
+  "viewMode": "board",
   "laneSettings": {
     "Done": { "autoComplete": true },
     "In Progress": { "maxItems": 3 }
@@ -157,6 +170,8 @@ Board-level settings (lane widths, collapsed state, sort mode, tag colors, etc.)
 }
 %%
 ```
+
+`viewMode` accepts `"board"` (default), `"list"`, or `"table"`.
 
 This block is invisible in the board UI and is managed automatically. You can edit it manually if needed, but be careful with JSON syntax.
 
