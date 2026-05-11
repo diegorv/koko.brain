@@ -327,6 +327,20 @@ CI, Security, and Privacy use path filters to skip when only documentation chang
 
 Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use `cancel-in-progress: true` (newer commits supersede older runs). The exception is Wiki Sync, which uses `cancel-in-progress: false` (every push's docs are meaningful work; serialize, do not drop).
 
+### Third-party action pinning
+
+Third-party actions (anything outside the `actions/*` namespace) are pinned by full commit SHA, with the corresponding version tag in a trailing comment so Dependabot keeps them current:
+
+```yaml
+- uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+```
+
+This protects the suite against a compromised maintainer account silently moving a tag to malicious code — the SHA we recorded is the only thing GitHub will resolve. The release pipeline (`tauri-apps/tauri-action`, which handles Apple signing certs and notarization credentials) is the highest-stakes case, but the same convention applies everywhere.
+
+`actions/*` (e.g. `actions/checkout`, `actions/setup-node`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`) is left on version tags — those are GitHub-published and considered part of the trusted base.
+
+`dtolnay/rust-toolchain@stable` is also intentionally NOT pinned by SHA: `stable` is a branch reference that tracks the rolling rustc stable channel, so pinning by SHA would freeze the channel as well as the action code.
+
 ### Permissions
 
 Every workflow declares `permissions: contents: read` at the file level. Jobs that need more escalate at the job level — and because GitHub Actions REPLACES (not merges) workflow-level permissions when a job declares its own, escalating jobs re-state the `contents: read` baseline alongside the extra scope they need. Current escalations:
