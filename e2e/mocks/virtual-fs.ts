@@ -61,6 +61,34 @@ function getFileName(p: string): string {
 	return idx >= 0 ? p.substring(idx + 1) : p;
 }
 
+function doReadDir(path: string): DirEntry[] {
+	const prefix = path + '/';
+	const seen = new Set<string>();
+	const results: DirEntry[] = [];
+
+	for (const key of store.keys()) {
+		if (!key.startsWith(prefix)) continue;
+		const rest = key.substring(prefix.length);
+		const slashIdx = rest.indexOf('/');
+		const childName = slashIdx >= 0 ? rest.substring(0, slashIdx) : rest;
+
+		if (seen.has(childName)) continue;
+		seen.add(childName);
+
+		const childPath = prefix + childName;
+		const childEntry = store.get(childPath);
+		const isDir = childEntry ? childEntry.isDirectory : slashIdx >= 0;
+
+		results.push({
+			name: childName,
+			isDirectory: isDir,
+			isFile: !isDir,
+			isSymlink: false,
+		});
+	}
+	return results;
+}
+
 function ensureParentDirs(path: string): void {
 	const parent = getParentPath(path);
 	if (parent === path) return;
@@ -158,7 +186,6 @@ export const virtualFS = {
 	},
 
 	remove(path: string): void {
-		// Delete the entry and all children
 		const prefix = path + '/';
 		const removed: string[] = [];
 		for (const key of [...store.keys()]) {
@@ -203,33 +230,7 @@ export const virtualFS = {
 	},
 
 	readDir(path: string): DirEntry[] {
-		const prefix = path + '/';
-		const seen = new Set<string>();
-		const results: DirEntry[] = [];
-
-		for (const key of store.keys()) {
-			if (!key.startsWith(prefix)) continue;
-			const rest = key.substring(prefix.length);
-			const slashIdx = rest.indexOf('/');
-			const childName = slashIdx >= 0 ? rest.substring(0, slashIdx) : rest;
-
-			if (seen.has(childName)) continue;
-			seen.add(childName);
-
-			// Check if the direct child entry is a directory
-			const childPath = prefix + childName;
-			const childEntry = store.get(childPath);
-			const isDir = childEntry ? childEntry.isDirectory : slashIdx >= 0;
-
-			results.push({
-				name: childName,
-				isDirectory: isDir,
-				isFile: !isDir,
-				isSymlink: false,
-			});
-		}
-
-		return results;
+		return doReadDir(path);
 	},
 
 	copyFile(src: string, dest: string): void {
@@ -248,7 +249,7 @@ export const virtualFS = {
 	},
 
 	scanVault(path: string, sortBy: string): FileTreeNode[] {
-		const children = this.readDir(path);
+		const children = doReadDir(path);
 		const nodes: FileTreeNode[] = [];
 
 		for (const child of children) {
@@ -266,7 +267,7 @@ export const virtualFS = {
 			};
 
 			if (child.isDirectory) {
-				node.children = this.scanVault(childPath, sortBy);
+				node.children = virtualFS.scanVault(childPath, sortBy);
 			}
 
 			nodes.push(node);
@@ -354,8 +355,8 @@ export const virtualFS = {
 	},
 };
 
-// Expose on window for Playwright access (guard for SSR)
 if (typeof window !== 'undefined') {
-	(window as any).__e2e = (window as any).__e2e || {};
-	(window as any).__e2e.fs = virtualFS;
+	(window as unknown as { __e2e?: Record<string, unknown> }).__e2e =
+		(window as unknown as { __e2e?: Record<string, unknown> }).__e2e ?? {};
+	(window as unknown as { __e2e: { fs: typeof virtualFS } }).__e2e.fs = virtualFS;
 }

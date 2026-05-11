@@ -347,3 +347,33 @@ export async function invoke(cmd: string, args?: Record<string, unknown>): Promi
 	console.warn(`[e2e mock] Unknown invoke command: ${cmd}`, args);
 	return null;
 }
+
+// ─── Stub classes some Tauri plugins re-export from @tauri-apps/api/core ────
+// `Resource` and `Channel` are referenced by `@tauri-apps/plugin-updater` etc.
+// They are unused at runtime in PLAYWRIGHT mode but must exist for the
+// dependency optimizer to bundle the plugins without erroring.
+
+export class Resource {
+	rid = 0;
+	async close(): Promise<void> {
+		/* no-op */
+	}
+}
+
+export class Channel<T = unknown> {
+	id: number = 0;
+	onmessage: (response: T) => void = () => {};
+	async close(): Promise<void> {
+		/* no-op */
+	}
+}
+
+export function transformCallback<T = unknown>(_cb?: (response: T) => void): number {
+	return 0;
+}
+
+export function convertFileSrc(filePath: string, _protocol?: string): string {
+	return filePath;
+}
+
+export const PluginListener = Resource;
