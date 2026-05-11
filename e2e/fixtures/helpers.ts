@@ -7,16 +7,23 @@
 import type { Page, Locator } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-declare const process: { platform: string };
-
-const META = process.platform === 'darwin' ? 'Meta' : 'Control';
-
 /**
- * Press a keyboard combo using the platform-correct modifier. Use `Mod` as
- * the cross-platform Cmd/Ctrl placeholder, e.g. `pressShortcut(page, 'Mod+S')`.
+ * Press a keyboard combo using `Meta` as the cross-platform modifier.
+ *
+ * Why always `Meta` (and not `Control` on Linux)?
+ *
+ * The app's keybinding utility (`src/lib/utils/keybindings.ts`) only checks
+ * `event.metaKey` for `meta: true` bindings — it does NOT treat `ctrlKey`
+ * as an equivalent fallback. The app is Tauri-first and targets the macOS
+ * convention. Playwright's `keyboard.press('Meta+S')` dispatches a synthetic
+ * keyboard event with `metaKey: true` on every OS (Cmd on macOS, Super/Win
+ * on Linux/Windows), so the same `'Meta+S'` works in CI on Ubuntu just like
+ * it does locally on macOS.
+ *
+ * Use `Mod` as the placeholder in callers — e.g. `pressShortcut(page, 'Mod+S')`.
  */
 export async function pressShortcut(page: Page, combo: string): Promise<void> {
-	await page.keyboard.press(combo.replace(/\bMod\b/g, META));
+	await page.keyboard.press(combo.replace(/\bMod\b/g, 'Meta'));
 }
 
 /** Locator for the file explorer tree container. */
