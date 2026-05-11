@@ -1,0 +1,32 @@
+## Plan
+
+- [ ] Review last week's [[Weekly Review]]
+- [ ] Pick top three goals for this week
+- [ ] Time-block deep-work sessions on the calendar
+
+## Doing
+
+- [ ] Draft the Q2 [[OKRs]] {2026-03-09} #goals
+- [ ] Read chapter 4 of [[Atomic Habits]] #reading {color:blue}
+
+## Waiting
+
+- [ ] Reply from Alex on the [[New Office Plan]] {2026-03-11} {color:yellow}
+
+## Done
+
+- [x] Gym session, lower body #fitness
+- [x] Grocery run #errand
+
+%% kanban:settings
+{
+  "viewMode": "list",
+  "sortMode": "unchecked",
+  "tagColors": {
+    "goals": "purple",
+    "reading": "blue",
+    "fitness": "green",
+    "errand": "gray"
+  }
+}
+%%

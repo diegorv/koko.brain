@@ -1,0 +1,49 @@
+## Backlog
+
+- [ ] Write changelog entry for v2.0
+- [ ] Draft announcement post {2026-03-15} #marketing
+- [ ] Update screenshots for the landing page #marketing {color:gray}
+
+## In Progress
+
+- [ ] Migrate auth middleware to the new token store {2026-03-10} #backend #refactor
+- [ ] Sync mobile build with the [[Release Plan]] {2026-03-12} {color:orange}
+- [ ] QA pass on the [[Onboarding Tour]] #qa
+
+## Blocked
+
+- [ ] Resolve flaky E2E in `kanban-drag.test.ts` {color:red} #qa #flaky-test
+- [ ] Wait for legal review on the new ToS {2026-03-18} {color:yellow} #legal
+
+## Done
+
+- [x] Cut release branch `release/2.0` {2026-03-05} #release
+- [x] Bump version to 2.0.0-rc.1
+- [x] Smoke-test on macOS 14 + 15 #qa
+
+---
+
+## Archive
+
+- [x] Spike: investigate Tauri 2 file-watcher debounce {color:green}
+- [x] Decide on JSON Canvas 1.0 as the canvas format
+
+%% kanban:settings
+{
+  "viewMode": "board",
+  "sortMode": "manual",
+  "laneSettings": {
+    "Done": { "autoComplete": true },
+    "In Progress": { "maxItems": 3 },
+    "Blocked": { "maxItems": 2 }
+  },
+  "tagColors": {
+    "backend": "blue",
+    "qa": "purple",
+    "marketing": "green",
+    "release": "orange",
+    "legal": "gray",
+    "flaky-test": "red"
+  }
+}
+%%
