@@ -74,6 +74,16 @@ jobs:
       - name: Run unit tests
         run: pnpm vitest run
 
+      # Verifies the SvelteKit / Vite production bundle actually compiles.
+      # `pnpm check` covers types and `pnpm vitest run` covers logic, but
+      # neither catches runtime-only bundling failures (SSR-incompatible
+      # imports, dynamic import paths that don't resolve, type-only
+      # re-exports that become runtime errors, asset references missing
+      # at build time). Without this step, those regressions only surface
+      # inside `tauri-action` during release — late and expensive.
+      - name: Build frontend bundle
+        run: pnpm build
+
   rust:
     name: Rust (cargo test)
     needs: changes
