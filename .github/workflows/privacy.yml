@@ -1,4 +1,4 @@
-name: Privacy Check
+name: Privacy
 
 on:
   push:

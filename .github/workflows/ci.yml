@@ -71,8 +71,8 @@ jobs:
       - name: Run unit tests
         run: pnpm vitest run
 
-  test-rust:
-    name: Rust Tests
+  rust:
+    name: Rust (cargo test)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: macos-latest
@@ -86,8 +86,8 @@ jobs:
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
-  test-e2e:
-    name: Playwright E2E
+  e2e:
+    name: Frontend (Playwright E2E)
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
