@@ -5,6 +5,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 ## Index
 
 - [CI](#ci-ciyml)
+- [E2E](#e2e-e2eyml)
 - [Security](#security-securityyml)
 - [Privacy](#privacy-privacyyml)
 - [Release](#release-releaseyml)
@@ -35,12 +36,13 @@ Primary validation pipeline for code changes.
 | `changes` | Detect Changes | ubuntu-latest | Always |
 | `frontend` | Frontend (typecheck + tests) | ubuntu-latest | Only if `frontend` paths changed |
 | `rust` | Rust (cargo test) | macos-latest | Only if `rust` paths changed |
-| `e2e` | Frontend (Playwright E2E) | ubuntu-latest | Only if `frontend` paths changed |
 
 `changes` uses [`dorny/paths-filter`](https://github.com/dorny/paths-filter) with two filters:
 
 - `frontend`: `src/**`, `static/**`, `pnpm-lock.yaml`, `package.json`, `tsconfig.json`, `svelte.config.*`, `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, `components.json`
 - `rust`: `src-tauri/**`
+
+The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml)) so a flaky end-to-end run does not block the deterministic CI matrix or the release pipeline.
 
 **What CI tests**
 
@@ -48,17 +50,52 @@ Primary validation pipeline for code changes.
   - `pnpm check` (svelte-kit sync + svelte-check). Catches TypeScript errors, Svelte template errors, and unused imports.
   - `pnpm vitest run` (the full unit suite, ~5400 tests across the `src/tests/` tree). Covers pure logic, stores, services, parsers, and component-level behaviour.
 - `rust`: `cargo test --manifest-path src-tauri/Cargo.toml`. Covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, history/snapshot logic, and crypto helpers.
-- `e2e`: `bash scripts/e2e.sh`. Boots `PLAYWRIGHT=true pnpm dev` (Vite serves the frontend with the Tauri mock layer in `e2e/mocks/`), runs the full Playwright suite (~166 tests across `e2e/specs/`). Covers vault open, file CRUD, editor, tabs, navigation (wikilink + quick switcher + command palette + search), live preview decorations, sidebars, settings, canvas/kanban/tasks virtual views, queryjs basics, and embed widgets.
-
-On `e2e` failure, the Playwright HTML report, the `test-results/` directory, and `/tmp/kokobrain-e2e-server.log` are uploaded as a single 7-day artifact named `playwright-report`.
 
 **What CI does NOT test**
 
+- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml) and only runs on PRs and tag pushes.
 - Tauri build / packaging / signing (that is what `release.yml` does on tag).
-- macOS-specific Tauri APIs that the mock layer stubs (Touch ID, Keychain, system fonts, history database via Rust, FTS5 / semantic search, terminal pty, native window events). The frontend exercises these against in-memory mocks under PLAYWRIGHT mode, not the real Rust commands.
+- macOS-specific Tauri APIs that the mock layer stubs (Touch ID, Keychain, system fonts, history database via Rust, FTS5 / semantic search, terminal pty, native window events). The frontend exercises these via the mock layer under E2E; native paths are only validated by `cargo test`.
 - Plugin features that the E2E mock layer treats as no-ops (encryption end-to-end, semantic search, file history, terminal, system fonts).
 - Visual regression. There are no screenshot diffs.
-- Multi-browser. Only Chromium is configured.
+- Multi-browser. The E2E suite (separate workflow) only configures Chromium.
+
+---
+
+## E2E (`e2e.yml`)
+
+Playwright end-to-end suite, separated from CI so flakiness in the browser layer cannot block the deterministic checks or the release pipeline.
+
+**Triggers**
+
+- `pull_request` against `main`, filtered to paths that could affect the rendered frontend (`src/**`, `static/**`, `e2e/**`, lockfile, configs, `scripts/e2e.sh`).
+- `push` of tags matching `*.*.*-alpha`. Runs alongside `release.yml` as a safety net visible on the release commit. Release does NOT wait on it — the binary still builds, signs, and ships even if the E2E run flakes; the real gate is the PR run before merge.
+- `workflow_dispatch` (manual rerun without a new commit).
+- `workflow_call` (invoked by `run-all.yml`).
+
+Intentionally NOT triggered on direct pushes to `main`. The project workflow is "PR -> merge, or commit + tag together". Running E2E on every commit-to-main push doubles the cost without adding signal: the PR run before the merge already covered the diff, and the tag run will cover it again before release.
+
+**Jobs**
+
+| Job ID | Display name | Runner | What it does |
+|---|---|---|---|
+| `playwright` | Frontend (Playwright E2E) | ubuntu-latest | Boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh`. |
+
+The suite covers ~166 tests across `e2e/specs/`: vault open, file CRUD, editor, tabs (open/cycle/close/pin/unpin), navigation (wikilink + quick switcher + command palette + search), live preview decorations, sidebars, settings, canvas/kanban/tasks virtual views, queryjs basics (manual mode + cache + Run button), embed widgets, wikilink completion / anchors / create-on-click, state persistence.
+
+On failure, the Playwright HTML report, the `test-results/` directory, and `/tmp/kokobrain-e2e-server.log` are uploaded as a single 7-day artifact named `playwright-report`.
+
+**What E2E tests**
+
+The frontend layer end-to-end against the Tauri mock layer in `e2e/mocks/`. The mock layer implements an in-memory `VaultIndex` (parsing frontmatter / wikilinks / tags / tasks with the same pure logic the production code uses), a virtual filesystem, dialog/event/window stubs, and a passthrough for encryption/semantic/history/terminal commands. The Vite alias map (`vite.config.js`) swaps every `@tauri-apps/*` import for the corresponding mock under `PLAYWRIGHT=true`.
+
+**What E2E does NOT test**
+
+- The real Rust commands. The mock layer answers IPC calls with in-memory implementations. A bug in the actual `VaultIndex` (`src-tauri/src/vault/index.rs`) or in the FTS5 search service is not visible here.
+- Plugin paths the mock returns no-op for: encryption end-to-end, semantic search, file history with the real SQLite database, terminal PTY, system fonts.
+- Tauri runtime behaviour (auto-updater, native window events, deep links, menu bar). Listeners are mocked.
+- Visual regression. No screenshot baselines.
+- Multi-browser. Chromium only.
 
 ---
 
@@ -207,7 +244,7 @@ Mirrors `help/documentation/` and `help/examples/` into the repository's GitHub 
 
 ## Run All Checks (`run-all.yml`)
 
-Manual entry point that fans out CI, Security, and Privacy in one click. Useful after a rebase, when retrying flaky checks across the matrix, or during regression triage.
+Manual entry point that fans out CI, E2E, Security, and Privacy in one click. Useful after a rebase, when retrying flaky checks across the matrix, or during regression triage.
 
 **Triggers**
 
@@ -218,6 +255,7 @@ Manual entry point that fans out CI, Security, and Privacy in one click. Useful 
 | Job ID | Display name | What it does |
 |---|---|---|
 | `ci` | CI | `uses: ./.github/workflows/ci.yml` |
+| `e2e` | E2E | `uses: ./.github/workflows/e2e.yml` |
 | `security` | Security | `uses: ./.github/workflows/security.yml` |
 | `privacy` | Privacy | `uses: ./.github/workflows/privacy.yml` |
 
@@ -293,10 +331,12 @@ Default to `contents: read`. Jobs that need more declare it inline (e.g. `cargo-
 
 ### Required status checks
 
-When updating branch protection rules in the GitHub UI, refer to the current job display names:
+When updating branch protection rules in the GitHub UI, refer to the current job display names. The E2E check now belongs to a separate workflow file, so the workflow column matters:
 
-- `Frontend (typecheck + tests)` (replaces the old `TypeScript Check` + `Frontend Tests`)
-- `Frontend (Playwright E2E)` (replaces the old `Playwright E2E`)
-- `Rust (cargo test)` (replaces the old `Rust Tests`)
+| Display name | Workflow file |
+|---|---|
+| `Frontend (typecheck + tests)` | `ci.yml` |
+| `Rust (cargo test)` | `ci.yml` |
+| `Frontend (Playwright E2E)` | `e2e.yml` |
 
-Job IDs were also normalized (`frontend`, `e2e`, `rust`) so historical names should be removed.
+Historical names that should be removed from branch protection: `TypeScript Check`, `Frontend Tests`, `Rust Tests`, and any `Playwright E2E` entry pinned to `ci.yml` (it moved to `e2e.yml`).
