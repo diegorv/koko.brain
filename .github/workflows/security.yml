@@ -1,16 +1,17 @@
 name: Security
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-      - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-      - ".github/workflows/**"
   schedule:
     - cron: "0 9 * * 1" # Every Monday at 9:00 UTC
   workflow_dispatch:
@@ -26,8 +27,6 @@ jobs:
     name: npm Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -43,6 +42,9 @@ jobs:
     name: Cargo Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Job-level permissions REPLACE workflow-level (they're not merged),
+    # so the `contents: read` baseline has to be redeclared alongside
+    # the `checks: write` escalation required by `rustsec/audit-check`.
     permissions:
       contents: read
       checks: write
@@ -59,8 +61,6 @@ jobs:
     name: Supply Chain Quarantine
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -90,8 +90,6 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v6
 

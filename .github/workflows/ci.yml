@@ -8,15 +8,15 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-      - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-      - ".github/workflows/**"
   workflow_dispatch:
   # Reusable: invoked by `.github/workflows/run-all.yml` so the dispatch
-  # wrapper can fan out CI + Security + Privacy from a single button.
+  # wrapper can fan out CI + Security + Privacy from a single button,
+  # and by `.github/workflows/release.yml` to revalidate the tagged SHA
+  # before building.
   workflow_call:
 
 concurrency:
@@ -88,4 +88,41 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  # Aggregate gate used as the single required status check for branch
+  # protection. `frontend` and `rust` are skipped when their paths
+  # filter says nothing relevant changed, which makes them unusable as
+  # required checks directly (a "rust-only" PR would have `frontend`
+  # skipped, branch protection would block forever). This sentinel
+  # passes when every dependency either succeeded or was deliberately
+  # skipped, and fails on any real failure or cancellation.
+  ci-success:
+    name: CI success
+    needs: [changes, frontend, rust]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Aggregate gate results
+        run: |
+          set -euo pipefail
+          changes="${{ needs.changes.result }}"
+          frontend="${{ needs.frontend.result }}"
+          rust="${{ needs.rust.result }}"
+          echo "changes=$changes frontend=$frontend rust=$rust"
+          if [ "$changes" != "success" ]; then
+            echo "::error::changes job did not succeed (result=$changes)"
+            exit 1
+          fi
+          for name in frontend rust; do
+            case "$name" in
+              frontend) result="$frontend" ;;
+              rust) result="$rust" ;;
+            esac
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              echo "::error::$name job did not pass (result=$result)"
+              exit 1
+            fi
+          done
+          echo "All gates passed."
 
