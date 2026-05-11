@@ -22,7 +22,11 @@ export const TEST_VAULT_PATH = '/test-vault';
 const DEFAULT_SETTINGS = {
 	periodicNotes: {
 		folder: 'Daily',
-		daily: { format: 'YYYY-MM-DD', template: '', templatePath: '' },
+		// `autoPin: false` so the auto-opened daily-note tab can be closed via
+		// Cmd+W in tests. Production defaults to `autoPin: true` (see
+		// settings.store.svelte.ts) but that makes empty-state / Cmd+W tests
+		// flaky because pinned tabs are skipped by `closeTab`.
+		daily: { format: 'YYYY-MM-DD', template: '', templatePath: '', autoOpen: true, autoPin: false },
 		weekly: { format: 'YYYY-[W]WW', templatePath: '' },
 		monthly: { format: 'YYYY-MM', templatePath: '' },
 		quarterly: { format: 'YYYY-[Q]Q', templatePath: '' },
