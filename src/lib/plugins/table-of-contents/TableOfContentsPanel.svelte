@@ -31,10 +31,11 @@
 		{:else}
 			<div class="space-y-0.5">
 				{#each tocStore.headings as heading (heading.pos)}
+					{@const depth = heading.level - 1}
 					<button
 						type="button"
-						class="block w-full truncate rounded-md py-1 pr-2 text-left text-sm hover:bg-accent cursor-pointer"
-						style:padding-left="{0.5 + (heading.level - 1) * 0.75}rem"
+						class="relative block w-full truncate rounded-md py-1 pr-2 text-left text-sm hover:bg-accent cursor-pointer {depth > 0 ? 'toc-indent-lines' : ''}"
+						style="padding-left: {depth * 16 + 8}px; --toc-indent-depth: {depth};"
 						title={heading.text}
 						onclick={() => scrollToHeading(heading.pos)}
 					>
@@ -45,3 +46,16 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.toc-indent-lines {
+		background-image: repeating-linear-gradient(
+			to right,
+			transparent 0 12px,
+			color-mix(in oklch, var(--muted-foreground) 40%, transparent) 12px 13px,
+			transparent 13px 16px
+		);
+		background-size: calc(var(--toc-indent-depth, 0) * 16px) 100%;
+		background-repeat: no-repeat;
+	}
+</style>
