@@ -26,6 +26,10 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci.yml
 
+  e2e:
+    name: E2E
+    uses: ./.github/workflows/e2e.yml
+
   security:
     name: Security
     permissions:
