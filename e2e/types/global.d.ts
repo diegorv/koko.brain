@@ -1,7 +1,10 @@
+import type { vaultIndex } from '../mocks/vault-index';
+
 interface E2eFS {
 	populate(entries: Record<string, string>): void;
 	reset(): void;
 	readFile(path: string): string;
+	readFileSafe(path: string): string | null;
 	writeFile(path: string, content: string): void;
 	mkdir(path: string): void;
 	remove(path: string): void;
@@ -25,6 +28,7 @@ interface E2eAPI {
 	fs: E2eFS;
 	dialog: E2eDialog;
 	events: E2eEvents;
+	vaultIndex: typeof vaultIndex;
 }
 
 declare global {
