@@ -115,7 +115,17 @@ The Tags panel shows all `#tags` used across your entire vault, organized in a h
 
 ### Clicking a tag
 
-Clicking a tag opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
+Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
+
+### Tag colors
+
+A small colored dot sits to the left of each tag name. Click the dot to open the **Tag Color Picker** popover.
+
+- Pick one of the preset colors to tint the tag.
+- Pick the **custom color** swatch to open a native color picker for any hex value.
+- Pick the **No color** option (the `×` swatch) to clear the assignment.
+
+Tag colors are stored under `tagColors.colors` in your settings and apply everywhere the tag is rendered: the Tags panel, inline `#tags` in notes, and editor decorations.
 
 > [!TIP]
 > Use nested tags for organization: `#project/alpha`, `#project/beta`. The Tags panel groups them into a collapsible tree, keeping your tag list tidy even as it grows.
