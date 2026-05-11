@@ -85,14 +85,19 @@ Right-click anywhere on the canvas for context-sensitive options:
 - On an **edge** -- Change color, add or edit a label, delete the edge.
 - On **empty space** -- Add new nodes of any type at that position.
 
-## Undo and Redo
+## Keyboard Shortcuts
 
-The canvas supports full undo and redo within your current session:
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+A` | Select all nodes |
+| `Escape` | Clear the current selection |
+| `Shift+1` | Zoom to fit all nodes |
+| `Shift+2` | Zoom to the current selection (no-op when nothing is selected) |
+| `Cmd+Z` | Undo |
+| `Cmd+Shift+Z` | Redo |
+| `Delete` / `Backspace` | Delete selected node(s) |
 
-- **Undo** -- Press `Cmd+Z` to revert the last action.
-- **Redo** -- Press `Cmd+Shift+Z` to reapply the undone action.
-
-The canvas maintains a complete undo/redo history for all changes made during the current editing session.
+The canvas maintains a complete undo/redo history for every change made during the current editing session.
 
 ## Source Mode
 
