@@ -37,11 +37,11 @@ Snapshots are deduplicated using SHA-256 hashing. If you save a file without mak
 
 Configure file history behavior in **Settings → File History**:
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Automatic snapshots** | Save a snapshot every time a file is saved | Enabled |
-| **Retention days** | Days to keep all snapshots before thinning begins (1–365) | 7 |
-| **Snapshot backup** | Also save snapshots as `.md` files in `.kokobrain/snapshots-backup/` | Disabled |
+| Setting | Settings key | Description | Default |
+|---------|--------------|-------------|---------|
+| **Automatic snapshots** | `history.enabled` | Save a snapshot every time a file is saved | Enabled |
+| **Retention days** | `history.retentionDays` | Days to keep all snapshots before thinning begins (1–365) | 7 |
+| **Snapshot backup** | `history.snapshotBackupEnabled` | Also save snapshots as `.md` files in `.kokobrain/snapshots-backup/` | Disabled |
 
 ### Retention Policy
 
@@ -62,6 +62,10 @@ For example, with the default of 7 retention days:
 ### Snapshot Backup
 
 When **Snapshot backup** is enabled, Kokobrain also saves snapshots as plain `.md` files in `.kokobrain/snapshots-backup/`. This provides a human-readable backup that doesn't depend on the SQLite database. Useful if you want to version-control your vault's `.kokobrain/` folder or simply have an extra safety net.
+
+### Snapshots and Trash
+
+Snapshots live in the SQLite database (`.kokobrain/kokobrain.db`), not alongside the file itself. When you move a file to [Trash](18-trash.md), its snapshots stay in the database — so if you later restore the file from trash, its history is still intact. Snapshot deletion only happens via the retention policy described above.
 
 ---
 

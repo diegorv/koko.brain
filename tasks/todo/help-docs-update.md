@@ -13,7 +13,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 - [x] Task 5: `09-quick-notes-and-templates.md` — document `workPeopleFolder` + `peopleFolder` and fix default values.
 - [x] Task 6: `11-canvas.md` — added keyboard shortcut table (Shift+1, Shift+2, Cmd+A, Escape, Delete). Color count was already correct.
 - [x] Task 7: `14-graph-view.md` — added Layout note (auto-tuned force params) and "Show orphans" filter.
-- [ ] Task 8: `15-file-history.md` — document `history.snapshotBackupEnabled` key, remove or substantiate the trash-preservation claim.
+- [x] Task 8: `15-file-history.md` — added settings-key column and a Snapshots-and-Trash subsection.
 - [ ] Task 9: `16-encryption-and-security.md` — add recovery key format paragraph (32-byte AES key, base64).
 - [ ] Task 10: `21-kanban.md` — document List and Table view modes.
 - [ ] Task 11: `13-queryjs.md` — add `autoRunQueries` policy section, fix `kb.query()` mention, note `_pendingViews` + live-DOM cache.
