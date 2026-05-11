@@ -1,0 +1,38 @@
+name: Run All Checks
+
+# Manual entry point that fans out every non-release validation workflow
+# from one button. Useful when you want a full sweep without pushing a
+# new commit — e.g. after rebasing on `main`, when a flaky check needs
+# a retry across the matrix, or when triaging a regression and you'd
+# rather see all results in one place than chase each workflow tab.
+#
+# `workflow_dispatch` is the only trigger; the regular push/PR/cron
+# triggers on each downstream workflow are NOT removed by this — they
+# still fire normally for their own events.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  # Each downstream workflow declares the permissions it needs. The
+  # caller can only narrow, not expand, so `contents: read` is the
+  # minimum shared baseline. Downstream jobs that need more (e.g.
+  # `cargo-audit` in security.yml requests `checks: write`) inherit
+  # from their own workflow file, not from here.
+  contents: read
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  security:
+    name: Security
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/security.yml
+
+  privacy:
+    name: Privacy
+    uses: ./.github/workflows/privacy.yml
