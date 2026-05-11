@@ -156,6 +156,16 @@ export function getBuiltInCommands(): AppCommand[] {
 			},
 		},
 		{
+			id: 'layout:toggle-table-of-contents',
+			label: 'Toggle Table of Contents',
+			category: 'Layout',
+			action: () => {
+				const current = settingsStore.layout.tableOfContentsVisible;
+				settingsStore.updateLayout({ tableOfContentsVisible: !current });
+				if (vaultStore.path) saveSettings(vaultStore.path).catch(() => {});
+			},
+		},
+		{
 			id: 'layout:toggle-terminal',
 			label: 'Toggle Terminal',
 			category: 'Layout',

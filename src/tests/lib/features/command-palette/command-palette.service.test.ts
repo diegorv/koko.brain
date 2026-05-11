@@ -89,10 +89,10 @@ describe('getBuiltInCommands', () => {
 		settingsDialogStore.reset();
 	});
 
-	it('returns 27 built-in commands', () => {
+	it('returns 28 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(27);
+		expect(commands).toHaveLength(28);
 	});
 
 	it('every command has required fields', () => {
@@ -238,6 +238,22 @@ describe('getBuiltInCommands', () => {
 
 		// After toggling, rightSidebarVisible should be true
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('toggle table of contents action flips settingsStore layout flag', async () => {
+		vaultStore.open('/vault');
+		const commands = getBuiltInCommands();
+		const toggle = commands.find((c) => c.id === 'layout:toggle-table-of-contents');
+
+		expect(toggle).toBeDefined();
+		expect(toggle!.label).toBe('Toggle Table of Contents');
+		expect(toggle!.category).toBe('Layout');
+		// Default layout has tableOfContentsVisible: true
+		const before = settingsStore.layout.tableOfContentsVisible;
+		toggle!.action();
+		expect(settingsStore.layout.tableOfContentsVisible).toBe(!before);
+		toggle!.action();
+		expect(settingsStore.layout.tableOfContentsVisible).toBe(before);
 	});
 
 	it('search toggle action toggles searchStore.isOpen', () => {
