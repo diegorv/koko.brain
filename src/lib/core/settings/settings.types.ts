@@ -56,6 +56,8 @@ export interface LayoutSettings {
 	outgoingLinksVisible: boolean;
 	/** Whether the tags panel is shown in the right sidebar */
 	tagsVisible: boolean;
+	/** Whether the table of contents panel is shown in the right sidebar */
+	tableOfContentsVisible: boolean;
 	/** Whether the terminal sidebar pane is visible */
 	terminalVisible: boolean;
 	/** Saved width percentage of the left sidebar pane (file explorer / search) */
