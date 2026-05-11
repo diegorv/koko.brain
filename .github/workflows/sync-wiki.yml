@@ -9,6 +9,14 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  # Serialize runs so two rapid pushes to `main` don't race when writing to
+  # the wiki repo (the second run would clobber the first). Cancelling is
+  # NOT what we want here — we want both runs to land in order — so
+  # `cancel-in-progress: false` queues instead of dropping.
+  group: sync-wiki-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
