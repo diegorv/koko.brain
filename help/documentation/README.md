@@ -43,6 +43,7 @@ After that, explore any topic that interests you.
 | 21 | [Kanban Board](21-kanban.md) | Drag-and-drop task boards with lanes, cards, dates, colors, and tags |
 | 22 | [Auto Move](22-auto-move.md) | Automatically move notes to folders based on expression rules |
 | 23 | [Deep Links](23-deep-links.md) | Open notes and trigger actions from outside the app via `kokobrain://` URLs |
+| 24 | [Meta-Bind](24-meta-bind.md) | Interactive inline inputs and action buttons that read/write frontmatter |
 
 ## Conventions Used in This Guide
 
