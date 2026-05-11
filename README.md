@@ -1,6 +1,19 @@
 # Kokobrain
 
-[![CI](https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/ci.yml) [![E2E](https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml) [![Security](https://github.com/diegorv/koko.brain/actions/workflows/security.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/security.yml) [![Privacy](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml) [![Release](https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/release.yml) [![Wiki Sync](https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml) [![Dependabot Updates](https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates)
+<!-- Build & tests -->
+[![CI][ci-badge]][ci-url] [![E2E][e2e-badge]][e2e-url]
+
+<!-- Security & privacy -->
+[![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url]
+
+<!-- Release & publishing -->
+[![Release][release-badge]][release-url] [![Wiki Sync][wiki-badge]][wiki-url]
+
+<!-- Maintenance -->
+[![Dependabot Updates][dependabot-badge]][dependabot-url]
+
+<!-- Project metadata -->
+[![Latest release][version-badge]][version-url] [![License: Source-Available][license-badge]][license-url] [![Platform: macOS][platform-badge]][platform-url] [![Built with Claude Code][claude-badge]][claude-url]
 
 A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md), built with Svelte 5 and Tauri 2
 
@@ -184,3 +197,30 @@ Some features in Kokobrain were inspired by ideas from Obsidian community plugin
 - **Calendar** — inspired by [oz-calendar](https://github.com/ozntel/oz-calendar)
 - **Folder notes** — inspired by [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes)
 - **Auto open & Pin tab** — inspired by [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage)
+
+<!-- ─── Badge reference definitions ────────────────────────────── -->
+
+[ci-badge]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg
+[ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml
+[e2e-badge]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml/badge.svg
+[e2e-url]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml
+[security-badge]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml/badge.svg
+[security-url]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml
+[codeql-badge]: https://github.com/diegorv/koko.brain/actions/workflows/github-code-scanning%2Fcodeql/badge.svg
+[codeql-url]: https://github.com/diegorv/koko.brain/security/code-scanning
+[privacy-badge]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml/badge.svg
+[privacy-url]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml
+[release-badge]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg
+[release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
+[wiki-badge]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml/badge.svg
+[wiki-url]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml
+[dependabot-badge]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates/badge.svg
+[dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
+[version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue
+[version-url]: https://github.com/diegorv/koko.brain/releases
+[license-badge]: https://img.shields.io/badge/license-Source--Available-orange
+[license-url]: ./LICENSE
+[platform-badge]: https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple&logoColor=white
+[platform-url]: https://github.com/diegorv/koko.brain#kokobrain
+[claude-badge]: https://img.shields.io/badge/built%20with-Claude%20Code-D97757?logo=anthropic&logoColor=white
+[claude-url]: https://docs.anthropic.com/en/docs/claude-code
