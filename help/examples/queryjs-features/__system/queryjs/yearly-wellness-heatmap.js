@@ -1,8 +1,12 @@
 // Yearly Wellness Heatmap — average of all life_track metrics per day
-const dailies = kb.pages('#type/journal/daily');
+const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const year = ref.year;
+
+const dailies = kb.pages('#type/journal/daily')
+  .whereDate('created', ref.startOf('year'), ref.endOf('year'));
 
 if (dailies.length === 0) {
-  kb.paragraph("*No daily notes found.*");
+  kb.paragraph(`*No daily notes found for ${year}.*`);
   return;
 }
 
@@ -27,7 +31,7 @@ kb.ui.heatmapCalendar(
     };
   }).array(),
   {
-    year: 2026,
+    year,
     colors: {
       green: ['#c6e48b', '#7bc96f', '#49af5d', '#2e8840', '#196127'],
       yellow: ['#fff3bf', '#ffe066', '#ffd43b', '#fab005', '#e67700'],

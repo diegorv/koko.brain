@@ -1,8 +1,12 @@
 // Yearly Sleep Quality Heatmap — GitHub-style calendar colored by sleep_quality
-const dailies = kb.pages('#type/journal/daily');
+const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const year = ref.year;
+
+const dailies = kb.pages('#type/journal/daily')
+  .whereDate('created', ref.startOf('year'), ref.endOf('year'));
 
 if (dailies.length === 0) {
-  kb.paragraph("*No daily notes found.*");
+  kb.paragraph(`*No daily notes found for ${year}.*`);
   return;
 }
 
@@ -15,7 +19,7 @@ kb.ui.heatmapCalendar(
     };
   }).array(),
   {
-    year: 2026,
+    year,
     intensityScaleStart: 1,
     intensityScaleEnd: 5,
   }

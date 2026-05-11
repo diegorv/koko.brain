@@ -6,12 +6,14 @@ if (!dataAtual) {
 }
 
 const inlinks = current.file.inlinks;
-const linkNames = inlinks.map(l => l.path.split("/").pop().replace(".md", ""));
+const linkSet = new Set(
+	inlinks.map(l => l.path.split("/").pop().replace(".md", ""))
+);
 
 const resultado = kb.pages()
-	.where(p => linkNames.some(name => name === p.file.name || p.file.path.includes(name)))
 	.whereTag('type/meeting')
 	.whereDate('created', dataAtual, dataAtual)
+	.where(p => linkSet.has(p.file.basename))
 	.sort(p => {
 		const dt = kb.tryDate(p.created);
 		return dt ? dt.ts : 0;

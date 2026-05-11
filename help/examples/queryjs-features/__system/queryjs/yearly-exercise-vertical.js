@@ -1,8 +1,12 @@
 // Yearly Exercise — Vertical calendar with emoji on intense workout days
-const dailies = kb.pages('#type/journal/daily');
+const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const year = ref.year;
+
+const dailies = kb.pages('#type/journal/daily')
+  .whereDate('created', ref.startOf('year'), ref.endOf('year'));
 
 if (dailies.length === 0) {
-  kb.paragraph("*No daily notes found.*");
+  kb.paragraph(`*No daily notes found for ${year}.*`);
   return;
 }
 
@@ -18,7 +22,7 @@ kb.ui.yearlyCalendar(
     };
   }).array(),
   {
-    year: 2026,
+    year,
     colors: {
       red: ['#ff9e82', '#ff7b55', '#ff4d1a', '#e73400', '#bd2a00'],
     },
