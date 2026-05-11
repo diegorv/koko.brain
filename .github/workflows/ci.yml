@@ -88,6 +88,14 @@ jobs:
     name: Rust (cargo test)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
+    # macos-latest, not ubuntu, because several modules are gated on
+    # `#[cfg(target_os = "macos")]` and would be silently skipped on
+    # Linux: `src/security/biometric.rs` (Touch ID via LocalAuthentication),
+    # `src/security/keychain.rs` (Keychain Access via security-framework),
+    # `src/commands/fonts.rs` (CoreText system-font enumeration), plus
+    # the macOS-only test at `tests/commands/fonts_test.rs`. The project
+    # ships macOS-only, so a Linux runner would give a false-green on
+    # the platform the binary actually targets.
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
