@@ -37,6 +37,26 @@ pub const VAULT_FILES_CHANGED_EVENT: &str = "vault-files-changed";
 /// preserve the existing batch-rebuild semantics.
 const DEBOUNCE_MS: u64 = 500;
 
+/// Well-known noisy VCS / system directories and files that may appear at
+/// ANY depth inside a vault. Watcher events touching paths whose segments
+/// include any of these are silently dropped.
+///
+/// Why this list specifically:
+/// - `.git`, `.svn`, `.hg`: nested working copies (e.g. cloned repos inside
+///   a "Reading list" folder) churn constantly during fetch/index/gc; their
+///   internal files contain no user content.
+/// - `.backup`: convention used by tooling (e.g. `pragmaticengineer-substack/
+///   .backup` in real vaults) for sidecar snapshots that mutate on every
+///   sync.
+/// - `.DS_Store`: macOS Finder metadata; one file per directory, rewritten
+///   whenever the user opens a window.
+///
+/// The list is intentionally narrow — generic dot-prefixed segments (e.g.
+/// `.archive`) keep passing through at depth so legitimate user content is
+/// not silently lost. Top-level dot-prefixed dirs are still rejected by
+/// `is_inside_hidden_dir` (the broader filter).
+const NESTED_NOISE_SEGMENTS: &[&str] = &[".git", ".svn", ".hg", ".backup", ".DS_Store"];
+
 /// Payload emitted with `vault-files-changed`. Mirrors the TS-side
 /// `WatcherChangedPayload` introduced in the FE-migration commit.
 #[derive(Debug, Clone, Serialize)]
@@ -66,6 +86,24 @@ pub fn is_inside_hidden_dir(path: &str, vault_prefix: &str) -> bool {
 	let relative = &path[vault_prefix.len()..];
 	let first_segment = relative.split('/').next().unwrap_or("");
 	first_segment.starts_with('.')
+}
+
+/// Returns `true` when any segment of `path` (relative to `vault_prefix`)
+/// matches one of the well-known nested noise dirs/files in
+/// `NESTED_NOISE_SEGMENTS`. Used together with `is_inside_hidden_dir` to
+/// suppress watcher events from nested `.git`/`.svn`/`.hg`/`.backup`
+/// working copies and `.DS_Store` metadata files at any depth.
+///
+/// Paths outside `vault_prefix` return `false` (defensive — the watcher's
+/// notify only fires inside the watched dir).
+pub fn contains_nested_noise(path: &str, vault_prefix: &str) -> bool {
+	if !path.starts_with(vault_prefix) {
+		return false;
+	}
+	let relative = &path[vault_prefix.len()..];
+	relative
+		.split('/')
+		.any(|segment| NESTED_NOISE_SEGMENTS.contains(&segment))
 }
 
 /// Returns the input minus paths that are ancestors of other paths in
@@ -135,7 +173,9 @@ pub fn run_debounce_loop<F>(
 
 		match event_rx.recv_timeout(debounce) {
 			Ok(path) => {
-				if !is_inside_hidden_dir(&path, &vault_prefix) {
+				if !is_inside_hidden_dir(&path, &vault_prefix)
+					&& !contains_nested_noise(&path, &vault_prefix)
+				{
 					buffer.insert(path);
 				}
 				last_event = Instant::now();
@@ -343,6 +383,74 @@ mod tests {
 		assert!(is_inside_hidden_dir("/vault/.dotfile", "/vault/"));
 	}
 
+	// ---------- contains_nested_noise ----------
+
+	#[test]
+	fn nested_noise_rejects_dotgit_at_depth() {
+		// Real-world case from Audit 2026-05-11: a vault containing
+		// `Reading list/lennysnewsletter/.git/objects/*` triggered a
+		// watcher loop because the first-segment check let these pass.
+		assert!(contains_nested_noise(
+			"/vault/Reading list/lennysnewsletter/.git/HEAD",
+			"/vault/",
+		));
+	}
+
+	#[test]
+	fn nested_noise_rejects_dotbackup_at_depth() {
+		assert!(contains_nested_noise(
+			"/vault/Reading list/pragmaticengineer-substack/.backup/2026-05.zip",
+			"/vault/",
+		));
+	}
+
+	#[test]
+	fn nested_noise_rejects_dotsvn_at_depth() {
+		assert!(contains_nested_noise("/vault/proj/.svn/entries", "/vault/"));
+	}
+
+	#[test]
+	fn nested_noise_rejects_dothg_at_depth() {
+		assert!(contains_nested_noise("/vault/proj/.hg/store/data", "/vault/"));
+	}
+
+	#[test]
+	fn nested_noise_rejects_dotdsstore_file_at_depth() {
+		// `.DS_Store` is a FILE, not a dir, but the segment scan treats it
+		// the same way — any `/path/.DS_Store` is filtered.
+		assert!(contains_nested_noise(
+			"/vault/notes/folder/.DS_Store",
+			"/vault/",
+		));
+	}
+
+	#[test]
+	fn nested_noise_passes_dotarchive_at_depth() {
+		// `.archive` is intentionally NOT in the noise list — user content
+		// in dot-prefixed folders deep in the vault must still index.
+		assert!(!contains_nested_noise("/vault/notes/.archive/x.md", "/vault/"));
+	}
+
+	#[test]
+	fn nested_noise_passes_gitconfig_file_at_depth() {
+		// `.gitconfig` is a single segment that does NOT match `.git` —
+		// substring-style matches would be wrong.
+		assert!(!contains_nested_noise(
+			"/vault/notes/.gitconfig",
+			"/vault/",
+		));
+	}
+
+	#[test]
+	fn nested_noise_passes_normal_note() {
+		assert!(!contains_nested_noise("/vault/notes/foo.md", "/vault/"));
+	}
+
+	#[test]
+	fn nested_noise_outside_prefix_is_false() {
+		assert!(!contains_nested_noise("/other/.git/HEAD", "/vault/"));
+	}
+
 	// ---------- filter_ancestor_paths ----------
 
 	#[test]
@@ -434,6 +542,37 @@ mod tests {
 		});
 
 		event_tx.send("/v/.git/HEAD".to_string()).unwrap();
+		event_tx.send("/v/note.md".to_string()).unwrap();
+		drop(event_tx);
+
+		let emitted = emit_rx
+			.recv_timeout(Duration::from_secs(2))
+			.expect("expected emit");
+		assert_eq!(emitted, vec!["/v/note.md".to_string()]);
+		handle.join().unwrap();
+	}
+
+	#[test]
+	fn debounce_filters_nested_noise_dotgit() {
+		// Integration check: a vault with a nested `.git` working copy
+		// pumps churn through the watcher. The loop must drop them so the
+		// downstream rebuild pipeline doesn't enter an infinite cycle.
+		let (event_tx, event_rx) = mpsc::channel::<String>();
+		let (_stop_tx, stop_rx) = mpsc::channel::<()>();
+		let (emit_tx, emit_rx) = mpsc::channel::<Vec<String>>();
+
+		let handle = thread::spawn(move || {
+			run_debounce_loop(event_rx, stop_rx, "/v/".to_string(), move |paths| {
+				let _ = emit_tx.send(paths);
+			});
+		});
+
+		event_tx
+			.send("/v/Reading list/repo/.git/objects/abc".to_string())
+			.unwrap();
+		event_tx
+			.send("/v/Reading list/repo/.git/HEAD".to_string())
+			.unwrap();
 		event_tx.send("/v/note.md".to_string()).unwrap();
 		drop(event_tx);
 
