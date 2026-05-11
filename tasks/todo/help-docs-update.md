@@ -15,7 +15,7 @@ Plan file: `~/.claude/plans/revisa-tudo-do-projeto-sparkling-llama.md`.
 - [x] Task 7: `14-graph-view.md` — added Layout note (auto-tuned force params) and "Show orphans" filter.
 - [x] Task 8: `15-file-history.md` — added settings-key column and a Snapshots-and-Trash subsection.
 - [x] Task 9: `16-encryption-and-security.md` — added full Recovery Keys section and corrected the "no recovery" warning.
-- [ ] Task 10: `21-kanban.md` — document List and Table view modes.
+- [x] Task 10: `21-kanban.md` — added View Modes section and `viewMode` settings-block key.
 - [ ] Task 11: `13-queryjs.md` — add `autoRunQueries` policy section, fix `kb.query()` mention, note `_pendingViews` + live-DOM cache.
 - [ ] Task 12: `19-settings.md` — add missing sections: heading typography, content width, paragraph spacing, `workPeopleFolder`, tag colors, queryjs autoRunQueries, disabledDecorators, theme editor.
 - [ ] Task 13: `12-collection.md` — fix property types list (5 actual: text, list, number, date, boolean; not 7).
