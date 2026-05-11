@@ -5,6 +5,15 @@ interface FsEntry {
 	createdAt: number;
 }
 
+type SyncListener = {
+	onWrite?: (path: string, content: string) => void;
+	onRemove?: (path: string) => void;
+	onRename?: (oldPath: string, newPath: string) => void;
+	onPopulate?: () => void;
+};
+
+const listeners: SyncListener[] = [];
+
 interface FileTreeNode {
 	name: string;
 	path: string;
@@ -67,6 +76,14 @@ function ensureParentDirs(path: string): void {
 }
 
 export const virtualFS = {
+	subscribe(listener: SyncListener): () => void {
+		listeners.push(listener);
+		return () => {
+			const idx = listeners.indexOf(listener);
+			if (idx >= 0) listeners.splice(idx, 1);
+		};
+	},
+
 	populate(entries: Record<string, string>): void {
 		for (const [path, content] of Object.entries(entries)) {
 			if (path.endsWith('/')) {
@@ -88,10 +105,12 @@ export const virtualFS = {
 				});
 			}
 		}
+		for (const l of listeners) l.onPopulate?.();
 	},
 
 	reset(): void {
 		store.clear();
+		for (const l of listeners) l.onPopulate?.();
 	},
 
 	readFile(path: string): string {
@@ -100,6 +119,18 @@ export const virtualFS = {
 			throw new Error(`File not found: ${path}`);
 		}
 		return entry.content;
+	},
+
+	readFileSafe(path: string): string | null {
+		const entry = store.get(path);
+		if (!entry || entry.isDirectory) return null;
+		return entry.content;
+	},
+
+	statRaw(path: string): { modifiedAt: number; createdAt: number } | null {
+		const entry = store.get(path);
+		if (!entry) return null;
+		return { modifiedAt: Math.floor(entry.modifiedAt / 1000), createdAt: Math.floor(entry.createdAt / 1000) };
 	},
 
 	writeFile(path: string, content: string): void {
@@ -111,6 +142,7 @@ export const virtualFS = {
 			modifiedAt: now(),
 			createdAt: existing?.createdAt ?? now(),
 		});
+		for (const l of listeners) l.onWrite?.(path, content);
 	},
 
 	mkdir(path: string): void {
@@ -128,10 +160,15 @@ export const virtualFS = {
 	remove(path: string): void {
 		// Delete the entry and all children
 		const prefix = path + '/';
+		const removed: string[] = [];
 		for (const key of [...store.keys()]) {
 			if (key === path || key.startsWith(prefix)) {
 				store.delete(key);
+				removed.push(key);
 			}
+		}
+		for (const l of listeners) {
+			for (const p of removed) l.onRemove?.(p);
 		}
 	},
 
@@ -150,9 +187,14 @@ export const virtualFS = {
 		}
 
 		ensureParentDirs(newPath);
+		const renames: [string, string][] = [];
 		for (const [key, val] of entries) {
 			const newKey = key === oldPath ? newPath : newPath + key.substring(oldPath.length);
 			store.set(newKey, val);
+			renames.push([key, newKey]);
+		}
+		for (const l of listeners) {
+			for (const [oldKey, newKey] of renames) l.onRename?.(oldKey, newKey);
 		}
 	},
 
@@ -165,7 +207,7 @@ export const virtualFS = {
 		const seen = new Set<string>();
 		const results: DirEntry[] = [];
 
-		for (const [key, val] of store.entries()) {
+		for (const key of store.keys()) {
 			if (!key.startsWith(prefix)) continue;
 			const rest = key.substring(prefix.length);
 			const slashIdx = rest.indexOf('/');
@@ -202,6 +244,7 @@ export const virtualFS = {
 			modifiedAt: now(),
 			createdAt: now(),
 		});
+		for (const l of listeners) l.onWrite?.(dest, entry.content);
 	},
 
 	scanVault(path: string, sortBy: string): FileTreeNode[] {

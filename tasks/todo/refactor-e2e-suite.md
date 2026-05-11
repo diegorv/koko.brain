@@ -1,0 +1,111 @@
+# Refatorar suite E2E (Playwright)
+
+## Context
+
+A suite E2E atual em `e2e/` ficou desatualizada e está praticamente toda quebrada na prática, embora os arquivos pareçam saudáveis num grep. A causa raiz é única e bem localizada:
+
+- O frontend do app invoca **49 comandos Tauri distintos** (mapeado por grep em `src/lib`), mas o mock em `e2e/mocks/tauri-core.ts` cobre apenas **3** (`scan_vault`, `read_files_batch`, `search_vault`). Os outros 46 caem em `default: console.warn(...); return null`.
+- A família `*_v2` (`scan_vault_v2`, `get_all_vault_entries_v2`, `get_backlinks_v2`, `get_outgoing_links_v2`, `get_all_tags_v2`, `get_all_tasks_v2`, `get_unlinked_mentions_v2`, `get_outgoing_unlinked_mentions_v2`, `get_tasks_in_section_v2`, `update_note_in_index`, `remove_note_from_index`, `toggle_task_status`) é o "lifeblood" do app desde a migração para o `VaultIndex` em Rust (ADR 0025). Sem ela mockada, **a árvore de arquivos não popula**, e qualquer spec que dependa de clicar num item da árvore (root specs E os 16 specs de live-preview) falha.
+- O resto dos comandos (encryption, semantic search, history, terminal, fonts) também precisa de stubs sensatos.
+- A infra de mocking que já existe é boa: alias do Vite por `process.env.PLAYWRIGHT` (`vite.config.js:74`), virtual FS in-memory de 318 LOC, mocks de dialog/event/window funcionais, fixture pattern via `vaultPage` e `lpPage`. Tudo isso fica.
+
+Decisões já alinhadas com o usuário:
+- **Live-preview specs (16 arquivos)**: ficam intocados, vão passar de graça assim que o mock layer estiver pronto.
+- **Escopo**: golden paths de core + features, sem plugins (queryjs/encryption/semantic/terminal/kanban/calendar/graph ficam fora).
+- **Specs antigos**: deletar do git, histórico do `git log` preserva.
+
+## Goal
+
+Suite E2E que roda verde via `bash scripts/e2e.sh` cobrindo:
+1. Os 16 live-preview specs existentes (sem editá-los)
+2. ~12 specs novos cobrindo os golden paths principais do app
+
+## Tasks
+
+Cada tarefa = um commit. Seguir CLAUDE.md (Plan Mode Workflow): rodar testes relevantes (Frontend → `pnpm check` + `pnpm vitest run`), `git add` específico, `git diff --cached --stat`, commit imediato no formato Context/Problem/Solution/Behavior/Files.
+
+### 1. Mock layer: novo `vault-index` in-memory (combinado com Task 3)
+- [x] Criar `e2e/mocks/vault-index.ts`. Espelha o Rust `VaultIndex` em memória. Reusa `parseWikilinks`/`getNoteName`/`buildResolutionCache`/`resolveWikilinkCached` de `backlinks.logic.ts` e `extractAllTags` de `tags.logic.ts`. Frontmatter via `yaml` lib com subset Rust (nested → null). Parser de tasks minimalista inline. API: `rebuildAll()`, `getEntry()`, `getAll()`, `getBacklinks()`, `getOutgoingLinks()`, `getOutgoingUnlinkedMentions()`, `getUnlinkedMentions()`, `getAllTags()`, `getNotesWithTag()`, `getAllTasks()`, `getTasksInSection()`, `toggleTaskStatus()`, `getNoteRecords()`, `getNoteProperties()`, `update()`, `remove()`, `reset()`, version counter.
+- [x] Estender `e2e/types/global.d.ts`: `vaultIndex` em `window.__e2e`, `readFileSafe` em `E2eFS`.
+- [ ] (deferido) Testes vitest do parser — pulado por hora; o parser será exercitado pelos specs E2E em Task 8.
+
+### 2. Mock layer: reescrita do `tauri-core.ts`
+- [ ] Reescrever `e2e/mocks/tauri-core.ts` com switch que cobre todos os 49 comandos. Cada caso documentado em comentário curto. Estrutura sugerida: split em handlers por categoria (`vaultV2Handlers`, `legacyVaultHandlers`, `searchHandlers`, `encryptionHandlers`, `historyHandlers`, `terminalHandlers`, `systemHandlers`) num único arquivo, ainda usando `switch`. Comandos v2 delegam para `vaultIndex`. Comandos legacy (`scan_vault`, `read_files_batch`, `search_vault`) continuam delegando para `virtualFS`. No-ops retornam tipos sensatos: `false` para `is_semantic_model_available` / `has_encryption_key`, `[]` para `search_fts` / `search_semantic` / `get_file_history` / `list_system_fonts`, `0` para `get_process_memory`, `''` para `get_recovery_key`, `null` para `download_semantic_model`. `decrypt_content`/`encrypt_content` retornam o conteúdo passado sem alteração (passthrough — encryption não é golden path).
+
+### 3. Mock layer: sync entre `virtualFS` e `vaultIndex` (combinado com Task 1)
+- [x] Em `e2e/mocks/virtual-fs.ts`, adicionar API `subscribe()` com hooks `onWrite/onRemove/onRename/onPopulate`. Helpers `readFileSafe()` e `statRaw()`.
+- [x] `vault-index.ts` registra-se no boot. `populate()` chama `onPopulate` → `vaultIndex.rebuildAll()`.
+
+### 4. Reformar fixture principal
+- [ ] Reescrever `e2e/fixtures/test-vault.ts`: novo `TEST_FILES` com vault que de fato exercita backlinks (notas A→B→C), tags (`#projeto`, `#urgente`), tasks (`- [ ]`, `- [x]`), properties (frontmatter com strings, números, arrays). Documentar em comentário "Quem usa o quê". Manter shape do fixture `vaultPage`.
+- [ ] `e2e/fixtures/live-preview.ts` fica intocado (16 specs dependem dele). Confirmar que `populate()` rebuilda o índice — se não rebuildar, ajustar só essa linha.
+- [ ] Criar `e2e/fixtures/helpers.ts` com utilities: `openTreeItem(page, name)`, `pressShortcut(page, combo)`, `expectTabActive(page, name)`, `typeInEditor(page, text)`, `saveCurrentFile(page)`, `openCommandPalette(page)`, `openQuickSwitcher(page)`. Selectors role/CSS (sem `data-testid`).
+
+### 5. Apagar 16 specs root antigos
+- [ ] `git rm e2e/specs/*.spec.ts`. NÃO tocar em `e2e/specs/live-preview/`. Commit isolado, histórico preservado.
+
+### 6. Escrever specs novos (golden paths)
+Cada spec é um commit separado. Manter cada um < 100 LOC, focado, asserts em conteúdo renderizado (não só presença de container, conforme CLAUDE.md regra 8).
+- [ ] `vault-picker.spec.ts` — picker → "Open Vault" → tree visível com nodes esperados; recent vaults aparece após segunda abertura.
+- [ ] `editor.spec.ts` — abrir nota → digitar → dirty indicator → Cmd+S → indicador some → reabrir → conteúdo persiste.
+- [ ] `tabs.spec.ts` — abrir 3 notas → switch via Cmd+Shift+[/] → pin/unpin (X some) → Cmd+W fecha não-pinada.
+- [ ] `file-explorer.spec.ts` — expandir folder → ver children; `.kokobrain` oculto; ordenação alfabética com diretórios primeiro.
+- [ ] `file-operations.spec.ts` — context menu cria arquivo + pasta; renomear; deletar manda pra trash; recriar arquivo deletado funciona (índice de dedupe limpo).
+- [ ] `command-palette.spec.ts` — Cmd+P → fuzzy "save" → enter → executa.
+- [ ] `quick-switcher.spec.ts` — Cmd+O → filtra arquivos → "BrandNewNote" inexistente mostra "Create" → enter cria e abre.
+- [ ] `search.spec.ts` — Cmd+Shift+F → query "produtivo" → result list → click abre arquivo na linha do match.
+- [ ] `wikilink-navigation.spec.ts` — abrir nota com `[[Outro]]` → click no decoration → abre Outro.md em nova tab; tab original preservada.
+- [ ] `sidebars.spec.ts` — abrir nota com backlinks/outgoing/tags/frontmatter → painéis populam corretamente; toggle Cmd+B esconde/mostra.
+- [ ] `keyboard-shortcuts.spec.ts` — testes consolidados de Cmd+B, Cmd+,, Cmd+S, Cmd+W, Cmd+Shift+[/].
+- [ ] `settings.spec.ts` — Cmd+, abre dialog → navega 2-3 seções → muda fontSize → fecha → reabre → valor persiste.
+
+### 7. Polir config e scripts
+- [ ] `e2e/playwright.config.ts` — adicionar `fullyParallel: true`, `expect: { timeout: 5_000 }`, reporter `[['list'], ['html', { open: 'never' }]]`. Manter chromium-only e timeout de 30s.
+- [ ] `scripts/e2e.sh` — adicionar header com docstring de uso (`bash scripts/e2e.sh [--ui] [paths...]`). Lógica fica.
+- [ ] `package.json` — confirmar `test:e2e` e `test:e2e:ui`. Adicionar `test:e2e:report` que abre `playwright-report/index.html` se existir.
+
+### 8. Verificação end-to-end
+- [ ] `bash scripts/e2e.sh` → todos passam (16 live-preview + 12 novos).
+- [ ] `bash scripts/e2e.sh e2e/specs/live-preview` → confirma que os 16 antigos passam sem ter sido editados.
+- [ ] `bash scripts/e2e.sh e2e/specs/editor.spec.ts` → confirma execução isolada.
+- [ ] `grep "Unknown invoke command" /tmp/kokobrain-e2e-server.log` → 0 hits (cobertura completa de IPC).
+- [ ] `bash scripts/e2e.sh --ui` → UI mode abre normalmente.
+
+## Files to modify
+- `e2e/mocks/tauri-core.ts` — rewrite
+- `e2e/mocks/vault-index.ts` — new
+- `e2e/mocks/virtual-fs.ts` — adicionar hooks de sync
+- `e2e/types/global.d.ts` — estender com tipos v2 + `vaultIndex`
+- `e2e/fixtures/test-vault.ts` — rewrite com vault rico
+- `e2e/fixtures/helpers.ts` — new
+- `e2e/specs/*.spec.ts` (root, 16 arquivos) — `git rm` e substituir por 12 novos
+- `e2e/playwright.config.ts` — polish (parallel, html reporter)
+- `scripts/e2e.sh` — polish (docstring header)
+- `package.json` — confirmar scripts, opcional `test:e2e:report`
+
+## Files to keep untouched
+- `e2e/specs/live-preview/*.spec.ts` (16 arquivos)
+- `e2e/fixtures/live-preview.ts` (compat com os 16 specs)
+- `e2e/mocks/tauri-fs.ts`, `tauri-dialog.ts`, `tauri-event.ts`, `tauri-window.ts`, `tauri-opener.ts`, `tauri-http.ts`, `tauri-deep-link.ts`
+- `vite.config.js` (alias mechanism está correto, `vite.config.js:74`)
+
+## Verification
+
+End-to-end:
+1. `bash scripts/e2e.sh` exit 0, todos os specs verdes
+2. `grep "Unknown invoke command" /tmp/kokobrain-e2e-server.log` retorna vazio
+3. `bash scripts/e2e.sh e2e/specs/live-preview/*.spec.ts` passa sem nenhum arquivo de spec ter sido editado
+4. UI mode (`bash scripts/e2e.sh --ui`) abre
+
+Type/lint:
+- `pnpm check` limpo (rodar a cada commit conforme CLAUDE.md regra 6)
+- `pnpm vitest run` limpo (não há testes vitest para mocks ainda; se task 1 adicionar `vault-index.test.ts`, rodar)
+
+## Notes
+
+- Plan mode obriga escrita só em `~/.claude/plans/...`. Depois de aprovado e exited, copiar este plano para `tasks/todo/refactor-e2e-suite.md` (CLAUDE.md Plan Mode Workflow exige tracking lá).
+- Cada tarefa = um commit (CLAUDE.md NÃO permite batch). Format completo: Context/Problem/Solution/Behavior/Files com line ranges.
+- Selectors continuam role-based + CSS (`.cm-content`, `.cm-lp-*`, `[role="tree"]`, `[role="treeitem"]`, `[role="tab"]`). Nenhum `data-testid` é adicionado ao source — alinhado com padrão atual (0 ocorrências em `src/lib`).
+- O `vault-index.ts` deve importar diretamente os parsers puros de `src/lib/features/backlinks/backlinks.logic.ts` e `src/lib/features/tags/tags.logic.ts` (já são puros, não importam framework). Isso garante que o mock parseia idêntico ao app, evitando drift.
+- Tasks 1, 2, 3 podem ser combinadas num único commit "feat(e2e): rebuild Tauri mock layer with v2 IPC coverage" se ficarem coupled — caso contrário separar.
+- Scope explicitamente fora: plugins (queryjs runtime, encryption real, semantic search, terminal, kanban, calendar, graph-view), visual regression / screenshots, multi-browser (Firefox/Webkit).
