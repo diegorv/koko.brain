@@ -9,6 +9,7 @@ pub mod discovery;
 pub mod events;
 pub mod identity;
 pub mod pairing;
+pub mod pairing_session;
 pub mod protocol;
 pub mod rename_detect;
 pub mod session;
