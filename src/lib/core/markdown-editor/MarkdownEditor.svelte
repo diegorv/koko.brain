@@ -364,6 +364,33 @@
 		});
 	});
 
+	// Line-precision jump (RAG citation jumps + any caller that has a line number
+	// but not a char offset). Same double-rAF guard as `pendingScrollPosition`
+	// so it lands after the tab-switch scroll-restore.
+	$effect(() => {
+		const line = editorStore.pendingScrollLine;
+
+		untrack(() => {
+			if (line === null || !view) return;
+
+			editorStore.setPendingScrollLine(null);
+
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					if (!view) return;
+					const totalLines = view.state.doc.lines;
+					const clampedLine = Math.min(Math.max(1, line), totalLines);
+					const pos = view.state.doc.line(clampedLine).from;
+					view.dispatch({
+						selection: EditorSelection.cursor(pos),
+						effects: EditorView.scrollIntoView(pos, { y: 'center' }),
+					});
+					view.focus();
+				});
+			});
+		});
+	});
+
 	// Sync external content changes (Properties panel, task toggle, link
 	// rename, watcher reload) into CodeMirror. Phase 5 of the perf refactor:
 	// driven by `editorStore.externalContentSignal` (a counter bumped only by

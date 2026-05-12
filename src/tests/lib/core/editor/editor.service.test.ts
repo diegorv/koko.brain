@@ -175,6 +175,31 @@ describe('openFileInEditor', () => {
 		expect(editorStore.activeIndex).toBe(0);
 	});
 
+	it('forwards `line` to the editor store as a pending scroll line on existing tab', async () => {
+		addTab('/vault/note.md', 'hello');
+
+		await openFileInEditor('/vault/note.md', 42);
+
+		expect(editorStore.pendingScrollLine).toBe(42);
+	});
+
+	it('forwards `line` to the editor store when opening a new tab', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('file content');
+
+		await openFileInEditor('/vault/new.md', 17);
+
+		expect(editorStore.activeTab?.path).toBe('/vault/new.md');
+		expect(editorStore.pendingScrollLine).toBe(17);
+	});
+
+	it('does not set pendingScrollLine when `line` is omitted', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('file content');
+
+		await openFileInEditor('/vault/plain.md');
+
+		expect(editorStore.pendingScrollLine).toBeNull();
+	});
+
 	it('rejects binary file paths without reading them, surfaces a toast', async () => {
 		await openFileInEditor('/vault/Resources/img.png');
 

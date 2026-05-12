@@ -10,6 +10,12 @@ let tabs = $state<EditorTab[]>([]);
 let activeIndex = $state(-1);
 /** Scroll position to restore after a tab switch (consumed once by the editor component) */
 let pendingScrollPosition = $state<number | null>(null);
+/**
+ * Line number (1-indexed) to scroll the editor to after a tab opens. Consumed
+ * once by `MarkdownEditor.svelte`. Used by RAG citation jumps and any caller
+ * that wants line-precision navigation without computing the char offset.
+ */
+let pendingScrollLine = $state<number | null>(null);
 /** Whether the editor shows a live markdown preview alongside the source */
 let isLivePreview = $state(true);
 /** Reference to the active CodeMirror EditorView instance (set by MarkdownEditor on mount) */
@@ -39,6 +45,7 @@ export const editorStore = {
 	get activeTabPath() { return activeIndex >= 0 && activeIndex < tabs.length ? tabs[activeIndex].path : null; },
 	get activeTabContent() { return tabs[activeIndex]?.content ?? null; },
 	get pendingScrollPosition() { return pendingScrollPosition; },
+	get pendingScrollLine() { return pendingScrollLine; },
 	get isLivePreview() { return isLivePreview; },
 	get editorView() { return editorView; },
 	/**
@@ -105,6 +112,10 @@ export const editorStore = {
 
 	setPendingScrollPosition(pos: number | null) {
 		pendingScrollPosition = pos;
+	},
+
+	setPendingScrollLine(line: number | null) {
+		pendingScrollLine = line;
 	},
 
 	setLivePreview(enabled: boolean) {
@@ -174,6 +185,7 @@ export const editorStore = {
 		tabs = [];
 		activeIndex = -1;
 		pendingScrollPosition = null;
+		pendingScrollLine = null;
 		isLivePreview = true;
 		editorView = null;
 		externalContentSignal = 0;

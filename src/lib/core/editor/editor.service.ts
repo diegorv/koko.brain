@@ -54,8 +54,10 @@ export function syncExternalContentToEditor(
  * Opens a file in the editor.
  * If the file is already open in a tab, just switches to it.
  * Otherwise reads the file from disk and creates a new tab.
+ * When `line` is provided (1-indexed), the editor scrolls and places the
+ * cursor at the start of that line after the tab is active.
  */
-export async function openFileInEditor(filePath: string) {
+export async function openFileInEditor(filePath: string, line?: number) {
 	// [FE-STARTUP-PROBE]
 	const probeStart = performance.now();
 	const baseStart = perfStart();
@@ -75,6 +77,9 @@ export async function openFileInEditor(filePath: string) {
 	if (existingIndex >= 0) {
 		editorStore.setActiveIndex(existingIndex);
 		fsStore.setSelectedFilePath(filePath);
+		if (line !== undefined) {
+			editorStore.setPendingScrollLine(line);
+		}
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: tab already open @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		perfBaseline('openFileInEditor:cached', baseStart);
 		return;
@@ -99,6 +104,9 @@ export async function openFileInEditor(filePath: string) {
 		if (raceIndex >= 0) {
 			editorStore.setActiveIndex(raceIndex);
 			fsStore.setSelectedFilePath(filePath);
+			if (line !== undefined) {
+				editorStore.setPendingScrollLine(line);
+			}
 			perfBaseline('openFileInEditor:raceCached', baseStart);
 			return;
 		}
@@ -110,6 +118,9 @@ export async function openFileInEditor(filePath: string) {
 			: undefined;
 		editorStore.addTab({ path: filePath, name, content, savedContent: content, fileType, ...transformed?.tabProps });
 		fsStore.setSelectedFilePath(filePath);
+		if (line !== undefined) {
+			editorStore.setPendingScrollLine(line);
+		}
 		debug('EDITOR', 'opened file:', filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		perfBaseline('openFileInEditor:fresh', baseStart);

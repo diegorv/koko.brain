@@ -241,6 +241,29 @@ describe('editorStore', () => {
 		});
 	});
 
+	describe('setPendingScrollLine', () => {
+		it('defaults to null', () => {
+			expect(editorStore.pendingScrollLine).toBeNull();
+		});
+
+		it('sets and gets a pending scroll line', () => {
+			editorStore.setPendingScrollLine(7);
+			expect(editorStore.pendingScrollLine).toBe(7);
+		});
+
+		it('clears pending scroll line with null', () => {
+			editorStore.setPendingScrollLine(7);
+			editorStore.setPendingScrollLine(null);
+			expect(editorStore.pendingScrollLine).toBeNull();
+		});
+
+		it('reset() clears pendingScrollLine', () => {
+			editorStore.setPendingScrollLine(7);
+			editorStore.reset();
+			expect(editorStore.pendingScrollLine).toBeNull();
+		});
+	});
+
 	describe('setEditorView', () => {
 		it('sets and gets editor view reference', () => {
 			const mockView = { state: {} } as any;
