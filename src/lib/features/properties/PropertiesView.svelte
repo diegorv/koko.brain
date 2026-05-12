@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { Plus } from 'lucide-svelte';
+	import Plus from 'lucide-svelte/icons/plus';
 	import { Separator } from '$lib/components/ui/separator';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { propertiesStore } from './properties.store.svelte';

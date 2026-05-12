@@ -1,4 +1,5 @@
 import { type EditorView, WidgetType } from '@codemirror/view';
+import { openFileInEditor } from '$lib/core/editor/editor.service';
 import {
 	type ButtonAction,
 	type ButtonConfig,
@@ -116,7 +117,6 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 				const { resolveWikilink } = await import('$lib/features/backlinks/backlinks.logic');
 				const { fsStore } = await import('$lib/core/filesystem/fs.store.svelte');
 				const { flattenFileTree } = await import('$lib/features/quick-switcher/quick-switcher.logic');
-				const { openFileInEditor } = await import('$lib/core/editor/editor.service');
 				const files = flattenFileTree(fsStore.fileTree);
 				const resolvedPath = resolveWikilink(target, files.map((f) => f.path));
 				if (resolvedPath) {

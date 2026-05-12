@@ -1,6 +1,6 @@
 import { WidgetType } from '@codemirror/view';
 import katex from 'katex';
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 
 /** Widget that renders a `$$...$$` block math expression as a centered KaTeX display */
 export class BlockMathWidget extends WidgetType {

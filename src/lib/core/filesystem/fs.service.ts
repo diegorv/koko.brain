@@ -8,6 +8,7 @@ import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updat
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { updateFileIconPathsAfterMove } from '$lib/features/file-icons/file-icons.service';
+import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
@@ -168,7 +169,6 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 			await remove(itemPath, { recursive: true });
 		}
 		await refreshTree();
-		const { closeTabsForDeletedPath } = await import('$lib/core/editor/editor.service');
 		const { clearIndexedEntry } = await import('$lib/utils/index-dedupe');
 		const { invoke } = await import('@tauri-apps/api/core');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');

@@ -29,21 +29,19 @@
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
-	import {
-		Vault,
-		FilePlus,
-		FolderPlus,
-		LayoutDashboard,
-		Kanban,
-		Pencil,
-		Trash2,
-		Copy,
-		Bookmark,
-		BookmarkMinus,
-		ExternalLink,
-		FolderSearch,
-		Palette,
-	} from 'lucide-svelte';
+	import Vault from 'lucide-svelte/icons/vault';
+	import FilePlus from 'lucide-svelte/icons/file-plus';
+	import FolderPlus from 'lucide-svelte/icons/folder-plus';
+	import LayoutDashboard from 'lucide-svelte/icons/layout-dashboard';
+	import Kanban from 'lucide-svelte/icons/kanban';
+	import Pencil from 'lucide-svelte/icons/pencil';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import Copy from 'lucide-svelte/icons/copy';
+	import Bookmark from 'lucide-svelte/icons/bookmark';
+	import BookmarkMinus from 'lucide-svelte/icons/bookmark-minus';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import FolderSearch from 'lucide-svelte/icons/folder-search';
+	import Palette from 'lucide-svelte/icons/palette';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tooltip from '$lib/components/ui/tooltip';
