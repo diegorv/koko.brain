@@ -23,7 +23,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 15: Tauri commands em commands/sync.rs + registro em lib.rs. Live-network commands (set_discoverable, browse, pair_server/client, start, stop, request_full_resync) registrados como stubs com TODOs claros - implementação completa requer async TCP/mDNS que precisa de ambiente real para validar.
 - [x] Task 16: Frontend types + store + service + settings entry (lanSync section em settings.types.ts, settings.store.svelte.ts default, settings.service.ts merge)
 - [x] Task 17: Frontend UI base — LanSyncSettings (panel), PairingDialog (host/guest fluxo), PeerListPanel (mDNS scan), ShareEditDialog (radio modo + excludes textarea + peer checkboxes)
-- [ ] Task 18: Status bar integration (LanSyncStatusIndicator no StatusBar)
+- [x] Task 18: Status bar integration — LanSyncStatusIndicator com 5 estados (idle/connected/transferring/conflict/error), tooltip rico, montado entre SemanticIndexStatus e EncryptionToggle no AppShell
 - [ ] Task 19: OS network permissions (Info.plist NSLocalNetworkUsageDescription + NSBonjourServices + entitlements + first-launch UX)
 - [ ] Task 20: Documentação docs/lan-sync.md + E2E manual pass + criar tasks/todo/lan-sync-followups.md
 
