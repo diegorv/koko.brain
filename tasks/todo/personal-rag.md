@@ -9,7 +9,7 @@ Full plan: `/root/.claude/plans/personal-rag-for-clever-crab.md`.
 ## Tasks
 
 - [x] Task 1: Refactor — extract `ensure_embedder_loaded`, `get_or_load_cache`, `schedule_embedder_unload`, `invalidate_search_cache`, `unload_embedder` into `semantic/runtime.rs` with `pub(crate)` visibility.
-- [ ] Task 2: Reranker inference — `semantic/reranker.rs::Reranker::load` + `rerank` using pair encoding; `RerankerModelManager` mirrors `ModelManager`.
+- [x] Task 2: Reranker inference — `semantic/reranker.rs::Reranker::load` + `rerank` using pair encoding; `RerankerModelManager` mirrors `ModelManager`.
 - [ ] Task 3: Reranker lifecycle + commands — static `RERANKER` + independent idle unload, `is_reranker_model_available`, `rag_download_reranker` (with `rag-reranker-progress` events).
 - [ ] Task 4: Config + keyring — `rag/config.rs` parses `rag.toml`; `resolve_api_key` tries keyring then env.
 - [ ] Task 5: Retrieval orchestration — `rag/retrieval.rs::retrieve` does embed → cosine top-30 from `SEARCH_CACHE` → reranker top-5. Add `rag_search` command.

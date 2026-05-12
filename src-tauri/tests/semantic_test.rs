@@ -1,5 +1,6 @@
 use kokobrain_lib::semantic::chunker::{chunk_markdown, ChunkOptions};
 use kokobrain_lib::semantic::embedder::cosine_similarity;
+use kokobrain_lib::semantic::reranker::{Reranker, RerankerModelManager};
 
 // --- Chunker Tests ---
 
@@ -273,4 +274,40 @@ fn cosine_empty_vectors() {
 	let b: Vec<f32> = vec![];
 	let sim = cosine_similarity(&a, &b);
 	assert_eq!(sim, 0.0, "empty vectors should return 0.0");
+}
+
+// --- Reranker Model Manager ---
+
+#[test]
+fn reranker_manager_builds_expected_path() {
+	let tmp = std::env::temp_dir().join("koko_rerank_path_test");
+	let manager = RerankerModelManager::new(&tmp);
+	let expected = tmp
+		.join(".kokobrain")
+		.join("models")
+		.join("bge-reranker-v2-m3");
+	assert_eq!(manager.model_path(), expected);
+}
+
+#[test]
+fn reranker_manager_reports_unavailable_when_missing() {
+	let tmp = std::env::temp_dir().join("koko_rerank_missing_test");
+	// Ensure directory doesn't exist with model files
+	let _ = std::fs::remove_dir_all(&tmp);
+	let manager = RerankerModelManager::new(&tmp);
+	assert!(!manager.is_model_available(), "no files → unavailable");
+}
+
+#[test]
+fn reranker_load_errors_when_model_missing() {
+	let tmp = std::env::temp_dir().join("koko_rerank_load_err_test");
+	let _ = std::fs::remove_dir_all(&tmp);
+	std::fs::create_dir_all(&tmp).expect("create dir");
+	let result = Reranker::load(&tmp);
+	assert!(result.is_err(), "load should error when model.onnx is missing");
+	let msg = result.err().unwrap();
+	assert!(
+		msg.contains("not found"),
+		"error should mention missing file, got: {msg}"
+	);
 }
