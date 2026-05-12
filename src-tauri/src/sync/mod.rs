@@ -6,6 +6,7 @@
 
 pub mod auth_log;
 pub mod discovery;
+pub mod events;
 pub mod identity;
 pub mod pairing;
 pub mod protocol;

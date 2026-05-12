@@ -41,6 +41,11 @@ pub struct LanSyncState {
 #[derive(Default)]
 struct LanSyncInner {
 	identity: Option<PeerIdentity>,
+	/// `AppHandle` captured on first command call so background tasks
+	/// (mDNS browse loop, session task, watcher consumer) can emit
+	/// `lan-sync:*` events without each call site re-injecting it.
+	/// Cloned freely from this slot; `AppHandle` is cheap to clone.
+	app_handle: Option<tauri::AppHandle>,
 }
 
 /// Identity account slot. Single per install (the slot would change
@@ -68,6 +73,24 @@ impl LanSyncState {
 		let id = guard.identity.as_ref().expect("identity loaded above");
 		f(id)
 	}
+
+	/// Captures the Tauri `AppHandle` so background tasks spawned by
+	/// later stages can emit events. Idempotent: a second call with the
+	/// same handle is a no-op, a second call with a *different* handle
+	/// (shouldn't happen in practice; we singleton via `.manage(...)`)
+	/// overwrites the slot.
+	pub fn set_app_handle(&self, app: tauri::AppHandle) {
+		if let Ok(mut guard) = self.inner.lock() {
+			guard.app_handle = Some(app);
+		}
+	}
+
+	/// Returns a cloned `AppHandle` for background-task event emission.
+	/// `None` until `set_app_handle` runs at least once. Cloning the
+	/// inner handle is cheap.
+	pub fn app_handle(&self) -> Option<tauri::AppHandle> {
+		self.inner.lock().ok().and_then(|g| g.app_handle.clone())
+	}
 }
 
 // ============================================================================
@@ -83,8 +106,13 @@ pub struct MyFingerprintResponse {
 
 #[tauri::command]
 pub fn lan_sync_get_my_fingerprint(
+	app: tauri::AppHandle,
 	state: tauri::State<'_, LanSyncState>,
 ) -> Result<MyFingerprintResponse, String> {
+	// The frontend calls this command first on every vault open, so it
+	// is the natural place to capture the `AppHandle` for future
+	// background-task event emission.
+	state.set_app_handle(app);
 	state.with_identity(|id| {
 		let fp = id.fingerprint();
 		Ok(MyFingerprintResponse {
