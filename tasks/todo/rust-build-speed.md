@@ -9,6 +9,7 @@ Reduce wall-clock for `pnpm tauri build` when nothing in `src-tauri/` changed. O
 - [x] Task 3: Add a `tauri:build:fast` npm script to `package.json` that runs `tauri build --no-bundle` with `--profile release-fast`. Skips the dmg / codesign / app bundling step and uses the faster profile, for local "did it still compile" loops. The default `tauri:build` (via `pnpm tauri build`) is unchanged.
 - [x] Task 4: Wire `sccache` as the rustc wrapper via `.cargo/config.toml` at the repo root. Caches compiled crates across `cargo clean` and across branches. Requires `brew install sccache` (already done locally; teammates need to install once). First measured win: 1m51s cold check vs 36s warm check after `rm -rf target/debug`.
 - [x] Task 5: Add `scripts/tauri-before-build.sh` wrapper that hashes frontend inputs (`src/`, `static/`, `package.json`, `pnpm-lock.yaml`, `vite.config.js`, `svelte.config.js`, `tsconfig.json`) and skips `pnpm build` when the hash matches the previous successful run. Wire it via `tauri.conf.json -> build.beforeBuildCommand`. Bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
+- [x] Task 6: Install `sccache` on CI by adding `mozilla-actions/sccache-action` (pinned by SHA) to `.github/actions/setup/action.yml`. Without this, the `.cargo/config.toml` `rustc-wrapper = "sccache"` setting from Task 4 would error out every CI cargo invocation with "Could not find sccache in PATH". The action also enables the GitHub Actions cache as sccache's storage backend, complementary to `Swatinem/rust-cache`.
 
 ## Out of scope
 
