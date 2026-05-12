@@ -20,6 +20,7 @@
 	import AutoMoveSection from '$lib/features/auto-move/AutoMoveSection.svelte';
 	import TrashSection from './sections/TrashSection.svelte';
 	import TodoistSection from './sections/TodoistSection.svelte';
+	import LanSyncSettings from '$lib/plugins/lan-sync/LanSyncSettings.svelte';
 	import SecuritySection from './sections/SecuritySection.svelte';
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
 	import UpdateSection from './sections/UpdateSection.svelte';
@@ -37,6 +38,7 @@
 	import FolderOutputIcon from '@lucide/svelte/icons/folder-output';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
+	import WifiIcon from '@lucide/svelte/icons/wifi';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import DownloadIcon from '@lucide/svelte/icons/download';
@@ -58,6 +60,7 @@
 		'auto-move': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
+		'lan-sync': WifiIcon,
 		security: ShieldIcon,
 		troubleshooting: BugIcon,
 		update: DownloadIcon,
@@ -209,6 +212,8 @@
 					<TrashSection />
 				{:else if settingsDialogStore.activeSection === 'todoist'}
 					<TodoistSection onchange={debouncedSave} />
+				{:else if settingsDialogStore.activeSection === 'lan-sync'}
+					<LanSyncSettings />
 				{:else if settingsDialogStore.activeSection === 'security'}
 					<SecuritySection />
 				{:else if settingsDialogStore.activeSection === 'troubleshooting'}
