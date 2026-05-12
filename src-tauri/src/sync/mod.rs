@@ -5,6 +5,9 @@
 //! transport, push) is added inside this module + `commands/sync.rs`.
 //! Per-stage growth never touches host files outside the plugin.
 
+pub mod identity;
+pub mod wordlist;
+
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::Runtime;
 
