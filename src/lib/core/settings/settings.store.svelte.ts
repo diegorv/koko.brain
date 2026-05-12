@@ -145,6 +145,7 @@ export const settingsStore = {
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
 	get queryjs() { return settings.queryjs; },
+	get lanSync() { return settings.lanSync; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -313,6 +314,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			queryjs: { ...settings.queryjs, ...value },
+		};
+	},
+
+	/** Partially updates LAN sync plugin settings, merging with existing values */
+	updateLanSync(value: Partial<import('./settings.types').LanSyncSettings>) {
+		settings = {
+			...settings,
+			lanSync: { ...settings.lanSync, ...value },
 		};
 	},
 
