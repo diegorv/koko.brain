@@ -17,8 +17,7 @@ pub mod wordlist;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use tauri::plugin::{Builder, TauriPlugin};
-use tauri::{Manager, Runtime};
+use tauri::Runtime;
 
 /// Plugin-wide shared state, attached via `app.manage(Arc::new(SyncState::default()))`.
 ///
@@ -82,30 +81,20 @@ impl Default for SyncState {
 	}
 }
 
-/// Build the LAN sync Tauri plugin.
+/// Mounts the LAN sync feature onto the given Tauri builder by
+/// attaching a shared [`SyncState`] so the eight `lan_sync_*` commands
+/// can access it through `tauri::State<Arc<SyncState>>`.
 ///
-/// Stages 0-3 registered no commands and only set up the plugin
-/// seam. Stage 5 wired six commands (identity bootstrap, announce
-/// on/off, browse on/off, trusted-peer list/remove). Stage 8 wires
-/// two more: pairing (initiator + respond, dual-mode) and folder
-/// push. The shared [`SyncState`] is installed via `app.manage`
-/// as an `Arc<SyncState>` so the accept-loop tasks can clone the
-/// handle without exclusive ownership.
-pub fn init<R: Runtime>() -> TauriPlugin<R> {
-	Builder::new("kokobrain-sync")
-		.invoke_handler(tauri::generate_handler![
-			crate::commands::sync::lan_sync_get_my_fingerprint,
-			crate::commands::sync::lan_sync_set_discoverable,
-			crate::commands::sync::lan_sync_start_browse,
-			crate::commands::sync::lan_sync_stop_browse,
-			crate::commands::sync::lan_sync_list_trusted_peers,
-			crate::commands::sync::lan_sync_remove_trusted_peer,
-			crate::commands::sync::lan_sync_pair_with_peer,
-			crate::commands::sync::lan_sync_push_folder,
-		])
-		.setup(|app, _api| {
-			app.manage(Arc::new(SyncState::default()));
-			Ok(())
-		})
-		.build()
+/// Commands themselves are registered centrally in `lib.rs`'s
+/// `tauri::generate_handler!` list rather than inside a
+/// `tauri::plugin::Builder`. Plugin-scoped commands in Tauri 2 are
+/// namespaced as `plugin:<plugin-name>|<command>` and require explicit
+/// permission entries in `src-tauri/permissions/<plugin>/*.toml` plus
+/// a capability grant in `src-tauri/capabilities/*.json`. For an
+/// internal feature with eight commands the central registration is
+/// the simpler path and matches every other backend module's pattern
+/// (db, vault, search, semantic, ...). The frontend therefore keeps
+/// its unprefixed `invoke('lan_sync_*')` calls.
+pub fn init<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
+	builder.manage(Arc::new(SyncState::default()))
 }

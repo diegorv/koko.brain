@@ -66,7 +66,9 @@ fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    let builder = sync::init(builder);
+    builder
         .setup(|app| {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
@@ -86,7 +88,6 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(sync::init())
         .manage(TerminalState::new())
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
@@ -154,6 +155,14 @@ pub fn run() {
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
+            commands::sync::lan_sync_get_my_fingerprint,
+            commands::sync::lan_sync_set_discoverable,
+            commands::sync::lan_sync_start_browse,
+            commands::sync::lan_sync_stop_browse,
+            commands::sync::lan_sync_list_trusted_peers,
+            commands::sync::lan_sync_remove_trusted_peer,
+            commands::sync::lan_sync_pair_with_peer,
+            commands::sync::lan_sync_push_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
