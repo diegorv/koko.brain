@@ -1,3 +1,4 @@
+use crate::rag::config;
 use crate::semantic::reranker::RerankerModelManager;
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
@@ -53,4 +54,53 @@ pub async fn rag_download_reranker(
 		.await?;
 
 	Ok(true)
+}
+
+/// Configuration health-check for the chat panel. Returns whether
+/// `rag.toml` exists, whether it parses, and whether an API key is
+/// resolvable. The frontend uses this to decide between "Configure RAG"
+/// CTA and the chat input.
+#[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RagConfigStatus {
+	pub config_exists: bool,
+	pub config_valid: bool,
+	pub api_key_resolved: bool,
+	pub error: Option<String>,
+}
+
+#[tauri::command]
+pub fn rag_config_status(vault_path: String) -> Result<RagConfigStatus, String> {
+	let path = config::config_path(Path::new(&vault_path));
+	let config_exists = path.exists();
+	if !config_exists {
+		return Ok(RagConfigStatus {
+			config_exists: false,
+			config_valid: false,
+			api_key_resolved: false,
+			error: None,
+		});
+	}
+	match config::load(Path::new(&vault_path)) {
+		Ok(cfg) => match config::resolve_api_key(&cfg.llm) {
+			Ok(_) => Ok(RagConfigStatus {
+				config_exists: true,
+				config_valid: true,
+				api_key_resolved: true,
+				error: None,
+			}),
+			Err(e) => Ok(RagConfigStatus {
+				config_exists: true,
+				config_valid: true,
+				api_key_resolved: false,
+				error: Some(e),
+			}),
+		},
+		Err(e) => Ok(RagConfigStatus {
+			config_exists: true,
+			config_valid: false,
+			api_key_resolved: false,
+			error: Some(e),
+		}),
+	}
 }

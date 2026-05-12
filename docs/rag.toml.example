@@ -1,0 +1,50 @@
+# Sample personal-RAG configuration for koko.brain.
+# Copy to `{vault}/.kokobrain/rag.toml` and edit for your chosen provider.
+#
+# Never commit your API key to this file — set it via the OS keyring
+# (preferred) or via the env var named below.
+
+[llm]
+provider = "openai_compat"
+
+# Default: Kimi K2.6 via Moonshot AI's OpenAI-compatible endpoint.
+# The trailing `/v1` is mandatory for OpenAI-compat consumers.
+endpoint = "https://api.moonshot.ai/v1"
+model = "kimi-k2.6"
+
+# Environment variable consulted as a fallback when the keyring lookup misses.
+api_key_env = "MOONSHOT_API_KEY"
+
+# OS keyring service name. The credential is stored under
+# (service=api_key_keyring_service, user="default"). Leave empty to skip
+# the keyring (useful for headless Linux without Secret Service).
+api_key_keyring_service = "kokobrain-rag-moonshot"
+
+# --- Alternative providers (commented examples) ---
+#
+# DeepSeek:
+#   endpoint = "https://api.deepseek.com/v1"
+#   model = "deepseek-chat"
+#   api_key_env = "DEEPSEEK_API_KEY"
+#   api_key_keyring_service = "kokobrain-rag-deepseek"
+#
+# Ollama (local, free):
+#   endpoint = "http://localhost:11434/v1"
+#   model = "qwen2.5:14b"
+#   api_key_env = ""
+#   api_key_keyring_service = ""
+#
+# OpenRouter (proxy to Claude, Gemini, etc):
+#   endpoint = "https://openrouter.ai/api/v1"
+#   model = "anthropic/claude-haiku-4.5"
+#   api_key_env = "OPENROUTER_API_KEY"
+#   api_key_keyring_service = "kokobrain-rag-openrouter"
+
+[retrieval]
+# Cosine-search candidates produced by the embedder, before reranking.
+vector_top_k = 30
+
+# Final candidates passed to the LLM after reranking. Keep small enough that
+# the system prompt + retrieved context fits comfortably in the model's
+# context window.
+final_top_k = 5

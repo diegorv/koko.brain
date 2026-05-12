@@ -62,6 +62,13 @@ tauri-plugin-http = "2"
 tauri-plugin-updater = "2.10.0"
 tauri-plugin-process = "2.3.1"
 
+# Personal RAG (reranker + LLM chat)
+async-openai = { version = "0.27", default-features = false, features = ["rustls"] }
+async-trait = "0.1"
+tokio-stream = "0.1"
+toml = "0.8"
+keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native-sync-persistent"] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-core-foundation = "0.3"
