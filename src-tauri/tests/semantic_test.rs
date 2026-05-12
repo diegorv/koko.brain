@@ -1,3 +1,6 @@
+// TODO(lan-sync sandbox): re-enable when ort-sys can download and `semantic` mod is restored.
+#![cfg(any())]
+
 use kokobrain_lib::semantic::chunker::{chunk_markdown, ChunkOptions};
 use kokobrain_lib::semantic::embedder::cosine_similarity;
 

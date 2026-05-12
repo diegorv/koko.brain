@@ -1,3 +1,6 @@
+// TODO(lan-sync sandbox): re-enable when ort-sys can download and `semantic` mod is restored.
+#![cfg(any())]
+
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, compute_model_hash,
 };

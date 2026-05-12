@@ -51,10 +51,14 @@ base64 = "0.22"
 zeroize = "1"
 
 # Semantic Search
-ort = { version = "2.0.0-rc.12", features = ["download-binaries", "ndarray", "half"] }
-half = "2.7"
-ndarray = "0.17"
-tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
+# TODO(lan-sync sandbox): temporarily disabled because `ort-sys` build script
+# fetches prebuilt ONNX Runtime binaries from cdn.pyke.io, which is blocked in
+# the current sandbox (HTTP 403). Restore these four lines and re-enable the
+# `semantic` module wiring in lib.rs + commands/mod.rs before merging.
+# ort = { version = "2.0.0-rc.12", features = ["download-binaries", "ndarray", "half"] }
+# half = "2.7"
+# ndarray = "0.17"
+# tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 reqwest = { version = "0.13", features = ["stream"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util", "sync", "net", "time"] }

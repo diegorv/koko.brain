@@ -6,6 +6,7 @@ pub mod fonts;
 pub mod history;
 pub mod search;
 pub mod search_index;
-pub mod semantic;
+// TODO(lan-sync sandbox): re-enable once ort-sys can download.
+// pub mod semantic;
 pub mod terminal;
 pub mod vault;

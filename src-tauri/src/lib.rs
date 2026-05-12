@@ -2,7 +2,8 @@ pub mod commands;
 pub mod db;
 pub mod search;
 pub mod security;
-pub mod semantic;
+// TODO(lan-sync sandbox): re-enable `pub mod semantic;` once ort-sys can download.
+// pub mod semantic;
 pub mod utils;
 pub mod vault;
 
@@ -139,16 +140,17 @@ pub fn run() {
             commands::search_index::update_search_index_file,
             commands::search_index::remove_from_search_index,
             commands::search_index::get_search_index_stats,
-            commands::semantic::init_semantic_search,
-            commands::semantic::is_semantic_model_available,
-            commands::semantic::build_semantic_index,
-            commands::semantic::search_semantic,
-            commands::semantic::get_semantic_stats,
-            commands::semantic::get_semantic_file_status,
-            commands::semantic::update_semantic_file,
-            commands::semantic::download_semantic_model,
-            commands::semantic::debug_semantic_embeddings,
-            commands::semantic::shutdown_semantic,
+            // TODO(lan-sync sandbox): re-enable semantic commands once ort-sys can download.
+            // commands::semantic::init_semantic_search,
+            // commands::semantic::is_semantic_model_available,
+            // commands::semantic::build_semantic_index,
+            // commands::semantic::search_semantic,
+            // commands::semantic::get_semantic_stats,
+            // commands::semantic::get_semantic_file_status,
+            // commands::semantic::update_semantic_file,
+            // commands::semantic::download_semantic_model,
+            // commands::semantic::debug_semantic_embeddings,
+            // commands::semantic::shutdown_semantic,
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,

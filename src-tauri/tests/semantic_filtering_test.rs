@@ -1,3 +1,6 @@
+// TODO(lan-sync sandbox): re-enable when ort-sys can download and `semantic` mod is restored.
+#![cfg(any())]
+
 use kokobrain_lib::semantic::filtering::{adaptive_filter, format_score_distribution};
 use kokobrain_lib::semantic::types::SemanticResult;
 
