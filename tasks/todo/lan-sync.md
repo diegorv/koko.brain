@@ -12,7 +12,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 4: Shares config com 2 modos (subfolder, root-with-excludes) + hard-deny rules + camada 1 da path traversal defense (camadas 2-3 ficam para tasks transport/engine)
 - [x] Task 5: Wire protocol structs (HandshakeMsg, AppMsg) + version negotiation + directory entries + base64 helpers
 - [x] Task 6: Transport crypto core (X25519 ECDH + HKDF-SHA256 + AES-256-GCM streaming + nonce counter + replay detection + transcript binding + Ed25519 verify). TCP listener/keepalive/reconnect ficam para um próximo commit isolado do networking I/O assíncrono.
-- [ ] Task 7: Discovery (mDNS-SD opt-in + RFC1918 filter + IPv6 link-local)
+- [x] Task 7: Discovery helpers — RFC1918 filter (IPv4 + IPv6), TXT record parsing/validation, AnnounceConfig + build_announce_txt round-trip. Live mDNS announce/browse handles ficam para a Task 15 (Tauri commands) onde rodam em ambiente real.
 - [ ] Task 8: Pairing (SPAKE2 com Diceware secret + signed transcript binding + peers.json criptografado)
 - [ ] Task 9: State DB (SQLite schema) + manifest paginado + diff engine
 - [ ] Task 10: Conflict resolution (LWW por Lamport+mtime) + Lamport clock + atomic writes (tmp+fsync+rename)
