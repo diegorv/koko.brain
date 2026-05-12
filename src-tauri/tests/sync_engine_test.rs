@@ -675,3 +675,115 @@ fn apply_delete_saves_conflict_when_remote_wins() {
 		other => panic!("expected AppliedWithConflict, got {other:?}"),
 	}
 }
+
+// ============================================================================
+// Directory create / delete / scan
+// ============================================================================
+
+use kokobrain_lib::sync::sync_engine::{
+	apply_inbound_directory_create, apply_inbound_directory_delete,
+	collect_empty_directories,
+};
+
+#[test]
+fn directory_create_makes_new_dir() {
+	let tmp = tempfile::tempdir().unwrap();
+	let outcome = apply_inbound_directory_create(tmp.path(), "Projects/empty-dir").unwrap();
+	assert!(matches!(outcome, ApplyOutcome::Applied));
+	assert!(tmp.path().join("Projects/empty-dir").is_dir());
+}
+
+#[test]
+fn directory_create_is_idempotent_for_existing_dir() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::create_dir_all(tmp.path().join("Projects/empty-dir")).unwrap();
+	let outcome = apply_inbound_directory_create(tmp.path(), "Projects/empty-dir").unwrap();
+	assert!(matches!(outcome, ApplyOutcome::IgnoredIdempotent));
+}
+
+#[test]
+fn directory_create_refuses_to_clobber_a_file() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::create_dir_all(tmp.path().join("Projects")).unwrap();
+	std::fs::write(tmp.path().join("Projects/conflict"), b"file").unwrap();
+	let err = apply_inbound_directory_create(tmp.path(), "Projects/conflict").unwrap_err();
+	matches!(err, ApplyError::InvalidPath(_));
+}
+
+#[test]
+fn directory_delete_removes_empty_dir() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::create_dir_all(tmp.path().join("Projects/empty-dir")).unwrap();
+	let outcome = apply_inbound_directory_delete(tmp.path(), "Projects/empty-dir").unwrap();
+	assert!(matches!(outcome, ApplyOutcome::Applied));
+	assert!(!tmp.path().join("Projects/empty-dir").exists());
+}
+
+#[test]
+fn directory_delete_is_idempotent_for_missing_dir() {
+	let tmp = tempfile::tempdir().unwrap();
+	let outcome = apply_inbound_directory_delete(tmp.path(), "Projects/empty-dir").unwrap();
+	assert!(matches!(outcome, ApplyOutcome::IgnoredIdempotent));
+}
+
+#[test]
+fn directory_delete_refuses_non_empty_dir() {
+	// If the local copy has unsynced content under the dir, we must
+	// NOT destroy it just because the peer says delete.
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::create_dir_all(tmp.path().join("Projects/has-stuff")).unwrap();
+	std::fs::write(tmp.path().join("Projects/has-stuff/note.md"), b"x").unwrap();
+	let outcome = apply_inbound_directory_delete(tmp.path(), "Projects/has-stuff").unwrap();
+	assert!(matches!(outcome, ApplyOutcome::IgnoredLocalWins));
+	assert!(tmp.path().join("Projects/has-stuff/note.md").exists());
+}
+
+#[test]
+fn directory_delete_rejects_when_path_is_file() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::write(tmp.path().join("note.md"), b"file").unwrap();
+	let err = apply_inbound_directory_delete(tmp.path(), "note.md").unwrap_err();
+	matches!(err, ApplyError::InvalidPath(_));
+}
+
+#[test]
+fn collect_empty_directories_lists_only_empty_ones() {
+	let tmp = tempfile::tempdir().unwrap();
+	// Empty dirs:
+	std::fs::create_dir_all(tmp.path().join("empty-a")).unwrap();
+	std::fs::create_dir_all(tmp.path().join("empty-b/nested-empty")).unwrap();
+	// Non-empty dir:
+	std::fs::create_dir_all(tmp.path().join("has-file")).unwrap();
+	std::fs::write(tmp.path().join("has-file/note.md"), b"x").unwrap();
+	let dirs = collect_empty_directories(tmp.path(), |_| true).unwrap();
+	let mut sorted = dirs.clone();
+	sorted.sort();
+	// `empty-b` contains a subdir so it is "not empty" — we report the
+	// truly leaf empty dirs (`nested-empty` + `empty-a`).
+	assert!(sorted.contains(&"empty-a".to_string()));
+	assert!(sorted.contains(&"empty-b/nested-empty".to_string()));
+	assert!(!sorted.contains(&"has-file".to_string()));
+}
+
+#[test]
+fn collect_empty_directories_respects_include_predicate() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::create_dir_all(tmp.path().join(".kokobrain/lan-sync")).unwrap();
+	std::fs::create_dir_all(tmp.path().join("Projects/legit")).unwrap();
+	// Predicate rejects any segment starting with '.'.
+	let predicate = |rel: &str| !rel.split('/').any(|s| s.starts_with('.'));
+	let dirs = collect_empty_directories(tmp.path(), predicate).unwrap();
+	assert!(dirs.contains(&"Projects/legit".to_string()));
+	for d in &dirs {
+		assert!(!d.starts_with(".kokobrain"));
+	}
+}
+
+#[test]
+fn collect_empty_directories_skips_root() {
+	let tmp = tempfile::tempdir().unwrap();
+	// Even when the share root is completely empty, it should not
+	// appear in the result (the manifest only carries paths below).
+	let dirs = collect_empty_directories(tmp.path(), |_| true).unwrap();
+	assert!(!dirs.iter().any(|d| d.is_empty()));
+}

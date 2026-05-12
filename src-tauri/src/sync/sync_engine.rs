@@ -473,6 +473,120 @@ pub fn apply_inbound_delete(
 	Ok(ApplyOutcome::AppliedWithConflict { conflict_path })
 }
 
+/// Applies an inbound directory create. Empty directories are
+/// first-class entities in the manifest so a vault structure like
+/// `Projects/empty-dir/` survives the round trip. Idempotent — when
+/// the destination already exists as a directory, returns
+/// `IgnoredIdempotent`. When it exists as a file, returns an error so
+/// we don't silently swap kinds.
+pub fn apply_inbound_directory_create(
+	share_root: &Path,
+	path_rel: &str,
+) -> Result<ApplyOutcome, ApplyError> {
+	let dest = safe_resolve_under_share(share_root, path_rel)?;
+	if dest.exists() {
+		if dest.is_dir() {
+			return Ok(ApplyOutcome::IgnoredIdempotent);
+		}
+		return Err(ApplyError::InvalidPath(format!(
+			"{path_rel} exists as a file; refusing to replace with a directory"
+		)));
+	}
+	std::fs::create_dir_all(&dest).map_err(|e| ApplyError::Io(e.to_string()))?;
+	Ok(ApplyOutcome::Applied)
+}
+
+/// Applies an inbound directory delete. Only removes the directory
+/// when it is empty — non-empty directories indicate the peer's
+/// manifest got out of sync with local state (orphan files) and we
+/// must not destroy unsynced content. Idempotent for missing dirs.
+pub fn apply_inbound_directory_delete(
+	share_root: &Path,
+	path_rel: &str,
+) -> Result<ApplyOutcome, ApplyError> {
+	let dest = safe_resolve_under_share(share_root, path_rel)?;
+	if !dest.exists() {
+		return Ok(ApplyOutcome::IgnoredIdempotent);
+	}
+	if !dest.is_dir() {
+		return Err(ApplyError::InvalidPath(format!(
+			"{path_rel} exists but is not a directory"
+		)));
+	}
+	// remove_dir fails if the directory is non-empty — that is the
+	// safety net we want.
+	match std::fs::remove_dir(&dest) {
+		Ok(()) => Ok(ApplyOutcome::Applied),
+		Err(e) if e.kind() == std::io::ErrorKind::DirectoryNotEmpty => {
+			Ok(ApplyOutcome::IgnoredLocalWins)
+		}
+		Err(e) => Err(ApplyError::Io(e.to_string())),
+	}
+}
+
+/// Scans `share_root` recursively and returns every empty directory's
+/// relative path. Used when building the local manifest so we don't
+/// rely on the file walker (which usually only yields files) to
+/// surface empty directories.
+///
+/// `should_include` is the gate the share rules apply (hard-deny + user
+/// excludes). Directories whose relative path fails the predicate are
+/// skipped along with their entire subtree.
+pub fn collect_empty_directories<F>(
+	share_root: &Path,
+	should_include: F,
+) -> Result<Vec<String>, ApplyError>
+where
+	F: Fn(&str) -> bool,
+{
+	let mut out = Vec::new();
+	let mut stack: Vec<PathBuf> = vec![share_root.to_path_buf()];
+	while let Some(dir) = stack.pop() {
+		let rel = dir
+			.strip_prefix(share_root)
+			.ok()
+			.map(|p| p.to_string_lossy().to_string())
+			.unwrap_or_default();
+		// Skip the share root itself from the manifest (it's implicit).
+		let is_root = rel.is_empty();
+		if !is_root && !should_include(&rel) {
+			continue;
+		}
+		let entries: Vec<_> = match std::fs::read_dir(&dir) {
+			Ok(r) => r.flatten().collect(),
+			Err(_) => continue,
+		};
+		let mut has_visible_child = false;
+		for entry in &entries {
+			let path = entry.path();
+			let metadata = match entry.metadata() {
+				Ok(m) => m,
+				Err(_) => continue,
+			};
+			let child_rel = path
+				.strip_prefix(share_root)
+				.ok()
+				.map(|p| p.to_string_lossy().to_string())
+				.unwrap_or_default();
+			if !should_include(&child_rel) {
+				continue;
+			}
+			if metadata.is_dir() {
+				stack.push(path);
+				has_visible_child = true; // dir counts as content
+			} else if metadata.is_file() {
+				has_visible_child = true;
+			}
+		}
+		if !is_root && !has_visible_child {
+			// Replace platform separator so manifest entries are
+			// always `/`-separated regardless of OS.
+			out.push(rel.replace(std::path::MAIN_SEPARATOR, "/"));
+		}
+	}
+	Ok(out)
+}
+
 /// Local file state passed in alongside the inbound message. Mirrors
 /// the relevant subset of [`crate::sync::state_db::FileStateRow`].
 /// `exists = false` short-circuits the LWW path.
