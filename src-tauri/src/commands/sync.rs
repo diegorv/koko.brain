@@ -2,20 +2,29 @@
 //!
 //! Each command is a thin shim over the pure functions in
 //! `crate::sync::*`. State that lives across calls (the mDNS
-//! announcer, the mDNS browser, the cached identity) is held in
-//! `crate::sync::SyncState` and reached through the `State` extractor.
+//! announcer, the mDNS browser, the cached identity, the TCP accept
+//! loop, the pending-pair sessions, and last-seen peer addresses) is
+//! held in `crate::sync::SyncState` (managed as `Arc<SyncState>` so
+//! spawned tasks can share it) and reached through the `State`
+//! extractor.
 //!
 //! Errors are normalised to `String` because Tauri serialises command
 //! results to JSON and `String` is the simplest end-to-end surface.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use tauri::{AppHandle, Runtime, State};
 
+use crate::sync::dispatch::{self, PeerHandshake, INTENT_PAIR, INTENT_PUSH};
 use crate::sync::discovery::{Announcer, Browser};
-use crate::sync::events::{self, MyFingerprintPayload};
+use crate::sync::events::{
+	self, MyFingerprintPayload, PeerTrustedPayload, PushCompletePayload, PushProgressPayload,
+};
 use crate::sync::identity::DeviceIdentity;
+use crate::sync::push::{plan_push, send_folder};
+use crate::sync::transport::{self, fingerprint_hex_from_static, open_to, StaticKeys};
 use crate::sync::trust::{self, TrustedPeer};
 use crate::sync::SyncState;
 
@@ -72,6 +81,31 @@ fn fingerprint_hex_for(state: &SyncState, vault_path: &str) -> Result<String, St
 	Ok(payload.fingerprint_hex)
 }
 
+/// Returns the X25519 static keypair for `vault_path`.
+///
+/// The Ed25519 [`DeviceIdentity`] type intentionally does NOT expose
+/// its secret seed (so the signing key cannot leak via Debug or
+/// accidental moves), but the Noise XX layer needs those same seed
+/// bytes to derive the matching X25519 static key
+/// ([`transport::static_keys_from_ed25519_secret`]). We re-read the
+/// 32-byte seed from disk here. `ensure_identity_cached` is called
+/// first so the underlying file is guaranteed to exist before this
+/// function attempts to read it.
+fn static_keys_for(state: &SyncState, vault_path: &str) -> Result<StaticKeys, String> {
+	ensure_identity_cached(state, vault_path)?;
+	let path = identity_path(vault_path);
+	let bytes = std::fs::read(&path).map_err(|e| format!("read identity: {e}"))?;
+	if bytes.len() != 32 {
+		return Err(format!(
+			"identity key has wrong length: expected 32 bytes, got {}",
+			bytes.len()
+		));
+	}
+	let mut secret = [0_u8; 32];
+	secret.copy_from_slice(&bytes);
+	Ok(transport::static_keys_from_ed25519_secret(&secret))
+}
+
 /// Loads (or creates) the device identity for `vault_path` and
 /// returns its fingerprint surfaces.
 ///
@@ -88,36 +122,40 @@ fn fingerprint_hex_for(state: &SyncState, vault_path: &str) -> Result<String, St
 #[tauri::command]
 pub async fn lan_sync_get_my_fingerprint<R: Runtime>(
 	_app: AppHandle<R>,
-	state: State<'_, SyncState>,
+	state: State<'_, Arc<SyncState>>,
 	vault_path: String,
 ) -> Result<MyFingerprintPayload, String> {
-	ensure_identity_cached(&state, &vault_path)
+	ensure_identity_cached(state.inner(), &vault_path)
 }
 
-/// Toggles whether the local vault is discoverable over mDNS.
+/// Toggles whether the local vault is discoverable over mDNS AND
+/// whether the local TCP accept loop is bound to [`ANNOUNCE_PORT`].
 ///
 /// Inputs:
 /// - `vault_path` — absolute path to the vault root. Used to load
 ///   the per-vault identity when the cache is empty.
-/// - `enabled` — `true` starts the announcer, `false` stops it.
+/// - `enabled` — `true` starts the announcer + accept loop, `false`
+///   stops both.
 ///
-/// Side effects: writes to `state.announcer`. Idempotent — calling
-/// twice with the same `enabled` value is a no-op (the second call
-/// returns `Ok(())` without touching the daemon).
+/// Side effects: writes to `state.announcer` and
+/// `state.tcp_accept_handle`. Idempotent — calling twice with the same
+/// `enabled` value is a no-op when the corresponding slots are already
+/// in their target state.
 ///
-/// Errors when starting the announcer fails (no local IP, mDNS
-/// daemon error) or stopping fails (daemon already gone).
+/// Errors when starting the announcer fails (no local IP, mDNS daemon
+/// error), binding the TCP listener fails (port in use), or stopping
+/// fails (daemon already gone).
 #[tauri::command]
 pub async fn lan_sync_set_discoverable<R: Runtime>(
-	_app: AppHandle<R>,
-	state: State<'_, SyncState>,
+	app: AppHandle<R>,
+	state: State<'_, Arc<SyncState>>,
 	vault_path: String,
 	enabled: bool,
 ) -> Result<(), String> {
 	if enabled {
-		// Check current state under the lock; release before doing
-		// network I/O so the announcer thread does not deadlock on
-		// the same Mutex if it ever needs to consult it.
+		// Check current announcer slot under the lock; release before
+		// doing network I/O so the announcer thread does not deadlock
+		// on the same Mutex if it ever needs to consult it.
 		{
 			let guard = state
 				.announcer
@@ -127,23 +165,62 @@ pub async fn lan_sync_set_discoverable<R: Runtime>(
 				return Ok(());
 			}
 		}
-		let fp_hex = fingerprint_hex_for(&state, &vault_path)?;
+		let fp_hex = fingerprint_hex_for(state.inner(), &vault_path)?;
 		let announcer =
 			Announcer::start(&fp_hex, ANNOUNCE_PORT).map_err(|e| format!("announce: {e}"))?;
-		let mut guard = state
-			.announcer
-			.lock()
-			.map_err(|e| format!("announcer lock poisoned: {e}"))?;
-		// Race: a second `enabled=true` call may have started its own
-		// announcer between the early-return check and now. Prefer
-		// the existing slot and stop the new one to avoid leaks.
-		if guard.is_some() {
-			if let Err(e) = announcer.stop() {
-				eprintln!("[lan-sync] dropped duplicate announcer stop: {e}");
+		{
+			let mut guard = state
+				.announcer
+				.lock()
+				.map_err(|e| format!("announcer lock poisoned: {e}"))?;
+			if guard.is_some() {
+				if let Err(e) = announcer.stop() {
+					eprintln!("[lan-sync] dropped duplicate announcer stop: {e}");
+				}
+				return Ok(());
 			}
-			return Ok(());
+			*guard = Some(announcer);
 		}
-		*guard = Some(announcer);
+
+		// Spawn TCP accept loop bound to 0.0.0.0:ANNOUNCE_PORT.
+		let listener = tokio::net::TcpListener::bind(("0.0.0.0", ANNOUNCE_PORT))
+			.await
+			.map_err(|e| format!("bind tcp: {e}"))?;
+		let state_clone: Arc<SyncState> = state.inner().clone();
+		let app_clone = app.clone();
+		let vault_clone = vault_path.clone();
+		let handle = tokio::spawn(async move {
+			loop {
+				let accept_result = listener.accept().await;
+				let (stream, sock_addr) = match accept_result {
+					Ok(pair) => pair,
+					Err(e) => {
+						eprintln!("[lan-sync] tcp accept failed: {e}");
+						continue;
+					}
+				};
+				let state_for_conn = state_clone.clone();
+				let app_for_conn = app_clone.clone();
+				let vault_for_conn = PathBuf::from(&vault_clone);
+				tokio::spawn(async move {
+					if let Err(e) =
+						drive_inbound(app_for_conn, state_for_conn, vault_for_conn, stream, sock_addr)
+							.await
+					{
+						eprintln!("[lan-sync] inbound dispatch failed: {e}");
+					}
+				});
+			}
+		});
+
+		let mut accept_guard = state
+			.tcp_accept_handle
+			.lock()
+			.map_err(|e| format!("accept handle lock poisoned: {e}"))?;
+		if let Some(prev) = accept_guard.take() {
+			prev.abort();
+		}
+		*accept_guard = Some(handle);
 		Ok(())
 	} else {
 		let taken = {
@@ -156,8 +233,51 @@ pub async fn lan_sync_set_discoverable<R: Runtime>(
 		if let Some(announcer) = taken {
 			announcer.stop().map_err(|e| format!("unannounce: {e}"))?;
 		}
+		let accept_handle = {
+			let mut guard = state
+				.tcp_accept_handle
+				.lock()
+				.map_err(|e| format!("accept handle lock poisoned: {e}"))?;
+			guard.take()
+		};
+		if let Some(handle) = accept_handle {
+			handle.abort();
+		}
 		Ok(())
 	}
+}
+
+/// Runs the inbound-handshake + dispatch for one accepted TCP socket.
+/// Wraps `transport::accept` (always-allow predicate) followed by
+/// `dispatch::handle_inbound_connection`. Used by the accept loop in
+/// [`lan_sync_set_discoverable`].
+async fn drive_inbound<R: Runtime>(
+	app: AppHandle<R>,
+	state: Arc<SyncState>,
+	vault_path: PathBuf,
+	stream: tokio::net::TcpStream,
+	sock_addr: std::net::SocketAddr,
+) -> Result<(), String> {
+	// Load the responder's static keys.
+	let vault_str = vault_path
+		.to_str()
+		.ok_or_else(|| "vault_path must be UTF-8".to_string())?;
+	let keys = static_keys_for(&state, vault_str)?;
+
+	let session = transport::accept(stream, &keys, |_remote_fp| true)
+		.await
+		.map_err(|e| format!("accept handshake: {e}"))?;
+
+	dispatch::handle_inbound_connection(
+		app,
+		state,
+		vault_path,
+		session,
+		sock_addr.ip().to_string(),
+		sock_addr.port(),
+	)
+	.await
+	.map_err(|e| format!("dispatch: {e}"))
 }
 
 /// Starts the mDNS browser for the LAN sync service type.
@@ -169,14 +289,16 @@ pub async fn lan_sync_set_discoverable<R: Runtime>(
 /// Side effects: writes to `state.browser`. No-op when a browser is
 /// already running (the existing slot wins). Each fresh discovery
 /// emits an `lan-sync:peer-discovered` event via
-/// [`events::emit_peer_discovered`].
+/// [`events::emit_peer_discovered`] AND inserts the peer's
+/// `(addr, port)` into `state.last_seen_addrs` so the push command
+/// can locate the socket later.
 ///
 /// Errors when starting the daemon fails or the consumer thread
 /// cannot be spawned.
 #[tauri::command]
 pub async fn lan_sync_start_browse<R: Runtime>(
 	app: AppHandle<R>,
-	state: State<'_, SyncState>,
+	state: State<'_, Arc<SyncState>>,
 	vault_path: String,
 ) -> Result<(), String> {
 	{
@@ -188,9 +310,17 @@ pub async fn lan_sync_start_browse<R: Runtime>(
 			return Ok(());
 		}
 	}
-	let fp_hex = fingerprint_hex_for(&state, &vault_path)?;
+	let fp_hex = fingerprint_hex_for(state.inner(), &vault_path)?;
 	let app_for_cb = app.clone();
+	let state_for_cb: Arc<SyncState> = state.inner().clone();
 	let browser = Browser::start(fp_hex, move |payload| {
+		// Cache the address so a later push can locate the peer.
+		if let Ok(mut map) = state_for_cb.last_seen_addrs.lock() {
+			map.insert(
+				payload.fingerprint_hex.clone(),
+				(payload.addr.clone(), payload.port),
+			);
+		}
 		if let Err(e) = events::emit_peer_discovered(&app_for_cb, &payload) {
 			eprintln!("[lan-sync] emit peer-discovered failed: {e}");
 		}
@@ -201,8 +331,6 @@ pub async fn lan_sync_start_browse<R: Runtime>(
 		.lock()
 		.map_err(|e| format!("browser lock poisoned: {e}"))?;
 	if guard.is_some() {
-		// Same race-handling as `set_discoverable`: if another caller
-		// raced ahead, drop the freshly-built browser.
 		if let Err(e) = browser.stop() {
 			eprintln!("[lan-sync] dropped duplicate browser stop: {e}");
 		}
@@ -217,7 +345,7 @@ pub async fn lan_sync_start_browse<R: Runtime>(
 /// Side effects: takes the value out of `state.browser` and calls
 /// `Browser::stop`. No-op when no browser is running.
 #[tauri::command]
-pub async fn lan_sync_stop_browse(state: State<'_, SyncState>) -> Result<(), String> {
+pub async fn lan_sync_stop_browse(state: State<'_, Arc<SyncState>>) -> Result<(), String> {
 	let taken = {
 		let mut guard = state
 			.browser
@@ -267,12 +395,367 @@ pub async fn lan_sync_remove_trusted_peer(
 		.map_err(|e| e.to_string())
 }
 
+/// Pair-with-peer (dual-mode).
+///
+/// One command serves both sides of the pairing flow because the
+/// frontend service shape (`pairWithPeer(vaultPath, peerAddr,
+/// peerPort, peerFingerprintHex, accept)`) was designed to cover
+/// both. Mode is selected by inspecting `peer_addr`:
+///
+/// - `peer_addr.is_empty()` → **respond mode**. Interpret
+///   `peer_fingerprint_hex` as a `request_id` previously emitted in a
+///   `lan-sync:pairing-incoming` event. Pull the matching pending
+///   session from `state.pending_pair_sessions`, ping the inbound
+///   dispatcher with the user's accept/reject decision, and (on
+///   accept) write the peer to `peers.json` + emit `peer-trusted`.
+///   Returns `Some(TrustedPeer)` on accept, `None` on reject.
+///
+/// - else → **initiator mode**. Open a TCP connection to
+///   `peer_addr:peer_port`, run Noise XX with the expected remote
+///   fingerprint = `peer_fingerprint_hex`, send
+///   `PeerHandshake { intent: "pair" }`, await `PairResponse`. On
+///   `accepted=true` write the peer to `peers.json` + emit
+///   `peer-trusted` and return `Some(TrustedPeer)`. On
+///   `accepted=false` return an error. The `accept` parameter is
+///   ignored on this path — the local user has already opted in by
+///   pressing "Pair" in the UI.
+#[tauri::command]
+pub async fn lan_sync_pair_with_peer<R: Runtime>(
+	app: AppHandle<R>,
+	state: State<'_, Arc<SyncState>>,
+	vault_path: String,
+	peer_addr: String,
+	peer_port: u16,
+	peer_fingerprint_hex: String,
+	accept: bool,
+) -> Result<Option<TrustedPeer>, String> {
+	if peer_addr.is_empty() {
+		respond_to_pair(app, state, vault_path, peer_fingerprint_hex, accept).await
+	} else {
+		initiate_pair(
+			app,
+			state,
+			vault_path,
+			peer_addr,
+			peer_port,
+			peer_fingerprint_hex,
+		)
+		.await
+	}
+}
+
+/// Respond-mode path of [`lan_sync_pair_with_peer`]. Uses the
+/// `peer_fingerprint_hex` argument as a `request_id`.
+async fn respond_to_pair<R: Runtime>(
+	app: AppHandle<R>,
+	state: State<'_, Arc<SyncState>>,
+	vault_path: String,
+	request_id: String,
+	accept: bool,
+) -> Result<Option<TrustedPeer>, String> {
+	let entry = {
+		let mut map = state.pending_pair_sessions.lock().await;
+		map.remove(&request_id)
+	};
+	let entry = match entry {
+		Some(e) => e,
+		None => {
+			return Err(format!("no pending pair request with id {request_id}"));
+		}
+	};
+
+	// On accept: write the peer to the trust store FIRST so the
+	// `peer-trusted` event reflects committed state. Then signal the
+	// dispatcher so it sends the wire ack.
+	let outcome = if accept {
+		let peer = TrustedPeer {
+			fingerprint_hex: entry.remote_fingerprint_hex.clone(),
+			fingerprint_display: entry.remote_fingerprint_display.clone(),
+			public_key_b64: entry.remote_public_key_b64.clone(),
+			display_name: None,
+			trusted_at_ms: now_unix_ms(),
+		};
+		trust::upsert(std::path::Path::new(&vault_path), peer.clone())
+			.map_err(|e| format!("trust upsert: {e}"))?;
+		if let Err(e) = events::emit_peer_trusted(
+			&app,
+			&PeerTrustedPayload {
+				fingerprint_hex: peer.fingerprint_hex.clone(),
+				fingerprint_display: peer.fingerprint_display.clone(),
+				public_key_b64: peer.public_key_b64.clone(),
+				display_name: peer.display_name.clone(),
+				trusted_at_ms: peer.trusted_at_ms,
+			},
+		) {
+			eprintln!("[lan-sync] emit peer-trusted failed: {e}");
+		}
+		Some(peer)
+	} else {
+		None
+	};
+
+	if let Some(tx) = entry.responder {
+		// Best-effort signal; if the dispatcher already gave up, the
+		// outcome on disk is still correct.
+		let _ = tx.send(accept);
+	}
+
+	Ok(outcome)
+}
+
+/// Initiator-mode path of [`lan_sync_pair_with_peer`]. Opens the
+/// TCP connection, runs the handshake, and on accept writes the peer
+/// to the trust store.
+async fn initiate_pair<R: Runtime>(
+	app: AppHandle<R>,
+	state: State<'_, Arc<SyncState>>,
+	vault_path: String,
+	peer_addr: String,
+	peer_port: u16,
+	peer_fingerprint_hex: String,
+) -> Result<Option<TrustedPeer>, String> {
+	let keys = static_keys_for(state.inner(), &vault_path)?;
+	let my_fp_display = {
+		let guard = state
+			.identity
+			.lock()
+			.map_err(|e| format!("identity lock poisoned: {e}"))?;
+		guard
+			.as_ref()
+			.map(|id| id.fingerprint_display())
+			.unwrap_or_default()
+	};
+
+	let stream = tokio::net::TcpStream::connect((peer_addr.as_str(), peer_port))
+		.await
+		.map_err(|e| format!("connect {peer_addr}:{peer_port}: {e}"))?;
+	let mut session = open_to(stream, &keys, &peer_fingerprint_hex)
+		.await
+		.map_err(|e| format!("handshake: {e}"))?;
+
+	// Send the handshake envelope.
+	let envelope = PeerHandshake {
+		intent: INTENT_PAIR.to_string(),
+		fingerprint_display: my_fp_display,
+	};
+	let envelope_bytes =
+		serde_json::to_vec(&envelope).map_err(|e| format!("encode handshake: {e}"))?;
+	session
+		.send(&envelope_bytes)
+		.await
+		.map_err(|e| format!("send handshake: {e}"))?;
+
+	// Await the response.
+	let response_bytes = session
+		.recv()
+		.await
+		.map_err(|e| format!("recv response: {e}"))?;
+	let response: dispatch::PairResponse =
+		serde_json::from_slice(&response_bytes).map_err(|e| format!("decode response: {e}"))?;
+
+	if !response.accepted {
+		return Err(format!(
+			"pair not accepted by remote{}",
+			response
+				.reason
+				.map(|r| format!(": {r}"))
+				.unwrap_or_default()
+		));
+	}
+
+	// Build the trusted peer record from the verified remote static
+	// key (NOT from the envelope, which we already validated against
+	// the derived display in dispatch — but here on the initiator
+	// side we derived the remote_fp from the handshake itself).
+	let remote_static = session.remote_static();
+	let derived_hex = fingerprint_hex_from_static(&remote_static);
+	if derived_hex != peer_fingerprint_hex {
+		return Err(format!(
+			"post-handshake fingerprint mismatch: derived {derived_hex}, expected {peer_fingerprint_hex}"
+		));
+	}
+	let peer = TrustedPeer {
+		fingerprint_hex: derived_hex.clone(),
+		fingerprint_display: crate::sync::discovery::fingerprint_display_from_hex(&derived_hex),
+		public_key_b64: BASE64.encode(remote_static),
+		display_name: None,
+		trusted_at_ms: now_unix_ms(),
+	};
+	trust::upsert(std::path::Path::new(&vault_path), peer.clone())
+		.map_err(|e| format!("trust upsert: {e}"))?;
+	if let Err(e) = events::emit_peer_trusted(
+		&app,
+		&PeerTrustedPayload {
+			fingerprint_hex: peer.fingerprint_hex.clone(),
+			fingerprint_display: peer.fingerprint_display.clone(),
+			public_key_b64: peer.public_key_b64.clone(),
+			display_name: peer.display_name.clone(),
+			trusted_at_ms: peer.trusted_at_ms,
+		},
+	) {
+		eprintln!("[lan-sync] emit peer-trusted failed: {e}");
+	}
+	Ok(Some(peer))
+}
+
+/// Pushes a folder from the local vault to a trusted peer.
+///
+/// Inputs:
+/// - `vault_path` — absolute path to the local vault root.
+/// - `peer_fingerprint_hex` — stable primary key of the destination
+///   peer; must already be in `peers.json`.
+/// - `source_rel_path` — folder inside the local vault to send
+///   (relative to `vault_path`, never absolute).
+/// - `target_rel_path` — destination inside the remote vault.
+///
+/// Side effects: opens a Noise XX session to the peer's last-known
+/// `(addr, port)` (from `state.last_seen_addrs`, populated by the
+/// browser). Emits `lan-sync:push-progress` periodically and a final
+/// `lan-sync:push-complete` regardless of outcome.
+///
+/// Errors when the peer is not trusted, has not been discovered
+/// recently, the TCP connect / Noise handshake fails, or the push
+/// engine returns an error.
+#[tauri::command]
+pub async fn lan_sync_push_folder<R: Runtime>(
+	app: AppHandle<R>,
+	state: State<'_, Arc<SyncState>>,
+	vault_path: String,
+	peer_fingerprint_hex: String,
+	source_rel_path: String,
+	target_rel_path: String,
+) -> Result<(), String> {
+	// 1. Verify peer is in the trust store.
+	let peers = trust::load(std::path::Path::new(&vault_path))
+		.map_err(|e| format!("load peers: {e}"))?;
+	if !peers
+		.iter()
+		.any(|p| p.fingerprint_hex == peer_fingerprint_hex)
+	{
+		return Err(format!("peer {peer_fingerprint_hex} not trusted"));
+	}
+
+	// 2. Look up the peer's last-known socket from the browser cache.
+	let (addr, port) = {
+		let map = state
+			.last_seen_addrs
+			.lock()
+			.map_err(|e| format!("last_seen_addrs lock poisoned: {e}"))?;
+		map.get(&peer_fingerprint_hex)
+			.cloned()
+			.ok_or_else(|| {
+				format!("peer {peer_fingerprint_hex} not discovered (toggle browse on first)")
+			})?
+	};
+
+	// 3. Open Noise XX to the peer.
+	let keys = static_keys_for(state.inner(), &vault_path)?;
+	let my_fp_display = {
+		let guard = state
+			.identity
+			.lock()
+			.map_err(|e| format!("identity lock poisoned: {e}"))?;
+		guard
+			.as_ref()
+			.map(|id| id.fingerprint_display())
+			.unwrap_or_default()
+	};
+	let stream = tokio::net::TcpStream::connect((addr.as_str(), port))
+		.await
+		.map_err(|e| format!("connect {addr}:{port}: {e}"))?;
+	let mut session = open_to(stream, &keys, &peer_fingerprint_hex)
+		.await
+		.map_err(|e| format!("handshake: {e}"))?;
+
+	// 4. Send the routing envelope (intent: "push").
+	let envelope = PeerHandshake {
+		intent: INTENT_PUSH.to_string(),
+		fingerprint_display: my_fp_display,
+	};
+	let envelope_bytes =
+		serde_json::to_vec(&envelope).map_err(|e| format!("encode handshake: {e}"))?;
+	session
+		.send(&envelope_bytes)
+		.await
+		.map_err(|e| format!("send handshake: {e}"))?;
+
+	// 5. Read the responder's ack/reject.
+	let response_bytes = session
+		.recv()
+		.await
+		.map_err(|e| format!("recv push ack: {e}"))?;
+	let response: dispatch::PairResponse = serde_json::from_slice(&response_bytes)
+		.map_err(|e| format!("decode push ack: {e}"))?;
+	if !response.accepted {
+		let reason = response.reason.unwrap_or_else(|| "rejected".into());
+		// Emit a final push-complete with the error so the UI knows.
+		let _ = events::emit_push_complete(
+			&app,
+			&PushCompletePayload {
+				peer_fingerprint: peer_fingerprint_hex.clone(),
+				files_transferred: 0,
+				error: Some(reason.clone()),
+			},
+		);
+		return Err(format!("push refused: {reason}"));
+	}
+
+	// 6. Plan and send.
+	let source_abs = PathBuf::from(&vault_path).join(&source_rel_path);
+	let plan = plan_push(&source_abs).map_err(|e| format!("plan push: {e}"))?;
+	let files_total = plan.files.len() as u64;
+	let bytes_total = plan.total_bytes;
+
+	let app_for_progress = app.clone();
+	let peer_fp_for_progress = peer_fingerprint_hex.clone();
+	let on_progress = move |bytes_done: u64, files_done: u64| {
+		let payload = PushProgressPayload {
+			peer_fingerprint: peer_fp_for_progress.clone(),
+			files_done,
+			files_total,
+			bytes_done,
+			bytes_total,
+		};
+		if let Err(e) = events::emit_push_progress(&app_for_progress, &payload) {
+			eprintln!("[lan-sync] emit push-progress failed: {e}");
+		}
+	};
+
+	let send_result =
+		send_folder(&mut session, &source_abs, &target_rel_path, &plan, on_progress).await;
+
+	// 7. Emit final push-complete with success/failure.
+	let complete = match &send_result {
+		Ok(files_transferred) => PushCompletePayload {
+			peer_fingerprint: peer_fingerprint_hex.clone(),
+			files_transferred: *files_transferred,
+			error: None,
+		},
+		Err(e) => PushCompletePayload {
+			peer_fingerprint: peer_fingerprint_hex.clone(),
+			files_transferred: 0,
+			error: Some(e.to_string()),
+		},
+	};
+	if let Err(e) = events::emit_push_complete(&app, &complete) {
+		eprintln!("[lan-sync] emit push-complete failed: {e}");
+	}
+
+	send_result.map(|_| ()).map_err(|e| format!("send: {e}"))
+}
+
+/// Returns the current wall-clock time as Unix epoch milliseconds.
+/// Used to stamp `TrustedPeer::trusted_at_ms` on pair-accept paths.
+fn now_unix_ms() -> u64 {
+	use std::time::{SystemTime, UNIX_EPOCH};
+	SystemTime::now()
+		.duration_since(UNIX_EPOCH)
+		.map(|d| d.as_millis() as u64)
+		.unwrap_or(0)
+}
+
 /// Re-encodes a public key to base64. Kept private so the trust
 /// store stays the single source of truth for serialisation.
-///
-/// Unused by the six commands above but referenced by future stages
-/// that pair-and-trust in a single shot; kept here so the symbol
-/// resolves the moment that stage lands.
 #[allow(dead_code)]
 pub(crate) fn encode_public_key(bytes: &[u8]) -> String {
 	BASE64.encode(bytes)
