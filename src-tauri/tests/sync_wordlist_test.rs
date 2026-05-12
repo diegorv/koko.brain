@@ -1,12 +1,33 @@
 use kokobrain_lib::sync::wordlist::{
-	generate_passphrase, is_known_word, normalize, PassphraseError, PASSPHRASE_WORD_COUNT,
-	WORDLIST_SIZE,
+	generate_passphrase, is_known_word, normalize, word_at, PassphraseError,
+	PASSPHRASE_WORD_COUNT, WORDLIST_SIZE, WORDS,
 };
 
 #[test]
 fn wordlist_has_2048_entries() {
 	// Sanity: the BIP-39 English wordlist is required to be exactly 2048 words.
 	assert_eq!(WORDLIST_SIZE, 2048);
+	assert_eq!(WORDS.len(), 2048);
+}
+
+#[test]
+fn wordlist_is_sorted_for_binary_search() {
+	// is_known_word relies on binary search; the embedded list must be sorted.
+	for pair in WORDS.windows(2) {
+		assert!(pair[0] < pair[1], "wordlist not sorted: {:?} >= {:?}", pair[0], pair[1]);
+	}
+}
+
+#[test]
+fn wordlist_boundary_words_match_spec() {
+	assert_eq!(WORDS[0], "abandon");
+	assert_eq!(WORDS[WORDLIST_SIZE - 1], "zoo");
+}
+
+#[test]
+fn word_at_returns_indexed_entry() {
+	assert_eq!(word_at(0), "abandon");
+	assert_eq!(word_at(WORDLIST_SIZE - 1), "zoo");
 }
 
 #[test]
