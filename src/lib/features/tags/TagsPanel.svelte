@@ -3,7 +3,7 @@
 	import { ArrowDownAZ, ArrowDown01, Filter } from 'lucide-svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import { tagsStore } from './tags.store.svelte';
-	import { buildTagIndex, updateTagSort } from './tags.service';
+	import { scheduleTagIndexRebuild, updateTagSort } from './tags.service';
 	import { filterTagTree } from './tags.logic';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -52,10 +52,13 @@
 
 	// Refetch the tag tree from Rust whenever the `VaultIndex` version
 	// bumps (save, watcher, or remove_note_from_index). Phase 7.5.
+	// `scheduleTagIndexRebuild` debounces 300 ms and serializes
+	// concurrent triggers — a burst of saves no longer produces
+	// overlapping rebuilds of all 3948 tags.
 	$effect(() => {
 		void vaultStore.vaultIndexVersion;
 		untrack(() => {
-			void buildTagIndex();
+			scheduleTagIndexRebuild();
 		});
 	});
 </script>
