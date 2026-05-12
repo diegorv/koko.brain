@@ -17,6 +17,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::sync::protocol::ManifestEntry;
+use crate::sync::shares::{is_excluded_by_user, is_path_exposable, Share};
 
 /// Outcome of comparing a single path across two manifests.
 ///
@@ -118,6 +119,34 @@ fn lww_winner(local: &ManifestEntry, remote: &ManifestEntry) -> Winner {
 /// UUID protects against races between concurrent writers.
 pub const TMP_PREFIX: &str = ".kbsync-tmp-";
 
+/// Defense-in-depth share-level validation for an inbound relative
+/// path. Run BEFORE [`safe_resolve_under_share`] inside every
+/// `apply_inbound_*` so that a trusted-but-misbehaving peer cannot
+/// write into:
+/// - hidden directory segments (`.git/`, `.kokobrain/`, `.env`, …),
+/// - basenames ending in `.encrypted` (encrypted-notes payload format),
+/// - paths the local user marked as excluded on `RootWithExcludes`
+///   shares.
+///
+/// `validate_inbound_path` already catches `..`, NUL, absolute paths,
+/// Windows drive letters, and dot-prefix segments at the filesystem
+/// level. This function adds the *policy* layer on top: the rules the
+/// local user (or the encrypted-notes feature) declared off-limits in
+/// the share config.
+///
+/// Returns [`ApplyError::ForbiddenPath`] for any violation; the input
+/// is otherwise echoed back so callers can chain on the relative path.
+fn validate_inbound_for_share(share: &Share, path_rel: &str) -> Result<(), ApplyError> {
+	let rel = Path::new(path_rel);
+	if !is_path_exposable(rel) {
+		return Err(ApplyError::ForbiddenPath(path_rel.to_string()));
+	}
+	if is_excluded_by_user(share, rel) {
+		return Err(ApplyError::ForbiddenPath(path_rel.to_string()));
+	}
+	Ok(())
+}
+
 /// Errors surfaced by the inbound apply path.
 #[derive(Debug)]
 pub enum ApplyError {
@@ -134,6 +163,11 @@ pub enum ApplyError {
 	/// buffer; this is currently informational only (the
 	/// "don't overwrite open buffer" follow-up TODO).
 	WouldOverwriteOpenBuffer,
+	/// `path_rel` is technically a syntactically valid relative path but
+	/// violates the share-level policy: hidden segment / `.encrypted`
+	/// suffix / user-defined exclusion. The local user already declared
+	/// these paths out-of-bounds, so no trusted peer may push them.
+	ForbiddenPath(String),
 }
 
 impl core::fmt::Display for ApplyError {
@@ -144,6 +178,9 @@ impl core::fmt::Display for ApplyError {
 			Self::OutsideShare(p) => write!(f, "path resolves outside share: {p:?}"),
 			Self::WouldOverwriteOpenBuffer => {
 				write!(f, "would overwrite an open editor buffer")
+			}
+			Self::ForbiddenPath(p) => {
+				write!(f, "path violates share policy (hidden, .encrypted, or excluded): {p:?}")
 			}
 		}
 	}
@@ -392,6 +429,7 @@ pub fn cleanup_orphan_tmp_files(
 ///   push the local version proactively.
 /// - `IgnoredIdempotent` — hashes already match.
 pub fn apply_inbound_update(
+	share: &Share,
 	share_root: &Path,
 	path_rel: &str,
 	new_content: &[u8],
@@ -403,6 +441,7 @@ pub fn apply_inbound_update(
 	peer_short: &str,
 	timestamp_compact: &str,
 ) -> Result<ApplyOutcome, ApplyError> {
+	validate_inbound_for_share(share, path_rel)?;
 	let dest = safe_resolve_under_share(share_root, path_rel)?;
 
 	let local_state = local.cloned().unwrap_or_default();
@@ -439,6 +478,7 @@ pub fn apply_inbound_update(
 /// had divergent content, the local copy is saved as a conflict
 /// sibling so deletion never destroys unique local edits silently.
 pub fn apply_inbound_delete(
+	share: &Share,
 	share_root: &Path,
 	path_rel: &str,
 	delete_mtime_ms: i64,
@@ -448,6 +488,7 @@ pub fn apply_inbound_delete(
 	peer_short: &str,
 	timestamp_compact: &str,
 ) -> Result<ApplyOutcome, ApplyError> {
+	validate_inbound_for_share(share, path_rel)?;
 	let dest = safe_resolve_under_share(share_root, path_rel)?;
 
 	let local_state = local.cloned().unwrap_or_default();
@@ -480,9 +521,11 @@ pub fn apply_inbound_delete(
 /// `IgnoredIdempotent`. When it exists as a file, returns an error so
 /// we don't silently swap kinds.
 pub fn apply_inbound_directory_create(
+	share: &Share,
 	share_root: &Path,
 	path_rel: &str,
 ) -> Result<ApplyOutcome, ApplyError> {
+	validate_inbound_for_share(share, path_rel)?;
 	let dest = safe_resolve_under_share(share_root, path_rel)?;
 	if dest.exists() {
 		if dest.is_dir() {
@@ -501,9 +544,11 @@ pub fn apply_inbound_directory_create(
 /// manifest got out of sync with local state (orphan files) and we
 /// must not destroy unsynced content. Idempotent for missing dirs.
 pub fn apply_inbound_directory_delete(
+	share: &Share,
 	share_root: &Path,
 	path_rel: &str,
 ) -> Result<ApplyOutcome, ApplyError> {
+	validate_inbound_for_share(share, path_rel)?;
 	let dest = safe_resolve_under_share(share_root, path_rel)?;
 	if !dest.exists() {
 		return Ok(ApplyOutcome::IgnoredIdempotent);

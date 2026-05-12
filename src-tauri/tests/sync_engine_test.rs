@@ -1,4 +1,5 @@
 use kokobrain_lib::sync::protocol::{EntryKind, ManifestEntry};
+use kokobrain_lib::sync::shares::{Share, ShareDirection, ShareMode};
 use kokobrain_lib::sync::sync_engine::{
 	apply_inbound_delete, apply_inbound_update, atomic_write, build_conflict_filename,
 	cleanup_orphan_tmp_files, diff_manifests, paginate_manifest, save_conflict_copy,
@@ -6,6 +7,25 @@ use kokobrain_lib::sync::sync_engine::{
 	InboundLocalState, TMP_PREFIX,
 };
 use std::path::PathBuf;
+
+/// Default share used by tests that exercise apply_inbound_* and only
+/// care about the path-validation + LWW behaviour, not share policy.
+/// `RootWithExcludes` mode + empty excludes list = no path is excluded
+/// by user; only the built-in dot-prefix + `.encrypted` hard-deny rules
+/// in `is_path_exposable` apply. Tests that exercise excludes-specific
+/// behaviour construct their own Share with a populated `excludes`.
+fn default_share() -> Share {
+	Share {
+		id: "share-test-default".to_string(),
+		mode: ShareMode::RootWithExcludes,
+		local_path: String::new(),
+		excludes: Vec::new(),
+		allowed_peer_fingerprints: Vec::new(),
+		direction: ShareDirection::Bi,
+		read_only: false,
+		created_at_ms: 0,
+	}
+}
 
 fn entry(path: &str, lamport: u64, mtime_ms: i64, hash: &str) -> ManifestEntry {
 	ManifestEntry {
@@ -456,6 +476,7 @@ fn cleanup_recurses_into_subdirs() {
 fn apply_inbound_creates_new_file() {
 	let tmp = tempfile::tempdir().unwrap();
 	let outcome = apply_inbound_update(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		b"hello",
@@ -484,6 +505,7 @@ fn apply_inbound_idempotent_when_hash_matches() {
 		origin_fp: "MY".to_string(),
 	};
 	let outcome = apply_inbound_update(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		b"new", // ignored — hash matches
@@ -513,6 +535,7 @@ fn apply_inbound_ignores_when_local_wins() {
 		origin_fp: "MY".to_string(),
 	};
 	let outcome = apply_inbound_update(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		b"remote content",
@@ -544,6 +567,7 @@ fn apply_inbound_saves_conflict_when_remote_wins_with_divergence() {
 		origin_fp: "MY".to_string(),
 	};
 	let outcome = apply_inbound_update(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		b"remote winning",
@@ -576,6 +600,7 @@ fn apply_inbound_saves_conflict_when_remote_wins_with_divergence() {
 fn apply_inbound_rejects_bad_path() {
 	let tmp = tempfile::tempdir().unwrap();
 	let err = apply_inbound_update(
+		&default_share(),
 		tmp.path(),
 		"../etc/passwd",
 		b"x",
@@ -592,6 +617,168 @@ fn apply_inbound_rejects_bad_path() {
 }
 
 // ============================================================================
+// Share-policy defense in depth (S1)
+// ============================================================================
+//
+// `validate_inbound_path` already rejects `..`, NUL, absolute paths, and
+// dot-prefix segments. The share-policy layer adds two more rules: no
+// `.encrypted` suffix and no path matching any of the user's `excludes`.
+// Both checks live inside `validate_inbound_for_share` and surface as
+// `ApplyError::ForbiddenPath`. The tests below verify each apply
+// function calls the new layer BEFORE doing any disk I/O.
+
+fn share_with_excludes(prefixes: &[&str]) -> Share {
+	Share {
+		id: "share-test-with-excludes".to_string(),
+		mode: ShareMode::RootWithExcludes,
+		local_path: String::new(),
+		excludes: prefixes.iter().map(|s| (*s).to_string()).collect(),
+		allowed_peer_fingerprints: Vec::new(),
+		direction: ShareDirection::Bi,
+		read_only: false,
+		created_at_ms: 0,
+	}
+}
+
+#[test]
+fn apply_update_rejects_encrypted_suffix() {
+	let tmp = tempfile::tempdir().unwrap();
+	let err = apply_inbound_update(
+		&default_share(),
+		tmp.path(),
+		"notes/secret.md.encrypted",
+		b"x",
+		"h",
+		1,
+		1,
+		"P",
+		None,
+		"P8",
+		"20260101000000",
+	)
+	.unwrap_err();
+	assert!(
+		matches!(err, ApplyError::ForbiddenPath(ref p) if p == "notes/secret.md.encrypted"),
+		"got {err:?}"
+	);
+	// No file should have landed on disk.
+	assert!(!tmp.path().join("notes/secret.md.encrypted").exists());
+}
+
+#[test]
+fn apply_update_rejects_path_under_user_exclude() {
+	let tmp = tempfile::tempdir().unwrap();
+	let share = share_with_excludes(&["private"]);
+	let err = apply_inbound_update(
+		&share,
+		tmp.path(),
+		"private/diary.md",
+		b"x",
+		"h",
+		1,
+		1,
+		"P",
+		None,
+		"P8",
+		"20260101000000",
+	)
+	.unwrap_err();
+	assert!(
+		matches!(err, ApplyError::ForbiddenPath(ref p) if p == "private/diary.md"),
+		"got {err:?}"
+	);
+	assert!(!tmp.path().join("private").exists());
+}
+
+#[test]
+fn apply_update_accepts_path_outside_user_exclude() {
+	// Sibling of an excluded prefix must still apply normally - the
+	// exclusion is strict-prefix, not substring.
+	let tmp = tempfile::tempdir().unwrap();
+	let share = share_with_excludes(&["private"]);
+	let outcome = apply_inbound_update(
+		&share,
+		tmp.path(),
+		"privately-okay.md",
+		b"data",
+		"h",
+		1,
+		1,
+		"P",
+		None,
+		"P8",
+		"20260101000000",
+	)
+	.unwrap();
+	assert!(matches!(outcome, ApplyOutcome::Applied));
+	assert_eq!(
+		std::fs::read(tmp.path().join("privately-okay.md")).unwrap(),
+		b"data"
+	);
+}
+
+#[test]
+fn apply_delete_rejects_encrypted_suffix() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::write(tmp.path().join("blob.md.encrypted"), b"local").unwrap();
+	let local = InboundLocalState {
+		exists: true,
+		hash: "h".to_string(),
+		mtime_ms: 100,
+		lamport: 5,
+		origin_fp: "MY".to_string(),
+	};
+	let err = apply_inbound_delete(
+		&default_share(),
+		tmp.path(),
+		"blob.md.encrypted",
+		200,
+		10,
+		"PEER",
+		Some(&local),
+		"PEER8888",
+		"20260101000000",
+	)
+	.unwrap_err();
+	matches!(err, ApplyError::ForbiddenPath(_));
+	// Local copy stays untouched.
+	assert!(tmp.path().join("blob.md.encrypted").exists());
+}
+
+#[test]
+fn apply_directory_create_rejects_hidden_segment() {
+	let tmp = tempfile::tempdir().unwrap();
+	let err = apply_inbound_directory_create(&default_share(), tmp.path(), ".git").unwrap_err();
+	// Dot-prefix is caught earlier by `validate_inbound_path` so the
+	// returned variant is `InvalidPath`, not `ForbiddenPath`. The point
+	// of this test is that the directory does NOT get created.
+	matches!(err, ApplyError::InvalidPath(_) | ApplyError::ForbiddenPath(_));
+	assert!(!tmp.path().join(".git").exists());
+}
+
+#[test]
+fn apply_directory_create_rejects_path_under_user_exclude() {
+	let tmp = tempfile::tempdir().unwrap();
+	let share = share_with_excludes(&["scratch"]);
+	let err =
+		apply_inbound_directory_create(&share, tmp.path(), "scratch/inbox").unwrap_err();
+	matches!(err, ApplyError::ForbiddenPath(_));
+	assert!(!tmp.path().join("scratch").exists());
+}
+
+#[test]
+fn apply_directory_delete_rejects_path_under_user_exclude() {
+	let tmp = tempfile::tempdir().unwrap();
+	std::fs::create_dir_all(tmp.path().join("scratch/inbox")).unwrap();
+	let share = share_with_excludes(&["scratch"]);
+	let err =
+		apply_inbound_directory_delete(&share, tmp.path(), "scratch/inbox").unwrap_err();
+	matches!(err, ApplyError::ForbiddenPath(_));
+	// Local directory must still be there.
+	assert!(tmp.path().join("scratch/inbox").exists());
+}
+
+// ============================================================================
 // apply_inbound_delete
 // ============================================================================
 
@@ -599,6 +786,7 @@ fn apply_inbound_rejects_bad_path() {
 fn apply_delete_noop_when_local_missing() {
 	let tmp = tempfile::tempdir().unwrap();
 	let outcome = apply_inbound_delete(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		200,
@@ -624,6 +812,7 @@ fn apply_delete_ignores_when_local_wins() {
 		origin_fp: "MY".to_string(),
 	};
 	let outcome = apply_inbound_delete(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		100,
@@ -653,6 +842,7 @@ fn apply_delete_saves_conflict_when_remote_wins() {
 		origin_fp: "MY".to_string(),
 	};
 	let outcome = apply_inbound_delete(
+		&default_share(),
 		tmp.path(),
 		"note.md",
 		200,
@@ -688,7 +878,7 @@ use kokobrain_lib::sync::sync_engine::{
 #[test]
 fn directory_create_makes_new_dir() {
 	let tmp = tempfile::tempdir().unwrap();
-	let outcome = apply_inbound_directory_create(tmp.path(), "Projects/empty-dir").unwrap();
+	let outcome = apply_inbound_directory_create(&default_share(), tmp.path(), "Projects/empty-dir").unwrap();
 	assert!(matches!(outcome, ApplyOutcome::Applied));
 	assert!(tmp.path().join("Projects/empty-dir").is_dir());
 }
@@ -697,7 +887,7 @@ fn directory_create_makes_new_dir() {
 fn directory_create_is_idempotent_for_existing_dir() {
 	let tmp = tempfile::tempdir().unwrap();
 	std::fs::create_dir_all(tmp.path().join("Projects/empty-dir")).unwrap();
-	let outcome = apply_inbound_directory_create(tmp.path(), "Projects/empty-dir").unwrap();
+	let outcome = apply_inbound_directory_create(&default_share(), tmp.path(), "Projects/empty-dir").unwrap();
 	assert!(matches!(outcome, ApplyOutcome::IgnoredIdempotent));
 }
 
@@ -706,7 +896,7 @@ fn directory_create_refuses_to_clobber_a_file() {
 	let tmp = tempfile::tempdir().unwrap();
 	std::fs::create_dir_all(tmp.path().join("Projects")).unwrap();
 	std::fs::write(tmp.path().join("Projects/conflict"), b"file").unwrap();
-	let err = apply_inbound_directory_create(tmp.path(), "Projects/conflict").unwrap_err();
+	let err = apply_inbound_directory_create(&default_share(), tmp.path(), "Projects/conflict").unwrap_err();
 	matches!(err, ApplyError::InvalidPath(_));
 }
 
@@ -714,7 +904,7 @@ fn directory_create_refuses_to_clobber_a_file() {
 fn directory_delete_removes_empty_dir() {
 	let tmp = tempfile::tempdir().unwrap();
 	std::fs::create_dir_all(tmp.path().join("Projects/empty-dir")).unwrap();
-	let outcome = apply_inbound_directory_delete(tmp.path(), "Projects/empty-dir").unwrap();
+	let outcome = apply_inbound_directory_delete(&default_share(), tmp.path(), "Projects/empty-dir").unwrap();
 	assert!(matches!(outcome, ApplyOutcome::Applied));
 	assert!(!tmp.path().join("Projects/empty-dir").exists());
 }
@@ -722,7 +912,7 @@ fn directory_delete_removes_empty_dir() {
 #[test]
 fn directory_delete_is_idempotent_for_missing_dir() {
 	let tmp = tempfile::tempdir().unwrap();
-	let outcome = apply_inbound_directory_delete(tmp.path(), "Projects/empty-dir").unwrap();
+	let outcome = apply_inbound_directory_delete(&default_share(), tmp.path(), "Projects/empty-dir").unwrap();
 	assert!(matches!(outcome, ApplyOutcome::IgnoredIdempotent));
 }
 
@@ -733,7 +923,7 @@ fn directory_delete_refuses_non_empty_dir() {
 	let tmp = tempfile::tempdir().unwrap();
 	std::fs::create_dir_all(tmp.path().join("Projects/has-stuff")).unwrap();
 	std::fs::write(tmp.path().join("Projects/has-stuff/note.md"), b"x").unwrap();
-	let outcome = apply_inbound_directory_delete(tmp.path(), "Projects/has-stuff").unwrap();
+	let outcome = apply_inbound_directory_delete(&default_share(), tmp.path(), "Projects/has-stuff").unwrap();
 	assert!(matches!(outcome, ApplyOutcome::IgnoredLocalWins));
 	assert!(tmp.path().join("Projects/has-stuff/note.md").exists());
 }
@@ -742,7 +932,7 @@ fn directory_delete_refuses_non_empty_dir() {
 fn directory_delete_rejects_when_path_is_file() {
 	let tmp = tempfile::tempdir().unwrap();
 	std::fs::write(tmp.path().join("note.md"), b"file").unwrap();
-	let err = apply_inbound_directory_delete(tmp.path(), "note.md").unwrap_err();
+	let err = apply_inbound_directory_delete(&default_share(), tmp.path(), "note.md").unwrap_err();
 	matches!(err, ApplyError::InvalidPath(_));
 }
 
