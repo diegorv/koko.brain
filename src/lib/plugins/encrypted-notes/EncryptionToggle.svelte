@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { LockOpen, Lock } from 'lucide-svelte';
+	import LockOpen from 'lucide-svelte/icons/lock-open';
+	import Lock from 'lucide-svelte/icons/lock';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { isVirtualTab } from '$lib/core/editor/editor.logic';

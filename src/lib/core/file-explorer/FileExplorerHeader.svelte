@@ -2,7 +2,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { FilePlus, FolderPlus, ChevronsDownUp, ArrowDownAZ, ArrowDownWideNarrow } from 'lucide-svelte';
+	import FilePlus from 'lucide-svelte/icons/file-plus';
+	import FolderPlus from 'lucide-svelte/icons/folder-plus';
+	import ChevronsDownUp from 'lucide-svelte/icons/chevrons-down-up';
+	import ArrowDownAZ from 'lucide-svelte/icons/arrow-down-az';
+	import ArrowDownWideNarrow from 'lucide-svelte/icons/arrow-down-wide-narrow';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { changeSortOption } from '$lib/core/filesystem/fs.service';

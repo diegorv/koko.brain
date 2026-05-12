@@ -2,7 +2,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
-	import { FolderOpen, Clock } from 'lucide-svelte';
+	import FolderOpen from 'lucide-svelte/icons/folder-open';
+	import Clock from 'lucide-svelte/icons/clock';
 
 	async function handleOpenVault() {
 		await openVaultDialog();

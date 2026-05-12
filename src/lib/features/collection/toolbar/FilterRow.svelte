@@ -8,7 +8,8 @@
 		DropdownMenuSeparator,
 		DropdownMenuLabel,
 	} from '$lib/components/ui/dropdown-menu';
-	import { X, ChevronDown } from 'lucide-svelte';
+	import X from 'lucide-svelte/icons/x';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
 	import type { FilterRow as FilterRowType, FilterOperator } from './toolbar.types';
 	import { OPERATOR_LABELS } from './toolbar.types';
 	import { getOperatorsForType, inferPropertyType } from './filter.logic';

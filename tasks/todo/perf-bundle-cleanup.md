@@ -4,8 +4,8 @@ Reduce client bundle and remove ~200 vite externalization warnings caused by `un
 
 ## Tasks
 
-- [ ] Task 1: Replace `isomorphic-dompurify` with `dompurify` (4 import sites). Removes jsdom + undici from dep graph. Same `DOMPurify.sanitize` API.
-- [ ] Task 2: Convert all `from 'lucide-svelte'` barrel imports to per-icon paths (`lucide-svelte/icons/<name>`). 47 files. Cuts ~2 MB initial chunk.
+- [x] Task 1: Replace `isomorphic-dompurify` with `dompurify` (4 import sites). Removes jsdom + undici from dep graph. Same `DOMPurify.sanitize` API.
+- [x] Task 2: Convert all `from 'lucide-svelte'` barrel imports to per-icon paths (`lucide-svelte/icons/<name>`). 47 files. Cuts ~2 MB initial chunk.
 - [ ] Task 3: Convert 3 dynamic `editor.service` imports to static (`fs.service.ts:171`, `meta-bind-button-widget.ts:119`, `wikilink-navigation.ts:19`). Run `pnpm madge --circular` first to confirm no cycles.
 - [ ] Task 4: Investigate why FontAwesome 929 KB chunk lands in initial graph despite dynamic `await import()` in `file-icons.icon-data.ts`. Read-only.
 - [ ] Task 5: Based on Task 4 finding, lazy-load icon packs so they only load when picker opens.

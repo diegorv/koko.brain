@@ -6,7 +6,10 @@
 		DropdownMenuContent,
 		DropdownMenuItem,
 	} from '$lib/components/ui/dropdown-menu';
-	import { GripVertical, X, Plus, ChevronDown } from 'lucide-svelte';
+	import GripVertical from 'lucide-svelte/icons/grip-vertical';
+	import X from 'lucide-svelte/icons/x';
+	import Plus from 'lucide-svelte/icons/plus';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
 	import type { SortDef, PropertyConfig, NoteRecord } from '../collection.types';
 	import { inferPropertyType } from './filter.logic';
 	import {
