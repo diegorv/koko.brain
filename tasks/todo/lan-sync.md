@@ -14,7 +14,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 6: Transport crypto core (X25519 ECDH + HKDF-SHA256 + AES-256-GCM streaming + nonce counter + replay detection + transcript binding + Ed25519 verify). TCP listener/keepalive/reconnect ficam para um próximo commit isolado do networking I/O assíncrono.
 - [x] Task 7: Discovery helpers — RFC1918 filter (IPv4 + IPv6), TXT record parsing/validation, AnnounceConfig + build_announce_txt round-trip. Live mDNS announce/browse handles ficam para a Task 15 (Tauri commands) onde rodam em ambiente real.
 - [x] Task 8: Pairing (SPAKE2 com Diceware secret) + peers.json trust store. Encriptação em repouso do peers.json fica para follow-up (atualmente plain JSON; transcript-signed key exchange já está em sync/transport.rs::finalize_handshake).
-- [ ] Task 9: State DB (SQLite schema) + manifest paginado + diff engine
+- [x] Task 9: State DB (SQLite schema: share_state, file_state, tombstones) + manifest paginado + diff engine (LWW por Lamport/mtime/fingerprint)
 - [ ] Task 10: Conflict resolution (LWW por Lamport+mtime) + Lamport clock + atomic writes (tmp+fsync+rename)
 - [ ] Task 11: Empty directories sync (ManifestEntry com kind file|directory)
 - [ ] Task 12: Rename detection (correlação delete+create por hash em janela 200ms)

@@ -9,5 +9,7 @@ pub mod identity;
 pub mod pairing;
 pub mod protocol;
 pub mod shares;
+pub mod state_db;
+pub mod sync_engine;
 pub mod transport;
 pub mod wordlist;
