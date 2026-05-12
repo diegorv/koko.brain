@@ -1,5 +1,5 @@
 name: "Setup Environment"
-description: "Setup pnpm, Node.js, Rust, and dependency caching"
+description: "Setup pnpm, Node.js, Rust, sccache, and dependency caching"
 
 inputs:
   rust:
@@ -50,6 +50,22 @@ runs:
       uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ inputs.rust-targets }}
+
+    # `.cargo/config.toml` at the repo root sets `rustc-wrapper = "sccache"`.
+    # Without sccache on PATH, every cargo invocation on CI errors out with
+    # "Could not find sccache in PATH". This step installs the binary AND
+    # configures the GitHub Actions cache as the storage backend
+    # (`SCCACHE_GHA_ENABLED=true`), so cache hits carry across jobs and
+    # PRs - complementary to Swatinem/rust-cache below, which caches the
+    # `target/` directory at a different layer (artifacts) vs. sccache
+    # (rustc invocations).
+    #
+    # Pinned by commit SHA per the same security pattern as the other
+    # third-party actions in this file. Dependabot bumps via the trailing
+    # `# v0.0.10` tag comment.
+    - name: Setup sccache
+      if: inputs.rust == 'true'
+      uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'

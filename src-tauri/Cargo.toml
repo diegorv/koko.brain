@@ -85,6 +85,18 @@ strip = true
 # Single codegen unit for best optimization in release
 codegen-units = 1
 
+# Local "did it still compile / does it still work" release profile.
+# Inherits from `release` but trades the LTO link and the single-CGU
+# rebuild for parallel codegen and a much faster relink. Use via
+# `cargo build --profile release-fast` or `pnpm tauri:build:fast`.
+# Do NOT use for shipped builds - the binary is bigger and slightly
+# less optimized; that's what `release` is for.
+[profile.release-fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+strip = false
+
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

@@ -1,0 +1,21 @@
+# Cargo config scoped to the src-tauri crate.
+#
+# `rustc-wrapper = "sccache"` makes Cargo pipe every rustc invocation through
+# sccache (https://github.com/mozilla/sccache), which caches compiled artifacts
+# keyed on the rustc command line + input hash. The first build of a given
+# (toolchain, dep, source) triple still pays full price; subsequent builds -
+# including from a clean target dir, after a `cargo clean`, or after switching
+# branches - hit the cache and skip rustc entirely.
+#
+# Requires sccache on PATH. Install with:
+#   brew install sccache    # macOS
+#   cargo install sccache   # any platform
+#
+# To inspect cache effectiveness during a build:
+#   sccache --show-stats
+#
+# To temporarily disable sccache without editing this file (e.g. when
+# debugging a build error you suspect is being masked by a cache hit):
+#   CARGO_BUILD_RUSTC_WRAPPER= cargo build
+[build]
+rustc-wrapper = "sccache"
