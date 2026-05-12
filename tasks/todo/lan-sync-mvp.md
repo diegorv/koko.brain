@@ -10,7 +10,7 @@ Smallest end-to-end useful slice of LAN sync: see peers on the LAN, pair with on
 - [x] Stage 3 (P1C-1F): Frontend types + reactive store
 - [x] Stage 4: Typed event payloads (Rust)
 - [x] Stage 5: mDNS announce + browse + first 6 commands
-- [ ] Stage 6: Noise XX transport with pinned-key mutual auth
+- [x] Stage 6: Noise XX transport with pinned-key mutual auth
 - [ ] Stage 7: One-shot folder push with atomic apply + traversal defense
 - [ ] Stage 8: Pairing + push commands wired
 - [x] Stage 3F-2 (P1C-2F): Frontend service layer with mockable transport
