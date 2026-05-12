@@ -17,7 +17,7 @@ Full plan: `/root/.claude/plans/personal-rag-for-clever-crab.md`.
 - [x] Task 7: `rag_chat` command — spawns task, emits `rag-chat-sources`, `rag-chat-token`, `rag-chat-done`, `rag-chat-error`.
 - [x] Task 8: Editor scroll-to-line — add `pendingScrollLine` to editor store; extend `MarkdownEditor.svelte:344` effect; extend `openFileInEditor(path, line?)`.
 - [x] Task 9: Frontend chat panel — `rag.store.svelte.ts` + `rag.service.ts` + `RagChatPanel.svelte`. Mount in `AppShell.svelte` right sidebar. Settings toggle `ragChatVisible`.
-- [ ] Task 10: Reranker status component — `RerankerStatus.svelte` next to `SemanticIndexStatus.svelte`. Shows download UI when missing.
+- [x] Task 10: Reranker status component — `RerankerStatus.svelte` next to `SemanticIndexStatus.svelte`. Shows download UI when missing.
 
 ## Notes
 

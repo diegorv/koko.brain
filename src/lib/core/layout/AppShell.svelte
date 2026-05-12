@@ -24,6 +24,7 @@
 	import SearchStatus from '$lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '$lib/core/status-bar/SemanticIndexStatus.svelte';
+	import RerankerStatus from '$lib/features/rag/RerankerStatus.svelte';
 	import { saveSettings } from '$lib/core/settings/settings.service';
 	import { debounce } from '$lib/utils/debounce';
 	import { error } from '$lib/utils/debug';
@@ -153,6 +154,7 @@
 			{#snippet right()}
 				<SaveStatus />
 				<SemanticIndexStatus />
+				<RerankerStatus />
 				<EncryptionToggle />
 				<WordCount />
 			{/snippet}
