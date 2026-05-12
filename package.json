@@ -1,6 +1,6 @@
 {
   "name": "kokobrain",
-  "version": "2.0.15-alpha",
+  "version": "2.0.16-alpha",
   "description": "",
   "type": "module",
   "packageManager": "pnpm@10.30.3",
