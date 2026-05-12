@@ -151,6 +151,32 @@ pub fn init_schema(conn: &Connection) -> Result<(), StateDbError> {
 			origin_fingerprint TEXT NOT NULL,
 			PRIMARY KEY(share_id, path_rel)
 		);
+
+		CREATE TABLE IF NOT EXISTS auth_events (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			timestamp_ms INTEGER NOT NULL,
+			identifier TEXT NOT NULL,
+			peer_fingerprint TEXT,
+			remote_addr TEXT NOT NULL,
+			outcome TEXT NOT NULL CHECK(outcome IN ('success','failure')),
+			handshake_phase TEXT NOT NULL,
+			failure_reason TEXT,
+			detail TEXT
+		);
+		CREATE INDEX IF NOT EXISTS idx_auth_events_identifier_time
+			ON auth_events(identifier, timestamp_ms);
+		CREATE INDEX IF NOT EXISTS idx_auth_events_timestamp
+			ON auth_events(timestamp_ms);
+
+		CREATE TABLE IF NOT EXISTS auth_blocks (
+			identifier TEXT PRIMARY KEY,
+			blocked_at_ms INTEGER NOT NULL,
+			blocked_until_ms INTEGER NOT NULL,
+			trigger_reason TEXT NOT NULL,
+			failure_count_in_window INTEGER NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS idx_auth_blocks_until
+			ON auth_blocks(blocked_until_ms);
 		",
 	)?;
 	// Initialise schema version on first run.
