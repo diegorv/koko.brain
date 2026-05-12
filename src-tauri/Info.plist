@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Custom Info.plist entries that Tauri merges into the auto-generated
+		bundle. LAN sync needs these on macOS 14 Sonoma+ where the Local
+		Network Privacy alert gates mDNS announce/browse and TCP socket
+		operations on private network addresses.
+	-->
+
+	<!-- Shown by the OS when the app first asks to use the LAN. Keep
+	     short and specific — long explanations get truncated. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Kokobrain LAN Sync discovers and connects to other Kokobrain vaults on your local network so you can sync notes between your devices without using the cloud.</string>
+
+	<!-- Required from macOS 14 Sonoma onward: the OS will not allow
+	     mDNS announce/browse for a service type that is not listed here.
+	     The service type matches the constant
+	     `SERVICE_TYPE` in `sync/discovery.rs`. -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_kokobrain-sync._tcp</string>
+	</array>
+</dict>
+</plist>

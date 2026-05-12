@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Entitlements applied when the app is code-signed for distribution.
+		LAN sync needs both client + server network entitlements because
+		each peer simultaneously connects to and accepts connections from
+		the other.
+
+		These are no-ops in `pnpm tauri dev` (Hardened Runtime applies
+		only to release builds). For ad-hoc local testing on macOS the
+		network alert still fires from `NSLocalNetworkUsageDescription`.
+	-->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.network.server</key>
+	<true/>
+</dict>
+</plist>
