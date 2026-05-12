@@ -6,7 +6,7 @@ import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { debounce } from '$lib/utils/debounce';
 import { debug, error, logProcessMemory, perfStart, perfEnd, setTauriDebugMode, stopTauriDebugListener } from '$lib/utils/debug';
-import { initLogSession, teardownLogSession } from '$lib/utils/log.service';
+import { initLogSession, teardownLogSession, startHeartbeat } from '$lib/utils/log.service';
 import {
 	startWatching,
 	stopWatching,
@@ -130,6 +130,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		debug('LIFECYCLE', 'Log-to-file enabled — initializing log session');
 		try {
 			await initLogSession();
+			if (settingsStore.debugHeartbeat) {
+				startHeartbeat();
+			}
 		} catch (err) {
 			error('LIFECYCLE', 'Failed to initialize log session:', err);
 		}

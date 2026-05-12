@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Switch } from '$lib/components/ui/switch';
 	import { setTauriDebugMode } from '$lib/utils/debug';
-	import { initLogSession, teardownLogSession, openLogDir } from '$lib/utils/log.service';
+	import { initLogSession, teardownLogSession, openLogDir, startHeartbeat, stopHeartbeat, isLogSessionActive } from '$lib/utils/log.service';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
@@ -53,9 +53,29 @@
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugLogToFile(v);
 				if (v) {
-					initLogSession();
+					initLogSession().then(() => {
+						if (settingsStore.debugHeartbeat) startHeartbeat();
+					});
 				} else if (!settingsStore.debugTauriLogToFile) {
 					teardownLogSession();
+				}
+				onchange();
+			}}
+		/>
+	</SettingItem>
+
+	<SettingItem
+		label="Heartbeat ([HB] alive every 250 ms)"
+		description="Emit a heartbeat tick so gaps in the log pinpoint UI freezes. Off by default — only enable when investigating a stall (requires log to file)"
+	>
+		<Switch
+			checked={settingsStore.debugHeartbeat}
+			onCheckedChange={(v) => {
+				settingsStore.updateDebugHeartbeat(v);
+				if (v && isLogSessionActive()) {
+					startHeartbeat();
+				} else if (!v) {
+					stopHeartbeat();
 				}
 				onchange();
 			}}
@@ -130,7 +150,9 @@
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugTauriLogToFile(v);
 				if (v) {
-					initLogSession();
+					initLogSession().then(() => {
+						if (settingsStore.debugHeartbeat) startHeartbeat();
+					});
 				} else if (!settingsStore.debugLogToFile) {
 					teardownLogSession();
 				}

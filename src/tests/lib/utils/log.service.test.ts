@@ -224,7 +224,7 @@ describe('log.service', () => {
 	});
 
 	describe('heartbeat', () => {
-		it('initLogSession auto-starts heartbeat which writes [HB] alive every 250ms', async () => {
+		it('initLogSession does NOT auto-start the heartbeat (opt-in via settings.debugHeartbeat)', async () => {
 			vi.useFakeTimers();
 			try {
 				mockExists.mockResolvedValue(true);
@@ -233,16 +233,38 @@ describe('log.service', () => {
 				await initLogSession();
 				expect(isLogSessionActive()).toBe(true);
 
-				// Pre-tick: no HB writes yet (interval has not fired).
-				const callsBefore = mockWriteTextFile.mock.calls.length;
+				// Advance plenty of time — heartbeat should NOT fire without an
+				// explicit startHeartbeat() call (the lifecycle wires this to
+				// settings.debugHeartbeat at boot, and the troubleshooting
+				// section toggles it live).
+				vi.advanceTimersByTime(2000);
+				await flushLog();
 
-				// Advance two ticks; expect TWO HB writes scheduled.
+				const hbWrites = mockWriteTextFile.mock.calls.filter(
+					(call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'),
+				);
+				expect(hbWrites).toHaveLength(0);
+			} finally {
+				vi.useRealTimers();
+				teardownLogSession();
+			}
+		});
+
+		it('startHeartbeat after initLogSession ticks every 250 ms', async () => {
+			vi.useFakeTimers();
+			try {
+				mockExists.mockResolvedValue(true);
+				mockWriteTextFile.mockResolvedValue(undefined);
+
+				await initLogSession();
+				startHeartbeat();
+
 				vi.advanceTimersByTime(500);
 				await flushLog();
 
-				const hbWrites = mockWriteTextFile.mock.calls
-					.slice(callsBefore)
-					.filter((call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'));
+				const hbWrites = mockWriteTextFile.mock.calls.filter(
+					(call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'),
+				);
 				expect(hbWrites.length).toBeGreaterThanOrEqual(2);
 				expect(hbWrites[0][1]).toMatch(/\[HB\] alive/);
 			} finally {
@@ -258,6 +280,7 @@ describe('log.service', () => {
 				mockWriteTextFile.mockResolvedValue(undefined);
 
 				await initLogSession();
+				startHeartbeat();
 				vi.advanceTimersByTime(500);
 				await flushLog();
 				const callsAtTeardown = mockWriteTextFile.mock.calls.length;
@@ -281,8 +304,8 @@ describe('log.service', () => {
 				mockWriteTextFile.mockResolvedValue(undefined);
 
 				await initLogSession();
-				// initLogSession already started one heartbeat. A second start must
-				// be a no-op (else we'd see two writes per tick).
+				startHeartbeat();
+				// Second call must be a no-op (else we'd see two writes per tick).
 				startHeartbeat();
 				vi.advanceTimersByTime(250);
 				await flushLog();

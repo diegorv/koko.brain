@@ -36,7 +36,9 @@ async function getLogDir(): Promise<string> {
 /**
  * Initializes a log session by creating the logs directory and setting the active log file path.
  * Logs are stored in the system log directory (~/Library/Logs/<bundle-id>/ on macOS).
- * If a session is already active, this is a no-op.
+ * If a session is already active, this is a no-op. Does NOT start the heartbeat — call
+ * `startHeartbeat()` separately when `settings.debugHeartbeat` is on (heartbeat is opt-in
+ * because it produces a 4 Hz line firehose that dwarfs real signal in steady-state logs).
  */
 export async function initLogSession(): Promise<void> {
 	if (activeLogPath) return;
@@ -49,7 +51,6 @@ export async function initLogSession(): Promise<void> {
 		}
 		const filename = `${formatTimestamp(new Date())}.log`;
 		activeLogPath = `${logsDir}/${filename}`;
-		startHeartbeat();
 	} catch (err) {
 		console.error('Failed to init log session:', err);
 	}
