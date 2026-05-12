@@ -5,5 +5,6 @@
 //! incremental implementation plan.
 
 pub mod identity;
+pub mod protocol;
 pub mod shares;
 pub mod wordlist;

@@ -10,7 +10,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 2: Wordlist BIP-39 + módulo Diceware (7 palavras, ~77 bits) com geração, normalização e validação
 - [x] Task 3: Identity module (Ed25519 + Keychain abstraído via KeyStorage trait) com fingerprint format e persistência
 - [x] Task 4: Shares config com 2 modos (subfolder, root-with-excludes) + hard-deny rules + camada 1 da path traversal defense (camadas 2-3 ficam para tasks transport/engine)
-- [ ] Task 5: Wire protocol structs (HandshakeMsg, AppMsg) + version negotiation + directory entries
+- [x] Task 5: Wire protocol structs (HandshakeMsg, AppMsg) + version negotiation + directory entries + base64 helpers
 - [ ] Task 6: Transport layer (TCP + LengthDelimitedCodec + handshake X25519 + AES-256-GCM streaming + keepalive Ping/Pong + idle timeout + reconnect backoff)
 - [ ] Task 7: Discovery (mDNS-SD opt-in + RFC1918 filter + IPv6 link-local)
 - [ ] Task 8: Pairing (SPAKE2 com Diceware secret + signed transcript binding + peers.json criptografado)
