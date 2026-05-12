@@ -51,6 +51,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		outgoingLinksVisible: true,
 		tagsVisible: true,
 		tableOfContentsVisible: true,
+		ragChatVisible: false,
 		terminalVisible: false,
 		leftPaneSize: 25,
 		rightSidebarSize: 25,

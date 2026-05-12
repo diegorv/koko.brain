@@ -16,6 +16,7 @@
 	import SearchPanel from '$lib/features/search/SearchPanel.svelte';
 	import CalendarPanel from '$lib/plugins/calendar/CalendarPanel.svelte';
 	import TableOfContentsPanel from '$lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
+	import RagChatPanel from '$lib/features/rag/RagChatPanel.svelte';
 	import StatusBar from '$lib/core/status-bar/StatusBar.svelte';
 	import WordCount from '$lib/plugins/word-count/WordCount.svelte';
 	import EncryptionToggle from '$lib/plugins/encrypted-notes/EncryptionToggle.svelte';
@@ -120,6 +121,9 @@
 									{/if}
 									{#if settingsStore.layout.tableOfContentsVisible}
 										<TableOfContentsPanel />
+									{/if}
+									{#if settingsStore.layout.ragChatVisible}
+										<RagChatPanel />
 									{/if}
 								</ScrollArea>
 							</div>

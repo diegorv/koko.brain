@@ -84,6 +84,16 @@
 		/>
 	</SettingItem>
 
+	<SettingItem label="RAG Chat" description="Show the personal-RAG chat panel in the right sidebar">
+		<Switch
+			checked={settingsStore.layout.ragChatVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ ragChatVisible: v });
+				onchange();
+			}}
+		/>
+	</SettingItem>
+
 	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Other</h3>
 
 	<SettingItem

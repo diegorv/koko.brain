@@ -58,6 +58,8 @@ export interface LayoutSettings {
 	tagsVisible: boolean;
 	/** Whether the table of contents panel is shown in the right sidebar */
 	tableOfContentsVisible: boolean;
+	/** Whether the personal RAG chat panel is shown in the right sidebar */
+	ragChatVisible: boolean;
 	/** Whether the terminal sidebar pane is visible */
 	terminalVisible: boolean;
 	/** Saved width percentage of the left sidebar pane (file explorer / search) */
