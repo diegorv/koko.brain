@@ -25,6 +25,8 @@ impl Default for ChunkOptions {
 /// A raw section before post-processing (merge short, add overlap).
 struct RawSection {
 	heading: Option<String>,
+	/// Ancestor headings (H1 → ... → H(n-1)) above this section's local heading.
+	parent_headings: Vec<String>,
 	lines: Vec<String>,
 	line_start: usize,
 	line_end: usize,
@@ -70,6 +72,7 @@ pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<
 			path,
 			&text,
 			&section.heading,
+			&section.parent_headings,
 			section.line_start,
 			section.line_end,
 			options,
@@ -83,24 +86,37 @@ pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<
 }
 
 /// Splits lines into sections at heading boundaries.
+///
+/// Tracks a heading-level stack so each section captures its ancestor headings.
+/// Stack invariant: `heading_stack[i]` holds the most recent heading at level `i+1`.
+/// When we encounter a heading of level L, we truncate to length L-1 (drop deeper or
+/// sibling headings) and the parents become `heading_stack[0..L-1]`.
 fn split_into_sections(lines: &[&str], start_line: usize) -> Vec<RawSection> {
 	let mut sections = Vec::new();
 	let mut current_heading: Option<String> = None;
+	let mut current_parents: Vec<String> = Vec::new();
+	let mut heading_stack: Vec<String> = Vec::new();
 	let mut current_lines: Vec<String> = Vec::new();
 	let mut chunk_start_line = start_line + 1; // 1-indexed
 
 	for i in start_line..lines.len() {
 		let line = lines[i];
-		if is_heading(line) {
+		if let Some(level) = heading_level(line) {
 			if !current_lines.is_empty() {
 				sections.push(RawSection {
 					heading: current_heading.clone(),
+					parent_headings: current_parents.clone(),
 					lines: current_lines,
 					line_start: chunk_start_line,
 					line_end: i,
 				});
 			}
-			current_heading = Some(extract_heading_text(line));
+			// Drop any heading at or below the new heading's level; ancestors stay.
+			let text = extract_heading_text(line);
+			heading_stack.truncate(level.saturating_sub(1));
+			current_parents = heading_stack.clone();
+			heading_stack.push(text.clone());
+			current_heading = Some(text);
 			current_lines = vec![line.to_string()];
 			chunk_start_line = i + 1; // 1-indexed
 		} else {
@@ -111,6 +127,7 @@ fn split_into_sections(lines: &[&str], start_line: usize) -> Vec<RawSection> {
 	if !current_lines.is_empty() {
 		sections.push(RawSection {
 			heading: current_heading,
+			parent_headings: current_parents,
 			lines: current_lines,
 			line_start: chunk_start_line,
 			line_end: lines.len(),
@@ -166,6 +183,7 @@ fn emit_chunk(
 	path: &str,
 	text: &str,
 	heading: &Option<String>,
+	parent_headings: &[String],
 	line_start: usize,
 	line_end: usize,
 	options: &ChunkOptions,
@@ -189,7 +207,20 @@ fn emit_chunk(
 		trimmed
 	};
 
-	let content_hash = hash_content(content);
+	// Hash the embed-text projection (parent_headings + heading + content), not the
+	// raw content alone. Any rename in the heading tree above this chunk changes
+	// what the embedder sees and must invalidate the stored embedding.
+	let hash_input = if parent_headings.is_empty() && heading.is_none() {
+		content.to_string()
+	} else {
+		let mut prefix: Vec<String> = parent_headings.to_vec();
+		if let Some(h) = heading {
+			prefix.push(h.clone());
+		}
+		format!("{}\n\n{}", prefix.join(" > "), content)
+	};
+	let content_hash = hash_content(&hash_input);
+
 	let heading_slug = heading
 		.as_ref()
 		.map(|h| h.to_lowercase().replace(' ', "-"))
@@ -201,6 +232,7 @@ fn emit_chunk(
 		source_path: path.to_string(),
 		content: content.to_string(),
 		heading: heading.clone(),
+		parent_headings: parent_headings.to_vec(),
 		line_start,
 		line_end,
 		content_hash,
@@ -224,16 +256,20 @@ fn skip_frontmatter(lines: &[&str]) -> usize {
 	0
 }
 
-/// Checks if a line is a markdown heading (# through ######).
-fn is_heading(line: &str) -> bool {
+/// Returns the heading level (1-6) for a markdown heading line, or `None` if
+/// the line is not a heading. Used by `split_into_sections` to maintain the
+/// parent-heading stack.
+fn heading_level(line: &str) -> Option<usize> {
 	let trimmed = line.trim_start();
 	if !trimmed.starts_with('#') {
-		return false;
+		return None;
 	}
 	let hash_count = trimmed.chars().take_while(|c| *c == '#').count();
-	hash_count >= 1
-		&& hash_count <= 6
-		&& trimmed.chars().nth(hash_count) == Some(' ')
+	if (1..=6).contains(&hash_count) && trimmed.chars().nth(hash_count) == Some(' ') {
+		Some(hash_count)
+	} else {
+		None
+	}
 }
 
 /// Extracts the heading text without the `#` prefix.
@@ -300,6 +336,90 @@ mod tests {
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(chunks.is_empty());
+	}
+
+	#[test]
+	fn parent_headings_track_h1_h2_h3() {
+		// Section under "Practical applications" should carry parents [Stoicism, Practical applications].
+		let content = "# Stoicism\n\n## Practical applications\n\nIntro paragraph here.\n\n### Daily journaling\n\nWrite about the day, name a fear, identify a virtue.\n";
+		let options = ChunkOptions {
+			min_chunk_chars: 1,
+			max_chunk_chars: 10_000,
+			overlap_lines: 0,
+		};
+		let chunks = chunk_markdown("test.md", content, &options);
+		assert!(!chunks.is_empty(), "expected non-empty chunks");
+
+		// Find the H3 chunk
+		let h3 = chunks
+			.iter()
+			.find(|c| c.heading.as_deref() == Some("Daily journaling"))
+			.expect("missing Daily journaling chunk");
+		assert_eq!(
+			h3.parent_headings,
+			vec!["Stoicism".to_string(), "Practical applications".to_string()]
+		);
+
+		// And the H1 chunk has no parents
+		let h1 = chunks
+			.iter()
+			.find(|c| c.heading.as_deref() == Some("Stoicism"))
+			.expect("missing Stoicism chunk");
+		assert!(h1.parent_headings.is_empty());
+	}
+
+	#[test]
+	fn parent_headings_drop_siblings_at_same_level() {
+		// Going from "## A" to "## B" should drop A; B's parents = [H1].
+		// Bodies large enough to clear `min_chunk_chars` so neither section is merged.
+		let body = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt.";
+		let content = format!(
+			"# Root\n\n## Section A\n\n{}\n\n## Section B\n\n{}\n",
+			body, body
+		);
+		let options = ChunkOptions::default();
+		let chunks = chunk_markdown("test.md", &content, &options);
+
+		let b = chunks
+			.iter()
+			.find(|c| c.heading.as_deref() == Some("Section B"))
+			.expect("missing Section B");
+		assert_eq!(b.parent_headings, vec!["Root".to_string()]);
+	}
+
+	#[test]
+	fn embed_text_prepends_heading_chain() {
+		use crate::semantic::types::Chunk;
+		let chunk = Chunk {
+			key: "k".into(),
+			source_path: "p.md".into(),
+			content: "body text".into(),
+			heading: Some("Daily journaling".into()),
+			parent_headings: vec!["Stoicism".into(), "Practical applications".into()],
+			line_start: 1,
+			line_end: 5,
+			content_hash: "h".into(),
+		};
+		assert_eq!(
+			chunk.embed_text(),
+			"Stoicism > Practical applications > Daily journaling\n\nbody text"
+		);
+	}
+
+	#[test]
+	fn embed_text_returns_content_when_no_headings() {
+		use crate::semantic::types::Chunk;
+		let chunk = Chunk {
+			key: "k".into(),
+			source_path: "p.md".into(),
+			content: "just a note".into(),
+			heading: None,
+			parent_headings: vec![],
+			line_start: 1,
+			line_end: 1,
+			content_hash: "h".into(),
+		};
+		assert_eq!(chunk.embed_text(), "just a note");
 	}
 
 	#[test]

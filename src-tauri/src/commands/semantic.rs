@@ -332,9 +332,12 @@ pub async fn build_semantic_index(
 		}
 
 		for (batch_idx, batch) in chunk_indices.chunks(batch_size).enumerate() {
+			// `embed_text()` prepends parent_headings so the model sees topical
+			// context (e.g. "Stoicism > Practical applications > Daily journaling")
+			// before the chunk body. Display `content` stays original.
 			let texts: Vec<String> = batch
 				.iter()
-				.map(|&i| all_chunks[i].content.clone())
+				.map(|&i| all_chunks[i].embed_text())
 				.collect();
 
 			// Run ONNX inference on blocking thread to avoid starving the async runtime
@@ -374,6 +377,7 @@ pub async fn build_semantic_index(
 						chunk.source_path.clone(),
 						chunk.content.clone(),
 						chunk.heading.clone(),
+						chunk.parent_headings.clone(),
 						chunk.line_start as i64,
 						chunk.line_end as i64,
 						chunk.content_hash.clone(),
@@ -408,13 +412,14 @@ pub async fn build_semantic_index(
 						.map(|d| d.as_millis() as i64)
 						.unwrap_or(0);
 
-					for (key, source_path, content, heading, line_start, line_end, content_hash, embedding_bytes) in &db_entries {
+					for (key, source_path, content, heading, parent_headings, line_start, line_end, content_hash, embedding_bytes) in &db_entries {
 						db::semantic_repo::insert_chunk(
 							conn,
 							key,
 							source_path,
 							content,
 							heading.as_deref(),
+							parent_headings,
 							*line_start,
 							*line_end,
 							content_hash,
@@ -686,6 +691,7 @@ pub async fn update_semantic_file(
 					&chunk.source_path,
 					&chunk.content,
 					chunk.heading.as_deref(),
+					&chunk.parent_headings,
 					chunk.line_start as i64,
 					chunk.line_end as i64,
 					&chunk.content_hash,
@@ -870,7 +876,16 @@ pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> 
 	})
 }
 
-/// Computes a SHA-256 hash of the first 8KB of the model file for quick change detection.
+/// Identifier for the embedding recipe — the contract between chunking + embedding.
+/// Bump whenever the recipe changes (chunker logic, embed-text format, model swap,
+/// or anything that would make stored embeddings semantically stale). Mixed into
+/// `compute_model_hash` so a recipe change invalidates the index just like a model
+/// file swap does, triggering a full reindex on the next launch.
+const EMBED_RECIPE_VERSION: &str = "v2-parent-headings";
+
+/// Computes a SHA-256 hash of the first 8KB of the model file plus the embed recipe
+/// version, for quick change detection. Either the model bytes changing or the
+/// recipe version bumping forces a full reindex.
 pub fn compute_model_hash(vault: &Path) -> String {
 	let model_path = vault
 		.join(".kokobrain")
@@ -883,6 +898,8 @@ pub fn compute_model_hash(vault: &Path) -> String {
 			let n = std::io::Read::read(&mut file, &mut buf).unwrap_or(0);
 			let mut hasher = Sha256::new();
 			hasher.update(&buf[..n]);
+			hasher.update(b"|recipe:");
+			hasher.update(EMBED_RECIPE_VERSION.as_bytes());
 			let result = hasher.finalize();
 			result.iter().map(|b| format!("{:02x}", b)).collect()
 		}
