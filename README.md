@@ -89,7 +89,8 @@ pnpm tauri dev
 pnpm tauri dev            # Run app in dev mode (frontend + Tauri)
 pnpm dev                  # Run frontend only (no Tauri window)
 pnpm build                # Build frontend for production
-pnpm tauri build          # Build the full desktop app
+pnpm tauri build          # Build the full desktop app (release, bundle, codesign)
+pnpm tauri:build:fast     # Local fast iteration build (no bundle, no codesign)
 pnpm check                # TypeScript type checking
 pnpm vitest run           # Run frontend tests
 cargo test --manifest-path src-tauri/Cargo.toml   # Run Rust tests

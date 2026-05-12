@@ -103,8 +103,60 @@ bash scripts/e2e.sh
 # Frontend only
 pnpm build
 
-# Full desktop app (.dmg / .app)
+# Full desktop app (.dmg / .app) - shipping profile, with bundle + codesign
 pnpm tauri build
+
+# Local fast iteration build - release-fast profile, no bundle, no codesign
+pnpm tauri:build:fast
+```
+
+### Build performance tooling
+
+Local Rust rebuilds rely on a few moving parts. None of them are required for the app to compile, but skipping them turns a 30 s warm rebuild into multiple minutes.
+
+#### sccache (required - or builds will error)
+
+`.cargo/config.toml` at the repo root sets `rustc-wrapper = "sccache"`. Cargo invokes sccache for every rustc call, so the binary must be on PATH. Without it, every cargo command fails with `error: could not execute rustc wrapper: sccache`.
+
+```bash
+brew install sccache
+# or, on any platform
+cargo install sccache
+```
+
+sccache caches compiled crates keyed on `(rustc args + input source hash)` in `~/Library/Caches/Mozilla.sccache` (macOS). The cache survives `cargo clean`, `target/` wipes, and branch switches, so the same crate built twice with the same flags only pays compile cost once. Inspect with:
+
+```bash
+sccache --show-stats
+```
+
+To temporarily disable sccache for one command (e.g. when debugging a build error you suspect is being masked by a cache hit):
+
+```bash
+CARGO_BUILD_RUSTC_WRAPPER= cargo build
+```
+
+CI installs sccache automatically via `.github/actions/setup` and uses the GitHub Actions cache as the storage backend, so cache hits also carry across CI runs.
+
+#### `pnpm tauri:build:fast` vs `pnpm tauri build`
+
+| Aspect | `pnpm tauri build` | `pnpm tauri:build:fast` |
+|--------|--------------------|--------------------------|
+| Cargo profile | `release` (LTO thin, single codegen unit, strip symbols) | `release-fast` (no LTO, 16 codegen units, keep symbols) |
+| Bundle step | Yes - `.app` + `.dmg` + codesign + notarize | No (`--no-bundle`) |
+| Output | `.dmg` distributable in `target/release/bundle/` | Bare binary in `target/release-fast/` |
+| Use case | Release / shipping / CI | Local "did it still link, does the app still launch" loop |
+
+The `release-fast` profile produces a slightly larger and slightly less optimized binary - acceptable for local validation, not for shipping.
+
+#### Frontend rebuild skip
+
+`tauri.conf.json` wires `build.beforeBuildCommand` to `bash scripts/tauri-before-build.sh` instead of running `pnpm build` directly. The wrapper hashes the frontend input set (`src/`, `static/`, `package.json`, `pnpm-lock.yaml`, `vite.config.js`, `svelte.config.js`, `tsconfig.json`) and skips `pnpm build` when the hash matches the previous successful run, keeping `build/` mtimes stable so tauri-build does not invalidate its embedded-asset fingerprint and force a relink.
+
+Bypass the cache for a single invocation when you need to force a fresh frontend build (for example when debugging a Vite plugin):
+
+```bash
+KOKO_FORCE_FRONTEND_BUILD=1 pnpm tauri build
 ```
 
 ## Project Structure
