@@ -13,7 +13,7 @@ Full plan: `/root/.claude/plans/personal-rag-for-clever-crab.md`.
 - [x] Task 3: Reranker lifecycle + commands — static `RERANKER` + independent idle unload, `is_reranker_model_available`, `rag_download_reranker` (with `rag-reranker-progress` events).
 - [x] Task 4: Config + keyring — `rag/config.rs` parses `rag.toml`; `resolve_api_key` tries keyring then env.
 - [x] Task 5: Retrieval orchestration — `rag/retrieval.rs::retrieve` does embed → cosine top-30 from `SEARCH_CACHE` → reranker top-5. Add `rag_search` command.
-- [ ] Task 6: LLM streaming — `rag/llm/openai_compat.rs` builds context block and streams tokens via `async-openai`.
+- [x] Task 6: LLM streaming — `rag/llm/openai_compat.rs` builds context block and streams tokens via `async-openai`.
 - [ ] Task 7: `rag_chat` command — spawns task, emits `rag-chat-sources`, `rag-chat-token`, `rag-chat-done`, `rag-chat-error`.
 - [ ] Task 8: Editor scroll-to-line — add `pendingScrollLine` to editor store; extend `MarkdownEditor.svelte:344` effect; extend `openFileInEditor(path, line?)`.
 - [ ] Task 9: Frontend chat panel — `rag.store.svelte.ts` + `rag.service.ts` + `RagChatPanel.svelte`. Mount in `AppShell.svelte` right sidebar. Settings toggle `ragChatVisible`.
