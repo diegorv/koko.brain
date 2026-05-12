@@ -55,7 +55,7 @@ pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String
 		debug_log("FTS", format!("Skipped {} of {} files due to read errors", skipped, total_entries));
 	}
 
-	db::with_db_transaction("fts index rebuild", |conn| {
+	db::with_fts_db_transaction("fts index rebuild", |conn| {
 		db::fts_repo::clear_index(conn)?;
 
 		let mut count = 0u64;
@@ -92,7 +92,7 @@ pub fn search_fts(
 	let use_fuzzy = fuzzy.unwrap_or(false);
 	debug_log("FTS", format!("Query: \"{}\", fuzzy: {}", trimmed, use_fuzzy));
 
-	db::with_db(|conn| {
+	db::with_fts_db(|conn| {
 		let fts_query = build_fts_query(conn, trimmed, use_fuzzy)?;
 		// Empty query string would cause FTS5 MATCH syntax error
 		if fts_query.is_empty() {
@@ -109,7 +109,7 @@ pub fn search_fts(
 #[tauri::command]
 pub fn update_search_index_file(file_path: String, content: String) -> Result<(), String> {
 	debug_log("FTS", format!("Updating: {}", file_path));
-	db::with_db_transaction("fts update file", |conn| {
+	db::with_fts_db_transaction("fts update file", |conn| {
 		db::fts_repo::delete_entry(conn, &file_path)?;
 
 		let title = extract_title(&file_path);
@@ -124,13 +124,13 @@ pub fn update_search_index_file(file_path: String, content: String) -> Result<()
 #[tauri::command]
 pub fn remove_from_search_index(file_path: String) -> Result<(), String> {
 	debug_log("FTS", format!("Removing: {}", file_path));
-	db::with_db(|conn| db::fts_repo::delete_entry(conn, &file_path))
+	db::with_fts_db(|conn| db::fts_repo::delete_entry(conn, &file_path))
 }
 
 /// Returns statistics about the FTS5 search index.
 #[tauri::command]
 pub fn get_search_index_stats() -> Result<IndexStats, String> {
-	db::with_db(|conn| {
+	db::with_fts_db(|conn| {
 		let count = db::fts_repo::count_entries(conn)?;
 		Ok(IndexStats {
 			total_documents: count,
