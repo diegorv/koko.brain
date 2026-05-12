@@ -23,9 +23,9 @@ use crate::sync::events::{
 	self, LanSyncDebugDump, LanSyncDebugInterface, LanSyncDebugLastSeen, MyFingerprintPayload,
 	PeerTrustedPayload, PushCompletePayload, PushProgressPayload,
 };
-use crate::sync::identity::DeviceIdentity;
+use crate::sync::identity::{DeviceIdentity, IdentityProof};
 use crate::sync::push::{plan_push, send_folder};
-use crate::sync::transport::{self, fingerprint_hex_from_static, open_to, StaticKeys};
+use crate::sync::transport::{self, open_to, StaticKeys};
 use crate::sync::trust::{self, TrustedPeer};
 use crate::sync::SyncState;
 
@@ -105,6 +105,24 @@ fn static_keys_for(state: &SyncState, vault_path: &str) -> Result<StaticKeys, St
 	let mut secret = [0_u8; 32];
 	secret.copy_from_slice(&bytes);
 	Ok(transport::static_keys_from_ed25519_secret(&secret))
+}
+
+/// Returns the locally-cached identity proof for `vault_path`.
+///
+/// The proof binds the on-disk Ed25519 identity to the X25519 static
+/// the Noise handshake authenticates and is exchanged immediately
+/// after the three Noise XX messages complete. We ensure the identity
+/// is loaded so the binding-signature file is created on first call.
+fn identity_proof_for(state: &SyncState, vault_path: &str) -> Result<IdentityProof, String> {
+	ensure_identity_cached(state, vault_path)?;
+	let guard = state
+		.identity
+		.lock()
+		.map_err(|e| format!("identity lock poisoned: {e}"))?;
+	let id = guard
+		.as_ref()
+		.ok_or_else(|| "identity cache empty after ensure".to_string())?;
+	Ok(id.identity_proof())
 }
 
 /// Loads (or creates) the device identity for `vault_path` and
@@ -259,13 +277,14 @@ async fn drive_inbound<R: Runtime>(
 	stream: tokio::net::TcpStream,
 	sock_addr: std::net::SocketAddr,
 ) -> Result<(), String> {
-	// Load the responder's static keys.
+	// Load the responder's static keys + identity proof.
 	let vault_str = vault_path
 		.to_str()
 		.ok_or_else(|| "vault_path must be UTF-8".to_string())?;
 	let keys = static_keys_for(&state, vault_str)?;
+	let my_proof = identity_proof_for(&state, vault_str)?;
 
-	let session = transport::accept(stream, &keys, |_remote_fp| true)
+	let session = transport::accept(stream, &keys, &my_proof, |_remote_fp| true)
 		.await
 		.map_err(|e| format!("accept handshake: {e}"))?;
 
@@ -516,6 +535,7 @@ async fn initiate_pair<R: Runtime>(
 	peer_fingerprint_hex: String,
 ) -> Result<Option<TrustedPeer>, String> {
 	let keys = static_keys_for(state.inner(), &vault_path)?;
+	let my_proof = identity_proof_for(state.inner(), &vault_path)?;
 	let my_fp_display = {
 		let guard = state
 			.identity
@@ -530,7 +550,7 @@ async fn initiate_pair<R: Runtime>(
 	let stream = tokio::net::TcpStream::connect((peer_addr.as_str(), peer_port))
 		.await
 		.map_err(|e| format!("connect {peer_addr}:{peer_port}: {e}"))?;
-	let mut session = open_to(stream, &keys, &peer_fingerprint_hex)
+	let mut session = open_to(stream, &keys, &my_proof, &peer_fingerprint_hex)
 		.await
 		.map_err(|e| format!("handshake: {e}"))?;
 
@@ -564,21 +584,23 @@ async fn initiate_pair<R: Runtime>(
 		));
 	}
 
-	// Build the trusted peer record from the verified remote static
-	// key (NOT from the envelope, which we already validated against
-	// the derived display in dispatch — but here on the initiator
-	// side we derived the remote_fp from the handshake itself).
-	let remote_static = session.remote_static();
-	let derived_hex = fingerprint_hex_from_static(&remote_static);
+	// Build the trusted peer record from the verified remote Ed25519
+	// public key. `open_to` already enforced that
+	// `session.remote_ed25519_fingerprint_hex()` equals
+	// `peer_fingerprint_hex` (it would otherwise have returned
+	// IdentityRejected), so the equality re-check here is a defensive
+	// sanity guard rather than a security boundary.
+	let derived_hex = session.remote_ed25519_fingerprint_hex();
 	if derived_hex != peer_fingerprint_hex {
 		return Err(format!(
 			"post-handshake fingerprint mismatch: derived {derived_hex}, expected {peer_fingerprint_hex}"
 		));
 	}
+	let remote_ed_pub = session.remote_ed25519_pub();
 	let peer = TrustedPeer {
 		fingerprint_hex: derived_hex.clone(),
 		fingerprint_display: crate::sync::discovery::fingerprint_display_from_hex(&derived_hex),
-		public_key_b64: BASE64.encode(remote_static),
+		public_key_b64: BASE64.encode(remote_ed_pub),
 		display_name: None,
 		trusted_at_ms: now_unix_ms(),
 	};
@@ -651,6 +673,7 @@ pub async fn lan_sync_push_folder<R: Runtime>(
 
 	// 3. Open Noise XX to the peer.
 	let keys = static_keys_for(state.inner(), &vault_path)?;
+	let my_proof = identity_proof_for(state.inner(), &vault_path)?;
 	let my_fp_display = {
 		let guard = state
 			.identity
@@ -664,7 +687,7 @@ pub async fn lan_sync_push_folder<R: Runtime>(
 	let stream = tokio::net::TcpStream::connect((addr.as_str(), port))
 		.await
 		.map_err(|e| format!("connect {addr}:{port}: {e}"))?;
-	let mut session = open_to(stream, &keys, &peer_fingerprint_hex)
+	let mut session = open_to(stream, &keys, &my_proof, &peer_fingerprint_hex)
 		.await
 		.map_err(|e| format!("handshake: {e}"))?;
 

@@ -23,7 +23,11 @@ export interface TrustedPeer {
 	fingerprintHex: string;
 	/** 6 BIP-39 words derived from the same hash, hyphen-joined. For human verification. */
 	fingerprintDisplay: string;
-	/** Base64-encoded raw 32-byte Ed25519 public key, pinned at pairing time. */
+	/**
+	 * Base64 of peer's Ed25519 public key (32 bytes when decoded). Pinned
+	 * at pairing time by the Ed25519 identity binding sig over the Noise
+	 * X25519 static.
+	 */
 	publicKeyB64: string;
 	/** Optional user-chosen label for the device. */
 	displayName: string | null;

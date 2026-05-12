@@ -15,17 +15,30 @@
 //! `tauri::test::mock_app` so the lock + race paths are exercised.
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use ed25519_dalek::SigningKey;
 use kokobrain_lib::commands::sync::{lan_sync_list_trusted_peers, lan_sync_remove_trusted_peer};
+use kokobrain_lib::sync::identity::fingerprint_hex;
 use kokobrain_lib::sync::trust::{save, TrustedPeer};
 use tempfile::TempDir;
 
-/// Builds a syntactically valid `TrustedPeer` for the given seed +
-/// fingerprint. Same shape used by `sync_trust_test.rs`.
-fn fake_peer(seed: u8, fp_hex: &str) -> TrustedPeer {
+/// Builds a syntactically valid `TrustedPeer` whose `public_key_b64`
+/// decodes to a real Ed25519 public key derived from `[seed; 32]`
+/// (so it survives the H2 curve-point check in `trust::load`).
+///
+/// `fp_hex_override` lets callers ignore the canonical fingerprint
+/// hex for the rare case where they only care that the record is
+/// dropped or replaced. When `None`, the canonical Ed25519 fingerprint
+/// is used and `migrate_in_place` is a no-op for the record.
+fn fake_peer(seed: u8, fp_hex_override: Option<&str>) -> TrustedPeer {
+	let sk = SigningKey::from_bytes(&[seed; 32]);
+	let vk = sk.verifying_key();
+	let fp = fp_hex_override
+		.map(|s| s.to_string())
+		.unwrap_or_else(|| fingerprint_hex(&vk));
 	TrustedPeer {
-		fingerprint_hex: fp_hex.to_string(),
+		fingerprint_hex: fp,
 		fingerprint_display: "alpha-bravo-charlie-delta-echo-foxtrot".to_string(),
-		public_key_b64: BASE64.encode([seed; 32]),
+		public_key_b64: BASE64.encode(vk.as_bytes()),
 		display_name: None,
 		trusted_at_ms: 1_700_000_000_000,
 	}
@@ -47,8 +60,8 @@ async fn list_trusted_peers_returns_empty_when_no_file() {
 #[tokio::test]
 async fn list_trusted_peers_returns_saved_records() {
 	let tmp = TempDir::new().unwrap();
-	let a = fake_peer(0x01, "aaaa000000000001");
-	let b = fake_peer(0x02, "aaaa000000000002");
+	let a = fake_peer(0x01, None);
+	let b = fake_peer(0x02, None);
 	save(tmp.path(), &[a.clone(), b.clone()]).unwrap();
 
 	let out = lan_sync_list_trusted_peers(tmp.path().to_string_lossy().into_owned())
@@ -80,14 +93,15 @@ async fn list_trusted_peers_surfaces_parse_errors_as_string() {
 #[tokio::test]
 async fn remove_trusted_peer_drops_matching_entry() {
 	let tmp = TempDir::new().unwrap();
-	let a = fake_peer(0x01, "bbbb000000000001");
-	let b = fake_peer(0x02, "bbbb000000000002");
-	let c = fake_peer(0x03, "bbbb000000000003");
+	let a = fake_peer(0x01, None);
+	let b = fake_peer(0x02, None);
+	let c = fake_peer(0x03, None);
 	save(tmp.path(), &[a.clone(), b.clone(), c.clone()]).unwrap();
 
+	let target = b.fingerprint_hex.clone();
 	let after = lan_sync_remove_trusted_peer(
 		tmp.path().to_string_lossy().into_owned(),
-		"bbbb000000000002".to_string(),
+		target,
 	)
 	.await
 	.expect("remove succeeds");
@@ -97,7 +111,7 @@ async fn remove_trusted_peer_drops_matching_entry() {
 #[tokio::test]
 async fn remove_trusted_peer_is_noop_on_missing_fingerprint() {
 	let tmp = TempDir::new().unwrap();
-	let a = fake_peer(0x01, "cccc000000000001");
+	let a = fake_peer(0x01, None);
 	save(tmp.path(), &[a.clone()]).unwrap();
 
 	let after = lan_sync_remove_trusted_peer(

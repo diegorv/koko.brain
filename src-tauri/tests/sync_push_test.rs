@@ -14,9 +14,9 @@ use kokobrain_lib::sync::push::{
 	FileEntry, PushError, PushPlan, INCOMING_DIR, PROGRESS_INTERVAL_BYTES,
 	PUSH_FILE_CHUNK_BYTES,
 };
+use kokobrain_lib::sync::identity::DeviceIdentity;
 use kokobrain_lib::sync::transport::{
-	accept, fingerprint_hex_from_static, open_to, static_keys_from_ed25519_secret, Session,
-	StaticKeys,
+	accept, open_to, static_keys_from_ed25519_secret, Session, StaticKeys,
 };
 use sha2::{Digest, Sha256};
 use tempfile::TempDir;
@@ -273,27 +273,57 @@ fn sanitize_rejects_symlinked_escape_under_canonicalize() {
 // ============================================================================
 
 /// Returns matched static keys for the initiator and responder.
+///
+/// Both halves derive from the same Ed25519 seeds used by
+/// [`identity_pair`], so the binding signature in each side's
+/// `IdentityProof` covers the very X25519 public the Noise handshake
+/// authenticates.
 fn pair_keys() -> (StaticKeys, StaticKeys) {
 	(
-		static_keys_from_ed25519_secret(&[0x41_u8; 32]),
-		static_keys_from_ed25519_secret(&[0x42_u8; 32]),
+		static_keys_from_ed25519_secret(&INIT_SEED),
+		static_keys_from_ed25519_secret(&RESP_SEED),
 	)
+}
+
+/// Ed25519 secret seed used by both `pair_keys` (X25519 derivation)
+/// and `identity_pair` (DeviceIdentity construction) for the
+/// initiator. Hard-coded so the binding signature and the Noise
+/// static line up.
+const INIT_SEED: [u8; 32] = [0x41_u8; 32];
+
+/// Ed25519 secret seed used for the responder. See [`INIT_SEED`].
+const RESP_SEED: [u8; 32] = [0x42_u8; 32];
+
+/// Builds a `DeviceIdentity` for `seed` by pre-writing the secret file
+/// into a fresh tempdir, then calling `load_or_create`. The tempdir
+/// must outlive the returned identity for the binding-sig file to
+/// remain reachable; we keep it alive by returning it.
+fn identity_for(seed: &[u8; 32]) -> (DeviceIdentity, TempDir) {
+	let tmp = TempDir::new().unwrap();
+	let path = tmp.path().join("identity.key");
+	fs::write(&path, seed).unwrap();
+	let id = DeviceIdentity::load_or_create(&path).unwrap();
+	(id, tmp)
 }
 
 /// Spawns a transport handshake on `tokio::io::duplex` and returns the
 /// two session halves once both sides have completed.
 async fn handshaked_pair() -> (Session<DuplexStream>, Session<DuplexStream>) {
 	let (initiator_keys, responder_keys) = pair_keys();
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
+	let (init_identity, _init_tmp) = identity_for(&INIT_SEED);
+	let (resp_identity, _resp_tmp) = identity_for(&RESP_SEED);
+	let initiator_fp = init_identity.fingerprint_hex();
+	let responder_fp = resp_identity.fingerprint_hex();
+	let init_proof = init_identity.identity_proof();
+	let resp_proof = resp_identity.identity_proof();
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 	let init_task = tokio::spawn(async move {
-		open_to(init_side, &initiator_keys, &responder_fp).await
+		open_to(init_side, &initiator_keys, &init_proof, &responder_fp).await
 	});
 	let resp_task = tokio::spawn({
 		let initiator_fp = initiator_fp.clone();
 		async move {
-			accept(resp_side, &responder_keys, |fp| fp == initiator_fp).await
+			accept(resp_side, &responder_keys, &resp_proof, |fp| fp == initiator_fp).await
 		}
 	});
 	let init_session = init_task.await.unwrap().expect("initiator handshake");

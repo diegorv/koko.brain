@@ -22,6 +22,7 @@
 //! - Push-intent against an untrusted peer is rejected with
 //!   `reason: "not trusted"`.
 
+use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
@@ -30,9 +31,9 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use kokobrain_lib::sync::dispatch::{
 	handle_inbound_connection, PairResponse, PeerHandshake, INTENT_PAIR, INTENT_PUSH,
 };
+use kokobrain_lib::sync::identity::DeviceIdentity;
 use kokobrain_lib::sync::transport::{
-	accept, fingerprint_hex_from_static, open_to, static_keys_from_ed25519_secret, Session,
-	StaticKeys, TransportError,
+	accept, open_to, static_keys_from_ed25519_secret, Session, StaticKeys, TransportError,
 };
 use kokobrain_lib::sync::trust::{self, TrustedPeer};
 use kokobrain_lib::sync::SyncState;
@@ -41,6 +42,25 @@ use tempfile::TempDir;
 use tokio::io::DuplexStream;
 
 const DUPLEX_CAP: usize = 1024 * 1024;
+
+/// Ed25519 seed used by both the X25519 derivation in
+/// [`pair_keys`] and the `DeviceIdentity` built by [`identity_for`]
+/// on the initiator side.
+const INIT_SEED: [u8; 32] = [0x11_u8; 32];
+
+/// Ed25519 seed for the responder. See [`INIT_SEED`].
+const RESP_SEED: [u8; 32] = [0x22_u8; 32];
+
+/// Builds a `DeviceIdentity` for `seed` by pre-writing the secret file
+/// then calling `load_or_create`. The tempdir is returned so the
+/// binding-sig file remains reachable for the test's lifetime.
+fn identity_for(seed: &[u8; 32]) -> (DeviceIdentity, TempDir) {
+	let tmp = TempDir::new().unwrap();
+	let path = tmp.path().join("identity.key");
+	fs::write(&path, seed).unwrap();
+	let id = DeviceIdentity::load_or_create(&path).unwrap();
+	(id, tmp)
+}
 
 // ============================================================================
 // Wire-format assertions
@@ -92,8 +112,8 @@ fn pair_response_roundtrips() {
 
 fn pair_keys() -> (StaticKeys, StaticKeys) {
 	(
-		static_keys_from_ed25519_secret(&[0x11_u8; 32]),
-		static_keys_from_ed25519_secret(&[0x22_u8; 32]),
+		static_keys_from_ed25519_secret(&INIT_SEED),
+		static_keys_from_ed25519_secret(&RESP_SEED),
 	)
 }
 
@@ -101,19 +121,23 @@ async fn handshaked_pair(
 	initiator_keys: &StaticKeys,
 	responder_keys: &StaticKeys,
 ) -> (Session<DuplexStream>, Session<DuplexStream>) {
-	let init_fp = fingerprint_hex_from_static(&initiator_keys.public);
-	let resp_fp = fingerprint_hex_from_static(&responder_keys.public);
+	let (init_identity, _it) = identity_for(&INIT_SEED);
+	let (resp_identity, _rt) = identity_for(&RESP_SEED);
+	let init_fp = init_identity.fingerprint_hex();
+	let resp_fp = resp_identity.fingerprint_hex();
+	let init_proof = init_identity.identity_proof();
+	let resp_proof = resp_identity.identity_proof();
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
 	let init_keys = initiator_keys.clone();
 	let resp_keys = responder_keys.clone();
 	let init_task = tokio::spawn(async move {
-		open_to(init_side, &init_keys, &resp_fp).await
+		open_to(init_side, &init_keys, &init_proof, &resp_fp).await
 	});
 	let resp_task = tokio::spawn({
 		let init_fp = init_fp.clone();
 		async move {
-			accept(resp_side, &resp_keys, |fp| fp == init_fp).await
+			accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await
 		}
 	});
 	let init = init_task.await.unwrap().expect("initiator handshake");
@@ -137,9 +161,9 @@ fn mock_app() -> tauri::App<tauri::test::MockRuntime> {
 #[tokio::test]
 async fn pair_happy_path_writes_peer_to_trust_store() {
 	let (init_keys, resp_keys) = pair_keys();
-	let init_fp = fingerprint_hex_from_static(&init_keys.public);
-	let resp_fp_display =
-		kokobrain_lib::sync::discovery::fingerprint_display_from_hex(&init_fp);
+	let (init_identity_observer, _iot) = identity_for(&INIT_SEED);
+	let init_fp = init_identity_observer.fingerprint_hex();
+	let resp_fp_display = init_identity_observer.fingerprint_display();
 
 	let vault = TempDir::new().unwrap();
 	let state = Arc::new(SyncState::default());
@@ -207,16 +231,18 @@ async fn pair_happy_path_writes_peer_to_trust_store() {
 	let stored = trust::load(vault.path()).unwrap();
 	assert_eq!(stored.len(), 1);
 	assert_eq!(stored[0].fingerprint_hex, init_fp);
-	let derived_b64 = BASE64.encode(init_keys.public);
+	let derived_b64 = BASE64.encode(init_identity_observer.public_key().as_bytes());
 	assert_eq!(stored[0].public_key_b64, derived_b64);
+	// Sanity: the X25519 static is unrelated to what was persisted
+	// — `public_key_b64` is the Ed25519 surface, not the Noise key.
+	assert_ne!(stored[0].public_key_b64, BASE64.encode(init_keys.public));
 }
 
 #[tokio::test]
 async fn pair_reject_path_returns_accepted_false() {
 	let (init_keys, resp_keys) = pair_keys();
-	let init_fp = fingerprint_hex_from_static(&init_keys.public);
-	let resp_display =
-		kokobrain_lib::sync::discovery::fingerprint_display_from_hex(&init_fp);
+	let (init_identity_observer, _iot) = identity_for(&INIT_SEED);
+	let resp_display = init_identity_observer.fingerprint_display();
 
 	let vault = TempDir::new().unwrap();
 	let state = Arc::new(SyncState::default());
@@ -273,11 +299,16 @@ async fn pair_reject_path_returns_accepted_false() {
 
 #[tokio::test]
 async fn pair_fingerprint_mismatch_on_initiator_aborts_before_envelope() {
-	// Initiator expects the WRONG remote fingerprint. The handshake
-	// itself produces `TransportError::PeerMismatch` and the
-	// dispatcher never receives a `PeerHandshake`.
+	// Initiator expects the WRONG remote Ed25519 fingerprint. The
+	// post-handshake IdentityProof verification surfaces
+	// `TransportError::IdentityRejected` and the dispatcher never
+	// receives a `PeerHandshake`.
 	let (init_keys, resp_keys) = pair_keys();
-	let real_resp_fp = fingerprint_hex_from_static(&resp_keys.public);
+	let (init_identity, _it) = identity_for(&INIT_SEED);
+	let (resp_identity, _rt) = identity_for(&RESP_SEED);
+	let init_proof = init_identity.identity_proof();
+	let resp_proof = resp_identity.identity_proof();
+	let real_resp_fp = resp_identity.fingerprint_hex();
 	let wrong_fp = "deadbeefdeadbeef".to_string();
 	assert_ne!(real_resp_fp, wrong_fp);
 
@@ -287,24 +318,26 @@ async fn pair_fingerprint_mismatch_on_initiator_aborts_before_envelope() {
 	let wrong_fp_for_init = wrong_fp.clone();
 
 	let init_task = tokio::spawn(async move {
-		open_to(init_side, &init_keys_clone, &wrong_fp_for_init).await
+		open_to(init_side, &init_keys_clone, &init_proof, &wrong_fp_for_init).await
 	});
 	let resp_task = tokio::spawn(async move {
 		// Responder accepts any fingerprint at the transport layer
-		// (this matches the production `drive_inbound` predicate).
-		accept(resp_side, &resp_keys_clone, |_| true).await
+		// (matches the production `drive_inbound` predicate).
+		accept(resp_side, &resp_keys_clone, &resp_proof, |_| true).await
 	});
 
 	let init_result = init_task.await.unwrap();
 	let _ = resp_task.await.unwrap(); // may succeed or fail depending on which side errors first.
 
 	match init_result {
-		Err(TransportError::PeerMismatch { expected_hex, got_hex }) => {
-			assert_eq!(expected_hex, wrong_fp);
-			assert_eq!(got_hex, real_resp_fp);
+		Err(TransportError::IdentityRejected { reason }) => {
+			assert!(
+				reason.contains(&wrong_fp) && reason.contains(&real_resp_fp),
+				"expected reason to mention both fingerprints, got {reason:?}"
+			);
 		}
-		Err(e) => panic!("expected PeerMismatch on initiator, got error {e:?}"),
-		Ok(_) => panic!("expected PeerMismatch on initiator, got Ok(session)"),
+		Err(e) => panic!("expected IdentityRejected on initiator, got error {e:?}"),
+		Ok(_) => panic!("expected IdentityRejected on initiator, got Ok(session)"),
 	}
 }
 
@@ -312,11 +345,11 @@ async fn pair_fingerprint_mismatch_on_initiator_aborts_before_envelope() {
 async fn pair_fingerprint_lie_in_envelope_is_rejected() {
 	// Remote completes the handshake correctly but sends a
 	// `fingerprint_display` that does NOT match what the dispatcher
-	// derives from its static key. Dispatcher must abort with
-	// `FingerprintLie` and not register a pending entry.
+	// derives from its Ed25519 public key. Dispatcher must abort
+	// with `FingerprintLie` and not register a pending entry.
 	let (init_keys, resp_keys) = pair_keys();
-	let init_fp = fingerprint_hex_from_static(&init_keys.public);
-	let real_display = kokobrain_lib::sync::discovery::fingerprint_display_from_hex(&init_fp);
+	let (init_identity_observer, _iot) = identity_for(&INIT_SEED);
+	let real_display = init_identity_observer.fingerprint_display();
 	assert!(!real_display.is_empty());
 
 	let vault = TempDir::new().unwrap();
@@ -368,9 +401,8 @@ async fn pair_fingerprint_lie_in_envelope_is_rejected() {
 #[tokio::test]
 async fn push_intent_against_untrusted_peer_is_rejected() {
 	let (init_keys, resp_keys) = pair_keys();
-	let init_fp = fingerprint_hex_from_static(&init_keys.public);
-	let resp_display =
-		kokobrain_lib::sync::discovery::fingerprint_display_from_hex(&init_fp);
+	let (init_identity_observer, _iot) = identity_for(&INIT_SEED);
+	let resp_display = init_identity_observer.fingerprint_display();
 
 	let vault = TempDir::new().unwrap();
 	let state = Arc::new(SyncState::default());

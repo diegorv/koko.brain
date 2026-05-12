@@ -37,10 +37,12 @@ use crate::sync::events::{
 	emit_pairing_incoming, emit_push_complete, emit_push_progress, PairingIncomingPayload,
 	PushCompletePayload, PushProgressPayload,
 };
+use crate::sync::identity::{fingerprint_display, fingerprint_hex};
 use crate::sync::push::{receive_folder, PushError};
-use crate::sync::transport::{fingerprint_hex_from_static, Session, TransportError};
+use crate::sync::transport::{Session, TransportError};
 use crate::sync::trust;
 use crate::sync::SyncState;
+use ed25519_dalek::VerifyingKey;
 
 /// Handshake envelope sent by the initiator immediately after the Noise
 /// XX handshake completes. The single field that drives routing is
@@ -104,10 +106,12 @@ pub struct PendingPairEntry {
 	/// Stable hex fingerprint of the remote peer.
 	pub remote_fingerprint_hex: String,
 	/// Six-word fingerprint display of the remote peer (derived from
-	/// the remote static key; matches what the initiator showed).
+	/// the verified Ed25519 public key; matches what the initiator
+	/// showed and what `peers.json` will persist).
 	pub remote_fingerprint_display: String,
-	/// Base64-encoded X25519 static public key of the remote peer.
-	/// Persisted to `peers.json` on accept.
+	/// Base64-encoded raw 32-byte Ed25519 public key of the remote
+	/// peer. Persisted to `peers.json` on accept so the trust store
+	/// pins the same identity surface the UI and mDNS use.
 	pub remote_public_key_b64: String,
 	/// LAN address the inbound TCP connection arrived from.
 	pub remote_addr: String,
@@ -218,9 +222,17 @@ where
 	let envelope_bytes = session.recv().await?;
 	let handshake: PeerHandshake = serde_json::from_slice(&envelope_bytes)?;
 
-	let remote_static = session.remote_static();
-	let remote_fp_hex = fingerprint_hex_from_static(&remote_static);
-	let remote_fp_display = crate::sync::discovery::fingerprint_display_from_hex(&remote_fp_hex);
+	// Identity surface: the Noise XX handshake + post-handshake
+	// IdentityProof exchange already validated the remote Ed25519 key,
+	// so we read both fingerprint forms straight off the session.
+	let remote_ed_bytes = session.remote_ed25519_pub();
+	let remote_verifying = VerifyingKey::from_bytes(&remote_ed_bytes).map_err(|e| {
+		DispatchError::Transport(TransportError::IdentityRejected {
+			reason: format!("session ed25519 invalid: {e}"),
+		})
+	})?;
+	let remote_fp_hex = fingerprint_hex(&remote_verifying);
+	let remote_fp_display = fingerprint_display(&remote_verifying);
 
 	// Reject a peer that lies about its own display fingerprint — the
 	// UI shows that string verbatim, so a mismatch could trick the user.
@@ -281,9 +293,11 @@ where
 	let request_id = uuid::Uuid::new_v4().to_string();
 	let (tx, rx) = oneshot::channel::<bool>();
 
-	// Base64-encode the static key for trust-store storage.
+	// Base64-encode the verified Ed25519 public key for trust-store
+	// storage. The Noise X25519 static is still cached on the session
+	// but it is NOT what `peers.json` persists — see the H2 design.
 	use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-	let remote_pubkey_b64 = BASE64.encode(session.remote_static());
+	let remote_pubkey_b64 = BASE64.encode(session.remote_ed25519_pub());
 
 	{
 		let mut map = state

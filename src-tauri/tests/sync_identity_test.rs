@@ -1,10 +1,13 @@
 //! Integration tests for `sync::identity`: generation, file persistence,
-//! permissions, fingerprint surfaces, signing.
+//! permissions, fingerprint surfaces, signing, and the Hotfix H2
+//! identity-binding signature exchange.
 
 use std::fs;
 
-use ed25519_dalek::Verifier;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey, SIGNATURE_LENGTH};
 use kokobrain_lib::sync::identity::{fingerprint_display, fingerprint_hex, DeviceIdentity};
+use kokobrain_lib::sync::transport::static_keys_from_ed25519_secret;
 use kokobrain_lib::sync::wordlist::BIP39_WORDS;
 use tempfile::TempDir;
 
@@ -140,4 +143,167 @@ fn load_or_create_rejects_wrong_length_file() {
 		Ok(_) => panic!("expected InvalidData error for wrong-length key file"),
 		Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::InvalidData),
 	}
+}
+
+// ============================================================================
+// Hotfix H2 binding-signature exchange
+// ============================================================================
+
+#[test]
+fn load_or_create_writes_both_identity_and_binding_files() {
+	let tmp = TempDir::new().unwrap();
+	let key_path = tmp.path().join("identity.key");
+	let sig_path = tmp.path().join("identity-binding.sig");
+	assert!(!key_path.exists());
+	assert!(!sig_path.exists());
+
+	let _ = DeviceIdentity::load_or_create(&key_path).unwrap();
+
+	assert!(key_path.exists(), "identity.key must be created");
+	assert!(sig_path.exists(), "identity-binding.sig must be created");
+	let sig_bytes = fs::read(&sig_path).unwrap();
+	assert_eq!(
+		sig_bytes.len(),
+		SIGNATURE_LENGTH,
+		"binding sig file must be exactly {SIGNATURE_LENGTH} bytes"
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn binding_sig_file_has_0600_permissions_on_unix() {
+	use std::os::unix::fs::MetadataExt;
+	let tmp = TempDir::new().unwrap();
+	let key_path = tmp.path().join("identity.key");
+	let _ = DeviceIdentity::load_or_create(&key_path).unwrap();
+
+	let sig_path = tmp.path().join("identity-binding.sig");
+	let mode = fs::metadata(&sig_path).unwrap().mode() & 0o777;
+	assert_eq!(mode, 0o600, "binding sig expected 0600, got {mode:o}");
+}
+
+#[test]
+fn load_or_create_reuses_existing_binding_when_it_verifies() {
+	let tmp = TempDir::new().unwrap();
+	let key_path = tmp.path().join("identity.key");
+	let sig_path = tmp.path().join("identity-binding.sig");
+
+	let _ = DeviceIdentity::load_or_create(&key_path).unwrap();
+	let sig_before = fs::read(&sig_path).unwrap();
+
+	// Second call: must NOT rewrite the binding file because it
+	// already verifies against the on-disk identity's X25519 pub.
+	let id2 = DeviceIdentity::load_or_create(&key_path).unwrap();
+	let sig_after = fs::read(&sig_path).unwrap();
+	assert_eq!(sig_before, sig_after, "binding sig must be reused, not rewritten");
+
+	// And the in-memory binding sig verifies against the in-memory
+	// X25519 pub.
+	let proof = id2.identity_proof();
+	let secret_bytes = fs::read(&key_path).unwrap();
+	let mut secret = [0u8; 32];
+	secret.copy_from_slice(&secret_bytes);
+	let x25519 = static_keys_from_ed25519_secret(&secret);
+	let sig = decode_signature(&proof.binding_sig_b64);
+	id2.public_key()
+		.verify_strict(&x25519.public, &sig)
+		.expect("binding sig from identity_proof must verify against on-disk x25519");
+}
+
+#[test]
+fn load_or_create_regenerates_corrupted_binding_signature() {
+	let tmp = TempDir::new().unwrap();
+	let key_path = tmp.path().join("identity.key");
+	let sig_path = tmp.path().join("identity-binding.sig");
+
+	let _ = DeviceIdentity::load_or_create(&key_path).unwrap();
+	let sig_before = fs::read(&sig_path).unwrap();
+
+	// Corrupt the first byte of the binding sig file.
+	let mut corrupted = sig_before.clone();
+	corrupted[0] ^= 0xff;
+	fs::write(&sig_path, &corrupted).unwrap();
+
+	// Reload — the loader must detect the verify failure and
+	// regenerate the file in place.
+	let id_after = DeviceIdentity::load_or_create(&key_path).unwrap();
+	let sig_after = fs::read(&sig_path).unwrap();
+	assert_eq!(sig_after.len(), SIGNATURE_LENGTH);
+	assert_ne!(sig_after, corrupted, "corrupted bytes must be overwritten");
+
+	// The regenerated sig verifies against the live X25519 pub.
+	let proof = id_after.identity_proof();
+	let secret_bytes = fs::read(&key_path).unwrap();
+	let mut secret = [0u8; 32];
+	secret.copy_from_slice(&secret_bytes);
+	let x25519 = static_keys_from_ed25519_secret(&secret);
+	let sig = decode_signature(&proof.binding_sig_b64);
+	id_after
+		.public_key()
+		.verify_strict(&x25519.public, &sig)
+		.expect("regenerated sig must verify");
+}
+
+#[test]
+fn load_or_create_regenerates_when_binding_sig_file_missing() {
+	let tmp = TempDir::new().unwrap();
+	let key_path = tmp.path().join("identity.key");
+	let sig_path = tmp.path().join("identity-binding.sig");
+
+	let _ = DeviceIdentity::load_or_create(&key_path).unwrap();
+	assert!(sig_path.exists());
+	fs::remove_file(&sig_path).unwrap();
+	assert!(!sig_path.exists());
+
+	let id = DeviceIdentity::load_or_create(&key_path).unwrap();
+	assert!(sig_path.exists(), "missing binding sig file must be regenerated");
+	let proof = id.identity_proof();
+	let secret_bytes = fs::read(&key_path).unwrap();
+	let mut secret = [0u8; 32];
+	secret.copy_from_slice(&secret_bytes);
+	let x25519 = static_keys_from_ed25519_secret(&secret);
+	let sig = decode_signature(&proof.binding_sig_b64);
+	id.public_key()
+		.verify_strict(&x25519.public, &sig)
+		.expect("freshly created sig must verify");
+}
+
+#[test]
+fn identity_proof_contains_base64_pub_and_signature() {
+	let tmp = TempDir::new().unwrap();
+	let key_path = tmp.path().join("identity.key");
+	let id = DeviceIdentity::load_or_create(&key_path).unwrap();
+
+	let proof = id.identity_proof();
+
+	// ed25519_pub_b64 decodes to 32 bytes and equals the in-memory pub.
+	let pub_bytes = BASE64.decode(proof.ed25519_pub_b64.as_bytes()).unwrap();
+	assert_eq!(pub_bytes.len(), 32);
+	assert_eq!(pub_bytes.as_slice(), id.public_key().as_bytes());
+
+	// binding_sig_b64 decodes to 64 bytes and verifies against the
+	// in-memory X25519 pub derived from the on-disk secret.
+	let sig_bytes = BASE64.decode(proof.binding_sig_b64.as_bytes()).unwrap();
+	assert_eq!(sig_bytes.len(), SIGNATURE_LENGTH);
+	let mut arr = [0u8; SIGNATURE_LENGTH];
+	arr.copy_from_slice(&sig_bytes);
+	let sig = Signature::from_bytes(&arr);
+	let secret_bytes = fs::read(&key_path).unwrap();
+	let mut secret = [0u8; 32];
+	secret.copy_from_slice(&secret_bytes);
+	let x25519 = static_keys_from_ed25519_secret(&secret);
+	let vk: VerifyingKey = id.public_key();
+	vk.verify_strict(&x25519.public, &sig)
+		.expect("identity_proof binding sig must verify against derived x25519 pub");
+}
+
+/// Decodes a base64-encoded 64-byte Ed25519 signature into a
+/// `Signature`. Panics on malformed input — only used in the H2 tests
+/// above so the assertions stay one-line.
+fn decode_signature(b64: &str) -> Signature {
+	let bytes = BASE64.decode(b64.as_bytes()).unwrap();
+	assert_eq!(bytes.len(), SIGNATURE_LENGTH);
+	let mut arr = [0u8; SIGNATURE_LENGTH];
+	arr.copy_from_slice(&bytes);
+	Signature::from_bytes(&arr)
 }

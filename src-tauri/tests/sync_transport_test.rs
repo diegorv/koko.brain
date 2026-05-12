@@ -1,15 +1,31 @@
 //! Integration tests for `sync::transport`: Noise XX handshake,
-//! framing, fingerprint verification, and round-trip messaging.
+//! framing, post-handshake [`IdentityProof`] exchange, Ed25519
+//! fingerprint verification, and round-trip messaging.
 //!
 //! All tests use `tokio::io::duplex` to wire an in-process pair of
 //! [`AsyncRead`] + [`AsyncWrite`] streams so we never touch a real
 //! socket. The two halves are passed into [`open_to`] (initiator) and
-//! [`accept`] (responder), which run concurrently via `tokio::join!`.
+//! [`accept`] (responder), which run concurrently via `tokio::spawn`.
+//!
+//! ## Hotfix H2 surface
+//!
+//! Every handshake test constructs an on-disk `DeviceIdentity` for
+//! each side from a hard-coded Ed25519 seed and pairs it with a
+//! `StaticKeys` derived from the same seed. Because the binding
+//! signature carried in the `IdentityProof` is over the X25519 public
+//! derived from that same seed, the Noise handshake and the proof
+//! exchange agree on which X25519 belongs to which Ed25519 identity.
 
+use std::fs;
+
+use ed25519_dalek::{Signature, VerifyingKey, SIGNATURE_LENGTH};
+use kokobrain_lib::sync::identity::{DeviceIdentity, IdentityProof};
 use kokobrain_lib::sync::transport::{
-	accept, fingerprint_hex_from_static, open_to, static_keys_from_ed25519_secret,
-	StaticKeys, TransportError, FRAME_LEN_PREFIX_BYTES, MAX_FRAME_BYTES, NOISE_PARAMS,
+	accept, open_to, static_keys_from_ed25519_secret, StaticKeys, TransportError,
+	FRAME_LEN_PREFIX_BYTES, MAX_FRAME_BYTES, NOISE_PARAMS,
 };
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use tempfile::TempDir;
 use tokio::io::AsyncWriteExt;
 
 /// Duplex buffer size large enough to hold a handshake message plus a
@@ -63,85 +79,95 @@ fn static_private_key_is_rfc7748_clamped() {
 	assert_eq!(keys.private[31] & 0b0100_0000, 0b0100_0000);
 }
 
-// --- fingerprint_hex_from_static ---
-
-#[test]
-fn fingerprint_hex_is_sixteen_lowercase_hex_chars() {
-	let keys = static_keys_from_ed25519_secret(&[42_u8; 32]);
-	let hex = fingerprint_hex_from_static(&keys.public);
-	assert_eq!(hex.len(), 16);
-	assert!(hex.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
-}
-
-#[test]
-fn fingerprint_hex_is_stable_for_the_same_key() {
-	let pk = [0xab_u8; 32];
-	assert_eq!(fingerprint_hex_from_static(&pk), fingerprint_hex_from_static(&pk));
-}
-
-#[test]
-fn fingerprint_hex_differs_for_different_keys() {
-	let a = fingerprint_hex_from_static(&[1_u8; 32]);
-	let b = fingerprint_hex_from_static(&[2_u8; 32]);
-	assert_ne!(a, b);
-}
-
 // --- handshake helpers ---
 
-/// Returns two deterministic static keypairs used across the
-/// async-handshake tests below.
+/// Returns two deterministic Ed25519 secret seeds used across the
+/// async-handshake tests below. The initiator + responder use the
+/// same seeds for both the X25519 derivation (`StaticKeys`) and the
+/// `DeviceIdentity` so the binding signature lines up with the
+/// Noise-authenticated X25519 static.
+const INIT_SEED: [u8; 32] = [0x11_u8; 32];
+const RESP_SEED: [u8; 32] = [0x22_u8; 32];
+
+/// Returns matched X25519 static keypairs for the initiator and
+/// responder, derived from the test-wide seeds.
 fn pair_keys() -> (StaticKeys, StaticKeys) {
 	(
-		static_keys_from_ed25519_secret(&[0x11_u8; 32]),
-		static_keys_from_ed25519_secret(&[0x22_u8; 32]),
+		static_keys_from_ed25519_secret(&INIT_SEED),
+		static_keys_from_ed25519_secret(&RESP_SEED),
 	)
 }
 
-// --- successful handshake ---
+/// Builds a `DeviceIdentity` from `seed` by pre-writing the secret
+/// file then calling `load_or_create`. The returned tempdir owns the
+/// `identity-binding.sig` file and must outlive any session whose
+/// proof was built from this identity.
+fn identity_for(seed: &[u8; 32]) -> (DeviceIdentity, TempDir) {
+	let tmp = TempDir::new().unwrap();
+	let path = tmp.path().join("identity.key");
+	fs::write(&path, seed).unwrap();
+	let id = DeviceIdentity::load_or_create(&path).unwrap();
+	(id, tmp)
+}
+
+// --- fingerprint surfaces on a successful handshake ---
 
 #[tokio::test]
 async fn handshake_succeeds_when_fingerprints_match() {
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
+	let init_ed_pub = *init_id.public_key().as_bytes();
+	let resp_ed_pub = *resp_id.public_key().as_bytes();
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
+	let resp_fp_for_task = resp_fp.clone();
+	let init_fp_for_task = init_fp.clone();
 	let initiator = tokio::spawn(async move {
-		open_to(init_side, &initiator_keys, &responder_fp).await
+		open_to(init_side, &init_keys, &init_proof, &resp_fp_for_task).await
 	});
-	let responder = tokio::spawn({
-		let responder_keys = responder_keys.clone();
-		let initiator_fp = initiator_fp.clone();
-		async move {
-			accept(resp_side, &responder_keys, |fp| fp == initiator_fp).await
-		}
+	let responder = tokio::spawn(async move {
+		accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp_for_task).await
 	});
 
 	let init_session = initiator.await.unwrap().expect("initiator handshake");
 	let resp_session = responder.await.unwrap().expect("responder handshake");
 
-	// Each side learned the other's verified static public key.
-	assert_eq!(init_session.remote_static(), responder_keys.public);
-	let (initiator_keys2, _) = pair_keys();
-	assert_eq!(resp_session.remote_static(), initiator_keys2.public);
+	// Each side learned the other's verified static X25519 public key.
+	let (init_keys2, resp_keys2) = pair_keys();
+	assert_eq!(init_session.remote_static(), resp_keys2.public);
+	assert_eq!(resp_session.remote_static(), init_keys2.public);
+
+	// Each side learned the other's verified Ed25519 public key.
+	assert_eq!(init_session.remote_ed25519_pub(), resp_ed_pub);
+	assert_eq!(resp_session.remote_ed25519_pub(), init_ed_pub);
+
+	// Ed25519 fingerprint surface matches what each side's identity reports.
+	assert_eq!(init_session.remote_ed25519_fingerprint_hex(), resp_fp);
+	assert_eq!(resp_session.remote_ed25519_fingerprint_hex(), init_fp);
 }
 
 // --- round-trip messages ---
 
 #[tokio::test]
 async fn round_trip_small_and_large_payloads() {
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
-	let init_keys_clone = initiator_keys.clone();
-	let resp_keys_clone = responder_keys.clone();
-
 	let initiator = tokio::spawn(async move {
-		let mut s = open_to(init_side, &init_keys_clone, &responder_fp).await.unwrap();
+		let mut s = open_to(init_side, &init_keys, &init_proof, &resp_fp).await.unwrap();
 		s.send(b"x").await.unwrap();
 		s.send(&[7_u8; 1024]).await.unwrap();
 		// Read echo of the 1024 payload back.
@@ -152,7 +178,7 @@ async fn round_trip_small_and_large_payloads() {
 		assert!(echo_kb.iter().all(|&b| b == 7));
 	});
 	let responder = tokio::spawn(async move {
-		let mut s = accept(resp_side, &resp_keys_clone, |fp| fp == initiator_fp).await.unwrap();
+		let mut s = accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await.unwrap();
 		let one = s.recv().await.unwrap();
 		assert_eq!(one, b"x");
 		let kb = s.recv().await.unwrap();
@@ -168,17 +194,18 @@ async fn round_trip_small_and_large_payloads() {
 
 #[tokio::test]
 async fn multiple_round_trips_on_the_same_session() {
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
-	let init_keys_clone = initiator_keys.clone();
-	let resp_keys_clone = responder_keys.clone();
-
 	let initiator = tokio::spawn(async move {
-		let mut s = open_to(init_side, &init_keys_clone, &responder_fp).await.unwrap();
+		let mut s = open_to(init_side, &init_keys, &init_proof, &resp_fp).await.unwrap();
 		for i in 0_u8..10 {
 			s.send(&[i]).await.unwrap();
 			let echo = s.recv().await.unwrap();
@@ -186,7 +213,7 @@ async fn multiple_round_trips_on_the_same_session() {
 		}
 	});
 	let responder = tokio::spawn(async move {
-		let mut s = accept(resp_side, &resp_keys_clone, |fp| fp == initiator_fp).await.unwrap();
+		let mut s = accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await.unwrap();
 		for _ in 0..10 {
 			let msg = s.recv().await.unwrap();
 			let reply: Vec<u8> = msg.iter().map(|b| b ^ 0xff).collect();
@@ -201,71 +228,164 @@ async fn multiple_round_trips_on_the_same_session() {
 // --- mismatch / reject paths ---
 
 #[tokio::test]
-async fn initiator_rejects_mismatched_responder_fingerprint() {
-	let (initiator_keys, responder_keys) = pair_keys();
-	// Wrong expected fingerprint — derive from a third key.
-	let other_keys = static_keys_from_ed25519_secret(&[0x99_u8; 32]);
-	let wrong_fp = fingerprint_hex_from_static(&other_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+async fn initiator_rejects_mismatched_responder_ed25519_fingerprint() {
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
+	let real_resp_fp = resp_id.fingerprint_hex();
+	let wrong_fp = "deadbeefdeadbeef".to_string();
+	let init_fp = init_id.fingerprint_hex();
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
-	let init_keys_clone = initiator_keys.clone();
-	let resp_keys_clone = responder_keys.clone();
 	let wrong_fp_for_task = wrong_fp.clone();
-
 	let initiator = tokio::spawn(async move {
-		open_to(init_side, &init_keys_clone, &wrong_fp_for_task).await
+		open_to(init_side, &init_keys, &init_proof, &wrong_fp_for_task).await
 	});
 	let responder = tokio::spawn(async move {
-		accept(resp_side, &resp_keys_clone, |fp| fp == initiator_fp).await
+		accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await
 	});
 
 	let init_result = initiator.await.unwrap();
 	let _ = responder.await.unwrap();
 
 	match init_result {
-		Err(TransportError::PeerMismatch { expected_hex, got_hex }) => {
-			assert_eq!(expected_hex, wrong_fp);
-			assert_eq!(got_hex, fingerprint_hex_from_static(&responder_keys.public));
-			assert_ne!(expected_hex, got_hex);
+		Err(TransportError::IdentityRejected { reason }) => {
+			assert!(
+				reason.contains(&wrong_fp) && reason.contains(&real_resp_fp),
+				"expected reason to mention both fingerprints, got {reason:?}"
+			);
 		}
-		Ok(_) => panic!("expected PeerMismatch, got Ok(Session)"),
-		Err(other) => panic!("expected PeerMismatch, got {other:?}"),
+		Ok(_) => panic!("expected IdentityRejected, got Ok(Session)"),
+		Err(other) => panic!("expected IdentityRejected, got {other:?}"),
 	}
 }
 
 #[tokio::test]
 async fn responder_rejects_when_predicate_returns_false() {
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
-	let init_keys_clone = initiator_keys.clone();
-	let resp_keys_clone = responder_keys.clone();
-
 	let initiator = tokio::spawn(async move {
 		// Initiator may succeed or fail depending on whether the
-		// responder finished writing msg 2 before the mismatch path
-		// dropped the stream. The point of this test is the responder.
-		let _ = open_to(init_side, &init_keys_clone, &responder_fp).await;
+		// responder finished writing its proof before the rejection
+		// path dropped the stream. The point of this test is the
+		// responder.
+		let _ = open_to(init_side, &init_keys, &init_proof, &resp_fp).await;
 	});
 	let responder = tokio::spawn(async move {
-		accept(resp_side, &resp_keys_clone, |_| false).await
+		accept(resp_side, &resp_keys, &resp_proof, |_| false).await
 	});
 
 	let _ = initiator.await.unwrap();
 	let resp_result = responder.await.unwrap();
 
 	match resp_result {
-		Err(TransportError::PeerMismatch { expected_hex, got_hex }) => {
-			assert_eq!(expected_hex, "");
-			assert_eq!(got_hex, fingerprint_hex_from_static(&initiator_keys.public));
+		Err(TransportError::IdentityRejected { reason }) => {
+			assert!(
+				reason.contains(&init_fp),
+				"reason must mention the rejected fingerprint, got {reason:?}"
+			);
 		}
-		Ok(_) => panic!("expected PeerMismatch, got Ok(Session)"),
-		Err(other) => panic!("expected PeerMismatch, got {other:?}"),
+		Ok(_) => panic!("expected IdentityRejected, got Ok(Session)"),
+		Err(other) => panic!("expected IdentityRejected, got {other:?}"),
 	}
+}
+
+#[tokio::test]
+async fn responder_rejects_tampered_binding_signature() {
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	// Build a tampered initiator proof: swap the binding signature
+	// with bytes that decode to a valid `Signature` but verify against
+	// nothing in particular (sign an unrelated message with a fresh
+	// signing key).
+	let real = init_id.identity_proof();
+	let bogus_sig = [0xab_u8; SIGNATURE_LENGTH];
+	let tampered_proof = IdentityProof {
+		ed25519_pub_b64: real.ed25519_pub_b64.clone(),
+		binding_sig_b64: BASE64.encode(bogus_sig),
+	};
+	let resp_proof = resp_id.identity_proof();
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+
+	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
+
+	let initiator = tokio::spawn(async move {
+		let _ = open_to(init_side, &init_keys, &tampered_proof, &resp_fp).await;
+	});
+	let responder = tokio::spawn(async move {
+		accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await
+	});
+
+	let _ = initiator.await.unwrap();
+	let resp_result = responder.await.unwrap();
+	match resp_result {
+		Err(TransportError::IdentityRejected { reason }) => {
+			assert!(
+				reason.contains("binding sig verify"),
+				"reason must point at sig verify, got {reason:?}"
+			);
+		}
+		Ok(_) => panic!("expected IdentityRejected, got Ok(Session)"),
+		Err(other) => panic!("expected IdentityRejected, got {other:?}"),
+	}
+}
+
+#[tokio::test]
+async fn responder_rejects_wrong_ed25519_pub_in_proof() {
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	// Build a tampered initiator proof: swap the Ed25519 public key
+	// with the responder's own pub (decodes fine to a VerifyingKey but
+	// won't verify against the initiator's Noise static).
+	let real = init_id.identity_proof();
+	let wrong_pub_b64 = BASE64.encode(resp_id.public_key().as_bytes());
+	let tampered_proof = IdentityProof {
+		ed25519_pub_b64: wrong_pub_b64,
+		binding_sig_b64: real.binding_sig_b64.clone(),
+	};
+	let resp_proof = resp_id.identity_proof();
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+
+	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
+
+	let initiator = tokio::spawn(async move {
+		let _ = open_to(init_side, &init_keys, &tampered_proof, &resp_fp).await;
+	});
+	let responder = tokio::spawn(async move {
+		accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await
+	});
+
+	let _ = initiator.await.unwrap();
+	let resp_result = responder.await.unwrap();
+	match resp_result {
+		Err(TransportError::IdentityRejected { reason }) => {
+			assert!(
+				reason.contains("binding sig verify"),
+				"reason should report sig-verify failure when pub is swapped, got {reason:?}"
+			);
+		}
+		Ok(_) => panic!("expected IdentityRejected, got Ok(Session)"),
+		Err(other) => panic!("expected IdentityRejected, got {other:?}"),
+	}
+	// Suppress unused warnings on Signature import; the type is used
+	// implicitly via SIGNATURE_LENGTH and the binding decode paths.
+	let _ = std::mem::size_of::<Signature>();
+	let _ = std::mem::size_of::<VerifyingKey>();
 }
 
 // --- framing limits ---
@@ -278,13 +398,14 @@ async fn responder_rejects_oversized_handshake_frame_before_allocating() {
 	// triggers before any allocation. A fully-handshook session
 	// can't be observed for this property without opening private
 	// internals, so we exercise the same code path via `accept`.
-	let (_, responder_keys) = pair_keys();
-	let resp_keys_clone = responder_keys.clone();
+	let (_, resp_keys) = pair_keys();
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let resp_proof = resp_id.identity_proof();
 
 	let (mut init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
 	let responder = tokio::spawn(async move {
-		accept(resp_side, &resp_keys_clone, |_| true).await
+		accept(resp_side, &resp_keys, &resp_proof, |_| true).await
 	});
 
 	// Send a length prefix that exceeds MAX_FRAME_BYTES without any
@@ -310,22 +431,23 @@ async fn send_rejects_payload_larger_than_noise_message_limit() {
 	// snow caps one transport message at 65535 bytes, of which 16 go
 	// to the AES-GCM tag. Anything larger must be rejected before
 	// touching the wire.
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
-	let init_keys_clone = initiator_keys.clone();
-	let resp_keys_clone = responder_keys.clone();
-
 	let initiator = tokio::spawn(async move {
-		let mut s = open_to(init_side, &init_keys_clone, &responder_fp).await.unwrap();
+		let mut s = open_to(init_side, &init_keys, &init_proof, &resp_fp).await.unwrap();
 		let huge = vec![0_u8; u16::MAX as usize]; // > MAX_PLAIN (65519)
 		s.send(&huge).await
 	});
 	let responder = tokio::spawn(async move {
-		let _ = accept(resp_side, &resp_keys_clone, |fp| fp == initiator_fp).await.unwrap();
+		let _ = accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await.unwrap();
 		// Hold the session so the initiator's send goes through framing
 		// rather than failing on broken pipe. We don't recv anything.
 	});
@@ -343,29 +465,30 @@ async fn send_rejects_payload_larger_than_noise_message_limit() {
 
 #[tokio::test]
 async fn remote_static_matches_peer_public_key() {
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+	let (init_keys, resp_keys) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
+	let resp_fp = resp_id.fingerprint_hex();
+	let init_fp = init_id.fingerprint_hex();
+	let init_proof = init_id.identity_proof();
+	let resp_proof = resp_id.identity_proof();
+	let init_pub = init_keys.public;
+	let resp_pub = resp_keys.public;
 
 	let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
 
-	let init_keys_clone = initiator_keys.clone();
-	let resp_keys_clone = responder_keys.clone();
-	let initiator_pub = initiator_keys.public;
-	let responder_pub = responder_keys.public;
-
 	let initiator = tokio::spawn(async move {
-		open_to(init_side, &init_keys_clone, &responder_fp).await
+		open_to(init_side, &init_keys, &init_proof, &resp_fp).await
 	});
 	let responder = tokio::spawn(async move {
-		accept(resp_side, &resp_keys_clone, |fp| fp == initiator_fp).await
+		accept(resp_side, &resp_keys, &resp_proof, |fp| fp == init_fp).await
 	});
 
 	let init_session = initiator.await.unwrap().unwrap();
 	let resp_session = responder.await.unwrap().unwrap();
 
-	assert_eq!(init_session.remote_static(), responder_pub);
-	assert_eq!(resp_session.remote_static(), initiator_pub);
+	assert_eq!(init_session.remote_static(), resp_pub);
+	assert_eq!(resp_session.remote_static(), init_pub);
 }
 
 // --- ephemeral keys ensure forward secrecy ---
@@ -379,28 +502,32 @@ async fn two_sessions_have_independent_state_no_replay() {
 	// produce identical verified remote-static bytes — i.e. neither
 	// session's transport state bleeds into the next. State bleed
 	// would manifest as a handshake decryption failure on round 2.
-	let (initiator_keys, responder_keys) = pair_keys();
-	let responder_fp = fingerprint_hex_from_static(&responder_keys.public);
-	let initiator_fp = fingerprint_hex_from_static(&initiator_keys.public);
+	let (init_keys_seed, resp_keys_seed) = pair_keys();
+	let (init_id, _it) = identity_for(&INIT_SEED);
+	let (resp_id, _rt) = identity_for(&RESP_SEED);
 
 	for _ in 0..2 {
 		let (init_side, resp_side) = tokio::io::duplex(DUPLEX_CAP);
-		let init_keys_clone = initiator_keys.clone();
-		let resp_keys_clone = responder_keys.clone();
-		let resp_fp = responder_fp.clone();
-		let init_fp = initiator_fp.clone();
+		let init_keys_clone = init_keys_seed.clone();
+		let resp_keys_clone = resp_keys_seed.clone();
+		let resp_fp = resp_id.fingerprint_hex();
+		let init_fp = init_id.fingerprint_hex();
+		let init_proof = init_id.identity_proof();
+		let resp_proof = resp_id.identity_proof();
+		let init_pub = init_keys_clone.public;
+		let resp_pub = resp_keys_clone.public;
 		let initiator = tokio::spawn(async move {
-			let mut s = open_to(init_side, &init_keys_clone, &resp_fp).await.unwrap();
+			let mut s = open_to(init_side, &init_keys_clone, &init_proof, &resp_fp).await.unwrap();
 			s.send(b"probe").await.unwrap();
 			s.remote_static()
 		});
 		let responder = tokio::spawn(async move {
-			let mut s = accept(resp_side, &resp_keys_clone, |fp| fp == init_fp).await.unwrap();
+			let mut s = accept(resp_side, &resp_keys_clone, &resp_proof, |fp| fp == init_fp).await.unwrap();
 			let msg = s.recv().await.unwrap();
 			assert_eq!(msg, b"probe");
 			s.remote_static()
 		});
-		assert_eq!(initiator.await.unwrap(), responder_keys.public);
-		assert_eq!(responder.await.unwrap(), initiator_keys.public);
+		assert_eq!(initiator.await.unwrap(), resp_pub);
+		assert_eq!(responder.await.unwrap(), init_pub);
 	}
 }

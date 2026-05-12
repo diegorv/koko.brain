@@ -1,18 +1,26 @@
 //! Noise XX transport for LAN sync.
 //!
 //! Provides mutual authentication, forward secrecy, and AEAD framing
-//! for every TCP connection between paired devices. The peer's static
-//! public key is verified at the end of the handshake against the
-//! `expected_static_pub` argument (initiator side) or against a caller
-//! supplied predicate (responder side); any mismatch aborts the session
-//! before any application data is sent.
+//! for every TCP connection between paired devices. After the three
+//! Noise XX messages complete, both sides exchange an
+//! [`crate::sync::identity::IdentityProof`] as the first encrypted
+//! transport frame; this binds the Noise X25519 static they just
+//! authenticated to the long-lived Ed25519 device identity. Only the
+//! Ed25519 fingerprint surface is checked against the caller's
+//! expectation (initiator side) or the caller's accept predicate
+//! (responder side). Any mismatch — wrong Ed25519 public, invalid
+//! binding signature, or unexpected fingerprint — aborts the session
+//! with [`TransportError::IdentityRejected`] before any application
+//! data is sent.
 //!
 //! Static keys are derived deterministically from the device's
 //! Ed25519 identity by hashing the Ed25519 secret with SHA-256 and
-//! clamping to a valid X25519 scalar (RFC 7748 §5). This avoids
-//! managing a second key file in MVP. For production multi-device
-//! use, replace with an independent X25519 key generated alongside
-//! the Ed25519 identity at first install.
+//! clamping to a valid X25519 scalar (RFC 7748 §5). The binding
+//! signature exchanged after the handshake is what makes the Ed25519
+//! key the canonical identity surface even though the wire-level
+//! authentication runs over X25519. The X25519 keypair is intentionally
+//! NOT stored separately in MVP — every install derives it on demand
+//! from the Ed25519 secret.
 //!
 //! TODO(post-MVP): split the Noise static key off from the Ed25519
 //! identity. Reusing key material across signature and key-exchange
@@ -27,11 +35,15 @@
 use std::fmt;
 use std::io;
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use ed25519_dalek::{Signature, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 use sha2::{Digest, Sha256};
 use snow::params::DHChoice;
 use snow::resolvers::{CryptoResolver, DefaultResolver};
 use snow::{HandshakeState, TransportState};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+
+use crate::sync::identity::{fingerprint_hex, IdentityProof};
 
 /// Snow protocol descriptor used by both initiator and responder.
 ///
@@ -105,9 +117,20 @@ fn clamp_x25519_scalar(bytes: &mut [u8; X25519_KEY_LEN]) {
 
 /// Computes the first 16 lowercase hex chars of `SHA-256(static_pub)`.
 ///
-/// Matches the format used by `sync::identity::fingerprint_hex` for
-/// Ed25519 keys: same hash function, same prefix length, same case.
-/// Callers compare two fingerprints as plain string equality.
+/// **Deprecated since Hotfix H2.** This produced a fingerprint over the
+/// X25519 static, which diverges from
+/// [`crate::sync::identity::fingerprint_hex`] (the canonical Ed25519
+/// surface used by mDNS, the UI, and `peers.json`). Every real two-PC
+/// pair attempt fired `PeerMismatch` because the initiator pinned this
+/// value while the UI and announcer used the Ed25519 one. New code
+/// should call [`Session::remote_ed25519_fingerprint_hex`] (post-
+/// handshake) or [`crate::sync::identity::fingerprint_hex`] (when the
+/// Ed25519 public key is in hand). Retained in this commit so callers
+/// can be updated in the same diff without a forced ordering; safe to
+/// delete once nothing references it.
+#[deprecated(
+	note = "Use Session::remote_ed25519_fingerprint_hex; the X25519 fingerprint diverges from the identity surface and was the source of Hotfix H2's PeerMismatch bug."
+)]
 pub fn fingerprint_hex_from_static(static_pub: &[u8; X25519_KEY_LEN]) -> String {
 	let digest = Sha256::digest(static_pub);
 	digest.iter().take(8).map(|b| format!("{b:02x}")).collect()
@@ -123,6 +146,12 @@ pub enum TransportError {
 	/// The remote static key did not match the caller's expectation.
 	/// `expected_hex` is what the caller asked for; `got_hex` is the
 	/// fingerprint the peer actually presented.
+	///
+	/// **Note:** Hotfix H2 routes identity rejections through the new
+	/// [`TransportError::IdentityRejected`] variant. `PeerMismatch` is
+	/// retained for the older X25519-fingerprint path so existing
+	/// callers (and tests pinning the variant shape) keep compiling
+	/// against the deprecated [`fingerprint_hex_from_static`].
 	PeerMismatch {
 		/// Fingerprint the caller expected to see.
 		expected_hex: String,
@@ -134,6 +163,22 @@ pub enum TransportError {
 	/// The peer closed the stream cleanly. Returned from [`Session::recv`]
 	/// when EOF arrives before a complete length prefix.
 	Closed,
+	/// Post-handshake identity check failed. Possible causes (`reason`
+	/// holds a short human-readable tag for logging):
+	///
+	/// - the peer's [`IdentityProof`] JSON was malformed
+	/// - `ed25519_pub_b64` decoded to the wrong length / not a valid
+	///   curve point
+	/// - `binding_sig_b64` decoded to the wrong length / failed
+	///   `verify_strict` against the Noise-verified X25519 static
+	/// - the derived Ed25519 fingerprint did not match the caller's
+	///   pinned hex (initiator side) or the accept predicate rejected
+	///   it (responder side)
+	IdentityRejected {
+		/// Short tag identifying which check failed. Stable enough to
+		/// pattern-match in tests; not localised.
+		reason: String,
+	},
 }
 
 impl fmt::Display for TransportError {
@@ -149,6 +194,9 @@ impl fmt::Display for TransportError {
 				write!(f, "frame too large: {n} bytes > {MAX_FRAME_BYTES} max")
 			}
 			TransportError::Closed => write!(f, "session closed"),
+			TransportError::IdentityRejected { reason } => {
+				write!(f, "peer identity rejected: {reason}")
+			}
 		}
 	}
 }
@@ -179,9 +227,10 @@ impl From<io::Error> for TransportError {
 ///
 /// Wraps a TCP stream plus the Noise transport state. Each frame is
 /// prefixed with 4 big-endian bytes giving the ciphertext payload
-/// length. The session caches the verified remote static public key
-/// so callers can re-check trust on demand without touching the
-/// handshake state.
+/// length. The session caches the verified remote X25519 static, the
+/// remote Ed25519 public key (validated by the post-handshake
+/// [`IdentityProof`] exchange), and exposes both surfaces to callers
+/// so trust decisions can be expressed in either coordinate system.
 pub struct Session<S>
 where
 	S: AsyncRead + AsyncWrite + Unpin,
@@ -189,6 +238,7 @@ where
 	stream: S,
 	noise: TransportState,
 	remote_static: [u8; X25519_KEY_LEN],
+	remote_ed25519_pub: [u8; PUBLIC_KEY_LENGTH],
 }
 
 impl<S> Session<S>
@@ -231,28 +281,67 @@ where
 		Ok(plaintext)
 	}
 
-	/// Returns the verified remote static public key for this session.
+	/// Returns the verified remote X25519 static public key for this
+	/// session.
 	///
-	/// The value was captured during the handshake after the peer
+	/// The value was captured during the Noise handshake after the peer
 	/// proved possession of the matching private key, so callers can
 	/// trust it without re-running the Noise state machine.
 	pub fn remote_static(&self) -> [u8; X25519_KEY_LEN] {
 		self.remote_static
 	}
+
+	/// Returns the verified remote Ed25519 public key for this session.
+	///
+	/// The value was decoded from the peer's [`IdentityProof`] and
+	/// validated by checking the binding signature against
+	/// `remote_static()`, so callers can trust it without re-running
+	/// the proof exchange. This is the canonical identity surface and
+	/// drives `peers.json` / mDNS / UI comparisons.
+	pub fn remote_ed25519_pub(&self) -> [u8; PUBLIC_KEY_LENGTH] {
+		self.remote_ed25519_pub
+	}
+
+	/// Returns the first 16 lowercase hex chars of
+	/// `SHA-256(remote Ed25519 public key)`.
+	///
+	/// Matches [`crate::sync::identity::fingerprint_hex`] computed on
+	/// the peer's own [`crate::sync::identity::DeviceIdentity`] —
+	/// callers can compare with the value persisted in `peers.json` or
+	/// announced over mDNS.
+	pub fn remote_ed25519_fingerprint_hex(&self) -> String {
+		// `from_bytes` returns an error only when the bytes aren't a
+		// valid curve point; we already verified that during the proof
+		// exchange, so reuse the cached value.
+		match VerifyingKey::from_bytes(&self.remote_ed25519_pub) {
+			Ok(vk) => fingerprint_hex(&vk),
+			Err(_) => String::new(),
+		}
+	}
 }
 
-/// Initiator handshake. Establishes a Noise XX session, then verifies
-/// the resulting remote static key fingerprint against
-/// `expected_remote_fingerprint_hex` (first 16 hex chars of
-/// `SHA-256(remote_static)`).
+/// Initiator handshake. Establishes a Noise XX session, exchanges
+/// [`IdentityProof`]s, and verifies the resulting remote Ed25519
+/// fingerprint against `expected_remote_ed25519_fingerprint_hex`
+/// (first 16 hex chars of `SHA-256(remote Ed25519 public key)`).
 ///
-/// On mismatch returns [`TransportError::PeerMismatch`] *before* any
-/// application data is sent. The TCP stream is left in an undefined
-/// state on error; callers should drop it.
+/// Flow:
+/// 1. Three-message Noise XX (`-> e`, `<- e, ee, s, es`, `-> s, se`).
+/// 2. Initiator sends `my_identity_proof` as one encrypted frame.
+/// 3. Initiator receives the peer's [`IdentityProof`].
+/// 4. Initiator verifies the peer's binding signature against the
+///    Noise-verified X25519 remote-static.
+/// 5. Initiator compares the derived Ed25519 fingerprint hex to
+///    `expected_remote_ed25519_fingerprint_hex`; mismatch returns
+///    [`TransportError::IdentityRejected`].
+///
+/// On any error the TCP stream is left in an undefined state; callers
+/// should drop it.
 pub async fn open_to<S>(
 	mut stream: S,
 	my_keys: &StaticKeys,
-	expected_remote_fingerprint_hex: &str,
+	my_identity_proof: &IdentityProof,
+	expected_remote_ed25519_fingerprint_hex: &str,
 ) -> Result<Session<S>, TransportError>
 where
 	S: AsyncRead + AsyncWrite + Unpin + Send,
@@ -279,28 +368,57 @@ where
 	let remote_static = capture_remote_static(&handshake)?;
 	let transport = handshake.into_transport_mode()?;
 
-	let got_hex = fingerprint_hex_from_static(&remote_static);
-	if !constant_time_eq(got_hex.as_bytes(), expected_remote_fingerprint_hex.as_bytes()) {
-		return Err(TransportError::PeerMismatch {
-			expected_hex: expected_remote_fingerprint_hex.to_string(),
-			got_hex,
+	let mut session = Session {
+		stream,
+		noise: transport,
+		remote_static,
+		remote_ed25519_pub: [0u8; PUBLIC_KEY_LENGTH],
+	};
+
+	// IdentityProof exchange: send ours, then read theirs.
+	let my_proof_bytes = serde_json::to_vec(my_identity_proof)
+		.map_err(|e| TransportError::IdentityRejected { reason: format!("encode local proof: {e}") })?;
+	session.send(&my_proof_bytes).await?;
+
+	let peer_proof_bytes = session.recv().await?;
+	let peer_ed = verify_remote_identity_proof(&peer_proof_bytes, &remote_static)?;
+	session.remote_ed25519_pub = peer_ed.to_bytes();
+
+	let derived_hex = fingerprint_hex(&peer_ed);
+	if !constant_time_eq(
+		derived_hex.as_bytes(),
+		expected_remote_ed25519_fingerprint_hex.as_bytes(),
+	) {
+		return Err(TransportError::IdentityRejected {
+			reason: format!(
+				"ed25519 fingerprint mismatch: expected {expected_remote_ed25519_fingerprint_hex}, got {derived_hex}"
+			),
 		});
 	}
 
-	Ok(Session { stream, noise: transport, remote_static })
+	Ok(session)
 }
 
-/// Responder handshake. Reads the remote static key during XX, then
-/// checks the resulting fingerprint against `accept_predicate`.
+/// Responder handshake. Reads the remote X25519 static during Noise XX,
+/// exchanges [`IdentityProof`]s, then checks the derived Ed25519
+/// fingerprint against `accept_predicate`.
 ///
-/// If the predicate returns `false`, the session is aborted with
-/// [`TransportError::PeerMismatch`] (where `expected_hex` is empty
-/// because the responder has no specific expectation — only an
-/// accept/reject decision). The TCP stream is left in an undefined
-/// state on error; callers should drop it.
+/// Flow:
+/// 1. Three-message Noise XX.
+/// 2. Responder receives the peer's [`IdentityProof`].
+/// 3. Responder verifies the peer's binding signature against the
+///    Noise-verified X25519 remote-static.
+/// 4. Responder computes the Ed25519 fingerprint hex and passes it to
+///    `accept_predicate`. `false` returns
+///    [`TransportError::IdentityRejected`].
+/// 5. Responder sends `my_identity_proof` as the final frame.
+///
+/// On any error the TCP stream is left in an undefined state; callers
+/// should drop it.
 pub async fn accept<S, F>(
 	mut stream: S,
 	my_keys: &StaticKeys,
+	my_identity_proof: &IdentityProof,
 	accept_predicate: F,
 ) -> Result<Session<S>, TransportError>
 where
@@ -329,15 +447,91 @@ where
 	let remote_static = capture_remote_static(&handshake)?;
 	let transport = handshake.into_transport_mode()?;
 
-	let got_hex = fingerprint_hex_from_static(&remote_static);
-	if !accept_predicate(&got_hex) {
-		return Err(TransportError::PeerMismatch {
-			expected_hex: String::new(),
-			got_hex,
+	let mut session = Session {
+		stream,
+		noise: transport,
+		remote_static,
+		remote_ed25519_pub: [0u8; PUBLIC_KEY_LENGTH],
+	};
+
+	// IdentityProof exchange. The initiator sends first per `open_to`,
+	// so the responder reads first then writes back.
+	let peer_proof_bytes = session.recv().await?;
+	let peer_ed = verify_remote_identity_proof(&peer_proof_bytes, &remote_static)?;
+	session.remote_ed25519_pub = peer_ed.to_bytes();
+
+	let derived_hex = fingerprint_hex(&peer_ed);
+	if !accept_predicate(&derived_hex) {
+		return Err(TransportError::IdentityRejected {
+			reason: format!("predicate rejected ed25519 fingerprint {derived_hex}"),
 		});
 	}
 
-	Ok(Session { stream, noise: transport, remote_static })
+	let my_proof_bytes = serde_json::to_vec(my_identity_proof)
+		.map_err(|e| TransportError::IdentityRejected { reason: format!("encode local proof: {e}") })?;
+	session.send(&my_proof_bytes).await?;
+
+	Ok(session)
+}
+
+/// Decodes an [`IdentityProof`] from JSON bytes and verifies the
+/// binding signature against `remote_static` (the X25519 public the
+/// Noise handshake just authenticated). Returns the recovered
+/// Ed25519 [`VerifyingKey`] on success.
+///
+/// All failure paths produce [`TransportError::IdentityRejected`] with
+/// a short tag describing which check failed.
+fn verify_remote_identity_proof(
+	proof_bytes: &[u8],
+	remote_static: &[u8; X25519_KEY_LEN],
+) -> Result<VerifyingKey, TransportError> {
+	let proof: IdentityProof = serde_json::from_slice(proof_bytes).map_err(|e| {
+		TransportError::IdentityRejected { reason: format!("decode proof json: {e}") }
+	})?;
+
+	let ed_bytes = BASE64
+		.decode(proof.ed25519_pub_b64.as_bytes())
+		.map_err(|e| TransportError::IdentityRejected {
+			reason: format!("ed25519 pub b64 decode: {e}"),
+		})?;
+	if ed_bytes.len() != PUBLIC_KEY_LENGTH {
+		return Err(TransportError::IdentityRejected {
+			reason: format!(
+				"ed25519 pub wrong length: expected {PUBLIC_KEY_LENGTH}, got {}",
+				ed_bytes.len()
+			),
+		});
+	}
+	let mut ed_arr = [0u8; PUBLIC_KEY_LENGTH];
+	ed_arr.copy_from_slice(&ed_bytes);
+	let verifying_key = VerifyingKey::from_bytes(&ed_arr).map_err(|e| {
+		TransportError::IdentityRejected { reason: format!("ed25519 pub invalid: {e}") }
+	})?;
+
+	let sig_bytes = BASE64
+		.decode(proof.binding_sig_b64.as_bytes())
+		.map_err(|e| TransportError::IdentityRejected {
+			reason: format!("binding sig b64 decode: {e}"),
+		})?;
+	if sig_bytes.len() != SIGNATURE_LENGTH {
+		return Err(TransportError::IdentityRejected {
+			reason: format!(
+				"binding sig wrong length: expected {SIGNATURE_LENGTH}, got {}",
+				sig_bytes.len()
+			),
+		});
+	}
+	let mut sig_arr = [0u8; SIGNATURE_LENGTH];
+	sig_arr.copy_from_slice(&sig_bytes);
+	let signature = Signature::from_bytes(&sig_arr);
+
+	verifying_key
+		.verify_strict(remote_static, &signature)
+		.map_err(|e| TransportError::IdentityRejected {
+			reason: format!("binding sig verify: {e}"),
+		})?;
+
+	Ok(verifying_key)
 }
 
 /// Reads the remote static public key out of a finished `HandshakeState`.

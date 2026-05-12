@@ -15,7 +15,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use ed25519_dalek::VerifyingKey;
 use serde::{Deserialize, Serialize};
+
+use crate::sync::identity::fingerprint_hex;
 
 /// Length of an Ed25519 public key, in bytes. Matches
 /// `ed25519_dalek::PUBLIC_KEY_LENGTH`.
@@ -60,21 +63,44 @@ pub fn peers_path(vault_root: &Path) -> PathBuf {
 /// file does not exist yet (a brand-new vault has trusted no one).
 ///
 /// Records whose `public_key_b64` does not decode to exactly
-/// [`PUBLIC_KEY_LEN`] bytes are skipped and an `eprintln!` warning is
+/// [`PUBLIC_KEY_LEN`] bytes, or whose bytes do not parse as a valid
+/// Ed25519 [`VerifyingKey`], are skipped and an `eprintln!` warning is
 /// emitted; the rest of the file is still parsed. JSON parse errors on
 /// the whole document propagate via [`io::ErrorKind::InvalidData`].
+///
+/// Before returning, [`migrate_in_place`] runs against the on-disk
+/// copy so any pre-H2 records whose `public_key_b64` already holds an
+/// Ed25519 key but whose `fingerprint_hex` was computed from the old
+/// X25519 derivation get rewritten in place. Idempotent and cheap when
+/// nothing needs migrating.
 pub fn load(vault_root: &Path) -> io::Result<Vec<TrustedPeer>> {
 	let path = peers_path(vault_root);
 	if !path.exists() {
 		return Ok(Vec::new());
 	}
+
+	// Self-heal pre-H2 fingerprint_hex mismatches before parsing the
+	// freshly-rewritten file. Cheap when there's nothing to fix.
+	migrate_in_place(vault_root)?;
+
 	let raw = fs::read(&path)?;
 	let parsed: Vec<TrustedPeer> = serde_json::from_slice(&raw)
 		.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 	let mut out = Vec::with_capacity(parsed.len());
 	for peer in parsed {
 		match BASE64.decode(peer.public_key_b64.as_bytes()) {
-			Ok(bytes) if bytes.len() == PUBLIC_KEY_LEN => out.push(peer),
+			Ok(bytes) if bytes.len() == PUBLIC_KEY_LEN => {
+				let mut arr = [0u8; PUBLIC_KEY_LEN];
+				arr.copy_from_slice(&bytes);
+				if VerifyingKey::from_bytes(&arr).is_ok() {
+					out.push(peer);
+				} else {
+					eprintln!(
+						"[sync::trust] skipping peer {}: 32-byte pubkey is not a valid Ed25519 curve point",
+						peer.fingerprint_hex
+					);
+				}
+			}
 			Ok(bytes) => {
 				eprintln!(
 					"[sync::trust] skipping peer {}: public key has {} bytes, expected {}",
@@ -92,6 +118,66 @@ pub fn load(vault_root: &Path) -> io::Result<Vec<TrustedPeer>> {
 		}
 	}
 	Ok(out)
+}
+
+/// Self-heals the on-disk trust store for `vault_root` by rewriting
+/// any record whose `public_key_b64` decodes to a valid Ed25519
+/// [`VerifyingKey`] but whose `fingerprint_hex` does not match
+/// [`crate::sync::identity::fingerprint_hex`] over that key.
+///
+/// This migrates Stage-8-era initiator-side records (where the wire
+/// pubkey was already the Ed25519 key but the fingerprint was computed
+/// from the X25519-derived hash) onto the Hotfix H2 surface in place.
+/// Responder-side records from the same era stored the X25519 static
+/// in `public_key_b64`; those bytes fail
+/// [`VerifyingKey::from_bytes`] with high probability and are dropped
+/// by [`load`] without intervention here.
+///
+/// Behaviour:
+/// - missing file: no-op (returns `Ok(())`).
+/// - file present, no record needs migration: no-op (no rewrite).
+/// - one or more records need rewriting: in-memory `fingerprint_hex`
+///   is overwritten and the full vector is re-persisted via [`save`].
+/// - records whose `public_key_b64` is malformed are left as-is — the
+///   skip happens in [`load`] when it next reads.
+///
+/// Idempotent: a second call after a successful migration is a no-op.
+pub fn migrate_in_place(vault_root: &Path) -> io::Result<()> {
+	let path = peers_path(vault_root);
+	if !path.exists() {
+		return Ok(());
+	}
+	let raw = fs::read(&path)?;
+	let mut parsed: Vec<TrustedPeer> = serde_json::from_slice(&raw)
+		.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+	let mut changed = false;
+	for peer in &mut parsed {
+		let bytes = match BASE64.decode(peer.public_key_b64.as_bytes()) {
+			Ok(b) if b.len() == PUBLIC_KEY_LEN => b,
+			_ => continue,
+		};
+		let mut arr = [0u8; PUBLIC_KEY_LEN];
+		arr.copy_from_slice(&bytes);
+		let vk = match VerifyingKey::from_bytes(&arr) {
+			Ok(vk) => vk,
+			Err(_) => continue,
+		};
+		let derived = fingerprint_hex(&vk);
+		if peer.fingerprint_hex != derived {
+			eprintln!(
+				"[sync::trust] migrating peer fingerprint {} -> {}",
+				peer.fingerprint_hex, derived
+			);
+			peer.fingerprint_hex = derived;
+			changed = true;
+		}
+	}
+
+	if changed {
+		save(vault_root, &parsed)?;
+	}
+	Ok(())
 }
 
 /// Persists `peers` to `peers.json` for the given `vault_root`.
