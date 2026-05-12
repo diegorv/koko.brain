@@ -14,7 +14,7 @@ Smallest end-to-end useful slice of LAN sync: see peers on the LAN, pair with on
 - [ ] Stage 7: One-shot folder push with atomic apply + traversal defense
 - [ ] Stage 8: Pairing + push commands wired
 - [x] Stage 3F-2 (P1C-2F): Frontend service layer with mockable transport
-- [ ] Stage 3F-3 (P1C-3F-a): LanSyncSettings.svelte component + tests
+- [x] Stage 3F-3 (P1C-3F-a): LanSyncSettings.svelte component + tests
 - [ ] Stage 3F-3 (P1C-3F-b): PairingPrompt.svelte component + tests
 - [ ] Stage 3F-3 (P1C-3F-c): PushFolderDialog.svelte component + tests
 - [ ] Stage 9: Wire frontend service to real Tauri backend
