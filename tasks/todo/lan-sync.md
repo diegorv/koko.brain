@@ -17,7 +17,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 9: State DB (SQLite schema: share_state, file_state, tombstones) + manifest paginado + diff engine (LWW por Lamport/mtime/fingerprint)
 - [x] Task 10: Conflict resolution (LWW por Lamport+mtime+fingerprint) + atomic writes (tmp+fsync+rename) + save_conflict_copy + cleanup_orphan_tmp_files + Camera 2/3 path validation
 - [x] Task 11: Empty directories sync — apply_inbound_directory_create/delete + collect_empty_directories scan (predicate-gated)
-- [ ] Task 12: Rename detection (correlação delete+create por hash em janela 200ms)
+- [x] Task 12: Rename detection (pure correlação delete+create por hash). A integração com janela de 200ms no watcher consumer fica para a Task 13.
 - [ ] Task 13: Watcher integration (broadcaster em vault/watcher.rs sem remover emit existente; spawn_watcher_consumer aplica should_sync_path)
 - [ ] Task 14: Auth log (auth_events audit + auth_blocks rate limit 5/15min → 24h block; retention 30d)
 - [ ] Task 15: Tauri commands em commands/sync.rs + registro em lib.rs
