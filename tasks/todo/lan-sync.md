@@ -18,7 +18,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 10: Conflict resolution (LWW por Lamport+mtime+fingerprint) + atomic writes (tmp+fsync+rename) + save_conflict_copy + cleanup_orphan_tmp_files + Camera 2/3 path validation
 - [x] Task 11: Empty directories sync — apply_inbound_directory_create/delete + collect_empty_directories scan (predicate-gated)
 - [x] Task 12: Rename detection (pure correlação delete+create por hash). A integração com janela de 200ms no watcher consumer fica para a Task 13.
-- [ ] Task 13: Watcher integration (broadcaster em vault/watcher.rs sem remover emit existente; spawn_watcher_consumer aplica should_sync_path)
+- [x] Task 13: Watcher integration — sync/watcher_bridge.rs (broadcaster global via OnceLock + broadcast::Sender) com 1 fan-out call adicionado em vault/watcher.rs sem alterar struct/emit existente. O `spawn_watcher_consumer` que aplica should_sync_path fica para a Task 15 (Tauri commands) onde a LanSyncState assina via subscribe().
 - [ ] Task 14: Auth log (auth_events audit + auth_blocks rate limit 5/15min → 24h block; retention 30d)
 - [ ] Task 15: Tauri commands em commands/sync.rs + registro em lib.rs
 - [ ] Task 16: Frontend types + store + service + settings entry + testes vitest

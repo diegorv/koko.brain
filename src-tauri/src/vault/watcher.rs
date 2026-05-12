@@ -280,6 +280,13 @@ pub fn start_vault_watcher(
 ) -> Result<(), String> {
 	let app_clone = app.clone();
 	let on_change = move |paths: Vec<String>| {
+		// Fan-out point: LAN sync (and any future Rust-side consumer)
+		// subscribes to `sync::watcher_bridge`. Forward BEFORE emit so
+		// subscribers see updates at roughly the same instant as the
+		// frontend. Forward is fire-and-forget; subscriber lag won't
+		// stall the frontend emit.
+		crate::sync::watcher_bridge::forward(paths.clone());
+
 		let payload = VaultFilesChangedPayload { paths };
 		if let Err(e) = app_clone.emit(VAULT_FILES_CHANGED_EVENT, &payload) {
 			debug_log("WATCHER", format!("emit failed: {}", e));
