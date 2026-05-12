@@ -29,7 +29,8 @@
         "enable": true,
         "scope": [
           "$DOCUMENT/**",
-          "$HOME/MyFiles/**"
+          "$HOME/MyFiles/**",
+          "$HOME/kokobrain-vault/**"
         ]
       }
     }
