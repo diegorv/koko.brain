@@ -1,3 +1,5 @@
+import { openFileInEditor } from '$lib/core/editor/editor.service';
+
 /**
  * Opens a wikilink target, mirroring the editor's click behaviour:
  * - Resolves against the file tree and opens if found.
@@ -16,7 +18,6 @@ export async function openWikilinkTarget(target: string): Promise<void> {
 	const { fsStore } = await import('$lib/core/filesystem/fs.store.svelte');
 	const { flattenFileTree } = await import('$lib/features/quick-switcher/quick-switcher.logic');
 	const { resolveWikilink } = await import('$lib/features/backlinks/backlinks.logic');
-	const { openFileInEditor } = await import('$lib/core/editor/editor.service');
 
 	const files = flattenFileTree(fsStore.fileTree);
 	const allPaths = files.map((f) => f.path);
