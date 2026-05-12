@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { dedupeInflight } from '$lib/utils/inflight';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -25,6 +26,16 @@ function isStillCurrentPath(fetchedPath: string): boolean {
 let vaultPath: string | null = null;
 let isBuilding = false;
 let pendingRebuild = false;
+
+/**
+ * Per-path cache of the `vaultStore.vaultIndexVersion` value at which we
+ * last wrote `linkedMentions` for that path. Used by the stale-aware
+ * skip in `fetchBacklinksV2Inner` — a save-burst that re-fires the
+ * panel `$effect` 5 times within 1 s should produce one IPC, not five.
+ */
+const lastFetchedBacklinksVersion = new Map<string, number>();
+/** Same idea as `lastFetchedBacklinksVersion`, for unlinked-mentions. */
+const lastFetchedUnlinkedVersion = new Map<string, number>();
 
 /**
  * Bootstraps the Rust `VaultIndex` for the given vault path. Replaces
@@ -71,12 +82,31 @@ export async function rebuildIndex() {
  * Used by both the +layout.svelte tab-switch effect (path change) and
  * `BacklinksPanel.svelte` (path change OR `vaultStore.vaultIndexVersion`
  * bump). Wrapped in `dedupeInflight` so concurrent calls for the same
- * `path` collapse into a single IPC — this is the common case during a
- * tab switch + version bump landing in the same JS turn. Errors are
- * logged via `errorLog('BACKLINKS', ...)` and swallowed — the linked-
- * mentions panel keeps its prior contents on IPC failure.
+ * `path` collapse into a single IPC — this handles the burst case where
+ * a tab switch + a version bump land in the same JS turn.
+ *
+ * Stale-aware skip: a snapshot of `vaultStore.vaultIndexVersion` is taken
+ * on entry. If it matches the last value at which we successfully wrote
+ * `linkedMentions` for this path, the IPC is skipped — the panel data
+ * is already up to date with the current Rust `VaultIndex` state. This
+ * elides redundant IPCs in burst-save scenarios where the panel effect
+ * re-fires several times across 150 ms debounce windows but the
+ * underlying data for the active tab has not changed.
+ *
+ * Errors are logged via `errorLog('BACKLINKS', ...)` and swallowed — the
+ * linked-mentions panel keeps its prior contents on IPC failure. The
+ * stale-cache is NOT updated on error, so the next call retries.
  */
 async function fetchBacklinksV2Inner(path: string): Promise<void> {
+	const snapshotVersion = vaultStore.vaultIndexVersion;
+	if (lastFetchedBacklinksVersion.get(path) === snapshotVersion) {
+		// Data on screen already matches this version of the Rust index.
+		// Common in burst-save: 5 saves emit 5 bumps, BacklinksPanel's
+		// 150 ms debounce coalesces inside each window but each window's
+		// debounced trigger still hits the service — without this guard
+		// each one would fan out to Rust unnecessarily.
+		return;
+	}
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
@@ -90,6 +120,7 @@ async function fetchBacklinksV2Inner(path: string): Promise<void> {
 		}
 		const linked = entries.map(noteEntryV2ToBacklinkEntry);
 		backlinksStore.setLinkedMentions(linked);
+		lastFetchedBacklinksVersion.set(path, snapshotVersion);
 		perfEnd('BACKLINKS', 'fetchBacklinksV2', t0);
 	} catch (err) {
 		errorLog('BACKLINKS', 'fetchBacklinksV2 failed:', err);
@@ -110,10 +141,15 @@ export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: str
  * Wrapped in `dedupeInflight` because the BacklinksPanel `$effect`
  * tracks `(unlinkedDirty, activeTabPath, unlinkedOpen)` and can re-fire
  * for the same `filePath` while a prior IPC is still in flight (e.g. a
- * dirty-bump arrives during a 400 ms disk scan). Errors are logged
- * via `errorLog('BACKLINKS', ...)` and swallowed.
+ * dirty-bump arrives during a 400 ms disk scan). Stale-aware skip on
+ * `vaultIndexVersion` matches the `fetchBacklinksV2` rationale.
+ * Errors are logged via `errorLog('BACKLINKS', ...)` and swallowed.
  */
 async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<void> {
+	const snapshotVersion = vaultStore.vaultIndexVersion;
+	if (lastFetchedUnlinkedVersion.get(filePath) === snapshotVersion) {
+		return;
+	}
 	const t0 = perfStart();
 	try {
 		const entries = await invoke<NoteEntryV2[]>('get_unlinked_mentions_v2', { path: filePath });
@@ -126,6 +162,7 @@ async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<vo
 		}
 		const unlinked = entries.map(noteEntryV2ToBacklinkEntry);
 		backlinksStore.setUnlinkedMentions(unlinked);
+		lastFetchedUnlinkedVersion.set(filePath, snapshotVersion);
 		perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile', t0);
 	} catch (err) {
 		errorLog('BACKLINKS', 'computeUnlinkedMentionsForFile failed:', err);
@@ -140,5 +177,7 @@ export function resetBacklinks() {
 	vaultPath = null;
 	isBuilding = false;
 	pendingRebuild = false;
+	lastFetchedBacklinksVersion.clear();
+	lastFetchedUnlinkedVersion.clear();
 	backlinksStore.reset();
 }

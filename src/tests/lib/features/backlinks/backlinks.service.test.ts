@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import {
 	buildIndex,
 	rebuildIndex,
@@ -19,6 +20,8 @@ describe('buildIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
 	});
 
 	it('invokes scan_vault_v2 with the vault path', async () => {
@@ -65,6 +68,8 @@ describe('rebuildIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
 	});
 
 	it('replays the cached vault path through buildIndex', async () => {
@@ -88,6 +93,8 @@ describe('computeUnlinkedMentionsForFile', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
 	});
 
 	it('invokes get_unlinked_mentions_v2 and writes to backlinksStore', async () => {
@@ -163,6 +170,8 @@ describe('fetchBacklinksV2', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
 	});
 
 	it('invokes get_backlinks_v2 with the path', async () => {
@@ -240,6 +249,8 @@ describe('fetchBacklinksV2 — in-flight deduplication', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
 	});
 
 	it('collapses concurrent same-path calls into one IPC', async () => {
@@ -272,12 +283,115 @@ describe('fetchBacklinksV2 — in-flight deduplication', () => {
 		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/b.md' });
 	});
 
-	it('clears the dedup cache after settle', async () => {
+	it('clears the in-flight dedup cache after settle (so different paths can fire next)', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/a.md');
+		await fetchBacklinksV2('/vault/b.md');
+
+		// Distinct paths bypass the stale-version short-circuit and the
+		// in-flight cache must be empty after the first settle so the
+		// second call reaches the IPC.
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('fetchBacklinksV2 — stale-aware version skip', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+		vaultStore._reset();
+	});
+
+	it('skips the IPC when vaultIndexVersion has not changed since last successful fetch', async () => {
 		vi.mocked(invoke).mockResolvedValue([]);
 
 		await fetchBacklinksV2('/vault/a.md');
 		await fetchBacklinksV2('/vault/a.md');
+		await fetchBacklinksV2('/vault/a.md');
 
+		// First call hits Rust (no prior version recorded); subsequent
+		// calls at the same version short-circuit before the IPC.
+		expect(invoke).toHaveBeenCalledTimes(1);
+	});
+
+	it('re-fires the IPC after vaultIndexVersion bumps', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/a.md');
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		vaultStore.bumpVaultIndexVersion(1);
+		await fetchBacklinksV2('/vault/a.md');
+
+		// New version → cache miss → fresh IPC.
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('does not record the version when the IPC errors (next call retries)', async () => {
+		vi.mocked(invoke)
+			.mockRejectedValueOnce(new Error('boom'))
+			.mockResolvedValueOnce([]);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await fetchBacklinksV2('/vault/a.md');
+		await fetchBacklinksV2('/vault/a.md');
+
+		// First call errored — second call still fires a fresh IPC.
+		expect(invoke).toHaveBeenCalledTimes(2);
+		consoleSpy.mockRestore();
+	});
+
+	it('does not record the version when the active tab changed mid-IPC', async () => {
+		let resolveIpc!: (v: unknown) => void;
+		vi.mocked(invoke).mockImplementation(() => new Promise((r) => { resolveIpc = r; }));
+
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '',
+			savedContent: '',
+		});
+
+		const fetch1 = fetchBacklinksV2('/vault/a.md');
+
+		editorStore.addTab({
+			path: '/vault/b.md',
+			name: 'b.md',
+			content: '',
+			savedContent: '',
+		});
+
+		resolveIpc([]);
+		await fetch1;
+
+		// Re-activate /vault/a.md and try again — version is the same but
+		// the prior write was dropped by the stale-path guard, so the
+		// store has no fresh data. The stale-version cache must NOT have
+		// been written.
+		vi.mocked(invoke).mockResolvedValueOnce([]);
+		editorStore.removeTab(1); // close /vault/b.md → /vault/a.md becomes active again
+		await fetchBacklinksV2('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('resetBacklinks clears the stale-version cache so the next fetch hits IPC', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await fetchBacklinksV2('/vault/a.md');
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		resetBacklinks();
+		// Re-attach a tab so the active-path guard does not drop the result.
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '',
+			savedContent: '',
+		});
+
+		await fetchBacklinksV2('/vault/a.md');
 		expect(invoke).toHaveBeenCalledTimes(2);
 	});
 });
@@ -286,6 +400,7 @@ describe('fetchBacklinksV2 — active-path guard', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
 		editorStore.reset();
 	});
 
@@ -378,6 +493,7 @@ describe('computeUnlinkedMentionsForFile — active-path guard', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
 		editorStore.reset();
 	});
 
@@ -425,6 +541,8 @@ describe('computeUnlinkedMentionsForFile — in-flight deduplication', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
 	});
 
 	it('collapses concurrent same-path calls into one IPC', async () => {
@@ -453,11 +571,11 @@ describe('computeUnlinkedMentionsForFile — in-flight deduplication', () => {
 		expect(invoke).toHaveBeenCalledTimes(2);
 	});
 
-	it('clears the dedup cache after settle', async () => {
+	it('clears the in-flight dedup cache after settle (so different paths can fire next)', async () => {
 		vi.mocked(invoke).mockResolvedValue([]);
 
 		await computeUnlinkedMentionsForFile('/vault/a.md');
-		await computeUnlinkedMentionsForFile('/vault/a.md');
+		await computeUnlinkedMentionsForFile('/vault/b.md');
 
 		expect(invoke).toHaveBeenCalledTimes(2);
 	});
@@ -468,6 +586,35 @@ describe('computeUnlinkedMentionsForFile — in-flight deduplication', () => {
 			.mockResolvedValueOnce([]);
 
 		await computeUnlinkedMentionsForFile('/vault/a.md');
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('computeUnlinkedMentionsForFile — stale-aware version skip', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+		vaultStore._reset();
+	});
+
+	it('skips the IPC when vaultIndexVersion has not changed since last successful fetch', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+
+		expect(invoke).toHaveBeenCalledTimes(1);
+	});
+
+	it('re-fires the IPC after vaultIndexVersion bumps', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await computeUnlinkedMentionsForFile('/vault/a.md');
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		vaultStore.bumpVaultIndexVersion(1);
 		await computeUnlinkedMentionsForFile('/vault/a.md');
 
 		expect(invoke).toHaveBeenCalledTimes(2);

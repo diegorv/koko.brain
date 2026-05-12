@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { dedupeInflight } from '$lib/utils/inflight';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { outgoingLinksStore } from './outgoing-links.store.svelte';
 import type { OutgoingLink, OutgoingUnlinkedMention } from './outgoing-links.types';
 import type { OutgoingLinkV2, OutgoingUnlinkedMentionV2 } from '$lib/types/vault-v2.types';
@@ -11,6 +12,14 @@ function isStillCurrentPath(fetchedPath: string): boolean {
 	const current = editorStore.activeTabPath;
 	return current == null || current === fetchedPath;
 }
+
+/**
+ * Composite cache key — outgoing links depend on `(path, content)`
+ * because the unlinked-mentions scan reads the active tab's body. A
+ * content edit at the same `vaultIndexVersion` still needs a re-fetch.
+ */
+type OutgoingFetchKey = string; // `${vaultIndexVersion}:${contentLen}:${path}`
+const lastFetchedOutgoingKey = new Map<string, OutgoingFetchKey>();
 
 /**
  * Deduplicates outgoing links by lowercase target, preserving first-occurrence order.
@@ -47,11 +56,24 @@ function deduplicateByTarget(links: OutgoingLinkV2[]): OutgoingLink[] {
  * bounded by the IPC roundtrip; the next reactive trigger fires a fresh
  * invocation. (See `inflight.ts` for the full rationale.)
  *
+ * Stale-aware skip: tracks the `(vaultIndexVersion, contentLen)` pair
+ * at which we last successfully wrote to `outgoingLinksStore` for this
+ * path. A subsequent call with the same pair short-circuits to elide
+ * the redundant IPC in burst-save scenarios. `contentLen` is a cheap
+ * proxy for "did the active tab body change" — false-negatives (same
+ * length, different bytes) are bounded by the next true bump
+ * advancing `vaultIndexVersion`.
+ *
  * Phase 6 of the perf refactor — replaces the prior
  * `updateOutgoingLinksForFile` which scanned the TS reverse index on the
  * main thread.
  */
 async function fetchOutgoingLinksV2Inner(path: string, content: string): Promise<void> {
+	const snapshotKey: OutgoingFetchKey =
+		`${vaultStore.vaultIndexVersion}:${content.length}:${path}`;
+	if (lastFetchedOutgoingKey.get(path) === snapshotKey) {
+		return;
+	}
 	const t0 = perfStart();
 	try {
 		const [linksRaw, unlinkedRaw] = await Promise.all([
@@ -66,6 +88,7 @@ async function fetchOutgoingLinksV2Inner(path: string, content: string): Promise
 		}
 		outgoingLinksStore.setOutgoingLinks(deduplicateByTarget(linksRaw));
 		outgoingLinksStore.setUnlinkedMentions(unlinkedRaw as OutgoingUnlinkedMention[]);
+		lastFetchedOutgoingKey.set(path, snapshotKey);
 		perfEnd('OUTGOING', 'fetchOutgoingLinksV2', t0);
 	} catch (err) {
 		errorLog('OUTGOING', 'fetchOutgoingLinksV2 failed:', err);
@@ -77,5 +100,6 @@ export const fetchOutgoingLinksV2 = dedupeInflight(
 );
 
 export function resetOutgoingLinks() {
+	lastFetchedOutgoingKey.clear();
 	outgoingLinksStore.reset();
 }
