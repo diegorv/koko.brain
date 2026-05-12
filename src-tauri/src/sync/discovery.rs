@@ -290,8 +290,61 @@ pub fn build_announce_txt(cfg: &AnnounceConfig) -> Vec<(&'static str, String)> {
 	]
 }
 
-// NOTE: live `MdnsAnnouncer` and `MdnsBrowser` structs that wrap
-// `mdns_sd::ServiceDaemon` will be added together with the Tauri
-// command wiring (Task 15). They are intentionally not exported now
-// so we don't ship dead network code; the validated helpers above
-// are the contract everyone agrees on.
+/// Computes the 8-char vault label hash (first 4 bytes of
+/// SHA-256(vault_root_path) rendered as lowercase hex). Identifies
+/// the *vault* (not the device) so two vaults running on the same
+/// machine can be told apart in the TXT record.
+pub fn compute_vault_label_hash(vault_path: &std::path::Path) -> String {
+	use sha2_v10::{Digest, Sha256};
+	let mut hasher = Sha256::new();
+	hasher.update(vault_path.to_string_lossy().as_bytes());
+	let digest: [u8; 32] = hasher.finalize().into();
+	digest[..4]
+		.iter()
+		.map(|b| format!("{b:02x}"))
+		.collect()
+}
+
+/// Strips the `XXXX-XXXX-XXXX-XXXX` separators from a fingerprint
+/// hex so it can be embedded in an mDNS instance name (which must
+/// stay short and dot-free). Returns the lowercase 16-char form.
+pub fn fingerprint_hex_compact(fingerprint_hex: &str) -> String {
+	fingerprint_hex
+		.chars()
+		.filter(|c| *c != '-')
+		.flat_map(|c| c.to_lowercase())
+		.collect()
+}
+
+/// Reverse helper of [`build_discovered_peer`] that consumes a fully
+/// resolved `mdns_sd::ServiceInfo` instead of taking an arbitrary
+/// `txt_lookup` closure. Pulled out so the browser loop in the
+/// Tauri command layer reads cleanly.
+///
+/// Returns `Ok(None)` (not `Err`) when the advertised peer is the
+/// *local* device itself - this happens whenever the same daemon
+/// announces and browses, and the loopback packets reach the
+/// browser. Self-discoveries are filtered by comparing the resolved
+/// fingerprint hex against `our_fingerprint_hex`.
+pub fn service_info_to_discovered_peer(
+	info: &mdns_sd::ServiceInfo,
+	our_fingerprint_hex: &str,
+) -> Result<Option<DiscoveredPeer>, DiscoveryError> {
+	let addresses: Vec<IpAddr> = info.get_addresses().iter().copied().collect();
+	let port = info.get_port();
+	let peer = build_discovered_peer(&addresses, port, |key| {
+		info.get_property_val_str(key).map(|s| s.to_string())
+	})?;
+	// `validate_advertised_fingerprint` already normalises the
+	// returned fingerprint to uppercase compact form. Apply the same
+	// transformation to the caller-supplied `our_fingerprint_hex`
+	// before comparing so dashes / lowercase do not mask a true
+	// self-loopback.
+	let ours = fingerprint_hex_compact(our_fingerprint_hex);
+	let theirs = fingerprint_hex_compact(&peer.fingerprint_hex);
+	if ours.eq_ignore_ascii_case(&theirs) {
+		Ok(None)
+	} else {
+		Ok(Some(peer))
+	}
+}

@@ -46,6 +46,32 @@ struct LanSyncInner {
 	/// `lan-sync:*` events without each call site re-injecting it.
 	/// Cloned freely from this slot; `AppHandle` is cheap to clone.
 	app_handle: Option<tauri::AppHandle>,
+	/// mDNS daemon + announcer fullname + browser task. Lazy-init on
+	/// first `set_discoverable(true)` or `start_browse(...)` call;
+	/// shut down on process exit. The same daemon is shared between
+	/// announce and browse to avoid binding two UDP sockets.
+	mdns: Option<MdnsHandles>,
+}
+
+/// Bundle of mDNS resources held by `LanSyncState`. Constructed
+/// lazily on the first command that needs network discovery.
+pub struct MdnsHandles {
+	daemon: mdns_sd::ServiceDaemon,
+	/// `ServiceInfo::get_fullname()` of our announce registration -
+	/// `None` until `set_discoverable(true)` succeeds. Stored so we
+	/// can call `daemon.unregister(...)` on `set_discoverable(false)`.
+	announce_fullname: Option<String>,
+	/// Browser background task abort handle. `None` while no
+	/// browse is in flight; populated by `start_browse`.
+	browser: Option<tokio::task::JoinHandle<()>>,
+	/// Cached compact fingerprint of the local identity, used so the
+	/// browser loop can drop loopback announcements that originate
+	/// from this very daemon.
+	our_fingerprint_hex: String,
+	/// TCP port the local sync server is bound on. Defaults to 0 if
+	/// the announce was started before the server (re-registers
+	/// happen when `lan_sync_start` lands in Stage 5).
+	announced_port: u16,
 }
 
 /// Identity account slot. Single per install (the slot would change
@@ -90,6 +116,47 @@ impl LanSyncState {
 	/// inner handle is cheap.
 	pub fn app_handle(&self) -> Option<tauri::AppHandle> {
 		self.inner.lock().ok().and_then(|g| g.app_handle.clone())
+	}
+
+	/// Initialises the shared mDNS daemon on first use. Subsequent
+	/// calls are no-ops. `our_fingerprint_hex` is stored on the
+	/// handles so the browser loop can filter self-loopback.
+	pub fn ensure_mdns(&self, our_fingerprint_hex: String) -> Result<(), String> {
+		let mut guard = self
+			.inner
+			.lock()
+			.map_err(|e| format!("LAN sync state poisoned: {e}"))?;
+		if guard.mdns.is_some() {
+			return Ok(());
+		}
+		let daemon = mdns_sd::ServiceDaemon::new()
+			.map_err(|e| format!("mdns daemon: {e}"))?;
+		guard.mdns = Some(MdnsHandles {
+			daemon,
+			announce_fullname: None,
+			browser: None,
+			our_fingerprint_hex,
+			announced_port: 0,
+		});
+		Ok(())
+	}
+
+	/// Borrows the mDNS handles for a closure. Returns an error when
+	/// the daemon has not been initialised yet (`ensure_mdns` must
+	/// run first).
+	pub fn with_mdns_mut<R>(
+		&self,
+		f: impl FnOnce(&mut MdnsHandles) -> Result<R, String>,
+	) -> Result<R, String> {
+		let mut guard = self
+			.inner
+			.lock()
+			.map_err(|e| format!("LAN sync state poisoned: {e}"))?;
+		let handles = guard
+			.mdns
+			.as_mut()
+			.ok_or_else(|| "mdns daemon not initialised".to_string())?;
+		f(handles)
 	}
 }
 
@@ -332,25 +399,157 @@ pub fn lan_sync_cleanup_auth_log(
 // and degrade gracefully until the wiring lands.
 // ============================================================================
 
+/// Toggles mDNS announcement for the local vault. When `enabled`
+/// is true, the daemon registers a service record under
+/// [`crate::sync::discovery::SERVICE_TYPE`] carrying the
+/// fingerprint / vault-label / protocol-version TXT entries. When
+/// false, the registration is removed; the daemon itself stays
+/// alive (other code paths - notably `start_browse` - keep using
+/// the same daemon).
 #[tauri::command]
 pub fn lan_sync_set_discoverable(
-	_vault_path: String,
-	_enabled: bool,
+	vault_path: String,
+	enabled: bool,
+	state: tauri::State<'_, LanSyncState>,
 ) -> Result<(), String> {
-	// TODO(lan-sync live): drive `sync::discovery::MdnsAnnouncer`.
-	Err("LAN sync mDNS announce is not wired yet (Task 15 follow-up)".to_string())
+	let our_fp = state.with_identity(|id| Ok(id.fingerprint_string()))?;
+	let our_fp_hex_for_announce = our_fp.clone();
+	state.ensure_mdns(our_fp.clone())?;
+	if enabled {
+		let vault_path_buf = std::path::PathBuf::from(&vault_path);
+		state.with_mdns_mut(|h| {
+			if h.announce_fullname.is_some() {
+				return Ok(()); // already announcing
+			}
+			let label = crate::sync::discovery::compute_vault_label_hash(&vault_path_buf);
+			let instance = crate::sync::discovery::fingerprint_hex_compact(&our_fp_hex_for_announce);
+			register_announce(h, &instance, label, h.announced_port)
+				.map_err(|e| format!("mdns register: {e}"))?;
+			Ok(())
+		})
+	} else {
+		state.with_mdns_mut(|h| {
+			if let Some(fullname) = h.announce_fullname.take() {
+				let _ = h.daemon.unregister(&fullname);
+			}
+			Ok(())
+		})
+	}
 }
 
+/// Starts a browse loop on the shared daemon. Each `ServiceResolved`
+/// event coming from another `_kokobrain-sync._tcp.local.` peer is
+/// turned into a [`PeerDiscoveredPayload`] and emitted via
+/// `lan-sync:peer-discovered`. Loopback announcements from this
+/// very daemon are filtered out via fingerprint comparison.
 #[tauri::command]
-pub fn lan_sync_start_browse() -> Result<(), String> {
-	// TODO(lan-sync live): drive `sync::discovery::MdnsBrowser` and
-	// emit `lan-sync:peer-discovered`.
-	Err("LAN sync mDNS browse is not wired yet (Task 15 follow-up)".to_string())
+pub fn lan_sync_start_browse(
+	_vault_path: String,
+	state: tauri::State<'_, LanSyncState>,
+) -> Result<(), String> {
+	let our_fp = state.with_identity(|id| Ok(id.fingerprint_string()))?;
+	state.ensure_mdns(our_fp.clone())?;
+	let app_handle = state
+		.app_handle()
+		.ok_or_else(|| "AppHandle not captured yet; call lan_sync_get_my_fingerprint first".to_string())?;
+	state.with_mdns_mut(|h| {
+		if h.browser.is_some() {
+			return Ok(()); // already browsing
+		}
+		let rx = h
+			.daemon
+			.browse(crate::sync::discovery::SERVICE_TYPE)
+			.map_err(|e| format!("mdns browse: {e}"))?;
+		let our_fp = h.our_fingerprint_hex.clone();
+		h.browser = Some(tokio::spawn(browser_loop(rx, app_handle.clone(), our_fp)));
+		Ok(())
+	})
 }
 
+/// Stops the in-flight browse task (if any). The daemon stays alive
+/// in case the announce side is also running.
 #[tauri::command]
-pub fn lan_sync_stop_browse() -> Result<(), String> {
-	Err("LAN sync mDNS browse is not wired yet (Task 15 follow-up)".to_string())
+pub fn lan_sync_stop_browse(
+	_vault_path: String,
+	state: tauri::State<'_, LanSyncState>,
+) -> Result<(), String> {
+	state.with_mdns_mut(|h| {
+		if let Some(task) = h.browser.take() {
+			task.abort();
+		}
+		Ok(())
+	})
+}
+
+/// Helper that registers the local announce on the daemon. Builds
+/// the `ServiceInfo` from the cached announce parameters and writes
+/// the resulting `get_fullname()` into the handles slot so a later
+/// `set_discoverable(false)` can `unregister` it.
+fn register_announce(
+	h: &mut MdnsHandles,
+	instance: &str,
+	vault_label: String,
+	port: u16,
+) -> Result<(), mdns_sd::Error> {
+	use crate::sync::discovery::{build_announce_txt, AnnounceConfig, SERVICE_TYPE};
+	let host = format!("{instance}.local.");
+	let cfg = AnnounceConfig {
+		instance_name: instance.to_string(),
+		hostname: host.clone(),
+		port,
+		fingerprint_hex: h.our_fingerprint_hex.clone(),
+		vault_label_hash: vault_label,
+	};
+	let txt = build_announce_txt(&cfg);
+	let info = mdns_sd::ServiceInfo::new(
+		SERVICE_TYPE,
+		instance,
+		&host,
+		"",
+		port,
+		&txt[..],
+	)?
+	.enable_addr_auto();
+	h.announce_fullname = Some(info.get_fullname().to_string());
+	h.daemon.register(info)
+}
+
+/// Background task that turns `mdns_sd::ServiceEvent::ServiceResolved`
+/// events into `lan-sync:peer-discovered` emissions on the frontend.
+/// All other event variants are dropped (we do not surface
+/// `SearchStarted` / `ServiceRemoved` to the UI; those are noise the
+/// store does not consume).
+async fn browser_loop(
+	rx: mdns_sd::Receiver<mdns_sd::ServiceEvent>,
+	app: tauri::AppHandle,
+	our_fingerprint_hex: String,
+) {
+	use crate::sync::events::{emit_peer_discovered, PeerDiscoveredPayload};
+	while let Ok(evt) = rx.recv_async().await {
+		if let mdns_sd::ServiceEvent::ServiceResolved(info) = evt {
+			match crate::sync::discovery::service_info_to_discovered_peer(&info, &our_fingerprint_hex) {
+				Ok(Some(peer)) => {
+					emit_peer_discovered(
+						&app,
+						PeerDiscoveredPayload {
+							fingerprint_display: fingerprint_display_from_hex(&peer.fingerprint_hex),
+							fingerprint_hex: peer.fingerprint_hex,
+							addr: peer.addr.to_string(),
+							port: peer.port,
+							vault_label_hash: peer.vault_label_hash,
+							protocol_version_range: peer.protocol_version_range,
+						},
+					);
+				}
+				Ok(None) => {
+					// Self-discovery; silently drop.
+				}
+				Err(e) => {
+					eprintln!("[lan-sync] discarded malformed peer announce: {e}");
+				}
+			}
+		}
+	}
 }
 
 #[derive(Debug, Clone, Serialize)]
