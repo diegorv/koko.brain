@@ -267,6 +267,25 @@ impl LanSyncState {
 		}
 		None
 	}
+
+	/// Returns a clone of the outbound-channel mirror map for
+	/// callers that need to push `AppMsg`s directly into one or
+	/// more live connections (full resync trigger, future
+	/// manually-initiated dial commands).
+	pub fn outbound_view(
+		&self,
+	) -> Option<
+		std::sync::Arc<
+			tokio::sync::Mutex<
+				std::collections::HashMap<String, crate::sync::watcher_consumer::OutboundChannel>,
+			>,
+		>,
+	> {
+		self.inner
+			.lock()
+			.ok()
+			.and_then(|g| g.outbound_view.clone())
+	}
 }
 
 // ============================================================================
@@ -910,14 +929,40 @@ fn load_trusted_verifying_keys(
 	Ok(out)
 }
 
+/// Pushes `AppMsg::Subscribe { since_version: 0 }` to every active
+/// connection so the next manifest exchange replays from the start.
+/// Useful when the user suspects local + remote drifted (e.g. one
+/// side restored from backup).
+///
+/// `peer_fingerprint` is accepted in the signature but currently
+/// unused: the accept loop does not populate
+/// `ActiveConnection::peer_fingerprint_hex` yet (a future commit
+/// adds the `oneshot` signal from the session task). Once that
+/// signal lands, this command will filter the fan-out so only the
+/// named peer gets the Subscribe. The behaviour for the common case
+/// (single paired peer) is identical.
 #[tauri::command]
-pub fn lan_sync_request_full_resync(
-	_share_id: String,
-	_peer_fingerprint: String,
+pub async fn lan_sync_request_full_resync(
+	share_id: String,
+	peer_fingerprint: String,
+	state: tauri::State<'_, LanSyncState>,
 ) -> Result<(), String> {
-	// TODO(lan-sync live): bump `since_version` to 0 for the named
-	// peer; the anti-entropy loop will re-fetch the full manifest.
-	Err("Full resync is not wired yet (Task 15 follow-up)".to_string())
+	let _ = peer_fingerprint; // TODO: filter by fingerprint once available
+	let view = state
+		.outbound_view()
+		.ok_or_else(|| "sync server not running".to_string())?;
+	let guard = view.lock().await;
+	if guard.is_empty() {
+		return Err("no active connections".to_string());
+	}
+	let msg = crate::sync::protocol::AppMsg::Subscribe {
+		share_id,
+		since_version: 0,
+	};
+	for conn in guard.values() {
+		let _ = conn.outbound.try_send(msg.clone());
+	}
+	Ok(())
 }
 
 // Helpers shared with the live wiring layer when it lands. Marked
