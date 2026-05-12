@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 
 use kokobrain_lib::sync::push::{
 	plan_push, receive_folder, sanitize_rel_path, send_folder, should_skip_component,
-	FileEntry, PushError, PushPlan, INCOMING_DIR, PROGRESS_INTERVAL_BYTES,
-	PUSH_FILE_CHUNK_BYTES,
+	validate_sender_source_rel_path, validate_sender_target_rel_path, FileEntry, PushError,
+	PushPlan, INCOMING_DIR, PROGRESS_INTERVAL_BYTES, PUSH_FILE_CHUNK_BYTES,
 };
 use kokobrain_lib::sync::identity::DeviceIdentity;
 use kokobrain_lib::sync::transport::{
@@ -811,6 +811,156 @@ fn file_entry_roundtrips_via_serde() {
 	let json = serde_json::to_string(&entry).unwrap();
 	let parsed: FileEntry = serde_json::from_str(&json).unwrap();
 	assert_eq!(parsed, entry);
+}
+
+// ============================================================================
+// Sender-side path validators (H4 — hotfix for audit #16 + #17)
+// ============================================================================
+
+#[test]
+fn validate_sender_source_rel_path_rejects_empty() {
+	assert!(matches!(
+		validate_sender_source_rel_path(""),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_absolute_unix() {
+	assert!(matches!(
+		validate_sender_source_rel_path("/etc/passwd"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_backslash_absolute() {
+	assert!(matches!(
+		validate_sender_source_rel_path("\\\\Users\\\\Diego"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_windows_drive_prefix() {
+	assert!(matches!(
+		validate_sender_source_rel_path("C:\\evil"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_dotdot_segment() {
+	assert!(matches!(
+		validate_sender_source_rel_path("Notes/../escape"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_dotkokobrain_terminal() {
+	assert!(matches!(
+		validate_sender_source_rel_path(".kokobrain"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_dotkokobrain_nested() {
+	assert!(matches!(
+		validate_sender_source_rel_path("Notes/.kokobrain/identity.key"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_dotgit_anywhere() {
+	assert!(matches!(
+		validate_sender_source_rel_path(".git"),
+		Err(PushError::PathTraversal { .. })
+	));
+	assert!(matches!(
+		validate_sender_source_rel_path("Notes/.git/HEAD"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_rejects_node_modules() {
+	assert!(matches!(
+		validate_sender_source_rel_path("node_modules"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_source_rel_path_allows_unknown_hidden_prefix() {
+	// A user-chosen hidden folder (.private-notes, .my-stuff) is
+	// allowed. The walker still skips hidden ENTRIES inside it via
+	// `should_skip_component`. Only the well-known dangerous names
+	// (`.kokobrain`, `.git`, `node_modules`) are blocked outright.
+	assert!(validate_sender_source_rel_path(".private-notes").is_ok());
+	assert!(validate_sender_source_rel_path("Notes/.private/file").is_ok());
+}
+
+#[test]
+fn validate_sender_source_rel_path_accepts_nested_visible_path() {
+	assert!(validate_sender_source_rel_path("Notes/Subfolder").is_ok());
+}
+
+#[test]
+fn validate_sender_target_rel_path_accepts_empty_meaning_vault_root() {
+	assert!(validate_sender_target_rel_path("").is_ok());
+}
+
+#[test]
+fn validate_sender_target_rel_path_rejects_dotkokobrain() {
+	assert!(matches!(
+		validate_sender_target_rel_path(".kokobrain"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn validate_sender_target_rel_path_rejects_dotdot() {
+	assert!(matches!(
+		validate_sender_target_rel_path("Notes/../../boot"),
+		Err(PushError::PathTraversal { .. })
+	));
+}
+
+#[test]
+fn plan_push_rejects_dotkokobrain_as_source_folder() {
+	let tmp = TempDir::new().unwrap();
+	let dotkb = tmp.path().join(".kokobrain");
+	std::fs::create_dir_all(&dotkb).unwrap();
+	std::fs::write(dotkb.join("identity.key"), b"secret").unwrap();
+
+	let err = plan_push(&dotkb).unwrap_err();
+	let msg = format!("{err}");
+	assert!(
+		msg.contains("exclusion") || msg.contains("'.kokobrain'"),
+		"unexpected error: {msg}"
+	);
+}
+
+#[test]
+fn plan_push_rejects_dotgit_as_source_folder() {
+	let tmp = TempDir::new().unwrap();
+	let dotgit = tmp.path().join(".git");
+	std::fs::create_dir_all(&dotgit).unwrap();
+	std::fs::write(dotgit.join("HEAD"), b"ref: refs/heads/main").unwrap();
+
+	assert!(matches!(plan_push(&dotgit), Err(PushError::InvalidSource { .. })));
+}
+
+#[test]
+fn plan_push_accepts_normal_folder() {
+	let tmp = TempDir::new().unwrap();
+	let notes = tmp.path().join("Notes");
+	std::fs::create_dir_all(&notes).unwrap();
+	std::fs::write(notes.join("a.md"), b"hi").unwrap();
+	assert!(plan_push(&notes).is_ok());
 }
 
 // ============================================================================

@@ -669,6 +669,37 @@ pub async fn lan_sync_push_folder<R: Runtime>(
 	source_rel_path: String,
 	target_rel_path: String,
 ) -> Result<(), String> {
+	// 0. Sender-side path validation. Runs BEFORE network I/O so a
+	//    malformed call from the UI fails fast with a clear reason
+	//    and never reaches the trust store, the discovery cache, or
+	//    the Noise handshake. Layered defense:
+	//    - lexical: reject absolute / drive-letter / `..` paths
+	//      (`push::validate_sender_*`).
+	//    - exclusion: reject `.kokobrain`, `.git`, `node_modules`,
+	//      and any hidden-name component, so a user cannot send the
+	//      local metadata dir (identity.key, peers.json, …).
+	//    - canonical containment: after joining `vault_path` with the
+	//      validated source rel-path, the canonical result must
+	//      `starts_with` the canonical vault root. Catches symlinked
+	//      escapes that lexical layer-1 misses.
+	crate::sync::push::validate_sender_source_rel_path(&source_rel_path)
+		.map_err(|e| format!("invalid source path '{source_rel_path}': {e}"))?;
+	crate::sync::push::validate_sender_target_rel_path(&target_rel_path)
+		.map_err(|e| format!("invalid target path '{target_rel_path}': {e}"))?;
+
+	let source_abs_path = std::path::Path::new(&vault_path).join(&source_rel_path);
+	let canonical_vault = std::path::Path::new(&vault_path)
+		.canonicalize()
+		.map_err(|e| format!("canonicalize vault '{vault_path}': {e}"))?;
+	let canonical_source = source_abs_path
+		.canonicalize()
+		.map_err(|e| format!("canonicalize source '{}': {e}", source_abs_path.display()))?;
+	if !canonical_source.starts_with(&canonical_vault) {
+		return Err(format!(
+			"source path '{source_rel_path}' resolves outside the vault root"
+		));
+	}
+
 	// 1. Verify peer is in the trust store.
 	let peers = trust::load(std::path::Path::new(&vault_path))
 		.map_err(|e| format!("load peers: {e}"))?;

@@ -265,6 +265,23 @@ pub fn plan_push(source_abs_path: &Path) -> Result<PushPlan, PushError> {
 		});
 	}
 
+	// Defense-in-depth: even if the command-layer sender validator was
+	// bypassed (test path, future refactor), refuse to walk a source
+	// whose terminal component is a dangerous well-known name.
+	// Otherwise a caller pointing at `.kokobrain` would leak
+	// `identity.key`, `peers.json`, the binding signature, etc. to
+	// the receiver. Narrower than [`should_skip_component`] so a user
+	// who deliberately maintains a hidden source folder
+	// (e.g. `.private-notes`) can still push it.
+	if let Some(name) = source_abs_path.file_name().and_then(|n| n.to_str()) {
+		if is_dangerous_rel_name(name) {
+			return Err(PushError::InvalidSource {
+				path: source_abs_path.to_path_buf(),
+				reason: format!("source folder name '{name}' is on the push exclusion list"),
+			});
+		}
+	}
+
 	let mut files: Vec<FileEntry> = Vec::new();
 	collect_files_recursive(source_abs_path, "", &mut files)?;
 
@@ -439,6 +456,89 @@ fn split_segments(s: &str) -> impl Iterator<Item = &str> {
 /// `display_for_error` is the original string returned in
 /// [`PushError::PathTraversal`] so the receiver-side logs identify the
 /// offending input verbatim.
+/// Names that must never appear in a user-supplied rel path at
+/// either the sender's source or the sender's target.
+///
+/// Narrower than [`should_skip_component`] (which excludes ALL
+/// hidden-prefixed entries during a walk) because the user MAY
+/// legitimately push or receive into a hidden-prefixed folder of
+/// their own (e.g. `.private-notes`). The set kept here is the
+/// minimum that is dangerous regardless of intent:
+/// - `.kokobrain` — leaks `identity.key`, the binding signature,
+///   `peers.json`, and (later) the X25519 transport key.
+/// - `.git` — leaks a full local commit history into a peer's
+///   vault, which is almost certainly not what the user wants and
+///   could leak credentials embedded in commit messages.
+/// - `node_modules` — not security-sensitive but gigantic and
+///   almost always a mistake.
+pub const DANGEROUS_REL_NAMES: &[&str] = &[".kokobrain", ".git", "node_modules"];
+
+/// Returns `true` if `name` (a single path component) is on
+/// [`DANGEROUS_REL_NAMES`]. Used to validate every segment of a
+/// user-supplied source/target rel path.
+pub fn is_dangerous_rel_name(name: &str) -> bool {
+	DANGEROUS_REL_NAMES.iter().any(|d| *d == name)
+}
+
+/// Validates a user-provided source `rel_path` at the SENDER.
+///
+/// Layered defense matching the receiver's `sanitize_rel_path` but
+/// applied BEFORE any filesystem walk so the sender never plans a
+/// transfer rooted at a path it would not have allowed at receive
+/// time. Rejects:
+/// - Empty input (a sender must explicitly name a folder).
+/// - Absolute paths (`/...`, `\\...`) or Windows drive prefixes.
+/// - Any path segment equal to `..`.
+/// - Any segment matching [`is_dangerous_rel_name`] — without this
+///   the sender could push the local metadata directory
+///   (`.kokobrain/identity.key`, `peers.json`, …) to a peer.
+///
+/// Other hidden-prefixed names (e.g. `.private-notes`) are allowed:
+/// the user has explicitly selected the source and the walker still
+/// skips hidden children inside it via [`should_skip_component`].
+///
+/// Returns [`PushError::PathTraversal`] with `rel` verbatim so the
+/// caller can surface a clear error string.
+pub fn validate_sender_source_rel_path(rel: &str) -> Result<(), PushError> {
+	if rel.is_empty() {
+		return Err(PushError::PathTraversal {
+			rel_path: String::new(),
+		});
+	}
+	check_relative_segments(rel, rel)?;
+	for seg in split_segments(rel) {
+		if is_dangerous_rel_name(seg) {
+			return Err(PushError::PathTraversal {
+				rel_path: rel.to_string(),
+			});
+		}
+	}
+	Ok(())
+}
+
+/// Validates a user-provided target `rel_path` at the SENDER.
+///
+/// Same rules as [`validate_sender_source_rel_path`] but empty input
+/// is allowed and means "write to the remote vault root".
+/// [`DANGEROUS_REL_NAMES`] components are still rejected so the
+/// sender cannot trick the receiver into landing files inside its
+/// metadata directory even if the receiver-side `sanitize_rel_path`
+/// ever regresses.
+pub fn validate_sender_target_rel_path(rel: &str) -> Result<(), PushError> {
+	if rel.is_empty() {
+		return Ok(());
+	}
+	check_relative_segments(rel, rel)?;
+	for seg in split_segments(rel) {
+		if is_dangerous_rel_name(seg) {
+			return Err(PushError::PathTraversal {
+				rel_path: rel.to_string(),
+			});
+		}
+	}
+	Ok(())
+}
+
 fn check_relative_segments(s: &str, display_for_error: &str) -> Result<(), PushError> {
 	// Reject absolute paths.
 	if let Some(first) = s.chars().next() {
