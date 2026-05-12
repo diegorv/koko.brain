@@ -228,6 +228,13 @@ export interface AppSettings {
 	debugLogToFile: boolean;
 	/** Whether Tauri backend debug logs are also written to a file in .kokobrain/logs/ */
 	debugTauriLogToFile: boolean;
+	/**
+	 * Whether the log heartbeat ticks every 250 ms ([HB] alive lines). Used only when
+	 * investigating UI freezes — a missing tick pinpoints the wall-clock window the
+	 * JS event loop was stuck. Off by default; turn on alongside `debugLogToFile`
+	 * when reproducing a stall. No effect unless a log session is active.
+	 */
+	debugHeartbeat: boolean;
 	/** Whether live preview decoration plugin timing is logged (LP-PROFILE entries) */
 	livePreviewProfiling: boolean;
 	/** Live preview decorators that are disabled (keyed by decorator name) */

@@ -103,6 +103,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	debugModeTauri: false,
 	debugLogToFile: false,
 	debugTauriLogToFile: false,
+	debugHeartbeat: false,
 	livePreviewProfiling: false,
 	disabledDecorators: {},
 	tagColors: {
@@ -135,6 +136,7 @@ export const settingsStore = {
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
 	get debugTauriLogToFile() { return settings.debugTauriLogToFile; },
+	get debugHeartbeat() { return settings.debugHeartbeat; },
 	get livePreviewProfiling() { return settings.livePreviewProfiling; },
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
@@ -276,6 +278,11 @@ export const settingsStore = {
 	/** Updates the Tauri debug log-to-file flag */
 	updateDebugTauriLogToFile(value: boolean) {
 		settings = { ...settings, debugTauriLogToFile: value };
+	},
+
+	/** Updates the heartbeat debug flag (250 ms `[HB] alive` ticks while logging) */
+	updateDebugHeartbeat(value: boolean) {
+		settings = { ...settings, debugHeartbeat: value };
 	},
 
 	/** Updates the live preview profiling flag */
