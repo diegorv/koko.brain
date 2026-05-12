@@ -1,6 +1,7 @@
 use crate::db;
 use crate::semantic::embedder::Embedder;
 use crate::semantic::model::ModelManager;
+use crate::semantic::reranker::{Reranker, RerankerModelManager};
 use crate::utils::logger::debug_log;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -125,6 +126,71 @@ pub(crate) fn schedule_embedder_unload() {
 		tokio::time::sleep(std::time::Duration::from_secs(EMBEDDER_IDLE_TIMEOUT_SECS)).await;
 		if UNLOAD_GENERATION.load(Ordering::SeqCst) == gen_id {
 			unload_embedder();
+		}
+	});
+}
+
+/// Global reranker instance. Lazy-loaded on first RAG call, auto-unloaded after idle.
+/// Held independently from `EMBEDDER` so the two models can be loaded/unloaded
+/// out of phase — RSS pressure on machines with limited memory is real (~280 MB
+/// reranker + ~542 MB embedder when both are resident).
+pub(crate) static RERANKER: Mutex<Option<Reranker>> = Mutex::new(None);
+
+/// Independent generation counter for the reranker's debounced unload. Must NOT
+/// share `UNLOAD_GENERATION` — the two models have different idle profiles.
+pub(crate) static RERANKER_UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Seconds of inactivity before the reranker is automatically unloaded.
+pub(crate) const RERANKER_IDLE_TIMEOUT_SECS: u64 = 120;
+
+/// Drops the reranker ONNX session from memory.
+pub(crate) fn unload_reranker() {
+	if let Ok(mut guard) = RERANKER.lock() {
+		if guard.is_some() {
+			*guard = None;
+			debug_log("RERANKER", "Reranker unloaded to free memory");
+		}
+	}
+}
+
+/// Ensures the reranker is loaded, lazy-reloading from `VAULT_PATH` if needed.
+/// Returns an error if `VAULT_PATH` is unset (vault not opened) or the model
+/// files are missing on disk.
+pub(crate) fn ensure_reranker_loaded() -> Result<(), String> {
+	{
+		let guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
+		if guard.is_some() {
+			return Ok(());
+		}
+	}
+
+	let vault_path = {
+		let vp = VAULT_PATH.lock().map_err(|e| format!("Lock error: {e}"))?;
+		vp.clone().ok_or_else(|| {
+			"No vault path stored — init_semantic_search was never called".to_string()
+		})?
+	};
+
+	debug_log("RERANKER", "Lazy-loading reranker...");
+	let manager = RerankerModelManager::new(Path::new(&vault_path));
+	if !manager.is_model_available() {
+		return Err("Reranker model not available on disk".to_string());
+	}
+	let reranker = Reranker::load(&manager.model_path())?;
+	let mut guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
+	*guard = Some(reranker);
+	debug_log("RERANKER", "Reranker loaded");
+	Ok(())
+}
+
+/// Schedules a reranker unload after the idle timeout. Debounced by an
+/// independent generation counter.
+pub(crate) fn schedule_reranker_unload() {
+	let gen_id = RERANKER_UNLOAD_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+	tokio::spawn(async move {
+		tokio::time::sleep(std::time::Duration::from_secs(RERANKER_IDLE_TIMEOUT_SECS)).await;
+		if RERANKER_UNLOAD_GENERATION.load(Ordering::SeqCst) == gen_id {
+			unload_reranker();
 		}
 	});
 }

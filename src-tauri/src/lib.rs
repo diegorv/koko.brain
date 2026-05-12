@@ -149,6 +149,8 @@ pub fn run() {
             commands::semantic::download_semantic_model,
             commands::semantic::debug_semantic_embeddings,
             commands::semantic::shutdown_semantic,
+            commands::rag::is_reranker_model_available,
+            commands::rag::rag_download_reranker,
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
