@@ -3,6 +3,7 @@ pub mod db;
 pub mod search;
 pub mod security;
 pub mod semantic;
+pub mod sync;
 pub mod utils;
 pub mod vault;
 
@@ -85,6 +86,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(sync::init())
         .manage(TerminalState::new())
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
