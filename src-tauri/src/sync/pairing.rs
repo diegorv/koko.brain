@@ -288,6 +288,30 @@ pub fn write_peers(vault_root: &Path, file: &PeersFile) -> Result<(), PairingErr
 	let serialized =
 		serde_json::to_string_pretty(file).map_err(|e| PairingError::Decode(e.to_string()))?;
 	std::fs::write(&path, serialized).map_err(|e| PairingError::Io(e.to_string()))?;
+	restrict_peers_file_permissions(&path)?;
+	Ok(())
+}
+
+/// Tightens the on-disk permissions of `peers.json` to `0o600` on Unix
+/// hosts (read+write owner only). The trust store contains the Ed25519
+/// public keys + display names + fingerprints of every peer this vault
+/// has paired with - not secret in the PKI sense, but enough metadata
+/// to reveal *who* the user syncs with on a multi-user host. The
+/// default umask on most desktop Unixes is `0o022`, which writes the
+/// file as `0o644`; the explicit chmod below forces `0o600` regardless
+/// of the umask in effect when the file was created.
+///
+/// On Windows, file ACLs are managed differently and the user-data
+/// directory under `%APPDATA%` is already scoped to the current user
+/// account, so no extra action is taken here. A dedicated Windows ACL
+/// hardening pass is tracked as a follow-up.
+fn restrict_peers_file_permissions(_path: &Path) -> Result<(), PairingError> {
+	#[cfg(unix)]
+	{
+		use std::os::unix::fs::PermissionsExt;
+		let perms = std::fs::Permissions::from_mode(0o600);
+		std::fs::set_permissions(_path, perms).map_err(|e| PairingError::Io(e.to_string()))?;
+	}
 	Ok(())
 }
 

@@ -324,6 +324,39 @@ fn read_rejects_peer_with_wrong_length_pubkey() {
 	}
 }
 
+#[cfg(unix)]
+#[test]
+fn write_peers_sets_owner_only_permissions() {
+	use std::os::unix::fs::PermissionsExt;
+	let tmp = tempfile::tempdir().unwrap();
+	let file = PeersFile {
+		version: CURRENT_PEERS_VERSION,
+		peers: vec![sample_peer("AAAA-BBBB-CCCC-DDDD", "Machine")],
+	};
+	write_peers(tmp.path(), &file).unwrap();
+	let mode = std::fs::metadata(peers_file_path(tmp.path()))
+		.unwrap()
+		.permissions()
+		.mode();
+	// `mode()` returns the full st_mode including file-type bits; mask
+	// down to the permission bits before comparing.
+	assert_eq!(mode & 0o777, 0o600, "peers.json must be 0600, got {mode:o}");
+}
+
+#[cfg(unix)]
+#[test]
+fn add_trusted_peer_preserves_owner_only_permissions() {
+	use std::os::unix::fs::PermissionsExt;
+	let tmp = tempfile::tempdir().unwrap();
+	add_trusted_peer(tmp.path(), sample_peer("AAAA-BBBB-CCCC-DDDD", "First")).unwrap();
+	add_trusted_peer(tmp.path(), sample_peer("1111-2222-3333-4444", "Second")).unwrap();
+	let mode = std::fs::metadata(peers_file_path(tmp.path()))
+		.unwrap()
+		.permissions()
+		.mode();
+	assert_eq!(mode & 0o777, 0o600);
+}
+
 #[test]
 fn read_accepts_well_formed_32_byte_pubkey() {
 	let tmp = tempfile::tempdir().unwrap();
