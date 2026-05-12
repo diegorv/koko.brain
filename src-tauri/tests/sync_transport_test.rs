@@ -147,6 +147,103 @@ fn opener_accepts_many_sequential_frames() {
 	}
 }
 
+// ============================================================================
+// Replay window edges (C4)
+// ============================================================================
+//
+// The opener accepts a frame iff (a) its counter is not in the tracked
+// `window` HashSet, and (b) the counter is not more than `REPLAY_WINDOW`
+// below `highest_seen`. The tests below exercise the three regions of
+// interest: in-window reorder (accept), in-window replay (reject), and
+// out-of-window old frame (reject).
+
+/// Seal `count` plaintexts on a fresh `Sealer` and return them keyed by
+/// counter. Lets a test replay them through an Opener in any order.
+fn seal_n(key: &[u8; KEY_LEN], count: u64) -> Vec<SealedFrame> {
+	let mut sealer = Sealer::new(key);
+	(0..count)
+		.map(|i| {
+			let payload = format!("frame {i}");
+			sealer.seal(payload.as_bytes()).unwrap()
+		})
+		.collect()
+}
+
+#[test]
+fn opener_accepts_in_window_out_of_order() {
+	// Send the first 100 frames in *reverse* order. None has been seen
+	// before, and the highest_seen never grows beyond REPLAY_WINDOW, so
+	// the "definitely old" branch in `is_replay` cannot trigger. Every
+	// frame must decrypt successfully.
+	let key = [42u8; KEY_LEN];
+	let frames = seal_n(&key, 100);
+	let mut opener = Opener::new(&key);
+	for frame in frames.iter().rev() {
+		opener
+			.open(frame)
+			.expect("in-window out-of-order frame must decrypt");
+	}
+}
+
+#[test]
+fn opener_rejects_exact_replay_of_already_seen_counter() {
+	// Same counter sent twice is the canonical replay case. First copy
+	// accepts; second must surface `TransportError::NonceReplay`.
+	let key = [42u8; KEY_LEN];
+	let frames = seal_n(&key, 5);
+	let mut opener = Opener::new(&key);
+	for frame in &frames {
+		opener.open(frame).unwrap();
+	}
+	let err = opener.open(&frames[2]).unwrap_err();
+	assert!(matches!(err, TransportError::NonceReplay), "got {err:?}");
+}
+
+#[test]
+fn opener_rejects_old_frame_outside_replay_window() {
+	use kokobrain_lib::sync::transport::REPLAY_WINDOW;
+	// `REPLAY_WINDOW` is currently 1024. Construct a high-counter frame
+	// so `highest_seen` jumps past the threshold, then attempt to replay
+	// a counter that is now more than REPLAY_WINDOW behind highest_seen
+	// even though it was never opened. The opener must reject it as a
+	// stale frame rather than accept it as an in-window reorder.
+	let key = [42u8; KEY_LEN];
+	let total = REPLAY_WINDOW as u64 + 100;
+	let frames = seal_n(&key, total);
+	let mut opener = Opener::new(&key);
+
+	// Advance highest_seen to the last counter.
+	opener.open(&frames[total as usize - 1]).unwrap();
+
+	// Frame 50 is now `total - 1 - 50 = REPLAY_WINDOW + 49` behind the
+	// highest seen, well outside the window. It was never opened, so it
+	// is not in `window`, but the second branch of `is_replay` must fire.
+	let err = opener.open(&frames[50]).unwrap_err();
+	assert!(matches!(err, TransportError::NonceReplay), "got {err:?}");
+}
+
+#[test]
+fn opener_accepts_frame_at_exact_window_boundary() {
+	use kokobrain_lib::sync::transport::REPLAY_WINDOW;
+	// Frame at `highest_seen - REPLAY_WINDOW + 1` is the oldest counter
+	// still inside the window. It must accept. The boundary check is
+	// `counter + REPLAY_WINDOW <= highest_seen` => reject; flipping it
+	// to `<` means the strict equality case is the first one that
+	// rejects. So `counter + REPLAY_WINDOW = highest_seen` rejects, and
+	// `counter + REPLAY_WINDOW = highest_seen + 1` accepts.
+	let key = [42u8; KEY_LEN];
+	let total = REPLAY_WINDOW as u64 + 1;
+	let frames = seal_n(&key, total);
+	let mut opener = Opener::new(&key);
+	// Open the last frame to set highest_seen = REPLAY_WINDOW.
+	opener.open(&frames[total as usize - 1]).unwrap();
+	// Frame 0: 0 + 1024 = 1024 = highest_seen -> reject as definitely old.
+	let err = opener.open(&frames[0]).unwrap_err();
+	assert!(matches!(err, TransportError::NonceReplay), "got {err:?}");
+	// Frame 1: 1 + 1024 = 1025 > highest_seen -> accept.
+	opener.open(&frames[1]).expect("frame at boundary+1 must decrypt");
+}
+
 #[test]
 fn sealed_frame_round_trips_through_bytes() {
 	let frame = SealedFrame {
