@@ -26,6 +26,11 @@ use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 
 use crate::sync::events::PeerDiscoveredPayload;
 use crate::sync::wordlist::six_words_from_bytes;
+use crate::utils::logger::debug_log;
+
+/// Log tag for all `sync::discovery` diagnostic lines. Captured here so
+/// `debug_log` callers cannot drift on the tag string.
+const LOG_TAG: &str = "sync::discovery";
 
 /// mDNS service type advertised by every Kokobrain sync instance.
 ///
@@ -183,31 +188,62 @@ impl Announcer {
 	///
 	/// Instance name is `kokobrain-<first-8-hex-of-fingerprint>` so
 	/// two vaults on the same LAN can be distinguished at a glance.
-	/// The host IP is the first non-loopback address from
-	/// [`local_ip_address::local_ip`]; the TXT record is built via
+	/// The host's addresses are populated automatically by the mDNS
+	/// daemon via [`ServiceInfo::enable_addr_auto`], which iterates
+	/// every local non-loopback interface (IPv4 + IPv6). This replaces
+	/// the earlier single-interface lookup via
+	/// `local_ip_address::local_ip()` which on multi-homed macOS hosts
+	/// could pick a virtual interface (Docker bridge, Tailscale
+	/// `utun*`, AWDL `awdl0`) and announce on a network the peer
+	/// could not reach. The TXT record is built via
 	/// [`build_txt_record`].
 	///
 	/// Errors are returned, not panicked, so the Tauri command shim
-	/// can map them to a `String` for the frontend.
+	/// can map them to a `String` for the frontend. Every step is
+	/// instrumented via `utils::logger::debug_log` so silent
+	/// registration failures become visible in the session log when
+	/// the debug toggle is on.
 	pub fn start(fingerprint_hex: &str, port: u16) -> Result<Self, DiscoveryError> {
-		let daemon = ServiceDaemon::new()?;
 		let instance_name = format!(
 			"kokobrain-{}",
 			&fingerprint_hex[..fingerprint_hex.len().min(8)]
 		);
-		let host_ip = local_ip_address::local_ip()?;
+		debug_log(
+			LOG_TAG,
+			format!("Announcer::start fingerprint={fingerprint_hex} instance={instance_name} port={port}"),
+		);
+		let daemon = match ServiceDaemon::new() {
+			Ok(d) => d,
+			Err(e) => {
+				debug_log(LOG_TAG, format!("Announcer ServiceDaemon::new failed: {e}"));
+				return Err(e.into());
+			}
+		};
 		let hostname = format!("{instance_name}.local.");
 		let txt = build_txt_record(fingerprint_hex);
-		let info = ServiceInfo::new(
+		let info = match ServiceInfo::new(
 			SERVICE_TYPE,
 			&instance_name,
 			&hostname,
-			host_ip,
+			(),
 			port,
 			txt,
-		)?;
+		) {
+			Ok(i) => i.enable_addr_auto(),
+			Err(e) => {
+				debug_log(LOG_TAG, format!("Announcer ServiceInfo::new failed: {e}"));
+				return Err(e.into());
+			}
+		};
 		let fullname = info.get_fullname().to_string();
-		daemon.register(info)?;
+		if let Err(e) = daemon.register(info) {
+			debug_log(LOG_TAG, format!("Announcer daemon.register failed: {e}"));
+			return Err(e.into());
+		}
+		debug_log(
+			LOG_TAG,
+			format!("Announcer registered fullname={fullname} (auto-addr mode)"),
+		);
 		Ok(Self { daemon, fullname })
 	}
 
@@ -217,6 +253,7 @@ impl Announcer {
 	/// async confirmation we do not wait on; the daemon stops
 	/// emitting packets as soon as the call returns.
 	pub fn stop(self) -> Result<(), DiscoveryError> {
+		debug_log(LOG_TAG, format!("Announcer::stop fullname={}", self.fullname));
 		let _ = self.daemon.unregister(&self.fullname)?;
 		let _ = self.daemon.shutdown()?;
 		Ok(())
@@ -261,19 +298,80 @@ impl Browser {
 	where
 		F: Fn(PeerDiscoveredPayload) + Send + 'static,
 	{
-		let daemon = ServiceDaemon::new()?;
-		let receiver = daemon.browse(SERVICE_TYPE)?;
+		debug_log(
+			LOG_TAG,
+			format!("Browser::start my_fingerprint={my_fingerprint_hex}"),
+		);
+		let daemon = match ServiceDaemon::new() {
+			Ok(d) => d,
+			Err(e) => {
+				debug_log(LOG_TAG, format!("Browser ServiceDaemon::new failed: {e}"));
+				return Err(e.into());
+			}
+		};
+		let receiver = match daemon.browse(SERVICE_TYPE) {
+			Ok(r) => r,
+			Err(e) => {
+				debug_log(LOG_TAG, format!("Browser daemon.browse failed: {e}"));
+				return Err(e.into());
+			}
+		};
 		let my_fp_lower = my_fingerprint_hex.to_lowercase();
 		let handle = thread::Builder::new()
 			.name("kokobrain-mdns-browser".into())
 			.spawn(move || {
+				debug_log(LOG_TAG, "Browser consumer thread up");
 				for event in receiver.iter() {
-					if let ServiceEvent::ServiceResolved(info) = event {
-						if let Some(payload) = service_info_to_payload(&info, &my_fp_lower) {
-							on_peer(payload);
+					match event {
+						ServiceEvent::SearchStarted(ty) => {
+							debug_log(LOG_TAG, format!("event=SearchStarted type={ty}"));
+						}
+						ServiceEvent::ServiceFound(ty, fullname) => {
+							debug_log(
+								LOG_TAG,
+								format!("event=ServiceFound type={ty} fullname={fullname}"),
+							);
+						}
+						ServiceEvent::ServiceResolved(info) => {
+							let fullname = info.get_fullname().to_string();
+							let addrs: Vec<String> =
+								info.get_addresses().iter().map(|a| a.to_string()).collect();
+							debug_log(
+								LOG_TAG,
+								format!(
+									"event=ServiceResolved fullname={fullname} addrs={addrs:?} port={}",
+									info.get_port()
+								),
+							);
+							match service_info_to_payload(&info, &my_fp_lower) {
+								Some(payload) => {
+									debug_log(
+										LOG_TAG,
+										format!(
+											"accepted peer fp={} addr={} port={}",
+											payload.fingerprint_hex, payload.addr, payload.port
+										),
+									);
+									on_peer(payload);
+								}
+								None => {
+									// Specific reason already logged by
+									// service_info_to_payload below.
+								}
+							}
+						}
+						ServiceEvent::ServiceRemoved(ty, fullname) => {
+							debug_log(
+								LOG_TAG,
+								format!("event=ServiceRemoved type={ty} fullname={fullname}"),
+							);
+						}
+						ServiceEvent::SearchStopped(ty) => {
+							debug_log(LOG_TAG, format!("event=SearchStopped type={ty}"));
 						}
 					}
 				}
+				debug_log(LOG_TAG, "Browser consumer thread exiting");
 			})?;
 		Ok(Self {
 			daemon,
@@ -284,12 +382,14 @@ impl Browser {
 	/// Stops the browser. Issues `stop_browse` + `shutdown` so the
 	/// consumer thread's receiver closes, then joins the thread.
 	pub fn stop(mut self) -> Result<(), DiscoveryError> {
+		debug_log(LOG_TAG, "Browser::stop");
 		let _ = self.daemon.stop_browse(SERVICE_TYPE)?;
 		let _ = self.daemon.shutdown()?;
 		if let Some(handle) = self.handle.take() {
 			// Best-effort join; a panicked thread is logged but not
 			// re-raised so `stop` always tears down cleanly.
 			if let Err(e) = handle.join() {
+				debug_log(LOG_TAG, format!("browser thread panicked: {e:?}"));
 				eprintln!("[sync::discovery] browser thread panicked: {e:?}");
 			}
 		}
@@ -304,6 +404,7 @@ fn service_info_to_payload(
 	info: &ServiceInfo,
 	my_fp_lower: &str,
 ) -> Option<PeerDiscoveredPayload> {
+	let fullname = info.get_fullname().to_string();
 	// Extract TXT into a HashMap so the pure helper can validate it.
 	let mut txt = HashMap::new();
 	if let Some(fp) = info.get_property_val_str(TXT_KEY_FP_HEX) {
@@ -312,16 +413,43 @@ fn service_info_to_payload(
 	if let Some(proto) = info.get_property_val_str(TXT_KEY_PROTO) {
 		txt.insert(TXT_KEY_PROTO.to_string(), proto.to_string());
 	}
-	let (fp_hex, _proto) = parse_txt_record(&txt)?;
+	let (fp_hex, _proto) = match parse_txt_record(&txt) {
+		Some(v) => v,
+		None => {
+			debug_log(
+				LOG_TAG,
+				format!("filter-drop fullname={fullname} reason=txt-parse-failed txt={txt:?}"),
+			);
+			return None;
+		}
+	};
 	if fp_hex.to_lowercase() == my_fp_lower {
+		debug_log(
+			LOG_TAG,
+			format!("filter-drop fullname={fullname} reason=self-fingerprint fp={fp_hex}"),
+		);
 		return None;
 	}
 	// Pick the first IPv4 address that is not loopback.
-	let addr = info
+	let addr = match info
 		.get_addresses()
 		.iter()
 		.copied()
-		.find(|ip| matches!(ip, IpAddr::V4(v4) if !v4.is_loopback()))?;
+		.find(|ip| matches!(ip, IpAddr::V4(v4) if !v4.is_loopback()))
+	{
+		Some(a) => a,
+		None => {
+			let all_addrs: Vec<String> =
+				info.get_addresses().iter().map(|a| a.to_string()).collect();
+			debug_log(
+				LOG_TAG,
+				format!(
+					"filter-drop fullname={fullname} reason=no-ipv4-non-loopback all_addrs={all_addrs:?}"
+				),
+			);
+			return None;
+		}
+	};
 	let port = info.get_port();
 	let fingerprint_display = fingerprint_display_from_hex(&fp_hex);
 	Some(PeerDiscoveredPayload {

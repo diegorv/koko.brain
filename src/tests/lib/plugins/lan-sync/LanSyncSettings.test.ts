@@ -57,6 +57,14 @@ function createFakeService(overrides: Partial<LanSyncService> = {}): FakeService
 		}),
 		pairWithPeer: wrap('pairWithPeer', async () => null),
 		pushFolder: wrap('pushFolder', async () => undefined),
+		debugDump: wrap('debugDump', async () => ({
+			fingerprintHex: '',
+			fingerprintDisplay: '',
+			localIpv4Addresses: [],
+			announcerRunning: false,
+			browserRunning: false,
+			lastSeenAddrs: [],
+		})),
 	};
 
 	return { ...defaults, ...overrides, calls } as FakeService;

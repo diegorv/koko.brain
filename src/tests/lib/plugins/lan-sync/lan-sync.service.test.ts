@@ -513,4 +513,33 @@ describe('createLanSyncService', () => {
 			expect(lanSyncStore.lastPushComplete?.error).toBe('timeout');
 		});
 	});
+
+	describe('debugDump', () => {
+		it('invokes lan_sync_debug_dump with vaultPath and returns the payload', async () => {
+			const tx = createFakeTransport();
+			const dump = {
+				fingerprintHex: 'abcd1234deadbeef',
+				fingerprintDisplay: 'one-two-three-four-five-six',
+				localIpv4Addresses: [{ name: 'en0', addr: '192.168.0.10' }],
+				announcerRunning: true,
+				browserRunning: true,
+				lastSeenAddrs: [{ fingerprintHex: 'peer1', addr: '192.168.0.20', port: 7878 }],
+			};
+			tx.invokeResponses.set('lan_sync_debug_dump', dump);
+			const svc = createLanSyncService(tx);
+			const result = await svc.debugDump(VAULT);
+			expect(result).toEqual(dump);
+			const call = tx.invokeCalls.find((c) => c.cmd === 'lan_sync_debug_dump');
+			expect(call?.args).toEqual({ vaultPath: VAULT });
+		});
+
+		it('rethrows backend errors and does not mutate the store', async () => {
+			const tx = createFakeTransport();
+			tx.invokeErrors.set('lan_sync_debug_dump', new Error('boom'));
+			const svc = createLanSyncService(tx);
+			const before = lanSyncStore.myFingerprint;
+			await expect(svc.debugDump(VAULT)).rejects.toThrow('boom');
+			expect(lanSyncStore.myFingerprint).toBe(before);
+		});
+	});
 });

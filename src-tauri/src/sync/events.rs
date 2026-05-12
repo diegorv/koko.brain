@@ -222,3 +222,66 @@ pub fn emit_push_complete<R: tauri::Runtime>(
 ) -> tauri::Result<()> {
 	app.emit(EVT_PUSH_COMPLETE, payload)
 }
+
+// ============================================================================
+// Diagnostic dump (returned by `lan_sync_debug_dump`, never an event).
+// Used by the frontend to render a triage view when discovery misbehaves.
+// ============================================================================
+
+/// One local network interface as observed by
+/// `local_ip_address::list_afinet_netifas`. Loopback entries are
+/// filtered out by the command before this is built.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LanSyncDebugInterface {
+	/// OS-level interface name (e.g. `en0`, `utun4`).
+	pub name: String,
+	/// IPv4 address as a dotted-quad string. Only IPv4 is reported;
+	/// the underlying crate also returns v6 records and we filter
+	/// those out so the dump matches what the announcer would
+	/// publish under `enable_addr_auto`.
+	pub addr: String,
+}
+
+/// One entry from `SyncState.last_seen_addrs`, flattened so it can
+/// round-trip through serde without exposing the internal HashMap
+/// shape to the frontend.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LanSyncDebugLastSeen {
+	/// Peer's Ed25519 fingerprint hex (the same value the UI shows).
+	pub fingerprint_hex: String,
+	/// Last-known LAN address that the mDNS browser reported.
+	pub addr: String,
+	/// Last-known TCP port advertised in the peer's mDNS TXT record.
+	pub port: u16,
+}
+
+/// Snapshot of the LAN sync runtime state used for triage when
+/// discovery does not show peers.
+///
+/// Returned by the `lan_sync_debug_dump` Tauri command. Not an event;
+/// kept in this module so the wire shapes for everything LAN sync
+/// publishes live in one file.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LanSyncDebugDump {
+	/// Local device fingerprint hex (Ed25519-derived, 16 lowercase
+	/// chars).
+	pub fingerprint_hex: String,
+	/// Local device fingerprint display (six BIP-39 words joined by
+	/// `-`).
+	pub fingerprint_display: String,
+	/// Every non-loopback IPv4 address the local OS reports across
+	/// all network interfaces. Used to compare against what the mDNS
+	/// announcer published — if the right interface is missing here,
+	/// `enable_addr_auto` had nothing to advertise.
+	pub local_ipv4_addresses: Vec<LanSyncDebugInterface>,
+	/// `true` while the announcer is registered (set between
+	/// `lan_sync_set_discoverable(true)` and `false`).
+	pub announcer_running: bool,
+	/// `true` while the browser is consuming events from the daemon.
+	pub browser_running: bool,
+	/// Snapshot of `state.last_seen_addrs` flattened for serde.
+	pub last_seen_addrs: Vec<LanSyncDebugLastSeen>,
+}

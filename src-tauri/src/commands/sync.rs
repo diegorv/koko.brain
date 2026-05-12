@@ -20,7 +20,8 @@ use tauri::{AppHandle, Runtime, State};
 use crate::sync::dispatch::{self, PeerHandshake, INTENT_PAIR, INTENT_PUSH};
 use crate::sync::discovery::{Announcer, Browser};
 use crate::sync::events::{
-	self, MyFingerprintPayload, PeerTrustedPayload, PushCompletePayload, PushProgressPayload,
+	self, LanSyncDebugDump, LanSyncDebugInterface, LanSyncDebugLastSeen, MyFingerprintPayload,
+	PeerTrustedPayload, PushCompletePayload, PushProgressPayload,
 };
 use crate::sync::identity::DeviceIdentity;
 use crate::sync::push::{plan_push, send_folder};
@@ -759,4 +760,78 @@ fn now_unix_ms() -> u64 {
 #[allow(dead_code)]
 pub(crate) fn encode_public_key(bytes: &[u8]) -> String {
 	BASE64.encode(bytes)
+}
+
+/// Returns a diagnostic snapshot of the LAN sync runtime for
+/// `vault_path`.
+///
+/// Used to triage discovery failures: surfaces the local fingerprint,
+/// every local IPv4 interface (so we can confirm whether the
+/// announcer's `enable_addr_auto` had the right interface to bind),
+/// whether the announcer + browser are currently running, and the
+/// last-seen address map populated by the browser callback.
+///
+/// Errors propagate from `local_ip_address::list_afinet_netifas`
+/// (interface enumeration) and the underlying state locks.
+#[tauri::command]
+pub async fn lan_sync_debug_dump(
+	state: State<'_, Arc<SyncState>>,
+	vault_path: String,
+) -> Result<LanSyncDebugDump, String> {
+	let fp = ensure_identity_cached(state.inner(), &vault_path)?;
+
+	let mut local_ipv4_addresses: Vec<LanSyncDebugInterface> = Vec::new();
+	match local_ip_address::list_afinet_netifas() {
+		Ok(list) => {
+			for (name, ip) in list {
+				if let std::net::IpAddr::V4(v4) = ip {
+					if v4.is_loopback() {
+						continue;
+					}
+					local_ipv4_addresses.push(LanSyncDebugInterface {
+						name,
+						addr: v4.to_string(),
+					});
+				}
+			}
+		}
+		Err(e) => return Err(format!("list interfaces: {e}")),
+	}
+
+	let announcer_running = state
+		.announcer
+		.lock()
+		.map_err(|e| format!("announcer lock poisoned: {e}"))?
+		.is_some();
+	let browser_running = state
+		.browser
+		.lock()
+		.map_err(|e| format!("browser lock poisoned: {e}"))?
+		.is_some();
+
+	let last_seen_addrs = {
+		let guard = state
+			.last_seen_addrs
+			.lock()
+			.map_err(|e| format!("last_seen_addrs lock poisoned: {e}"))?;
+		let mut out: Vec<LanSyncDebugLastSeen> = guard
+			.iter()
+			.map(|(fp_hex, (addr, port))| LanSyncDebugLastSeen {
+				fingerprint_hex: fp_hex.clone(),
+				addr: addr.clone(),
+				port: *port,
+			})
+			.collect();
+		out.sort_by(|a, b| a.fingerprint_hex.cmp(&b.fingerprint_hex));
+		out
+	};
+
+	Ok(LanSyncDebugDump {
+		fingerprint_hex: fp.fingerprint_hex,
+		fingerprint_display: fp.fingerprint_display,
+		local_ipv4_addresses,
+		announcer_running,
+		browser_running,
+		last_seen_addrs,
+	})
 }

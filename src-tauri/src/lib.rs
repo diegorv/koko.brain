@@ -163,6 +163,7 @@ pub fn run() {
             commands::sync::lan_sync_remove_trusted_peer,
             commands::sync::lan_sync_pair_with_peer,
             commands::sync::lan_sync_push_folder,
+            commands::sync::lan_sync_debug_dump,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

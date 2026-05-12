@@ -76,3 +76,43 @@ export interface MyFingerprint {
 	/** 6 BIP-39 words derived from the same hash, hyphen-joined. */
 	fingerprintDisplay: string;
 }
+
+/** One local network interface as reported by the OS. */
+export interface LanSyncDebugInterface {
+	/** OS-level interface name (e.g. `en0`, `utun4`). */
+	name: string;
+	/** IPv4 dotted-quad address. Loopback entries are filtered out. */
+	addr: string;
+}
+
+/** One entry from the backend's `last_seen_addrs` map. */
+export interface LanSyncDebugLastSeen {
+	/** Peer's Ed25519 fingerprint hex (same value the UI shows). */
+	fingerprintHex: string;
+	/** Last-known LAN address that the mDNS browser reported. */
+	addr: string;
+	/** Last-known TCP port advertised in the peer's mDNS TXT record. */
+	port: number;
+}
+
+/**
+ * Diagnostic snapshot returned by `lan_sync_debug_dump`. Used to
+ * triage discovery failures — surfaces the local fingerprint, every
+ * non-loopback IPv4 interface, whether the announcer + browser are
+ * currently running, and the last-seen address map populated by the
+ * mDNS browser callback.
+ */
+export interface LanSyncDebugDump {
+	/** Local device fingerprint hex (Ed25519-derived, 16 lowercase chars). */
+	fingerprintHex: string;
+	/** Local device fingerprint display (six BIP-39 words joined by `-`). */
+	fingerprintDisplay: string;
+	/** Every non-loopback IPv4 address the local OS reports. */
+	localIpv4Addresses: LanSyncDebugInterface[];
+	/** `true` while the announcer is registered. */
+	announcerRunning: boolean;
+	/** `true` while the browser is consuming events from the daemon. */
+	browserRunning: boolean;
+	/** Flattened snapshot of `state.last_seen_addrs`. */
+	lastSeenAddrs: LanSyncDebugLastSeen[];
+}

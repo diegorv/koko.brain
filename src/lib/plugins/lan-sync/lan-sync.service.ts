@@ -4,6 +4,7 @@ import { appendLog } from '$lib/utils/log.service';
 import { lanSyncStore } from './lan-sync.store.svelte';
 import type {
 	DiscoveredPeer,
+	LanSyncDebugDump,
 	MyFingerprint,
 	PairingIncoming,
 	PushComplete,
@@ -100,6 +101,14 @@ export interface LanSyncService {
 		sourceRelPath: string,
 		targetRelPath: string,
 	): Promise<void>;
+	/**
+	 * Fetch a diagnostic snapshot of the LAN sync runtime state for
+	 * triage when discovery is not behaving as expected. Does NOT
+	 * mutate the store. Includes the local fingerprint, every non-
+	 * loopback IPv4 interface, announcer + browser running flags, and
+	 * the backend's last-seen address map.
+	 */
+	debugDump(vaultPath: string): Promise<LanSyncDebugDump>;
 }
 
 /**
@@ -230,6 +239,15 @@ export function createLanSyncService(transport?: LanSyncTransport): LanSyncServi
 		}
 	}
 
+	async function debugDump(vaultPath: string): Promise<LanSyncDebugDump> {
+		try {
+			return await tx.invoke<LanSyncDebugDump>('lan_sync_debug_dump', { vaultPath });
+		} catch (err) {
+			appendLog('LAN-SYNC', `debugDump failed: ${String(err)}`);
+			throw err;
+		}
+	}
+
 	async function init(vaultPath: string): Promise<void> {
 		await shutdown();
 		const offs: Array<() => void> = [];
@@ -275,5 +293,6 @@ export function createLanSyncService(transport?: LanSyncTransport): LanSyncServi
 		removeTrustedPeer,
 		pairWithPeer,
 		pushFolder,
+		debugDump,
 	};
 }
