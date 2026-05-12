@@ -6,7 +6,7 @@ Smallest end-to-end useful slice of LAN sync: see peers on the LAN, pair with on
 
 - [x] Stage 0: Integration seams (backend mount fn + frontend plugin hook, no behavior, Cargo deps added)
 - [x] Stage 1 (P1A): Identity + BIP-39 wordlist + fingerprint
-- [ ] Stage 2 (P1B): peers.json trust store with atomic CRUD
+- [x] Stage 2 (P1B): peers.json trust store with atomic CRUD
 - [ ] Stage 3 (P1C-1F): Frontend types + reactive store
 - [ ] Stage 4: Typed event payloads (Rust)
 - [ ] Stage 5: mDNS announce + browse + first 6 commands

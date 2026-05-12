@@ -6,6 +6,7 @@
 //! Per-stage growth never touches host files outside the plugin.
 
 pub mod identity;
+pub mod trust;
 pub mod wordlist;
 
 use tauri::plugin::{Builder, TauriPlugin};
