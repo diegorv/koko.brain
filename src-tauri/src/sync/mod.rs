@@ -11,6 +11,7 @@ pub mod identity;
 pub mod pairing;
 pub mod protocol;
 pub mod rename_detect;
+pub mod session;
 pub mod shares;
 pub mod state_db;
 pub mod sync_engine;

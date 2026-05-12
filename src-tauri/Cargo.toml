@@ -60,7 +60,7 @@ zeroize = "1"
 # ndarray = "0.17"
 # tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 reqwest = { version = "0.13", features = ["stream"] }
-futures-util = "0.3"
+futures-util = { version = "0.3", features = ["sink"] }
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util", "sync", "net", "time"] }
 tauri-plugin-http = "2"
 tauri-plugin-updater = "2.10.0"
