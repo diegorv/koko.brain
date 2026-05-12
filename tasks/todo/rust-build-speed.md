@@ -8,11 +8,11 @@ Reduce wall-clock for `pnpm tauri build` when nothing in `src-tauri/` changed. O
 - [x] Task 2: Add a `[profile.release-fast]` profile to `src-tauri/Cargo.toml` that drops LTO and uses `codegen-units = 16` for fast local release builds. Existing `[profile.release]` (used by CI / shipping builds) is untouched.
 - [x] Task 3: Add a `tauri:build:fast` npm script to `package.json` that runs `tauri build --no-bundle` with `--profile release-fast`. Skips the dmg / codesign / app bundling step and uses the faster profile, for local "did it still compile" loops. The default `tauri:build` (via `pnpm tauri build`) is unchanged.
 - [x] Task 4: Wire `sccache` as the rustc wrapper via `.cargo/config.toml` at the repo root. Caches compiled crates across `cargo clean` and across branches. Requires `brew install sccache` (already done locally; teammates need to install once). First measured win: 1m51s cold check vs 36s warm check after `rm -rf target/debug`.
+- [x] Task 5: Add `scripts/tauri-before-build.sh` wrapper that hashes frontend inputs (`src/`, `static/`, `package.json`, `pnpm-lock.yaml`, `vite.config.js`, `svelte.config.js`, `tsconfig.json`) and skips `pnpm build` when the hash matches the previous successful run. Wire it via `tauri.conf.json -> build.beforeBuildCommand`. Bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
 
 ## Out of scope
 
 - `lld` / `mold`: macOS Xcode 15+ already uses the faster `ld-prime` linker by default; mold is Linux-only and lld on aarch64-darwin gives marginal gains.
-- Skip `pnpm build` when `src/` unchanged: medium complexity (script wrapper) - tracked separately.
 - Change `bundle.targets` default: would silently stop producing dmg for everyone.
 - `cargo clean` of the 150 GB stale `target/debug`: one-shot user action, done locally during this branch's work.
 
