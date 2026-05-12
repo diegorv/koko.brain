@@ -8,9 +8,21 @@ pub struct ChunkRow {
 	pub source_path: String,
 	pub content: String,
 	pub heading: Option<String>,
+	pub parent_headings: Vec<String>,
 	pub line_start: i64,
 	pub line_end: i64,
 	pub embedding_bytes: Vec<u8>,
+}
+
+/// Deserializes a JSON array of strings (the `parent_headings` column).
+/// Empty string and malformed JSON both fall back to an empty Vec rather than
+/// failing the row read — a stale row with garbage in the column should still
+/// be searchable; the next reindex fixes it.
+fn parse_parent_headings(raw: &str) -> Vec<String> {
+	if raw.is_empty() {
+		return Vec::new();
+	}
+	serde_json::from_str::<Vec<String>>(raw).unwrap_or_default()
 }
 
 /// Minimal chunk info for diagnostics.
@@ -87,19 +99,23 @@ pub fn insert_chunk(
 	source_path: &str,
 	content: &str,
 	heading: Option<&str>,
+	parent_headings: &[String],
 	line_start: i64,
 	line_end: i64,
 	content_hash: &str,
 	embedding_bytes: &[u8],
 	embedded_at: i64,
 ) -> Result<(), String> {
+	let parent_json = serde_json::to_string(parent_headings)
+		.map_err(|e| format!("Failed to serialize parent_headings: {e}"))?;
 	conn.execute(
-		"INSERT OR REPLACE INTO chunks (key, source_path, content, heading, line_start, line_end, content_hash, embedding, embedded_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+		"INSERT OR REPLACE INTO chunks (key, source_path, content, heading, parent_headings, line_start, line_end, content_hash, embedding, embedded_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
 		rusqlite::params![
 			key,
 			source_path,
 			content,
 			heading,
+			parent_json,
 			line_start,
 			line_end,
 			content_hash,
@@ -133,20 +149,22 @@ pub fn get_chunk_hashes_for_path(conn: &Connection, source_path: &str) -> Result
 pub fn load_all_embeddings(conn: &Connection) -> Result<Vec<ChunkRow>, String> {
 	let mut stmt = conn
 		.prepare(
-			"SELECT key, source_path, content, heading, line_start, line_end, embedding FROM chunks",
+			"SELECT key, source_path, content, heading, parent_headings, line_start, line_end, embedding FROM chunks",
 		)
 		.map_err(|e| format!("Failed to query chunks: {e}"))?;
 
 	let rows: Vec<ChunkRow> = stmt
 		.query_map([], |row| {
+			let parent_json: String = row.get(4)?;
 			Ok(ChunkRow {
 				key: row.get(0)?,
 				source_path: row.get(1)?,
 				content: row.get(2)?,
 				heading: row.get(3)?,
-				line_start: row.get(4)?,
-				line_end: row.get(5)?,
-				embedding_bytes: row.get(6)?,
+				parent_headings: parse_parent_headings(&parent_json),
+				line_start: row.get(5)?,
+				line_end: row.get(6)?,
+				embedding_bytes: row.get(7)?,
 			})
 		})
 		.map_err(|e| format!("Failed to iterate chunks: {e}"))?

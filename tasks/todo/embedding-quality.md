@@ -14,20 +14,15 @@ Target metrics vs current main baseline:
 - top-1 precision: ~60% → ~85% (reranker)
 - p50 latency: <500ms per query end-to-end (rerank top-50 on CPU)
 
-## Phase 0 — Eval harness + baseline (rebuild from scratch)
+## Phase 0 — SKIPPED
 
-Previous fixture/harness was on the deleted branch. Re-create.
-
-- [ ] Task 0.1: Re-create `src-tauri/tests/fixtures/eval_queries.json` schema + README, seed with 39 hand-picked real-vault queries (same set as before — paths verified against `/Users/diegorv/kokobrain-vault`).
-- [ ] Task 0.2: Re-create `src-tauri/tests/retrieval_eval.rs` harness (`#[ignore]`, reads `KOKO_EVAL_VAULT`). Prints recall@5, recall@10, MRR, p50/p95 latency.
-- [ ] Task 0.3: Document magic numbers in `semantic/filtering.rs` (gap=0.04, mean-1*stddev) and `semantic/chunker.rs` (min=50, max=10_000, overlap=2).
-- [ ] Task 0.4: Run baseline against current main code, record numbers in plan Notes.
+Eval fixture + harness skipped by decision. Quality validation will be qualitative (user spot-checks search results after each phase). Trade: no recall@k delta numbers per phase. Revisit if quality regressions slip through.
 
 ## Phase 1 — Chunking quality (4-6 days)
 
 Current chunker is heading-only and produces dilutes embeddings on long sections and headless notes.
 
-- [ ] Task 1.1: **Parent-heading prepend.** Track heading stack during `split_into_sections` (H1 → H_current ancestors). `Chunk` struct gains `parent_headings: Vec<String>`. DB schema: add column `parent_headings TEXT` (JSON). Embed text becomes `parent_headings.join(" > ") + "\n\n" + content`; storage `content` stays original (display-correct). Triggers full reindex via `model_hash` bump.
+- [x] Task 1.1: **Parent-heading prepend.** Track heading stack during `split_into_sections` (H1 → H_current ancestors). `Chunk` struct gains `parent_headings: Vec<String>`. DB schema: add column `parent_headings TEXT` (JSON). Embed text becomes `parent_headings.join(" > ") + "\n\n" + content`; storage `content` stays original (display-correct). Triggers full reindex via `model_hash` bump.
 - [ ] Task 1.2: **Tighter `max_chunk_chars=3000`** (~700 tokens). Today's 10_000 produces single chunks that span many sub-topics — embedding dilution. ROI: precision win in dense knowledge files.
 - [ ] Task 1.3: **Sliding-window fallback for headless notes.** Detect files with zero `#` headings. Apply window-based chunking: 2500 chars, 500 char overlap. Today these become one giant 50-200k-char "chunk" that the embedder truncates at max_seq_len=512 — i.e. most of the file is unindexed.
 - [ ] Task 1.4: **Token-aware overlap** (replace line-based). Carry the last ~80 tokens of the previous chunk forward instead of 2 lines (lines vary 1-200 chars). Use a cheap word-count proxy; tokenizer-exact split too expensive at chunking time.

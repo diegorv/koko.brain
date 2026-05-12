@@ -34,15 +34,16 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 
 		-- Semantic Search: embedding chunks
 		CREATE TABLE IF NOT EXISTS chunks (
-			key          TEXT PRIMARY KEY,
-			source_path  TEXT NOT NULL,
-			content      TEXT NOT NULL,
-			heading      TEXT,
-			line_start   INTEGER NOT NULL,
-			line_end     INTEGER NOT NULL,
-			content_hash TEXT NOT NULL,
-			embedding    BLOB NOT NULL,
-			embedded_at  INTEGER NOT NULL
+			key             TEXT PRIMARY KEY,
+			source_path     TEXT NOT NULL,
+			content         TEXT NOT NULL,
+			heading         TEXT,
+			parent_headings TEXT NOT NULL DEFAULT '[]',
+			line_start      INTEGER NOT NULL,
+			line_end        INTEGER NOT NULL,
+			content_hash    TEXT NOT NULL,
+			embedding       BLOB NOT NULL,
+			embedded_at     INTEGER NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_path);
 		CREATE INDEX IF NOT EXISTS idx_chunks_hash ON chunks(content_hash);
@@ -55,6 +56,19 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 	",
 	)
 	.map_err(|e| format!("Failed to create tables: {e}"))?;
+
+	// Migration: add `parent_headings` column to pre-existing `chunks` tables.
+	// SQLite has no `IF NOT EXISTS` on `ADD COLUMN`, so we attempt the ALTER and
+	// swallow the "duplicate column" error. Any other error is propagated.
+	if let Err(e) = conn.execute(
+		"ALTER TABLE chunks ADD COLUMN parent_headings TEXT NOT NULL DEFAULT '[]'",
+		[],
+	) {
+		let msg = e.to_string();
+		if !msg.contains("duplicate column name") {
+			return Err(format!("Failed to add parent_headings column: {msg}"));
+		}
+	}
 
 	Ok(())
 }
