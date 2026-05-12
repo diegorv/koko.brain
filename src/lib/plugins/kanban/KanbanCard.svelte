@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { Check, GripVertical, Pencil, Trash2, Archive, Palette } from 'lucide-svelte';
+	import Check from 'lucide-svelte/icons/check';
+	import GripVertical from 'lucide-svelte/icons/grip-vertical';
+	import Pencil from 'lucide-svelte/icons/pencil';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import Archive from 'lucide-svelte/icons/archive';
+	import Palette from 'lucide-svelte/icons/palette';
 	import type { KanbanItem } from './kanban.types';
 	import { extractCardDate, setCardDate, removeCardDate, getDateProximity, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, type DateProximity } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';

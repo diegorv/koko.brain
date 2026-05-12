@@ -7,7 +7,10 @@
 		type MonthRow,
 		type ColorMapping,
 	} from './linear-calendar.logic';
-	import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-svelte';
+	import ChevronsLeft from 'lucide-svelte/icons/chevrons-left';
+	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import ChevronsRight from 'lucide-svelte/icons/chevrons-right';
 
 	interface Props {
 		result: QueryResult;

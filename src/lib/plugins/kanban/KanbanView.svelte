@@ -1,5 +1,15 @@
 <script lang="ts">
-	import { Plus, Archive, ChevronDown, ChevronRight, RotateCcw, Trash2, ArrowUpDown, Search, LayoutGrid, List, Table } from 'lucide-svelte';
+	import Plus from 'lucide-svelte/icons/plus';
+	import Archive from 'lucide-svelte/icons/archive';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import ArrowUpDown from 'lucide-svelte/icons/arrow-up-down';
+	import Search from 'lucide-svelte/icons/search';
+	import LayoutGrid from 'lucide-svelte/icons/layout-grid';
+	import List from 'lucide-svelte/icons/list';
+	import Table from 'lucide-svelte/icons/table';
 	import {
 		parseKanbanBoard,
 		serializeKanbanBoard,

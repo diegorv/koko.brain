@@ -12,7 +12,8 @@
 		DropdownMenuContent,
 		DropdownMenuItem,
 	} from '$lib/components/ui/dropdown-menu';
-	import { ChevronRight, Plus } from 'lucide-svelte';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import Plus from 'lucide-svelte/icons/plus';
 	import type { FilterConjunction, FilterGroup, FilterRow as FilterRowType } from './toolbar.types';
 	import { CONJUNCTION_LABELS } from './toolbar.types';
 	import { createEmptyFilterRow, inferPropertyType } from './filter.logic';

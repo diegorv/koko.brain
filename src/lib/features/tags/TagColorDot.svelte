@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Hash } from 'lucide-svelte';
+	import Hash from 'lucide-svelte/icons/hash';
 
 	interface Props {
 		/** Hex color string, or undefined for no color (shows Hash icon) */

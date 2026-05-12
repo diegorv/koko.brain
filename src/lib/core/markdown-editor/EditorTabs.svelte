@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { X, FileText, Pin, ListChecks, Network, LayoutDashboard, Kanban } from 'lucide-svelte';
+	import X from 'lucide-svelte/icons/x';
+	import FileText from 'lucide-svelte/icons/file-text';
+	import Pin from 'lucide-svelte/icons/pin';
+	import ListChecks from 'lucide-svelte/icons/list-checks';
+	import Network from 'lucide-svelte/icons/network';
+	import LayoutDashboard from 'lucide-svelte/icons/layout-dashboard';
+	import Kanban from 'lucide-svelte/icons/kanban';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { switchTab, closeTab, togglePinTab } from '$lib/core/editor/editor.service';
 	import { isTabDirty, isTabPinned, isVirtualTab } from '$lib/core/editor/editor.logic';

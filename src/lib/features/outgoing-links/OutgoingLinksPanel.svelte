@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { ChevronRight, ExternalLink, Type, FileText, AlertCircle } from 'lucide-svelte';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import Type from 'lucide-svelte/icons/type';
+	import FileText from 'lucide-svelte/icons/file-text';
+	import AlertCircle from 'lucide-svelte/icons/alert-circle';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';

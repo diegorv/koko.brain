@@ -5,7 +5,7 @@
 		DropdownMenuContent,
 		DropdownMenuItem,
 	} from '$lib/components/ui/dropdown-menu';
-	import { ChevronDown } from 'lucide-svelte';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
 
 	interface Props {
 		/** Currently selected date property */

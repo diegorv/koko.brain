@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, type Node, type NodeProps } from '@xyflow/svelte';
-	import { FileText, ExternalLink as OpenIcon, Loader2 } from 'lucide-svelte';
+	import FileText from 'lucide-svelte/icons/file-text';
+	import OpenIcon from 'lucide-svelte/icons/external-link';
+	import Loader2 from 'lucide-svelte/icons/loader-2';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { resolveColor } from './canvas.logic';
 	import { renderCanvasMarkdown } from './canvas-markdown.logic';

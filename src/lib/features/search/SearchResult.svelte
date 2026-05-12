@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText } from 'lucide-svelte';
+	import FileText from 'lucide-svelte/icons/file-text';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';

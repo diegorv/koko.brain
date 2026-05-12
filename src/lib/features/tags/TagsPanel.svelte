@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { ArrowDownAZ, ArrowDown01, Filter } from 'lucide-svelte';
+	import ArrowDownAZ from 'lucide-svelte/icons/arrow-down-az';
+	import ArrowDown01 from 'lucide-svelte/icons/arrow-down-01';
+	import Filter from 'lucide-svelte/icons/filter';
 	import { Separator } from '$lib/components/ui/separator';
 	import { tagsStore } from './tags.store.svelte';
 	import { scheduleTagIndexRebuild, updateTagSort } from './tags.service';

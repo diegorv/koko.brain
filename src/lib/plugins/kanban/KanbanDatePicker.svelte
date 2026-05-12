@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Calendar as CalendarIcon, X } from 'lucide-svelte';
+	import CalendarIcon from 'lucide-svelte/icons/calendar';
+	import X from 'lucide-svelte/icons/x';
 	import { Calendar as CalendarPrimitive, Popover as PopoverPrimitive } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 
