@@ -233,63 +233,67 @@ pub fn read_share_state(
 }
 
 /// Bumps the share's Lamport clock by 1 and returns the new value.
+///
+/// The increment is performed in a single `INSERT ... ON CONFLICT DO
+/// UPDATE ... RETURNING` statement so it is atomic against any other
+/// connection or task touching the same row. Two callers racing on the
+/// same `share_id` are linearised by SQLite's row-level write locking,
+/// and each observes a strictly monotonic Lamport value. No external
+/// `BEGIN/COMMIT` is required at the call site.
 pub fn bump_lamport(conn: &Connection, share_id: &str) -> Result<u64, StateDbError> {
-	let current = read_share_state(conn, share_id)?;
-	let next = current.lamport.saturating_add(1);
-	conn.execute(
+	let next: i64 = conn.query_row(
 		"INSERT INTO share_state(share_id, lamport, manifest_version, last_seen_peer_addr)
-		 VALUES (?1, ?2, ?3, ?4)
-		 ON CONFLICT(share_id) DO UPDATE SET lamport = excluded.lamport",
-		params![
-			share_id,
-			next as i64,
-			current.manifest_version as i64,
-			current.last_seen_peer_addr,
-		],
+		 VALUES (?1, 1, 0, NULL)
+		 ON CONFLICT(share_id) DO UPDATE SET lamport = lamport + 1
+		 RETURNING lamport",
+		params![share_id],
+		|r| r.get(0),
 	)?;
-	Ok(next)
+	Ok(next as u64)
 }
 
 /// Returns `max(local, observed) + 1` and persists it. Use on every
 /// inbound apply to keep Lamport clocks monotonic across peers.
+///
+/// As with [`bump_lamport`], the read-merge-write step is collapsed
+/// into a single `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`
+/// statement evaluated by SQLite so it is atomic regardless of
+/// concurrent callers on other connections. The `MAX()` in the
+/// UPDATE clause picks the larger of the stored value and the remote
+/// peer's observed value, then adds one in the same expression.
 pub fn merge_remote_lamport(
 	conn: &Connection,
 	share_id: &str,
 	remote_lamport: u64,
 ) -> Result<u64, StateDbError> {
-	let current = read_share_state(conn, share_id)?;
-	let next = current.lamport.max(remote_lamport).saturating_add(1);
-	conn.execute(
+	let remote_i = remote_lamport as i64;
+	let next: i64 = conn.query_row(
 		"INSERT INTO share_state(share_id, lamport, manifest_version, last_seen_peer_addr)
-		 VALUES (?1, ?2, ?3, ?4)
-		 ON CONFLICT(share_id) DO UPDATE SET lamport = excluded.lamport",
-		params![
-			share_id,
-			next as i64,
-			current.manifest_version as i64,
-			current.last_seen_peer_addr,
-		],
+		 VALUES (?1, ?2 + 1, 0, NULL)
+		 ON CONFLICT(share_id) DO UPDATE SET lamport = MAX(lamport, ?2) + 1
+		 RETURNING lamport",
+		params![share_id, remote_i],
+		|r| r.get(0),
 	)?;
-	Ok(next)
+	Ok(next as u64)
 }
 
 /// Bumps `manifest_version` on every local file_state change. Used by
 /// the anti-entropy `Subscribe { since_version }` flow.
+///
+/// Atomic for the same reason as [`bump_lamport`]: a single SQL
+/// statement performs both the read and the write, so concurrent
+/// callers cannot race on the manifest counter.
 pub fn bump_manifest_version(conn: &Connection, share_id: &str) -> Result<u64, StateDbError> {
-	let current = read_share_state(conn, share_id)?;
-	let next = current.manifest_version.saturating_add(1);
-	conn.execute(
+	let next: i64 = conn.query_row(
 		"INSERT INTO share_state(share_id, lamport, manifest_version, last_seen_peer_addr)
-		 VALUES (?1, ?2, ?3, ?4)
-		 ON CONFLICT(share_id) DO UPDATE SET manifest_version = excluded.manifest_version",
-		params![
-			share_id,
-			current.lamport as i64,
-			next as i64,
-			current.last_seen_peer_addr,
-		],
+		 VALUES (?1, 0, 1, NULL)
+		 ON CONFLICT(share_id) DO UPDATE SET manifest_version = manifest_version + 1
+		 RETURNING manifest_version",
+		params![share_id],
+		|r| r.get(0),
 	)?;
-	Ok(next)
+	Ok(next as u64)
 }
 
 /// Updates the cached last-seen address for reconnect attempts.

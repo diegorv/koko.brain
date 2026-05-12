@@ -73,6 +73,43 @@ fn bump_lamport_is_per_share() {
 }
 
 #[test]
+fn bump_lamport_is_atomic_under_concurrent_writers() {
+	// Spawn N threads, each owning its own SQLite connection to the same
+	// on-disk database, and have them all bump the same share's Lamport
+	// clock M times. If the increment were a read-modify-write outside
+	// a transaction, two threads could read the same value and write it
+	// back, losing at least one tick. With the SQL-side atomic
+	// `lamport = lamport + 1` the final value must be exactly N*M.
+	let tmp = tempfile::tempdir().unwrap();
+	// Initialise the file + schema before threads race on open.
+	let _seed = open_state_db(tmp.path()).unwrap();
+	let vault_root = tmp.path().to_path_buf();
+
+	let threads = 16usize;
+	let per_thread = 50usize;
+	let mut handles = Vec::with_capacity(threads);
+	for _ in 0..threads {
+		let root = vault_root.clone();
+		handles.push(std::thread::spawn(move || {
+			let conn = open_state_db(&root).expect("worker open");
+			for _ in 0..per_thread {
+				bump_lamport(&conn, "share-race").expect("bump");
+			}
+		}));
+	}
+	for h in handles {
+		h.join().expect("worker joined");
+	}
+	let conn = open_state_db(&vault_root).unwrap();
+	let final_lamport = read_share_state(&conn, "share-race").unwrap().lamport;
+	assert_eq!(
+		final_lamport,
+		(threads * per_thread) as u64,
+		"lost ticks under concurrent bump_lamport"
+	);
+}
+
+#[test]
 fn merge_remote_lamport_takes_max_plus_one() {
 	let conn = open_in_memory().unwrap();
 	bump_lamport(&conn, "s").unwrap(); // local = 1
