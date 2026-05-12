@@ -4,4 +4,5 @@
 //! vaults on the same local network. See `tasks/todo/lan-sync.md` for the
 //! incremental implementation plan.
 
+pub mod identity;
 pub mod wordlist;

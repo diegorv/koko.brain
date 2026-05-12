@@ -8,7 +8,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 
 - [x] Task 1: Adicionar 8 crates ao Cargo.toml (ed25519-dalek, x25519-dalek, hkdf, spake2, mdns-sd, local-ip-address, tokio-util, subtle)
 - [x] Task 2: Wordlist BIP-39 + módulo Diceware (7 palavras, ~77 bits) com geração, normalização e validação
-- [ ] Task 3: Identity module (Ed25519 + Keychain) com fingerprint format e persistência
+- [x] Task 3: Identity module (Ed25519 + Keychain abstraído via KeyStorage trait) com fingerprint format e persistência
 - [ ] Task 4: Shares config com 2 modos (subfolder, root-with-excludes) + hard-deny rules + 3 camadas de path traversal defense
 - [ ] Task 5: Wire protocol structs (HandshakeMsg, AppMsg) + version negotiation + directory entries
 - [ ] Task 6: Transport layer (TCP + LengthDelimitedCodec + handshake X25519 + AES-256-GCM streaming + keepalive Ping/Pong + idle timeout + reconnect backoff)
