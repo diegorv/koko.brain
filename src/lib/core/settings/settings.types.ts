@@ -202,10 +202,6 @@ export interface LanSyncSettings {
 	/** When true, the vault announces itself on the LAN via mDNS so other
 	 *  vaults can discover it during pairing. Default false (opt-in). */
 	discoverable: boolean;
-	/** When true, the trusted-peer handshake completes automatically when
-	 *  the other side's fingerprint is already in the trust store. When
-	 *  false, every reconnect prompts the user. Default true. */
-	autoAcceptKnownPeers: boolean;
 }
 
 /** Sidebar navigation sections in the settings dialog */

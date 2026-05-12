@@ -114,7 +114,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	lanSync: {
 		discoverable: false,
-		autoAcceptKnownPeers: true,
 	},
 };
 
