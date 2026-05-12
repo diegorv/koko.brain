@@ -57,10 +57,20 @@ ndarray = "0.17"
 tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 reqwest = { version = "0.13", features = ["stream"] }
 futures-util = "0.3"
-tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
+tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util", "sync", "net", "time"] }
 tauri-plugin-http = "2"
 tauri-plugin-updater = "2.10.0"
 tauri-plugin-process = "2.3.1"
+
+# LAN Sync
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+hkdf = "0.12"
+spake2 = "0.4"
+mdns-sd = "0.13"
+local-ip-address = "0.6"
+tokio-util = { version = "0.7", features = ["codec"] }
+subtle = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
