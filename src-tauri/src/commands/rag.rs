@@ -1,4 +1,6 @@
 use crate::rag::config;
+use crate::rag::config::RetrievalConfig;
+use crate::rag::retrieval::{retrieve, RetrievedChunk};
 use crate::semantic::reranker::RerankerModelManager;
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
@@ -67,6 +69,24 @@ pub struct RagConfigStatus {
 	pub config_valid: bool,
 	pub api_key_resolved: bool,
 	pub error: Option<String>,
+}
+
+/// Runs the retrieval pipeline only (no LLM call). Returns the top-N
+/// chunks the LLM would receive — useful for preview, debugging, and
+/// "show sources" UI before a chat is initiated.
+///
+/// Uses defaults from `RetrievalConfig` when `rag.toml` is absent so
+/// the user can preview retrieval before configuring the LLM provider.
+#[tauri::command]
+pub async fn rag_search(
+	vault_path: String,
+	query: String,
+) -> Result<Vec<RetrievedChunk>, String> {
+	let retrieval_cfg = match config::load(Path::new(&vault_path)) {
+		Ok(cfg) => cfg.retrieval,
+		Err(_) => RetrievalConfig::default(),
+	};
+	retrieve(query, retrieval_cfg).await
 }
 
 #[tauri::command]

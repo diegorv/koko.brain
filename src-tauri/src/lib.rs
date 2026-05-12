@@ -153,6 +153,7 @@ pub fn run() {
             commands::rag::is_reranker_model_available,
             commands::rag::rag_download_reranker,
             commands::rag::rag_config_status,
+            commands::rag::rag_search,
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
