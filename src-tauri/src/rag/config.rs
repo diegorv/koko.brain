@@ -13,36 +13,64 @@ pub struct RagConfig {
 	pub retrieval: RetrievalConfig,
 }
 
-/// LLM provider configuration. Targets any OpenAI-compatible chat completions
-/// endpoint (Kimi, DeepSeek, OpenAI, Ollama, OpenRouter, …) — the choice of
-/// provider is encoded entirely in `endpoint` + `model`.
+/// LLM provider configuration. Supports two backends:
+/// - `openai_compat`: any OpenAI-compatible chat completions endpoint
+///   (Kimi, DeepSeek, OpenAI, Ollama, OpenRouter, …).
+/// - `claude_agent_sdk`: subprocess to the local `claude` CLI, authenticated
+///   via the user's Pro/Max subscription. Endpoint and api-key fields are
+///   ignored in this mode.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmConfig {
-	/// Provider tag for logging and future-proofing. Currently only
-	/// "openai_compat" is supported.
+	/// Provider tag. `"openai_compat"` (default) or `"claude_agent_sdk"`.
 	#[serde(default = "default_provider")]
 	pub provider: String,
 
 	/// Base URL of the chat completions endpoint, including any version
 	/// segment (e.g. `https://api.moonshot.ai/v1`,
-	/// `http://localhost:11434/v1`).
+	/// `http://localhost:11434/v1`). Required for `openai_compat`;
+	/// ignored for `claude_agent_sdk`.
+	#[serde(default)]
 	pub endpoint: String,
 
-	/// Model identifier accepted by the endpoint (e.g. `kimi-k2.6`,
-	/// `deepseek-chat`, `qwen2.5:14b`).
+	/// Model identifier. For `openai_compat`: the model name accepted by
+	/// the endpoint (e.g. `kimi-k2.6`, `deepseek-chat`). For
+	/// `claude_agent_sdk`: an alias (`sonnet`, `opus`, `haiku`) or a full
+	/// model id (`claude-sonnet-4-6`).
 	pub model: String,
 
 	/// Environment variable name that holds the API key. Read as the
-	/// secondary source after the keyring.
+	/// secondary source after the keyring. Ignored for `claude_agent_sdk`.
 	#[serde(default)]
 	pub api_key_env: String,
 
 	/// OS keyring service name to look up the API key. When set, the
 	/// keyring is tried first; the env var is a fallback. Leave empty
 	/// to skip the keyring entirely (useful on headless Linux without
-	/// Secret Service running).
+	/// Secret Service running). Ignored for `claude_agent_sdk`.
 	#[serde(default)]
 	pub api_key_keyring_service: String,
+
+	/// Provider-specific tuning for `claude_agent_sdk`. Optional; sensible
+	/// defaults apply when omitted.
+	#[serde(default)]
+	pub claude: ClaudeConfig,
+}
+
+/// Tuning for the `claude_agent_sdk` provider. All fields are optional.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ClaudeConfig {
+	/// Path to the `claude` CLI binary. Defaults to `"claude"` (looked up
+	/// on `$PATH`). Set explicitly when the binary lives outside `$PATH`
+	/// or you want to pin a specific version.
+	#[serde(default)]
+	pub binary_path: Option<String>,
+
+	/// Effort level passed via `--effort` (`low`, `medium`, `high`,
+	/// `xhigh`, `max`). Lowering the effort reduces the thinking budget,
+	/// which both speeds up first-token latency and trims subscription
+	/// quota consumption. Leave unset to use the CLI default.
+	#[serde(default)]
+	pub effort: Option<String>,
 }
 
 /// Retrieval pipeline tuning.
@@ -72,6 +100,28 @@ impl Default for RetrievalConfig {
 
 fn default_provider() -> String {
 	"openai_compat".to_string()
+}
+
+/// Strongly-typed view of `LlmConfig::provider`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderKind {
+	OpenAICompat,
+	ClaudeAgentSdk,
+}
+
+impl LlmConfig {
+	/// Parses `provider` into a typed enum. Returns an actionable error
+	/// listing the supported values when the user picked an unknown one.
+	pub fn provider_kind(&self) -> Result<ProviderKind, String> {
+		match self.provider.as_str() {
+			"openai_compat" => Ok(ProviderKind::OpenAICompat),
+			"claude_agent_sdk" => Ok(ProviderKind::ClaudeAgentSdk),
+			other => Err(format!(
+				"Unknown LLM provider {other:?}. Expected \"openai_compat\" \
+				 or \"claude_agent_sdk\"."
+			)),
+		}
+	}
 }
 
 fn default_vector_top_k() -> usize {

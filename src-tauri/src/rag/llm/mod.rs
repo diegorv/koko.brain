@@ -1,4 +1,6 @@
+pub mod claude_agent_sdk;
 pub mod openai_compat;
+pub mod prompt;
 
 use crate::rag::retrieval::RetrievedChunk;
 use async_trait::async_trait;
@@ -12,9 +14,11 @@ pub type TokenStream = Pin<Box<dyn Stream<Item = Result<String, String>> + Send>
 /// Trait implemented by any LLM client that can take a question plus a list
 /// of retrieved note chunks and stream a cited answer back.
 ///
-/// Concrete implementations live in submodules. v0.1 ships only
-/// `OpenAICompatProvider`, which covers Kimi, DeepSeek, Ollama, OpenAI, and
-/// OpenRouter via a single endpoint+model pair.
+/// Two concrete implementations ship:
+/// - `OpenAICompatProvider` covers Kimi, DeepSeek, OpenAI, Ollama, OpenRouter
+///   via a single endpoint+model pair (charged to the user's API key).
+/// - `ClaudeAgentSdkProvider` shells out to the local `claude` CLI, which
+///   carries the user's Pro/Max subscription auth — no API key required.
 #[async_trait]
 pub trait LlmProvider: Send + Sync {
 	async fn chat_stream(

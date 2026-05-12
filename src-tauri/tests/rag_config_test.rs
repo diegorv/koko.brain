@@ -1,4 +1,4 @@
-use kokobrain_lib::rag::config::{self, LlmConfig, RagConfig};
+use kokobrain_lib::rag::config::{self, ClaudeConfig, LlmConfig, ProviderKind, RagConfig};
 use tempfile::TempDir;
 
 fn make_vault_with_config(toml: &str) -> TempDir {
@@ -81,6 +81,7 @@ fn resolve_api_key_errors_when_neither_source_set() {
 		model: "test".into(),
 		api_key_env: "".into(),
 		api_key_keyring_service: "".into(),
+		claude: ClaudeConfig::default(),
 	};
 	let result = config::resolve_api_key(&cfg);
 	assert!(result.is_err());
@@ -99,10 +100,78 @@ fn resolve_api_key_reads_env_var_when_keyring_unset() {
 		model: "test".into(),
 		api_key_env: var_name.into(),
 		api_key_keyring_service: "".into(),
+		claude: ClaudeConfig::default(),
 	};
 	let key = config::resolve_api_key(&cfg).unwrap();
 	assert_eq!(key, "test-key-value");
 	std::env::remove_var(var_name);
+}
+
+#[test]
+fn provider_kind_parses_known_values() {
+	let mut cfg = LlmConfig {
+		provider: "openai_compat".into(),
+		endpoint: "https://example.com/v1".into(),
+		model: "m".into(),
+		api_key_env: "".into(),
+		api_key_keyring_service: "".into(),
+		claude: ClaudeConfig::default(),
+	};
+	assert_eq!(cfg.provider_kind().unwrap(), ProviderKind::OpenAICompat);
+	cfg.provider = "claude_agent_sdk".into();
+	assert_eq!(cfg.provider_kind().unwrap(), ProviderKind::ClaudeAgentSdk);
+}
+
+#[test]
+fn provider_kind_rejects_unknown_value() {
+	let cfg = LlmConfig {
+		provider: "anthropic_direct".into(),
+		endpoint: "".into(),
+		model: "m".into(),
+		api_key_env: "".into(),
+		api_key_keyring_service: "".into(),
+		claude: ClaudeConfig::default(),
+	};
+	let err = cfg.provider_kind().expect_err("unknown provider should error");
+	assert!(
+		err.contains("anthropic_direct") && err.contains("openai_compat"),
+		"error should name the bad value and list valid options, got: {err}"
+	);
+}
+
+#[test]
+fn load_parses_claude_agent_sdk_config() {
+	let toml = r#"
+		[llm]
+		provider = "claude_agent_sdk"
+		model = "sonnet"
+
+		[llm.claude]
+		binary_path = "/usr/local/bin/claude"
+		effort = "low"
+	"#;
+	let tmp = make_vault_with_config(toml);
+	let cfg = config::load(tmp.path()).unwrap();
+	assert_eq!(cfg.llm.provider, "claude_agent_sdk");
+	assert_eq!(cfg.llm.provider_kind().unwrap(), ProviderKind::ClaudeAgentSdk);
+	assert_eq!(cfg.llm.model, "sonnet");
+	assert_eq!(cfg.llm.endpoint, "", "endpoint defaults to empty for claude");
+	assert_eq!(cfg.llm.claude.binary_path.as_deref(), Some("/usr/local/bin/claude"));
+	assert_eq!(cfg.llm.claude.effort.as_deref(), Some("low"));
+}
+
+#[test]
+fn load_parses_claude_agent_sdk_without_optional_section() {
+	let toml = r#"
+		[llm]
+		provider = "claude_agent_sdk"
+		model = "haiku"
+	"#;
+	let tmp = make_vault_with_config(toml);
+	let cfg = config::load(tmp.path()).unwrap();
+	assert_eq!(cfg.llm.model, "haiku");
+	assert!(cfg.llm.claude.binary_path.is_none());
+	assert!(cfg.llm.claude.effort.is_none());
 }
 
 #[test]

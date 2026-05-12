@@ -1,5 +1,6 @@
 use crate::rag::config;
-use crate::rag::config::RetrievalConfig;
+use crate::rag::config::{ProviderKind, RetrievalConfig};
+use crate::rag::llm::claude_agent_sdk::ClaudeAgentSdkProvider;
 use crate::rag::llm::openai_compat::OpenAICompatProvider;
 use crate::rag::llm::LlmProvider;
 use crate::rag::retrieval::{retrieve, RetrievedChunk};
@@ -116,7 +117,7 @@ pub async fn rag_chat(
 	app: AppHandle,
 ) -> Result<(), String> {
 	let cfg = config::load(Path::new(&vault_path))?;
-	let api_key = config::resolve_api_key(&cfg.llm)?;
+	let provider_kind = cfg.llm.provider_kind()?;
 
 	let chunks = retrieve(query.clone(), cfg.retrieval.clone()).await?;
 
@@ -137,7 +138,20 @@ pub async fn rag_chat(
 		return Ok(());
 	}
 
-	let provider = OpenAICompatProvider::new(&cfg.llm.endpoint, &api_key, &cfg.llm.model);
+	let provider: Box<dyn LlmProvider> = match provider_kind {
+		ProviderKind::OpenAICompat => {
+			let api_key = config::resolve_api_key(&cfg.llm)?;
+			Box::new(OpenAICompatProvider::new(
+				&cfg.llm.endpoint,
+				&api_key,
+				&cfg.llm.model,
+			))
+		}
+		ProviderKind::ClaudeAgentSdk => Box::new(ClaudeAgentSdkProvider::new(
+			&cfg.llm.model,
+			&cfg.llm.claude,
+		)),
+	};
 
 	let mut stream = match provider.chat_stream(&query, &chunks).await {
 		Ok(s) => s,
@@ -186,20 +200,45 @@ pub fn rag_config_status(vault_path: String) -> Result<RagConfigStatus, String> 
 		});
 	}
 	match config::load(Path::new(&vault_path)) {
-		Ok(cfg) => match config::resolve_api_key(&cfg.llm) {
-			Ok(_) => Ok(RagConfigStatus {
-				config_exists: true,
-				config_valid: true,
-				api_key_resolved: true,
-				error: None,
-			}),
-			Err(e) => Ok(RagConfigStatus {
-				config_exists: true,
-				config_valid: true,
-				api_key_resolved: false,
-				error: Some(e),
-			}),
-		},
+		Ok(cfg) => {
+			let provider_kind = match cfg.llm.provider_kind() {
+				Ok(k) => k,
+				Err(e) => {
+					return Ok(RagConfigStatus {
+						config_exists: true,
+						config_valid: false,
+						api_key_resolved: false,
+						error: Some(e),
+					});
+				}
+			};
+			match provider_kind {
+				// claude_agent_sdk authenticates via the local CLI's OAuth
+				// session; there is no api key to resolve, so the field is
+				// trivially true. Missing-binary errors surface later via
+				// the chat error stream.
+				ProviderKind::ClaudeAgentSdk => Ok(RagConfigStatus {
+					config_exists: true,
+					config_valid: true,
+					api_key_resolved: true,
+					error: None,
+				}),
+				ProviderKind::OpenAICompat => match config::resolve_api_key(&cfg.llm) {
+					Ok(_) => Ok(RagConfigStatus {
+						config_exists: true,
+						config_valid: true,
+						api_key_resolved: true,
+						error: None,
+					}),
+					Err(e) => Ok(RagConfigStatus {
+						config_exists: true,
+						config_valid: true,
+						api_key_resolved: false,
+						error: Some(e),
+					}),
+				},
+			}
+		}
 		Err(e) => Ok(RagConfigStatus {
 			config_exists: true,
 			config_valid: false,

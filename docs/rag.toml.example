@@ -1,6 +1,12 @@
 # Sample personal-RAG configuration for koko.brain.
 # Copy to `{vault}/.kokobrain/rag.toml` and edit for your chosen provider.
 #
+# Two providers are supported:
+#   - "openai_compat":     any OpenAI-compatible API (Kimi, DeepSeek, OpenAI,
+#                          Ollama, OpenRouter, …). Requires an API key.
+#   - "claude_agent_sdk":  shells out to the local `claude` CLI, using your
+#                          Pro/Max subscription auth. No API key in this file.
+#
 # Never commit your API key to this file — set it via the OS keyring
 # (preferred) or via the env var named below.
 
@@ -39,6 +45,33 @@ api_key_keyring_service = "kokobrain-rag-moonshot"
 #   model = "anthropic/claude-haiku-4.5"
 #   api_key_env = "OPENROUTER_API_KEY"
 #   api_key_keyring_service = "kokobrain-rag-openrouter"
+#
+# Claude via subscription (no API key — uses your local `claude` CLI auth):
+#
+#   [llm]
+#   provider = "claude_agent_sdk"
+#   # Model alias or full id. Aliases follow your Claude Code config.
+#   model = "sonnet"   # or "opus", "haiku", or e.g. "claude-sonnet-4-6"
+#
+#   [llm.claude]
+#   # Optional. Defaults to "claude" on $PATH.
+#   # binary_path = "/opt/homebrew/bin/claude"
+#   #
+#   # Optional. Lower effort = smaller thinking budget = faster + cheaper on
+#   # subscription quota. Choices: low, medium, high, xhigh, max.
+#   # effort = "low"
+#
+# Prereqs for the claude_agent_sdk provider:
+#   1. Install Claude Code: https://claude.com/claude-code
+#   2. Run `claude` once interactively and sign in with the same Anthropic
+#      account that owns your Pro/Max subscription.
+#   3. Verify with `claude --version`.
+# Caveats:
+#   - Subscription rate limits apply (5h windows). No automatic fallback
+#     when the quota is exhausted.
+#   - The CLI auto-loads CLAUDE.md from cwd; we spawn from the OS temp dir
+#     to avoid this, but other settings (~/.claude/settings.json) still apply.
+#   - Each user of the app must install the CLI on their own machine.
 
 [retrieval]
 # Cosine-search candidates produced by the embedder, before reranking.
