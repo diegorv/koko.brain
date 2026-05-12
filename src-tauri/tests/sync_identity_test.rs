@@ -1,6 +1,7 @@
 use kokobrain_lib::sync::identity::{
-	fingerprint_of, format_fingerprint, load_or_create_identity, parse_fingerprint,
-	short_fingerprint, IdentityError, KeyStorage, FINGERPRINT_BYTES,
+	fingerprint_of, format_fingerprint, format_fingerprint_words, load_or_create_identity,
+	parse_fingerprint, parse_fingerprint_words, short_fingerprint, IdentityError, KeyStorage,
+	FINGERPRINT_BYTES, FINGERPRINT_WORD_COUNT,
 };
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -203,21 +204,84 @@ fn identity_can_sign_and_verify() {
 }
 
 #[test]
-fn fingerprint_string_format_is_consistent() {
+fn fingerprint_string_is_six_dash_separated_words() {
 	let storage = MemoryStorage::default();
 	let identity = load_or_create_identity(&storage, "format-test").unwrap();
 	let s = identity.fingerprint_string();
-	// Must be 4 groups of 4 hex chars separated by '-' = length 19.
-	assert_eq!(s.len(), 19);
-	assert!(s.chars().filter(|c| *c == '-').count() == 3);
-	// All non-'-' characters must be uppercase hex.
-	for c in s.chars().filter(|c| *c != '-') {
-		assert!(
-			c.is_ascii_hexdigit() && (c.is_ascii_digit() || c.is_ascii_uppercase()),
-			"unexpected char in fingerprint: {c:?}"
-		);
+	let parts: Vec<&str> = s.split('-').collect();
+	assert_eq!(parts.len(), FINGERPRINT_WORD_COUNT, "expected 6 words, got {parts:?}");
+	for w in &parts {
+		assert!(!w.is_empty(), "no empty segments");
+		assert!(w.chars().all(|c| c.is_ascii_lowercase()), "all lowercase, got {w}");
 	}
-	// Round-trip through parse_fingerprint reproduces the raw bytes.
-	let parsed = parse_fingerprint(&s).unwrap();
+	// Round-trip through parse_fingerprint_words reproduces the raw bytes.
+	let parsed = parse_fingerprint_words(&s).expect("parse must succeed");
 	assert_eq!(parsed, identity.fingerprint());
+}
+
+#[test]
+fn format_fingerprint_words_is_deterministic() {
+	let fp = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+	let a = format_fingerprint_words(&fp);
+	let b = format_fingerprint_words(&fp);
+	assert_eq!(a, b);
+}
+
+#[test]
+fn format_fingerprint_words_handles_zero_and_max() {
+	let zero = [0u8; FINGERPRINT_BYTES];
+	let max = [0xFFu8; FINGERPRINT_BYTES];
+	let s_zero = format_fingerprint_words(&zero);
+	let s_max = format_fingerprint_words(&max);
+	assert_ne!(s_zero, s_max);
+	assert_eq!(parse_fingerprint_words(&s_zero).unwrap(), zero);
+	assert_eq!(parse_fingerprint_words(&s_max).unwrap(), max);
+}
+
+#[test]
+fn parse_fingerprint_words_rejects_wrong_word_count() {
+	// Five words, not six.
+	assert!(parse_fingerprint_words("abandon-ability-able-about-above").is_none());
+	// Seven words.
+	assert!(parse_fingerprint_words("abandon-ability-able-about-above-absent-absorb").is_none());
+}
+
+#[test]
+fn parse_fingerprint_words_rejects_unknown_word() {
+	assert!(parse_fingerprint_words("abandon-ability-able-about-above-zzzzzzzz").is_none());
+}
+
+#[test]
+fn parse_fingerprint_words_rejects_nonzero_padding() {
+	// Construct a 6-word phrase whose last word has its bottom 2 bits non-zero.
+	// `abandon` is index 0; `able` is index 2 (binary ...10), so its bottom 2 bits = 10.
+	// Using it as the LAST word forces a non-zero pad rejection.
+	assert!(parse_fingerprint_words("abandon-abandon-abandon-abandon-abandon-able").is_none());
+}
+
+#[test]
+fn format_fingerprint_words_round_trips_random_samples() {
+	// Spot-check several distinct fingerprints round-trip cleanly.
+	let cases = [
+		[0u8; 8],
+		[0xFFu8; 8],
+		[0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77],
+		[0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89],
+		[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01],
+	];
+	for fp in &cases {
+		let s = format_fingerprint_words(fp);
+		assert_eq!(parse_fingerprint_words(&s).unwrap(), *fp, "round-trip failed for {fp:?}");
+	}
+}
+
+#[test]
+fn legacy_hex_format_helpers_still_work() {
+	// `format_fingerprint` (hex) and `parse_fingerprint` (hex) remain available
+	// for filenames, log lines, and IPC `fingerprintHex` storage. They are
+	// separate from the word display path.
+	let fp = [0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6, 0x07, 0x08];
+	let hex = format_fingerprint(&fp);
+	assert_eq!(hex, "A1B2-C3D4-E5F6-0708");
+	assert_eq!(parse_fingerprint(&hex).unwrap(), fp);
 }

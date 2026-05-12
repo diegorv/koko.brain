@@ -129,9 +129,12 @@ impl PeerIdentity {
 		fingerprint_of(&self.verifying_key)
 	}
 
-	/// Human-readable fingerprint, e.g. `"A1B2-C3D4-E5F6-0708"`.
+	/// Human-readable fingerprint as a 6-word BIP-39 phrase, e.g.
+	/// `"apple-banjo-cargo-doctor-eagle-fence"`. Used for visual peer
+	/// identity verification on reconnects. Storage and IPC trust-store
+	/// keys keep the hex form via [`format_fingerprint`] / [`hex_of`].
 	pub fn fingerprint_string(&self) -> String {
-		format_fingerprint(&self.fingerprint())
+		format_fingerprint_words(&self.fingerprint())
 	}
 }
 
@@ -212,4 +215,67 @@ pub fn parse_fingerprint(s: &str) -> Option<[u8; FINGERPRINT_BYTES]> {
 /// lines (e.g. the conflict file `<basename>.conflict-<peer8>-<ts>.<ext>`).
 pub fn short_fingerprint(fp: &[u8; FINGERPRINT_BYTES]) -> String {
 	fp[..4].iter().map(|b| format!("{b:02X}")).collect()
+}
+
+/// Number of BIP-39 words used to display a fingerprint. 6 words at 11
+/// bits each cover the full 64-bit fingerprint with 2 zero-padded bits
+/// to spare, so the encoding is fully reversible.
+pub const FINGERPRINT_WORD_COUNT: usize = 6;
+
+/// Formats an 8-byte fingerprint as 6 BIP-39 English words separated by
+/// `-`, e.g. `"apple-banjo-cargo-doctor-eagle-fence"`. The encoding is
+/// deterministic and lossless: the 64-bit fingerprint is laid out
+/// MSB-first across six 11-bit slots, with the final 2 bits of the last
+/// slot zero-padded. See [`parse_fingerprint_words`] for the inverse.
+pub fn format_fingerprint_words(fp: &[u8; FINGERPRINT_BYTES]) -> String {
+	let v = u64::from_be_bytes(*fp);
+	let mut out = String::with_capacity(FINGERPRINT_WORD_COUNT * 9);
+	let shifts: [u8; FINGERPRINT_WORD_COUNT] = [53, 42, 31, 20, 9, 0];
+	for (i, &shift) in shifts.iter().enumerate() {
+		let idx = if shift == 0 {
+			// Last word: shift the bottom 9 bits up by 2 so they sit in the
+			// upper 9 bits of an 11-bit slot, with 2 zero pad bits.
+			(((v as u16) & 0x1FF) << 2) as usize
+		} else {
+			((v >> shift) & 0x7FF) as usize
+		};
+		if i > 0 {
+			out.push('-');
+		}
+		out.push_str(crate::sync::wordlist::word_at(idx));
+	}
+	out
+}
+
+/// Parses a fingerprint previously rendered by [`format_fingerprint_words`]
+/// back into its 8-byte form. Returns `None` if the input is not exactly
+/// [`FINGERPRINT_WORD_COUNT`] words separated by `-`, if any word is not
+/// present in the BIP-39 English wordlist, or if the final word carries
+/// non-zero padding bits (which would indicate the words came from a
+/// different encoding scheme).
+pub fn parse_fingerprint_words(s: &str) -> Option<[u8; FINGERPRINT_BYTES]> {
+	let words: Vec<&str> = s.split('-').collect();
+	if words.len() != FINGERPRINT_WORD_COUNT {
+		return None;
+	}
+	let mut indices = [0u64; FINGERPRINT_WORD_COUNT];
+	for (i, w) in words.iter().enumerate() {
+		let idx = crate::sync::wordlist::WORDS.as_slice().binary_search(w).ok()?;
+		indices[i] = idx as u64;
+	}
+	let shifts: [u8; FINGERPRINT_WORD_COUNT] = [53, 42, 31, 20, 9, 0];
+	let mut v: u64 = 0;
+	for (i, &shift) in shifts.iter().enumerate() {
+		if shift == 0 {
+			// Last word holds 9 fingerprint bits in its top 9 of 11; bottom 2 must be zero.
+			let raw = indices[i];
+			if raw & 0b11 != 0 {
+				return None;
+			}
+			v |= raw >> 2;
+		} else {
+			v |= indices[i] << shift;
+		}
+	}
+	Some(v.to_be_bytes())
 }
