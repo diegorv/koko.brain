@@ -7,4 +7,5 @@
 pub mod identity;
 pub mod protocol;
 pub mod shares;
+pub mod transport;
 pub mod wordlist;

@@ -68,8 +68,11 @@ tauri-plugin-process = "2.3.1"
 
 # LAN Sync
 ed25519-dalek = { version = "2", features = ["rand_core"] }
-x25519-dalek = { version = "2", features = ["static_secrets"] }
+x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
 hkdf = "0.12"
+# Aliased: hkdf 0.12 expects digest 0.10 (sha2 0.10). The project's main
+# sha2 dep stays at 0.11; this one is used only inside sync/transport.rs.
+sha2_v10 = { package = "sha2", version = "0.10" }
 spake2 = "0.4"
 mdns-sd = "0.13"
 local-ip-address = "0.6"

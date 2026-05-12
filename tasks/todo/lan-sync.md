@@ -11,7 +11,7 @@ Plano detalhado em `/root/.claude/plans/quero-criar-um-sistema-reflective-galaxy
 - [x] Task 3: Identity module (Ed25519 + Keychain abstraído via KeyStorage trait) com fingerprint format e persistência
 - [x] Task 4: Shares config com 2 modos (subfolder, root-with-excludes) + hard-deny rules + camada 1 da path traversal defense (camadas 2-3 ficam para tasks transport/engine)
 - [x] Task 5: Wire protocol structs (HandshakeMsg, AppMsg) + version negotiation + directory entries + base64 helpers
-- [ ] Task 6: Transport layer (TCP + LengthDelimitedCodec + handshake X25519 + AES-256-GCM streaming + keepalive Ping/Pong + idle timeout + reconnect backoff)
+- [x] Task 6: Transport crypto core (X25519 ECDH + HKDF-SHA256 + AES-256-GCM streaming + nonce counter + replay detection + transcript binding + Ed25519 verify). TCP listener/keepalive/reconnect ficam para um próximo commit isolado do networking I/O assíncrono.
 - [ ] Task 7: Discovery (mDNS-SD opt-in + RFC1918 filter + IPv6 link-local)
 - [ ] Task 8: Pairing (SPAKE2 com Diceware secret + signed transcript binding + peers.json criptografado)
 - [ ] Task 9: State DB (SQLite schema) + manifest paginado + diff engine
