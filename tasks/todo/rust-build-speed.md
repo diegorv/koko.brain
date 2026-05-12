@@ -6,7 +6,7 @@ Reduce wall-clock for `pnpm tauri build` when nothing in `src-tauri/` changed. O
 
 - [x] Task 1: Add `cargo:rerun-if-changed` directives to `src-tauri/build.rs` so the build script only re-runs when `build.rs` itself, the source tree, or `.git/HEAD` changes. Today it has none, which makes Cargo conservative about caching.
 - [x] Task 2: Add a `[profile.release-fast]` profile to `src-tauri/Cargo.toml` that drops LTO and uses `codegen-units = 16` for fast local release builds. Existing `[profile.release]` (used by CI / shipping builds) is untouched.
-- [ ] Task 3: Add a `tauri:build:fast` npm script to `package.json` that runs `tauri build --no-bundle` with `--profile release-fast`. Skips the dmg / codesign / app bundling step and uses the faster profile, for local "did it still compile" loops. The default `tauri:build` (via `pnpm tauri build`) is unchanged.
+- [x] Task 3: Add a `tauri:build:fast` npm script to `package.json` that runs `tauri build --no-bundle` with `--profile release-fast`. Skips the dmg / codesign / app bundling step and uses the faster profile, for local "did it still compile" loops. The default `tauri:build` (via `pnpm tauri build`) is unchanged.
 
 ## Out of scope
 
