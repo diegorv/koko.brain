@@ -98,6 +98,11 @@ impl KeyStorage for KeychainStorage {
 ///
 /// `Debug` deliberately omits the secret half — the impl below renders
 /// only the public fingerprint to avoid accidental leakage to logs.
+/// `Clone` is derived so the live-network commands can hand the
+/// identity to spawned `tokio::task`s without juggling `Arc`s; the
+/// secret key is cheap to clone (32 bytes) and the spawned task owns
+/// the copy for the lifetime of one connection.
+#[derive(Clone)]
 pub struct PeerIdentity {
 	signing_key: SigningKey,
 	verifying_key: VerifyingKey,
