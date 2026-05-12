@@ -35,10 +35,13 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain"
+          "path": "$HOME/kokobrain-vault/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/.kokobrain"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         }
       ]
     },
@@ -52,7 +55,10 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         }
       ]
     },
@@ -66,7 +72,10 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         },
         {
           "path": "$APPLOG/**"
@@ -83,10 +92,13 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain"
+          "path": "$HOME/kokobrain-vault/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/.kokobrain"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         },
         {
           "path": "$APPLOG"
@@ -106,7 +118,10 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         }
       ]
     },
@@ -120,7 +135,10 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         }
       ]
     },
@@ -134,7 +152,10 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         }
       ]
     },
@@ -148,10 +169,13 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain"
+          "path": "$HOME/kokobrain-vault/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/.kokobrain"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         },
         {
           "path": "$APPLOG"
@@ -171,7 +195,10 @@
           "path": "$HOME/MyFiles/**"
         },
         {
-          "path": "$HOME/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vault/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault/.kokobrain/**"
         }
       ]
     },
