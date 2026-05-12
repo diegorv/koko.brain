@@ -1,6 +1,6 @@
 import { WidgetType } from '@codemirror/view';
 import katex from 'katex';
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 
 /** Widget that renders an inline `$formula$` as a KaTeX-rendered span */
 export class InlineMathWidget extends WidgetType {

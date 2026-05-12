@@ -1,6 +1,6 @@
 import { WidgetType, type EditorView } from '@codemirror/view';
 import { highlightCode } from '../code-highlight.logic';
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 
 /**
  * Common languages offered in the language-switcher dropdown. Order matters
