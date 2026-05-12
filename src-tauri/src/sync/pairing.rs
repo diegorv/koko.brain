@@ -85,6 +85,13 @@ pub enum PairingError {
 	VersionMismatch { found: u32, supported: u32 },
 	/// Tried to remove a fingerprint that wasn't in the trust store.
 	UnknownPeer(String),
+	/// A `peers.json` entry has a `public_key_b64` field that is not
+	/// valid base64 or does not decode to exactly 32 Ed25519 bytes.
+	/// Carries the offending fingerprint so the user can locate the row.
+	TrustStoreCorrupt {
+		fingerprint_hex: String,
+		reason: String,
+	},
 }
 
 impl core::fmt::Display for PairingError {
@@ -99,6 +106,13 @@ impl core::fmt::Display for PairingError {
 				"unsupported peers.json version {found} (supported: {supported})"
 			),
 			Self::UnknownPeer(fp) => write!(f, "no trusted peer with fingerprint {fp}"),
+			Self::TrustStoreCorrupt {
+				fingerprint_hex,
+				reason,
+			} => write!(
+				f,
+				"peers.json entry {fingerprint_hex} is corrupt: {reason}"
+			),
 		}
 	}
 }
@@ -207,6 +221,13 @@ pub fn peers_file_path(vault_root: &Path) -> PathBuf {
 }
 
 /// Reads `peers.json`. Returns an empty [`PeersFile`] when missing.
+///
+/// Every entry's `public_key_b64` is decoded and length-checked at this
+/// boundary so the transport layer can assume it is dealing with valid
+/// 32-byte Ed25519 keys. A corrupt or hand-edited entry surfaces as
+/// [`PairingError::TrustStoreCorrupt`] with the offending fingerprint
+/// in the error payload instead of failing far downstream with a
+/// generic `BadHandshakeBytes`.
 pub fn read_peers(vault_root: &Path) -> Result<PeersFile, PairingError> {
 	let path = peers_file_path(vault_root);
 	if !path.exists() {
@@ -221,7 +242,35 @@ pub fn read_peers(vault_root: &Path) -> Result<PeersFile, PairingError> {
 			supported: CURRENT_PEERS_VERSION,
 		});
 	}
+	for peer in &parsed.peers {
+		validate_trusted_peer_pubkey(peer)?;
+	}
 	Ok(parsed)
+}
+
+/// Decodes a [`TrustedPeer::public_key_b64`] field and checks it carries
+/// exactly 32 bytes. Returns [`PairingError::TrustStoreCorrupt`] on any
+/// deviation so `peers.json` corruption (manual edit, copy-paste error,
+/// disk bit-rot) is reported at load time rather than at the next
+/// session handshake.
+fn validate_trusted_peer_pubkey(peer: &TrustedPeer) -> Result<(), PairingError> {
+	use base64::Engine;
+	let bytes = base64::engine::general_purpose::STANDARD
+		.decode(&peer.public_key_b64)
+		.map_err(|e| PairingError::TrustStoreCorrupt {
+			fingerprint_hex: peer.fingerprint_hex.clone(),
+			reason: format!("public_key_b64 is not valid base64: {e}"),
+		})?;
+	if bytes.len() != 32 {
+		return Err(PairingError::TrustStoreCorrupt {
+			fingerprint_hex: peer.fingerprint_hex.clone(),
+			reason: format!(
+				"public_key_b64 decodes to {} bytes, expected 32",
+				bytes.len()
+			),
+		});
+	}
+	Ok(())
 }
 
 /// Writes `peers.json`. Creates the parent directory on demand.

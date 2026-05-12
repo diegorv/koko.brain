@@ -249,3 +249,90 @@ fn is_trusted_check() {
 	assert!(is_trusted(tmp.path(), "AAAA-BBBB-CCCC-DDDD").unwrap());
 	assert!(!is_trusted(tmp.path(), "9999-9999-9999-9999").unwrap());
 }
+
+// ============================================================================
+// Trust store integrity (S3)
+// ============================================================================
+
+/// Writes a hand-crafted `peers.json` with `public_key_b64` swapped for
+/// `bad_b64`. Used by the integrity tests below.
+fn write_peers_json_with_pubkey(
+	vault_root: &std::path::Path,
+	fingerprint_hex: &str,
+	bad_b64: &str,
+) {
+	let dir = vault_root.join(".kokobrain").join("lan-sync");
+	std::fs::create_dir_all(&dir).unwrap();
+	let json = serde_json::json!({
+		"version": CURRENT_PEERS_VERSION,
+		"peers": [
+			{
+				"fingerprintHex": fingerprint_hex,
+				"displayName": "Hand-edited",
+				"publicKeyB64": bad_b64,
+				"trustedAtMs": 1_700_000_000_000_i64,
+			}
+		]
+	});
+	std::fs::write(
+		dir.join("peers.json"),
+		serde_json::to_string_pretty(&json).unwrap(),
+	)
+	.unwrap();
+}
+
+#[test]
+fn read_rejects_peer_with_invalid_base64_pubkey() {
+	let tmp = tempfile::tempdir().unwrap();
+	// `!!!` contains characters outside the base64 alphabet.
+	write_peers_json_with_pubkey(tmp.path(), "DEAD-BEEF-CAFE-BABE", "!!!");
+	let err = read_peers(tmp.path()).unwrap_err();
+	matches!(
+		err,
+		PairingError::TrustStoreCorrupt {
+			fingerprint_hex: _,
+			reason: _
+		}
+	);
+	match err {
+		PairingError::TrustStoreCorrupt {
+			fingerprint_hex,
+			reason: _,
+		} => assert_eq!(fingerprint_hex, "DEAD-BEEF-CAFE-BABE"),
+		other => panic!("expected TrustStoreCorrupt, got {other:?}"),
+	}
+}
+
+#[test]
+fn read_rejects_peer_with_wrong_length_pubkey() {
+	let tmp = tempfile::tempdir().unwrap();
+	// Decodes to 16 bytes (valid base64, wrong size for an Ed25519 key).
+	write_peers_json_with_pubkey(tmp.path(), "AAAA-BBBB-CCCC-DDDD", "AAECAwQFBgcICQoLDA0ODw==");
+	let err = read_peers(tmp.path()).unwrap_err();
+	match err {
+		PairingError::TrustStoreCorrupt {
+			fingerprint_hex,
+			reason,
+		} => {
+			assert_eq!(fingerprint_hex, "AAAA-BBBB-CCCC-DDDD");
+			assert!(
+				reason.contains("16 bytes"),
+				"reason should mention the actual byte count, got {reason:?}"
+			);
+		}
+		other => panic!("expected TrustStoreCorrupt, got {other:?}"),
+	}
+}
+
+#[test]
+fn read_accepts_well_formed_32_byte_pubkey() {
+	let tmp = tempfile::tempdir().unwrap();
+	// 32 zero bytes encoded as base64 (43 'A's + one padding '=').
+	write_peers_json_with_pubkey(
+		tmp.path(),
+		"FEED-FACE-DEAD-BEEF",
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+	);
+	let file = read_peers(tmp.path()).unwrap();
+	assert_eq!(file.peers.len(), 1);
+}
