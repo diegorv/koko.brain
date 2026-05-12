@@ -8,6 +8,7 @@
 pub mod discovery;
 pub mod events;
 pub mod identity;
+pub mod push;
 pub mod trust;
 pub mod transport;
 pub mod wordlist;
