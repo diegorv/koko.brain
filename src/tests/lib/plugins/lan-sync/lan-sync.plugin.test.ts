@@ -62,6 +62,23 @@ describe('createLanSyncPlugin', () => {
 		expect(trustedCall?.args).toEqual({ vaultPath: '/tmp/vault' });
 	});
 
+	it('init starts the mDNS browser so peers are discovered without the user toggling anything', async () => {
+		const transport = createFakeTransport();
+		const plugin = createLanSyncPlugin({ transport });
+		await plugin.init('/tmp/vault');
+		const browseCall = transport.invokeCalls.find((c) => c.cmd === 'lan_sync_start_browse');
+		expect(browseCall?.args).toEqual({ vaultPath: '/tmp/vault' });
+	});
+
+	it('shutdown stops the browser before tearing the service down', async () => {
+		const transport = createFakeTransport();
+		const plugin = createLanSyncPlugin({ transport });
+		await plugin.init('/tmp/vault');
+		await plugin.shutdown();
+		const stopCall = transport.invokeCalls.find((c) => c.cmd === 'lan_sync_stop_browse');
+		expect(stopCall).toBeDefined();
+	});
+
 	it('init is idempotent (rewires listeners on each call)', async () => {
 		const transport = createFakeTransport();
 		const plugin = createLanSyncPlugin({ transport });

@@ -82,11 +82,24 @@ export function createLanSyncPlugin(opts?: { transport?: LanSyncTransport }): La
 	const service = createLanSyncService(opts?.transport);
 	return {
 		id: 'lan-sync',
-		init(vaultPath: string) {
-			return service.init(vaultPath);
+		async init(vaultPath: string) {
+			await service.init(vaultPath);
+			// Always-on browse: observing peers does not require us to be
+			// discoverable ourselves. Failures are non-fatal — the
+			// service's try/catch already logged the underlying error.
+			try {
+				await service.startBrowse(vaultPath);
+			} catch {
+				// Already logged via appendLog inside the service wrapper.
+			}
 		},
-		shutdown() {
-			return service.shutdown();
+		async shutdown() {
+			try {
+				await service.stopBrowse();
+			} catch {
+				// Already logged via appendLog inside the service wrapper.
+			}
+			await service.shutdown();
 		},
 		getSettingsTab() {
 			return { id: 'lan-sync', label: 'LAN sync', component: LanSyncSettings };
