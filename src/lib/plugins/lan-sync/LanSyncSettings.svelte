@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Label } from '$lib/components/ui/label';
-	import { Plus, Radio, Shield, Trash2, Users } from 'lucide-svelte';
+	import { Check, Copy, Plus, Radio, Shield, Trash2, Users } from 'lucide-svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { saveSettings } from '$lib/core/settings/settings.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -23,6 +23,24 @@
 	let pairingOpen = $state(false);
 	let shareEditOpen = $state(false);
 	let activityLogOpen = $state(false);
+	let fingerprintCopied = $state(false);
+	let fingerprintCopyTimer: ReturnType<typeof setTimeout> | null = null;
+
+	async function copyFingerprintToClipboard() {
+		const value = lanSyncStore.myFingerprint?.fingerprintDisplay;
+		if (!value) return;
+		try {
+			await navigator.clipboard.writeText(value);
+			fingerprintCopied = true;
+			if (fingerprintCopyTimer) clearTimeout(fingerprintCopyTimer);
+			fingerprintCopyTimer = setTimeout(() => {
+				fingerprintCopied = false;
+				fingerprintCopyTimer = null;
+			}, 1500);
+		} catch (err) {
+			toast.error(`Copy failed: ${String(err)}`);
+		}
+	}
 
 	onMount(async () => {
 		const vaultPath = vaultStore.path;
@@ -42,9 +60,13 @@
 			await saveSettings(vaultPath);
 			await setDiscoverable(vaultPath, enabled);
 		} catch (err) {
-			// Live wiring not ready yet — keep the persisted preference but
-			// surface a heads-up.
-			toast.message(`Discovery toggle saved (live wiring pending): ${String(err)}`);
+			const msg = String(err);
+			// The mDNS announce/browse path is staged for the Task 15 follow-up.
+			// Until then the preference is persisted client-side so it survives
+			// reloads, but we deliberately stay silent on the toast layer because
+			// the user cannot act on this and the noise is misleading.
+			if (msg.includes('not wired yet')) return;
+			toast.error(`Discovery toggle failed: ${msg}`);
 		}
 	}
 
@@ -120,7 +142,24 @@
 					{lanSyncStore.myFingerprint?.fingerprintDisplay ?? '…'}
 				</span>
 			</div>
-			<Shield class="text-muted-foreground size-5" />
+			<div class="flex items-center gap-1">
+				<Button
+					variant="ghost"
+					size="sm"
+					class="h-8 w-8 p-0"
+					disabled={!lanSyncStore.myFingerprint?.fingerprintDisplay}
+					onclick={copyFingerprintToClipboard}
+					aria-label={fingerprintCopied ? 'Fingerprint copied' : 'Copy fingerprint'}
+					title={fingerprintCopied ? 'Copied' : 'Copy fingerprint'}
+				>
+					{#if fingerprintCopied}
+						<Check class="text-emerald-500 size-4" />
+					{:else}
+						<Copy class="text-muted-foreground size-4" />
+					{/if}
+				</Button>
+				<Shield class="text-muted-foreground size-5" />
+			</div>
 		</div>
 		<div class="flex items-center justify-between">
 			<Label for="lan-sync-discoverable" class="flex flex-col gap-1">
