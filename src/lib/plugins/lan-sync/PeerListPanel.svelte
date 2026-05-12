@@ -52,7 +52,9 @@
 						onclick={() => onSelect?.(peer.fingerprintHex)}
 					>
 						<div class="flex flex-col">
-							<span class="font-mono text-xs">{peer.fingerprintHex}</span>
+							<span class="font-mono text-xs" title={peer.fingerprintHex}>
+								{peer.fingerprintDisplay}
+							</span>
 							<span class="text-muted-foreground text-[11px]">
 								{peer.addr}:{peer.port}
 							</span>

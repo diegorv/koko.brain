@@ -17,7 +17,9 @@
 use crate::sync::auth_log::{
 	self, AuthEvent, BlockedEntry, EventFilter, FailureReason, HandshakePhase, Outcome,
 };
-use crate::sync::identity::{KeychainStorage, PeerIdentity};
+use crate::sync::identity::{
+	format_fingerprint_words, parse_fingerprint, KeychainStorage, PeerIdentity,
+};
 use crate::sync::pairing::{self, TrustedPeer};
 use crate::sync::shares::{self, Share, ShareDirection, ShareMode};
 use crate::sync::state_db::open_state_db;
@@ -96,15 +98,56 @@ fn hex_of(bytes: &[u8]) -> String {
 	bytes.iter().map(|b| format!("{b:02X}")).collect()
 }
 
+/// Renders a fingerprint hex string (`XXXX-XXXX-XXXX-XXXX` or compact)
+/// as the 6-word BIP-39 display form. Falls back to echoing the hex
+/// input when it cannot be parsed - that should never happen for
+/// values written by `add_trusted_peer`, but the fallback keeps the
+/// IPC contract total so a corrupt trust-store entry surfaced by
+/// `read_peers` (S3) does not also blank the display column.
+fn fingerprint_display_from_hex(hex: &str) -> String {
+	match parse_fingerprint(hex) {
+		Some(bytes) => format_fingerprint_words(&bytes),
+		None => hex.to_string(),
+	}
+}
+
 // ============================================================================
 // Trust store
 // ============================================================================
 
+/// DTO carried over IPC for every trusted peer record. Adds
+/// `fingerprintDisplay` (6-word form) alongside the canonical
+/// `fingerprintHex` so the frontend can render the human-readable
+/// version uniformly. The hex form is still the trust-store key and
+/// the value the UI sends back to APIs that mutate the trust store.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrustedPeerDto {
+	pub fingerprint_hex: String,
+	pub fingerprint_display: String,
+	pub display_name: String,
+	pub public_key_b64: String,
+	pub trusted_at_ms: i64,
+}
+
+impl From<TrustedPeer> for TrustedPeerDto {
+	fn from(peer: TrustedPeer) -> Self {
+		let display = fingerprint_display_from_hex(&peer.fingerprint_hex);
+		Self {
+			fingerprint_hex: peer.fingerprint_hex,
+			fingerprint_display: display,
+			display_name: peer.display_name,
+			public_key_b64: peer.public_key_b64,
+			trusted_at_ms: peer.trusted_at_ms,
+		}
+	}
+}
+
 #[tauri::command]
-pub fn lan_sync_list_trusted_peers(vault_path: String) -> Result<Vec<TrustedPeer>, String> {
+pub fn lan_sync_list_trusted_peers(vault_path: String) -> Result<Vec<TrustedPeerDto>, String> {
 	let file =
 		pairing::read_peers(Path::new(&vault_path)).map_err(|e| format!("read peers: {e}"))?;
-	Ok(file.peers)
+	Ok(file.peers.into_iter().map(TrustedPeerDto::from).collect())
 }
 
 #[tauri::command]
@@ -320,7 +363,7 @@ pub fn lan_sync_start_pair_client(
 pub fn lan_sync_confirm_pair(
 	_session_id: String,
 	_accept: bool,
-) -> Result<Option<TrustedPeer>, String> {
+) -> Result<Option<TrustedPeerDto>, String> {
 	// TODO(lan-sync live): finalise pairing transcript, signed
 	// public key exchange, persist via `pairing::add_trusted_peer`.
 	Err("Pairing confirmation is not wired yet (Task 15 follow-up)".to_string())

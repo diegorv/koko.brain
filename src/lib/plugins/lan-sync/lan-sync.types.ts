@@ -26,18 +26,26 @@ export interface Share {
 	createdAtMs: number;
 }
 
-/** Trusted peer in `<vault>/.kokobrain/lan-sync/peers.json` */
+/** Trusted peer in `<vault>/.kokobrain/lan-sync/peers.json`, augmented
+ *  with the 6-word BIP-39 display form computed by the Rust IPC layer
+ *  (`TrustedPeerDto`). The hex form remains the canonical key for any
+ *  mutation API (remove peer, share allow-list, etc.); the display
+ *  form is purely for rendering. */
 export interface TrustedPeer {
 	fingerprintHex: string;
+	fingerprintDisplay: string;
 	displayName: string;
 	publicKeyB64: string;
 	trustedAtMs: number;
 }
 
 /** Peer found via mDNS, after RFC1918 + TXT validation. Emitted on
- *  the `lan-sync:peer-discovered` event. */
+ *  the `lan-sync:peer-discovered` event. `fingerprintDisplay` is the
+ *  6-word BIP-39 form, populated by the Rust side at IPC time so the
+ *  UI never has to ship the 14 KB wordlist. */
 export interface DiscoveredPeer {
 	fingerprintHex: string;
+	fingerprintDisplay: string;
 	addr: string;
 	port: number;
 	vaultLabelHash: string;

@@ -155,8 +155,11 @@
 			<div class="flex flex-col gap-3">
 				{#if peerSummary()}
 					<p class="text-muted-foreground text-xs">
-						Pairing with <span class="font-mono">{peerSummary()?.fingerprintHex}</span> at
-						{peerSummary()?.addr}:{peerSummary()?.port}.
+						Pairing with
+						<span class="font-mono" title={peerSummary()?.fingerprintHex}>
+							{peerSummary()?.fingerprintDisplay}
+						</span>
+						at {peerSummary()?.addr}:{peerSummary()?.port}.
 					</p>
 				{/if}
 				<Label for="lan-sync-passphrase">Passphrase</Label>

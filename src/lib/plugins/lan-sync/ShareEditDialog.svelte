@@ -182,7 +182,9 @@
 									checked={allowedFingerprints.includes(peer.fingerprintHex)}
 									onchange={() => togglePeer(peer.fingerprintHex)}
 								/>
-								<span class="font-mono text-xs">{peer.fingerprintHex}</span>
+								<span class="font-mono text-xs" title={peer.fingerprintHex}>
+									{peer.fingerprintDisplay}
+								</span>
 								<span class="text-muted-foreground text-xs">{peer.displayName}</span>
 							</li>
 						{/each}

@@ -193,7 +193,9 @@
 						class="hover:bg-primary/10 flex items-center justify-between rounded px-2 py-1.5"
 					>
 						<div class="flex flex-col">
-							<span class="font-mono text-xs">{peer.fingerprintHex}</span>
+							<span class="font-mono text-xs" title={peer.fingerprintHex}>
+								{peer.fingerprintDisplay}
+							</span>
 							<span class="text-muted-foreground text-[11px]">{peer.displayName}</span>
 						</div>
 						<Button
