@@ -19,6 +19,7 @@
 	import { debug, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
 	import AppOverlays from '$lib/core/layout/AppOverlays.svelte';
 	import AppShell from '$lib/core/layout/AppShell.svelte';
+	import { lanSyncPlugin } from '$lib/plugins/lan-sync/lan-sync.plugin';
 
 	let { children } = $props();
 
@@ -46,6 +47,19 @@
 
 	$effect(() => {
 		return registerVaultIndexUpdatedListener();
+	});
+
+	// ── LAN sync plugin lifecycle ───────────────────────────────────
+	$effect(() => {
+		const isOpen = vaultStore.isOpen;
+		const path = vaultStore.path;
+		untrack(() => {
+			if (isOpen && path) {
+				lanSyncPlugin.init(path).catch((err) => console.error('lanSyncPlugin.init failed:', err));
+			} else {
+				lanSyncPlugin.shutdown().catch((err) => console.error('lanSyncPlugin.shutdown failed:', err));
+			}
+		});
 	});
 
 	// ── Vault initialization / teardown ─────────────────────────────

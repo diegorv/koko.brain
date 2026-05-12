@@ -41,6 +41,8 @@
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
+	import Share2Icon from '@lucide/svelte/icons/share-2';
+	import { lanSyncPlugin } from '$lib/plugins/lan-sync/lan-sync.plugin';
 	import type { SettingsSection } from './settings.types';
 	import type { Component } from 'svelte';
 
@@ -58,11 +60,15 @@
 		'auto-move': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
+		'lan-sync': Share2Icon,
 		security: ShieldIcon,
 		troubleshooting: BugIcon,
 		update: DownloadIcon,
 		queryjs: Code2Icon,
 	};
+
+	const lanSyncTab = lanSyncPlugin.getSettingsTab();
+	const LanSyncTabComponent = lanSyncTab?.component;
 
 	const debouncedSave = debounce(() => {
 		if (vaultStore.path) saveSettings(vaultStore.path).catch(err => error('SETTINGS', 'Failed to save settings:', err));
@@ -209,6 +215,8 @@
 					<TrashSection />
 				{:else if settingsDialogStore.activeSection === 'todoist'}
 					<TodoistSection onchange={debouncedSave} />
+				{:else if settingsDialogStore.activeSection === 'lan-sync' && LanSyncTabComponent && vaultStore.path}
+					<LanSyncTabComponent vaultPath={vaultStore.path} service={lanSyncPlugin.service} />
 				{:else if settingsDialogStore.activeSection === 'security'}
 					<SecuritySection />
 				{:else if settingsDialogStore.activeSection === 'troubleshooting'}

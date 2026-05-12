@@ -1,4 +1,23 @@
 import type { Component } from 'svelte';
+import {
+	createLanSyncService,
+	type LanSyncService,
+	type LanSyncTransport,
+} from './lan-sync.service';
+import LanSyncSettings from './LanSyncSettings.svelte';
+import {
+	pushFolderRequest,
+	type LanSyncPushFolderRequest,
+	type LanSyncPushFolderRequestSignal,
+} from './lan-sync.plugin.state.svelte';
+
+export type { LanSyncPushFolderRequest, LanSyncPushFolderRequestSignal };
+
+/** Props the LAN sync settings panel expects when the host renders it. */
+export interface LanSyncSettingsProps {
+	vaultPath: string;
+	service: LanSyncService;
+}
 
 /**
  * Context-menu entry the LAN sync plugin contributes to the file explorer.
@@ -20,7 +39,7 @@ export interface LanSyncMenuEntry {
 export interface LanSyncSettingsTab {
 	id: 'lan-sync';
 	label: string;
-	component: Component;
+	component: Component<LanSyncSettingsProps>;
 }
 
 /**
@@ -32,34 +51,64 @@ export interface LanSyncSettingsTab {
  */
 export interface LanSyncPlugin {
 	readonly id: 'lan-sync';
-	/** Initialize event listeners + fetch identity. Idempotent. No-op at Stage 0. */
-	init(): Promise<void>;
-	/** Settings tab descriptor, or null until the panel ships (Stage 3F-3). */
+	/**
+	 * Wire event listeners + fetch identity for the freshly-opened vault.
+	 * Idempotent: re-invoking tears down old listeners + rewires fresh ones.
+	 */
+	init(vaultPath: string): Promise<void>;
+	/** Tear down all listeners and reset the store. Safe to call before `init`. */
+	shutdown(): Promise<void>;
+	/** Settings tab descriptor (component receives `{ vaultPath, service }` props). */
 	getSettingsTab(): LanSyncSettingsTab | null;
 	/**
 	 * Context-menu entry for a file-explorer path, or null when not applicable
-	 * (no trusted peers yet, path is a file rather than folder, etc.). Null
-	 * until the push dialog ships (Stage 3F-3).
+	 * (entry is only returned for folders today; files always return null).
+	 * `path` is treated verbatim as the `sourceRelPath` of the push request, so
+	 * the host MUST pass a vault-relative path.
 	 */
 	getContextMenuEntry(path: string, isFolder: boolean): LanSyncMenuEntry | null;
+	/** Service instance owned by this plugin; passed into the UI components. */
+	readonly service: LanSyncService;
+	/** Reactive signal driven by the context-menu `onSelect` handler. */
+	readonly pushFolderRequest: LanSyncPushFolderRequestSignal;
 }
 
 /**
  * Factory for the LAN sync plugin singleton. Called once at app init time by
- * the host. Stage 0 returns a no-op plugin; subsequent stages flesh out each
- * method behind this stable shape.
+ * the host. The optional `transport` is forwarded to `createLanSyncService`
+ * so tests can inject a fake without spinning up a Tauri runtime.
  */
-export function createLanSyncPlugin(): LanSyncPlugin {
+export function createLanSyncPlugin(opts?: { transport?: LanSyncTransport }): LanSyncPlugin {
+	const service = createLanSyncService(opts?.transport);
 	return {
 		id: 'lan-sync',
-		async init() {
-			// Stage 0: no listeners yet.
+		init(vaultPath: string) {
+			return service.init(vaultPath);
+		},
+		shutdown() {
+			return service.shutdown();
 		},
 		getSettingsTab() {
-			return null;
+			return { id: 'lan-sync', label: 'LAN sync', component: LanSyncSettings };
 		},
-		getContextMenuEntry() {
-			return null;
+		getContextMenuEntry(path: string, isFolder: boolean) {
+			if (!isFolder) return null;
+			return {
+				label: 'Send to peer...',
+				icon: 'send',
+				onSelect() {
+					pushFolderRequest.set({ sourceRelPath: path });
+				},
+			};
 		},
+		service,
+		pushFolderRequest,
 	};
 }
+
+/**
+ * Module-level singleton consumed by every host integration point (settings
+ * dialog, file-explorer context menu, app shell). The factory is still
+ * exported so tests can build isolated instances with a fake transport.
+ */
+export const lanSyncPlugin: LanSyncPlugin = createLanSyncPlugin();

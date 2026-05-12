@@ -43,6 +43,7 @@
 		ExternalLink,
 		FolderSearch,
 		Palette,
+		Send,
 	} from 'lucide-svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Separator } from '$lib/components/ui/separator';
@@ -51,6 +52,7 @@
 	import FileExplorerHeader from './FileExplorerHeader.svelte';
 	import FileTreeItem from './FileTreeItem.svelte';
 	import { setFileExplorerContext } from './file-explorer.context';
+	import { lanSyncPlugin } from '$lib/plugins/lan-sync/lan-sync.plugin';
 
 	// --- Shared context menu + icon picker state ---
 
@@ -340,6 +342,15 @@
 							<FolderSearch class="size-4" />
 							<span>Reveal in Finder</span>
 						</ContextMenu.Item>
+						{#if target.isDirectory && vaultStore.path}
+							{@const lanSyncEntry = lanSyncPlugin.getContextMenuEntry(getRelativePath(vaultStore.path, target.path), true)}
+							{#if lanSyncEntry}
+								<ContextMenu.Item onclick={() => lanSyncEntry.onSelect()}>
+									<Send class="size-4" />
+									<span>{lanSyncEntry.label}</span>
+								</ContextMenu.Item>
+							{/if}
+						{/if}
 						<ContextMenu.Separator />
 
 						<ContextMenu.Item onclick={() => handleStartRename(target)}>
