@@ -4,6 +4,7 @@ pub mod search;
 pub mod security;
 // TODO(lan-sync sandbox): re-enable `pub mod semantic;` once ort-sys can download.
 // pub mod semantic;
+pub mod sync;
 pub mod utils;
 pub mod vault;
 
