@@ -141,6 +141,10 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.queryjs,
 				...parsed.queryjs,
 			},
+			lanSync: {
+				...DEFAULT_SETTINGS.lanSync,
+				...parsed.lanSync,
+			},
 		};
 		settingsStore.setSettings(merged);
 		await saveSettings(vaultPath);
