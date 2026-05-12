@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { ChevronRight } from 'lucide-svelte';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import { Separator } from '$lib/components/ui/separator';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { tocStore } from './toc.store.svelte';

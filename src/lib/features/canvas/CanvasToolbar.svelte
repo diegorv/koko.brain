@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { Type, FileText, ExternalLink, ImageIcon, Square } from 'lucide-svelte';
+	import Type from 'lucide-svelte/icons/type';
+	import FileText from 'lucide-svelte/icons/file-text';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import ImageIcon from 'lucide-svelte/icons/image';
+	import Square from 'lucide-svelte/icons/square';
 
 	interface Props {
 		/** Callback to create a text card */

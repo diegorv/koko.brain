@@ -2,7 +2,8 @@
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 	import { EditorState, EditorSelection, Compartment, Transaction } from '@codemirror/state';
-	import { Link, FileSymlink } from 'lucide-svelte';
+	import Link from 'lucide-svelte/icons/link';
+	import FileSymlink from 'lucide-svelte/icons/file-symlink';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { findTabIndex, getPositionAfterFrontmatter } from '$lib/core/editor/editor.logic';
