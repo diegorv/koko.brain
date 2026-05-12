@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { renderCanvasMarkdown } from '$lib/features/canvas/canvas-markdown.logic';
 

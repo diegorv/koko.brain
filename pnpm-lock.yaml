@@ -149,12 +149,12 @@ importers:
       dayjs:
         specifier: ^1.11.20
         version: 1.11.20
+      dompurify:
+        specifier: '>=3.3.2'
+        version: 3.4.2
       feather-icons:
         specifier: ^4.29.2
         version: 4.29.2
-      isomorphic-dompurify:
-        specifier: ^3.12.0
-        version: 3.12.0
       katex:
         specifier: ^0.16.45
         version: 0.16.45
@@ -1716,10 +1716,6 @@ packages:
 
   is-reference@3.0.3:
     resolution: {integrity: sha512-ixkJoqQvAP88E6wLydLGGqCJsrFUnqoH6HnaczB8XmDH1oaWU+xxdptvikTgaEhtZ53Ky6YXiBuUI2WXLMCwjw==}
-
-  isomorphic-dompurify@3.12.0:
-    resolution: {integrity: sha512-8n+j+6ypTHvriJwFOQ2qusQ6bzGjZVcR3jbe1pBpLcGI1dn4WIl0ctLBngqE5QttquQBAlKXwJeTMw+X7x7qKw==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=24.0.0}
 
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
@@ -3857,14 +3853,6 @@ snapshots:
   is-reference@3.0.3:
     dependencies:
       '@types/estree': 1.0.8
-
-  isomorphic-dompurify@3.12.0:
-    dependencies:
-      dompurify: 3.4.2
-      jsdom: 29.1.1
-    transitivePeerDependencies:
-      - '@noble/hashes'
-      - canvas
 
   jiti@2.6.1: {}
 
