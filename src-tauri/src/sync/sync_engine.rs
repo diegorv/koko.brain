@@ -1,12 +1,20 @@
-//! Manifest diffing for LAN sync.
+//! Manifest diffing, conflict resolution, and atomic-write apply for
+//! LAN sync.
 //!
-//! Compares a local manifest against a peer's manifest and produces a
-//! [`DiffEntry`] per path the two sides disagree on. The actual
-//! conflict resolution (`apply_inbound_update`, atomic writes,
-//! conflict file generation) lands in the next commit; this file is
-//! the pure, deterministic engine that decides who needs which bytes.
+//! Pure helpers ([`diff_manifests`], [`paginate_manifest`],
+//! [`build_conflict_filename`]) live alongside the I/O-bound apply
+//! path ([`apply_inbound_update`], [`apply_inbound_delete`],
+//! [`save_conflict_copy`], [`cleanup_orphan_tmp_files`]) so callers
+//! can exercise the LWW rules without touching disk.
+//!
+//! Atomic write pattern: every inbound payload is written to
+//! `<dest>.kbsync-tmp-<uuid>`, fsynced, then renamed to `<dest>`. A
+//! crash mid-write leaves either the old content or no file at all,
+//! never a half-written destination. Orphans from earlier crashes
+//! are cleaned up on startup by [`cleanup_orphan_tmp_files`].
 
 use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 
 use crate::sync::protocol::ManifestEntry;
 
@@ -100,6 +108,401 @@ fn lww_winner(local: &ManifestEntry, remote: &ManifestEntry) -> Winner {
 		}
 	}
 }
+
+// ============================================================================
+// Apply inbound updates (atomic writes + conflict file generation)
+// ============================================================================
+
+/// Tmp file suffix used while an inbound payload is being written.
+/// The leading dot keeps the file hidden in most file managers; the
+/// UUID protects against races between concurrent writers.
+pub const TMP_PREFIX: &str = ".kbsync-tmp-";
+
+/// Errors surfaced by the inbound apply path.
+#[derive(Debug)]
+pub enum ApplyError {
+	/// I/O failure during a read/write/rename/canonicalize.
+	Io(String),
+	/// `path_rel` failed Camera-2 path validation (`..`, NUL, absolute,
+	/// dot-segment) — should never happen for trusted-peer messages
+	/// but the defense-in-depth check stops at the inbound boundary.
+	InvalidPath(String),
+	/// `path_rel` resolved outside the share root — symlink attack
+	/// or TOCTOU race; reject before any I/O.
+	OutsideShare(String),
+	/// Tried to apply an update that would clobber an open editor
+	/// buffer; this is currently informational only (the
+	/// "don't overwrite open buffer" follow-up TODO).
+	WouldOverwriteOpenBuffer,
+}
+
+impl core::fmt::Display for ApplyError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Io(msg) => write!(f, "apply io: {msg}"),
+			Self::InvalidPath(p) => write!(f, "invalid path: {p:?}"),
+			Self::OutsideShare(p) => write!(f, "path resolves outside share: {p:?}"),
+			Self::WouldOverwriteOpenBuffer => {
+				write!(f, "would overwrite an open editor buffer")
+			}
+		}
+	}
+}
+
+impl std::error::Error for ApplyError {}
+
+impl From<std::io::Error> for ApplyError {
+	fn from(e: std::io::Error) -> Self {
+		ApplyError::Io(e.to_string())
+	}
+}
+
+/// Outcome of an inbound apply call. Drives the `lan-sync:conflict-saved`
+/// event emission.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ApplyOutcome {
+	/// The inbound payload was applied; the previous local copy did
+	/// not exist or was identical (no conflict).
+	Applied,
+	/// The inbound payload was applied AND a conflict copy of the
+	/// previous local content was saved as `<path>.conflict-...`.
+	AppliedWithConflict { conflict_path: PathBuf },
+	/// The inbound payload was ignored because the local copy wins
+	/// under LWW or because the hashes already matched.
+	IgnoredLocalWins,
+	/// The inbound payload was ignored because hashes already matched
+	/// (idempotent no-op).
+	IgnoredIdempotent,
+}
+
+/// Camera-2 inbound path validation: rejects `..`, NUL, absolute
+/// prefixes, and dot-segments. Pulled out so callers can pre-validate
+/// without committing to a full apply.
+pub fn validate_inbound_path(path_rel: &str) -> Result<PathBuf, ApplyError> {
+	if path_rel.is_empty() || path_rel == "." {
+		return Err(ApplyError::InvalidPath(path_rel.to_string()));
+	}
+	if path_rel.contains('\0') {
+		return Err(ApplyError::InvalidPath(path_rel.to_string()));
+	}
+	if path_rel.starts_with('/') || path_rel.starts_with('\\') {
+		return Err(ApplyError::InvalidPath(path_rel.to_string()));
+	}
+	// Windows drive letter (e.g. "C:\...") — reject early.
+	let bytes = path_rel.as_bytes();
+	if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+		return Err(ApplyError::InvalidPath(path_rel.to_string()));
+	}
+	let parsed = PathBuf::from(path_rel);
+	for component in parsed.components() {
+		use std::path::Component;
+		match component {
+			Component::ParentDir => return Err(ApplyError::InvalidPath(path_rel.to_string())),
+			Component::Normal(s) => {
+				let seg = s.to_string_lossy();
+				if seg.starts_with('.') {
+					return Err(ApplyError::InvalidPath(path_rel.to_string()));
+				}
+			}
+			Component::CurDir => {} // tolerated; canonicalize drops it
+			_ => return Err(ApplyError::InvalidPath(path_rel.to_string())),
+		}
+	}
+	Ok(parsed)
+}
+
+/// Camera-3 path resolution: joins `path_rel` under `share_root`,
+/// strictly_starts_with-checks the result against `share_root`. Use
+/// this immediately before opening for read/write so any TOCTOU
+/// window between validation and the open() syscall is minimal.
+pub fn safe_resolve_under_share(
+	share_root: &Path,
+	path_rel: &str,
+) -> Result<PathBuf, ApplyError> {
+	let rel = validate_inbound_path(path_rel)?;
+	let candidate = share_root.join(&rel);
+
+	// If the candidate exists, canonicalize and check strict prefix —
+	// resolves any symlink in the chain.
+	if candidate.exists() {
+		let canon = candidate
+			.canonicalize()
+			.map_err(|e| ApplyError::Io(e.to_string()))?;
+		let share_canon = share_root
+			.canonicalize()
+			.map_err(|e| ApplyError::Io(e.to_string()))?;
+		if !canon.starts_with(&share_canon) {
+			return Err(ApplyError::OutsideShare(path_rel.to_string()));
+		}
+		return Ok(canon);
+	}
+
+	// Destination doesn't exist yet — canonicalize the parent and
+	// reattach the filename. This is the write path; the parent must
+	// exist (or we create it below) and must live inside the share.
+	if let Some(parent) = candidate.parent() {
+		std::fs::create_dir_all(parent).map_err(|e| ApplyError::Io(e.to_string()))?;
+		let parent_canon = parent
+			.canonicalize()
+			.map_err(|e| ApplyError::Io(e.to_string()))?;
+		let share_canon = share_root
+			.canonicalize()
+			.map_err(|e| ApplyError::Io(e.to_string()))?;
+		if !parent_canon.starts_with(&share_canon) {
+			return Err(ApplyError::OutsideShare(path_rel.to_string()));
+		}
+		let filename = rel
+			.file_name()
+			.ok_or_else(|| ApplyError::InvalidPath(path_rel.to_string()))?;
+		return Ok(parent_canon.join(filename));
+	}
+	Err(ApplyError::InvalidPath(path_rel.to_string()))
+}
+
+/// Composes the conflict filename for the LOSER of a sync conflict:
+/// `<basename>.conflict-<peer8>-<YYYYMMDDhhmmss>.<ext>`. Extension is
+/// preserved if present; basename keeps its remaining stem.
+///
+/// `peer_short` is expected to be 8 uppercase hex chars (e.g. via
+/// [`crate::sync::identity::short_fingerprint`]).
+/// `timestamp_compact` is a string in the form produced by
+/// `chrono::Utc::now().format("%Y%m%d%H%M%S")`; pulled out as a
+/// parameter so tests can pin it.
+pub fn build_conflict_filename(
+	original: &Path,
+	peer_short: &str,
+	timestamp_compact: &str,
+) -> PathBuf {
+	let stem = original
+		.file_stem()
+		.map(|s| s.to_string_lossy().to_string())
+		.unwrap_or_default();
+	let ext = original
+		.extension()
+		.map(|s| format!(".{}", s.to_string_lossy()))
+		.unwrap_or_default();
+	let new_name = format!("{stem}.conflict-{peer_short}-{timestamp_compact}{ext}");
+	original
+		.parent()
+		.map(|p| p.join(&new_name))
+		.unwrap_or_else(|| PathBuf::from(new_name))
+}
+
+/// Renames the current file at `original` to a `.conflict-<peer>-<ts>`
+/// sibling. Returns the conflict path. Errors if `original` doesn't
+/// exist or the rename fails.
+pub fn save_conflict_copy(
+	original: &Path,
+	peer_short: &str,
+	timestamp_compact: &str,
+) -> Result<PathBuf, ApplyError> {
+	let dest = build_conflict_filename(original, peer_short, timestamp_compact);
+	std::fs::rename(original, &dest).map_err(|e| ApplyError::Io(e.to_string()))?;
+	Ok(dest)
+}
+
+/// Writes `content` atomically to `dest`. Steps:
+/// 1. Write to `<dest>.kbsync-tmp-<uuid>`.
+/// 2. Sync the tmp file to disk (`fsync`).
+/// 3. Rename tmp → dest (atomic on POSIX + ReFS/NTFS).
+pub fn atomic_write(dest: &Path, content: &[u8]) -> Result<(), ApplyError> {
+	use std::io::Write;
+	if let Some(parent) = dest.parent() {
+		std::fs::create_dir_all(parent).map_err(|e| ApplyError::Io(e.to_string()))?;
+	}
+	let dest_name = dest
+		.file_name()
+		.ok_or_else(|| ApplyError::Io("destination has no filename".to_string()))?
+		.to_string_lossy()
+		.to_string();
+	let tmp_name = format!("{TMP_PREFIX}{}-{}", dest_name, uuid::Uuid::new_v4());
+	let tmp = dest.with_file_name(&tmp_name);
+	{
+		let mut file =
+			std::fs::File::create(&tmp).map_err(|e| ApplyError::Io(e.to_string()))?;
+		file.write_all(content)
+			.map_err(|e| ApplyError::Io(e.to_string()))?;
+		file.sync_all()
+			.map_err(|e| ApplyError::Io(e.to_string()))?;
+	}
+	std::fs::rename(&tmp, dest).map_err(|e| ApplyError::Io(e.to_string()))?;
+	Ok(())
+}
+
+/// Cleans up orphan tmp files left by previous crashes inside
+/// `share_root`. Walks the directory tree once; removes any file
+/// whose basename starts with [`TMP_PREFIX`] and whose mtime is older
+/// than `older_than_seconds` (default `60` is plenty for an
+/// in-progress sync to finish or visibly fail).
+pub fn cleanup_orphan_tmp_files(
+	share_root: &Path,
+	older_than_seconds: u64,
+) -> Result<usize, ApplyError> {
+	use std::time::{Duration, SystemTime};
+	if !share_root.exists() {
+		return Ok(0);
+	}
+	let cutoff = SystemTime::now() - Duration::from_secs(older_than_seconds);
+	let mut removed = 0usize;
+	let mut stack: Vec<PathBuf> = vec![share_root.to_path_buf()];
+	while let Some(dir) = stack.pop() {
+		let read_dir = match std::fs::read_dir(&dir) {
+			Ok(r) => r,
+			Err(_) => continue,
+		};
+		for entry in read_dir.flatten() {
+			let path = entry.path();
+			let metadata = match entry.metadata() {
+				Ok(m) => m,
+				Err(_) => continue,
+			};
+			if metadata.is_dir() {
+				stack.push(path);
+				continue;
+			}
+			let name = entry.file_name().to_string_lossy().to_string();
+			if !name.starts_with(TMP_PREFIX) {
+				continue;
+			}
+			let too_recent = metadata
+				.modified()
+				.map(|m| m > cutoff)
+				.unwrap_or(false);
+			if too_recent {
+				continue;
+			}
+			if std::fs::remove_file(&path).is_ok() {
+				removed += 1;
+			}
+		}
+	}
+	Ok(removed)
+}
+
+/// Applies an inbound `PushUpdate` payload to disk under `share_root`,
+/// respecting the LWW rule against the optional `local` state.
+///
+/// Returns:
+/// - `Applied` — destination didn't exist OR local lost cleanly and
+///   the previous content was identical / absent.
+/// - `AppliedWithConflict { conflict_path }` — local lost LWW AND
+///   had divergent content; saved the old version as a conflict
+///   sibling before writing the new one.
+/// - `IgnoredLocalWins` — local wins under LWW; caller may need to
+///   push the local version proactively.
+/// - `IgnoredIdempotent` — hashes already match.
+pub fn apply_inbound_update(
+	share_root: &Path,
+	path_rel: &str,
+	new_content: &[u8],
+	new_hash: &str,
+	new_mtime_ms: i64,
+	new_lamport: u64,
+	new_origin_fp: &str,
+	local: Option<&InboundLocalState>,
+	peer_short: &str,
+	timestamp_compact: &str,
+) -> Result<ApplyOutcome, ApplyError> {
+	let dest = safe_resolve_under_share(share_root, path_rel)?;
+
+	let local_state = local.cloned().unwrap_or_default();
+	if local_state.exists && local_state.hash == new_hash {
+		return Ok(ApplyOutcome::IgnoredIdempotent);
+	}
+
+	if local_state.exists {
+		let winner = lww_remote_wins(
+			local_state.lamport,
+			local_state.mtime_ms,
+			&local_state.origin_fp,
+			new_lamport,
+			new_mtime_ms,
+			new_origin_fp,
+		);
+		if !winner {
+			return Ok(ApplyOutcome::IgnoredLocalWins);
+		}
+		// Remote wins: snapshot the local content as a conflict sibling
+		// BEFORE overwriting so users never lose silently.
+		let conflict_path = save_conflict_copy(&dest, peer_short, timestamp_compact)?;
+		atomic_write(&dest, new_content)?;
+		return Ok(ApplyOutcome::AppliedWithConflict { conflict_path });
+	}
+
+	// No local copy yet (or first time).
+	atomic_write(&dest, new_content)?;
+	Ok(ApplyOutcome::Applied)
+}
+
+/// Applies an inbound `Delete` payload (tombstone) to disk. Same LWW
+/// rule as [`apply_inbound_update`]. When the local copy loses AND
+/// had divergent content, the local copy is saved as a conflict
+/// sibling so deletion never destroys unique local edits silently.
+pub fn apply_inbound_delete(
+	share_root: &Path,
+	path_rel: &str,
+	delete_mtime_ms: i64,
+	delete_lamport: u64,
+	delete_origin_fp: &str,
+	local: Option<&InboundLocalState>,
+	peer_short: &str,
+	timestamp_compact: &str,
+) -> Result<ApplyOutcome, ApplyError> {
+	let dest = safe_resolve_under_share(share_root, path_rel)?;
+
+	let local_state = local.cloned().unwrap_or_default();
+	if !local_state.exists {
+		return Ok(ApplyOutcome::IgnoredIdempotent);
+	}
+
+	let winner = lww_remote_wins(
+		local_state.lamport,
+		local_state.mtime_ms,
+		&local_state.origin_fp,
+		delete_lamport,
+		delete_mtime_ms,
+		delete_origin_fp,
+	);
+	if !winner {
+		return Ok(ApplyOutcome::IgnoredLocalWins);
+	}
+
+	// Remote tombstone wins. If local content diverges from the last
+	// hash recorded in `local`, save it as conflict before removing.
+	let conflict_path = save_conflict_copy(&dest, peer_short, timestamp_compact)?;
+	Ok(ApplyOutcome::AppliedWithConflict { conflict_path })
+}
+
+/// Local file state passed in alongside the inbound message. Mirrors
+/// the relevant subset of [`crate::sync::state_db::FileStateRow`].
+/// `exists = false` short-circuits the LWW path.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct InboundLocalState {
+	pub exists: bool,
+	pub hash: String,
+	pub mtime_ms: i64,
+	pub lamport: u64,
+	pub origin_fp: String,
+}
+
+fn lww_remote_wins(
+	local_lamport: u64,
+	local_mtime_ms: i64,
+	local_origin_fp: &str,
+	remote_lamport: u64,
+	remote_mtime_ms: i64,
+	remote_origin_fp: &str,
+) -> bool {
+	match (remote_lamport, remote_mtime_ms).cmp(&(local_lamport, local_mtime_ms)) {
+		std::cmp::Ordering::Greater => true,
+		std::cmp::Ordering::Less => false,
+		std::cmp::Ordering::Equal => remote_origin_fp > local_origin_fp,
+	}
+}
+
+// ============================================================================
+// Manifest paginated (slice the entries list into bounded chunks).
+// ============================================================================
 
 /// Page slicing for `AppMsg::Manifest`. Returns the manifest split
 /// into chunks of up to `chunk_size` entries; the last chunk carries
