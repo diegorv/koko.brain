@@ -79,6 +79,19 @@ describe('createLanSyncPlugin', () => {
 		expect(stopCall).toBeDefined();
 	});
 
+	it('shutdown also turns off discoverable so the previous vault stops broadcasting', async () => {
+		const transport = createFakeTransport();
+		const plugin = createLanSyncPlugin({ transport });
+		await plugin.init('/tmp/vault');
+		await plugin.shutdown();
+		const disableCall = transport.invokeCalls.find(
+			(c) =>
+				c.cmd === 'lan_sync_set_discoverable' &&
+				(c.args as { enabled?: boolean })?.enabled === false,
+		);
+		expect(disableCall?.args).toEqual({ vaultPath: '/tmp/vault', enabled: false });
+	});
+
 	it('init is idempotent (rewires listeners on each call)', async () => {
 		const transport = createFakeTransport();
 		const plugin = createLanSyncPlugin({ transport });

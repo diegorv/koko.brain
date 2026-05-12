@@ -80,9 +80,17 @@ export interface LanSyncPlugin {
  */
 export function createLanSyncPlugin(opts?: { transport?: LanSyncTransport }): LanSyncPlugin {
 	const service = createLanSyncService(opts?.transport);
+	/**
+	 * Last vault path the plugin was init-ed against. Captured so
+	 * `shutdown()` can also turn off the announcer + TCP accept loop,
+	 * which otherwise leak across a vault close (audit #5).
+	 */
+	let lastVaultPath: string | null = null;
+
 	return {
 		id: 'lan-sync',
 		async init(vaultPath: string) {
+			lastVaultPath = vaultPath;
 			await service.init(vaultPath);
 			// Always-on browse: observing peers does not require us to be
 			// discoverable ourselves. Failures are non-fatal — the
@@ -94,12 +102,24 @@ export function createLanSyncPlugin(opts?: { transport?: LanSyncTransport }): La
 			}
 		},
 		async shutdown() {
+			// Turn off the announcer + TCP accept loop bound to the
+			// previous vault. Without this, closing or switching vaults
+			// leaves the previous identity broadcasting on mDNS and the
+			// previous TCP accept loop listening for connections.
+			if (lastVaultPath !== null) {
+				try {
+					await service.setDiscoverable(lastVaultPath, false);
+				} catch {
+					// Already logged via appendLog inside the service wrapper.
+				}
+			}
 			try {
 				await service.stopBrowse();
 			} catch {
 				// Already logged via appendLog inside the service wrapper.
 			}
 			await service.shutdown();
+			lastVaultPath = null;
 		},
 		getSettingsTab() {
 			return { id: 'lan-sync', label: 'LAN sync', component: LanSyncSettings };

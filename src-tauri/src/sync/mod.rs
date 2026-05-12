@@ -66,6 +66,22 @@ pub struct SyncState {
 	/// `lan_sync_push_folder` to locate the peer's socket without
 	/// requiring the frontend to remember it.
 	pub last_seen_addrs: Mutex<HashMap<String, (String, u16)>>,
+	/// Vault path against which the current announcer + TCP accept
+	/// loop were started. `None` when discoverable is off. Used to
+	/// detect a vault switch: when `lan_sync_set_discoverable(true)`
+	/// is called with a different `vault_path`, the existing
+	/// announcer is torn down and a fresh one is started against the
+	/// new vault's identity (otherwise the old fingerprint would
+	/// keep being advertised to the LAN).
+	pub announcer_vault: Mutex<Option<String>>,
+	/// Vault path against which the current browser was started.
+	/// `None` when no browser is running. Used to detect a vault
+	/// switch: when `lan_sync_start_browse` is called with a
+	/// different `vault_path`, the existing browser is torn down and
+	/// a fresh one is started (otherwise the self-loopback filter
+	/// would compare against the old vault's fingerprint and let the
+	/// new vault see its own announcements).
+	pub browser_vault: Mutex<Option<String>>,
 }
 
 impl Default for SyncState {
@@ -77,6 +93,8 @@ impl Default for SyncState {
 			tcp_accept_handle: Mutex::new(None),
 			pending_pair_sessions: tokio::sync::Mutex::new(HashMap::new()),
 			last_seen_addrs: Mutex::new(HashMap::new()),
+			announcer_vault: Mutex::new(None),
+			browser_vault: Mutex::new(None),
 		}
 	}
 }

@@ -172,39 +172,55 @@ pub async fn lan_sync_set_discoverable<R: Runtime>(
 	enabled: bool,
 ) -> Result<(), String> {
 	if enabled {
-		// Check current announcer slot under the lock; release before
-		// doing network I/O so the announcer thread does not deadlock
-		// on the same Mutex if it ever needs to consult it.
-		{
-			let guard = state
+		// If the announcer is already running but for a DIFFERENT
+		// vault (vault-switch case), tear it down so we restart with
+		// the new vault's identity. Without this the previous vault's
+		// fingerprint would keep broadcasting over mDNS even though
+		// the user has moved on to a new vault.
+		let needs_restart = {
+			let av = state
+				.announcer_vault
+				.lock()
+				.map_err(|e| format!("announcer_vault lock poisoned: {e}"))?;
+			let an = state
 				.announcer
 				.lock()
 				.map_err(|e| format!("announcer lock poisoned: {e}"))?;
-			if guard.is_some() {
-				return Ok(());
-			}
-		}
-		let fp_hex = fingerprint_hex_for(state.inner(), &vault_path)?;
-		let announcer =
-			Announcer::start(&fp_hex, ANNOUNCE_PORT).map_err(|e| format!("announce: {e}"))?;
-		{
-			let mut guard = state
-				.announcer
-				.lock()
-				.map_err(|e| format!("announcer lock poisoned: {e}"))?;
-			if guard.is_some() {
-				if let Err(e) = announcer.stop() {
-					eprintln!("[lan-sync] dropped duplicate announcer stop: {e}");
-				}
-				return Ok(());
-			}
-			*guard = Some(announcer);
+			an.is_some() && av.as_deref() != Some(vault_path.as_str())
+		};
+		if needs_restart {
+			stop_announce_and_accept(state.inner())?;
 		}
 
-		// Spawn TCP accept loop bound to 0.0.0.0:ANNOUNCE_PORT.
+		// Idempotent fast path: announcer already running for THIS vault.
+		{
+			let an = state
+				.announcer
+				.lock()
+				.map_err(|e| format!("announcer lock poisoned: {e}"))?;
+			if an.is_some() {
+				return Ok(());
+			}
+		}
+
+		// Bind the TCP listener FIRST so a port-in-use failure does
+		// not leave the announcer registered without an accept loop
+		// (audit #7 — peers would see the mDNS record but every
+		// connect would be refused at the OS level).
 		let listener = tokio::net::TcpListener::bind(("0.0.0.0", ANNOUNCE_PORT))
 			.await
 			.map_err(|e| format!("bind tcp: {e}"))?;
+
+		// Start the announcer next. On failure, returning Err drops
+		// `listener` here (its `Drop` closes the bound socket) so the
+		// port is released before the caller sees the error.
+		let fp_hex = fingerprint_hex_for(state.inner(), &vault_path)?;
+		let announcer = match Announcer::start(&fp_hex, ANNOUNCE_PORT) {
+			Ok(a) => a,
+			Err(e) => return Err(format!("announce: {e}")),
+		};
+
+		// Spawn the accept loop now that both pieces are ready.
 		let state_clone: Arc<SyncState> = state.inner().clone();
 		let app_clone = app.clone();
 		let vault_clone = vault_path.clone();
@@ -232,37 +248,77 @@ pub async fn lan_sync_set_discoverable<R: Runtime>(
 			}
 		});
 
-		let mut accept_guard = state
-			.tcp_accept_handle
-			.lock()
-			.map_err(|e| format!("accept handle lock poisoned: {e}"))?;
-		if let Some(prev) = accept_guard.take() {
-			prev.abort();
-		}
-		*accept_guard = Some(handle);
-		Ok(())
-	} else {
-		let taken = {
-			let mut guard = state
+		// Commit announcer + accept handle + vault tag atomically.
+		{
+			let mut an = state
 				.announcer
 				.lock()
 				.map_err(|e| format!("announcer lock poisoned: {e}"))?;
-			guard.take()
-		};
-		if let Some(announcer) = taken {
-			announcer.stop().map_err(|e| format!("unannounce: {e}"))?;
-		}
-		let accept_handle = {
-			let mut guard = state
+			let mut ah = state
 				.tcp_accept_handle
 				.lock()
 				.map_err(|e| format!("accept handle lock poisoned: {e}"))?;
-			guard.take()
-		};
-		if let Some(handle) = accept_handle {
-			handle.abort();
+			let mut av = state
+				.announcer_vault
+				.lock()
+				.map_err(|e| format!("announcer_vault lock poisoned: {e}"))?;
+			if let Some(prev) = ah.take() {
+				prev.abort();
+			}
+			*an = Some(announcer);
+			*ah = Some(handle);
+			*av = Some(vault_path);
 		}
 		Ok(())
+	} else {
+		stop_announce_and_accept(state.inner())
+	}
+}
+
+/// Tears down the running announcer + TCP accept loop and clears the
+/// `announcer_vault` tag. Used by [`lan_sync_set_discoverable`] when
+/// the user disables discoverable AND when a vault switch forces a
+/// restart. Attempts both `stop()` and `abort()` regardless of which
+/// one errors first so neither side leaks on a partial failure
+/// (audit #6).
+fn stop_announce_and_accept(state: &SyncState) -> Result<(), String> {
+	let announcer = {
+		let mut guard = state
+			.announcer
+			.lock()
+			.map_err(|e| format!("announcer lock poisoned: {e}"))?;
+		guard.take()
+	};
+	let accept = {
+		let mut guard = state
+			.tcp_accept_handle
+			.lock()
+			.map_err(|e| format!("accept handle lock poisoned: {e}"))?;
+		guard.take()
+	};
+	{
+		let mut guard = state
+			.announcer_vault
+			.lock()
+			.map_err(|e| format!("announcer_vault lock poisoned: {e}"))?;
+		*guard = None;
+	}
+
+	let mut errs: Vec<String> = Vec::new();
+	if let Some(a) = announcer {
+		if let Err(e) = a.stop() {
+			errs.push(format!("unannounce: {e}"));
+		}
+	}
+	if let Some(h) = accept {
+		// `JoinHandle::abort` cannot fail; it just signals the task.
+		h.abort();
+	}
+
+	if errs.is_empty() {
+		Ok(())
+	} else {
+		Err(errs.join("; "))
 	}
 }
 
@@ -321,6 +377,27 @@ pub async fn lan_sync_start_browse<R: Runtime>(
 	state: State<'_, Arc<SyncState>>,
 	vault_path: String,
 ) -> Result<(), String> {
+	// Vault-switch handling: if a browser is running but its filter
+	// fingerprint was computed against a different vault, tear it
+	// down before starting a fresh one (audit #10). Without this the
+	// self-loopback filter compares against the previous vault's
+	// fingerprint, so the new vault sees its OWN announcements in
+	// the discovered list.
+	let needs_restart = {
+		let bv = state
+			.browser_vault
+			.lock()
+			.map_err(|e| format!("browser_vault lock poisoned: {e}"))?;
+		let br = state
+			.browser
+			.lock()
+			.map_err(|e| format!("browser lock poisoned: {e}"))?;
+		br.is_some() && bv.as_deref() != Some(vault_path.as_str())
+	};
+	if needs_restart {
+		stop_browse_inner(state.inner())?;
+	}
+
 	{
 		let guard = state
 			.browser
@@ -346,17 +423,50 @@ pub async fn lan_sync_start_browse<R: Runtime>(
 		}
 	})
 	.map_err(|e| format!("browse: {e}"))?;
-	let mut guard = state
-		.browser
-		.lock()
-		.map_err(|e| format!("browser lock poisoned: {e}"))?;
-	if guard.is_some() {
-		if let Err(e) = browser.stop() {
-			eprintln!("[lan-sync] dropped duplicate browser stop: {e}");
+	{
+		let mut guard = state
+			.browser
+			.lock()
+			.map_err(|e| format!("browser lock poisoned: {e}"))?;
+		if guard.is_some() {
+			if let Err(e) = browser.stop() {
+				eprintln!("[lan-sync] dropped duplicate browser stop: {e}");
+			}
+			return Ok(());
 		}
-		return Ok(());
+		*guard = Some(browser);
 	}
-	*guard = Some(browser);
+	{
+		let mut bv = state
+			.browser_vault
+			.lock()
+			.map_err(|e| format!("browser_vault lock poisoned: {e}"))?;
+		*bv = Some(vault_path);
+	}
+	Ok(())
+}
+
+/// Tears down the running browser and clears the `browser_vault`
+/// tag. Used by [`lan_sync_stop_browse`] AND by
+/// [`lan_sync_start_browse`] when a vault switch forces a restart.
+fn stop_browse_inner(state: &SyncState) -> Result<(), String> {
+	let taken = {
+		let mut guard = state
+			.browser
+			.lock()
+			.map_err(|e| format!("browser lock poisoned: {e}"))?;
+		guard.take()
+	};
+	{
+		let mut bv = state
+			.browser_vault
+			.lock()
+			.map_err(|e| format!("browser_vault lock poisoned: {e}"))?;
+		*bv = None;
+	}
+	if let Some(browser) = taken {
+		browser.stop().map_err(|e| format!("stop browse: {e}"))?;
+	}
 	Ok(())
 }
 
@@ -366,17 +476,7 @@ pub async fn lan_sync_start_browse<R: Runtime>(
 /// `Browser::stop`. No-op when no browser is running.
 #[tauri::command]
 pub async fn lan_sync_stop_browse(state: State<'_, Arc<SyncState>>) -> Result<(), String> {
-	let taken = {
-		let mut guard = state
-			.browser
-			.lock()
-			.map_err(|e| format!("browser lock poisoned: {e}"))?;
-		guard.take()
-	};
-	if let Some(browser) = taken {
-		browser.stop().map_err(|e| format!("stop browse: {e}"))?;
-	}
-	Ok(())
+	stop_browse_inner(state.inner())
 }
 
 /// Loads the per-vault trust store and returns its current contents.
