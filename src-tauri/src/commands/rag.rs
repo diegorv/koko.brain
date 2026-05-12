@@ -1,7 +1,10 @@
 use crate::rag::config;
 use crate::rag::config::RetrievalConfig;
+use crate::rag::llm::openai_compat::OpenAICompatProvider;
+use crate::rag::llm::LlmProvider;
 use crate::rag::retrieval::{retrieve, RetrievedChunk};
 use crate::semantic::reranker::RerankerModelManager;
+use futures_util::StreamExt;
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
 
@@ -87,6 +90,87 @@ pub async fn rag_search(
 		Err(_) => RetrievalConfig::default(),
 	};
 	retrieve(query, retrieval_cfg).await
+}
+
+/// Payload of the terminal `rag-chat-done` event.
+#[derive(serde::Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+struct RagChatDone {
+	tokens_emitted: u64,
+	sources_count: usize,
+}
+
+/// Runs full RAG: retrieves chunks, opens an LLM stream, and emits the
+/// response token-by-token. Events:
+///   - `rag-chat-sources` (`Vec<RetrievedChunk>`): fired once after retrieval.
+///   - `rag-chat-token` (`String`): per-token deltas as the stream produces them.
+///   - `rag-chat-done` (`RagChatDone`): final emission on success.
+///   - `rag-chat-error` (`String`): mid-stream failure; replaces a `done` event.
+///
+/// Returns `Ok(())` once streaming completes (or fails). The Tauri Result
+/// is mostly bookkeeping for the IPC layer — the UI drives off the events.
+#[tauri::command]
+pub async fn rag_chat(
+	vault_path: String,
+	query: String,
+	app: AppHandle,
+) -> Result<(), String> {
+	let cfg = config::load(Path::new(&vault_path))?;
+	let api_key = config::resolve_api_key(&cfg.llm)?;
+
+	let chunks = retrieve(query.clone(), cfg.retrieval.clone()).await?;
+
+	let _ = app.emit("rag-chat-sources", &chunks);
+
+	if chunks.is_empty() {
+		let _ = app.emit(
+			"rag-chat-token",
+			"I could not find any relevant notes for that question.".to_string(),
+		);
+		let _ = app.emit(
+			"rag-chat-done",
+			RagChatDone {
+				tokens_emitted: 0,
+				sources_count: 0,
+			},
+		);
+		return Ok(());
+	}
+
+	let provider = OpenAICompatProvider::new(&cfg.llm.endpoint, &api_key, &cfg.llm.model);
+
+	let mut stream = match provider.chat_stream(&query, &chunks).await {
+		Ok(s) => s,
+		Err(e) => {
+			let _ = app.emit("rag-chat-error", e.clone());
+			return Err(e);
+		}
+	};
+
+	let mut tokens_emitted: u64 = 0;
+	while let Some(item) = stream.next().await {
+		match item {
+			Ok(text) if text.is_empty() => continue,
+			Ok(text) => {
+				tokens_emitted += 1;
+				let _ = app.emit("rag-chat-token", text);
+			}
+			Err(e) => {
+				let _ = app.emit("rag-chat-error", e.clone());
+				return Err(e);
+			}
+		}
+	}
+
+	let _ = app.emit(
+		"rag-chat-done",
+		RagChatDone {
+			tokens_emitted,
+			sources_count: chunks.len(),
+		},
+	);
+
+	Ok(())
 }
 
 #[tauri::command]
