@@ -90,6 +90,7 @@ pub fn run() {
         .manage(TerminalState::new())
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
+        .manage(commands::sync::LanSyncState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -152,6 +153,27 @@ pub fn run() {
             // commands::semantic::download_semantic_model,
             // commands::semantic::debug_semantic_embeddings,
             // commands::semantic::shutdown_semantic,
+            // LAN sync (Task 15)
+            commands::sync::lan_sync_get_my_fingerprint,
+            commands::sync::lan_sync_list_trusted_peers,
+            commands::sync::lan_sync_remove_trusted_peer,
+            commands::sync::lan_sync_list_shares,
+            commands::sync::lan_sync_add_share,
+            commands::sync::lan_sync_remove_share,
+            commands::sync::lan_sync_update_share_peers,
+            commands::sync::lan_sync_list_blocked,
+            commands::sync::lan_sync_unblock,
+            commands::sync::lan_sync_list_auth_events,
+            commands::sync::lan_sync_cleanup_auth_log,
+            commands::sync::lan_sync_set_discoverable,
+            commands::sync::lan_sync_start_browse,
+            commands::sync::lan_sync_stop_browse,
+            commands::sync::lan_sync_start_pair_server,
+            commands::sync::lan_sync_start_pair_client,
+            commands::sync::lan_sync_confirm_pair,
+            commands::sync::lan_sync_start,
+            commands::sync::lan_sync_stop,
+            commands::sync::lan_sync_request_full_resync,
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,

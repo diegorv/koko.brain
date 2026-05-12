@@ -8,5 +8,6 @@ pub mod search;
 pub mod search_index;
 // TODO(lan-sync sandbox): re-enable once ort-sys can download.
 // pub mod semantic;
+pub mod sync;
 pub mod terminal;
 pub mod vault;

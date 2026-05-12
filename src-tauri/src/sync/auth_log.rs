@@ -24,6 +24,7 @@
 
 use crate::sync::state_db::StateDbError;
 use rusqlite::{params, Connection};
+use serde::{Deserialize, Serialize};
 
 /// Rolling window during which failures accumulate toward the block
 /// threshold.
@@ -41,7 +42,8 @@ pub const PATH_TRAVERSAL_WEIGHT: u32 = 2;
 
 /// Why the handshake failed (if it did) — feeds the `failure_reason`
 /// column and the block trigger metadata.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FailureReason {
 	UnknownFingerprint,
 	BadSignature,
@@ -92,7 +94,8 @@ impl FailureReason {
 /// Which step of the connection the event belongs to. Pinned to a
 /// small set of strings so log queries can filter on phase
 /// reliably.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum HandshakePhase {
 	TcpAccept,
 	Opening,
@@ -116,7 +119,8 @@ impl HandshakePhase {
 }
 
 /// Outcome of a connection attempt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Outcome {
 	Success,
 	Failure,
@@ -146,7 +150,8 @@ pub struct AuthEventInput<'a> {
 }
 
 /// One row from `auth_events`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthEvent {
 	pub id: i64,
 	pub timestamp_ms: i64,
@@ -160,7 +165,8 @@ pub struct AuthEvent {
 }
 
 /// One row from `auth_blocks`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BlockedEntry {
 	pub identifier: String,
 	pub blocked_at_ms: i64,
