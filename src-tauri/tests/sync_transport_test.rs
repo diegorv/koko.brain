@@ -369,3 +369,72 @@ fn verify_rejects_non_identity_proof_variant() {
 	let err = verify_identity_proof(&wrong, &[0u8; 32], &[]).unwrap_err();
 	matches!(err, TransportError::BadHandshakeBytes(_));
 }
+
+/// Builds a valid `IdentityProof` over `transcript_hash` for `signer`.
+fn build_identity_proof(signer: &SigningKey, transcript_hash: &[u8; 32]) -> HandshakeMsg {
+	use ed25519_dalek::Signer;
+	let sig = signer.sign(transcript_hash);
+	HandshakeMsg::IdentityProof {
+		my_pubkey_b64: encode_b64(signer.verifying_key().as_bytes()),
+		signature_b64: encode_b64(&sig.to_bytes()),
+	}
+}
+
+#[test]
+fn verify_accepts_trust_store_match_at_first_position() {
+	// Match at index 0 must succeed even though the loop has more peers
+	// after it - the loop runs to completion, but the result is correct.
+	let signer = SigningKey::from_bytes(&[7u8; 32]);
+	let other_a = SigningKey::from_bytes(&[8u8; 32]).verifying_key();
+	let other_b = SigningKey::from_bytes(&[9u8; 32]).verifying_key();
+	let transcript = [42u8; 32];
+	let proof = build_identity_proof(&signer, &transcript);
+	let trusted = [signer.verifying_key(), other_a, other_b];
+	let remote = verify_identity_proof(&proof, &transcript, &trusted).unwrap();
+	assert_eq!(remote.as_bytes(), signer.verifying_key().as_bytes());
+}
+
+#[test]
+fn verify_accepts_trust_store_match_at_middle_position() {
+	let signer = SigningKey::from_bytes(&[7u8; 32]);
+	let other_a = SigningKey::from_bytes(&[8u8; 32]).verifying_key();
+	let other_b = SigningKey::from_bytes(&[9u8; 32]).verifying_key();
+	let transcript = [42u8; 32];
+	let proof = build_identity_proof(&signer, &transcript);
+	let trusted = [other_a, signer.verifying_key(), other_b];
+	let remote = verify_identity_proof(&proof, &transcript, &trusted).unwrap();
+	assert_eq!(remote.as_bytes(), signer.verifying_key().as_bytes());
+}
+
+#[test]
+fn verify_accepts_trust_store_match_at_last_position() {
+	let signer = SigningKey::from_bytes(&[7u8; 32]);
+	let other_a = SigningKey::from_bytes(&[8u8; 32]).verifying_key();
+	let other_b = SigningKey::from_bytes(&[9u8; 32]).verifying_key();
+	let transcript = [42u8; 32];
+	let proof = build_identity_proof(&signer, &transcript);
+	let trusted = [other_a, other_b, signer.verifying_key()];
+	let remote = verify_identity_proof(&proof, &transcript, &trusted).unwrap();
+	assert_eq!(remote.as_bytes(), signer.verifying_key().as_bytes());
+}
+
+#[test]
+fn verify_rejects_empty_trust_store() {
+	let signer = SigningKey::from_bytes(&[7u8; 32]);
+	let transcript = [42u8; 32];
+	let proof = build_identity_proof(&signer, &transcript);
+	let err = verify_identity_proof(&proof, &transcript, &[]).unwrap_err();
+	matches!(err, TransportError::UnknownPeer { .. });
+}
+
+#[test]
+fn verify_rejects_when_no_peer_in_trust_store_matches() {
+	let signer = SigningKey::from_bytes(&[7u8; 32]);
+	let other_a = SigningKey::from_bytes(&[8u8; 32]).verifying_key();
+	let other_b = SigningKey::from_bytes(&[9u8; 32]).verifying_key();
+	let transcript = [42u8; 32];
+	let proof = build_identity_proof(&signer, &transcript);
+	let trusted = [other_a, other_b];
+	let err = verify_identity_proof(&proof, &transcript, &trusted).unwrap_err();
+	matches!(err, TransportError::UnknownPeer { .. });
+}

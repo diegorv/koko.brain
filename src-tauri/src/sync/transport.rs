@@ -575,15 +575,17 @@ pub fn verify_identity_proof(
 	let remote_pubkey = VerifyingKey::from_bytes(&pub_arr)
 		.map_err(|e| TransportError::BadHandshakeBytes(format!("public key invalid: {e}")))?;
 
-	// Constant-time lookup in the trust store.
-	let mut matched = false;
+	// Constant-time-ish lookup in the trust store. Each per-element
+	// comparison uses [`subtle::ConstantTimeEq`], and the loop runs to
+	// completion without an early `break` so the total iteration count
+	// does not leak the position of the matching peer in the slice. The
+	// remaining timing signal (cache, prefetch, branch predictor) is well
+	// below LAN jitter and not considered exploitable in this threat model.
+	let mut matched = subtle::Choice::from(0u8);
 	for trusted_key in trusted {
-		if trusted_key.as_bytes().ct_eq(remote_pubkey.as_bytes()).into() {
-			matched = true;
-			break;
-		}
+		matched |= trusted_key.as_bytes().ct_eq(remote_pubkey.as_bytes());
 	}
-	if !matched {
+	if !bool::from(matched) {
 		let mut hex = String::new();
 		for b in remote_pubkey.as_bytes() {
 			hex.push_str(&format!("{b:02X}"));
