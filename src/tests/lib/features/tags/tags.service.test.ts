@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -6,7 +6,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { tagsStore } from '$lib/features/tags/tags.store.svelte';
-import { buildTagIndex, updateTagSort, resetTags } from '$lib/features/tags/tags.service';
+import {
+	buildTagIndex,
+	updateTagSort,
+	resetTags,
+	scheduleTagIndexRebuild,
+	flushScheduledTagIndexRebuild,
+} from '$lib/features/tags/tags.service';
 import type { TagAggregateV2 } from '$lib/types/vault-v2.types';
 
 describe('buildTagIndex', () => {
@@ -108,5 +114,89 @@ describe('resetTags', () => {
 		expect(tagsStore.tagTree).toEqual([]);
 		expect(tagsStore.totalTagCount).toBe(0);
 		expect(tagsStore.sortMode).toBe('count');
+	});
+});
+
+describe('scheduleTagIndexRebuild', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetTags();
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('coalesces a burst of triggers within the 300 ms debounce window into a single rebuild', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			{ name: 'tag', count: 1, filePaths: ['/vault/a.md'] },
+		] satisfies TagAggregateV2[]);
+
+		scheduleTagIndexRebuild();
+		scheduleTagIndexRebuild();
+		scheduleTagIndexRebuild();
+		scheduleTagIndexRebuild();
+		scheduleTagIndexRebuild();
+
+		// Inside the debounce window — no IPC fired yet.
+		expect(invoke).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(299);
+		expect(invoke).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(1);
+		// Switch back to real timers so awaited Promises can resolve.
+		vi.useRealTimers();
+		await flushScheduledTagIndexRebuild();
+
+		expect(invoke).toHaveBeenCalledTimes(1);
+	});
+
+	it('runs again exactly once when a new trigger arrives while a rebuild is in flight', async () => {
+		// First rebuild — gate it so we can land a second trigger mid-flight.
+		let resolveFirst: ((value: TagAggregateV2[]) => void) | undefined;
+		vi.mocked(invoke).mockImplementationOnce(
+			() => new Promise<TagAggregateV2[]>((resolve) => { resolveFirst = resolve; }),
+		);
+		vi.mocked(invoke).mockResolvedValueOnce([] satisfies TagAggregateV2[]);
+
+		scheduleTagIndexRebuild();
+		vi.advanceTimersByTime(300);
+
+		// The debounced trigger fired runScheduledRebuild — it called invoke
+		// synchronously. Switch to real timers so the awaiting microtask can
+		// observe the inflight Promise.
+		vi.useRealTimers();
+		await new Promise((r) => setTimeout(r, 0));
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		// Mid-flight trigger — must not start a second IPC yet.
+		scheduleTagIndexRebuild();
+		// Re-arm debounce so the pending trigger lands. flushScheduledTagIndexRebuild
+		// also drains it, but we want to assert the in-flight gating first.
+		await new Promise((r) => setTimeout(r, 310));
+		// First rebuild is still pending — second invoke must not have started yet.
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		// Resolve the first rebuild — the pending flag should now trigger a
+		// second rebuild automatically.
+		resolveFirst?.([]);
+		await flushScheduledTagIndexRebuild();
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('cancels any pending debounced rebuild on resetTags', async () => {
+		vi.mocked(invoke).mockResolvedValue([] satisfies TagAggregateV2[]);
+
+		scheduleTagIndexRebuild();
+		resetTags();
+		vi.advanceTimersByTime(500);
+
+		vi.useRealTimers();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(invoke).not.toHaveBeenCalled();
 	});
 });
