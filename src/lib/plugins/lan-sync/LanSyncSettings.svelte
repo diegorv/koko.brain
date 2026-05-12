@@ -76,13 +76,19 @@
 		}
 	}
 
-	/** Stage 3F-3b will replace this with a real pair-receiver flow. */
+	/**
+	 * Initiator-side pair button. The responder-side accept/reject flow
+	 * lives in `PairingPrompt` driven by the `lan-sync:pairing-incoming`
+	 * event. Surfaces backend errors as toasts so the user sees a real
+	 * failure reason (PeerMismatch, IdentityRejected, refused, etc.).
+	 */
 	async function handlePair(peer: DiscoveredPeer) {
-		toast.info('Pair flow not yet wired');
 		try {
-			await service.pairWithPeer(vaultPath, peer.addr, peer.port, peer.fingerprintHex, true);
+			await service.pairWithPeer(vaultPath, peer.addr, peer.port, peer.fingerprintHex);
+			toast.success(`Paired with ${peer.fingerprintDisplay}`);
 		} catch (err) {
 			appendLog('LAN-SYNC', `LanSyncSettings: pairWithPeer failed: ${String(err)}`);
+			toast.error(`Pair failed: ${String(err)}`);
 		}
 	}
 

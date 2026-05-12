@@ -415,30 +415,22 @@ pub async fn lan_sync_remove_trusted_peer(
 		.map_err(|e| e.to_string())
 }
 
-/// Pair-with-peer (dual-mode).
+/// Initiator-side pair command.
 ///
-/// One command serves both sides of the pairing flow because the
-/// frontend service shape (`pairWithPeer(vaultPath, peerAddr,
-/// peerPort, peerFingerprintHex, accept)`) was designed to cover
-/// both. Mode is selected by inspecting `peer_addr`:
+/// Opens a TCP connection to `peer_addr:peer_port`, runs Noise XX,
+/// verifies the peer's Ed25519 identity matches
+/// `peer_fingerprint_hex`, sends `PeerHandshake { intent: "pair" }`,
+/// and awaits the remote's `PairResponse`. On `accepted=true` the
+/// peer is written to `peers.json` and `peer-trusted` is emitted.
 ///
-/// - `peer_addr.is_empty()` → **respond mode**. Interpret
-///   `peer_fingerprint_hex` as a `request_id` previously emitted in a
-///   `lan-sync:pairing-incoming` event. Pull the matching pending
-///   session from `state.pending_pair_sessions`, ping the inbound
-///   dispatcher with the user's accept/reject decision, and (on
-///   accept) write the peer to `peers.json` + emit `peer-trusted`.
-///   Returns `Some(TrustedPeer)` on accept, `None` on reject.
+/// The local user opts in implicitly by invoking this command (e.g.
+/// clicking "Pair" in the discovered-peers list); there is no
+/// separate `accept` parameter here. The responder side runs through
+/// [`lan_sync_respond_to_pair`] instead.
 ///
-/// - else → **initiator mode**. Open a TCP connection to
-///   `peer_addr:peer_port`, run Noise XX with the expected remote
-///   fingerprint = `peer_fingerprint_hex`, send
-///   `PeerHandshake { intent: "pair" }`, await `PairResponse`. On
-///   `accepted=true` write the peer to `peers.json` + emit
-///   `peer-trusted` and return `Some(TrustedPeer)`. On
-///   `accepted=false` return an error. The `accept` parameter is
-///   ignored on this path — the local user has already opted in by
-///   pressing "Pair" in the UI.
+/// Errors when the connection cannot be established, the Noise
+/// handshake rejects the peer, the remote returns
+/// `accepted=false`, or the trust-store write fails.
 #[tauri::command]
 pub async fn lan_sync_pair_with_peer<R: Runtime>(
 	app: AppHandle<R>,
@@ -447,25 +439,51 @@ pub async fn lan_sync_pair_with_peer<R: Runtime>(
 	peer_addr: String,
 	peer_port: u16,
 	peer_fingerprint_hex: String,
-	accept: bool,
-) -> Result<Option<TrustedPeer>, String> {
-	if peer_addr.is_empty() {
-		respond_to_pair(app, state, vault_path, peer_fingerprint_hex, accept).await
-	} else {
-		initiate_pair(
-			app,
-			state,
-			vault_path,
-			peer_addr,
-			peer_port,
-			peer_fingerprint_hex,
-		)
-		.await
-	}
+) -> Result<TrustedPeer, String> {
+	initiate_pair(
+		app,
+		state,
+		vault_path,
+		peer_addr,
+		peer_port,
+		peer_fingerprint_hex,
+	)
+	.await
 }
 
-/// Respond-mode path of [`lan_sync_pair_with_peer`]. Uses the
-/// `peer_fingerprint_hex` argument as a `request_id`.
+/// Responder-side pair command.
+///
+/// Called from the `PairingPrompt` modal after the local user has
+/// confirmed (or rejected) an inbound pair request. Pulls the
+/// pending session matching `request_id` out of
+/// `state.pending_pair_sessions`, signals the dispatcher task with
+/// the user's decision, and (on accept) writes the peer to
+/// `peers.json` + emits `peer-trusted`.
+///
+/// Inputs:
+/// - `vault_path` — absolute path to the local vault root.
+/// - `request_id` — correlation id from the
+///   `lan-sync:pairing-incoming` event payload.
+/// - `accept` — `true` accepts the pair, `false` rejects.
+///
+/// Returns `Some(TrustedPeer)` on accept, `None` on reject. Errors
+/// when no pending entry matches `request_id` (e.g. the inbound
+/// session timed out before the user clicked).
+#[tauri::command]
+pub async fn lan_sync_respond_to_pair<R: Runtime>(
+	app: AppHandle<R>,
+	state: State<'_, Arc<SyncState>>,
+	vault_path: String,
+	request_id: String,
+	accept: bool,
+) -> Result<Option<TrustedPeer>, String> {
+	respond_to_pair(app, state, vault_path, request_id, accept).await
+}
+
+/// Inner respond-mode implementation. Private so the public command
+/// surface stays explicit about which side of the pair flow it
+/// handles. Takes `request_id` (the pending entry key) and `accept`
+/// (the user's decision).
 async fn respond_to_pair<R: Runtime>(
 	app: AppHandle<R>,
 	state: State<'_, Arc<SyncState>>,
@@ -523,9 +541,12 @@ async fn respond_to_pair<R: Runtime>(
 	Ok(outcome)
 }
 
-/// Initiator-mode path of [`lan_sync_pair_with_peer`]. Opens the
-/// TCP connection, runs the handshake, and on accept writes the peer
-/// to the trust store.
+/// Inner initiator-mode implementation. Private so the public
+/// command surface stays explicit about which side of the pair flow
+/// it handles. Opens the TCP connection, runs the handshake, and on
+/// remote-accept writes the peer to the trust store. Returns the
+/// `TrustedPeer` that was persisted, or an error when the remote
+/// rejects or any handshake step fails.
 async fn initiate_pair<R: Runtime>(
 	app: AppHandle<R>,
 	state: State<'_, Arc<SyncState>>,
@@ -533,7 +554,7 @@ async fn initiate_pair<R: Runtime>(
 	peer_addr: String,
 	peer_port: u16,
 	peer_fingerprint_hex: String,
-) -> Result<Option<TrustedPeer>, String> {
+) -> Result<TrustedPeer, String> {
 	let keys = static_keys_for(state.inner(), &vault_path)?;
 	let my_proof = identity_proof_for(state.inner(), &vault_path)?;
 	let my_fp_display = {
@@ -618,7 +639,7 @@ async fn initiate_pair<R: Runtime>(
 	) {
 		eprintln!("[lan-sync] emit peer-trusted failed: {e}");
 	}
-	Ok(Some(peer))
+	Ok(peer)
 }
 
 /// Pushes a folder from the local vault to a trusted peer.

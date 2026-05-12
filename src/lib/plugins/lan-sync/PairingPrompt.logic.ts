@@ -3,11 +3,13 @@ import type { PairingIncoming } from './lan-sync.types';
 
 /**
  * Minimal slice of `LanSyncService` the PairingPrompt logic depends on. Lets
- * tests inject a fake without standing up the full service surface.
+ * tests inject a fake without standing up the full service surface. Only the
+ * responder-side call is needed — initiator pairing is driven from the
+ * discovered-peers list in `LanSyncSettings`.
  */
 export interface PairingPromptService {
-	/** See `LanSyncService.pairWithPeer`. */
-	pairWithPeer: LanSyncService['pairWithPeer'];
+	/** See `LanSyncService.respondToPair`. */
+	respondToPair: LanSyncService['respondToPair'];
 }
 
 /**
@@ -35,11 +37,11 @@ export function shouldDialogBeOpen(pendingPair: PairingIncoming | null): boolean
 }
 
 /**
- * Runs `service.pairWithPeer(...)` against the current `pendingPair` and the
- * supplied `accept` flag. Manages `submitting` + `error` on the supplied state
- * object. The service is responsible for clearing `lanSyncStore.pendingPair`
- * in its `finally` block — the caller relies on store reactivity to close the
- * dialog after this returns.
+ * Runs `service.respondToPair(...)` against the current `pendingPair`'s
+ * `requestId` and the supplied `accept` flag. Manages `submitting` + `error`
+ * on the supplied state object. The service is responsible for clearing
+ * `lanSyncStore.pendingPair` in its `finally` block — the caller relies on
+ * store reactivity to close the dialog after this returns.
  *
  * Returns silently when `pendingPair` is null (defensive guard).
  */
@@ -54,13 +56,7 @@ export async function runPair(
 	state.submitting = true;
 	state.error = '';
 	try {
-		await service.pairWithPeer(
-			vaultPath,
-			pendingPair.addr,
-			pendingPair.port,
-			pendingPair.fingerprintHex,
-			accept,
-		);
+		await service.respondToPair(vaultPath, pendingPair.requestId, accept);
 	} catch (err) {
 		state.error = err instanceof Error ? err.message : String(err);
 	} finally {

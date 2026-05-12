@@ -79,15 +79,30 @@ export interface LanSyncService {
 	/** Remove a trusted peer. Backend returns updated list which replaces the store. */
 	removeTrustedPeer(vaultPath: string, fingerprintHex: string): Promise<TrustedPeer[]>;
 	/**
-	 * Accept or reject an inbound pairing request. Clears `pendingPair` after
-	 * the invoke regardless of outcome. Returns the trusted peer on accept,
-	 * `null` on reject.
+	 * Initiator-side pair. Opens a TCP connection to the peer, runs the Noise
+	 * XX handshake pinned to `peerFingerprintHex`, and on remote-accept
+	 * writes the peer into the trust store. Does NOT mutate `pendingPair`
+	 * (that is the responder-side concern). Returns the persisted
+	 * `TrustedPeer`. Rejects when the remote refuses or any handshake step
+	 * fails.
 	 */
 	pairWithPeer(
 		vaultPath: string,
 		peerAddr: string,
 		peerPort: number,
 		peerFingerprintHex: string,
+	): Promise<TrustedPeer>;
+	/**
+	 * Responder-side pair. Signals the backend's pending-pair dispatcher
+	 * task with the local user's accept/reject decision identified by
+	 * `requestId`. On accept the backend writes the peer to `peers.json`
+	 * and emits `peer-trusted`. Clears `lanSyncStore.pendingPair` in a
+	 * `finally` regardless of outcome so the modal closes. Returns the
+	 * trusted peer on accept, `null` on reject.
+	 */
+	respondToPair(
+		vaultPath: string,
+		requestId: string,
 		accept: boolean,
 	): Promise<TrustedPeer | null>;
 	/**
@@ -201,19 +216,33 @@ export function createLanSyncService(transport?: LanSyncTransport): LanSyncServi
 		peerAddr: string,
 		peerPort: number,
 		peerFingerprintHex: string,
-		accept: boolean,
-	): Promise<TrustedPeer | null> {
+	): Promise<TrustedPeer> {
 		try {
-			const result = await tx.invoke<TrustedPeer | null>('lan_sync_pair_with_peer', {
+			return await tx.invoke<TrustedPeer>('lan_sync_pair_with_peer', {
 				vaultPath,
 				peerAddr,
 				peerPort,
 				peerFingerprintHex,
-				accept,
 			});
-			return result;
 		} catch (err) {
 			appendLog('LAN-SYNC', `pairWithPeer failed: ${String(err)}`);
+			throw err;
+		}
+	}
+
+	async function respondToPair(
+		vaultPath: string,
+		requestId: string,
+		accept: boolean,
+	): Promise<TrustedPeer | null> {
+		try {
+			return await tx.invoke<TrustedPeer | null>('lan_sync_respond_to_pair', {
+				vaultPath,
+				requestId,
+				accept,
+			});
+		} catch (err) {
+			appendLog('LAN-SYNC', `respondToPair failed: ${String(err)}`);
 			throw err;
 		} finally {
 			lanSyncStore.setPendingPair(null);
@@ -292,6 +321,7 @@ export function createLanSyncService(transport?: LanSyncTransport): LanSyncServi
 		listTrustedPeers,
 		removeTrustedPeer,
 		pairWithPeer,
+		respondToPair,
 		pushFolder,
 		debugDump,
 	};

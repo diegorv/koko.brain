@@ -365,14 +365,13 @@ describe('createLanSyncService', () => {
 		});
 	});
 
-	describe('pairWithPeer', () => {
-		it('invokes with all 5 args and returns the trusted peer on accept', async () => {
+	describe('pairWithPeer (initiator)', () => {
+		it('invokes lan_sync_pair_with_peer with 4 args and returns the trusted peer', async () => {
 			const tx = createFakeTransport();
 			const trusted = makeTrusted('peer');
 			tx.invokeResponses.set('lan_sync_pair_with_peer', trusted);
-			lanSyncStore.setPendingPair(makePair('peer'));
 			const svc = createLanSyncService(tx);
-			const result = await svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer', true);
+			const result = await svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer');
 			expect(result).toEqual(trusted);
 			expect(tx.invokeCalls).toContainEqual({
 				cmd: 'lan_sync_pair_with_peer',
@@ -381,38 +380,65 @@ describe('createLanSyncService', () => {
 					peerAddr: '192.168.1.5',
 					peerPort: 4747,
 					peerFingerprintHex: 'peer',
-					accept: true,
 				},
 			});
 		});
 
-		it('clears pendingPair after a successful accept', async () => {
+		it('does NOT mutate pendingPair (initiator path is unrelated to inbound prompt)', async () => {
 			const tx = createFakeTransport();
 			tx.invokeResponses.set('lan_sync_pair_with_peer', makeTrusted('peer'));
+			const inbound = makePair('other');
+			lanSyncStore.setPendingPair(inbound);
+			const svc = createLanSyncService(tx);
+			await svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer');
+			expect(lanSyncStore.pendingPair).toEqual(inbound);
+		});
+
+		it('re-throws on invoke error and leaves pendingPair untouched', async () => {
+			const tx = createFakeTransport();
+			tx.invokeErrors.set('lan_sync_pair_with_peer', new Error('pair fail'));
+			const inbound = makePair('other');
+			lanSyncStore.setPendingPair(inbound);
+			const svc = createLanSyncService(tx);
+			await expect(svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer')).rejects.toThrow(
+				'pair fail',
+			);
+			expect(lanSyncStore.pendingPair).toEqual(inbound);
+		});
+	});
+
+	describe('respondToPair (responder)', () => {
+		it('invokes lan_sync_respond_to_pair with requestId and clears pendingPair on accept', async () => {
+			const tx = createFakeTransport();
+			const trusted = makeTrusted('peer');
+			tx.invokeResponses.set('lan_sync_respond_to_pair', trusted);
 			lanSyncStore.setPendingPair(makePair('peer'));
 			const svc = createLanSyncService(tx);
-			await svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer', true);
+			const result = await svc.respondToPair(VAULT, 'req-1', true);
+			expect(result).toEqual(trusted);
+			expect(tx.invokeCalls).toContainEqual({
+				cmd: 'lan_sync_respond_to_pair',
+				args: { vaultPath: VAULT, requestId: 'req-1', accept: true },
+			});
 			expect(lanSyncStore.pendingPair).toBeNull();
 		});
 
 		it('returns null on reject and clears pendingPair', async () => {
 			const tx = createFakeTransport();
-			tx.invokeResponses.set('lan_sync_pair_with_peer', null);
+			tx.invokeResponses.set('lan_sync_respond_to_pair', null);
 			lanSyncStore.setPendingPair(makePair('peer'));
 			const svc = createLanSyncService(tx);
-			const result = await svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer', false);
+			const result = await svc.respondToPair(VAULT, 'req-1', false);
 			expect(result).toBeNull();
 			expect(lanSyncStore.pendingPair).toBeNull();
 		});
 
 		it('re-throws on invoke error AND still clears pendingPair', async () => {
 			const tx = createFakeTransport();
-			tx.invokeErrors.set('lan_sync_pair_with_peer', new Error('pair fail'));
+			tx.invokeErrors.set('lan_sync_respond_to_pair', new Error('respond fail'));
 			lanSyncStore.setPendingPair(makePair('peer'));
 			const svc = createLanSyncService(tx);
-			await expect(
-				svc.pairWithPeer(VAULT, '192.168.1.5', 4747, 'peer', true),
-			).rejects.toThrow('pair fail');
+			await expect(svc.respondToPair(VAULT, 'req-1', true)).rejects.toThrow('respond fail');
 			expect(lanSyncStore.pendingPair).toBeNull();
 		});
 	});

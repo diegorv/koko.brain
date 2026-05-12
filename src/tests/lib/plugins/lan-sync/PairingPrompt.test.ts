@@ -11,23 +11,24 @@ import {
 import type { PairingIncoming, TrustedPeer } from '$lib/plugins/lan-sync/lan-sync.types';
 
 /**
- * Captured pairWithPeer call signature, mirroring the service argument list.
+ * Captured respondToPair call signature, mirroring the service argument list.
  */
-interface PairCall {
+interface RespondCall {
 	vaultPath: string;
-	peerAddr: string;
-	peerPort: number;
-	peerFingerprintHex: string;
+	requestId: string;
 	accept: boolean;
 }
 
 /**
  * Fake `PairingPromptService` with a recorded call log and configurable
  * response/error per call. Mirrors the spirit of the service test transport.
+ * The component only exercises the responder-side service surface; the
+ * initiator path is tested separately in `lan-sync.service.test.ts` and
+ * driven by `LanSyncSettings` in production.
  */
 interface FakePairingService extends PairingPromptService {
 	/** Mutable log of every invocation. */
-	calls: PairCall[];
+	calls: RespondCall[];
 	/** When set, the next call resolves with this value. Cleared after use. */
 	nextResponse: TrustedPeer | null | undefined;
 	/** When set, the next call rejects with this error. Cleared after use. */
@@ -42,8 +43,8 @@ function createFakeService(): FakePairingService {
 		nextResponse: undefined,
 		nextError: undefined,
 		holdPromise: undefined,
-		async pairWithPeer(vaultPath, peerAddr, peerPort, peerFingerprintHex, accept) {
-			svc.calls.push({ vaultPath, peerAddr, peerPort, peerFingerprintHex, accept });
+		async respondToPair(vaultPath, requestId, accept) {
+			svc.calls.push({ vaultPath, requestId, accept });
 			if (svc.holdPromise) {
 				const p = svc.holdPromise;
 				svc.holdPromise = undefined;
@@ -56,7 +57,7 @@ function createFakeService(): FakePairingService {
 			}
 			const response = svc.nextResponse === undefined ? null : svc.nextResponse;
 			svc.nextResponse = undefined;
-			// Service contract: pairWithPeer clears pendingPair in its finally block.
+			// Service contract: respondToPair clears pendingPair in its finally block.
 			lanSyncStore.setPendingPair(null);
 			return response;
 		},
@@ -127,7 +128,7 @@ describe('PairingPrompt.logic', () => {
 	});
 
 	describe('runPair — accept', () => {
-		it('invokes service.pairWithPeer with addr/port/fingerprint and accept=true', async () => {
+		it('invokes service.respondToPair with the pendingPair requestId and accept=true', async () => {
 			const state = createPairingPromptState();
 			const svc = createFakeService();
 			svc.nextResponse = makeTrusted('peer0123456789ab');
@@ -139,9 +140,7 @@ describe('PairingPrompt.logic', () => {
 			expect(svc.calls).toHaveLength(1);
 			expect(svc.calls[0]).toEqual({
 				vaultPath: VAULT,
-				peerAddr: pair.addr,
-				peerPort: pair.port,
-				peerFingerprintHex: pair.fingerprintHex,
+				requestId: pair.requestId,
 				accept: true,
 			});
 		});
@@ -171,7 +170,7 @@ describe('PairingPrompt.logic', () => {
 	});
 
 	describe('runPair — reject', () => {
-		it('invokes service.pairWithPeer with accept=false', async () => {
+		it('invokes service.respondToPair with accept=false and the pendingPair requestId', async () => {
 			const state = createPairingPromptState();
 			const svc = createFakeService();
 			const pair = makePair();
@@ -181,7 +180,7 @@ describe('PairingPrompt.logic', () => {
 
 			expect(svc.calls).toHaveLength(1);
 			expect(svc.calls[0].accept).toBe(false);
-			expect(svc.calls[0].peerFingerprintHex).toBe(pair.fingerprintHex);
+			expect(svc.calls[0].requestId).toBe(pair.requestId);
 		});
 
 		it('clears pendingPair via the service contract', async () => {
@@ -230,8 +229,8 @@ describe('PairingPrompt.logic', () => {
 		it('coerces non-Error rejections to string', async () => {
 			const state = createPairingPromptState();
 			const svc: FakePairingService = createFakeService();
-			// Override pairWithPeer for this one test to throw a non-Error.
-			svc.pairWithPeer = async () => {
+			// Override respondToPair for this one test to throw a non-Error.
+			svc.respondToPair = async () => {
 				throw 'plain string';
 			};
 			lanSyncStore.setPendingPair(makePair());
@@ -307,7 +306,7 @@ describe('PairingPrompt.logic', () => {
 
 			expect(svc.calls).toHaveLength(1);
 			expect(svc.calls[0].accept).toBe(false);
-			expect(svc.calls[0].peerFingerprintHex).toBe(pair.fingerprintHex);
+			expect(svc.calls[0].requestId).toBe(pair.requestId);
 		});
 
 		it('does not double-fire while a request is already in flight', async () => {

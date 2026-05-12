@@ -55,7 +55,14 @@ function createFakeService(overrides: Partial<LanSyncService> = {}): FakeService
 			lanSyncStore.setTrustedPeers(remaining);
 			return remaining;
 		}),
-		pairWithPeer: wrap('pairWithPeer', async () => null),
+		pairWithPeer: wrap('pairWithPeer', async (_vault: string, _addr: string, _port: number, fp: string) => ({
+			fingerprintHex: fp,
+			fingerprintDisplay: `${fp}-words`,
+			publicKeyB64: 'AAAA',
+			displayName: null,
+			trustedAtMs: 0,
+		})),
+		respondToPair: wrap('respondToPair', async () => null),
 		pushFolder: wrap('pushFolder', async () => undefined),
 		debugDump: wrap('debugDump', async () => ({
 			fingerprintHex: '',
@@ -291,11 +298,11 @@ describe('LanSyncSettings discovered list', () => {
 		const peer = makeDiscovered('untrusted', { addr: '10.0.0.5', port: 4747 });
 		lanSyncStore.upsertDiscoveredPeer(peer);
 
-		await service.pairWithPeer(VAULT, peer.addr, peer.port, peer.fingerprintHex, true);
+		await service.pairWithPeer(VAULT, peer.addr, peer.port, peer.fingerprintHex);
 
 		expect(service.calls).toContainEqual({
 			method: 'pairWithPeer',
-			args: [VAULT, '10.0.0.5', 4747, 'untrusted', true],
+			args: [VAULT, '10.0.0.5', 4747, 'untrusted'],
 		});
 	});
 });

@@ -162,6 +162,7 @@ pub fn run() {
             commands::sync::lan_sync_list_trusted_peers,
             commands::sync::lan_sync_remove_trusted_peer,
             commands::sync::lan_sync_pair_with_peer,
+            commands::sync::lan_sync_respond_to_pair,
             commands::sync::lan_sync_push_folder,
             commands::sync::lan_sync_debug_dump,
         ])
