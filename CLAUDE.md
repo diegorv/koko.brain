@@ -39,10 +39,14 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 pnpm tauri dev        # Run app in dev mode (frontend + Tauri)
 pnpm dev              # Run frontend only (no Tauri window)
 pnpm build            # Build frontend for production
+pnpm tauri build      # Full release build with bundle (.dmg) - shipping
+pnpm tauri:build:fast # Local fast build: release-fast profile, no bundle/codesign
 pnpm check            # TypeScript type checking
 pnpm check:watch      # Type checking in watch mode
 bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up)
 ```
+
+**Build performance:** `.cargo/config.toml` requires `sccache` on PATH (`brew install sccache`). The `beforeBuildCommand` is `bash scripts/tauri-before-build.sh`, which skips `pnpm build` when frontend inputs are unchanged; bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
 
 **E2E tests:** ALWAYS run via `bash scripts/e2e.sh`. NEVER run `PLAYWRIGHT=true pnpm dev` manually — the script handles server lifecycle, port cleanup, and teardown automatically.
 
