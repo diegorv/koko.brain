@@ -54,6 +54,17 @@ struct LanSyncInner {
 	/// Running TCP sync server. `Some` between `lan_sync_start` and
 	/// `lan_sync_stop`; `None` before / after.
 	server: Option<ServerHandles>,
+	/// Watcher-consumer fan-out task. Spawned together with the sync
+	/// server in `lan_sync_start`; aborted by `lan_sync_stop`. Cheap
+	/// when no peer is connected (loops over an empty connection map).
+	watcher_consumer: Option<tokio::task::JoinHandle<()>>,
+	/// Mirror of the server's `active` map but holding only the
+	/// outbound channel for each peer. Updated in lock-step with
+	/// `ServerHandles::active` by the accept loop. The watcher
+	/// consumer reads from this map; the server module writes to it.
+	/// Kept separate so consumer code does not pull the whole
+	/// `ActiveConnection` type into its module.
+	outbound_view: Option<std::sync::Arc<tokio::sync::Mutex<std::collections::HashMap<String, crate::sync::watcher_consumer::OutboundChannel>>>>,
 }
 
 /// Running sync server: a TCP listener accepting incoming session
@@ -221,6 +232,40 @@ impl LanSyncState {
 				h.announced_port = port;
 			}
 		}
+	}
+
+	/// Stores the watcher consumer task handle. Taken in
+	/// `lan_sync_stop` to abort the loop.
+	pub fn set_watcher_consumer(&self, handle: tokio::task::JoinHandle<()>) {
+		if let Ok(mut guard) = self.inner.lock() {
+			guard.watcher_consumer = Some(handle);
+		}
+	}
+
+	/// Stores the outbound-channel mirror map shared between the
+	/// accept loop (writer) and the watcher consumer (reader).
+	pub fn set_outbound_view(
+		&self,
+		view: std::sync::Arc<
+			tokio::sync::Mutex<
+				std::collections::HashMap<String, crate::sync::watcher_consumer::OutboundChannel>,
+			>,
+		>,
+	) {
+		if let Ok(mut guard) = self.inner.lock() {
+			guard.outbound_view = Some(view);
+		}
+	}
+
+	/// Removes both the watcher consumer handle and the outbound
+	/// view in one go. Called from `lan_sync_stop` so the consumer
+	/// task is aborted in lock-step with the accept loop.
+	pub fn take_watcher_consumer(&self) -> Option<tokio::task::JoinHandle<()>> {
+		if let Ok(mut guard) = self.inner.lock() {
+			guard.outbound_view = None;
+			return guard.watcher_consumer.take();
+		}
+		None
 	}
 }
 
@@ -692,18 +737,31 @@ pub async fn lan_sync_start(
 	let active = std::sync::Arc::new(tokio::sync::Mutex::new(
 		std::collections::HashMap::<String, ActiveConnection>::new(),
 	));
+	let outbound_view = std::sync::Arc::new(tokio::sync::Mutex::new(
+		std::collections::HashMap::<String, crate::sync::watcher_consumer::OutboundChannel>::new(),
+	));
 	let accept_task = tokio::spawn(accept_loop(
 		listener,
-		identity,
+		identity.clone(),
 		std::path::PathBuf::from(&vault_path),
 		app_handle,
 		active.clone(),
+		outbound_view.clone(),
 	));
+	let watcher_handle = crate::sync::watcher_consumer::spawn_watcher_consumer(
+		crate::sync::watcher_consumer::ConsumerContext {
+			vault_root: std::path::PathBuf::from(&vault_path),
+			identity,
+			active_connections: outbound_view.clone(),
+		},
+	);
 	state.set_server(ServerHandles {
 		port,
 		accept_task,
 		active,
 	});
+	state.set_watcher_consumer(watcher_handle);
+	state.set_outbound_view(outbound_view);
 	Ok(port)
 }
 
@@ -713,6 +771,9 @@ pub async fn lan_sync_start(
 pub async fn lan_sync_stop(
 	state: tauri::State<'_, LanSyncState>,
 ) -> Result<(), String> {
+	if let Some(consumer) = state.take_watcher_consumer() {
+		consumer.abort();
+	}
 	if let Some(server) = state.take_server() {
 		server.accept_task.abort();
 		let mut guard = server.active.lock().await;
@@ -735,6 +796,11 @@ async fn accept_loop(
 	app_handle: Option<tauri::AppHandle>,
 	active: std::sync::Arc<
 		tokio::sync::Mutex<std::collections::HashMap<String, ActiveConnection>>,
+	>,
+	outbound_view: std::sync::Arc<
+		tokio::sync::Mutex<
+			std::collections::HashMap<String, crate::sync::watcher_consumer::OutboundChannel>,
+		>,
 	>,
 ) {
 	loop {
@@ -759,6 +825,7 @@ async fn accept_loop(
 		let session_id = uuid::Uuid::new_v4().to_string();
 		let (outbound_tx, outbound_rx) =
 			tokio::sync::mpsc::channel(crate::sync::session::OUTBOUND_QUEUE_CAPACITY);
+		let outbound_for_consumer = outbound_tx.clone();
 		let task = tokio::spawn(async move {
 			let handles = crate::sync::session::SessionHandles {
 				app_handle: app_handle_clone,
@@ -778,7 +845,7 @@ async fn accept_loop(
 		// `oneshot::Sender` handed into the session.
 		let mut guard = active.lock().await;
 		guard.insert(
-			session_id,
+			session_id.clone(),
 			ActiveConnection {
 				peer_fingerprint_hex: String::new(),
 				addr,
@@ -787,6 +854,17 @@ async fn accept_loop(
 			},
 		);
 		drop(guard);
+		// Mirror the outbound sender into the watcher consumer's view
+		// so file-system events fan out to this connection. The
+		// consumer never reads the rest of `ActiveConnection`.
+		let mut view = outbound_view.lock().await;
+		view.insert(
+			session_id,
+			crate::sync::watcher_consumer::OutboundChannel {
+				outbound: outbound_for_consumer,
+			},
+		);
+		drop(view);
 		// Best-effort cleanup: spawn a separate watcher that removes
 		// the entry once the session task finishes. Avoids growing
 		// the map across many short-lived connections.
