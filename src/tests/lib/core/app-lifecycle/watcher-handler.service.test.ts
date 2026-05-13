@@ -210,6 +210,38 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(updateCalendarForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
 	});
 
+	it('updates FTS5 and semantic indexes for externally changed markdown files', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/notes/external.md', content: '# external edit' },
+		]);
+
+		await rebuildAllIndexes(['/vault/notes/external.md']);
+
+		// FTS + semantic take vault-relative paths, matching the convention
+		// in `build_fts_index` / `build_semantic_index`.
+		expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+			filePath: 'notes/external.md',
+			content: '# external edit',
+		});
+		expect(invoke).toHaveBeenCalledWith('update_semantic_file', {
+			filePath: 'notes/external.md',
+			content: '# external edit',
+			vaultPath: '/vault',
+		});
+	});
+
+	it('removes deleted markdown files from FTS5 in the incremental path', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/notes/gone.md', content: null },
+		]);
+
+		await rebuildAllIndexes(['/vault/notes/gone.md']);
+
+		expect(invoke).toHaveBeenCalledWith('remove_from_search_index', {
+			filePath: 'notes/gone.md',
+		});
+	});
+
 	it('falls back to full rebuild when incremental fails', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('read failed'));
 
