@@ -77,6 +77,7 @@
 		errorMessage = '';
 		pendingUpdate = null;
 		downloadProgress = 0;
+		totalBytes = 0;
 	}
 
 	function handleAutoCheckChange(value: boolean) {
@@ -103,6 +104,20 @@
 	let errorMessage = $state('');
 	let pendingUpdate = $state<UpdateMetadata | null>(null);
 	let downloadProgress = $state(0);
+	/** Total download size in bytes, populated from the Channel `Started` event. 0 until known. */
+	let totalBytes = $state(0);
+
+	/**
+	 * Format a byte count as a coarse "X.X MB" / "X KB" string. Used by the
+	 * download status row. The Tauri bundle is always megabytes-sized, so
+	 * MB is the default unit; KB is only relevant if a future build ships
+	 * a tiny delta installer.
+	 */
+	function formatBytes(bytes: number): string {
+		if (bytes <= 0) return '?';
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	}
 
 	/**
 	 * True when the installed build is nightly but the user has picked
@@ -132,7 +147,8 @@
 			if (update) {
 				pendingUpdate = update;
 				status = 'downloading';
-				let totalBytes = 0;
+				downloadProgress = 0;
+				totalBytes = 0;
 				let downloadedBytes = 0;
 				const onEvent = new Channel<DownloadEvent>();
 				onEvent.onmessage = (msg) => {
@@ -239,7 +255,7 @@
 		{:else if status === 'checking'}
 			<span class="text-sm text-muted-foreground">Checking...</span>
 		{:else if status === 'downloading'}
-			<span class="text-sm text-muted-foreground">Downloading v{pendingUpdate?.version}... {downloadProgress}%</span>
+			<span class="text-sm text-muted-foreground">Downloading v{pendingUpdate?.version} ({formatBytes(totalBytes)})... {downloadProgress}%</span>
 		{:else if status === 'ready'}
 			<Button variant="default" size="sm" onclick={restartApp}>
 				Restart to update
