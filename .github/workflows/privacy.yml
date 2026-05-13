@@ -128,3 +128,8 @@ jobs:
           known: |
             huggingface\.co/Xenova/bge-m3
             huggingface\.co/onnx-community/bge-reranker-v2-m3-ONNX
+            # Auto-updater latest.json endpoints (stable + nightly channels).
+            # The constants live in src/commands/update_channel.rs and feed
+            # the Tauri updater's per-channel endpoint selection. See
+            # docs/RELEASE-CHANNELS.md for the full pipeline.
+            github\.com/diegorv/koko\.brain/releases
