@@ -97,12 +97,10 @@ Introduce a second release channel (`nightly`) alongside the existing tag-driven
     - Secrets are the same set used by release.yml (`APPLE_*`, `TAURI_SIGNING_*`, `GITHUB_TOKEN`). No new secret config required.
   - Smoke-test plan deferred to Task 9 (`workflow_dispatch` on a feature branch first, then verify the `nightly` release entry / `latest.json` URL).
 
-- [ ] Task 8: Update release notes / docs
-  - Update `docs/` (the README or a relevant section, no new file unless content justifies one) with:
-    - The two channels, their cadence, where to download each.
-    - The version-string semantics and the one-way-update rule (nightly → stable requires reinstall).
-    - The setting toggle and what it does.
-  - This is the ONLY task that touches markdown/docs. Keep it concise — one paragraph per topic.
+- [x] Task 8: Update release notes / docs
+  - New file `docs/RELEASE-CHANNELS.md`: user-facing channel guide. Covers the two channels, cadence, GitHub release tags, DMG + `latest.json` URL patterns, switching from inside the app, version-string semantics, the one-way-update rule (with the reason), how to pick a channel, what differs between the two build flows, and how to verify a download with the checksum file. The content felt cohesive enough for its own file rather than inlining a 100+ line section in the README.
+  - Extended `GITHUB-WORKFLOW.md` with a Nightly section that mirrors the Release section's structure (triggers, jobs table, pipeline steps, "what it tests" / "what it does NOT test"). Updated the index at the top.
+  - Added a link to `docs/RELEASE-CHANNELS.md` in the README's Documentation list.
 
 - [ ] Task 9: Smoke-test end-to-end
   - Local: build a nightly bundle via `KOKO_RELEASE_CHANNEL=nightly pnpm tauri:build:fast`. Confirm `__BUILD_INFO__` shows the nightly version.
