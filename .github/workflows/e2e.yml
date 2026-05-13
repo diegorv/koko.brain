@@ -3,34 +3,25 @@ name: E2E
 # Playwright end-to-end suite, in its own workflow rather than as a CI job.
 #
 # Scope:
-#   - pull_request against `main`: gate before merge.
-#   - push to `main`: covers the "commit straight to main without a tag"
-#     flow. Without this trigger, a direct commit that breaks Playwright
-#     is invisible until the next time someone tags a release — the
-#     PR run never happened and release-time re-run lives in the future.
-#   - workflow_call: invoked by release.yml on tag push and by run-all.yml
-#     for manual full-sweep runs.
+#   - pull_request against `main`: gate before merge. This is the only
+#     pre-merge E2E run; main is protected by the PR check, so a commit
+#     never reaches main without E2E having passed.
+#   - workflow_call: invoked by release.yml on tag push as a hard gate
+#     for the macOS build (release builds never publish without E2E
+#     passing), and by run-all.yml for manual full-sweep runs.
+#
+# Intentionally NOT triggered on push:main. Every commit to main has
+# already passed E2E in its PR; re-running on the merge SHA would
+# duplicate work without adding signal. Nightly.yml does not include
+# E2E either (by design — see its top-of-file comment); the only
+# post-merge E2E gate is at release time, where it blocks the build
+# alongside frontend+rust.
 
 permissions:
   contents: read
 
 on:
   pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "static/**"
-      - "e2e/**"
-      - "pnpm-lock.yaml"
-      - "package.json"
-      - "tsconfig.json"
-      - "svelte.config.*"
-      - "vite.config.*"
-      - "tailwind.config.*"
-      - "postcss.config.*"
-      - "components.json"
-      - "scripts/e2e.sh"
-  push:
     branches: [main]
     paths:
       - "src/**"
