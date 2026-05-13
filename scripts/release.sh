@@ -129,3 +129,30 @@ git push origin "$NEW_VERSION"
 
 echo ""
 echo "Tag $NEW_VERSION pushed to GitHub."
+
+# ─── Prune old tags (keep last 4, never touch 'nightly') ─────────────
+KEEP_COUNT=4
+echo ""
+echo "Pruning old tags (keeping last ${KEEP_COUNT})..."
+
+git fetch --tags --prune --prune-tags origin >/dev/null 2>&1 || true
+
+ALL_TAGS=$(git tag -l --sort=-v:refname | grep -v '^nightly$' || true)
+OLD_TAGS=$(echo "$ALL_TAGS" | tail -n +$((KEEP_COUNT + 1)))
+
+if [ -z "$OLD_TAGS" ]; then
+  echo "Nothing to prune."
+else
+  HAVE_GH=0
+  command -v gh >/dev/null 2>&1 && HAVE_GH=1
+  echo "$OLD_TAGS" | while IFS= read -r tag; do
+    [ -z "$tag" ] && continue
+    echo "  deleting $tag"
+    if [ "$HAVE_GH" = "1" ]; then
+      gh release delete "$tag" --cleanup-tag -y >/dev/null 2>&1 || true
+    fi
+    git push origin --delete "$tag" >/dev/null 2>&1 || true
+    git tag -d "$tag" >/dev/null 2>&1 || true
+  done
+  echo "Pruned."
+fi
