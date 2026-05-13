@@ -19,6 +19,14 @@ Settings → **Update** → **Release channel** dropdown.
 - The badge next to "Current version" shows which channel the **build itself** belongs to (informational; comes from `__APP_CHANNEL__` baked at build time).
 - The dropdown controls which channel the **auto-updater follows** when you click "Check for updates". The two can diverge — a Nightly build can be set to track Stable for updates, and vice versa.
 
+## Auto-check on launch
+
+Settings → **Update** → **Auto-check on launch** toggle (off by default).
+
+When enabled, the app silently checks the configured channel's `latest.json` shortly after the vault loads. If a newer version is available, a toast prompts you to open Settings → Update to install. The check is throttled to once per 24h via the `updates.lastCheckedAt` timestamp, so opening and closing the app multiple times in a day produces one network call, not many. Manual clicks on "Check for updates" also update the same timestamp.
+
+The "Last checked" row in the same section shows how recently the app asked GitHub for a newer version (or "Never" if no check has run yet).
+
 ## Version-string semantics
 
 - Stable: the version from `package.json`, e.g. `2.0.19-alpha`.

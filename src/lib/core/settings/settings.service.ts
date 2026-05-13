@@ -148,6 +148,8 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			},
 			updates: {
 				channel: parsed.updates?.channel ?? getBuildChannel(),
+				autoCheck: parsed.updates?.autoCheck ?? DEFAULT_SETTINGS.updates.autoCheck,
+				lastCheckedAt: parsed.updates?.lastCheckedAt ?? DEFAULT_SETTINGS.updates.lastCheckedAt,
 			},
 		};
 		settingsStore.setSettings(merged);

@@ -11,6 +11,7 @@
 	import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
+	import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 	import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
 	import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 	import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
@@ -69,6 +70,14 @@
 								console.error('autoOpenDailyNote failed:', err);
 							});
 						}, 0);
+						// Background update check. Internally throttled to once per
+						// 24h and gated by `settings.updates.autoCheck`, so a cold
+						// start is otherwise a no-op. Settings have to be loaded
+						// already (initializeVault calls loadSettings) for the
+						// auto-check policy to be readable.
+						maybeAutoCheckForUpdates().catch((err) => {
+							console.error('maybeAutoCheckForUpdates failed:', err);
+						});
 					})
 					.catch((err) => {
 						console.error('Vault initialization failed:', err);

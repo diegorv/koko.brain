@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, ReleaseChannel } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -114,6 +114,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	updates: {
 		channel: 'stable',
+		autoCheck: false,
+		lastCheckedAt: null,
 	},
 };
 
@@ -316,11 +318,14 @@ export const settingsStore = {
 		};
 	},
 
-	/** Updates the release channel the in-app auto-updater follows */
-	updateChannel(channel: ReleaseChannel) {
+	/**
+	 * Partially updates the auto-updater settings (channel / autoCheck /
+	 * lastCheckedAt), shallow-merging with the existing values.
+	 */
+	updateUpdates(value: Partial<UpdateSettings>) {
 		settings = {
 			...settings,
-			updates: { ...settings.updates, channel },
+			updates: { ...settings.updates, ...value },
 		};
 	},
 

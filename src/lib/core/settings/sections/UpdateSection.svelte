@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
+	import { Switch } from '$lib/components/ui/switch';
 	import { invoke, Channel } from '@tauri-apps/api/core';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';
@@ -68,7 +69,7 @@
 	}
 
 	function handleChannelChange(value: string) {
-		settingsStore.updateChannel(value as ReleaseChannel);
+		settingsStore.updateUpdates({ channel: value as ReleaseChannel });
 		onchange();
 		// Reset any pending download state — the previous "Restart to update"
 		// pointed at an Update from the other channel and is no longer valid.
@@ -76,6 +77,26 @@
 		errorMessage = '';
 		pendingUpdate = null;
 		downloadProgress = 0;
+	}
+
+	function handleAutoCheckChange(value: boolean) {
+		settingsStore.updateUpdates({ autoCheck: value });
+		onchange();
+	}
+
+	/**
+	 * Format a Unix-ms timestamp as a coarse "X ago" string. Intentionally
+	 * imprecise — minute / hour / day granularity is enough for the
+	 * Settings UI, and finer precision would require a re-render every
+	 * second to stay accurate.
+	 */
+	function formatLastChecked(ts: number | null): string {
+		if (ts === null) return 'Never';
+		const diff = Date.now() - ts;
+		if (diff < 60_000) return 'Just now';
+		if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
+		if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} h ago`;
+		return `${Math.floor(diff / 86_400_000)} d ago`;
 	}
 
 	let status = $state<Status>('idle');
@@ -103,6 +124,11 @@
 			const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', {
 				channel: settingsStore.updates.channel,
 			});
+			// Record the check timestamp regardless of result so the
+			// auto-check throttle and the "Last checked" line both reflect
+			// the latest user action.
+			settingsStore.updateUpdates({ lastCheckedAt: Date.now() });
+			onchange();
 			if (update) {
 				pendingUpdate = update;
 				status = 'downloading';
@@ -183,6 +209,23 @@
 
 	<SettingItem label="Current version" description="The version currently installed">
 		<BuildInfo />
+	</SettingItem>
+
+	<SettingItem
+		label="Auto-check on launch"
+		description="Silently check for an update when the app opens. Throttled to once per 24h."
+	>
+		<Switch
+			checked={settingsStore.updates.autoCheck}
+			onCheckedChange={handleAutoCheckChange}
+		/>
+	</SettingItem>
+
+	<SettingItem
+		label="Last checked"
+		description="When the app most recently asked GitHub for a newer version"
+	>
+		<span class="text-sm text-muted-foreground">{formatLastChecked(settingsStore.updates.lastCheckedAt)}</span>
 	</SettingItem>
 
 	<SettingItem
