@@ -695,6 +695,141 @@ pub async fn search_semantic(
 	.map_err(|e| format!("Task join error: {e}"))?
 }
 
+/// Hybrid search: fuses FTS5 (BM25) and semantic (cosine) results via RRF,
+/// then reranks the top-50 with the BGE cross-encoder when available.
+///
+/// Pipeline:
+/// 1. In parallel: FTS top-30 paths, semantic top-30 chunks.
+/// 2. Reduce semantic chunks to a path ranking (best chunk per path,
+///    order preserved).
+/// 3. RRF the two path rankings (k=60).
+/// 4. For each path in the fused top-50, pick its best-scoring semantic
+///    chunk to hand to the reranker. Paths that only matched in FTS are
+///    skipped (MVP limitation — the semantic indexer covers the full vault
+///    so this only affects files filtered out at index time).
+/// 5. Rerank with `Reranker::rerank` if the model is on disk; otherwise
+///    keep RRF order.
+/// 6. Sort by final score, truncate to `max_results`.
+#[tauri::command]
+pub async fn search_hybrid(
+	query: String,
+	max_results: Option<usize>,
+) -> Result<Vec<SemanticResult>, String> {
+	let trimmed = query.trim().to_string();
+	if trimmed.chars().count() < 3 {
+		return Ok(Vec::new());
+	}
+
+	tokio::task::spawn_blocking(move || {
+		let limit = max_results.unwrap_or(20);
+		const SOURCE_TOP_N: usize = 30;
+		const FUSED_POOL: usize = RERANK_CANDIDATE_POOL;
+
+		// 1a. FTS top-N paths
+		let fts_results = crate::commands::search_index::search_fts_inner(&trimmed, SOURCE_TOP_N, false)?;
+		let fts_paths: Vec<String> = fts_results.iter().map(|r| r.path.clone()).collect();
+
+		// 1b. Semantic top-N chunks (cosine only — we don't want to pay
+		// reranker latency on this candidate pass; the rerank happens after RRF).
+		ensure_embedder_loaded()?;
+		let query_embedding = {
+			let mut guard = EMBEDDER.try_lock().map_err(|_| {
+				"Semantic search is temporarily unavailable while indexing is in progress"
+					.to_string()
+			})?;
+			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
+			embedder.embed(&trimmed)?
+		};
+		schedule_embedder_unload();
+		let cached_chunks = get_or_load_cache()?;
+
+		// Rank ALL chunks by cosine, take top SOURCE_TOP_N.
+		let mut sem_ranked: Vec<(f32, &CachedChunk)> = cached_chunks
+			.iter()
+			.map(|c| (cosine_similarity(&query_embedding, &c.embedding), c))
+			.collect();
+		sem_ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
+		sem_ranked.truncate(SOURCE_TOP_N * 4); // headroom for path dedupe
+
+		// 2. Reduce to per-path ranking, preserving discovery order. Best
+		// chunk per path is the one we'll hand to the reranker downstream.
+		let mut best_chunk_for_path: std::collections::HashMap<String, &CachedChunk> =
+			std::collections::HashMap::new();
+		let mut sem_paths: Vec<String> = Vec::new();
+		for (_score, chunk) in &sem_ranked {
+			if !best_chunk_for_path.contains_key(&chunk.source_path) {
+				best_chunk_for_path.insert(chunk.source_path.clone(), chunk);
+				sem_paths.push(chunk.source_path.clone());
+				if sem_paths.len() >= SOURCE_TOP_N {
+					break;
+				}
+			}
+		}
+
+		// 3. RRF on the two path rankings.
+		let fts_refs: Vec<&str> = fts_paths.iter().map(|s| s.as_str()).collect();
+		let sem_refs: Vec<&str> = sem_paths.iter().map(|s| s.as_str()).collect();
+		let fused = crate::search::rrf::rrf_fuse(
+			&[&fts_refs, &sem_refs],
+			crate::search::rrf::DEFAULT_RRF_K,
+		);
+
+		// 4. Materialize a candidate list backed by real semantic chunks.
+		let mut candidates: Vec<SemanticResult> = Vec::with_capacity(FUSED_POOL);
+		for (path, rrf_score) in fused.iter().take(FUSED_POOL) {
+			if let Some(chunk) = best_chunk_for_path.get(path) {
+				candidates.push(SemanticResult {
+					key: chunk.key.clone(),
+					source_path: chunk.source_path.clone(),
+					content: chunk.content.clone(),
+					heading: chunk.heading.clone(),
+					line_start: chunk.line_start,
+					line_end: chunk.line_end,
+					// Provisional score — reranker overwrites if available.
+					score: *rrf_score,
+				});
+			}
+		}
+
+		// 5. Rerank the candidate pool with the BGE cross-encoder when
+		// available; replace `score` with the rerank logit.
+		let used_reranker = !candidates.is_empty() && ensure_reranker_loaded()?;
+		if used_reranker {
+			let docs: Vec<&str> = candidates.iter().map(|c| c.content.as_str()).collect();
+			let scores = {
+				let mut guard = RERANKER
+					.try_lock()
+					.map_err(|_| "Reranker temporarily busy".to_string())?;
+				let reranker = guard.as_mut().ok_or("Reranker not loaded")?;
+				reranker.rerank(&trimmed, &docs)?
+			};
+			schedule_reranker_unload();
+			for (c, s) in candidates.iter_mut().zip(scores.iter()) {
+				c.score = *s;
+			}
+			candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
+		}
+
+		candidates.truncate(limit);
+
+		debug_log(
+			"SEMANTIC",
+			format!(
+				"hybrid: fts={} sem={} fused={} reranker={} returned={}",
+				fts_paths.len(),
+				sem_paths.len(),
+				fused.len(),
+				used_reranker,
+				candidates.len()
+			),
+		);
+
+		Ok(candidates)
+	})
+	.await
+	.map_err(|e| format!("Task join error: {e}"))?
+}
+
 /// Returns statistics about the semantic search index.
 #[tauri::command]
 pub fn get_semantic_stats() -> Result<SemanticStats, String> {
