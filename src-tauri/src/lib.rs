@@ -20,9 +20,30 @@ fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> 
         .accelerator("CmdOrCtrl+,")
         .build(app)?;
 
+    // Read the version from `app.package_info()` rather than
+    // `env!("CARGO_PKG_VERSION")` so the macOS About panel reflects the
+    // version Tauri actually baked into the bundle. Nightly builds
+    // patch `tauri.conf.json#version` (not `Cargo.toml#version`, since
+    // touching Cargo.toml invalidates the rust-cache workspace-hash
+    // and forces a cold rebuild every nightly) — `package_info()`
+    // reads the tauri.conf.json-derived value, so the About panel
+    // shows `2.0.19-alpha-nightly.<count>.<sha>` for nightlies and
+    // `X.Y.Z-alpha` for stable.
+    //
+    // For nightly the version already ends with the sha, so we drop
+    // the parenthesised short_version sha to avoid duplicating the
+    // hash (same UX issue we fixed in formatBuildInfo on the frontend
+    // — see src/lib/utils/build-info.js).
+    let pkg_info = app.package_info();
+    let version_str = pkg_info.version.to_string();
+    let is_nightly_version = version_str.contains("-nightly.");
     let about = AboutMetadata {
-        version: Some(env!("CARGO_PKG_VERSION").to_string()),
-        short_version: Some(env!("GIT_HASH").to_string()),
+        version: Some(version_str),
+        short_version: if is_nightly_version {
+            None
+        } else {
+            Some(env!("GIT_HASH").to_string())
+        },
         ..Default::default()
     };
 
