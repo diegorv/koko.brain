@@ -66,28 +66,40 @@ runs:
         targets: ${{ inputs.rust-targets }}
 
     # macos-15-arm64 image (image version 20260511.0048+) ships a Homebrew
-    # rustup whose `/opt/homebrew/bin/cargo` symlink is a broken stub that
-    # exec's `rustup-init` directly (argv[0] dispatch fails), so any plain
-    # `cargo test` resolves to "error: unexpected argument 'test' found /
-    # Usage: rustup-init[EXE] [OPTIONS]" and exits 1 (see CI run
-    # 25830494309 job 75894082550). dtolnay/rust-toolchain@stable installs
-    # a working rustup at `$HOME/.cargo/bin` but, when it detects an
-    # existing rustup on PATH (the broken Homebrew one), reuses it
-    # without prepending `$HOME/.cargo/bin` to GITHUB_PATH — so the broken
-    # stub keeps winning lookup ordering. This step forces the correct
-    # ordering and aborts the job immediately if `cargo --version` still
-    # routes to rustup-init, so a future image regression fails fast with
-    # a clear message instead of triggering an opaque exit-1 deep in tests.
-    - name: Force $HOME/.cargo/bin ahead of Homebrew stubs
+    # rustup whose `cargo`/`rustc`/`rustup-init` are all hardlinks to a
+    # single multi-call binary that's supposed to dispatch on argv[0] —
+    # but that dispatch is broken on this image. Running `cargo metadata`
+    # via any `~/.cargo/bin/cargo` shim (Homebrew's or the one dtolnay
+    # installs) routes to `rustup-init` and dies with:
+    #
+    #     error: error: unexpected argument 'metadata' found
+    #     Usage: rustup-init[EXE] [OPTIONS]
+    #
+    # Confirmed in CI run 25830494309 (job 75894082550, ci.yml `cargo test`)
+    # AND nightly run 25830797786 (job 75895093652, `pnpm tauri build` →
+    # `cargo metadata`). Bypass the multi-call shim entirely by prepending
+    # the toolchain's real binary directory (`~/.rustup/toolchains/<host>/
+    # bin/`), which holds standalone `cargo`/`rustc` executables that do
+    # NOT depend on argv[0] dispatch. `rustup which cargo` returns the
+    # absolute path to the active toolchain's cargo, so the parent dir is
+    # what we need on PATH. GITHUB_PATH appends become PATH prepends for
+    # subsequent steps, so the real cargo wins every lookup — including
+    # subprocesses spawned by `tauri-action`, `pnpm tauri build`, and any
+    # third-party action that shells out to `cargo`.
+    - name: Pin cargo to toolchain binary (bypass rustup argv[0] dispatch)
       if: inputs.rust == 'true'
       shell: bash
       run: |
-        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-        if ! "$HOME/.cargo/bin/cargo" --version >/dev/null 2>&1; then
-          echo "::error::cargo at \$HOME/.cargo/bin is not executable after rust-toolchain setup"
+        set -euo pipefail
+        REAL_CARGO=$("$HOME/.cargo/bin/rustup" which cargo)
+        REAL_DIR=$(dirname "$REAL_CARGO")
+        echo "Real cargo: $REAL_CARGO"
+        echo "$REAL_DIR" >> "$GITHUB_PATH"
+        if ! "$REAL_CARGO" --version >/dev/null 2>&1; then
+          echo "::error::toolchain cargo at $REAL_CARGO is not executable"
           exit 1
         fi
-        "$HOME/.cargo/bin/cargo" --version
+        "$REAL_CARGO" --version
 
     # `.cargo/config.toml` at the repo root sets `rustc-wrapper = "sccache"`.
     # Without sccache on PATH, every cargo invocation on CI errors out with
