@@ -4,9 +4,9 @@
 	import { invoke, Channel } from '@tauri-apps/api/core';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';
-	import { channelLabel } from '$lib/utils/build-info';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
+	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	/**
@@ -82,12 +82,6 @@
 	let errorMessage = $state('');
 	let pendingUpdate = $state<UpdateMetadata | null>(null);
 	let downloadProgress = $state(0);
-
-	const channelBadgeClass = $derived(
-		settingsStore.updates.channel === 'nightly'
-			? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
-			: 'bg-muted text-muted-foreground',
-	);
 
 	/**
 	 * True when the installed build is nightly but the user has picked
@@ -188,10 +182,7 @@
 	{/if}
 
 	<SettingItem label="Current version" description="The version currently installed">
-		<span class="inline-flex items-center gap-2 font-mono text-sm text-muted-foreground">
-			<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
-			<span>{__BUILD_INFO__}</span>
-		</span>
+		<BuildInfo />
 	</SettingItem>
 
 	<SettingItem
