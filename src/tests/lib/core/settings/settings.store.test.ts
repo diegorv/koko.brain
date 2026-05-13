@@ -221,6 +221,21 @@ describe('settingsStore', () => {
 			expect(settingsStore.queryjs.autoRunQueries).toBe('first-open');
 		});
 
+		it('updates defaults to stable channel', () => {
+			expect(settingsStore.updates).toEqual({ channel: 'stable' });
+		});
+
+		it('updateChannel switches to nightly', () => {
+			settingsStore.updateChannel('nightly');
+			expect(settingsStore.updates.channel).toBe('nightly');
+		});
+
+		it('updateChannel switches back to stable', () => {
+			settingsStore.updateChannel('nightly');
+			settingsStore.updateChannel('stable');
+			expect(settingsStore.updates.channel).toBe('stable');
+		});
+
 	});
 
 	describe('reset', () => {

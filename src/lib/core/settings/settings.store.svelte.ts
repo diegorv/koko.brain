@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, ReleaseChannel } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -112,6 +112,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	queryjs: {
 		autoRunQueries: 'first-open',
 	},
+	updates: {
+		channel: 'stable',
+	},
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -141,6 +144,7 @@ export const settingsStore = {
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
 	get queryjs() { return settings.queryjs; },
+	get updates() { return settings.updates; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -309,6 +313,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			queryjs: { ...settings.queryjs, ...value },
+		};
+	},
+
+	/** Updates the release channel the in-app auto-updater follows */
+	updateChannel(channel: ReleaseChannel) {
+		settings = {
+			...settings,
+			updates: { ...settings.updates, channel },
 		};
 	},
 

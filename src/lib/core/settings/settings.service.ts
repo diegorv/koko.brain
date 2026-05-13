@@ -4,6 +4,7 @@ import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '$lib/utils/debug';
+import { getBuildChannel } from '$lib/utils/app-channel';
 import { applyActiveTheme } from './theme.service';
 
 /** Internal directory inside the vault that stores app metadata */
@@ -31,7 +32,9 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 	try {
 		const fileExists = await exists(filePath);
 		if (!fileExists) {
-			settingsStore.setSettings(structuredClone(DEFAULT_SETTINGS));
+			const fresh = structuredClone(DEFAULT_SETTINGS);
+			fresh.updates.channel = getBuildChannel();
+			settingsStore.setSettings(fresh);
 			await saveSettings(vaultPath);
 			applyActiveTheme();
 			applyHeadingTypography();
@@ -39,7 +42,9 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 		}
 		const content = await readTextFile(filePath);
 		if (!content.trim()) {
-			settingsStore.setSettings(structuredClone(DEFAULT_SETTINGS));
+			const fresh = structuredClone(DEFAULT_SETTINGS);
+			fresh.updates.channel = getBuildChannel();
+			settingsStore.setSettings(fresh);
 			await saveSettings(vaultPath);
 			applyActiveTheme();
 			applyHeadingTypography();
@@ -141,6 +146,9 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.queryjs,
 				...parsed.queryjs,
 			},
+			updates: {
+				channel: parsed.updates?.channel ?? getBuildChannel(),
+			},
 		};
 		settingsStore.setSettings(merged);
 		await saveSettings(vaultPath);
@@ -148,7 +156,9 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 		applyHeadingTypography();
 	} catch (err) {
 		error('SETTINGS', 'Failed to load settings:', err);
-		settingsStore.setSettings(structuredClone(DEFAULT_SETTINGS));
+		const fallback = structuredClone(DEFAULT_SETTINGS);
+		fallback.updates.channel = getBuildChannel();
+		settingsStore.setSettings(fallback);
 		try {
 			await saveSettings(vaultPath);
 		} catch (saveErr) {
