@@ -1,0 +1,256 @@
+name: Nightly
+
+# Push-to-main nightly build, published as a single fixed pre-release
+# at tag `nightly`. Assets rotate in place — `tauri-action` recreates
+# the release each run after the explicit delete step below, and the
+# `gh release upload --clobber` line at the end overwrites any
+# checksum file the action did not replace.
+#
+# Triggers:
+#   - `push: main`: every accepted commit ships a new nightly so users
+#     can pick up regressions or fixes within minutes of merge. No cron
+#     since this project is open-source and not bound by macOS-minute
+#     limits.
+#   - `workflow_dispatch`: manual rebuild lever for when the previous
+#     nightly silently broke (e.g. transient notarization failure) and
+#     the next "real" commit is hours away.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    # Docs-only or tasks-only commits do not change the binary, so they
+    # should not consume a macOS runner. `workflow_dispatch` is the
+    # escape hatch when a rebuild is needed without a code commit.
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "tasks/**"
+      - ".github/CODEOWNERS"
+  workflow_dispatch:
+
+concurrency:
+  # `cancel-in-progress: true` because rapid back-to-back pushes should
+  # produce the LATEST nightly, not a queue of stale ones. The current
+  # build is cancelled the moment a newer commit lands; macOS minutes
+  # are free for OSS but wall-clock and "cancelled-run" emails aren't.
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  # Cheap fast-fail guard for forks AND for the redundant version-bump
+  # commit case. Without the fork guard, every fork that accepts pushes
+  # to its own `main` would attempt to publish nightlies to its own
+  # GitHub Releases — wasted CI and confusing notifications for fork
+  # maintainers. The version-bump skip prevents the stable release flow
+  # from duplicating work: `chore: bump version to X.Y.Z-alpha` lands on
+  # main first, then the tag push triggers release.yml. Without this
+  # skip, nightly.yml builds the same SHA in parallel for ~30 minutes
+  # and publishes a nightly that's effectively the upcoming stable.
+  #
+  # Both checks run on ubuntu in seconds; if either fails or sets
+  # should_build=false, the macOS runner never spins up.
+  guard:
+    name: Repository guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Ensure we're on the canonical repo
+        run: |
+          if [ "${{ github.repository }}" != "diegorv/koko.brain" ]; then
+            echo "::notice::Skipping nightly build on fork ${{ github.repository }}"
+            exit 1
+          fi
+          echo "Confirmed: ${{ github.repository }}"
+
+      - name: Skip if commit is a stable version bump
+        id: check
+        # Pass the commit message through an env var rather than direct
+        # ${{ ... }} expansion: a malicious commit subject containing
+        # shell metacharacters would otherwise execute inside this step.
+        # `|| ''` covers workflow_dispatch where head_commit is null.
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
+        run: |
+          set -euo pipefail
+          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -n 1)
+          if [[ "$SUBJECT" == "chore: bump version"* ]]; then
+            echo "::notice::Detected version-bump commit ('$SUBJECT'). release.yml handles the stable build; skipping nightly to avoid duplicate work."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Proceeding: '$SUBJECT' is not a version bump."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Reuse the existing CI suite on this commit. Same workflow_call
+  # contract release.yml uses — keeps the test gates identical between
+  # stable and nightly so a green nightly implies a green release run.
+  ci:
+    name: CI
+    needs: guard
+    if: needs.guard.outputs.should_build == 'true'
+    uses: ./.github/workflows/ci.yml
+
+  e2e:
+    name: E2E
+    needs: guard
+    if: needs.guard.outputs.should_build == 'true'
+    uses: ./.github/workflows/e2e.yml
+
+  build-macos:
+    name: Build macOS nightly
+    needs: [guard, ci, e2e]
+    if: needs.guard.outputs.should_build == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Need the full history for `git rev-list --count HEAD` so the
+          # nightly version string carries a monotonic numeric prerelease
+          # identifier (see src/lib/utils/build-info.js for why this is
+          # required by the semver-based auto-updater comparison).
+          fetch-depth: 0
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Compute nightly version
+        id: ver
+        run: |
+          set -euo pipefail
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          BASE_VERSION=$(jq -r '.version' package.json)
+          NIGHTLY_VERSION="${BASE_VERSION}-nightly.${COMMIT_COUNT}.${SHORT_SHA}"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "nightly_version=${NIGHTLY_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Computed nightly version: ${NIGHTLY_VERSION}"
+
+      - name: Patch package.json and tauri.conf.json with nightly version
+        # In-place edit, job-scoped — no commit. Tauri reads the version
+        # from `src-tauri/tauri.conf.json` for the bundle's Info.plist and
+        # for the `latest.json` it writes alongside the DMG. Vite reads
+        # `package.json#version` to build the `__BUILD_INFO__` constant.
+        # Both must match the channel-aware nightly version so the
+        # auto-updater sees a semver-monotonic stream of nightlies.
+        run: |
+          set -euo pipefail
+          NIGHTLY_VERSION="${{ steps.ver.outputs.nightly_version }}"
+          jq --arg v "$NIGHTLY_VERSION" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+          jq --arg v "$NIGHTLY_VERSION" '.version = $v' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+          echo "--- package.json ---"
+          jq '{ name, version }' package.json
+          echo "--- tauri.conf.json ---"
+          jq '{ productName, version }' src-tauri/tauri.conf.json
+
+      - name: Generate nightly release body
+        id: body
+        run: |
+          set -euo pipefail
+          {
+            echo "body<<NIGHTLY_BODY_EOF"
+            echo "## Nightly build from \`main\` @ \`${{ steps.ver.outputs.short_sha }}\`"
+            echo ""
+            echo "**Version:** \`${{ steps.ver.outputs.nightly_version }}\`"
+            echo "**Commit:** [${{ steps.ver.outputs.short_sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+            echo ""
+            echo "### ⚠️ Pre-release"
+            echo ""
+            echo "This is an automated build from the latest \`main\` commit. It may be broken or"
+            echo "incomplete. Use the **Stable** channel for everyday work; switch to **Nightly**"
+            echo "in Settings → Update only if you want to track main."
+            echo ""
+            echo "### Latest commit"
+            echo ""
+            echo "\`\`\`"
+            git log -1 --pretty=format:'%s%n%n%b'
+            echo ""
+            echo "\`\`\`"
+            echo ""
+            echo "### Verify download integrity"
+            echo ""
+            echo "After downloading, verify the SHA-256 checksum against the \`checksums-sha256.txt\`"
+            echo "file:"
+            echo ""
+            echo "\`\`\`bash"
+            echo "shasum -a 256 <downloaded-file>"
+            echo "\`\`\`"
+            echo ""
+            echo "Compare the output with the corresponding entry in \`checksums-sha256.txt\`."
+            echo "NIGHTLY_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Delete previous nightly release
+        # Removing the prior release lets `tauri-action` recreate the
+        # `nightly` tag cleanly without colliding with stale assets. If
+        # there is no existing nightly release (first run, manual reset),
+        # the `|| true` swallows the "not found" error so the workflow
+        # still proceeds. `--cleanup-tag` removes both the GitHub
+        # release entry AND the underlying git tag.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
+          echo "Previous nightly release removed (if any)."
+
+      - name: Build Tauri app
+        id: tauri
+        # Pinned by commit SHA, not tag — this action handles Apple
+        # signing certs, notarization credentials, and the Tauri
+        # auto-update signing key. Same security pattern as release.yml.
+        uses: tauri-apps/tauri-action@1ddc7b49b13c3038297360482fcb3e058764d7c9 # v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Drives `__APP_CHANNEL__` and the nightly version string in
+          # `__BUILD_INFO__` via src/lib/utils/build-info.js. The
+          # tauri.conf.json patch above sets the bundle's Info.plist
+          # version, but the Vite-injected runtime constants come from
+          # this env var.
+          KOKO_RELEASE_CHANNEL: nightly
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: nightly
+          releaseName: "Nightly Build (${{ steps.ver.outputs.short_sha }})"
+          args: "--target aarch64-apple-darwin"
+          releaseBody: ${{ steps.body.outputs.body }}
+          releaseDraft: false
+          prerelease: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          set -euo pipefail
+          cd src-tauri/target/aarch64-apple-darwin/release/bundle
+          CHECKSUM_FILE="checksums-sha256.txt"
+          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | sed 's|^\./||' | while read -r file; do
+            shasum -a 256 "$file" >> "$CHECKSUM_FILE"
+          done
+          echo "--- Checksums ---"
+          cat "$CHECKSUM_FILE"
+
+      - name: Upload checksums to nightly release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload nightly \
+            src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
+            --clobber

@@ -81,31 +81,21 @@ Introduce a second release channel (`nightly`) alongside the existing tag-driven
   - Wired `onchange={debouncedSave}` in `SettingsDialog.svelte` for the Update section so channel changes persist.
   - Component-level unit tests not added (no `@testing-library/svelte` in this project, same call as Task 3). The new invoke/Channel/Settings wiring is exercised by the existing settings-store + service tests and will be smoke-tested manually + via E2E in Task 9.
 
-- [ ] Task 7: GitHub Actions — `nightly.yml`
-  - New workflow at `.github/workflows/nightly.yml`:
-    - Triggers: `push: { branches: [main] }` + `workflow_dispatch`.
-    - `concurrency: { group: nightly, cancel-in-progress: true }` so a fast push supersedes the previous run.
-    - `validate` step: trivial (always on main). Skip the `validate` job entirely.
-    - `ci` + `e2e` jobs: reuse `./.github/workflows/ci.yml` + `e2e.yml` (same pattern as `release.yml`). Both must pass before build.
-    - `build-macos` step:
-      - Same `actions/checkout` + `setup` action as release.yml.
-      - Compute nightly version: `NIGHTLY_VERSION="${PKG_VERSION}-nightly.${SHORT_SHA}"`.
-      - Patch `src-tauri/tauri.conf.json` `version` field in-place (`jq` or `sed`) before the Tauri build runs. Restore at end of job (job-scoped, no commit). This is the cleanest way to bake the nightly version into the bundle's `Info.plist` and the generated `latest.json`.
-      - Set `KOKO_RELEASE_CHANNEL=nightly` env var so vite's build-info code picks it up.
-      - `tauri-apps/tauri-action` with:
-        - `tagName: nightly`
-        - `releaseName: 'Nightly Build'`
-        - `releaseBody:` (templated) include "Built from main @ ${SHORT_SHA}", commit subject, link to compare with previous nightly, and a warning that nightly is unstable.
-        - `releaseDraft: false`
-        - `prerelease: true`
-      - Before the action runs, delete the previous nightly release's assets via `gh release delete-asset` (loop) OR rely on the action's overwrite behavior — verify which works in practice.
-      - Generate SHA-256 checksums same as release.yml.
-      - Upload checksums with `gh release upload nightly checksums-sha256.txt --clobber`.
-    - Use the same secrets (`APPLE_*`, `TAURI_SIGNING_*`, `GITHUB_TOKEN`) as `release.yml`.
-  - Test by running `workflow_dispatch` manually after the first commit and verifying:
-    - Single `nightly` release exists with pre-release flag set.
-    - Assets are replaced (not appended) on subsequent runs.
-    - `latest.json` URL `https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json` is reachable.
+- [x] Task 7: GitHub Actions — `nightly.yml`
+  - New workflow `.github/workflows/nightly.yml`:
+    - Triggers: `push: { branches: [main] }` with `paths-ignore` for `**/*.md`, `docs/**`, `tasks/**`, `.github/CODEOWNERS` (so docs / plan-file / codeowner-only commits don't burn macOS minutes). Also `workflow_dispatch` for manual rebuilds.
+    - `concurrency: { group: nightly, cancel-in-progress: true }` — rapid back-to-back pushes only build the latest commit.
+    - `guard` job (ubuntu, ~5s): fast-fail on forks (`github.repository != 'diegorv/koko.brain'`) AND skip when the head commit subject starts with `chore: bump version` (release.yml handles the stable build for the same SHA; without this guard, nightly.yml would build the same code in parallel and publish a nightly that's effectively the upcoming stable). Commit message is passed through `env:` instead of inline `${{ }}` to defuse shell-injection risk from a malicious commit subject.
+    - `ci` + `e2e` jobs reuse `./.github/workflows/ci.yml` and `e2e.yml` via `workflow_call`. Both gated on `needs.guard.outputs.should_build == 'true'`. Same contract release.yml uses, so a green nightly implies a green release.
+    - `build-macos` job:
+      - `fetch-depth: 0` so `git rev-list --count HEAD` returns the monotonic commit count needed for the nightly semver prerelease identifier.
+      - Computes `NIGHTLY_VERSION="${BASE_VERSION}-nightly.${COMMIT_COUNT}.${SHORT_SHA}"`, patches `package.json#version` AND `src-tauri/tauri.conf.json#version` in place via `jq` (no commit — job-scoped). Vite reads package.json for `__BUILD_INFO__`; Tauri reads tauri.conf.json for the bundle `Info.plist` and the generated `latest.json`. Both must match the nightly version.
+      - `KOKO_RELEASE_CHANNEL=nightly` env var on the tauri-action step → `__APP_CHANNEL__='nightly'` baked into the bundle.
+      - `gh release delete nightly --yes --cleanup-tag 2>/dev/null || true` runs before tauri-action so the action can recreate the `nightly` tag cleanly. The `|| true` covers first-run when no prior release exists.
+      - `tauri-apps/tauri-action` pinned by commit SHA. `tagName: nightly`, `releaseName: 'Nightly Build (<sha>)'`, `prerelease: true`. `releaseBody` is generated as a multi-line `GITHUB_OUTPUT` heredoc containing the version, commit link, pre-release warning, and the last commit message + verification instructions.
+      - SHA-256 checksums generated post-build and uploaded with `gh release upload nightly checksums-sha256.txt --clobber`.
+    - Secrets are the same set used by release.yml (`APPLE_*`, `TAURI_SIGNING_*`, `GITHUB_TOKEN`). No new secret config required.
+  - Smoke-test plan deferred to Task 9 (`workflow_dispatch` on a feature branch first, then verify the `nightly` release entry / `latest.json` URL).
 
 - [ ] Task 8: Update release notes / docs
   - Update `docs/` (the README or a relevant section, no new file unless content justifies one) with:
