@@ -71,3 +71,16 @@ export function parseReleaseChannel(value) {
 	}
 	return 'stable';
 }
+
+/**
+ * Display label for the release channel badge shown in build-info widgets.
+ *
+ * Uppercased so it reads as a tag/pill rather than prose, matching the
+ * convention used in GitHub release titles (e.g. "Latest", "Pre-release").
+ *
+ * @param {ReleaseChannel} channel
+ * @returns {string}
+ */
+export function channelLabel(channel) {
+	return channel === 'nightly' ? 'NIGHTLY' : 'STABLE';
+}
