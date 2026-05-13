@@ -7,7 +7,7 @@
 [![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url]
 
 <!-- Release & publishing -->
-[![Release][release-badge]][release-url] [![Wiki Sync][wiki-badge]][wiki-url]
+[![Release][release-badge]][release-url] [![Nightly][nightly-badge]][nightly-url] [![Wiki Sync][wiki-badge]][wiki-url]
 
 <!-- Maintenance -->
 [![Dependabot Updates][dependabot-badge]][dependabot-url]
@@ -220,6 +220,8 @@ Licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, a
 [privacy-url]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml
 [release-badge]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg
 [release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
+[nightly-badge]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml/badge.svg
+[nightly-url]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml
 [wiki-badge]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml/badge.svg
 [wiki-url]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml
 [dependabot-badge]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates/badge.svg
