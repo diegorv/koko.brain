@@ -1,35 +1,112 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { check } from '@tauri-apps/plugin-updater';
+	import * as Select from '$lib/components/ui/select';
+	import { invoke, Channel } from '@tauri-apps/api/core';
 	import { relaunch } from '@tauri-apps/plugin-process';
+	import { channelLabel } from '$lib/utils/build-info';
+	import { settingsStore } from '../settings.store.svelte';
+	import type { ReleaseChannel } from '../settings.types';
 	import SettingItem from './SettingItem.svelte';
 
-	let status = $state<'idle' | 'checking' | 'downloading' | 'ready' | 'up-to-date' | 'error'>('idle');
+	let { onchange }: { onchange: () => void } = $props();
+
+	type Status = 'idle' | 'checking' | 'downloading' | 'ready' | 'up-to-date' | 'error';
+
+	/**
+	 * Metadata returned by the channel-aware Rust command. Matches the
+	 * `UpdateMetadata` struct in src-tauri/src/commands/update_channel.rs.
+	 * The `rid` is opaque to JS — it's only handed back to the plugin's
+	 * built-in `download_and_install` command, which uses the webview's
+	 * resource table to find the cached `Update` (and its channel-specific
+	 * bundle URL).
+	 */
+	interface UpdateMetadata {
+		rid: number;
+		currentVersion: string;
+		version: string;
+		body: string | null;
+	}
+
+	/**
+	 * Download progress event emitted by the plugin's `download_and_install`
+	 * command. Serde-tagged "event" + "data", camelCase nested fields.
+	 */
+	type DownloadEvent =
+		| { event: 'Started'; data: { contentLength: number | null } }
+		| { event: 'Progress'; data: { chunkLength: number } }
+		| { event: 'Finished' };
+
+	const CHANNEL_OPTIONS: { value: ReleaseChannel; label: string; description: string }[] = [
+		{
+			value: 'stable',
+			label: 'Stable',
+			description: 'Official tagged releases. Recommended for everyday use.',
+		},
+		{
+			value: 'nightly',
+			label: 'Nightly',
+			description: 'Built from the latest commit on main. May be unstable.',
+		},
+	];
+
+	function channelOptionLabel(value: ReleaseChannel): string {
+		return CHANNEL_OPTIONS.find((o) => o.value === value)?.label ?? value;
+	}
+
+	function channelOptionDescription(value: ReleaseChannel): string {
+		return CHANNEL_OPTIONS.find((o) => o.value === value)?.description ?? '';
+	}
+
+	function handleChannelChange(value: string) {
+		settingsStore.updateChannel(value as ReleaseChannel);
+		onchange();
+		// Reset any pending download state — the previous "Restart to update"
+		// pointed at an Update from the other channel and is no longer valid.
+		status = 'idle';
+		errorMessage = '';
+		pendingUpdate = null;
+		downloadProgress = 0;
+	}
+
+	let status = $state<Status>('idle');
 	let errorMessage = $state('');
-	let updateVersion = $state('');
+	let pendingUpdate = $state<UpdateMetadata | null>(null);
 	let downloadProgress = $state(0);
+
+	const channelBadgeClass = $derived(
+		settingsStore.updates.channel === 'nightly'
+			? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
+			: 'bg-muted text-muted-foreground',
+	);
 
 	async function checkForUpdates() {
 		status = 'checking';
 		errorMessage = '';
 		try {
-			const update = await check();
+			const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', {
+				channel: settingsStore.updates.channel,
+			});
 			if (update) {
-				updateVersion = update.version;
+				pendingUpdate = update;
 				status = 'downloading';
 				let totalBytes = 0;
 				let downloadedBytes = 0;
-				await update.downloadAndInstall((event) => {
-					if (event.event === 'Started' && event.data.contentLength) {
-						totalBytes = event.data.contentLength;
-					} else if (event.event === 'Progress') {
-						downloadedBytes += event.data.chunkLength;
+				const onEvent = new Channel<DownloadEvent>();
+				onEvent.onmessage = (msg) => {
+					if (msg.event === 'Started') {
+						totalBytes = msg.data.contentLength ?? 0;
+					} else if (msg.event === 'Progress') {
+						downloadedBytes += msg.data.chunkLength;
 						if (totalBytes > 0) {
 							downloadProgress = Math.round((downloadedBytes / totalBytes) * 100);
 						}
-					} else if (event.event === 'Finished') {
+					} else if (msg.event === 'Finished') {
 						downloadProgress = 100;
 					}
+				};
+				await invoke('plugin:updater|download_and_install', {
+					rid: update.rid,
+					onEvent,
 				});
 				status = 'ready';
 			} else {
@@ -49,13 +126,43 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Update</h2>
 
+	<SettingItem
+		label="Release channel"
+		description={channelOptionDescription(settingsStore.updates.channel)}
+	>
+		<Select.Root
+			type="single"
+			value={settingsStore.updates.channel}
+			onValueChange={handleChannelChange}
+		>
+			<Select.Trigger size="sm" class="w-44">
+				<span data-slot="select-value">{channelOptionLabel(settingsStore.updates.channel)}</span>
+			</Select.Trigger>
+			<Select.Content>
+				{#each CHANNEL_OPTIONS as opt (opt.value)}
+					<Select.Item value={opt.value} label={opt.label} />
+				{/each}
+			</Select.Content>
+		</Select.Root>
+	</SettingItem>
+
+	<p class="-mt-1 mb-2 text-xs text-muted-foreground">
+		Nightly versions use the format <code>X.Y.Z-nightly.&lt;count&gt;.&lt;sha&gt;</code> and sort
+		semver-greater than the same-base stable release. Switching from <strong>Nightly</strong> back
+		to <strong>Stable</strong> will not automatically downgrade — the auto-updater never moves to a
+		lower version. Reinstall the stable DMG manually if you want a clean switch.
+	</p>
+
 	<SettingItem label="Current version" description="The version currently installed">
-		<span class="font-mono text-sm text-muted-foreground">{__BUILD_INFO__}</span>
+		<span class="inline-flex items-center gap-2 font-mono text-sm text-muted-foreground">
+			<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
+			<span>{__BUILD_INFO__}</span>
+		</span>
 	</SettingItem>
 
 	<SettingItem
 		label="Check for updates"
-		description="Check if a newer version is available on GitHub"
+		description={`Check the ${channelOptionLabel(settingsStore.updates.channel).toLowerCase()} channel for a newer version`}
 	>
 		{#if status === 'idle'}
 			<Button variant="outline" size="sm" onclick={checkForUpdates}>
@@ -64,7 +171,7 @@
 		{:else if status === 'checking'}
 			<span class="text-sm text-muted-foreground">Checking...</span>
 		{:else if status === 'downloading'}
-			<span class="text-sm text-muted-foreground">Downloading v{updateVersion}... {downloadProgress}%</span>
+			<span class="text-sm text-muted-foreground">Downloading v{pendingUpdate?.version}... {downloadProgress}%</span>
 		{:else if status === 'ready'}
 			<Button variant="default" size="sm" onclick={restartApp}>
 				Restart to update

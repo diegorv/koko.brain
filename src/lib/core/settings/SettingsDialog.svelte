@@ -214,7 +214,7 @@
 				{:else if settingsDialogStore.activeSection === 'troubleshooting'}
 					<TroubleshootingSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'update'}
-					<UpdateSection />
+					<UpdateSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'queryjs'}
 					<QueryjsSection onchange={debouncedSave} />
 				{/if}
