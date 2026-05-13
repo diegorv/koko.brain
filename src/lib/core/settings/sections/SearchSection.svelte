@@ -18,6 +18,40 @@
 
 	let isDownloading = $state(false);
 	let downloadError = $state('');
+	let isDownloadingReranker = $state(false);
+	let rerankerError = $state('');
+	let rerankerAvailable = $state(false);
+
+	async function refreshRerankerStatus() {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return;
+		try {
+			rerankerAvailable = await invoke<boolean>('is_reranker_model_available', { vaultPath });
+		} catch (err) {
+			debug('SEARCH', 'is_reranker_model_available failed:', err);
+		}
+	}
+
+	$effect(() => {
+		refreshRerankerStatus();
+	});
+
+	async function handleRerankerDownload() {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return;
+		isDownloadingReranker = true;
+		rerankerError = '';
+		try {
+			await startSemanticProgressListener();
+			await invoke('download_reranker_model', { vaultPath });
+			rerankerAvailable = true;
+		} catch (err) {
+			debug('SEARCH', 'Reranker download failed:', err);
+			rerankerError = String(err);
+		} finally {
+			isDownloadingReranker = false;
+		}
+	}
 
 	async function handleToggle(enabled: boolean) {
 		debug('SEARCH', `Semantic search toggle: ${enabled}`);
@@ -95,5 +129,38 @@
 			Model loaded · {searchStore.semanticStats.totalChunks} chunks indexed
 			from {searchStore.semanticStats.totalSources} files
 		</div>
+	{/if}
+
+	{#if settingsStore.search.semanticSearchEnabled}
+		<SettingItem
+			label="Reranker (BGE-reranker-v2-m3)"
+			description="Cross-encoder rerank for higher top-K precision (~571MB extra download, ~500ms per query on CPU). Auto-used by semantic search once downloaded."
+		>
+			{#if rerankerAvailable}
+				<span class="text-xs text-muted-foreground">Installed</span>
+			{:else}
+				<button
+					type="button"
+					class="rounded border px-3 py-1 text-xs disabled:opacity-50"
+					disabled={isDownloadingReranker}
+					onclick={handleRerankerDownload}
+				>
+					{isDownloadingReranker ? 'Downloading…' : 'Download'}
+				</button>
+			{/if}
+		</SettingItem>
+
+		{#if isDownloadingReranker}
+			<div class="flex items-center gap-2 px-4 text-xs text-muted-foreground">
+				<Loader2Icon class="size-3 animate-spin" />
+				<span>
+					{searchStore.semanticProgress?.message ?? 'Downloading reranker...'}
+				</span>
+			</div>
+		{/if}
+
+		{#if rerankerError}
+			<p class="px-4 text-xs text-destructive">{rerankerError}</p>
+		{/if}
 	{/if}
 </div>
