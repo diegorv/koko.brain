@@ -43,7 +43,7 @@ Cross-encoder reranker reads the (query, chunk) pair jointly — captures nuance
 
 Fuse FTS5 (BM25, exact terms) with semantic (concepts, paraphrase). Captures both strengths.
 
-- [ ] Task 3.1: **FTS5 unicode61 migration.** Drop `notes_fts_vocab` → drop `notes_fts` → recreate with `tokenize='unicode61 remove_diacritics 2'` → recreate vocab → repopulate. Versioned in `app_meta` (new table). Required so "ação" matches "acao".
+- [x] Task 3.1: **FTS5 unicode61 migration.** Drop `notes_fts_vocab` → drop `notes_fts` → recreate with `tokenize='unicode61 remove_diacritics 2'` → recreate vocab → repopulate. Versioned in `app_meta` (new table). Required so "ação" matches "acao".
 - [ ] Task 3.2: `search/rrf.rs` — pure `fn rrf_fuse(rankings: &[&[String]], k: u32) -> Vec<(String, f32)>`. k=60 default.
 - [ ] Task 3.3: New command `search_hybrid(query, limit)`: `tokio::join!(fts_top_n(30), semantic_top_n(30))` → RRF → top-50 → rerank (Phase 2) → top-K.
 - [ ] Task 3.4: Wire frontend search panel + command palette to `search_hybrid`. Keep `search_semantic` + FTS callable for debug.
