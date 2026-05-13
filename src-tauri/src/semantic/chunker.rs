@@ -44,11 +44,26 @@ struct RawSection {
 /// Splits content at heading lines (`# Heading`), creating one chunk per section.
 /// Strips YAML frontmatter and code blocks. Merges short sections into the previous one.
 /// Adds configurable line overlap between chunks for context continuity.
+///
+/// **Headless-file fallback:** if the file has zero heading lines after frontmatter,
+/// the heading-based split would produce a single section that gets truncated to
+/// `max_chunk_chars` — losing the rest of the file. In that case we switch to a
+/// sliding-window chunker (`window_chunks`) that walks the whole file in overlapping
+/// `max_chunk_chars`-sized windows. Common for journal/capture/inbox notes.
 pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<Chunk> {
 	let lines: Vec<&str> = content.lines().collect();
 
 	// Skip YAML frontmatter
 	let start_line = skip_frontmatter(&lines);
+
+	// Headless-file fast path: no `#` heading lines → sliding window over the whole
+	// post-frontmatter body. Skip heading split entirely.
+	let has_heading = lines[start_line..]
+		.iter()
+		.any(|l| heading_level(l).is_some());
+	if !has_heading {
+		return window_chunks(path, &lines[start_line..], start_line, options);
+	}
 
 	// Phase 1: Split into raw sections by heading boundaries
 	let raw_sections = split_into_sections(&lines, start_line);
@@ -90,6 +105,98 @@ pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<
 	}
 
 	chunks
+}
+
+/// Char-overlap used by `window_chunks` between consecutive windows.
+/// 500 chars (~120 tokens) carries enough context across the boundary for the
+/// embedder to keep the topic coherent without pushing chunk count up too far.
+const WINDOW_OVERLAP_CHARS: usize = 500;
+
+/// Sliding-window chunker for files with no headings.
+///
+/// Strips code blocks first (same policy as the heading path), joins the
+/// remaining lines, then walks the resulting body in `max_chunk_chars`-sized
+/// windows with `WINDOW_OVERLAP_CHARS` overlap. Each window becomes a `Chunk`
+/// with `heading=None`, `parent_headings=[]`, and `line_start`/`line_end`
+/// approximated from the windowed character offsets (start_offset is the
+/// post-frontmatter line index, so the chunk key stays unique across windows).
+fn window_chunks(
+	path: &str,
+	body_lines: &[&str],
+	start_offset: usize,
+	options: &ChunkOptions,
+) -> Vec<Chunk> {
+	let owned: Vec<String> = body_lines.iter().map(|l| l.to_string()).collect();
+	let stripped = strip_code_blocks(&owned);
+	let text = stripped.join("\n").trim().to_string();
+
+	if text.chars().count() < options.min_chunk_chars {
+		return Vec::new();
+	}
+
+	// Fast path: whole body fits in one chunk.
+	let total_chars = text.chars().count();
+	if total_chars <= options.max_chunk_chars {
+		let mut chunks = Vec::new();
+		emit_chunk(
+			path,
+			&text,
+			&None,
+			&[],
+			start_offset + 1, // 1-indexed
+			start_offset + body_lines.len(),
+			options,
+			&mut chunks,
+		);
+		return chunks;
+	}
+
+	// Sliding window: step = max_chunk_chars - overlap.
+	let window = options.max_chunk_chars;
+	let overlap = WINDOW_OVERLAP_CHARS.min(window.saturating_sub(1));
+	let step = window - overlap;
+
+	let mut chunks = Vec::new();
+	let mut window_idx: usize = 0;
+	let mut start_char: usize = 0;
+	while start_char < total_chars {
+		let end_char = (start_char + window).min(total_chars);
+		let byte_start = char_index_to_byte(&text, start_char);
+		let byte_end = char_index_to_byte(&text, end_char);
+		let slice = &text[byte_start..byte_end];
+
+		// Window's "line_start" is a synthetic offset so keys stay unique.
+		// We use `start_offset + 1 + window_idx` so each window has a distinct
+		// line marker without claiming to be the true source line.
+		let synthetic_line_start = start_offset + 1 + window_idx;
+		emit_chunk(
+			path,
+			slice,
+			&None,
+			&[],
+			synthetic_line_start,
+			start_offset + body_lines.len(),
+			options,
+			&mut chunks,
+		);
+
+		if end_char == total_chars {
+			break;
+		}
+		start_char += step;
+		window_idx += 1;
+	}
+
+	chunks
+}
+
+/// Converts a character index to a byte index inside a UTF-8 string.
+/// Returns `s.len()` when `char_idx` is at or past the end. Multibyte-safe.
+fn char_index_to_byte(s: &str, char_idx: usize) -> usize {
+	s.char_indices()
+		.nth(char_idx)
+		.map(|(i, _)| i)
+		.unwrap_or(s.len())
 }
 
 /// Splits lines into sections at heading boundaries.
@@ -455,6 +562,46 @@ mod tests {
 			content_hash: "h".into(),
 		};
 		assert_eq!(chunk.embed_text(), "just a note");
+	}
+
+	#[test]
+	fn headless_short_note_emits_single_chunk() {
+		let content = "This is a short capture note without any heading. Just one paragraph.";
+		let chunks = chunk_markdown("inbox.md", content, &ChunkOptions::default());
+		assert_eq!(chunks.len(), 1, "short headless note should be 1 chunk");
+		assert!(chunks[0].heading.is_none());
+		assert!(chunks[0].parent_headings.is_empty());
+		assert!(chunks[0].content.contains("capture note"));
+	}
+
+	#[test]
+	fn headless_long_note_uses_sliding_window() {
+		// Body well over max_chunk_chars (3000) with no headings — must produce
+		// multiple overlapping chunks, not a single truncated chunk.
+		let body = "Sentence one with several words. ".repeat(300); // ~10k chars
+		let chunks = chunk_markdown("journal.md", &body, &ChunkOptions::default());
+		assert!(chunks.len() >= 3, "expected multiple windowed chunks, got {}", chunks.len());
+		for c in &chunks {
+			assert!(c.heading.is_none());
+			assert!(c.content.chars().count() <= 3_000);
+			// Keys must be unique across windows.
+			assert!(c.key.contains("journal.md"));
+		}
+		let keys: std::collections::HashSet<_> = chunks.iter().map(|c| c.key.clone()).collect();
+		assert_eq!(keys.len(), chunks.len(), "window chunks must have unique keys");
+	}
+
+	#[test]
+	fn headless_window_keeps_frontmatter_excluded() {
+		// Frontmatter should be skipped just like in the heading path.
+		let frontmatter = "---\ntitle: Inbox\ntag: capture\n---\n\n";
+		let body = "Capture body here, no headings present. ".repeat(150);
+		let content = format!("{}{}", frontmatter, body);
+		let chunks = chunk_markdown("inbox.md", &content, &ChunkOptions::default());
+		assert!(!chunks.is_empty());
+		for c in &chunks {
+			assert!(!c.content.contains("title: Inbox"), "frontmatter leaked into chunk");
+		}
 	}
 
 	#[test]
