@@ -111,8 +111,8 @@ fn cleanup_orphaned_chunks_removes_missing_paths() {
 
 	// Insert chunks for two files
 	db::with_db(|conn| {
-		semantic_repo::insert_chunk(conn, "k1", "exists.md", "text1", None, 1, 5, "h1", b"emb1", 1000)?;
-		semantic_repo::insert_chunk(conn, "k2", "deleted.md", "text2", None, 1, 5, "h2", b"emb2", 1000)?;
+		semantic_repo::insert_chunk(conn, "k1", "exists.md", "text1", None, &[], 1, 5, "h1", b"emb1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "deleted.md", "text2", None, &[], 1, 5, "h2", b"emb2", 1000)?;
 		Ok(())
 	})
 	.unwrap();
@@ -134,8 +134,8 @@ fn cleanup_orphaned_chunks_no_orphans() {
 	let _tmp = setup();
 
 	db::with_db(|conn| {
-		semantic_repo::insert_chunk(conn, "k1", "a.md", "text", None, 1, 5, "h1", b"emb", 1000)?;
-		semantic_repo::insert_chunk(conn, "k2", "b.md", "text", None, 1, 5, "h2", b"emb", 1000)?;
+		semantic_repo::insert_chunk(conn, "k1", "a.md", "text", None, &[], 1, 5, "h1", b"emb", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "b.md", "text", None, &[], 1, 5, "h2", b"emb", 1000)?;
 		Ok(())
 	})
 	.unwrap();
@@ -171,9 +171,9 @@ fn get_chunk_hashes_returns_hashes_for_path() {
 	let _tmp = setup();
 
 	db::with_db(|conn| {
-		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, 1, 5, "hash_a", b"emb1", 1000)?;
-		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, 6, 10, "hash_b", b"emb2", 1000)?;
-		semantic_repo::insert_chunk(conn, "k3", "other.md", "text3", None, 1, 5, "hash_c", b"emb3", 1000)?;
+		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, &[], 1, 5, "hash_a", b"emb1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, &[], 6, 10, "hash_b", b"emb2", 1000)?;
+		semantic_repo::insert_chunk(conn, "k3", "other.md", "text3", None, &[], 1, 5, "hash_c", b"emb3", 1000)?;
 		Ok(())
 	})
 	.unwrap();
@@ -205,8 +205,8 @@ fn delete_chunk_by_key_removes_single_chunk() {
 	let _tmp = setup();
 
 	db::with_db(|conn| {
-		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, 1, 5, "h1", b"emb1", 1000)?;
-		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, 6, 10, "h2", b"emb2", 1000)?;
+		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, &[], 1, 5, "h1", b"emb1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, &[], 6, 10, "h2", b"emb2", 1000)?;
 		Ok(())
 	})
 	.unwrap();
@@ -231,9 +231,9 @@ fn atomic_delete_insert_preserves_unprocessed_files() {
 
 	// Insert "old" chunks for files A, B, C (simulating existing index)
 	db::with_db(|conn| {
-		semantic_repo::insert_chunk(conn, "a:old", "a.md", "old text a", None, 1, 5, "ha_old", b"emb_old", 1000)?;
-		semantic_repo::insert_chunk(conn, "b:old", "b.md", "old text b", None, 1, 5, "hb_old", b"emb_old", 1000)?;
-		semantic_repo::insert_chunk(conn, "c:old", "c.md", "old text c", None, 1, 5, "hc_old", b"emb_old", 1000)?;
+		semantic_repo::insert_chunk(conn, "a:old", "a.md", "old text a", None, &[], 1, 5, "ha_old", b"emb_old", 1000)?;
+		semantic_repo::insert_chunk(conn, "b:old", "b.md", "old text b", None, &[], 1, 5, "hb_old", b"emb_old", 1000)?;
+		semantic_repo::insert_chunk(conn, "c:old", "c.md", "old text c", None, &[], 1, 5, "hc_old", b"emb_old", 1000)?;
 		Ok(())
 	})
 	.unwrap();
@@ -241,7 +241,7 @@ fn atomic_delete_insert_preserves_unprocessed_files() {
 	// Simulate batch 1 succeeding: atomic delete+insert for file A only
 	db::with_db_transaction("test batch 1", |conn| {
 		semantic_repo::delete_chunks_for_path(conn, "a.md")?;
-		semantic_repo::insert_chunk(conn, "a:new", "a.md", "new text a", None, 1, 10, "ha_new", b"emb_new", 2000)?;
+		semantic_repo::insert_chunk(conn, "a:new", "a.md", "new text a", None, &[], 1, 10, "ha_new", b"emb_new", 2000)?;
 		Ok(())
 	})
 	.unwrap();
@@ -271,7 +271,7 @@ fn atomic_delete_insert_rolls_back_on_failure() {
 
 	// Insert old chunk for file A
 	db::with_db(|conn| {
-		semantic_repo::insert_chunk(conn, "a:old", "a.md", "old text", None, 1, 5, "h_old", b"emb", 1000)?;
+		semantic_repo::insert_chunk(conn, "a:old", "a.md", "old text", None, &[], 1, 5, "h_old", b"emb", 1000)?;
 		Ok(())
 	})
 	.unwrap();

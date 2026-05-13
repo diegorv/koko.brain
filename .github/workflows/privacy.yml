@@ -127,3 +127,4 @@ jobs:
             privacy-ok
           known: |
             huggingface\.co/Xenova/bge-m3
+            huggingface\.co/onnx-community/bge-reranker-v2-m3-ONNX

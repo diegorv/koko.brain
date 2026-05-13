@@ -4,20 +4,35 @@ use super::types::Chunk;
 
 /// Options for controlling chunk size and overlap.
 pub struct ChunkOptions {
-	/// Minimum character count for a chunk to be included (default: 50)
+	/// Minimum character count for a chunk to be included (default: 50).
 	pub min_chunk_chars: usize,
-	/// Maximum character count for a chunk (default: 10_000)
+	/// Maximum character count for a chunk (default: 3_000, ~700 tokens).
 	pub max_chunk_chars: usize,
-	/// Number of lines from the previous section to prepend as context (default: 2)
-	pub overlap_lines: usize,
+	/// Number of characters from the end of the previous section to prepend
+	/// to the next chunk as overlap context (default: 200, ~50 tokens).
+	///
+	/// Replaces the older line-based overlap, which was wildly variable —
+	/// a 2-line overlap is 30 chars in a list-heavy file but 800 chars in
+	/// dense prose. The char budget is predictable, multibyte-safe, and small
+	/// enough to avoid inflating the index. The overlap window snaps back
+	/// to the previous newline so the prepended text starts cleanly at a
+	/// line boundary instead of mid-sentence.
+	pub overlap_chars: usize,
 }
 
 impl Default for ChunkOptions {
 	fn default() -> Self {
 		Self {
 			min_chunk_chars: 50,
-			max_chunk_chars: 10_000,
-			overlap_lines: 2,
+			// Lowered from 10_000 → 3_000 (~700 tokens) for retrieval precision.
+			// Rationale: a single 10k-char chunk often spans multiple sub-topics
+			// (e.g. an entire H2 section with several H3 subsections that didn't
+			// get split because the H3 bodies were short and got merged). The
+			// embedder collapses them into one ~1024-dim vector, diluting any
+			// individual topic's signal. ~700-token chunks are the published
+			// sweet spot for cosine retrieval on dense paragraphs.
+			max_chunk_chars: 3_000,
+			overlap_chars: 200,
 		}
 	}
 }
@@ -25,6 +40,8 @@ impl Default for ChunkOptions {
 /// A raw section before post-processing (merge short, add overlap).
 struct RawSection {
 	heading: Option<String>,
+	/// Ancestor headings (H1 → ... → H(n-1)) above this section's local heading.
+	parent_headings: Vec<String>,
 	lines: Vec<String>,
 	line_start: usize,
 	line_end: usize,
@@ -35,11 +52,26 @@ struct RawSection {
 /// Splits content at heading lines (`# Heading`), creating one chunk per section.
 /// Strips YAML frontmatter and code blocks. Merges short sections into the previous one.
 /// Adds configurable line overlap between chunks for context continuity.
+///
+/// **Headless-file fallback:** if the file has zero heading lines after frontmatter,
+/// the heading-based split would produce a single section that gets truncated to
+/// `max_chunk_chars` — losing the rest of the file. In that case we switch to a
+/// sliding-window chunker (`window_chunks`) that walks the whole file in overlapping
+/// `max_chunk_chars`-sized windows. Common for journal/capture/inbox notes.
 pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<Chunk> {
 	let lines: Vec<&str> = content.lines().collect();
 
 	// Skip YAML frontmatter
 	let start_line = skip_frontmatter(&lines);
+
+	// Headless-file fast path: no `#` heading lines → sliding window over the whole
+	// post-frontmatter body. Skip heading split entirely.
+	let has_heading = lines[start_line..]
+		.iter()
+		.any(|l| heading_level(l).is_some());
+	if !has_heading {
+		return window_chunks(path, &lines[start_line..], start_line, options);
+	}
 
 	// Phase 1: Split into raw sections by heading boundaries
 	let raw_sections = split_into_sections(&lines, start_line);
@@ -47,60 +79,186 @@ pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<
 	// Phase 2: Merge short sections into the previous one
 	let merged = merge_short_sections(raw_sections, options.min_chunk_chars);
 
-	// Phase 3: Emit chunks with overlap and code stripping
+	// Phase 3: Emit chunks with char-based overlap and code stripping
 	let mut chunks = Vec::new();
-	let mut prev_lines: Vec<String> = Vec::new();
+	let mut prev_text = String::new();
 
 	for section in &merged {
 		let stripped = strip_code_blocks(&section.lines);
-		let mut final_lines = Vec::new();
+		let body = stripped.join("\n");
 
-		// Add overlap from previous section
-		if !prev_lines.is_empty() && options.overlap_lines > 0 {
-			let overlap_start = prev_lines.len().saturating_sub(options.overlap_lines);
-			for line in &prev_lines[overlap_start..] {
-				final_lines.push(line.clone());
+		// Char-based overlap: take the last `overlap_chars` of the previous section,
+		// snapped to the next newline so the overlap starts at a line boundary
+		// rather than mid-sentence.
+		let text = if !prev_text.is_empty() && options.overlap_chars > 0 {
+			let overlap = tail_overlap(&prev_text, options.overlap_chars);
+			if overlap.is_empty() {
+				body.clone()
+			} else {
+				format!("{}\n{}", overlap, body)
 			}
-		}
-
-		final_lines.extend(stripped.clone());
-		let text = final_lines.join("\n");
+		} else {
+			body.clone()
+		};
 
 		emit_chunk(
 			path,
 			&text,
 			&section.heading,
+			&section.parent_headings,
 			section.line_start,
 			section.line_end,
 			options,
 			&mut chunks,
 		);
 
-		prev_lines = stripped;
+		prev_text = body;
 	}
 
 	chunks
 }
 
+/// Returns the last `budget` characters of `text`, snapped forward to the next
+/// newline so the overlap starts at a clean line boundary instead of
+/// mid-sentence. Multibyte-safe (operates on char indices).
+fn tail_overlap(text: &str, budget: usize) -> String {
+	let total = text.chars().count();
+	if total == 0 || budget == 0 {
+		return String::new();
+	}
+	let start_char = total.saturating_sub(budget);
+	let byte_idx = char_index_to_byte(text, start_char);
+	let tail = &text[byte_idx..];
+	match tail.find('\n') {
+		Some(nl) => tail[nl + 1..].to_string(),
+		None => tail.to_string(),
+	}
+}
+
+/// Char-overlap used by `window_chunks` between consecutive windows.
+/// 500 chars (~120 tokens) carries enough context across the boundary for the
+/// embedder to keep the topic coherent without pushing chunk count up too far.
+const WINDOW_OVERLAP_CHARS: usize = 500;
+
+/// Sliding-window chunker for files with no headings.
+///
+/// Strips code blocks first (same policy as the heading path), joins the
+/// remaining lines, then walks the resulting body in `max_chunk_chars`-sized
+/// windows with `WINDOW_OVERLAP_CHARS` overlap. Each window becomes a `Chunk`
+/// with `heading=None`, `parent_headings=[]`, and `line_start`/`line_end`
+/// approximated from the windowed character offsets (start_offset is the
+/// post-frontmatter line index, so the chunk key stays unique across windows).
+fn window_chunks(
+	path: &str,
+	body_lines: &[&str],
+	start_offset: usize,
+	options: &ChunkOptions,
+) -> Vec<Chunk> {
+	let owned: Vec<String> = body_lines.iter().map(|l| l.to_string()).collect();
+	let stripped = strip_code_blocks(&owned);
+	let text = stripped.join("\n").trim().to_string();
+
+	if text.chars().count() < options.min_chunk_chars {
+		return Vec::new();
+	}
+
+	// Fast path: whole body fits in one chunk.
+	let total_chars = text.chars().count();
+	if total_chars <= options.max_chunk_chars {
+		let mut chunks = Vec::new();
+		emit_chunk(
+			path,
+			&text,
+			&None,
+			&[],
+			start_offset + 1, // 1-indexed
+			start_offset + body_lines.len(),
+			options,
+			&mut chunks,
+		);
+		return chunks;
+	}
+
+	// Sliding window: step = max_chunk_chars - overlap.
+	let window = options.max_chunk_chars;
+	let overlap = WINDOW_OVERLAP_CHARS.min(window.saturating_sub(1));
+	let step = window - overlap;
+
+	let mut chunks = Vec::new();
+	let mut window_idx: usize = 0;
+	let mut start_char: usize = 0;
+	while start_char < total_chars {
+		let end_char = (start_char + window).min(total_chars);
+		let byte_start = char_index_to_byte(&text, start_char);
+		let byte_end = char_index_to_byte(&text, end_char);
+		let slice = &text[byte_start..byte_end];
+
+		// Window's "line_start" is a synthetic offset so keys stay unique.
+		// We use `start_offset + 1 + window_idx` so each window has a distinct
+		// line marker without claiming to be the true source line.
+		let synthetic_line_start = start_offset + 1 + window_idx;
+		emit_chunk(
+			path,
+			slice,
+			&None,
+			&[],
+			synthetic_line_start,
+			start_offset + body_lines.len(),
+			options,
+			&mut chunks,
+		);
+
+		if end_char == total_chars {
+			break;
+		}
+		start_char += step;
+		window_idx += 1;
+	}
+
+	chunks
+}
+
+/// Converts a character index to a byte index inside a UTF-8 string.
+/// Returns `s.len()` when `char_idx` is at or past the end. Multibyte-safe.
+fn char_index_to_byte(s: &str, char_idx: usize) -> usize {
+	s.char_indices()
+		.nth(char_idx)
+		.map(|(i, _)| i)
+		.unwrap_or(s.len())
+}
+
 /// Splits lines into sections at heading boundaries.
+///
+/// Tracks a heading-level stack so each section captures its ancestor headings.
+/// Stack invariant: `heading_stack[i]` holds the most recent heading at level `i+1`.
+/// When we encounter a heading of level L, we truncate to length L-1 (drop deeper or
+/// sibling headings) and the parents become `heading_stack[0..L-1]`.
 fn split_into_sections(lines: &[&str], start_line: usize) -> Vec<RawSection> {
 	let mut sections = Vec::new();
 	let mut current_heading: Option<String> = None;
+	let mut current_parents: Vec<String> = Vec::new();
+	let mut heading_stack: Vec<String> = Vec::new();
 	let mut current_lines: Vec<String> = Vec::new();
 	let mut chunk_start_line = start_line + 1; // 1-indexed
 
 	for i in start_line..lines.len() {
 		let line = lines[i];
-		if is_heading(line) {
+		if let Some(level) = heading_level(line) {
 			if !current_lines.is_empty() {
 				sections.push(RawSection {
 					heading: current_heading.clone(),
+					parent_headings: current_parents.clone(),
 					lines: current_lines,
 					line_start: chunk_start_line,
 					line_end: i,
 				});
 			}
-			current_heading = Some(extract_heading_text(line));
+			// Drop any heading at or below the new heading's level; ancestors stay.
+			let text = extract_heading_text(line);
+			heading_stack.truncate(level.saturating_sub(1));
+			current_parents = heading_stack.clone();
+			heading_stack.push(text.clone());
+			current_heading = Some(text);
 			current_lines = vec![line.to_string()];
 			chunk_start_line = i + 1; // 1-indexed
 		} else {
@@ -111,6 +269,7 @@ fn split_into_sections(lines: &[&str], start_line: usize) -> Vec<RawSection> {
 	if !current_lines.is_empty() {
 		sections.push(RawSection {
 			heading: current_heading,
+			parent_headings: current_parents,
 			lines: current_lines,
 			line_start: chunk_start_line,
 			line_end: lines.len(),
@@ -141,20 +300,43 @@ fn merge_short_sections(sections: Vec<RawSection>, min_chars: usize) -> Vec<RawS
 	merged
 }
 
-/// Removes fenced code block content, keeping surrounding prose.
-/// Strips lines between ``` markers (inclusive).
+/// Removes fenced code block content while preserving the parts that carry
+/// retrieval signal: the first ~2 lines of the block (typically a function
+/// signature or import statement) and any lines containing inline comments
+/// (`//`, `/*`, `#`).
+///
+/// Rationale: A previous version stripped fenced blocks entirely, which
+/// destroyed valuable identifiers and rationale in technical notes (function
+/// names, CLI commands, comment-as-context). The trade is small: a chunk with
+/// a 50-line code block contributes ~5 lines of signal-bearing tokens instead
+/// of all 50, but keeps the block's most retrieval-relevant lines.
 fn strip_code_blocks(lines: &[String]) -> Vec<String> {
 	let mut result = Vec::new();
 	let mut in_code_block = false;
+	let mut lines_kept_in_block: usize = 0;
 
 	for line in lines {
-		let trimmed = line.trim();
-		if trimmed.starts_with("```") {
+		let trimmed_start = line.trim_start();
+		if trimmed_start.starts_with("```") {
 			in_code_block = !in_code_block;
+			if in_code_block {
+				lines_kept_in_block = 0;
+			}
 			continue;
 		}
 		if !in_code_block {
 			result.push(line.clone());
+			continue;
+		}
+		// Inside a code block: keep first 2 lines + any comment lines.
+		let trimmed = trimmed_start.trim();
+		let is_comment = trimmed.starts_with("//")
+			|| trimmed.starts_with("/*")
+			|| trimmed.starts_with('*')
+			|| trimmed.starts_with('#');
+		if lines_kept_in_block < 2 || is_comment {
+			result.push(line.clone());
+			lines_kept_in_block += 1;
 		}
 	}
 
@@ -166,6 +348,7 @@ fn emit_chunk(
 	path: &str,
 	text: &str,
 	heading: &Option<String>,
+	parent_headings: &[String],
 	line_start: usize,
 	line_end: usize,
 	options: &ChunkOptions,
@@ -189,7 +372,20 @@ fn emit_chunk(
 		trimmed
 	};
 
-	let content_hash = hash_content(content);
+	// Hash the embed-text projection (parent_headings + heading + content), not the
+	// raw content alone. Any rename in the heading tree above this chunk changes
+	// what the embedder sees and must invalidate the stored embedding.
+	let hash_input = if parent_headings.is_empty() && heading.is_none() {
+		content.to_string()
+	} else {
+		let mut prefix: Vec<String> = parent_headings.to_vec();
+		if let Some(h) = heading {
+			prefix.push(h.clone());
+		}
+		format!("{}\n\n{}", prefix.join(" > "), content)
+	};
+	let content_hash = hash_content(&hash_input);
+
 	let heading_slug = heading
 		.as_ref()
 		.map(|h| h.to_lowercase().replace(' ', "-"))
@@ -201,6 +397,7 @@ fn emit_chunk(
 		source_path: path.to_string(),
 		content: content.to_string(),
 		heading: heading.clone(),
+		parent_headings: parent_headings.to_vec(),
 		line_start,
 		line_end,
 		content_hash,
@@ -224,16 +421,20 @@ fn skip_frontmatter(lines: &[&str]) -> usize {
 	0
 }
 
-/// Checks if a line is a markdown heading (# through ######).
-fn is_heading(line: &str) -> bool {
+/// Returns the heading level (1-6) for a markdown heading line, or `None` if
+/// the line is not a heading. Used by `split_into_sections` to maintain the
+/// parent-heading stack.
+fn heading_level(line: &str) -> Option<usize> {
 	let trimmed = line.trim_start();
 	if !trimmed.starts_with('#') {
-		return false;
+		return None;
 	}
 	let hash_count = trimmed.chars().take_while(|c| *c == '#').count();
-	hash_count >= 1
-		&& hash_count <= 6
-		&& trimmed.chars().nth(hash_count) == Some(' ')
+	if (1..=6).contains(&hash_count) && trimmed.chars().nth(hash_count) == Some(' ') {
+		Some(hash_count)
+	} else {
+		None
+	}
 }
 
 /// Extracts the heading text without the `#` prefix.
@@ -269,7 +470,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 1,
 			max_chunk_chars: 5,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(!chunks.is_empty());
@@ -283,7 +484,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 10,
 			max_chunk_chars: 20,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(!chunks.is_empty());
@@ -296,10 +497,180 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 100,
 			max_chunk_chars: 10_000,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(chunks.is_empty());
+	}
+
+	#[test]
+	fn parent_headings_track_h1_h2_h3() {
+		// Section under "Practical applications" should carry parents [Stoicism, Practical applications].
+		let content = "# Stoicism\n\n## Practical applications\n\nIntro paragraph here.\n\n### Daily journaling\n\nWrite about the day, name a fear, identify a virtue.\n";
+		let options = ChunkOptions {
+			min_chunk_chars: 1,
+			max_chunk_chars: 10_000,
+			overlap_chars: 0,
+		};
+		let chunks = chunk_markdown("test.md", content, &options);
+		assert!(!chunks.is_empty(), "expected non-empty chunks");
+
+		// Find the H3 chunk
+		let h3 = chunks
+			.iter()
+			.find(|c| c.heading.as_deref() == Some("Daily journaling"))
+			.expect("missing Daily journaling chunk");
+		assert_eq!(
+			h3.parent_headings,
+			vec!["Stoicism".to_string(), "Practical applications".to_string()]
+		);
+
+		// And the H1 chunk has no parents
+		let h1 = chunks
+			.iter()
+			.find(|c| c.heading.as_deref() == Some("Stoicism"))
+			.expect("missing Stoicism chunk");
+		assert!(h1.parent_headings.is_empty());
+	}
+
+	#[test]
+	fn parent_headings_drop_siblings_at_same_level() {
+		// Going from "## A" to "## B" should drop A; B's parents = [H1].
+		// Bodies large enough to clear `min_chunk_chars` so neither section is merged.
+		let body = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt.";
+		let content = format!(
+			"# Root\n\n## Section A\n\n{}\n\n## Section B\n\n{}\n",
+			body, body
+		);
+		let options = ChunkOptions::default();
+		let chunks = chunk_markdown("test.md", &content, &options);
+
+		let b = chunks
+			.iter()
+			.find(|c| c.heading.as_deref() == Some("Section B"))
+			.expect("missing Section B");
+		assert_eq!(b.parent_headings, vec!["Root".to_string()]);
+	}
+
+	#[test]
+	fn embed_text_prepends_heading_chain() {
+		use crate::semantic::types::Chunk;
+		let chunk = Chunk {
+			key: "k".into(),
+			source_path: "p.md".into(),
+			content: "body text".into(),
+			heading: Some("Daily journaling".into()),
+			parent_headings: vec!["Stoicism".into(), "Practical applications".into()],
+			line_start: 1,
+			line_end: 5,
+			content_hash: "h".into(),
+		};
+		assert_eq!(
+			chunk.embed_text(),
+			"Stoicism > Practical applications > Daily journaling\n\nbody text"
+		);
+	}
+
+	#[test]
+	fn default_max_chunk_chars_is_3000() {
+		// Regression guard: changing this value forces a full reindex, so it
+		// must be explicit. Bump `EMBED_RECIPE_VERSION` in semantic.rs when
+		// changing.
+		let opts = ChunkOptions::default();
+		assert_eq!(opts.max_chunk_chars, 3_000);
+		assert_eq!(opts.min_chunk_chars, 50);
+		assert_eq!(opts.overlap_chars, 200);
+	}
+
+	#[test]
+	fn default_options_truncate_large_section() {
+		// A single section larger than the new default cap should be truncated.
+		let body = "Lorem ipsum ".repeat(400); // ~4800 chars
+		let content = format!("# Heading\n\n{}", body);
+		let chunks = chunk_markdown("test.md", &content, &ChunkOptions::default());
+		assert!(!chunks.is_empty());
+		// All emitted chunks fit within the cap.
+		for c in &chunks {
+			assert!(
+				c.content.chars().count() <= 3_000,
+				"chunk len {} exceeds 3000",
+				c.content.chars().count()
+			);
+		}
+	}
+
+	#[test]
+	fn embed_text_returns_content_when_no_headings() {
+		use crate::semantic::types::Chunk;
+		let chunk = Chunk {
+			key: "k".into(),
+			source_path: "p.md".into(),
+			content: "just a note".into(),
+			heading: None,
+			parent_headings: vec![],
+			line_start: 1,
+			line_end: 1,
+			content_hash: "h".into(),
+		};
+		assert_eq!(chunk.embed_text(), "just a note");
+	}
+
+	#[test]
+	fn code_block_keeps_first_lines_and_comments() {
+		// First 2 lines + any comment lines should survive; raw body drops.
+		let content = "# Notes\n\n```rust\nfn parse_url(url: &str) -> Result<Url, Error> {\nlet trimmed = url.trim();\n// SECURITY: reject javascript: scheme before any further work\nlet scheme = trimmed.split(':').next().unwrap_or(\"\");\nif scheme == \"javascript\" { return Err(Error::Banned); }\nUrl::parse(trimmed)\n}\n```\n\nFollow-up prose with enough length to clear the minimum threshold.";
+		let chunks = chunk_markdown("note.md", content, &ChunkOptions::default());
+		assert!(!chunks.is_empty());
+		let body = &chunks[0].content;
+		assert!(body.contains("fn parse_url"), "signature should be kept");
+		assert!(
+			body.contains("SECURITY: reject javascript"),
+			"comment line should be kept"
+		);
+		assert!(
+			!body.contains("Url::parse(trimmed)"),
+			"non-comment body past first 2 lines should be dropped"
+		);
+	}
+
+	#[test]
+	fn headless_short_note_emits_single_chunk() {
+		let content = "This is a short capture note without any heading. Just one paragraph.";
+		let chunks = chunk_markdown("inbox.md", content, &ChunkOptions::default());
+		assert_eq!(chunks.len(), 1, "short headless note should be 1 chunk");
+		assert!(chunks[0].heading.is_none());
+		assert!(chunks[0].parent_headings.is_empty());
+		assert!(chunks[0].content.contains("capture note"));
+	}
+
+	#[test]
+	fn headless_long_note_uses_sliding_window() {
+		// Body well over max_chunk_chars (3000) with no headings — must produce
+		// multiple overlapping chunks, not a single truncated chunk.
+		let body = "Sentence one with several words. ".repeat(300); // ~10k chars
+		let chunks = chunk_markdown("journal.md", &body, &ChunkOptions::default());
+		assert!(chunks.len() >= 3, "expected multiple windowed chunks, got {}", chunks.len());
+		for c in &chunks {
+			assert!(c.heading.is_none());
+			assert!(c.content.chars().count() <= 3_000);
+			// Keys must be unique across windows.
+			assert!(c.key.contains("journal.md"));
+		}
+		let keys: std::collections::HashSet<_> = chunks.iter().map(|c| c.key.clone()).collect();
+		assert_eq!(keys.len(), chunks.len(), "window chunks must have unique keys");
+	}
+
+	#[test]
+	fn headless_window_keeps_frontmatter_excluded() {
+		// Frontmatter should be skipped just like in the heading path.
+		let frontmatter = "---\ntitle: Inbox\ntag: capture\n---\n\n";
+		let body = "Capture body here, no headings present. ".repeat(150);
+		let content = format!("{}{}", frontmatter, body);
+		let chunks = chunk_markdown("inbox.md", &content, &ChunkOptions::default());
+		assert!(!chunks.is_empty());
+		for c in &chunks {
+			assert!(!c.content.contains("title: Inbox"), "frontmatter leaked into chunk");
+		}
 	}
 
 	#[test]
@@ -310,7 +681,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 1,
 			max_chunk_chars: 10,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", &content, &options);
 		assert!(!chunks.is_empty());
