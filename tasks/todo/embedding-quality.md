@@ -46,7 +46,7 @@ Fuse FTS5 (BM25, exact terms) with semantic (concepts, paraphrase). Captures bot
 - [x] Task 3.1: **FTS5 unicode61 migration.** Drop `notes_fts_vocab` → drop `notes_fts` → recreate with `tokenize='unicode61 remove_diacritics 2'` → recreate vocab → repopulate. Versioned in `app_meta` (new table). Required so "ação" matches "acao".
 - [x] Task 3.2: `search/rrf.rs` — pure `fn rrf_fuse(rankings: &[&[&str]], k: u32) -> Vec<(String, f32)>`. `DEFAULT_RRF_K = 60`. Deterministic tie-break by key (lexicographic) so query results don't shuffle between runs.
 - [x] Task 3.3: New command `search_hybrid(query, limit)`: FTS top-30 paths + semantic top-30 paths → RRF (k=60) → fuse, take top-50 → look up best semantic chunk per path → rerank with BGE cross-encoder → return top-K as `SemanticResult`. FTS-only paths (no semantic chunk yet) are dropped — MVP limitation, semantic indexer covers the full vault so this is rare. Extracted `search_fts_inner` from `commands/search_index` for reuse without `#[tauri::command]` boilerplate.
-- [ ] Task 3.4: Wire frontend search panel + command palette to `search_hybrid`. Keep `search_semantic` + FTS callable for debug.
+- [x] Task 3.4: Wire frontend search panel + command palette to `search_hybrid`. Hybrid mode in `search.service.ts` now invokes the new Rust command instead of FTS+semantic+JS merge. Adapts the chunk-shaped result onto `HybridSearchResult` for legacy consumers. Falls back to the old JS merge path on any failure. Text and Semantic modes unchanged.
 - [ ] Task 3.5: Eval — target +10-15% MRR over Phase 2 alone on mixed-query workload.
 
 ## Phase 2.7 — Indexing/rerank throughput tweaks

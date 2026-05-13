@@ -148,6 +148,44 @@ export async function performSearch(): Promise<void> {
 	try {
 		const mode = searchStore.mode;
 
+		// Hybrid is now a single Rust command: FTS + semantic → RRF → rerank.
+		// Bypass the per-source JS merge entirely.
+		if (mode === 'hybrid') {
+			try {
+				const parsed = parseSearchQuery(raw);
+				const semanticQuery = parsed.text.trim() || raw;
+				debug('SEARCH', 'Calling search_hybrid...');
+				const results = await invoke<SemanticSearchResult[]>('search_hybrid', {
+					query: semanticQuery,
+					maxResults: 20,
+				});
+				if (searchVersion !== version) return;
+				debug('SEARCH', `Hybrid returned ${results.length} results`, results.slice(0, 3));
+				// Surface as semantic results for the chunk-shaped UI panes. Map
+				// onto the legacy HybridSearchResult shape for any consumer that
+				// still expects it (the chunk has no path/title/snippet split;
+				// derive them from sourcePath + content head).
+				searchStore.setSemanticResults(results);
+				const adapted = results.map((r) => ({
+					path: r.sourcePath,
+					title: r.heading ?? r.sourcePath.split('/').pop() ?? r.sourcePath,
+					combinedScore: r.score,
+					semanticScore: r.score,
+					snippet: r.content.slice(0, 200),
+					heading: r.heading ?? undefined,
+					lineStart: r.lineStart,
+					source: 'both' as const,
+				}));
+				searchStore.setHybridResults(adapted);
+				searchStore.setFtsResults([]);
+				return;
+			} catch (hybErr) {
+				if (searchVersion !== version) return;
+				debug('SEARCH', 'Hybrid search failed, falling back to legacy FTS+semantic merge:', hybErr);
+				// Fall through to the legacy path below.
+			}
+		}
+
 		if (mode === 'text' || mode === 'hybrid') {
 			try {
 				debug('SEARCH', 'Calling search_fts...');
