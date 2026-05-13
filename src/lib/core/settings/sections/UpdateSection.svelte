@@ -82,7 +82,17 @@
 	}
 
 	function handleAutoCheckChange(value: boolean) {
-		settingsStore.updateUpdates({ autoCheck: value });
+		// When the user turns auto-check ON, clear the throttle timestamp
+		// so the very next launch fires a check immediately. Without this,
+		// a manual "Check for updates" click made before enabling
+		// auto-check would leave `lastCheckedAt < 24h` and silently skip
+		// the next auto-check — a footgun if the user is testing the
+		// feature for the first time. Leaving the timestamp alone on
+		// turn-off keeps the "Last checked" display useful afterwards.
+		const patch = value
+			? { autoCheck: true, lastCheckedAt: null }
+			: { autoCheck: false };
+		settingsStore.updateUpdates(patch);
 		onchange();
 	}
 
