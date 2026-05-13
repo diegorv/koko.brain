@@ -67,6 +67,27 @@ runs:
       if: inputs.rust == 'true'
       uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
+    # sccache-action installs the binary and exposes `SCCACHE_PATH`, but it
+    # does NOT configure the GitHub Actions Cache backend automatically.
+    # Without `SCCACHE_GHA_ENABLED`, sccache falls back to a local-disk
+    # cache that the ephemeral runner discards at the end of every job —
+    # producing a 0% cache hit rate across runs (verified empirically in
+    # nightly run 25817637435: 537 Rust cache misses, 0 hits).
+    #
+    # The two env vars below are the documented configuration for the
+    # GHA backend (https://github.com/Mozilla-Actions/sccache-action#with-rustc).
+    # `RUSTC_WRAPPER` is set to redirect rustc through sccache (the
+    # `.cargo/config.toml` `rustc-wrapper = "sccache"` setting also
+    # accomplishes this for local builds; this env var version is what
+    # the GHA documentation recommends and ensures CI honors it
+    # regardless of cargo config).
+    - name: Configure sccache GHA backend
+      if: inputs.rust == 'true'
+      shell: bash
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+        echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
       uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
