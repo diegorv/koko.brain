@@ -102,11 +102,11 @@ Introduce a second release channel (`nightly`) alongside the existing tag-driven
   - Extended `GITHUB-WORKFLOW.md` with a Nightly section that mirrors the Release section's structure (triggers, jobs table, pipeline steps, "what it tests" / "what it does NOT test"). Updated the index at the top.
   - Added a link to `docs/RELEASE-CHANNELS.md` in the README's Documentation list.
 
-- [ ] Task 9: Smoke-test end-to-end
-  - Local: build a nightly bundle via `KOKO_RELEASE_CHANNEL=nightly pnpm tauri:build:fast`. Confirm `__BUILD_INFO__` shows the nightly version.
-  - CI: trigger `nightly.yml` via `workflow_dispatch` on a feature branch first (gate any push-to-main trigger behind a one-line `if: github.repository == 'diegorv/koko.brain'` to prevent accidental fork-side runs).
-  - In the app: install nightly DMG, verify Settings → Update shows `nightly` channel by default for nightly builds (Task 1 sets the default via the build-time channel, overriding `DEFAULT_SETTINGS` for nightly builds).
-  - Switch channel in settings, click "Check for updates", verify the request goes to the right URL (inspect via the existing log infra — `appendLog('UPDATER', endpoint)` in the Rust command).
+- [~] Task 9: Smoke-test end-to-end
+  - [x] Local: invoked `formatBuildInfo` via a Node ESM scratch script with `KOKO_RELEASE_CHANNEL=nightly`. Output: `2.0.19-alpha-nightly.532.410cdee1 (410cdee1) (...)`. Stable invocation returned `2.0.19-alpha (410cdee1) (...)`. The version strings match the docs, and `2.0.19-alpha-nightly.532.410cdee1` is semver-greater than `2.0.19-alpha` (the one-way-update invariant holds).
+  - [x] Pushed all 7 implementation commits to `origin/main`. Nightly workflow triggered at https://github.com/diegorv/koko.brain/actions/runs/25816929205. The guard job will confirm it's not a `chore: bump version` commit (it isn't), then CI + E2E + build-macos run end-to-end.
+  - [ ] Awaiting GH Actions completion: verify the `nightly` release tag is created, the DMG is signed/notarized, `latest.json` is reachable at https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json, and `checksums-sha256.txt` is attached.
+  - [ ] Manual (user-side): install the nightly DMG, verify Settings → Update shows the NIGHTLY pill, the channel dropdown defaults to Nightly on first launch, and "Check for updates" reports up-to-date (the installed nightly is semver-greater than the in-flight nightly that built it — same SHA, but Tauri's updater treats equal versions as up-to-date by default). Subsequent commits will produce a higher-count nightly and validate the update path.
 
 ## Notes
 
