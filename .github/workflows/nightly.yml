@@ -106,7 +106,14 @@ jobs:
             exit 0
           fi
 
-          if [[ "$SUBJECT" =~ ^chore(\([^)]*\))?:.*bump[[:space:]]+version ]]; then
+          # Bash `[[ =~ ]]` parses unescaped parentheses inside the
+          # regex literal as conditional-expression grouping, not as
+          # regex grouping (`syntax error in conditional expression:
+          # unexpected token ')'`). Assigning the pattern to a variable
+          # bypasses the shell parser — the regex engine then sees the
+          # raw pattern via parameter expansion.
+          release_subject_re='^chore(\([^)]*\))?:.*bump[[:space:]]+version'
+          if [[ "$SUBJECT" =~ $release_subject_re ]]; then
             echo "::notice::Detected version-bump commit shape ('$SUBJECT'). Skipping nightly to avoid colliding with release.yml."
             echo "should_build=false" >> "$GITHUB_OUTPUT"
             exit 0
