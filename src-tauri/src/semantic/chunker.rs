@@ -300,20 +300,43 @@ fn merge_short_sections(sections: Vec<RawSection>, min_chars: usize) -> Vec<RawS
 	merged
 }
 
-/// Removes fenced code block content, keeping surrounding prose.
-/// Strips lines between ``` markers (inclusive).
+/// Removes fenced code block content while preserving the parts that carry
+/// retrieval signal: the first ~2 lines of the block (typically a function
+/// signature or import statement) and any lines containing inline comments
+/// (`//`, `/*`, `#`).
+///
+/// Rationale: A previous version stripped fenced blocks entirely, which
+/// destroyed valuable identifiers and rationale in technical notes (function
+/// names, CLI commands, comment-as-context). The trade is small: a chunk with
+/// a 50-line code block contributes ~5 lines of signal-bearing tokens instead
+/// of all 50, but keeps the block's most retrieval-relevant lines.
 fn strip_code_blocks(lines: &[String]) -> Vec<String> {
 	let mut result = Vec::new();
 	let mut in_code_block = false;
+	let mut lines_kept_in_block: usize = 0;
 
 	for line in lines {
-		let trimmed = line.trim();
-		if trimmed.starts_with("```") {
+		let trimmed_start = line.trim_start();
+		if trimmed_start.starts_with("```") {
 			in_code_block = !in_code_block;
+			if in_code_block {
+				lines_kept_in_block = 0;
+			}
 			continue;
 		}
 		if !in_code_block {
 			result.push(line.clone());
+			continue;
+		}
+		// Inside a code block: keep first 2 lines + any comment lines.
+		let trimmed = trimmed_start.trim();
+		let is_comment = trimmed.starts_with("//")
+			|| trimmed.starts_with("/*")
+			|| trimmed.starts_with('*')
+			|| trimmed.starts_with('#');
+		if lines_kept_in_block < 2 || is_comment {
+			result.push(line.clone());
+			lines_kept_in_block += 1;
 		}
 	}
 
@@ -590,6 +613,24 @@ mod tests {
 			content_hash: "h".into(),
 		};
 		assert_eq!(chunk.embed_text(), "just a note");
+	}
+
+	#[test]
+	fn code_block_keeps_first_lines_and_comments() {
+		// First 2 lines + any comment lines should survive; raw body drops.
+		let content = "# Notes\n\n```rust\nfn parse_url(url: &str) -> Result<Url, Error> {\nlet trimmed = url.trim();\n// SECURITY: reject javascript: scheme before any further work\nlet scheme = trimmed.split(':').next().unwrap_or(\"\");\nif scheme == \"javascript\" { return Err(Error::Banned); }\nUrl::parse(trimmed)\n}\n```\n\nFollow-up prose with enough length to clear the minimum threshold.";
+		let chunks = chunk_markdown("note.md", content, &ChunkOptions::default());
+		assert!(!chunks.is_empty());
+		let body = &chunks[0].content;
+		assert!(body.contains("fn parse_url"), "signature should be kept");
+		assert!(
+			body.contains("SECURITY: reject javascript"),
+			"comment line should be kept"
+		);
+		assert!(
+			!body.contains("Url::parse(trimmed)"),
+			"non-comment body past first 2 lines should be dropped"
+		);
 	}
 
 	#[test]

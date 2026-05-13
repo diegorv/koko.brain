@@ -26,7 +26,7 @@ Current chunker is heading-only and produces dilutes embeddings on long sections
 - [x] Task 1.2: **Tighter `max_chunk_chars=3000`** (~700 tokens). Today's 10_000 produces single chunks that span many sub-topics — embedding dilution. ROI: precision win in dense knowledge files.
 - [x] Task 1.3: **Sliding-window fallback for headless notes.** Detect files with zero `#` headings. Apply window-based chunking: 2500 chars, 500 char overlap. Today these become one giant 50-200k-char "chunk" that the embedder truncates at max_seq_len=512 — i.e. most of the file is unindexed.
 - [x] Task 1.4: **Token-aware overlap** (replace line-based). Carry the last ~80 tokens of the previous chunk forward instead of 2 lines (lines vary 1-200 chars). Use a cheap word-count proxy; tokenizer-exact split too expensive at chunking time.
-- [ ] Task 1.5: **Preserve code-block content for technical notes.** Today `strip_code_blocks` discards everything between triple-backticks. Compromise: keep the first line (which usually has the language tag + function signature) and any inline comments. Function/CLI names matter for retrieval.
+- [x] Task 1.5: **Preserve code-block content for technical notes.** Today `strip_code_blocks` discards everything between triple-backticks. Compromise: keep the first line (which usually has the language tag + function signature) and any inline comments. Function/CLI names matter for retrieval.
 
 ## Phase 2 — Reranker (3-5 days) — biggest single quality leap
 

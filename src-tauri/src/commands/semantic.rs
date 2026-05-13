@@ -881,7 +881,7 @@ pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> 
 /// or anything that would make stored embeddings semantically stale). Mixed into
 /// `compute_model_hash` so a recipe change invalidates the index just like a model
 /// file swap does, triggering a full reindex on the next launch.
-const EMBED_RECIPE_VERSION: &str = "v2-parent-headings";
+const EMBED_RECIPE_VERSION: &str = "v3-phase1-chunking";
 
 /// Computes a SHA-256 hash of the first 8KB of the model file plus the embed recipe
 /// version, for quick change detection. Either the model bytes changing or the
