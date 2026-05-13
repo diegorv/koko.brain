@@ -221,18 +221,26 @@ describe('settingsStore', () => {
 			expect(settingsStore.queryjs.autoRunQueries).toBe('first-open');
 		});
 
-		it('updates defaults to stable channel', () => {
-			expect(settingsStore.updates).toEqual({ channel: 'stable' });
+		it('updates defaults to stable channel with autoCheck off and no last check', () => {
+			expect(settingsStore.updates).toEqual({ channel: 'stable', autoCheck: false, lastCheckedAt: null });
 		});
 
-		it('updateChannel switches to nightly', () => {
-			settingsStore.updateChannel('nightly');
+		it('updateUpdates switches channel to nightly', () => {
+			settingsStore.updateUpdates({ channel: 'nightly' });
 			expect(settingsStore.updates.channel).toBe('nightly');
 		});
 
-		it('updateChannel switches back to stable', () => {
-			settingsStore.updateChannel('nightly');
-			settingsStore.updateChannel('stable');
+		it('updateUpdates preserves other fields when updating one', () => {
+			settingsStore.updateUpdates({ autoCheck: true });
+			settingsStore.updateUpdates({ lastCheckedAt: 1700000000000 });
+			expect(settingsStore.updates.autoCheck).toBe(true);
+			expect(settingsStore.updates.lastCheckedAt).toBe(1700000000000);
+			expect(settingsStore.updates.channel).toBe('stable');
+		});
+
+		it('updateUpdates switches channel back to stable', () => {
+			settingsStore.updateUpdates({ channel: 'nightly' });
+			settingsStore.updateUpdates({ channel: 'stable' });
 			expect(settingsStore.updates.channel).toBe('stable');
 		});
 

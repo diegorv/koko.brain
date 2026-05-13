@@ -223,6 +223,22 @@ export interface UpdateSettings {
 	 * restarts.
 	 */
 	channel: ReleaseChannel;
+	/**
+	 * Whether the app should silently check for updates on launch.
+	 *
+	 * Off by default — the first check should be a user-initiated action
+	 * so the app does not phone home on every cold start without consent.
+	 * When enabled, the launch-time check still throttles itself to once
+	 * per 24h via the `lastCheckedAt` timestamp below.
+	 */
+	autoCheck: boolean;
+	/**
+	 * Unix milliseconds timestamp of the last update check, manual or
+	 * automatic. `null` means the user has never checked. Used by the
+	 * launch-time auto-check to throttle repeated checks within 24h and
+	 * by the Update section to display a "Last checked X ago" line.
+	 */
+	lastCheckedAt: number | null;
 }
 
 /** Sidebar navigation sections in the settings dialog */
