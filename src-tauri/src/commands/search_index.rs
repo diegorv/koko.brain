@@ -86,14 +86,22 @@ pub fn search_fts(
 	if trimmed.is_empty() {
 		return Ok(Vec::new());
 	}
-
-	let start = std::time::Instant::now();
 	let limit = max_results.unwrap_or(50);
 	let use_fuzzy = fuzzy.unwrap_or(false);
-	debug_log("FTS", format!("Query: \"{}\", fuzzy: {}", trimmed, use_fuzzy));
+	search_fts_inner(trimmed, limit, use_fuzzy)
+}
+
+/// Synchronous FTS search shared by the public command and the hybrid pipeline.
+pub fn search_fts_inner(
+	query: &str,
+	limit: usize,
+	use_fuzzy: bool,
+) -> Result<Vec<FtsSearchResult>, String> {
+	let start = std::time::Instant::now();
+	debug_log("FTS", format!("Query: \"{}\", fuzzy: {}", query, use_fuzzy));
 
 	db::with_fts_db(|conn| {
-		let fts_query = build_fts_query(conn, trimmed, use_fuzzy)?;
+		let fts_query = build_fts_query(conn, query, use_fuzzy)?;
 		// Empty query string would cause FTS5 MATCH syntax error
 		if fts_query.is_empty() {
 			return Ok(Vec::new());
