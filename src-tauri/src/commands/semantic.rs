@@ -124,11 +124,11 @@ fn unload_embedder() {
 /// Ensures the embedder is loaded, reloading from stored vault path if needed.
 /// Returns an error if no vault path is stored (init_semantic_search was never called).
 fn ensure_embedder_loaded() -> Result<(), String> {
-	{
-		let guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
-		if guard.is_some() {
-			return Ok(());
-		}
+	// Hold the lock across the entire load so a concurrent caller blocks
+	// here, then observes `Some(_)` on its turn instead of also loading.
+	let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
+	if guard.is_some() {
+		return Ok(());
 	}
 
 	let vault_path = {
@@ -142,7 +142,6 @@ fn ensure_embedder_loaded() -> Result<(), String> {
 		return Err("Model not available on disk".to_string());
 	}
 	let embedder = Embedder::load(&manager.model_path())?;
-	let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 	*guard = Some(embedder);
 	debug_log("SEMANTIC", "Embedder lazy-reloaded");
 	Ok(())
@@ -163,11 +162,11 @@ fn unload_reranker() {
 /// (caller should fall back to cosine-only ranking). Errors are reserved for
 /// corrupt model files or session-construction failures.
 fn ensure_reranker_loaded() -> Result<bool, String> {
-	{
-		let guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
-		if guard.is_some() {
-			return Ok(true);
-		}
+	// Hold the lock across the entire load so a concurrent caller blocks
+	// here, then observes `Some(_)` on its turn instead of also loading.
+	let mut guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
+	if guard.is_some() {
+		return Ok(true);
 	}
 
 	let vault_path = {
@@ -186,7 +185,6 @@ fn ensure_reranker_loaded() -> Result<bool, String> {
 
 	debug_log("RERANKER", "Lazy-loading reranker...");
 	let reranker = Reranker::load(&manager.model_path())?;
-	let mut guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
 	*guard = Some(reranker);
 	debug_log("RERANKER", "Reranker lazy-loaded");
 	Ok(true)
