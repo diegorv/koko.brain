@@ -250,30 +250,34 @@ describe('performSearch', () => {
 		expect(searchStore.semanticResults).toEqual([]);
 	});
 
-	it('merges FTS and semantic in hybrid mode', async () => {
-		const ftsResults = [
-			{ path: 'a.md', title: 'A', score: -3.0, snippet: 'text', tags: '' },
-		];
-		const semanticResults = [
+	it('hybrid mode invokes the Rust search_hybrid command and adapts results', async () => {
+		// Task 3.3: hybrid is a single Rust command (FTS + semantic + RRF + rerank).
+		// The frontend just maps the chunk-shaped result onto HybridSearchResult.
+		const hybridResults = [
 			{
 				key: 'k1',
 				sourcePath: 'a.md',
-				content: 'semantic',
-				heading: null,
+				content: 'a chunk body for hybrid testing',
+				heading: 'Intro',
 				lineStart: 1,
 				lineEnd: 5,
-				score: 0.8,
+				score: 0.92,
 			},
 		];
-		mockInvoke
-			.mockResolvedValueOnce(ftsResults) // search_fts
-			.mockResolvedValueOnce(semanticResults); // search_semantic
+		mockInvoke.mockResolvedValueOnce(hybridResults);
 		searchStore.setQuery('test');
 		searchStore.setMode('hybrid');
 
 		await performSearch();
 
+		expect(mockInvoke).toHaveBeenCalledWith('search_hybrid', {
+			query: 'test',
+			maxResults: 20,
+		});
+		expect(searchStore.semanticResults).toHaveLength(1);
 		expect(searchStore.hybridResults).toHaveLength(1);
+		expect(searchStore.hybridResults[0].path).toBe('a.md');
+		expect(searchStore.hybridResults[0].combinedScore).toBe(0.92);
 		expect(searchStore.hybridResults[0].source).toBe('both');
 	});
 
