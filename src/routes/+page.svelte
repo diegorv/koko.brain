@@ -2,13 +2,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
-	import { channelLabel } from '$lib/utils/build-info';
+	import BuildInfo from '$lib/core/settings/BuildInfo.svelte';
 	import FolderOpen from 'lucide-svelte/icons/folder-open';
 	import Clock from 'lucide-svelte/icons/clock';
-
-	const channelBadgeClass = __APP_CHANNEL__ === 'nightly'
-		? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
-		: 'bg-muted text-muted-foreground';
 
 	async function handleOpenVault() {
 		await openVaultDialog();
@@ -48,8 +44,7 @@
 		</div>
 	{/if}
 
-	<p class="absolute bottom-4 inline-flex items-center gap-2 font-mono text-xs text-muted-foreground/50">
-		<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
-		<span>{__BUILD_INFO__}</span>
+	<p class="absolute bottom-4">
+		<BuildInfo variant="footer" />
 	</p>
 </div>
