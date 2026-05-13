@@ -261,3 +261,49 @@ jobs:
           gh release upload nightly \
             src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
             --clobber
+
+      - name: Verify nightly latest.json is reachable and well-formed
+        # Post-publish smoke check. GitHub's CDN can lag by ~30 seconds
+        # after a release upload completes, so we poll with a short
+        # back-off rather than hitting the URL once. The assertion
+        # focuses on the structure the Tauri updater actually reads:
+        # the top-level `version` field plus the per-platform `url` and
+        # `signature` for `darwin-aarch64`. A 200 with garbage JSON is
+        # worse than a 404 — the updater would silently fail later.
+        run: |
+          set -euo pipefail
+          URL="https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json"
+          EXPECTED_VERSION="${{ steps.ver.outputs.nightly_version }}"
+          RAW=""
+          for attempt in 1 2 3 4 5; do
+            if RAW=$(curl --fail --silent --show-error --location "$URL"); then
+              echo "Fetched latest.json on attempt $attempt"
+              break
+            fi
+            echo "Attempt $attempt failed; backing off 6s..."
+            sleep 6
+          done
+          if [ -z "$RAW" ]; then
+            echo "::error::latest.json was not reachable after 5 attempts: $URL"
+            exit 1
+          fi
+          echo "--- latest.json ---"
+          printf '%s\n' "$RAW" | jq .
+
+          GOT_VERSION=$(printf '%s' "$RAW" | jq -r '.version')
+          if [ "$GOT_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "::error::Version mismatch in latest.json: expected '$EXPECTED_VERSION', got '$GOT_VERSION'"
+            exit 1
+          fi
+
+          BUNDLE_URL=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].url')
+          SIGNATURE=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].signature')
+          if [ -z "$BUNDLE_URL" ] || [ "$BUNDLE_URL" = "null" ]; then
+            echo "::error::latest.json missing platforms[darwin-aarch64].url"
+            exit 1
+          fi
+          if [ -z "$SIGNATURE" ] || [ "$SIGNATURE" = "null" ]; then
+            echo "::error::latest.json missing platforms[darwin-aarch64].signature"
+            exit 1
+          fi
+          echo "Smoke check passed: version=$GOT_VERSION, bundle=$BUNDLE_URL, signature length=${#SIGNATURE}"
