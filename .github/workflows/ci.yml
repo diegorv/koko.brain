@@ -69,8 +69,24 @@ jobs:
               - "tailwind.config.*"
               - "postcss.config.*"
               - "components.json"
+              # CI infrastructure changes (composite actions, workflow
+              # definitions) can break the frontend pipeline silently —
+              # e.g. a setup-action change that drops pnpm caching, or a
+              # workflow tweak that mis-orders the install step. Re-run
+              # frontend tests when these change so regressions surface
+              # in the same PR rather than in the next product commit.
+              - ".github/actions/**"
+              - ".github/workflows/**"
             rust:
               - "src-tauri/**"
+              # Same rationale as frontend: setup-action and workflow
+              # changes can break the Rust toolchain setup (see commits
+              # ce864fdb / fd02d64f, where a runner image regression
+              # required iterating the composite setup). Trigger the
+              # Rust job on CI infra changes so the fix is validated
+              # in the same PR.
+              - ".github/actions/**"
+              - ".github/workflows/**"
 
   frontend:
     name: Frontend (typecheck + tests)
