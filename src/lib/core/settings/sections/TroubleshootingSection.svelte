@@ -3,6 +3,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { setTauriDebugMode } from '$lib/utils/debug';
 	import { initLogSession, teardownLogSession, openLogDir, startHeartbeat, stopHeartbeat, isLogSessionActive } from '$lib/utils/log.service';
+	import { channelLabel } from '$lib/utils/build-info';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
@@ -15,6 +16,10 @@
 		'blockquote', 'markdownStyle',
 	] as const;
 
+	const channelBadgeClass = __APP_CHANNEL__ === 'nightly'
+		? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
+		: 'bg-muted text-muted-foreground';
+
 	function isDecoratorDisabled(name: string): boolean {
 		return settingsStore.disabledDecorators[name] ?? false;
 	}
@@ -25,8 +30,11 @@
 
 	<h3 class="mb-2 text-sm font-medium text-muted-foreground">About</h3>
 
-	<SettingItem label="Build" description="Version, commit hash, and build time">
-		<span class="font-mono text-sm text-muted-foreground">{__BUILD_INFO__}</span>
+	<SettingItem label="Build" description="Release channel, version, commit hash, and build time">
+		<span class="inline-flex items-center gap-2 font-mono text-sm text-muted-foreground">
+			<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
+			<span>{__BUILD_INFO__}</span>
+		</span>
 	</SettingItem>
 
 	<h3 class="mb-2 text-sm font-medium text-muted-foreground">Frontend</h3>

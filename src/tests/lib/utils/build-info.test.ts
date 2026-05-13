@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVersion, formatBuildInfo, parseReleaseChannel } from '$lib/utils/build-info';
+import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '$lib/utils/build-info';
 
 describe('resolveVersion', () => {
 	it('returns the pkg version unchanged on the stable channel', () => {
@@ -92,5 +92,15 @@ describe('parseReleaseChannel', () => {
 		expect(parseReleaseChannel('stable')).toBe('stable');
 		expect(parseReleaseChannel('canary')).toBe('stable');
 		expect(parseReleaseChannel('beta')).toBe('stable');
+	});
+});
+
+describe('channelLabel', () => {
+	it('returns STABLE for the stable channel', () => {
+		expect(channelLabel('stable')).toBe('STABLE');
+	});
+
+	it('returns NIGHTLY for the nightly channel', () => {
+		expect(channelLabel('nightly')).toBe('NIGHTLY');
 	});
 });

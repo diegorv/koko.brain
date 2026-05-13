@@ -53,11 +53,11 @@ Introduce a second release channel (`nightly`) alongside the existing tag-driven
   - `settings.service.ts` `loadSettings()` honours `parsed.updates?.channel` when present, otherwise falls back to `getBuildChannel()` (new helper at `src/lib/utils/app-channel.ts` reading `__APP_CHANNEL__` safely). All four load paths covered: fresh install, empty file, missing-`updates` block on existing file, parse/read error.
   - Tests: extended `src/tests/lib/core/settings/settings.store.test.ts` (3 new tests) and `src/tests/lib/core/settings/settings.service.test.ts` (5 new tests covering build-channel fallback + explicit-channel preservation).
 
-- [ ] Task 3: Render channel in `Troubleshooting` and `+page.svelte` build-info footer
-  - `TroubleshootingSection.svelte`: change "Build" row to also show channel as a small badge before the version. Format: `[stable] 2.0.19-alpha (sha) (time)` or `[nightly] 2.0.19-alpha-nightly.<sha> (sha) (time)`.
-  - `+page.svelte` build-info footer: same format.
-  - Use a tiny presentational component or inline span; no new file unless duplication forces it.
-  - Tests: `src/tests/troubleshooting-section.test.ts` (create if missing) — assert the channel string renders. Skip the `+page.svelte` test (it's a route, covered by E2E).
+- [x] Task 3: Render channel in `Troubleshooting` and `+page.svelte` build-info footer
+  - Added `channelLabel(channel)` helper to `src/lib/utils/build-info.js` (returns `'STABLE'` / `'NIGHTLY'`) with tests.
+  - `TroubleshootingSection.svelte` and `+page.svelte` now render a small pill badge before `__BUILD_INFO__`. Badge styling diverges per channel: amber tint for nightly, muted neutral for stable. The badge label is uppercased so it reads as a tag rather than prose (matches GitHub "Latest"/"Pre-release" convention).
+  - No shared Svelte component extracted — inline span in both locations. CLAUDE.md prefers extraction only when complexity justifies it; Task 6 will add a third callsite in `UpdateSection.svelte` but the markup stays trivial so DRY isn't urgent.
+  - Tests: 2 new tests on `channelLabel`. Svelte component rendering is not part of this project's vitest setup (no `@testing-library/svelte` dependency), so the visual badge is covered by manual smoke and E2E rather than a unit test.
 
 - [ ] Task 4: Rust command `check_for_update_on_channel`
   - In `src-tauri/src/`, add a new module `update_channel.rs` exposing a Tauri command `check_for_update_on_channel(channel: String) -> Result<Option<UpdateMetadata>, String>`.
