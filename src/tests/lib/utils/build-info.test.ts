@@ -59,14 +59,26 @@ describe('formatBuildInfo', () => {
 		})).toBe('2.0.19-alpha (34158e03) (2026-05-13T12:00:00)');
 	});
 
-	it('formats nightly with the -nightly.<count>.<sha> suffix in version', () => {
+	it('omits the (sha) parens on nightly because the version already ends with the hash', () => {
 		expect(formatBuildInfo({
 			pkgVersion: '2.0.19-alpha',
 			gitHash: '34158e03',
 			commitCount: '1234',
 			buildTime: '2026-05-13T12:00:00',
 			channel: 'nightly',
-		})).toBe('2.0.19-alpha-nightly.1234.34158e03 (34158e03) (2026-05-13T12:00:00)');
+		})).toBe('2.0.19-alpha-nightly.1234.34158e03 (2026-05-13T12:00:00)');
+	});
+
+	it('nightly never repeats the git hash in the rendered string', () => {
+		const result = formatBuildInfo({
+			pkgVersion: '2.0.19-alpha',
+			gitHash: 'deadbeef',
+			commitCount: '99',
+			buildTime: '2026-05-13T12:00:00',
+			channel: 'nightly',
+		});
+		// "deadbeef" must appear exactly once
+		expect(result.match(/deadbeef/g)?.length).toBe(1);
 	});
 });
 

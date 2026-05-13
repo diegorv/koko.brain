@@ -45,14 +45,20 @@ export function resolveVersion(inputs) {
 /**
  * Build the display string injected as `__BUILD_INFO__` and shown in the UI.
  *
- * Pattern: "<version> (<sha>) (<buildTime>)".
+ * Stable pattern: `<version> (<sha>) (<buildTime>)`
+ * Nightly pattern: `<version> (<buildTime>)` — the `<sha>` parens is
+ *   dropped because the nightly version string already ends with the
+ *   git hash as its semver tiebreaker, and repeating it would render
+ *   "2.0.19-alpha-nightly.545.fc788c2d (fc788c2d) (...)" with a
+ *   duplicate hash.
  *
  * @param {VersionInputs & { buildTime: string }} inputs
  * @returns {string}
  */
 export function formatBuildInfo(inputs) {
 	const version = resolveVersion(inputs);
-	return `${version} (${inputs.gitHash}) (${inputs.buildTime})`;
+	const shaSegment = inputs.channel === 'nightly' ? '' : `(${inputs.gitHash}) `;
+	return `${version} ${shaSegment}(${inputs.buildTime})`;
 }
 
 /**
