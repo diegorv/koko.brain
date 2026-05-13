@@ -32,9 +32,9 @@ Current chunker is heading-only and produces dilutes embeddings on long sections
 
 Cross-encoder reranker reads the (query, chunk) pair jointly — captures nuance no bi-encoder embedding can.
 
-- [ ] Task 2.1: **Pick model.** Recommended: `jinaai/jina-reranker-v2-base-multilingual` (~278M params, 5x smaller than `BGE-reranker-v2-m3` — runs fast on CPU). Verify INT8 ONNX availability or quantize ourselves. Validate PT-BR + EN retrieval quality on the eval fixture.
-- [ ] Task 2.2: `semantic/reranker.rs` — new struct `Reranker { session, tokenizer, batch_size }`. Method `rerank(query, candidates) -> Vec<f32>` returns logits (no sigmoid — monotonic). Use `tokenizer.encode_batch(Vec<(query, doc)>)` for pair encoding.
-- [ ] Task 2.3: `ModelManager` extension — `.kokobrain/models/jina-reranker-v2-base-multilingual/`. New download URL.
+- [x] Task 2.1: **Pick model.** Chose `onnx-community/bge-reranker-v2-m3-ONNX/model_int8.onnx` (568M params, INT8, ~571MB on disk). Apache 2.0 (Jina's CC-BY-NC was the alternative; same XLM-RoBERTa family as our embedder so tokenizer behavior matches). Trade ~500ms CPU latency for top-50 vs Jina's ~200ms — invisible at the UX layer. Recommended: `jinaai/jina-reranker-v2-base-multilingual` (~278M params, 5x smaller than `BGE-reranker-v2-m3` — runs fast on CPU). Verify INT8 ONNX availability or quantize ourselves. Validate PT-BR + EN retrieval quality on the eval fixture.
+- [x] Task 2.2: `semantic/reranker.rs` — new struct `Reranker { session, tokenizer, batch_size }`. Method `rerank(query, candidates) -> Vec<f32>` returns logits (no sigmoid — monotonic). Use `tokenizer.encode_batch(Vec<EncodeInput::Dual>)` for pair encoding. Internal `run_inference` mirrors `Embedder::run_inference` with f32/f16 output extraction.
+- [x] Task 2.3: `ModelManager` extension — extracted `ManagedModel` struct + `BGE_M3_EMBEDDER` / `BGE_RERANKER_V2_M3` consts. `ModelManager::new(vault, &model)` takes a model spec; convenience constructors `for_embedder()` / `for_reranker()`. All 4 existing call sites in `commands/semantic.rs` updated to `for_embedder()`. Reranker model lives at `.kokobrain/models/bge-reranker-v2-m3/`.
 - [ ] Task 2.4: Global `RERANKER: Mutex<Option<Reranker>>` mirroring `EMBEDDER`. Lazy load + idle unload (reuse 120s timeout).
 - [ ] Task 2.5: `search_semantic` pipeline change — top-50 cosine candidates → rerank → adaptive filter on rerank logits → top-K. Setting `semanticSearch.useReranker` (default true), UI toggle, bypass falls back to current path.
 - [ ] Task 2.6: Eval — target +15-25% MRR, top-1 +20pp.
