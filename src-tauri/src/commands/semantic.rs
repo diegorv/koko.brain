@@ -3,6 +3,7 @@ use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, Embedder};
 use crate::semantic::filtering;
 use crate::semantic::model::ModelManager;
+use crate::semantic::reranker::Reranker;
 use crate::semantic::types::{SemanticFileStatus, SemanticProgress, SemanticResult, SemanticStats};
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
@@ -25,6 +26,25 @@ static UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// Seconds of inactivity before the embedder is automatically unloaded to free memory.
 const EMBEDDER_IDLE_TIMEOUT_SECS: u64 = 120;
+
+/// Global reranker instance. Lazy-loaded on first rerank call, auto-unloaded
+/// after `RERANKER_IDLE_TIMEOUT_SECS` of inactivity. The reranker model is
+/// optional — if the file isn't on disk, `search_semantic` falls back to
+/// pure cosine ranking and emits a debug log.
+static RERANKER: Mutex<Option<Reranker>> = Mutex::new(None);
+
+/// Independent generation counter for the reranker's debounced unload.
+static RERANKER_UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Seconds of inactivity before the reranker is automatically unloaded
+/// (~571MB INT8 ONNX session). Same 120s policy as the embedder.
+const RERANKER_IDLE_TIMEOUT_SECS: u64 = 120;
+
+/// Top-N candidates fetched from cosine ranking before they get passed to the
+/// reranker. The reranker promotes/demotes within this pool, so make it big
+/// enough that the truly-relevant doc is almost always in the pool, small
+/// enough that 50 pair inferences finish under ~500ms on CPU.
+const RERANK_CANDIDATE_POOL: usize = 50;
 
 /// Cached pre-deserialized embeddings to avoid reloading from DB on every search.
 static SEARCH_CACHE: Mutex<Option<Arc<Vec<CachedChunk>>>> = Mutex::new(None);
@@ -128,6 +148,62 @@ fn ensure_embedder_loaded() -> Result<(), String> {
 	Ok(())
 }
 
+/// Unloads the reranker model to free memory (~571MB).
+fn unload_reranker() {
+	if let Ok(mut guard) = RERANKER.lock() {
+		if guard.is_some() {
+			*guard = None;
+			debug_log("RERANKER", "Reranker unloaded to free memory");
+		}
+	}
+}
+
+/// Lazy-loads the reranker if its files are on disk. Returns `Ok(true)` when
+/// the reranker is ready, `Ok(false)` when the model isn't downloaded yet
+/// (caller should fall back to cosine-only ranking). Errors are reserved for
+/// corrupt model files or session-construction failures.
+fn ensure_reranker_loaded() -> Result<bool, String> {
+	{
+		let guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
+		if guard.is_some() {
+			return Ok(true);
+		}
+	}
+
+	let vault_path = {
+		let vp = VAULT_PATH.lock().map_err(|e| format!("Lock error: {e}"))?;
+		match vp.clone() {
+			Some(p) => p,
+			None => return Ok(false),
+		}
+	};
+
+	let manager = ModelManager::for_reranker(Path::new(&vault_path));
+	if !manager.is_model_available() {
+		// Not an error — reranker is opt-in via download.
+		return Ok(false);
+	}
+
+	debug_log("RERANKER", "Lazy-loading reranker...");
+	let reranker = Reranker::load(&manager.model_path())?;
+	let mut guard = RERANKER.lock().map_err(|e| format!("Lock error: {e}"))?;
+	*guard = Some(reranker);
+	debug_log("RERANKER", "Reranker lazy-loaded");
+	Ok(true)
+}
+
+/// Schedules a reranker unload after the idle timeout. Independent generation
+/// counter from the embedder so the two unload timers don't interfere.
+fn schedule_reranker_unload() {
+	let gen = RERANKER_UNLOAD_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+	tokio::spawn(async move {
+		tokio::time::sleep(std::time::Duration::from_secs(RERANKER_IDLE_TIMEOUT_SECS)).await;
+		if RERANKER_UNLOAD_GENERATION.load(Ordering::SeqCst) == gen {
+			unload_reranker();
+		}
+	});
+}
+
 /// Schedules an embedder unload after the idle timeout. Uses a generation counter
 /// so that subsequent calls cancel previous timers — only the latest one fires.
 fn schedule_embedder_unload() {
@@ -169,6 +245,40 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 pub fn is_semantic_model_available(vault_path: String) -> Result<bool, String> {
 	let manager = ModelManager::for_embedder(Path::new(&vault_path));
 	Ok(manager.is_model_available())
+}
+
+/// Checks if the reranker model files are available on disk.
+#[tauri::command]
+pub fn is_reranker_model_available(vault_path: String) -> Result<bool, String> {
+	let manager = ModelManager::for_reranker(Path::new(&vault_path));
+	Ok(manager.is_model_available())
+}
+
+/// Downloads the BGE-reranker-v2-m3 INT8 ONNX model (~571MB) into
+/// `.kokobrain/models/bge-reranker-v2-m3/`. Emits progress on the same
+/// `semantic-index-progress` channel under the `downloading-reranker` phase.
+#[tauri::command]
+pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
+	let manager = ModelManager::for_reranker(Path::new(&vault_path));
+	if manager.is_model_available() {
+		return Ok(true);
+	}
+
+	manager
+		.download_model(|progress| {
+			let _ = app.emit(
+				"semantic-index-progress",
+				SemanticProgress {
+					phase: "downloading-reranker".to_string(),
+					current: (progress * 100.0) as usize,
+					total: 100,
+					message: format!("Downloading reranker... {}%", (progress * 100.0) as usize),
+				},
+			);
+		})
+		.await?;
+
+	Ok(true)
 }
 
 /// Downloads the ONNX model from HuggingFace Hub, emitting progress events.
@@ -506,7 +616,11 @@ pub async fn search_semantic(
 		// Load chunks from cache (avoids re-reading DB + re-deserializing on every search)
 		let cached_chunks = get_or_load_cache()?;
 
-		let mut results: Vec<SemanticResult> = cached_chunks
+		// Stage 1: cosine ranking. Filter on the user-supplied min_score (still
+		// cheap), then keep enough candidates to feed the reranker. When the
+		// reranker is not available we collapse this back to the old single
+		// stage by skipping rerank below.
+		let mut candidates: Vec<SemanticResult> = cached_chunks
 			.iter()
 			.map(|chunk| {
 				let score = cosine_similarity(&query_embedding, &chunk.embedding);
@@ -522,30 +636,60 @@ pub async fn search_semantic(
 			})
 			.filter(|r| r.score >= threshold)
 			.collect();
+		candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 
-		// Sort by score descending and limit
-		results.sort_by(|a, b| b.score.total_cmp(&a.score));
-		results.truncate(limit);
+		// Stage 2: rerank the top RERANK_CANDIDATE_POOL with BGE-reranker-v2-m3
+		// when its model is on disk. We replace each candidate's `score` with
+		// the rerank logit so adaptive filtering downstream sees the more
+		// meaningful signal. If the reranker isn't downloaded we silently fall
+		// back to cosine ordering — search still works, just at lower quality.
+		let pool_size = RERANK_CANDIDATE_POOL.min(candidates.len());
+		let used_reranker = if pool_size > 0 && ensure_reranker_loaded()? {
+			let mut pool: Vec<SemanticResult> = candidates.drain(..pool_size).collect();
+			let docs: Vec<&str> = pool.iter().map(|r| r.content.as_str()).collect();
+			let rerank_scores = {
+				let mut guard = RERANKER
+					.try_lock()
+					.map_err(|_| "Reranker temporarily busy".to_string())?;
+				let reranker = guard
+					.as_mut()
+					.ok_or("Reranker not loaded — should be unreachable after ensure_reranker_loaded")?;
+				reranker.rerank(&trimmed, &docs)?
+			};
+			schedule_reranker_unload();
 
-		// Adaptive filtering: remove noise based on score distribution
-		if let Some(outcome) = filtering::adaptive_filter(&results) {
+			for (r, s) in pool.iter_mut().zip(rerank_scores.iter()) {
+				r.score = *s;
+			}
+			pool.sort_by(|a, b| b.score.total_cmp(&a.score));
+			candidates = pool;
+			true
+		} else {
+			false
+		};
+
+		// Limit + adaptive filter on whichever score the user is seeing
+		candidates.truncate(limit);
+		if let Some(outcome) = filtering::adaptive_filter(&candidates) {
 			debug_log("SEMANTIC", &outcome.log_message);
-			results.truncate(outcome.keep_count);
+			candidates.truncate(outcome.keep_count);
 		}
 
-		// Log score distribution for diagnostics
-		if !results.is_empty() {
+		if !candidates.is_empty() {
 			let q_norm: f32 = query_embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
 			let log = filtering::format_score_distribution(
 				&trimmed,
-				&results,
+				&candidates,
 				query_embedding.len(),
 				q_norm,
 			);
-			debug_log("SEMANTIC", log.trim_end());
+			debug_log(
+				"SEMANTIC",
+				format!("reranker={}\n{}", used_reranker, log.trim_end()),
+			);
 		}
 
-		Ok(results)
+		Ok(candidates)
 	})
 	.await
 	.map_err(|e| format!("Task join error: {e}"))?
@@ -582,6 +726,9 @@ pub fn get_semantic_file_status(file_path: String) -> Result<SemanticFileStatus,
 pub fn shutdown_semantic() -> Result<(), String> {
 	debug_log("SEMANTIC", "Shutting down: releasing model + clearing cache");
 	if let Ok(mut guard) = EMBEDDER.lock() {
+		*guard = None;
+	}
+	if let Ok(mut guard) = RERANKER.lock() {
 		*guard = None;
 	}
 	invalidate_search_cache();

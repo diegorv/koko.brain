@@ -147,6 +147,8 @@ pub fn run() {
             commands::semantic::get_semantic_file_status,
             commands::semantic::update_semantic_file,
             commands::semantic::download_semantic_model,
+            commands::semantic::is_reranker_model_available,
+            commands::semantic::download_reranker_model,
             commands::semantic::debug_semantic_embeddings,
             commands::semantic::shutdown_semantic,
             commands::debug::set_tauri_debug_mode,
