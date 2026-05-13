@@ -72,6 +72,10 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          # Share the rust-cache slot with nightly.yml and
+          # cache-warmer.yml — same cargo invocation, same artifacts.
+          rust-cache-key: macos-release-aarch64
 
       - name: Generate changelog
         id: changelog
