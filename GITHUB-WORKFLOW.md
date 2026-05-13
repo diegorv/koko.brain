@@ -10,6 +10,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 - [Privacy](#privacy-privacyyml)
 - [Release](#release-releaseyml)
 - [Nightly](#nightly-nightlyyml)
+- [Cache Warmer](#cache-warmer-cache-warmeryml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
 - [Run All Checks](#run-all-checks-run-allyml)
 - [Composite actions](#composite-actions)
@@ -252,6 +253,32 @@ Concurrency is `group: nightly, cancel-in-progress: true`: rapid back-to-back pu
 - **Playwright E2E**. Playwright is the slowest CI job (~5 min) and re-running it on every accepted commit doubles per-nightly wall-clock with no extra safety: a regression that breaks E2E is caught on the PR's E2E run before merge, and `release.yml` re-runs E2E against the exact tagged SHA as a hard gate when the stable release goes out. The nightly channel is opt-in and labelled pre-release, so the marginal E2E coverage isn't worth the runner minutes.
 - Same gaps as Release (no `.app` smoke test, no post-publish auto-update verification).
 - The `chore: bump version` skip: there's no positive assertion that the skipped run "would have produced the same bundle as `release.yml`". The two pipelines are equivalent by construction; if they diverge, both flows break at the same time.
+
+---
+
+## Cache Warmer (`cache-warmer.yml`)
+
+Bi-weekly scheduled `cargo build --release --target aarch64-apple-darwin` to keep the macOS Rust cache (GHA Cache + sccache) alive across slow weeks. Does not publish, sign, or bundle anything — only builds.
+
+**Triggers**
+
+- `schedule`: `0 4 * * 1,4` (04:00 UTC Monday + Thursday). Bi-weekly chosen over weekly so the gap between warmer runs never exceeds 4 days, well inside GitHub's 7-day cache eviction window.
+- `workflow_dispatch`.
+
+**Jobs**
+
+| Job ID | Runner | What it does |
+|---|---|---|
+| `warm` | macos-latest | Checkout + setup + `cargo build --release --target aarch64-apple-darwin --manifest-path src-tauri/Cargo.toml`. Then prints `sccache --show-stats` so the workflow log makes the hit rate visible at a glance. Gated on `github.repository == 'diegorv/koko.brain'` to keep forks from burning their own macOS minutes on a cache nothing else in the fork consumes. |
+
+**What Cache Warmer tests**
+
+Nothing — it's purely infrastructure. A failing build still surfaces as a red workflow, so it doubles as a "rust compiles on main" smoke check, but the test gates are CI's `rust` job and the per-platform build workflows.
+
+**What Cache Warmer does NOT test**
+
+- Bundling, codesign, notarization, or the `tauri-action` build pipeline. The warmer skips `pnpm tauri build` entirely so the runner time stays around ~15 min instead of ~30 min.
+- That the cache it warms is actually hit by a subsequent nightly/release run. The `sccache --show-stats` output is informational; the proof is in the next nightly's stats.
 
 ---
 
