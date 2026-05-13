@@ -148,12 +148,20 @@ fn chunk_heading_with_cjk() {
 
 #[test]
 fn chunk_strips_code_blocks() {
-	let content = "# Guide\n\nHere is some prose that should remain in the chunk content after processing.\n\n```rust\nfn main() {\n    println!(\"this should be stripped\");\n}\n```\n\nMore prose after the code block that should also remain in the output.\n";
+	// Task 1.5 changed `strip_code_blocks` semantics: keep first ~2 lines (signature
+	// + import) and any comment lines; drop the rest of the body. So in this
+	// 5-line block we keep `fn main() {` and the next line, but drop the closing
+	// `}`. Prose around the block is unchanged.
+	let content = "# Guide\n\nHere is some prose that should remain in the chunk content after processing.\n\n```rust\nfn signature(arg: &str) -> bool {\nlet x = arg.len();\nlet y = x + 1;\nlet z = y * 2;\nreturn z > 10;\n}\n```\n\nMore prose after the code block that should also remain in the output.\n";
 	let chunks = chunk_markdown("test.md", content, &default_options());
 	assert!(!chunks.is_empty(), "should produce chunks");
 	assert!(
-		!chunks[0].content.contains("println!"),
-		"code block content should be stripped"
+		chunks[0].content.contains("fn signature"),
+		"first line of code block (signature) should be kept"
+	);
+	assert!(
+		!chunks[0].content.contains("z = y * 2"),
+		"body of code block past the first 2 lines should be dropped"
 	);
 	assert!(
 		chunks[0].content.contains("prose that should remain"),
