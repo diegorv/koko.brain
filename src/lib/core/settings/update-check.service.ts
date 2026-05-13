@@ -18,29 +18,26 @@ export interface UpdateMetadata {
 }
 
 /**
- * How long the auto-check stays quiet after a previous check.
- *
- * 24 hours matches the cadence most desktop apps use for background
- * update checks (Sparkle, Squirrel, etc). Opening + closing the app
- * five times in a day should produce ONE network call, not five.
- */
-const AUTO_CHECK_THROTTLE_MS = 24 * 60 * 60 * 1000;
-
-/**
  * Decide whether the auto-check should run right now.
  *
- * Exported separately from `maybeAutoCheckForUpdates` so the throttle
- * logic can be unit-tested without spinning up the Tauri IPC or the
- * toast layer.
+ * Currently this is a thin wrapper over the `autoCheck` flag — no
+ * launch throttle. The previous implementation used a 24h throttle
+ * keyed on `lastCheckedAt`, but for a Nightly user whose channel
+ * publishes multiple builds per day that broke the feature's promise
+ * (the toggle is literally labelled "Auto-check on launch"). A single
+ * HTTP request to a GitHub release-asset CDN per app open is
+ * negligible traffic, and `maybeAutoCheckForUpdates` is gated by the
+ * vault-init effect so it fires at most once per vault open anyway.
+ *
+ * Kept as a named function so the rest of the service can pass the
+ * boolean intent through one chokepoint and the unit tests can cover
+ * the trivial cases without spinning up the Tauri IPC layer.
+ *
+ * `lastCheckedAt` is still tracked for the "Last checked" UI row but
+ * no longer participates in the should-run decision.
  */
-export function shouldAutoCheckNow(
-	autoCheck: boolean,
-	lastCheckedAt: number | null,
-	now: number,
-): boolean {
-	if (!autoCheck) return false;
-	if (lastCheckedAt === null) return true;
-	return now - lastCheckedAt >= AUTO_CHECK_THROTTLE_MS;
+export function shouldAutoCheckNow(autoCheck: boolean): boolean {
+	return autoCheck;
 }
 
 /**
@@ -58,8 +55,8 @@ export function shouldAutoCheckNow(
  * failure during cold start should not nag the user with a toast).
  */
 export async function maybeAutoCheckForUpdates(): Promise<void> {
-	const { autoCheck, lastCheckedAt, channel } = settingsStore.updates;
-	if (!shouldAutoCheckNow(autoCheck, lastCheckedAt, Date.now())) return;
+	const { autoCheck, channel } = settingsStore.updates;
+	if (!shouldAutoCheckNow(autoCheck)) return;
 
 	try {
 		const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', { channel });

@@ -23,9 +23,9 @@ Settings → **Update** → **Release channel** dropdown.
 
 Settings → **Update** → **Auto-check on launch** toggle (off by default).
 
-When enabled, the app silently checks the configured channel's `latest.json` shortly after the vault loads. If a newer version is available, a toast prompts you to open Settings → Update to install. The check is throttled to once per 24h via the `updates.lastCheckedAt` timestamp, so opening and closing the app multiple times in a day produces one network call, not many. Manual clicks on "Check for updates" also update the same timestamp.
+When enabled, the app silently checks the configured channel's `latest.json` shortly after the vault loads. If a newer version is available, a toast prompts you to open Settings → Update to install. The check fires on every vault open while the toggle is on — no throttle. The cost is a single HTTP request to a GitHub release-asset CDN per launch, and a Nightly user (where new builds publish multiple times a day) needs the check to actually fire on every launch.
 
-The "Last checked" row in the same section shows how recently the app asked GitHub for a newer version (or "Never" if no check has run yet).
+The "Last checked" row in the same section shows how recently the app asked GitHub for a newer version (or "Never" if no check has run yet). Manual clicks on "Check for updates" also update the same timestamp.
 
 ## Version-string semantics
 
