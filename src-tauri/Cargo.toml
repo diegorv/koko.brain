@@ -61,6 +61,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
 tauri-plugin-http = "2"
 tauri-plugin-updater = "2.10.0"
 tauri-plugin-process = "2.3.1"
+url = "2"
 
 # MCP server (exposes hybrid search to Claude Code while the app is running)
 rmcp = { version = "1.7", features = ["server", "macros", "schemars", "transport-streamable-http-server"] }

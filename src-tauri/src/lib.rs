@@ -160,6 +160,7 @@ pub fn run() {
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
+            commands::update_channel::check_for_update_on_channel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
