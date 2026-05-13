@@ -142,21 +142,28 @@ jobs:
           echo "nightly_version=${NIGHTLY_VERSION}" >> "$GITHUB_OUTPUT"
           echo "Computed nightly version: ${NIGHTLY_VERSION}"
 
-      - name: Patch package.json and tauri.conf.json with nightly version
+      - name: Patch tauri.conf.json with nightly version
         # In-place edit, job-scoped — no commit. Tauri reads the version
-        # from `src-tauri/tauri.conf.json` for the bundle's Info.plist and
-        # for the `latest.json` it writes alongside the DMG. Vite reads
-        # `package.json#version` to build the `__BUILD_INFO__` constant.
-        # Both must match the channel-aware nightly version so the
-        # auto-updater sees a semver-monotonic stream of nightlies.
+        # from `src-tauri/tauri.conf.json` for the bundle's Info.plist
+        # and for the `latest.json` it writes alongside the DMG, so this
+        # file must carry the channel-aware nightly version.
+        #
+        # We intentionally do NOT patch `package.json`: Vite reads it for
+        # `__BUILD_INFO__`, but `src/lib/utils/build-info.js`'s
+        # `resolveVersion()` already appends the
+        # `-nightly.<count>.<sha>` suffix when `KOKO_RELEASE_CHANNEL=nightly`,
+        # so a patched pkg.json would produce a doubled suffix (we saw
+        # this in run 25819389393: build info read
+        # `2.0.19-alpha-nightly.544.0adf7da-nightly.544.0adf7da`).
+        # Leaving package.json at the unpatched base version keeps the
+        # helper as the single source of truth for the nightly suffix
+        # and matches the existing build-info.test.ts expectations.
         run: |
           set -euo pipefail
           NIGHTLY_VERSION="${{ steps.ver.outputs.nightly_version }}"
-          jq --arg v "$NIGHTLY_VERSION" '.version = $v' package.json > package.json.tmp
-          mv package.json.tmp package.json
           jq --arg v "$NIGHTLY_VERSION" '.version = $v' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
           mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
-          echo "--- package.json ---"
+          echo "--- package.json (unpatched) ---"
           jq '{ name, version }' package.json
           echo "--- tauri.conf.json ---"
           jq '{ productName, version }' src-tauri/tauri.conf.json
