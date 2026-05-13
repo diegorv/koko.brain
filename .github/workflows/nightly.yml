@@ -127,6 +127,13 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          # Share the rust-cache slot with release.yml and
+          # cache-warmer.yml — all three run the same
+          # `cargo build --release --target aarch64-apple-darwin`,
+          # so a successful build in any of them primes the cache
+          # for the next.
+          rust-cache-key: macos-release-aarch64
 
       - name: Compute nightly version
         id: ver

@@ -62,6 +62,13 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          # Share the rust-cache slot with nightly.yml and release.yml.
+          # The whole point of the warmer is to prime that shared
+          # cache; without this key it would live in its own
+          # `v0-rust-warm-...` namespace and the warmer would only
+          # warm itself.
+          rust-cache-key: macos-release-aarch64
 
       - name: Build src-tauri in release mode (no bundle, no codesign)
         # Mirrors the rustc invocations tauri-action issues during a
