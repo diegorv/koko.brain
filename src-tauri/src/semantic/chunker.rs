@@ -16,7 +16,14 @@ impl Default for ChunkOptions {
 	fn default() -> Self {
 		Self {
 			min_chunk_chars: 50,
-			max_chunk_chars: 10_000,
+			// Lowered from 10_000 → 3_000 (~700 tokens) for retrieval precision.
+			// Rationale: a single 10k-char chunk often spans multiple sub-topics
+			// (e.g. an entire H2 section with several H3 subsections that didn't
+			// get split because the H3 bodies were short and got merged). The
+			// embedder collapses them into one ~1024-dim vector, diluting any
+			// individual topic's signal. ~700-token chunks are the published
+			// sweet spot for cosine retrieval on dense paragraphs.
+			max_chunk_chars: 3_000,
 			overlap_lines: 2,
 		}
 	}
@@ -404,6 +411,34 @@ mod tests {
 			chunk.embed_text(),
 			"Stoicism > Practical applications > Daily journaling\n\nbody text"
 		);
+	}
+
+	#[test]
+	fn default_max_chunk_chars_is_3000() {
+		// Regression guard: changing this value forces a full reindex, so it
+		// must be explicit. Bump `EMBED_RECIPE_VERSION` in semantic.rs when
+		// changing.
+		let opts = ChunkOptions::default();
+		assert_eq!(opts.max_chunk_chars, 3_000);
+		assert_eq!(opts.min_chunk_chars, 50);
+		assert_eq!(opts.overlap_lines, 2);
+	}
+
+	#[test]
+	fn default_options_truncate_large_section() {
+		// A single section larger than the new default cap should be truncated.
+		let body = "Lorem ipsum ".repeat(400); // ~4800 chars
+		let content = format!("# Heading\n\n{}", body);
+		let chunks = chunk_markdown("test.md", &content, &ChunkOptions::default());
+		assert!(!chunks.is_empty());
+		// All emitted chunks fit within the cap.
+		for c in &chunks {
+			assert!(
+				c.content.chars().count() <= 3_000,
+				"chunk len {} exceeds 3000",
+				c.content.chars().count()
+			);
+		}
 	}
 
 	#[test]
