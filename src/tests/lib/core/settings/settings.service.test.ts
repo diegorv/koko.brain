@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -359,6 +359,76 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.editor.headingTypography).toEqual(
 			DEFAULT_SETTINGS.editor.headingTypography,
 		);
+	});
+
+	describe('updates.channel', () => {
+		afterEach(() => {
+			// Clean up the global override so other tests see the default
+			// (the typeof guard in getBuildChannel falls back to 'stable').
+			delete (globalThis as Record<string, unknown>).__APP_CHANNEL__;
+		});
+
+		it('defaults updates.channel to "stable" on fresh install (no __APP_CHANNEL__ define)', async () => {
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.updates.channel).toBe('stable');
+		});
+
+		it('defaults updates.channel to "nightly" on a nightly build (fresh install)', async () => {
+			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.updates.channel).toBe('nightly');
+		});
+
+		it('respects an explicit channel from a saved settings file', async () => {
+			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ updates: { channel: 'stable' } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			// User explicitly picked stable on a nightly build — keep it.
+			expect(settingsStore.settings.updates.channel).toBe('stable');
+		});
+
+		it('falls back to the build channel when saved settings omit the updates block', async () => {
+			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ editor: { fontSize: 18 } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			// Pre-existing settings file from before the channel feature → use build channel.
+			expect(settingsStore.settings.updates.channel).toBe('nightly');
+		});
+
+		it('falls back to the build channel on parse error', async () => {
+			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue('not json');
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.updates.channel).toBe('nightly');
+			consoleSpy.mockRestore();
+		});
 	});
 
 	it('normalizes appearance settings on load', async () => {

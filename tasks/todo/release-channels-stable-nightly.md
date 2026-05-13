@@ -46,12 +46,12 @@ Introduce a second release channel (`nightly`) alongside the existing tag-driven
   - For nightly builds, compute the version as `${pkg.version}-nightly.<commitCount>.<sha>` (commit count is required so consecutive nightlies sort monotonically under semver; raw shas sort lexically and would break the auto-updater).
   - Helper extracted to `src/lib/utils/build-info.js` (kept as `.js` so vite.config.js can `import` it at config-load time without a TS transpile pass). Tests in `src/tests/lib/utils/build-info.test.ts`.
 
-- [ ] Task 2: Add `updates.channel` to `AppSettings`
-  - Extend `settings.types.ts` with `UpdateSettings { channel: 'stable' | 'nightly' }` and add `updates: UpdateSettings` to `AppSettings`.
-  - Default in `DEFAULT_SETTINGS` is `{ channel: 'stable' }`.
-  - Add `settingsStore.updateChannel(channel)` setter following the existing pattern.
-  - Migrate `.kokobrain/settings.json`: missing `updates` block → fill from default. Existing settings persistence already does this (deep-merge on load), confirm no migration code required by reading `settings.service.ts`.
-  - Tests: `src/tests/settings.store.test.ts` — extend to cover `updates.channel` default + setter + persistence round-trip.
+- [x] Task 2: Add `updates.channel` to `AppSettings`
+  - Extended `settings.types.ts` with `ReleaseChannel` + `UpdateSettings { channel: ReleaseChannel }` and `updates: UpdateSettings` on `AppSettings`.
+  - `DEFAULT_SETTINGS.updates.channel = 'stable'`. The build-channel default for fresh installs is applied at load time (see service change), not on the static constant — keeps tests of `DEFAULT_SETTINGS` deterministic.
+  - Added `settingsStore.updateChannel(channel)` setter + `get updates()` getter.
+  - `settings.service.ts` `loadSettings()` honours `parsed.updates?.channel` when present, otherwise falls back to `getBuildChannel()` (new helper at `src/lib/utils/app-channel.ts` reading `__APP_CHANNEL__` safely). All four load paths covered: fresh install, empty file, missing-`updates` block on existing file, parse/read error.
+  - Tests: extended `src/tests/lib/core/settings/settings.store.test.ts` (3 new tests) and `src/tests/lib/core/settings/settings.service.test.ts` (5 new tests covering build-channel fallback + explicit-channel preservation).
 
 - [ ] Task 3: Render channel in `Troubleshooting` and `+page.svelte` build-info footer
   - `TroubleshootingSection.svelte`: change "Build" row to also show channel as a small badge before the version. Format: `[stable] 2.0.19-alpha (sha) (time)` or `[nightly] 2.0.19-alpha-nightly.<sha> (sha) (time)`.

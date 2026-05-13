@@ -197,6 +197,34 @@ export interface QueryjsSettings {
 	autoRunQueries: AutoRunQueriesPolicy;
 }
 
+/**
+ * Release channel the in-app auto-updater follows.
+ *
+ * - `'stable'` → tag-driven builds from `.github/workflows/release.yml`.
+ * - `'nightly'` → push-to-main builds from `.github/workflows/nightly.yml`.
+ *
+ * The channel chosen here is independent of the channel the build itself
+ * belongs to (see `__APP_CHANNEL__`). A nightly build can follow the
+ * stable channel and vice versa, but switching from nightly to stable
+ * does not automatically downgrade the user — nightly versions are
+ * semver-greater than the same-base stable versions, so the auto-updater
+ * will never offer a "downgrade". Manual reinstall is required.
+ */
+export type ReleaseChannel = 'stable' | 'nightly';
+
+/** Configuration for the in-app auto-updater */
+export interface UpdateSettings {
+	/**
+	 * Which release channel the auto-updater should check.
+	 *
+	 * Defaults to the channel the current build belongs to on first launch
+	 * (so a freshly installed nightly DMG starts on the nightly channel,
+	 * a freshly installed stable DMG starts on stable). Persists across
+	 * restarts.
+	 */
+	channel: ReleaseChannel;
+}
+
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'security' | 'troubleshooting' | 'update';
 
@@ -243,4 +271,6 @@ export interface AppSettings {
 	tagColors: TagColorSettings;
 	/** QueryJS plugin configuration (execution policy, …) */
 	queryjs: QueryjsSettings;
+	/** In-app auto-updater configuration (channel selection, …) */
+	updates: UpdateSettings;
 }
