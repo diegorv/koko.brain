@@ -65,6 +65,30 @@ runs:
       with:
         targets: ${{ inputs.rust-targets }}
 
+    # macos-15-arm64 image (image version 20260511.0048+) ships a Homebrew
+    # rustup whose `/opt/homebrew/bin/cargo` symlink is a broken stub that
+    # exec's `rustup-init` directly (argv[0] dispatch fails), so any plain
+    # `cargo test` resolves to "error: unexpected argument 'test' found /
+    # Usage: rustup-init[EXE] [OPTIONS]" and exits 1 (see CI run
+    # 25830494309 job 75894082550). dtolnay/rust-toolchain@stable installs
+    # a working rustup at `$HOME/.cargo/bin` but, when it detects an
+    # existing rustup on PATH (the broken Homebrew one), reuses it
+    # without prepending `$HOME/.cargo/bin` to GITHUB_PATH — so the broken
+    # stub keeps winning lookup ordering. This step forces the correct
+    # ordering and aborts the job immediately if `cargo --version` still
+    # routes to rustup-init, so a future image regression fails fast with
+    # a clear message instead of triggering an opaque exit-1 deep in tests.
+    - name: Force $HOME/.cargo/bin ahead of Homebrew stubs
+      if: inputs.rust == 'true'
+      shell: bash
+      run: |
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        if ! "$HOME/.cargo/bin/cargo" --version >/dev/null 2>&1; then
+          echo "::error::cargo at \$HOME/.cargo/bin is not executable after rust-toolchain setup"
+          exit 1
+        fi
+        "$HOME/.cargo/bin/cargo" --version
+
     # `.cargo/config.toml` at the repo root sets `rustc-wrapper = "sccache"`.
     # Without sccache on PATH, every cargo invocation on CI errors out with
     # "Could not find sccache in PATH". This step installs the binary AND
