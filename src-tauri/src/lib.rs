@@ -30,20 +30,18 @@ fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> 
     // shows `2.0.19-alpha-nightly.<count>.<sha>` for nightlies and
     // `X.Y.Z-alpha` for stable.
     //
-    // For nightly the version already ends with the sha, so we drop
-    // the parenthesised short_version sha to avoid duplicating the
-    // hash (same UX issue we fixed in formatBuildInfo on the frontend
-    // — see src/lib/utils/build-info.js).
-    let pkg_info = app.package_info();
-    let version_str = pkg_info.version.to_string();
-    let is_nightly_version = version_str.contains("-nightly.");
+    // `short_version` always carries the git hash. Cannot omit it
+    // (setting `None` makes macOS fall back to `Info.plist`'s
+    // `CFBundleVersion`, which Tauri writes from the SAME
+    // tauri.conf.json#version field — so an "empty" short_version
+    // renders as the full nightly version duplicated in parens).
+    // For stable this gives "Version 2.0.19-alpha (sha)". For
+    // nightly it gives "Version X.Y.Z-nightly.N.sha (sha)" — the
+    // sha repeats at the tail but only ~7 characters, far less ugly
+    // than a full-version duplicate.
     let about = AboutMetadata {
-        version: Some(version_str),
-        short_version: if is_nightly_version {
-            None
-        } else {
-            Some(env!("GIT_HASH").to_string())
-        },
+        version: Some(app.package_info().version.to_string()),
+        short_version: Some(env!("GIT_HASH").to_string()),
         ..Default::default()
     };
 
