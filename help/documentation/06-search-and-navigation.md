@@ -82,26 +82,31 @@ Kokobrain offers three search modes. Select them using the tabs at the top of th
 
 Fast full-text search powered by SQLite FTS5. This mode finds exact words and phrases across all your notes. Results are ranked by relevance using the BM25 algorithm, and matching text is highlighted in the results.
 
+The FTS index uses the `unicode61` tokenizer with diacritic folding, so `acao` matches `ação`, `cafe` matches `café`, and so on. Both your queries and your notes are folded the same way at index time, so accents never cause missed matches.
+
 #### Semantic Search (AI-powered)
 
 Semantic search understands the *meaning* of your query, not just the exact keywords. For example, searching "meeting with client" can find a note titled "customer sync-up" even though none of the words match.
 
-- Requires a one-time model download (~118 MB). Enable it in **Settings > Search > Semantic Search**.
-- Uses a local AI model (BGE-M3) that runs entirely on your machine — your data never leaves your computer.
+- Requires a one-time model download (~120 MB for the embedder). Enable it in **Settings > Search > Semantic Search**.
+- Uses local AI models (BGE-M3 embedder, plus an optional BGE-reranker-v2-m3 cross-encoder) that run entirely on your machine — your data never leaves your computer.
 
 **How it works under the hood:**
 
-1. **Chunking**: Kokobrain splits each note into chunks based on Markdown headings. Short sections are merged together; long sections are capped. This ensures each chunk has enough context for meaningful similarity matching.
-2. **Embedding**: Each chunk is converted into a numerical vector (embedding) using the BGE-M3 ONNX model, which runs locally via the ONNX Runtime. Chunks are processed in batches for efficiency.
-3. **Searching**: When you search, your query is also converted into an embedding, then compared against all stored chunk embeddings using cosine similarity.
-4. **Filtering**: Results go through adaptive noise filtering that removes low-quality matches by detecting natural score gaps in the results, so you see only relevant hits.
+1. **Chunking**: Kokobrain splits each note into chunks. Headings drive the structure: each section becomes its own chunk, with the parent heading hierarchy (e.g. `Project X > Decisions > Auth`) prepended to the embedded text so semantically similar sections from different parts of the vault remain distinguishable. Long sections are split with a character-based cap (~3000 chars) and overlap so context carries between chunks. Notes that contain no headings at all fall back to a sliding-window chunker so they get indexed in their entirety instead of being truncated to the model's token limit. Fenced code blocks keep their opening lines and inline comments so function names, CLI flags, and signatures stay searchable.
+2. **Embedding**: Each chunk is converted into a 1024-dimensional vector using the BGE-M3 ONNX model, which runs locally via the ONNX Runtime. Chunks are processed in batches. Re-indexing is content-hash-aware — chunks whose text hasn't changed since the last index skip embedding entirely.
+3. **Searching**: When you search, your query is also embedded, then compared against all stored chunk embeddings using cosine similarity. The top 50 candidates are kept for the next stage.
+4. **Reranking (optional)**: If the BGE-reranker-v2-m3 cross-encoder model has been downloaded (~571 MB, opt-in via **Settings > Search**), the top 50 candidates are re-scored by reading each `(query, chunk)` pair jointly. This is qualitatively a much stronger signal than cosine similarity alone — it captures word-level relevance the bi-encoder embedding cannot — at the cost of ~500 ms of CPU work per query. If the reranker model is not present, this stage is skipped transparently and results stay in cosine order.
+5. **Filtering**: Results go through adaptive noise filtering that removes low-quality matches by detecting natural score gaps in the ranked list, so you see only the relevant hits.
 
 #### Hybrid Search
 
-Hybrid search combines text and semantic results for the best of both worlds. It uses Reciprocal Rank Fusion (RRF) to merge the rankings from both search engines into a single result list. This mode is only available when semantic search is enabled.
+Hybrid search combines text and semantic results for the best of both worlds. It uses Reciprocal Rank Fusion (RRF, `k = 60`) to merge the rankings from FTS and the semantic engine into a single fused ranking, then the top 50 fused candidates are reranked with the BGE cross-encoder (when available) and adaptively filtered exactly like semantic mode. This captures both exact-term hits and paraphrased / multilingual matches in one ranking.
+
+This mode is only available when semantic search is enabled. The reranker step is skipped automatically if its model is not downloaded.
 
 > [!NOTE]
-> Semantic search runs entirely on your machine. No data is sent to any server.
+> Everything — embeddings, reranking, and ranking — runs entirely on your machine. No query or document text is ever sent to any server. The ONNX model files are downloaded once from HuggingFace and then run locally.
 
 ### Fuzzy Toggle
 

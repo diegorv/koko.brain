@@ -34,8 +34,8 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 
 - **Markdown editor** with source mode and live preview (CodeMirror)
 - **Wikilinks** (`[[note]]`) with autocomplete, block references, and embeds
-- **Full-text search** powered by SQLite FTS5 with BM25 ranking
-- **Semantic search** using a local AI model (BGE-M3 via ONNX Runtime) — no data leaves your machine
+- **Full-text search** powered by SQLite FTS5 with BM25 ranking and accent-insensitive matching (unicode61)
+- **Semantic search** using a local BGE-M3 embedder (ONNX Runtime), with an opt-in BGE-reranker-v2-m3 cross-encoder, and a hybrid mode that fuses FTS and semantic rankings via Reciprocal Rank Fusion — every model runs on your machine, nothing leaves it
 - **Graph view** — interactive force-directed visualization of note connections
 - **Canvas** — infinite visual board with text, file, link, and image nodes (JSON Canvas 1.0)
 - **Collection** — database/table views of notes queried by frontmatter properties
@@ -130,6 +130,7 @@ src-tauri/src/
 - **[Testing Guide](docs/TESTING.md)** — Mock rules, assertion patterns, service/store tests
 - **[Commit Conventions](docs/COMMITS.md)** — Commit message format and examples
 - **[Live Preview Architecture](docs/LIVE-PREVIEW.md)** — Editor live preview plugin system
+- **[Search Architecture](docs/SEARCH.md)** — Retrieval pipeline, chunking, models, RRF, versioning levers
 - **[GitHub Workflows](GITHUB-WORKFLOW.md)** — What each CI workflow tests, when it runs, and what it does not cover
 
 ## IDE Setup
@@ -150,7 +151,8 @@ The only external network calls in the entire codebase are:
 
 | Call | Where | Why |
 |------|-------|-----|
-| HuggingFace model download | `src-tauri/src/semantic/model.rs` | One-time download of the BGE-M3 ONNX model and tokenizer for local semantic search. After download, everything runs offline. |
+| HuggingFace model download (BGE-M3) | `src-tauri/src/semantic/model.rs` | One-time download of the BGE-M3 ONNX embedder and tokenizer for local semantic search. After download, everything runs offline. |
+| HuggingFace model download (BGE-reranker-v2-m3) | `src-tauri/src/semantic/model.rs` | One-time, opt-in download of the BGE-reranker-v2-m3 ONNX cross-encoder for higher-quality semantic and hybrid search. Only triggered when the user clicks "Download" in Settings. After download, everything runs offline. |
 | Chart.js CDN | `src/lib/plugins/queryjs/dv-ui.ts` | Loads Chart.js for rendering charts in QueryJS results. |
 
 A [Privacy Check](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml) workflow runs on every push and pull request, scanning all `.ts` and `.rs` source files for external network calls. Any new external call that is not explicitly approved will fail the build.
