@@ -69,22 +69,57 @@ jobs:
 
       - name: Skip if commit is a stable version bump
         id: check
-        # Pass the commit message through an env var rather than direct
-        # ${{ ... }} expansion: a malicious commit subject containing
-        # shell metacharacters would otherwise execute inside this step.
-        # `|| ''` covers workflow_dispatch where head_commit is null.
+        # Two-layer detection so a release commit always skips nightly,
+        # regardless of how the commit was authored:
+        #
+        # 1. Authoritative: ask the GitHub API whether any release tag
+        #    points at this SHA. release.sh pushes the bump commit and
+        #    the tag together, so by the time the runner reaches this
+        #    step the tag is almost always already on origin. If the
+        #    tag is there, release.yml is going to handle this SHA and
+        #    nightly must back off.
+        #
+        # 2. Fallback: subject-prefix match for the brief race window
+        #    where the tag push hasn't landed yet. Accepts any
+        #    `chore(...)? : ... bump version ...` shape so a future
+        #    rename of release.sh's commit message (e.g.
+        #    `chore(release): bump version to X`) doesn't silently
+        #    re-enable duplicate builds. Also matches an explicit
+        #    `[skip nightly]` marker anywhere in the commit body for
+        #    out-of-band manual skips.
+        #
+        # COMMIT_MSG is read via env (not inline ${{ ... }}) to neutralize
+        # shell-metacharacter injection from commit subjects. `|| ''`
+        # covers workflow_dispatch where head_commit is null.
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -n 1)
-          if [[ "$SUBJECT" == "chore: bump version"* ]]; then
-            echo "::notice::Detected version-bump commit ('$SUBJECT'). release.yml handles the stable build; skipping nightly to avoid duplicate work."
+
+          TAGS_AT_SHA=$(gh api "repos/${{ github.repository }}/git/refs/tags" --paginate --jq ".[] | select(.object.sha == \"$COMMIT_SHA\") | .ref" 2>/dev/null | grep -E 'refs/tags/[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$' || true)
+          if [ -n "$TAGS_AT_SHA" ]; then
+            echo "::notice::Release tag(s) at HEAD detected: $TAGS_AT_SHA. release.yml owns this SHA; skipping nightly."
             echo "should_build=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Proceeding: '$SUBJECT' is not a version bump."
-            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          if [[ "$SUBJECT" =~ ^chore(\([^)]*\))?:.*bump[[:space:]]+version ]]; then
+            echo "::notice::Detected version-bump commit shape ('$SUBJECT'). Skipping nightly to avoid colliding with release.yml."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$COMMIT_MSG" == *"[skip nightly]"* ]]; then
+            echo "::notice::Detected [skip nightly] marker in commit body. Skipping nightly."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Proceeding: '$SUBJECT' is not a release-flow commit."
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
 
   # Reuse the existing CI suite on this commit. Same workflow_call
   # contract release.yml uses, but without forcing the paths-filter
