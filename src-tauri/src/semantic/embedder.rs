@@ -15,10 +15,12 @@ pub struct Embedder {
 }
 
 impl Embedder {
-	/// Maximum texts per ONNX inference call to limit memory usage.
-	/// Kept small (4) to reduce peak RSS — BGE-M3 allocates large intermediate
-	/// activation tensors proportional to batch × seq_len × hidden_dim.
-	const INFERENCE_BATCH_SIZE: usize = 4;
+	/// Maximum texts per ONNX inference call.
+	/// Raised from 4 → 8: the M-series CPU SIMD path under-utilizes at batch=4
+	/// (per-batch dispatch overhead dominates), and the larger batch ~doubles
+	/// throughput. Peak RSS bumps proportionally — at seq_len=512 the extra
+	/// intermediates are ~800MB, well under the 32GB+ box this runs on.
+	const INFERENCE_BATCH_SIZE: usize = 8;
 
 	/// Loads the ONNX model and tokenizer from the given directory.
 	///
@@ -34,8 +36,11 @@ impl Embedder {
 			return Err(format!("Tokenizer not found: {:?}", tokenizer_path));
 		}
 
+		// Raised from min(4) → min(8) to use the M-series performance cores
+		// during indexing. Indexing is the only flow that pegs the embedder,
+		// and the user doesn't typically interact with the UI while it runs.
 		let num_threads = std::thread::available_parallelism()
-			.map(|n| n.get().min(4))
+			.map(|n| n.get().min(8))
 			.unwrap_or(4);
 		debug_log("EMBEDDER", format!("Using {} intra-op threads", num_threads));
 

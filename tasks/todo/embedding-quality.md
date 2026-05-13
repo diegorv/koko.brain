@@ -49,6 +49,13 @@ Fuse FTS5 (BM25, exact terms) with semantic (concepts, paraphrase). Captures bot
 - [ ] Task 3.4: Wire frontend search panel + command palette to `search_hybrid`. Keep `search_semantic` + FTS callable for debug.
 - [ ] Task 3.5: Eval — target +10-15% MRR over Phase 2 alone on mixed-query workload.
 
+## Phase 2.7 — Indexing/rerank throughput tweaks
+
+- [x] Task 2.7.1: **Bump intra-op thread cap 4 → 8** in both `Embedder::load` and `Reranker::load`. M-series perf cores are 8+; the user doesn't interact with the UI during indexing, so capping at 4 left throughput on the table.
+- [x] Task 2.7.2: **Bump embedder `INFERENCE_BATCH_SIZE` 4 → 8.** CPU SIMD under-utilizes at batch=4 (dispatch overhead dominates); doubling the batch ~doubles throughput. Peak RSS bumps proportionally (~+800MB at seq=512), still well within budget.
+
+Combined estimated speedup on next reindex: **~2-2.5x**.
+
 ## Phase 4 — Optional refinements (only if eval shows need)
 
 - [ ] Task 4.1: **Sparse retrieval signal.** BGE-M3 actually outputs sparse + colbert vectors too — we throw them away. Storing the sparse component alongside dense could improve recall on rare-term queries without extra model cost. Significant DB schema change.

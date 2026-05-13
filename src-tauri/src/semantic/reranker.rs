@@ -47,8 +47,10 @@ impl Reranker {
 			return Err(format!("Reranker tokenizer not found: {:?}", tokenizer_path));
 		}
 
+		// Same cap as the embedder (min(8)) — uses the M-series performance
+		// cores during interactive query rerank.
 		let num_threads = std::thread::available_parallelism()
-			.map(|n| n.get().min(4))
+			.map(|n| n.get().min(8))
 			.unwrap_or(4);
 		debug_log("RERANKER", format!("Using {} intra-op threads", num_threads));
 
