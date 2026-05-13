@@ -14,7 +14,7 @@ fn setup() -> Connection {
 fn clear_all_chunks_empties_table() {
 	let conn = setup();
 	semantic_repo::insert_chunk(
-		&conn, "k1", "a.md", "text", None, 1, 5, "h1", b"emb", 1000,
+		&conn, "k1", "a.md", "text", None, &[], 1, 5, "h1", b"emb", 1000,
 	)
 	.unwrap();
 	assert_eq!(semantic_repo::count_chunks(&conn).unwrap(), 1);
@@ -69,9 +69,9 @@ fn get_stored_mtimes_empty() {
 #[test]
 fn delete_chunks_for_path_removes_matching() {
 	let conn = setup();
-	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, &[], 1, 5, "h1", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, 1, 5, "h2", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, &[], 1, 5, "h2", b"e", 1000)
 		.unwrap();
 
 	semantic_repo::delete_chunks_for_path(&conn, "a.md").unwrap();
@@ -92,6 +92,7 @@ fn insert_chunk_stores_all_fields() {
 		"notes/a.md",
 		"Hello world",
 		Some("Introduction"),
+		&[],
 		1,
 		10,
 		"abc123",
@@ -114,7 +115,7 @@ fn insert_chunk_stores_all_fields() {
 #[test]
 fn insert_chunk_replaces_on_same_key() {
 	let conn = setup();
-	semantic_repo::insert_chunk(&conn, "k1", "a.md", "old", None, 1, 5, "h1", b"e1", 1000)
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "old", None, &[], 1, 5, "h1", b"e1", 1000)
 		.unwrap();
 	semantic_repo::insert_chunk(
 		&conn,
@@ -122,6 +123,7 @@ fn insert_chunk_replaces_on_same_key() {
 		"a.md",
 		"updated",
 		Some("New heading"),
+		&[],
 		2,
 		8,
 		"h2",
@@ -150,11 +152,11 @@ fn load_all_embeddings_empty() {
 #[test]
 fn get_distinct_sources_deduplicates() {
 	let conn = setup();
-	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, &[], 1, 5, "h1", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, 6, 10, "h2", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, &[], 6, 10, "h2", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k3", "b.md", "t3", None, 1, 5, "h3", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k3", "b.md", "t3", None, &[], 1, 5, "h3", b"e", 1000)
 		.unwrap();
 
 	let sources = semantic_repo::get_distinct_sources(&conn).unwrap();
@@ -199,11 +201,11 @@ fn count_chunks_and_sources() {
 	assert_eq!(semantic_repo::count_chunks(&conn).unwrap(), 0);
 	assert_eq!(semantic_repo::count_sources(&conn).unwrap(), 0);
 
-	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, &[], 1, 5, "h1", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, 6, 10, "h2", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, &[], 6, 10, "h2", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k3", "b.md", "t3", None, 1, 5, "h3", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k3", "b.md", "t3", None, &[], 1, 5, "h3", b"e", 1000)
 		.unwrap();
 
 	assert_eq!(semantic_repo::count_chunks(&conn).unwrap(), 3);
@@ -216,12 +218,12 @@ fn count_chunks_and_sources() {
 fn get_sample_chunks_returns_limited_results() {
 	let conn = setup();
 	semantic_repo::insert_chunk(
-		&conn, "k1", "a.md", "t1", Some("H1"), 1, 5, "h1", b"embed", 1000,
+		&conn, "k1", "a.md", "t1", Some("H1"), &[], 1, 5, "h1", b"embed", 1000,
 	)
 	.unwrap();
-	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, 1, 5, "h2", b"embed", 1000)
+	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, &[], 1, 5, "h2", b"embed", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k3", "c.md", "t3", None, 1, 5, "h3", b"embed", 1000)
+	semantic_repo::insert_chunk(&conn, "k3", "c.md", "t3", None, &[], 1, 5, "h3", b"embed", 1000)
 		.unwrap();
 
 	let samples = semantic_repo::get_sample_chunks(&conn, 2).unwrap();
@@ -317,14 +319,14 @@ fn get_file_index_info_returns_zero_for_unknown_path() {
 #[test]
 fn get_file_index_info_returns_count_and_latest_embedded_at() {
 	let conn = setup();
-	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, &[], 1, 5, "h1", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, 6, 10, "h2", b"e", 4500)
+	semantic_repo::insert_chunk(&conn, "k2", "a.md", "t2", None, &[], 6, 10, "h2", b"e", 4500)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k3", "a.md", "t3", None, 11, 15, "h3", b"e", 2200)
+	semantic_repo::insert_chunk(&conn, "k3", "a.md", "t3", None, &[], 11, 15, "h3", b"e", 2200)
 		.unwrap();
 	// Unrelated file — must not leak into the result.
-	semantic_repo::insert_chunk(&conn, "k4", "b.md", "t4", None, 1, 5, "h4", b"e", 9000)
+	semantic_repo::insert_chunk(&conn, "k4", "b.md", "t4", None, &[], 1, 5, "h4", b"e", 9000)
 		.unwrap();
 
 	let (count, last) = semantic_repo::get_file_index_info(&conn, "a.md").unwrap();
@@ -335,9 +337,9 @@ fn get_file_index_info_returns_count_and_latest_embedded_at() {
 #[test]
 fn get_file_index_info_isolates_by_source_path() {
 	let conn = setup();
-	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, 1, 5, "h1", b"e", 1000)
+	semantic_repo::insert_chunk(&conn, "k1", "a.md", "t1", None, &[], 1, 5, "h1", b"e", 1000)
 		.unwrap();
-	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, 1, 5, "h2", b"e", 2000)
+	semantic_repo::insert_chunk(&conn, "k2", "b.md", "t2", None, &[], 1, 5, "h2", b"e", 2000)
 		.unwrap();
 
 	let (count_b, last_b) = semantic_repo::get_file_index_info(&conn, "b.md").unwrap();
@@ -361,7 +363,7 @@ fn audit_finding_12_db_persists_malformed_embedding_bytes_unchanged() {
 	// 4 bytes that decode as f32 1.0 in little-endian + 1 orphan byte.
 	let bad_emb: &[u8] = &[0x00, 0x00, 0x80, 0x3F, 0xFF];
 	semantic_repo::insert_chunk(
-		&conn, "k1", "a.md", "text", None, 1, 5, "h1", bad_emb, 1000,
+		&conn, "k1", "a.md", "text", None, &[], 1, 5, "h1", bad_emb, 1000,
 	)
 	.unwrap();
 

@@ -2,46 +2,85 @@ use futures_util::StreamExt;
 use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 
-/// Model name used for the semantic search embeddings.
-const MODEL_NAME: &str = "bge-m3";
+/// Static configuration for a downloadable ONNX model.
+///
+/// `name` is used as the on-disk subdirectory under `.kokobrain/models/`.
+/// `downloads` is the list of `(url, local_filename)` pairs the manager fetches.
+/// `files` is the set of filenames `is_available` checks for.
+pub struct ManagedModel {
+	pub name: &'static str,
+	pub downloads: &'static [(&'static str, &'static str)],
+	pub files: &'static [&'static str],
+}
 
-/// Remote files to download: (url, local_filename).
-/// Uses Xenova's BGE-M3 quantized ONNX model (~542MB) — state-of-the-art multilingual retrieval.
-/// 1024 dimensions, 100+ languages, 8192 max tokens, no query/passage prefixes needed.
-const MODEL_DOWNLOADS: &[(&str, &str)] = &[
-	(
-		"https://huggingface.co/Xenova/bge-m3/resolve/main/onnx/model_quantized.onnx",
-		"model.onnx",
-	),
-	(
-		"https://huggingface.co/Xenova/bge-m3/resolve/main/tokenizer.json",
-		"tokenizer.json",
-	),
-];
+/// BGE-M3 dense retrieval embedder (Xenova's INT8 ONNX conversion).
+/// 1024 dimensions, 100+ languages, 8192 max tokens, no query/passage prefixes.
+pub const BGE_M3_EMBEDDER: ManagedModel = ManagedModel {
+	name: "bge-m3",
+	downloads: &[
+		(
+			"https://huggingface.co/Xenova/bge-m3/resolve/main/onnx/model_quantized.onnx",
+			"model.onnx",
+		),
+		(
+			"https://huggingface.co/Xenova/bge-m3/resolve/main/tokenizer.json",
+			"tokenizer.json",
+		),
+	],
+	files: &["model.onnx", "tokenizer.json"],
+};
 
-/// Local filenames the embedder expects to find.
-const MODEL_FILES: &[&str] = &["model.onnx", "tokenizer.json"];
+/// BGE-reranker-v2-m3 cross-encoder for reranking (`onnx-community/bge-reranker-v2-m3-ONNX`).
+/// 568M params, XLM-RoBERTa tokenizer, multilingual incl. PT-BR. Apache 2.0 license.
+/// INT8 quantized variant — ~571MB on disk, ~500ms CPU latency for top-50 query rerank.
+pub const BGE_RERANKER_V2_M3: ManagedModel = ManagedModel {
+	name: "bge-reranker-v2-m3",
+	downloads: &[
+		(
+			"https://huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX/resolve/main/onnx/model_int8.onnx",
+			"model.onnx",
+		),
+		(
+			"https://huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX/resolve/main/tokenizer.json",
+			"tokenizer.json",
+		),
+	],
+	files: &["model.onnx", "tokenizer.json"],
+};
 
-/// Manages ONNX model availability and download.
+/// Manages ONNX model availability and download for a single `ManagedModel`.
 pub struct ModelManager {
 	models_dir: PathBuf,
+	model: &'static ManagedModel,
 }
 
 impl ModelManager {
-	/// Creates a new ModelManager for the given vault path.
-	/// Model files are stored at `{vault_path}/.kokobrain/models/{MODEL_NAME}/`.
-	pub fn new(vault_path: &Path) -> Self {
+	/// Creates a manager scoped to a specific `ManagedModel`.
+	/// Files live at `{vault_path}/.kokobrain/models/{model.name}/`.
+	pub fn new(vault_path: &Path, model: &'static ManagedModel) -> Self {
 		Self {
 			models_dir: vault_path
 				.join(".kokobrain")
 				.join("models")
-				.join(MODEL_NAME),
+				.join(model.name),
+			model,
 		}
+	}
+
+	/// Manager for the dense retrieval embedder (BGE-M3).
+	pub fn for_embedder(vault_path: &Path) -> Self {
+		Self::new(vault_path, &BGE_M3_EMBEDDER)
+	}
+
+	/// Manager for the cross-encoder reranker (BGE-reranker-v2-m3).
+	pub fn for_reranker(vault_path: &Path) -> Self {
+		Self::new(vault_path, &BGE_RERANKER_V2_M3)
 	}
 
 	/// Checks if all required model files exist on disk.
 	pub fn is_model_available(&self) -> bool {
-		MODEL_FILES
+		self.model
+			.files
 			.iter()
 			.all(|f| self.models_dir.join(f).exists())
 	}
@@ -63,9 +102,9 @@ impl ModelManager {
 			.await
 			.map_err(|e| format!("Failed to create models dir: {e}"))?;
 
-		let total_files = MODEL_DOWNLOADS.len();
+		let total_files = self.model.downloads.len();
 
-		for (idx, (url, local_name)) in MODEL_DOWNLOADS.iter().enumerate() {
+		for (idx, (url, local_name)) in self.model.downloads.iter().enumerate() {
 			let file_path = self.models_dir.join(local_name);
 
 			// Skip if already downloaded
@@ -93,7 +132,7 @@ impl ModelManager {
 		dest: &Path,
 		on_progress: impl Fn(f32),
 	) -> Result<(), String> {
-		let client = reqwest::Client::new(); // huggingface.co/Xenova/bge-m3 downloads only
+		let client = reqwest::Client::new(); // huggingface.co downloads only
 		let response = client
 			.get(url)
 			.send()

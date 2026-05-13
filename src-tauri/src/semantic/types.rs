@@ -64,14 +64,41 @@ pub struct Chunk {
 	pub key: String,
 	/// Vault-relative source file path
 	pub source_path: String,
-	/// Text content of the chunk
+	/// Text content of the chunk (used for display)
 	pub content: String,
 	/// Section heading, if any
 	pub heading: Option<String>,
+	/// Ancestor heading hierarchy from H1 down to (but not including) `heading`.
+	/// Empty for chunks at the document root, or in files without headings.
+	/// Prepended to `content` when embedding to give the model topical context.
+	pub parent_headings: Vec<String>,
 	/// Starting line number (1-indexed)
 	pub line_start: usize,
 	/// Ending line number (1-indexed)
 	pub line_end: usize,
-	/// SHA-256 hash of content (first 16 hex chars)
+	/// SHA-256 hash of `embed_text()` output (first 16 hex chars).
+	/// Includes parent_headings so any heading-tree change invalidates the chunk.
 	pub content_hash: String,
+}
+
+impl Chunk {
+	/// Returns the text that should be fed to the embedder.
+	/// Format: `H1 > H2 > Hn\n\n<content>` when parent_headings is non-empty,
+	/// `<heading>\n\n<content>` when only the local heading is known,
+	/// or `<content>` alone for headless documents.
+	pub fn embed_text(&self) -> String {
+		let mut parts: Vec<&str> = self
+			.parent_headings
+			.iter()
+			.map(|s| s.as_str())
+			.collect();
+		if let Some(h) = &self.heading {
+			parts.push(h.as_str());
+		}
+		if parts.is_empty() {
+			self.content.clone()
+		} else {
+			format!("{}\n\n{}", parts.join(" > "), self.content)
+		}
+	}
 }
