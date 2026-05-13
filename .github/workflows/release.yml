@@ -41,6 +41,14 @@ jobs:
     name: CI
     needs: validate
     uses: ./.github/workflows/ci.yml
+    # Force the full frontend + rust matrix on release runs so a tag
+    # push can never short-circuit a check via paths-filter (e.g. if
+    # the only diff between the previous push and the tag commit was
+    # the version bump in package.json + tauri.conf.json, which is
+    # NOT in the frontend or rust filter set). Releases must always
+    # run both suites against the exact tagged SHA.
+    with:
+      force_all: true
 
   # Playwright suite on the tagged SHA. Runs in parallel with `ci` (no
   # shared dependencies), and `build-macos` waits on both. A failing E2E

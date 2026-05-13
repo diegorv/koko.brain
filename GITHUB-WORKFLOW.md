@@ -188,7 +188,7 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 | Job ID | Runner | What it does |
 |---|---|---|
 | `validate` | ubuntu-latest | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
-| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml`. Re-runs the full CI matrix (changes / frontend / rust / ci-success) on the tagged SHA. |
+| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with `force_all: true`. Re-runs the full CI matrix (frontend + rust forced, even if the only diff from the prior push was the version-bump commit). |
 | `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Re-runs the Playwright suite on the tagged SHA. Blocks the release. |
 | `build-macos` | macos-latest | `needs: [ci, e2e]`. The build/sign/publish pipeline. Only starts after both gates passed. |
 
@@ -230,9 +230,8 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 | Job ID | Runner | What it does |
 |---|---|---|
 | `guard` | ubuntu-latest | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
-| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml`. Same `workflow_call` invocation `release.yml` uses, so test coverage is identical between channels. Gated on `needs.guard.outputs.should_build == 'true'`. |
-| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Gated identically. |
-| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. Only starts after both gates pass. |
+| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. Gated on `needs.guard.outputs.should_build == 'true'`. |
+| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. Only starts after `ci` passes. E2E is intentionally NOT a nightly gate (see below). |
 
 `build-macos` pipeline:
 
@@ -246,10 +245,11 @@ Concurrency is `group: nightly, cancel-in-progress: true`: rapid back-to-back pu
 
 **What Nightly tests**
 
-- Identical to Release: CI matrix + Playwright E2E on the exact build SHA, then a full macOS build/sign/notarize/publish cycle. The only test-coverage divergence between channels is the version string in the bundle.
+- CI matrix (frontend + rust, gated by paths-filter so a CI-yaml-only commit can skip both) on the exact build SHA, then a full macOS build/sign/notarize/publish cycle.
 
 **What Nightly does NOT test**
 
+- **Playwright E2E**. Playwright is the slowest CI job (~5 min) and re-running it on every accepted commit doubles per-nightly wall-clock with no extra safety: a regression that breaks E2E is caught on the PR's E2E run before merge, and `release.yml` re-runs E2E against the exact tagged SHA as a hard gate when the stable release goes out. The nightly channel is opt-in and labelled pre-release, so the marginal E2E coverage isn't worth the runner minutes.
 - Same gaps as Release (no `.app` smoke test, no post-publish auto-update verification).
 - The `chore: bump version` skip: there's no positive assertion that the skipped run "would have produced the same bundle as `release.yml`". The two pipelines are equivalent by construction; if they diverge, both flows break at the same time.
 

@@ -15,9 +15,18 @@ on:
   workflow_dispatch:
   # Reusable: invoked by `.github/workflows/run-all.yml` so the dispatch
   # wrapper can fan out CI + Security + Privacy from a single button,
-  # and by `.github/workflows/release.yml` to revalidate the tagged SHA
-  # before building.
+  # by `.github/workflows/release.yml` to revalidate the tagged SHA
+  # before building (passes `force_all: true` so the paths-filter skip
+  # never short-circuits a release run), and by `.github/workflows/
+  # nightly.yml` (which keeps the default paths-filter behaviour so
+  # docs-only commits don't re-run frontend tests on every nightly).
   workflow_call:
+    inputs:
+      force_all:
+        description: "Bypass the paths filter and run frontend + rust unconditionally"
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -29,8 +38,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      rust: ${{ steps.filter.outputs.rust }}
+      # When `force_all` is true (release.yml on a tag push), short-circuit
+      # the paths-filter step entirely and pretend everything changed.
+      # Otherwise pass through the paths-filter outputs as before.
+      frontend: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.frontend }}
+      rust: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.rust }}
     steps:
       - uses: actions/checkout@v6
 
@@ -38,7 +50,11 @@ jobs:
       # account can't move the version tag to malicious code and have
       # us pick it up silently. Dependabot still updates this entry
       # (it reads the trailing `# v4.0.1` tag comment).
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      # Skipped on release runs (`force_all: true`) — the outputs are
+      # forced to `true` regardless, so running the filter would just
+      # waste seconds.
+      - if: ${{ inputs.force_all != true }}
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
