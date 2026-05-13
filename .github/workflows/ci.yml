@@ -3,23 +3,29 @@ name: CI
 permissions:
   contents: read
 
+# Triggers:
+#   - pull_request: gate every PR against main before merge.
+#   - workflow_dispatch: manual revalidation lever.
+#   - workflow_call: invoked by nightly.yml (every push to main),
+#     release.yml (tag push, with force_all:true), and run-all.yml
+#     (manual full sweep).
+#
+# `push: main` is intentionally NOT a trigger here. Every accepted
+# commit to main is already validated through nightly.yml, which calls
+# this workflow via `workflow_call`. A standalone push trigger would
+# duplicate that invocation: both runs would land in the same
+# `ci-refs/heads/main` concurrency group, cancel-in-progress would
+# kill one of them mid-run (see run 25831097465, killed with
+# "higher priority waiting request for ci-refs/heads/main"), and the
+# history would carry a confusing trail of cancelled runs that look
+# like flakes but are just self-collisions. Tag pushes are unaffected
+# because release.yml owns the tag path end-to-end.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**/*.md"
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/run-all.yml` so the dispatch
-  # wrapper can fan out CI + Security + Privacy from a single button,
-  # by `.github/workflows/release.yml` to revalidate the tagged SHA
-  # before building (passes `force_all: true` so the paths-filter skip
-  # never short-circuits a release run), and by `.github/workflows/
-  # nightly.yml` (which keeps the default paths-filter behaviour so
-  # docs-only commits don't re-run frontend tests on every nightly).
   workflow_call:
     inputs:
       force_all:
