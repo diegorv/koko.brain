@@ -1,0 +1,72 @@
+# Release Channels
+
+Kokobrain ships on two channels: **Stable** and **Nightly**. Pick the one that matches your tolerance for breakage.
+
+## Quick reference
+
+| Channel | Cadence | GitHub release tag | DMG URL pattern | `latest.json` URL |
+|---|---|---|---|---|
+| **Stable** | Manual, ~every few weeks. Tagged `X.Y.Z-alpha` and built by `release.yml`. | `X.Y.Z-alpha` | `releases/download/X.Y.Z-alpha/KokoBrain_<version>_aarch64.dmg` | `releases/latest/download/latest.json` |
+| **Nightly** | Every accepted push to `main`. Tagged `nightly` (single fixed tag, assets rotate). Built by `nightly.yml`. | `nightly` | `releases/download/nightly/KokoBrain_<version>_aarch64.dmg` | `releases/download/nightly/latest.json` |
+
+Both channels are signed with the same Apple Developer cert and the same Tauri auto-update private key. No new install warning, no new signing config to trust.
+
+## Switching channels from inside the app
+
+Settings → **Update** → **Release channel** dropdown.
+
+- The selection persists per vault in `.kokobrain/settings.json` under `updates.channel`.
+- The badge next to "Current version" shows which channel the **build itself** belongs to (informational; comes from `__APP_CHANNEL__` baked at build time).
+- The dropdown controls which channel the **auto-updater follows** when you click "Check for updates". The two can diverge — a Nightly build can be set to track Stable for updates, and vice versa.
+
+## Version-string semantics
+
+- Stable: the version from `package.json`, e.g. `2.0.19-alpha`.
+- Nightly: `<base>-nightly.<commitCount>.<sha>`, e.g. `2.0.19-alpha-nightly.1234.34158e03`.
+
+The `commitCount` is `git rev-list --count HEAD` from the build commit. It is a numeric semver prerelease identifier, so consecutive nightlies compare numerically and sort monotonically. The `sha` follows for visibility.
+
+By design, a Nightly version is semver-greater than the same-base Stable version (the prerelease identifier `alpha-nightly` sorts after `alpha`). This is the one-way-update invariant explained below.
+
+## One-way update rule
+
+**The auto-updater never downgrades. Switching the channel toggle from Nightly to Stable does not reinstall a Stable build.**
+
+Why: the installed Nightly carries version `2.0.19-alpha-nightly.1234.<sha>`, which is semver-greater than `2.0.19-alpha`. When the auto-updater fetches Stable's `latest.json` and compares, it sees the local version as already newer and reports "you are up to date" — even though you are actually still on Nightly.
+
+To genuinely move back to Stable: download the Stable DMG from [GitHub Releases](https://github.com/diegorv/koko.brain/releases/latest) and reinstall manually. macOS will replace the app in-place; your `.kokobrain/settings.json` and vault contents are untouched.
+
+Why this design: the alternative — letting the updater downgrade on channel switch — would silently overwrite a build the user might still be testing, with no way to roll forward again from Stable back to Nightly inside the app. The reinstall step makes the decision explicit.
+
+## Picking a channel
+
+- **Use Stable** for everyday note-taking. Tagged builds, full CI + E2E gates, slower cadence, fewer regressions.
+- **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every accepted commit on `main` ships, full CI + E2E still gates each build, but the integration time is hours not weeks.
+
+Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface — Nightly ships before the change has accumulated days of real-world use.
+
+## What gets built on which channel
+
+The two workflows share `ci.yml` and `e2e.yml` as `workflow_call` gates, so the test coverage is identical. The build steps differ only in:
+
+- `nightly.yml` patches `package.json#version` and `src-tauri/tauri.conf.json#version` in-place with the nightly version string before running `tauri-action`. The patch is job-scoped and never committed.
+- `nightly.yml` exports `KOKO_RELEASE_CHANNEL=nightly` so Vite injects `__APP_CHANNEL__='nightly'` and the channel pill in the UI reads "NIGHTLY".
+- `nightly.yml` deletes the prior `nightly` release with `gh release delete --cleanup-tag` before each run so `tauri-action` can recreate it cleanly.
+- `nightly.yml` publishes with `prerelease: true` so the release entry is labelled "Pre-release" on the Releases page.
+
+When `chore: bump version` lands on `main` before a stable tag push, `nightly.yml` short-circuits in its `guard` job to avoid duplicating the work `release.yml` is about to do for the same SHA.
+
+## Verifying a download
+
+Each release (Stable and Nightly) ships a `checksums-sha256.txt` file alongside the DMG. After downloading:
+
+```bash
+shasum -a 256 KokoBrain_*.dmg
+```
+
+Compare the output against the corresponding line in `checksums-sha256.txt`.
+
+## Related docs
+
+- [GitHub Workflows](../GITHUB-WORKFLOW.md) — the full `release.yml` and `nightly.yml` job graphs.
+- [Commit Conventions](COMMITS.md) — including the `chore: bump version` convention that triggers Stable releases.

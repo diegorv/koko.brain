@@ -9,6 +9,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 - [Security](#security-securityyml)
 - [Privacy](#privacy-privacyyml)
 - [Release](#release-releaseyml)
+- [Nightly](#nightly-nightlyyml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
 - [Run All Checks](#run-all-checks-run-allyml)
 - [Composite actions](#composite-actions)
@@ -211,6 +212,46 @@ The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run l
 - The artifacts themselves. There is no smoke test that launches the produced `.app` to verify it boots, opens a vault, and survives basic interactions. The CI E2E covers the dev-mode frontend; the release artifact's frontend bundle is functionally identical but the wrapper is the real Tauri shell.
 - Other platforms. The project is macOS-only by design (`README.md` says so explicitly).
 - Auto-update channel health. The `.app.tar.gz.sig` is generated but not verified post-publish.
+
+---
+
+## Nightly (`nightly.yml`)
+
+Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNELS.md](docs/RELEASE-CHANNELS.md) for the user-facing channel semantics.
+
+**Triggers**
+
+- `push` to `main`, except when the diff only touches `**/*.md`, `docs/**`, `tasks/**`, or `.github/CODEOWNERS`.
+- `workflow_dispatch` (manual rebuild, e.g. after a transient notarization failure).
+- No cron — the cadence is one nightly per accepted commit.
+
+**Jobs**
+
+| Job ID | Runner | What it does |
+|---|---|---|
+| `guard` | ubuntu-latest | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
+| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml`. Same `workflow_call` invocation `release.yml` uses, so test coverage is identical between channels. Gated on `needs.guard.outputs.should_build == 'true'`. |
+| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Gated identically. |
+| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. Only starts after both gates pass. |
+
+`build-macos` pipeline:
+
+1. Checkout with `fetch-depth: 0` so `git rev-list --count HEAD` returns the monotonic commit count needed for the nightly version string.
+2. Compute `NIGHTLY_VERSION="${BASE_VERSION}-nightly.${COMMIT_COUNT}.${SHORT_SHA}"`, then patch `package.json#version` and `src-tauri/tauri.conf.json#version` in-place via `jq`. The patch is job-scoped and is never committed. Vite reads `package.json` for `__BUILD_INFO__`; Tauri reads `tauri.conf.json` for the bundle's `Info.plist` and the generated `latest.json`. Both must match the nightly version so the auto-updater sees a semver-monotonic stream of nightlies. (Why commit count and not just sha: numeric semver identifiers compare numerically; raw shas compare lexically, which would break the "newer version" check for consecutive nightlies. See `src/lib/utils/build-info.js`.)
+3. `gh release delete nightly --yes --cleanup-tag 2>/dev/null || true` removes the previous nightly release entry and its underlying tag. The `|| true` covers the first run when no prior release exists.
+4. `tauri-apps/tauri-action@<sha>` builds the Tauri app with `KOKO_RELEASE_CHANNEL=nightly` (so the bundle's runtime `__APP_CHANNEL__` constant is `'nightly'`), code-signs with the Apple Developer cert, notarizes, signs the auto-update payload, and publishes to the fixed `nightly` tag with `prerelease: true`. Same secrets as `release.yml`.
+5. Generate SHA-256 checksums and upload `checksums-sha256.txt` with `gh release upload nightly --clobber`.
+
+Concurrency is `group: nightly, cancel-in-progress: true`: rapid back-to-back pushes only build the latest commit. macOS minutes are free for OSS but wall-clock and cancelled-run emails aren't.
+
+**What Nightly tests**
+
+- Identical to Release: CI matrix + Playwright E2E on the exact build SHA, then a full macOS build/sign/notarize/publish cycle. The only test-coverage divergence between channels is the version string in the bundle.
+
+**What Nightly does NOT test**
+
+- Same gaps as Release (no `.app` smoke test, no post-publish auto-update verification).
+- The `chore: bump version` skip: there's no positive assertion that the skipped run "would have produced the same bundle as `release.yml`". The two pipelines are equivalent by construction; if they diverge, both flows break at the same time.
 
 ---
 

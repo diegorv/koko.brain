@@ -132,6 +132,7 @@ src-tauri/src/
 - **[Live Preview Architecture](docs/LIVE-PREVIEW.md)** — Editor live preview plugin system
 - **[Search Architecture](docs/SEARCH.md)** — Retrieval pipeline, chunking, models, RRF, versioning levers
 - **[GitHub Workflows](GITHUB-WORKFLOW.md)** — What each CI workflow tests, when it runs, and what it does not cover
+- **[Release Channels](docs/RELEASE-CHANNELS.md)** — Stable vs Nightly channels, version semantics, switching from inside the app
 
 ## IDE Setup
 
