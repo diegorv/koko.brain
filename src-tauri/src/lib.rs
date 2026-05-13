@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod db;
+pub mod mcp;
 pub mod search;
 pub mod security;
 pub mod semantic;
@@ -70,6 +71,10 @@ pub fn run() {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             init_logger(app.handle());
+            let mcp_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                crate::mcp::start(mcp_handle).await;
+            });
             Ok(())
         })
         .on_menu_event(|app, event| {

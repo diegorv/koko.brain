@@ -134,3 +134,40 @@ Useful tags to grep in `~/Library/Logs/com.diegorv.kokobrain/`:
 | `[TAURI:RUST:EMBEDDER]` | model i/o shape per query |
 | `[TAURI:RUST:RERANKER]` | load events, idle unload |
 | `[TAURI:RUST:SEMANTIC]` | cache hit / miss, gap-filter cut, `reranker=true/false`, per-result rank+score+path+heading |
+| `[TAURI:RUST:MCP]` | per-tool calls (`tool=search query=... results=N took=Xms`, tool errors) via `debug_log` (gated on debug mode). Bind lifecycle (`listening on ...`, `bind failed: ...`, `server stopped with error: ...`) is printed straight to stderr via `eprintln!` and only shows on the `pnpm tauri dev` terminal — release builds without a terminal don't capture it. |
+
+---
+
+## Exposed via MCP
+
+The same hybrid pipeline is exposed to external Model-Context-Protocol clients (Claude Code, etc.) through an in-process MCP server. The server starts inside `tauri::Builder::setup()` and is bound to the Tauri runtime lifetime — it listens only while the Kokobrain app is open.
+
+| Surface | Value |
+|---------|-------|
+| Transport | rmcp streamable HTTP (`transport-streamable-http-server` feature) |
+| Bind | `127.0.0.1:3737/mcp` (loopback only; no auth, no TLS) |
+| Lifecycle | Started in `lib.rs` `.setup()`, stopped when the app exits |
+| Bind failure | Printed on stderr via `eprintln!` (visible on the `pnpm tauri dev` terminal); the app continues without MCP. Not routed through the frontend log file because `mcp::start` runs before the FE listener subscribes. |
+| Code | `src-tauri/src/mcp/mod.rs` (transport) and `src-tauri/src/mcp/tools.rs` (tool methods) |
+
+One tool is registered:
+
+| Tool | Calls into | Input | Output |
+|------|------------|-------|--------|
+| `search` | `commands::semantic::search_hybrid(query, max_results)` | `{ query: string, maxResults?: number }` | `{ hits: [{ path, heading, content, lineStart, lineEnd, score }] }` |
+
+`search` covers FTS, semantic, and the optional reranker through the same fusion pipeline the in-app search panel uses, so the MCP client gets the same ranking the user would. Note reading is delegated to the MCP client (Claude Code already runs in the vault directory and can `Read` the vault-relative paths search returns) — the MCP surface stays single-purpose on retrieval.
+
+### Claude Code config
+
+```json
+{
+  "mcpServers": {
+    "kokobrain": {
+      "url": "http://127.0.0.1:3737/mcp"
+    }
+  }
+}
+```
+
+Open Kokobrain first; if the app is not running the connection is refused (process-bound by design). Per-tool call logs land in the session log file under the `[TAURI:RUST:MCP]` tag (see the tracing table above) — `python3 scripts/log-watcher.py | grep MCP` tails them in real time, but only with debug mode enabled (`debug_log` is gated). Bind lifecycle events (`listening on ...`, `bind failed: ...`) are stderr-only via `eprintln!` and show on the `pnpm tauri dev` terminal, not in the log file.
