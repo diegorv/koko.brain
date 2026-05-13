@@ -75,20 +75,36 @@ pub struct UpdateMetadata {
 /// `Update` alive in the webview's resource table so the frontend can
 /// run the existing plugin's `download_and_install` command against it.
 ///
-/// Errors are returned as strings so the frontend can `try { ... } catch`
-/// the rejection — matches the plugin's own error-handling convention.
+/// `allow_downgrades` (default `false`) overrides the default semver
+/// comparator with `update.version != current.to_string()`, so a nightly
+/// user can install a same-base stable release even though the stable
+/// version sorts semver-LOWER. Used by the "Install Stable" downgrade
+/// flow in UpdateSection. Errors are returned as strings so the
+/// frontend can `try { ... } catch` the rejection — matches the
+/// plugin's own error-handling convention.
 #[tauri::command]
 pub async fn check_for_update_on_channel<R: Runtime>(
     webview: Webview<R>,
     channel: String,
+    allow_downgrades: Option<bool>,
 ) -> Result<Option<UpdateMetadata>, String> {
     let endpoint = endpoint_for_channel(&channel);
     let url = Url::parse(endpoint).map_err(|e| format!("Invalid updater endpoint URL: {e}"))?;
 
-    let updater = webview
+    let mut builder = webview
         .updater_builder()
         .endpoints(vec![url])
-        .map_err(|e| format!("Failed to configure updater endpoint: {e}"))?
+        .map_err(|e| format!("Failed to configure updater endpoint: {e}"))?;
+
+    if allow_downgrades.unwrap_or(false) {
+        // Replace the default `update.version > current` comparator with
+        // an inequality check so a nightly user (`X.Y.Z-nightly.<count>.<sha>`)
+        // can install the corresponding Stable release (`X.Y.Z`) even
+        // though Stable sorts semver-lower.
+        builder = builder.version_comparator(|current, update| update.version != current);
+    }
+
+    let updater = builder
         .build()
         .map_err(|e| format!("Failed to build updater: {e}"))?;
 
