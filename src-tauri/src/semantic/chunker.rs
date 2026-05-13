@@ -4,12 +4,20 @@ use super::types::Chunk;
 
 /// Options for controlling chunk size and overlap.
 pub struct ChunkOptions {
-	/// Minimum character count for a chunk to be included (default: 50)
+	/// Minimum character count for a chunk to be included (default: 50).
 	pub min_chunk_chars: usize,
-	/// Maximum character count for a chunk (default: 10_000)
+	/// Maximum character count for a chunk (default: 3_000, ~700 tokens).
 	pub max_chunk_chars: usize,
-	/// Number of lines from the previous section to prepend as context (default: 2)
-	pub overlap_lines: usize,
+	/// Number of characters from the end of the previous section to prepend
+	/// to the next chunk as overlap context (default: 200, ~50 tokens).
+	///
+	/// Replaces the older line-based overlap, which was wildly variable —
+	/// a 2-line overlap is 30 chars in a list-heavy file but 800 chars in
+	/// dense prose. The char budget is predictable, multibyte-safe, and small
+	/// enough to avoid inflating the index. The overlap window snaps back
+	/// to the previous newline so the prepended text starts cleanly at a
+	/// line boundary instead of mid-sentence.
+	pub overlap_chars: usize,
 }
 
 impl Default for ChunkOptions {
@@ -24,7 +32,7 @@ impl Default for ChunkOptions {
 			// individual topic's signal. ~700-token chunks are the published
 			// sweet spot for cosine retrieval on dense paragraphs.
 			max_chunk_chars: 3_000,
-			overlap_lines: 2,
+			overlap_chars: 200,
 		}
 	}
 }
@@ -71,24 +79,27 @@ pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<
 	// Phase 2: Merge short sections into the previous one
 	let merged = merge_short_sections(raw_sections, options.min_chunk_chars);
 
-	// Phase 3: Emit chunks with overlap and code stripping
+	// Phase 3: Emit chunks with char-based overlap and code stripping
 	let mut chunks = Vec::new();
-	let mut prev_lines: Vec<String> = Vec::new();
+	let mut prev_text = String::new();
 
 	for section in &merged {
 		let stripped = strip_code_blocks(&section.lines);
-		let mut final_lines = Vec::new();
+		let body = stripped.join("\n");
 
-		// Add overlap from previous section
-		if !prev_lines.is_empty() && options.overlap_lines > 0 {
-			let overlap_start = prev_lines.len().saturating_sub(options.overlap_lines);
-			for line in &prev_lines[overlap_start..] {
-				final_lines.push(line.clone());
+		// Char-based overlap: take the last `overlap_chars` of the previous section,
+		// snapped to the next newline so the overlap starts at a line boundary
+		// rather than mid-sentence.
+		let text = if !prev_text.is_empty() && options.overlap_chars > 0 {
+			let overlap = tail_overlap(&prev_text, options.overlap_chars);
+			if overlap.is_empty() {
+				body.clone()
+			} else {
+				format!("{}\n{}", overlap, body)
 			}
-		}
-
-		final_lines.extend(stripped.clone());
-		let text = final_lines.join("\n");
+		} else {
+			body.clone()
+		};
 
 		emit_chunk(
 			path,
@@ -101,10 +112,27 @@ pub fn chunk_markdown(path: &str, content: &str, options: &ChunkOptions) -> Vec<
 			&mut chunks,
 		);
 
-		prev_lines = stripped;
+		prev_text = body;
 	}
 
 	chunks
+}
+
+/// Returns the last `budget` characters of `text`, snapped forward to the next
+/// newline so the overlap starts at a clean line boundary instead of
+/// mid-sentence. Multibyte-safe (operates on char indices).
+fn tail_overlap(text: &str, budget: usize) -> String {
+	let total = text.chars().count();
+	if total == 0 || budget == 0 {
+		return String::new();
+	}
+	let start_char = total.saturating_sub(budget);
+	let byte_idx = char_index_to_byte(text, start_char);
+	let tail = &text[byte_idx..];
+	match tail.find('\n') {
+		Some(nl) => tail[nl + 1..].to_string(),
+		None => tail.to_string(),
+	}
 }
 
 /// Char-overlap used by `window_chunks` between consecutive windows.
@@ -419,7 +447,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 1,
 			max_chunk_chars: 5,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(!chunks.is_empty());
@@ -433,7 +461,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 10,
 			max_chunk_chars: 20,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(!chunks.is_empty());
@@ -446,7 +474,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 100,
 			max_chunk_chars: 10_000,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(chunks.is_empty());
@@ -459,7 +487,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 1,
 			max_chunk_chars: 10_000,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", content, &options);
 		assert!(!chunks.is_empty(), "expected non-empty chunks");
@@ -528,7 +556,7 @@ mod tests {
 		let opts = ChunkOptions::default();
 		assert_eq!(opts.max_chunk_chars, 3_000);
 		assert_eq!(opts.min_chunk_chars, 50);
-		assert_eq!(opts.overlap_lines, 2);
+		assert_eq!(opts.overlap_chars, 200);
 	}
 
 	#[test]
@@ -612,7 +640,7 @@ mod tests {
 		let options = ChunkOptions {
 			min_chunk_chars: 1,
 			max_chunk_chars: 10,
-			overlap_lines: 0,
+			overlap_chars: 0,
 		};
 		let chunks = chunk_markdown("test.md", &content, &options);
 		assert!(!chunks.is_empty());

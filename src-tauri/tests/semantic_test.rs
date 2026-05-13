@@ -7,7 +7,7 @@ fn default_options() -> ChunkOptions {
 	ChunkOptions {
 		min_chunk_chars: 50,
 		max_chunk_chars: 10_000,
-		overlap_lines: 2,
+		overlap_chars: 2,
 	}
 }
 
@@ -54,7 +54,7 @@ fn chunk_above_max_chars() {
 	let options = ChunkOptions {
 		min_chunk_chars: 50,
 		max_chunk_chars: 10_000,
-		overlap_lines: 2,
+		overlap_chars: 2,
 	};
 	let chunks = chunk_markdown("test.md", &long_content, &options);
 	assert_eq!(chunks.len(), 1, "should still produce one chunk");
@@ -176,14 +176,17 @@ fn chunk_overlap_includes_previous_lines() {
 	let options = ChunkOptions {
 		min_chunk_chars: 10,
 		max_chunk_chars: 10_000,
-		overlap_lines: 2,
+		// 80 chars is enough to cover "Line three of first section." (28 chars)
+		// plus the snap-to-newline alignment.
+		overlap_chars: 80,
 	};
 	let chunks = chunk_markdown("test.md", &content, &options);
 	assert!(chunks.len() >= 2, "should have at least 2 chunks");
-	// Second chunk should contain overlap lines from first section
+	// Second chunk should contain overlap from the tail of the first section
 	assert!(
 		chunks[1].content.contains("Line three of first section"),
-		"second chunk should include overlap from first section"
+		"second chunk should include overlap from first section, got: {:?}",
+		chunks[1].content
 	);
 }
 
@@ -196,7 +199,7 @@ fn chunk_no_overlap_when_zero() {
 	let options = ChunkOptions {
 		min_chunk_chars: 10,
 		max_chunk_chars: 10_000,
-		overlap_lines: 0,
+		overlap_chars: 0,
 	};
 	let chunks = chunk_markdown("test.md", &content, &options);
 	assert!(chunks.len() >= 2, "should have at least 2 chunks");
