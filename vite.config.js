@@ -5,6 +5,7 @@ import { execSync } from "child_process";
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { formatBuildInfo, parseReleaseChannel } from "./src/lib/utils/build-info.js";
 
 // ─── Build info ──────────────────────────────────────────────────────────────
 
@@ -13,6 +14,11 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
 let gitHash = "unknown";
 try { gitHash = execSync("git rev-parse --short HEAD").toString().trim(); } catch {}
 
+// `commit count` is only consulted for nightly builds. We compute it unconditionally
+// because it's cheap and keeps the build-info call signature uniform across channels.
+let commitCount = "0";
+try { commitCount = execSync("git rev-list --count HEAD").toString().trim(); } catch {}
+
 const now = new Date();
 const pad = (n) => String(n).padStart(2, "0");
 const buildTime = [
@@ -20,7 +26,8 @@ const buildTime = [
   `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
 ].join("");
 
-const buildInfo = `${pkg.version} (${gitHash}) (${buildTime})`;
+const channel = parseReleaseChannel(process.env.KOKO_RELEASE_CHANNEL);
+const buildInfo = formatBuildInfo({ pkgVersion: pkg.version, gitHash, commitCount, buildTime, channel });
 
 // ─── Environment ─────────────────────────────────────────────────────────────
 
@@ -62,6 +69,7 @@ export default defineConfig(async () => ({
 
   define: {
     __BUILD_INFO__: JSON.stringify(buildInfo),
+    __APP_CHANNEL__: JSON.stringify(channel),
   },
 
   optimizeDeps: {
