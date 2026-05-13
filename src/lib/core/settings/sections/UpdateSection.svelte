@@ -5,17 +5,18 @@
 	import { invoke, Channel } from '@tauri-apps/api/core';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { ask } from '@tauri-apps/plugin-dialog';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	/**
-	 * Canonical GitHub Releases page for the stable channel. Used by the
-	 * "Reinstall Stable" deep-link below — the in-app updater cannot
-	 * downgrade a nightly install to stable because nightly versions are
-	 * semver-greater than the same-base stable version, so a manual DMG
-	 * reinstall is the only path back.
+	 * Canonical GitHub Releases page for the stable channel. Used as a
+	 * manual fallback link in the downgrade UI — the primary path is the
+	 * in-app downgrade flow below, but if the in-app download fails (CDN
+	 * lag, signature mismatch, …) the user still needs a way to reach
+	 * the official DMG.
 	 */
 	const STABLE_DOWNLOAD_URL = 'https://github.com/diegorv/koko.brain/releases/latest';
 
@@ -132,12 +133,33 @@
 		__APP_CHANNEL__ === 'nightly' && settingsStore.updates.channel === 'stable',
 	);
 
-	async function checkForUpdates() {
+	/**
+	 * Run the channel-aware check + download flow.
+	 *
+	 * `allowDowngrades` is only used by the "Install Stable" path on
+	 * a nightly build (where the installed nightly version sorts
+	 * semver-greater than any same-base stable release and the default
+	 * comparator would report "up to date" instead of installing). For
+	 * the regular "Check for updates" path it stays false so an
+	 * accidental rollback can't happen.
+	 *
+	 * `forceChannel` lets the downgrade path target the stable channel
+	 * regardless of the user's current setting — the button only shows
+	 * when `settings.updates.channel === 'stable'` anyway, but passing
+	 * it explicitly makes the intent obvious at the call site and
+	 * decouples the flow from the setting's state at click time.
+	 */
+	async function checkForUpdates(
+		opts: { allowDowngrades?: boolean; forceChannel?: ReleaseChannel } = {},
+	) {
+		const channel = opts.forceChannel ?? settingsStore.updates.channel;
+		const allowDowngrades = opts.allowDowngrades ?? false;
 		status = 'checking';
 		errorMessage = '';
 		try {
 			const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', {
-				channel: settingsStore.updates.channel,
+				channel,
+				allowDowngrades,
 			});
 			// Record the check timestamp regardless of result so the
 			// auto-check throttle and the "Last checked" line both reflect
@@ -177,6 +199,29 @@
 		}
 	}
 
+	/**
+	 * Confirm + run the nightly → stable in-app downgrade.
+	 *
+	 * Uses the native `ask` dialog so the destructive intent is gated
+	 * by an OS-level prompt — the user has to explicitly click OK
+	 * before any network call or install happens. On confirm, runs the
+	 * same `checkForUpdates` flow with `allowDowngrades: true` so the
+	 * default semver comparator's "newer-only" rule is overridden.
+	 */
+	async function confirmInstallStable() {
+		const ok = await ask(
+			`This will replace your Nightly build (${__BUILD_INFO__}) with the latest Stable release. You will lose any changes that landed on main since the last Stable tag, until the next Stable release ships. Your vault and settings are unaffected.\n\nContinue?`,
+			{
+				title: 'Install Stable (downgrade)',
+				kind: 'warning',
+				okLabel: 'Install Stable',
+				cancelLabel: 'Cancel',
+			},
+		);
+		if (!ok) return;
+		await checkForUpdates({ allowDowngrades: true, forceChannel: 'stable' });
+	}
+
 	async function restartApp() {
 		await relaunch();
 	}
@@ -214,12 +259,17 @@
 
 	{#if needsManualReinstall}
 		<SettingItem
-			label="Reinstall Stable"
-			description="You're on a Nightly build but the updater is set to Stable. Auto-update can't downgrade; open the Releases page to download the latest Stable DMG manually."
+			label="Install Stable"
+			description="You're on a Nightly build but the updater is set to Stable. Auto-update normally won't downgrade — click below to install the latest Stable in-app. You'll lose any changes that landed on main since the last Stable tag."
 		>
-			<Button variant="outline" size="sm" onclick={() => openUrl(STABLE_DOWNLOAD_URL)}>
-				Open Releases
-			</Button>
+			<div class="flex items-center gap-2">
+				<Button variant="outline" size="sm" onclick={confirmInstallStable}>
+					Install Stable (downgrade)
+				</Button>
+				<Button variant="ghost" size="sm" onclick={() => openUrl(STABLE_DOWNLOAD_URL)} title="Open the GitHub Releases page if the in-app install fails">
+					Releases page
+				</Button>
+			</div>
 		</SettingItem>
 	{/if}
 
