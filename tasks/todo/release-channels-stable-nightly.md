@@ -59,18 +59,19 @@ Introduce a second release channel (`nightly`) alongside the existing tag-driven
   - No shared Svelte component extracted — inline span in both locations. CLAUDE.md prefers extraction only when complexity justifies it; Task 6 will add a third callsite in `UpdateSection.svelte` but the markup stays trivial so DRY isn't urgent.
   - Tests: 2 new tests on `channelLabel`. Svelte component rendering is not part of this project's vitest setup (no `@testing-library/svelte` dependency), so the visual badge is covered by manual smoke and E2E rather than a unit test.
 
-- [ ] Task 4: Rust command `check_for_update_on_channel`
-  - In `src-tauri/src/`, add a new module `update_channel.rs` exposing a Tauri command `check_for_update_on_channel(channel: String) -> Result<Option<UpdateMetadata>, String>`.
-  - Build the Updater via `app.updater_builder().endpoints(vec![endpoint])` where endpoint is:
-    - `stable` → `https://github.com/diegorv/koko.brain/releases/latest/download/latest.json`
-    - `nightly` → `https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json`
-  - Return a serializable `UpdateMetadata { version, body, date }` (mirror the fields the JS side uses) when there's an update, `None` otherwise.
-  - Register the command in `lib.rs`'s `invoke_handler!`.
-  - Tests: `src-tauri/tests/update_channel.rs` — unit-test the endpoint-selection helper (`endpoint_for_channel`) without hitting the network. Network round-trip is out of scope for unit tests.
+- [x] Task 4: Rust command `check_for_update_on_channel`
+  - New module `src-tauri/src/commands/update_channel.rs` with:
+    - `endpoint_for_channel(channel: &str) -> &'static str` pure helper (unknown channel → stable, matches frontend `parseReleaseChannel` policy).
+    - `pub const STABLE_ENDPOINT` / `pub const NIGHTLY_ENDPOINT` constants (exposed so tests can assert against them).
+    - `check_for_update_on_channel(webview, channel)` Tauri command — builds the Updater via `webview.updater_builder().endpoints(vec![url])`, runs `.check()`, stores the resulting `Update` in `webview.resources_table()`, returns `UpdateMetadata { rid, currentVersion, version, body }`.
+  - Registered in `commands/mod.rs` and `lib.rs` invoke_handler.
+  - Added `url = "2"` to `src-tauri/Cargo.toml` (UpdaterBuilder's `endpoints()` signature requires `Vec<url::Url>` and the plugin does not re-export the type).
+  - Tests at `src-tauri/tests/commands/update_channel_test.rs` (5 tests): nightly maps to nightly URL, stable maps to stable URL, unknown values fall back to stable, both URLs parse, both target the expected GitHub release paths. Network round-trip not unit-tested.
 
-- [ ] Task 5: Rust command for "download and install on channel"
-  - Same module: `download_and_install_on_channel(channel, on_progress_event_name)` that builds the Updater with the right endpoint, runs `update.download_and_install()`, and emits progress events on the supplied event name so the frontend can listen.
-  - Tests: extend `src-tauri/tests/update_channel.rs` with a unit test that verifies the command is registered (compile-time check via Tauri test harness, no network).
+- [x] Task 5: ~~Rust command for "download and install on channel"~~ — **NOT NEEDED**
+  - The `Update` object stored in the webview's resource table by `check_for_update_on_channel` (Task 4) already carries the per-channel bundle download URL inside it (`Update.download_url`, populated from the channel's `latest.json`).
+  - The built-in `plugin:updater|download_and_install` command (registered by `tauri_plugin_updater::Builder::new().build()` in `lib.rs:91`) accepts a `rid` and reads the Update from the same resource table — it does not need to know the channel because the URL is already baked in.
+  - Task 6 (frontend) will call `invoke('plugin:updater|download_and_install', { rid, onEvent })` directly. No additional Rust command required, no duplicate code path.
 
 - [ ] Task 6: Rewrite `UpdateSection.svelte` to use the new commands
   - Replace `import { check } from '@tauri-apps/plugin-updater'` with `invoke('check_for_update_on_channel', { channel })`.
