@@ -104,6 +104,15 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		// map keys, and all other systems (file tree, editor tabs,
 		// modifiedAtMap) use absolute paths. Path traversal protection is
 		// handled by Rust's read_files_batch (canonicalize + starts_with).
+		//
+		// FTS5 + semantic indexes are the exception: their tables key on
+		// vault-relative paths (same convention `build_fts_index` and
+		// `build_semantic_index` use). Derive that here so external
+		// edits stay queryable without waiting for the next full rebuild.
+		const relativePath = result.path.startsWith(vaultPath)
+			? result.path.substring(vaultPath.length).replace(/^\//, '')
+			: result.path;
+
 		if (result.content !== null) {
 			// File exists — update Rust `VaultIndex` so backlinks/tags/tasks/
 			// properties reflect the external change. The Rust call emits
@@ -114,6 +123,19 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 			invoke('update_note_in_index', { path: result.path, content: result.content }).catch((err) => {
 				error('WATCHER', 'update_note_in_index failed:', err);
 			});
+			// FTS5 — keeps text search fresh on external edits. Without this,
+			// `search_fts` returns stale content until the user opens + saves
+			// the file (or an FTS_SCHEMA_VERSION bump forces a full rebuild).
+			invoke('update_search_index_file', { filePath: relativePath, content: result.content }).catch((err) => {
+				error('WATCHER', 'update_search_index_file failed:', err);
+			});
+			// Semantic — keeps embeddings fresh on external edits. The Rust
+			// side compares content hashes first, so unchanged chunks skip
+			// ONNX inference. Skipped silently if the embedder isn't loaded
+			// (the user hasn't downloaded the model yet).
+			invoke('update_semantic_file', { filePath: relativePath, content: result.content, vaultPath }).catch((err) => {
+				debug('WATCHER-HANDLER', `Semantic incremental update skipped: ${err}`);
+			});
 		} else {
 			// File doesn't exist (deleted) — drop the dedup signature so a
 			// later re-creation with identical bytes still re-indexes, then
@@ -122,6 +144,14 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 			clearIndexedEntry(result.path);
 			invoke('remove_note_from_index', { path: result.path }).catch((err) => {
 				error('WATCHER', 'remove_note_from_index failed:', err);
+			});
+			// Drop the FTS5 row so deleted files stop appearing in text
+			// search results. Semantic chunks for deleted paths are cleaned
+			// up by the orphan-cleanup pass at the end of the next
+			// `build_semantic_index` run; leaving them between full rebuilds
+			// is harmless because the file path no longer resolves on click.
+			invoke('remove_from_search_index', { filePath: relativePath }).catch((err) => {
+				error('WATCHER', 'remove_from_search_index failed:', err);
 			});
 		}
 	}
