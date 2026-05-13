@@ -117,7 +117,7 @@ fn ensure_embedder_loaded() -> Result<(), String> {
 	};
 
 	debug_log("SEMANTIC", "Lazy-reloading embedder...");
-	let manager = ModelManager::new(Path::new(&vault_path));
+	let manager = ModelManager::for_embedder(Path::new(&vault_path));
 	if !manager.is_model_available() {
 		return Err("Model not available on disk".to_string());
 	}
@@ -150,7 +150,7 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 			*vp = Some(vault_path.clone());
 		}
 
-		let manager = ModelManager::new(Path::new(&vault_path));
+		let manager = ModelManager::for_embedder(Path::new(&vault_path));
 		if !manager.is_model_available() {
 			return Ok(false);
 		}
@@ -167,14 +167,14 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 /// Checks if the ONNX model files are available on disk.
 #[tauri::command]
 pub fn is_semantic_model_available(vault_path: String) -> Result<bool, String> {
-	let manager = ModelManager::new(Path::new(&vault_path));
+	let manager = ModelManager::for_embedder(Path::new(&vault_path));
 	Ok(manager.is_model_available())
 }
 
 /// Downloads the ONNX model from HuggingFace Hub, emitting progress events.
 #[tauri::command]
 pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
-	let manager = ModelManager::new(Path::new(&vault_path));
+	let manager = ModelManager::for_embedder(Path::new(&vault_path));
 	if manager.is_model_available() {
 		return Ok(true);
 	}
