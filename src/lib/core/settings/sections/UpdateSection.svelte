@@ -3,10 +3,20 @@
 	import * as Select from '$lib/components/ui/select';
 	import { invoke, Channel } from '@tauri-apps/api/core';
 	import { relaunch } from '@tauri-apps/plugin-process';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { channelLabel } from '$lib/utils/build-info';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import SettingItem from './SettingItem.svelte';
+
+	/**
+	 * Canonical GitHub Releases page for the stable channel. Used by the
+	 * "Reinstall Stable" deep-link below — the in-app updater cannot
+	 * downgrade a nightly install to stable because nightly versions are
+	 * semver-greater than the same-base stable version, so a manual DMG
+	 * reinstall is the only path back.
+	 */
+	const STABLE_DOWNLOAD_URL = 'https://github.com/diegorv/koko.brain/releases/latest';
 
 	let { onchange }: { onchange: () => void } = $props();
 
@@ -77,6 +87,19 @@
 		settingsStore.updates.channel === 'nightly'
 			? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
 			: 'bg-muted text-muted-foreground',
+	);
+
+	/**
+	 * True when the installed build is nightly but the user has picked
+	 * the stable channel for updates. This is the only state where the
+	 * in-app updater can't help — the installed version is already
+	 * semver-greater than any stable release of the same base version,
+	 * so "Check for updates" will always report "up to date" against
+	 * stable. The "Reinstall Stable" button below opens the GitHub
+	 * Releases page so the user can download the canonical stable DMG.
+	 */
+	const needsManualReinstall = $derived(
+		__APP_CHANNEL__ === 'nightly' && settingsStore.updates.channel === 'stable',
 	);
 
 	async function checkForUpdates() {
@@ -152,6 +175,17 @@
 		to <strong>Stable</strong> will not automatically downgrade — the auto-updater never moves to a
 		lower version. Reinstall the stable DMG manually if you want a clean switch.
 	</p>
+
+	{#if needsManualReinstall}
+		<SettingItem
+			label="Reinstall Stable"
+			description="You're on a Nightly build but the updater is set to Stable. Auto-update can't downgrade; open the Releases page to download the latest Stable DMG manually."
+		>
+			<Button variant="outline" size="sm" onclick={() => openUrl(STABLE_DOWNLOAD_URL)}>
+				Open Releases
+			</Button>
+		</SettingItem>
+	{/if}
 
 	<SettingItem label="Current version" description="The version currently installed">
 		<span class="inline-flex items-center gap-2 font-mono text-sm text-muted-foreground">
