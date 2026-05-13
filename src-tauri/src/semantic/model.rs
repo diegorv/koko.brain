@@ -132,7 +132,7 @@ impl ModelManager {
 		dest: &Path,
 		on_progress: impl Fn(f32),
 	) -> Result<(), String> {
-		let client = reqwest::Client::new(); // huggingface.co downloads only
+		let client = reqwest::Client::new(); // privacy-ok: huggingface.co downloads only (allowlist hosts checked at call site)
 		let response = client
 			.get(url)
 			.send()
