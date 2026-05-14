@@ -244,6 +244,17 @@ describe('settingsStore', () => {
 			expect(settingsStore.updates.channel).toBe('stable');
 		});
 
+		it('mcp defaults to enabled=true', () => {
+			expect(settingsStore.mcp).toEqual({ enabled: true });
+		});
+
+		it('updateMcp toggles enabled off and on', () => {
+			settingsStore.updateMcp({ enabled: false });
+			expect(settingsStore.mcp.enabled).toBe(false);
+			settingsStore.updateMcp({ enabled: true });
+			expect(settingsStore.mcp.enabled).toBe(true);
+		});
+
 	});
 
 	describe('reset', () => {
