@@ -26,11 +26,13 @@ the UI shows a "restart required" hint.
 - [x] Task 3: Frontend — extend `AppSettings` with `mcp: McpSettings`, update
       `DEFAULT_SETTINGS`, `loadSettings` merge, store getter, store
       `updateMcp` setter, and tests.
-- [ ] Task 4: Frontend — add an `mcp` settings section component (toggle +
+- [x] Task 4: Frontend — add an `mcp` settings section component (toggle +
       "restart required" hint). Register the section id in `SettingsSection`
       type, `SETTINGS_SECTION_GROUPS`, and the dialog router.
-- [ ] Task 5: Wire the toggle: on change, call `set_mcp_enabled` so the Rust
+- [x] Task 5: Wire the toggle: on change, call `set_mcp_enabled` so the Rust
       mirror file is updated in lock-step with the vault settings.json.
+      (Bundled with Task 4 — the UI and the IPC wiring are tightly coupled
+      and a partial commit would have been dead code.)
 
 ## Notes
 
