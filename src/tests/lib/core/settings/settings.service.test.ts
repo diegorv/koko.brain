@@ -431,6 +431,42 @@ describe('loadSettings', () => {
 		});
 	});
 
+	describe('mcp.enabled', () => {
+		it('defaults mcp.enabled to true on fresh install', async () => {
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.mcp).toEqual({ enabled: true });
+		});
+
+		it('respects an explicit mcp.enabled=false from saved settings', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ mcp: { enabled: false } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.mcp.enabled).toBe(false);
+		});
+
+		it('falls back to default when saved settings omit the mcp block', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ editor: { fontSize: 18 } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.mcp.enabled).toBe(true);
+		});
+	});
+
 	it('normalizes appearance settings on load', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

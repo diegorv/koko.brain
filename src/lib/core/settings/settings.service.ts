@@ -146,6 +146,10 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.queryjs,
 				...parsed.queryjs,
 			},
+			mcp: {
+				...DEFAULT_SETTINGS.mcp,
+				...parsed.mcp,
+			},
 			updates: {
 				channel: parsed.updates?.channel ?? getBuildChannel(),
 				autoCheck: parsed.updates?.autoCheck ?? DEFAULT_SETTINGS.updates.autoCheck,

@@ -23,7 +23,7 @@ the UI shows a "restart required" hint.
       skip spawn when disabled. Add helper module + unit test.
 - [x] Task 2: Rust — add `set_mcp_enabled` command and register it in
       `invoke_handler`. Unit test the file write.
-- [ ] Task 3: Frontend — extend `AppSettings` with `mcp: McpSettings`, update
+- [x] Task 3: Frontend — extend `AppSettings` with `mcp: McpSettings`, update
       `DEFAULT_SETTINGS`, `loadSettings` merge, store getter, store
       `updateMcp` setter, and tests.
 - [ ] Task 4: Frontend — add an `mcp` settings section component (toggle +
