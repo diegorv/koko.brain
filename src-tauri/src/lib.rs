@@ -9,7 +9,7 @@ pub mod vault;
 
 use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
@@ -90,10 +90,24 @@ pub fn run() {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             init_logger(app.handle());
-            let mcp_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                crate::mcp::start(mcp_handle).await;
-            });
+            // Read the boot-time MCP flag from `<app_config_dir>/mcp.json`.
+            // Defaults to `true` when the file is missing or corrupt so the
+            // app preserves its historical behavior on a fresh install.
+            let mcp_enabled = match app.handle().path().app_config_dir() {
+                Ok(dir) => crate::mcp::config::is_mcp_enabled(&dir),
+                Err(err) => {
+                    eprintln!("[MCP] could not resolve app_config_dir: {err} — defaulting to enabled");
+                    true
+                }
+            };
+            if mcp_enabled {
+                let mcp_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    crate::mcp::start(mcp_handle).await;
+                });
+            } else {
+                eprintln!("[MCP] disabled via settings — skipping boot");
+            }
             Ok(())
         })
         .on_menu_event(|app, event| {

@@ -25,6 +25,7 @@
 //! still route through `debug_log("MCP", ...)` — those fire long
 //! after boot, by which time the listener is up.
 
+pub mod config;
 pub mod tools;
 
 use rmcp::transport::streamable_http_server::{
