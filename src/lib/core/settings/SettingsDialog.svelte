@@ -24,6 +24,7 @@
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
 	import UpdateSection from './sections/UpdateSection.svelte';
 	import QueryjsSection from './sections/QueryjsSection.svelte';
+	import McpSection from './sections/McpSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -219,6 +220,8 @@
 					<UpdateSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'queryjs'}
 					<QueryjsSection onchange={debouncedSave} />
+				{:else if settingsDialogStore.activeSection === 'mcp'}
+					<McpSection onchange={debouncedSave} />
 				{/if}
 			</div>
 		</ScrollArea>
