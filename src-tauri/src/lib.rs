@@ -194,6 +194,8 @@ pub fn run() {
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
+            commands::mcp::set_mcp_enabled,
+            commands::mcp::get_mcp_enabled,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
