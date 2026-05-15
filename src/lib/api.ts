@@ -78,7 +78,7 @@ export async function invoke<T = unknown>(
 		const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
 		return tauriInvoke<T>(cmd, args);
 	}
-	const response = await fetch('/api/invoke', {
+	const response = await fetch('/api/invoke', { // privacy-ok: same-origin loopback to the embedded HTTP transport
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ cmd, args: args ?? {} }),
@@ -120,7 +120,7 @@ export async function listen<T>(
 		const { listen: tauriListen } = await import('@tauri-apps/api/event');
 		return tauriListen<T>(event, handler);
 	}
-	const es = new EventSource(`/api/events?topic=${encodeURIComponent(event)}`);
+	const es = new EventSource(`/api/events?topic=${encodeURIComponent(event)}`); // privacy-ok: same-origin loopback to the embedded SSE transport
 	es.onmessage = (m) => {
 		try {
 			const payload = JSON.parse(m.data) as T;
