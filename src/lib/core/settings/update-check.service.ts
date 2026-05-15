@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from './settings.store.svelte';
 import { saveSettings } from './settings.service';

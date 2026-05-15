@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { findTabIndex, GRAPH_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { buildGraphData } from './graph-view.logic';

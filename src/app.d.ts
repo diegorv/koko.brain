@@ -10,3 +10,11 @@ declare const __BUILD_INFO__: string;
  * Defaults to `'stable'` when `KOKO_RELEASE_CHANNEL` is unset (local dev builds).
  */
 declare const __APP_CHANNEL__: 'stable' | 'nightly';
+
+/**
+ * Build-time flag set by `vite.config.js` when `PLAYWRIGHT=true` is in
+ * the environment. Consumed by `src/lib/api.ts` to keep the Tauri
+ * import path under e2e (where vite aliases route to `e2e/mocks/`)
+ * instead of falling through to the HTTP transport.
+ */
+declare const __PLAYWRIGHT__: boolean;

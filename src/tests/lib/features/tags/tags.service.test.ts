@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { tagsStore } from '$lib/features/tags/tags.store.svelte';
 import {
 	buildTagIndex,

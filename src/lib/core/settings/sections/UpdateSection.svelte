@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { Switch } from '$lib/components/ui/switch';
-	import { invoke, Channel } from '@tauri-apps/api/core';
+	import { invoke, Channel } from '$lib/api';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { ask } from '@tauri-apps/plugin-dialog';

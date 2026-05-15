@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
 }));
 
@@ -166,7 +166,7 @@ vi.mock('$lib/features/auto-move/auto-move.service', () => ({
 	resetAutoMove: vi.fn(),
 }));
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { error as debugError } from '$lib/utils/debug';
 import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';

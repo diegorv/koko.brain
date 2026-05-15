@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
 import { fileHistoryStore } from './file-history.store.svelte';
 import { getRelativePath, getSnapshotBackupDir, getSnapshotBackupPath } from './file-history.logic';

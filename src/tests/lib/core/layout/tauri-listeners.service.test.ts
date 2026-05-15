@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockUnlistenEvent = vi.fn();
 let capturedEventHandler: ((payload: unknown) => void) | undefined;
-vi.mock('@tauri-apps/api/event', () => ({
+vi.mock('$lib/api', () => ({
 	listen: vi.fn((_event: string, handler: (payload: unknown) => void) => {
 		capturedEventHandler = handler;
 		return Promise.resolve(mockUnlistenEvent);
@@ -65,7 +65,7 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 
 // --- Imports (after mocks) ---
 
-import { listen } from '@tauri-apps/api/event';
+import { listen } from '$lib/api';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';

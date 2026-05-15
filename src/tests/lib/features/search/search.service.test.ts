@@ -3,15 +3,12 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-// Mock Tauri invoke
+// Mock the transport-abstraction wrapper that both core invoke and event
+// listen now flow through.
 const mockInvoke = vi.fn();
-vi.mock('@tauri-apps/api/core', () => ({
-	invoke: (...args: any[]) => mockInvoke(...args),
-}));
-
-// Mock Tauri event listener
 const mockListen = vi.fn<(event: string, handler: (...args: unknown[]) => void) => Promise<() => void>>(() => Promise.resolve(vi.fn()));
-vi.mock('@tauri-apps/api/event', () => ({
+vi.mock('$lib/api', () => ({
+	invoke: (...args: any[]) => mockInvoke(...args),
 	listen: (event: string, handler: (...args: unknown[]) => void) => mockListen(event, handler),
 }));
 

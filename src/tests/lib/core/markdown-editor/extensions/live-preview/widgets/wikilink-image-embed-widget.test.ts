@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	convertFileSrc: (path: string, protocol: string = 'asset') =>
 		`${protocol}://localhost/${encodeURIComponent(path)}`,
 }));

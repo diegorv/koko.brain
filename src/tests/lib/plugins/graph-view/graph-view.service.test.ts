@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { graphViewStore } from '$lib/plugins/graph-view/graph-view.store.svelte';
 import { GRAPH_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';

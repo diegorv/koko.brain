@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { invoke } from '@tauri-apps/api/core';
+	import { invoke } from '$lib/api';
 	import BrainIcon from '@lucide/svelte/icons/brain';
 	import BrainCogIcon from '@lucide/svelte/icons/brain-cog';
 	import BrainCircuitIcon from '@lucide/svelte/icons/brain-circuit';

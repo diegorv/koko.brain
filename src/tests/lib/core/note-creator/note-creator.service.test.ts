@@ -14,7 +14,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -35,7 +35,7 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 }));
 
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';

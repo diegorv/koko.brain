@@ -1,5 +1,5 @@
 import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';

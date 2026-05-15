@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
@@ -170,7 +170,7 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 		}
 		await refreshTree();
 		const { clearIndexedEntry } = await import('$lib/utils/index-dedupe');
-		const { invoke } = await import('@tauri-apps/api/core');
+		const { invoke } = await import('$lib/api');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
 		closeTabsForDeletedPath(itemPath);
 		// Drop the dedup signature so a later re-creation with identical
@@ -215,7 +215,7 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		updateTabAfterRenameOrMove(oldPath, newPath);
 		await refreshTree();
 
-		const { invoke } = await import('@tauri-apps/api/core');
+		const { invoke } = await import('$lib/api');
 		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
 		// new path will get re-indexed via the watcher (or the next save).
 		invoke('remove_note_from_index', { path: oldPath }).catch((err) =>
@@ -253,7 +253,7 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 
 		updateTabAfterRenameOrMove(sourcePath, newPath);
 
-		const { invoke } = await import('@tauri-apps/api/core');
+		const { invoke } = await import('$lib/api');
 		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
 		// destination path gets re-indexed via the watcher (or the next save).
 		invoke('remove_note_from_index', { path: sourcePath }).catch((err) =>

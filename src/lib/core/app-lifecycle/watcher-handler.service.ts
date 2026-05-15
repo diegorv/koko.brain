@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';

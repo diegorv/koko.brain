@@ -13,11 +13,8 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(),
 }));
 
@@ -27,8 +24,7 @@ vi.mock('$lib/core/settings/settings.service', () => ({
 
 // No mocks for stores — use real implementations per CLAUDE.md
 
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { invoke, listen } from '$lib/api';
 import { error as debugError } from '$lib/utils/debug';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';

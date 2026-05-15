@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';

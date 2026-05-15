@@ -4,17 +4,13 @@ vi.mock('$lib/utils/log.service', () => ({
 	appendLog: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn().mockResolvedValue(vi.fn()),
 }));
 
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { invoke, listen } from '$lib/api';
 import { debug, error, logProcessMemory, perfBaseline, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
 

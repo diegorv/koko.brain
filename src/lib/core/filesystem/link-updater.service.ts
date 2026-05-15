@@ -1,5 +1,5 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { isTabDirty } from '$lib/core/editor/editor.logic';

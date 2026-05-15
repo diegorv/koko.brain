@@ -497,7 +497,7 @@ export function renderTableSource(
 export async function resolveImageEmbedAssetUrl(target: string): Promise<string | null> {
 	const resolved = await resolveEmbedTarget(target);
 	if (!resolved) return null;
-	const { convertFileSrc } = await import('@tauri-apps/api/core');
+	const { convertFileSrc } = await import('$lib/api');
 	return convertFileSrc(resolved);
 }
 

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
 import { debounce } from '$lib/utils/debounce';
 import { tagsStore } from './tags.store.svelte';

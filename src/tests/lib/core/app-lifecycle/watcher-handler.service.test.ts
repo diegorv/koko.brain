@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 setupLocalStorage();
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -39,7 +39,7 @@ vi.mock('$lib/utils/debug', () => ({
 	logProcessMemory: vi.fn(),
 }));
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { error as debugError } from '$lib/utils/debug';
 import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
 import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';

@@ -1,5 +1,5 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import type { FileIconEntry, IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore } from './file-icons.store.svelte';
 import {

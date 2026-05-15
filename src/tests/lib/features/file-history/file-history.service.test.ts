@@ -3,7 +3,7 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -23,7 +23,7 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
 }));
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
 import { saveCurrentFile } from '$lib/core/editor/editor.service';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';

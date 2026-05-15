@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
+	import { invoke } from '$lib/api';
 	import { Switch } from '$lib/components/ui/switch';
 	import { settingsStore } from '../settings.store.svelte';
 	import { error } from '$lib/utils/debug';

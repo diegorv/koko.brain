@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(),
 }));
 
@@ -19,8 +16,7 @@ vi.mock('$lib/utils/debug', () => ({
 	}),
 }));
 
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { invoke, listen, type UnlistenFn } from '$lib/api';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';

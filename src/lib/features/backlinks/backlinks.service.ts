@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { dedupeInflight } from '$lib/utils/inflight';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';

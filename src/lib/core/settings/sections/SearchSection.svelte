@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
+	import { invoke } from '$lib/api';
 	import { Switch } from '$lib/components/ui/switch';
 	import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 	import { settingsStore } from '../settings.store.svelte';

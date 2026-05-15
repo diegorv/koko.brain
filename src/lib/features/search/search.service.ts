@@ -1,5 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { invoke, listen, type UnlistenFn } from '$lib/api';
 import { searchStore } from './search.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';

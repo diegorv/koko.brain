@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { notifyAfterSave, setFileReadTransform, setFileWriteTransform } from '$lib/core/editor/editor.hooks';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';

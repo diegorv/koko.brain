@@ -70,6 +70,10 @@ export default defineConfig(async () => ({
   define: {
     __BUILD_INFO__: JSON.stringify(buildInfo),
     __APP_CHANNEL__: JSON.stringify(channel),
+    // Consumed by `src/lib/api.ts` so the transport wrapper picks the
+    // Tauri import path under Playwright (where vite aliases route to
+    // `e2e/mocks/tauri-*.ts`) and the HTTP path elsewhere.
+    __PLAYWRIGHT__: JSON.stringify(isPlaywright),
   },
 
   optimizeDeps: {

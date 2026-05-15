@@ -1,5 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { invoke, listen, type UnlistenFn } from '$lib/api';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { appendLog } from './log.service';
 

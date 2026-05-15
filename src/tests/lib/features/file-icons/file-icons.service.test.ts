@@ -7,7 +7,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -16,7 +16,7 @@ vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 }));
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 import {

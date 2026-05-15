@@ -24,7 +24,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -187,7 +187,7 @@ describe('ensureTemplatesFolder', () => {
 		await ensureTemplatesFolder();
 
 		// Phase 8.8: folder creation routes through Rust `create_folder`.
-		const { invoke } = await import('@tauri-apps/api/core');
+		const { invoke } = await import('$lib/api');
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/_system/templates' });
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly Note.md', '');

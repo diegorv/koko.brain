@@ -1,5 +1,5 @@
 import { WidgetType } from '@codemirror/view';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import { appendLog } from '$lib/utils/log.service';
 import { profileStart, profileEnd } from '../core/profiling';
 import { KBAPI } from '$lib/plugins/queryjs/kb-api';

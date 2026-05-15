@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/api';
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
