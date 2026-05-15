@@ -10,6 +10,7 @@ vi.mock('$lib/api', () => ({
 	exists: (...args: unknown[]) => mockExists(...args),
 	mkdir: (...args: unknown[]) => mockMkdir(...args),
 	writeTextFile: (...args: unknown[]) => mockWriteTextFile(...args),
+	isTauri: vi.fn(() => true),
 }));
 
 vi.mock('@tauri-apps/api/path', () => ({

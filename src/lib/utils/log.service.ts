@@ -1,4 +1,4 @@
-import { writeTextFile, mkdir, exists } from '$lib/api';
+import { writeTextFile, mkdir, exists, isTauri } from '$lib/api';
 import { appLogDir } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
 
@@ -42,6 +42,11 @@ async function getLogDir(): Promise<string> {
  */
 export async function initLogSession(): Promise<void> {
 	if (activeLogPath) return;
+	// Browser sessions have no Tauri `appLogDir()` and no file-write
+	// access beyond what the dispatcher exposes — skip the session
+	// silently so boot doesn't print a misleading error. `appendLog`
+	// already no-ops when `activeLogPath` stays null.
+	if (!isTauri()) return;
 
 	try {
 		const logsDir = await getLogDir();
@@ -119,6 +124,9 @@ export function flushLog(): Promise<void> {
 
 /** Opens the system log directory in the file manager. */
 export async function openLogDir(): Promise<void> {
+	// Browser sessions can't drive the native opener plugin; no-op so
+	// settings UI buttons don't blow up the page.
+	if (!isTauri()) return;
 	const logsDir = await getLogDir();
 	const dirExists = await exists(logsDir);
 	if (!dirExists) {
