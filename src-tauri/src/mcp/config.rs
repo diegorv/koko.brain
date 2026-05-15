@@ -8,8 +8,9 @@
 //!
 //! - Location: `<app_config_dir>/mcp.json`
 //! - Shape: `{ "enabled": bool }`
-//! - Missing / unreadable / unparseable → defaults to `true` so a fresh
-//!   install or a corrupted file does not silently disable MCP.
+//! - Missing / unreadable / unparseable → defaults to `false` so a fresh
+//!   install does not silently expose the MCP server; the user must
+//!   opt in via the in-app toggle.
 //!
 //! The frontend writes the mirror via the `set_mcp_enabled` IPC command
 //! every time the in-app toggle flips, so the flag observed at boot is
@@ -39,19 +40,18 @@ pub fn mirror_path(config_dir: &Path) -> PathBuf {
 
 /// Reads the mirror file and returns whether MCP should boot.
 ///
-/// Returns `true` for every failure mode (missing, unreadable, malformed
-/// JSON) so the app keeps its current behavior when the file has not
-/// been written yet. Only an explicit `{ "enabled": false }` disables
-/// the server.
+/// Returns `false` for every failure mode (missing, unreadable, malformed
+/// JSON) so a fresh install does not silently boot the MCP server. Only
+/// an explicit `{ "enabled": true }` enables it.
 pub fn is_mcp_enabled(config_dir: &Path) -> bool {
 	let path = mirror_path(config_dir);
 	let raw = match fs::read_to_string(&path) {
 		Ok(s) => s,
-		Err(_) => return true,
+		Err(_) => return false,
 	};
 	match serde_json::from_str::<McpConfigFile>(&raw) {
 		Ok(cfg) => cfg.enabled,
-		Err(_) => true,
+		Err(_) => false,
 	}
 }
 
@@ -72,9 +72,9 @@ mod tests {
 	use tempfile::tempdir;
 
 	#[test]
-	fn defaults_to_enabled_when_file_missing() {
+	fn defaults_to_disabled_when_file_missing() {
 		let dir = tempdir().unwrap();
-		assert!(is_mcp_enabled(dir.path()));
+		assert!(!is_mcp_enabled(dir.path()));
 	}
 
 	#[test]
@@ -92,10 +92,10 @@ mod tests {
 	}
 
 	#[test]
-	fn defaults_to_enabled_when_file_corrupt() {
+	fn defaults_to_disabled_when_file_corrupt() {
 		let dir = tempdir().unwrap();
 		std::fs::write(mirror_path(dir.path()), "{ not json ").unwrap();
-		assert!(is_mcp_enabled(dir.path()));
+		assert!(!is_mcp_enabled(dir.path()));
 	}
 
 	#[test]

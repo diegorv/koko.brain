@@ -244,8 +244,8 @@ describe('settingsStore', () => {
 			expect(settingsStore.updates.channel).toBe('stable');
 		});
 
-		it('mcp defaults to enabled=true', () => {
-			expect(settingsStore.mcp).toEqual({ enabled: true });
+		it('mcp defaults to enabled=false', () => {
+			expect(settingsStore.mcp).toEqual({ enabled: false });
 		});
 
 		it('updateMcp toggles enabled off and on', () => {
