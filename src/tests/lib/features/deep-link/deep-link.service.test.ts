@@ -19,6 +19,10 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	mkdir: vi.fn(),
 }));
 
+vi.mock('$lib/api', () => ({
+	isTauri: vi.fn(() => true),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));

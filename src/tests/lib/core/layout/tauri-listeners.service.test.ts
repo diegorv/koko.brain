@@ -9,6 +9,7 @@ vi.mock('$lib/api', () => ({
 		capturedEventHandler = handler;
 		return Promise.resolve(mockUnlistenEvent);
 	}),
+	isTauri: vi.fn(() => true),
 }));
 
 const mockUnlistenClose = vi.fn();
@@ -65,7 +66,7 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 
 // --- Imports (after mocks) ---
 
-import { listen } from '$lib/api';
+import { listen, isTauri } from '$lib/api';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
@@ -356,5 +357,29 @@ describe('registerFocusListener', () => {
 		resolveFocus!(unlistenFn);
 
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe('browser-mode boot guards', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('registerCloseHandler is a no-op when isTauri()=false', () => {
+		vi.mocked(isTauri).mockReturnValueOnce(false);
+		const cleanup = registerCloseHandler();
+		expect(mockOnCloseRequested).not.toHaveBeenCalled();
+		expect(typeof cleanup).toBe('function');
+		cleanup();
+		expect(mockUnlistenClose).not.toHaveBeenCalled();
+	});
+
+	it('registerFocusListener is a no-op when isTauri()=false', () => {
+		vi.mocked(isTauri).mockReturnValueOnce(false);
+		const cleanup = registerFocusListener();
+		expect(mockOnFocusChanged).not.toHaveBeenCalled();
+		expect(typeof cleanup).toBe('function');
+		cleanup();
+		expect(mockUnlistenFocus).not.toHaveBeenCalled();
 	});
 });

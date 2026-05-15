@@ -1,6 +1,7 @@
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
+import { isTauri } from '$lib/api';
 import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -26,6 +27,9 @@ import { debug, error } from '$lib/utils/debug';
  * Returns a cleanup function to unsubscribe.
  */
 export function registerDeepLinkListener(): () => void {
+	// Browser sessions can't receive OS-level deep-link URIs — the plugin's
+	// internal channel calls `__TAURI_INTERNALS__.invoke` and throws there.
+	if (!isTauri()) return () => {};
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
 

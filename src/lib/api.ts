@@ -44,6 +44,23 @@ function useTauriIpc(): boolean {
 }
 
 /**
+ * `true` when the page is running inside the native Tauri webview (or
+ * under Playwright via vite aliases). `false` for a regular browser
+ * loaded over the embedded HTTP transport.
+ *
+ * Use this to guard native-only APIs like `getCurrentWindow()` /
+ * `getCurrentWebviewWindow()` from `@tauri-apps/api/window|webviewWindow`
+ * which read `window.__TAURI_INTERNALS__.metadata` at call time and
+ * throw `Cannot read properties of undefined (reading 'metadata')` in
+ * plain browsers. Call sites that only matter for the native window
+ * (close handler, focus handler, zoom level) should early-return a
+ * no-op cleanup when `isTauri()` is false.
+ */
+export function isTauri(): boolean {
+	return useTauriIpc();
+}
+
+/**
  * Invoke a Rust command. Mirrors `@tauri-apps/api/core::invoke`.
  *
  * Under native Tauri (or Playwright via vite aliases) this is a thin

@@ -1,4 +1,4 @@
-import { listen } from '$lib/api';
+import { listen, isTauri } from '$lib/api';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
@@ -36,6 +36,9 @@ export function registerMenuSettingsListener(): () => void {
  * Returns a cleanup function to unsubscribe.
  */
 export function registerCloseHandler(): () => void {
+	// Browser sessions have no Tauri window to close — `getCurrentWindow()`
+	// reads `window.__TAURI_INTERNALS__.metadata` and throws there.
+	if (!isTauri()) return () => {};
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
 	getCurrentWindow().onCloseRequested(async (event) => {
@@ -98,6 +101,9 @@ export function registerVaultIndexUpdatedListener(): () => void {
  * Returns a cleanup function to unsubscribe.
  */
 export function registerFocusListener(): () => void {
+	// `getCurrentWindow()` is native-only — guard so browser boot doesn't
+	// crash before any user code runs.
+	if (!isTauri()) return () => {};
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
 	getCurrentWindow().onFocusChanged(({ payload: focused }) => {
