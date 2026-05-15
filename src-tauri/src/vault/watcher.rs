@@ -17,6 +17,7 @@
 //! - The Tauri command wraps the inner `start_watcher_inner` (which
 //!   takes a callback) so tests can substitute the emit with a channel.
 
+use crate::event_bus::EventBus;
 use crate::utils::logger::debug_log;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -26,7 +27,6 @@ use std::sync::mpsc;
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
-use tauri::Emitter;
 
 /// Frontend event emitted on every debounced burst of vault file
 /// changes. Payload is the deduplicated, hidden-dir-filtered,
@@ -274,16 +274,26 @@ where
 /// lock guard scope BEFORE building the new one.
 #[tauri::command]
 pub fn start_vault_watcher(
-	app: tauri::AppHandle,
+	bus: tauri::State<'_, EventBus>,
 	state: tauri::State<'_, VaultWatcherState>,
 	path: String,
 ) -> Result<(), String> {
-	let app_clone = app.clone();
+	start_vault_watcher_core(bus.inner().clone(), &state, path)
+}
+
+/// Transport-agnostic watcher start. The HTTP dispatcher hands in a
+/// fresh `EventBus` clone from `AppState`; the Tauri command above
+/// clones from its `State<'_, EventBus>`. Either way the emit closure
+/// owns the bus by value (cheap clone — `EventBus` wraps a
+/// `broadcast::Sender` Arc).
+pub fn start_vault_watcher_core(
+	bus: EventBus,
+	state: &VaultWatcherState,
+	path: String,
+) -> Result<(), String> {
 	let on_change = move |paths: Vec<String>| {
 		let payload = VaultFilesChangedPayload { paths };
-		if let Err(e) = app_clone.emit(VAULT_FILES_CHANGED_EVENT, &payload) {
-			debug_log("WATCHER", format!("emit failed: {}", e));
-		}
+		bus.emit(VAULT_FILES_CHANGED_EVENT, &payload);
 	};
 
 	// Take + drop the old watcher WHILE holding the lock so its bridge
@@ -313,6 +323,13 @@ pub fn start_vault_watcher(
 /// watcher is running.
 #[tauri::command]
 pub fn stop_vault_watcher(state: tauri::State<'_, VaultWatcherState>) -> Result<(), String> {
+	stop_vault_watcher_core(&state)
+}
+
+/// Transport-agnostic counterpart of `stop_vault_watcher`. Shared with
+/// the HTTP dispatcher so both transports route through identical
+/// teardown semantics.
+pub fn stop_vault_watcher_core(state: &VaultWatcherState) -> Result<(), String> {
 	let mut guard = state
 		.lock()
 		.map_err(|e| format!("watcher state lock poisoned: {}", e))?;

@@ -1,3 +1,4 @@
+use crate::event_bus::EventBus;
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention};
@@ -12,7 +13,6 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::{Instant, UNIX_EPOCH};
-use tauri::Emitter;
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
@@ -271,10 +271,23 @@ pub fn update_note_in_index_inner(
 /// back would create an inconsistent state.
 #[tauri::command]
 pub fn update_note_in_index(
-	app: tauri::AppHandle,
+	bus: tauri::State<'_, EventBus>,
 	state: tauri::State<'_, VaultIndexState>,
 	path: String,
 	content: String,
+) -> Result<UpdateResult, String> {
+	update_note_in_index_core(&bus, &state, path, &content)
+}
+
+/// Transport-agnostic implementation of `update_note_in_index`. The
+/// Tauri command and the HTTP dispatcher both call this directly so
+/// the disk read, lock window, and emit timing stay byte-identical
+/// across transports.
+pub fn update_note_in_index_core(
+	bus: &EventBus,
+	state: &VaultIndexState,
+	path: String,
+	content: &str,
 ) -> Result<UpdateResult, String> {
 	let _trace = CmdTrace::new("update_note_in_index");
 	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
@@ -282,17 +295,9 @@ pub fn update_note_in_index(
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		update_note_in_index_inner(&mut idx, path, &content, mtime)
+		update_note_in_index_inner(&mut idx, path, content, mtime)
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"update_note_in_index: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
-	}
+	bus.emit(VAULT_INDEX_UPDATED_EVENT, &result);
 	Ok(result)
 }
 
@@ -598,9 +603,22 @@ pub fn toggle_task_status_inner(
 /// failures are logged and ignored (the mutation has already committed).
 #[tauri::command]
 pub fn toggle_task_status(
-	app: tauri::AppHandle,
+	bus: tauri::State<'_, EventBus>,
 	state: tauri::State<'_, VaultIndexState>,
 	path: String,
+	line_number: usize,
+) -> Result<ToggleTaskResult, String> {
+	toggle_task_status_core(&bus, &state, &path, line_number)
+}
+
+/// Transport-agnostic counterpart of `toggle_task_status`. Performs the
+/// disk write + index mutation under a write lock, then drops the lock
+/// before emitting so reactive listeners can re-read the fresh index
+/// without contending.
+pub fn toggle_task_status_core(
+	bus: &EventBus,
+	state: &VaultIndexState,
+	path: &str,
 	line_number: usize,
 ) -> Result<ToggleTaskResult, String> {
 	let _trace = CmdTrace::new("toggle_task_status");
@@ -608,18 +626,10 @@ pub fn toggle_task_status(
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		toggle_task_status_inner(&mut idx, &path, line_number)?
+		toggle_task_status_inner(&mut idx, path, line_number)?
 	};
 	if result.update_result.changed {
-		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
-			debug_log(
-				"VAULT-V2",
-				format!(
-					"toggle_task_status: vault-index-updated emit failed: {}",
-					emit_err,
-				),
-			);
-		}
+		bus.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result);
 	}
 	Ok(result)
 }
@@ -732,8 +742,21 @@ pub fn get_all_property_records(
 /// watcher's self-save filter picks up this write and skips the rebuild.
 #[tauri::command]
 pub fn create_note(
-	app: tauri::AppHandle,
+	bus: tauri::State<'_, EventBus>,
 	state: tauri::State<'_, VaultIndexState>,
+	path: String,
+	content: String,
+) -> Result<UpdateResult, String> {
+	create_note_core(&bus, &state, path, content)
+}
+
+/// Transport-agnostic create-note. Writes the file, updates the index,
+/// emits `vault-index-updated` through the bus. Returns the
+/// `UpdateResult` produced by the index mutation so callers can react
+/// to the affected-paths slot without re-reading.
+pub fn create_note_core(
+	bus: &EventBus,
+	state: &VaultIndexState,
 	path: String,
 	content: String,
 ) -> Result<UpdateResult, String> {
@@ -749,12 +772,7 @@ pub fn create_note(
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 		update_note_in_index_inner(&mut idx, path, &content, mtime)
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
-		debug_log(
-			"VAULT-V2",
-			format!("create_note: vault-index-updated emit failed: {}", emit_err),
-		);
-	}
+	bus.emit(VAULT_INDEX_UPDATED_EVENT, &result);
 	Ok(result)
 }
 
@@ -778,26 +796,29 @@ pub fn create_folder(path: String) -> Result<(), String> {
 /// `vault-index-updated` can immediately re-read the index.
 #[tauri::command]
 pub fn remove_note_from_index(
-	app: tauri::AppHandle,
+	bus: tauri::State<'_, EventBus>,
 	state: tauri::State<'_, VaultIndexState>,
 	path: String,
+) -> Result<UpdateResult, String> {
+	remove_note_from_index_core(&bus, &state, &path)
+}
+
+/// Transport-agnostic remove-from-index. Both transports share the same
+/// lock-release-before-emit ordering so reactive listeners can re-read
+/// the fresh index without contending with the write guard.
+pub fn remove_note_from_index_core(
+	bus: &EventBus,
+	state: &VaultIndexState,
+	path: &str,
 ) -> Result<UpdateResult, String> {
 	let _trace = CmdTrace::new("remove_note_from_index");
 	let result = {
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		idx.remove_entry(&path)
+		idx.remove_entry(path)
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"remove_note_from_index: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
-	}
+	bus.emit(VAULT_INDEX_UPDATED_EVENT, &result);
 	Ok(result)
 }
 
@@ -820,12 +841,23 @@ pub fn remove_note_from_index(
 /// fresh index without contending with the write guard.
 #[tauri::command]
 pub fn scan_vault_v2(
-	app: tauri::AppHandle,
+	bus: tauri::State<'_, EventBus>,
 	path: String,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
+	scan_vault_v2_core(&bus, &state, &path)
+}
+
+/// Transport-agnostic scan-and-rebuild. Drops the write lock BEFORE the
+/// emit so reactive listeners can immediately re-read the fresh index
+/// without contending with the write guard.
+pub fn scan_vault_v2_core(
+	bus: &EventBus,
+	state: &VaultIndexState,
+	path: &str,
+) -> Result<Vec<NoteEntry>, String> {
 	let _trace = CmdTrace::new("scan_vault_v2");
-	let notes = collect_v2_entries(&path)?;
+	let notes = collect_v2_entries(path)?;
 	let build_start = std::time::Instant::now();
 	let new_version = {
 		let mut idx = state
@@ -848,15 +880,7 @@ pub fn scan_vault_v2(
 		affected: Vec::new(),
 		version: new_version,
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"scan_vault_v2: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
-	}
+	bus.emit(VAULT_INDEX_UPDATED_EVENT, &payload);
 	Ok(notes)
 }
 

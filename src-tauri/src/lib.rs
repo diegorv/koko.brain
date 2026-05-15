@@ -12,7 +12,7 @@ pub mod vault;
 use commands::terminal::TerminalState;
 use event_bus::EventBus;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
@@ -92,14 +92,15 @@ pub fn run() {
         .setup(|app| {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
-            init_logger(app.handle());
 
             // Internal pub/sub: producers emit here, both transports
             // (native Tauri window via the bridge below, and the SSE
             // endpoint in `http::events_handler`) subscribe. Managed as
             // Tauri state so command handlers can take `State<'_, EventBus>`
-            // alongside their existing state arguments.
+            // alongside their existing state arguments. Must be built
+            // BEFORE `init_logger` so debug log emits go through the bus.
             let bus = EventBus::new();
+            init_logger(&bus);
             app.manage(bus.clone());
 
             // Bridge: bus -> tauri::AppHandle::emit. Keeps the native
@@ -141,7 +142,10 @@ pub fn run() {
         })
         .on_menu_event(|app, event| {
             if event.id() == "settings" {
-                let _ = app.emit("menu:settings", ());
+                // Route through the bus so a browser-attached SSE client
+                // sees the settings menu trigger alongside the native window.
+                let bus = app.state::<EventBus>();
+                bus.emit("menu:settings", &());
             }
         })
         .plugin(tauri_plugin_opener::init())

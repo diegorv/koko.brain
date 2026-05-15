@@ -1,4 +1,5 @@
 use crate::db;
+use crate::event_bus::EventBus;
 use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, Embedder};
 use crate::semantic::filtering;
@@ -12,7 +13,6 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter};
 
 /// Global embedder instance. Lazy-loaded on demand, auto-unloaded after idle timeout.
 static EMBEDDER: Mutex<Option<Embedder>> = Mutex::new(None);
@@ -256,7 +256,17 @@ pub fn is_reranker_model_available(vault_path: String) -> Result<bool, String> {
 /// `.kokobrain/models/bge-reranker-v2-m3/`. Emits progress on the same
 /// `semantic-index-progress` channel under the `downloading-reranker` phase.
 #[tauri::command]
-pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
+pub async fn download_reranker_model(
+	vault_path: String,
+	bus: tauri::State<'_, EventBus>,
+) -> Result<bool, String> {
+	download_reranker_model_core(bus.inner().clone(), vault_path).await
+}
+
+/// Transport-agnostic reranker download. Bus is moved into the progress
+/// closure (`Fn` by reference would not survive across awaits) so the
+/// caller hands in a fresh clone — the bus is cheap to clone.
+pub async fn download_reranker_model_core(bus: EventBus, vault_path: String) -> Result<bool, String> {
 	let manager = ModelManager::for_reranker(Path::new(&vault_path));
 	if manager.is_model_available() {
 		return Ok(true);
@@ -264,9 +274,9 @@ pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Resu
 
 	manager
 		.download_model(|progress| {
-			let _ = app.emit(
+			bus.emit(
 				"semantic-index-progress",
-				SemanticProgress {
+				&SemanticProgress {
 					phase: "downloading-reranker".to_string(),
 					current: (progress * 100.0) as usize,
 					total: 100,
@@ -281,7 +291,16 @@ pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Resu
 
 /// Downloads the ONNX model from HuggingFace Hub, emitting progress events.
 #[tauri::command]
-pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
+pub async fn download_semantic_model(
+	vault_path: String,
+	bus: tauri::State<'_, EventBus>,
+) -> Result<bool, String> {
+	download_semantic_model_core(bus.inner().clone(), vault_path).await
+}
+
+/// Transport-agnostic embedder download. See `download_reranker_model_core`
+/// for the bus-clone rationale.
+pub async fn download_semantic_model_core(bus: EventBus, vault_path: String) -> Result<bool, String> {
 	let manager = ModelManager::for_embedder(Path::new(&vault_path));
 	if manager.is_model_available() {
 		return Ok(true);
@@ -289,9 +308,9 @@ pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Resu
 
 	manager
 		.download_model(|progress| {
-			let _ = app.emit(
+			bus.emit(
 				"semantic-index-progress",
-				SemanticProgress {
+				&SemanticProgress {
 					phase: "downloading".to_string(),
 					current: (progress * 100.0) as usize,
 					total: 100,
@@ -312,7 +331,17 @@ pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Resu
 #[tauri::command]
 pub async fn build_semantic_index(
 	vault_path: String,
-	app: AppHandle,
+	bus: tauri::State<'_, EventBus>,
+) -> Result<SemanticStats, String> {
+	build_semantic_index_core(bus.inner().clone(), vault_path).await
+}
+
+/// Transport-agnostic index build. `bus` is moved into the function so
+/// progress emits keep working across `.await` boundaries without
+/// holding a reference back to a `State` guard.
+pub async fn build_semantic_index_core(
+	bus: EventBus,
+	vault_path: String,
 ) -> Result<SemanticStats, String> {
 	let guard = BUILD_LOCK.try_lock();
 	if guard.is_err() {
@@ -403,9 +432,9 @@ pub async fn build_semantic_index(
 	.map_err(|e| format!("Task join error: {e}"))??;
 
 	let changed_paths: Vec<String> = changed_files.iter().map(|(p, _, _)| p.clone()).collect();
-	let _ = app.emit(
+	bus.emit(
 		"semantic-index-progress",
-		SemanticProgress {
+		&SemanticProgress {
 			phase: "chunking".to_string(),
 			current: changed_paths.len(),
 			total: changed_paths.len(),
@@ -547,9 +576,9 @@ pub async fn build_semantic_index(
 			.map_err(|e| format!("Task join error: {e}"))??;
 
 			let processed = (batch_idx + 1) * batch_size;
-			let _ = app.emit(
+			bus.emit(
 				"semantic-index-progress",
-				SemanticProgress {
+				&SemanticProgress {
 					phase: "embedding".to_string(),
 					current: processed.min(total_to_embed),
 					total: total_to_embed,

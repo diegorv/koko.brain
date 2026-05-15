@@ -1,3 +1,4 @@
+use crate::event_bus::EventBus;
 use crate::utils::logger::debug_log;
 use portable_pty::{native_pty_system, CommandBuilder, Child, MasterPty, PtySize};
 use serde::Serialize;
@@ -5,7 +6,7 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::Mutex;
 use std::thread;
-use tauri::{AppHandle, Emitter, State};
+use tauri::State;
 use uuid::Uuid;
 
 /// Masks a session ID for safe logging: shows first 8 chars + "…".
@@ -68,8 +69,21 @@ struct TerminalOutput {
 /// Returns the unique session ID.
 #[tauri::command]
 pub fn spawn_terminal(
-    app: AppHandle,
+    bus: State<'_, EventBus>,
     state: State<'_, TerminalState>,
+    cwd: String,
+    rows: u16,
+    cols: u16,
+) -> Result<String, String> {
+    spawn_terminal_core(bus.inner().clone(), &state, cwd, rows, cols)
+}
+
+/// Transport-agnostic `spawn_terminal`. `bus` is moved into the reader
+/// thread so per-session output emits keep working after the calling
+/// command returns (the reader thread outlives the IPC call).
+pub fn spawn_terminal_core(
+    bus: EventBus,
+    state: &TerminalState,
     cwd: String,
     rows: u16,
     cols: u16,
@@ -129,6 +143,7 @@ pub fn spawn_terminal(
 
     // Spawn background reader thread: reads PTY output and emits events.
     // The loop exits on EOF (child exited) or read error (child killed).
+    let bus_for_reader = bus;
     thread::spawn(move || {
         let mut reader = reader;
         let mut buf = [0u8; 4096];
@@ -137,9 +152,9 @@ pub fn spawn_terminal(
                 Ok(0) => break, // EOF — shell process exited
                 Ok(n) => {
                     let data = String::from_utf8_lossy(&buf[..n]).to_string();
-                    let _ = app.emit(
+                    bus_for_reader.emit(
                         &format!("terminal:output:{}", sid_clone),
-                        TerminalOutput {
+                        &TerminalOutput {
                             session_id: sid_clone.clone(),
                             data,
                         },
@@ -149,9 +164,9 @@ pub fn spawn_terminal(
             }
         }
         // Emit exit event so frontend knows the process ended
-        let _ = app.emit(
+        bus_for_reader.emit(
             &format!("terminal:exit:{}", sid_clone),
-            sid_clone.clone(),
+            &sid_clone,
         );
     });
 
