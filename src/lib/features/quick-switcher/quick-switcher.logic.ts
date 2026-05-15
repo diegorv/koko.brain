@@ -27,6 +27,9 @@ export function flattenFileTree(nodes: FileTreeNode[]): FileEntry[] {
 	return result;
 }
 
+/** Maximum number of results rendered by the quick switcher. Caps DOM work for large vaults. */
+export const MAX_RESULTS = 100;
+
 export function filterAndRank(
 	query: string,
 	files: FileEntry[],
@@ -37,9 +40,11 @@ export function filterAndRank(
 		const recent = recentPaths
 			.map((p) => files.find((f) => f.path === p))
 			.filter((f): f is FileEntry => f !== undefined);
+		const remaining = Math.max(0, MAX_RESULTS - recent.length);
 		const rest = files
 			.filter((f) => !recentSet.has(f.path))
-			.sort((a, b) => a.nameWithoutExt.localeCompare(b.nameWithoutExt));
+			.sort((a, b) => a.nameWithoutExt.localeCompare(b.nameWithoutExt))
+			.slice(0, remaining);
 		return [...recent, ...rest];
 	}
 
@@ -70,7 +75,7 @@ export function filterAndRank(
 		return a.file.nameWithoutExt.localeCompare(b.file.nameWithoutExt);
 	});
 
-	return scored.map((entry) => entry.file);
+	return scored.slice(0, MAX_RESULTS).map((entry) => entry.file);
 }
 
 export function getRelativePath(filePath: string, vaultPath: string): string {

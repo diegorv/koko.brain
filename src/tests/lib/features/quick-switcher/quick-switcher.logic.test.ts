@@ -4,6 +4,7 @@ import {
 	fuzzyMatch,
 	filterAndRank,
 	getRelativePath,
+	MAX_RESULTS,
 } from '$lib/features/quick-switcher/quick-switcher.logic';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import type { FileEntry } from '$lib/features/quick-switcher/quick-switcher.logic';
@@ -169,6 +170,43 @@ describe('filterAndRank', () => {
 		expect(names).toContain('alpha');
 		expect(names).toContain('gamma');
 		expect(names).toContain('delta');
+	});
+
+	describe('result cap', () => {
+		function makeFiles(count: number): FileEntry[] {
+			return Array.from({ length: count }, (_, i) => {
+				const name = `file-${String(i).padStart(5, '0')}`;
+				return { name: `${name}.md`, nameWithoutExt: name, path: `/vault/${name}.md` };
+			});
+		}
+
+		it('caps empty-query results at MAX_RESULTS', () => {
+			const many = makeFiles(MAX_RESULTS + 50);
+			const result = filterAndRank('', many, []);
+			expect(result).toHaveLength(MAX_RESULTS);
+		});
+
+		it('empty-query keeps all recents and fills remainder up to MAX_RESULTS', () => {
+			const many = makeFiles(MAX_RESULTS + 50);
+			const recents = [many[140].path, many[120].path, many[100].path];
+			const result = filterAndRank('', many, recents);
+			expect(result).toHaveLength(MAX_RESULTS);
+			expect(result[0].path).toBe(recents[0]);
+			expect(result[1].path).toBe(recents[1]);
+			expect(result[2].path).toBe(recents[2]);
+			// Remainder is alphabetical from the non-recent set.
+			const recentSet = new Set(recents);
+			for (const entry of result.slice(3)) {
+				expect(recentSet.has(entry.path)).toBe(false);
+			}
+		});
+
+		it('caps fuzzy-query results at MAX_RESULTS', () => {
+			// Every name contains "file" so every entry fuzzy-matches.
+			const many = makeFiles(MAX_RESULTS + 50);
+			const result = filterAndRank('file', many, []);
+			expect(result).toHaveLength(MAX_RESULTS);
+		});
 	});
 });
 
