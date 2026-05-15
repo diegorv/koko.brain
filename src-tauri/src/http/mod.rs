@@ -175,30 +175,40 @@ async fn events_handler(
 ///   3. `<CARGO_MANIFEST_DIR>/../build`  (dev — repo-root `build/`)
 ///   4. CWD / `build`           (last resort)
 ///
+/// Each candidate must contain `index.html`; in dev `resource_dir()` points
+/// at `target/debug/`, and `target/debug/build/` exists as cargo's
+/// build-script artifacts directory — `is_dir()` alone would accept that
+/// wrong path and the SPA route would 404. Validating `index.html`
+/// guarantees the candidate is actually a SvelteKit static output.
+///
 /// Failure to find any of these is non-fatal; the server still starts
 /// and the SPA route returns 404 while `/api/*` keeps working.
+pub fn is_valid_frontend_dist(p: &std::path::Path) -> bool {
+	p.is_dir() && p.join("index.html").is_file()
+}
+
 pub fn resolve_frontend_dist(app_handle: &AppHandle) -> Option<PathBuf> {
 	if let Ok(p) = std::env::var("KOKO_FRONTEND_DIST") {
 		let path = PathBuf::from(p);
-		if path.is_dir() {
+		if is_valid_frontend_dist(&path) {
 			return Some(path);
 		}
 	}
 	if let Ok(res) = app_handle.path().resource_dir() {
 		let candidate = res.join("build");
-		if candidate.is_dir() {
+		if is_valid_frontend_dist(&candidate) {
 			return Some(candidate);
 		}
 	}
 	let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("build");
-	if dev.is_dir() {
+	if is_valid_frontend_dist(&dev) {
 		if let Ok(canon) = dev.canonicalize() {
 			return Some(canon);
 		}
 		return Some(dev);
 	}
 	let cwd_build = std::env::current_dir().ok()?.join("build");
-	if cwd_build.is_dir() {
+	if is_valid_frontend_dist(&cwd_build) {
 		return Some(cwd_build);
 	}
 	None
