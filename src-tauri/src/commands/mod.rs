@@ -1,8 +1,10 @@
 pub mod crypto;
 pub mod db;
 pub mod debug;
+pub mod dialog;
 pub mod files;
 pub mod fonts;
+pub mod fs;
 pub mod history;
 pub mod mcp;
 pub mod search;

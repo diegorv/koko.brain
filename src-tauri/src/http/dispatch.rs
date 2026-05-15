@@ -669,6 +669,100 @@ pub async fn dispatch_command(
 		"debug_semantic_embeddings" => from_core(commands::semantic::debug_semantic_embeddings().await),
 		"shutdown_semantic" => from_core(commands::semantic::shutdown_semantic()),
 
+		// ───────────────────────── fs ─────────────────────────
+		"fs_read_text_file" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::read_text_file_core(a.path).await)
+		}
+		"fs_write_text_file" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String, contents: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::write_text_file_core(a.path, a.contents).await)
+		}
+		"fs_read_file" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::read_file_core(a.path).await)
+		}
+		"fs_exists" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::exists_core(a.path).await)
+		}
+		"fs_mkdir" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String, options: Option<commands::fs::MkdirOptions> }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::mkdir_core(a.path, a.options.unwrap_or_default()).await)
+		}
+		"fs_remove" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String, options: Option<commands::fs::RemoveOptions> }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::remove_core(a.path, a.options.unwrap_or_default()).await)
+		}
+		"fs_rename" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { old_path: String, new_path: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::rename_core(a.old_path, a.new_path).await)
+		}
+		"fs_copy_file" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { from_path: String, to_path: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::copy_file_core(a.from_path, a.to_path).await)
+		}
+		"fs_read_dir" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { path: String }
+			let a: Args = parse_args(args)?;
+			from_core(commands::fs::read_dir_core(a.path).await)
+		}
+
+		// ─────────────────────── dialog ───────────────────────
+		"dialog_open" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { #[serde(default)] options: Option<commands::dialog::OpenDialogOptions> }
+			let a: Args = parse_args(args)?;
+			let value = commands::dialog::open_dialog_core(
+				state.app_handle.clone(),
+				a.options.unwrap_or_default(),
+			)
+			.await
+			.map_err(internal)?;
+			Ok(value)
+		}
+		"dialog_ask" => {
+			#[derive(Deserialize)]
+			#[serde(rename_all = "camelCase")]
+			struct Args { message: String, #[serde(default)] options: Option<commands::dialog::AskDialogOptions> }
+			let a: Args = parse_args(args)?;
+			from_core(
+				commands::dialog::ask_dialog_core(
+					state.app_handle.clone(),
+					a.message,
+					a.options.unwrap_or_default(),
+				)
+				.await,
+			)
+		}
+
 		// ─────────────────── unknown command ──────────────────
 		_ => Err(not_found(cmd)),
 	}

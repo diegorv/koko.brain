@@ -1,20 +1,24 @@
 /**
- * Transport-abstraction layer for Tauri commands and events.
+ * Transport-abstraction layer for Tauri commands, events, and the
+ * filesystem / dialog plugins.
  *
- * Mirrors `@tauri-apps/api/core::invoke` and `@tauri-apps/api/event::listen`
- * signatures so call sites stay byte-for-byte identical after a
- * `from '@tauri-apps/api/core'` -> `from '$lib/api'` find-replace.
+ * Mirrors `@tauri-apps/api/core::invoke`, `@tauri-apps/api/event::listen`,
+ * and the subset of `@tauri-apps/plugin-fs` + `@tauri-apps/plugin-dialog`
+ * used in the codebase, so call sites stay byte-for-byte identical after
+ * a `from '@tauri-apps/plugin-fs'` -> `from '$lib/api'` find-replace.
  *
  * Selection:
  * - Native Tauri window: detected by `__TAURI_INTERNALS__` on `window`.
- *   Routes to the real `@tauri-apps/api/core::invoke` /
- *   `@tauri-apps/api/event::listen`.
+ *   Routes to the real `@tauri-apps/api/core::invoke`,
+ *   `@tauri-apps/api/event::listen`, and the real
+ *   `@tauri-apps/plugin-fs` / `@tauri-apps/plugin-dialog` modules.
  * - Playwright tests: `__PLAYWRIGHT__` build-time flag is true; we still
- *   route to the `@tauri-apps/api/*` imports because vite aliases those
- *   modules to `e2e/mocks/tauri-*.ts` at build time. Going through the
+ *   route to the `@tauri-apps/api/*` and plugin imports because vite
+ *   aliases those modules to mocks at build time. Going through the
  *   import path keeps the existing mock infrastructure intact.
  * - Anything else (regular browser pointed at the embedded HTTP server):
- *   routes to `POST /api/invoke` for commands and an `EventSource` on
+ *   routes to `POST /api/invoke` (with cmd names `fs_*` / `dialog_*`
+ *   matching the new Rust dispatcher arms) and an `EventSource` on
  *   `GET /api/events?topic=<event>` for listeners.
  *
  * `Channel` is re-exported from `@tauri-apps/api/core` so files that
@@ -116,4 +120,155 @@ export async function listen<T>(
 		console.warn(`[$lib/api] SSE error for topic=${event}`, err);
 	};
 	return () => es.close();
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Filesystem
+// ──────────────────────────────────────────────────────────────────────
+// Each wrapper mirrors the matching `@tauri-apps/plugin-fs` function's
+// signature so call sites do a clean find-replace. In Tauri (or Playwright
+// with the vite alias) the wrapper forwards to the real plugin. In a
+// regular browser it routes through `invoke()` to the matching Rust core
+// fn registered in `src-tauri/src/commands/fs.rs`.
+//
+// `BaseDirectory` is intentionally not supported — every call site in
+// this codebase passes absolute paths today, and the project invariant
+// is that absolute paths flow through the vault index unchanged.
+
+/** Mirrors `@tauri-apps/plugin-fs::readTextFile`. Absolute paths only. */
+export async function readTextFile(path: string): Promise<string> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.readTextFile(path);
+	}
+	return invoke<string>('fs_read_text_file', { path });
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::writeTextFile`. Absolute paths only. */
+export async function writeTextFile(path: string, contents: string): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.writeTextFile(path, contents);
+	}
+	await invoke<void>('fs_write_text_file', { path, contents });
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::readFile`. Returns a `Uint8Array`. */
+export async function readFile(path: string): Promise<Uint8Array> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.readFile(path);
+	}
+	const b64 = await invoke<string>('fs_read_file', { path });
+	const bin = atob(b64);
+	const out = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+	return out;
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::exists`. */
+export async function exists(path: string): Promise<boolean> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.exists(path);
+	}
+	return invoke<boolean>('fs_exists', { path });
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::mkdir`. */
+export async function mkdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.mkdir(path, options);
+	}
+	await invoke<void>('fs_mkdir', { path, options: { recursive: !!options?.recursive } });
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::remove`. */
+export async function remove(path: string, options?: { recursive?: boolean }): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.remove(path, options);
+	}
+	await invoke<void>('fs_remove', { path, options: { recursive: !!options?.recursive } });
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::rename`. */
+export async function rename(oldPath: string, newPath: string): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.rename(oldPath, newPath);
+	}
+	await invoke<void>('fs_rename', { oldPath, newPath });
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::copyFile`. */
+export async function copyFile(fromPath: string, toPath: string): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.copyFile(fromPath, toPath);
+	}
+	await invoke<void>('fs_copy_file', { fromPath, toPath });
+}
+
+/** Entry shape returned by `readDir`. Subset mirroring the plugin's `DirEntry`. */
+export interface DirEntry {
+	name: string;
+	isDirectory: boolean;
+	isFile: boolean;
+	isSymlink: boolean;
+}
+
+/** Mirrors `@tauri-apps/plugin-fs::readDir`. */
+export async function readDir(path: string): Promise<DirEntry[]> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-fs');
+		return m.readDir(path) as unknown as Promise<DirEntry[]>;
+	}
+	return invoke<DirEntry[]>('fs_read_dir', { path });
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Dialog
+// ──────────────────────────────────────────────────────────────────────
+
+/** Options accepted by `open`. Subset mirroring `@tauri-apps/plugin-dialog`. */
+export interface OpenDialogOptions {
+	directory?: boolean;
+	multiple?: boolean;
+	defaultPath?: string;
+	title?: string;
+}
+
+/**
+ * Mirrors `@tauri-apps/plugin-dialog::open`. Returns `null` if the user
+ * cancelled, a path `string` for single-selection, or `string[]` for
+ * multi-selection. Over HTTP the dialog still pops on the native Tauri
+ * window because the dispatcher invokes `app.dialog()` server-side.
+ */
+export async function open(
+	options?: OpenDialogOptions,
+): Promise<string | string[] | null> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-dialog');
+		return (await m.open(options ?? {})) as string | string[] | null;
+	}
+	return invoke<string | string[] | null>('dialog_open', { options: options ?? {} });
+}
+
+/** Options accepted by `ask`. Subset mirroring `@tauri-apps/plugin-dialog`. */
+export interface AskDialogOptions {
+	title?: string;
+	kind?: 'info' | 'warning' | 'error';
+	okLabel?: string;
+	cancelLabel?: string;
+}
+
+/** Mirrors `@tauri-apps/plugin-dialog::ask`. Returns `true` on confirm. */
+export async function ask(message: string, options?: AskDialogOptions): Promise<boolean> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-dialog');
+		return m.ask(message, options);
+	}
+	return invoke<boolean>('dialog_ask', { message, options: options ?? {} });
 }

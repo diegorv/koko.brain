@@ -229,6 +229,17 @@ pub fn run() {
             commands::update_channel::check_for_update_on_channel,
             commands::mcp::set_mcp_enabled,
             commands::mcp::get_mcp_enabled,
+            commands::fs::fs_read_text_file,
+            commands::fs::fs_write_text_file,
+            commands::fs::fs_read_file,
+            commands::fs::fs_exists,
+            commands::fs::fs_mkdir,
+            commands::fs::fs_remove,
+            commands::fs::fs_rename,
+            commands::fs::fs_copy_file,
+            commands::fs::fs_read_dir,
+            commands::dialog::dialog_open,
+            commands::dialog::dialog_ask,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
