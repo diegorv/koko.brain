@@ -647,16 +647,9 @@ pub async fn dispatch_command(
 		"search_hybrid" => {
 			#[derive(Deserialize)]
 			#[serde(rename_all = "camelCase")]
-			struct Args {
-				query: String,
-				max_results: Option<usize>,
-				min_score: Option<f32>,
-				fuzzy: Option<bool>,
-			}
+			struct Args { query: String, max_results: Option<usize> }
 			let a: Args = parse_args(args)?;
-			from_core(
-				commands::semantic::search_hybrid(a.query, a.max_results, a.min_score, a.fuzzy).await,
-			)
+			from_core(commands::semantic::search_hybrid(a.query, a.max_results).await)
 		}
 		"get_semantic_stats" => from_core(commands::semantic::get_semantic_stats()),
 		"get_semantic_file_status" => {

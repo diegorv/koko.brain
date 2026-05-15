@@ -12,15 +12,15 @@ Expose the Tauri 2 backend over an embedded HTTP/SSE server bound to `127.0.0.1:
 
 ## Tasks
 
-- [ ] Task 1: Cargo deps (`tower-http`, `async-stream`, `tokio` sync feature) + `event_bus.rs` + `http/` skeleton compile.
-- [ ] Task 2: Wire HTTP server + bus->tauri bridge in `setup`, migrate watcher emit through bus.
-- [ ] Task 3: Migrate every remaining `app.emit(...)` (5 vault sites, logger, 4 semantic sites, 2 terminal sites, menu) through `EventBus`.
-- [ ] Task 4: Frontend `src/lib/api.ts` + vite `__PLAYWRIGHT__` define + vitest config update.
-- [ ] Task 5: Migrate production frontend imports `@tauri-apps/api/core|event` -> `$lib/api` (all `src/lib/` and `src/routes/`).
-- [ ] Task 6: Migrate vitest test mocks `vi.mock('@tauri-apps/api/...')` -> `vi.mock('$lib/api')`.
-- [ ] Task 7: Dispatcher arms + core-fn extraction batch 1: `db`, `debug`, `fonts`, `files`, `search`, `search_index`, `history`, `crypto`.
-- [ ] Task 8: Dispatcher arms + core-fn extraction batch 2: `vault` (16 commands) + `mcp` + `update_channel`.
-- [ ] Task 9: Dispatcher arms + core-fn extraction batch 3: `watcher` (2 commands), `terminal` (5 commands), `semantic` (13 commands).
+- [x] Task 1: Cargo deps (`tower-http`, `async-stream`, `tokio` sync feature) + `event_bus.rs` + `http/` skeleton compile.
+- [x] Task 2: Wire HTTP server + bus->tauri bridge in `setup`, migrate watcher emit through bus.
+- [x] Task 3: Migrate every remaining `app.emit(...)` (5 vault sites, logger, 4 semantic sites, 2 terminal sites, menu) through `EventBus`.
+- [x] Task 4: Frontend `src/lib/api.ts` + vite `__PLAYWRIGHT__` define + vitest config update.
+- [x] Task 5: Migrate production frontend imports `@tauri-apps/api/core|event` -> `$lib/api` (all `src/lib/` and `src/routes/`).
+- [x] Task 6: Migrate vitest test mocks `vi.mock('@tauri-apps/api/...')` -> `vi.mock('$lib/api')`.
+- [x] Task 7: Dispatcher arms + core-fn extraction batch 1: `db`, `debug`, `fonts`, `files`, `search`, `search_index`, `history`, `crypto`.
+- [x] Task 8: Dispatcher arms + core-fn extraction batch 2: `vault` (16 commands) + `mcp` + `update_channel`.
+- [x] Task 9: Dispatcher arms + core-fn extraction batch 3: `watcher` (2 commands), `terminal` (5 commands), `semantic` (13 commands).
 - [ ] Task 10: SSE endpoint validation, final compile, frontend `pnpm check` + `pnpm vitest run`, `cargo test`.
 
 ## Notes
