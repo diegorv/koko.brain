@@ -1,5 +1,5 @@
 import { EditorView } from '@codemirror/view';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openUrl } from '$lib/api';
 import { findMarkdownLinkUrlAtPosition } from './parsers/link';
 import { isSafeUrl } from '$lib/utils/sanitize-url';
 

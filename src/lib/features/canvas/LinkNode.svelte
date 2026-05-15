@@ -3,7 +3,7 @@
 	import ExternalLink from 'lucide-svelte/icons/external-link';
 	import Pencil from 'lucide-svelte/icons/pencil';
 	import { resolveColor } from './canvas.logic';
-	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { openUrl } from '$lib/api';
 	import { isSafeUrl } from '$lib/utils/sanitize-url';
 	import type { CanvasColor } from './canvas.types';
 

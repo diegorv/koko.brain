@@ -303,3 +303,52 @@ export async function ask(message: string, options?: AskDialogOptions): Promise<
 	}
 	return invoke<boolean>('dialog_ask', { message, options: options ?? {} });
 }
+
+// ──────────────────────────────────────────────────────────────────────
+// Opener (plugin-opener)
+// ──────────────────────────────────────────────────────────────────────
+// Native Tauri delegates to `@tauri-apps/plugin-opener`. Browser falls
+// back to web equivalents where they exist (URLs) and no-ops where they
+// don't (open path / reveal in file manager — neither has a browser
+// counterpart that respects the user's OS file associations).
+
+/**
+ * Mirrors `@tauri-apps/plugin-opener::openUrl`. In browser, opens the
+ * URL in a new tab via `window.open(url, '_blank')`.
+ */
+export async function openUrl(url: string): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-opener');
+		return m.openUrl(url);
+	}
+	if (typeof window !== 'undefined') {
+		window.open(url, '_blank', 'noopener,noreferrer');
+	}
+}
+
+/**
+ * Mirrors `@tauri-apps/plugin-opener::openPath`. Native: opens the path
+ * with the OS default handler. Browser: no-op — there's no equivalent
+ * for opening an arbitrary local filesystem path from a web page.
+ */
+export async function openPath(path: string): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-opener');
+		return m.openPath(path);
+	}
+	// No browser equivalent. Caller's UI should already be gated by
+	// `isTauri()` for OS-affordance features; the no-op here is a
+	// defensive backstop, not a UX path.
+}
+
+/**
+ * Mirrors `@tauri-apps/plugin-opener::revealItemInDir`. Native: shows
+ * the file/folder in the OS file manager. Browser: no-op (no web
+ * equivalent for "Reveal in Finder").
+ */
+export async function revealItemInDir(path: string): Promise<void> {
+	if (useTauriIpc()) {
+		const m = await import('@tauri-apps/plugin-opener');
+		return m.revealItemInDir(path);
+	}
+}

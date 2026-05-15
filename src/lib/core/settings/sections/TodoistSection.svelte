@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { openUrl } from '$lib/api';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 

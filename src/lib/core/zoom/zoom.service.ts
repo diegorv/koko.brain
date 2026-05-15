@@ -1,4 +1,5 @@
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { isTauri } from '$lib/api';
 
 const ZOOM_LEVELS = [0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
 const DEFAULT_ZOOM = 1.0;
@@ -26,5 +27,10 @@ export async function resetZoom(): Promise<void> {
 
 async function applyZoom(factor: number): Promise<void> {
 	currentZoom = factor;
+	// `getCurrentWebviewWindow()` reads `__TAURI_INTERNALS__.metadata`
+	// and throws in plain browsers. Browser sessions already have native
+	// Cmd+/Cmd- zoom built into the browser chrome, so app-level zoom
+	// has no useful work to do.
+	if (!isTauri()) return;
 	await getCurrentWebviewWindow().setZoom(factor);
 }

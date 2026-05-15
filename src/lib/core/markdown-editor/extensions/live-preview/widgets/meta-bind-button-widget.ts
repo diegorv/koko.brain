@@ -125,7 +125,7 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 			} else if (link.startsWith('http')) {
 				const { isSafeUrl } = await import('$lib/utils/sanitize-url');
 				if (isSafeUrl(link)) {
-					const { openUrl } = await import('@tauri-apps/plugin-opener');
+					const { openUrl } = await import('$lib/api');
 					await openUrl(link);
 				}
 			}

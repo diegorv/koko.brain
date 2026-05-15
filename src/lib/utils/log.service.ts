@@ -1,6 +1,5 @@
-import { writeTextFile, mkdir, exists, isTauri } from '$lib/api';
+import { writeTextFile, mkdir, exists, isTauri, openPath } from '$lib/api';
 import { appLogDir } from '@tauri-apps/api/path';
-import { openPath } from '@tauri-apps/plugin-opener';
 
 /** Active log file path (null when no session is active) */
 let activeLogPath: string | null = null;

@@ -7,6 +7,10 @@ vi.mock('@tauri-apps/api/webviewWindow', () => ({
 	getCurrentWebviewWindow: () => ({ setZoom: mockSetZoom }),
 }));
 
+vi.mock('$lib/api', () => ({
+	isTauri: vi.fn(() => true),
+}));
+
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
 
 describe('zoom.service', () => {

@@ -13,9 +13,6 @@ vi.mock('$lib/api', () => ({
 	exists: vi.fn(),
 	copyFile: vi.fn(),
 	readDir: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-opener', () => ({
 	revealItemInDir: vi.fn(),
 }));
 
@@ -55,7 +52,7 @@ vi.mock('$lib/core/trash/trash.service', () => ({
 
 import { invoke } from '$lib/api';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '$lib/api';
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { revealItemInDir } from '$lib/api';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';

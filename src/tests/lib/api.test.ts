@@ -21,11 +21,17 @@ const realPluginDialog = {
 	open: vi.fn(),
 	ask: vi.fn(),
 };
+const realPluginOpener = {
+	openUrl: vi.fn(),
+	openPath: vi.fn(),
+	revealItemInDir: vi.fn(),
+};
 
 vi.mock('@tauri-apps/api/core', () => realTauriCore);
 vi.mock('@tauri-apps/api/event', () => realTauriEvent);
 vi.mock('@tauri-apps/plugin-fs', () => realPluginFs);
 vi.mock('@tauri-apps/plugin-dialog', () => realPluginDialog);
+vi.mock('@tauri-apps/plugin-opener', () => realPluginOpener);
 
 const ORIGINAL_FETCH = globalThis.fetch;
 const ORIGINAL_TAURI = (globalThis as unknown as { window?: unknown }).window;
@@ -54,6 +60,7 @@ beforeEach(() => {
 		...Object.values(realTauriEvent),
 		...Object.values(realPluginFs),
 		...Object.values(realPluginDialog),
+		...Object.values(realPluginOpener),
 	]) {
 		(fn as ReturnType<typeof vi.fn>).mockReset();
 	}
@@ -280,5 +287,60 @@ describe('$lib/api — dialog', () => {
 			cmd: 'dialog_ask',
 			args: { message: 'Sure?', options: { kind: 'warning' } },
 		});
+	});
+});
+
+describe('$lib/api — opener', () => {
+	it('openUrl (native) delegates to plugin-opener', async () => {
+		setTauri(true);
+		realPluginOpener.openUrl.mockResolvedValue(undefined);
+		const api = await import('$lib/api');
+		await api.openUrl('https://example.com');
+		expect(realPluginOpener.openUrl).toHaveBeenCalledWith('https://example.com');
+	});
+
+	it('openUrl (browser) opens a new tab via window.open', async () => {
+		setTauri(false);
+		const openSpy = vi.fn();
+		(globalThis as unknown as { window: { open: typeof openSpy } }).window = {
+			open: openSpy,
+		};
+		const api = await import('$lib/api');
+		await api.openUrl('https://example.com');
+		expect(openSpy).toHaveBeenCalledWith(
+			'https://example.com',
+			'_blank',
+			'noopener,noreferrer',
+		);
+	});
+
+	it('openPath (native) delegates to plugin-opener', async () => {
+		setTauri(true);
+		realPluginOpener.openPath.mockResolvedValue(undefined);
+		const api = await import('$lib/api');
+		await api.openPath('/abs/dir');
+		expect(realPluginOpener.openPath).toHaveBeenCalledWith('/abs/dir');
+	});
+
+	it('openPath (browser) is a no-op', async () => {
+		setTauri(false);
+		const api = await import('$lib/api');
+		await expect(api.openPath('/abs/dir')).resolves.toBeUndefined();
+		expect(realPluginOpener.openPath).not.toHaveBeenCalled();
+	});
+
+	it('revealItemInDir (native) delegates to plugin-opener', async () => {
+		setTauri(true);
+		realPluginOpener.revealItemInDir.mockResolvedValue(undefined);
+		const api = await import('$lib/api');
+		await api.revealItemInDir('/abs/file');
+		expect(realPluginOpener.revealItemInDir).toHaveBeenCalledWith('/abs/file');
+	});
+
+	it('revealItemInDir (browser) is a no-op', async () => {
+		setTauri(false);
+		const api = await import('$lib/api');
+		await expect(api.revealItemInDir('/abs/file')).resolves.toBeUndefined();
+		expect(realPluginOpener.revealItemInDir).not.toHaveBeenCalled();
 	});
 });

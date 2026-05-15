@@ -1,6 +1,15 @@
-import { invoke } from '$lib/api';
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '$lib/api';
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import {
+	invoke,
+	readTextFile,
+	writeTextFile,
+	mkdir,
+	remove,
+	rename,
+	exists,
+	copyFile,
+	readDir,
+	revealItemInDir,
+} from '$lib/api';
 import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, isMarkdownFile, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';

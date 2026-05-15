@@ -10,15 +10,12 @@ vi.mock('$lib/api', () => ({
 	exists: (...args: unknown[]) => mockExists(...args),
 	mkdir: (...args: unknown[]) => mockMkdir(...args),
 	writeTextFile: (...args: unknown[]) => mockWriteTextFile(...args),
+	openPath: (...args: unknown[]) => mockOpenPath(...args),
 	isTauri: vi.fn(() => true),
 }));
 
 vi.mock('@tauri-apps/api/path', () => ({
 	appLogDir: (...args: unknown[]) => mockAppLogDir(...args),
-}));
-
-vi.mock('@tauri-apps/plugin-opener', () => ({
-	openPath: (...args: unknown[]) => mockOpenPath(...args),
 }));
 
 import {

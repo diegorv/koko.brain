@@ -2,10 +2,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { Switch } from '$lib/components/ui/switch';
-	import { invoke, Channel } from '$lib/api';
+	import { invoke, Channel, openUrl, ask, isTauri } from '$lib/api';
 	import { relaunch } from '@tauri-apps/plugin-process';
-	import { openUrl } from '@tauri-apps/plugin-opener';
-	import { ask } from '$lib/api';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import BuildInfo from '../BuildInfo.svelte';
@@ -223,6 +221,11 @@
 	}
 
 	async function restartApp() {
+		// `relaunch()` from `@tauri-apps/plugin-process` reaches into
+		// `__TAURI_INTERNALS__` and throws in plain browsers. The updater
+		// flow is native-only anyway (see commands/update_channel.rs), so
+		// the restart button is only meaningful inside the Tauri webview.
+		if (!isTauri()) return;
 		await relaunch();
 	}
 </script>
