@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('$lib/api', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
+	isTauri: vi.fn(() => true),
 }));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
@@ -416,6 +417,15 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(invoke).toHaveBeenCalledWith('close_vault_db');
+	});
+
+	it('skips close_vault_db when running in a browser session', async () => {
+		const { isTauri } = await import('$lib/api');
+		vi.mocked(isTauri).mockReturnValueOnce(false);
+
+		teardownVault();
+
+		expect(invoke).not.toHaveBeenCalledWith('close_vault_db');
 	});
 
 	it('clears editor hooks (encryption transforms) before resetting stores', () => {

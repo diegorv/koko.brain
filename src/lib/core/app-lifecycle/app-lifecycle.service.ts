@@ -1,4 +1,4 @@
-import { invoke } from '$lib/api';
+import { invoke, isTauri } from '$lib/api';
 import { toast } from 'svelte-sonner';
 import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
@@ -353,10 +353,21 @@ export function teardownVault(): void {
 	teardownLogSession();
 
 	// ── Close database + async cleanup ───────────────────────────────
-	debug('LIFECYCLE', 'Closing vault database...');
-	invoke('close_vault_db').catch((err: unknown) => {
-		error('LIFECYCLE', 'Failed to close vault database:', err);
-	});
+	// The Rust DB is a process-wide static — both transports share it.
+	// In a browser session, closing the DB on teardown would yank it out
+	// from under the native Tauri window (which boots first and may
+	// already have the same vault loaded). Let the native binary own the
+	// DB lifecycle; browser sessions skip the close. `open_database`
+	// already overwrites the global on a fresh open, so switching vaults
+	// from the browser still works without an explicit close.
+	if (isTauri()) {
+		debug('LIFECYCLE', 'Closing vault database...');
+		invoke('close_vault_db').catch((err: unknown) => {
+			error('LIFECYCLE', 'Failed to close vault database:', err);
+		});
+	} else {
+		debug('LIFECYCLE', 'Skipping close_vault_db (browser session — native owns DB lifecycle)');
+	}
 	debug('LIFECYCLE', 'Resetting encryption state...');
 	resetEncryptedNotes().catch(() => {});
 	closeFileHistory();
