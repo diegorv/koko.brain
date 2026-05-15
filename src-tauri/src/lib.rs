@@ -1,5 +1,7 @@
 pub mod commands;
 pub mod db;
+pub mod event_bus;
+pub mod http;
 pub mod mcp;
 pub mod search;
 pub mod security;
@@ -8,6 +10,7 @@ pub mod utils;
 pub mod vault;
 
 use commands::terminal::TerminalState;
+use event_bus::EventBus;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager};
 use utils::logger::init_logger;
@@ -90,6 +93,32 @@ pub fn run() {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             init_logger(app.handle());
+
+            // Internal pub/sub: producers emit here, both transports
+            // (native Tauri window via the bridge below, and the SSE
+            // endpoint in `http::events_handler`) subscribe. Managed as
+            // Tauri state so command handlers can take `State<'_, EventBus>`
+            // alongside their existing state arguments.
+            let bus = EventBus::new();
+            app.manage(bus.clone());
+
+            // Bridge: bus -> tauri::AppHandle::emit. Keeps the native
+            // window receiving every event even though producers no
+            // longer call `app.emit(...)` directly.
+            let bus_for_bridge = bus.clone();
+            let handle_for_bridge = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                http::run_bus_to_tauri_bridge(bus_for_bridge, handle_for_bridge).await;
+            });
+
+            // HTTP/SSE server on 127.0.0.1:47823 — same surface as the
+            // Tauri IPC, gated by command-level checks (path-traversal
+            // guards in read_files_batch, etc). Bound to loopback only.
+            let http_state = http::AppState::new(bus.clone(), app.handle().clone());
+            tauri::async_runtime::spawn(async move {
+                http::serve(http_state).await;
+            });
+
             // Read the boot-time MCP flag from `<app_config_dir>/mcp.json`.
             // Defaults to `true` when the file is missing or corrupt so the
             // app preserves its historical behavior on a fresh install.
