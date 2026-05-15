@@ -1,4 +1,4 @@
-import { invoke } from '$lib/api';
+import { invoke, isTauri } from '$lib/api';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from './settings.store.svelte';
 import { saveSettings } from './settings.service';
@@ -57,6 +57,12 @@ export function shouldAutoCheckNow(autoCheck: boolean): boolean {
 export async function maybeAutoCheckForUpdates(): Promise<void> {
 	const { autoCheck, channel } = settingsStore.updates;
 	if (!shouldAutoCheckNow(autoCheck)) return;
+	// The updater pipeline relies on Tauri's `Webview::resources_table()`
+	// (see commands/update_channel.rs) — the HTTP dispatcher returns a
+	// 500 here by design. Skip the cold-start check in browser sessions
+	// so the user doesn't see a misleading "Background update check
+	// failed" toast on every page load.
+	if (!isTauri()) return;
 
 	try {
 		const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', { channel });
