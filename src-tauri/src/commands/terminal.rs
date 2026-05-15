@@ -193,6 +193,16 @@ pub fn write_terminal(
     session_id: String,
     data: String,
 ) -> Result<(), String> {
+    write_terminal_core(&state, session_id, data)
+}
+
+/// Transport-agnostic counterpart of `write_terminal`. Shared with the
+/// HTTP dispatcher.
+pub fn write_terminal_core(
+    state: &TerminalState,
+    session_id: String,
+    data: String,
+) -> Result<(), String> {
     let mut sessions = state
         .sessions
         .lock()
@@ -215,6 +225,16 @@ pub fn write_terminal(
 #[tauri::command]
 pub fn resize_terminal(
     state: State<'_, TerminalState>,
+    session_id: String,
+    rows: u16,
+    cols: u16,
+) -> Result<(), String> {
+    resize_terminal_core(&state, session_id, rows, cols)
+}
+
+/// Transport-agnostic counterpart of `resize_terminal`.
+pub fn resize_terminal_core(
+    state: &TerminalState,
     session_id: String,
     rows: u16,
     cols: u16,
@@ -250,6 +270,14 @@ pub fn kill_terminal(
     state: State<'_, TerminalState>,
     session_id: String,
 ) -> Result<(), String> {
+    kill_terminal_core(&state, session_id)
+}
+
+/// Transport-agnostic counterpart of `kill_terminal`.
+pub fn kill_terminal_core(
+    state: &TerminalState,
+    session_id: String,
+) -> Result<(), String> {
     let mut sessions = state
         .sessions
         .lock()
@@ -268,6 +296,11 @@ pub fn kill_terminal(
 pub fn kill_all_terminals(
     state: State<'_, TerminalState>,
 ) -> Result<(), String> {
+    kill_all_terminals_core(&state)
+}
+
+/// Transport-agnostic counterpart of `kill_all_terminals`.
+pub fn kill_all_terminals_core(state: &TerminalState) -> Result<(), String> {
     let mut sessions = state
         .sessions
         .lock()

@@ -30,7 +30,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 use tokio::sync::broadcast::error::RecvError;
 use tower_http::services::ServeDir;
@@ -275,10 +274,5 @@ pub async fn run_bus_to_tauri_bridge(bus: EventBus, app: AppHandle) {
 		}
 	}
 }
-
-// `Arc` is re-exported here purely so dispatch modules can reference
-// shared cheap-clone types without re-importing from std.
-#[allow(dead_code)]
-pub(crate) type SharedAppState = Arc<AppState>;
 
 pub mod dispatch;
