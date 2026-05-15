@@ -113,7 +113,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		autoRunQueries: 'first-open',
 	},
 	mcp: {
-		enabled: true,
+		enabled: false,
 	},
 	updates: {
 		channel: 'stable',
