@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('$lib/api', () => ({
 	open: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(() => Promise.resolve(true)),
 }));
 
@@ -29,8 +26,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
 
-import { open } from '@tauri-apps/plugin-dialog';
-import { exists } from '@tauri-apps/plugin-fs';
+import { open, exists } from '$lib/api';
 import { toast } from 'svelte-sonner';
 import { error as debugError } from '$lib/utils/debug';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
