@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
 	exists: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, exists } from '$lib/api';
 import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
 import { loadBookmarks, saveBookmarks, toggleBookmarkForPath, updateBookmarkPathsAfterMove, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
 

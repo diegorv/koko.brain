@@ -8,7 +8,7 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import SnapshotList from './SnapshotList.svelte';
 	import DiffViewer from './DiffViewer.svelte';
-	import { ask } from '@tauri-apps/plugin-dialog';
+	import { ask } from '$lib/api';
 	import type { SnapshotInfo } from './file-history.types';
 
 	const fileName = $derived(

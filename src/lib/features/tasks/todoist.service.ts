@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, exists, mkdir } from '$lib/api';
 import type { AddTaskArgs } from '@doist/todoist-sdk';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';

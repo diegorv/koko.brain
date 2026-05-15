@@ -1,4 +1,4 @@
-import { exists, readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile } from '$lib/api';
 import { invoke } from '$lib/api';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';

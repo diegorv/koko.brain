@@ -1,7 +1,6 @@
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
-import { isTauri } from '$lib/api';
+import { exists, readTextFile, writeTextFile, mkdir, isTauri } from '$lib/api';
 import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';

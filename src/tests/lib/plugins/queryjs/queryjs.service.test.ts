@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 }));
 
-import { readTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile } from '$lib/api';
 import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
 
 const mockReadTextFile = vi.mocked(readTextFile);

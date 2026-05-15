@@ -12,15 +12,12 @@ vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
 	readText: vi.fn(() => Promise.resolve('')),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
+	isTauri: vi.fn(() => true),
 	exists: vi.fn(),
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
-}));
-
-vi.mock('$lib/api', () => ({
-	isTauri: vi.fn(() => true),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -65,7 +62,7 @@ vi.mock('$lib/utils/template', () => ({
 
 import { toast } from 'svelte-sonner';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile, writeTextFile, mkdir } from '$lib/api';
 import { processTemplate } from '$lib/utils/template';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';

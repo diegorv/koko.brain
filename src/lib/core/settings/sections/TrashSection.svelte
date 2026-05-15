@@ -11,7 +11,7 @@
 	import UndoIcon from '@lucide/svelte/icons/undo-2';
 	import FolderIcon from '@lucide/svelte/icons/folder';
 	import FileIcon from '@lucide/svelte/icons/file';
-	import { ask } from '@tauri-apps/plugin-dialog';
+	import { ask } from '$lib/api';
 	import { toast } from 'svelte-sonner';
 
 	onMount(() => {

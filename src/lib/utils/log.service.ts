@@ -1,4 +1,4 @@
-import { writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { writeTextFile, mkdir, exists } from '$lib/api';
 import { appLogDir } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
 

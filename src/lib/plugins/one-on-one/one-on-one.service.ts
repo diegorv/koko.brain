@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { readDir, exists } from '@tauri-apps/plugin-fs';
+import { readDir, exists } from '$lib/api';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';

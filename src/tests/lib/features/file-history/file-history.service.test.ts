@@ -5,9 +5,6 @@ setupLocalStorage();
 
 vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
@@ -24,7 +21,7 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 }));
 
 import { invoke } from '$lib/api';
-import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists, readDir } from '$lib/api';
 import { saveCurrentFile } from '$lib/core/editor/editor.service';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { fileHistoryStore } from '$lib/features/file-history/file-history.store.svelte';

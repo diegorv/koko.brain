@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '$lib/api';
 import type { TrashItem } from './trash.types';
 import { trashStore } from './trash.store.svelte';
 import {

@@ -161,24 +161,38 @@ export async function readTextFile(path: string): Promise<string> {
 	return invoke<string>('fs_read_text_file', { path });
 }
 
+/** Options accepted by `writeTextFile`. Mirrors the plugin's options subset. */
+export interface WriteTextFileOptions {
+	append?: boolean;
+}
+
 /** Mirrors `@tauri-apps/plugin-fs::writeTextFile`. Absolute paths only. */
-export async function writeTextFile(path: string, contents: string): Promise<void> {
+export async function writeTextFile(
+	path: string,
+	contents: string,
+	options?: WriteTextFileOptions,
+): Promise<void> {
 	if (useTauriIpc()) {
 		const m = await import('@tauri-apps/plugin-fs');
-		return m.writeTextFile(path, contents);
+		return m.writeTextFile(path, contents, options);
 	}
-	await invoke<void>('fs_write_text_file', { path, contents });
+	await invoke<void>('fs_write_text_file', {
+		path,
+		contents,
+		options: { append: !!options?.append },
+	});
 }
 
 /** Mirrors `@tauri-apps/plugin-fs::readFile`. Returns a `Uint8Array`. */
-export async function readFile(path: string): Promise<Uint8Array> {
+export async function readFile(path: string): Promise<Uint8Array<ArrayBuffer>> {
 	if (useTauriIpc()) {
 		const m = await import('@tauri-apps/plugin-fs');
-		return m.readFile(path);
+		return m.readFile(path) as unknown as Promise<Uint8Array<ArrayBuffer>>;
 	}
 	const b64 = await invoke<string>('fs_read_file', { path });
 	const bin = atob(b64);
-	const out = new Uint8Array(bin.length);
+	const buf = new ArrayBuffer(bin.length);
+	const out = new Uint8Array(buf);
 	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
 	return out;
 }

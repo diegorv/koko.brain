@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists } from '$lib/api';
 import type { BookmarkEntry } from './bookmarks.types';
 import { bookmarksStore } from './bookmarks.store.svelte';
 import { toggleBookmark, updateBookmarkPaths } from './bookmarks.logic';

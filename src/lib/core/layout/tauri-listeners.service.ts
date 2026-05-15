@@ -1,6 +1,5 @@
-import { listen, isTauri } from '$lib/api';
+import { listen, isTauri, ask } from '$lib/api';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';

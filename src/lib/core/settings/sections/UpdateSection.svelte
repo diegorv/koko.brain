@@ -5,7 +5,7 @@
 	import { invoke, Channel } from '$lib/api';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';
-	import { ask } from '@tauri-apps/plugin-dialog';
+	import { ask } from '$lib/api';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import BuildInfo from '../BuildInfo.svelte';

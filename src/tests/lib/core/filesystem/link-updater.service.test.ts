@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
-}));
-
-vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -15,7 +12,7 @@ vi.mock('$lib/utils/debug', () => ({
 
 // No mocks for stores or logic files — use real implementations per CLAUDE.md.
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile } from '$lib/api';
 import { invoke } from '$lib/api';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';

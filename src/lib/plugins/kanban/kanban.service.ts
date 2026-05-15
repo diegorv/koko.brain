@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile } from '$lib/api';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';

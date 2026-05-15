@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile } from '$lib/api';
 import { invoke } from '$lib/api';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';

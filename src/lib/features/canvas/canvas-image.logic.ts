@@ -1,4 +1,4 @@
-import { readFile } from '@tauri-apps/plugin-fs';
+import { readFile } from '$lib/api';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 
 /** Image extensions we recognize */

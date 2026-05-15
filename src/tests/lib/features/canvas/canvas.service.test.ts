@@ -9,7 +9,7 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	writeTextFile: vi.fn(),
 }));
 
@@ -17,7 +17,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeTextFile } from '$lib/api';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { serializeCanvas, createEmptyCanvas } from '$lib/features/canvas/canvas.logic';
 import { createCanvasFile } from '$lib/features/canvas/canvas.service';

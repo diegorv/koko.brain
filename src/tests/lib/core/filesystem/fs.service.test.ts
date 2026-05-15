@@ -5,9 +5,6 @@ setupLocalStorage();
 
 vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
@@ -57,7 +54,7 @@ vi.mock('$lib/core/trash/trash.service', () => ({
 }));
 
 import { invoke } from '$lib/api';
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '$lib/api';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';

@@ -1,5 +1,4 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { readTextFile, writeTextFile, ask } from '$lib/api';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';

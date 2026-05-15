@@ -3,7 +3,7 @@
 	import FileText from 'lucide-svelte/icons/file-text';
 	import OpenIcon from 'lucide-svelte/icons/external-link';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
+	import { readTextFile } from '$lib/api';
 	import { resolveColor } from './canvas.logic';
 	import { renderCanvasMarkdown } from './canvas-markdown.logic';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';

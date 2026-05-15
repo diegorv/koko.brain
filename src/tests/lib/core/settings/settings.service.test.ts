@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('$lib/core/settings/theme.service', () => ({
 	applyActiveTheme: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists } from '$lib/api';
 import { applyActiveTheme } from '$lib/core/settings/theme.service';
 import { settingsStore, DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';

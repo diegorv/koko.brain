@@ -2,6 +2,7 @@ use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use kokobrain_lib::commands::fs::{
 	copy_file_core, exists_core, mkdir_core, read_dir_core, read_file_core, read_text_file_core,
 	remove_core, rename_core, write_text_file_core, MkdirOptions, RemoveOptions,
+	WriteTextFileOptions,
 };
 use std::fs;
 use tempfile::TempDir;
@@ -42,9 +43,54 @@ fn write_text_file_writes_atomically() {
 	rt.block_on(write_text_file_core(
 		p.to_string_lossy().into(),
 		"body".into(),
+		WriteTextFileOptions::default(),
 	))
 	.unwrap();
 	assert_eq!(fs::read_to_string(&p).unwrap(), "body");
+}
+
+#[test]
+fn write_text_file_truncates_by_default() {
+	let rt = rt();
+	let tmp = TempDir::new().unwrap();
+	let p = tmp.path().join("c.md");
+	fs::write(&p, "old long content").unwrap();
+	rt.block_on(write_text_file_core(
+		p.to_string_lossy().into(),
+		"new".into(),
+		WriteTextFileOptions::default(),
+	))
+	.unwrap();
+	assert_eq!(fs::read_to_string(&p).unwrap(), "new");
+}
+
+#[test]
+fn write_text_file_appends_when_option_set() {
+	let rt = rt();
+	let tmp = TempDir::new().unwrap();
+	let p = tmp.path().join("d.md");
+	fs::write(&p, "first ").unwrap();
+	rt.block_on(write_text_file_core(
+		p.to_string_lossy().into(),
+		"second".into(),
+		WriteTextFileOptions { append: true },
+	))
+	.unwrap();
+	assert_eq!(fs::read_to_string(&p).unwrap(), "first second");
+}
+
+#[test]
+fn write_text_file_append_creates_when_missing() {
+	let rt = rt();
+	let tmp = TempDir::new().unwrap();
+	let p = tmp.path().join("e.md");
+	rt.block_on(write_text_file_core(
+		p.to_string_lossy().into(),
+		"only".into(),
+		WriteTextFileOptions { append: true },
+	))
+	.unwrap();
+	assert_eq!(fs::read_to_string(&p).unwrap(), "only");
 }
 
 #[test]

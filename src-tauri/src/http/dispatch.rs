@@ -680,9 +680,9 @@ pub async fn dispatch_command(
 		"fs_write_text_file" => {
 			#[derive(Deserialize)]
 			#[serde(rename_all = "camelCase")]
-			struct Args { path: String, contents: String }
+			struct Args { path: String, contents: String, options: Option<commands::fs::WriteTextFileOptions> }
 			let a: Args = parse_args(args)?;
-			from_core(commands::fs::write_text_file_core(a.path, a.contents).await)
+			from_core(commands::fs::write_text_file_core(a.path, a.contents, a.options.unwrap_or_default()).await)
 		}
 		"fs_read_file" => {
 			#[derive(Deserialize)]

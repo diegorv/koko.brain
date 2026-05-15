@@ -10,6 +10,7 @@ vi.mock('$lib/api', () => ({
 		return Promise.resolve(mockUnlistenEvent);
 	}),
 	isTauri: vi.fn(() => true),
+	ask: vi.fn(),
 }));
 
 const mockUnlistenClose = vi.fn();
@@ -40,9 +41,6 @@ vi.mock('@tauri-apps/api/window', () => ({
 	}),
 }));
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-	ask: vi.fn(),
-}));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	saveAllDirtyTabs: vi.fn(),
@@ -66,8 +64,7 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 
 // --- Imports (after mocks) ---
 
-import { listen, isTauri } from '$lib/api';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { listen, isTauri, ask } from '$lib/api';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';

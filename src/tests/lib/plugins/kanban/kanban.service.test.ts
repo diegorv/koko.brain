@@ -7,7 +7,7 @@ vi.mock('$lib/utils/debug', () => ({
 	}),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	writeTextFile: vi.fn(),
 	readTextFile: vi.fn(),
 }));
@@ -16,7 +16,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile } from '$lib/api';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard } from '$lib/plugins/kanban/kanban.logic';
 import { createKanbanFile, resetKanban, loadLinkedFileContent } from '$lib/plugins/kanban/kanban.service';

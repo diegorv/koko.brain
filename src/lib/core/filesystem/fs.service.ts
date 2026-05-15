@@ -1,5 +1,5 @@
 import { invoke } from '$lib/api';
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '$lib/api';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
 import { fsStore } from './fs.store.svelte';

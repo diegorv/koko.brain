@@ -25,7 +25,7 @@
 	} from '$lib/core/filesystem/fs.logic';
 	import { createCanvasFile } from '$lib/features/canvas/canvas.service';
 	import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
-	import { ask } from '@tauri-apps/plugin-dialog';
+	import { ask } from '$lib/api';
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';

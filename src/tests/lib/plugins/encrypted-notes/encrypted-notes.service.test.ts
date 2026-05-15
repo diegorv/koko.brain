@@ -5,9 +5,6 @@ setupLocalStorage();
 
 vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: vi.fn(),
 }));
 
@@ -22,7 +19,7 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 }));
 
 import { invoke } from '$lib/api';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeTextFile } from '$lib/api';
 import { notifyAfterSave, setFileReadTransform, setFileWriteTransform } from '$lib/core/editor/editor.hooks';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';

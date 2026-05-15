@@ -1,4 +1,4 @@
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeTextFile } from '$lib/api';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { serializeCanvas, createEmptyCanvas } from './canvas.logic';
 import { error } from '$lib/utils/debug';

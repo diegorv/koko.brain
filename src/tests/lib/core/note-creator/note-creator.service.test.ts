@@ -9,12 +9,9 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	exists: vi.fn(),
 	readTextFile: vi.fn(),
-}));
-
-vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -34,7 +31,7 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 	updateNoteInIndex: vi.fn(),
 }));
 
-import { exists, readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile } from '$lib/api';
 import { invoke } from '$lib/api';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';

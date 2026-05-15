@@ -12,11 +12,12 @@ Object.defineProperty(globalThis, 'localStorage', {
 	writable: true,
 });
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	exists: vi.fn(),
 	readDir: vi.fn(),
 	mkdir: vi.fn(),
 	writeTextFile: vi.fn(),
+	invoke: vi.fn(),
 }));
 
 // Mock side-effect services only
@@ -24,15 +25,11 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-vi.mock('$lib/api', () => ({
-	invoke: vi.fn(),
-}));
-
 vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
-import { exists, readDir, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, mkdir, writeTextFile } from '$lib/api';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';

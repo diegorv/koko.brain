@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists } from '$lib/api';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { moveItem } from '$lib/core/filesystem/fs.service';
 import { setIconForPath } from '$lib/features/file-icons/file-icons.service';

@@ -20,7 +20,7 @@ vi.mock('$lib/features/tasks/todoist-client', () => ({
 	}),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	exists: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, exists, mkdir } from '$lib/api';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';

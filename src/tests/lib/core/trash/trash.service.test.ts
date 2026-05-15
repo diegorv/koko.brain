@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '$lib/api';
 import { trashStore } from '$lib/core/trash/trash.store.svelte';
 import type { TrashItem } from '$lib/core/trash/trash.types';
 import {

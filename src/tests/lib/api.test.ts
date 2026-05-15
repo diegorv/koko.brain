@@ -117,7 +117,25 @@ describe('$lib/api — fs', () => {
 		});
 		const api = await import('$lib/api');
 		await api.writeTextFile('/abs/x.md', 'body');
-		expect(seen[0]).toEqual({ cmd: 'fs_write_text_file', args: { path: '/abs/x.md', contents: 'body' } });
+		expect(seen[0]).toEqual({
+			cmd: 'fs_write_text_file',
+			args: { path: '/abs/x.md', contents: 'body', options: { append: false } },
+		});
+	});
+
+	it('writeTextFile (browser) forwards append option', async () => {
+		setTauri(false);
+		const seen: { cmd: string; args: unknown }[] = [];
+		mockFetch((b) => {
+			seen.push(b);
+			return null;
+		});
+		const api = await import('$lib/api');
+		await api.writeTextFile('/abs/x.md', 'body', { append: true });
+		expect(seen[0]).toEqual({
+			cmd: 'fs_write_text_file',
+			args: { path: '/abs/x.md', contents: 'body', options: { append: true } },
+		});
 	});
 
 	it('readFile (browser) base64-decodes the wire payload', async () => {

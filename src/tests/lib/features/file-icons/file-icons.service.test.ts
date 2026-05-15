@@ -1,13 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
 	exists: vi.fn(),
-}));
-
-vi.mock('$lib/api', () => ({
 	invoke: vi.fn(),
 }));
 
@@ -15,7 +12,7 @@ vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 	preloadPacks: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists } from '$lib/api';
 import { invoke } from '$lib/api';
 import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';

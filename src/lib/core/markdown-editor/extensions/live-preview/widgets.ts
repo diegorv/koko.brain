@@ -574,7 +574,7 @@ async function loadEmbedContent(
 	const filePath = await resolveEmbedTarget(target);
 	if (!filePath) return null;
 
-	const { readTextFile } = await import('@tauri-apps/plugin-fs');
+	const { readTextFile } = await import('$lib/api');
 	const content = await readTextFile(filePath);
 
 	const { extractHeadingSection, extractBlockContent, getNotePreview } =

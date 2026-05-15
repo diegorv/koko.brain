@@ -1,5 +1,5 @@
 import { invoke } from '$lib/api';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeTextFile } from '$lib/api';
 import { notifyAfterSave, setFileReadTransform, setFileWriteTransform } from '$lib/core/editor/editor.hooks';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { isVirtualTab, isTabDirty } from '$lib/core/editor/editor.logic';

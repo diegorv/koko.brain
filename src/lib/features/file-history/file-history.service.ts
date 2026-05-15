@@ -1,5 +1,5 @@
 import { invoke } from '$lib/api';
-import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists, readDir } from '$lib/api';
 import { fileHistoryStore } from './file-history.store.svelte';
 import { getRelativePath, getSnapshotBackupDir, getSnapshotBackupPath } from './file-history.logic';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';

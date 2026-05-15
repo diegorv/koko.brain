@@ -6,7 +6,7 @@ const mockWriteTextFile = vi.fn();
 const mockAppLogDir = vi.fn();
 const mockOpenPath = vi.fn();
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	exists: (...args: unknown[]) => mockExists(...args),
 	mkdir: (...args: unknown[]) => mockMkdir(...args),
 	writeTextFile: (...args: unknown[]) => mockWriteTextFile(...args),

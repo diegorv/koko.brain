@@ -1,4 +1,4 @@
-import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readDir, exists, writeTextFile } from '$lib/api';
 import { invoke } from '$lib/api';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';

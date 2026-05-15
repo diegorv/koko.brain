@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, exists } from '$lib/api';
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';

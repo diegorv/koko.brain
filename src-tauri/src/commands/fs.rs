@@ -35,6 +35,13 @@ pub struct MkdirOptions {
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+pub struct WriteTextFileOptions {
+	#[serde(default)]
+	pub append: bool,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct RemoveOptions {
 	#[serde(default)]
 	pub recursive: bool,
@@ -46,10 +53,36 @@ pub async fn read_text_file_core(path: String) -> Result<String, String> {
 		.map_err(|e| format!("read_text_file({path}): {e}"))
 }
 
-pub async fn write_text_file_core(path: String, contents: String) -> Result<(), String> {
-	tokio::fs::write(&path, contents)
+pub async fn write_text_file_core(
+	path: String,
+	contents: String,
+	options: WriteTextFileOptions,
+) -> Result<(), String> {
+	if options.append {
+		// std::fs inside spawn_blocking — sync Drop guarantees the file is
+		// flushed and closed before the future resolves. tokio::fs::File
+		// has an async Drop that returns before the OS write lands when
+		// the future returns immediately, which surfaced as missing tail
+		// bytes when callers (e.g. the log writer) chain write -> read on
+		// the same path.
+		let p = path.clone();
+		tokio::task::spawn_blocking(move || {
+			use std::io::Write;
+			let mut file = std::fs::OpenOptions::new()
+				.create(true)
+				.append(true)
+				.open(&p)
+				.map_err(|e| format!("write_text_file({p}) open: {e}"))?;
+			file.write_all(contents.as_bytes())
+				.map_err(|e| format!("write_text_file({p}) append: {e}"))
+		})
 		.await
-		.map_err(|e| format!("write_text_file({path}): {e}"))
+		.map_err(|e| format!("write_text_file({path}) join: {e}"))?
+	} else {
+		tokio::fs::write(&path, contents)
+			.await
+			.map_err(|e| format!("write_text_file({path}): {e}"))
+	}
 }
 
 pub async fn read_file_core(path: String) -> Result<String, String> {
@@ -138,8 +171,12 @@ pub async fn fs_read_text_file(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn fs_write_text_file(path: String, contents: String) -> Result<(), String> {
-	write_text_file_core(path, contents).await
+pub async fn fs_write_text_file(
+	path: String,
+	contents: String,
+	options: Option<WriteTextFileOptions>,
+) -> Result<(), String> {
+	write_text_file_core(path, contents, options.unwrap_or_default()).await
 }
 
 #[tauri::command]

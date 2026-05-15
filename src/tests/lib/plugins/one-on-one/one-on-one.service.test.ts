@@ -3,7 +3,7 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readDir: vi.fn(),
 	exists: vi.fn(),
 }));
@@ -18,7 +18,7 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import dayjs from 'dayjs';
-import { readDir, exists } from '@tauri-apps/plugin-fs';
+import { readDir, exists } from '$lib/api';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';

@@ -1,7 +1,7 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { autocompletion } from '@codemirror/autocomplete';
 import type { Extension } from '@codemirror/state';
-import { readTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile } from '$lib/api';
 import { invoke } from '$lib/api';
 import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';

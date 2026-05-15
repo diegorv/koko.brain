@@ -1,13 +1,13 @@
 /**
- * Shared helpers for mocking @tauri-apps/plugin-fs in service tests.
+ * Shared helpers for mocking the filesystem layer in service tests.
  * These configure the vi.mocked() responses for common file operations.
  *
  * Prerequisite: the test file must have:
- *   vi.mock('@tauri-apps/plugin-fs');
+ *   vi.mock('$lib/api');
  * before importing this fixture.
  */
 import { vi } from 'vitest';
-import { exists, readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile } from '$lib/api';
 
 /**
  * Mocks a JSON file at the given path.

@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/api', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
 	ask: vi.fn(),
+	invoke: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -44,8 +42,8 @@ vi.mock('$lib/utils/debounce', () => ({
 	}),
 }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { readTextFile, writeTextFile } from '$lib/api';
+import { ask } from '$lib/api';
 import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
