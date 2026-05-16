@@ -15,6 +15,23 @@ import type { FileReadResult } from '$lib/core/filesystem/fs.types';
 const INCREMENTAL_THRESHOLD = 10;
 
 /**
+ * In-flight guard for the expensive full-rebuild branch. Concurrent
+ * watcher events (bursts spaced longer than the upstream 300 ms
+ * debounce in app-lifecycle.service.ts) used to each kick an
+ * overlapping scan_vault_v2 (~1.8 s on a 5,500-note vault). The guard
+ * collapses overlap into a single in-flight rebuild plus at most one
+ * tail rebuild that drains anything queued while the first ran.
+ */
+let fullRebuildInFlight = false;
+let fullRebuildPending = false;
+
+/** Resets the coalesce state. Test-only — do not call from production code. */
+export function _resetCoalesceForTests(): void {
+	fullRebuildInFlight = false;
+	fullRebuildPending = false;
+}
+
+/**
  * Performs a FULL rebuild of all indexes from disk.
  * Called by the file watcher when file changes are detected on disk
  * (external edits, renames, deletes, git operations, etc.).
@@ -26,6 +43,12 @@ const INCREMENTAL_THRESHOLD = 10;
  * Skips the rebuild when ALL changed paths were recently saved by the
  * editor itself (self-save detection), since the indexes are already
  * up-to-date from the incremental per-file updates.
+ *
+ * The expensive full-rebuild branch is guarded by an in-flight flag:
+ * a call arriving while another full rebuild is still running marks
+ * `fullRebuildPending` and returns immediately. The originating call
+ * runs a single tail rebuild on completion to pick up queued bursts.
+ * The cheap incremental path is not gated by the guard.
  *
  * @param changedPaths - File paths that triggered the watcher (absolute)
  * @see index-updater.service.ts — incremental per-file updates (typing)
@@ -67,6 +90,32 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 		}
 	}
 
+	if (fullRebuildInFlight) {
+		fullRebuildPending = true;
+		debug('WATCHER-HANDLER', `Full rebuild already in flight; marking pending (paths: ${changedPaths.length})`);
+		return;
+	}
+
+	fullRebuildInFlight = true;
+	try {
+		await runFullRebuild(changedPaths, start);
+		// Drain any rebuild requests queued while we ran.
+		while (fullRebuildPending) {
+			fullRebuildPending = false;
+			debug('WATCHER-HANDLER', `Running tail rebuild for bursts queued during in-flight rebuild`);
+			await runFullRebuild([], performance.now());
+		}
+	} finally {
+		fullRebuildInFlight = false;
+	}
+}
+
+/**
+ * Executes the full-rebuild fan-out (Rust `scan_vault_v2` + per-feature
+ * TS-side bulk builders). Extracted so the in-flight guard above can
+ * invoke it both for the originating call and for the tail rebuild.
+ */
+async function runFullRebuild(changedPaths: string[], start: number): Promise<void> {
 	debug('WATCHER-HANDLER', `Full rebuildAllIndexes executing at ${Date.now()}, paths: ${changedPaths.length}`);
 
 	try { await rebuildIndex(); } catch (err) { error('WATCHER', 'rebuildIndex failed:', err); }

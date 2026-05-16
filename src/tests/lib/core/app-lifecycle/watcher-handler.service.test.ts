@@ -49,7 +49,7 @@ import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { rebuildAllIndexes } from '$lib/core/app-lifecycle/watcher-handler.service';
+import { rebuildAllIndexes, _resetCoalesceForTests } from '$lib/core/app-lifecycle/watcher-handler.service';
 
 describe('rebuildAllIndexes', () => {
 	beforeEach(() => {
@@ -280,5 +280,145 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(updateNoteInIndex).not.toHaveBeenCalled();
 		// Deletion fans out to remove_note_from_index in Rust.
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/deleted.md' });
+	});
+});
+
+describe('rebuildAllIndexes — full-rebuild in-flight coalesce', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		_resetCoalesceForTests();
+		// Reset mock implementations that prior describe blocks may have
+		// left in a leaking state — vi.clearAllMocks() only clears call
+		// records, not mockReturnValue/mockResolvedValue.
+		vi.mocked(areAllRecentSaves).mockReturnValue(false);
+		vi.mocked(rebuildIndex).mockResolvedValue();
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+	});
+
+	// Helper: build a "many files" change set that forces the full-rebuild
+	// branch (above INCREMENTAL_THRESHOLD = 10).
+	function manyPaths(label: string): string[] {
+		return Array.from({ length: 15 }, (_, i) => `/vault/${label}-${i}.md`);
+	}
+
+	it('concurrent bursts collapse into one in-flight rebuild plus one tail', async () => {
+		// Make rebuildIndex take a measurable tick so concurrent calls
+		// pile up while it runs.
+		let releaseFirst: () => void = () => {};
+		const firstStarted = new Promise<void>((resolve) => {
+			vi.mocked(rebuildIndex).mockImplementationOnce(async () => {
+				resolve();
+				await new Promise<void>((r) => { releaseFirst = r; });
+			});
+			vi.mocked(rebuildIndex).mockResolvedValue();
+		});
+
+		const burst1 = rebuildAllIndexes(manyPaths('a'));
+		await firstStarted;
+		// While rebuild #1 is suspended, fire two more bursts.
+		const burst2 = rebuildAllIndexes(manyPaths('b'));
+		const burst3 = rebuildAllIndexes(manyPaths('c'));
+
+		// Bursts 2 + 3 should return immediately (queued as pending).
+		await Promise.all([burst2, burst3]);
+
+		// Let the first rebuild complete; the originating call will then
+		// run exactly ONE tail rebuild to drain the pending flag.
+		releaseFirst();
+		await burst1;
+
+		expect(rebuildIndex).toHaveBeenCalledTimes(2);
+	});
+
+	it('tail rebuild runs after the in-flight rebuild completes', async () => {
+		const sequence: string[] = [];
+		let releaseFirst: () => void = () => {};
+		const firstStarted = new Promise<void>((resolve) => {
+			vi.mocked(rebuildIndex).mockImplementationOnce(async () => {
+				sequence.push('first-start');
+				resolve();
+				await new Promise<void>((r) => { releaseFirst = r; });
+				sequence.push('first-end');
+			});
+			vi.mocked(rebuildIndex).mockImplementationOnce(async () => {
+				sequence.push('tail');
+			});
+		});
+
+		const burst1 = rebuildAllIndexes(manyPaths('x'));
+		await firstStarted;
+		const burst2 = rebuildAllIndexes(manyPaths('y'));
+		await burst2;
+		releaseFirst();
+		await burst1;
+
+		expect(sequence).toEqual(['first-start', 'first-end', 'tail']);
+	});
+
+	it('incremental path is not gated by the in-flight guard', async () => {
+		// Make the in-flight full rebuild suspend so the guard is held.
+		let releaseFull: () => void = () => {};
+		const fullStarted = new Promise<void>((resolve) => {
+			vi.mocked(rebuildIndex).mockImplementationOnce(async () => {
+				resolve();
+				await new Promise<void>((r) => { releaseFull = r; });
+			});
+			vi.mocked(rebuildIndex).mockResolvedValue();
+		});
+
+		const fullBurst = rebuildAllIndexes(manyPaths('full'));
+		await fullStarted;
+
+		// Fire a small change set while the full rebuild is in flight.
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/note.md', content: 'updated content' },
+		]);
+
+		await rebuildAllIndexes(['/vault/note.md']);
+
+		// Incremental path ran despite the guard being held.
+		expect(invoke).toHaveBeenCalledWith('read_files_batch', {
+			vaultPath: '/vault',
+			paths: ['/vault/note.md'],
+		});
+		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+
+		releaseFull();
+		await fullBurst;
+	});
+
+	it('self-save skip still wins under the in-flight guard', async () => {
+		vi.mocked(areAllRecentSaves).mockReturnValue(true);
+
+		// First call: enters full rebuild path? No — self-save skip fires
+		// before the guard is even consulted.
+		await rebuildAllIndexes(['/vault/self-saved.md']);
+
+		expect(rebuildIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
+
+		// Subsequent call with the same self-save state still skipped.
+		await rebuildAllIndexes(['/vault/self-saved.md']);
+		expect(rebuildIndex).not.toHaveBeenCalled();
+	});
+
+	it('error in rebuildIndex does not lock the in-flight gate', async () => {
+		vi.mocked(rebuildIndex).mockRejectedValueOnce(new Error('scan failed'));
+
+		await rebuildAllIndexes(manyPaths('err'));
+
+		// Error logged but caught — gate must have cleared in `finally`.
+		expect(debugError).toHaveBeenCalledWith('WATCHER', 'rebuildIndex failed:', expect.any(Error));
+
+		// A follow-up call must still be able to run a fresh rebuild.
+		vi.mocked(rebuildIndex).mockResolvedValueOnce(undefined);
+		await rebuildAllIndexes(manyPaths('after'));
+
+		// rebuildIndex called twice total — once (rejected) + once (after).
+		expect(rebuildIndex).toHaveBeenCalledTimes(2);
 	});
 });
