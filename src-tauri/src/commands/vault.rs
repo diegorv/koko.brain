@@ -4,6 +4,10 @@ use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedM
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
+use crate::vault::index_cache::{
+	cache_file_path, delete_snapshot, deserialize_snapshot, hash_vault_path,
+	read_snapshot_bytes, validate_schema_version, validate_vault_path_hash,
+};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -822,6 +826,168 @@ pub fn remove_note_from_index(
 /// `update_note_in_index` mutations (Phase 2.6). The lock is dropped
 /// BEFORE emitting so reactive consumers can immediately re-read the
 /// fresh index without contending with the write guard.
+/// Return shape of `scan_vault_v2_cached`. `source` identifies which
+/// path the command took: `"scan"` when no cache existed or it was
+/// corrupt and the command fell back to a fresh `scan_vault_v2`,
+/// `"cache_then_sweep"` when the cache loaded successfully and a
+/// background mtime reconciliation sweep was spawned. `load_ms` is
+/// the total command duration in milliseconds (telemetry for the
+/// TS cold-start logger).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexLoadResult {
+	pub source: String,
+	pub entries: usize,
+	pub load_ms: u64,
+}
+
+/// Win 3 cold-start entry point: load the on-disk snapshot if valid,
+/// rebuild the in-memory `VaultIndex` from it, emit the
+/// `vault-index-updated` event so panels render against the cached
+/// data, and spawn a background mtime reconciliation sweep to
+/// catch any external edits / deletions that happened while the app
+/// was closed. Falls back to the existing `scan_vault_v2` on any
+/// load failure (missing file, deserialise error, schema mismatch,
+/// vault-path hash mismatch) — the cache is always disposable.
+///
+/// Returns immediately after spawning the sweep. The TS bootstrap
+/// waits for `vault-index-sweep-complete` (emitted by the sweep) and
+/// only THEN calls `start_vault_watcher`, so watcher events don't
+/// interleave with the sweep's in-flight mutations.
+#[tauri::command]
+pub fn scan_vault_v2_cached(
+	app: tauri::AppHandle,
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<IndexLoadResult, String> {
+	let _trace = CmdTrace::new("scan_vault_v2_cached");
+	let load_start = std::time::Instant::now();
+
+	// Resolve the cache file path under <app_local_data_dir>/index/.
+	use tauri::Manager;
+	let base_dir = app
+		.path()
+		.app_local_data_dir()
+		.map_err(|e| format!("no app_local_data_dir: {e}"))?
+		.join("index");
+	let cache_path = match cache_file_path(&base_dir, &path) {
+		Ok(p) => p,
+		Err(e) => {
+			debug_log("VAULT-V2", format!("cache path resolution failed: {}", e));
+			return run_scan_fallback(app, path, state, load_start);
+		}
+	};
+
+	// Try to load the on-disk snapshot.
+	let bytes = match read_snapshot_bytes(&cache_path) {
+		Ok(Some(b)) => b,
+		Ok(None) => {
+			debug_log("VAULT-V2", "no cache file; falling back to full scan".to_string());
+			return run_scan_fallback(app, path, state, load_start);
+		}
+		Err(e) => {
+			debug_log("VAULT-V2", format!("cache read failed: {}; deleting + falling back", e));
+			let _ = delete_snapshot(&cache_path);
+			return run_scan_fallback(app, path, state, load_start);
+		}
+	};
+
+	let snapshot = match deserialize_snapshot(&bytes) {
+		Ok(s) => s,
+		Err(e) => {
+			debug_log("VAULT-V2", format!("cache deserialise failed: {}; deleting + falling back", e));
+			let _ = delete_snapshot(&cache_path);
+			return run_scan_fallback(app, path, state, load_start);
+		}
+	};
+
+	if let Err(e) = validate_schema_version(&snapshot) {
+		debug_log("VAULT-V2", format!("{}; deleting + falling back", e));
+		let _ = delete_snapshot(&cache_path);
+		return run_scan_fallback(app, path, state, load_start);
+	}
+
+	let expected_hash = hash_vault_path(&path);
+	if let Err(e) = validate_vault_path_hash(&snapshot, &expected_hash) {
+		debug_log("VAULT-V2", format!("{}; deleting + falling back", e));
+		let _ = delete_snapshot(&cache_path);
+		return run_scan_fallback(app, path, state, load_start);
+	}
+
+	let entries = match snapshot.into_entries() {
+		Ok(e) => e,
+		Err(e) => {
+			debug_log("VAULT-V2", format!("frontmatter parse failed: {}; deleting + falling back", e));
+			let _ = delete_snapshot(&cache_path);
+			return run_scan_fallback(app, path, state, load_start);
+		}
+	};
+
+	let entries_count = entries.len();
+	let new_version = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		*idx = VaultIndex::build_from_entries(entries);
+		idx.version()
+	};
+
+	// Track vault path for the persist hook (Task 3 also calls this
+	// from the fallback scan_vault_v2; doing it here covers the
+	// cache-hit path too).
+	crate::vault::index_persist::set_vault_path(path.clone());
+
+	// Emit vault-index-updated so panels render against the cached data
+	// immediately. affected: [] signals "full rebuild — re-fetch".
+	let payload = UpdateResult {
+		changed: true,
+		affected: Vec::new(),
+		version: new_version,
+	};
+	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
+		debug_log(
+			"VAULT-V2",
+			format!("scan_vault_v2_cached: vault-index-updated emit failed: {}", emit_err),
+		);
+	}
+
+	// Spawn the reconciliation sweep. Returns immediately; the sweep
+	// runs on tokio and emits vault-index-sweep-complete when done.
+	crate::vault::index_sweep::spawn_reconcile(app, path);
+
+	let load_ms = load_start.elapsed().as_millis() as u64;
+	debug_log(
+		"VAULT-V2",
+		format!(
+			"scan_vault_v2_cached: loaded {} entries from cache in {}ms; sweep spawned",
+			entries_count, load_ms,
+		),
+	);
+	Ok(IndexLoadResult {
+		source: "cache_then_sweep".to_string(),
+		entries: entries_count,
+		load_ms,
+	})
+}
+
+/// Internal helper: delegates to the existing `scan_vault_v2` for the
+/// no-cache / corrupt-cache path and wraps the result in an
+/// `IndexLoadResult`.
+fn run_scan_fallback(
+	app: tauri::AppHandle,
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+	load_start: std::time::Instant,
+) -> Result<IndexLoadResult, String> {
+	let entries = scan_vault_v2(app, path, state)?;
+	let load_ms = load_start.elapsed().as_millis() as u64;
+	Ok(IndexLoadResult {
+		source: "scan".to_string(),
+		entries: entries.len(),
+		load_ms,
+	})
+}
+
 #[tauri::command]
 pub fn scan_vault_v2(
 	app: tauri::AppHandle,
