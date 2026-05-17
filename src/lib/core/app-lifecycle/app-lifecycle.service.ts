@@ -376,6 +376,17 @@ export function teardownVault(): void {
 	teardownLogSession();
 
 	// ── Close database + async cleanup ───────────────────────────────
+	// Win 3 Task 8: flush any pending debounced snapshot write before
+	// closing the vault. Fire-and-forget — the in-memory state has
+	// already been reset by this point, so a slow flush won't block
+	// the next vault bootstrap. Worst case: the flush races with the
+	// next scan_vault_v2_cached and that command's IndexLoadResult
+	// returns source: "scan" because the cache file wasn't yet on
+	// disk; one cold-start cycle is the only cost.
+	debug('LIFECYCLE', 'Flushing index cache...');
+	invoke('flush_index_cache').catch((err: unknown) => {
+		error('LIFECYCLE', 'Failed to flush index cache:', err);
+	});
 	debug('LIFECYCLE', 'Closing vault database...');
 	invoke('close_vault_db').catch((err: unknown) => {
 		error('LIFECYCLE', 'Failed to close vault database:', err);

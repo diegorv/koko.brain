@@ -970,6 +970,22 @@ pub fn scan_vault_v2_cached(
 	})
 }
 
+/// Win 3 Task 8: flush any pending debounced snapshot write and
+/// clear the tracked vault path. Called from the TS teardown flow
+/// (vault switch / vault close) so the on-disk snapshot reflects the
+/// session's last mutation before the watcher is torn down and the
+/// next vault's bootstrap begins.
+///
+/// Blocks until the latest scheduled write completes (or returns
+/// immediately if nothing was scheduled). Safe to call repeatedly.
+#[tauri::command]
+pub async fn flush_index_cache() -> Result<(), String> {
+	let _trace = CmdTrace::new("flush_index_cache");
+	crate::vault::index_persist::flush_pending_snapshot().await;
+	crate::vault::index_persist::clear_vault_path();
+	Ok(())
+}
+
 /// Internal helper: delegates to the existing `scan_vault_v2` for the
 /// no-cache / corrupt-cache path and wraps the result in an
 /// `IndexLoadResult`.
