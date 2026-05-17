@@ -293,6 +293,10 @@ pub fn update_note_in_index(
 			),
 		);
 	}
+	// Win 3: schedule a debounced disk write so the next cold start
+	// can skip the full filesystem walk. Snapshot is taken lazily
+	// inside the spawned task — no per-call clone cost.
+	crate::vault::index_persist::schedule_snapshot_for_app(app);
 	Ok(result)
 }
 
@@ -825,6 +829,9 @@ pub fn scan_vault_v2(
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
 	let _trace = CmdTrace::new("scan_vault_v2");
+	// Win 3: remember the vault path so update_note_in_index's
+	// debounced snapshot writer can resolve the cache file.
+	crate::vault::index_persist::set_vault_path(path.clone());
 	let notes = collect_v2_entries(&path)?;
 	let build_start = std::time::Instant::now();
 	let new_version = {
@@ -843,6 +850,8 @@ pub fn scan_vault_v2(
 		);
 		idx.version()
 	};
+	// Win 3: schedule a debounced disk write of the fresh index.
+	crate::vault::index_persist::schedule_snapshot_for_app(app.clone());
 	let payload = UpdateResult {
 		changed: true,
 		affected: Vec::new(),
