@@ -12,6 +12,7 @@
 
 pub mod entry;
 pub mod index;
+pub mod index_cache;
 pub mod parsing;
 pub mod task;
 pub mod watcher;

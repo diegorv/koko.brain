@@ -39,6 +39,7 @@ sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 chrono = "0.4"
 rusqlite = { version = "0.39", features = ["bundled"] }
 sha2 = "0.11"
+bincode = { version = "2", features = ["serde"] }
 
 # File History
 similar = "3.1"
