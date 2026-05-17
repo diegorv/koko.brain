@@ -13,6 +13,7 @@ import {
 	onFileChange
 } from '$lib/core/filesystem/fs.watcher';
 import {
+	awaitInitialSweep,
 	buildIndex,
 	resetBacklinks,
 } from '$lib/features/backlinks/backlinks.service';
@@ -301,9 +302,31 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		pendingWatcherPaths.push(...paths);
 		debouncedFileChangeHandler?.();
 	});
-	startWatching(vaultPath).catch((err) => {
-		error('LIFECYCLE', 'Failed to start file watcher:', err);
-	});
+	// Win 3: defer watcher start until the cold-start reconciliation
+	// sweep emitted by `scan_vault_v2_cached` completes (resolves
+	// immediately if the cache miss path was taken). Without this
+	// gate, watcher-triggered `update_note_in_index` calls would
+	// interleave with the sweep's in-flight `update_entry` /
+	// `remove_entry` calls and produce inconsistent intermediate
+	// state. The promise has a 30 s timeout fallback inside
+	// `backlinks.service.ts::waitForSweepComplete`, so a stuck Rust
+	// sweep never blocks watcher start indefinitely.
+	const sweepStart = perfStart();
+	awaitInitialSweep()
+		.then(() => {
+			perfEnd('LIFECYCLE', 'Step 7a: awaitInitialSweep', sweepStart);
+			if (initVersion !== version) return;
+			startWatching(vaultPath).catch((err) => {
+				error('LIFECYCLE', 'Failed to start file watcher:', err);
+			});
+		})
+		.catch((err) => {
+			error('LIFECYCLE', 'awaitInitialSweep failed; starting watcher anyway:', err);
+			if (initVersion !== version) return;
+			startWatching(vaultPath).catch((werr) => {
+				error('LIFECYCLE', 'Failed to start file watcher:', werr);
+			});
+		});
 	// ── Step 8: Execute pending deep-link action ────────────────────
 	executePendingAction().catch((err) => {
 		error('LIFECYCLE', 'Failed to execute pending deep-link action:', err);

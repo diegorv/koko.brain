@@ -57,6 +57,7 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
+	awaitInitialSweep: vi.fn(() => Promise.resolve()),
 	buildIndex: vi.fn(() => Promise.resolve()),
 	rebuildIndex: vi.fn(() => Promise.resolve()),
 	resetBacklinks: vi.fn(),

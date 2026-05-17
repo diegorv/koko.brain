@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
 import { dedupeInflight } from '$lib/utils/inflight';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -37,11 +38,31 @@ const lastFetchedBacklinksVersion = new Map<string, number>();
 /** Same idea as `lastFetchedBacklinksVersion`, for unlinked-mentions. */
 const lastFetchedUnlinkedVersion = new Map<string, number>();
 
+/** Shape returned by the Rust `scan_vault_v2_cached` command. */
+export type IndexLoadResult = {
+	/** `"cache_then_sweep"` when the cache loaded and a sweep was spawned, `"scan"` when the cache was absent / corrupt and the command fell back to a full scan. */
+	source: 'cache_then_sweep' | 'scan';
+	/** Number of `NoteEntry` records loaded into the index. */
+	entries: number;
+	/** Total command duration in milliseconds (telemetry). */
+	loadMs: number;
+};
+
+/** Resolves when the cold-start reconciliation sweep completes (or when no sweep is pending / the timeout fires). */
+let initialSweepPromise: Promise<void> = Promise.resolve();
+/** Unlisten handle for the in-flight `vault-index-sweep-complete` listener, if any. */
+let initialSweepUnlisten: UnlistenFn | null = null;
+
 /**
- * Bootstraps the Rust `VaultIndex` for the given vault path. Replaces
- * the old TS scan + parse loop that populated `noteIndexStore`. The
- * Rust `scan_vault_v2` command walks the filesystem, builds VaultIndex,
- * and emits `vault-index-updated` once complete; `vaultStore.vaultIndexVersion`
+ * Bootstraps the Rust `VaultIndex` for the given vault path. Calls
+ * `scan_vault_v2_cached`, which loads the on-disk snapshot when one
+ * exists and falls back to the full `scan_vault_v2` walk + parse
+ * otherwise. When the cache path is taken, a background mtime
+ * reconciliation sweep starts; `awaitInitialSweep()` resolves when
+ * that sweep emits `vault-index-sweep-complete` (with a 30 s timeout
+ * fallback so a stuck Rust task never blocks watcher start).
+ *
+ * Both paths emit `vault-index-updated`; `vaultStore.vaultIndexVersion`
  * bumps and every panel `$effect` reactively refetches.
  */
 export async function buildIndex(path: string) {
@@ -54,11 +75,27 @@ export async function buildIndex(path: string) {
 
 	const t0 = perfStart();
 	try {
-		await invoke('scan_vault_v2', { path });
-		perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2', t0);
-		debug('BACKLINKS', 'Rust VaultIndex bootstrapped');
+		const result = await invoke<IndexLoadResult>('scan_vault_v2_cached', { path });
+		perfEnd('BACKLINKS', `buildIndex:scan_vault_v2_cached(${result.source})`, t0);
+		debug(
+			'BACKLINKS',
+			`Rust VaultIndex bootstrapped: source=${result.source} entries=${result.entries} load=${result.loadMs}ms`,
+		);
+		// When the cache path was taken, a reconciliation sweep is now
+		// running in the background. Set up a one-shot listener for
+		// `vault-index-sweep-complete` so the app-lifecycle can await
+		// it before starting the file watcher (avoids interleaving
+		// watcher-triggered mutations with the sweep's in-flight
+		// update_entry / remove_entry calls).
+		await disposeInitialSweepListener();
+		if (result.source === 'cache_then_sweep') {
+			initialSweepPromise = waitForSweepComplete();
+		} else {
+			initialSweepPromise = Promise.resolve();
+		}
 	} catch (err) {
-		errorLog('BACKLINKS', 'scan_vault_v2 failed:', err);
+		errorLog('BACKLINKS', 'scan_vault_v2_cached failed:', err);
+		initialSweepPromise = Promise.resolve();
 	} finally {
 		isBuilding = false;
 		if (pendingRebuild && vaultPath) {
@@ -66,6 +103,61 @@ export async function buildIndex(path: string) {
 			await buildIndex(vaultPath);
 		}
 	}
+}
+
+async function waitForSweepComplete(): Promise<void> {
+	return new Promise<void>((resolve) => {
+		let resolved = false;
+		const finish = () => {
+			if (resolved) return;
+			resolved = true;
+			disposeInitialSweepListener().catch(() => {});
+			resolve();
+		};
+		listen('vault-index-sweep-complete', () => {
+			debug('BACKLINKS', 'vault-index-sweep-complete received');
+			finish();
+		})
+			.then((unlisten) => {
+				if (resolved) {
+					// Timeout fired before listen() resolved — drop it.
+					unlisten();
+					return;
+				}
+				initialSweepUnlisten = unlisten;
+			})
+			.catch((err) => {
+				errorLog('BACKLINKS', 'failed to attach sweep-complete listener:', err);
+				finish();
+			});
+		// 30 s safety net so a stuck Rust sweep never blocks the
+		// watcher start indefinitely. Sweep on the 5,755-note vault
+		// completes in ~1-2 s; 30 s is two orders of magnitude over.
+		setTimeout(() => {
+			if (!resolved) {
+				debug('BACKLINKS', 'vault-index-sweep-complete timeout fired; resolving anyway');
+				finish();
+			}
+		}, 30_000);
+	});
+}
+
+async function disposeInitialSweepListener() {
+	if (initialSweepUnlisten) {
+		const fn = initialSweepUnlisten;
+		initialSweepUnlisten = null;
+		fn();
+	}
+}
+
+/**
+ * Resolves when the cold-start reconciliation sweep completes. Safe
+ * to call multiple times — returns the same promise. Called once by
+ * the app-lifecycle just before `startWatching` so file-watcher
+ * events do not interleave with in-flight sweep mutations.
+ */
+export function awaitInitialSweep(): Promise<void> {
+	return initialSweepPromise;
 }
 
 export async function rebuildIndex() {

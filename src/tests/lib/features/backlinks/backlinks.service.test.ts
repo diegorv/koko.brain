@@ -4,11 +4,17 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/event', () => ({
+	listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import {
+	awaitInitialSweep,
 	buildIndex,
 	rebuildIndex,
 	computeUnlinkedMentionsForFile,
@@ -24,15 +30,15 @@ describe('buildIndex', () => {
 		editorStore.reset();
 	});
 
-	it('invokes scan_vault_v2 with the vault path', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce(undefined);
+	it('invokes scan_vault_v2_cached with the vault path', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce({ source: 'scan', entries: 0, loadMs: 5 });
 
 		await buildIndex('/vault');
 
-		expect(invoke).toHaveBeenCalledWith('scan_vault_v2', { path: '/vault' });
+		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault' });
 	});
 
-	it('swallows scan_vault_v2 IPC failures (logs but does not throw)', async () => {
+	it('swallows scan_vault_v2_cached IPC failures (logs but does not throw)', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('Rust panic'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -43,12 +49,14 @@ describe('buildIndex', () => {
 
 	it('queues a pending rebuild when called concurrently', async () => {
 		// First call slow-resolves; second call should be queued.
-		let resolveFirst: () => void = () => {};
-		const firstPending = new Promise<void>((r) => { resolveFirst = r; });
+		let resolveFirst: (v: { source: 'scan'; entries: number; loadMs: number }) => void = () => {};
+		const firstPending = new Promise<{ source: 'scan'; entries: number; loadMs: number }>((r) => {
+			resolveFirst = r;
+		});
 		vi.mocked(invoke)
 			.mockReturnValueOnce(firstPending)
-			.mockResolvedValueOnce(undefined)
-			.mockResolvedValueOnce(undefined);
+			.mockResolvedValueOnce({ source: 'scan', entries: 0, loadMs: 5 })
+			.mockResolvedValueOnce({ source: 'scan', entries: 0, loadMs: 5 });
 
 		const first = buildIndex('/vault');
 		const second = buildIndex('/vault'); // marks pendingRebuild + returns
@@ -56,7 +64,7 @@ describe('buildIndex', () => {
 		// Only the first scan should have been invoked so far.
 		expect(invoke).toHaveBeenCalledTimes(1);
 
-		resolveFirst();
+		resolveFirst({ source: 'scan', entries: 0, loadMs: 5 });
 		await first;
 
 		// pendingRebuild flag re-fires buildIndex once the first call completes.
@@ -73,19 +81,69 @@ describe('rebuildIndex', () => {
 	});
 
 	it('replays the cached vault path through buildIndex', async () => {
-		vi.mocked(invoke).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValue({ source: 'scan', entries: 0, loadMs: 5 });
 
 		await buildIndex('/vault');
 		vi.mocked(invoke).mockClear();
 
 		await rebuildIndex();
 
-		expect(invoke).toHaveBeenCalledWith('scan_vault_v2', { path: '/vault' });
+		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault' });
 	});
 
 	it('is a no-op when no vault has been bootstrapped', async () => {
 		await rebuildIndex();
 		expect(invoke).not.toHaveBeenCalled();
+	});
+});
+
+describe('awaitInitialSweep', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetBacklinks();
+		vaultStore._reset();
+		editorStore.reset();
+	});
+
+	it('resolves immediately when the cold-start path was a full scan', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce({ source: 'scan', entries: 0, loadMs: 5 });
+		await buildIndex('/vault');
+		// No sweep is pending — promise should already be resolved.
+		const settled = await Promise.race([
+			awaitInitialSweep().then(() => 'resolved'),
+			new Promise((r) => setTimeout(() => r('timed-out'), 100)),
+		]);
+		expect(settled).toBe('resolved');
+	});
+
+	it('waits for vault-index-sweep-complete when the cache path was taken', async () => {
+		// Capture the listen callback so we can fire it manually.
+		let capturedCallback: (() => void) | undefined;
+		vi.mocked(listen).mockImplementationOnce(async (_event, cb) => {
+			capturedCallback = cb as () => void;
+			return () => {};
+		});
+		vi.mocked(invoke).mockResolvedValueOnce({
+			source: 'cache_then_sweep',
+			entries: 10,
+			loadMs: 50,
+		});
+
+		await buildIndex('/vault');
+
+		// awaitInitialSweep should NOT resolve before the callback fires.
+		const racePromise = Promise.race([
+			awaitInitialSweep().then(() => 'sweep-done'),
+			new Promise((r) => setTimeout(() => r('still-pending'), 100)),
+		]);
+		expect(await racePromise).toBe('still-pending');
+
+		// Fire the sweep-complete callback.
+		expect(capturedCallback).toBeDefined();
+		capturedCallback!();
+
+		// Now it should resolve.
+		await awaitInitialSweep();
 	});
 });
 
