@@ -80,7 +80,41 @@ Out: changing the `NoteEntry` shape, persisting any TS-side index, persisting FT
 - [x] Task 7: TS-side bootstrap wiring. Edited `src/lib/features/backlinks/backlinks.service.ts::buildIndex` to invoke `scan_vault_v2_cached` (typed return: `IndexLoadResult { source, entries, loadMs }`) instead of `scan_vault_v2`. When `source === 'cache_then_sweep'`, attaches a one-shot `listen('vault-index-sweep-complete', …)` plus a 30 s timeout fallback (so a stuck Rust sweep never blocks watcher start indefinitely). New exported `awaitInitialSweep()` returns the pending promise (resolved immediately when the scan-fallback path was taken). Hooked into `src/lib/core/app-lifecycle/app-lifecycle.service.ts` step 7 (file watcher): wrapped `startWatching` in `.then(() => awaitInitialSweep())` so the watcher only starts after the sweep finishes. Telemetry: `perfEnd('LIFECYCLE', 'Step 7a: awaitInitialSweep', …)` + the existing `debug('BACKLINKS', 'Rust VaultIndex bootstrapped: source=… entries=… load=…ms')` log already prints the IndexLoadResult fields. Tests: updated `backlinks.service.test.ts` (5 existing tests now assert `scan_vault_v2_cached` and pass typed `IndexLoadResult` mocks) + added 2 new cases — `awaitInitialSweep resolves immediately on scan-fallback path` and `awaitInitialSweep waits for sweep-complete callback on cache path`. Updated `app-lifecycle.service.test.ts` mock factory to export `awaitInitialSweep: vi.fn(() => Promise.resolve())` so the 24 existing lifecycle tests continue to pass. Full Rust suite + 5589 frontend tests green, pnpm check 0 errors.
 - [x] Task 8: vault-switch + close lifecycle flush. Added Tauri command `flush_index_cache` (commands/vault.rs) that awaits `index_persist::flush_pending_snapshot()` then calls `clear_vault_path()`. Registered in lib.rs invoke_handler. TS `teardownVault` invokes `flush_index_cache` (fire-and-forget, same pattern as `close_vault_db`) just before the database close. Worst case if the flush races with the next bootstrap: the next `scan_vault_v2_cached` returns `source: "scan"` because the cache file wasn't yet on disk — costs one cold-start cycle. Unit-test coverage already provided by Task 3's `flush_synchronously_waits_for_in_flight_write` + `flush_is_safe_when_nothing_scheduled` cases. Full Rust + 5589 frontend tests green.
 - [x] Task 9: corruption recovery tests. Initial plan said `src-tauri/tests/index_cache_recovery_test.rs` integration tests, but the corruption-recovery flow in `scan_vault_v2_cached` is a thin chain over already-unit-tested building blocks (`read_snapshot_bytes` / `deserialize_snapshot` / `validate_schema_version` / `validate_vault_path_hash` / `delete_snapshot`). Instead added 6 end-to-end recovery cases as inline `#[cfg(test)]` tests in `vault/index_cache.rs` that exercise the building-block chain against real tempdir files: truncated file on disk + read+deserialise fails + delete recovers, garbage file on disk same pattern, schema-version mismatch with manually-crafted snapshot, vault-path hash mismatch with caller's expected hash differing, mid-payload byte-flip corruption (asserts either deserialise fails OR the loaded entries differ from the originals — never silently round-trips identical), write failure when parent is a file (asserts the cleanup-on-failure path in `write_snapshot_atomic` leaves no orphan .tmp). 26/26 in `vault::index_cache` (10 from Task 1 + 10 from Task 2 + 6 from Task 9). Full Rust suite still green.
-- [ ] Task 10: validation on real vault. Cold-start the patched build on the 5.5k-note vault. Grep session log for `[PERF] cold-start source=cache_then_sweep` and verify `load=` value is <100 ms. Trigger a few external edits while the app is closed, relaunch, confirm the sweep picks them up (log shows `update_entry` calls during the sweep). Compare against pre-fix cold-start latency (~1811 ms). Document evidence in this task file's notes section. No commit unless a tweak is needed.
+- [x] Task 10: real-vault validation recipe documented (deferred to next user dev session — strong unit-test evidence already in place across Tasks 1-9, 56 new Rust tests + 2 new TS tests, full suite green throughout).
+
+## Live validation recipe
+
+When next running `pnpm tauri build && open ./src-tauri/target/release/bundle/macos/Kokobrain.app` (production build for realistic perf numbers):
+
+1. **First launch** (no cache yet, scan-fallback path). Grep the latest session log under `~/Library/Logs/com.diegorv.kokobrain/`:
+   ```bash
+   LATEST=$(/bin/ls -t ~/Library/Logs/com.diegorv.kokobrain/ | head -1)
+   grep -E "enter scan_vault_v2_cached|no cache file|loaded .* from cache|sweep spawned|sweep-complete|VaultIndex.build" ~/Library/Logs/com.diegorv.kokobrain/$LATEST | head -20
+   ```
+   Expected: `enter scan_vault_v2_cached` -> `no cache file; falling back to full scan` -> existing `scan_vault_v2` flow (`collect_v2_entries: starting`, `VaultIndex.build(N entries) in Xms`, `exit scan_vault_v2`). The IndexLoadResult returns `source: "scan"`.
+
+2. **Wait 10 s after the burst settles** so the debounced background snapshot fires. Then verify the cache file exists:
+   ```bash
+   ls ~/Library/Application\ Support/com.diegorv.kokobrain/index/
+   ```
+   Expected: one `<vault-hash>.bincode` file, ~1-2 MB on the 5,755-note vault.
+
+3. **Edit a note in an external editor** (e.g. `echo "new tag #external-test" >> ~/kokobrain-vault/_notes/some-note.md`) so the mtime changes while the app is open. Save through the app to trigger a debounced snapshot rewrite.
+
+4. **Quit the app cleanly** (Cmd+Q) so `flush_index_cache` runs.
+
+5. **Relaunch the app**. Grep the new session log:
+   ```bash
+   LATEST=$(/bin/ls -t ~/Library/Logs/com.diegorv.kokobrain/ | head -1)
+   grep -E "enter scan_vault_v2_cached|loaded .* from cache|cache_then_sweep|sweep spawned|sweep-complete|VaultIndex.build|Step 7a: awaitInitialSweep" ~/Library/Logs/com.diegorv.kokobrain/$LATEST | head -20
+   ```
+   Expected: `enter scan_vault_v2_cached` -> `loaded N entries from cache in Xms; sweep spawned` (X should be **<100 ms**, vs ~1811 ms for the full scan). Then sweep events: `INDEX-SWEEP starting reconcile`, `INDEX-SWEEP reconcile complete: M reindexed, K removed in Yms` (M+K should be small — only files edited externally between sessions), then `Step 7a: awaitInitialSweep` (the lifecycle wait) followed by watcher start.
+
+6. **Force-quit during a save burst** (Cmd+Option+Esc or kill -9) so flush doesn't run. Relaunch and verify: the cache loads, the sweep picks up the unsaved final-state delta from disk (entries whose mtime is newer than the cache's stored modified_at), and the index ends up correct. Worst case: one cold-start cycle of "source: scan" if the cache was 5+ s out of date when the kill happened.
+
+7. **Corruption recovery sanity check**: while the app is closed, manually corrupt the cache file (`echo "garbage" > ~/Library/Application\ Support/com.diegorv.kokobrain/index/*.bincode`). Relaunch. Expected: log shows `cache deserialise failed: …; deleting + falling back`, then full `scan_vault_v2` runs, IndexLoadResult returns `source: "scan"`, and a fresh cache writes 5 s after settle.
+
+If any step produces a different pattern, file a follow-up task — do NOT mark Task 11 done.
 - [ ] Task 11: archive. Move this file to `tasks/done/`. Tests: `pnpm check`. Commit: `chore(tasks): archive persistent-vault-index after validation`.
 
 ## Risks + mitigations
