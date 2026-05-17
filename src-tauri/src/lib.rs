@@ -1,6 +1,5 @@
 pub mod commands;
 pub mod db;
-pub mod mcp;
 pub mod search;
 pub mod security;
 pub mod semantic;
@@ -90,24 +89,6 @@ pub fn run() {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             init_logger(app.handle());
-            // Read the boot-time MCP flag from `<app_config_dir>/mcp.json`.
-            // Defaults to `true` when the file is missing or corrupt so the
-            // app preserves its historical behavior on a fresh install.
-            let mcp_enabled = match app.handle().path().app_config_dir() {
-                Ok(dir) => crate::mcp::config::is_mcp_enabled(&dir),
-                Err(err) => {
-                    eprintln!("[MCP] could not resolve app_config_dir: {err} — defaulting to enabled");
-                    true
-                }
-            };
-            if mcp_enabled {
-                let mcp_handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    crate::mcp::start(mcp_handle).await;
-                });
-            } else {
-                eprintln!("[MCP] disabled via settings — skipping boot");
-            }
             Ok(())
         })
         .on_menu_event(|app, event| {
@@ -194,8 +175,6 @@ pub fn run() {
             commands::debug::get_process_memory,
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
-            commands::mcp::set_mcp_enabled,
-            commands::mcp::get_mcp_enabled,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
