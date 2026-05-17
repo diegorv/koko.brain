@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, McpSettings, UpdateSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -112,9 +112,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	queryjs: {
 		autoRunQueries: 'first-open',
 	},
-	mcp: {
-		enabled: false,
-	},
 	updates: {
 		channel: 'stable',
 		autoCheck: false,
@@ -149,7 +146,6 @@ export const settingsStore = {
 	get disabledDecorators() { return settings.disabledDecorators; },
 	get tagColors() { return settings.tagColors; },
 	get queryjs() { return settings.queryjs; },
-	get mcp() { return settings.mcp; },
 	get updates() { return settings.updates; },
 
 	/** Replaces the entire settings object (used on load) */
@@ -319,14 +315,6 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			queryjs: { ...settings.queryjs, ...value },
-		};
-	},
-
-	/** Partially updates MCP server settings, merging with existing values */
-	updateMcp(value: Partial<McpSettings>) {
-		settings = {
-			...settings,
-			mcp: { ...settings.mcp, ...value },
 		};
 	},
 

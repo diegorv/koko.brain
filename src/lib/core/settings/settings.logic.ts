@@ -101,7 +101,6 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		group: 'Integrations',
 		sections: [
 			{ id: 'todoist', label: 'Todoist' },
-			{ id: 'mcp', label: 'MCP Server' },
 		],
 	},
 	{
