@@ -212,28 +212,6 @@ export interface QueryjsSettings {
  */
 export type ReleaseChannel = 'stable' | 'nightly';
 
-/**
- * Configuration for the in-process MCP (Model Context Protocol) server.
- *
- * The server boots inside `tauri::Builder::setup()` long before the vault
- * is selected and `.kokobrain/settings.json` is read. The Rust side
- * therefore consults a global mirror at `<app_config_dir>/mcp.json`
- * (see `src-tauri/src/mcp/config.rs`); this field is the user-facing
- * value the Settings UI binds to. Toggling it writes the mirror via
- * `invoke('set_mcp_enabled')` so the next launch reflects the change.
- *
- * The toggle does NOT stop a running server — `mcp::start` has no
- * cancellation token. The Settings UI shows a "restart required" hint.
- */
-export interface McpSettings {
-	/**
-	 * Whether the local MCP server (`127.0.0.1:3737`) should boot on
-	 * launch. Defaults to `true` so existing users keep current behavior
-	 * after upgrading.
-	 */
-	enabled: boolean;
-}
-
 /** Configuration for the in-app auto-updater */
 export interface UpdateSettings {
 	/**
@@ -266,7 +244,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'mcp' | 'security' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'security' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -311,8 +289,6 @@ export interface AppSettings {
 	tagColors: TagColorSettings;
 	/** QueryJS plugin configuration (execution policy, …) */
 	queryjs: QueryjsSettings;
-	/** Local MCP server configuration (boot on/off flag) */
-	mcp: McpSettings;
 	/** In-app auto-updater configuration (channel selection, …) */
 	updates: UpdateSettings;
 }
