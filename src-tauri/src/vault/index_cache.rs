@@ -625,4 +625,138 @@ mod tests {
 		let cache_path = tmp.path().join("missing.bincode");
 		assert!(delete_snapshot(&cache_path).is_ok());
 	}
+
+	// --- End-to-end corruption recovery (Win 3 Task 9) ------------------
+
+	#[test]
+	fn recovery_truncated_file_on_disk_round_trip() {
+		let tmp = tempfile::tempdir().unwrap();
+		let cache_path = tmp.path().join("vault.bincode");
+		let entries = vec![
+			sample_entry("/v/a.md", "alpha"),
+			sample_entry("/v/b.md", "beta"),
+		];
+		let bytes = serialize_snapshot("hash".into(), 0, &entries).unwrap();
+		write_snapshot_atomic(&cache_path, &bytes).unwrap();
+		// Truncate the file on disk by 32 bytes to simulate a partial
+		// write or storage corruption.
+		let truncated_len = bytes.len().saturating_sub(32);
+		fs::write(&cache_path, &bytes[..truncated_len]).unwrap();
+		// Read + deserialize should fail; caller would delete + fall back.
+		let read = read_snapshot_bytes(&cache_path).unwrap().unwrap();
+		assert!(deserialize_snapshot(&read).is_err());
+		delete_snapshot(&cache_path).unwrap();
+		assert!(!cache_path.exists());
+	}
+
+	#[test]
+	fn recovery_garbage_file_on_disk_round_trip() {
+		let tmp = tempfile::tempdir().unwrap();
+		let cache_path = tmp.path().join("vault.bincode");
+		// Pre-existing file with non-bincode contents (e.g. user
+		// manually edited the file or another process wrote here).
+		fs::write(&cache_path, b"not a bincode file at all").unwrap();
+		let read = read_snapshot_bytes(&cache_path).unwrap().unwrap();
+		assert!(deserialize_snapshot(&read).is_err());
+		delete_snapshot(&cache_path).unwrap();
+		assert!(!cache_path.exists());
+	}
+
+	#[test]
+	fn recovery_schema_version_mismatch_round_trip() {
+		// A future schema version on disk that the current binary
+		// doesn't know about. Deserialise succeeds (bincode shape
+		// matches because the wire format hasn't actually changed in
+		// the test), validate_schema_version flags the mismatch.
+		let snap = IndexSnapshot {
+			schema_version: INDEX_SCHEMA_VERSION.wrapping_add(42),
+			vault_path_hash: "hash".into(),
+			written_at_secs: 0,
+			entries: vec![],
+		};
+		let bytes = encode_to_vec(&snap, config::standard()).unwrap();
+		let tmp = tempfile::tempdir().unwrap();
+		let cache_path = tmp.path().join("vault.bincode");
+		write_snapshot_atomic(&cache_path, &bytes).unwrap();
+		let read = read_snapshot_bytes(&cache_path).unwrap().unwrap();
+		let snap_loaded = deserialize_snapshot(&read).unwrap();
+		let err = validate_schema_version(&snap_loaded).unwrap_err();
+		assert!(err.contains("schema version mismatch"));
+		delete_snapshot(&cache_path).unwrap();
+		assert!(!cache_path.exists());
+	}
+
+	#[test]
+	fn recovery_vault_path_hash_mismatch_round_trip() {
+		let entries = vec![sample_entry("/v/a.md", "alpha")];
+		let bytes = serialize_snapshot("original-hash".into(), 0, &entries).unwrap();
+		let tmp = tempfile::tempdir().unwrap();
+		let cache_path = tmp.path().join("vault.bincode");
+		write_snapshot_atomic(&cache_path, &bytes).unwrap();
+		let snap = deserialize_snapshot(&read_snapshot_bytes(&cache_path).unwrap().unwrap()).unwrap();
+		// Caller is opening a different vault — hash from the open
+		// vault won't match what's embedded in the cache file.
+		let err = validate_vault_path_hash(&snap, "different-hash").unwrap_err();
+		assert!(err.contains("vault-path hash mismatch"));
+		delete_snapshot(&cache_path).unwrap();
+		assert!(!cache_path.exists());
+	}
+
+	#[test]
+	fn recovery_corrupt_mid_payload_round_trip() {
+		let entries = vec![
+			sample_entry("/v/a.md", "alpha"),
+			sample_entry("/v/b.md", "beta"),
+			sample_entry("/v/c.md", "gamma"),
+		];
+		let bytes = serialize_snapshot("hash".into(), 0, &entries).unwrap();
+		let tmp = tempfile::tempdir().unwrap();
+		let cache_path = tmp.path().join("vault.bincode");
+		write_snapshot_atomic(&cache_path, &bytes).unwrap();
+		// Flip a byte deep inside the entries vec to simulate
+		// arbitrary mid-payload corruption.
+		let mut corrupted = bytes.clone();
+		let mid = corrupted.len() / 2;
+		corrupted[mid] = corrupted[mid].wrapping_add(7);
+		fs::write(&cache_path, &corrupted).unwrap();
+		let read = read_snapshot_bytes(&cache_path).unwrap().unwrap();
+		// Either deserialise fails outright OR it succeeds with
+		// garbage entries — either way the caller's into_entries
+		// pass will likely fail on the JSON frontmatter parse. Both
+		// outcomes are valid recovery triggers.
+		let recovered = match deserialize_snapshot(&read) {
+			Err(_) => true,
+			Ok(s) => match s.into_entries() {
+				Err(_) => true,
+				Ok(loaded) => loaded != entries,
+			},
+		};
+		assert!(recovered, "corruption should not silently round-trip to identical entries");
+		delete_snapshot(&cache_path).unwrap();
+		assert!(!cache_path.exists());
+	}
+
+	#[test]
+	fn recovery_write_failure_leaves_no_orphan_tmp() {
+		// Aim a write at a path whose parent is a file, not a directory.
+		// write_snapshot_atomic must fail without leaving a .tmp behind
+		// (the partial-write cleanup runs before the error returns).
+		let tmp = tempfile::tempdir().unwrap();
+		let blocker = tmp.path().join("blocker");
+		fs::write(&blocker, b"i am a file").unwrap();
+		let cache_path = blocker.join("vault.bincode");
+		let bytes = serialize_snapshot("hash".into(), 0, &[]).unwrap();
+		let result = write_snapshot_atomic(&cache_path, &bytes);
+		assert!(result.is_err());
+		// Walk the parent dir of the blocker — no orphan .tmp should exist.
+		let leftover_tmps: Vec<_> = fs::read_dir(tmp.path())
+			.unwrap()
+			.filter_map(|e| e.ok())
+			.filter(|e| e.path().extension().is_some_and(|x| x == "tmp"))
+			.collect();
+		assert!(
+			leftover_tmps.is_empty(),
+			"write failure should not leak .tmp siblings; found: {leftover_tmps:?}"
+		);
+	}
 }
