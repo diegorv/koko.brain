@@ -50,7 +50,12 @@ static SWEEP_GENERATION: AtomicU64 = AtomicU64::new(0);
 /// values to decide what's stale.
 pub fn spawn_reconcile(app: tauri::AppHandle, vault_path: String) {
 	let my_gen = SWEEP_GENERATION.fetch_add(1, Ordering::SeqCst).wrapping_add(1);
-	tokio::spawn(async move {
+	// Use Tauri's bundled async runtime — sync Tauri commands like
+	// scan_vault_v2_cached run outside Tokio context, so a bare
+	// `tokio::spawn` panics with "there is no reactor running".
+	// `tauri::async_runtime::spawn` always lands the task on Tauri's
+	// global Tokio runtime, regardless of the caller's context.
+	tauri::async_runtime::spawn(async move {
 		reconcile_with_disk(app, vault_path, my_gen).await;
 	});
 }

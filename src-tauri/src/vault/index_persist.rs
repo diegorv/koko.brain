@@ -25,14 +25,19 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex as StdMutex, OnceLock};
+use tauri::async_runtime;
 use tokio::sync::Mutex;
-use tokio::task::JoinHandle;
 use tokio::time::Duration;
 
 use crate::vault::entry::NoteEntry;
 use crate::vault::index_cache::{
 	cache_file_path, hash_vault_path, serialize_snapshot, write_snapshot_atomic,
 };
+
+/// Join handle type returned by `tauri::async_runtime::spawn`.
+/// Tauri's bundled runtime is Tokio underneath, so the handle is
+/// awaitable from any Tokio-aware context (commands, tests).
+type SpawnHandle = async_runtime::JoinHandle<()>;
 
 /// Default quiet window before a scheduled snapshot write fires.
 /// Bursts of mutations within this window collapse into a single
@@ -63,8 +68,8 @@ static DEBOUNCE_OVERRIDE_MS: AtomicU64 = AtomicU64::new(0);
 /// wake-up without the AppHandle re-resolving it on every call.
 static VAULT_PATH: StdMutex<Option<String>> = StdMutex::new(None);
 
-fn inflight_slot() -> &'static Mutex<Option<JoinHandle<()>>> {
-	static SLOT: OnceLock<Mutex<Option<JoinHandle<()>>>> = OnceLock::new();
+fn inflight_slot() -> &'static Mutex<Option<SpawnHandle>> {
+	static SLOT: OnceLock<Mutex<Option<SpawnHandle>>> = OnceLock::new();
 	SLOT.get_or_init(|| Mutex::new(None))
 }
 
@@ -99,7 +104,7 @@ pub fn schedule_snapshot_write(
 	let my_gen = GENERATION.fetch_add(1, Ordering::SeqCst).wrapping_add(1);
 	let debounce = current_debounce_ms();
 
-	let handle = tokio::spawn(async move {
+	let handle = async_runtime::spawn(async move {
 		tokio::time::sleep(Duration::from_millis(debounce)).await;
 		if GENERATION.load(Ordering::SeqCst) != my_gen {
 			// Newer schedule won the slot; the latest call's task
@@ -194,7 +199,7 @@ pub fn schedule_snapshot_for_app(app: tauri::AppHandle) {
 	let my_gen = GENERATION.fetch_add(1, Ordering::SeqCst).wrapping_add(1);
 	let debounce = current_debounce_ms();
 
-	let handle = tokio::spawn(async move {
+	let handle = async_runtime::spawn(async move {
 		tokio::time::sleep(Duration::from_millis(debounce)).await;
 		if GENERATION.load(Ordering::SeqCst) != my_gen {
 			return;
