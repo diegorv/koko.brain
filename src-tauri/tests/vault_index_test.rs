@@ -288,6 +288,46 @@ fn resolve_method_returns_path_for_known_targets_and_none_for_unknown() {
 	assert_eq!(idx.resolve(""), None);
 }
 
+// --- VaultIndex::build_from_entries (Win 3 Task 4) --------------------------
+
+#[test]
+fn build_from_entries_matches_default_then_build_on_empty_input() {
+	let by_value = VaultIndex::build_from_entries(Vec::new());
+	let mut by_mutation = VaultIndex::default();
+	by_mutation.build(Vec::new());
+	assert_eq!(by_value.version(), by_mutation.version());
+	assert_eq!(by_value.entries().len(), by_mutation.entries().len());
+	assert_eq!(by_value.backlinks().len(), by_mutation.backlinks().len());
+	assert_eq!(by_value.by_path().len(), by_mutation.by_path().len());
+}
+
+#[test]
+fn build_from_entries_matches_default_then_build_on_linked_vault() {
+	let entries = vec![
+		entry_with_links("/v/a.md", &["b", "c"]),
+		entry_with_links("/v/b.md", &["c"]),
+		entry_with_links("/v/c.md", &[]),
+	];
+	let by_value = VaultIndex::build_from_entries(entries.clone());
+	let mut by_mutation = VaultIndex::default();
+	by_mutation.build(entries);
+	assert_eq!(by_value.entries().len(), by_mutation.entries().len());
+	assert_eq!(by_value.by_path(), by_mutation.by_path());
+	assert_eq!(by_value.backlinks(), by_mutation.backlinks());
+	assert_eq!(by_value.tags_index(), by_mutation.tags_index());
+	assert_eq!(by_value.properties_index(), by_mutation.properties_index());
+	assert_eq!(by_value.version(), by_mutation.version());
+}
+
+#[test]
+fn build_from_entries_returns_index_with_version_one() {
+	// Equivalent to default + one build call, which the existing
+	// `build_with_empty_entries_clears_all_maps_and_bumps_version`
+	// asserts. Sanity-check that the by-value variant agrees.
+	let idx = VaultIndex::build_from_entries(Vec::new());
+	assert_eq!(idx.version(), 1);
+}
+
 // --- VaultIndex::lookup_backlinks (Phase 2.4) -------------------------------
 
 #[test]

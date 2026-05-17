@@ -232,6 +232,18 @@ impl VaultIndex {
 		resolve_with_cache(target, &self.by_path)
 	}
 
+	/// Constructs a fresh `VaultIndex` from a batch of already-parsed
+	/// `NoteEntry`s. Equivalent to `Self::default().build(entries)` but
+	/// returns the index by value, which is the shape Win 3's cache-load
+	/// path wants (read bincode → deserialize → `build_from_entries` →
+	/// `VAULT_INDEX_STATE.write() = …`). The cost is identical to
+	/// `build` (~30 ms on the 5,755-note vault).
+	pub fn build_from_entries(entries: Vec<NoteEntry>) -> Self {
+		let mut idx = Self::default();
+		idx.build(entries);
+		idx
+	}
+
 	/// Rebuilds the index from a fresh batch of entries. Clears all maps,
 	/// reinserts every entry, populates the resolution cache (first path
 	/// wins on stem collisions), and recomputes the reverse-link index.
