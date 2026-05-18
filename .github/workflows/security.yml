@@ -35,8 +35,18 @@ jobs:
         with:
           rust: "false"
 
-      - name: Audit dependencies
-        run: pnpm audit --audit-level=moderate
+      - name: Audit dependencies (quarantine-aware)
+        # `pnpm audit` exits non-zero on any moderate-or-higher advisory,
+        # which conflicts with our own 7-day supply-chain quarantine
+        # (`minimumReleaseAge` in pnpm-workspace.yaml). When upstream ships
+        # a security patch there is a window where the advisory is public
+        # but the patch is still inside the quarantine — we *cannot*
+        # install it and we shouldn't fail CI for it. The script downgrades
+        # those advisories to `::warning::` and only fails the job when at
+        # least one patched version is already outside the quarantine
+        # window (i.e. we should have updated and didn't). See
+        # `scripts/quarantine-aware-audit.mjs` for the full classification.
+        run: node scripts/quarantine-aware-audit.mjs
 
   cargo-audit:
     name: Cargo Audit

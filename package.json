@@ -109,6 +109,7 @@
     "@types/primer__octicons": "^19.21.0",
     "jsdom": "^29.1.1",
     "paneforge": "^1.0.2",
+    "semver": "^7.8.0",
     "svelte": "^5.55.5",
     "svelte-check": "^4.4.8",
     "tailwindcss": "^4.2.4",
