@@ -110,12 +110,23 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
-          PREV_TAG=$(git tag --list --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
+          # Restrict PREV_TAG lookup to semver-shaped tags so mutable
+          # channel tags (e.g. `nightly`, which is rewritten on every
+          # accepted main commit by nightly.yml) never get picked as
+          # the previous release. Without this filter, nightly would
+          # sort to the top of `--sort=-version:refname` and produce
+          # an empty/near-empty commit range.
+          PREV_TAG=$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
           if [ -z "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%h)" "$TAG" | grep -v "^- chore: bump version")
+            RANGE="$TAG"
           else
-            COMMITS=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..${TAG}" | grep -v "^- chore: bump version")
+            RANGE="${PREV_TAG}..${TAG}"
           fi
+          # `grep -v` exits 1 when no lines match, which under `set -e`
+          # would kill the step for a release whose only commit is the
+          # version bump. Append `|| true` so an empty changelog is
+          # treated as a valid (if uninteresting) outcome.
+          COMMITS=$(git log --pretty=format:"- %s (%h)" "$RANGE" | grep -v "^- chore: bump version" || true)
           {
             echo "commits<<CHANGELOG_EOF"
             echo "$COMMITS"
