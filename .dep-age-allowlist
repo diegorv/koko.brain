@@ -1,33 +1,12 @@
 # Dependency age quarantine allowlist
-# Add package@version entries (one per line) to bypass the 14-day age check.
-# Use sparingly — document the reason for each exception.
+# Add package@version entries (one per line) to bypass the 7-day age check
+# enforced by scripts/pre-commit-dep-age.sh. Use sparingly — document the
+# reason for each exception. Entries auto-obsolete once the listed version
+# is older than the quarantine; sweep this file periodically and remove
+# anything past 7 days.
 #
 # Format:
 #   package@version  # reason for exception
 #
 # Example:
 #   lodash@4.17.22  # Emergency security patch, reviewed manually
-
-# Tauri plugins: exempt from cooldown to keep frontend/Rust versions aligned
-@tauri-apps/plugin-deep-link@2.4.8  # Sync with cargo tauri-plugin-deep-link 2.4.8
-@tauri-apps/plugin-dialog@2.7.0  # Sync with cargo tauri-plugin-dialog 2.7.0
-@tauri-apps/plugin-fs@2.5.0  # Sync with cargo tauri-plugin-fs 2.5.0
-@tauri-apps/plugin-http@2.5.8  # Sync with cargo tauri-plugin-http 2.5.8
-@tauri-apps/plugin-updater@2.10.1  # Sync with cargo tauri-plugin-updater 2.10.1
-
-# Mermaid 11.15.0 security patches (4 moderate CVEs: GHSA-6m6c-36f7-fhxh, GHSA-xcj9-5m2h-648r, GHSA-87f9-hvmw-gh4p, GHSA-ghcm-xqfw-q4vr)
-@mermaid-js/parser@1.1.1  # Required transitive dep of mermaid@11.15.0 security patch
-
-# Tauri CLI 2.11.1 patch release (5 days old at commit time)
-@tauri-apps/cli@2.11.1  # Patch release, keep aligned with @tauri-apps/* exclusion policy
-@tauri-apps/cli-darwin-arm64@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-darwin-x64@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-linux-arm-gnueabihf@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-linux-arm64-gnu@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-linux-arm64-musl@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-linux-riscv64-gnu@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-linux-x64-gnu@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-linux-x64-musl@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-win32-arm64-msvc@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-win32-ia32-msvc@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1
-@tauri-apps/cli-win32-x64-msvc@2.11.1  # Platform binary for @tauri-apps/cli@2.11.1

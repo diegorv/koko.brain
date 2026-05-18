@@ -1,8 +1,18 @@
 # Supply chain defense: refuse to resolve any package version
 # published less than 7 days (10080 minutes) ago.
 # See: https://pnpm.io/settings#minimumreleaseage
+#
+# Exclude-list scope: blanket bypass of the quarantine for a package or
+# scope. Use ONLY for packages that need to ship on day-0 by policy. Do
+# NOT add entries here for one-off security patches — the patch ages
+# past 7 days on its own and the exclude turns into dead weight. For
+# per-version emergency exceptions during the quarantine window, use
+# `.dep-age-allowlist` (pre-commit allowlist) instead.
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  # Tauri JS plugins must stay in lockstep with the Rust crates of the
+  # same name. A fresh `tauri-plugin-fs` crate release paired with a
+  # `@tauri-apps/plugin-fs` JS release MUST be installable on day 0 to
+  # keep the frontend/Rust pair compatible. Continuous policy, not a
+  # one-off patch.
   - '@tauri-apps/*'
-  - 'mermaid'
-  - '@mermaid-js/*'
