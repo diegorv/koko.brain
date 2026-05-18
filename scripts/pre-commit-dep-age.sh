@@ -33,7 +33,7 @@ else
 	parse_date() { date -d "$1" +%s 2>/dev/null; }
 fi
 
-# --- Load allowlist (bash 3.2 compatible — no associative arrays) ---
+# --- Load per-version allowlist (bash 3.2 compatible — no associative arrays) ---
 allowlist_entries=""
 if [[ -f "$ALLOWLIST_FILE" ]]; then
 	while IFS= read -r line; do
@@ -46,6 +46,56 @@ fi
 
 is_allowlisted() {
 	echo "$allowlist_entries" | grep -qF "|$1"
+}
+
+# --- Load workspace-level package/scope excludes ---
+# pnpm-workspace.yaml has its own `minimumReleaseAgeExclude` list that
+# bypasses the resolver-side quarantine for a whole package or scope
+# (e.g. `'@tauri-apps/*'` so frontend plugin releases can stay in sync
+# with their Rust crate counterparts). The two gates must agree: if the
+# resolver is willing to install a fresh @tauri-apps/cli, this script
+# must not block the resulting commit. Parse the YAML list here and
+# pattern-match against package names below.
+WORKSPACE_FILE="$REPO_ROOT/pnpm-workspace.yaml"
+workspace_excludes=()
+if [[ -f "$WORKSPACE_FILE" ]]; then
+	in_block=0
+	while IFS= read -r line; do
+		# Top-level key starts the block. Anything else at column 0 ends it.
+		if [[ "$line" =~ ^minimumReleaseAgeExclude:[[:space:]]*$ ]]; then
+			in_block=1
+			continue
+		fi
+		if [[ $in_block -eq 1 && "$line" =~ ^[A-Za-z] ]]; then
+			in_block=0
+			continue
+		fi
+		if [[ $in_block -eq 1 ]]; then
+			# List item: `  - '@tauri-apps/*'` or `  - mermaid` (with optional
+			# trailing comment). Strip leading `  - `, optional surrounding
+			# quotes, and any trailing `# comment`.
+			if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+(.*)$ ]]; then
+				val="${BASH_REMATCH[1]%%#*}"
+				val="$(echo "$val" | xargs)"
+				val="${val#\'}"
+				val="${val%\'}"
+				val="${val#\"}"
+				val="${val%\"}"
+				[[ -n "$val" ]] && workspace_excludes+=("$val")
+			fi
+		fi
+	done < "$WORKSPACE_FILE"
+fi
+
+is_workspace_excluded() {
+	local pkg_name="$1"
+	for glob in "${workspace_excludes[@]}"; do
+		# shellcheck disable=SC2053  # intentional glob pattern, not literal
+		if [[ "$pkg_name" == $glob ]]; then
+			return 0
+		fi
+	done
+	return 1
 }
 
 # --- Extract new/changed packages from lockfile diff ---
@@ -92,7 +142,16 @@ echo "🔍 Checking age of ${#new_packages[@]} new/updated package version(s)...
 for entry in "${new_packages[@]}"; do
 	split_pkg_version "$entry"
 
-	# Skip if allowlisted
+	# Skip if the workspace-level exclude list whitelists the package or
+	# scope. This keeps the pre-commit gate aligned with pnpm's resolver:
+	# if pnpm-workspace.yaml says `minimumReleaseAge` does not apply to a
+	# package, this script can't block the same package either.
+	if is_workspace_excluded "$pkg_name"; then
+		skipped=$((skipped + 1))
+		continue
+	fi
+
+	# Skip if the per-version allowlist whitelists this exact pkg@version.
 	if is_allowlisted "$entry"; then
 		skipped=$((skipped + 1))
 		continue
