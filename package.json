@@ -98,7 +98,7 @@
     "@sveltejs/kit": "^2.59.1",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/vite": "^4.2.4",
-    "@tauri-apps/cli": "^2.11.1",
+    "@tauri-apps/cli": "^2.11.2",
     "@types/d3-drag": "^3.0.7",
     "@types/d3-force": "^3.0.10",
     "@types/d3-selection": "^3.0.11",
