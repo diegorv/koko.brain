@@ -39,8 +39,8 @@ importers:
         specifier: ^6.42.1
         version: 6.42.1
       '@doist/todoist-sdk':
-        specifier: ^10.1.2
-        version: 10.1.2(type-fest@4.41.0)
+        specifier: ^10.1.3
+        version: 10.1.3(type-fest@4.41.0)
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.2.0
         version: 7.2.0
@@ -424,8 +424,8 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@doist/todoist-sdk@10.1.2':
-    resolution: {integrity: sha512-qQwrln2atJL9TK4RzFUB7+9W6IBWp1QtQuN7/jVxlqvGPb+HeBKXnfaCeBp8+U0q0nd6nKIWxWhH3l4/ibp2kQ==}
+  '@doist/todoist-sdk@10.1.3':
+    resolution: {integrity: sha512-yFnNS5C7sXS+yWVmWF1zx+XZ0bMxyM8LMXWH6069Kjxnu/Nj2x4vrMCs2qSV/vfNThyCJ6Gw+4lc8r0CLsN/1Q==}
     engines: {node: '>=20.18.1'}
     peerDependencies:
       type-fest: ^4.12.0 || ^5.5.0
@@ -2616,7 +2616,7 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@doist/todoist-sdk@10.1.2(type-fest@4.41.0)':
+  '@doist/todoist-sdk@10.1.3(type-fest@4.41.0)':
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
