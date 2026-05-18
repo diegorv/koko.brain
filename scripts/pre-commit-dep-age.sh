@@ -19,8 +19,16 @@ if ! git diff --cached --name-only | grep -q '^pnpm-lock.yaml$'; then
 fi
 
 # --- Date parsing (macOS BSD vs Linux GNU) ---
-if date -j -f "%Y-%m-%dT%H:%M:%S" "2024-01-01T00:00:00" +%s >/dev/null 2>&1; then
-	parse_date() { date -j -f "%Y-%m-%dT%H:%M:%S" "${1%%.*}" +%s 2>/dev/null; }
+# npm publishes ISO-8601 UTC timestamps like "2026-05-11T14:37:35.685Z".
+# The BSD `date -j -f` parser ignores the trailing `Z` and interprets the
+# remaining string in the SHELL'S LOCAL TIMEZONE unless `-u` is passed.
+# On a developer machine running UTC-3 that silently subtracts 3 hours
+# from every publish time, which makes a 7d4h-old package appear to be
+# 6d23h old in the script's integer-day math and the commit gets
+# falsely blocked. Pass `-u` so BSD date treats the stripped string as
+# UTC. The GNU `date -d` branch already honors the `Z` suffix natively.
+if date -j -u -f "%Y-%m-%dT%H:%M:%S" "2024-01-01T00:00:00" +%s >/dev/null 2>&1; then
+	parse_date() { date -j -u -f "%Y-%m-%dT%H:%M:%S" "${1%%.*}" +%s 2>/dev/null; }
 else
 	parse_date() { date -d "$1" +%s 2>/dev/null; }
 fi
