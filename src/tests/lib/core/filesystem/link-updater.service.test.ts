@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
+setupLocalStorage();
+
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	readText: vi.fn(),
+	writeText: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -13,11 +16,12 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 }));
 
-// No mocks for stores or logic files — use real implementations per CLAUDE.md.
+// No mocks for stores or logic files - use real implementations per CLAUDE.md.
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readText, writeText } from '$lib/core/filesystem/fs-rust.service';
 import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
@@ -55,7 +59,9 @@ function mockBacklinksV2(entries: NoteEntryV2[]): void {
 describe('updateLinksAfterRename', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearLocalStorage();
 		editorStore.reset();
+		vaultStore.open('/vault');
 	});
 
 	it('skips when old and new names are the same (pure move)', async () => {
@@ -63,7 +69,7 @@ describe('updateLinksAfterRename', () => {
 
 		// extractNoteName produces 'note' for both → same name → early return.
 		expect(invoke).not.toHaveBeenCalled();
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 	});
 
 	it('skips when names differ only by case', async () => {
@@ -71,18 +77,18 @@ describe('updateLinksAfterRename', () => {
 
 		// extractNoteName: 'Note' vs 'note' → toLowerCase() match → early return.
 		expect(invoke).not.toHaveBeenCalled();
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 	});
 
 	it('queries get_backlinks_v2 and updates affected files', async () => {
 		mockBacklinksV2([entry('/vault/other.md')]);
-		vi.mocked(readTextFile).mockResolvedValue('link to [[old-name]]');
+		vi.mocked(readText).mockResolvedValue('link to [[old-name]]');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
 		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/old-name.md' });
-		expect(readTextFile).toHaveBeenCalledWith('/vault/other.md');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/other.md', 'link to [[new-name]]');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/other.md');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/other.md', 'link to [[new-name]]');
 		// Rust index gets a fresh update for the rewritten file so consumers see
 		// the new outgoing-link target ahead of the watcher debounce.
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
@@ -93,11 +99,12 @@ describe('updateLinksAfterRename', () => {
 
 	it('preserves heading fragments and aliases when updating links', async () => {
 		mockBacklinksV2([entry('/vault/ref.md')]);
-		vi.mocked(readTextFile).mockResolvedValue('See [[old-name#Section|click here]] and [[old-name]]');
+		vi.mocked(readText).mockResolvedValue('See [[old-name#Section|click here]] and [[old-name]]');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
 			'/vault/ref.md',
 			'See [[new-name#Section|click here]] and [[new-name]]',
 		);
@@ -107,11 +114,11 @@ describe('updateLinksAfterRename', () => {
 		mockBacklinksV2([entry('/vault/other.md')]);
 		// Rust index thinks /vault/other.md links to old-name, but the file no
 		// longer does (e.g. user already manually replaced the link).
-		vi.mocked(readTextFile).mockResolvedValue('no links here');
+		vi.mocked(readText).mockResolvedValue('no links here');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		// No write means we also don't bump the Rust index for this file.
 		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(invoke).toHaveBeenCalledWith('get_backlinks_v2', { path: '/vault/old-name.md' });
@@ -122,23 +129,23 @@ describe('updateLinksAfterRename', () => {
 		// service defensively filters anyway. Simulate a malformed return for the
 		// guarantee.
 		mockBacklinksV2([entry('/vault/old-name.md'), entry('/vault/other.md')]);
-		vi.mocked(readTextFile).mockResolvedValue('Link to [[old-name]]');
+		vi.mocked(readText).mockResolvedValue('Link to [[old-name]]');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(readTextFile).toHaveBeenCalledTimes(1);
-		expect(readTextFile).toHaveBeenCalledWith('/vault/other.md');
+		expect(readText).toHaveBeenCalledTimes(1);
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/other.md');
 	});
 
 	it('continues processing remaining files when one read fails', async () => {
 		mockBacklinksV2([entry('/vault/a.md'), entry('/vault/b.md')]);
-		vi.mocked(readTextFile)
+		vi.mocked(readText)
 			.mockRejectedValueOnce(new Error('read error'))
 			.mockResolvedValueOnce('[[old-name]]');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/b.md', '[[new-name]]');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/b.md', '[[new-name]]');
 	});
 
 	it('handles no affected files gracefully', async () => {
@@ -146,8 +153,8 @@ describe('updateLinksAfterRename', () => {
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(readTextFile).not.toHaveBeenCalled();
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 
 	it('uses in-memory content when tab has unsaved edits', async () => {
@@ -162,8 +169,9 @@ describe('updateLinksAfterRename', () => {
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
 		// Should NOT read from disk — uses in-memory content.
-		expect(readTextFile).not.toHaveBeenCalled();
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(readText).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
 			'/vault/other.md',
 			'unsaved edit with [[new-name]]',
 		);
@@ -183,11 +191,11 @@ describe('updateLinksAfterRename', () => {
 			content: 'link to [[old-name]]',
 			savedContent: 'link to [[old-name]]',
 		});
-		vi.mocked(readTextFile).mockResolvedValue('link to [[old-name]]');
+		vi.mocked(readText).mockResolvedValue('link to [[old-name]]');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/other.md');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/other.md');
 		const tab = editorStore.tabs.find((t) => t.path === '/vault/other.md');
 		expect(tab).toBeDefined();
 		expect(tab!.content).toBe('link to [[new-name]]');
@@ -196,20 +204,33 @@ describe('updateLinksAfterRename', () => {
 
 	it('reads from disk when file has no open tab', async () => {
 		mockBacklinksV2([entry('/vault/other.md')]);
-		vi.mocked(readTextFile).mockResolvedValue('link to [[old-name]]');
+		vi.mocked(readText).mockResolvedValue('link to [[old-name]]');
 
 		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/other.md');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/other.md', 'link to [[new-name]]');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/other.md');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/other.md', 'link to [[new-name]]');
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('returns silently when no vault is active (no backlinks query, no reads)', async () => {
+		vaultStore.close();
+
+		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
+
+		// Early return before the get_backlinks_v2 invoke.
+		expect(invoke).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 });
 
 describe('updateTabAfterRenameOrMove', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearLocalStorage();
 		editorStore.reset();
+		vaultStore.open('/vault');
 	});
 
 	it('updates the tab path and display name', () => {

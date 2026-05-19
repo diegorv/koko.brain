@@ -1,8 +1,9 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { isTabDirty } from '$lib/core/editor/editor.logic';
+import { readText, writeText } from './fs-rust.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { extractNoteName, replaceWikilinks } from './link-updater.logic';
 import { error } from '$lib/utils/debug';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -23,6 +24,12 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 
 	if (oldName.toLowerCase() === newName.toLowerCase()) return;
 
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) {
+		error('LINK_UPDATER', 'Cannot update wikilinks without an active vault:', oldPath);
+		return;
+	}
+
 	const sources = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path: oldPath });
 	const affectedPaths = sources.map((e) => e.path).filter((p) => p !== oldPath);
 
@@ -31,11 +38,11 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 			// Use in-memory content if the tab has unsaved edits to avoid losing them
 			const openTab = editorStore.tabs.find((t) => t.path === filePath);
 			const isDirty = openTab != null && isTabDirty(openTab);
-			const content = isDirty ? openTab.content : await readTextFile(filePath);
+			const content = isDirty ? openTab.content : await readText(vaultPath, filePath);
 			const updatedContent = replaceWikilinks(content, oldName, newName);
 
 			if (updatedContent !== content) {
-				await writeTextFile(filePath, updatedContent);
+				await writeText(vaultPath, filePath, updatedContent);
 				// Sync both content and savedContent — the full content (including
 				// any prior unsaved edits) was just written to disk, so savedContent
 				// must reflect the on-disk state to keep the dirty flag accurate.
