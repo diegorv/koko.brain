@@ -1,8 +1,9 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { readText, writeText } from '$lib/core/filesystem/fs-rust.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
 import { isCollectionFile, isCanvasFile, isKanbanFile, isBinaryFile } from '$lib/core/filesystem/fs.logic';
 import { applyReadTransform, applyWriteTransform, notifyAfterSave } from './editor.hooks';
@@ -62,7 +63,7 @@ export async function openFileInEditor(filePath: string) {
 	appendLog('FE-STARTUP-PROBE', `openFileInEditor: ENTRY path=${filePath}`);
 
 	// Defensive guard: never load binary content (images / audio / video / pdf / archives)
-	// into the markdown editor. `readTextFile` decodes the bytes as UTF-8 and the
+	// into the markdown editor. `readText` decodes the bytes as UTF-8 and the
 	// resulting string crashes the renderer when CodeMirror + live-preview plugins
 	// iterate over malformed surrogate pairs (kokobrain crash on `![[image.png]]` click).
 	if (isBinaryFile(filePath)) {
@@ -81,9 +82,15 @@ export async function openFileInEditor(filePath: string) {
 	}
 
 	try {
-		appendLog('FE-STARTUP-PROBE', `openFileInEditor: before readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms`);
-		const rawContent = await readTextFile(filePath);
-		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms (${rawContent.length} chars)`);
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) {
+			error('EDITOR', 'Cannot open file without an active vault:', filePath);
+			toast.error('Failed to open file.');
+			return;
+		}
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: before readText @ ${(performance.now() - probeStart).toFixed(1)}ms`);
+		const rawContent = await readText(vaultPath, filePath);
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after readText @ ${(performance.now() - probeStart).toFixed(1)}ms (${rawContent.length} chars)`);
 
 		const transformed = await applyReadTransform(filePath, rawContent);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after applyReadTransform @ ${(performance.now() - probeStart).toFixed(1)}ms`);
@@ -141,7 +148,13 @@ export async function saveFileByPath(path: string): Promise<boolean> {
 		if (handled) {
 			debug('EDITOR', 'Write transform handled save for:', path);
 		} else {
-			await writeTextFile(path, content);
+			const vaultPath = vaultStore.path;
+			if (!vaultPath) {
+				error('EDITOR', 'Cannot save file without an active vault:', path);
+				toast.error('Failed to save file.');
+				return false;
+			}
+			await writeText(vaultPath, path, content);
 		}
 		editorStore.markSavedByPath(path, content);
 		notifyAfterSave(path, content);
@@ -348,9 +361,14 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 	}
 
 	// Read all files in parallel
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) {
+		debug('EDITOR', 'reloadExternallyChangedTabs: no active vault, skipping');
+		return;
+	}
 	const results = await Promise.allSettled(
 		eligible.map(async (filePath) => {
-			const rawContent = await readTextFile(filePath);
+			const rawContent = await readText(vaultPath, filePath);
 			const transformed = await applyReadTransform(filePath, rawContent);
 			return { filePath, diskContent: transformed?.content ?? rawContent };
 		}),

@@ -62,7 +62,7 @@ Order = current user-impact, NOT engineering convenience. Active visible bugs fi
 ### P2 — Hot paths
 
 - [x] Task 5 (P2): Migrate `src/lib/core/filesystem/fs.service.ts` plugin-fs internals (readDir, exists, writeTextFile, readTextFile, mkdir, remove, rename, copyFile) to the wrappers. `createFile`/`createFolder` already go through Rust commands; finish the remaining read/write/exists/move/copy/delete paths. Update `src/tests/lib/core/filesystem/`.
-- [ ] Task 6 (P2): Migrate `src/lib/core/editor/editor.service.ts` -> wrappers. Hot path; verify `markRecentSave` wiring stays intact, watcher self-save guard still fires correctly. Update tests.
+- [x] Task 6 (P2): Migrate `src/lib/core/editor/editor.service.ts` -> wrappers. Hot path; verify `markRecentSave` wiring stays intact, watcher self-save guard still fires correctly. Update tests.
 - [ ] Task 7 (P2): Migrate `src/lib/core/note-creator/note-creator.service.ts` -> wrappers. Update tests.
 - [ ] Task 8 (P2): Migrate `src/lib/core/filesystem/link-updater.service.ts` -> wrappers. Bulk rewrite on rename. Update tests.
 - [ ] Task 9 (P2): Migrate `src/lib/core/trash/trash.service.ts` -> wrappers. Atomic manifest writes need care; review for partial-write recovery. Update tests.

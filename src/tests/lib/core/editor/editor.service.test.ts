@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
+setupLocalStorage();
+
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	readText: vi.fn(),
+	writeText: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
@@ -44,11 +47,12 @@ vi.mock('$lib/utils/debounce', () => ({
 	}),
 }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readText, writeText } from '$lib/core/filesystem/fs-rust.service';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { setFileReadTransform, setFileWriteTransform, addAfterSaveObserver, resetHooks } from '$lib/core/editor/editor.hooks';
 import {
@@ -86,6 +90,16 @@ function addTab(path: string, content = '', overrides: Partial<{ savedContent: s
 	});
 }
 
+// File-level beforeEach runs before every describe-level beforeEach.
+// All editor.service consumers (openFileInEditor, saveFileByPath,
+// reloadExternallyChangedTabs) need an active vault to read/write through
+// the fs-rust wrappers. Tests that exercise the "no vault" branch close
+// the vault explicitly inside the test body.
+beforeEach(() => {
+	clearLocalStorage();
+	vaultStore.open('/vault');
+});
+
 describe('openFileInEditor', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -102,15 +116,15 @@ describe('openFileInEditor', () => {
 
 		expect(editorStore.activeIndex).toBe(0);
 		expect(fsStore.selectedFilePath).toBe('/vault/note.md');
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 	});
 
 	it('reads file and creates new tab if not already open', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('file content');
+		vi.mocked(readText).mockResolvedValue('file content');
 
 		await openFileInEditor('/vault/new.md');
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/new.md');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/new.md');
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.activeTab?.path).toBe('/vault/new.md');
 		expect(editorStore.activeTab?.content).toBe('file content');
@@ -119,7 +133,7 @@ describe('openFileInEditor', () => {
 	});
 
 	it('sets fileType to collection for .collection files', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('views:\n  - type: table');
+		vi.mocked(readText).mockResolvedValue('views:\n  - type: table');
 
 		await openFileInEditor('/vault/test.collection');
 
@@ -127,7 +141,7 @@ describe('openFileInEditor', () => {
 	});
 
 	it('handles read errors gracefully', async () => {
-		vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+		vi.mocked(readText).mockRejectedValue(new Error('read error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await openFileInEditor('/vault/missing.md');
@@ -137,7 +151,7 @@ describe('openFileInEditor', () => {
 	});
 
 	it('does not create duplicate tab when two calls race', async () => {
-		vi.mocked(readTextFile).mockImplementation(async () => {
+		vi.mocked(readText).mockImplementation(async () => {
 			// Simulate another call having added the tab during the await
 			if (editorStore.tabs.length === 0) {
 				addTab('/vault/note.md', 'content');
@@ -154,7 +168,7 @@ describe('openFileInEditor', () => {
 	it('rejects binary file paths without reading them, surfaces a toast', async () => {
 		await openFileInEditor('/vault/Resources/img.png');
 
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(toast.error).toHaveBeenCalledWith(
 			expect.stringContaining('Cannot open binary file'),
@@ -164,7 +178,7 @@ describe('openFileInEditor', () => {
 	it('rejects binary paths regardless of case', async () => {
 		await openFileInEditor('/vault/song.MP3');
 
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(toast.error).toHaveBeenCalledWith(
 			expect.stringContaining('Cannot open binary file'),
@@ -174,8 +188,20 @@ describe('openFileInEditor', () => {
 	it('rejects PDF paths so wikilink-driven opens do not crash', async () => {
 		await openFileInEditor('/vault/spec.pdf');
 
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('refuses to open when no vault is active and surfaces a toast', async () => {
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await openFileInEditor('/vault/note.md');
+
+		expect(readText).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(toast.error).toHaveBeenCalledWith('Failed to open file.');
+		consoleSpy.mockRestore();
 	});
 });
 
@@ -188,7 +214,7 @@ describe('saveCurrentFile', () => {
 	it('skips if no active tab', async () => {
 		await saveCurrentFile();
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.activeTab).toBeNull();
 	});
 
@@ -197,25 +223,25 @@ describe('saveCurrentFile', () => {
 
 		await saveCurrentFile();
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.activeTab?.savedContent).toBe('same');
 	});
 
 	it('writes file and marks saved when dirty', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveCurrentFile();
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', 'modified');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/note.md', 'modified');
 		expect(editorStore.activeTab?.savedContent).toBe('modified');
 	});
 
 	it('handles write errors gracefully and shows toast', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+		vi.mocked(writeText).mockRejectedValue(new Error('write error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await saveCurrentFile();
@@ -238,7 +264,7 @@ describe('saveCurrentFile', () => {
 
 		await saveCurrentFile();
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.activeTab?.savedContent).toBe('original');
 	});
 });
@@ -255,12 +281,12 @@ describe('saveFileByPath', () => {
 		// Modify tab a
 		editorStore.setActiveIndex(0);
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		const result = await saveFileByPath('/vault/a.md');
 
 		expect(result).toBe(true);
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', 'modified');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/a.md', 'modified');
 		expect(editorStore.tabs[0].savedContent).toBe('modified');
 	});
 
@@ -270,7 +296,7 @@ describe('saveFileByPath', () => {
 		const result = await saveFileByPath('/vault/unknown.md');
 
 		expect(result).toBe(true);
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].savedContent).toBe('content');
 	});
 
@@ -280,7 +306,7 @@ describe('saveFileByPath', () => {
 		const result = await saveFileByPath('/vault/a.md');
 
 		expect(result).toBe(true);
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].savedContent).toBe('same');
 	});
 
@@ -288,7 +314,7 @@ describe('saveFileByPath', () => {
 		addTab('/vault/a.md', 'original');
 		editorStore.setActiveIndex(0);
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		vi.mocked(writeText).mockRejectedValue(new Error('disk full'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await saveFileByPath('/vault/a.md');
@@ -312,8 +338,24 @@ describe('saveFileByPath', () => {
 		const result = await saveFileByPath(TASKS_VIRTUAL_PATH);
 
 		expect(result).toBe(true);
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.activeTab?.savedContent).toBe('original');
+	});
+
+	it('returns false and surfaces a toast when no vault is active', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('modified');
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await saveFileByPath('/vault/note.md');
+
+		expect(result).toBe(false);
+		expect(writeText).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith('Failed to save file.');
+		// Dirty state preserved (savedContent unchanged).
+		expect(editorStore.activeTab?.savedContent).toBe('original');
+		consoleSpy.mockRestore();
 	});
 });
 
@@ -341,7 +383,7 @@ describe('onContentChange', () => {
 		addTab('/vault/b.md', 'original-b');
 		editorStore.updateContent('modified-b');
 
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		// Trigger debounced save (mock executes immediately)
 		onContentChange('modified-b-2');
@@ -349,7 +391,7 @@ describe('onContentChange', () => {
 		// Wait for all async saves to complete
 		await vi.waitFor(() => {
 			// Both dirty tabs should have been saved
-			expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', 'modified-a');
+			expect(writeText).toHaveBeenCalledWith('/vault', '/vault/a.md', 'modified-a');
 		});
 	});
 
@@ -367,7 +409,7 @@ describe('onContentChange', () => {
 
 		onContentChange('same');
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].savedContent).toBe('same');
 		expect(editorStore.tabs[1].savedContent).toBe('original');
 	});
@@ -385,13 +427,13 @@ describe('flushPendingSaves', () => {
 		editorStore.updateContent('modified-a');
 		addTab('/vault/b.md', 'original-b');
 		editorStore.updateContent('modified-b');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		flushPendingSaves();
 
 		await vi.waitFor(() => {
-			expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', 'modified-a');
-			expect(writeTextFile).toHaveBeenCalledWith('/vault/b.md', 'modified-b');
+			expect(writeText).toHaveBeenCalledWith('/vault', '/vault/a.md', 'modified-a');
+			expect(writeText).toHaveBeenCalledWith('/vault', '/vault/b.md', 'modified-b');
 		});
 	});
 });
@@ -417,13 +459,13 @@ describe('saveAllDirtyTabs', () => {
 			savedContent: 'original',
 			fileType: 'tasks',
 		});
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		const failed = await saveAllDirtyTabs();
 
 		expect(failed).toEqual([]);
-		expect(writeTextFile).toHaveBeenCalledTimes(1);
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/dirty.md', 'modified');
+		expect(writeText).toHaveBeenCalledTimes(1);
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/dirty.md', 'modified');
 	});
 
 	it('awaits all saves and returns empty array when all succeed', async () => {
@@ -432,13 +474,13 @@ describe('saveAllDirtyTabs', () => {
 		editorStore.updateContent('modified-a');
 		addTab('/vault/b.md', 'original-b');
 		editorStore.updateContent('modified-b');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		const failed = await saveAllDirtyTabs();
 
 		expect(failed).toEqual([]);
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', 'modified-a');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/b.md', 'modified-b');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/a.md', 'modified-a');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/b.md', 'modified-b');
 		// Both tabs should now be marked as saved
 		expect(editorStore.tabs[0].savedContent).toBe('modified-a');
 		expect(editorStore.tabs[1].savedContent).toBe('modified-b');
@@ -451,7 +493,7 @@ describe('saveAllDirtyTabs', () => {
 		const failed = await saveAllDirtyTabs();
 
 		expect(failed).toEqual([]);
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 
 	it('returns paths of tabs that failed to save', async () => {
@@ -461,8 +503,9 @@ describe('saveAllDirtyTabs', () => {
 		addTab('/vault/b.md', 'original-b');
 		editorStore.updateContent('modified-b');
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		// a.md fails, b.md succeeds
-		vi.mocked(writeTextFile).mockImplementation(async (path: string | URL) => {
+		// a.md fails, b.md succeeds. The wrapper signature is
+		// (vaultPath, path, content) — match on the operation path (2nd arg).
+		vi.mocked(writeText).mockImplementation(async (_vault: string, path: string) => {
 			if (path === '/vault/a.md') throw new Error('disk full');
 		});
 
@@ -589,7 +632,7 @@ describe('closeTab', () => {
 		editorStore.setActiveIndex(0);
 		editorStore.updateContent('modified-a');
 		addTab('/vault/b.md', 'clean');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		// Trigger a debounced save for tab a
 		onContentChange('modified-a');
@@ -599,7 +642,7 @@ describe('closeTab', () => {
 
 		// Tab a's save should still complete
 		await vi.waitFor(() => {
-			expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', 'modified-a');
+			expect(writeText).toHaveBeenCalledWith('/vault', '/vault/a.md', 'modified-a');
 		});
 	});
 
@@ -941,7 +984,7 @@ describe('resetEditor', () => {
 
 	it('cancels pending auto-saves instead of flushing (callers must save first)', () => {
 		addTab('/vault/a.md', 'original');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		// Simulate user typing (sets up the debounce, which fires immediately in mock)
 		onContentChange('modified');
@@ -956,7 +999,7 @@ describe('resetEditor', () => {
 		resetEditor();
 
 		// Verify no save was triggered during reset (cancel, not flush)
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 });
@@ -970,7 +1013,7 @@ describe('editor hooks integration', () => {
 	});
 
 	it('openFileInEditor uses transformed content when read hook applies', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('raw-blob');
+		vi.mocked(readText).mockResolvedValue('raw-blob');
 		setFileReadTransform(async (_path, raw) => {
 			if (raw === 'raw-blob') {
 				return { content: 'transformed content', tabProps: { pinned: true } };
@@ -986,7 +1029,7 @@ describe('editor hooks integration', () => {
 	});
 
 	it('openFileInEditor uses raw content when read hook returns null', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('plain content');
+		vi.mocked(readText).mockResolvedValue('plain content');
 		setFileReadTransform(async () => null);
 
 		await openFileInEditor('/vault/note.md');
@@ -1002,28 +1045,28 @@ describe('editor hooks integration', () => {
 
 		await saveCurrentFile();
 
-		// writeTextFile should NOT be called — hook handled it
-		expect(writeTextFile).not.toHaveBeenCalled();
+		// writeText should NOT be called — hook handled it
+		expect(writeText).not.toHaveBeenCalled();
 		// But savedContent should still be updated
 		expect(editorStore.activeTab?.savedContent).toBe('modified');
 	});
 
-	it('saveCurrentFile falls back to writeTextFile when hook returns false', async () => {
+	it('saveCurrentFile falls back to writeText when hook returns false', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 		setFileWriteTransform(async () => false);
 
 		await saveCurrentFile();
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', 'modified');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/note.md', 'modified');
 		expect(editorStore.activeTab?.savedContent).toBe('modified');
 	});
 
 	it('saveCurrentFile calls notifyAfterSave after successful save', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		const observer = vi.fn();
 		addAfterSaveObserver(observer);
@@ -1041,26 +1084,26 @@ describe('editor hooks integration', () => {
 
 		await saveFileByPath('/vault/note.md');
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].savedContent).toBe('modified');
 	});
 
-	it('saveFileByPath falls back to writeTextFile when hook returns false', async () => {
+	it('saveFileByPath falls back to writeText when hook returns false', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 		setFileWriteTransform(async () => false);
 
 		await saveFileByPath('/vault/note.md');
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', 'modified');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/note.md', 'modified');
 		expect(editorStore.tabs[0].savedContent).toBe('modified');
 	});
 
 	it('saveFileByPath calls notifyAfterSave after successful save', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		const observer = vi.fn();
 		addAfterSaveObserver(observer);
@@ -1073,7 +1116,7 @@ describe('editor hooks integration', () => {
 	it('saveCurrentFile does NOT call notifyAfterSave when write fails', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		vi.mocked(writeText).mockRejectedValue(new Error('disk full'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const observer = vi.fn();
@@ -1095,10 +1138,10 @@ describe('state transitions', () => {
 	});
 
 	it('open file A → open file B → two tabs, B active', async () => {
-		vi.mocked(readTextFile).mockResolvedValueOnce('content A');
+		vi.mocked(readText).mockResolvedValueOnce('content A');
 		await openFileInEditor('/vault/a.md');
 
-		vi.mocked(readTextFile).mockResolvedValueOnce('content B');
+		vi.mocked(readText).mockResolvedValueOnce('content B');
 		await openFileInEditor('/vault/b.md');
 
 		expect(editorStore.tabs).toHaveLength(2);
@@ -1107,7 +1150,7 @@ describe('state transitions', () => {
 	});
 
 	it('open → edit → save → savedContent matches', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('original');
+		vi.mocked(readText).mockResolvedValue('original');
 		await openFileInEditor('/vault/note.md');
 		expect(editorStore.activeTab?.savedContent).toBe('original');
 
@@ -1115,14 +1158,14 @@ describe('state transitions', () => {
 		expect(editorStore.activeTab?.content).toBe('modified');
 		expect(editorStore.activeTab?.savedContent).toBe('original');
 
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 		await saveCurrentFile();
 
 		expect(editorStore.activeTab?.savedContent).toBe('modified');
 	});
 
 	it('open → close → no tabs', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('content');
+		vi.mocked(readText).mockResolvedValue('content');
 		await openFileInEditor('/vault/note.md');
 		expect(editorStore.tabs).toHaveLength(1);
 
@@ -1144,7 +1187,7 @@ describe('reloadExternallyChangedTabs', () => {
 
 	it('silently reloads a clean tab when file changed externally', async () => {
 		addTab('/vault/note.md', 'original');
-		vi.mocked(readTextFile).mockResolvedValueOnce('external edit');
+		vi.mocked(readText).mockResolvedValueOnce('external edit');
 
 		await reloadExternallyChangedTabs(['/vault/note.md']);
 
@@ -1158,12 +1201,12 @@ describe('reloadExternallyChangedTabs', () => {
 		await reloadExternallyChangedTabs(['/vault/other.md']);
 
 		expect(editorStore.tabs[0].content).toBe('original');
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 	});
 
 	it('skips when disk content matches savedContent (no external change)', async () => {
 		addTab('/vault/note.md', 'same');
-		vi.mocked(readTextFile).mockResolvedValueOnce('same');
+		vi.mocked(readText).mockResolvedValueOnce('same');
 
 		await reloadExternallyChangedTabs(['/vault/note.md']);
 
@@ -1174,7 +1217,7 @@ describe('reloadExternallyChangedTabs', () => {
 	it('skips self-saves (disk matches savedContent)', async () => {
 		addTab('/vault/note.md', 'original');
 		// Simulate editor just saved — disk has the same content as savedContent
-		vi.mocked(readTextFile).mockResolvedValueOnce('original');
+		vi.mocked(readText).mockResolvedValueOnce('original');
 
 		await reloadExternallyChangedTabs(['/vault/note.md']);
 
@@ -1193,7 +1236,7 @@ describe('reloadExternallyChangedTabs', () => {
 
 		await reloadExternallyChangedTabs(['__virtual__/tasks']);
 
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 	});
 
 	it('skips dirty tabs — editor always wins over external changes', async () => {
@@ -1202,14 +1245,14 @@ describe('reloadExternallyChangedTabs', () => {
 		await reloadExternallyChangedTabs(['/vault/note.md']);
 
 		// Should not even read from disk — editor content is preserved
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].content).toBe('user edits');
 		expect(editorStore.tabs[0].savedContent).toBe('original');
 	});
 
 	it('handles read errors gracefully (file may be deleted)', async () => {
 		addTab('/vault/note.md', 'original');
-		vi.mocked(readTextFile).mockRejectedValueOnce(new Error('file not found'));
+		vi.mocked(readText).mockRejectedValueOnce(new Error('file not found'));
 
 		await reloadExternallyChangedTabs(['/vault/note.md']);
 
@@ -1220,7 +1263,7 @@ describe('reloadExternallyChangedTabs', () => {
 	it('applies read transform when reloading', async () => {
 		setFileReadTransform(async (_path, raw) => ({ content: `transformed:${raw}` }));
 		addTab('/vault/secret.md', 'transformed:original', { savedContent: 'transformed:original' });
-		vi.mocked(readTextFile).mockResolvedValueOnce('new-raw');
+		vi.mocked(readText).mockResolvedValueOnce('new-raw');
 
 		await reloadExternallyChangedTabs(['/vault/secret.md']);
 
@@ -1231,7 +1274,7 @@ describe('reloadExternallyChangedTabs', () => {
 	it('reloads multiple tabs in a single call', async () => {
 		addTab('/vault/a.md', 'old A');
 		addTab('/vault/b.md', 'old B');
-		vi.mocked(readTextFile)
+		vi.mocked(readText)
 			.mockResolvedValueOnce('new A')
 			.mockResolvedValueOnce('new B');
 
@@ -1239,6 +1282,17 @@ describe('reloadExternallyChangedTabs', () => {
 
 		expect(editorStore.tabs[0].content).toBe('new A');
 		expect(editorStore.tabs[1].content).toBe('new B');
+	});
+
+	it('skips silently when no vault is active', async () => {
+		addTab('/vault/note.md', 'old');
+		vaultStore.close();
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(readText).not.toHaveBeenCalled();
+		// Tab content untouched.
+		expect(editorStore.tabs[0].content).toBe('old');
 	});
 });
 
