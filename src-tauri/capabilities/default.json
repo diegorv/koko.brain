@@ -29,10 +29,19 @@
       "identifier": "fs:allow-read-dir",
       "allow": [
         {
+          "path": "$DOCUMENT"
+        },
+        {
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$HOME/MyFiles"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
