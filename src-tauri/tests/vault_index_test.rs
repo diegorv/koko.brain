@@ -856,7 +856,7 @@ fn lookup_outgoing_unlinked_mentions_skips_mentions_in_frontmatter_and_code() {
 }
 
 #[test]
-fn lookup_outgoing_unlinked_mentions_returns_only_OutgoingUnlinkedMention_fields() {
+fn lookup_outgoing_unlinked_mentions_returns_only_outgoing_unlinked_mention_fields() {
 	// Spec test: ensure we return the exact wire shape (note_name, note_path, count).
 	let mut idx = VaultIndex::default();
 	idx.build(vec![
@@ -1602,7 +1602,7 @@ fn match_unlinked_mentions_strips_frontmatter_and_code_blocks() {
 }
 
 #[test]
-fn lookup_entries_clones_full_NoteEntry_for_matched_paths() {
+fn lookup_entries_clones_full_note_entry_for_matched_paths() {
 	let (_dir, idx, paths) = build_index_with_fixtures(&[
 		("alpha.md", "alpha body"),
 		("beta.md", "beta body"),
