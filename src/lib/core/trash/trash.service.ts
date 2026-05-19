@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import type { TrashItem } from './trash.types';
 import { trashStore } from './trash.store.svelte';
 import {
@@ -12,6 +12,13 @@ import {
 	serializeTrashManifest,
 } from './trash.logic';
 import { getRelativePath } from '$lib/core/filesystem/fs.logic';
+import {
+	pathExists,
+	readText,
+	writeText,
+	renamePath,
+	deletePath,
+} from '$lib/core/filesystem/fs-rust.service';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -22,12 +29,12 @@ export async function loadTrash(vaultPath: string): Promise<void> {
 	trashStore.setLoading(true);
 	try {
 		const manifestPath = getTrashManifestPath(vaultPath);
-		const manifestExists = await exists(manifestPath);
+		const manifestExists = await pathExists(vaultPath, manifestPath);
 		if (!manifestExists) {
 			trashStore.setItems([]);
 			return;
 		}
-		const json = await readTextFile(manifestPath);
+		const json = await readText(vaultPath, manifestPath);
 		const items = parseTrashManifest(json);
 		trashStore.setItems(items);
 		debug('Trash', `Loaded ${items.length} trashed items`);
@@ -50,21 +57,25 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
 	let containerCreated = false;
 
 	try {
-		// Ensure trash directories exist
+		// Ensure trash directories exist. `create_folder` is recursive
+		// (create_dir_all under the hood) and a no-op when the directory
+		// already exists, so the previous exists() pre-check is no longer
+		// strictly necessary - keep it as a cheap fast path that avoids an
+		// IPC round-trip on the hot path.
 		const trashDir = getTrashDir(vaultPath);
-		if (!(await exists(trashDir))) {
-			await mkdir(trashDir, { recursive: true });
+		if (!(await pathExists(vaultPath, trashDir))) {
+			await invoke('create_folder', { path: trashDir });
 		}
 		const itemsDir = getTrashItemsDir(vaultPath);
-		if (!(await exists(itemsDir))) {
-			await mkdir(itemsDir, { recursive: true });
+		if (!(await pathExists(vaultPath, itemsDir))) {
+			await invoke('create_folder', { path: itemsDir });
 		}
 
 		// Create the UUID container and move the item into it
-		await mkdir(itemDir, { recursive: true });
+		await invoke('create_folder', { path: itemDir });
 		containerCreated = true;
 		const trashPath = getTrashItemPath(vaultPath, item.id, item.fileName);
-		await rename(absolutePath, trashPath);
+		await renamePath(vaultPath, absolutePath, trashPath);
 
 		// Persist manifest to disk first, then update store (avoids desync on write failure)
 		await saveManifest(vaultPath, [item, ...trashStore.items]);
@@ -75,7 +86,7 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
 	} catch (err) {
 		// Clean up orphaned container directory if it was created before the failure
 		if (containerCreated) {
-			try { await remove(itemDir, { recursive: true }); } catch { /* ignore cleanup failure */ }
+			try { await deletePath(vaultPath, itemDir, true); } catch { /* ignore cleanup failure */ }
 		}
 		error('Trash', 'Failed to move to trash:', err);
 		throw err;
@@ -93,21 +104,21 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		let restorePath = `${vaultPath}/${item.originalPath}`;
 
 		// If original location is occupied, find a unique path with incrementing suffix
-		if (await exists(restorePath)) {
-			restorePath = await findUniqueRestorePath(restorePath, item.isDirectory);
+		if (await pathExists(vaultPath, restorePath)) {
+			restorePath = await findUniqueRestorePath(vaultPath, restorePath, item.isDirectory);
 		}
 
 		// Ensure parent directory exists
 		const parentDir = restorePath.substring(0, restorePath.lastIndexOf('/'));
-		if (!(await exists(parentDir))) {
-			await mkdir(parentDir, { recursive: true });
+		if (!(await pathExists(vaultPath, parentDir))) {
+			await invoke('create_folder', { path: parentDir });
 		}
 
-		await rename(trashPath, restorePath);
+		await renamePath(vaultPath, trashPath, restorePath);
 
 		// Clean up the empty timestamped container
 		const itemDir = getTrashItemDir(vaultPath, item.id);
-		await remove(itemDir, { recursive: true });
+		await deletePath(vaultPath, itemDir, true);
 
 		// Persist manifest to disk first, then update store (avoids desync on write failure)
 		await saveManifest(vaultPath, trashStore.items.filter(i => i.id !== item.id));
@@ -117,7 +128,7 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		const { refreshTree } = await import('$lib/core/filesystem/fs.service');
 		await refreshTree();
 
-		debug('Trash', `Restored: ${item.originalPath} → ${restorePath}`);
+		debug('Trash', `Restored: ${item.originalPath} -> ${restorePath}`);
 		return restorePath;
 	} catch (err) {
 		error('Trash', 'Failed to restore item:', err);
@@ -131,7 +142,7 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 export async function deletePermanently(vaultPath: string, item: TrashItem): Promise<boolean> {
 	try {
 		const itemDir = getTrashItemDir(vaultPath, item.id);
-		await remove(itemDir, { recursive: true });
+		await deletePath(vaultPath, itemDir, true);
 
 		// Persist manifest to disk first, then update store (avoids desync on write failure)
 		await saveManifest(vaultPath, trashStore.items.filter(i => i.id !== item.id));
@@ -151,8 +162,8 @@ export async function deletePermanently(vaultPath: string, item: TrashItem): Pro
 export async function emptyTrash(vaultPath: string): Promise<boolean> {
 	try {
 		const itemsDir = getTrashItemsDir(vaultPath);
-		if (await exists(itemsDir)) {
-			await remove(itemsDir, { recursive: true });
+		if (await pathExists(vaultPath, itemsDir)) {
+			await deletePath(vaultPath, itemsDir, true);
 		}
 
 		// Persist manifest to disk first, then update store (avoids desync on write failure)
@@ -181,31 +192,31 @@ export function resetTrash(): void {
 async function saveManifest(vaultPath: string, items: TrashItem[]): Promise<void> {
 	const manifestPath = getTrashManifestPath(vaultPath);
 	const trashDir = getTrashDir(vaultPath);
-	if (!(await exists(trashDir))) {
-		await mkdir(trashDir, { recursive: true });
+	if (!(await pathExists(vaultPath, trashDir))) {
+		await invoke('create_folder', { path: trashDir });
 	}
-	await writeTextFile(manifestPath, serializeTrashManifest(items));
+	await writeText(vaultPath, manifestPath, serializeTrashManifest(items));
 }
 
 /**
  * Finds a unique restore path by trying incrementing suffixes until one is free.
- * E.g., "notes/file.md" → "notes/file (restored).md" → "notes/file (restored 2).md" → ...
- * For directories: "projects" → "projects (restored)" → "projects (restored 2)" → ...
+ * E.g., "notes/file.md" -> "notes/file (restored).md" -> "notes/file (restored 2).md" -> ...
+ * For directories: "projects" -> "projects (restored)" -> "projects (restored 2)" -> ...
  */
-async function findUniqueRestorePath(originalPath: string, isDirectory: boolean): Promise<string> {
+async function findUniqueRestorePath(vaultPath: string, originalPath: string, isDirectory: boolean): Promise<string> {
 	const { base, ext } = splitPathForSuffix(originalPath, isDirectory);
 	// Try "base (restored).ext", then "base (restored 2).ext", etc.
 	for (let i = 1; ; i++) {
 		const suffix = i === 1 ? '(restored)' : `(restored ${i})`;
 		const candidate = `${base} ${suffix}${ext}`;
-		if (!(await exists(candidate))) return candidate;
+		if (!(await pathExists(vaultPath, candidate))) return candidate;
 	}
 }
 
 /**
  * Splits a path into base and extension parts for suffix insertion.
- * For files: "/path/file.md" → { base: "/path/file", ext: ".md" }
- * For directories or extensionless files: "/path/dir" → { base: "/path/dir", ext: "" }
+ * For files: "/path/file.md" -> { base: "/path/file", ext: ".md" }
+ * For directories or extensionless files: "/path/dir" -> { base: "/path/dir", ext: "" }
  */
 function splitPathForSuffix(path: string, isDirectory: boolean): { base: string; ext: string } {
 	if (isDirectory) return { base: path, ext: '' };

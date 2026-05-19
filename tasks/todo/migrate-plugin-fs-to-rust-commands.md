@@ -65,7 +65,7 @@ Order = current user-impact, NOT engineering convenience. Active visible bugs fi
 - [x] Task 6 (P2): Migrate `src/lib/core/editor/editor.service.ts` -> wrappers. Hot path; verify `markRecentSave` wiring stays intact, watcher self-save guard still fires correctly. Update tests.
 - [x] Task 7 (P2): Migrate `src/lib/core/note-creator/note-creator.service.ts` -> wrappers. Update tests.
 - [x] Task 8 (P2): Migrate `src/lib/core/filesystem/link-updater.service.ts` -> wrappers. Bulk rewrite on rename. Update tests.
-- [ ] Task 9 (P2): Migrate `src/lib/core/trash/trash.service.ts` -> wrappers. Atomic manifest writes need care; review for partial-write recovery. Update tests.
+- [x] Task 9 (P2): Migrate `src/lib/core/trash/trash.service.ts` -> wrappers. Atomic manifest writes need care; review for partial-write recovery. Update tests.
 
 ### P3 — Active features
 
