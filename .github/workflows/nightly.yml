@@ -1,41 +1,28 @@
 name: Nightly
 
-# Push-to-main nightly build, published as a single fixed pre-release
+# Manual-only nightly build, published as a single fixed pre-release
 # at tag `nightly`. Assets rotate in place — `tauri-action` recreates
 # the release each run after the explicit delete step below, and the
 # `gh release upload --clobber` line at the end overwrites any
 # checksum file the action did not replace.
 #
 # Triggers:
-#   - `push: main`: every accepted commit ships a new nightly so users
-#     can pick up regressions or fixes within minutes of merge. No cron
-#     since this project is open-source and not bound by macOS-minute
-#     limits.
-#   - `workflow_dispatch`: manual rebuild lever for when the previous
-#     nightly silently broke (e.g. transient notarization failure) and
-#     the next "real" commit is hours away.
+#   - `workflow_dispatch`: only trigger. Nightlies are cut on demand
+#     (e.g. before sharing a build for testing, or after a fix that
+#     can't wait for the next tag-driven release). Removing the
+#     `push: main` trigger eliminates the implicit "every commit
+#     ships a nightly" loop — releases on the stable channel still
+#     ship automatically via release.yml on tag push.
 
 permissions:
   contents: read
 
 on:
-  push:
-    branches: [main]
-    # Docs-only or tasks-only commits do not change the binary, so they
-    # should not consume a macOS runner. `workflow_dispatch` is the
-    # escape hatch when a rebuild is needed without a code commit.
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "tasks/**"
-      - ".github/CODEOWNERS"
   workflow_dispatch:
 
 concurrency:
-  # `cancel-in-progress: true` because rapid back-to-back pushes should
-  # produce the LATEST nightly, not a queue of stale ones. The current
-  # build is cancelled the moment a newer commit lands; macOS minutes
-  # are free for OSS but wall-clock and "cancelled-run" emails aren't.
+  # Manual dispatches are infrequent, but back-to-back triggers should
+  # still produce the LATEST nightly rather than queue stale ones.
   group: nightly
   cancel-in-progress: true
 
@@ -170,11 +157,10 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          # Share the rust-cache slot with release.yml and
-          # cache-warmer.yml — all three run the same
-          # `cargo build --release --target aarch64-apple-darwin`,
-          # so a successful build in any of them primes the cache
-          # for the next.
+          # Share the rust-cache slot with release.yml — both run the
+          # same `cargo build --release --target aarch64-apple-darwin`,
+          # so a successful build in either primes the cache for the
+          # other.
           rust-cache-key: macos-release-aarch64
 
       - name: Compute nightly version

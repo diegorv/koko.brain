@@ -86,6 +86,24 @@ jobs:
     needs: validate
     uses: ./.github/workflows/e2e.yml
 
+  # Security audits (npm + cargo + supply-chain quarantine) on the
+  # tagged SHA. Runs in parallel with ci + e2e. Wired here because
+  # security.yml no longer runs on push:main — a release tag is the
+  # post-merge surfacing point that catches an advisory or a
+  # quarantine regression slipping past the PR check.
+  #
+  # NOT in `build-macos.needs` on purpose: a security finding (e.g.
+  # a transitive advisory published between the PR merge and the tag
+  # push) is informational at release time, not a hard block. The
+  # finding shows up as a failed check on the release run for the
+  # maintainer to act on, but the macOS build still ships. Promote
+  # this to a blocker by adding `security` back to `build-macos.needs`
+  # if the policy changes.
+  security:
+    name: Security
+    needs: validate
+    uses: ./.github/workflows/security.yml
+
   build-macos:
     name: Build macOS
     needs: [ci, e2e]
@@ -101,8 +119,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          # Share the rust-cache slot with nightly.yml and
-          # cache-warmer.yml — same cargo invocation, same artifacts.
+          # Share the rust-cache slot with nightly.yml — same cargo
+          # invocation, same artifacts.
           rust-cache-key: macos-release-aarch64
 
       - name: Generate changelog
