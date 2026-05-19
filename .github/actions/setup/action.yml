@@ -16,12 +16,12 @@ inputs:
       jobs that pass the same value share a single cache entry (instead
       of each job getting its own `v0-rust-<job_id>-...` slot). Use this
       for jobs that run the same cargo invocation (e.g. `cargo build
-      --release --target aarch64-apple-darwin` in nightly.yml,
-      release.yml, and cache-warmer.yml) so a successful build in one
-      workflow primes the cache for the others. Leave empty for jobs
-      whose cargo invocation produces different artifacts (e.g. ci.yml's
-      `cargo test` debug+host build), so they keep their own per-job
-      cache and don't clobber each other.
+      --release --target aarch64-apple-darwin` in nightly.yml and
+      release.yml) so a successful build in one workflow primes the
+      cache for the other. Leave empty for jobs whose cargo invocation
+      produces different artifacts (e.g. ci.yml's `cargo test`
+      debug+host build), so they keep their own per-job cache and
+      don't clobber each other.
     required: false
     default: ""
 
@@ -149,11 +149,11 @@ runs:
     # save on a job that failed AFTER doing meaningful compile work.
     #
     # `shared-key` (driven by the new `rust-cache-key` input) lets the
-    # cache-warmer, nightly, and release workflows share a single
-    # cache slot when they run the same cargo invocation
+    # nightly and release workflows share a single cache slot when
+    # they run the same cargo invocation
     # (`--release --target aarch64-apple-darwin`). Without it, each
     # job's cache lives in its own `v0-rust-<job_id>-...` namespace
-    # and the warmer can't actually prime the build flows.
+    # and neither workflow primes the cache for the other.
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
       uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
