@@ -4,7 +4,7 @@
  * Routes every Rust command the frontend invokes to either:
  *   - `virtualFS` (file CRUD + legacy v1 vault scan)
  *   - `vaultIndex` (the `*_v2` family that mirrors the Rust `VaultIndex`)
- *   - a typed no-op (encryption, semantic search, history, terminal, fonts)
+ *   - a typed no-op (semantic search, history, terminal, fonts)
  *
  * Coverage target is "every command grep-able from src/lib", so the
  * E2E suite never falls through to the unknown-command warning. Add new
@@ -164,40 +164,6 @@ function handleGetSemanticStats(): unknown {
 	return { totalChunks: 0, totalSources: 0, modelLoaded: false };
 }
 
-// ─── Encryption (passthrough — encryption isn't a golden path) ─────────────
-
-function handleHasEncryptionKey(): boolean {
-	return false;
-}
-
-function handleEnsureEncryptionKey(): null {
-	return null;
-}
-
-function handleLockEncryption(): void {
-	/* no-op */
-}
-
-function handleGetRecoveryKey(): string {
-	return '';
-}
-
-function handleRestoreFromRecoveryKey(): boolean {
-	return true;
-}
-
-function handleEncryptContent(args: Args): unknown {
-	return {
-		kokobrain_encrypted: '1.0',
-		iv: 'mock-iv',
-		data: get<string>(args, 'content') ?? '',
-	};
-}
-
-function handleDecryptContent(args: Args): string {
-	return get<string>(args, 'content') ?? '';
-}
-
 // ─── Vault DB / lifecycle (no-ops) ─────────────────────────────────────────
 
 function handleOpenVaultDb(): void {
@@ -307,15 +273,6 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	update_semantic_file: handleUpdateSemanticFile,
 	search_semantic: handleSearchSemantic,
 	get_semantic_stats: handleGetSemanticStats,
-
-	// Encryption
-	has_encryption_key: handleHasEncryptionKey,
-	ensure_encryption_key: handleEnsureEncryptionKey,
-	lock_encryption: handleLockEncryption,
-	get_recovery_key: handleGetRecoveryKey,
-	restore_from_recovery_key: handleRestoreFromRecoveryKey,
-	encrypt_content: handleEncryptContent,
-	decrypt_content: handleDecryptContent,
 
 	// Vault DB / lifecycle
 	open_vault_db: handleOpenVaultDb,

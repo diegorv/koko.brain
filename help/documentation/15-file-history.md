@@ -71,5 +71,4 @@ Snapshots live in the SQLite database (`.kokobrain/kokobrain.db`), not alongside
 
 ## Next Steps
 
-- [Encryption & Security](16-encryption-and-security.md) — Protect sensitive notes with encryption
 - [Settings](19-settings.md) — Full settings reference

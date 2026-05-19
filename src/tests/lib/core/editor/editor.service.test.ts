@@ -136,30 +136,6 @@ describe('openFileInEditor', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('silently handles canceled Touch ID (no toast)', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('content');
-		setFileReadTransform(async () => { throw new Error('canceled'); });
-
-		await openFileInEditor('/vault/secret.md');
-
-		expect(editorStore.tabs).toHaveLength(0);
-		expect(toast.error).not.toHaveBeenCalled();
-		setFileReadTransform(null);
-	});
-
-	it('shows recovery guidance for no-encryption-key error', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('content');
-		setFileReadTransform(async () => { throw new Error('no-encryption-key'); });
-
-		await openFileInEditor('/vault/secret.md');
-
-		expect(editorStore.tabs).toHaveLength(0);
-		expect(toast.error).toHaveBeenCalledWith(
-			expect.stringContaining('No encryption key found'),
-		);
-		setFileReadTransform(null);
-	});
-
 	it('does not create duplicate tab when two calls race', async () => {
 		vi.mocked(readTextFile).mockImplementation(async () => {
 			// Simulate another call having added the tab during the await
@@ -994,19 +970,19 @@ describe('editor hooks integration', () => {
 	});
 
 	it('openFileInEditor uses transformed content when read hook applies', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('encrypted-blob');
+		vi.mocked(readTextFile).mockResolvedValue('raw-blob');
 		setFileReadTransform(async (_path, raw) => {
-			if (raw === 'encrypted-blob') {
-				return { content: 'decrypted content', tabProps: { encrypted: true } };
+			if (raw === 'raw-blob') {
+				return { content: 'transformed content', tabProps: { pinned: true } };
 			}
 			return null;
 		});
 
 		await openFileInEditor('/vault/secret.md');
 
-		expect(editorStore.activeTab?.content).toBe('decrypted content');
-		expect(editorStore.activeTab?.savedContent).toBe('decrypted content');
-		expect(editorStore.activeTab?.encrypted).toBe(true);
+		expect(editorStore.activeTab?.content).toBe('transformed content');
+		expect(editorStore.activeTab?.savedContent).toBe('transformed content');
+		expect(editorStore.activeTab?.pinned).toBe(true);
 	});
 
 	it('openFileInEditor uses raw content when read hook returns null', async () => {
@@ -1016,7 +992,7 @@ describe('editor hooks integration', () => {
 		await openFileInEditor('/vault/note.md');
 
 		expect(editorStore.activeTab?.content).toBe('plain content');
-		expect(editorStore.activeTab?.encrypted).toBeUndefined();
+		expect(editorStore.activeTab?.pinned).toBeUndefined();
 	});
 
 	it('saveCurrentFile uses write hook when it returns true', async () => {
@@ -1241,15 +1217,15 @@ describe('reloadExternallyChangedTabs', () => {
 		expect(editorStore.tabs[0].content).toBe('original');
 	});
 
-	it('applies read transform when reloading (e.g. encrypted files)', async () => {
-		setFileReadTransform(async (_path, raw) => ({ content: `decrypted:${raw}` }));
-		addTab('/vault/secret.md', 'decrypted:original', { savedContent: 'decrypted:original' });
-		vi.mocked(readTextFile).mockResolvedValueOnce('new-encrypted');
+	it('applies read transform when reloading', async () => {
+		setFileReadTransform(async (_path, raw) => ({ content: `transformed:${raw}` }));
+		addTab('/vault/secret.md', 'transformed:original', { savedContent: 'transformed:original' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('new-raw');
 
 		await reloadExternallyChangedTabs(['/vault/secret.md']);
 
-		expect(editorStore.tabs[0].content).toBe('decrypted:new-encrypted');
-		expect(editorStore.tabs[0].savedContent).toBe('decrypted:new-encrypted');
+		expect(editorStore.tabs[0].content).toBe('transformed:new-raw');
+		expect(editorStore.tabs[0].savedContent).toBe('transformed:new-raw');
 	});
 
 	it('reloads multiple tabs in a single call', async () => {

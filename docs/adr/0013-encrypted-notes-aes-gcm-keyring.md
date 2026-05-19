@@ -2,8 +2,10 @@
 type: ADR
 id: "0013"
 title: "Encrypted notes with AES-256-GCM and macOS Keychain + Touch ID"
-status: active
+status: superseded
 date: 2026-04-22
+superseded-date: 2026-05-19
+superseded-reason: "Feature removed from the app. The macOS-only Keychain + Touch ID dependencies were dropped to keep the codebase cross-platform; users who want at-rest encryption rely on full-disk encryption or filesystem-level tools instead."
 ---
 
 ## Context

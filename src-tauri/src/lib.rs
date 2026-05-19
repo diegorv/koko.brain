@@ -1,7 +1,6 @@
 pub mod commands;
 pub mod db;
 pub mod search;
-pub mod security;
 pub mod semantic;
 pub mod utils;
 pub mod vault;
@@ -145,14 +144,6 @@ pub fn run() {
             commands::terminal::resize_terminal,
             commands::terminal::kill_terminal,
             commands::terminal::kill_all_terminals,
-            commands::crypto::encrypt_content,
-            commands::crypto::decrypt_content,
-            commands::crypto::initialize_encryption,
-            commands::crypto::has_encryption_key,
-            commands::crypto::ensure_encryption_key,
-            commands::crypto::get_recovery_key,
-            commands::crypto::restore_from_recovery_key,
-            commands::crypto::lock_encryption,
             commands::search_index::build_search_index,
             commands::search_index::search_fts,
             commands::search_index::update_search_index_file,

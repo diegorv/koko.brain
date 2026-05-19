@@ -35,7 +35,6 @@ After that, explore any topic that interests you.
 | 13 | [QueryJS](13-queryjs.md) | JavaScript API for programmatic vault queries |
 | 14 | [Graph View](14-graph-view.md) | Interactive knowledge graph of note connections |
 | 15 | [File History](15-file-history.md) | Snapshots, diff viewer, retention policy, restore |
-| 16 | [Encryption & Security](16-encryption-and-security.md) | AES-256-GCM encryption, Keychain, Touch ID |
 | 17 | [Terminal](17-terminal.md) | Integrated terminal with multiple sessions |
 | 18 | [Trash](18-trash.md) | Built-in recycle bin, restore, permanent deletion |
 | 19 | [Settings](19-settings.md) | Complete reference for all app settings |

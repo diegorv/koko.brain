@@ -44,12 +44,6 @@ sha2 = "0.11"
 similar = "3.1"
 percent-encoding = "2"
 
-# Encrypted Notes
-aes-gcm = "0.10"
-rand = "0.10"
-base64 = "0.22"
-zeroize = "1"
-
 # Semantic Search
 ort = { version = "2.0.0-rc.12", features = ["download-binaries", "ndarray", "half"] }
 half = "2.7"
@@ -67,10 +61,6 @@ url = "2"
 objc2 = "0.6"
 objc2-core-foundation = "0.3"
 objc2-foundation = { version = "0.3", features = ["NSString"] }
-objc2-security = "0.3"
-security-framework = "3"
-objc2-local-authentication = "0.3"
-block2 = "0.6"
 
 [profile.dev]
 # More parallel codegen units = faster compilation (trades runtime perf for build speed)
