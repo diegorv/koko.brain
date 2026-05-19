@@ -226,7 +226,7 @@ describe('parseDeepLinkUri', () => {
 			const result = parseDeepLinkUri('kokobrain://capture?vault=MyVault&content=Hello%20World');
 			expect(result).toEqual({
 				ok: true,
-				action: { type: 'capture', vault: 'MyVault', content: 'Hello World', tags: undefined },
+				action: { type: 'capture', vault: 'MyVault', content: 'Hello World', tags: undefined, title: undefined },
 			});
 		});
 
@@ -250,7 +250,7 @@ describe('parseDeepLinkUri', () => {
 			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=source/raycast');
 			expect(result).toEqual({
 				ok: true,
-				action: { type: 'capture', vault: 'V', content: 'Hello', tags: ['source/raycast'] },
+				action: { type: 'capture', vault: 'V', content: 'Hello', tags: ['source/raycast'], title: undefined },
 			});
 		});
 
@@ -258,8 +258,64 @@ describe('parseDeepLinkUri', () => {
 			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=source/raycast,project/work');
 			expect(result).toEqual({
 				ok: true,
-				action: { type: 'capture', vault: 'V', content: 'Hello', tags: ['source/raycast', 'project/work'] },
+				action: { type: 'capture', vault: 'V', content: 'Hello', tags: ['source/raycast', 'project/work'], title: undefined },
 			});
+		});
+
+		it('parses capture with title', () => {
+			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&title=Page%20Title');
+			expect(result).toEqual({
+				ok: true,
+				action: { type: 'capture', vault: 'V', content: 'Hello', tags: undefined, title: 'Page Title' },
+			});
+		});
+
+		it('parses capture with title alongside tags', () => {
+			const result = parseDeepLinkUri(
+				'kokobrain://capture?vault=V&content=Hello&tags=a,b&title=My%20Note',
+			);
+			expect(result).toEqual({
+				ok: true,
+				action: {
+					type: 'capture',
+					vault: 'V',
+					content: 'Hello',
+					tags: ['a', 'b'],
+					title: 'My Note',
+				},
+			});
+		});
+
+		it('trims whitespace around title', () => {
+			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hi&title=%20%20Spaced%20%20');
+			expect(result.ok).toBe(true);
+			if (result.ok && result.action.type === 'capture') {
+				expect(result.action.title).toBe('Spaced');
+			}
+		});
+
+		it('returns undefined title when title param is empty string', () => {
+			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hi&title=');
+			expect(result.ok).toBe(true);
+			if (result.ok && result.action.type === 'capture') {
+				expect(result.action.title).toBeUndefined();
+			}
+		});
+
+		it('returns undefined title when title param is only whitespace', () => {
+			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hi&title=%20%20%20');
+			expect(result.ok).toBe(true);
+			if (result.ok && result.action.type === 'capture') {
+				expect(result.action.title).toBeUndefined();
+			}
+		});
+
+		it('returns undefined title when title param is absent', () => {
+			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello');
+			expect(result.ok).toBe(true);
+			if (result.ok && result.action.type === 'capture') {
+				expect(result.action.title).toBeUndefined();
+			}
 		});
 
 		it('trims whitespace from tags', () => {

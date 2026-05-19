@@ -125,6 +125,7 @@ export function parseDeepLinkUri(uri: string): ParseResult {
 					vault,
 					content,
 					tags: parseTagsParam(params.get('tags')),
+					title: parseTitleParam(params.get('title')),
 				} satisfies CaptureAction,
 			};
 		}
@@ -140,6 +141,16 @@ export { resolveFilePath } from '$lib/utils/path';
 function parseBooleanParam(value: string | null): boolean | undefined {
 	if (value === null) return undefined;
 	return value === 'true' || value === '1' || value === '';
+}
+
+/**
+ * Parses a title parameter. Trims surrounding whitespace.
+ * Returns undefined if the param is null or trims to an empty string.
+ */
+function parseTitleParam(value: string | null): string | undefined {
+	if (value === null) return undefined;
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : undefined;
 }
 
 /**
