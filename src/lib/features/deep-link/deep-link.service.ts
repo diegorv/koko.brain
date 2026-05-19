@@ -9,6 +9,7 @@ import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { deepLinkStore } from './deep-link.store.svelte';
 import {
 	parseDeepLinkUri,
@@ -198,8 +199,11 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		const fileExists = await exists(fullPath);
 		if (fileExists) {
 			const existing = await readTextFile(fullPath);
+			// markRecentSave: tell the watcher we wrote this file ourselves so
+			// rebuildAllIndexes is skipped 500 ms later (areAllRecentSaves).
+			markRecentSave(fullPath);
 			await writeTextFile(fullPath, content + '\n' + existing);
-			await refreshTree();
+			// Tree structure unchanged (file already existed) — skip refreshTree.
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
 			}
@@ -213,8 +217,9 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		const fileExists = await exists(fullPath);
 		if (fileExists) {
 			const existing = await readTextFile(fullPath);
+			markRecentSave(fullPath);
 			await writeTextFile(fullPath, existing + '\n' + content);
-			await refreshTree();
+			// Tree structure unchanged — skip refreshTree.
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
 			}
@@ -227,8 +232,10 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 	if (action.overwrite) {
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
 		await mkdir(parentDir, { recursive: true });
+		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
-		await refreshTree();
+		// File may be new — refresh in background so callback returns fast.
+		void refreshTree();
 		if (!action.silent) {
 			await openFileInEditor(fullPath);
 		}
@@ -239,8 +246,9 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 	if (action.silent) {
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
 		await mkdir(parentDir, { recursive: true });
+		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
-		await refreshTree();
+		void refreshTree();
 	} else {
 		await openOrCreateNote({
 			filePath: fullPath,
@@ -279,6 +287,7 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 
 	const existing = await readTextFile(filePath);
 
+	markRecentSave(filePath);
 	if (action.prepend) {
 		await writeTextFile(filePath, content + '\n' + existing);
 	} else {
@@ -286,7 +295,8 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 		await writeTextFile(filePath, existing + '\n' + content);
 	}
 
-	await refreshTree();
+	// Daily note exists already (line above bails out if not) — tree structure
+	// is unchanged, so refreshTree would re-scan the full vault for nothing.
 }
 
 /**
@@ -361,8 +371,11 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		fileContent = injectTagsIntoContent(fileContent, action.tags);
 	}
 
+	markRecentSave(filePath);
 	await writeTextFile(filePath, fileContent);
-	await refreshTree();
+	// Capture writes a fresh quick-note path → tree usually gains a node.
+	// Refresh in the background so the deep-link callback returns fast.
+	void refreshTree();
 }
 
 /**
