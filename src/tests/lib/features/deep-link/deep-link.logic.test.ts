@@ -1,10 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
 	parseDeepLinkUri,
+	renderCaptureBody,
 	resolveFilePath,
 	injectTagsIntoContent,
 	injectTitleIntoContent,
 } from '$lib/features/deep-link/deep-link.logic';
+import type {
+	CaptureNoteAction,
+	CaptureClipAction,
+	CaptureLinkAction,
+	CaptureShotAction,
+	CaptureFileAction,
+} from '$lib/features/deep-link/deep-link.types';
 
 describe('parseDeepLinkUri', () => {
 	// ── open action ────────────────────────────────────────────────────
@@ -225,134 +233,382 @@ describe('parseDeepLinkUri', () => {
 		});
 	});
 
-	// ── capture action ────────────────────────────────────────────────
-	describe('capture action', () => {
-		it('parses capture with vault and content', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=MyVault&content=Hello%20World');
-			expect(result).toEqual({
-				ok: true,
-				action: { type: 'capture', vault: 'MyVault', content: 'Hello World', tags: undefined, title: undefined },
+	// ── capture action (v2) ───────────────────────────────────────────
+	describe('capture action (v2)', () => {
+		// ── note kind ─────────────────────────────────────────────────
+		describe('kind=note', () => {
+			it('parses minimal note (text only)', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V&text=Hello',
+				);
+				expect(result).toEqual({
+					ok: true,
+					action: {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Hello',
+						tags: undefined,
+						sourceApp: undefined,
+						sourceTitle: undefined,
+						sourceUrl: undefined,
+						capturedAt: undefined,
+					} satisfies CaptureNoteAction,
+				});
+			});
+
+			it('parses note with full provenance fields and tags', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V' +
+						'&text=remember%20to%20review%20Q3' +
+						'&tags=brain,inbox' +
+						'&source_app=com.google.Chrome' +
+						'&source_title=Some%20Page' +
+						'&source_url=https%3A%2F%2Fexample.com' +
+						'&captured_at=2026-05-19T15%3A30%3A00Z',
+				);
+				expect(result).toEqual({
+					ok: true,
+					action: {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'remember to review Q3',
+						tags: ['brain', 'inbox'],
+						sourceApp: 'com.google.Chrome',
+						sourceTitle: 'Some Page',
+						sourceUrl: 'https://example.com',
+						capturedAt: '2026-05-19T15:30:00Z',
+					} satisfies CaptureNoteAction,
+				});
+			});
+
+			it('handles URL-encoded text with newlines', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V&text=Line%201%0ALine%202',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'note') {
+					expect(result.action.text).toBe('Line 1\nLine 2');
+				}
+			});
+
+			it('returns error when text is missing', () => {
+				const result = parseDeepLinkUri('kokobrain://capture?v=2&kind=note&vault=V');
+				expect(result).toEqual({
+					ok: false,
+					error: 'Missing required parameter: "text" for capture kind "note"',
+				});
+			});
+
+			it('returns error when text is empty string', () => {
+				const result = parseDeepLinkUri('kokobrain://capture?v=2&kind=note&vault=V&text=');
+				expect(result).toEqual({
+					ok: false,
+					error: 'Missing required parameter: "text" for capture kind "note"',
+				});
 			});
 		});
 
-		it('returns error when content is missing', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=MyVault');
-			expect(result).toEqual({
-				ok: false,
-				error: 'Missing required parameter: "content" for action "capture"',
+		// ── clip kind ─────────────────────────────────────────────────
+		describe('kind=clip', () => {
+			it('parses minimal clip (text only)', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=clip&vault=V&text=quoted%20bit',
+				);
+				expect(result).toEqual({
+					ok: true,
+					action: {
+						type: 'capture',
+						vault: 'V',
+						kind: 'clip',
+						text: 'quoted bit',
+						tags: undefined,
+						sourceApp: undefined,
+						sourceTitle: undefined,
+						sourceUrl: undefined,
+						capturedAt: undefined,
+					} satisfies CaptureClipAction,
+				});
+			});
+
+			it('parses clip with source provenance', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=clip&vault=V' +
+						'&text=Whether%20I%20will%20remain%20open-minded' +
+						'&source_title=Four%20Notes' +
+						'&source_url=https%3A%2F%2Fmedium.com%2Fpost',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'clip') {
+					expect(result.action.text).toBe('Whether I will remain open-minded');
+					expect(result.action.sourceTitle).toBe('Four Notes');
+					expect(result.action.sourceUrl).toBe('https://medium.com/post');
+				}
+			});
+
+			it('returns error when text is missing', () => {
+				const result = parseDeepLinkUri('kokobrain://capture?v=2&kind=clip&vault=V');
+				expect(result).toEqual({
+					ok: false,
+					error: 'Missing required parameter: "text" for capture kind "clip"',
+				});
 			});
 		});
 
-		it('handles URL-encoded content with newlines', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Line%201%0ALine%202');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.content).toBe('Line 1\nLine 2');
-			}
-		});
+		// ── link kind ─────────────────────────────────────────────────
+		describe('kind=link', () => {
+			it('parses minimal link (url only)', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=link&vault=V&url=https%3A%2F%2Fexample.com',
+				);
+				expect(result).toEqual({
+					ok: true,
+					action: {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: undefined,
+						tags: undefined,
+						sourceApp: undefined,
+						sourceTitle: undefined,
+						sourceUrl: undefined,
+						capturedAt: undefined,
+					} satisfies CaptureLinkAction,
+				});
+			});
 
-		it('parses capture with single tag', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=source/raycast');
-			expect(result).toEqual({
-				ok: true,
-				action: { type: 'capture', vault: 'V', content: 'Hello', tags: ['source/raycast'], title: undefined },
+			it('parses link with title and tags', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=link&vault=V' +
+						'&url=https%3A%2F%2Fexample.com%2Fpost' +
+						'&title=Post%20Title' +
+						'&tags=brain,reading-list',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'link') {
+					expect(result.action.url).toBe('https://example.com/post');
+					expect(result.action.title).toBe('Post Title');
+					expect(result.action.tags).toEqual(['brain', 'reading-list']);
+				}
+			});
+
+			it('trims whitespace around title', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=link&vault=V&url=https%3A%2F%2Fexample.com&title=%20%20Spaced%20%20',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'link') {
+					expect(result.action.title).toBe('Spaced');
+				}
+			});
+
+			it('returns undefined title when title is whitespace only', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=link&vault=V&url=https%3A%2F%2Fexample.com&title=%20%20%20',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'link') {
+					expect(result.action.title).toBeUndefined();
+				}
+			});
+
+			it('returns error when url is missing', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=link&vault=V&title=No%20URL',
+				);
+				expect(result).toEqual({
+					ok: false,
+					error: 'Missing required parameter: "url" for capture kind "link"',
+				});
 			});
 		});
 
-		it('parses capture with multiple comma-separated tags', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=source/raycast,project/work');
-			expect(result).toEqual({
-				ok: true,
-				action: { type: 'capture', vault: 'V', content: 'Hello', tags: ['source/raycast', 'project/work'], title: undefined },
+		// ── shot kind ─────────────────────────────────────────────────
+		describe('kind=shot', () => {
+			it('parses shot with path', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=shot&vault=V&path=%2FUsers%2Fme%2FDesktop%2Fshot.png',
+				);
+				expect(result).toEqual({
+					ok: true,
+					action: {
+						type: 'capture',
+						vault: 'V',
+						kind: 'shot',
+						path: '/Users/me/Desktop/shot.png',
+						tags: undefined,
+						sourceApp: undefined,
+						sourceTitle: undefined,
+						sourceUrl: undefined,
+						capturedAt: undefined,
+					} satisfies CaptureShotAction,
+				});
+			});
+
+			it('parses shot with source provenance', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=shot&vault=V' +
+						'&path=%2Ftmp%2Fshot.png' +
+						'&source_app=com.google.Chrome' +
+						'&source_url=https%3A%2F%2Fgithub.com',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'shot') {
+					expect(result.action.path).toBe('/tmp/shot.png');
+					expect(result.action.sourceApp).toBe('com.google.Chrome');
+					expect(result.action.sourceUrl).toBe('https://github.com');
+				}
+			});
+
+			it('returns error when path is missing', () => {
+				const result = parseDeepLinkUri('kokobrain://capture?v=2&kind=shot&vault=V');
+				expect(result).toEqual({
+					ok: false,
+					error: 'Missing required parameter: "path" for capture kind "shot"',
+				});
 			});
 		});
 
-		it('parses capture with title', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&title=Page%20Title');
-			expect(result).toEqual({
-				ok: true,
-				action: { type: 'capture', vault: 'V', content: 'Hello', tags: undefined, title: 'Page Title' },
+		// ── file kind ─────────────────────────────────────────────────
+		describe('kind=file', () => {
+			it('parses file with path', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=file&vault=V&path=%2FUsers%2Fme%2Ffile.pdf',
+				);
+				expect(result).toEqual({
+					ok: true,
+					action: {
+						type: 'capture',
+						vault: 'V',
+						kind: 'file',
+						path: '/Users/me/file.pdf',
+						tags: undefined,
+						sourceApp: undefined,
+						sourceTitle: undefined,
+						sourceUrl: undefined,
+						capturedAt: undefined,
+					} satisfies CaptureFileAction,
+				});
+			});
+
+			it('returns error when path is missing', () => {
+				const result = parseDeepLinkUri('kokobrain://capture?v=2&kind=file&vault=V');
+				expect(result).toEqual({
+					ok: false,
+					error: 'Missing required parameter: "path" for capture kind "file"',
+				});
 			});
 		});
 
-		it('parses capture with title alongside tags', () => {
-			const result = parseDeepLinkUri(
-				'kokobrain://capture?vault=V&content=Hello&tags=a,b&title=My%20Note',
-			);
-			expect(result).toEqual({
-				ok: true,
-				action: {
-					type: 'capture',
-					vault: 'V',
-					content: 'Hello',
-					tags: ['a', 'b'],
-					title: 'My Note',
-				},
+		// ── schema / kind validation ──────────────────────────────────
+		describe('schema validation', () => {
+			it('returns error when v param is missing', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?vault=V&kind=note&text=hi',
+				);
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.error).toContain('Unsupported capture schema');
+					expect(result.error).toContain('(missing)');
+				}
+			});
+
+			it('returns error when v=1 (legacy v1 schema is no longer supported)', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=1&vault=V&content=Old%20Content',
+				);
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.error).toContain('Unsupported capture schema');
+					expect(result.error).toContain('"1"');
+				}
+			});
+
+			it('returns error when v param is unknown', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=3&vault=V&kind=note&text=hi',
+				);
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.error).toContain('Unsupported capture schema');
+				}
+			});
+
+			it('returns error when legacy v1 URI (no v, has content) is sent', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?vault=V&content=Legacy',
+				);
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.error).toContain('Unsupported capture schema');
+				}
+			});
+
+			it('returns error when kind param is missing', () => {
+				const result = parseDeepLinkUri('kokobrain://capture?v=2&vault=V&text=hi');
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.error).toContain('Missing or invalid "kind"');
+				}
+			});
+
+			it('returns error when kind param is unknown', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=audio&vault=V&text=hi',
+				);
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.error).toContain('Missing or invalid "kind"');
+				}
 			});
 		});
 
-		it('trims whitespace around title', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hi&title=%20%20Spaced%20%20');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.title).toBe('Spaced');
-			}
-		});
+		// ── common-field parsing details ─────────────────────────────
+		describe('common-field parsing', () => {
+			it('trims whitespace from tags', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V&text=Hi&tags=%20tag1%20,%20tag2%20',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'note') {
+					expect(result.action.tags).toEqual(['tag1', 'tag2']);
+				}
+			});
 
-		it('returns undefined title when title param is empty string', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hi&title=');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.title).toBeUndefined();
-			}
-		});
+			it('ignores empty tags from trailing comma', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V&text=Hi&tags=tag1,',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'note') {
+					expect(result.action.tags).toEqual(['tag1']);
+				}
+			});
 
-		it('returns undefined title when title param is only whitespace', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hi&title=%20%20%20');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.title).toBeUndefined();
-			}
-		});
+			it('returns undefined tags when tags param is empty', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V&text=Hi&tags=',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'note') {
+					expect(result.action.tags).toBeUndefined();
+				}
+			});
 
-		it('returns undefined title when title param is absent', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.title).toBeUndefined();
-			}
-		});
-
-		it('trims whitespace from tags', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=%20tag1%20,%20tag2%20');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.tags).toEqual(['tag1', 'tag2']);
-			}
-		});
-
-		it('ignores empty tags from trailing comma', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=tag1,');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.tags).toEqual(['tag1']);
-			}
-		});
-
-		it('returns undefined tags when tags param is empty string', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello&tags=');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.tags).toBeUndefined();
-			}
-		});
-
-		it('returns undefined tags when tags param is absent', () => {
-			const result = parseDeepLinkUri('kokobrain://capture?vault=V&content=Hello');
-			expect(result.ok).toBe(true);
-			if (result.ok && result.action.type === 'capture') {
-				expect(result.action.tags).toBeUndefined();
-			}
+			it('returns undefined source_* fields when empty', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=note&vault=V&text=Hi&source_app=&source_title=&source_url=&captured_at=',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'note') {
+					expect(result.action.sourceApp).toBeUndefined();
+					expect(result.action.sourceTitle).toBeUndefined();
+					expect(result.action.sourceUrl).toBeUndefined();
+					expect(result.action.capturedAt).toBeUndefined();
+				}
+			});
 		});
 	});
 
@@ -397,6 +653,163 @@ describe('parseDeepLinkUri', () => {
 			if (!result.ok) {
 				expect(result.error).toContain('Missing required parameter: "vault"');
 			}
+		});
+	});
+});
+
+describe('renderCaptureBody', () => {
+	// ── note kind ────────────────────────────────────────────────────
+	describe('kind=note', () => {
+		it('returns text verbatim when no source URL is present', () => {
+			const action: CaptureNoteAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'note',
+				text: 'Plain note body',
+			};
+			expect(renderCaptureBody(action)).toBe('Plain note body');
+		});
+
+		it('appends source footer with URL label when sourceUrl is present without title', () => {
+			const action: CaptureNoteAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'note',
+				text: 'My note',
+				sourceUrl: 'https://example.com',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'My note\n\n> Source: [https://example.com](https://example.com)',
+			);
+		});
+
+		it('appends source footer with title label when sourceTitle and sourceUrl are both present', () => {
+			const action: CaptureNoteAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'note',
+				text: 'My note',
+				sourceTitle: 'Some Page',
+				sourceUrl: 'https://example.com',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'My note\n\n> Source: [Some Page](https://example.com)',
+			);
+		});
+
+		it('omits footer when sourceTitle is present but sourceUrl is not', () => {
+			const action: CaptureNoteAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'note',
+				text: 'My note',
+				sourceTitle: 'Some Page',
+			};
+			expect(renderCaptureBody(action)).toBe('My note');
+		});
+	});
+
+	// ── clip kind ────────────────────────────────────────────────────
+	describe('kind=clip', () => {
+		it('returns text verbatim when no source URL is present', () => {
+			const action: CaptureClipAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'clip',
+				text: 'Highlighted text',
+			};
+			expect(renderCaptureBody(action)).toBe('Highlighted text');
+		});
+
+		it('appends source footer with title label when source is fully provided', () => {
+			const action: CaptureClipAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'clip',
+				text: 'Whether I will remain open-minded...',
+				sourceTitle: 'Four Notes to My Future Self',
+				sourceUrl: 'https://medium.com/post',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'Whether I will remain open-minded...\n\n> Source: [Four Notes to My Future Self](https://medium.com/post)',
+			);
+		});
+	});
+
+	// ── link kind ────────────────────────────────────────────────────
+	describe('kind=link', () => {
+		it('renders markdown link using title as label', () => {
+			const action: CaptureLinkAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'link',
+				url: 'https://example.com',
+				title: 'Example',
+			};
+			expect(renderCaptureBody(action)).toBe('[Example](https://example.com)');
+		});
+
+		it('falls back to URL as label when title is absent', () => {
+			const action: CaptureLinkAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'link',
+				url: 'https://example.com',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'[https://example.com](https://example.com)',
+			);
+		});
+
+		it('omits source footer when sourceUrl equals the canonical url', () => {
+			const action: CaptureLinkAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'link',
+				url: 'https://example.com',
+				title: 'Example',
+				sourceUrl: 'https://example.com',
+				sourceTitle: 'Browser Title',
+			};
+			expect(renderCaptureBody(action)).toBe('[Example](https://example.com)');
+		});
+
+		it('appends source footer when sourceUrl differs from the canonical url', () => {
+			const action: CaptureLinkAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'link',
+				url: 'https://canonical.example.com',
+				title: 'Canonical',
+				sourceUrl: 'https://share.example.com/redirect',
+				sourceTitle: 'Share Page',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'[Canonical](https://canonical.example.com)\n\n> Source: [Share Page](https://share.example.com/redirect)',
+			);
+		});
+	});
+
+	// ── shot / file kinds ────────────────────────────────────────────
+	describe('kind=shot / kind=file', () => {
+		it('returns empty string for kind=shot (service short-circuits with toast)', () => {
+			const action: CaptureShotAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'shot',
+				path: '/Users/me/Desktop/shot.png',
+			};
+			expect(renderCaptureBody(action)).toBe('');
+		});
+
+		it('returns empty string for kind=file (service short-circuits with toast)', () => {
+			const action: CaptureFileAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'file',
+				path: '/Users/me/file.pdf',
+			};
+			expect(renderCaptureBody(action)).toBe('');
 		});
 	});
 });

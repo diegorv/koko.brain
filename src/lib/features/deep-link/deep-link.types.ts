@@ -58,16 +58,97 @@ export interface DailyAction extends BaseAction {
 	clipboard?: boolean;
 }
 
-/** kokobrain://capture?vault=X&content=Y&tags=a,b&title=Z — quick capture a note using quick-note settings */
-export interface CaptureAction extends BaseAction {
+/**
+ * Capture kinds in the v2 capture schema.
+ *
+ * - `note` — free-form note text (no source guaranteed).
+ * - `clip` — highlighted text from a source page (expects `source_url`).
+ * - `link` — bookmark of a canonical URL with optional page title.
+ * - `shot` — screenshot stored at a local file path. Parsed but not yet rendered.
+ * - `file` — arbitrary local file path attached to the capture. Parsed but not yet rendered.
+ */
+export type CaptureKind = 'note' | 'clip' | 'link' | 'shot' | 'file';
+
+/**
+ * Fields shared by every v2 capture variant. The parser maps snake_case URI
+ * params (`source_app`, `source_title`, `source_url`, `captured_at`) to the
+ * camelCase fields used in the typed action so consumers stay aligned with the
+ * rest of the codebase (see `NoteEntryV2`, `FileTreeNode.path`, etc.).
+ */
+interface CaptureCommon extends BaseAction {
 	type: 'capture';
-	/** Content to capture */
-	content: string;
 	/** Optional tags to inject into the note's YAML frontmatter (comma-separated in URI) */
 	tags?: string[];
-	/** Optional title to inject into the note's YAML frontmatter as a `title:` property */
+	/** Bundle id of the foreground app at capture time (e.g. `com.google.Chrome`) */
+	sourceApp?: string;
+	/** Title of the source window/page at capture time */
+	sourceTitle?: string;
+	/** URL of the source page at capture time */
+	sourceUrl?: string;
+	/** ISO 8601 timestamp of when the capture happened */
+	capturedAt?: string;
+}
+
+/** kokobrain://capture?v=2&kind=note&vault=X&text=Y — capture a free-form note */
+export interface CaptureNoteAction extends CaptureCommon {
+	kind: 'note';
+	/** Note body text */
+	text: string;
+}
+
+/** kokobrain://capture?v=2&kind=clip&vault=X&text=Y&source_url=Z — capture highlighted text from a page */
+export interface CaptureClipAction extends CaptureCommon {
+	kind: 'clip';
+	/** Clipped text */
+	text: string;
+}
+
+/** kokobrain://capture?v=2&kind=link&vault=X&url=Y&title=Z — capture a canonical link */
+export interface CaptureLinkAction extends CaptureCommon {
+	kind: 'link';
+	/** Canonical URL of the link */
+	url: string;
+	/** Optional page title; injected into YAML frontmatter as `title:` when present */
 	title?: string;
 }
+
+/**
+ * kokobrain://capture?v=2&kind=shot&vault=X&path=/abs/path.png — capture a screenshot file path.
+ *
+ * Parser accepts this kind so a future change only needs to flip the service-side
+ * "not yet supported" toast to a real renderer. No URI is emitted with this kind today.
+ */
+export interface CaptureShotAction extends CaptureCommon {
+	kind: 'shot';
+	/** Absolute local path to the image file */
+	path: string;
+}
+
+/**
+ * kokobrain://capture?v=2&kind=file&vault=X&path=/abs/path — capture an arbitrary local file path.
+ *
+ * Parser accepts this kind for forward compatibility. The service currently shows a
+ * "not yet supported" toast for this kind.
+ */
+export interface CaptureFileAction extends CaptureCommon {
+	kind: 'file';
+	/** Absolute local path to the file */
+	path: string;
+}
+
+/**
+ * Discriminated union of v2 capture actions, branched by `kind`.
+ *
+ * The v1 schema (`?content=...&tags=...&title=...` without `v` or `kind`) was
+ * removed in favor of this typed schema. Old quick-capture builds that still
+ * emit v1 URIs will fail with a `Missing required parameter` toast.
+ */
+export type CaptureAction =
+	| CaptureNoteAction
+	| CaptureClipAction
+	| CaptureLinkAction
+	| CaptureShotAction
+	| CaptureFileAction;
 
 /** Discriminated union of all deep-link actions */
 export type DeepLinkAction = OpenAction | NewAction | SearchAction | DailyAction | CaptureAction;
