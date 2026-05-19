@@ -55,6 +55,10 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(() => Promise.resolve()),
 }));
 
+vi.mock('$lib/core/editor/editor.hooks', () => ({
+	markRecentSave: vi.fn(),
+}));
+
 vi.mock('$lib/utils/template', () => ({
 	processTemplate: vi.fn((_template: string, _title: string, _vars?: Record<string, string>) => 'processed-template'),
 }));
@@ -67,6 +71,7 @@ import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
@@ -560,7 +565,10 @@ describe('deep-link.service', () => {
 					expect.stringMatching(/\.md$/),
 					'Today journal\nClipped text',
 				);
-				expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+				// File already existed (the append branch is guarded by exists), so
+				// tree structure is unchanged and refreshTree must NOT be called —
+				// it would trigger a full scan_vault for nothing.
+				expect(vi.mocked(refreshTree)).not.toHaveBeenCalled();
 			});
 
 			it('prepends content to existing daily note', async () => {
@@ -1095,6 +1103,85 @@ describe('deep-link.service', () => {
 						expect.stringMatching(/\.md$/),
 						'[meeting notes.pdf](file:///var/koko/blobs/01HFILE.pdf)',
 					);
+				});
+			});
+
+			// ── watcher-skip invariant ────────────────────────────────────
+			describe('markRecentSave', () => {
+				it('marks the captured note path before writeTextFile so the watcher skips rebuild', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'capture body',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(markRecentSave)).toHaveBeenCalledTimes(1);
+					const [markedPath] = vi.mocked(markRecentSave).mock.calls[0];
+					const [writtenPath] = vi.mocked(writeTextFile).mock.calls[0];
+					expect(markedPath).toBe(writtenPath);
+					// Ordering: markRecentSave must fire BEFORE writeTextFile so the
+					// watcher's areAllRecentSaves check sees the entry when the
+					// debounced rebuildAllIndexes runs ~500 ms later.
+					const markOrder = vi.mocked(markRecentSave).mock.invocationCallOrder[0];
+					const writeOrder = vi.mocked(writeTextFile).mock.invocationCallOrder[0];
+					expect(markOrder).toBeLessThan(writeOrder);
+				});
+
+				it('marks the daily note path before appending', async () => {
+					vi.mocked(exists).mockResolvedValue(true);
+					vi.mocked(readTextFile).mockResolvedValue('Existing');
+
+					const action: DeepLinkAction = {
+						type: 'daily',
+						vault: 'V',
+						content: 'Added',
+						append: true,
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(markRecentSave)).toHaveBeenCalledTimes(1);
+					const [markedPath] = vi.mocked(markRecentSave).mock.calls[0];
+					expect(markedPath).toMatch(/\.md$/);
+				});
+
+				it('marks the path on new-action silent create', async () => {
+					const action: DeepLinkAction = {
+						type: 'new',
+						vault: 'V',
+						name: 'silent.md',
+						content: 'Silent',
+						silent: true,
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(markRecentSave)).toHaveBeenCalledWith(
+						'/Users/me/TestVault/silent.md',
+					);
+				});
+
+				it('marks the path on new-action append branch', async () => {
+					vi.mocked(exists).mockResolvedValue(true);
+					vi.mocked(readTextFile).mockResolvedValue('Old');
+
+					const action: DeepLinkAction = {
+						type: 'new',
+						vault: 'V',
+						name: 'append.md',
+						content: 'New',
+						append: true,
+						silent: true,
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(markRecentSave)).toHaveBeenCalledWith(
+						'/Users/me/TestVault/append.md',
+					);
+					// File pre-existed → tree unchanged → no scan_vault.
+					expect(vi.mocked(refreshTree)).not.toHaveBeenCalled();
 				});
 			});
 		});
