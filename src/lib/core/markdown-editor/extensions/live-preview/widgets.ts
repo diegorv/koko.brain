@@ -93,7 +93,35 @@ export class UnorderedListMarkerWidget extends WidgetType {
 	}
 }
 
+/**
+ * Converts a `file://` URL to a filesystem path the Tauri asset protocol can
+ * resolve. Returns null when the URL is malformed or carries a non-local host
+ * (SMB / UNC paths like `file://server/share/x.png` are rejected outright; the
+ * asset-protocol scope would block them anyway, but we don't want to forward
+ * those to `convertFileSrc` in the first place).
+ *
+ * Handles Windows drive paths (`file:///C:/foo` → `C:/foo`) and percent-decodes
+ * the path so spaces and other reserved characters survive the round-trip
+ * (capture deep-links emit `file:///Users/.../CleanShot%202026...png` style URLs).
+ */
+function fileUrlToFsPath(fileUrl: string): string | null {
+	let parsed: URL;
+	try {
+		parsed = new URL(fileUrl);
+	} catch {
+		return null;
+	}
+	if (parsed.protocol !== 'file:') return null;
+	if (parsed.host && parsed.host !== 'localhost') return null;
+	let path = decodeURIComponent(parsed.pathname);
+	// Windows: `/C:/foo` → `C:/foo`
+	if (/^\/[A-Za-z]:\//.test(path)) path = path.slice(1);
+	return path;
+}
+
 export class ImageWidget extends WidgetType {
+	private mounted = true;
+
 	constructor(
 		readonly url: string,
 		readonly alt: string,
@@ -104,12 +132,10 @@ export class ImageWidget extends WidgetType {
 	}
 
 	toDOM() {
+		this.mounted = true;
 		const wrapper = document.createElement('div');
 		wrapper.className = 'cm-lp-image-wrapper';
 		const img = document.createElement('img');
-		if (isSafeUrl(this.url)) {
-			img.src = this.url;
-		}
 		img.alt = this.alt;
 		img.className = 'cm-lp-image';
 		if (this.width) {
@@ -119,7 +145,36 @@ export class ImageWidget extends WidgetType {
 			img.style.height = `${this.height}px`;
 		}
 		wrapper.appendChild(img);
+
+		if (this.url.toLowerCase().startsWith('file:')) {
+			// `file://` URLs cannot be loaded directly by the webview. Route through
+			// `convertFileSrc` to produce an asset-protocol URL; the path must fall
+			// inside the asset-protocol scope declared in `tauri.conf.json`, so
+			// access is OS-level gated (not by `isSafeUrl`).
+			this.applyFileSrc(img, wrapper);
+		} else if (isSafeUrl(this.url)) {
+			img.src = this.url;
+		}
+
 		return wrapper;
+	}
+
+	destroy() {
+		this.mounted = false;
+	}
+
+	private applyFileSrc(img: HTMLImageElement, wrapper: HTMLElement): void {
+		const fsPath = fileUrlToFsPath(this.url);
+		if (!fsPath) return;
+		import('@tauri-apps/api/core')
+			.then(({ convertFileSrc }) => {
+				if (!this.mounted) return;
+				img.src = convertFileSrc(fsPath);
+			})
+			.catch(() => {
+				if (!this.mounted) return;
+				wrapper.classList.add('cm-lp-image-missing');
+			});
 	}
 
 	eq(other: ImageWidget) {

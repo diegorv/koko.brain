@@ -153,6 +153,20 @@ The only external network calls in the entire codebase are:
 
 A [Privacy Check](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml) workflow runs on every push and pull request, scanning all `.ts` and `.rs` source files for external network calls. Any new external call that is not explicitly approved will fail the build.
 
+## Embedded Local Files
+
+Markdown images that point at a local file with `file://` (e.g. `![shot](file:///Users/you/Desktop/x.png)`) only render when the path falls inside one of the directories declared in `tauri.conf.json` under `app.security.assetProtocol.scope`:
+
+- `~/Documents/**`
+- `~/MyFiles/**`
+- `~/kokobrain-vault/**`
+- `~/Desktop/**`
+- `~/Pictures/**`
+- `~/Downloads/**`
+- `~/Library/Caches/com.diegorv.kokobrain/**`
+
+Paths outside this list are blocked by Tauri's asset-protocol scope at fetch time and silently fail to load. `file://host/...` style URLs (SMB / UNC) are rejected before reaching the asset handler. Editing this scope is a security-sensitive change — keep it as narrow as the capture flow needs.
+
 ## Supply Chain Security
 
 After the [axios npm supply chain attack (March 2026)](https://en.wikipedia.org/wiki/Npm#Security), where compromised maintainer tokens were used to publish malicious package versions that existed for only hours before removal, we added a multi-layered defense to prevent this class of attack:
