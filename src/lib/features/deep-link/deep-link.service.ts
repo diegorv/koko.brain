@@ -341,6 +341,16 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 			// YAML `title:` field on link captures.
 			const linkTitle = action.kind === 'link' ? action.title : undefined;
 			vars.title = linkTitle ?? fileTitle;
+			// v2 provenance: expose every common + link-specific field. Default
+			// missing fields to '' so `<% sourceUrl %>` etc. render as empty
+			// instead of falling through to the literal-name return path in
+			// template.ts:204.
+			vars.kind = action.kind;
+			vars.sourceApp = action.sourceApp ?? '';
+			vars.sourceTitle = action.sourceTitle ?? '';
+			vars.sourceUrl = action.sourceUrl ?? '';
+			vars.capturedAt = action.capturedAt ?? '';
+			vars.url = action.kind === 'link' ? action.url : '';
 			const processed = processTemplate(template, fileTitle, vars);
 			fileContent = processed + '\n' + body;
 		} catch {
