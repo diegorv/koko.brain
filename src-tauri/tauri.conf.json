@@ -30,7 +30,11 @@
         "scope": [
           "$DOCUMENT/**",
           "$HOME/MyFiles/**",
-          "$HOME/kokobrain-vault/**"
+          "$HOME/kokobrain-vault/**",
+          "$DESKTOP/**",
+          "$PICTURE/**",
+          "$DOWNLOAD/**",
+          "$HOME/Library/Caches/com.diegorv.kokobrain/**"
         ]
       }
     }

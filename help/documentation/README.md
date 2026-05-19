@@ -44,6 +44,20 @@ After that, explore any topic that interests you.
 | 23 | [Deep Links](23-deep-links.md) | Open notes and trigger actions from outside the app via `kokobrain://` URLs |
 | 24 | [Meta-Bind](24-meta-bind.md) | Interactive inline inputs and action buttons that read/write frontmatter |
 
+## Embedded Local Files (`file://` images)
+
+Markdown images that reference a local file via `file://` (e.g. `![shot](file:///Users/you/Desktop/x.png)`) only render when the path falls inside one of these directories:
+
+- `~/Documents/**`
+- `~/MyFiles/**`
+- `~/kokobrain-vault/**`
+- `~/Desktop/**`
+- `~/Pictures/**`
+- `~/Downloads/**`
+- `~/Library/Caches/com.diegorv.kokobrain/**`
+
+Files outside this list (e.g. `~/.ssh`, `/etc`, `~/Library/Keychains`) are blocked by the Tauri asset-protocol scope and simply do not load. `file://host/...` style URLs (SMB / UNC) are rejected outright.
+
 ## Conventions Used in This Guide
 
 - **`Cmd+P`** — Press these keys simultaneously (macOS Command key + P).
