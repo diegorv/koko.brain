@@ -124,25 +124,102 @@ If neither `append` nor `prepend` is set, the daily note is opened without any c
 
 ---
 
-### `capture` — Create a Quick Note with Tags and Title
+### `capture` — Typed Quick Capture (v2 schema)
 
-Creates a new quick-capture note and injects tags and/or a title into its frontmatter.
+Creates a new quick-capture note from a typed payload. The brain owns the markdown rendering, so emitters only ship structured fields (text vs link vs clip) and let Kokobrain produce the body.
 
 ```
-kokobrain://capture?vault=MyVault&content=Important+idea&tags=inbox,ideas
-kokobrain://capture?vault=MyVault&content=From+Hacker+News&title=Designing+Data-Intensive+Applications&tags=reading-list
+kokobrain://capture?v=2&kind=note&vault=MyVault&text=Important+idea&tags=inbox,ideas
+kokobrain://capture?v=2&kind=clip&vault=MyVault&text=Whether+I+will+remain+open-minded&source_title=Four+Notes&source_url=https%3A%2F%2Fmedium.com%2Fpost
+kokobrain://capture?v=2&kind=link&vault=MyVault&url=https%3A%2F%2Fexample.com%2Fpost&title=Post+Title&tags=reading-list
 ```
+
+#### Required envelope params
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `vault` | Yes | Vault name |
-| `content` | Yes | The text content for the note. |
-| `tags` | No | Comma-separated list of tags to add to the note's frontmatter. Merged with any existing tags (no duplicates). |
-| `title` | No | Title to inject into the note's frontmatter as `title:`. Also exposed to your Quick Note template as `<% title %>`. Whitespace-only values are ignored. |
+| `v` | Yes | Schema version. Must be `2`. URIs without `v=2` are rejected. |
+| `kind` | Yes | One of `note`, `clip`, `link`, `shot`, `file`. |
+| `vault` | Yes | Vault name. |
 
-The note is created in the quick-note folder (configured in Settings → Quick Note).
+#### Common optional params
 
-**About `title`:** When provided, the value is written to the YAML `title:` field of the new note (replacing any value the template set). It is also available inside your Quick Note template as `<% title %>`. If the deep link does not carry a `title`, `<% title %>` falls back to the filename-derived title, so templates that reference the placeholder still render correctly. The note's filename on disk is always derived from `Settings → Quick Note → Filename Format` — `title` does not influence the filename in this release.
+These apply to every kind and travel as their own query params (no URL-encoded blobs).
+
+| Parameter | Description |
+|-----------|-------------|
+| `tags` | Comma-separated list of tags injected into the note's YAML `tags:` frontmatter. Merged with template-supplied tags (deduplicated). |
+| `source_app` | Bundle id of the foreground app at capture time (e.g. `com.google.Chrome`). Currently stored as provenance; not rendered into the body. |
+| `source_title` | Title of the source window or page at capture time. Used as the label of the `> Source:` footer when present. |
+| `source_url` | URL of the source page at capture time. When present (and different from `url` for the `link` kind), a `> Source: [<source_title or source_url>](<source_url>)` footer is appended to the body. |
+| `captured_at` | ISO 8601 timestamp of when the capture happened. Stored as provenance; not rendered into the body. |
+
+#### Per-kind params and rendering
+
+##### `kind=note` — Free-form note
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `text` | Yes | The note body. |
+
+Body = `text` verbatim. If `source_url` is present, the source footer is appended:
+
+```
+<text>
+
+> Source: [<source_title or source_url>](<source_url>)
+```
+
+##### `kind=clip` — Highlighted text from a source
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `text` | Yes | The highlighted text. |
+
+Body = `text` verbatim, plus the source footer when `source_url` is present. Same shape as `note`; the kind exists to express intent ("this came from a page I was reading") so future renderers can style it differently.
+
+##### `kind=link` — Canonical link
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `url` | Yes | Canonical URL of the link. |
+| `title` | No | Optional page title. When present, it becomes the markdown link label, is injected into the YAML `title:` frontmatter, and is exposed to your Quick Note template as `<% title %>`. |
+
+Body = `[<title or url>](<url>)`. When `source_url` is present AND different from `url`, the source footer is appended:
+
+```
+[<title or url>](<url>)
+
+> Source: [<source_title or source_url>](<source_url>)
+```
+
+A `source_url` that equals the canonical `url` is treated as redundant and the footer is suppressed.
+
+##### `kind=shot` / `kind=file` — Local file references (not yet supported)
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `path` | Yes | Absolute local path to the file (image for `shot`, anything for `file`). |
+
+The parser accepts these kinds for forward compatibility. The service currently shows a `Capture kind "shot" not yet supported` (or `"file"`) toast and does not write a file. A future change will wire the renderer; the emitter side can already ship URIs with these kinds against this brain version without breaking anything else.
+
+#### Tags and title injection
+
+- `tags` always run through `injectTagsIntoContent`. If a template sets a `tags:` list, the deep-link tags are merged (no duplicates). If the template's `tags:` is a scalar, it is replaced with a list containing the deep-link tags.
+- `title` is injected as YAML `title:` ONLY for `kind=link`. For `note` and `clip`, the text itself is the title; no automatic `title:` is added. If you want a `title:` on a note/clip, set it via a template.
+
+#### Template integration
+
+The note is created in the quick-note folder (configured in `Settings → Quick Note`). When `Settings → Quick Note → Template Path` is set, the template is read and the following variables are exposed:
+
+- `<% content %>` — the rendered body (the same markdown the brain writes after `renderCaptureBody`).
+- `<% title %>` — the deep-link `title` (link kind only) or, when absent, the filename-derived title. Templates that reference `<% title %>` always resolve.
+
+The template's output is then prepended to the rendered body. After that, `title` (link kind) and `tags` are injected into frontmatter, overwriting the template's `title:` field and merging into its `tags:` list when applicable.
+
+#### Migration note (breaking)
+
+v2 is a breaking change. The v1 schema (`kokobrain://capture?vault=...&content=...&title=...&tags=...` without `v=2` or `kind`) is no longer accepted. Old emitters that have not been updated will see a `Unsupported capture schema: expected "v=2"` toast. Coordinate the brain release with the quick-capture emitter rollout. `koko/clipper` is unaffected because it never used the `capture` action — it emits `kokobrain://new?...` and `kokobrain://daily?...`, both unchanged.
 
 ---
 
@@ -186,14 +263,19 @@ open "kokobrain://open?vault=Work&file=Projects/Q2-roadmap"
 open "kokobrain://daily?vault=Personal&append=true&clipboard=true"
 ```
 
-**Create a silent capture note tagged "inbox":**
+**Capture a free-form note tagged "inbox":**
 ```bash
-open "kokobrain://capture?vault=Personal&content=Remember+to+review+PR&tags=inbox"
+open "kokobrain://capture?v=2&kind=note&vault=Personal&text=Remember+to+review+PR&tags=inbox"
+```
+
+**Capture a highlighted clip with its source page:**
+```bash
+open "kokobrain://capture?v=2&kind=clip&vault=Personal&text=Whether+I+will+remain+open-minded&source_title=Four+Notes&source_url=https%3A%2F%2Fmedium.com%2Fpost&tags=reading-list"
 ```
 
 **Capture a link with a structured title (good for browser-extension or quick-capture-style integrations):**
 ```bash
-open "kokobrain://capture?vault=Personal&content=%5BHacker+News%5D(https%3A%2F%2Fnews.ycombinator.com)&title=Hacker+News&tags=reading-list"
+open "kokobrain://capture?v=2&kind=link&vault=Personal&url=https%3A%2F%2Fnews.ycombinator.com&title=Hacker+News&tags=reading-list"
 ```
 
 **Trigger a search from Raycast:**
