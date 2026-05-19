@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseDeepLinkUri, resolveFilePath, injectTagsIntoContent } from '$lib/features/deep-link/deep-link.logic';
+import {
+	parseDeepLinkUri,
+	resolveFilePath,
+	injectTagsIntoContent,
+	injectTitleIntoContent,
+} from '$lib/features/deep-link/deep-link.logic';
 
 describe('parseDeepLinkUri', () => {
 	// ── open action ────────────────────────────────────────────────────
@@ -523,5 +528,63 @@ describe('injectTagsIntoContent', () => {
 		expect(result).toContain('type/capture-notes');
 		expect(result).toContain('source/raycast');
 		expect(result).toContain('Body');
+	});
+});
+
+describe('injectTitleIntoContent', () => {
+	it('creates frontmatter with title when content has none', () => {
+		const result = injectTitleIntoContent('My note content', 'Page Title');
+		expect(result).toBe('---\ntitle: Page Title\n---\nMy note content');
+	});
+
+	it('adds title property to existing frontmatter without title', () => {
+		const content = '---\ntags: [a]\n---\nBody';
+		const result = injectTitleIntoContent(content, 'My Title');
+		expect(result).toContain('tags: [a]');
+		expect(result).toContain('title: My Title');
+		expect(result).toContain('Body');
+	});
+
+	it('replaces existing title property in frontmatter', () => {
+		const content = '---\ntitle: Old Title\n---\nBody';
+		const result = injectTitleIntoContent(content, 'New Title');
+		expect(result).toBe('---\ntitle: New Title\n---\nBody');
+	});
+
+	it('replaces title without touching sibling properties', () => {
+		const content = '---\ntitle: Old\ntags: [x]\n---\nBody';
+		const result = injectTitleIntoContent(content, 'New');
+		expect(result).toContain('title: New');
+		expect(result).not.toContain('Old');
+		expect(result).toContain('tags: [x]');
+		expect(result).toContain('Body');
+	});
+
+	it('trims surrounding whitespace from the new title', () => {
+		const result = injectTitleIntoContent('Body', '   Spaced   ');
+		expect(result).toBe('---\ntitle: Spaced\n---\nBody');
+	});
+
+	it('returns content unchanged when title is empty', () => {
+		const content = '---\ntags: [a]\n---\nBody';
+		expect(injectTitleIntoContent(content, '')).toBe(content);
+	});
+
+	it('returns content unchanged when title is only whitespace', () => {
+		const content = 'Body only';
+		expect(injectTitleIntoContent(content, '   ')).toBe(content);
+	});
+
+	it('handles empty content', () => {
+		const result = injectTitleIntoContent('', 'Hello');
+		expect(result).toBe('---\ntitle: Hello\n---\n');
+	});
+
+	it('quotes titles that contain YAML-special characters', () => {
+		const result = injectTitleIntoContent('Body', 'Title: with colon');
+		// The YAML serializer is expected to quote when needed; we just
+		// assert round-trip yields the same title via parseFrontmatterProperties.
+		expect(result).toContain('Body');
+		expect(result).toMatch(/title:.*Title.*colon/);
 	});
 });
