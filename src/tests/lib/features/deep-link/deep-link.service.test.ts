@@ -12,11 +12,14 @@ vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
 	readText: vi.fn(() => Promise.resolve('')),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	exists: vi.fn(),
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -64,8 +67,9 @@ vi.mock('$lib/utils/template', () => ({
 }));
 
 import { toast } from 'svelte-sonner';
-import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
+import { readText as readClipboardText } from '@tauri-apps/plugin-clipboard-manager';
+import { pathExists, readText, writeText } from '$lib/core/filesystem/fs-rust.service';
+import { invoke } from '@tauri-apps/api/core';
 import { processTemplate } from '$lib/utils/template';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -252,8 +256,9 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(mkdir)).toHaveBeenCalledWith('/Users/me/TestVault', { recursive: true });
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_folder', { path: '/Users/me/TestVault' });
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Silent content',
 				);
@@ -263,8 +268,8 @@ describe('deep-link.service', () => {
 			});
 
 			it('appends content to existing file', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Existing content');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Existing content');
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -274,7 +279,8 @@ describe('deep-link.service', () => {
 					append: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Existing content\nAppended',
 				);
@@ -282,8 +288,8 @@ describe('deep-link.service', () => {
 			});
 
 			it('appends silently without opening', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Existing');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Existing');
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -294,7 +300,8 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Existing\nMore',
 				);
@@ -302,7 +309,7 @@ describe('deep-link.service', () => {
 			});
 
 			it('creates new file when append is true but file does not exist', async () => {
-				vi.mocked(exists).mockResolvedValue(false);
+				vi.mocked(pathExists).mockResolvedValue(false);
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -317,7 +324,7 @@ describe('deep-link.service', () => {
 			});
 
 			it('reads content from clipboard when clipboard=true', async () => {
-				vi.mocked(readText).mockResolvedValue('Clipboard markdown content');
+				vi.mocked(readClipboardText).mockResolvedValue('Clipboard markdown content');
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -328,15 +335,16 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(readText)).toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(readClipboardText)).toHaveBeenCalled();
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/clip.md',
 					'Clipboard markdown content',
 				);
 			});
 
 			it('falls back to content param when clipboard read fails', async () => {
-				vi.mocked(readText).mockRejectedValue(new Error('Clipboard unavailable'));
+				vi.mocked(readClipboardText).mockRejectedValue(new Error('Clipboard unavailable'));
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -347,7 +355,8 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/clip.md',
 					'Fallback content',
 				);
@@ -365,15 +374,16 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/clip.md',
 					'URI content',
 				);
 			});
 
 			it('prepends content to existing file', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Existing content');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Existing content');
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -383,7 +393,8 @@ describe('deep-link.service', () => {
 					prepend: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Prepended\nExisting content',
 				);
@@ -391,8 +402,8 @@ describe('deep-link.service', () => {
 			});
 
 			it('prepends silently without opening', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Existing');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Existing');
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -403,7 +414,8 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Top\nExisting',
 				);
@@ -411,7 +423,7 @@ describe('deep-link.service', () => {
 			});
 
 			it('creates new file when prepend is true but file does not exist', async () => {
-				vi.mocked(exists).mockResolvedValue(false);
+				vi.mocked(pathExists).mockResolvedValue(false);
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -433,8 +445,9 @@ describe('deep-link.service', () => {
 					overwrite: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(mkdir)).toHaveBeenCalledWith('/Users/me/TestVault', { recursive: true });
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_folder', { path: '/Users/me/TestVault' });
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Overwritten',
 				);
@@ -451,7 +464,8 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'Silent overwrite',
 				);
@@ -467,16 +481,17 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/Clippings/Article Title.md',
 					'Clipped content',
 				);
 			});
 
 			it('uses clipboard content with prepend on existing file', async () => {
-				vi.mocked(readText).mockResolvedValue('From clipboard');
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Old content');
+				vi.mocked(readClipboardText).mockResolvedValue('From clipboard');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Old content');
 
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -487,7 +502,8 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					'/Users/me/TestVault/test.md',
 					'From clipboard\nOld content',
 				);
@@ -500,7 +516,7 @@ describe('deep-link.service', () => {
 			it('returns content param when clipboard is false', async () => {
 				const result = await resolveContent({ content: 'Hello', clipboard: false });
 				expect(result).toBe('Hello');
-				expect(vi.mocked(readText)).not.toHaveBeenCalled();
+				expect(vi.mocked(readClipboardText)).not.toHaveBeenCalled();
 			});
 
 			it('returns content param when clipboard is undefined', async () => {
@@ -514,19 +530,19 @@ describe('deep-link.service', () => {
 			});
 
 			it('reads from clipboard when clipboard is true', async () => {
-				vi.mocked(readText).mockResolvedValue('Clipboard text');
+				vi.mocked(readClipboardText).mockResolvedValue('Clipboard text');
 				const result = await resolveContent({ clipboard: true });
 				expect(result).toBe('Clipboard text');
 			});
 
 			it('falls back to content when clipboard returns empty', async () => {
-				vi.mocked(readText).mockResolvedValue('');
+				vi.mocked(readClipboardText).mockResolvedValue('');
 				const result = await resolveContent({ content: 'Fallback', clipboard: true });
 				expect(result).toBe('Fallback');
 			});
 
 			it('falls back to content when clipboard read throws', async () => {
-				vi.mocked(readText).mockRejectedValue(new Error('Failed'));
+				vi.mocked(readClipboardText).mockRejectedValue(new Error('Failed'));
 				const result = await resolveContent({ content: 'Fallback', clipboard: true });
 				expect(result).toBe('Fallback');
 			});
@@ -546,12 +562,12 @@ describe('deep-link.service', () => {
 				const action: DeepLinkAction = { type: 'daily', vault: 'V' };
 				await executeAction(action, vaultPath);
 				expect(vi.mocked(openOrCreateDailyNote)).toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
+				expect(vi.mocked(writeText)).not.toHaveBeenCalled();
 			});
 
 			it('appends content to existing daily note', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Today journal');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Today journal');
 
 				const action: DeepLinkAction = {
 					type: 'daily',
@@ -561,7 +577,8 @@ describe('deep-link.service', () => {
 				};
 				await executeAction(action, vaultPath);
 				expect(vi.mocked(openOrCreateDailyNote)).toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					expect.stringMatching(/\.md$/),
 					'Today journal\nClipped text',
 				);
@@ -572,8 +589,8 @@ describe('deep-link.service', () => {
 			});
 
 			it('prepends content to existing daily note', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Today journal');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Today journal');
 
 				const action: DeepLinkAction = {
 					type: 'daily',
@@ -582,16 +599,17 @@ describe('deep-link.service', () => {
 					prepend: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					expect.stringMatching(/\.md$/),
 					'Top text\nToday journal',
 				);
 			});
 
 			it('reads content from clipboard for daily note', async () => {
-				vi.mocked(readText).mockResolvedValue('Clipboard daily content');
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Existing daily');
+				vi.mocked(readClipboardText).mockResolvedValue('Clipboard daily content');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Existing daily');
 
 				const action: DeepLinkAction = {
 					type: 'daily',
@@ -600,15 +618,16 @@ describe('deep-link.service', () => {
 					append: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(readText)).toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(readClipboardText)).toHaveBeenCalled();
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					expect.stringMatching(/\.md$/),
 					'Existing daily\nClipboard daily content',
 				);
 			});
 
 			it('does not write when daily note file does not exist after creation', async () => {
-				vi.mocked(exists).mockResolvedValue(false);
+				vi.mocked(pathExists).mockResolvedValue(false);
 
 				const action: DeepLinkAction = {
 					type: 'daily',
@@ -618,12 +637,12 @@ describe('deep-link.service', () => {
 				};
 				await executeAction(action, vaultPath);
 				expect(vi.mocked(openOrCreateDailyNote)).toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
+				expect(vi.mocked(writeText)).not.toHaveBeenCalled();
 			});
 
 			it('defaults to append when neither append nor prepend is set', async () => {
-				vi.mocked(exists).mockResolvedValue(true);
-				vi.mocked(readTextFile).mockResolvedValue('Existing');
+				vi.mocked(pathExists).mockResolvedValue(true);
+				vi.mocked(readText).mockResolvedValue('Existing');
 
 				const action: DeepLinkAction = {
 					type: 'daily',
@@ -631,7 +650,8 @@ describe('deep-link.service', () => {
 					content: 'Added text',
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+					vaultPath,
 					expect.stringMatching(/\.md$/),
 					'Existing\nAdded text',
 				);
@@ -652,11 +672,12 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(mkdir)).toHaveBeenCalledWith(
-						expect.stringContaining(vaultPath),
-						{ recursive: true },
+					expect(vi.mocked(invoke)).toHaveBeenCalledWith(
+						'create_folder',
+						{ path: expect.stringContaining(vaultPath) },
 					);
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/capture-note-.*\.md$/),
 						'My captured text',
 					);
@@ -676,7 +697,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'My note\n\n> Source: [Some Page](https://example.com)',
 					);
@@ -684,7 +706,7 @@ describe('deep-link.service', () => {
 
 				it('applies the configured template and appends the rendered body', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template\n---');
+					vi.mocked(readText).mockResolvedValue('---\ntitle: template\n---');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -695,7 +717,8 @@ describe('deep-link.service', () => {
 					await executeAction(action, vaultPath);
 
 					expect(vi.mocked(processTemplate)).toHaveBeenCalled();
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'processed-template\nCaptured',
 					);
@@ -703,7 +726,7 @@ describe('deep-link.service', () => {
 
 				it('falls back to the raw body when the template file is not found', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockRejectedValue(new Error('File not found'));
+					vi.mocked(readText).mockRejectedValue(new Error('File not found'));
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -713,7 +736,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'Raw content',
 					);
@@ -731,7 +755,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'---\ntags: [source/raycast, project/work]\n---\nMulti-tag',
 					);
@@ -739,7 +764,7 @@ describe('deep-link.service', () => {
 
 				it('merges deep-link tags with template frontmatter tags', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('---\ntags: [template-tag]\n---\nTemplate body');
+					vi.mocked(readText).mockResolvedValue('---\ntags: [template-tag]\n---\nTemplate body');
 					vi.mocked(processTemplate).mockReturnValue('---\ntags: [template-tag]\n---\nTemplate body');
 
 					const action: DeepLinkAction = {
@@ -751,7 +776,7 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).toContain('template-tag');
 					expect(written).toContain('source/raycast');
 				});
@@ -768,13 +793,13 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).not.toContain('title:');
 				});
 
 				it('exposes filename-derived title to the template (no deep-link title for note kind)', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('template body');
+					vi.mocked(readText).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -805,7 +830,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'Highlighted text',
 					);
@@ -824,7 +850,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'Whether I will remain open-minded...\n\n> Source: [Four Notes to My Future Self](https://medium.com/post)',
 					);
@@ -845,7 +872,7 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).toContain('title: Example');
 					expect(written).toContain('[Example](https://example.com)');
 				});
@@ -861,7 +888,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'[https://example.com](https://example.com)',
 					);
@@ -879,13 +907,13 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).toContain('title: Page Title');
 				});
 
 				it('replaces the template title when a deep-link title is provided', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template-title\n---\nTemplate body');
+					vi.mocked(readText).mockResolvedValue('---\ntitle: template-title\n---\nTemplate body');
 					vi.mocked(processTemplate).mockReturnValue('---\ntitle: template-title\n---\nTemplate body');
 
 					const action: DeepLinkAction = {
@@ -897,7 +925,7 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).toContain('title: Override Title');
 					expect(written).not.toContain('template-title');
 					expect(written).toContain('[Override Title](https://example.com)');
@@ -905,7 +933,7 @@ describe('deep-link.service', () => {
 
 				it('exposes the deep-link title to the template as `title` var', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('template body');
+					vi.mocked(readText).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -925,7 +953,7 @@ describe('deep-link.service', () => {
 
 				it('falls back to the filename-derived title when no deep-link title is provided', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('template body');
+					vi.mocked(readText).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -956,7 +984,7 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).not.toContain('> Source:');
 				});
 
@@ -974,7 +1002,7 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).toContain('[Canonical](https://canonical.example.com)');
 					expect(written).toContain('> Source: [Share Page](https://share.example.com/redirect)');
 				});
@@ -992,7 +1020,7 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					const written = vi.mocked(writeText).mock.calls[0][2] as string;
 					expect(written).toContain('title: My Title');
 					expect(written).toContain('tags: [source/quick-capture]');
 					expect(written).toContain('[My Title](https://example.com)');
@@ -1003,7 +1031,7 @@ describe('deep-link.service', () => {
 			describe('template variables', () => {
 				it('exposes kind and empty provenance defaults for a note without source fields', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('template body');
+					vi.mocked(readText).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -1024,7 +1052,7 @@ describe('deep-link.service', () => {
 
 				it('forwards provenance fields for a clip capture', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('template body');
+					vi.mocked(readText).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -1049,7 +1077,7 @@ describe('deep-link.service', () => {
 
 				it('exposes the canonical url for a link capture', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-					vi.mocked(readTextFile).mockResolvedValue('template body');
+					vi.mocked(readText).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
 						type: 'capture',
@@ -1080,7 +1108,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'![shot.png](file:///Users/me/Desktop/shot.png)',
 					);
@@ -1099,7 +1128,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
+						vaultPath,
 						expect.stringMatching(/\.md$/),
 						'[meeting notes.pdf](file:///var/koko/blobs/01HFILE.pdf)',
 					);
@@ -1121,19 +1151,19 @@ describe('deep-link.service', () => {
 
 					expect(vi.mocked(markRecentSave)).toHaveBeenCalledTimes(1);
 					const [markedPath] = vi.mocked(markRecentSave).mock.calls[0];
-					const [writtenPath] = vi.mocked(writeTextFile).mock.calls[0];
+					const [, writtenPath] = vi.mocked(writeText).mock.calls[0];
 					expect(markedPath).toBe(writtenPath);
 					// Ordering: markRecentSave must fire BEFORE writeTextFile so the
 					// watcher's areAllRecentSaves check sees the entry when the
 					// debounced rebuildAllIndexes runs ~500 ms later.
 					const markOrder = vi.mocked(markRecentSave).mock.invocationCallOrder[0];
-					const writeOrder = vi.mocked(writeTextFile).mock.invocationCallOrder[0];
+					const writeOrder = vi.mocked(writeText).mock.invocationCallOrder[0];
 					expect(markOrder).toBeLessThan(writeOrder);
 				});
 
 				it('marks the daily note path before appending', async () => {
-					vi.mocked(exists).mockResolvedValue(true);
-					vi.mocked(readTextFile).mockResolvedValue('Existing');
+					vi.mocked(pathExists).mockResolvedValue(true);
+					vi.mocked(readText).mockResolvedValue('Existing');
 
 					const action: DeepLinkAction = {
 						type: 'daily',
@@ -1164,8 +1194,8 @@ describe('deep-link.service', () => {
 				});
 
 				it('marks the path on new-action append branch', async () => {
-					vi.mocked(exists).mockResolvedValue(true);
-					vi.mocked(readTextFile).mockResolvedValue('Old');
+					vi.mocked(pathExists).mockResolvedValue(true);
+					vi.mocked(readText).mockResolvedValue('Old');
 
 					const action: DeepLinkAction = {
 						type: 'new',

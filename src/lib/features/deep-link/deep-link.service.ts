@@ -1,9 +1,10 @@
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
-import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
+import { readText as readClipboardText } from '@tauri-apps/plugin-clipboard-manager';
+import { invoke } from '@tauri-apps/api/core';
 import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { pathExists, readText, writeText } from '$lib/core/filesystem/fs-rust.service';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -171,7 +172,7 @@ export async function executeAction(action: DeepLinkAction, vaultPath: string): 
 export async function resolveContent(action: { content?: string; clipboard?: boolean }): Promise<string> {
 	if (action.clipboard) {
 		try {
-			const clipboardText = await readText();
+			const clipboardText = await readClipboardText();
 			if (clipboardText) return clipboardText;
 		} catch (err) {
 			error('DEEP_LINK', 'Failed to read clipboard, falling back to content param:', err);
@@ -196,45 +197,45 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 
 	// Prepend: insert new content before existing content
 	if (action.prepend) {
-		const fileExists = await exists(fullPath);
+		const fileExists = await pathExists(vaultPath, fullPath);
 		if (fileExists) {
-			const existing = await readTextFile(fullPath);
+			const existing = await readText(vaultPath, fullPath);
 			// markRecentSave: tell the watcher we wrote this file ourselves so
 			// rebuildAllIndexes is skipped 500 ms later (areAllRecentSaves).
 			markRecentSave(fullPath);
-			await writeTextFile(fullPath, content + '\n' + existing);
-			// Tree structure unchanged (file already existed) — skip refreshTree.
+			await writeText(vaultPath, fullPath, content + '\n' + existing);
+			// Tree structure unchanged (file already existed) - skip refreshTree.
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
 			}
 			return;
 		}
-		// File doesn't exist — fall through to create
+		// File doesn't exist - fall through to create
 	}
 
 	// Append: add new content after existing content
 	if (action.append) {
-		const fileExists = await exists(fullPath);
+		const fileExists = await pathExists(vaultPath, fullPath);
 		if (fileExists) {
-			const existing = await readTextFile(fullPath);
+			const existing = await readText(vaultPath, fullPath);
 			markRecentSave(fullPath);
-			await writeTextFile(fullPath, existing + '\n' + content);
-			// Tree structure unchanged — skip refreshTree.
+			await writeText(vaultPath, fullPath, existing + '\n' + content);
+			// Tree structure unchanged - skip refreshTree.
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
 			}
 			return;
 		}
-		// File doesn't exist — fall through to create
+		// File doesn't exist - fall through to create
 	}
 
 	// Overwrite: replace file regardless of existence
 	if (action.overwrite) {
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
-		await mkdir(parentDir, { recursive: true });
+		await invoke('create_folder', { path: parentDir });
 		markRecentSave(fullPath);
-		await writeTextFile(fullPath, content);
-		// File may be new — refresh in background so callback returns fast.
+		await writeText(vaultPath, fullPath, content);
+		// File may be new - refresh in background so callback returns fast.
 		void refreshTree();
 		if (!action.silent) {
 			await openFileInEditor(fullPath);
@@ -245,9 +246,9 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 	// Create: default behavior
 	if (action.silent) {
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
-		await mkdir(parentDir, { recursive: true });
+		await invoke('create_folder', { path: parentDir });
 		markRecentSave(fullPath);
-		await writeTextFile(fullPath, content);
+		await writeText(vaultPath, fullPath, content);
 		void refreshTree();
 	} else {
 		await openOrCreateNote({
@@ -282,17 +283,17 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 		dayjs(),
 	);
 
-	const fileExists = await exists(filePath);
+	const fileExists = await pathExists(vaultPath, filePath);
 	if (!fileExists) return;
 
-	const existing = await readTextFile(filePath);
+	const existing = await readText(vaultPath, filePath);
 
 	markRecentSave(filePath);
 	if (action.prepend) {
-		await writeTextFile(filePath, content + '\n' + existing);
+		await writeText(vaultPath, filePath, content + '\n' + existing);
 	} else {
 		// Default to append
-		await writeTextFile(filePath, existing + '\n' + content);
+		await writeText(vaultPath, filePath, existing + '\n' + content);
 	}
 
 	// Daily note exists already (line above bails out if not) — tree structure
@@ -327,7 +328,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	debug('DEEP_LINK', 'Capturing note:', filePath, { kind: action.kind });
 
 	const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-	await mkdir(parentDir, { recursive: true });
+	await invoke('create_folder', { path: parentDir });
 
 	const body = renderCaptureBody(action);
 	let fileContent = body;
@@ -335,7 +336,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	if (quickNote.templatePath) {
 		const templateFullPath = `${vaultPath}/${quickNote.templatePath}`;
 		try {
-			const template = await readTextFile(templateFullPath);
+			const template = await readText(vaultPath, templateFullPath);
 			const fileTitle = getQuickNoteTitle(quickNote.filenameFormat, date);
 			const vars = buildQuickNoteVariables(date, periodicNotes);
 			vars.content = body;
@@ -372,8 +373,8 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	}
 
 	markRecentSave(filePath);
-	await writeTextFile(filePath, fileContent);
-	// Capture writes a fresh quick-note path → tree usually gains a node.
+	await writeText(vaultPath, filePath, fileContent);
+	// Capture writes a fresh quick-note path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
 	void refreshTree();
 }
