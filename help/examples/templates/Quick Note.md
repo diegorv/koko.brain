@@ -1,4 +1,5 @@
 ---
+title: <% title %>
 created: <% created %>
 year: <% year %>
 tags:
