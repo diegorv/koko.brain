@@ -64,8 +64,10 @@ export interface DailyAction extends BaseAction {
  * - `note` — free-form note text (no source guaranteed).
  * - `clip` — highlighted text from a source page (expects `source_url`).
  * - `link` — bookmark of a canonical URL with optional page title.
- * - `shot` — screenshot stored at a local file path. Parsed but not yet rendered.
- * - `file` — arbitrary local file path attached to the capture. Parsed but not yet rendered.
+ * - `shot` — screenshot stored at a local file path. Rendered as a `file://`
+ *   CommonMark image link in the quick note.
+ * - `file` — arbitrary local file path attached to the capture. Rendered as a
+ *   `file://` CommonMark link in the quick note.
  */
 export type CaptureKind = 'note' | 'clip' | 'link' | 'shot' | 'file';
 
@@ -113,27 +115,32 @@ export interface CaptureLinkAction extends CaptureCommon {
 }
 
 /**
- * kokobrain://capture?v=2&kind=shot&vault=X&path=/abs/path.png — capture a screenshot file path.
- *
- * Parser accepts this kind so a future change only needs to flip the service-side
- * "not yet supported" toast to a real renderer. No URI is emitted with this kind today.
+ * kokobrain://capture?v=2&kind=shot&vault=X&path=/abs/path.png&mime=image/png —
+ * capture a screenshot file path. Quick-capture emits `blob_path` for pasted-bytes
+ * screenshots (app-owned, stable) and `source_path` for drag-in screenshots; both
+ * arrive here as `path`.
  */
 export interface CaptureShotAction extends CaptureCommon {
 	kind: 'shot';
 	/** Absolute local path to the image file */
 	path: string;
+	/** Optional MIME type emitted by quick-capture (e.g. `image/png`) */
+	mime?: string;
 }
 
 /**
- * kokobrain://capture?v=2&kind=file&vault=X&path=/abs/path — capture an arbitrary local file path.
- *
- * Parser accepts this kind for forward compatibility. The service currently shows a
- * "not yet supported" toast for this kind.
+ * kokobrain://capture?v=2&kind=file&vault=X&path=/abs/path&mime=...&original_name=notes.pdf —
+ * capture an arbitrary local file path. `original_name` is the user-facing filename
+ * preserved by quick-capture; the renderer uses it as the link label.
  */
 export interface CaptureFileAction extends CaptureCommon {
 	kind: 'file';
 	/** Absolute local path to the file */
 	path: string;
+	/** Optional MIME type emitted by quick-capture */
+	mime?: string;
+	/** Optional user-facing filename; falls back to the path basename when absent */
+	originalName?: string;
 }
 
 /**

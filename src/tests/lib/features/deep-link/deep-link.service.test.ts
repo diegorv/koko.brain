@@ -1059,9 +1059,11 @@ describe('deep-link.service', () => {
 				});
 			});
 
-			// ── shot / file kinds ──────────────────────────────────
-			describe('kind=shot / kind=file (not yet supported)', () => {
-				it('shows a toast and does not write anything for kind=shot', async () => {
+			// ── shot / file kinds ──────────────────────────────────────────────────────
+			describe('kind=shot / kind=file', () => {
+				it('writes a file:// image embed for kind=shot', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
 					const action: DeepLinkAction = {
 						type: 'capture',
 						vault: 'V',
@@ -1070,27 +1072,29 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-						expect.stringContaining('"shot"'),
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'![shot.png](file:///Users/me/Desktop/shot.png)',
 					);
-					expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
-					expect(vi.mocked(mkdir)).not.toHaveBeenCalled();
-					expect(vi.mocked(refreshTree)).not.toHaveBeenCalled();
+					expect(vi.mocked(refreshTree)).toHaveBeenCalled();
 				});
 
-				it('shows a toast and does not write anything for kind=file', async () => {
+				it('writes a file:// link for kind=file using originalName as the label', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
 					const action: DeepLinkAction = {
 						type: 'capture',
 						vault: 'V',
 						kind: 'file',
-						path: '/Users/me/file.pdf',
+						path: '/var/koko/blobs/01HFILE.pdf',
+						originalName: 'meeting notes.pdf',
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-						expect.stringContaining('"file"'),
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'[meeting notes.pdf](file:///var/koko/blobs/01HFILE.pdf)',
 					);
-					expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
 				});
 			});
 		});

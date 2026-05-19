@@ -469,6 +469,16 @@ describe('parseDeepLinkUri', () => {
 					error: 'Missing required parameter: "path" for capture kind "shot"',
 				});
 			});
+
+			it('parses optional mime when present', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=shot&vault=V&path=%2Ftmp%2Fx.png&mime=image%2Fpng',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'shot') {
+					expect(result.action.mime).toBe('image/png');
+				}
+			});
 		});
 
 		// ── file kind ─────────────────────────────────────────────────
@@ -499,6 +509,20 @@ describe('parseDeepLinkUri', () => {
 					ok: false,
 					error: 'Missing required parameter: "path" for capture kind "file"',
 				});
+			});
+
+			it('parses optional mime and original_name when present', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=file&vault=V' +
+						'&path=%2Fvar%2Fkoko%2Fblobs%2F01HFILE.pdf' +
+						'&mime=application%2Fpdf' +
+						'&original_name=meeting%20notes.pdf',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'file') {
+					expect(result.action.mime).toBe('application/pdf');
+					expect(result.action.originalName).toBe('meeting notes.pdf');
+				}
 			});
 		});
 
@@ -792,24 +816,65 @@ describe('renderCaptureBody', () => {
 
 	// ── shot / file kinds ────────────────────────────────────────────
 	describe('kind=shot / kind=file', () => {
-		it('returns empty string for kind=shot (service short-circuits with toast)', () => {
+		it('renders shot as a file:// image embed with the path basename as the alt text', () => {
 			const action: CaptureShotAction = {
 				type: 'capture',
 				vault: 'V',
 				kind: 'shot',
 				path: '/Users/me/Desktop/shot.png',
 			};
-			expect(renderCaptureBody(action)).toBe('');
+			expect(renderCaptureBody(action)).toBe(
+				'![shot.png](file:///Users/me/Desktop/shot.png)',
+			);
 		});
 
-		it('returns empty string for kind=file (service short-circuits with toast)', () => {
+		it('renders file as a file:// link, preferring originalName for the label', () => {
+			const action: CaptureFileAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'file',
+				path: '/var/koko/blobs/01HFILE.pdf',
+				originalName: 'meeting notes.pdf',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'[meeting notes.pdf](file:///var/koko/blobs/01HFILE.pdf)',
+			);
+		});
+
+		it('falls back to the path basename when originalName is absent', () => {
 			const action: CaptureFileAction = {
 				type: 'capture',
 				vault: 'V',
 				kind: 'file',
 				path: '/Users/me/file.pdf',
 			};
-			expect(renderCaptureBody(action)).toBe('');
+			expect(renderCaptureBody(action)).toBe('[file.pdf](file:///Users/me/file.pdf)');
+		});
+
+		it('percent-encodes spaces and reserved characters in the path', () => {
+			const action: CaptureShotAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'shot',
+				path: '/Users/me/Desktop/Screen Shot 2026-05-19.png',
+			};
+			expect(renderCaptureBody(action)).toBe(
+				'![Screen Shot 2026-05-19.png](file:///Users/me/Desktop/Screen%20Shot%202026-05-19.png)',
+			);
+		});
+
+		it('does not append a source footer for shot/file even when source context is present', () => {
+			const action: CaptureShotAction = {
+				type: 'capture',
+				vault: 'V',
+				kind: 'shot',
+				path: '/tmp/x.png',
+				sourceApp: 'com.google.Chrome',
+				sourceTitle: 'Some Page',
+				sourceUrl: 'https://example.com',
+			};
+			const body = renderCaptureBody(action);
+			expect(body).not.toContain('> Source:');
 		});
 	});
 });
