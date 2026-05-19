@@ -90,7 +90,6 @@ At the bottom of the window, the status bar shows contextual information about y
 - Search indexing progress (while indexing is running)
 
 **Right side:**
-- **Encryption toggle** (lock icon) — click to encrypt or decrypt the current note (see [Encryption & Security](16-encryption-and-security.md))
 - **Word count** — three metrics that update live as you type:
   - **Word count**: total number of words in the note
   - **Character count**: total number of characters

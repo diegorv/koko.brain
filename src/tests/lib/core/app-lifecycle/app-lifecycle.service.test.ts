@@ -418,7 +418,7 @@ describe('teardownVault', () => {
 		expect(invoke).toHaveBeenCalledWith('close_vault_db');
 	});
 
-	it('clears editor hooks (encryption transforms) before resetting stores', () => {
+	it('clears editor hooks before resetting stores', () => {
 		teardownVault();
 
 		expect(resetHooks).toHaveBeenCalled();

@@ -43,7 +43,6 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 - **Tasks** — aggregated task view with extended statuses and Todoist sync
 - **Periodic notes** — daily, weekly, monthly, and quarterly notes with templates and calendar
 - **File history** — automatic snapshots with diff viewer and restore
-- **Encrypted notes** — AES-256-GCM encryption with macOS Keychain and Touch ID
 - **Integrated terminal** — real PTY sessions with xterm.js and WebGL rendering
 - **Custom file icons** — 11 icon packs + emoji with color picker
 - **Bookmarks**, **tags**, **backlinks**, **outgoing links**, **properties** panel
@@ -59,7 +58,6 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 | Backend | Tauri 2 (Rust) |
 | Database | SQLite (rusqlite) with WAL mode |
 | Search | FTS5 + ONNX Runtime (semantic embeddings) |
-| Encryption | AES-256-GCM, macOS Keychain, Touch ID |
 | Terminal | portable-pty + xterm.js |
 | Package manager | pnpm |
 
@@ -109,17 +107,15 @@ src/lib/
                         #   auto-move, command-palette, quick-switcher, folder-notes,
                         #   outgoing-links, deep-link, views
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
-                        #   graph-view, encrypted-notes, terminal, queryjs, word-count,
-                        #   kanban, one-on-one
+                        #   graph-view, terminal, queryjs, word-count, kanban, one-on-one
   utils/                # Pure shared utilities
 
 src-tauri/src/
   commands/             # Tauri command handlers (vault, files, search, semantic, history,
-                        #   crypto, terminal, debug, fonts, db)
+                        #   terminal, debug, fonts, db)
   db/                   # SQLite: schema, FTS5 repo, history repo, semantic repo
   search/               # FTS indexing logic, text search, fuzzy expansion
   semantic/             # ONNX model management, embedder, markdown chunker, filtering
-  security/             # AES-256-GCM crypto, macOS Keychain, Touch ID biometric
   utils/                # Debug logging, filesystem utilities
 ```
 
@@ -144,7 +140,6 @@ src-tauri/src/
 
 - All data is stored locally as plain Markdown files
 - Search indexing (FTS5 + semantic embeddings) runs locally via SQLite and ONNX Runtime
-- Encryption uses AES-256-GCM with macOS Keychain and Touch ID — no external key servers
 - The semantic search model is downloaded once from HuggingFace and runs locally — no API calls, no telemetry, no cloud processing
 - **No analytics, no tracking, no accounts, no sign-up**
 

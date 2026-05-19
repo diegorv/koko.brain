@@ -89,10 +89,10 @@ describe('getBuiltInCommands', () => {
 		settingsDialogStore.reset();
 	});
 
-	it('returns 28 built-in commands', () => {
+	it('returns 24 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(28);
+		expect(commands).toHaveLength(24);
 	});
 
 	it('every command has required fields', () => {
@@ -274,31 +274,4 @@ describe('getBuiltInCommands', () => {
 		expect(settingsDialogStore.isOpen).toBe(true);
 	});
 
-	it('includes show recovery key command that opens security settings', () => {
-		const commands = getBuiltInCommands();
-		const cmd = commands.find((c) => c.id === 'encryption:show-recovery-key');
-
-		expect(cmd).toBeDefined();
-		expect(cmd!.label).toBe('Show Encryption Recovery Key');
-		expect(cmd!.category).toBe('Security');
-
-		settingsDialogStore.close();
-		cmd!.action();
-		expect(settingsDialogStore.isOpen).toBe(true);
-		expect(settingsDialogStore.activeSection).toBe('security');
-	});
-
-	it('includes restore from recovery key command that opens security settings', () => {
-		const commands = getBuiltInCommands();
-		const cmd = commands.find((c) => c.id === 'encryption:restore-from-recovery-key');
-
-		expect(cmd).toBeDefined();
-		expect(cmd!.label).toBe('Restore Encryption from Recovery Key');
-		expect(cmd!.category).toBe('Security');
-
-		settingsDialogStore.close();
-		cmd!.action();
-		expect(settingsDialogStore.isOpen).toBe(true);
-		expect(settingsDialogStore.activeSection).toBe('security');
-	});
 });

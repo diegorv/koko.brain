@@ -171,17 +171,15 @@ src/lib/
                         #   auto-move, command-palette, quick-switcher, folder-notes,
                         #   outgoing-links, deep-link, views
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
-                        #   graph-view, encrypted-notes, terminal, queryjs, word-count,
-                        #   kanban, one-on-one
+                        #   graph-view, terminal, queryjs, word-count, kanban, one-on-one
   utils/                # Pure shared utilities (no state, no side effects)
 
 src-tauri/src/
   commands/             # Tauri command handlers (vault, files, search, semantic, history,
-                        #   crypto, terminal, debug, fonts, db)
+                        #   terminal, debug, fonts, db)
   db/                   # SQLite: schema, FTS5, history, semantic repos
   search/               # FTS indexing, text search, fuzzy expansion
   semantic/             # ONNX model, embedder, markdown chunker
-  security/             # AES-256-GCM, macOS Keychain, Touch ID
   utils/                # Debug logging, filesystem utilities
 
 src/tests/              # Frontend test files

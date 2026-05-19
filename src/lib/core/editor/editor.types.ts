@@ -12,6 +12,4 @@ export interface EditorTab {
 	fileType?: 'markdown' | 'collection' | 'tasks' | 'graph' | 'canvas' | 'kanban';
 	/** Whether this tab is pinned (pinned tabs stay left and can't be closed with Ctrl+W) */
 	pinned?: boolean;
-	/** Whether this file is encrypted on disk (AES-256-GCM via macOS Keychain) */
-	encrypted?: boolean;
 }

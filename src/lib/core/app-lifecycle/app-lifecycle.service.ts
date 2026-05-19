@@ -62,7 +62,6 @@ import { resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.s
 import { resetTerminal } from '$lib/plugins/terminal/terminal.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
-import { registerEncryptionHooks, resetEncryptedNotes } from '$lib/plugins/encrypted-notes/encrypted-notes.service';
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
 
@@ -157,9 +156,6 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	} else {
 		debug('LIFECYCLE', 'File history disabled — skipping hook registration');
 	}
-
-	debug('LIFECYCLE', 'Registering encryption hooks...');
-	registerEncryptionHooks();
 
 	const retentionDays = settingsStore.history.retentionDays;
 	debug('LIFECYCLE', `Cleaning up old snapshots (retention: ${retentionDays} days)...`);
@@ -357,8 +353,6 @@ export function teardownVault(): void {
 	invoke('close_vault_db').catch((err: unknown) => {
 		error('LIFECYCLE', 'Failed to close vault database:', err);
 	});
-	debug('LIFECYCLE', 'Resetting encryption state...');
-	resetEncryptedNotes().catch(() => {});
 	closeFileHistory();
 
 	// ── Reset hooks + stores ────────────────────────────────────────

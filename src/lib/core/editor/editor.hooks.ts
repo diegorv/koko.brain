@@ -11,7 +11,7 @@ import { debug, error } from '$lib/utils/debug';
 /**
  * Called when reading a file before opening in a tab.
  * Return null if this hook doesn't apply (use raw content).
- * Throw to abort the file open entirely (e.g. Touch ID canceled).
+ * Throw to abort the file open entirely.
  */
 export type FileReadTransform = (
 	filePath: string,
@@ -140,7 +140,7 @@ export async function applyWriteTransform(
 	tab: EditorTab,
 ): Promise<boolean> {
 	if (!writeTransform) return false;
-	debug('HOOKS', 'Applying write transform for:', filePath, `(encrypted: ${tab.encrypted})`);
+	debug('HOOKS', 'Applying write transform for:', filePath);
 	const handled = await writeTransform(filePath, content, tab);
 	debug('HOOKS', 'Write transform result:', handled ? 'handled' : 'not handled (fallback to default)');
 	return handled;
