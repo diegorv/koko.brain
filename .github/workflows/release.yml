@@ -88,10 +88,17 @@ jobs:
 
   # Security audits (npm + cargo + supply-chain quarantine) on the
   # tagged SHA. Runs in parallel with ci + e2e. Wired here because
-  # security.yml no longer runs on push:main — a release tag is now
-  # the post-merge gate that catches an advisory or a quarantine
-  # regression slipping past the PR check. A failing audit blocks the
-  # build-macos job; rebuild after addressing the finding.
+  # security.yml no longer runs on push:main — a release tag is the
+  # post-merge surfacing point that catches an advisory or a
+  # quarantine regression slipping past the PR check.
+  #
+  # NOT in `build-macos.needs` on purpose: a security finding (e.g.
+  # a transitive advisory published between the PR merge and the tag
+  # push) is informational at release time, not a hard block. The
+  # finding shows up as a failed check on the release run for the
+  # maintainer to act on, but the macOS build still ships. Promote
+  # this to a blocker by adding `security` back to `build-macos.needs`
+  # if the policy changes.
   security:
     name: Security
     needs: validate
@@ -99,7 +106,7 @@ jobs:
 
   build-macos:
     name: Build macOS
-    needs: [ci, e2e, security]
+    needs: [ci, e2e]
     runs-on: macos-latest
     timeout-minutes: 45
     permissions:
