@@ -991,6 +991,74 @@ describe('deep-link.service', () => {
 				});
 			});
 
+			// ── template variables (v2 provenance) ─────────────────
+			describe('template variables', () => {
+				it('exposes kind and empty provenance defaults for a note without source fields', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('template body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Body',
+					};
+					await executeAction(action, vaultPath);
+
+					const vars = vi.mocked(processTemplate).mock.calls[0][2] as Record<string, string>;
+					expect(vars.kind).toBe('note');
+					expect(vars.sourceApp).toBe('');
+					expect(vars.sourceTitle).toBe('');
+					expect(vars.sourceUrl).toBe('');
+					expect(vars.capturedAt).toBe('');
+					expect(vars.url).toBe('');
+				});
+
+				it('forwards provenance fields for a clip capture', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('template body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'clip',
+						text: 'Highlighted',
+						sourceApp: 'com.google.Chrome',
+						sourceTitle: 'Some Page',
+						sourceUrl: 'https://example.com',
+						capturedAt: '2026-05-19T15:30:00Z',
+					};
+					await executeAction(action, vaultPath);
+
+					const vars = vi.mocked(processTemplate).mock.calls[0][2] as Record<string, string>;
+					expect(vars.kind).toBe('clip');
+					expect(vars.sourceApp).toBe('com.google.Chrome');
+					expect(vars.sourceTitle).toBe('Some Page');
+					expect(vars.sourceUrl).toBe('https://example.com');
+					expect(vars.capturedAt).toBe('2026-05-19T15:30:00Z');
+					expect(vars.url).toBe('');
+				});
+
+				it('exposes the canonical url for a link capture', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('template body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com/post',
+						title: 'Post Title',
+					};
+					await executeAction(action, vaultPath);
+
+					const vars = vi.mocked(processTemplate).mock.calls[0][2] as Record<string, string>;
+					expect(vars.kind).toBe('link');
+					expect(vars.url).toBe('https://example.com/post');
+					expect(vars.sourceUrl).toBe('');
+				});
+			});
+
 			// ── shot / file kinds ──────────────────────────────────
 			describe('kind=shot / kind=file (not yet supported)', () => {
 				it('shows a toast and does not write anything for kind=shot', async () => {
