@@ -58,13 +58,15 @@ export interface DailyAction extends BaseAction {
 	clipboard?: boolean;
 }
 
-/** kokobrain://capture?vault=X&content=Y&tags=a,b — quick capture a note using quick-note settings */
+/** kokobrain://capture?vault=X&content=Y&tags=a,b&title=Z — quick capture a note using quick-note settings */
 export interface CaptureAction extends BaseAction {
 	type: 'capture';
 	/** Content to capture */
 	content: string;
 	/** Optional tags to inject into the note's YAML frontmatter (comma-separated in URI) */
 	tags?: string[];
+	/** Optional title to inject into the note's YAML frontmatter as a `title:` property */
+	title?: string;
 }
 
 /** Discriminated union of all deep-link actions */
