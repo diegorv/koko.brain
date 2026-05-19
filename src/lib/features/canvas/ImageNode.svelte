@@ -12,38 +12,7 @@
 
 	let { data, selected }: NodeProps<Node<ImageNodeData>> = $props();
 	let bgColor = $derived(resolveColor(data.color));
-	let imageSrc = $state<string | null>(null);
-	let error = $state(false);
-
-	$effect(() => {
-		const file = data.file;
-		if (!file) return;
-		imageSrc = null;
-		error = false;
-		let aborted = false;
-		let blobUrl: string | null = null;
-
-		resolveImageSrc(file)
-			.then((src) => {
-				if (aborted) {
-					if (src.startsWith('blob:')) URL.revokeObjectURL(src);
-					return;
-				}
-				blobUrl = src;
-				imageSrc = src;
-			})
-			.catch(() => {
-				if (aborted) return;
-				error = true;
-			});
-
-		return () => {
-			aborted = true;
-			if (blobUrl && blobUrl.startsWith('blob:')) {
-				URL.revokeObjectURL(blobUrl);
-			}
-		};
-	});
+	let imageSrc = $derived(data.file ? resolveImageSrc(data.file) : null);
 </script>
 
 <NodeResizer minWidth={100} minHeight={100} isVisible={selected} />
@@ -51,7 +20,7 @@
 	class="canvas-node canvas-image-node"
 	style:border-color={bgColor ? `${bgColor}60` : undefined}
 >
-	{#if error || !imageSrc}
+	{#if !imageSrc}
 		<div class="image-placeholder">
 			<ImageIcon class="size-8 opacity-30" />
 			<span class="image-path">{data.file ?? ''}</span>

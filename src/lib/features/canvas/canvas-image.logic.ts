@@ -1,5 +1,6 @@
-import { readFile } from '@tauri-apps/plugin-fs';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { fileUrlToFsPath } from '$lib/utils/sanitize-url';
 
 /** Image extensions we recognize */
 export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];
@@ -10,31 +11,29 @@ export function isImageFile(path: string): boolean {
 	return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-/** Maps a file extension to a MIME type */
-export function extToMime(ext: string): string {
-	const map: Record<string, string> = {
-		png: 'image/png',
-		jpg: 'image/jpeg',
-		jpeg: 'image/jpeg',
-		gif: 'image/gif',
-		webp: 'image/webp',
-		svg: 'image/svg+xml',
-		bmp: 'image/bmp',
-	};
-	return map[ext] ?? 'image/png';
-}
+/**
+ * Resolves an image file path to a displayable `<img src>` URL.
+ *
+ * - `http(s)://...` is returned untouched
+ * - `file://...` is parsed, validated (rejecting SMB / UNC hosts), and routed
+ *   through `convertFileSrc` so the Tauri asset-protocol handler serves it
+ * - Anything else is treated as a vault-relative path: joined with the active
+ *   vault root and converted to an asset URL
+ *
+ * Returns null when the input is empty, the `file://` URL is invalid, or no
+ * vault is open (for vault-relative inputs).
+ */
+export function resolveImageSrc(filePath: string): string | null {
+	if (!filePath) return null;
 
-/** Resolves an image file path to a displayable src URL */
-export async function resolveImageSrc(filePath: string): Promise<string> {
-	// External URL — use directly
-	if (/^https?:\/\//.test(filePath)) return filePath;
+	if (/^https?:\/\//i.test(filePath)) return filePath;
 
-	// Local vault file — read binary and create blob URL
+	if (/^file:/i.test(filePath)) {
+		const fsPath = fileUrlToFsPath(filePath);
+		return fsPath ? convertFileSrc(fsPath) : null;
+	}
+
 	const vaultPath = vaultStore.path;
-	const fullPath = vaultPath ? `${vaultPath}/${filePath}` : filePath;
-	const bytes = await readFile(fullPath);
-	const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
-	const mime = extToMime(ext);
-	const blob = new Blob([bytes], { type: mime });
-	return URL.createObjectURL(blob);
+	if (!vaultPath) return null;
+	return convertFileSrc(`${vaultPath}/${filePath}`);
 }

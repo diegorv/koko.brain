@@ -12,7 +12,7 @@ import {
 	extractBody,
 	rebuildContent,
 } from '$lib/features/properties/properties.logic';
-import { isSafeUrl } from '$lib/utils/sanitize-url';
+import { isSafeUrl, fileUrlToFsPath } from '$lib/utils/sanitize-url';
 import { openWikilinkTarget } from './wikilink-navigation';
 
 export class HorizontalRuleWidget extends WidgetType {
@@ -91,32 +91,6 @@ export class UnorderedListMarkerWidget extends WidgetType {
 	ignoreEvent() {
 		return true;
 	}
-}
-
-/**
- * Converts a `file://` URL to a filesystem path the Tauri asset protocol can
- * resolve. Returns null when the URL is malformed or carries a non-local host
- * (SMB / UNC paths like `file://server/share/x.png` are rejected outright; the
- * asset-protocol scope would block them anyway, but we don't want to forward
- * those to `convertFileSrc` in the first place).
- *
- * Handles Windows drive paths (`file:///C:/foo` → `C:/foo`) and percent-decodes
- * the path so spaces and other reserved characters survive the round-trip
- * (capture deep-links emit `file:///Users/.../CleanShot%202026...png` style URLs).
- */
-function fileUrlToFsPath(fileUrl: string): string | null {
-	let parsed: URL;
-	try {
-		parsed = new URL(fileUrl);
-	} catch {
-		return null;
-	}
-	if (parsed.protocol !== 'file:') return null;
-	if (parsed.host && parsed.host !== 'localhost') return null;
-	let path = decodeURIComponent(parsed.pathname);
-	// Windows: `/C:/foo` → `C:/foo`
-	if (/^\/[A-Za-z]:\//.test(path)) path = path.slice(1);
-	return path;
 }
 
 export class ImageWidget extends WidgetType {

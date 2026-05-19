@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSafeUrl } from '$lib/utils/sanitize-url';
+import { isSafeUrl, fileUrlToFsPath } from '$lib/utils/sanitize-url';
 
 describe('isSafeUrl', () => {
 	it('allows http URLs', () => {
@@ -74,5 +74,41 @@ describe('isSafeUrl', () => {
 
 	it('blocks protocol-relative URLs with whitespace', () => {
 		expect(isSafeUrl('  //evil.com/payload')).toBe(false);
+	});
+});
+
+describe('fileUrlToFsPath', () => {
+	it('decodes a plain file:// URL into a filesystem path', () => {
+		expect(fileUrlToFsPath('file:///Users/me/photo.png')).toBe('/Users/me/photo.png');
+	});
+
+	it('percent-decodes spaces and reserved characters', () => {
+		expect(
+			fileUrlToFsPath(
+				'file:///Users/me/Desktop/Screenshots/CleanShot%202026-05-19%20at%2013.41.27.png',
+			),
+		).toBe('/Users/me/Desktop/Screenshots/CleanShot 2026-05-19 at 13.41.27.png');
+	});
+
+	it('accepts localhost as a host', () => {
+		expect(fileUrlToFsPath('file://localhost/Users/me/photo.png')).toBe('/Users/me/photo.png');
+	});
+
+	it('normalizes Windows drive paths (/C:/foo -> C:/foo)', () => {
+		expect(fileUrlToFsPath('file:///C:/Users/me/photo.png')).toBe('C:/Users/me/photo.png');
+	});
+
+	it('rejects SMB / UNC URLs (non-local host)', () => {
+		expect(fileUrlToFsPath('file://server/share/x.png')).toBeNull();
+	});
+
+	it('rejects non-file protocols', () => {
+		expect(fileUrlToFsPath('https://example.com/x.png')).toBeNull();
+		expect(fileUrlToFsPath('javascript:alert(1)')).toBeNull();
+	});
+
+	it('rejects malformed URLs', () => {
+		expect(fileUrlToFsPath('file://[invalid')).toBeNull();
+		expect(fileUrlToFsPath('not a url')).toBeNull();
 	});
 });

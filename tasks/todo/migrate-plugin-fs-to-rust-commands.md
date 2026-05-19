@@ -51,7 +51,7 @@ Order = current user-impact, NOT engineering convenience. Active visible bugs fi
 
 ### P0 — Active bug
 
-- [ ] Task 1 (P0): Canvas image rendering via Tauri asset protocol. Migrate `src/lib/features/canvas/canvas-image.logic.ts` `resolveImageSrc` to `convertFileSrc` from `@tauri-apps/api/core`, matching the pattern from commit `fdddb0ef` (live-preview images). Update component tests under `src/tests/lib/features/canvas/`. Smoke: add an image node referencing a vault-relative `.png` -> renders without devtools "forbidden path" rejection. Independent slice — does NOT depend on the rest of the migration.
+- [x] Task 1 (P0): Canvas image rendering via Tauri asset protocol. Migrate `src/lib/features/canvas/canvas-image.logic.ts` `resolveImageSrc` to `convertFileSrc` from `@tauri-apps/api/core`, matching the pattern from commit `fdddb0ef` (live-preview images). Update component tests under `src/tests/lib/features/canvas/`. Smoke: add an image node referencing a vault-relative `.png` -> renders without devtools "forbidden path" rejection. Independent slice — does NOT depend on the rest of the migration.
 
 ### P1 — Foundation
 

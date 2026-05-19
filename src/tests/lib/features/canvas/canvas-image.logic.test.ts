@@ -1,5 +1,26 @@
-import { describe, it, expect } from 'vitest';
-import { isImageFile, extToMime } from '$lib/features/canvas/canvas-image.logic';
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('@tauri-apps/api/core', () => ({
+	convertFileSrc: (path: string, protocol: string = 'asset') =>
+		`${protocol}://localhost/${encodeURIComponent(path)}`,
+}));
+
+// Mock localStorage - vaultStore.open persists to it on module load (jsdom in
+// this project doesn't ship a localStorage shim by default).
+const localStorageMock = (() => {
+	let store: Record<string, string> = {};
+	return {
+		getItem: vi.fn((key: string) => store[key] ?? null),
+		setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+		removeItem: vi.fn((key: string) => { delete store[key]; }),
+		clear: vi.fn(() => { store = {}; }),
+	};
+})();
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
+
+import { isImageFile, resolveImageSrc } from '$lib/features/canvas/canvas-image.logic';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 
 describe('isImageFile', () => {
 	it('returns true for .png', () => {
@@ -55,40 +76,71 @@ describe('isImageFile', () => {
 	});
 });
 
-describe('extToMime', () => {
-	it('returns image/png for png', () => {
-		expect(extToMime('png')).toBe('image/png');
+describe('resolveImageSrc', () => {
+	beforeEach(() => {
+		vaultStore.close();
 	});
 
-	it('returns image/jpeg for jpg', () => {
-		expect(extToMime('jpg')).toBe('image/jpeg');
+	afterEach(() => {
+		vaultStore.close();
 	});
 
-	it('returns image/jpeg for jpeg', () => {
-		expect(extToMime('jpeg')).toBe('image/jpeg');
+	it('returns null for empty input', () => {
+		expect(resolveImageSrc('')).toBeNull();
 	});
 
-	it('returns image/gif for gif', () => {
-		expect(extToMime('gif')).toBe('image/gif');
+	it('returns http URLs unchanged', () => {
+		expect(resolveImageSrc('http://example.com/x.png')).toBe('http://example.com/x.png');
 	});
 
-	it('returns image/webp for webp', () => {
-		expect(extToMime('webp')).toBe('image/webp');
+	it('returns https URLs unchanged', () => {
+		expect(resolveImageSrc('https://example.com/x.png')).toBe('https://example.com/x.png');
 	});
 
-	it('returns image/svg+xml for svg', () => {
-		expect(extToMime('svg')).toBe('image/svg+xml');
+	it('routes file:// URLs through convertFileSrc with the decoded path', () => {
+		const result = resolveImageSrc(
+			'file:///Users/me/Desktop/Screenshots/CleanShot%202026-05-19%20at%2013.41.27.png',
+		);
+		expect(result).toBe(
+			`asset://localhost/${encodeURIComponent(
+				'/Users/me/Desktop/Screenshots/CleanShot 2026-05-19 at 13.41.27.png',
+			)}`,
+		);
 	});
 
-	it('returns image/bmp for bmp', () => {
-		expect(extToMime('bmp')).toBe('image/bmp');
+	it('normalizes Windows drive paths from file:// URLs', () => {
+		const result = resolveImageSrc('file:///C:/Users/me/photo.png');
+		expect(result).toBe(`asset://localhost/${encodeURIComponent('C:/Users/me/photo.png')}`);
 	});
 
-	it('falls back to image/png for unknown extension', () => {
-		expect(extToMime('tiff')).toBe('image/png');
+	it('returns null for SMB/UNC file:// URLs (non-local host)', () => {
+		expect(resolveImageSrc('file://server/share/x.png')).toBeNull();
 	});
 
-	it('falls back to image/png for empty string', () => {
-		expect(extToMime('')).toBe('image/png');
+	it('accepts localhost as a file:// host', () => {
+		const result = resolveImageSrc('file://localhost/Users/me/photo.png');
+		expect(result).toBe(`asset://localhost/${encodeURIComponent('/Users/me/photo.png')}`);
+	});
+
+	it('returns null when a vault-relative path is given but no vault is open', () => {
+		expect(resolveImageSrc('assets/photo.png')).toBeNull();
+	});
+
+	it('joins vault-relative paths with the active vault root', () => {
+		vaultStore.open('/Users/me/kokobrain-vault');
+		const result = resolveImageSrc('assets/photo.png');
+		expect(result).toBe(
+			`asset://localhost/${encodeURIComponent('/Users/me/kokobrain-vault/assets/photo.png')}`,
+		);
+	});
+
+	it('is case-insensitive on the file: prefix', () => {
+		const result = resolveImageSrc('FILE:///Users/me/photo.png');
+		expect(result).toBe(`asset://localhost/${encodeURIComponent('/Users/me/photo.png')}`);
+	});
+
+	it('returns null for malformed file:// URLs', () => {
+		// Not a valid URL - `new URL` throws.
+		expect(resolveImageSrc('file://[invalid')).toBeNull();
 	});
 });
