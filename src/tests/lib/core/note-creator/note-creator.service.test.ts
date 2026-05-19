@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+setupLocalStorage();
 
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
@@ -9,9 +12,9 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	exists: vi.fn(),
-	readTextFile: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -34,31 +37,34 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 	updateNoteInIndex: vi.fn(),
 }));
 
-import { exists, readTextFile } from '@tauri-apps/plugin-fs';
+import { pathExists, readText } from '$lib/core/filesystem/fs-rust.service';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 
 describe('openOrCreateNote', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		clearLocalStorage();
+		vaultStore.open('/vault');
 	});
 
 	it('opens the file directly when it already exists', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
-		expect(exists).toHaveBeenCalledWith('/vault/note.md');
+		expect(pathExists).toHaveBeenCalledWith('/vault', '/vault/note.md');
 		expect(invoke).not.toHaveBeenCalled();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
 	});
 
 	it('creates parent directory and writes file when it does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await openOrCreateNote({ filePath: '/vault/sub/note.md', title: 'note' });
 
@@ -71,7 +77,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('still opens the file when updateNoteInIndex throws', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 		vi.mocked(updateNoteInIndex).mockImplementation(() => {
 			throw new Error('index update failed');
 		});
@@ -88,7 +94,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('does not mark recent save when file already exists', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
@@ -96,8 +102,8 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('reads and processes template from templatePath', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(readTextFile).mockResolvedValue('# <% tp.file.title %>');
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(readText).mockResolvedValue('# <% tp.file.title %>');
 
 		await openOrCreateNote({
 			filePath: '/vault/note.md',
@@ -105,13 +111,13 @@ describe('openOrCreateNote', () => {
 			title: 'My Note',
 		});
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/_templates/daily.md');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/_templates/daily.md');
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '# My Note' });
 	});
 
 	it('falls back to inlineTemplate when templatePath read fails', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(readTextFile).mockRejectedValue(new Error('not found'));
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(readText).mockRejectedValue(new Error('not found'));
 
 		await openOrCreateNote({
 			filePath: '/vault/note.md',
@@ -124,8 +130,8 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('falls back to empty content when templatePath read fails and no inlineTemplate', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(readTextFile).mockRejectedValue(new Error('not found'));
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(readText).mockRejectedValue(new Error('not found'));
 
 		await openOrCreateNote({
 			filePath: '/vault/note.md',
@@ -138,7 +144,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('uses empty content when no template is provided', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
@@ -146,7 +152,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('passes customVariables to processTemplate', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 		const customVars = { yesterdayPath: '/vault/yesterday.md' };
 
 		await openOrCreateNote({
@@ -159,8 +165,8 @@ describe('openOrCreateNote', () => {
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '/vault/yesterday.md' });
 	});
 
-	it('throws and logs error when exists() fails', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('permission denied'));
+	it('throws and logs error when pathExists() fails', async () => {
+		vi.mocked(pathExists).mockRejectedValue(new Error('permission denied'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(
@@ -173,7 +179,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('throws and logs error when create_folder fails', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
 			if (cmd === 'create_folder') throw new Error('mkdir failed');
 		});
@@ -189,7 +195,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('throws and logs error when create_note fails', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
 			if (cmd === 'create_note') throw new Error('write failed');
 		});
@@ -206,7 +212,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('still opens the file when refreshTree fails', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 		vi.mocked(refreshTree).mockRejectedValue(new Error('refresh failed'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -219,7 +225,7 @@ describe('openOrCreateNote', () => {
 	});
 
 	it('throws and logs error when openFileInEditor fails', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 		vi.mocked(openFileInEditor).mockRejectedValue(new Error('editor failed'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -228,6 +234,20 @@ describe('openOrCreateNote', () => {
 		).rejects.toThrow('editor failed');
 
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to open or create note:', expect.any(Error));
+		consoleSpy.mockRestore();
+	});
+
+	it('throws when no vault is open', async () => {
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(
+			openOrCreateNote({ filePath: '/vault/note.md', title: 'note' }),
+		).rejects.toThrow('without an active vault');
+
+		expect(pathExists).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
+		expect(openFileInEditor).not.toHaveBeenCalled();
 		consoleSpy.mockRestore();
 	});
 });

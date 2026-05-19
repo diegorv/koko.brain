@@ -1,8 +1,9 @@
-import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { pathExists, readText } from '$lib/core/filesystem/fs-rust.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { processTemplate } from '$lib/utils/template';
 import { error } from '$lib/utils/debug';
@@ -42,13 +43,17 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 	appendLog('FE-STARTUP-PROBE', `openOrCreateNote: ENTRY path=${filePath}`);
 
 	try {
-		const fileExists = await exists(filePath);
-		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: after exists() @ ${(performance.now() - probeStart).toFixed(1)}ms (exists=${fileExists})`);
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) {
+			throw new Error('Cannot create or open note without an active vault');
+		}
+		const fileExists = await pathExists(vaultPath, filePath);
+		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: after pathExists() @ ${(performance.now() - probeStart).toFixed(1)}ms (exists=${fileExists})`);
 
 		if (!fileExists) {
 			// Phase 8.7: parent dir + file creation now go through Rust.
 			// `create_folder` is recursive (no-op when present), and
-			// `create_note` errors if the path already exists — but we
+			// `create_note` errors if the path already exists - but we
 			// already checked above. After both calls succeed, the Rust
 			// side has updated `VaultIndex` AND emitted
 			// `vault-index-updated`, so the panels (Backlinks, Tags,
@@ -60,7 +65,7 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 
 			if (templatePath) {
 				try {
-					content = await readTextFile(templatePath);
+					content = await readText(vaultPath, templatePath);
 				} catch {
 					content = inlineTemplate ?? '';
 				}
