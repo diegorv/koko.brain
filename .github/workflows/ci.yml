@@ -130,24 +130,58 @@ jobs:
     name: Rust (cargo test)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    # macos-latest, not ubuntu, because several modules are gated on
-    # `#[cfg(target_os = "macos")]` and would be silently skipped on
-    # Linux: `src/security/biometric.rs` (Touch ID via LocalAuthentication),
-    # `src/security/keychain.rs` (Keychain Access via security-framework),
-    # `src/commands/fonts.rs` (CoreText system-font enumeration), plus
-    # the macOS-only test at `tests/commands/fonts_test.rs`. The project
-    # ships macOS-only, so a Linux runner would give a false-green on
-    # the platform the binary actually targets.
-    runs-on: macos-latest
+    # Linux for the main suite: cheaper minutes, faster queue. After
+    # the encrypted-notes removal (commit b562224) the only remaining
+    # `#[cfg(target_os = "macos")]` surface is `src/commands/fonts.rs`
+    # (CoreText FFI), which has a `#[cfg(not(target_os = "macos"))]`
+    # fallback returning `Ok(vec![])` so the crate compiles on Linux.
+    # The macOS-only tests at `tests/commands/fonts_test.rs` are wholly
+    # gated and excluded from this run; the `rust-fonts-macos` job below
+    # picks them up on macos-latest so CoreText behavior is still
+    # validated on every PR touching `src-tauri/**`.
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
 
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          # The setup action defaults `rust-targets` to
+          # `aarch64-apple-darwin` for the release/nightly macOS builds.
+          # On a Linux runner we only need the host toolchain — passing
+          # an empty value skips the cross-target install that rustup
+          # would otherwise do unnecessarily.
+          rust-targets: ""
 
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  rust-fonts-macos:
+    name: Rust (cargo test — macOS fonts)
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    # `src/commands/fonts.rs` uses CoreText FFI and its tests
+    # (`tests/commands/fonts_test.rs`) are gated on
+    # `#[cfg(target_os = "macos")]`. They would silently vanish from
+    # the Linux `rust` job above — running them here keeps CoreText
+    # behavior (sorting, UTF-8 encoding, "Helvetica is present")
+    # covered on every PR touching `src-tauri/**`. Filtering to
+    # `--test commands_test commands::fonts_test::macos` compiles only
+    # the `commands_test` integration binary and the library; every
+    # other integration test (db_*, search_*, semantic_*, vault_*, …)
+    # is skipped, so this job is dramatically cheaper than the
+    # previous full macOS-only suite.
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Run fonts tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test commands_test commands::fonts_test::macos
 
   # Aggregate gate used as the single required status check for branch
   # protection. `frontend` and `rust` are skipped when their paths
@@ -158,7 +192,7 @@ jobs:
   # skipped, and fails on any real failure or cancellation.
   ci-success:
     name: CI success
-    needs: [changes, frontend, rust]
+    needs: [changes, frontend, rust, rust-fonts-macos]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
@@ -169,15 +203,17 @@ jobs:
           changes="${{ needs.changes.result }}"
           frontend="${{ needs.frontend.result }}"
           rust="${{ needs.rust.result }}"
-          echo "changes=$changes frontend=$frontend rust=$rust"
+          rust_fonts_macos="${{ needs.rust-fonts-macos.result }}"
+          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos"
           if [ "$changes" != "success" ]; then
             echo "::error::changes job did not succeed (result=$changes)"
             exit 1
           fi
-          for name in frontend rust; do
+          for name in frontend rust rust-fonts-macos; do
             case "$name" in
               frontend) result="$frontend" ;;
               rust) result="$rust" ;;
+              rust-fonts-macos) result="$rust_fonts_macos" ;;
             esac
             if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
               echo "::error::$name job did not pass (result=$result)"
