@@ -114,12 +114,6 @@ export async function openFileInEditor(filePath: string) {
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		perfBaseline('openFileInEditor:fresh', baseStart);
 	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		if (msg === 'canceled') return; // Touch ID dismissed — silent
-		if (msg === 'no-encryption-key') {
-			toast.error('No encryption key found for this vault. Restore from a recovery key in Settings > Security.');
-			return;
-		}
 		error('EDITOR', 'Failed to open file:', err);
 		toast.error('Failed to open file.');
 	}

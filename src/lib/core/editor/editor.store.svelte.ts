@@ -95,14 +95,6 @@ export const editorStore = {
 		}
 	},
 
-	/** Updates the encryption flag for a tab identified by path */
-	setEncrypted(path: string, encrypted: boolean) {
-		const tab = tabs.find((t) => t.path === path);
-		if (tab) {
-			tab.encrypted = encrypted;
-		}
-	},
-
 	setPendingScrollPosition(pos: number | null) {
 		pendingScrollPosition = pos;
 	},

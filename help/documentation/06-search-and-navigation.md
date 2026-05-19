@@ -61,8 +61,6 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Create 1:1 Note | `Cmd+Shift+N` |
 | | New File from Template | — |
 | **Settings** | Open Settings | `Cmd+,` |
-| **Encryption** | Toggle Note Encryption | — |
-| | Lock Encrypted Notes | — |
 
 ---
 

@@ -243,43 +243,6 @@ export function getBuiltInCommands(): AppCommand[] {
 				openFileHistory(path);
 			},
 		},
-		{
-			id: 'encrypted-notes:toggle',
-			label: 'Toggle Note Encryption',
-			category: 'Encrypted Notes',
-			action: async () => {
-				const tab = editorStore.activeTab;
-				if (!tab) return;
-				if (tab.encrypted) {
-					const { decryptCurrentFile } = await import('$lib/plugins/encrypted-notes/encrypted-notes.service');
-					await decryptCurrentFile();
-				} else {
-					const { encryptCurrentFile } = await import('$lib/plugins/encrypted-notes/encrypted-notes.service');
-					await encryptCurrentFile();
-				}
-			},
-		},
-		{
-			id: 'encrypted-notes:lock',
-			label: 'Lock Encrypted Notes',
-			category: 'Encrypted Notes',
-			action: async () => {
-				const { lockEncryption } = await import('$lib/plugins/encrypted-notes/encrypted-notes.service');
-				await lockEncryption();
-			},
-		},
-		{
-			id: 'encryption:show-recovery-key',
-			label: 'Show Encryption Recovery Key',
-			category: 'Security',
-			action: () => settingsDialogStore.open('security'),
-		},
-		{
-			id: 'encryption:restore-from-recovery-key',
-			label: 'Restore Encryption from Recovery Key',
-			category: 'Security',
-			action: () => settingsDialogStore.open('security'),
-		},
 	];
 }
 

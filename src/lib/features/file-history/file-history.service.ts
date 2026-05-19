@@ -78,7 +78,6 @@ export async function selectSnapshot(snapshot: SnapshotInfo): Promise<void> {
 
 /**
  * Restores a snapshot by replacing the editor content and saving through the normal save flow.
- * Goes through editor hooks for encryption safety — encrypted files are re-encrypted on save.
  */
 export async function restoreSnapshot(snapshotId: number): Promise<void> {
 	debug('HISTORY', `Restoring snapshot id=${snapshotId}`);
@@ -94,7 +93,7 @@ export async function restoreSnapshot(snapshotId: number): Promise<void> {
 		});
 	}
 
-	// Trigger a normal save — goes through write hooks for encryption safety
+	// Trigger a normal save — runs through editor save hooks
 	debug('HISTORY', 'Saving restored content via normal save flow for:', filePath);
 	await saveCurrentFile();
 	fileHistoryStore.reset();

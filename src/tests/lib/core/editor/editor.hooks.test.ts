@@ -50,11 +50,11 @@ describe('applyReadTransform', () => {
 	it('returns transformed content when transform applies', async () => {
 		setFileReadTransform(async (_path, raw) => ({
 			content: raw.toUpperCase(),
-			tabProps: { encrypted: true },
+			tabProps: { pinned: true },
 		}));
 
 		const result = await applyReadTransform('/vault/note.md', 'hello');
-		expect(result).toEqual({ content: 'HELLO', tabProps: { encrypted: true } });
+		expect(result).toEqual({ content: 'HELLO', tabProps: { pinned: true } });
 	});
 
 	it('returns null when transform returns null (does not apply)', async () => {
@@ -66,10 +66,10 @@ describe('applyReadTransform', () => {
 
 	it('propagates thrown errors for abort scenarios', async () => {
 		setFileReadTransform(async () => {
-			throw new Error('Touch ID canceled');
+			throw new Error('aborted by transform');
 		});
 
-		await expect(applyReadTransform('/vault/note.md', 'raw')).rejects.toThrow('Touch ID canceled');
+		await expect(applyReadTransform('/vault/note.md', 'raw')).rejects.toThrow('aborted by transform');
 	});
 });
 
@@ -86,7 +86,7 @@ describe('applyWriteTransform', () => {
 	it('returns true when transform handles write', async () => {
 		setFileWriteTransform(async () => true);
 
-		const result = await applyWriteTransform('/vault/note.md', 'content', makeTab({ encrypted: true }));
+		const result = await applyWriteTransform('/vault/note.md', 'content', makeTab({ pinned: true }));
 		expect(result).toBe(true);
 	});
 

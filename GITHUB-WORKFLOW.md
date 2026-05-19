@@ -53,14 +53,14 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
   - `pnpm check` (svelte-kit sync + svelte-check). Catches TypeScript errors, Svelte template errors, and unused imports.
   - `pnpm vitest run` (the full unit suite, ~5400 tests across the `src/tests/` tree). Covers pure logic, stores, services, parsers, and component-level behaviour.
   - `pnpm build` (Vite production build). Catches bundling regressions that the typecheck and unit suite miss: SSR-incompatible imports, dynamic import paths that don't resolve, type-only re-exports that become runtime errors, missing asset references. Without this step, those failures only surface inside `tauri-action` during release.
-- `rust`: `cargo test --manifest-path src-tauri/Cargo.toml`. Covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, history/snapshot logic, and crypto helpers. Runs on `macos-latest` rather than `ubuntu-latest` because several modules are gated on `#[cfg(target_os = "macos")]` and would be silently skipped on Linux: Touch ID (`src/security/biometric.rs`), Keychain access (`src/security/keychain.rs`), system fonts (`src/commands/fonts.rs`), and the macOS-only test at `tests/commands/fonts_test.rs`. macOS is also the only platform the binary ships to, so testing elsewhere would risk a false-green.
+- `rust`: `cargo test --manifest-path src-tauri/Cargo.toml`. Covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `macos-latest` rather than `ubuntu-latest` because `src/commands/fonts.rs` (and its `tests/commands/fonts_test.rs`) is gated on `#[cfg(target_os = "macos")]` and would be silently skipped on Linux. macOS is also the only platform the binary ships to, so testing elsewhere would risk a false-green.
 
 **What CI does NOT test**
 
 - End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml) and only runs on PRs and tag pushes.
 - Tauri build / packaging / signing (that is what `release.yml` does on tag).
-- macOS-specific Tauri APIs that the mock layer stubs (Touch ID, Keychain, system fonts, history database via Rust, FTS5 / semantic search, terminal pty, native window events). The frontend exercises these via the mock layer under E2E; native paths are only validated by `cargo test`.
-- Plugin features that the E2E mock layer treats as no-ops (encryption end-to-end, semantic search, file history, terminal, system fonts).
+- macOS-specific Tauri APIs that the mock layer stubs (system fonts, history database via Rust, FTS5 / semantic search, terminal pty, native window events). The frontend exercises these via the mock layer under E2E; native paths are only validated by `cargo test`.
+- Plugin features that the E2E mock layer treats as no-ops (semantic search, file history, terminal, system fonts).
 - Visual regression. There are no screenshot diffs.
 - Multi-browser. The E2E suite (separate workflow) only configures Chromium.
 
@@ -89,12 +89,12 @@ On failure, the Playwright HTML report, the `test-results/` directory, and `/tmp
 
 **What E2E tests**
 
-The frontend layer end-to-end against the Tauri mock layer in `e2e/mocks/`. The mock layer implements an in-memory `VaultIndex` (parsing frontmatter / wikilinks / tags / tasks with the same pure logic the production code uses), a virtual filesystem, dialog/event/window stubs, and a passthrough for encryption/semantic/history/terminal commands. The Vite alias map (`vite.config.js`) swaps every `@tauri-apps/*` import for the corresponding mock under `PLAYWRIGHT=true`.
+The frontend layer end-to-end against the Tauri mock layer in `e2e/mocks/`. The mock layer implements an in-memory `VaultIndex` (parsing frontmatter / wikilinks / tags / tasks with the same pure logic the production code uses), a virtual filesystem, dialog/event/window stubs, and a passthrough for semantic/history/terminal commands. The Vite alias map (`vite.config.js`) swaps every `@tauri-apps/*` import for the corresponding mock under `PLAYWRIGHT=true`.
 
 **What E2E does NOT test**
 
 - The real Rust commands. The mock layer answers IPC calls with in-memory implementations. A bug in the actual `VaultIndex` (`src-tauri/src/vault/index.rs`) or in the FTS5 search service is not visible here.
-- Plugin paths the mock returns no-op for: encryption end-to-end, semantic search, file history with the real SQLite database, terminal PTY, system fonts.
+- Plugin paths the mock returns no-op for: semantic search, file history with the real SQLite database, terminal PTY, system fonts.
 - Tauri runtime behaviour (auto-updater, native window events, deep links, menu bar). Listeners are mocked.
 - Visual regression. No screenshot baselines.
 - Multi-browser. Chromium only.

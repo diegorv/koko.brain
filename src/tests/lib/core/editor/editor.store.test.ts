@@ -199,33 +199,6 @@ describe('editorStore', () => {
 		});
 	});
 
-	describe('setEncrypted', () => {
-		it('sets encrypted flag on matching tab', () => {
-			editorStore.addTab(makeTab({ path: '/a.md' }));
-
-			editorStore.setEncrypted('/a.md', true);
-
-			expect(editorStore.tabs[0].encrypted).toBe(true);
-		});
-
-		it('clears encrypted flag', () => {
-			editorStore.addTab(makeTab({ path: '/a.md' }));
-			editorStore.setEncrypted('/a.md', true);
-
-			editorStore.setEncrypted('/a.md', false);
-
-			expect(editorStore.tabs[0].encrypted).toBe(false);
-		});
-
-		it('does nothing for non-matching path', () => {
-			editorStore.addTab(makeTab({ path: '/a.md' }));
-
-			editorStore.setEncrypted('/b.md', true);
-
-			expect(editorStore.tabs[0].encrypted).toBeUndefined();
-		});
-	});
-
 	describe('setPendingScrollPosition', () => {
 		it('sets and gets a pending scroll position', () => {
 			editorStore.setPendingScrollPosition(42);
