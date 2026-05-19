@@ -1,5 +1,6 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
+import { readText, writeText } from '$lib/core/filesystem/fs-rust.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
@@ -14,10 +15,12 @@ import { error } from '$lib/utils/debug';
  */
 export async function createKanbanFile(parentPath: string): Promise<string | null> {
 	try {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return null;
 		const filePath = await createFile(parentPath, 'Untitled.kanban');
 		if (!filePath) return null;
 		const board = createEmptyKanbanBoard();
-		await writeTextFile(filePath, serializeKanbanBoard(board));
+		await writeText(vaultPath, filePath, serializeKanbanBoard(board));
 		return filePath;
 	} catch (err) {
 		error('KANBAN', 'Failed to create kanban file:', err);
@@ -31,9 +34,9 @@ export function resetKanban(): void {
 	linkedContentCache.clear();
 }
 
-// ── Card linked file content preview ────────────────────────────
+// -- Card linked file content preview --
 
-/** Cache for card content preview: card text → markdown body (without frontmatter) */
+/** Cache for card content preview: card text -> markdown body (without frontmatter) */
 const linkedContentCache = new Map<string, string>();
 
 /**
@@ -55,6 +58,12 @@ export async function loadLinkedFileContent(cardText: string): Promise<string> {
 	const target = wikilinks[0].target;
 
 	try {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) {
+			linkedContentCache.set(cardText, '');
+			return '';
+		}
+
 		const allFilePaths = flattenFileTree(fsStore.fileTree).map((f) => f.path);
 		const cache = buildResolutionCache(allFilePaths);
 		const resolved = resolveWikilinkCached(target, cache);
@@ -64,7 +73,7 @@ export async function loadLinkedFileContent(cardText: string): Promise<string> {
 			return '';
 		}
 
-		const content = await readTextFile(resolved);
+		const content = await readText(vaultPath, resolved);
 		const body = stripFrontmatter(content).trim();
 		linkedContentCache.set(cardText, body);
 		return body;
