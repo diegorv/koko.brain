@@ -7,14 +7,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
-	remove: vi.fn(),
-	rename: vi.fn(),
-	exists: vi.fn(),
-	copyFile: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+	renamePath: vi.fn(),
+	copyPath: vi.fn(),
+	deletePath: vi.fn(),
 	readDir: vi.fn(),
 }));
 
@@ -57,7 +56,15 @@ vi.mock('$lib/core/trash/trash.service', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
+import {
+	pathExists,
+	readText,
+	writeText,
+	renamePath,
+	copyPath,
+	readDir,
+	type FsDirEntry,
+} from '$lib/core/filesystem/fs-rust.service';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -84,24 +91,26 @@ import {
 } from '$lib/core/filesystem/fs.service';
 import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
 
+function entry(name: string, isDirectory: boolean = false): FsDirEntry {
+	return { name, path: `/parent/${name}`, isDirectory };
+}
+
 /**
- * Default mock for exists() — returns true for .kokobrain/folder-order.json,
- * false for everything else. Tests can override with mockResolvedValueOnce.
+ * Default mock for the FS-rust wrappers - simulates a "no folder-order.json
+ * present yet" state. Tests can override per-case with mockResolvedValueOnce.
  */
 function setupDefaultMocks() {
-	vi.mocked(exists).mockImplementation(async (p) => {
-		const path = String(p);
-		if (path.endsWith('.kokobrain/folder-order.json')) return true;
+	vi.mocked(pathExists).mockImplementation(async (_vault, p) => {
+		if (String(p).endsWith('.kokobrain/folder-order.json')) return true;
 		return false;
 	});
-	vi.mocked(readTextFile).mockImplementation(async (p) => {
-		const path = String(p);
-		if (path.endsWith('.kokobrain/folder-order.json')) return '{}';
-		throw new Error(`Unmocked readTextFile: ${path}`);
+	vi.mocked(readText).mockImplementation(async (_vault, p) => {
+		if (String(p).endsWith('.kokobrain/folder-order.json')) return '{}';
+		throw new Error(`Unmocked readText: ${p}`);
 	});
 	vi.mocked(invoke).mockResolvedValue([]);
-	vi.mocked(writeTextFile).mockResolvedValue(undefined);
-	vi.mocked(mkdir).mockResolvedValue(undefined);
+	vi.mocked(writeText).mockResolvedValue(undefined);
+	vi.mocked(readDir).mockResolvedValue([]);
 }
 
 describe('loadFolderOrder', () => {
@@ -114,15 +123,12 @@ describe('loadFolderOrder', () => {
 	});
 
 	it('creates template file when folder-order.json does not exist', async () => {
-		vi.mocked(exists).mockImplementation(async (p) => {
-			const path = String(p);
-			if (path.endsWith('.kokobrain/folder-order.json')) return false;
-			return false;
-		});
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		const result = await loadFolderOrder('/vault');
 
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
 			'/vault/.kokobrain/folder-order.json',
 			expect.stringContaining('_comment'),
 		);
@@ -130,20 +136,16 @@ describe('loadFolderOrder', () => {
 		expect(fsStore.folderOrder).toEqual({});
 	});
 
-	it('creates .kokobrain directory with recursive flag when folder-order.json does not exist', async () => {
-		vi.mocked(exists).mockImplementation(async (p) => {
-			const path = String(p);
-			if (path.endsWith('.kokobrain/folder-order.json')) return false;
-			return false;
-		});
+	it('creates .kokobrain directory via create_folder when folder-order.json does not exist', async () => {
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await loadFolderOrder('/vault');
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/.kokobrain', { recursive: true });
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/.kokobrain' });
 	});
 
 	it('parses valid folder order and filters underscore-prefixed keys', async () => {
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
+		vi.mocked(readText).mockImplementation(async (_v, p) => {
 			if (String(p).endsWith('.kokobrain/folder-order.json')) {
 				return JSON.stringify({
 					_comment: 'this is a comment',
@@ -152,7 +154,7 @@ describe('loadFolderOrder', () => {
 					'Projects': ['active', 'backlog'],
 				});
 			}
-			throw new Error(`Unmocked readTextFile: ${p}`);
+			throw new Error(`Unmocked readText: ${p}`);
 		});
 
 		const result = await loadFolderOrder('/vault');
@@ -165,9 +167,9 @@ describe('loadFolderOrder', () => {
 	});
 
 	it('returns empty object for invalid JSON', async () => {
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
+		vi.mocked(readText).mockImplementation(async (_v, p) => {
 			if (String(p).endsWith('.kokobrain/folder-order.json')) return 'not valid json';
-			throw new Error(`Unmocked readTextFile: ${p}`);
+			throw new Error(`Unmocked readText: ${p}`);
 		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -179,9 +181,9 @@ describe('loadFolderOrder', () => {
 	});
 
 	it('returns empty object when JSON is an array', async () => {
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
+		vi.mocked(readText).mockImplementation(async (_v, p) => {
 			if (String(p).endsWith('.kokobrain/folder-order.json')) return '["a", "b"]';
-			throw new Error(`Unmocked readTextFile: ${p}`);
+			throw new Error(`Unmocked readText: ${p}`);
 		});
 
 		const result = await loadFolderOrder('/vault');
@@ -191,9 +193,9 @@ describe('loadFolderOrder', () => {
 	});
 
 	it('returns empty object when JSON is null', async () => {
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
+		vi.mocked(readText).mockImplementation(async (_v, p) => {
 			if (String(p).endsWith('.kokobrain/folder-order.json')) return 'null';
-			throw new Error(`Unmocked readTextFile: ${p}`);
+			throw new Error(`Unmocked readText: ${p}`);
 		});
 
 		const result = await loadFolderOrder('/vault');
@@ -203,7 +205,7 @@ describe('loadFolderOrder', () => {
 	});
 
 	it('skips entries with non-string-array values', async () => {
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
+		vi.mocked(readText).mockImplementation(async (_v, p) => {
 			if (String(p).endsWith('.kokobrain/folder-order.json')) {
 				return JSON.stringify({
 					'.': ['Valid'],
@@ -212,7 +214,7 @@ describe('loadFolderOrder', () => {
 					'bad-mixed': ['a', 1],
 				});
 			}
-			throw new Error(`Unmocked readTextFile: ${p}`);
+			throw new Error(`Unmocked readText: ${p}`);
 		});
 
 		const result = await loadFolderOrder('/vault');
@@ -267,11 +269,11 @@ describe('loadDirectoryTree', () => {
 			makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
 		];
 		vi.mocked(invoke).mockResolvedValueOnce(tree);
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
+		vi.mocked(readText).mockImplementation(async (_v, p) => {
 			if (String(p).endsWith('.kokobrain/folder-order.json')) {
 				return JSON.stringify({ '.': ['Alpha', 'Zebra'] });
 			}
-			throw new Error(`Unmocked readTextFile: ${p}`);
+			throw new Error(`Unmocked readText: ${p}`);
 		});
 
 		await loadDirectoryTree('/vault');
@@ -305,7 +307,6 @@ describe('refreshTree', () => {
 	});
 
 	it('does nothing when no vault is open', async () => {
-		// vaultStore not opened — path is null
 		vaultStore.close();
 		await refreshTree();
 
@@ -315,11 +316,11 @@ describe('refreshTree', () => {
 
 	it('passes expectedSortVersion through to loadDirectoryTree', async () => {
 		vaultStore.open('/vault');
-		// First bump sortVersion by calling changeSortOption (sortVersion → 1)
+		// First bump sortVersion by calling changeSortOption (sortVersion -> 1)
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 		await changeSortOption('modified');
 
-		// Now call refreshTree with a stale version (0) — result should be discarded
+		// Now call refreshTree with a stale version (0) - result should be discarded
 		const staleTree = [makeFileNode({ name: 'stale.md', path: '/vault/stale.md' })];
 		vi.mocked(invoke).mockResolvedValueOnce(staleTree);
 
@@ -330,7 +331,7 @@ describe('refreshTree', () => {
 	});
 });
 
-describe('loadDirectoryTree — stale version discard', () => {
+describe('loadDirectoryTree - stale version discard', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
@@ -351,7 +352,7 @@ describe('loadDirectoryTree — stale version discard', () => {
 		vi.mocked(invoke).mockResolvedValueOnce(initialTree);
 		await changeSortOption('modified');
 
-		// Call loadDirectoryTree with stale version (0) — should discard
+		// Call loadDirectoryTree with stale version (0) - should discard
 		const staleTree = [makeFileNode({ name: 'stale.md', path: '/vault/stale.md' })];
 		vi.mocked(invoke).mockResolvedValueOnce(staleTree);
 		await loadDirectoryTree('/vault', 0);
@@ -365,7 +366,7 @@ describe('loadDirectoryTree — stale version discard', () => {
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 		await changeSortOption('modified');
 
-		// Call with matching version — should apply
+		// Call with matching version - should apply
 		const newTree = [makeFileNode({ name: 'fresh.md', path: '/vault/fresh.md' })];
 		vi.mocked(invoke).mockResolvedValueOnce(newTree);
 		await loadDirectoryTree('/vault', 1);
@@ -378,7 +379,7 @@ describe('loadDirectoryTree — stale version discard', () => {
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 		await changeSortOption('modified');
 
-		// Call without expectedSortVersion — should always apply
+		// Call without expectedSortVersion - should always apply
 		const newTree = [makeFileNode({ name: 'fresh.md', path: '/vault/fresh.md' })];
 		vi.mocked(invoke).mockResolvedValueOnce(newTree);
 		await loadDirectoryTree('/vault');
@@ -398,9 +399,7 @@ describe('createFile', () => {
 	});
 
 	it('creates file with requested name when no conflicts', async () => {
-		vi.mocked(readDir).mockResolvedValue([] as any);
-		// Default invoke mock returns []; create_note returns undefined.
-		// Other invokes (refreshTree → scan_vault) keep returning [].
+		vi.mocked(readDir).mockResolvedValue([]);
 
 		const result = await createFile('/vault', 'new.md');
 
@@ -409,9 +408,7 @@ describe('createFile', () => {
 	});
 
 	it('generates unique name when file already exists', async () => {
-		vi.mocked(readDir).mockResolvedValue([
-			{ name: 'new.md', isDirectory: false, isFile: true, isSymlink: false },
-		] as any);
+		vi.mocked(readDir).mockResolvedValue([entry('new.md')]);
 
 		const result = await createFile('/vault', 'new.md');
 
@@ -419,8 +416,19 @@ describe('createFile', () => {
 		expect(result).toBe('/vault/new 1.md');
 	});
 
+	it('returns null when no vault is open', async () => {
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await createFile('/vault', 'new.md');
+
+		expect(result).toBeNull();
+		expect(invoke).not.toHaveBeenCalledWith('create_note', expect.anything());
+		consoleSpy.mockRestore();
+	});
+
 	it('returns null on write error', async () => {
-		vi.mocked(readDir).mockResolvedValue([] as any);
+		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
 			if (cmd === 'create_note') throw new Error('write error');
 			return [];
@@ -445,7 +453,7 @@ describe('createFolder', () => {
 	});
 
 	it('creates folder and expands it in the tree', async () => {
-		vi.mocked(readDir).mockResolvedValue([] as any);
+		vi.mocked(readDir).mockResolvedValue([]);
 
 		const result = await createFolder('/vault', 'new-folder');
 
@@ -455,9 +463,7 @@ describe('createFolder', () => {
 	});
 
 	it('generates unique name when folder already exists', async () => {
-		vi.mocked(readDir).mockResolvedValue([
-			{ name: 'new-folder', isDirectory: true, isFile: false, isSymlink: false },
-		] as any);
+		vi.mocked(readDir).mockResolvedValue([entry('new-folder', true)]);
 
 		const result = await createFolder('/vault', 'new-folder');
 
@@ -466,8 +472,18 @@ describe('createFolder', () => {
 		expect(result).toBe('/vault/new-folder 1');
 	});
 
+	it('returns null when no vault is open', async () => {
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await createFolder('/vault', 'new-folder');
+
+		expect(result).toBeNull();
+		consoleSpy.mockRestore();
+	});
+
 	it('returns null on mkdir error', async () => {
-		vi.mocked(readDir).mockResolvedValue([] as any);
+		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
 			if (cmd === 'create_folder') throw new Error('mkdir error');
 			return [];
@@ -514,15 +530,15 @@ describe('deleteItem', () => {
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
 	});
 
-	it('falls back to permanent delete when no vault is open', async () => {
+	it('returns false (logging an error) when no vault is open', async () => {
 		vaultStore.close();
-		vi.mocked(remove).mockResolvedValue(undefined);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await deleteItem('/vault/note.md');
 
 		expect(moveToTrash).not.toHaveBeenCalled();
-		expect(remove).toHaveBeenCalledWith('/vault/note.md', { recursive: true });
-		expect(result).toBe(true);
+		expect(result).toBe(false);
+		consoleSpy.mockRestore();
 	});
 
 	it('returns false on error', async () => {
@@ -545,36 +561,47 @@ describe('renameItem', () => {
 	});
 
 	it('renames item if target does not exist', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await renameItem('/vault/old.md', 'new.md');
 
-		expect(rename).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
+		expect(renamePath).toHaveBeenCalledWith('/vault', '/vault/old.md', '/vault/new.md');
 		expect(result).toBe('/vault/new.md');
 	});
 
 	it('returns same path if name is unchanged', async () => {
 		const result = await renameItem('/vault/note.md', 'note.md');
 
-		expect(rename).not.toHaveBeenCalled();
+		expect(renamePath).not.toHaveBeenCalled();
 		expect(result).toBe('/vault/note.md');
 	});
 
 	it('returns null if target already exists', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(true);
+		vi.mocked(pathExists).mockResolvedValueOnce(true);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await renameItem('/vault/old.md', 'existing.md');
 
-		expect(rename).not.toHaveBeenCalled();
+		expect(renamePath).not.toHaveBeenCalled();
+		expect(result).toBeNull();
+		consoleSpy.mockRestore();
+	});
+
+	it('returns null when no vault is open', async () => {
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await renameItem('/vault/old.md', 'new.md');
+
+		expect(renamePath).not.toHaveBeenCalled();
 		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
 	it('calls link updater before tab updater so excludePath matches noteContents key', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 		const callOrder: string[] = [];
 		vi.mocked(updateLinksAfterRename).mockImplementation(async () => { callOrder.push('links'); });
 		vi.mocked(updateTabAfterRenameOrMove).mockImplementation(() => { callOrder.push('tab'); });
@@ -588,7 +615,7 @@ describe('renameItem', () => {
 	});
 
 	it('does not call link updater when rename target already exists', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(true);
+		vi.mocked(pathExists).mockResolvedValueOnce(true);
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await renameItem('/vault/old.md', 'existing.md');
@@ -599,8 +626,8 @@ describe('renameItem', () => {
 	});
 
 	it('does not update links for non-markdown files', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await renameItem('/vault/image.png', 'renamed.png');
 
@@ -609,9 +636,9 @@ describe('renameItem', () => {
 		expect(updateLinksAfterRename).not.toHaveBeenCalled();
 	});
 
-	it('returns null when rename() throws', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockRejectedValueOnce(new Error('rename error'));
+	it('returns null when renamePath rejects', async () => {
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockRejectedValueOnce(new Error('rename error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await renameItem('/vault/old.md', 'new.md');
@@ -621,20 +648,19 @@ describe('renameItem', () => {
 	});
 
 	it('updates bookmark and file-icon paths on successful rename', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await renameItem('/vault/old.md', 'new.md');
 
 		expect(result).toBe('/vault/new.md');
-		expect(rename).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
 		expect(updateBookmarkPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/old.md', '/vault/new.md');
 		expect(updateFileIconPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/old.md', '/vault/new.md');
 	});
 
 	it('removes old path from tag index on successful rename', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await renameItem('/vault/old.md', 'new.md');
 
@@ -654,12 +680,12 @@ describe('moveItem', () => {
 	});
 
 	it('moves file to target directory and expands it', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await moveItem('/vault/note.md', '/vault/folder');
 
-		expect(rename).toHaveBeenCalledWith('/vault/note.md', '/vault/folder/note.md');
+		expect(renamePath).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/folder/note.md');
 		expect(fsStore.expandedDirs.has('/vault/folder')).toBe(true);
 		expect(result).toBe('/vault/folder/note.md');
 	});
@@ -667,24 +693,35 @@ describe('moveItem', () => {
 	it('returns null if source and target are the same', async () => {
 		const result = await moveItem('/vault/folder/note.md', '/vault/folder');
 
-		expect(rename).not.toHaveBeenCalled();
+		expect(renamePath).not.toHaveBeenCalled();
 		expect(result).toBeNull();
 	});
 
 	it('returns null if target already exists', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(true);
+		vi.mocked(pathExists).mockResolvedValueOnce(true);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await moveItem('/vault/note.md', '/vault/folder');
 
-		expect(rename).not.toHaveBeenCalled();
+		expect(renamePath).not.toHaveBeenCalled();
+		expect(result).toBeNull();
+		consoleSpy.mockRestore();
+	});
+
+	it('returns null when no vault is open', async () => {
+		vaultStore.close();
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await moveItem('/vault/note.md', '/vault/folder');
+
+		expect(renamePath).not.toHaveBeenCalled();
 		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
 	it('calls tab updater but not link updater on move', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await moveItem('/vault/note.md', '/vault/subfolder');
 
@@ -694,9 +731,9 @@ describe('moveItem', () => {
 		expect(updateLinksAfterRename).not.toHaveBeenCalled();
 	});
 
-	it('returns null when rename() throws', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockRejectedValueOnce(new Error('rename error'));
+	it('returns null when renamePath rejects', async () => {
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockRejectedValueOnce(new Error('rename error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await moveItem('/vault/note.md', '/vault/folder');
@@ -706,20 +743,19 @@ describe('moveItem', () => {
 	});
 
 	it('updates bookmark and file-icon paths on successful move', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await moveItem('/vault/note.md', '/vault/folder');
 
 		expect(result).toBe('/vault/folder/note.md');
-		expect(rename).toHaveBeenCalledWith('/vault/note.md', '/vault/folder/note.md');
 		expect(updateBookmarkPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/folder/note.md');
 		expect(updateFileIconPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/folder/note.md');
 	});
 
 	it('removes old path from tag index on successful move', async () => {
-		vi.mocked(exists).mockResolvedValueOnce(false);
-		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValueOnce(false);
+		vi.mocked(renamePath).mockResolvedValue(undefined);
 
 		const result = await moveItem('/vault/note.md', '/vault/folder');
 
@@ -780,45 +816,47 @@ describe('duplicateItem', () => {
 	});
 
 	it('duplicates a file with copy name', async () => {
-		vi.mocked(readDir).mockResolvedValue([
-			{ name: 'note.md', isDirectory: false, isFile: true, isSymlink: false },
-		] as any);
-		vi.mocked(copyFile).mockResolvedValue(undefined);
+		vi.mocked(readDir).mockResolvedValue([entry('note.md')]);
+		vi.mocked(copyPath).mockResolvedValue(undefined);
 
 		const result = await duplicateItem('/vault/note.md', false);
 
-		expect(copyFile).toHaveBeenCalledWith('/vault/note.md', '/vault/note copy.md');
+		expect(copyPath).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/note copy.md');
 		expect(result).toBe('/vault/note copy.md');
 	});
 
 	it('generates incremented name when copy already exists', async () => {
 		vi.mocked(readDir).mockResolvedValue([
-			{ name: 'note.md', isDirectory: false, isFile: true, isSymlink: false },
-			{ name: 'note copy.md', isDirectory: false, isFile: true, isSymlink: false },
-		] as any);
-		vi.mocked(copyFile).mockResolvedValue(undefined);
+			entry('note.md'),
+			entry('note copy.md'),
+		]);
+		vi.mocked(copyPath).mockResolvedValue(undefined);
 
 		const result = await duplicateItem('/vault/note.md', false);
 
-		expect(copyFile).toHaveBeenCalledWith('/vault/note.md', '/vault/note copy 2.md');
+		expect(copyPath).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/note copy 2.md');
 		expect(result).toBe('/vault/note copy 2.md');
 	});
 
-	it('duplicates a directory recursively', async () => {
+	it('duplicates a directory recursively (create_folder + copyPath per entry)', async () => {
 		vi.mocked(readDir)
-			.mockResolvedValueOnce([
-				{ name: 'docs', isDirectory: true, isFile: false, isSymlink: false },
-			] as any)
-			.mockResolvedValueOnce([
-				{ name: 'file.md', isDirectory: false, isFile: true, isSymlink: false },
-			] as any);
-		vi.mocked(copyFile).mockResolvedValue(undefined);
+			.mockResolvedValueOnce([entry('docs', true)])
+			.mockResolvedValueOnce([entry('file.md')]);
+		vi.mocked(copyPath).mockResolvedValue(undefined);
 
 		const result = await duplicateItem('/vault/docs', true);
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/docs copy');
-		expect(copyFile).toHaveBeenCalledWith('/vault/docs/file.md', '/vault/docs copy/file.md');
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/docs copy' });
+		expect(copyPath).toHaveBeenCalledWith('/vault', '/vault/docs/file.md', '/vault/docs copy/file.md');
 		expect(result).toBe('/vault/docs copy');
+	});
+
+	it('returns null when no vault is open', async () => {
+		vaultStore.close();
+
+		const result = await duplicateItem('/vault/note.md', false);
+
+		expect(result).toBeNull();
 	});
 
 	it('returns null on error', async () => {
@@ -850,7 +888,7 @@ describe('revealInSystemExplorer', () => {
 	it('handles errors gracefully', async () => {
 		vi.mocked(revealItemInDir).mockRejectedValue(new Error('not supported'));
 
-		// Should not throw — errors are caught and logged
+		// Should not throw - errors are caught and logged
 		await expect(revealInSystemExplorer('/vault/note.md')).resolves.toBeUndefined();
 		expect(error).toHaveBeenCalled();
 	});
@@ -896,7 +934,7 @@ describe('state transitions', () => {
 		await changeSortOption('modified');
 		vi.clearAllMocks();
 
-		// Reset — sortVersion should go back to 0
+		// Reset - sortVersion should go back to 0
 		resetFileSystem();
 
 		// After reset, a new changeSortOption should work normally

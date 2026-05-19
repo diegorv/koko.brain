@@ -1,9 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
-import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, isMarkdownFile, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
+import {
+	pathExists,
+	readText,
+	writeText,
+	renamePath,
+	copyPath,
+	readDir,
+} from './fs-rust.service';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
@@ -34,23 +41,24 @@ const FOLDER_ORDER_TEMPLATE: Record<string, unknown> = {
 	},
 };
 
-/** Ensures the `.kokobrain` directory exists, creating it if needed */
+/** Ensures the `.kokobrain` directory exists, creating it if needed. Uses the
+ * existing `create_folder` Rust command (recursive `create_dir_all`). */
 async function ensureKokobrainDir(vaultPath: string): Promise<void> {
-	await mkdir(`${vaultPath}/${KOKOBRAIN_DIR}`, { recursive: true });
+	await invoke('create_folder', { path: `${vaultPath}/${KOKOBRAIN_DIR}` });
 }
 
 /** Reads the folder order config from `.kokobrain/folder-order.json`. Creates a template file if missing. Falls back to `{}` on error. */
 export async function loadFolderOrder(vaultPath: string): Promise<FolderOrderMap> {
 	const filePath = `${vaultPath}/${KOKOBRAIN_DIR}/${FOLDER_ORDER_FILE}`;
 	try {
-		const fileExists = await exists(filePath);
+		const fileExists = await pathExists(vaultPath, filePath);
 		if (!fileExists) {
 			await ensureKokobrainDir(vaultPath);
-			await writeTextFile(filePath, JSON.stringify(FOLDER_ORDER_TEMPLATE, null, 2));
+			await writeText(vaultPath, filePath, JSON.stringify(FOLDER_ORDER_TEMPLATE, null, 2));
 			fsStore.setFolderOrder({});
 			return {};
 		}
-		const content = await readTextFile(filePath);
+		const content = await readText(vaultPath, filePath);
 		const parsed = JSON.parse(content);
 		if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
 			fsStore.setFolderOrder({});
@@ -114,10 +122,18 @@ export async function refreshTree(expectedSortVersion?: number) {
 	}
 }
 
+/** Resolves the active vault path (lazy import avoids the circular dep with vault.store). */
+async function getActiveVaultPath(): Promise<string | null> {
+	const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+	return vaultStore.path;
+}
+
 /** Creates an empty file on disk and refreshes the tree. Returns the new path or null on failure. */
 export async function createFile(parentPath: string, fileName: string): Promise<string | null> {
 	try {
-		const entries = await readDir(parentPath);
+		const vaultPath = await getActiveVaultPath();
+		if (!vaultPath) return null;
+		const entries = await readDir(vaultPath, parentPath);
 		const siblingNames = entries.map((e) => e.name);
 		const uniqueName = generateUniqueName(fileName, false, siblingNames);
 		const filePath = `${parentPath}/${uniqueName}`;
@@ -139,11 +155,13 @@ export async function createFile(parentPath: string, fileName: string): Promise<
 /** Creates a directory on disk, refreshes the tree, and auto-expands it */
 export async function createFolder(parentPath: string, folderName: string): Promise<string | null> {
 	try {
-		const entries = await readDir(parentPath);
+		const vaultPath = await getActiveVaultPath();
+		if (!vaultPath) return null;
+		const entries = await readDir(vaultPath, parentPath);
 		const siblingNames = entries.map((e) => e.name);
 		const uniqueName = generateUniqueName(folderName, true, siblingNames);
 		const folderPath = `${parentPath}/${uniqueName}`;
-		// Phase 8.6: Rust `create_folder` (recursive — no-op when
+		// Phase 8.6: Rust `create_folder` (recursive - no-op when
 		// the dir exists, but `generateUniqueName` ensures it doesn't).
 		await invoke('create_folder', { path: folderPath });
 		await refreshTree();
@@ -156,21 +174,18 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 	}
 }
 
-/** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree */
+/** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree. Returns false when no vault is open (deletion requires a vault context). */
 export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<boolean> {
 	try {
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-		const vaultPath = vaultStore.path;
-		if (vaultPath) {
-			const { moveToTrash } = await import('$lib/core/trash/trash.service');
-			await moveToTrash(vaultPath, itemPath, isDirectory);
-		} else {
-			// Fallback: permanent delete if no vault is open
-			await remove(itemPath, { recursive: true });
+		const vaultPath = await getActiveVaultPath();
+		if (!vaultPath) {
+			error('FS', 'Cannot delete item without an open vault:', itemPath);
+			return false;
 		}
+		const { moveToTrash } = await import('$lib/core/trash/trash.service');
+		await moveToTrash(vaultPath, itemPath, isDirectory);
 		await refreshTree();
 		const { clearIndexedEntry } = await import('$lib/utils/index-dedupe');
-		const { invoke } = await import('@tauri-apps/api/core');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
 		closeTabsForDeletedPath(itemPath);
 		// Drop the dedup signature so a later re-creation with identical
@@ -198,14 +213,19 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 	const newPath = `${parentDir}/${newName}`;
 	try {
 		if (oldPath === newPath) return oldPath;
-		const targetExists = await exists(newPath);
+		const vaultPath = await getActiveVaultPath();
+		if (!vaultPath) {
+			error('FS', 'Cannot rename without an open vault:', oldPath);
+			return null;
+		}
+		const targetExists = await pathExists(vaultPath, newPath);
 		if (targetExists) {
 			error('FS', 'Target already exists:', newPath);
 			return null;
 		}
-		await rename(oldPath, newPath);
+		await renamePath(vaultPath, oldPath, newPath);
 
-		// Update wikilinks BEFORE refreshTree — findFilesLinkingTo uses
+		// Update wikilinks BEFORE refreshTree - findFilesLinkingTo uses
 		// excludePath=oldPath which must still be keyed in noteContents.
 		// refreshTree can trigger the file watcher which would re-index
 		// under the new path, making the old-path lookup miss.
@@ -215,20 +235,16 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		updateTabAfterRenameOrMove(oldPath, newPath);
 		await refreshTree();
 
-		const { invoke } = await import('@tauri-apps/api/core');
 		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
 		// new path will get re-indexed via the watcher (or the next save).
 		invoke('remove_note_from_index', { path: oldPath }).catch((err) =>
 			error('FS', 'remove_note_from_index failed:', err)
 		);
 
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-		if (vaultStore.path) {
-			updateBookmarkPathsAfterMove(vaultStore.path, oldPath, newPath);
-			updateFileIconPathsAfterMove(vaultStore.path, oldPath, newPath);
-		}
+		updateBookmarkPathsAfterMove(vaultPath, oldPath, newPath);
+		updateFileIconPathsAfterMove(vaultPath, oldPath, newPath);
 
-		debug('FS', 'renamed item:', oldPath, '→', newPath);
+		debug('FS', 'renamed item:', oldPath, '->', newPath);
 		return newPath;
 	} catch (err) {
 		error('FS', 'Failed to rename item:', err);
@@ -242,31 +258,32 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 	const newPath = `${targetDirPath}/${fileName}`;
 	try {
 		if (sourcePath === newPath) return null;
-		const targetExists = await exists(newPath);
+		const vaultPath = await getActiveVaultPath();
+		if (!vaultPath) {
+			error('FS', 'Cannot move without an open vault:', sourcePath);
+			return null;
+		}
+		const targetExists = await pathExists(vaultPath, newPath);
 		if (targetExists) {
 			error('FS', 'Target already exists:', newPath);
 			return null;
 		}
-		await rename(sourcePath, newPath);
+		await renamePath(vaultPath, sourcePath, newPath);
 		await refreshTree();
 		fsStore.expandDir(targetDirPath);
 
 		updateTabAfterRenameOrMove(sourcePath, newPath);
 
-		const { invoke } = await import('@tauri-apps/api/core');
 		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
 		// destination path gets re-indexed via the watcher (or the next save).
 		invoke('remove_note_from_index', { path: sourcePath }).catch((err) =>
 			error('FS', 'remove_note_from_index failed:', err)
 		);
 
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-		if (vaultStore.path) {
-			updateBookmarkPathsAfterMove(vaultStore.path, sourcePath, newPath);
-			updateFileIconPathsAfterMove(vaultStore.path, sourcePath, newPath);
-		}
+		updateBookmarkPathsAfterMove(vaultPath, sourcePath, newPath);
+		updateFileIconPathsAfterMove(vaultPath, sourcePath, newPath);
 
-		debug('FS', 'moved item:', sourcePath, '→', newPath);
+		debug('FS', 'moved item:', sourcePath, '->', newPath);
 		return newPath;
 	} catch (err) {
 		error('FS', 'Failed to move item:', err);
@@ -275,16 +292,16 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 }
 
 /** Recursively copies a directory and all its contents */
-async function copyDirectoryRecursive(sourcePath: string, destPath: string): Promise<void> {
-	await mkdir(destPath);
-	const entries = await readDir(sourcePath);
+async function copyDirectoryRecursive(vaultPath: string, sourcePath: string, destPath: string): Promise<void> {
+	await invoke('create_folder', { path: destPath });
+	const entries = await readDir(vaultPath, sourcePath);
 	for (const entry of entries) {
 		const srcChild = `${sourcePath}/${entry.name}`;
 		const destChild = `${destPath}/${entry.name}`;
 		if (entry.isDirectory) {
-			await copyDirectoryRecursive(srcChild, destChild);
+			await copyDirectoryRecursive(vaultPath, srcChild, destChild);
 		} else {
-			await copyFile(srcChild, destChild);
+			await copyPath(vaultPath, srcChild, destChild);
 		}
 	}
 }
@@ -292,17 +309,19 @@ async function copyDirectoryRecursive(sourcePath: string, destPath: string): Pro
 /** Duplicates a file or folder, generating a unique "copy" name. Returns the new path or null. */
 export async function duplicateItem(itemPath: string, isDirectory: boolean): Promise<string | null> {
 	try {
+		const vaultPath = await getActiveVaultPath();
+		if (!vaultPath) return null;
 		const parentDir = getParentPath(itemPath);
-		const entries = await readDir(parentDir);
+		const entries = await readDir(vaultPath, parentDir);
 		const siblingNames = entries.map((e) => e.name);
 		const itemName = getFileName(itemPath);
 		const copyName = generateCopyName(itemName, isDirectory, siblingNames);
 		const newPath = `${parentDir}/${copyName}`;
 
 		if (isDirectory) {
-			await copyDirectoryRecursive(itemPath, newPath);
+			await copyDirectoryRecursive(vaultPath, itemPath, newPath);
 		} else {
-			await copyFile(itemPath, newPath);
+			await copyPath(vaultPath, itemPath, newPath);
 		}
 		await refreshTree();
 		return newPath;
@@ -321,7 +340,7 @@ export async function revealInSystemExplorer(itemPath: string): Promise<void> {
 	}
 }
 
-/** Version counter for sort changes — ensures only the latest refresh wins */
+/** Version counter for sort changes - ensures only the latest refresh wins */
 let sortVersion = 0;
 
 /** Updates the sort strategy and rebuilds the tree */
