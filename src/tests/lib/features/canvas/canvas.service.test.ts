@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+setupLocalStorage();
 
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
@@ -9,22 +12,25 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	writeTextFile: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	writeText: vi.fn(),
 }));
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeText } from '$lib/core/filesystem/fs-rust.service';
 import { createFile } from '$lib/core/filesystem/fs.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { serializeCanvas, createEmptyCanvas } from '$lib/features/canvas/canvas.logic';
 import { createCanvasFile } from '$lib/features/canvas/canvas.service';
 
 describe('createCanvasFile', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore.open('/vault');
 	});
 
 	it('creates file and writes empty canvas', async () => {
@@ -34,7 +40,7 @@ describe('createCanvasFile', () => {
 		const result = await createCanvasFile('/vault');
 
 		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.canvas');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/Untitled.canvas', expectedJson);
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/Untitled.canvas', expectedJson);
 		expect(result).toBe('/vault/Untitled.canvas');
 		// Verify real logic output structure
 		expect(JSON.parse(expectedJson)).toEqual({ nodes: [], edges: [] });
@@ -46,7 +52,17 @@ describe('createCanvasFile', () => {
 		const result = await createCanvasFile('/vault');
 
 		expect(result).toBeNull();
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
+	});
+
+	it('returns null when no vault is open', async () => {
+		vaultStore.close();
+
+		const result = await createCanvasFile('/vault');
+
+		expect(result).toBeNull();
+		expect(createFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 
 	it('returns null and logs error on failure', async () => {

@@ -3,7 +3,7 @@
 	import FileText from 'lucide-svelte/icons/file-text';
 	import OpenIcon from 'lucide-svelte/icons/external-link';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
+	import { readText } from '$lib/core/filesystem/fs-rust.service';
 	import { resolveColor } from './canvas.logic';
 	import { renderCanvasMarkdown } from './canvas-markdown.logic';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
@@ -37,8 +37,14 @@
 		fileContent = null;
 		let aborted = false;
 
-		const fullPath = vaultStore.path ? `${vaultStore.path}/${filePath}` : filePath;
-		readTextFile(fullPath as string).then((content) => {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) {
+			error = true;
+			loading = false;
+			return () => { aborted = true; };
+		}
+		const fullPath = `${vaultPath}/${filePath}`;
+		readText(vaultPath, fullPath).then((content) => {
 			if (aborted) return;
 			fileContent = content;
 			loading = false;
