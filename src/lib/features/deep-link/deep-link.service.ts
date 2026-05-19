@@ -296,17 +296,12 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
  * - `note` / `clip` / `link`: renders the body via `renderCaptureBody`, applies
  *   the user's quick-note template if configured, injects the link `title` as
  *   YAML frontmatter (link kind only), and merges `tags` into frontmatter.
- * - `shot` / `file`: not yet supported. Shows a toast and returns early; no
- *   file is written. The parser still accepts these kinds so a future change
- *   only has to extend the renderer + this branch.
+ * - `shot` / `file`: renders a `file://` CommonMark link/embed to the local
+ *   path (no copy into the vault) and writes through the same quick-note path
+ *   as the text kinds. The note breaks if the user later moves or deletes the
+ *   referenced file; durable attachments are a future change.
  */
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
-	if (action.kind === 'shot' || action.kind === 'file') {
-		debug('DEEP_LINK', 'Capture kind not yet supported:', action.kind);
-		toast.error(`Capture kind "${action.kind}" not yet supported`);
-		return;
-	}
-
 	const quickNote = settingsStore.quickNote;
 	const periodicNotes = settingsStore.periodicNotes;
 	const date = dayjs();

@@ -211,7 +211,12 @@ function parseCaptureAction(vault: string, params: URLSearchParams): ParseResult
 			}
 			return {
 				ok: true,
-				action: { ...common, kind: 'shot', path } satisfies CaptureShotAction,
+				action: {
+					...common,
+					kind: 'shot',
+					path,
+					mime: parseOptionalParam(params.get('mime')),
+				} satisfies CaptureShotAction,
 			};
 		}
 
@@ -222,7 +227,13 @@ function parseCaptureAction(vault: string, params: URLSearchParams): ParseResult
 			}
 			return {
 				ok: true,
-				action: { ...common, kind: 'file', path } satisfies CaptureFileAction,
+				action: {
+					...common,
+					kind: 'file',
+					path,
+					mime: parseOptionalParam(params.get('mime')),
+					originalName: parseOptionalParam(params.get('original_name')),
+				} satisfies CaptureFileAction,
 			};
 		}
 	}
@@ -236,8 +247,10 @@ function parseCaptureAction(vault: string, params: URLSearchParams): ParseResult
  *   line plus a `> Source: [<sourceTitle ?? sourceUrl>](<sourceUrl>)` footer.
  * - `link`: body = `[<title ?? url>](<url>)`; if `sourceUrl` is present AND
  *   different from `url`, append the same `> Source: ...` footer.
- * - `shot` / `file`: returns an empty string. The service short-circuits these
- *   kinds with a "not yet supported" toast and never calls the renderer.
+ * - `shot`: body = `![<label>](file:///<encoded-path>)`. Label is the path
+ *   basename. No source footer (the image is the content).
+ * - `file`: body = `[<label>](file:///<encoded-path>)`. Label prefers
+ *   `originalName`, falls back to the path basename. No source footer.
  */
 export function renderCaptureBody(action: CaptureAction): string {
 	switch (action.kind) {
@@ -255,10 +268,37 @@ export function renderCaptureBody(action: CaptureAction): string {
 					: null;
 			return footer ? `${body}\n\n${footer}` : body;
 		}
-		case 'shot':
-		case 'file':
-			return '';
+		case 'shot': {
+			const label = pathBasename(action.path);
+			return `![${label}](${toFileUrl(action.path)})`;
+		}
+		case 'file': {
+			const label = action.originalName ?? pathBasename(action.path);
+			return `[${label}](${toFileUrl(action.path)})`;
+		}
 	}
+}
+
+/**
+ * Builds a `file://` URL for a local absolute path. Encodes each path segment
+ * with `encodeURIComponent` so spaces and other reserved characters survive
+ * the trip through a markdown renderer, while keeping the path separators as
+ * unescaped slashes.
+ */
+function toFileUrl(path: string): string {
+	const segments = path.split('/').map((seg) => encodeURIComponent(seg));
+	return `file://${segments.join('/')}`;
+}
+
+/**
+ * Returns the final path component (file name) of an absolute or relative
+ * filesystem path. Trailing slashes are ignored. Returns the full path when
+ * no separator is present.
+ */
+function pathBasename(path: string): string {
+	const trimmed = path.replace(/\/+$/, '');
+	const idx = trimmed.lastIndexOf('/');
+	return idx === -1 ? trimmed : trimmed.slice(idx + 1);
 }
 
 /**
