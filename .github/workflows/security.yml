@@ -4,18 +4,13 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-  schedule:
-    - cron: "0 9 * * 1" # Every Monday at 9:00 UTC
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/run-all.yml`.
+  # Reusable: invoked by `.github/workflows/release.yml` (as a gate
+  # before build-macos) and `.github/workflows/run-all.yml`.
   workflow_call:
 
 concurrency:
