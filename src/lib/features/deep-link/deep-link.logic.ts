@@ -164,6 +164,42 @@ function parseTagsParam(value: string | null): string[] | undefined {
 }
 
 /**
+ * Injects a `title` property into content's YAML frontmatter.
+ *
+ * - If content has frontmatter with an existing `title` property, replaces its value.
+ * - If content has frontmatter without `title`, adds the property.
+ * - If content has no frontmatter, creates a frontmatter block with `title`.
+ *
+ * Empty/whitespace-only titles are ignored (returns content unchanged).
+ *
+ * @param content - The full file content (may or may not have frontmatter)
+ * @param title - The title string to inject
+ * @returns The content with the title injected into frontmatter
+ */
+export function injectTitleIntoContent(content: string, title: string): string {
+	const trimmed = title.trim();
+	if (trimmed.length === 0) return content;
+
+	const properties = parseFrontmatterProperties(content);
+	const body = extractBody(content);
+
+	const existingTitleProp = properties.find((p) => p.key === 'title');
+
+	if (existingTitleProp) {
+		const updatedProperties: Property[] = properties.map((p) =>
+			p.key === 'title' ? { key: 'title', value: trimmed, type: 'text' as const } : p,
+		);
+		return rebuildContent(updatedProperties, body);
+	}
+
+	const updatedProperties: Property[] = [
+		...properties,
+		{ key: 'title', value: trimmed, type: 'text' as const },
+	];
+	return rebuildContent(updatedProperties, body);
+}
+
+/**
  * Injects tags into content's YAML frontmatter.
  *
  * - If content has existing frontmatter with a `tags` list, merges new tags (deduplicated).
