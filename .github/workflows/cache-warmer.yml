@@ -8,32 +8,25 @@ name: Cache Warmer
 # - GitHub's Actions Cache evicts entries that have not been accessed
 #   for 7 days. A restore counts as access and resets the clock, so
 #   any workflow that uses the cache keeps it alive.
-# - nightly.yml runs on every push to `main`, which is the primary
-#   warmer in normal use. If the project goes >1 week without a
-#   commit (vacation, mid-feature pause, deep-research interlude),
-#   the next push/release pays the full ~15 min cold-cache penalty.
-# - Running this twice a week guarantees the cache is touched at
-#   least every 4 days, well inside the 7-day eviction window.
+# - nightly.yml is now manual-only (workflow_dispatch). It no longer
+#   runs on every push to `main`, so it cannot be relied upon to keep
+#   the cache warm — this warmer is the primary automatic refresher.
+# - Without it, the next manual nightly or tag-driven release after a
+#   quiet week pays the full ~15 min cold-cache penalty.
 #
-# Why two days per week and not weekly:
-# - Weekly (`0 4 * * 1`) is exactly 7 days between runs — right at
-#   the eviction edge. A single delayed Monday run (GH outage,
-#   runner queue, a previous warmer cancelled by a manual dispatch)
-#   misses the window and the cache evicts.
-# - `0 4 * * 1,4` (Monday + Thursday) caps the gap at 4 days,
-#   leaving 3 days of slack.
+# Cadence: weekly (`0 4 * * 1`, Monday 04:00 UTC). One run per week
+# sits inside the 7-day eviction window. A delayed Monday run (GH
+# outage, runner queue) can still miss the window — use the
+# `workflow_dispatch` lever to reprime manually in that case.
 #
-# Cost: ~15-20 min macOS-latest runner per execution. Free for OSS,
-# but the cancelled-build / queue emails would be noisy if we ran
-# this daily. Bi-weekly is the cheapest cadence that stays safely
-# inside the eviction window.
+# Cost: ~15-20 min macOS-latest runner per execution. Free for OSS.
 
 permissions:
   contents: read
 
 on:
   schedule:
-    - cron: '0 4 * * 1,4'  # 04:00 UTC Mon + Thu
+    - cron: '0 4 * * 1'  # 04:00 UTC Monday
   workflow_dispatch:
 
 concurrency:
@@ -54,11 +47,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-        with:
-          # Full history so the setup action and any future warmer
-          # logic that inspects git metadata behaves identically to
-          # nightly.yml + release.yml.
-          fetch-depth: 0
 
       - name: Setup environment
         uses: ./.github/actions/setup
