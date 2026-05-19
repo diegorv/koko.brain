@@ -18,7 +18,6 @@
 	import TableOfContentsPanel from '$lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
 	import StatusBar from '$lib/core/status-bar/StatusBar.svelte';
 	import WordCount from '$lib/plugins/word-count/WordCount.svelte';
-	import EncryptionToggle from '$lib/plugins/encrypted-notes/EncryptionToggle.svelte';
 	import TerminalPanel from '$lib/plugins/terminal/TerminalPanel.svelte';
 	import SearchStatus from '$lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
@@ -149,7 +148,6 @@
 			{#snippet right()}
 				<SaveStatus />
 				<SemanticIndexStatus />
-				<EncryptionToggle />
 				<WordCount />
 			{/snippet}
 		</StatusBar>

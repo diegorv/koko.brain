@@ -117,7 +117,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0010](0010-queryjs-kb-api-caching.md) | QueryJS (kb-api) as Dataview-style scripting with per-session caches                 | active |
 | [0011](0011-sqlite-fts5-wal-local-search.md) | SQLite with FTS5 and WAL mode for local search, history, and semantic storage        | active |
 | [0012](0012-onnx-semantic-search-content-hash-skip.md) | ONNX Runtime local semantic search with BGE-M3 and content-hash skip                 | active |
-| [0013](0013-encrypted-notes-aes-gcm-keyring.md) | Encrypted notes with AES-256-GCM and macOS Keychain + Touch ID                       | active |
+| [0013](0013-encrypted-notes-aes-gcm-keyring.md) | Encrypted notes with AES-256-GCM and macOS Keychain + Touch ID                       | superseded |
 | [0014](0014-supply-chain-pnpm-quarantine.md) | Supply-chain defense: pnpm quarantine + pre-commit hook + CI guardrail               | active |
 | [0015](0015-dual-logging-frontend-rust.md) | Dual logging: appendLog (frontend → file) and debug_log (Rust → stderr + event)      | active |
 | [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: tasks/todo → tasks/done with one commit per task                 | active |

@@ -69,8 +69,6 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Open Daily Note | Open or create today's daily note |
 | Pin/Unpin Tab | Pin or unpin the active tab |
 | Copy Block Embed | Copy an embed link to the current block |
-| Toggle Note Encryption | Encrypt or decrypt the current note |
-| Lock Encrypted Notes | Lock all encrypted notes (requires Touch ID to reopen) |
 
 > [!TIP]
 > You can always reach any command by pressing `Cmd+P` and typing part of its name. The Command Palette is the universal access point for all actions.

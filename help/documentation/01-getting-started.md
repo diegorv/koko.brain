@@ -69,7 +69,7 @@ Kokobrain uses a three-column layout that you can customize to your liking.
 | **Editor area** | Center | Your open notes, arranged in tabs |
 | **Right sidebar** | Far right (optional) | Calendar, Properties, Backlinks, Tags, and more |
 
-At the bottom of the window you will find the **status bar**, which shows information like word count and encryption status.
+At the bottom of the window you will find the **status bar**, which shows information like word count and save status.
 
 ### Toggling the sidebars
 

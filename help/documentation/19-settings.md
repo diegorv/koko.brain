@@ -218,15 +218,6 @@ The per-tag color assignments shown in the Tags sidebar (and inline `#tags` in n
 
 You set colors interactively from the Tags panel by clicking the dot next to a tag (see [Sidebar Panels → Tag colors](07-sidebar-panels.md#tag-colors)). There is no dedicated section in the Settings dialog for these assignments — they live in `settings.json` only.
 
-## Security
-
-Manage per-vault encryption keys. See [Encryption & Security](16-encryption-and-security.md) for the full feature description.
-
-| Button | Description |
-|--------|-------------|
-| **Show recovery key** | Reveals the base64 recovery key for this vault. Requires Touch ID. Disabled until you encrypt at least one note. |
-| **Restore from recovery key** | Pastes a previously saved recovery key to rebuild the Keychain entry — used on a new Mac or after a Keychain wipe. |
-
 ## Troubleshooting
 
 | Setting | Description | Default |
