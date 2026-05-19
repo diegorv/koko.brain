@@ -6,7 +6,7 @@ const MAX_DEPTH: usize = 64;
 /// Validates and canonicalizes a vault path.
 ///
 /// Resolves symlinks and `..` components, then verifies the result is a directory.
-/// Returns the canonicalized path on success — callers should use this canonical path
+/// Returns the canonicalized path on success - callers should use this canonical path
 /// for all subsequent filesystem operations to prevent TOCTOU race conditions.
 pub fn validate_vault_path(vault_path: &str) -> Result<PathBuf, String> {
 	let canonical = Path::new(vault_path)
@@ -16,6 +16,70 @@ pub fn validate_vault_path(vault_path: &str) -> Result<PathBuf, String> {
 		return Err(format!("Path is not a directory: {}", vault_path));
 	}
 	Ok(canonical)
+}
+
+/// Resolves a path inside a canonicalized vault root, allowing the leaf to
+/// not exist yet. Returns `(canonical_path, exists)`.
+///
+/// Behaviour:
+///
+/// - **Leaf exists, is a regular file or directory** - canonicalize
+///   directly (follows in-vault symlinks the same way `read_files_batch`
+///   does) and verify the result is under `vault_root`.
+/// - **Leaf is a symlink** (broken or pointing anywhere) - rejected
+///   outright. Symlinks at the leaf are not honoured; this matches the
+///   ADR 0020 invariant that symlinks inside the vault are invisible to
+///   the indexer. Writing through a broken symlink would otherwise land
+///   the bytes at the link target, which may live outside the vault.
+/// - **Leaf does not exist** - canonicalize the PARENT (which must
+///   exist) and join the original leaf name, then verify the parent is
+///   inside the vault. The returned `PathBuf` is safe to feed into
+///   subsequent `std::fs::*` calls; the parent guarantee plus the
+///   no-symlink-leaf check make the leaf either non-existent (so
+///   `fs::write` simply creates it) or a regular file/dir under the
+///   vault. A TOCTOU race between this check and the follow-up write is
+///   not reachable from our threat model (a compromised renderer cannot
+///   create symlinks - it can only call Rust commands, none of which
+///   produce symlinks).
+///
+/// Returns `Err` on path traversal (`..` segments resolving outside the
+/// vault), missing parent directories (callers must `create_folder` first
+/// when targeting a path whose parent does not exist), and symlink leaves.
+/// Per ADR 0020 every Rust command that takes a path argument routes
+/// through this helper or `read_files_batch`'s inline equivalent.
+pub fn resolve_in_vault(path: &str, vault_root: &Path) -> Result<(PathBuf, bool), String> {
+	let p = Path::new(path);
+
+	// Always reject a symlink at the leaf (broken or live) before doing any
+	// other resolution. `canonicalize()` would silently follow a live
+	// symlink, and `fs::write` would silently follow a broken one - both
+	// can land bytes at a target outside the vault. ADR 0020 says symlinks
+	// inside the vault are invisible.
+	if let Ok(lstat) = p.symlink_metadata() {
+		if lstat.file_type().is_symlink() {
+			return Err(format!("Path is a symlink: {}", path));
+		}
+	}
+
+	if let Ok(canonical) = p.canonicalize() {
+		if !canonical.starts_with(vault_root) {
+			return Err("Path is outside vault directory".to_string());
+		}
+		return Ok((canonical, true));
+	}
+	let parent = p
+		.parent()
+		.ok_or_else(|| format!("Path has no parent: {}", path))?;
+	let file_name = p
+		.file_name()
+		.ok_or_else(|| format!("Path has no file name: {}", path))?;
+	let canonical_parent = parent
+		.canonicalize()
+		.map_err(|e| format!("Failed to resolve parent of {}: {}", path, e))?;
+	if !canonical_parent.starts_with(vault_root) {
+		return Err("Path is outside vault directory".to_string());
+	}
+	Ok((canonical_parent.join(file_name), false))
 }
 
 /// A collected markdown file entry: (relative_path, absolute_path).

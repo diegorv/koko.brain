@@ -2,6 +2,7 @@ pub mod db;
 pub mod debug;
 pub mod files;
 pub mod fonts;
+pub mod fs_primitives;
 pub mod history;
 pub mod search;
 pub mod search_index;

@@ -1,5 +1,6 @@
 use kokobrain_lib::utils::fs::{
 	collect_markdown_paths, collect_markdown_paths_with_mtime, is_markdown_filename,
+	resolve_in_vault,
 };
 use std::fs;
 use tempfile::TempDir;
@@ -301,4 +302,92 @@ fn collects_mixed_case_md_files() {
 
 	let entries = collect_markdown_paths(tmp.path(), &[]).unwrap();
 	assert_eq!(entries.len(), 3);
+}
+
+// --- resolve_in_vault ---
+
+#[test]
+fn resolve_in_vault_resolves_existing_file() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let file = tmp.path().join("note.md");
+	fs::write(&file, "x").unwrap();
+
+	let (canonical, exists) = resolve_in_vault(file.to_str().unwrap(), &vault_root).unwrap();
+	assert!(exists);
+	assert!(canonical.starts_with(&vault_root));
+	assert_eq!(canonical.file_name().unwrap(), "note.md");
+}
+
+#[test]
+fn resolve_in_vault_handles_missing_leaf_with_parent_inside_vault() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let missing = tmp.path().join("not-yet.md");
+
+	let (canonical, exists) = resolve_in_vault(missing.to_str().unwrap(), &vault_root).unwrap();
+	assert!(!exists);
+	assert!(canonical.starts_with(&vault_root));
+	assert_eq!(canonical.file_name().unwrap(), "not-yet.md");
+}
+
+#[test]
+fn resolve_in_vault_rejects_existing_path_outside_vault() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let outside_dir = TempDir::new().unwrap();
+	let outside_file = outside_dir.path().join("evil.md");
+	fs::write(&outside_file, "secret").unwrap();
+
+	let err = resolve_in_vault(outside_file.to_str().unwrap(), &vault_root).unwrap_err();
+	assert!(err.contains("outside vault"), "got: {}", err);
+}
+
+#[test]
+fn resolve_in_vault_rejects_missing_path_with_parent_outside_vault() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let outside_dir = TempDir::new().unwrap();
+	let outside_target = outside_dir.path().join("evil.md");
+
+	let err = resolve_in_vault(outside_target.to_str().unwrap(), &vault_root).unwrap_err();
+	assert!(err.contains("outside vault"), "got: {}", err);
+}
+
+#[test]
+fn resolve_in_vault_errors_when_parent_directory_does_not_exist() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let nested = tmp.path().join("no-such-dir").join("file.md");
+
+	let err = resolve_in_vault(nested.to_str().unwrap(), &vault_root).unwrap_err();
+	assert!(err.contains("Failed to resolve parent"), "got: {}", err);
+}
+
+#[cfg(unix)]
+#[test]
+fn resolve_in_vault_rejects_live_symlink_at_leaf() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let real = tmp.path().join("real.md");
+	let link = tmp.path().join("link.md");
+	fs::write(&real, "x").unwrap();
+	std::os::unix::fs::symlink(&real, &link).unwrap();
+
+	let err = resolve_in_vault(link.to_str().unwrap(), &vault_root).unwrap_err();
+	assert!(err.contains("symlink"), "got: {}", err);
+}
+
+#[cfg(unix)]
+#[test]
+fn resolve_in_vault_rejects_broken_symlink_at_leaf() {
+	let tmp = setup();
+	let vault_root = tmp.path().canonicalize().unwrap();
+	let outside = TempDir::new().unwrap();
+	let link = tmp.path().join("link.md");
+	// Target doesn't exist - broken symlink to outside the vault.
+	std::os::unix::fs::symlink(outside.path().join("missing.md"), &link).unwrap();
+
+	let err = resolve_in_vault(link.to_str().unwrap(), &vault_root).unwrap_err();
+	assert!(err.contains("symlink"), "got: {}", err);
 }
