@@ -1,23 +1,26 @@
 name: Nightly
 
-# Manual-only nightly build, published as a single fixed pre-release
-# at tag `nightly`. Assets rotate in place — `tauri-action` recreates
-# the release each run after the explicit delete step below, and the
+# Nightly build, published as a single fixed pre-release at tag
+# `nightly`. Assets rotate in place — `tauri-action` recreates the
+# release each run after the explicit delete step below, and the
 # `gh release upload --clobber` line at the end overwrites any
 # checksum file the action did not replace.
 #
 # Triggers:
-#   - `workflow_dispatch`: only trigger. Nightlies are cut on demand
-#     (e.g. before sharing a build for testing, or after a fix that
-#     can't wait for the next tag-driven release). Removing the
-#     `push: main` trigger eliminates the implicit "every commit
-#     ships a nightly" loop — releases on the stable channel still
-#     ship automatically via release.yml on tag push.
+#   - `push: main`: every accepted commit on main produces a nightly.
+#     The `guard` job below short-circuits the version-bump commit
+#     (release.yml owns those SHAs) and any commit carrying a
+#     `[skip nightly]` marker, so the stable release flow does not
+#     race with this workflow.
+#   - `workflow_dispatch`: manual cut for cases where a re-run is
+#     needed without a new commit (e.g. flake retry, secret rotation).
 
 permissions:
   contents: read
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
