@@ -316,10 +316,16 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		const templateFullPath = `${vaultPath}/${quickNote.templatePath}`;
 		try {
 			const template = await readTextFile(templateFullPath);
-			const title = getQuickNoteTitle(quickNote.filenameFormat, date);
+			const fileTitle = getQuickNoteTitle(quickNote.filenameFormat, date);
 			const vars = buildQuickNoteVariables(date, periodicNotes);
 			vars.content = action.content;
-			const processed = processTemplate(template, title, vars);
+			// Expose the deep-link `title` to user templates via `<% title %>`.
+			// Falls back to the filename-derived title so templates that reference
+			// `<% title %>` always resolve, regardless of whether the deep-link
+			// supplied one. The post-template `injectTitleIntoContent` below is
+			// still the source of truth for the YAML `title:` field.
+			vars.title = action.title ?? fileTitle;
+			const processed = processTemplate(template, fileTitle, vars);
 			fileContent = processed + '\n' + action.content;
 		} catch {
 			// Template not found — save raw content

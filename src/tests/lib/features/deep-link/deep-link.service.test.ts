@@ -825,6 +825,43 @@ describe('deep-link.service', () => {
 					'Body',
 				);
 			});
+
+			it('exposes deep-link title to template as `title` variable', async () => {
+				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+				vi.mocked(readTextFile).mockResolvedValue('template body');
+
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					content: 'Body',
+					title: 'Deep Link Title',
+				};
+				await executeAction(action, vaultPath);
+
+				expect(vi.mocked(processTemplate)).toHaveBeenCalledWith(
+					'template body',
+					expect.any(String),
+					expect.objectContaining({ title: 'Deep Link Title' }),
+				);
+			});
+
+			it('falls back to filename-derived title when deep-link title is absent', async () => {
+				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+				vi.mocked(readTextFile).mockResolvedValue('template body');
+
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					content: 'Body',
+				};
+				await executeAction(action, vaultPath);
+
+				const call = vi.mocked(processTemplate).mock.calls[0];
+				const passedFileTitle = call[1] as string;
+				const passedVars = call[2] as Record<string, string>;
+				expect(passedVars.title).toBe(passedFileTitle);
+				expect(passedVars.title.length).toBeGreaterThan(0);
+			});
 		});
 	});
 
