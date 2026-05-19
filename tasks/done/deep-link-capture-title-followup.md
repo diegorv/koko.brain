@@ -4,9 +4,9 @@ The previous plan (`deep-link-capture-title.md`, now in `tasks/done/`) added the
 
 ## Tasks
 
-- [ ] Task 1: In `executeCaptureAction` (deep-link.service.ts), set `vars.title = action.title ?? getQuickNoteTitle(filenameFormat, date)` before calling `processTemplate`. Service tests assert that `<% title %>` substitutes to the deep-link title when present and falls back to the filename-derived title otherwise. Existing post-template `injectTitleIntoContent` call remains the source of truth for the YAML `title:` field.
-- [ ] Task 2: Update `help/examples/templates/Quick Note.md` to include a `title: <% title %>` line in the YAML block so the example shipping with the app demonstrates how the new `title` param flows. No other lines in the template change.
-- [ ] Task 3: Update `help/documentation/23-deep-links.md` `capture` section to document the `title` parameter (table row + at least one example). Also add a row under "Next Steps" or "Examples" that demonstrates `title=` in a real URI.
+- [x] Task 1: In `executeCaptureAction` (deep-link.service.ts), set `vars.title = action.title ?? getQuickNoteTitle(filenameFormat, date)` before calling `processTemplate`. Service tests assert that `<% title %>` substitutes to the deep-link title when present and falls back to the filename-derived title otherwise. Existing post-template `injectTitleIntoContent` call remains the source of truth for the YAML `title:` field.
+- [x] Task 2: Update `help/examples/templates/Quick Note.md` to include a `title: <% title %>` line in the YAML block so the example shipping with the app demonstrates how the new `title` param flows. No other lines in the template change.
+- [x] Task 3: Update `help/documentation/23-deep-links.md` `capture` section to document the `title` parameter (table row + at least one example). Also add a row under "Next Steps" or "Examples" that demonstrates `title=` in a real URI.
 
 ## Notes
 
