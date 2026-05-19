@@ -9,7 +9,7 @@ Motivation: quick-capture sends `Link` captures with a markdown body `[title](ur
 - [x] Task 1: Add optional `title?: string` field to `CaptureAction` interface in `deep-link.types.ts`.
 - [x] Task 2: Parse `title` query param inside `parseDeepLinkUri` for `case 'capture'` in `deep-link.logic.ts`. Trim, treat empty string as absent.
 - [x] Task 3: Add `injectTitleIntoContent(content, title)` helper in `deep-link.logic.ts` mirroring `injectTagsIntoContent` shape (merge into existing frontmatter, replace existing `title` prop, create frontmatter if missing). Unit tests in `deep-link.logic.test.ts`.
-- [ ] Task 4: Wire `injectTitleIntoContent` into `executeCaptureAction` in `deep-link.service.ts` — applied after template processing, before tag injection. Service test in `deep-link.service.test.ts` asserting the resulting file body contains `title: <value>` in frontmatter.
+- [x] Task 4: Wire `injectTitleIntoContent` into `executeCaptureAction` in `deep-link.service.ts` — applied after template processing, before tag injection. Service test in `deep-link.service.test.ts` asserting the resulting file body contains `title: <value>` in frontmatter.
 
 ## Notes
 

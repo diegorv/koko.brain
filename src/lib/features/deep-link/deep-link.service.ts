@@ -10,7 +10,12 @@ import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { deepLinkStore } from './deep-link.store.svelte';
-import { parseDeepLinkUri, resolveFilePath, injectTagsIntoContent } from './deep-link.logic';
+import {
+	parseDeepLinkUri,
+	resolveFilePath,
+	injectTagsIntoContent,
+	injectTitleIntoContent,
+} from './deep-link.logic';
 import type { DeepLinkAction, DailyAction, NewAction, CaptureAction } from './deep-link.types';
 import { buildPeriodicNotePath } from '$lib/plugins/periodic-notes/periodic-notes.logic';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -319,6 +324,10 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		} catch {
 			// Template not found — save raw content
 		}
+	}
+
+	if (action.title) {
+		fileContent = injectTitleIntoContent(fileContent, action.title);
 	}
 
 	if (action.tags && action.tags.length > 0) {

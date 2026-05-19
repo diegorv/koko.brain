@@ -752,6 +752,79 @@ describe('deep-link.service', () => {
 					'No tags here',
 				);
 			});
+
+			it('injects title into frontmatter when title is provided', async () => {
+				settingsStore.updateQuickNote({ templatePath: '' });
+
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					content: 'Body content',
+					title: 'Page Title',
+				};
+				await executeAction(action, vaultPath);
+
+				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect.stringMatching(/\.md$/),
+					'---\ntitle: Page Title\n---\nBody content',
+				);
+			});
+
+			it('injects both title and tags into frontmatter', async () => {
+				settingsStore.updateQuickNote({ templatePath: '' });
+
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					content: 'Body',
+					title: 'My Title',
+					tags: ['source/quick-capture'],
+				};
+				await executeAction(action, vaultPath);
+
+				const writeCall = vi.mocked(writeTextFile).mock.calls[0];
+				const written = writeCall[1] as string;
+				expect(written).toContain('title: My Title');
+				expect(written).toContain('tags: [source/quick-capture]');
+				expect(written).toContain('Body');
+			});
+
+			it('replaces template title when capture title is provided', async () => {
+				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+				vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template-title\n---\nTemplate body');
+				vi.mocked(processTemplate).mockReturnValue('---\ntitle: template-title\n---\nTemplate body');
+
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					content: 'Captured',
+					title: 'Override Title',
+				};
+				await executeAction(action, vaultPath);
+
+				const writeCall = vi.mocked(writeTextFile).mock.calls[0];
+				const written = writeCall[1] as string;
+				expect(written).toContain('title: Override Title');
+				expect(written).not.toContain('template-title');
+				expect(written).toContain('Captured');
+			});
+
+			it('does not add title property when title is empty string', async () => {
+				settingsStore.updateQuickNote({ templatePath: '' });
+
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					content: 'Body',
+					title: '',
+				};
+				await executeAction(action, vaultPath);
+
+				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+					expect.stringMatching(/\.md$/),
+					'Body',
+				);
+			});
 		});
 	});
 
