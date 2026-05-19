@@ -124,12 +124,13 @@ If neither `append` nor `prepend` is set, the daily note is opened without any c
 
 ---
 
-### `capture` — Create a Quick Note with Tags
+### `capture` — Create a Quick Note with Tags and Title
 
-Creates a new quick-capture note and injects tags into its frontmatter.
+Creates a new quick-capture note and injects tags and/or a title into its frontmatter.
 
 ```
 kokobrain://capture?vault=MyVault&content=Important+idea&tags=inbox,ideas
+kokobrain://capture?vault=MyVault&content=From+Hacker+News&title=Designing+Data-Intensive+Applications&tags=reading-list
 ```
 
 | Parameter | Required | Description |
@@ -137,8 +138,11 @@ kokobrain://capture?vault=MyVault&content=Important+idea&tags=inbox,ideas
 | `vault` | Yes | Vault name |
 | `content` | Yes | The text content for the note. |
 | `tags` | No | Comma-separated list of tags to add to the note's frontmatter. Merged with any existing tags (no duplicates). |
+| `title` | No | Title to inject into the note's frontmatter as `title:`. Also exposed to your Quick Note template as `<% title %>`. Whitespace-only values are ignored. |
 
 The note is created in the quick-note folder (configured in Settings → Quick Note).
+
+**About `title`:** When provided, the value is written to the YAML `title:` field of the new note (replacing any value the template set). It is also available inside your Quick Note template as `<% title %>`. If the deep link does not carry a `title`, `<% title %>` falls back to the filename-derived title, so templates that reference the placeholder still render correctly. The note's filename on disk is always derived from `Settings → Quick Note → Filename Format` — `title` does not influence the filename in this release.
 
 ---
 
@@ -185,6 +189,11 @@ open "kokobrain://daily?vault=Personal&append=true&clipboard=true"
 **Create a silent capture note tagged "inbox":**
 ```bash
 open "kokobrain://capture?vault=Personal&content=Remember+to+review+PR&tags=inbox"
+```
+
+**Capture a link with a structured title (good for browser-extension or quick-capture-style integrations):**
+```bash
+open "kokobrain://capture?vault=Personal&content=%5BHacker+News%5D(https%3A%2F%2Fnews.ycombinator.com)&title=Hacker+News&tags=reading-list"
 ```
 
 **Trigger a search from Raycast:**
