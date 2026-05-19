@@ -130,3 +130,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0023](0023-canvas-xyflow-svelte.md) | Canvas as a feature backed by @xyflow/svelte                                         | active |
 | [0024](0024-auto-update-tauri-plugin-updater.md) | Auto-update via tauri-plugin-updater with GitHub Releases + minisign signatures      | active |
 | [0025](0025-rust-vault-index.md) | Rust VaultIndex as source of truth for vault metadata; native Rust watcher           | proposed |
+| [0026](0026-rust-fs-commands-replace-plugin-fs.md) | Rust Tauri commands replace tauri-plugin-fs for vault filesystem operations          | proposed |
