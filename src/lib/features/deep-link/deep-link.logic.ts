@@ -11,11 +11,26 @@ import type {
 	SearchAction,
 	DailyAction,
 	CaptureAction,
+	CaptureKind,
+	CaptureNoteAction,
+	CaptureClipAction,
+	CaptureLinkAction,
+	CaptureShotAction,
+	CaptureFileAction,
 	ParseResult,
 } from './deep-link.types';
 
 /** Set of recognized action types */
 const VALID_ACTIONS: Set<string> = new Set(['open', 'new', 'search', 'daily', 'capture']);
+
+/** Set of recognized capture kinds in the v2 schema */
+const VALID_CAPTURE_KINDS: Set<CaptureKind> = new Set([
+	'note',
+	'clip',
+	'link',
+	'shot',
+	'file',
+]);
 
 /**
  * Parses a `kokobrain://` URI string into a typed deep-link action.
@@ -113,23 +128,150 @@ export function parseDeepLinkUri(uri: string): ParseResult {
 				} satisfies DailyAction,
 			};
 
-		case 'capture': {
-			const content = params.get('content');
-			if (!content) {
-				return { ok: false, error: `Missing required parameter: "content" for action "capture"` };
+		case 'capture':
+			return parseCaptureAction(vault, params);
+	}
+}
+
+/**
+ * Parses the v2 `capture` action. The v1 schema (`?content=...`) was removed —
+ * URIs without `v=2` or with an unrecognized `kind` return an error.
+ */
+function parseCaptureAction(vault: string, params: URLSearchParams): ParseResult {
+	const version = params.get('v');
+	if (version !== '2') {
+		return {
+			ok: false,
+			error: `Unsupported capture schema: expected "v=2", got "${version ?? '(missing)'}"`,
+		};
+	}
+
+	const kindParam = params.get('kind');
+	if (!kindParam || !VALID_CAPTURE_KINDS.has(kindParam as CaptureKind)) {
+		return {
+			ok: false,
+			error: `Missing or invalid "kind" for action "capture": "${kindParam ?? ''}"`,
+		};
+	}
+
+	const kind = kindParam as CaptureKind;
+	const common = {
+		type: 'capture' as const,
+		vault,
+		tags: parseTagsParam(params.get('tags')),
+		sourceApp: parseOptionalParam(params.get('source_app')),
+		sourceTitle: parseOptionalParam(params.get('source_title')),
+		sourceUrl: parseOptionalParam(params.get('source_url')),
+		capturedAt: parseOptionalParam(params.get('captured_at')),
+	};
+
+	switch (kind) {
+		case 'note': {
+			const text = params.get('text');
+			if (!text) {
+				return { ok: false, error: `Missing required parameter: "text" for capture kind "note"` };
+			}
+			return {
+				ok: true,
+				action: { ...common, kind: 'note', text } satisfies CaptureNoteAction,
+			};
+		}
+
+		case 'clip': {
+			const text = params.get('text');
+			if (!text) {
+				return { ok: false, error: `Missing required parameter: "text" for capture kind "clip"` };
+			}
+			return {
+				ok: true,
+				action: { ...common, kind: 'clip', text } satisfies CaptureClipAction,
+			};
+		}
+
+		case 'link': {
+			const url = params.get('url');
+			if (!url) {
+				return { ok: false, error: `Missing required parameter: "url" for capture kind "link"` };
 			}
 			return {
 				ok: true,
 				action: {
-					type: 'capture',
-					vault,
-					content,
-					tags: parseTagsParam(params.get('tags')),
+					...common,
+					kind: 'link',
+					url,
 					title: parseTitleParam(params.get('title')),
-				} satisfies CaptureAction,
+				} satisfies CaptureLinkAction,
+			};
+		}
+
+		case 'shot': {
+			const path = params.get('path');
+			if (!path) {
+				return { ok: false, error: `Missing required parameter: "path" for capture kind "shot"` };
+			}
+			return {
+				ok: true,
+				action: { ...common, kind: 'shot', path } satisfies CaptureShotAction,
+			};
+		}
+
+		case 'file': {
+			const path = params.get('path');
+			if (!path) {
+				return { ok: false, error: `Missing required parameter: "path" for capture kind "file"` };
+			}
+			return {
+				ok: true,
+				action: { ...common, kind: 'file', path } satisfies CaptureFileAction,
 			};
 		}
 	}
+}
+
+/**
+ * Renders the markdown body for a v2 capture action.
+ *
+ * Per-kind format:
+ * - `note` / `clip`: body = `text`; if `sourceUrl` is present, append a blank
+ *   line plus a `> Source: [<sourceTitle ?? sourceUrl>](<sourceUrl>)` footer.
+ * - `link`: body = `[<title ?? url>](<url>)`; if `sourceUrl` is present AND
+ *   different from `url`, append the same `> Source: ...` footer.
+ * - `shot` / `file`: returns an empty string. The service short-circuits these
+ *   kinds with a "not yet supported" toast and never calls the renderer.
+ */
+export function renderCaptureBody(action: CaptureAction): string {
+	switch (action.kind) {
+		case 'note':
+		case 'clip': {
+			const footer = buildSourceFooter(action.sourceUrl, action.sourceTitle);
+			return footer ? `${action.text}\n\n${footer}` : action.text;
+		}
+		case 'link': {
+			const label = action.title ?? action.url;
+			const body = `[${label}](${action.url})`;
+			const footer =
+				action.sourceUrl && action.sourceUrl !== action.url
+					? buildSourceFooter(action.sourceUrl, action.sourceTitle)
+					: null;
+			return footer ? `${body}\n\n${footer}` : body;
+		}
+		case 'shot':
+		case 'file':
+			return '';
+	}
+}
+
+/**
+ * Builds the `> Source: [label](url)` footer line, or returns null when no
+ * source URL is available. Label falls back to the URL itself when no title.
+ */
+function buildSourceFooter(
+	sourceUrl: string | undefined,
+	sourceTitle: string | undefined,
+): string | null {
+	if (!sourceUrl) return null;
+	const label = sourceTitle ?? sourceUrl;
+	return `> Source: [${label}](${sourceUrl})`;
 }
 
 export { resolveFilePath } from '$lib/utils/path';
@@ -141,6 +283,15 @@ export { resolveFilePath } from '$lib/utils/path';
 function parseBooleanParam(value: string | null): boolean | undefined {
 	if (value === null) return undefined;
 	return value === 'true' || value === '1' || value === '';
+}
+
+/**
+ * Parses an optional string parameter. Returns undefined for null or empty
+ * strings so consumers don't have to special-case `""`.
+ */
+function parseOptionalParam(value: string | null): string | undefined {
+	if (value === null) return undefined;
+	return value.length > 0 ? value : undefined;
 }
 
 /**

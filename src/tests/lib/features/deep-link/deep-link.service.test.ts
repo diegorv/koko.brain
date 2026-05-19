@@ -630,237 +630,400 @@ describe('deep-link.service', () => {
 			});
 		});
 
-		describe('capture', () => {
-			it('creates quick note with content using configured settings', async () => {
-				const action: DeepLinkAction = { type: 'capture', vault: 'V', content: 'My captured text' };
-				await executeAction(action, vaultPath);
+		describe('capture (v2)', () => {
+			// ── note kind ───────────────────────────────────────────
+			describe('kind=note', () => {
+				it('writes the raw text body when no template is configured', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
 
-				expect(vi.mocked(mkdir)).toHaveBeenCalledWith(
-					expect.stringContaining(vaultPath),
-					{ recursive: true },
-				);
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/capture-note-.*\.md$/),
-					expect.stringContaining('My captured text'),
-				);
-				expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'My captured text',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(mkdir)).toHaveBeenCalledWith(
+						expect.stringContaining(vaultPath),
+						{ recursive: true },
+					);
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/capture-note-.*\.md$/),
+						'My captured text',
+					);
+					expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+				});
+
+				it('appends a source footer when sourceUrl is present', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'My note',
+						sourceTitle: 'Some Page',
+						sourceUrl: 'https://example.com',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'My note\n\n> Source: [Some Page](https://example.com)',
+					);
+				});
+
+				it('applies the configured template and appends the rendered body', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template\n---');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Captured',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(processTemplate)).toHaveBeenCalled();
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'processed-template\nCaptured',
+					);
+				});
+
+				it('falls back to the raw body when the template file is not found', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockRejectedValue(new Error('File not found'));
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Raw content',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'Raw content',
+					);
+				});
+
+				it('injects multiple tags into frontmatter when tags are provided', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Multi-tag',
+						tags: ['source/raycast', 'project/work'],
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'---\ntags: [source/raycast, project/work]\n---\nMulti-tag',
+					);
+				});
+
+				it('merges deep-link tags with template frontmatter tags', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('---\ntags: [template-tag]\n---\nTemplate body');
+					vi.mocked(processTemplate).mockReturnValue('---\ntags: [template-tag]\n---\nTemplate body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Captured',
+						tags: ['source/raycast'],
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).toContain('template-tag');
+					expect(written).toContain('source/raycast');
+				});
+
+				it('does NOT inject a YAML title for the note kind even with sourceTitle present', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Body',
+						sourceTitle: 'Browser Title',
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).not.toContain('title:');
+				});
+
+				it('exposes filename-derived title to the template (no deep-link title for note kind)', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('template body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Body',
+					};
+					await executeAction(action, vaultPath);
+
+					const call = vi.mocked(processTemplate).mock.calls[0];
+					const passedFileTitle = call[1] as string;
+					const passedVars = call[2] as Record<string, string>;
+					expect(passedVars.title).toBe(passedFileTitle);
+					expect(passedVars.title.length).toBeGreaterThan(0);
+				});
 			});
 
-			it('applies template and appends content when template is configured', async () => {
-				vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template\n---');
+			// ── clip kind ───────────────────────────────────────────
+			describe('kind=clip', () => {
+				it('writes the highlighted text verbatim when no source is provided', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
 
-				const action: DeepLinkAction = { type: 'capture', vault: 'V', content: 'Captured' };
-				await executeAction(action, vaultPath);
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'clip',
+						text: 'Highlighted text',
+					};
+					await executeAction(action, vaultPath);
 
-				expect(vi.mocked(processTemplate)).toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'processed-template\nCaptured',
-				);
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'Highlighted text',
+					);
+				});
+
+				it('appends a source footer when sourceUrl is present', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'clip',
+						text: 'Whether I will remain open-minded...',
+						sourceTitle: 'Four Notes to My Future Self',
+						sourceUrl: 'https://medium.com/post',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'Whether I will remain open-minded...\n\n> Source: [Four Notes to My Future Self](https://medium.com/post)',
+					);
+				});
 			});
 
-			it('saves raw content when template file is not found', async () => {
-				vi.mocked(readTextFile).mockRejectedValue(new Error('File not found'));
+			// ── link kind ───────────────────────────────────────────
+			describe('kind=link', () => {
+				it('writes a markdown link as the body when no template is configured', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
 
-				const action: DeepLinkAction = { type: 'capture', vault: 'V', content: 'Raw content' };
-				await executeAction(action, vaultPath);
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: 'Example',
+					};
+					await executeAction(action, vaultPath);
 
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'Raw content',
-				);
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).toContain('title: Example');
+					expect(written).toContain('[Example](https://example.com)');
+				});
+
+				it('falls back to the URL as the link label when no title is provided', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'[https://example.com](https://example.com)',
+					);
+				});
+
+				it('injects the link title into frontmatter as `title:`', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: 'Page Title',
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).toContain('title: Page Title');
+				});
+
+				it('replaces the template title when a deep-link title is provided', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template-title\n---\nTemplate body');
+					vi.mocked(processTemplate).mockReturnValue('---\ntitle: template-title\n---\nTemplate body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: 'Override Title',
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).toContain('title: Override Title');
+					expect(written).not.toContain('template-title');
+					expect(written).toContain('[Override Title](https://example.com)');
+				});
+
+				it('exposes the deep-link title to the template as `title` var', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('template body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: 'Deep Link Title',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(processTemplate)).toHaveBeenCalledWith(
+						'template body',
+						expect.any(String),
+						expect.objectContaining({ title: 'Deep Link Title' }),
+					);
+				});
+
+				it('falls back to the filename-derived title when no deep-link title is provided', async () => {
+					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					vi.mocked(readTextFile).mockResolvedValue('template body');
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+					};
+					await executeAction(action, vaultPath);
+
+					const call = vi.mocked(processTemplate).mock.calls[0];
+					const passedFileTitle = call[1] as string;
+					const passedVars = call[2] as Record<string, string>;
+					expect(passedVars.title).toBe(passedFileTitle);
+					expect(passedVars.title.length).toBeGreaterThan(0);
+				});
+
+				it('omits source footer when sourceUrl equals the canonical url', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: 'Example',
+						sourceUrl: 'https://example.com',
+						sourceTitle: 'Browser Title',
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).not.toContain('> Source:');
+				});
+
+				it('appends source footer when sourceUrl differs from canonical url', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://canonical.example.com',
+						title: 'Canonical',
+						sourceUrl: 'https://share.example.com/redirect',
+						sourceTitle: 'Share Page',
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).toContain('[Canonical](https://canonical.example.com)');
+					expect(written).toContain('> Source: [Share Page](https://share.example.com/redirect)');
+				});
+
+				it('injects both title and tags into frontmatter', async () => {
+					settingsStore.updateQuickNote({ templatePath: '' });
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'link',
+						url: 'https://example.com',
+						title: 'My Title',
+						tags: ['source/quick-capture'],
+					};
+					await executeAction(action, vaultPath);
+
+					const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+					expect(written).toContain('title: My Title');
+					expect(written).toContain('tags: [source/quick-capture]');
+					expect(written).toContain('[My Title](https://example.com)');
+				});
 			});
 
-			it('saves raw content when no template is configured', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
+			// ── shot / file kinds ──────────────────────────────────
+			describe('kind=shot / kind=file (not yet supported)', () => {
+				it('shows a toast and does not write anything for kind=shot', async () => {
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'shot',
+						path: '/Users/me/Desktop/shot.png',
+					};
+					await executeAction(action, vaultPath);
 
-				const action: DeepLinkAction = { type: 'capture', vault: 'V', content: 'No template' };
-				await executeAction(action, vaultPath);
+					expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+						expect.stringContaining('"shot"'),
+					);
+					expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
+					expect(vi.mocked(mkdir)).not.toHaveBeenCalled();
+					expect(vi.mocked(refreshTree)).not.toHaveBeenCalled();
+				});
 
-				expect(vi.mocked(readTextFile)).not.toHaveBeenCalled();
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'No template',
-				);
-			});
+				it('shows a toast and does not write anything for kind=file', async () => {
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'file',
+						path: '/Users/me/file.pdf',
+					};
+					await executeAction(action, vaultPath);
 
-			it('injects tags into frontmatter when tags are provided', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Tagged content',
-					tags: ['source/raycast'],
-				};
-				await executeAction(action, vaultPath);
-
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'---\ntags: [source/raycast]\n---\nTagged content',
-				);
-			});
-
-			it('injects multiple tags into frontmatter', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Multi-tag',
-					tags: ['source/raycast', 'project/work'],
-				};
-				await executeAction(action, vaultPath);
-
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'---\ntags: [source/raycast, project/work]\n---\nMulti-tag',
-				);
-			});
-
-			it('merges tags with template frontmatter tags', async () => {
-				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-				vi.mocked(readTextFile).mockResolvedValue('---\ntags: [template-tag]\n---\nTemplate body');
-				vi.mocked(processTemplate).mockReturnValue('---\ntags: [template-tag]\n---\nTemplate body');
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Captured',
-					tags: ['source/raycast'],
-				};
-				await executeAction(action, vaultPath);
-
-				const writeCall = vi.mocked(writeTextFile).mock.calls[0];
-				const writtenContent = writeCall[1] as string;
-				expect(writtenContent).toContain('template-tag');
-				expect(writtenContent).toContain('source/raycast');
-			});
-
-			it('does not add frontmatter when no tags are provided', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'No tags here',
-				};
-				await executeAction(action, vaultPath);
-
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'No tags here',
-				);
-			});
-
-			it('injects title into frontmatter when title is provided', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Body content',
-					title: 'Page Title',
-				};
-				await executeAction(action, vaultPath);
-
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'---\ntitle: Page Title\n---\nBody content',
-				);
-			});
-
-			it('injects both title and tags into frontmatter', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Body',
-					title: 'My Title',
-					tags: ['source/quick-capture'],
-				};
-				await executeAction(action, vaultPath);
-
-				const writeCall = vi.mocked(writeTextFile).mock.calls[0];
-				const written = writeCall[1] as string;
-				expect(written).toContain('title: My Title');
-				expect(written).toContain('tags: [source/quick-capture]');
-				expect(written).toContain('Body');
-			});
-
-			it('replaces template title when capture title is provided', async () => {
-				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-				vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template-title\n---\nTemplate body');
-				vi.mocked(processTemplate).mockReturnValue('---\ntitle: template-title\n---\nTemplate body');
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Captured',
-					title: 'Override Title',
-				};
-				await executeAction(action, vaultPath);
-
-				const writeCall = vi.mocked(writeTextFile).mock.calls[0];
-				const written = writeCall[1] as string;
-				expect(written).toContain('title: Override Title');
-				expect(written).not.toContain('template-title');
-				expect(written).toContain('Captured');
-			});
-
-			it('does not add title property when title is empty string', async () => {
-				settingsStore.updateQuickNote({ templatePath: '' });
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Body',
-					title: '',
-				};
-				await executeAction(action, vaultPath);
-
-				expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
-					expect.stringMatching(/\.md$/),
-					'Body',
-				);
-			});
-
-			it('exposes deep-link title to template as `title` variable', async () => {
-				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-				vi.mocked(readTextFile).mockResolvedValue('template body');
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Body',
-					title: 'Deep Link Title',
-				};
-				await executeAction(action, vaultPath);
-
-				expect(vi.mocked(processTemplate)).toHaveBeenCalledWith(
-					'template body',
-					expect.any(String),
-					expect.objectContaining({ title: 'Deep Link Title' }),
-				);
-			});
-
-			it('falls back to filename-derived title when deep-link title is absent', async () => {
-				settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
-				vi.mocked(readTextFile).mockResolvedValue('template body');
-
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					content: 'Body',
-				};
-				await executeAction(action, vaultPath);
-
-				const call = vi.mocked(processTemplate).mock.calls[0];
-				const passedFileTitle = call[1] as string;
-				const passedVars = call[2] as Record<string, string>;
-				expect(passedVars.title).toBe(passedFileTitle);
-				expect(passedVars.title.length).toBeGreaterThan(0);
+					expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+						expect.stringContaining('"file"'),
+					);
+					expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
+				});
 			});
 		});
 	});

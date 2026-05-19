@@ -12,6 +12,7 @@ import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { deepLinkStore } from './deep-link.store.svelte';
 import {
 	parseDeepLinkUri,
+	renderCaptureBody,
 	resolveFilePath,
 	injectTagsIntoContent,
 	injectTitleIntoContent,
@@ -289,10 +290,23 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 }
 
 /**
- * Handles the `capture` action — creates a quick note using the configured
- * quick-note settings (folder, date format, template) and appends the captured content.
+ * Handles the v2 `capture` action — creates a quick note from a typed
+ * `CaptureAction`. Branches on `action.kind`:
+ *
+ * - `note` / `clip` / `link`: renders the body via `renderCaptureBody`, applies
+ *   the user's quick-note template if configured, injects the link `title` as
+ *   YAML frontmatter (link kind only), and merges `tags` into frontmatter.
+ * - `shot` / `file`: not yet supported. Shows a toast and returns early; no
+ *   file is written. The parser still accepts these kinds so a future change
+ *   only has to extend the renderer + this branch.
  */
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
+	if (action.kind === 'shot' || action.kind === 'file') {
+		debug('DEEP_LINK', 'Capture kind not yet supported:', action.kind);
+		toast.error(`Capture kind "${action.kind}" not yet supported`);
+		return;
+	}
+
 	const quickNote = settingsStore.quickNote;
 	const periodicNotes = settingsStore.periodicNotes;
 	const date = dayjs();
@@ -305,12 +319,13 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		date,
 	);
 
-	debug('DEEP_LINK', 'Capturing note:', filePath);
+	debug('DEEP_LINK', 'Capturing note:', filePath, { kind: action.kind });
 
 	const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
 	await mkdir(parentDir, { recursive: true });
 
-	let fileContent = action.content;
+	const body = renderCaptureBody(action);
+	let fileContent = body;
 
 	if (quickNote.templatePath) {
 		const templateFullPath = `${vaultPath}/${quickNote.templatePath}`;
@@ -318,21 +333,22 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 			const template = await readTextFile(templateFullPath);
 			const fileTitle = getQuickNoteTitle(quickNote.filenameFormat, date);
 			const vars = buildQuickNoteVariables(date, periodicNotes);
-			vars.content = action.content;
-			// Expose the deep-link `title` to user templates via `<% title %>`.
-			// Falls back to the filename-derived title so templates that reference
-			// `<% title %>` always resolve, regardless of whether the deep-link
-			// supplied one. The post-template `injectTitleIntoContent` below is
-			// still the source of truth for the YAML `title:` field.
-			vars.title = action.title ?? fileTitle;
+			vars.content = body;
+			// Expose the deep-link `title` (link kind only) to user templates via
+			// `<% title %>`. Falls back to the filename-derived title so templates
+			// that reference the placeholder always resolve. The post-template
+			// `injectTitleIntoContent` below remains the source of truth for the
+			// YAML `title:` field on link captures.
+			const linkTitle = action.kind === 'link' ? action.title : undefined;
+			vars.title = linkTitle ?? fileTitle;
 			const processed = processTemplate(template, fileTitle, vars);
-			fileContent = processed + '\n' + action.content;
+			fileContent = processed + '\n' + body;
 		} catch {
-			// Template not found — save raw content
+			// Template not found — save raw body
 		}
 	}
 
-	if (action.title) {
+	if (action.kind === 'link' && action.title) {
 		fileContent = injectTitleIntoContent(fileContent, action.title);
 	}
 
