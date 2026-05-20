@@ -603,8 +603,12 @@ async function loadEmbedContent(
 	const filePath = await resolveEmbedTarget(target);
 	if (!filePath) return null;
 
-	const { readTextFile } = await import('@tauri-apps/plugin-fs');
-	const content = await readTextFile(filePath);
+	const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return null;
+
+	const { readText } = await import('$lib/core/filesystem/fs-rust.service');
+	const content = await readText(vaultPath, filePath);
 
 	const { extractHeadingSection, extractBlockContent, getNotePreview } =
 		await import('./embed-resolver.logic');
