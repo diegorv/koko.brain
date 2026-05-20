@@ -1,8 +1,8 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { autocompletion } from '@codemirror/autocomplete';
 import type { Extension } from '@codemirror/state';
-import { readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { readText } from '$lib/core/filesystem/fs-rust.service';
 import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -48,16 +48,18 @@ async function ensureEntriesCached(): Promise<NoteEntryV2[]> {
 	return pendingFetch;
 }
 
-/** Reads the resolved target's content from disk. Returns null on read failure or when the target doesn't resolve. */
-async function resolveTargetContent(target: string): Promise<string | null> {
+/** Reads the resolved target's content from disk. Returns null on read failure, when the target doesn't resolve, or when no vault is open. */
+export async function resolveTargetContent(target: string): Promise<string | null> {
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return null;
 	const files = flattenFileTree(fsStore.fileTree);
 	const allPaths = files.map((f) => f.path);
 	const resolved = resolveWikilink(target, allPaths);
 	if (!resolved) return null;
 	try {
-		return await readTextFile(resolved);
+		return await readText(vaultPath, resolved);
 	} catch (err) {
-		error('WIKILINK_COMPLETION', 'readTextFile failed:', err);
+		error('WIKILINK_COMPLETION', 'readText failed:', err);
 		return null;
 	}
 }
