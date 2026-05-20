@@ -3,9 +3,9 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
 	readDir: vi.fn(),
-	exists: vi.fn(),
 }));
 
 vi.mock('$lib/core/note-creator/note-creator.service', () => ({
@@ -18,7 +18,7 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import dayjs from 'dayjs';
-import { readDir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readDir } from '$lib/core/filesystem/fs-rust.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -52,14 +52,14 @@ describe('loadPeople', () => {
 	});
 
 	it('loads work and personal people, work first', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 		vi.mocked(readDir)
 			.mockResolvedValueOnce([
-				{ name: 'Bob.md', isFile: true, isDirectory: false },
-			] as any) // work folder
+				{ name: 'Bob.md', path: '/vault/_people-work/Bob.md', isDirectory: false },
+			]) // work folder
 			.mockResolvedValueOnce([
-				{ name: 'Alice.md', isFile: true, isDirectory: false },
-			] as any); // personal folder
+				{ name: 'Alice.md', path: '/vault/_people/Alice.md', isDirectory: false },
+			]); // personal folder
 
 		await loadPeople();
 
@@ -71,12 +71,12 @@ describe('loadPeople', () => {
 	});
 
 	it('loads only personal people when work folder does not exist', async () => {
-		vi.mocked(exists)
+		vi.mocked(pathExists)
 			.mockResolvedValueOnce(false) // work folder missing
 			.mockResolvedValueOnce(true);  // personal folder exists
 		vi.mocked(readDir).mockResolvedValueOnce([
-			{ name: 'Alice.md', isFile: true, isDirectory: false },
-		] as any);
+			{ name: 'Alice.md', path: '/vault/_people/Alice.md', isDirectory: false },
+		]);
 
 		await loadPeople();
 
@@ -86,12 +86,12 @@ describe('loadPeople', () => {
 	});
 
 	it('loads only work people when personal folder does not exist', async () => {
-		vi.mocked(exists)
+		vi.mocked(pathExists)
 			.mockResolvedValueOnce(true)  // work folder exists
 			.mockResolvedValueOnce(false); // personal folder missing
 		vi.mocked(readDir).mockResolvedValueOnce([
-			{ name: 'Bob.md', isFile: true, isDirectory: false },
-		] as any);
+			{ name: 'Bob.md', path: '/vault/_people-work/Bob.md', isDirectory: false },
+		]);
 
 		await loadPeople();
 
@@ -101,7 +101,7 @@ describe('loadPeople', () => {
 	});
 
 	it('sets empty list when both folders do not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await loadPeople();
 
@@ -110,7 +110,7 @@ describe('loadPeople', () => {
 	});
 
 	it('sets empty list and logs error on failure', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('access denied'));
+		vi.mocked(pathExists).mockRejectedValue(new Error('access denied'));
 
 		await loadPeople();
 
@@ -122,21 +122,21 @@ describe('loadPeople', () => {
 
 		await loadPeople();
 
-		expect(exists).not.toHaveBeenCalled();
+		expect(pathExists).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe(null);
 	});
 
 	it('sorts each group alphabetically', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 		vi.mocked(readDir)
 			.mockResolvedValueOnce([
-				{ name: 'Zara.md', isFile: true, isDirectory: false },
-				{ name: 'Anna.md', isFile: true, isDirectory: false },
-			] as any) // work folder
+				{ name: 'Zara.md', path: '/vault/_people-work/Zara.md', isDirectory: false },
+				{ name: 'Anna.md', path: '/vault/_people-work/Anna.md', isDirectory: false },
+			]) // work folder
 			.mockResolvedValueOnce([
-				{ name: 'Mike.md', isFile: true, isDirectory: false },
-				{ name: 'Carlos.md', isFile: true, isDirectory: false },
-			] as any); // personal folder
+				{ name: 'Mike.md', path: '/vault/_people/Mike.md', isDirectory: false },
+				{ name: 'Carlos.md', path: '/vault/_people/Carlos.md', isDirectory: false },
+			]); // personal folder
 
 		await loadPeople();
 
@@ -227,7 +227,7 @@ describe('openOneOnOnePicker', () => {
 	});
 
 	it('loads people then opens the dialog', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		expect(oneOnOneStore.isOpen).toBe(false);
 
@@ -239,12 +239,12 @@ describe('openOneOnOnePicker', () => {
 	});
 
 	it('loads people from folder then opens the dialog', async () => {
-		vi.mocked(exists)
+		vi.mocked(pathExists)
 			.mockResolvedValueOnce(false) // work folder missing
 			.mockResolvedValueOnce(true);  // personal folder exists
 		vi.mocked(readDir).mockResolvedValueOnce([
-			{ name: 'Charlie.md', isFile: true, isDirectory: false },
-		] as any);
+			{ name: 'Charlie.md', path: '/vault/_people/Charlie.md', isDirectory: false },
+		]);
 
 		await openOneOnOnePicker();
 

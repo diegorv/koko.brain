@@ -83,7 +83,7 @@ Order = current user-impact, NOT engineering convenience. Active visible bugs fi
 - [x] Task 18 (P4): Migrate `src/lib/plugins/templates/templates.service.ts` -> wrappers. Update tests.
 - [x] Task 19 (P4): Migrate `src/lib/features/file-history/file-history.service.ts` -> wrappers (note this file already uses some Rust commands; finish the remaining plugin-fs calls). Update tests.
 - [x] Task 20 (P4): Migrate `src/lib/features/tasks/todoist.service.ts` -> wrappers. Update tests.
-- [ ] Task 21 (P4): Migrate `src/lib/plugins/one-on-one/one-on-one.service.ts` -> wrappers. Update tests.
+- [x] Task 21 (P4): Migrate `src/lib/plugins/one-on-one/one-on-one.service.ts` -> wrappers. Update tests.
 
 ### P5 — Corner cases + cleanup
 

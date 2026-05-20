@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { readDir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readDir } from '$lib/core/filesystem/fs-rust.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -23,9 +23,9 @@ async function loadPeopleFromFolder(
 ) {
 	if (!folder) return [];
 	const folderPath = `${vaultPath}/${folder}`;
-	const folderExists = await exists(folderPath);
+	const folderExists = await pathExists(vaultPath, folderPath);
 	if (!folderExists) return [];
-	const entries = await readDir(folderPath);
+	const entries = await readDir(vaultPath, folderPath);
 	return loadPeopleFromEntries(entries, folderPath, context);
 }
 
