@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import type { BookmarkEntry } from './bookmarks.types';
 import { bookmarksStore } from './bookmarks.store.svelte';
 import { toggleBookmark, updateBookmarkPaths } from './bookmarks.logic';
@@ -22,12 +22,12 @@ function getDirPath(vaultPath: string): string {
 export async function loadBookmarks(vaultPath: string): Promise<void> {
 	const filePath = getBookmarksPath(vaultPath);
 	try {
-		const fileExists = await exists(filePath);
+		const fileExists = await pathExists(vaultPath, filePath);
 		if (!fileExists) {
 			bookmarksStore.setBookmarks([]);
 			return;
 		}
-		const content = await readTextFile(filePath);
+		const content = await readText(vaultPath, filePath);
 		const parsed = JSON.parse(content) as BookmarkEntry[];
 		bookmarksStore.setBookmarks(Array.isArray(parsed) ? parsed : []);
 	} catch (err) {
@@ -41,12 +41,12 @@ export async function saveBookmarks(vaultPath: string): Promise<void> {
 	const dirPath = getDirPath(vaultPath);
 	const filePath = getBookmarksPath(vaultPath);
 	try {
-		const dirExists = await exists(dirPath);
+		const dirExists = await pathExists(vaultPath, dirPath);
 		if (!dirExists) {
-			await mkdir(dirPath);
+			await createFolder(dirPath);
 		}
 		const content = JSON.stringify(bookmarksStore.bookmarks, null, 2);
-		await writeTextFile(filePath, content);
+		await writeText(vaultPath, filePath, content);
 	} catch (err) {
 		error('BOOKMARKS', 'Failed to save bookmarks:', err);
 		throw err;
@@ -65,7 +65,7 @@ export async function toggleBookmarkForPath(
 	try {
 		await saveBookmarks(vaultPath);
 	} catch {
-		// Store is already updated in memory — save will retry on next toggle
+		// Store updated in memory; retry on next toggle
 	}
 }
 
@@ -80,7 +80,7 @@ export async function updateBookmarkPathsAfterMove(
 	try {
 		await saveBookmarks(vaultPath);
 	} catch {
-		// Store is already updated in memory — save will retry on next operation
+		// Store updated in memory; retry on next operation
 	}
 }
 

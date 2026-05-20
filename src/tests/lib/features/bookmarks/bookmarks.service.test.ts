@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
-	exists: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
 import { loadBookmarks, saveBookmarks, toggleBookmarkForPath, updateBookmarkPathsAfterMove, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
 
@@ -22,27 +22,39 @@ describe('loadBookmarks', () => {
 			{ path: '/vault/a.md', name: 'a.md', isDirectory: false, createdAt: 1000 },
 			{ path: '/vault/b.md', name: 'b.md', isDirectory: false, createdAt: 2000 },
 		];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(bookmarks));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(bookmarks));
 
 		await loadBookmarks('/vault');
 
+		expect(pathExists).toHaveBeenCalledWith('/vault', '/vault/.kokobrain/bookmarks.json');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/.kokobrain/bookmarks.json');
 		expect(bookmarksStore.bookmarks).toHaveLength(2);
 		expect(bookmarksStore.bookmarks[0].path).toBe('/vault/a.md');
 		expect(bookmarksStore.bookmarks[1].path).toBe('/vault/b.md');
 	});
 
 	it('sets empty bookmarks when file does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
+
+		await loadBookmarks('/vault');
+
+		expect(readText).not.toHaveBeenCalled();
+		expect(bookmarksStore.bookmarks).toEqual([]);
+	});
+
+	it('sets empty bookmarks on parse error', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('not valid json');
 
 		await loadBookmarks('/vault');
 
 		expect(bookmarksStore.bookmarks).toEqual([]);
 	});
 
-	it('sets empty bookmarks on parse error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('not valid json');
+	it('sets empty bookmarks when readText rejects', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockRejectedValue(new Error('read failed'));
 
 		await loadBookmarks('/vault');
 
@@ -53,8 +65,8 @@ describe('loadBookmarks', () => {
 		const bookmarks = [
 			{ path: '/vault/a.md', name: 'a.md', isDirectory: false, createdAt: 1000 },
 		];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(bookmarks));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(bookmarks));
 
 		await loadBookmarks('/vault');
 
@@ -67,8 +79,8 @@ describe('toggleBookmarkForPath', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		bookmarksStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('adds a bookmark and saves to disk', async () => {
@@ -76,7 +88,11 @@ describe('toggleBookmarkForPath', () => {
 
 		expect(bookmarksStore.bookmarks).toHaveLength(1);
 		expect(bookmarksStore.bookmarks[0].path).toBe('/vault/a.md');
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
+			'/vault/.kokobrain/bookmarks.json',
+			expect.any(String),
+		);
 	});
 
 	it('removes a bookmark when toggled again', async () => {
@@ -87,14 +103,22 @@ describe('toggleBookmarkForPath', () => {
 
 		expect(bookmarksStore.bookmarks).toHaveLength(0);
 	});
+
+	it('keeps the in-memory toggle when saveBookmarks rejects', async () => {
+		vi.mocked(writeText).mockRejectedValue(new Error('disk full'));
+
+		await toggleBookmarkForPath('/vault', '/vault/a.md', 'a.md', false);
+
+		expect(bookmarksStore.bookmarks).toHaveLength(1);
+	});
 });
 
 describe('updateBookmarkPathsAfterMove', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		bookmarksStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('updates bookmark paths after file move', async () => {
@@ -114,17 +138,50 @@ describe('saveBookmarks', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		bookmarksStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
+	});
+
+	it('writes the manifest when the .kokobrain dir already exists', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
+
+		await saveBookmarks('/vault');
+
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
+			'/vault/.kokobrain/bookmarks.json',
+			expect.any(String),
+		);
+	});
+
+	it('creates the .kokobrain dir via createFolder when missing', async () => {
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(writeText).mockResolvedValue(undefined);
+
+		await saveBookmarks('/vault');
+
+		expect(createFolder).toHaveBeenCalledWith('/vault/.kokobrain');
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('propagates errors to the caller', async () => {
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockRejectedValue(new Error('disk full'));
 
 		await expect(saveBookmarks('/vault')).rejects.toThrow('disk full');
 	});
 
+	it('propagates createFolder errors', async () => {
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(createFolder).mockRejectedValue(new Error('mkdir failed'));
+
+		await expect(saveBookmarks('/vault')).rejects.toThrow('mkdir failed');
+	});
+
 	it('does not throw on success', async () => {
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await expect(saveBookmarks('/vault')).resolves.toBeUndefined();
 	});
