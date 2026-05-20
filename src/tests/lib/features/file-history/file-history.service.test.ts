@@ -7,12 +7,12 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
-	exists: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
 	readDir: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
@@ -24,7 +24,7 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, readDir, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { saveCurrentFile } from '$lib/core/editor/editor.service';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { fileHistoryStore } from '$lib/features/file-history/file-history.store.svelte';
@@ -60,7 +60,7 @@ describe('openFileHistory', () => {
 		const diffLines: DiffLine[] = [
 			{ type: 'equal', content: 'hello', oldLineNum: 1, newLineNum: 1 },
 		];
-		vi.mocked(readTextFile).mockResolvedValue('current content');
+		vi.mocked(readText).mockResolvedValue('current content');
 		vi.mocked(invoke)
 			.mockResolvedValueOnce(snapshots)        // get_file_history
 			.mockResolvedValueOnce('snapshot text')   // get_snapshot_content
@@ -78,7 +78,7 @@ describe('openFileHistory', () => {
 	});
 
 	it('passes relative path to Rust command', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('content');
+		vi.mocked(readText).mockResolvedValue('content');
 		vi.mocked(invoke).mockResolvedValue([]);
 
 		await openFileHistory('/test-vault/deep/path/note.md');
@@ -96,7 +96,7 @@ describe('openFileHistory', () => {
 	});
 
 	it('handles empty snapshot list without selecting', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('content');
+		vi.mocked(readText).mockResolvedValue('content');
 		vi.mocked(invoke).mockResolvedValue([]);
 
 		await openFileHistory('/test-vault/file.md');
@@ -107,7 +107,7 @@ describe('openFileHistory', () => {
 	});
 
 	it('sets loading false on error', async () => {
-		vi.mocked(readTextFile).mockRejectedValue(new Error('File not found'));
+		vi.mocked(readText).mockRejectedValue(new Error('File not found'));
 
 		await openFileHistory('/test-vault/file.md');
 
@@ -303,32 +303,32 @@ describe('saveSnapshotForFile - backup', () => {
 	it('writes backup file when snapshotBackupEnabled is true and snapshot is new', async () => {
 		settingsStore.updateHistory({ snapshotBackupEnabled: true });
 		vi.mocked(invoke).mockResolvedValue(true);
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockResolvedValue(undefined as never);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined as never);
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveSnapshotForFile('/my-vault/notes/test.md', 'file content');
 
-		expect(mkdir).toHaveBeenCalledWith(
+		expect(createFolder).toHaveBeenCalledWith(
 			'/my-vault/.kokobrain/snapshots-backup/notes/test.md',
-			{ recursive: true },
 		);
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(writeText).toHaveBeenCalledWith(
+			'/my-vault',
 			expect.stringContaining('.kokobrain/snapshots-backup/notes/test.md/'),
 			'file content',
 		);
 	});
 
-	it('skips mkdir when backup directory already exists', async () => {
+	it('skips createFolder when backup directory already exists', async () => {
 		settingsStore.updateHistory({ snapshotBackupEnabled: true });
 		vi.mocked(invoke).mockResolvedValue(true);
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined as never);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveSnapshotForFile('/my-vault/notes/test.md', 'content');
 
-		expect(mkdir).not.toHaveBeenCalled();
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('skips backup when snapshotBackupEnabled is false', async () => {
@@ -336,7 +336,7 @@ describe('saveSnapshotForFile - backup', () => {
 
 		await saveSnapshotForFile('/my-vault/notes/test.md', 'content');
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 
 	it('skips backup when content is unchanged (saved=false)', async () => {
@@ -345,13 +345,13 @@ describe('saveSnapshotForFile - backup', () => {
 
 		await saveSnapshotForFile('/my-vault/notes/test.md', 'content');
 
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 
 	it('does not throw when backup fails', async () => {
 		settingsStore.updateHistory({ snapshotBackupEnabled: true });
 		vi.mocked(invoke).mockResolvedValue(true);
-		vi.mocked(exists).mockRejectedValue(new Error('Permission denied'));
+		vi.mocked(pathExists).mockRejectedValue(new Error('Permission denied'));
 
 		await expect(
 			saveSnapshotForFile('/my-vault/notes/test.md', 'content'),
@@ -368,11 +368,11 @@ describe('loadBackupTimestamps', () => {
 	});
 
 	it('returns timestamps from backup directory', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 		vi.mocked(readDir).mockResolvedValue([
-			{ name: '1708185600000.md', isDirectory: false, isFile: true, isSymlink: false },
-			{ name: '1708272000000.md', isDirectory: false, isFile: true, isSymlink: false },
-		] as never);
+			{ name: '1708185600000.md', path: '/vault/.kokobrain/snapshots-backup/notes/file.md/1708185600000.md', isDirectory: false },
+			{ name: '1708272000000.md', path: '/vault/.kokobrain/snapshots-backup/notes/file.md/1708272000000.md', isDirectory: false },
+		]);
 
 		const result = await loadBackupTimestamps('/vault/notes/file.md');
 
@@ -380,7 +380,7 @@ describe('loadBackupTimestamps', () => {
 	});
 
 	it('returns empty set when directory does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		const result = await loadBackupTimestamps('/vault/notes/file.md');
 
@@ -396,11 +396,11 @@ describe('loadBackupTimestamps', () => {
 	});
 
 	it('ignores non-.md files in backup directory', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 		vi.mocked(readDir).mockResolvedValue([
-			{ name: '1708185600000.md', isDirectory: false, isFile: true, isSymlink: false },
-			{ name: '.DS_Store', isDirectory: false, isFile: true, isSymlink: false },
-		] as never);
+			{ name: '1708185600000.md', path: '/vault/.kokobrain/snapshots-backup/file.md/1708185600000.md', isDirectory: false },
+			{ name: '.DS_Store', path: '/vault/.kokobrain/snapshots-backup/file.md/.DS_Store', isDirectory: false },
+		]);
 
 		const result = await loadBackupTimestamps('/vault/file.md');
 
@@ -408,7 +408,7 @@ describe('loadBackupTimestamps', () => {
 	});
 
 	it('returns empty set on error', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('FS error'));
+		vi.mocked(pathExists).mockRejectedValue(new Error('FS error'));
 
 		const result = await loadBackupTimestamps('/vault/file.md');
 

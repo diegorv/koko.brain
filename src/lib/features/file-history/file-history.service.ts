@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, readDir, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { fileHistoryStore } from './file-history.store.svelte';
 import { getRelativePath, getSnapshotBackupDir, getSnapshotBackupPath } from './file-history.logic';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -25,7 +25,7 @@ export async function openFileHistory(absoluteFilePath: string): Promise<void> {
 
 	try {
 		const relativePath = getRelativePath(vaultPath, absoluteFilePath);
-		const currentContent = await readTextFile(absoluteFilePath);
+		const currentContent = await readText(vaultPath, absoluteFilePath);
 		fileHistoryStore.setCurrentContent(currentContent);
 
 		const snapshots = await invoke<SnapshotInfo[]>('get_file_history', { filePath: relativePath });
@@ -130,12 +130,12 @@ async function saveSnapshotBackup(
 ): Promise<void> {
 	try {
 		const backupDir = getSnapshotBackupDir(vaultPath, absoluteFilePath);
-		const dirExists = await exists(backupDir);
+		const dirExists = await pathExists(vaultPath, backupDir);
 		if (!dirExists) {
-			await mkdir(backupDir, { recursive: true });
+			await createFolder(backupDir);
 		}
 		const backupPath = getSnapshotBackupPath(vaultPath, absoluteFilePath, timestamp);
-		await writeTextFile(backupPath, content);
+		await writeText(vaultPath, backupPath, content);
 		debug('HISTORY', 'Snapshot backup saved:', backupPath);
 	} catch (err) {
 		error('HISTORY', 'Failed to save snapshot backup:', err);
@@ -152,13 +152,13 @@ export async function loadBackupTimestamps(absoluteFilePath: string): Promise<Se
 
 	const backupDir = getSnapshotBackupDir(vaultPath, absoluteFilePath);
 	try {
-		const dirExists = await exists(backupDir);
+		const dirExists = await pathExists(vaultPath, backupDir);
 		if (!dirExists) return new Set();
 
-		const entries = await readDir(backupDir);
+		const entries = await readDir(vaultPath, backupDir);
 		const timestamps = new Set<number>();
 		for (const entry of entries) {
-			if (entry.name?.endsWith('.md')) {
+			if (entry.name.endsWith('.md')) {
 				const ts = parseInt(entry.name.replace('.md', ''), 10);
 				if (!isNaN(ts)) {
 					timestamps.add(ts);
