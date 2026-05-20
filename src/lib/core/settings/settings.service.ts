@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';
@@ -30,7 +30,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 	debug('SETTINGS', `loadSettings() called at ${Date.now()}`);
 	const filePath = getSettingsPath(vaultPath);
 	try {
-		const fileExists = await exists(filePath);
+		const fileExists = await pathExists(vaultPath, filePath);
 		if (!fileExists) {
 			const fresh = structuredClone(DEFAULT_SETTINGS);
 			fresh.updates.channel = getBuildChannel();
@@ -40,7 +40,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			applyHeadingTypography();
 			return;
 		}
-		const content = await readTextFile(filePath);
+		const content = await readText(vaultPath, filePath);
 		if (!content.trim()) {
 			const fresh = structuredClone(DEFAULT_SETTINGS);
 			fresh.updates.channel = getBuildChannel();
@@ -177,12 +177,12 @@ export async function saveSettings(vaultPath: string): Promise<void> {
 	const dirPath = getDirPath(vaultPath);
 	const filePath = getSettingsPath(vaultPath);
 	try {
-		const dirExists = await exists(dirPath);
+		const dirExists = await pathExists(vaultPath, dirPath);
 		if (!dirExists) {
-			await mkdir(dirPath);
+			await createFolder(dirPath);
 		}
 		const content = JSON.stringify(settingsStore.settings, null, 2);
-		await writeTextFile(filePath, content);
+		await writeText(vaultPath, filePath, content);
 	} catch (err) {
 		error('SETTINGS', 'Failed to save settings:', err);
 		throw err;

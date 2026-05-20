@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
-	exists: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('$lib/core/settings/theme.service', () => ({
 	applyActiveTheme: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { applyActiveTheme } from '$lib/core/settings/theme.service';
 import { settingsStore, DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
@@ -24,22 +24,22 @@ describe('loadSettings', () => {
 	});
 
 	it('uses default settings if file does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(writeText).mockResolvedValue(undefined);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.periodicNotes.folder).toBe(DEFAULT_SETTINGS.periodicNotes.folder);
 		expect(settingsStore.settings.editor.fontSize).toBe(DEFAULT_SETTINGS.editor.fontSize);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(DEFAULT_SETTINGS.layout.rightSidebarVisible);
-		expect(readTextFile).not.toHaveBeenCalled();
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('loads and merges periodic notes settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({
 				periodicNotes: {
 					folder: '_notes-custom',
@@ -47,11 +47,11 @@ describe('loadSettings', () => {
 				},
 			}),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/.kokobrain/settings.json');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/.kokobrain/settings.json');
 		expect(settingsStore.settings.periodicNotes.folder).toBe('_notes-custom');
 		expect(settingsStore.settings.periodicNotes.daily.format).toBe('YYYY-MM-DD');
 		// Defaults preserved for unset fields
@@ -61,11 +61,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges editor settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ editor: { fontSize: 18 } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -75,11 +75,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges templates settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ templates: { folder: 'my-templates' } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -87,9 +87,9 @@ describe('loadSettings', () => {
 	});
 
 	it('uses defaults on parse error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('invalid json');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('invalid json');
+		vi.mocked(writeText).mockResolvedValue(undefined);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadSettings('/vault');
@@ -100,9 +100,9 @@ describe('loadSettings', () => {
 	});
 
 	it('uses defaults on read error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockRejectedValue(new Error('read error'));
+		vi.mocked(writeText).mockResolvedValue(undefined);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadSettings('/vault');
@@ -112,20 +112,20 @@ describe('loadSettings', () => {
 	});
 
 	it('uses defaults when file content is empty', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('   ');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('   ');
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('calls applyActiveTheme after loading', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(writeText).mockResolvedValue(undefined);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -134,9 +134,9 @@ describe('loadSettings', () => {
 	});
 
 	it('calls applyActiveTheme on parse error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('not json');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('not json');
+		vi.mocked(writeText).mockResolvedValue(undefined);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadSettings('/vault');
@@ -147,9 +147,9 @@ describe('loadSettings', () => {
 	});
 
 	it('applies theme even when saveSettings fails in catch block', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockRejectedValue(new Error('read error'));
+		vi.mocked(writeText).mockRejectedValue(new Error('write error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadSettings('/vault');
@@ -162,11 +162,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges layout settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ layout: { terminalVisible: true } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -176,11 +176,11 @@ describe('loadSettings', () => {
 	});
 
 	it('uses default pane sizes when not present in saved settings', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ layout: { rightSidebarVisible: true } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -191,8 +191,8 @@ describe('loadSettings', () => {
 	});
 
 	it('restores saved pane sizes from disk', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({
 				layout: {
 					leftPaneSize: 30,
@@ -202,7 +202,7 @@ describe('loadSettings', () => {
 				},
 			}),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -212,11 +212,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges terminal settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ terminal: { fontSize: 18 } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -226,11 +226,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges history settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ history: { retentionDays: 30 } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -239,11 +239,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges search settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ search: { semanticSearchEnabled: true } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -251,11 +251,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges tagColors settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ tagColors: { colors: { dev: '#a882ff' } } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -263,11 +263,11 @@ describe('loadSettings', () => {
 	});
 
 	it('uses default empty tagColors when not present in saved settings', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ editor: { fontSize: 20 } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -275,11 +275,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges todoist settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ todoist: { apiToken: 'token123' } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -287,11 +287,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges quickNote settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ quickNote: { folderFormat: 'YYYY' } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -300,11 +300,11 @@ describe('loadSettings', () => {
 	});
 
 	it('merges oneOnOne settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ oneOnOne: { peopleFolder: '_team' } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -313,8 +313,8 @@ describe('loadSettings', () => {
 	});
 
 	it('deep-merges heading typography with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({
 				editor: {
 					headingTypography: {
@@ -324,7 +324,7 @@ describe('loadSettings', () => {
 				},
 			}),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -347,11 +347,11 @@ describe('loadSettings', () => {
 	});
 
 	it('uses default heading typography when not present in saved settings', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({ editor: { fontSize: 20 } }),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -369,9 +369,9 @@ describe('loadSettings', () => {
 		});
 
 		it('defaults updates.channel to "stable" on fresh install (no __APP_CHANNEL__ define)', async () => {
-			vi.mocked(exists).mockResolvedValue(false);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
-			vi.mocked(mkdir).mockResolvedValue(undefined);
+			vi.mocked(pathExists).mockResolvedValue(false);
+			vi.mocked(writeText).mockResolvedValue(undefined);
+			vi.mocked(createFolder).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
 
@@ -380,9 +380,9 @@ describe('loadSettings', () => {
 
 		it('defaults updates.channel to "nightly" on a nightly build (fresh install)', async () => {
 			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
-			vi.mocked(exists).mockResolvedValue(false);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
-			vi.mocked(mkdir).mockResolvedValue(undefined);
+			vi.mocked(pathExists).mockResolvedValue(false);
+			vi.mocked(writeText).mockResolvedValue(undefined);
+			vi.mocked(createFolder).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
 
@@ -391,11 +391,11 @@ describe('loadSettings', () => {
 
 		it('respects an explicit channel from a saved settings file', async () => {
 			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue(
 				JSON.stringify({ updates: { channel: 'stable' } }),
 			);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(writeText).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
 
@@ -405,11 +405,11 @@ describe('loadSettings', () => {
 
 		it('falls back to the build channel when saved settings omit the updates block', async () => {
 			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue(
 				JSON.stringify({ editor: { fontSize: 18 } }),
 			);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(writeText).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
 
@@ -419,9 +419,9 @@ describe('loadSettings', () => {
 
 		it('falls back to the build channel on parse error', async () => {
 			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue('not json');
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue('not json');
+			vi.mocked(writeText).mockResolvedValue(undefined);
 			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 			await loadSettings('/vault');
@@ -432,8 +432,8 @@ describe('loadSettings', () => {
 	});
 
 	it('normalizes appearance settings on load', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(
 			JSON.stringify({
 				appearance: {
 					activeTheme: 'Custom',
@@ -441,7 +441,7 @@ describe('loadSettings', () => {
 				},
 			}),
 		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
@@ -463,44 +463,45 @@ describe('saveSettings', () => {
 	});
 
 	it('creates .kokobrain dir if it does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveSettings('/vault');
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/.kokobrain');
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(createFolder).toHaveBeenCalledWith('/vault/.kokobrain');
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
 			'/vault/.kokobrain/settings.json',
 			JSON.stringify(settingsStore.settings, null, 2),
 		);
 	});
 
-	it('skips mkdir if dir already exists', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	it('skips createFolder if dir already exists', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveSettings('/vault');
 
-		expect(mkdir).not.toHaveBeenCalled();
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('writes current store state to disk', async () => {
 		settingsStore.updateEditor({ fontSize: 20 });
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveSettings('/vault');
 
-		const writtenContent = vi.mocked(writeTextFile).mock.calls[0][1];
+		const writtenContent = vi.mocked(writeText).mock.calls[0][2];
 		const parsed = JSON.parse(writtenContent);
 		expect(parsed.editor.fontSize).toBe(20);
 	});
 
 	it('logs and re-throws on write error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockRejectedValue(new Error('write error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(saveSettings('/vault')).rejects.toThrow('write error');
@@ -510,13 +511,13 @@ describe('saveSettings', () => {
 	});
 
 	it('logs and re-throws on exists() error', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('permission denied'));
+		vi.mocked(pathExists).mockRejectedValue(new Error('permission denied'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(saveSettings('/vault')).rejects.toThrow('permission denied');
 
 		expect(consoleSpy).toHaveBeenCalled();
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		consoleSpy.mockRestore();
 	});
 });
