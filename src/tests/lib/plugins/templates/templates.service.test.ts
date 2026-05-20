@@ -12,19 +12,15 @@ Object.defineProperty(globalThis, 'localStorage', {
 	writable: true,
 });
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	exists: vi.fn(),
-	readDir: vi.fn(),
-	mkdir: vi.fn(),
-	writeTextFile: vi.fn(),
-}));
-
 // Mock side-effect services only
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
 vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readDir: vi.fn(),
+	writeText: vi.fn(),
 	createFolder: vi.fn(),
 }));
 
@@ -32,8 +28,7 @@ vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
-import { exists, readDir, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
-import { createFolder } from '$lib/core/filesystem/fs-rust.service';
+import { pathExists, readDir, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
@@ -61,12 +56,12 @@ describe('loadTemplates', () => {
 
 		await loadTemplates();
 
-		expect(exists).not.toHaveBeenCalled();
+		expect(pathExists).not.toHaveBeenCalled();
 		expect(templatesStore.templates).toEqual([]);
 	});
 
 	it('sets empty list if templates folder does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await loadTemplates();
 
@@ -74,13 +69,13 @@ describe('loadTemplates', () => {
 	});
 
 	it('loads .md files from templates folder into store', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 		vi.mocked(readDir).mockResolvedValue([
-			{ name: 'Meeting.md', isDirectory: false, isFile: true, isSymlink: false },
-			{ name: 'Daily.md', isDirectory: false, isFile: true, isSymlink: false },
-			{ name: 'subfolder', isDirectory: true, isFile: false, isSymlink: false },
-			{ name: 'notes.txt', isDirectory: false, isFile: true, isSymlink: false },
-		] as any);
+			{ name: 'Meeting.md', path: '/vault/_system/templates/Meeting.md', isDirectory: false },
+			{ name: 'Daily.md', path: '/vault/_system/templates/Daily.md', isDirectory: false },
+			{ name: 'subfolder', path: '/vault/_system/templates/subfolder', isDirectory: true },
+			{ name: 'notes.txt', path: '/vault/_system/templates/notes.txt', isDirectory: false },
+		]);
 
 		await loadTemplates();
 
@@ -91,7 +86,7 @@ describe('loadTemplates', () => {
 	});
 
 	it('handles errors gracefully', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('fs error'));
+		vi.mocked(pathExists).mockRejectedValue(new Error('fs error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadTemplates();
@@ -166,35 +161,35 @@ describe('ensureTemplatesFolder', () => {
 
 		await ensureTemplatesFolder();
 
-		expect(exists).not.toHaveBeenCalled();
+		expect(pathExists).not.toHaveBeenCalled();
 		expect(vaultStore.isOpen).toBe(false);
 	});
 
 	it('skips mkdir and writeTextFile if folder and all files exist', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExists).mockResolvedValue(true);
 
 		await ensureTemplatesFolder();
 
-		expect(mkdir).not.toHaveBeenCalled();
-		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 		expect(refreshTree).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe('/vault');
 	});
 
 	it('creates folder and empty template files when everything is missing', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await ensureTemplatesFolder();
 
 		// Phase 8.8: folder creation routes through Rust `create_folder` (via createFolder wrapper).
 		expect(createFolder).toHaveBeenCalledWith('/vault/_system/templates');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Monthly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quarterly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quick Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/One on One.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Daily Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Weekly Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Monthly Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Quarterly Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Quick Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/One on One.md', '');
 		expect(refreshTree).toHaveBeenCalled();
 	});
 
@@ -208,23 +203,23 @@ describe('ensureTemplatesFolder', () => {
 		settingsStore.updateQuickNote({ templatePath: '_system/templates/Quick Note.md' });
 		settingsStore.updateOneOnOne({ templatePath: '_system/templates/One on One.md' });
 
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await ensureTemplatesFolder();
 
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Monthly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quarterly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quick Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/One on One.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Daily Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Weekly Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Monthly Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Quarterly Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/Quick Note.md', '');
+		expect(writeText).toHaveBeenCalledWith('/vault', '/vault/_system/templates/One on One.md', '');
 		// Should NOT use default _templates/ paths
-		expect(writeTextFile).not.toHaveBeenCalledWith('/vault/_templates/Daily Note.md', '');
+		expect(writeText).not.toHaveBeenCalledWith('/vault', '/vault/_templates/Daily Note.md', '');
 	});
 
 	it('handles errors gracefully', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('fs error'));
+		vi.mocked(pathExists).mockRejectedValue(new Error('fs error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await ensureTemplatesFolder();
@@ -244,7 +239,7 @@ describe('openTemplatePicker', () => {
 	});
 
 	it('loads templates and opens the picker', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await openTemplatePicker();
 

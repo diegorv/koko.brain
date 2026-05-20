@@ -1,5 +1,4 @@
-import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
-import { createFolder } from '$lib/core/filesystem/fs-rust.service';
+import { pathExists, readDir, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -23,13 +22,13 @@ export async function loadTemplates(): Promise<void> {
 	const folderPath = buildTemplatesFolderPath(vaultPath, settingsStore.templates.folder);
 
 	try {
-		const folderExists = await exists(folderPath);
+		const folderExists = await pathExists(vaultPath, folderPath);
 		if (!folderExists) {
 			templatesStore.setTemplates([]);
 			return;
 		}
 
-		const entries = await readDir(folderPath);
+		const entries = await readDir(vaultPath, folderPath);
 		const templates: TemplateEntry[] = entries
 			.filter((e) => !e.isDirectory && e.name.endsWith('.md'))
 			.map((e) => {
@@ -91,7 +90,7 @@ export async function ensureTemplatesFolder(): Promise<void> {
 	}
 
 	try {
-		const folderExists = await exists(folderPath);
+		const folderExists = await pathExists(vaultPath, folderPath);
 		if (!folderExists) {
 			// Phase 8.8: routes through Rust so the watcher self-save
 			// filter notices the new directory event when the watcher
@@ -103,12 +102,11 @@ export async function ensureTemplatesFolder(): Promise<void> {
 		let created = false;
 		for (const relPath of templatePaths) {
 			const absPath = `${vaultPath}/${relPath}`;
-			if (!(await exists(absPath))) {
-				// Empty placeholder template files — stays TS. These are
-				// initialization scaffolding (not vault notes) and don't
-				// need Rust-side index updates: the watcher's later batch
-				// will pick them up.
-				await writeTextFile(absPath, '');
+			if (!(await pathExists(vaultPath, absPath))) {
+				// Empty placeholder template files. These are initialization
+				// scaffolding (not vault notes) and don't need Rust-side
+				// index updates: the watcher's later batch will pick them up.
+				await writeText(vaultPath, absPath, '');
 				created = true;
 			}
 		}
