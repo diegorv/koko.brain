@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { moveItem } from '$lib/core/filesystem/fs.service';
 import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
@@ -38,12 +38,12 @@ function getConfigPath(vaultPath: string): string {
 export async function loadAutoMoveConfig(vaultPath: string): Promise<void> {
 	const filePath = getConfigPath(vaultPath);
 	try {
-		const fileExists = await exists(filePath);
+		const fileExists = await pathExists(vaultPath, filePath);
 		if (!fileExists) {
 			autoMoveStore.setConfig({ ...DEFAULT_CONFIG });
 			return;
 		}
-		const content = await readTextFile(filePath);
+		const content = await readText(vaultPath, filePath);
 		if (!content.trim()) {
 			autoMoveStore.setConfig({ ...DEFAULT_CONFIG });
 			return;
@@ -67,15 +67,15 @@ export async function saveAutoMoveConfig(vaultPath: string): Promise<void> {
 	const dirPath = `${vaultPath}/${SETTINGS_DIR}`;
 	const filePath = getConfigPath(vaultPath);
 	try {
-		const dirExists = await exists(dirPath);
+		const dirExists = await pathExists(vaultPath, dirPath);
 		if (!dirExists) {
-			await mkdir(dirPath);
+			await createFolder(dirPath);
 		}
 		const config: AutoMoveConfig = {
 			rules: autoMoveStore.rules,
 			excludedFolders: autoMoveStore.excludedFolders,
 		};
-		await writeTextFile(filePath, JSON.stringify(config, null, 2));
+		await writeText(vaultPath, filePath, JSON.stringify(config, null, 2));
 		debug('AUTO-MOVE', 'Config saved');
 	} catch (err) {
 		error('AUTO-MOVE', 'Failed to save config:', err);
@@ -162,9 +162,9 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 		// Ensure destination folder exists
 		const destPath = `${vaultPath}/${rule.destination}`;
 		try {
-			const destExists = await exists(destPath);
+			const destExists = await pathExists(vaultPath, destPath);
 			if (!destExists) {
-				await mkdir(destPath, { recursive: true });
+				await createFolder(destPath);
 				debug('AUTO-MOVE', 'Created destination folder:', destPath);
 			}
 		} catch (err) {

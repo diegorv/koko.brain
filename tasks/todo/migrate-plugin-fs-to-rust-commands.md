@@ -78,7 +78,7 @@ Order = current user-impact, NOT engineering convenience. Active visible bugs fi
 ### P4 — Occasional features
 
 - [x] Task 15 (P4): Migrate `src/lib/core/markdown-editor/extensions/wikilink/completion.ts` -> wrappers. Autocomplete read path. Update tests.
-- [ ] Task 16 (P4): Migrate `src/lib/features/auto-move/auto-move.service.ts` -> wrappers. Update tests.
+- [x] Task 16 (P4): Migrate `src/lib/features/auto-move/auto-move.service.ts` -> wrappers. Update tests.
 - [ ] Task 17 (P4): Migrate `src/lib/plugins/queryjs/queryjs.service.ts` -> wrappers. Update tests.
 - [ ] Task 18 (P4): Migrate `src/lib/plugins/templates/templates.service.ts` -> wrappers. Update tests.
 - [ ] Task 19 (P4): Migrate `src/lib/features/file-history/file-history.service.ts` -> wrappers (note this file already uses some Rust commands; finish the remaining plugin-fs calls). Update tests.

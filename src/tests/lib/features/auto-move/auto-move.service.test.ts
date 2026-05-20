@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
-	exists: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('$lib/core/editor/editor.hooks', () => ({
@@ -27,7 +27,7 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { moveItem } from '$lib/core/filesystem/fs.service';
 import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
@@ -51,8 +51,8 @@ describe('auto-move.service', () => {
 
 	describe('loadAutoMoveConfig', () => {
 		it('loads config from disk into store', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue(JSON.stringify({
 				rules: [
 					{ id: 'r1', name: 'Test', expression: "file.hasTag('test')", destination: 'Archive', enabled: true },
 				],
@@ -68,7 +68,7 @@ describe('auto-move.service', () => {
 		});
 
 		it('initializes with empty defaults when file does not exist', async () => {
-			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(pathExists).mockResolvedValue(false);
 
 			await loadAutoMoveConfig('/vault');
 
@@ -78,8 +78,8 @@ describe('auto-move.service', () => {
 		});
 
 		it('initializes with empty defaults when file is empty', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue('   ');
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue('   ');
 
 			await loadAutoMoveConfig('/vault');
 
@@ -88,8 +88,8 @@ describe('auto-move.service', () => {
 		});
 
 		it('handles corrupt JSON gracefully', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue('not valid json{{{');
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue('not valid json{{{');
 
 			await loadAutoMoveConfig('/vault');
 
@@ -98,8 +98,8 @@ describe('auto-move.service', () => {
 		});
 
 		it('handles missing rules field gracefully', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ excludedFolders: ['_system'] }));
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(readText).mockResolvedValue(JSON.stringify({ excludedFolders: ['_system'] }));
 
 			await loadAutoMoveConfig('/vault');
 
@@ -110,8 +110,8 @@ describe('auto-move.service', () => {
 
 	describe('saveAutoMoveConfig', () => {
 		it('saves current store state to disk', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined as never);
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(writeText).mockResolvedValue(undefined);
 
 			autoMoveStore.setConfig({
 				rules: [{ id: 'r1', name: 'Test', expression: 'true', destination: 'Archive', enabled: true }],
@@ -120,27 +120,28 @@ describe('auto-move.service', () => {
 
 			await saveAutoMoveConfig('/vault');
 
-			expect(writeTextFile).toHaveBeenCalledTimes(1);
-			const [path, content] = vi.mocked(writeTextFile).mock.calls[0];
+			expect(writeText).toHaveBeenCalledTimes(1);
+			const [vault, path, content] = vi.mocked(writeText).mock.calls[0];
+			expect(vault).toBe('/vault');
 			expect(path).toBe('/vault/.kokobrain/auto-move-rules.json');
 			const parsed = JSON.parse(content as string);
 			expect(parsed.rules).toHaveLength(1);
 			expect(parsed.excludedFolders).toEqual(['_system']);
 		});
 
-		it('creates .kokobrain directory if it does not exist', async () => {
-			vi.mocked(exists).mockResolvedValue(false);
-			vi.mocked(mkdir).mockResolvedValue(undefined as never);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined as never);
+		it('creates .kokobrain directory via createFolder when missing', async () => {
+			vi.mocked(pathExists).mockResolvedValue(false);
+			vi.mocked(createFolder).mockResolvedValue(undefined);
+			vi.mocked(writeText).mockResolvedValue(undefined);
 
 			await saveAutoMoveConfig('/vault');
 
-			expect(mkdir).toHaveBeenCalledWith('/vault/.kokobrain');
+			expect(createFolder).toHaveBeenCalledWith('/vault/.kokobrain');
 		});
 
 		it('throws on write failure', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(writeTextFile).mockRejectedValue(new Error('Permission denied'));
+			vi.mocked(pathExists).mockResolvedValue(true);
+			vi.mocked(writeText).mockRejectedValue(new Error('Permission denied'));
 
 			await expect(saveAutoMoveConfig('/vault')).rejects.toThrow('Permission denied');
 		});
@@ -198,7 +199,7 @@ describe('auto-move.service', () => {
 				excludedFolders: [],
 			});
 
-			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(pathExists).mockResolvedValue(true);
 			vi.mocked(moveItem).mockResolvedValue('/vault/Archive/note.md');
 
 			let capturedObserver: ((path: string, content: string) => void) | null = null;
@@ -267,7 +268,7 @@ describe('auto-move.service', () => {
 				excludedFolders: [],
 			});
 
-			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(pathExists).mockResolvedValue(true);
 
 			let capturedObserver: ((path: string, content: string) => void) | null = null;
 			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
