@@ -1,7 +1,7 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from './vault.store.svelte';
+import { pathExistsRaw } from '$lib/core/filesystem/fs-rust.service';
 import { error } from '$lib/utils/debug';
 
 /** Opens a native directory picker and, if the user selects a folder, opens it as a vault */
@@ -20,9 +20,9 @@ export async function openVaultDialog(): Promise<boolean> {
  */
 export async function openRecentVault(path: string): Promise<boolean> {
 	try {
-		const pathExists = await exists(path);
-		if (!pathExists) {
-			error('VAULT', `Cannot open vault — path does not exist: ${path}`);
+		const exists = await pathExistsRaw(path);
+		if (!exists) {
+			error('VAULT', `Cannot open vault - path does not exist: ${path}`);
 			vaultStore.removeRecent(path);
 			toast.error('Vault folder no longer exists. Removed from recent vaults.');
 			return false;

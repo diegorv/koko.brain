@@ -4,8 +4,8 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 	open: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	exists: vi.fn(() => Promise.resolve(true)),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExistsRaw: vi.fn(() => Promise.resolve(true)),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -30,7 +30,7 @@ const localStorageMock = (() => {
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists } from '@tauri-apps/plugin-fs';
+import { pathExistsRaw } from '$lib/core/filesystem/fs-rust.service';
 import { toast } from 'svelte-sonner';
 import { error as debugError } from '$lib/utils/debug';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -90,7 +90,7 @@ describe('openRecentVault', () => {
 	});
 
 	it('opens vault with given path when directory exists', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExistsRaw).mockResolvedValue(true);
 
 		const result = await openRecentVault('/path/to/vault');
 
@@ -101,7 +101,7 @@ describe('openRecentVault', () => {
 	});
 
 	it('adds to recent vaults list', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExistsRaw).mockResolvedValue(true);
 
 		await openRecentVault('/path/to/vault');
 
@@ -115,7 +115,7 @@ describe('openRecentVault', () => {
 		vaultStore.close();
 		expect(vaultStore.recentVaults).toHaveLength(1);
 
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExistsRaw).mockResolvedValue(false);
 
 		const result = await openRecentVault('/stale/vault');
 
@@ -127,7 +127,7 @@ describe('openRecentVault', () => {
 	});
 
 	it('proceeds to open vault even if exists check throws', async () => {
-		vi.mocked(exists).mockRejectedValue(new Error('fs error'));
+		vi.mocked(pathExistsRaw).mockRejectedValue(new Error('fs error'));
 
 		const result = await openRecentVault('/path/to/vault');
 
@@ -146,7 +146,7 @@ describe('closeVault', () => {
 	});
 
 	it('closes the vault and clears state', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExistsRaw).mockResolvedValue(true);
 		await openRecentVault('/vault');
 		expect(vaultStore.isOpen).toBe(true);
 
@@ -158,7 +158,7 @@ describe('closeVault', () => {
 	});
 
 	it('preserves recent vaults after closing', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(pathExistsRaw).mockResolvedValue(true);
 		await openRecentVault('/vault');
 		closeVault();
 
