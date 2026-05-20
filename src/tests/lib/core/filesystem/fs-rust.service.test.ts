@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import {
 	pathExists,
+	pathExistsRaw,
 	readText,
 	writeText,
 	renamePath,
@@ -47,6 +48,26 @@ describe('pathExists', () => {
 		await expect(pathExists('/vault', '/etc/passwd')).rejects.toBe(
 			'Path is outside vault directory',
 		);
+	});
+});
+
+// ── pathExistsRaw ──────────────────────────────────────────────────────────
+
+describe('pathExistsRaw', () => {
+	it('invokes path_exists_raw with only the path (no vaultPath)', async () => {
+		vi.mocked(invoke).mockResolvedValue(true);
+
+		const result = await pathExistsRaw('/Users/me/old-vault');
+
+		expect(result).toBe(true);
+		expect(invoke).toHaveBeenCalledWith('path_exists_raw', {
+			path: '/Users/me/old-vault',
+		});
+	});
+
+	it('returns false for missing paths (deleted recent vault)', async () => {
+		vi.mocked(invoke).mockResolvedValue(false);
+		expect(await pathExistsRaw('/Users/me/deleted-vault')).toBe(false);
 	});
 });
 

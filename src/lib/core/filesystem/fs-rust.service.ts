@@ -41,6 +41,17 @@ export function pathExists(vaultPath: string, path: string): Promise<boolean> {
 }
 
 /**
+ * Returns true if `path` exists on disk, false otherwise. Bypasses the
+ * vault-scoping check that every other wrapper enforces. Use ONLY for probes
+ * that cannot have a valid vault context yet, e.g. detecting whether a
+ * previously opened vault directory still exists before the user reopens it.
+ * Day-to-day code should use `pathExists(vaultPath, path)` instead.
+ */
+export function pathExistsRaw(path: string): Promise<boolean> {
+	return invoke<boolean>('path_exists_raw', { path });
+}
+
+/**
  * Reads a UTF-8 text file inside the vault. Rejects if the file does not
  * exist, lives outside the vault, or contains invalid UTF-8.
  */

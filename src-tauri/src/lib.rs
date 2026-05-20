@@ -139,6 +139,7 @@ pub fn run() {
             vault::watcher::stop_vault_watcher,
             commands::files::read_files_batch,
             commands::fs_primitives::path_exists,
+            commands::fs_primitives::path_exists_raw,
             commands::fs_primitives::read_text,
             commands::fs_primitives::write_text,
             commands::fs_primitives::rename_path,

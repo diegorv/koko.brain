@@ -41,6 +41,19 @@ pub fn path_exists(vault_path: String, path: String) -> Result<bool, String> {
 	Ok(exists)
 }
 
+/// Returns `true` if `path` exists on disk, `false` otherwise. Unlike
+/// `path_exists`, this command does NOT run `validate_vault_path` and does NOT
+/// require an active vault. It is the bare-bones equivalent of
+/// `std::fs::metadata(path).is_ok()` and is intended for one specific use case:
+/// the recent-vault picker checking whether a previously opened vault still
+/// exists on disk before the user is allowed to open it. Symlinks are followed
+/// (matches `std::fs::metadata` semantics) since the caller is checking for a
+/// concrete directory, not detecting traversal attempts.
+#[tauri::command]
+pub fn path_exists_raw(path: String) -> Result<bool, String> {
+	Ok(fs::metadata(&path).is_ok())
+}
+
 /// Reads a UTF-8 text file inside the vault. Errors if the file does not
 /// exist, is outside the vault, or contains invalid UTF-8.
 #[tauri::command]

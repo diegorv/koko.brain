@@ -13,7 +13,8 @@
 //! the security and behaviour contract is the same.
 
 use kokobrain_lib::commands::fs_primitives::{
-	copy_path, delete_path, path_exists, read_dir, read_text, rename_path, write_text,
+	copy_path, delete_path, path_exists, path_exists_raw, read_dir, read_text, rename_path,
+	write_text,
 };
 use std::fs;
 use tempfile::TempDir;
@@ -66,6 +67,48 @@ fn path_exists_rejects_traversal_with_parent_outside_vault() {
 
 	let err = path_exists(vault, p).unwrap_err();
 	assert!(err.contains("outside vault"), "got: {}", err);
+}
+
+// ── path_exists_raw ────────────────────────────────────────────────────────
+
+#[test]
+fn path_exists_raw_returns_true_for_existing_file() {
+	let tmp = TempDir::new().unwrap();
+	let p = tmp.path().join("note.md");
+	fs::write(&p, "x").unwrap();
+
+	let exists = path_exists_raw(p.to_string_lossy().to_string()).unwrap();
+	assert!(exists);
+}
+
+#[test]
+fn path_exists_raw_returns_true_for_existing_directory() {
+	let tmp = TempDir::new().unwrap();
+	let exists = path_exists_raw(tmp.path().to_string_lossy().to_string()).unwrap();
+	assert!(exists);
+}
+
+#[test]
+fn path_exists_raw_returns_false_for_missing_path() {
+	let tmp = TempDir::new().unwrap();
+	let p = tmp.path().join("never-existed.md");
+
+	let exists = path_exists_raw(p.to_string_lossy().to_string()).unwrap();
+	assert!(!exists);
+}
+
+#[test]
+fn path_exists_raw_returns_false_for_deleted_directory() {
+	// Reproduces the recent-vault stale-detection scenario: a directory
+	// previously stored in `vaultStore.recentVaults` that has since been
+	// removed from disk. The wrapper has no vault context to validate, so
+	// it must answer false (not Err) for the deleted path.
+	let tmp = TempDir::new().unwrap();
+	let vault_path = tmp.path().to_string_lossy().to_string();
+	drop(tmp);
+
+	let exists = path_exists_raw(vault_path).unwrap();
+	assert!(!exists);
 }
 
 // ── read_text ──────────────────────────────────────────────────────────────
