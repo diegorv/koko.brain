@@ -15,6 +15,7 @@ vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
 	copyPath: vi.fn(),
 	deletePath: vi.fn(),
 	readDir: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
@@ -63,6 +64,7 @@ import {
 	renamePath,
 	copyPath,
 	readDir,
+	createFolder as mkdir,
 	type FsDirEntry,
 } from '$lib/core/filesystem/fs-rust.service';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
@@ -111,6 +113,7 @@ function setupDefaultMocks() {
 	vi.mocked(invoke).mockResolvedValue([]);
 	vi.mocked(writeText).mockResolvedValue(undefined);
 	vi.mocked(readDir).mockResolvedValue([]);
+	vi.mocked(mkdir).mockResolvedValue(undefined);
 }
 
 describe('loadFolderOrder', () => {
@@ -136,12 +139,12 @@ describe('loadFolderOrder', () => {
 		expect(fsStore.folderOrder).toEqual({});
 	});
 
-	it('creates .kokobrain directory via create_folder when folder-order.json does not exist', async () => {
+	it('creates .kokobrain directory via createFolder when folder-order.json does not exist', async () => {
 		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await loadFolderOrder('/vault');
 
-		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/.kokobrain' });
+		expect(mkdir).toHaveBeenCalledWith('/vault/.kokobrain');
 	});
 
 	it('parses valid folder order and filters underscore-prefixed keys', async () => {
@@ -457,7 +460,7 @@ describe('createFolder', () => {
 
 		const result = await createFolder('/vault', 'new-folder');
 
-		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/new-folder' });
+		expect(mkdir).toHaveBeenCalledWith('/vault/new-folder');
 		expect(fsStore.expandedDirs.has('/vault/new-folder')).toBe(true);
 		expect(result).toBe('/vault/new-folder');
 	});
@@ -467,7 +470,7 @@ describe('createFolder', () => {
 
 		const result = await createFolder('/vault', 'new-folder');
 
-		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/new-folder 1' });
+		expect(mkdir).toHaveBeenCalledWith('/vault/new-folder 1');
 		expect(fsStore.expandedDirs.has('/vault/new-folder 1')).toBe(true);
 		expect(result).toBe('/vault/new-folder 1');
 	});
@@ -484,10 +487,7 @@ describe('createFolder', () => {
 
 	it('returns null on mkdir error', async () => {
 		vi.mocked(readDir).mockResolvedValue([]);
-		vi.mocked(invoke).mockImplementation(async (cmd) => {
-			if (cmd === 'create_folder') throw new Error('mkdir error');
-			return [];
-		});
+		vi.mocked(mkdir).mockRejectedValue(new Error('mkdir error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await createFolder('/vault', 'new-folder');
@@ -838,7 +838,7 @@ describe('duplicateItem', () => {
 		expect(result).toBe('/vault/note copy 2.md');
 	});
 
-	it('duplicates a directory recursively (create_folder + copyPath per entry)', async () => {
+	it('duplicates a directory recursively (createFolder + copyPath per entry)', async () => {
 		vi.mocked(readDir)
 			.mockResolvedValueOnce([entry('docs', true)])
 			.mockResolvedValueOnce([entry('file.md')]);
@@ -846,7 +846,7 @@ describe('duplicateItem', () => {
 
 		const result = await duplicateItem('/vault/docs', true);
 
-		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/docs copy' });
+		expect(mkdir).toHaveBeenCalledWith('/vault/docs copy');
 		expect(copyPath).toHaveBeenCalledWith('/vault', '/vault/docs/file.md', '/vault/docs copy/file.md');
 		expect(result).toBe('/vault/docs copy');
 	});

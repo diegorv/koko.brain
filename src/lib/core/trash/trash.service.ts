@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core';
 import type { TrashItem } from './trash.types';
 import { trashStore } from './trash.store.svelte';
 import {
@@ -18,6 +17,7 @@ import {
 	writeText,
 	renamePath,
 	deletePath,
+	createFolder,
 } from '$lib/core/filesystem/fs-rust.service';
 import { debug, error } from '$lib/utils/debug';
 
@@ -64,15 +64,15 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
 		// IPC round-trip on the hot path.
 		const trashDir = getTrashDir(vaultPath);
 		if (!(await pathExists(vaultPath, trashDir))) {
-			await invoke('create_folder', { path: trashDir });
+			await createFolder(trashDir);
 		}
 		const itemsDir = getTrashItemsDir(vaultPath);
 		if (!(await pathExists(vaultPath, itemsDir))) {
-			await invoke('create_folder', { path: itemsDir });
+			await createFolder(itemsDir);
 		}
 
 		// Create the UUID container and move the item into it
-		await invoke('create_folder', { path: itemDir });
+		await createFolder(itemDir);
 		containerCreated = true;
 		const trashPath = getTrashItemPath(vaultPath, item.id, item.fileName);
 		await renamePath(vaultPath, absolutePath, trashPath);
@@ -111,7 +111,7 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		// Ensure parent directory exists
 		const parentDir = restorePath.substring(0, restorePath.lastIndexOf('/'));
 		if (!(await pathExists(vaultPath, parentDir))) {
-			await invoke('create_folder', { path: parentDir });
+			await createFolder(parentDir);
 		}
 
 		await renamePath(vaultPath, trashPath, restorePath);
@@ -193,7 +193,7 @@ async function saveManifest(vaultPath: string, items: TrashItem[]): Promise<void
 	const manifestPath = getTrashManifestPath(vaultPath);
 	const trashDir = getTrashDir(vaultPath);
 	if (!(await pathExists(vaultPath, trashDir))) {
-		await invoke('create_folder', { path: trashDir });
+		await createFolder(trashDir);
 	}
 	await writeText(vaultPath, manifestPath, serializeTrashManifest(items));
 }

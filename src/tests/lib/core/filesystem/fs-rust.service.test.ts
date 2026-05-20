@@ -13,6 +13,7 @@ import {
 	copyPath,
 	deletePath,
 	readDir,
+	createFolder,
 	type FsDirEntry,
 } from '$lib/core/filesystem/fs-rust.service';
 
@@ -250,5 +251,30 @@ describe('readDir', () => {
 		await expect(readDir('/vault', '/etc')).rejects.toBe(
 			'Path is outside vault directory',
 		);
+	});
+});
+
+// -- createFolder ------------------------------------------------------------
+
+describe('createFolder', () => {
+	it('invokes create_folder with a single path arg (no vaultPath)', async () => {
+		vi.mocked(invoke).mockResolvedValue(undefined);
+
+		await createFolder('/vault/.kokobrain');
+
+		expect(invoke).toHaveBeenCalledWith('create_folder', {
+			path: '/vault/.kokobrain',
+		});
+	});
+
+	it('resolves to undefined on success (idempotent mkdir)', async () => {
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		await expect(createFolder('/vault/sub')).resolves.toBeUndefined();
+	});
+
+	it('propagates Rust mkdir failures', async () => {
+		vi.mocked(invoke).mockRejectedValue('mkdir failed for /vault/sub: permission denied');
+
+		await expect(createFolder('/vault/sub')).rejects.toMatch(/mkdir failed/);
 	});
 });

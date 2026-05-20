@@ -95,3 +95,14 @@ export function deletePath(
 export function readDir(vaultPath: string, path: string): Promise<FsDirEntry[]> {
 	return invoke<FsDirEntry[]>('read_dir', { vaultPath, path });
 }
+
+/**
+ * Creates a directory (recursive - equivalent to TS `mkdir(path, { recursive:
+ * true })`). No-op when the directory already exists. Does NOT take a vault
+ * path argument: the underlying Rust `create_folder` command predates the
+ * Phase 8.6 vault-scoped primitives and does not run `validate_vault_path`.
+ * Callers are responsible for passing an absolute path they trust.
+ */
+export function createFolder(path: string): Promise<void> {
+	return invoke<void>('create_folder', { path });
+}

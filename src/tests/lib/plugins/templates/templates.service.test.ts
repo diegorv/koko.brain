@@ -24,8 +24,8 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/api/core', () => ({
-	invoke: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	createFolder: vi.fn(),
 }));
 
 vi.mock('$lib/core/note-creator/note-creator.service', () => ({
@@ -33,6 +33,7 @@ vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 }));
 
 import { exists, readDir, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
@@ -186,9 +187,8 @@ describe('ensureTemplatesFolder', () => {
 
 		await ensureTemplatesFolder();
 
-		// Phase 8.8: folder creation routes through Rust `create_folder`.
-		const { invoke } = await import('@tauri-apps/api/core');
-		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/_system/templates' });
+		// Phase 8.8: folder creation routes through Rust `create_folder` (via createFolder wrapper).
+		expect(createFolder).toHaveBeenCalledWith('/vault/_system/templates');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Monthly Note.md', '');

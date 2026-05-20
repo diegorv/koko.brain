@@ -1,10 +1,9 @@
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import { readText as readClipboardText } from '@tauri-apps/plugin-clipboard-manager';
-import { invoke } from '@tauri-apps/api/core';
 import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { pathExists, readText, writeText } from '$lib/core/filesystem/fs-rust.service';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -232,7 +231,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 	// Overwrite: replace file regardless of existence
 	if (action.overwrite) {
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
-		await invoke('create_folder', { path: parentDir });
+		await createFolder(parentDir);
 		markRecentSave(fullPath);
 		await writeText(vaultPath, fullPath, content);
 		// File may be new - refresh in background so callback returns fast.
@@ -246,7 +245,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 	// Create: default behavior
 	if (action.silent) {
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
-		await invoke('create_folder', { path: parentDir });
+		await createFolder(parentDir);
 		markRecentSave(fullPath);
 		await writeText(vaultPath, fullPath, content);
 		void refreshTree();
@@ -328,7 +327,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	debug('DEEP_LINK', 'Capturing note:', filePath, { kind: action.kind });
 
 	const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-	await invoke('create_folder', { path: parentDir });
+	await createFolder(parentDir);
 
 	const body = renderCaptureBody(action);
 	let fileContent = body;

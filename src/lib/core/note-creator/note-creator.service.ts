@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { pathExists, readText } from '$lib/core/filesystem/fs-rust.service';
+import { pathExists, readText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { processTemplate } from '$lib/utils/template';
@@ -59,7 +59,7 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			// `vault-index-updated`, so the panels (Backlinks, Tags,
 			// Tasks, etc.) auto-refetch.
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-			await invoke('create_folder', { path: parentDir });
+			await createFolder(parentDir);
 
 			let content = '';
 

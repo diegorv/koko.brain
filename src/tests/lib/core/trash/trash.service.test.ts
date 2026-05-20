@@ -6,10 +6,7 @@ vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
 	writeText: vi.fn(),
 	renamePath: vi.fn(),
 	deletePath: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/core', () => ({
-	invoke: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debug', () => ({
@@ -25,8 +22,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-import { pathExists, readText, writeText, renamePath, deletePath } from '$lib/core/filesystem/fs-rust.service';
-import { invoke } from '@tauri-apps/api/core';
+import { pathExists, readText, writeText, renamePath, deletePath, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { trashStore } from '$lib/core/trash/trash.store.svelte';
 import type { TrashItem } from '$lib/core/trash/trash.types';
 import {
@@ -45,7 +41,7 @@ const mockReadText = vi.mocked(readText);
 const mockWriteText = vi.mocked(writeText);
 const mockRenamePath = vi.mocked(renamePath);
 const mockDeletePath = vi.mocked(deletePath);
-const mockInvoke = vi.mocked(invoke);
+const mockCreateFolder = vi.mocked(createFolder);
 
 function makeStoredItem(id: string, originalPath: string, isDir = false): TrashItem {
 	const fileName = originalPath.includes('/')
@@ -117,7 +113,7 @@ describe('moveToTrash', () => {
 		vi.clearAllMocks();
 		trashStore.clear();
 		mockExists.mockResolvedValue(false);
-		mockInvoke.mockResolvedValue(undefined);
+		mockCreateFolder.mockResolvedValue(undefined);
 		mockRenamePath.mockResolvedValue(undefined);
 		mockWriteText.mockResolvedValue(undefined);
 	});
@@ -148,14 +144,14 @@ describe('moveToTrash', () => {
 		expect(trashStore.items[0].isDirectory).toBe(true);
 	});
 
-	it('creates trash directories if they do not exist via create_folder', async () => {
+	it('creates trash directories if they do not exist via createFolder', async () => {
 		await moveToTrash(VAULT, '/Users/me/vault/file.md', false);
 
-		// Should invoke create_folder for: trash dir, items dir, UUID container
-		expect(mockInvoke).toHaveBeenCalledWith('create_folder', { path: '/Users/me/vault/.kokobrain/trash' });
-		expect(mockInvoke).toHaveBeenCalledWith('create_folder', { path: '/Users/me/vault/.kokobrain/trash/items' });
-		const containerCall = mockInvoke.mock.calls.find(
-			(c) => c[0] === 'create_folder' && /\/items\/[0-9a-f-]+$/.test((c[1] as { path: string }).path),
+		// createFolder wraps `create_folder`; invoked for: trash dir, items dir, UUID container
+		expect(mockCreateFolder).toHaveBeenCalledWith('/Users/me/vault/.kokobrain/trash');
+		expect(mockCreateFolder).toHaveBeenCalledWith('/Users/me/vault/.kokobrain/trash/items');
+		const containerCall = mockCreateFolder.mock.calls.find(
+			(c) => /\/items\/[0-9a-f-]+$/.test(c[0]),
 		);
 		expect(containerCall).toBeDefined();
 	});
@@ -203,7 +199,7 @@ describe('restoreItem', () => {
 		mockExists.mockResolvedValue(false);
 		mockRenamePath.mockResolvedValue(undefined);
 		mockDeletePath.mockResolvedValue(undefined);
-		mockInvoke.mockResolvedValue(undefined);
+		mockCreateFolder.mockResolvedValue(undefined);
 		mockWriteText.mockResolvedValue(undefined);
 	});
 
@@ -222,13 +218,13 @@ describe('restoreItem', () => {
 		expect(trashStore.items).toHaveLength(0);
 	});
 
-	it('creates parent directories via create_folder when they do not exist', async () => {
+	it('creates parent directories via createFolder when they do not exist', async () => {
 		const item = makeStoredItem('1000', 'deep/nested/file.md');
 		trashStore.setItems([item]);
 
 		await restoreItem(VAULT, item);
 
-		expect(mockInvoke).toHaveBeenCalledWith('create_folder', { path: '/Users/me/vault/deep/nested' });
+		expect(mockCreateFolder).toHaveBeenCalledWith('/Users/me/vault/deep/nested');
 	});
 
 	it('appends suffix when original path is occupied', async () => {

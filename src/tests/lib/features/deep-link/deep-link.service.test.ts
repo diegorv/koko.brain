@@ -16,10 +16,7 @@ vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
 	pathExists: vi.fn(),
 	readText: vi.fn(),
 	writeText: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/core', () => ({
-	invoke: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -68,8 +65,7 @@ vi.mock('$lib/utils/template', () => ({
 
 import { toast } from 'svelte-sonner';
 import { readText as readClipboardText } from '@tauri-apps/plugin-clipboard-manager';
-import { pathExists, readText, writeText } from '$lib/core/filesystem/fs-rust.service';
-import { invoke } from '@tauri-apps/api/core';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { processTemplate } from '$lib/utils/template';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -256,7 +252,7 @@ describe('deep-link.service', () => {
 					silent: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_folder', { path: '/Users/me/TestVault' });
+				expect(vi.mocked(createFolder)).toHaveBeenCalledWith('/Users/me/TestVault');
 				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
 					vaultPath,
 					'/Users/me/TestVault/test.md',
@@ -445,7 +441,7 @@ describe('deep-link.service', () => {
 					overwrite: true,
 				};
 				await executeAction(action, vaultPath);
-				expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_folder', { path: '/Users/me/TestVault' });
+				expect(vi.mocked(createFolder)).toHaveBeenCalledWith('/Users/me/TestVault');
 				expect(vi.mocked(writeText)).toHaveBeenCalledWith(
 					vaultPath,
 					'/Users/me/TestVault/test.md',
@@ -672,9 +668,8 @@ describe('deep-link.service', () => {
 					};
 					await executeAction(action, vaultPath);
 
-					expect(vi.mocked(invoke)).toHaveBeenCalledWith(
-						'create_folder',
-						{ path: expect.stringContaining(vaultPath) },
+					expect(vi.mocked(createFolder)).toHaveBeenCalledWith(
+						expect.stringContaining(vaultPath),
 					);
 					expect(vi.mocked(writeText)).toHaveBeenCalledWith(
 						vaultPath,

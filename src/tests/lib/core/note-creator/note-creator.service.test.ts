@@ -15,6 +15,7 @@ vi.mock('$lib/utils/debug', () => ({
 vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
 	pathExists: vi.fn(),
 	readText: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -37,7 +38,7 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 	updateNoteInIndex: vi.fn(),
 }));
 
-import { pathExists, readText } from '$lib/core/filesystem/fs-rust.service';
+import { pathExists, readText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
@@ -68,7 +69,7 @@ describe('openOrCreateNote', () => {
 
 		await openOrCreateNote({ filePath: '/vault/sub/note.md', title: 'note' });
 
-		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/sub' });
+		expect(createFolder).toHaveBeenCalledWith('/vault/sub');
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/sub/note.md', content: '' });
 		expect(markRecentSave).toHaveBeenCalledWith('/vault/sub/note.md');
 		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/sub/note.md', '');
@@ -180,9 +181,7 @@ describe('openOrCreateNote', () => {
 
 	it('throws and logs error when create_folder fails', async () => {
 		vi.mocked(pathExists).mockResolvedValue(false);
-		vi.mocked(invoke).mockImplementation(async (cmd) => {
-			if (cmd === 'create_folder') throw new Error('mkdir failed');
-		});
+		vi.mocked(createFolder).mockRejectedValue(new Error('mkdir failed'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(

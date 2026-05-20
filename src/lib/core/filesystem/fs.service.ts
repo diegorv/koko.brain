@@ -10,6 +10,7 @@ import {
 	renamePath,
 	copyPath,
 	readDir,
+	createFolder as mkdir,
 } from './fs-rust.service';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
@@ -44,7 +45,7 @@ const FOLDER_ORDER_TEMPLATE: Record<string, unknown> = {
 /** Ensures the `.kokobrain` directory exists, creating it if needed. Uses the
  * existing `create_folder` Rust command (recursive `create_dir_all`). */
 async function ensureKokobrainDir(vaultPath: string): Promise<void> {
-	await invoke('create_folder', { path: `${vaultPath}/${KOKOBRAIN_DIR}` });
+	await mkdir(`${vaultPath}/${KOKOBRAIN_DIR}`);
 }
 
 /** Reads the folder order config from `.kokobrain/folder-order.json`. Creates a template file if missing. Falls back to `{}` on error. */
@@ -163,7 +164,7 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 		const folderPath = `${parentPath}/${uniqueName}`;
 		// Phase 8.6: Rust `create_folder` (recursive - no-op when
 		// the dir exists, but `generateUniqueName` ensures it doesn't).
-		await invoke('create_folder', { path: folderPath });
+		await mkdir(folderPath);
 		await refreshTree();
 		fsStore.expandDir(folderPath);
 		debug('FS', 'created folder:', folderPath);
@@ -293,7 +294,7 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 
 /** Recursively copies a directory and all its contents */
 async function copyDirectoryRecursive(vaultPath: string, sourcePath: string, destPath: string): Promise<void> {
-	await invoke('create_folder', { path: destPath });
+	await mkdir(destPath);
 	const entries = await readDir(vaultPath, sourcePath);
 	for (const entry of entries) {
 		const srcChild = `${sourcePath}/${entry.name}`;
