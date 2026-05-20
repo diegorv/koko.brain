@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import type { AddTaskArgs } from '@doist/todoist-sdk';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -101,13 +101,16 @@ function sentTasksPath(): string {
  * Returns an empty array if the file doesn't exist or fails to parse.
  */
 export async function loadSentTasks(): Promise<SentTaskEntry[]> {
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return [];
+
 	try {
 		const path = sentTasksPath();
-		if (!(await exists(path))) {
+		if (!(await pathExists(vaultPath, path))) {
 			debug('TODOIST', 'loadSentTasks: no file found at', path);
 			return [];
 		}
-		const raw = await readTextFile(path);
+		const raw = await readText(vaultPath, path);
 		const entries = JSON.parse(raw) as SentTaskEntry[];
 		debug('TODOIST', 'loadSentTasks: loaded', entries.length, 'entries');
 		return entries;
@@ -122,11 +125,14 @@ export async function loadSentTasks(): Promise<SentTaskEntry[]> {
  * Creates the `.kokobrain/` directory if it doesn't exist.
  */
 export async function saveSentTasks(entries: SentTaskEntry[]): Promise<void> {
-	const dirPath = `${vaultStore.path}/.kokobrain`;
-	if (!(await exists(dirPath))) {
-		await mkdir(dirPath);
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return;
+
+	const dirPath = `${vaultPath}/.kokobrain`;
+	if (!(await pathExists(vaultPath, dirPath))) {
+		await createFolder(dirPath);
 	}
-	await writeTextFile(sentTasksPath(), JSON.stringify(entries, null, '\t'));
+	await writeText(vaultPath, sentTasksPath(), JSON.stringify(entries, null, '\t'));
 	debug('TODOIST', 'saveSentTasks: persisted', entries.length, 'entries');
 }
 

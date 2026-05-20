@@ -20,11 +20,11 @@ vi.mock('$lib/features/tasks/todoist-client', () => ({
 	}),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	exists: vi.fn(),
-	mkdir: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debug', () => ({
@@ -32,7 +32,7 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
@@ -178,7 +178,7 @@ describe('loadSentTasks', () => {
 	});
 
 	it('returns empty array when file does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 		const result = await loadSentTasks();
 		expect(result).toEqual([]);
 	});
@@ -187,16 +187,16 @@ describe('loadSentTasks', () => {
 		const entries = [
 			{ filePath: '/a.md', text: 'Task', todoistTaskId: '1', todoistUrl: '', sentAt: 1000 },
 		];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(entries));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(entries));
 
 		const result = await loadSentTasks();
 		expect(result).toEqual(entries);
 	});
 
 	it('returns empty array on parse error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('not valid json');
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('not valid json');
 
 		const result = await loadSentTasks();
 		expect(result).toEqual([]);
@@ -211,33 +211,44 @@ describe('saveSentTasks', () => {
 		vaultStore.open('/test-vault');
 	});
 
-	it('creates .kokobrain dir if needed and writes file', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	it('creates .kokobrain dir via createFolder when missing and writes file', async () => {
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		const entries = [
 			{ filePath: '/a.md', text: 'Task', todoistTaskId: '1', todoistUrl: '', sentAt: 1000 },
 		];
 		await saveSentTasks(entries);
 
-		expect(mkdir).toHaveBeenCalledWith('/test-vault/.kokobrain');
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(createFolder).toHaveBeenCalledWith('/test-vault/.kokobrain');
+		expect(writeText).toHaveBeenCalledWith(
+			'/test-vault',
 			'/test-vault/.kokobrain/todoist-sent.json',
 			expect.any(String),
 		);
 	});
 
-	it('skips mkdir when .kokobrain dir exists', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	it('skips createFolder when .kokobrain dir exists', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveSentTasks([]);
-		expect(mkdir).not.toHaveBeenCalled();
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalledWith(
+			'/test-vault',
 			'/test-vault/.kokobrain/todoist-sent.json',
 			JSON.stringify([], null, '\t'),
 		);
+	});
+
+	it('skips persist when no vault is open', async () => {
+		vaultStore.close();
+
+		await saveSentTasks([]);
+
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).not.toHaveBeenCalled();
 	});
 });
 
@@ -250,8 +261,8 @@ describe('sendTaskToTodoist', () => {
 		settingsStore.reset();
 		settingsStore.updateTodoist({ apiToken: 'test-token-123' });
 		todoistStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('creates task, marks as sent, and persists', async () => {
@@ -277,7 +288,7 @@ describe('sendTaskToTodoist', () => {
 		expect(todoistStore.lastPriority).toBe(2);
 
 		// Verify persisted to disk
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('passes SDK-style args (camelCase)', async () => {
@@ -408,8 +419,8 @@ describe('initTodoist', () => {
 		const entries = [
 			{ filePath: '/a.md', text: 'Task A', todoistTaskId: '1', todoistUrl: '', sentAt: 1000 },
 		];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(entries));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(entries));
 
 		await initTodoist();
 
