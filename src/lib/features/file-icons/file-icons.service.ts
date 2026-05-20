@@ -1,5 +1,5 @@
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import type { FileIconEntry, IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore } from './file-icons.store.svelte';
 import {
@@ -37,9 +37,9 @@ function getDirPath(vaultPath: string): string {
 /** Ensures the `.kokobrain` directory exists, creating it if needed */
 async function ensureDir(vaultPath: string): Promise<void> {
 	const dirPath = getDirPath(vaultPath);
-	const dirExists = await exists(dirPath);
+	const dirExists = await pathExists(vaultPath, dirPath);
 	if (!dirExists) {
-		await mkdir(dirPath);
+		await createFolder(dirPath);
 	}
 }
 
@@ -47,12 +47,12 @@ async function ensureDir(vaultPath: string): Promise<void> {
 export async function loadFileIcons(vaultPath: string): Promise<void> {
 	const filePath = getIconsPath(vaultPath);
 	try {
-		const fileExists = await exists(filePath);
+		const fileExists = await pathExists(vaultPath, filePath);
 		if (!fileExists) {
 			fileIconsStore.setEntries([]);
 			return;
 		}
-		const content = await readTextFile(filePath);
+		const content = await readText(vaultPath, filePath);
 		const parsed = JSON.parse(content) as FileIconEntry[];
 		const entries = Array.isArray(parsed) ? parsed : [];
 		fileIconsStore.setEntries(entries);
@@ -69,12 +69,12 @@ export async function loadFileIcons(vaultPath: string): Promise<void> {
 export async function loadRecentIcons(vaultPath: string): Promise<void> {
 	const filePath = getRecentIconsPath(vaultPath);
 	try {
-		const fileExists = await exists(filePath);
+		const fileExists = await pathExists(vaultPath, filePath);
 		if (!fileExists) {
 			fileIconsStore.setRecentIcons([]);
 			return;
 		}
-		const content = await readTextFile(filePath);
+		const content = await readText(vaultPath, filePath);
 		const parsed = JSON.parse(content) as RecentIcon[];
 		fileIconsStore.setRecentIcons(Array.isArray(parsed) ? parsed : []);
 	} catch (err) {
@@ -89,7 +89,7 @@ async function saveRecentIcons(vaultPath: string): Promise<void> {
 	try {
 		await ensureDir(vaultPath);
 		const content = JSON.stringify(fileIconsStore.recentIcons, null, 2);
-		await writeTextFile(filePath, content);
+		await writeText(vaultPath, filePath, content);
 	} catch (err) {
 		error('FILE_ICONS', 'Failed to save recent icons:', err);
 	}
@@ -101,7 +101,7 @@ export async function saveFileIcons(vaultPath: string): Promise<void> {
 	try {
 		await ensureDir(vaultPath);
 		const content = JSON.stringify(fileIconsStore.entries, null, 2);
-		await writeTextFile(filePath, content);
+		await writeText(vaultPath, filePath, content);
 	} catch (err) {
 		error('FILE_ICONS', 'Failed to save file icons:', err);
 	}

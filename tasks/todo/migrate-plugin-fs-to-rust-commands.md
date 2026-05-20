@@ -73,7 +73,7 @@ Order = current user-impact, NOT engineering convenience. Active visible bugs fi
 - [x] Task 11 (P3): Migrate `src/lib/plugins/kanban/kanban.service.ts` -> wrappers. Board creation + linked content load. Update tests.
 - [x] Task 12 (P3): Migrate `src/lib/features/deep-link/deep-link.service.ts` -> wrappers. Closes the root-level mkdir bug as a side effect. Smoke: `kokobrain://create?path=test.md&silent` at vault root -> file created, no errors. Update tests.
 - [x] Task 13 (P3): Migrate `src/lib/features/bookmarks/bookmarks.service.ts` -> wrappers. Update tests.
-- [ ] Task 14 (P3): Migrate `src/lib/features/file-icons/file-icons.service.ts` -> wrappers. Update tests.
+- [x] Task 14 (P3): Migrate `src/lib/features/file-icons/file-icons.service.ts` -> wrappers. Update tests.
 
 ### P4 — Occasional features
 

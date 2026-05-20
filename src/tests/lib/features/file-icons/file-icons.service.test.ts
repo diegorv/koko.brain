@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	readTextFile: vi.fn(),
-	writeTextFile: vi.fn(),
-	mkdir: vi.fn(),
-	exists: vi.fn(),
+vi.mock('$lib/core/filesystem/fs-rust.service', () => ({
+	pathExists: vi.fn(),
+	readText: vi.fn(),
+	writeText: vi.fn(),
+	createFolder: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -15,7 +15,7 @@ vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 	preloadPacks: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { pathExists, readText, writeText, createFolder } from '$lib/core/filesystem/fs-rust.service';
 import { invoke } from '@tauri-apps/api/core';
 import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
@@ -49,22 +49,22 @@ describe('loadFileIcons', () => {
 	});
 
 	it('sets empty entries if file does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await loadFileIcons('/vault');
 
 		expect(fileIconsStore.entries).toEqual([]);
-		expect(readTextFile).not.toHaveBeenCalled();
+		expect(readText).not.toHaveBeenCalled();
 	});
 
 	it('loads icons from disk into store', async () => {
 		const data = [{ path: '/vault/a.md', iconPack: 'lucide', iconName: 'star' }];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(data));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(data));
 
 		await loadFileIcons('/vault');
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/.kokobrain/file-icons.json');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/.kokobrain/file-icons.json');
 		expect(fileIconsStore.entries).toEqual(data);
 	});
 
@@ -73,8 +73,8 @@ describe('loadFileIcons', () => {
 			{ path: '/vault/a.md', iconPack: 'lucide', iconName: 'star' },
 			{ path: '/vault/b.md', iconPack: 'feather', iconName: 'heart' },
 		];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(data));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(data));
 
 		await loadFileIcons('/vault');
 
@@ -82,8 +82,8 @@ describe('loadFileIcons', () => {
 	});
 
 	it('sets empty entries on parse error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('invalid json');
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('invalid json');
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadFileIcons('/vault');
@@ -100,7 +100,7 @@ describe('loadRecentIcons', () => {
 	});
 
 	it('sets empty array if file does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(pathExists).mockResolvedValue(false);
 
 		await loadRecentIcons('/vault');
 
@@ -109,18 +109,18 @@ describe('loadRecentIcons', () => {
 
 	it('loads recent icons from disk into store', async () => {
 		const data = [{ iconPack: 'lucide', iconName: 'star' }];
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(data));
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue(JSON.stringify(data));
 
 		await loadRecentIcons('/vault');
 
-		expect(readTextFile).toHaveBeenCalledWith('/vault/.kokobrain/recent-icons.json');
+		expect(readText).toHaveBeenCalledWith('/vault', '/vault/.kokobrain/recent-icons.json');
 		expect(fileIconsStore.recentIcons).toEqual(data);
 	});
 
 	it('sets empty array on parse error', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue('not json');
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(readText).mockResolvedValue('not json');
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadRecentIcons('/vault');
@@ -134,15 +134,16 @@ describe('trackRecentIcon', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('adds icon to recent icons and saves', async () => {
 		await trackRecentIcon('/vault', 'lucide', 'star');
 
 		expect(fileIconsStore.recentIcons).toEqual([{ iconPack: 'lucide', iconName: 'star' }]);
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
 			'/vault/.kokobrain/recent-icons.json',
 			expect.any(String),
 		);
@@ -164,28 +165,38 @@ describe('saveFileIcons', () => {
 		fileIconsStore.reset();
 	});
 
-	it('creates .kokobrain dir if it does not exist', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(mkdir).mockResolvedValue(undefined);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	it('creates .kokobrain dir via createFolder when missing', async () => {
+		vi.mocked(pathExists).mockResolvedValue(false);
+		vi.mocked(createFolder).mockResolvedValue(undefined);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveFileIcons('/vault');
 
-		expect(mkdir).toHaveBeenCalledWith('/vault/.kokobrain');
-		expect(writeTextFile).toHaveBeenCalledWith(
+		expect(createFolder).toHaveBeenCalledWith('/vault/.kokobrain');
+		expect(writeText).toHaveBeenCalledWith(
+			'/vault',
 			'/vault/.kokobrain/file-icons.json',
 			JSON.stringify([], null, 2),
 		);
 	});
 
-	it('skips mkdir if dir already exists', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	it('skips createFolder if dir already exists', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 
 		await saveFileIcons('/vault');
 
-		expect(mkdir).not.toHaveBeenCalled();
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(createFolder).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
+	});
+
+	it('swallows save errors silently (preserves legacy behavior)', async () => {
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockRejectedValue(new Error('disk full'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(saveFileIcons('/vault')).resolves.toBeUndefined();
+		consoleSpy.mockRestore();
 	});
 });
 
@@ -193,8 +204,8 @@ describe('setIconForPath', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('adds icon entry to store and saves', async () => {
@@ -208,7 +219,7 @@ describe('setIconForPath', () => {
 			color: '#ff0000',
 			textColor: undefined,
 		});
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 
 	it('replaces existing icon for same path', async () => {
@@ -232,8 +243,8 @@ describe('removeIconForPath', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('removes icon entry from store and saves', async () => {
@@ -243,7 +254,7 @@ describe('removeIconForPath', () => {
 		await removeIconForPath('/vault', '/vault/a.md');
 
 		expect(fileIconsStore.entries).toHaveLength(0);
-		expect(writeTextFile).toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalled();
 	});
 });
 
@@ -251,8 +262,8 @@ describe('updateFileIconPathsAfterMove', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(pathExists).mockResolvedValue(true);
+		vi.mocked(writeText).mockResolvedValue(undefined);
 	});
 
 	it('updates path in entries and saves', async () => {
