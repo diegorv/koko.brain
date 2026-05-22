@@ -85,6 +85,33 @@ fn skips_hidden_directories() {
 	assert_eq!(entries[0].0, "visible.md");
 }
 
+#[test]
+fn skips_nested_hidden_directories() {
+	// Audit 2026-05-22 (#121): the scan filters dot-prefixed segments at
+	// any depth, not just at the vault root. This test pins that behaviour
+	// so the watcher's matching `is_inside_hidden_dir` predicate stays
+	// in lock-step. A regression here would re-introduce the index drift
+	// between watcher-driven incremental updates and `scan_vault_v2`.
+	let tmp = setup();
+	let nested_hidden = tmp.path().join("notes").join(".archive");
+	fs::create_dir_all(&nested_hidden).unwrap();
+	fs::write(nested_hidden.join("note.md"), "should not be indexed").unwrap();
+	let visible_nested = tmp.path().join("notes").join("visible.md");
+	fs::create_dir_all(visible_nested.parent().unwrap()).unwrap();
+	fs::write(&visible_nested, "indexed").unwrap();
+
+	let entries = collect_markdown_paths(tmp.path(), &[]).unwrap();
+	let rels: Vec<&str> = entries.iter().map(|(r, _)| r.as_str()).collect();
+	assert!(
+		rels.iter().any(|r| r.ends_with("visible.md")),
+		"visible note must be indexed: got {rels:?}"
+	);
+	assert!(
+		!rels.iter().any(|r| r.contains(".archive")),
+		"nested .archive subtree must be skipped at any depth: got {rels:?}"
+	);
+}
+
 // --- excluded folders ---
 
 #[test]
