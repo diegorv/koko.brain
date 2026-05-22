@@ -943,13 +943,56 @@ impl VaultIndex {
 				}
 			}
 
-			// `by_path` cleanup: drop the slot ONLY when it was pointing
-			// at this exact path. If multiple entries shared a stem, the
-			// next entry-rebuild repopulates first-write-wins; until then
-			// the wikilink simply resolves to nothing.
+			// `by_path` cleanup: drop the slot when it pointed at this
+			// exact path, then promote any surviving same-stem entry into
+			// the slot. Audit 2026-05-22 (#123): the previous version
+			// simply dropped the slot and waited for the next full rebuild,
+			// which left wikilinks to `[[stem]]` unresolvable whenever two
+			// notes shared a stem (e.g. `foo.md` at root and
+			// `subdir/foo.md`). After promotion, the surviving entry's
+			// retroactive backlinks must also be reconstructed: every
+			// source whose outgoing wikilink resolves through the
+			// now-updated cache to the surviving path needs to appear in
+			// `backlinks[surviving]`.
 			let key = note_name_from_target(path).to_lowercase();
 			if self.by_path.get(&key).map(|p| p == path).unwrap_or(false) {
 				self.by_path.remove(&key);
+				let surviving: Option<String> = self
+					.entries
+					.keys()
+					.find(|other| {
+						note_name_from_target(other).to_lowercase() == key
+					})
+					.cloned();
+				if let Some(surviving_path) = surviving {
+					self.by_path.insert(key, surviving_path.clone());
+
+					// Rebuild backlinks for the promoted entry. Self-links
+					// are filtered to match the policy used elsewhere.
+					let by_path_ref = &self.by_path;
+					let promoted_ref = surviving_path.as_str();
+					let retro_sources: Vec<String> = self
+						.entries
+						.iter()
+						.filter(|(src, _)| src.as_str() != promoted_ref)
+						.filter_map(|(src, entry)| {
+							let hits = entry.outgoing_links.iter().any(|link| {
+								resolve_with_cache(&link.target, by_path_ref).as_deref()
+									== Some(promoted_ref)
+							});
+							hits.then(|| src.clone())
+						})
+						.collect();
+					if !retro_sources.is_empty() {
+						let set = self
+							.backlinks
+							.entry(surviving_path.clone())
+							.or_default();
+						for src in retro_sources {
+							set.insert(src);
+						}
+					}
+				}
 			}
 		}
 

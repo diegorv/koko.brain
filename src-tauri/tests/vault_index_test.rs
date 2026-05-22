@@ -1204,6 +1204,81 @@ fn remove_entry_drops_by_path_only_when_slot_matches() {
 	assert!(!idx.by_path().contains_key("note"));
 }
 
+#[test]
+fn remove_entry_promotes_surviving_stem_collision_into_by_path() {
+	// Audit 2026-05-22 (#123): when two entries share a stem (e.g.
+	// `foo.md` at root and `subdir/foo.md`), `by_path["foo"]` is occupied
+	// by whichever was inserted first. Removing that first entry used to
+	// drop the slot entirely, leaving the surviving sibling
+	// wikilink-unresolvable until the next full rebuild. After the fix,
+	// the surviving sibling is promoted into the slot.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/foo.md", &[]),
+		entry_with_tags("/v/subdir/foo.md", &[]),
+	]);
+	let initial = idx.by_path().get("foo").cloned();
+	assert_eq!(initial, Some("/v/foo.md".to_string()));
+
+	idx.remove_entry("/v/foo.md");
+
+	assert_eq!(
+		idx.by_path().get("foo"),
+		Some(&"/v/subdir/foo.md".to_string()),
+		"surviving stem-collision sibling should be promoted into by_path"
+	);
+	assert_eq!(
+		idx.resolve("foo"),
+		Some("/v/subdir/foo.md".to_string()),
+		"wikilink to [[foo]] should resolve to the surviving sibling"
+	);
+}
+
+#[test]
+fn remove_entry_no_promotion_when_no_surviving_sibling_shares_stem() {
+	// Single entry with the stem — after removal the slot stays empty
+	// (preserves the pre-fix behaviour when no collision existed).
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_tags("/v/solo.md", &[])]);
+	idx.remove_entry("/v/solo.md");
+	assert!(
+		!idx.by_path().contains_key("solo"),
+		"slot must stay empty when no surviving entry shares the stem"
+	);
+}
+
+#[test]
+fn remove_entry_rebuilds_backlinks_for_promoted_surviving_sibling() {
+	// `linker.md` has `[[foo]]`. Two entries share the `foo` stem.
+	// Initially `by_path["foo"] -> /v/foo.md`, so `backlinks["/v/foo.md"]`
+	// contains `linker.md`. After removing `/v/foo.md`, `/v/subdir/foo.md`
+	// is promoted; backlinks for the promoted path must include `linker.md`
+	// so the panel shows the inbound link immediately, without waiting for
+	// a full vault rebuild.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/linker.md", &["foo"]),
+		entry_with_tags("/v/foo.md", &[]),
+		entry_with_tags("/v/subdir/foo.md", &[]),
+	]);
+	assert!(idx
+		.backlinks()
+		.get("/v/foo.md")
+		.map(|s| s.contains("/v/linker.md"))
+		.unwrap_or(false));
+
+	idx.remove_entry("/v/foo.md");
+
+	let promoted_backlinks = idx
+		.backlinks()
+		.get("/v/subdir/foo.md")
+		.expect("promoted entry should have its backlinks rebuilt");
+	assert!(
+		promoted_backlinks.contains("/v/linker.md"),
+		"promoted sibling's backlinks must include sources that linked via the shared stem"
+	);
+}
+
 // ============================================================================
 // Phase 8 — properties_index + property lookups
 // ============================================================================
