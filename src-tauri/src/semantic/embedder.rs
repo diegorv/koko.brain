@@ -24,8 +24,18 @@ impl Embedder {
 
 	/// Loads the ONNX model and tokenizer from the given directory.
 	///
-	/// Expects `model.onnx` and `tokenizer.json` in `model_dir`.
-	pub fn load(model_dir: &Path) -> Result<Self, String> {
+	/// Expects `model.onnx` and `tokenizer.json` in `model_dir`. `dimensions`
+	/// is the expected hidden-state dimensionality of the pooled output —
+	/// pinned at construction (from the `ManagedModel` registry) and never
+	/// mutated thereafter. `run_inference` aborts the batch with an error
+	/// if the model's actual output dim diverges from this value, so a
+	/// silently-swapped or corrupted model cannot write incompatible vectors
+	/// to the `chunks` table.
+	pub fn load(model_dir: &Path, dimensions: usize) -> Result<Self, String> {
+		if dimensions == 0 {
+			return Err("Embedder dimensions must be non-zero".to_string());
+		}
+
 		let model_path = model_dir.join("model.onnx");
 		let tokenizer_path = model_dir.join("tokenizer.json");
 
@@ -67,9 +77,7 @@ impl Embedder {
 			.any(|input| input.name() == "token_type_ids");
 		debug_log("EMBEDDER", format!("uses_token_type_ids: {}", uses_token_type_ids));
 
-		// BGE-M3 = 1024 dims, E5-base = 768, E5-small = 384
-		// Will be overridden by actual output shape on first inference
-		let dimensions = 1024;
+		debug_log("EMBEDDER", format!("Expected embedding dimensions: {}", dimensions));
 
 		Ok(Self {
 			session,
@@ -177,31 +185,46 @@ impl Embedder {
 				.map_err(|e| format!("Inference failed: {e}"))?
 		};
 
-		// Extract token embeddings — try f32 first, fall back to f16→f32 conversion
-		let dims = self.dimensions;
+		// Extract token embeddings — try f32 first, fall back to f16→f32 conversion.
+		// The hidden dim is taken from the model's actual output shape and validated
+		// against the construction-time `self.dimensions`. A mismatch aborts the batch
+		// so corrupted/swapped models cannot write incompatible vectors to the chunks
+		// table. Audit 2026-05-22 (#124).
+		let expected = self.dimensions;
 		let (f32_embeddings, actual_dim): (Vec<Vec<f32>>, usize) =
 			if let Ok(view) = outputs[0].try_extract_array::<f32>() {
 				let shape = view.shape();
 				debug_log("EMBEDDER", format!("Output: f32, shape={:?}", shape));
-				let hidden_dim = if shape.len() == 3 { shape[2] } else { dims };
+				let hidden_dim = if shape.len() == 3 { shape[2] } else { expected };
+				validate_dimensions(expected, hidden_dim)?;
 				(mean_pool_f32(&view, &attention_mask_for_pooling, batch_len, max_len, hidden_dim), hidden_dim)
 			} else if let Ok(view) = outputs[0].try_extract_array::<f16>() {
 				let shape = view.shape();
 				debug_log("EMBEDDER", format!("Output: f16, shape={:?} — converting to f32", shape));
-				let hidden_dim = if shape.len() == 3 { shape[2] } else { dims };
+				let hidden_dim = if shape.len() == 3 { shape[2] } else { expected };
+				validate_dimensions(expected, hidden_dim)?;
 				(mean_pool_f16(&view, &attention_mask_for_pooling, batch_len, max_len, hidden_dim), hidden_dim)
 			} else {
 				return Err("Failed to extract tensor as f32 or f16".to_string());
 			};
 
-		// Update dimensions from actual model output shape
-		if actual_dim != self.dimensions {
-			debug_log("EMBEDDER", format!("Updating dimensions: {} → {}", self.dimensions, actual_dim));
-			self.dimensions = actual_dim;
-		}
+		debug_assert_eq!(actual_dim, self.dimensions);
 
 		Ok(f32_embeddings)
 	}
+}
+
+/// Returns `Ok(())` when `actual` matches the embedder's pinned `expected`
+/// dimensionality. Returns an error string otherwise — callers must abort
+/// the batch so incompatible vectors never reach the `chunks` table.
+pub(crate) fn validate_dimensions(expected: usize, actual: usize) -> Result<(), String> {
+	if actual != expected {
+		return Err(format!(
+			"Embedding dimension mismatch: expected {expected}, model returned {actual}. \
+Aborting batch — corrupted or swapped model would produce vectors incompatible with stored embeddings."
+		));
+	}
+	Ok(())
 }
 
 /// Mean pooling with attention mask for f32 output.
@@ -276,6 +299,37 @@ fn normalize_embedding(sum: &mut [f32], count: f32) {
 		for val in sum.iter_mut() {
 			*val /= norm;
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn validate_dimensions_passes_when_equal() {
+		assert!(validate_dimensions(1024, 1024).is_ok());
+	}
+
+	#[test]
+	fn validate_dimensions_errors_when_smaller() {
+		let err = validate_dimensions(1024, 768).expect_err("should error");
+		assert!(err.contains("expected 1024"), "err must name expected: {err}");
+		assert!(err.contains("returned 768"), "err must name actual: {err}");
+	}
+
+	#[test]
+	fn validate_dimensions_errors_when_larger() {
+		let err = validate_dimensions(384, 1024).expect_err("should error");
+		assert!(err.contains("Aborting batch"), "err must signal abort: {err}");
+	}
+
+	#[test]
+	fn validate_dimensions_errors_when_zero() {
+		// Zero is a possible mean-pool output for an empty/malformed tensor.
+		// Must not be silently accepted even if `expected` were also zero,
+		// but the construction-time guard rejects `expected=0` upstream.
+		assert!(validate_dimensions(1024, 0).is_err());
 	}
 }
 
