@@ -8,7 +8,7 @@ GitHub issues: #121, #122, #123, #124.
 - [x] Task 1 (#124): Treat embedder dimension mismatch as fatal. Pin `dimensions` at construction from the `ManagedModel` registry; return `Err` from `run_inference` when the model's output dim differs.
 - [x] Task 2 (#122): Fix UTF-8 corruption in terminal PTY reader. Buffer incomplete trailing UTF-8 bytes between 4096-byte reads.
 - [x] Task 3 (#123): Repair `by_path` after `remove_entry` stem collision. On remove, repopulate the slot with a surviving same-stem entry if any.
-- [ ] Task 4 (#121): Reconcile vault watcher + scan hidden-directory filter. Policy direction deferred — revisit after 1-3 are done.
+- [x] Task 4 (#121): Reconcile vault watcher + scan hidden-directory filter. Policy adopted: watcher matches scan — any dot-prefixed segment at any depth is filtered. `contains_nested_noise` + `NESTED_NOISE_SEGMENTS` removed (subsumed by broader rule).
 
 ## Notes
 
