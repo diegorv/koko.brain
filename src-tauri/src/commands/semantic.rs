@@ -141,7 +141,10 @@ fn ensure_embedder_loaded() -> Result<(), String> {
 	if !manager.is_model_available() {
 		return Err("Model not available on disk".to_string());
 	}
-	let embedder = Embedder::load(&manager.model_path())?;
+	let expected_dim = manager
+		.embedding_dimensions()
+		.ok_or_else(|| "Embedder model has no declared embedding_dimensions in the registry".to_string())?;
+	let embedder = Embedder::load(&manager.model_path(), expected_dim)?;
 	*guard = Some(embedder);
 	debug_log("SEMANTIC", "Embedder lazy-reloaded");
 	Ok(())
@@ -229,7 +232,10 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 			return Ok(false);
 		}
 
-		let embedder = Embedder::load(&manager.model_path())?;
+		let expected_dim = manager
+			.embedding_dimensions()
+			.ok_or_else(|| "Embedder model has no declared embedding_dimensions in the registry".to_string())?;
+		let embedder = Embedder::load(&manager.model_path(), expected_dim)?;
 		let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 		*guard = Some(embedder);
 		Ok(true)

@@ -7,10 +7,14 @@ use tokio::io::AsyncWriteExt;
 /// `name` is used as the on-disk subdirectory under `.kokobrain/models/`.
 /// `downloads` is the list of `(url, local_filename)` pairs the manager fetches.
 /// `files` is the set of filenames `is_available` checks for.
+/// `embedding_dimensions` is the expected hidden-state dimensionality of the
+/// model's pooled output. `Some(n)` for dense embedders; `None` for models that
+/// are not consumed by `Embedder` (e.g. cross-encoder rerankers).
 pub struct ManagedModel {
 	pub name: &'static str,
 	pub downloads: &'static [(&'static str, &'static str)],
 	pub files: &'static [&'static str],
+	pub embedding_dimensions: Option<usize>,
 }
 
 /// BGE-M3 dense retrieval embedder (Xenova's INT8 ONNX conversion).
@@ -28,6 +32,7 @@ pub const BGE_M3_EMBEDDER: ManagedModel = ManagedModel {
 		),
 	],
 	files: &["model.onnx", "tokenizer.json"],
+	embedding_dimensions: Some(1024),
 };
 
 /// BGE-reranker-v2-m3 cross-encoder for reranking (`onnx-community/bge-reranker-v2-m3-ONNX`).
@@ -46,6 +51,7 @@ pub const BGE_RERANKER_V2_M3: ManagedModel = ManagedModel {
 		),
 	],
 	files: &["model.onnx", "tokenizer.json"],
+	embedding_dimensions: None,
 };
 
 /// Manages ONNX model availability and download for a single `ManagedModel`.
@@ -88,6 +94,12 @@ impl ModelManager {
 	/// Returns the path to the model directory.
 	pub fn model_path(&self) -> PathBuf {
 		self.models_dir.clone()
+	}
+
+	/// Returns the expected embedding dimensionality declared by the
+	/// underlying `ManagedModel`. `None` for non-embedder models.
+	pub fn embedding_dimensions(&self) -> Option<usize> {
+		self.model.embedding_dimensions
 	}
 
 	/// Downloads all model files from HuggingFace Hub.
