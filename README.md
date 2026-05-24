@@ -44,9 +44,14 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 - **Periodic notes** — daily, weekly, monthly, and quarterly notes with templates and calendar
 - **File history** — automatic snapshots with diff viewer and restore
 - **Integrated terminal** — real PTY sessions with xterm.js and WebGL rendering
+- **Table of contents** — auto-generated outline panel from document headings
+- **Kanban** — drag-and-drop task boards with lanes, cards, dates, colors, and tags
+- **Auto-move** — automatically route notes to folders based on expression rules
+- **Deep links** — open notes and trigger actions from outside the app via `kokobrain://` URLs
+- **Meta-bind** — interactive inline inputs and action buttons that read/write frontmatter
 - **Custom file icons** — 11 icon packs + emoji with color picker
 - **Bookmarks**, **tags**, **backlinks**, **outgoing links**, **properties** panel
-- **Templates** and **quick note** capture
+- **Templates**, **quick note** capture, and **1:1 meeting notes**
 
 ## Stack
 
@@ -105,9 +110,10 @@ src/lib/
   features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
                         #   collection, file-history, bookmarks, file-icons, copy-block-link,
                         #   auto-move, command-palette, quick-switcher, folder-notes,
-                        #   outgoing-links, deep-link, views
+                        #   outgoing-links, deep-link
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
-                        #   graph-view, terminal, queryjs, word-count, kanban, one-on-one
+                        #   graph-view, terminal, queryjs, word-count, kanban, one-on-one,
+                        #   table-of-contents
   utils/                # Pure shared utilities
 
 src-tauri/src/
@@ -121,7 +127,7 @@ src-tauri/src/
 
 ## Documentation
 
-- **[User Guide](help/documentation/README.md)** — Complete guide with 20 chapters covering every feature
+- **[User Guide](help/documentation/README.md)** — Complete guide with 24 chapters covering every feature
 - **[Developer Patterns](docs/PATTERNS.md)** — Svelte 5 reactive patterns, store conventions
 - **[Testing Guide](docs/TESTING.md)** — Mock rules, assertion patterns, service/store tests
 - **[Commit Conventions](docs/COMMITS.md)** — Commit message format and examples
