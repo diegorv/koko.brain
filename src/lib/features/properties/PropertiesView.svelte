@@ -2,12 +2,19 @@
 	import { untrack } from 'svelte';
 	import Plus from 'lucide-svelte/icons/plus';
 	import FileText from 'lucide-svelte/icons/file-text';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
+	import Blocks from 'lucide-svelte/icons/blocks';
 	import { Separator } from '$lib/components/ui/separator';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
+	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import { propertiesStore } from './properties.store.svelte';
 	import {
 		updateProperty,
@@ -67,16 +74,39 @@
 		return groups;
 	});
 
-	let relationshipKeys = $derived(new Set(
-		propertiesStore.properties
-			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && extractWikilinks(p.value).length > 0)
-			.map((p) => p.key)
-	));
+	let relationshipKeys = $derived.by(() => {
+		const keys = new Set<string>();
+		for (const p of propertiesStore.properties) {
+			if (!LIFECYCLE_KEYS.has(p.key) && extractWikilinks(p.value).length > 0) keys.add(p.key);
+		}
+		return keys;
+	});
 
-	/** Properties sorted alphabetically, excluding lifecycle + relationship keys */
+	let typeProperty = $derived(propertiesStore.properties.find((p) => p.key === 'type'));
+	let typeMetadata = $derived(typeProperty ? typeDefinitionsStore.getTypeMetadata(String(typeProperty.value)) : undefined);
+	let availableTypes = $derived(typeDefinitionsStore.sortedTypes);
+
+	let typeDefPaths = $derived.by(() => {
+		const map = new Map<string, string>();
+		for (const entry of typeDefinitionsStore.entries) {
+			if (entry.isA === 'Type') map.set(entry.title, entry.path);
+		}
+		return map;
+	});
+
+	function getTypeIcon(typeName: string) {
+		const defPath = typeDefPaths.get(typeName);
+		if (!defPath) return undefined;
+		const fmRef = fileIconsStore.getFrontmatterIcon(defPath);
+		if (!fmRef) return undefined;
+		const icon = getIconSync(fmRef.iconPack, fmRef.iconName);
+		return icon ? { icon, color: fmRef.color } : undefined;
+	}
+
+	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
 	let sortedProperties = $derived(
 		[...propertiesStore.properties]
-			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !relationshipKeys.has(p.key))
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !relationshipKeys.has(p.key) && p.key !== 'type')
 			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
@@ -157,6 +187,50 @@
 				Not available
 			</p>
 		{:else}
+			<!-- Type selector -->
+			{#if typeProperty}
+				<div class="group flex flex-col gap-1 rounded-md px-2 py-1.5 hover:bg-accent/50 transition-colors">
+					<div class="flex items-center gap-2 min-h-7">
+						<Blocks class="size-3.5 shrink-0 text-tab-text-inactive" />
+						<span class="flex-[2] min-w-0 text-[14px] font-medium px-1 truncate text-muted-foreground">type</span>
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									{@const selectedTypeIcon = getTypeIcon(String(typeProperty.value))}
+								<button
+										{...props}
+										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-[14px] font-medium text-foreground/70 transition-colors cursor-pointer hover:bg-accent"
+									>
+										{#if selectedTypeIcon}
+											<IconRenderer icon={selectedTypeIcon.icon} class="size-3.5 shrink-0" color={selectedTypeIcon.color} />
+										{/if}
+										<span class="truncate">{String(typeProperty.value) || '--'}</span>
+										<ChevronDown class="size-3 opacity-60 ml-auto shrink-0" />
+									</button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="start" class="w-48">
+								{#each availableTypes as t (t.name)}
+									{@const tIcon = getTypeIcon(t.name)}
+									<DropdownMenu.Item
+										onclick={() => handleUpdate('type', t.name)}
+									>
+										{#if tIcon}
+											<IconRenderer icon={tIcon.icon} class="size-4 shrink-0" color={tIcon.color} />
+										{/if}
+										<span>{t.name}</span>
+										{#if String(typeProperty.value) === t.name}
+											<span class="ml-auto text-xs text-muted-foreground">&#10003;</span>
+										{/if}
+									</DropdownMenu.Item>
+								{/each}
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+						<span class="p-0.5 shrink-0 w-[16px]"></span>
+					</div>
+				</div>
+			{/if}
+
 			{#if propertiesStore.properties.length > 0}
 				<div class="flex flex-col">
 					{#each sortedProperties as property (property.key)}
