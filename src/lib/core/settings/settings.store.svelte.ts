@@ -149,6 +149,7 @@ export const settingsStore = {
 	get tagColors() { return settings.tagColors; },
 	get queryjs() { return settings.queryjs; },
 	get updates() { return settings.updates; },
+	get explicitOrganization() { return settings.explicitOrganization; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
