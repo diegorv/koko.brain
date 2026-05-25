@@ -48,11 +48,7 @@ export function buildTypeSections(
 	for (const [typeName, notes] of typeGroups) {
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
-		const sortField = metadata.sort;
-		notes.sort((a, b) => {
-			if (sortField === 'title') return a.title.localeCompare(b.title);
-			return a.title.localeCompare(b.title);
-		});
+		notes.sort((a, b) => a.title.localeCompare(b.title));
 		sections.push({ metadata, notes });
 	}
 
