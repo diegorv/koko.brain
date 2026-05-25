@@ -1,5 +1,6 @@
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, compute_model_hash,
+	get_semantic_stats, shutdown_semantic,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::db::semantic_repo;
@@ -290,6 +291,77 @@ fn atomic_delete_insert_rolls_back_on_failure() {
 
 	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
 	assert_eq!(all[0].content, "old text", "original content should be intact");
+
+	db::close_database().unwrap();
+}
+
+// --- get_semantic_stats ---
+
+#[test]
+fn get_semantic_stats_returns_zeros_on_fresh_db() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	let stats = get_semantic_stats().unwrap();
+	assert_eq!(stats.total_chunks, 0);
+	assert_eq!(stats.total_sources, 0);
+	assert!(!stats.model_loaded);
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn get_semantic_stats_reflects_inserted_chunks() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "a.md", "text1", None, &[], 1, 5, "h1", b"emb1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "a.md", "text2", None, &[], 6, 10, "h2", b"emb2", 1000)?;
+		semantic_repo::insert_chunk(conn, "k3", "b.md", "text3", None, &[], 1, 5, "h3", b"emb3", 1000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	let stats = get_semantic_stats().unwrap();
+	assert_eq!(stats.total_chunks, 3);
+	assert_eq!(stats.total_sources, 2);
+
+	db::close_database().unwrap();
+}
+
+// --- shutdown_semantic ---
+
+#[test]
+fn shutdown_semantic_succeeds_when_no_model_loaded() {
+	let result = shutdown_semantic();
+	assert!(result.is_ok(), "shutdown should not panic when no model loaded");
+}
+
+#[test]
+fn shutdown_semantic_idempotent() {
+	shutdown_semantic().unwrap();
+	shutdown_semantic().unwrap();
+}
+
+// --- cleanup_orphaned_chunks: all entries orphaned ---
+
+#[test]
+fn cleanup_orphaned_chunks_all_entries_orphaned() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "gone1.md", "text", None, &[], 1, 5, "h1", b"emb", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "gone2.md", "text", None, &[], 1, 5, "h2", b"emb", 1000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	cleanup_orphaned_chunks(&[]).unwrap();
+
+	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	assert_eq!(count, 0, "all chunks should be removed when no paths exist");
 
 	db::close_database().unwrap();
 }
