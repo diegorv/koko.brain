@@ -1,34 +1,18 @@
 # Kokobrain
 
-<!-- Build & tests -->
-[![CI][ci-badge]][ci-url] [![E2E][e2e-badge]][e2e-url]
+| | |
+|---|---|
+| **CI** | [![CI][ci-badge]][ci-url] [![E2E][e2e-badge]][e2e-url] [![Release][release-badge]][release-url] [![Nightly][nightly-badge]][nightly-url] [![Wiki Sync][wiki-badge]][wiki-url] [![Dependabot][dependabot-badge]][dependabot-url] |
+| **Security** | [![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url] |
+| **Project** | [![Latest release][version-badge]][version-url] [![License][license-badge]][license-url] [![Platform][platform-badge]][platform-url] [![Claude Code][claude-badge]][claude-url] |
 
-<!-- Security & privacy -->
-[![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url]
-
-<!-- Release & publishing -->
-[![Release][release-badge]][release-url] [![Nightly][nightly-badge]][nightly-url] [![Wiki Sync][wiki-badge]][wiki-url]
-
-<!-- Maintenance -->
-[![Dependabot Updates][dependabot-badge]][dependabot-url]
-
-<!-- Project metadata -->
-[![Latest release][version-badge]][version-url] [![License: Apache 2.0][license-badge]][license-url] [![Platform: macOS][platform-badge]][platform-url] [![Built with Claude Code][claude-badge]][claude-url]
-
-A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md), built with Svelte 5 and Tauri 2
+A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) and [Tolaria.md](https://tolaria.md/), built with Svelte 5 and Tauri 2
 
 Your notes are plain Markdown files stored locally — no cloud, no lock-in, privacy first. Built 100% with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with human review.
 
-> [!CAUTION]
-> This is a personal project under active development. It is **not** a replacement for Obsidian, nor does it aim to be. Expect breaking changes, missing features, and rough edges.
-> **macOS only** — this app is built exclusively for macOS and there are no plans to support other operating systems.
-> **We do not recommend using this for anything important.**
-
 > [!NOTE]
-> Pull requests, issues, and external contributions are not being accepted at this time — this is a solo project without the bandwidth to review or maintain external changes. You are welcome to fork under the Apache 2.0 license if you want to take it in a different direction.
-
-> [!TIP]
-> If you're looking for a mature, well-supported note-taking app, I recommend [Obsidian](https://obsidian.md) or [Logseq](https://logseq.com). Both are excellent tools with active communities and plugin ecosystems.
+> **macOS only.** Pull requests without a prior discussion will not be accepted - if you want to contribute, please open a discussion first.
+> If you want a mature, cross-platform tool, check out [Obsidian](https://obsidian.md) or [Logseq](https://logseq.com).
 
 ## Features
 
@@ -58,155 +42,27 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Svelte 5 (runes), SvelteKit, TypeScript |
-| UI | shadcn-svelte (Tailwind CSS v4 + bits-ui) |
-| Editor | CodeMirror 6 with custom extensions |
-| Backend | Tauri 2 (Rust) |
-| Database | SQLite (rusqlite) with WAL mode |
-| Search | FTS5 + ONNX Runtime (semantic embeddings) |
-| Terminal | portable-pty + xterm.js |
-| Package manager | pnpm |
+**Svelte 5** + **SvelteKit** + **TypeScript** | **Tauri 2** (Rust) | **CodeMirror 6** | **SQLite** (FTS5 + ONNX semantic search) | **shadcn-svelte** (Tailwind v4)
+
+See [CONTRIBUTING.md](CONTRIBUTING.md#stack) for the full stack breakdown.
 
 ## Getting Started
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full local development setup guide, including system dependencies, troubleshooting, and workflow tips.
-
-### Quick Start
-
-```bash
-# 1. Install mise (version manager) — https://mise.jdx.dev
-curl https://mise.jdx.dev/install.sh | sh
-
-# 2. Install pinned versions of Node.js, pnpm, and Rust
-mise install
-
-# 3. Install frontend dependencies
-pnpm install
-
-# 4. Run in dev mode
-pnpm tauri dev
-```
-
-### Commands
-
-```bash
-pnpm tauri dev            # Run app in dev mode (frontend + Tauri)
-pnpm dev                  # Run frontend only (no Tauri window)
-pnpm build                # Build frontend for production
-pnpm tauri build          # Build the full desktop app (release, bundle, codesign)
-pnpm tauri:build:fast     # Local fast iteration build (no bundle, no codesign)
-pnpm check                # TypeScript type checking
-pnpm vitest run           # Run frontend tests
-cargo test --manifest-path src-tauri/Cargo.toml   # Run Rust tests
-bash scripts/e2e.sh       # Run E2E tests (Playwright)
-```
-
-## Project Structure
-
-```
-src/lib/
-  components/ui/        # shadcn-svelte components
-  core/                 # Essential: vault, filesystem, editor, file explorer, settings,
-                        #   trash, layout, keybindings, status bar, note creator, zoom
-  features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
-                        #   collection, file-history, bookmarks, file-icons, copy-block-link,
-                        #   auto-move, command-palette, quick-switcher, folder-notes,
-                        #   outgoing-links, deep-link, type-definitions
-  plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
-                        #   graph-view, terminal, queryjs, word-count, kanban, one-on-one,
-                        #   table-of-contents
-  utils/                # Pure shared utilities
-
-src-tauri/src/
-  commands/             # Tauri command handlers (vault, files, search, semantic, history,
-                        #   terminal, debug, fonts, db)
-  db/                   # SQLite: schema, FTS5 repo, history repo, semantic repo
-  search/               # FTS indexing logic, text search, fuzzy expansion
-  semantic/             # ONNX model management, embedder, markdown chunker, filtering
-  utils/                # Debug logging, filesystem utilities
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, setup, commands, building, and troubleshooting.
 
 ## Documentation
 
-- **[User Guide](help/documentation/README.md)** — Complete guide with 24 chapters covering every feature
-- **[Developer Patterns](docs/PATTERNS.md)** — Svelte 5 reactive patterns, store conventions
-- **[Testing Guide](docs/TESTING.md)** — Mock rules, assertion patterns, service/store tests
-- **[Commit Conventions](docs/COMMITS.md)** — Commit message format and examples
-- **[Live Preview Architecture](docs/LIVE-PREVIEW.md)** — Editor live preview plugin system
-- **[Search Architecture](docs/SEARCH.md)** — Retrieval pipeline, chunking, models, RRF, versioning levers
-- **[Types & Relationships](help/documentation/25-types-and-relationships.md)** — Note types, semantic relationships, lifecycle workflow
-- **[GitHub Workflows](GITHUB-WORKFLOW.md)** — What each CI workflow tests, when it runs, and what it does not cover
-- **[Release Channels](docs/RELEASE-CHANNELS.md)** — Stable vs Nightly channels, version semantics, switching from inside the app
-
-## IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
-
-## Privacy
-
-**Privacy is a core value of this project.** Kokobrain is designed to work entirely offline — your notes never leave your machine.
-
-- All data is stored locally as plain Markdown files
-- Search indexing (FTS5 + semantic embeddings) runs locally via SQLite and ONNX Runtime
-- The semantic search model is downloaded once from HuggingFace and runs locally — no API calls, no telemetry, no cloud processing
-- **No analytics, no tracking, no accounts, no sign-up**
-
-The only external network calls in the entire codebase are:
-
-| Call | Where | Why |
-|------|-------|-----|
-| HuggingFace model download (BGE-M3) | `src-tauri/src/semantic/model.rs` | One-time download of the BGE-M3 ONNX embedder and tokenizer for local semantic search. After download, everything runs offline. |
-| HuggingFace model download (BGE-reranker-v2-m3) | `src-tauri/src/semantic/model.rs` | One-time, opt-in download of the BGE-reranker-v2-m3 ONNX cross-encoder for higher-quality semantic and hybrid search. Only triggered when the user clicks "Download" in Settings. After download, everything runs offline. |
-| Chart.js CDN | `src/lib/plugins/queryjs/dv-ui.ts` | Loads Chart.js for rendering charts in QueryJS results. |
-
-A [Privacy Check](https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml) workflow runs on every push and pull request, scanning all `.ts` and `.rs` source files for external network calls. Any new external call that is not explicitly approved will fail the build.
-
-## Embedded Local Files
-
-Markdown images that point at a local file with `file://` (e.g. `![shot](file:///Users/you/Desktop/x.png)`) only render when the path falls inside one of the directories declared in `tauri.conf.json` under `app.security.assetProtocol.scope`:
-
-- `~/Documents/**`
-- `~/MyFiles/**`
-- `~/kokobrain-vault/**`
-- `~/Desktop/**`
-- `~/Pictures/**`
-- `~/Downloads/**`
-- `~/Library/Caches/com.diegorv.kokobrain/**`
-
-Paths outside this list are blocked by Tauri's asset-protocol scope at fetch time and silently fail to load. `file://host/...` style URLs (SMB / UNC) are rejected before reaching the asset handler. Editing this scope is a security-sensitive change — keep it as narrow as the capture flow needs.
-
-## Supply Chain Security
-
-After the [axios npm supply chain attack (March 2026)](https://en.wikipedia.org/wiki/Npm#Security), where compromised maintainer tokens were used to publish malicious package versions that existed for only hours before removal, we added a multi-layered defense to prevent this class of attack:
-
-### 1. pnpm Quarantine (primary defense)
-
-`pnpm-workspace.yaml` sets `minimumReleaseAge: 20160` (14 days in minutes). pnpm will refuse to resolve any npm package version published less than 14 days ago during `pnpm install` or `pnpm update`. Already-locked versions are not affected.
-
-### 2. Pre-commit hook (second layer)
-
-A git pre-commit hook (`scripts/pre-commit-dep-age.sh`) catches changes that bypass pnpm config — e.g., manual lockfile edits. When `pnpm-lock.yaml` is staged, the hook queries the npm registry for each new/changed package version and blocks the commit if any version is younger than 14 days.
-
-```bash
-# Install the hook
-bash scripts/setup-hooks.sh
-
-# Emergency bypass
-git commit --no-verify
-
-# Allow a specific version (with justification)
-echo "lodash@4.17.22  # Emergency security patch" >> .dep-age-allowlist
-```
-
-### 3. CI guardrail (tamper detection)
-
-The [Security workflow](.github/workflows/security.yml) includes a `supply-chain-quarantine` job that verifies on every push, PR, and weekly schedule that:
-- `pnpm-workspace.yaml` exists
-- `minimumReleaseAge` is set to at least 20160 minutes (14 days)
-
-If someone accidentally deletes the config or lowers the threshold, CI fails with a clear error.
+- **[User Guide](help/documentation/README.md)** - Complete guide with 24 chapters covering every feature
+- **[Developer Patterns](docs/PATTERNS.md)** - Svelte 5 reactive patterns, store conventions
+- **[Testing Guide](docs/TESTING.md)** - Mock rules, assertion patterns, service/store tests
+- **[Commit Conventions](docs/COMMITS.md)** - Commit message format and examples
+- **[Live Preview Architecture](docs/LIVE-PREVIEW.md)** - Editor live preview plugin system
+- **[Search Architecture](docs/SEARCH.md)** - Retrieval pipeline, chunking, models, RRF, versioning levers
+- **[Types & Relationships](help/documentation/25-types-and-relationships.md)** - Note types, semantic relationships, lifecycle workflow
+- **[GitHub Workflows](GITHUB-WORKFLOW.md)** - What each CI workflow tests, when it runs, and what it does not cover
+- **[Release Channels](docs/RELEASE-CHANNELS.md)** - Stable vs Nightly channels, version semantics, switching from inside the app
+- **[Privacy](PRIVACY.md)** - Offline-first, no telemetry, embedded file scope
+- **[Security](SECURITY.md)** - Supply chain quarantine, pre-commit hook, CI guardrail
 
 ## Inspirations
 

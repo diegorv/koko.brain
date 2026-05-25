@@ -4,6 +4,19 @@ Personal development setup and workflow guide for Kokobrain.
 
 > This project is **not accepting external contributions**. This document exists as a reference for local development.
 
+## Stack
+
+| Layer | Technology | Role |
+|-------|-----------|------|
+| Frontend | Svelte 5 (runes), SvelteKit, TypeScript | UI framework with fine-grained reactivity |
+| UI | shadcn-svelte (Tailwind CSS v4 + bits-ui) | Component library + utility-first styling |
+| Editor | CodeMirror 6 | Markdown editing with custom live-preview extensions |
+| Backend | Tauri 2 (Rust) | Native desktop shell, filesystem, IPC |
+| Database | SQLite (rusqlite) with WAL mode | Persistent storage for search index, history, semantic embeddings |
+| Search | FTS5 + ONNX Runtime (BGE-M3) | Full-text search + local semantic embeddings |
+| Terminal | portable-pty + xterm.js | Integrated terminal with WebGL rendering |
+| Package manager | pnpm | Fast, disk-efficient dependency management |
+
 ## Prerequisites
 
 ### macOS System Dependencies
@@ -210,6 +223,10 @@ See [CLAUDE.md](CLAUDE.md) for the complete list of conventions and architecture
 | [docs/TESTING.md](docs/TESTING.md) | Mock rules, assertion patterns, test guidelines |
 | [docs/COMMITS.md](docs/COMMITS.md) | Commit message format and examples |
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture |
+
+## IDE Setup
+
+[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 
 ## Troubleshooting
 
