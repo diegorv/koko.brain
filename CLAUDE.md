@@ -328,3 +328,17 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 - **Update immediately.** The file in `tasks/todo/` must always reflect the current progress.
 - **Never leave stale files.** If a plan is abandoned, delete it or move it to `tasks/done/` with a note.
 - **Task granularity matters.** Each task should be a concrete, completable unit of work — not a vague goal.
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (one `CONTEXT.md` + `docs/adr/` at repo root). See `docs/agents/domain.md`.
