@@ -7,6 +7,7 @@
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import * as Resizable from '$lib/components/ui/resizable';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { Separator } from '$lib/components/ui/separator';
 	import FileExplorer from '$lib/core/file-explorer/FileExplorer.svelte';
 	import TypeSidebar from '$lib/features/type-definitions/TypeSidebar.svelte';
 	import EditorView from '$lib/core/markdown-editor/EditorView.svelte';
@@ -106,6 +107,7 @@
 									{/if}
 									{#if settingsStore.layout.tableOfContentsVisible}
 										<TableOfContentsPanel />
+										<Separator />
 									{/if}
 									{#if settingsStore.layout.backlinksVisible}
 										<BacklinksPanel />

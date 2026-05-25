@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import Plus from 'lucide-svelte/icons/plus';
+	import FileText from 'lucide-svelte/icons/file-text';
 	import { Separator } from '$lib/components/ui/separator';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
+	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
+	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { propertiesStore } from './properties.store.svelte';
 	import {
 		updateProperty,
@@ -26,11 +31,52 @@
 	});
 
 	const LIFECYCLE_KEYS = new Set(['_favorite', '_organized', '_archived']);
+	interface RelationshipGroup {
+		label: string;
+		links: { display: string; resolvedPath: string | null }[];
+	}
 
-	/** Properties sorted alphabetically by key, excluding lifecycle keys shown as buttons */
+	function extractWikilinks(value: unknown): string[] {
+		const text = Array.isArray(value) ? value.join(' ') : String(value ?? '');
+		const targets: string[] = [];
+		const re = /\[\[([^\]]+)\]\]/g;
+		for (const m of text.matchAll(re)) targets.push(m[1]);
+		return targets;
+	}
+
+	function formatLabel(key: string): string {
+		return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	}
+
+	let relationshipGroups = $derived.by(() => {
+		const allPaths = flattenFileTree(fsStore.fileTree).map((f) => f.path);
+		const groups: RelationshipGroup[] = [];
+		for (const p of propertiesStore.properties) {
+			if (LIFECYCLE_KEYS.has(p.key)) continue;
+			const targets = extractWikilinks(p.value);
+			if (targets.length === 0) continue;
+			groups.push({
+				label: formatLabel(p.key),
+				links: targets.map((t) => {
+					const display = t.includes('|') ? t.split('|')[1] : t;
+					const target = t.includes('|') ? t.split('|')[0] : t;
+					return { display, resolvedPath: resolveWikilink(target, allPaths) };
+				}),
+			});
+		}
+		return groups;
+	});
+
+	let relationshipKeys = $derived(new Set(
+		propertiesStore.properties
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && extractWikilinks(p.value).length > 0)
+			.map((p) => p.key)
+	));
+
+	/** Properties sorted alphabetically, excluding lifecycle + relationship keys */
 	let sortedProperties = $derived(
 		[...propertiesStore.properties]
-			.filter((p) => !LIFECYCLE_KEYS.has(p.key))
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !relationshipKeys.has(p.key))
 			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
@@ -124,7 +170,7 @@
 				</div>
 			{/if}
 
-			<!-- Add property row (always visible for markdown files) -->
+			<!-- Add property row -->
 			{#if isAddingProperty}
 				<div class="flex items-center gap-1.5 mt-1 px-2 py-1">
 					<Plus class="size-3.5 shrink-0 text-muted-foreground/60" />
@@ -144,6 +190,38 @@
 					<Plus class="size-3.5" />
 					Add property
 				</button>
+			{/if}
+
+			<!-- Relationships section -->
+			{#if relationshipGroups.length > 0}
+				<Separator class="my-2" />
+				<h2 class="font-semibold uppercase tracking-wide text-primary px-2 mb-1">Relationships</h2>
+				<div>
+					{#each relationshipGroups as group (group.label)}
+						<div class="px-2 py-1">
+							<span class="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">{group.label}</span>
+							<div class="mt-1 space-y-0.5">
+								{#each group.links as link (link.display)}
+									{#if link.resolvedPath}
+										<button
+											class="flex items-center gap-1.5 w-full px-1 py-0.5 rounded-md text-[14px] hover:bg-accent transition-colors cursor-pointer text-left"
+											onclick={() => openFileInEditor(link.resolvedPath!)}
+										>
+											<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+											<span class="truncate">{link.display}</span>
+										</button>
+									{:else}
+										<div class="flex items-center gap-1.5 px-1 py-0.5 text-[14px] opacity-50">
+											<FileText class="size-3.5 shrink-0" />
+											<span class="truncate">{link.display}</span>
+										</div>
+									{/if}
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+				<Separator class="mt-2" />
 			{/if}
 		{/if}
 	</div>

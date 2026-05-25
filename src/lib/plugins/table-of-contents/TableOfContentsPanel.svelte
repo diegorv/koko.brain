@@ -49,7 +49,6 @@
 			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-primary">Table of Contents</h2>
 		</Collapsible.Trigger>
 		<Collapsible.Content>
-			<Separator />
 			<div class="max-h-[50vh] overflow-y-auto p-2">
 				{#if isNonMarkdown}
 					<p class="text-muted-foreground px-2 py-4 text-center">Not available</p>
