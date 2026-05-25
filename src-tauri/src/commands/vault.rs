@@ -646,7 +646,7 @@ pub fn toggle_task_status(
 /// `collection.service` / kb-api. Computes name / basename / folder /
 /// ext from the path, converts seconds → milliseconds for mtime/ctime
 /// (TS-side expectation; matches the existing `FileTreeNode` units).
-fn project_note_record(entry: &NoteEntry) -> NoteRecord {
+pub fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 	let path = &entry.path;
 	let name = path
 		.rsplit('/')

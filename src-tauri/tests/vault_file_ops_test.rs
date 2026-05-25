@@ -7,7 +7,10 @@
 //! that `create_note` relies on. The lock + emit path is exercised
 //! manually during smoke testing.
 
-use kokobrain_lib::commands::vault::{toggle_task_status_inner, update_note_in_index_inner};
+use kokobrain_lib::commands::vault::{
+	project_note_record, toggle_task_status_inner, update_note_in_index_inner,
+};
+use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
 use std::fs;
 use tempfile::tempdir;
@@ -174,4 +177,126 @@ fn toggle_task_double_toggle_round_trips() {
 	toggle_task_status_inner(&mut idx, &path_str, 1).expect("second toggle");
 	let after_second = fs::read_to_string(&path).expect("read");
 	assert_eq!(after_second, original, "double toggle should restore original");
+}
+
+// ============================================================================
+// project_note_record
+// ============================================================================
+
+#[test]
+fn project_record_splits_nested_path() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/vault/sub/deep/note.md".to_string();
+	entry.modified_at = 100;
+	entry.created_at = 50;
+	entry.size = 512;
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.name, "note.md");
+	assert_eq!(rec.basename, "note");
+	assert_eq!(rec.ext, ".md");
+	assert_eq!(rec.folder, "/vault/sub/deep");
+}
+
+#[test]
+fn project_record_no_extension() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/vault/README".to_string();
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.name, "README");
+	assert_eq!(rec.basename, "README");
+	assert_eq!(rec.ext, "");
+}
+
+#[test]
+fn project_record_no_slash() {
+	let mut entry = NoteEntry::default();
+	entry.path = "bare.md".to_string();
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.name, "bare.md");
+	assert_eq!(rec.folder, "");
+}
+
+#[test]
+fn project_record_is_a_injected_as_type() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/person.md".to_string();
+	entry.is_a = Some("Person".to_string());
+	let rec = project_note_record(&entry);
+	assert_eq!(
+		rec.properties.get("type"),
+		Some(&serde_json::Value::String("Person".to_string()))
+	);
+}
+
+#[test]
+fn project_record_boolean_fields() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/flags.md".to_string();
+	entry.organized = true;
+	entry.archived = true;
+	entry.favorite = true;
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.properties.get("organized"), Some(&serde_json::Value::Bool(true)));
+	assert_eq!(rec.properties.get("archived"), Some(&serde_json::Value::Bool(true)));
+	assert_eq!(rec.properties.get("favorite"), Some(&serde_json::Value::Bool(true)));
+}
+
+#[test]
+fn project_record_boolean_fields_default_false() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/defaults.md".to_string();
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.properties.get("organized"), Some(&serde_json::Value::Bool(false)));
+	assert_eq!(rec.properties.get("archived"), Some(&serde_json::Value::Bool(false)));
+	assert_eq!(rec.properties.get("favorite"), Some(&serde_json::Value::Bool(false)));
+}
+
+#[test]
+fn project_record_belongs_to_and_related_to() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/child.md".to_string();
+	entry.belongs_to = vec!["parent".to_string()];
+	entry.related_to = vec!["sibling1".to_string(), "sibling2".to_string()];
+	let rec = project_note_record(&entry);
+	assert_eq!(
+		rec.properties.get("belongs_to"),
+		Some(&serde_json::json!(["parent"]))
+	);
+	assert_eq!(
+		rec.properties.get("related_to"),
+		Some(&serde_json::json!(["sibling1", "sibling2"]))
+	);
+}
+
+#[test]
+fn project_record_empty_relations_omitted() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/solo.md".to_string();
+	let rec = project_note_record(&entry);
+	assert!(rec.properties.get("belongs_to").is_none());
+	assert!(rec.properties.get("related_to").is_none());
+}
+
+#[test]
+fn project_record_timestamps_seconds_to_ms() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/time.md".to_string();
+	entry.modified_at = 1714305600;
+	entry.created_at = 1714000000;
+	entry.size = 2048;
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.mtime, 1714305600 * 1000);
+	assert_eq!(rec.ctime, 1714000000 * 1000);
+	assert_eq!(rec.size, 2048);
+}
+
+#[test]
+fn project_record_frontmatter_preserved() {
+	let mut entry = NoteEntry::default();
+	entry.path = "/v/fm.md".to_string();
+	entry.frontmatter.insert("custom".to_string(), serde_json::json!("value"));
+	entry.frontmatter.insert("count".to_string(), serde_json::json!(42));
+	let rec = project_note_record(&entry);
+	assert_eq!(rec.properties.get("custom"), Some(&serde_json::json!("value")));
+	assert_eq!(rec.properties.get("count"), Some(&serde_json::json!(42)));
 }
