@@ -159,6 +159,11 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 /** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree */
 export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<boolean> {
 	try {
+		// Close tabs BEFORE the disk operation so the auto-save debounce
+		// cannot fire with a stale path during the async gap and recreate
+		// the file at its original location.
+		closeTabsForDeletedPath(itemPath);
+
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		const vaultPath = vaultStore.path;
 		if (vaultPath) {
@@ -172,7 +177,6 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 		const { clearIndexedEntry } = await import('$lib/utils/index-dedupe');
 		const { invoke } = await import('@tauri-apps/api/core');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
-		closeTabsForDeletedPath(itemPath);
 		// Drop the dedup signature so a later re-creation with identical
 		// content doesn't get silently skipped by the post-Phase-11.5 index-
 		// updater (Rust still gets the new content via the watcher).
@@ -205,6 +209,10 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		}
 		await rename(oldPath, newPath);
 
+		// Update tab path immediately after rename so the auto-save
+		// debounce writes to the NEW path, not the old one.
+		updateTabAfterRenameOrMove(oldPath, newPath);
+
 		// Update wikilinks BEFORE refreshTree — findFilesLinkingTo uses
 		// excludePath=oldPath which must still be keyed in noteContents.
 		// refreshTree can trigger the file watcher which would re-index
@@ -212,7 +220,6 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		if (isMarkdownFile(newName)) {
 			await updateLinksAfterRename(oldPath, newPath);
 		}
-		updateTabAfterRenameOrMove(oldPath, newPath);
 		await refreshTree();
 
 		const { invoke } = await import('@tauri-apps/api/core');
@@ -248,10 +255,13 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 			return null;
 		}
 		await rename(sourcePath, newPath);
+
+		// Update tab path immediately after rename so the auto-save
+		// debounce writes to the NEW path, not the old one.
+		updateTabAfterRenameOrMove(sourcePath, newPath);
+
 		await refreshTree();
 		fsStore.expandDir(targetDirPath);
-
-		updateTabAfterRenameOrMove(sourcePath, newPath);
 
 		const { invoke } = await import('@tauri-apps/api/core');
 		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The

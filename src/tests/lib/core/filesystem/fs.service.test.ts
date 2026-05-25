@@ -572,7 +572,7 @@ describe('renameItem', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('calls link updater before tab updater so excludePath matches noteContents key', async () => {
+	it('updates tab path before link updater to prevent auto-save writing to old path', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
 		const callOrder: string[] = [];
@@ -584,7 +584,7 @@ describe('renameItem', () => {
 		expect(result).toBe('/vault/new.md');
 		expect(updateLinksAfterRename).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
 		expect(updateTabAfterRenameOrMove).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
-		expect(callOrder).toEqual(['links', 'tab']);
+		expect(callOrder).toEqual(['tab', 'links']);
 	});
 
 	it('does not call link updater when rename target already exists', async () => {
