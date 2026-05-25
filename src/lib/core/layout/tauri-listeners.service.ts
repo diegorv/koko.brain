@@ -84,6 +84,7 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	listen<UpdateResultV2>('vault-index-updated', (event) => {
 		vaultStore.bumpVaultIndexVersion(event.payload.version);
 		invoke<NoteEntryV2[]>('get_all_vault_entries_v2').then((entries) => {
+			if (cancelled) return;
 			refreshArchivedPaths(entries);
 			refreshTypeDefinitions(entries);
 			typeDefinitionsStore.setEntries(entries);
