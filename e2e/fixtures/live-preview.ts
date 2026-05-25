@@ -4,12 +4,13 @@ const TEST_VAULT_PATH = '/test-vault';
 
 const DEFAULT_SETTINGS = {
 	layout: {
+		sidebarMode: 'files',
 		rightSidebarVisible: false,
-		calendarVisible: false,
 		propertiesVisible: false,
 		backlinksVisible: false,
 		outgoingLinksVisible: false,
 		tagsVisible: false,
+		tableOfContentsVisible: false,
 	},
 	editor: {
 		fontFamily: 'MonoLisa, ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',

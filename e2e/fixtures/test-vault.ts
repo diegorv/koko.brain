@@ -43,12 +43,13 @@ const DEFAULT_SETTINGS = {
 		templatePath: '',
 	},
 	layout: {
+		sidebarMode: 'files',
 		rightSidebarVisible: true,
-		calendarVisible: true,
 		propertiesVisible: true,
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tagsVisible: true,
+		tableOfContentsVisible: true,
 	},
 	folderNotes: { enabled: true },
 	editor: {

@@ -136,8 +136,38 @@ function handleUpdateSearchIndexFile(): void {
 	/* no-op */
 }
 
-function handleSearchFts(): unknown[] {
-	return [];
+function handleSearchFts(args: Args): unknown[] {
+	const query = get<string>(args, 'query') ?? '';
+	const maxResults = get<number>(args, 'maxResults') ?? 50;
+	if (!query.trim()) return [];
+
+	const pattern = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+	const allFiles = virtualFS.dump();
+	const results: { path: string; title: string; score: number; snippet: string; tags: string }[] = [];
+
+	for (const [filePath, content] of Object.entries(allFiles)) {
+		if (!filePath.endsWith('.md')) continue;
+		pattern.lastIndex = 0;
+		if (!pattern.test(content)) continue;
+
+		const name = filePath.split('/').pop() ?? filePath;
+		const dotIdx = name.lastIndexOf('.');
+		const title = dotIdx > 0 ? name.substring(0, dotIdx) : name;
+		const lines = content.split('\n');
+		const snippetLine = lines.find((l) => new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(l)) ?? '';
+
+		results.push({
+			path: filePath.replace(/^\/test-vault\//, ''),
+			title,
+			score: 1.0,
+			snippet: snippetLine.slice(0, 200),
+			tags: '',
+		});
+
+		if (results.length >= maxResults) break;
+	}
+
+	return results;
 }
 
 function handleInitSemanticSearch(): boolean {

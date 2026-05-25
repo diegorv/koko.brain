@@ -47,8 +47,8 @@ test.describe('Live Preview - Combined Stress', () => {
 		await openMarkdownFile(page, 'test.md', CONTENT);
 	});
 
-	test('frontmatter widget renders at top', async ({ lpPage: page }) => {
-		await expect(page.locator('.cm-lp-frontmatter')).toBeVisible();
+	test('frontmatter is hidden in live preview', async ({ lpPage: page }) => {
+		await expect(page.locator('.cm-line').filter({ hasText: 'title: Stress Test' })).toHaveCount(0);
 	});
 
 	test('all inline formats render on same line', async ({ lpPage: page }) => {
