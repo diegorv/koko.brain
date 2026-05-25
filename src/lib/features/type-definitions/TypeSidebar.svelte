@@ -41,7 +41,7 @@
 			sections = result.sections;
 			untyped = result.untyped;
 			inboxCount = countInbox(entries);
-		} catch { /* service already logs */ }
+		} catch (err) { console.error('TypeSidebar rebuildSections failed:', err); }
 	}
 
 	function toggleSection(name: string) {
