@@ -9,41 +9,63 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import type { SidebarMode } from '$lib/core/settings/settings.types';
 
-	const MODES: SidebarMode[] = ['files', 'types', 'calendar'];
-
-	function toggleMode() {
-		const current = settingsStore.layout.sidebarMode;
-		const idx = MODES.indexOf(current);
-		const next = MODES[(idx + 1) % MODES.length];
-		settingsStore.updateLayout({ sidebarMode: next });
+	function switchTo(target: SidebarMode) {
+		settingsStore.updateLayout({ sidebarMode: target });
 		if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => { console.error('saveSettings failed:', err); });
 	}
 
 	let mode = $derived(settingsStore.layout.sidebarMode);
-	let tooltipLabel = $derived(
-		mode === 'files' ? 'Type view' : mode === 'types' ? 'Calendar' : 'File explorer'
-	);
 </script>
 
-<Tooltip.Root>
-	<Tooltip.Trigger>
-		{#snippet child({ props })}
-			<Button
-				{...props}
-				variant="ghost"
-				size="icon-sm"
-				class="size-6"
-				onclick={toggleMode}
-			>
-				{#if mode === 'files'}
-					<LayoutGrid class="size-3.5" />
-				{:else if mode === 'types'}
-					<Calendar class="size-3.5" />
-				{:else}
-					<FolderTree class="size-3.5" />
-				{/if}
-			</Button>
-		{/snippet}
-	</Tooltip.Trigger>
-	<Tooltip.Content>{tooltipLabel}</Tooltip.Content>
-</Tooltip.Root>
+<div class="flex items-center gap-0.5">
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon-sm"
+					class="size-6"
+					onclick={() => switchTo('files')}
+				>
+					<FolderTree class="size-3.5 {mode === 'files' ? 'text-primary' : ''}" />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>File explorer</Tooltip.Content>
+	</Tooltip.Root>
+
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon-sm"
+					class="size-6"
+					onclick={() => switchTo('types')}
+				>
+					<LayoutGrid class="size-3.5 {mode === 'types' ? 'text-primary' : ''}" />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>Type view</Tooltip.Content>
+	</Tooltip.Root>
+
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon-sm"
+					class="size-6"
+					onclick={() => switchTo('calendar')}
+				>
+					<Calendar class="size-3.5 {mode === 'calendar' ? 'text-primary' : ''}" />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>Calendar</Tooltip.Content>
+	</Tooltip.Root>
+</div>

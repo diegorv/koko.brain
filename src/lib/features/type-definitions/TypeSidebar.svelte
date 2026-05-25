@@ -150,6 +150,7 @@
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
 			<DailyNoteButton />
+			<div class="mx-0.5 h-4 w-px bg-foreground/30"></div>
 			<SidebarModeToggle />
 		</div>
 	</div>

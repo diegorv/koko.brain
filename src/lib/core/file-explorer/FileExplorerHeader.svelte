@@ -35,8 +35,6 @@
 
 <div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
 	<div class="flex items-center gap-0.5">
-		<DailyNoteButton />
-
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}
@@ -130,6 +128,12 @@
 				</DropdownMenu.Item>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
+
+		<div class="mx-0.5 h-4 w-px bg-foreground/30"></div>
+
+		<DailyNoteButton />
+
+		<div class="mx-0.5 h-4 w-px bg-foreground/30"></div>
 
 		<SidebarModeToggle />
 	</div>
