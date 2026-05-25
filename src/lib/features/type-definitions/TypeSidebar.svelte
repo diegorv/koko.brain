@@ -13,7 +13,7 @@
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
+	import { createFile, deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
@@ -36,6 +36,7 @@
 	let collapsedSections = $state<Set<string>>(new Set());
 	let contextTarget = $state<TypeSidebarNote | null>(null);
 	let sectionContextPath = $state<string | null>(null);
+	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
 	let activePath = $derived(editorStore.activeTabPath);
@@ -120,6 +121,16 @@
 		}
 	}
 
+	async function handleCreateTypeDefinition(typeName: string) {
+		if (!vaultStore.path) return;
+		const content = `---\ntype: Type\n_visible: true\n---\n\n# ${typeName}\n`;
+		const filePath = await createFile(vaultStore.path, `${typeName}.md`);
+		if (!filePath) return;
+		const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+		await writeTextFile(filePath, content);
+		openFileInEditor(filePath);
+	}
+
 	function handleSectionChangeIcon(path: string) {
 		iconPickerPath = path;
 		iconPickerOpen = true;
@@ -187,7 +198,7 @@
 							<button
 								class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none"
 								onclick={() => toggleSection(section.metadata.name)}
-								oncontextmenu={() => { sectionContextPath = defPath; contextTarget = null; }}
+								oncontextmenu={() => { sectionContextPath = defPath; sectionContextName = section.metadata.name; contextTarget = null; }}
 							>
 								<ChevronRight class="size-3.5 shrink-0 text-muted-foreground transition-transform {collapsed ? '' : 'rotate-90'}" />
 								{#if defResolvedIcon}
@@ -288,7 +299,7 @@
 			{/snippet}
 		</ContextMenu.Trigger>
 		<ContextMenu.Content class="w-56">
-			{#if sectionContextPath}
+			{#if sectionContextName && sectionContextPath}
 				{@const path = sectionContextPath}
 				<ContextMenu.Item onclick={() => openFileInEditor(path)}>
 					<ExternalLink class="size-4" />
@@ -298,6 +309,12 @@
 				<ContextMenu.Item onclick={() => handleSectionChangeIcon(path)}>
 					<Palette class="size-4" />
 					<span>Change icon</span>
+				</ContextMenu.Item>
+			{:else if sectionContextName && !sectionContextPath}
+				{@const name = sectionContextName}
+				<ContextMenu.Item onclick={() => handleCreateTypeDefinition(name)}>
+					<FileText class="size-4" />
+					<span>Create type definition</span>
 				</ContextMenu.Item>
 			{:else if contextTarget}
 				{@const target = contextTarget}
