@@ -118,10 +118,33 @@ export async function trackRecentIcon(vaultPath: string, iconPack: IconPackId, i
 
 const MD_EXT = /\.(?:md|markdown)$/i;
 
+function isMarkdown(path: string): boolean {
+	return MD_EXT.test(path);
+}
+
+function getFolderNotePath(dirPath: string): string {
+	const name = dirPath.split('/').filter(Boolean).pop() ?? '';
+	return `${dirPath}/${name}.md`;
+}
+
+/**
+ * Resolves the folder note path for a directory, creating it if needed.
+ * Returns the path to the folder note.
+ */
+async function ensureFolderNote(dirPath: string): Promise<string> {
+	const notePath = getFolderNotePath(dirPath);
+	const noteExists = await exists(notePath);
+	if (!noteExists) {
+		await writeTextFile(notePath, '---\n---\n');
+	}
+	return notePath;
+}
+
 /**
  * Sets a custom icon for a file/folder path.
- * For .md files: writes to frontmatter (_icon, _color, _title_color).
- * For non-.md files: writes to .kokobrain/file-icons.json.
+ * - .md files: writes to frontmatter (_icon, _color, _title_color).
+ * - Directories (isDirectory=true): writes to folder note frontmatter (auto-creates if needed).
+ * - Other files: writes to .kokobrain/file-icons.json.
  */
 export async function setIconForPath(
 	vaultPath: string,
@@ -130,8 +153,9 @@ export async function setIconForPath(
 	iconName: string,
 	color?: string,
 	textColor?: string,
+	isDirectory = false,
 ): Promise<void> {
-	if (MD_EXT.test(path)) {
+	if (isMarkdown(path)) {
 		const { setFrontmatterIcon } = await import('./frontmatter-icon.service');
 		await setFrontmatterIcon(path, iconPack, iconName, color, textColor);
 		fileIconsStore.updateFrontmatterIcon(path, {
@@ -139,6 +163,17 @@ export async function setIconForPath(
 		});
 		return;
 	}
+
+	if (isDirectory) {
+		const notePath = await ensureFolderNote(path);
+		const { setFrontmatterIcon } = await import('./frontmatter-icon.service');
+		await setFrontmatterIcon(notePath, iconPack, iconName, color, textColor);
+		const ref: FrontmatterIconRef = { iconPack, iconName, color, titleColor: textColor };
+		fileIconsStore.updateFrontmatterIcon(notePath, ref);
+		fileIconsStore.updateFrontmatterIcon(path, ref);
+		return;
+	}
+
 	const updated = setFileIcon(fileIconsStore.entries, path, iconPack, iconName, color, textColor);
 	fileIconsStore.setEntries(updated);
 	await saveFileIcons(vaultPath);
@@ -146,16 +181,30 @@ export async function setIconForPath(
 
 /**
  * Removes a custom icon from a file/folder path.
- * For .md files: removes _icon, _color, _title_color from frontmatter.
- * For non-.md files: removes entry from .kokobrain/file-icons.json.
+ * - .md files: removes _icon, _color, _title_color from frontmatter.
+ * - Directories (isDirectory=true): removes icon from folder note frontmatter.
+ * - Other files: removes entry from .kokobrain/file-icons.json.
  */
-export async function removeIconForPath(vaultPath: string, path: string): Promise<void> {
-	if (MD_EXT.test(path)) {
+export async function removeIconForPath(vaultPath: string, path: string, isDirectory = false): Promise<void> {
+	if (isMarkdown(path)) {
 		const { removeFrontmatterIcon } = await import('./frontmatter-icon.service');
 		await removeFrontmatterIcon(path);
 		fileIconsStore.updateFrontmatterIcon(path, null);
 		return;
 	}
+
+	if (isDirectory) {
+		const notePath = getFolderNotePath(path);
+		const noteExists = await exists(notePath);
+		if (noteExists) {
+			const { removeFrontmatterIcon } = await import('./frontmatter-icon.service');
+			await removeFrontmatterIcon(notePath);
+			fileIconsStore.updateFrontmatterIcon(notePath, null);
+		}
+		fileIconsStore.updateFrontmatterIcon(path, null);
+		return;
+	}
+
 	const updated = removeFileIcon(fileIconsStore.entries, path);
 	fileIconsStore.setEntries(updated);
 	await saveFileIcons(vaultPath);
@@ -192,6 +241,15 @@ export async function buildFrontmatterIconIndex(): Promise<void> {
 				const colors = extractIconColorsFromParsedFrontmatter(entry.frontmatter);
 				const full: FrontmatterIconRef = { ...ref, ...colors };
 				index.set(entry.path, full);
+
+				// Folder notes: if X/X.md has an icon, index under directory X/ too
+				const parts = entry.path.split('/');
+				const fileName = parts[parts.length - 1];
+				const parentDir = parts.slice(0, -1).join('/');
+				const parentName = parts[parts.length - 2];
+				if (parentName && fileName === `${parentName}.md`) {
+					index.set(parentDir, full);
+				}
 			}
 		}
 
@@ -228,6 +286,15 @@ export function updateFrontmatterIconForFile(filePath: string, content: string):
 	) return;
 
 	fileIconsStore.updateFrontmatterIcon(filePath, newRef);
+
+	// Folder notes: also index under parent directory path
+	const parts = filePath.split('/');
+	const fileName = parts[parts.length - 1];
+	const parentDir = parts.slice(0, -1).join('/');
+	const parentName = parts[parts.length - 2];
+	if (parentName && fileName === `${parentName}.md`) {
+		fileIconsStore.updateFrontmatterIcon(parentDir, newRef);
+	}
 
 	// Preload pack if new icon references one
 	if (newRef) {

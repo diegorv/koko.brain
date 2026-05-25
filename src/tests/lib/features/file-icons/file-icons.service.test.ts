@@ -236,6 +236,19 @@ describe('setIconForPath', () => {
 		expect(fileIconsStore.entries[0].color).toBe('#ff0000');
 		expect(fileIconsStore.entries[0].textColor).toBe('#00ff00');
 	});
+
+	it('routes directories to folder note frontmatter', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(readTextFile).mockResolvedValue('---\n---\n');
+		await setIconForPath('/vault', '/vault/Projects', 'lucide', 'folder', '#0000ff', undefined, true);
+
+		// Should create folder note and write to it
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/Projects/Projects.md', '---\n---\n');
+		// Should index under both the note path and directory path
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')).toBeDefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects/Projects.md')).toBeDefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')?.iconName).toBe('folder');
+	});
 });
 
 describe('removeIconForPath', () => {

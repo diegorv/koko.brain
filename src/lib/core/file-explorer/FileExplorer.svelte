@@ -195,14 +195,14 @@
 		textColor?: string
 	) {
 		if (!vaultStore.path || !iconPickerNode) return;
-		await setIconForPath(vaultStore.path, iconPickerNode.path, pack, name, color, textColor);
+		await setIconForPath(vaultStore.path, iconPickerNode.path, pack, name, color, textColor, iconPickerNode.isDirectory);
 		await trackRecentIcon(vaultStore.path, pack, name);
 	}
 
 	/** Handles icon removal from the picker (uses iconPickerNode as the target) */
 	async function handleIconRemove() {
 		if (!vaultStore.path || !iconPickerNode) return;
-		await removeIconForPath(vaultStore.path, iconPickerNode.path);
+		await removeIconForPath(vaultStore.path, iconPickerNode.path, iconPickerNode.isDirectory);
 	}
 
 	/** Closes the icon picker and clears the bound node so the component unmounts */
