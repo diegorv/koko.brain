@@ -1,68 +1,89 @@
 # Exploratory Bug Audit - Master Summary
 
 **Scope:** ~50K lines in src/lib/ across 7 phases.
-**Result:** 24 unique real bugs (deduplicated across phases).
+**Result:** 24 unique real bugs found. 6 fixed so far.
 
-## All Bugs by Priority
+## FIXED (6 bugs - 2 commits)
 
-### P0: Data Loss Risk (8 bugs)
+| # | Bug | Commit | Fix |
+|---|-----|--------|-----|
+| 1 | Delete-autosave race | `b902a62` | Close tabs BEFORE moveToTrash |
+| 2 | Rename-autosave race | `b902a62` | Update tab path right after rename(), before link updates |
+| 3 | Move-autosave race | `b902a62` | Update tab path right after rename(), before refreshTree |
+| 4 | Deep-link discards dirty content | `99b18ce` | Added syncExternalContentToEditor after writes |
+| 5 | Deep-link daily same issue | `99b18ce` | Same fix as #4 |
+| 9 | Deep-link skips all indexes | `99b18ce` | Added notifyAfterSave after ALL deep-link writes |
 
-| # | Bug | File | Phase | Description |
-|---|-----|------|-------|-------------|
-| 1 | Delete-autosave race | fs.service.ts:166-175 | 3 | File moved to trash, autosave recreates at original path |
-| 2 | Rename-autosave race | fs.service.ts:206-215 | 3 | Tab path not updated yet, autosave writes to old path |
-| 3 | Move-autosave race | fs.service.ts:250-254 | 3 | Wider window: tab path updated after async refreshTree |
-| 4 | Deep-link discards dirty content | deep-link.service.ts:199-228 | 3 | Reads disk not dirty tab, autosave overwrites deep-link content |
-| 5 | Deep-link daily same issue | deep-link.service.ts:285-296 | 3 | Same as #4 for daily note |
-| 6 | saveDirtyTabs unawaited | editor.service.ts:157-163 | 1 | Failed autosave silently lost, no retry |
-| 7 | Canvas quit data loss | CanvasInner.svelte:208-220 | 7 | 300ms debounce not flushed on quit |
-| 8 | restoreSnapshot no error handling | file-history.service.ts:84 | 1 | IPC fail -> dialog stuck, user can't restore |
+---
 
-### P1: Correctness (10 bugs)
+## REMAINING (18 bugs) - Grouped by Domain
 
-| # | Bug | File | Phase | Description |
-|---|-----|------|-------|-------------|
-| 9 | Deep-link skips all indexes | deep-link.service.ts (all writes) | 3 | markRecentSave suppresses watcher, no notifyAfterSave |
-| 10 | Callout listener leak | callout-field.ts:103-106 | 1 | document listeners accumulate unboundedly |
-| 11 | KanbanCard untrack missing | KanbanCard.svelte:145 | 1 | N unnecessary IPCs per file tree change |
-| 12 | Kanban IDs regenerated | kanban.logic.ts:83,97 | 7 | Full DOM teardown on every edit |
-| 13 | Kanban stale cache | kanban.service.ts:37-76 | 7 | Preview never refreshed after linked file edit |
-| 14 | todoistStore not reset | todoist.store.svelte.ts | 6 | Stale Todoist data after vault switch |
-| 15 | lifecycleFilterStore not reset | lifecycle-filter.store.svelte.ts:6 | 6 | Stale archived paths after vault switch |
-| 16 | typeDefinitionsStore not reset | type-definitions.store.svelte.ts:4-6 | 6 | Stale type sidebar after vault switch |
-| 17 | setTimeout version guard bypass | app-lifecycle.service.ts:221-231 | 2 | Secondary builders run against reset stores |
-| 18 | Trash restore phantom entry | trash.service.ts:106-114 | 3 | Manifest save fails -> unrecoverable phantom |
+### Domain: Editor / Save Pipeline (2 bugs)
 
-### P2: Security (2 bugs)
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 6 | saveDirtyTabs unawaited | editor.service.ts:157-163 | P1 | Failed autosave silently lost, no retry |
+| 7 | Canvas quit data loss | CanvasInner.svelte:208-220 | P0 | 300ms debounce not flushed on quit |
 
-| # | Bug | File | Phase | Description |
-|---|-----|------|-------|-------------|
-| 19 | No queryjs execution timeout | queryjs-block-widget.ts:158-203 | 4 | while(true) -> persistent DoS via shared vault |
-| 20 | Chart.js CDN without SRI | kb-ui.ts:948-974 | 4 | Supply chain risk, no integrity check |
+### Domain: App Lifecycle / Vault Switch (4 bugs)
 
-### P3: Cosmetic / Low Priority (4 bugs)
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 14 | todoistStore not reset | todoist.store.svelte.ts | P1 | Stale Todoist data after vault switch |
+| 15 | lifecycleFilterStore not reset | lifecycle-filter.store.svelte.ts:6 | P1 | Stale archived paths after vault switch |
+| 16 | typeDefinitionsStore not reset | type-definitions.store.svelte.ts:4-6 | P1 | Stale type sidebar after vault switch |
+| 17 | setTimeout version guard bypass | app-lifecycle.service.ts:221-231 | P1 | Secondary builders run against reset stores |
 
-| # | Bug | File | Phase | Description |
-|---|-----|------|-------|-------------|
-| 21 | OutgoingLinksPanel untrack | OutgoingLinksPanel.svelte:37 | 1 | Store mutation outside untrack (no loop now) |
-| 22 | SearchSection untrack | SearchSection.svelte:35 | 1 | invoke() without untrack (extra IPC on teardown) |
-| 23 | Command palette swallows errors | command-palette.service.ts:155,165 | 1 | .catch(() => {}) discards saveSettings errors |
-| 24 | CollectionTableView no virtualization | CollectionTableView.svelte:43 | 7 | All rows rendered, freezes on large vaults |
+### Domain: Kanban (3 bugs)
 
-## Deep-Dive Validation Status
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 11 | KanbanCard untrack missing | KanbanCard.svelte:145 | P1 | N unnecessary IPCs per file tree change |
+| 12 | Kanban IDs regenerated | kanban.logic.ts:83,97 | P1 | Full DOM teardown on every edit |
+| 13 | Kanban stale cache | kanban.service.ts:37-76 | P1 | Preview never refreshed after linked file edit |
 
-All findings need validation via code reading + test writing before fixing.
-Priority: P0 data-loss bugs first (items 1-8), with failing tests to demonstrate each bug.
+### Domain: Live Preview / Widgets (1 bug)
 
-## Phase-by-Phase Summary
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 10 | Callout listener leak | callout-field.ts:103-106 | P1 | document listeners accumulate unboundedly |
 
-| Phase | Scope | Real Bugs | New (unique) |
-|-------|-------|-----------|--------------|
-| 1 | Automated scans | 10 | 10 |
-| 2 | Save + watcher pipeline | 2 | 1 |
-| 3 | File operations | 7 | 7 |
-| 4 | QueryJS security | 2 | 2 |
-| 5 | $effect deep audit | 2 | 0 (confirmed Phase 1) |
-| 6 | Cache + memory | 4 | 3 |
-| 7 | Canvas/Kanban/Collection | 4 | 4 |
-| **Total** | | | **24 unique** |
+### Domain: Trash (1 bug)
+
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 18 | Trash restore phantom entry | trash.service.ts:106-114 | P1 | Manifest save fails -> unrecoverable phantom |
+
+### Domain: File History (1 bug)
+
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 8 | restoreSnapshot no error handling | file-history.service.ts:84 | P1 | IPC fail -> dialog stuck |
+
+### Domain: QueryJS Security (2 bugs)
+
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 19 | No queryjs execution timeout | queryjs-block-widget.ts:158-203 | P2 | while(true) -> persistent DoS via shared vault |
+| 20 | Chart.js CDN without SRI | kb-ui.ts:948-974 | P2 | Supply chain risk |
+
+### Domain: Cosmetic / Low Priority (4 bugs)
+
+| # | Bug | File | Severity | Description |
+|---|-----|------|----------|-------------|
+| 21 | OutgoingLinksPanel untrack | OutgoingLinksPanel.svelte:37 | P3 | Store mutation outside untrack |
+| 22 | SearchSection untrack | SearchSection.svelte:35 | P3 | invoke() without untrack |
+| 23 | Command palette swallows errors | command-palette.service.ts:155,165 | P3 | .catch(() => {}) discards errors |
+| 24 | CollectionTableView no virtualization | CollectionTableView.svelte:43 | P3 | Freezes on large vaults |
+
+---
+
+## Fix Order (next domains to attack)
+
+1. **Editor / Save Pipeline** (bugs 6-7) - data loss risk
+2. **App Lifecycle / Vault Switch** (bugs 14-17) - correctness on vault switch
+3. **Kanban** (bugs 11-13) - performance + correctness
+4. **Live Preview** (bug 10) - memory leak
+5. **Trash + File History** (bugs 8, 18) - edge cases
+6. **QueryJS Security** (bugs 19-20) - shared vault scenario
+7. **Cosmetic** (bugs 21-24) - nice to fix
