@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 2
 
 # Parse belongs_to/related_to and wikilink-bearing fields in Rust index

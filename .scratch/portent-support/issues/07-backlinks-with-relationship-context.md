@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 2
 
 # Extend backlinks panel with frontmatter relationship context

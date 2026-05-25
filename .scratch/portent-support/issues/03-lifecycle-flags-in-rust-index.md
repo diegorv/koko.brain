@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 1
 
 # Add lifecycle flags (organized/archived/favorite) to vault index
