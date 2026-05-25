@@ -61,6 +61,9 @@ import { resetCommandPalette } from '$lib/features/command-palette/command-palet
 import { resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { resetTerminal } from '$lib/plugins/terminal/terminal.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
+import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
+import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
@@ -387,4 +390,7 @@ export function teardownVault(): void {
 	resetDeepLink();
 	resetPeriodicNotes();
 	resetTrash();
+	todoistStore.reset();
+	lifecycleFilterStore.reset();
+	typeDefinitionsStore.reset();
 }

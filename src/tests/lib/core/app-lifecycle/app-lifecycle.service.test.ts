@@ -202,6 +202,9 @@ import {
 } from '$lib/features/search/search.service';
 import { toast } from 'svelte-sonner';
 import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
+import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
+import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 
 describe('initializeVault', () => {
 	beforeEach(() => {
@@ -466,6 +469,33 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(resetTrash).toHaveBeenCalled();
+	});
+
+	it('resets todoist store to prevent cross-vault data leakage', () => {
+		todoistStore.setProjects([{ id: '1', name: 'Old Vault Project' }] as any);
+		expect(todoistStore.projects.length).toBe(1);
+
+		teardownVault();
+
+		expect(todoistStore.projects).toEqual([]);
+	});
+
+	it('resets lifecycle filter store to prevent stale archived paths', () => {
+		lifecycleFilterStore.setArchivedPaths(new Set(['/old-vault/archived.md']));
+		expect(lifecycleFilterStore.archivedPaths.size).toBe(1);
+
+		teardownVault();
+
+		expect(lifecycleFilterStore.archivedPaths.size).toBe(0);
+	});
+
+	it('resets type definitions store to prevent stale sidebar data', () => {
+		typeDefinitionsStore.setEntries([{ path: '/old-vault/note.md' }] as any);
+		expect(typeDefinitionsStore.entries.length).toBe(1);
+
+		teardownVault();
+
+		expect(typeDefinitionsStore.entries).toEqual([]);
 	});
 
 	it('logs error when close_vault_db fails instead of silently swallowing', async () => {
