@@ -10,6 +10,9 @@
 	import Palette from 'lucide-svelte/icons/palette';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Star from 'lucide-svelte/icons/star';
+	import Archive from 'lucide-svelte/icons/archive';
+	import Inbox from 'lucide-svelte/icons/inbox';
+	import LayoutGrid from 'lucide-svelte/icons/layout-grid';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -47,10 +50,10 @@
 		iconPickerPath ? fileIconsStore.getIcon(iconPickerPath) : undefined
 	);
 	let filterTabs = $derived([
-		{ id: 'all' as SidebarFilter, label: 'All' },
-		...(inboxEnabled ? [{ id: 'inbox' as SidebarFilter, label: 'Inbox' }] : []),
-		{ id: 'archived' as SidebarFilter, label: 'Archived' },
-		{ id: 'favorites' as SidebarFilter, label: 'Favorites' },
+		{ id: 'all' as SidebarFilter, label: 'All', icon: LayoutGrid },
+		...(inboxEnabled ? [{ id: 'inbox' as SidebarFilter, label: 'Inbox', icon: Inbox }] : []),
+		{ id: 'archived' as SidebarFilter, label: 'Archived', icon: Archive },
+		{ id: 'favorites' as SidebarFilter, label: 'Favorites', icon: Star },
 	]);
 
 	let initialized = false;
@@ -154,15 +157,16 @@
 			<SidebarModeToggle />
 		</div>
 	</div>
-	<div class="flex items-center border-b border-border shrink-0">
+	<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border shrink-0">
 		{#each filterTabs as f (f.id)}
 			<button
-				class="flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer border-b-2 {filter === f.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+				class="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-xs transition-colors cursor-pointer border-b-2 {filter === f.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
 				onclick={() => { filter = f.id as SidebarFilter; rebuildFromCache(); }}
 			>
+				<f.icon class="size-3.5" />
 				{f.label}
 				{#if f.id === 'inbox' && inboxCount > 0}
-					<span class="ml-0.5 text-[10px] bg-primary/20 text-primary px-1 rounded-full">{inboxCount}</span>
+					<span class="text-[10px] bg-primary/20 text-primary px-1 rounded-full">{inboxCount}</span>
 				{/if}
 			</button>
 		{/each}
