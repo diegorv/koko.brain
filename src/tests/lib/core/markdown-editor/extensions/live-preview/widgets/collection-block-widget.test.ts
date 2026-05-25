@@ -36,13 +36,14 @@ vi.mock('$lib/features/collection/collection.logic', async (importOriginal) => {
 	};
 });
 
-import { CollectionBlockWidget } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
+import { CollectionBlockWidget, clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
 import { executeQuery } from '$lib/features/collection/collection.logic';
 
 const mockedExecuteQuery = vi.mocked(executeQuery);
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	clearCollectionCache();
 });
 
 describe('CollectionBlockWidget', () => {
