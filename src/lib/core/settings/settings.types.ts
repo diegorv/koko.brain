@@ -291,4 +291,6 @@ export interface AppSettings {
 	queryjs: QueryjsSettings;
 	/** In-app auto-updater configuration (channel selection, …) */
 	updates: UpdateSettings;
+	/** Whether new notes start unorganized and require explicit organization (Portent inbox workflow) */
+	explicitOrganization: boolean;
 }
