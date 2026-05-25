@@ -64,36 +64,36 @@ Audit of `src/tests/` (255 unit tests) and `e2e/specs/` (41 specs, 150+ tests) r
   - Scenarios: right-click shows Bookmark option, toggle bookmark via context menu, bookmarked file shows Remove Bookmark, removing bookmark works
   - ~4 tests
 
-- [ ] Task 10: Create `word-count.spec.ts`
+- [x] Task 10: Create `word-count.spec.ts`
   - File: `e2e/specs/word-count.spec.ts`
   - Uses existing `vaultPage` fixture
   - Scenarios: word count visible when file open, count updates on content change, shows characters + reading time, disappears when no file open
   - ~4 tests
 
-- [ ] Task 11: Create `table-of-contents.spec.ts`
+- [x] Task 11: Create `table-of-contents.spec.ts`
   - File: `e2e/specs/table-of-contents.spec.ts`
   - Uses `vaultPage` fixture, may need settings tweak for TOC visibility
   - Scenarios: TOC shows headings from open file, TOC updates on file switch, clicking TOC heading scrolls editor
   - ~3 tests
 
-- [ ] Task 12: Create `calendar-plugin.spec.ts`
+- [x] Task 12: Create `calendar-plugin.spec.ts`
   - File: `e2e/specs/calendar-plugin.spec.ts`
   - Uses `vaultPage` fixture (calendarVisible already true in default settings)
   - Scenarios: calendar panel visible in sidebar, month navigation works, clicking day + creating daily note
   - ~3 tests
 
-- [ ] Task 13: Create `folder-notes.spec.ts`
+- [x] Task 13: Create `folder-notes.spec.ts`
   - File: `e2e/specs/folder-notes.spec.ts`
   - Needs custom fixture adding `Projects/Projects.md` to test vault
   - Scenarios: clicking folder with folder note opens it, clicking folder without just expands
   - ~2 tests
 
-- [ ] Task 14: Extend `search.spec.ts` with advanced scenarios
+- [x] Task 14: Extend `search.spec.ts` with advanced scenarios
   - File: `e2e/specs/search.spec.ts` (existing)
   - Scenarios: case-sensitive toggle, whole-word toggle, search clears on Escape
   - ~3 tests
 
-- [ ] Task 15: Extend `tasks-view.spec.ts` with task interactions
+- [x] Task 15: Extend `tasks-view.spec.ts` with task interactions
   - File: `e2e/specs/tasks-view.spec.ts` (existing)
   - Scenarios: task completion toggle via checkbox, task count reflects vault content
   - ~2 tests
