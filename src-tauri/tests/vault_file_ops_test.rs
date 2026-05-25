@@ -1,4 +1,5 @@
-//! Phase 8 — File-op command tests (`create_note`, `create_folder`).
+//! Phase 8 — File-op command tests (`create_note`, `create_folder`,
+//! `toggle_task_status_inner`).
 //!
 //! The Tauri command wrappers can't be unit-tested without an `AppHandle`
 //! (they emit `vault-index-updated`); these tests target the inner-most
@@ -6,14 +7,10 @@
 //! that `create_note` relies on. The lock + emit path is exercised
 //! manually during smoke testing.
 
+use kokobrain_lib::commands::vault::{toggle_task_status_inner, update_note_in_index_inner};
 use kokobrain_lib::vault::index::VaultIndex;
 use std::fs;
 use tempfile::tempdir;
-
-// `update_note_in_index_inner` is the public helper `create_note` calls
-// after the disk write succeeds. Re-importing it here lets us simulate
-// the full `create_note` flow without holding the Tauri write lock.
-use kokobrain_lib::commands::vault::update_note_in_index_inner;
 
 #[test]
 fn create_note_flow_writes_file_and_updates_index() {
@@ -80,4 +77,101 @@ fn note_record_projection_converts_seconds_to_ms() {
 	assert_eq!(stored.modified_at, 1714305600);
 	assert_eq!(stored.created_at, 1714000000);
 	assert_eq!(stored.size, 1024);
+}
+
+// ============================================================================
+// toggle_task_status_inner
+// ============================================================================
+
+#[test]
+fn toggle_task_happy_path_checks_box() {
+	let tmp = tempdir().expect("tmpdir");
+	let path = tmp.path().join("tasks.md");
+	let path_str = path.to_string_lossy().to_string();
+	fs::write(&path, "# Tasks\n- [ ] Buy milk\n- [ ] Walk dog\n").expect("write");
+
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, path_str.clone(), "# Tasks\n- [ ] Buy milk\n- [ ] Walk dog\n", 0);
+
+	let result = toggle_task_status_inner(&mut idx, &path_str, 2).expect("toggle");
+	assert!(result.update_result.changed);
+	assert!(result.updated_content.contains("- [x] Buy milk"));
+	let on_disk = fs::read_to_string(&path).expect("read");
+	assert_eq!(on_disk, result.updated_content);
+}
+
+#[test]
+fn toggle_task_noop_no_checkbox_on_line() {
+	let tmp = tempdir().expect("tmpdir");
+	let path = tmp.path().join("note.md");
+	let path_str = path.to_string_lossy().to_string();
+	let content = "# Heading\nJust text\n";
+	fs::write(&path, content).expect("write");
+
+	let mut idx = VaultIndex::default();
+	let result = toggle_task_status_inner(&mut idx, &path_str, 2).expect("toggle");
+	assert!(!result.update_result.changed);
+	assert_eq!(result.updated_content, content);
+	assert_eq!(fs::read_to_string(&path).expect("read"), content);
+}
+
+#[test]
+fn toggle_task_line_out_of_bounds() {
+	let tmp = tempdir().expect("tmpdir");
+	let path = tmp.path().join("short.md");
+	let path_str = path.to_string_lossy().to_string();
+	let content = "- [ ] Only task\n";
+	fs::write(&path, content).expect("write");
+
+	let mut idx = VaultIndex::default();
+	let result = toggle_task_status_inner(&mut idx, &path_str, 999).expect("toggle");
+	assert!(!result.update_result.changed);
+	assert_eq!(result.updated_content, content);
+}
+
+#[test]
+fn toggle_task_file_not_found() {
+	let mut idx = VaultIndex::default();
+	let result = toggle_task_status_inner(&mut idx, "/nonexistent/path.md", 1);
+	assert!(result.is_err());
+	assert!(result.unwrap_err().contains("read failed"));
+}
+
+#[test]
+fn toggle_task_updates_index_tasks() {
+	let tmp = tempdir().expect("tmpdir");
+	let path = tmp.path().join("indexed.md");
+	let path_str = path.to_string_lossy().to_string();
+	let content = "- [ ] Unchecked task\n";
+	fs::write(&path, content).expect("write");
+
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, path_str.clone(), content, 0);
+
+	let before = idx.entries().get(&path_str).unwrap().tasks.clone();
+	assert!(!before.is_empty(), "should have parsed a task");
+
+	let result = toggle_task_status_inner(&mut idx, &path_str, 1).expect("toggle");
+	assert!(result.update_result.changed);
+
+	let after = idx.entries().get(&path_str).unwrap().tasks.clone();
+	assert_ne!(before[0].status, after[0].status, "task status should have flipped");
+}
+
+#[test]
+fn toggle_task_double_toggle_round_trips() {
+	let tmp = tempdir().expect("tmpdir");
+	let path = tmp.path().join("roundtrip.md");
+	let path_str = path.to_string_lossy().to_string();
+	let original = "- [ ] Toggle me\n";
+	fs::write(&path, original).expect("write");
+
+	let mut idx = VaultIndex::default();
+	toggle_task_status_inner(&mut idx, &path_str, 1).expect("first toggle");
+	let after_first = fs::read_to_string(&path).expect("read");
+	assert_ne!(after_first, original);
+
+	toggle_task_status_inner(&mut idx, &path_str, 1).expect("second toggle");
+	let after_second = fs::read_to_string(&path).expect("read");
+	assert_eq!(after_second, original, "double toggle should restore original");
 }
