@@ -159,8 +159,8 @@ importers:
         specifier: ^4.29.2
         version: 4.29.2
       katex:
-        specifier: ^0.16.45
-        version: 0.16.45
+        specifier: ^0.16.47
+        version: 0.16.47
       lowlight:
         specifier: ^3.3.0
         version: 3.3.0
@@ -1746,8 +1746,8 @@ packages:
       canvas:
         optional: true
 
-  katex@0.16.45:
-    resolution: {integrity: sha512-pQpZbdBu7wCTmQUh7ufPmLr0pFoObnGUoL/yhtwJDgmmQpbkg/0HSVti25Fu4rmd1oCR6NGWe9vqTWuWv3GcNA==}
+  katex@0.16.47:
+    resolution: {integrity: sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg==}
     hasBin: true
 
   khroma@2.1.0:
@@ -3911,7 +3911,7 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  katex@0.16.45:
+  katex@0.16.47:
     dependencies:
       commander: 8.3.0
 
@@ -4020,7 +4020,7 @@ snapshots:
       dayjs: 1.11.20
       dompurify: 3.4.5
       es-toolkit: 1.46.1
-      katex: 0.16.45
+      katex: 0.16.47
       khroma: 2.1.0
       marked: 16.4.2
       roughjs: 4.6.6
