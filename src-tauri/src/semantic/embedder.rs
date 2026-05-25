@@ -331,6 +331,54 @@ mod tests {
 		// but the construction-time guard rejects `expected=0` upstream.
 		assert!(validate_dimensions(1024, 0).is_err());
 	}
+
+	#[test]
+	fn cosine_identical_vectors() {
+		let a = vec![1.0, 2.0, 3.0];
+		let b = vec![1.0, 2.0, 3.0];
+		let sim = cosine_similarity(&a, &b);
+		assert!((sim - 1.0).abs() < 1e-6, "identical vectors should have similarity 1.0, got {sim}");
+	}
+
+	#[test]
+	fn cosine_orthogonal_vectors() {
+		let a = vec![1.0, 0.0, 0.0];
+		let b = vec![0.0, 1.0, 0.0];
+		let sim = cosine_similarity(&a, &b);
+		assert!(sim.abs() < 1e-6, "orthogonal vectors should have similarity 0.0, got {sim}");
+	}
+
+	#[test]
+	fn cosine_zero_vector() {
+		let a = vec![0.0, 0.0, 0.0];
+		let b = vec![1.0, 2.0, 3.0];
+		let sim = cosine_similarity(&a, &b);
+		assert_eq!(sim, 0.0, "zero vector should return 0.0");
+	}
+
+	#[test]
+	fn cosine_opposite_vectors() {
+		let a = vec![1.0, 2.0, 3.0];
+		let b = vec![-1.0, -2.0, -3.0];
+		let sim = cosine_similarity(&a, &b);
+		assert!((sim + 1.0).abs() < 1e-6, "opposite vectors should have similarity -1.0, got {sim}");
+	}
+
+	#[test]
+	fn cosine_different_lengths() {
+		let a = vec![1.0, 2.0];
+		let b = vec![1.0, 2.0, 3.0];
+		let sim = cosine_similarity(&a, &b);
+		assert_eq!(sim, 0.0, "different length vectors should return 0.0");
+	}
+
+	#[test]
+	fn cosine_empty_vectors() {
+		let a: Vec<f32> = vec![];
+		let b: Vec<f32> = vec![];
+		let sim = cosine_similarity(&a, &b);
+		assert_eq!(sim, 0.0, "empty vectors should return 0.0");
+	}
 }
 
 /// Computes cosine similarity between two vectors.
