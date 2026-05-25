@@ -101,7 +101,7 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 <!-- ─── Badge reference definitions ────────────────────────────── -->
 
-[ci-badge]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg
+[ci-badge]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg?branch=main&event=workflow_call
 [ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml
 [e2e-badge]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml/badge.svg
 [e2e-url]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml
