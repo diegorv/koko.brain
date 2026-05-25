@@ -76,7 +76,6 @@ describe('updateTypeDefinitionIcon', () => {
 			'---\ntype: Type\n---\n# Note\n'
 		);
 		await updateTypeDefinitionIcon('/vault/Note.md', null, null);
-		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
-		expect(written).toContain('type: Type');
+		expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
 	});
 });

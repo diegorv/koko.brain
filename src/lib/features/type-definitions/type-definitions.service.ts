@@ -28,6 +28,8 @@ export async function updateTypeDefinitionIcon(
 	let properties = parseFrontmatterProperties(content);
 	const body = extractBody(content);
 
+	if (!iconName && !color) return;
+
 	if (iconName) properties = upsertProperty(properties, '_icon', iconName);
 	if (color) properties = upsertProperty(properties, '_color', color);
 
