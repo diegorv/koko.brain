@@ -119,6 +119,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		lastCheckedAt: null,
 	},
 	explicitOrganization: false,
+	showUntypedNotes: false,
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -150,6 +151,7 @@ export const settingsStore = {
 	get queryjs() { return settings.queryjs; },
 	get updates() { return settings.updates; },
 	get explicitOrganization() { return settings.explicitOrganization; },
+	get showUntypedNotes() { return settings.showUntypedNotes; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {

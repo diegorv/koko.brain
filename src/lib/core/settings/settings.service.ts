@@ -152,6 +152,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				lastCheckedAt: parsed.updates?.lastCheckedAt ?? DEFAULT_SETTINGS.updates.lastCheckedAt,
 			},
 			explicitOrganization: parsed.explicitOrganization ?? DEFAULT_SETTINGS.explicitOrganization,
+			showUntypedNotes: parsed.showUntypedNotes ?? DEFAULT_SETTINGS.showUntypedNotes,
 		};
 		settingsStore.setSettings(merged);
 		await saveSettings(vaultPath);
