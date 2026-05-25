@@ -107,10 +107,19 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 
 		// Clean up the empty timestamped container
 		const itemDir = getTrashItemDir(vaultPath, item.id);
-		await remove(itemDir, { recursive: true });
+		await remove(itemDir, { recursive: true }).catch((err) => {
+			debug('Trash', `Failed to remove container dir (non-fatal): ${err}`);
+		});
 
-		// Persist manifest to disk first, then update store (avoids desync on write failure)
-		await saveManifest(vaultPath, trashStore.items.filter(i => i.id !== item.id));
+		// Persist manifest to disk, then update store. If manifest save fails,
+		// still update the in-memory store -- the file is already restored on
+		// disk, so the manifest entry would be a phantom.
+		const updatedItems = trashStore.items.filter(i => i.id !== item.id);
+		try {
+			await saveManifest(vaultPath, updatedItems);
+		} catch (err) {
+			error('Trash', 'Failed to save manifest after restore (removing phantom entry):', err);
+		}
 		trashStore.removeItem(item.id);
 
 		// Refresh the file tree so the restored item appears
