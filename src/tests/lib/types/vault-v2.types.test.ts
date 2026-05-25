@@ -83,6 +83,7 @@ describe('vault-v2.types', () => {
 				wordCount: 5,
 				snippet: 'Hello world',
 				tasks: [],
+				isA: null,
 			};
 
 			// Type-level checks lock the field names + types so a Rust-side

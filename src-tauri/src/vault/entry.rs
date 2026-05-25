@@ -165,6 +165,10 @@ pub struct NoteEntry {
 	/// `vault::parsing::extract_tasks` at construction time. Empty Vec when
 	/// the note has no tasks.
 	pub tasks: Vec<Task>,
+	/// Document type from the `type` frontmatter key (after alias resolution).
+	/// Casing normalized: first letter uppercase, rest preserved.
+	/// `None` when the note has no type field.
+	pub is_a: Option<String>,
 }
 
 impl NoteEntry {
@@ -196,6 +200,7 @@ impl NoteEntry {
 		let outgoing_links = extract_outgoing_links(content);
 		let tags = extract_tags_strict(content);
 		let tasks = extract_tasks(content);
+		let is_a = extract_is_a(&frontmatter);
 		let body = strip_frontmatter(content);
 		let word_count = compute_word_count(body);
 		let snippet = compute_snippet(body);
@@ -211,6 +216,7 @@ impl NoteEntry {
 			word_count,
 			snippet,
 			tasks,
+			is_a,
 		}
 	}
 }
@@ -266,4 +272,25 @@ fn compute_snippet(body: &str) -> String {
 		snippet.truncate(end);
 	}
 	snippet
+}
+
+/// Extracts the `type` value from parsed frontmatter and normalizes casing
+/// (first letter uppercase, rest preserved). Returns `None` when absent or
+/// not a string.
+fn extract_is_a(frontmatter: &BTreeMap<String, JsonValue>) -> Option<String> {
+	let val = frontmatter.get("type")?;
+	let s = val.as_str()?;
+	if s.is_empty() {
+		return None;
+	}
+	Some(normalize_type_casing(s))
+}
+
+/// First letter uppercase, rest preserved.
+fn normalize_type_casing(s: &str) -> String {
+	let mut chars = s.chars();
+	match chars.next() {
+		None => String::new(),
+		Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+	}
 }

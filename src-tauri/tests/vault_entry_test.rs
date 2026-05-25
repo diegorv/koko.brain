@@ -96,6 +96,7 @@ fn note_entry_serializes_with_camel_case_keys() {
 		word_count: 215,
 		snippet: "This is the first paragraph.".to_string(),
 		tasks: Vec::new(),
+		is_a: None,
 	};
 
 	let value = serde_json::to_value(&entry).unwrap();
@@ -114,6 +115,7 @@ fn note_entry_serializes_with_camel_case_keys() {
 		"wordCount",
 		"snippet",
 		"tasks",
+		"isA",
 	];
 	for key in expected_keys {
 		assert!(obj.contains_key(key), "missing key: {}", key);
@@ -178,6 +180,7 @@ fn note_entry_round_trips_through_json() {
 		word_count: 10,
 		snippet: "snip".to_string(),
 		tasks: Vec::new(),
+		is_a: None,
 	};
 
 	let json = serde_json::to_string(&original).unwrap();
@@ -331,4 +334,55 @@ fn from_content_full_document_populates_all_fields() {
 	assert!(entry.snippet.starts_with("# Heading"));
 	assert!(entry.snippet.contains("[[Other Note]]"));
 	assert!(entry.snippet.contains("More content below"));
+}
+
+// --- is_a extraction (Portent issue 02) --------------------------------------
+
+#[test]
+fn from_content_extracts_is_a_from_type_field() {
+	let content = "---\ntype: Project\ntitle: Launch\n---\nBody";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, Some("Project".to_string()));
+}
+
+#[test]
+fn from_content_normalizes_is_a_casing_lowercase() {
+	let content = "---\ntype: project\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, Some("Project".to_string()));
+}
+
+#[test]
+fn from_content_normalizes_is_a_casing_allcaps() {
+	let content = "---\ntype: NOTE\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, Some("NOTE".to_string()));
+}
+
+#[test]
+fn from_content_is_a_none_when_no_type_field() {
+	let content = "---\ntitle: Hello\n---\nBody";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, None);
+}
+
+#[test]
+fn from_content_is_a_via_alias_is_a() {
+	let content = "---\nis_a: Person\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, Some("Person".to_string()));
+}
+
+#[test]
+fn from_content_is_a_none_for_empty_type_value() {
+	let content = "---\ntype:\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, None);
+}
+
+#[test]
+fn from_content_is_a_none_for_non_string_type() {
+	let content = "---\ntype: [a, b]\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.is_a, None);
 }
