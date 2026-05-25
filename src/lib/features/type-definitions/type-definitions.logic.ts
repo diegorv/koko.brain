@@ -119,6 +119,6 @@ export function getTypeMetadataFallback(name: string, map: Map<string, TypeMetad
 		...DEFAULTS,
 		name,
 		...(builtin ?? {}),
-		sidebarLabel: builtin ? `${name}s` : `${name}s`,
+		sidebarLabel: `${name}s`,
 	};
 }
