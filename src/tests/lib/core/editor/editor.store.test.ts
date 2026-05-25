@@ -363,10 +363,29 @@ describe('editorStore', () => {
 		});
 	});
 
+	describe('externalContentSignal', () => {
+		it('starts at 0', () => {
+			expect(editorStore.externalContentSignal).toBe(0);
+		});
+
+		it('bumpExternalContentSignal increments the counter', () => {
+			editorStore.bumpExternalContentSignal();
+			expect(editorStore.externalContentSignal).toBe(1);
+		});
+
+		it('multiple bumps increment monotonically', () => {
+			editorStore.bumpExternalContentSignal();
+			editorStore.bumpExternalContentSignal();
+			editorStore.bumpExternalContentSignal();
+			expect(editorStore.externalContentSignal).toBe(3);
+		});
+	});
+
 	describe('reset', () => {
 		it('restores all state to defaults', () => {
 			editorStore.addTab(makeTab());
 			editorStore.setLivePreview(false);
+			editorStore.bumpExternalContentSignal();
 
 			editorStore.reset();
 
@@ -375,6 +394,7 @@ describe('editorStore', () => {
 			expect(editorStore.isLivePreview).toBe(true);
 			expect(editorStore.pendingScrollPosition).toBeNull();
 			expect(editorStore.editorView).toBeNull();
+			expect(editorStore.externalContentSignal).toBe(0);
 		});
 	});
 });

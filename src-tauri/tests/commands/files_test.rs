@@ -112,3 +112,60 @@ fn rejects_path_outside_vault() {
     assert!(results[0].content.is_none());
     assert!(results[0].error.as_deref().unwrap().contains("outside vault"));
 }
+
+#[test]
+fn rejects_dotdot_traversal() {
+    let vault_dir = TempDir::new().unwrap();
+    let sub = vault_dir.path().join("sub");
+    fs::create_dir_all(&sub).unwrap();
+    fs::write(vault_dir.path().join("secret.md"), "secret").unwrap();
+
+    let outside_dir = TempDir::new().unwrap();
+    fs::write(outside_dir.path().join("target.md"), "outside content").unwrap();
+
+    let vault = vault_dir.path().to_string_lossy().to_string();
+    let traversal = format!(
+        "{}/../../{}",
+        sub.to_string_lossy(),
+        outside_dir.path().join("target.md").to_string_lossy()
+    );
+    let results = read_files_batch(vault, vec![traversal]).unwrap();
+    assert!(results[0].content.is_none());
+    assert!(results[0].error.is_some());
+}
+
+#[test]
+fn rejects_nonexistent_dotdot_path() {
+    let vault_dir = TempDir::new().unwrap();
+    let sub = vault_dir.path().join("sub");
+    fs::create_dir_all(&sub).unwrap();
+
+    let vault = vault_dir.path().to_string_lossy().to_string();
+    let traversal = format!("{}/../../etc/passwd", sub.to_string_lossy());
+    let results = read_files_batch(vault, vec![traversal]).unwrap();
+    assert!(results[0].content.is_none());
+    assert!(results[0].error.as_deref().unwrap().contains("resolve path"));
+}
+
+#[cfg(unix)]
+#[test]
+fn rejects_symlink_pointing_outside_vault() {
+    use std::os::unix::fs::symlink;
+
+    let vault_dir = TempDir::new().unwrap();
+    let outside_dir = TempDir::new().unwrap();
+    fs::write(outside_dir.path().join("secret.md"), "sensitive data").unwrap();
+
+    let link_path = vault_dir.path().join("sneaky.md");
+    symlink(outside_dir.path().join("secret.md"), &link_path).unwrap();
+
+    let vault = vault_dir.path().to_string_lossy().to_string();
+    let paths = vec![link_path.to_string_lossy().to_string()];
+    let results = read_files_batch(vault, paths).unwrap();
+    assert!(results[0].content.is_none());
+    assert!(
+        results[0].error.as_deref().unwrap().contains("outside vault"),
+        "symlink should be rejected: {:?}",
+        results[0].error
+    );
+}
