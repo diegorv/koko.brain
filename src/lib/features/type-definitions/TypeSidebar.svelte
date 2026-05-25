@@ -9,6 +9,7 @@
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
+	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 	let filter = $state<SidebarFilter>('all');
@@ -17,6 +18,12 @@
 	let inboxCount = $state(0);
 	let collapsedSections = $state<Set<string>>(new Set());
 	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
+	let filterTabs = $derived([
+		{ id: 'all' as SidebarFilter, label: 'All' },
+		...(inboxEnabled ? [{ id: 'inbox' as SidebarFilter, label: 'Inbox' }] : []),
+		{ id: 'archived' as SidebarFilter, label: 'Archived' },
+		{ id: 'favorites' as SidebarFilter, label: 'Favorites' },
+	]);
 
 	$effect(() => {
 		const _version = vaultStore.vaultIndexVersion;
@@ -46,32 +53,23 @@
 
 <div class="flex flex-col h-full">
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
-		<SidebarModeToggle />
+		<div class="flex items-center gap-0.5">
+			<DailyNoteButton />
+			<SidebarModeToggle />
+		</div>
 	</div>
-	<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border">
-		<button
-			class="px-2 py-0.5 text-xs rounded {filter === 'all' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
-			onclick={() => { filter = 'all'; rebuildSections(); }}
-		>All</button>
-		{#if inboxEnabled}
+	<div class="flex items-center border-b border-border shrink-0">
+		{#each filterTabs as f (f.id)}
 			<button
-				class="px-2 py-0.5 text-xs rounded {filter === 'inbox' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
-				onclick={() => { filter = 'inbox'; rebuildSections(); }}
+				class="flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer border-b-2 {filter === f.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+				onclick={() => { filter = f.id as SidebarFilter; rebuildSections(); }}
 			>
-				Inbox
-				{#if inboxCount > 0}
+				{f.label}
+				{#if f.id === 'inbox' && inboxCount > 0}
 					<span class="ml-0.5 text-[10px] bg-primary/20 text-primary px-1 rounded-full">{inboxCount}</span>
 				{/if}
 			</button>
-		{/if}
-		<button
-			class="px-2 py-0.5 text-xs rounded {filter === 'archived' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
-			onclick={() => { filter = 'archived'; rebuildSections(); }}
-		>Archived</button>
-		<button
-			class="px-2 py-0.5 text-xs rounded {filter === 'favorites' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
-			onclick={() => { filter = 'favorites'; rebuildSections(); }}
-		>Favorites</button>
+		{/each}
 	</div>
 
 	<div class="flex-1 overflow-y-auto px-1 py-1">

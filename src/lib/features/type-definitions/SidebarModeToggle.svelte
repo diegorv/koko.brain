@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { Button } from '$lib/components/ui/button';
 	import FolderTree from 'lucide-svelte/icons/folder-tree';
 	import LayoutGrid from 'lucide-svelte/icons/layout-grid';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -14,14 +16,23 @@
 	let isTypesMode = $derived(settingsStore.layout.sidebarMode === 'types');
 </script>
 
-<button
-	class="p-1 rounded-md hover:bg-accent transition-colors cursor-pointer"
-	onclick={toggleMode}
-	title={isTypesMode ? 'Switch to file explorer' : 'Switch to type view'}
->
-	{#if isTypesMode}
-		<FolderTree class="size-3.5 text-muted-foreground" />
-	{:else}
-		<LayoutGrid class="size-3.5 text-muted-foreground" />
-	{/if}
-</button>
+<Tooltip.Root>
+	<Tooltip.Trigger>
+		{#snippet child({ props })}
+			<Button
+				{...props}
+				variant="ghost"
+				size="icon-sm"
+				class="size-6"
+				onclick={toggleMode}
+			>
+				{#if isTypesMode}
+					<FolderTree class="size-3.5" />
+				{:else}
+					<LayoutGrid class="size-3.5" />
+				{/if}
+			</Button>
+		{/snippet}
+	</Tooltip.Trigger>
+	<Tooltip.Content>{isTypesMode ? 'File explorer' : 'Type view'}</Tooltip.Content>
+</Tooltip.Root>
