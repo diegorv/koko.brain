@@ -181,7 +181,7 @@ export function filterTagTree(nodes: TagTreeNode[], minCount: number): TagTreeNo
 	const result: TagTreeNode[] = [];
 	for (const node of nodes) {
 		const filteredChildren = filterTagTree(node.children, minCount);
-		if (filteredChildren.length > 0 || node.count > minCount) {
+		if (filteredChildren.length > 0 || node.count >= minCount) {
 			const childTotal = filteredChildren.reduce((sum, c) => sum + c.totalCount, 0);
 			result.push({ ...node, children: filteredChildren, totalCount: node.count + childTotal });
 		}

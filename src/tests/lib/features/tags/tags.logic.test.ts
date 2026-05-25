@@ -332,14 +332,24 @@ describe('filterTagTree', () => {
 		expect(filterTagTree([], 1)).toEqual([]);
 	});
 
-	it('filters out leaf nodes with count <= minCount', () => {
+	it('filters out leaf nodes with count below minCount', () => {
 		const tree = [
 			makeNode('popular', 5, 5),
 			makeNode('rare', 1, 1),
 		];
-		const result = filterTagTree(tree, 1);
+		const result = filterTagTree(tree, 2);
 		expect(result).toHaveLength(1);
 		expect(result[0].segment).toBe('popular');
+	});
+
+	it('keeps leaf nodes with count equal to minCount', () => {
+		const tree = [
+			makeNode('exact', 10, 10),
+			makeNode('below', 9, 9),
+		];
+		const result = filterTagTree(tree, 10);
+		expect(result).toHaveLength(1);
+		expect(result[0].segment).toBe('exact');
 	});
 
 	it('keeps parent if it has surviving children', () => {
@@ -349,21 +359,21 @@ describe('filterTagTree', () => {
 				makeNode('old', 1, 1),
 			]),
 		];
-		const result = filterTagTree(tree, 1);
+		const result = filterTagTree(tree, 2);
 		expect(result).toHaveLength(1);
 		expect(result[0].segment).toBe('project');
 		expect(result[0].children).toHaveLength(1);
 		expect(result[0].children[0].segment).toBe('work');
 	});
 
-	it('removes parent if no surviving children and own count <= minCount', () => {
+	it('removes parent if no surviving children and own count below minCount', () => {
 		const tree = [
 			makeNode('project', 0, 2, [
 				makeNode('a', 1, 1),
 				makeNode('b', 1, 1),
 			]),
 		];
-		const result = filterTagTree(tree, 1);
+		const result = filterTagTree(tree, 2);
 		expect(result).toEqual([]);
 	});
 
@@ -383,7 +393,7 @@ describe('filterTagTree', () => {
 				makeNode('rare', 1, 1),
 			]),
 		];
-		const result = filterTagTree(tree, 1);
+		const result = filterTagTree(tree, 2);
 		expect(result).toHaveLength(1);
 		expect(result[0].children).toHaveLength(1);
 		// totalCount should be own count (2) + surviving child work (5) = 7, not original 10

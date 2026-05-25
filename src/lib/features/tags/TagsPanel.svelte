@@ -16,7 +16,7 @@
 	import { error } from '$lib/utils/debug';
 	import TagItem from './TagItem.svelte';
 
-	const MIN_COUNT_THRESHOLD = 1;
+	const MIN_COUNT_THRESHOLD = 10;
 
 	const debouncedSave = debounce(() => {
 		if (vaultStore.path) {
