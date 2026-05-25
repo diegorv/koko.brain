@@ -1,4 +1,5 @@
 import { parse as yamlParse, Document, type YAMLSeq } from 'yaml';
+import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
 import type { Property, PropertyType } from './properties.types';
 
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/;
@@ -129,9 +130,9 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 	}
 
 	const properties: Property[] = [];
-	for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+	for (const [rawKey, value] of Object.entries(parsed as Record<string, unknown>)) {
 		if (value !== null && typeof value === 'object' && !Array.isArray(value)) continue;
-		properties.push(convertToProperty(key, value));
+		properties.push(convertToProperty(canonicalizeKey(rawKey), value));
 	}
 	parseCache.set(rawFrontmatter, Object.freeze(properties.map(cloneProperty)));
 	evictLru();

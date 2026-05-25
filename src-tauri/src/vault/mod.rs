@@ -10,6 +10,7 @@
 //! plan; the per-task breakdown lives in
 //! `tasks/todo/performance-architecture-refactor.md`.
 
+pub mod aliases;
 pub mod entry;
 pub mod index;
 pub mod parsing;
