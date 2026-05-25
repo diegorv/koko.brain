@@ -498,6 +498,31 @@ describe('teardownVault', () => {
 		expect(typeDefinitionsStore.entries).toEqual([]);
 	});
 
+	it('cancels deferred secondary builders when vault is torn down before they fire', async () => {
+		vi.useFakeTimers();
+
+		await initializeVault('/vault');
+
+		// Secondary builders are deferred via setTimeout(…, 0). Clear their
+		// call counts before teardown so we can verify they don't fire after.
+		vi.mocked(buildTagIndex).mockClear();
+		vi.mocked(buildTaskIndex).mockClear();
+		vi.mocked(buildPropertyIndex).mockClear();
+		vi.mocked(scanFilesForCalendar).mockClear();
+
+		teardownVault();
+
+		// Advance past the setTimeout(…, 0) — the builders should NOT fire
+		// because teardownVault should have cancelled or guarded them.
+		await vi.advanceTimersByTimeAsync(100);
+
+		expect(buildTagIndex).not.toHaveBeenCalled();
+		expect(buildTaskIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
+		expect(scanFilesForCalendar).not.toHaveBeenCalled();
+		vi.useRealTimers();
+	});
+
 	it('logs error when close_vault_db fails instead of silently swallowing', async () => {
 		const dbError = new Error('database locked');
 		vi.mocked(invoke).mockImplementation((cmd: string) => {

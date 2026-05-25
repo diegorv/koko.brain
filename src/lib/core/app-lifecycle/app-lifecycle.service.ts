@@ -89,6 +89,8 @@ const SEMANTIC_INIT_DEFER_MS = 3000;
 let initVersion = 0;
 /** Timer handle for the deferred semantic-search init, set during initializeVault */
 let semanticInitTimer: ReturnType<typeof setTimeout> | null = null;
+/** Timer handle for the deferred secondary builders, set during initializeVault */
+let secondaryBuildersTimer: ReturnType<typeof setTimeout> | null = null;
 /** Cleanup function for the file change listener, set during initializeVault */
 let unsubscribeFileChange: (() => void) | null = null;
 /** Cleanup function for the file history after-save hook */
@@ -221,7 +223,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// icon panels, which degrade gracefully if briefly empty. Running them via
 	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
 	// first, then the builders run as macrotasks.
-	setTimeout(() => {
+	secondaryBuildersTimer = setTimeout(() => {
+		secondaryBuildersTimer = null;
+		if (initVersion !== version) return;
 		const t5b = perfStart();
 		buildTagIndex();
 		buildTaskIndex();
@@ -328,6 +332,10 @@ export function teardownVault(): void {
 	if (semanticInitTimer) {
 		clearTimeout(semanticInitTimer);
 		semanticInitTimer = null;
+	}
+	if (secondaryBuildersTimer) {
+		clearTimeout(secondaryBuildersTimer);
+		secondaryBuildersTimer = null;
 	}
 
 	// ── Unsubscribe hooks + listeners ────────────────────────────────
