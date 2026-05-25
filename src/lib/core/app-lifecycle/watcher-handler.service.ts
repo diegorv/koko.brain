@@ -6,7 +6,7 @@ import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calend
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { clearIndexedEntry } from '$lib/utils/index-dedupe';
+import { clearIndexedEntry, markIndexed } from '$lib/utils/index-dedupe';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
 import type { FileReadResult } from '$lib/core/filesystem/fs.types';
@@ -120,6 +120,7 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
 			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
 			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
+			markIndexed(result.path, result.content);
 			invoke('update_note_in_index', { path: result.path, content: result.content }).catch((err) => {
 				error('WATCHER', 'update_note_in_index failed:', err);
 			});
