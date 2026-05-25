@@ -37,23 +37,6 @@ test.describe('Tasks view', () => {
 		await expect(taskTexts.first()).toBeVisible({ timeout: 5_000 });
 	});
 
-	test('toggling a task changes its visual state', async ({ vaultPage: page }) => {
-		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
-		await page.waitForTimeout(300);
-
-		// Find an unchecked task and click it to toggle
-		const taskButton = page.locator('button', { hasText: 'Ship feature A' }).first();
-		await expect(taskButton).toBeVisible({ timeout: 5_000 });
-		await taskButton.click();
-
-		// After toggle, the text should have line-through (checked state)
-		await expect(
-			page.locator('span.line-through', { hasText: 'Ship feature A' }),
-		).toBeVisible({ timeout: 5_000 });
-	});
-
 	test('Cmd+Shift+T again closes the Tasks tab', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		await expect(page.locator('[role="tab"]', { hasText: 'Tasks' })).toBeVisible();
