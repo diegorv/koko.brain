@@ -58,7 +58,7 @@ Audit of `src/tests/` (255 unit tests) and `e2e/specs/` (41 specs, 150+ tests) r
 
 ### Part C: E2E Tests (New Specs)
 
-- [ ] Task 9: Create `bookmarks.spec.ts`
+- [x] Task 9: Create `bookmarks.spec.ts`
   - File: `e2e/specs/bookmarks.spec.ts`
   - Uses existing `vaultPage` fixture + context menu pattern from `file-operations.spec.ts`
   - Scenarios: right-click shows Bookmark option, toggle bookmark via context menu, bookmarked file shows Remove Bookmark, removing bookmark works
