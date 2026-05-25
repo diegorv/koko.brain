@@ -82,6 +82,10 @@ The panel is divided into two sections:
 
 Click any backlink to open that source note.
 
+### Relationship Backlinks
+
+Below the linked and unlinked mention sections, a **Relationships** section shows notes that reference the current note through frontmatter relationship fields (`belongs_to`, `related_to`, or custom wikilink-bearing fields). Each entry shows the source note and the relationship field name. See [Types & Relationships](25-types-and-relationships.md) for details.
+
 ### Why backlinks matter
 
 Backlinks let you discover connections you might not remember. If you link to "Project X" from multiple meeting notes, the backlinks panel on "Project X" shows all those meetings — creating a reverse index of your knowledge. You never have to manually maintain a list of related notes; the backlinks panel builds one for you automatically.
