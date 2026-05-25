@@ -10,7 +10,7 @@ export async function openWikilinkTarget(target: string): Promise<void> {
 	// Image / audio / video / pdf wikilinks must not be opened in the markdown
 	// editor — `readTextFile` would load the binary as UTF-8 and crash the
 	// renderer. Mirrors the guard in `MarkdownEditor.svelte:handleEditorClick`
-	// so frontmatter-widget / table-cell wikilink clicks share the same
+	// so table-cell wikilink clicks share the same
 	// behaviour. Silent no-op: the embed widget already shows the asset.
 	const { isBinaryFile } = await import('$lib/core/filesystem/fs.logic');
 	if (isBinaryFile(target)) return;

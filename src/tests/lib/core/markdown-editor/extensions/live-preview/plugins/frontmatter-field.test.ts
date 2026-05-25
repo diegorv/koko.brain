@@ -26,8 +26,8 @@ describe('frontmatterField', () => {
 		const doc = '---\ntitle: Hello\n---\n# Content';
 		const state = createState(doc);
 		const decos = collectDecos(state);
-		// 1 widget replacement + 2 inner lines x 2 (hiddenLineDeco + replace) = 5
-		expect(decos).toHaveLength(5);
+		// 3 lines x 2 decos each (hiddenLineDeco + replace) = 6
+		expect(decos).toHaveLength(6);
 	});
 
 	it('produces no decorations for a document without frontmatter', () => {
@@ -36,24 +36,21 @@ describe('frontmatterField', () => {
 		expect(decos).toHaveLength(0);
 	});
 
-	it('widget replacement covers the first line', () => {
+	it('hides all frontmatter lines including opening fence', () => {
 		const doc = '---\ntitle: Hello\n---';
 		const state = createState(doc);
 		const decos = collectDecos(state);
-		// First decoration is the widget replacement on line 1
-		expect(decos[0]).toEqual({ from: 0, to: 3 });
-	});
-
-	it('hidden line decorations cover inner lines', () => {
-		const doc = '---\ntitle: Hello\n---';
-		const state = createState(doc);
-		const decos = collectDecos(state);
+		// 3 lines x 2 = 6
+		expect(decos).toHaveLength(6);
+		// Line 1 ("---"): hiddenLineDeco at from=0, replace at [0, 3]
+		expect(decos[0]).toEqual({ from: 0, to: 0 });
+		expect(decos[1]).toEqual({ from: 0, to: 3 });
 		// Line 2 ("title: Hello"): hiddenLineDeco at from=4, replace at [4, 16]
-		expect(decos[1]).toEqual({ from: 4, to: 4 }); // line deco (point)
-		expect(decos[2]).toEqual({ from: 4, to: 16 }); // replace
+		expect(decos[2]).toEqual({ from: 4, to: 4 });
+		expect(decos[3]).toEqual({ from: 4, to: 16 });
 		// Line 3 ("---"): hiddenLineDeco at from=17, replace at [17, 20]
-		expect(decos[3]).toEqual({ from: 17, to: 17 }); // line deco (point)
-		expect(decos[4]).toEqual({ from: 17, to: 20 }); // replace
+		expect(decos[4]).toEqual({ from: 17, to: 17 });
+		expect(decos[5]).toEqual({ from: 17, to: 20 });
 	});
 
 	it('always decorates regardless of cursor position', () => {
@@ -61,23 +58,23 @@ describe('frontmatterField', () => {
 		// Cursor on frontmatter line 2 (inside the block)
 		const state = createState(doc, 5);
 		const decos = collectDecos(state);
-		expect(decos).toHaveLength(5);
+		expect(decos).toHaveLength(6);
 	});
 
 	it('handles empty frontmatter block', () => {
 		const doc = '---\n---\n# Content';
 		const state = createState(doc);
 		const decos = collectDecos(state);
-		// 1 widget + 1 inner line x 2 = 3
-		expect(decos).toHaveLength(3);
+		// 2 lines x 2 = 4
+		expect(decos).toHaveLength(4);
 	});
 
 	it('handles frontmatter with many properties', () => {
 		const doc = '---\na: 1\nb: 2\nc: 3\nd: 4\n---\ncontent';
 		const state = createState(doc);
 		const decos = collectDecos(state);
-		// 1 widget + 5 inner lines x 2 = 11
-		expect(decos).toHaveLength(11);
+		// 6 lines x 2 = 12
+		expect(decos).toHaveLength(12);
 	});
 
 	it('updates when document changes', () => {
@@ -95,6 +92,11 @@ describe('frontmatterField', () => {
 
 	it('produces no decorations for empty document', () => {
 		const state = createState('');
+		expect(collectDecos(state)).toHaveLength(0);
+	});
+
+	it('produces no decorations when frontmatter not on first line', () => {
+		const state = createState('some text\n---\ntitle: Hello\n---');
 		expect(collectDecos(state)).toHaveLength(0);
 	});
 });

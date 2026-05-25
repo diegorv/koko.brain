@@ -241,7 +241,6 @@ export class VideoWidget extends WidgetType {
 	}
 }
 
-export { FrontmatterWidget } from './widgets/frontmatter-widget';
 
 /**
  * Renders inline non-wikilink markdown segments (bold, italic, strikethrough, code) as DOM nodes.
