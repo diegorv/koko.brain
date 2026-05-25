@@ -41,9 +41,9 @@ JSON is NOT restricted to non-.md files. A `.md` without `_icon` in frontmatter 
 - [x] Task 4: Route `setIconForPath`/`removeIconForPath` to frontmatter for .md files
 - [x] Task 5: Update UI resolution to use frontmatter colors (FileTreeItem, EditorTabs, TypeSidebar)
 - [x] Task 6: Verify auto-move works with new routing (Task 4 covers it)
-- [ ] Task 7: Folder metadata via folder notes (auto-create + icon write/read)
-- [ ] Task 8: Skip `updateFileIconPathsAfterMove` for .md files
-- [ ] Task 9: Migration helper — move existing JSON icons to frontmatter
+- [x] Task 7: Folder metadata via folder notes (auto-create + icon write/read)
+- [x] Task 8: Natural no-op (new .md icons not in JSON, old ones still update correctly)
+- [x] Task 9: SKIPPED (user: no migration needed)
 - [ ] Task 10: Cleanup dead code paths + update docs
 
 ## Task Details

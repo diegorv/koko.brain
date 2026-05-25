@@ -22,7 +22,6 @@
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { updateTypeDefinitionIcon } from './type-definitions.service';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
@@ -140,11 +139,6 @@
 		if (!vaultStore.path || !iconPickerPath) return;
 		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
 		await trackRecentIcon(vaultStore.path, pack, name);
-		if (sectionContextPath === iconPickerPath) {
-			await updateTypeDefinitionIcon(iconPickerPath, name, color ?? null).catch((err) => {
-				console.error('updateTypeDefinitionIcon failed:', err);
-			});
-		}
 	}
 
 	async function handleIconRemove() {

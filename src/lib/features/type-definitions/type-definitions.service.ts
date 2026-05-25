@@ -9,22 +9,3 @@ export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<v
 	const map = buildTypeMetadataMap(data);
 	typeDefinitionsStore.setTypeMetadataMap(map);
 }
-
-/**
- * Updates _icon and _color in a type definition note's frontmatter.
- * Delegates to the unified frontmatter icon service. Icon names without
- * a pack prefix are stored as `lucide:name`.
- */
-export async function updateTypeDefinitionIcon(
-	path: string,
-	iconName: string | null,
-	color: string | null,
-): Promise<void> {
-	if (!iconName && !color) return;
-	const { setFrontmatterIcon, setFrontmatterIconColor } = await import('$lib/features/file-icons/frontmatter-icon.service');
-	if (iconName) {
-		await setFrontmatterIcon(path, 'lucide', iconName, color ?? undefined);
-	} else if (color) {
-		await setFrontmatterIconColor(path, color);
-	}
-}
