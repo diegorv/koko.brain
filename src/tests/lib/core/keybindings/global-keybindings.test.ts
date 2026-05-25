@@ -60,10 +60,6 @@ vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
 	openOneOnOnePicker: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/plugins/terminal/terminal.service', () => ({
-	toggleTerminal: vi.fn(() => Promise.resolve()),
-}));
-
 vi.mock('$lib/core/editor/editor.store.svelte', () => ({
 	editorStore: { activeTabPath: '/vault/note.md' },
 }));
@@ -92,7 +88,6 @@ import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
-import { toggleTerminal } from '$lib/plugins/terminal/terminal.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
@@ -116,10 +111,10 @@ describe('registerGlobalKeybindings', () => {
 		vi.clearAllMocks();
 	});
 
-	it('registers all 20 global keybindings', () => {
+	it('registers all 19 global keybindings', () => {
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(20);
+		expect(registerKeybinding).toHaveBeenCalledTimes(19);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -226,14 +221,6 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
-	it('registers Cmd+` for terminal', () => {
-		registerGlobalKeybindings();
-
-		expect(registerKeybinding).toHaveBeenCalledWith(
-			expect.objectContaining({ code: 'Backquote', meta: true }),
-		);
-	});
-
 	it('registers Cmd+Shift+H for file history', () => {
 		registerGlobalKeybindings();
 
@@ -251,7 +238,7 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	it('returns a cleanup function that calls all individual cleanups', () => {
-		const cleanupFns = Array.from({ length: 20 }, () => vi.fn());
+		const cleanupFns = Array.from({ length: 19 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {
 			vi.mocked(registerKeybinding).mockReturnValueOnce(fn);
 		});
@@ -394,15 +381,6 @@ describe('registerGlobalKeybindings', () => {
 			handler();
 
 			expect(settingsDialogStore.toggle).toHaveBeenCalledTimes(1);
-		});
-
-		it('Cmd+` handler calls toggleTerminal', () => {
-			registerGlobalKeybindings();
-			const handler = findHandler({ code: 'Backquote', meta: true });
-
-			handler();
-
-			expect(toggleTerminal).toHaveBeenCalledTimes(1);
 		});
 
 		it('Cmd+Shift+H handler calls openFileHistory with active tab path', () => {

@@ -59,7 +59,6 @@ import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
 import { resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { resetTerminal } from '$lib/plugins/terminal/terminal.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
@@ -375,7 +374,6 @@ export function teardownVault(): void {
 	clearMermaidCache();
 	clearCollectionCache();
 	clearMathCache();
-	resetTerminal();
 	resetEditor();
 	resetFileSystem();
 	resetBacklinks();

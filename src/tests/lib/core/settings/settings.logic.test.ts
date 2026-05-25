@@ -4,8 +4,6 @@ import {
 	clampLineHeight,
 	clampContentWidth,
 	clampParagraphSpacing,
-	clampTerminalFontSize,
-	clampTerminalLineHeight,
 	clampHeadingFontSize,
 	clampHeadingLineHeight,
 	clampHeadingLetterSpacing,
@@ -90,44 +88,6 @@ describe('clampParagraphSpacing', () => {
 	it('clamps boundary values', () => {
 		expect(clampParagraphSpacing(0)).toBe(0);
 		expect(clampParagraphSpacing(2.0)).toBe(2.0);
-	});
-});
-
-describe('clampTerminalFontSize', () => {
-	it('clamps below minimum to 8', () => {
-		expect(clampTerminalFontSize(4)).toBe(8);
-	});
-
-	it('clamps above maximum to 24', () => {
-		expect(clampTerminalFontSize(30)).toBe(24);
-	});
-
-	it('returns value within range', () => {
-		expect(clampTerminalFontSize(16)).toBe(16);
-	});
-
-	it('clamps boundary values', () => {
-		expect(clampTerminalFontSize(8)).toBe(8);
-		expect(clampTerminalFontSize(24)).toBe(24);
-	});
-});
-
-describe('clampTerminalLineHeight', () => {
-	it('clamps below minimum to 1.0', () => {
-		expect(clampTerminalLineHeight(0.5)).toBe(1.0);
-	});
-
-	it('clamps above maximum to 2.0', () => {
-		expect(clampTerminalLineHeight(2.5)).toBe(2.0);
-	});
-
-	it('returns value within range', () => {
-		expect(clampTerminalLineHeight(1.5)).toBe(1.5);
-	});
-
-	it('clamps boundary values', () => {
-		expect(clampTerminalLineHeight(1.0)).toBe(1.0);
-		expect(clampTerminalLineHeight(2.0)).toBe(2.0);
 	});
 });
 
@@ -243,7 +203,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-note', 'one-on-one', 'templates', 'types', 'search', 'file-history', 'auto-move', 'trash', 'terminal', 'queryjs', 'todoist', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-note', 'one-on-one', 'templates', 'types', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'troubleshooting', 'update']);
 	});
 
 	it('has labels for every section', () => {

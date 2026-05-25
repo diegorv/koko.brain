@@ -51,10 +51,6 @@ vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
 	openOneOnOnePicker: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/terminal/terminal.service', () => ({
-	toggleTerminal: vi.fn(),
-}));
-
 vi.mock('$lib/features/canvas/canvas.service', () => ({
 	createCanvasFile: vi.fn(),
 }));
@@ -92,7 +88,7 @@ describe('getBuiltInCommands', () => {
 	it('returns 25 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(25);
+		expect(commands).toHaveLength(24);
 	});
 
 	it('every command has required fields', () => {

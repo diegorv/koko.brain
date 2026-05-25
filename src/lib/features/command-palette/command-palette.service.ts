@@ -28,7 +28,6 @@ import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
-import { toggleTerminal } from '$lib/plugins/terminal/terminal.service';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 
 export function getBuiltInCommands(): AppCommand[] {
@@ -174,13 +173,6 @@ export function getBuiltInCommands(): AppCommand[] {
 				settingsStore.updateLayout({ tableOfContentsVisible: !current });
 				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
-		},
-		{
-			id: 'layout:toggle-terminal',
-			label: 'Toggle Terminal',
-			category: 'Layout',
-			shortcut: { meta: true, code: 'Backquote' },
-			action: () => toggleTerminal(),
 		},
 		{
 			id: 'editor:toggle-pin-tab',

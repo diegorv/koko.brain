@@ -61,14 +61,10 @@ export interface LayoutSettings {
 	tagsVisible: boolean;
 	/** Whether the table of contents panel is shown in the right sidebar */
 	tableOfContentsVisible: boolean;
-	/** Whether the terminal sidebar pane is visible */
-	terminalVisible: boolean;
 	/** Saved width percentage of the left sidebar pane (file explorer / search) */
 	leftPaneSize: number;
 	/** Saved width percentage of the right sidebar pane */
 	rightSidebarSize: number;
-	/** Saved width percentage of the terminal pane */
-	terminalPaneSize: number;
 }
 
 /** Configuration for the folder notes feature */
@@ -146,18 +142,6 @@ export interface QuickNoteSettings {
 	filenameFormat: string;
 	/** Path to template file relative to vault (e.g. "_templates/Quick Note.md") */
 	templatePath?: string;
-}
-
-/** Configuration for the terminal plugin */
-export interface TerminalSettings {
-	/** Font family for the terminal (CSS font-family value) */
-	fontFamily: string;
-	/** Font size in pixels (8–24) */
-	fontSize: number;
-	/** Line height multiplier (1.0–2.0) */
-	lineHeight: number;
-	/** Shell executable path (empty string = system default from $SHELL) */
-	shell: string;
 }
 
 /** Configuration for the file history feature */
@@ -247,7 +231,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'terminal' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -259,8 +243,6 @@ export interface AppSettings {
 	editor: EditorSettings;
 	templates: TemplatesSettings;
 	appearance: import('./theme.types').AppearanceSettings;
-	/** Terminal plugin configuration */
-	terminal: TerminalSettings;
 	/** File history feature configuration */
 	history: HistorySettings;
 	/** Search feature configuration */

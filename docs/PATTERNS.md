@@ -71,7 +71,7 @@ $effect(() => {
 **When multiple conditional panes exist in the same direction**, use nested `PaneGroup`s to isolate them. Otherwise, toggling one pane causes PaneForge to recalculate all siblings and breaks the others:
 
 ```svelte
-<!-- Outer PaneGroup: isolates terminal from sidebar -->
+<!-- Main horizontal layout -->
 <Resizable.PaneGroup direction="horizontal">
   <Resizable.Pane>
     <!-- Inner PaneGroup: file explorer + editor + sidebar -->
@@ -85,11 +85,7 @@ $effect(() => {
       {/if}
     </Resizable.PaneGroup>
   </Resizable.Pane>
-  {#if settingsStore.layout.terminalVisible}
-    <Resizable.Handle />
-    <Resizable.Pane>...</Resizable.Pane>
-  {/if}
 </Resizable.PaneGroup>
 ```
 
-**Visibility defaults:** Store defaults for visibility flags (e.g., `rightSidebarVisible`, `terminalVisible`) should be `false`. This prevents flash-of-content on startup — the pane stays hidden until `loadSettings()` applies the user's saved preference.
+**Visibility defaults:** Store defaults for visibility flags (e.g., `rightSidebarVisible`) should be `false`. This prevents flash-of-content on startup -- the pane stays hidden until `loadSettings()` applies the user's saved preference.

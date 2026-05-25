@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, TerminalSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -51,10 +51,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		outgoingLinksVisible: true,
 		tagsVisible: true,
 		tableOfContentsVisible: true,
-		terminalVisible: false,
 		leftPaneSize: 25,
 		rightSidebarSize: 25,
-		terminalPaneSize: 25,
 	},
 	folderNotes: {
 		enabled: true,
@@ -78,12 +76,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		folder: '_system/templates',
 	},
 	appearance: DEFAULT_APPEARANCE,
-	terminal: {
-		fontFamily: '"FiraCode Nerd Font Mono", "Symbols Nerd Font Mono", monospace',
-		fontSize: 15,
-		lineHeight: 1,
-		shell: '',
-	},
 	history: {
 		enabled: true,
 		retentionDays: 7,
@@ -134,7 +126,6 @@ export const settingsStore = {
 	get editor() { return settings.editor; },
 	get templates() { return settings.templates; },
 	get appearance() { return settings.appearance; },
-	get terminal() { return settings.terminal; },
 	get history() { return settings.history; },
 	get search() { return settings.search; },
 	get autoMove() { return settings.autoMove; },
@@ -227,14 +218,6 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			appearance: { ...settings.appearance, ...value },
-		};
-	},
-
-	/** Partially updates terminal settings, merging with existing values */
-	updateTerminal(value: Partial<TerminalSettings>) {
-		settings = {
-			...settings,
-			terminal: { ...settings.terminal, ...value },
 		};
 	},
 

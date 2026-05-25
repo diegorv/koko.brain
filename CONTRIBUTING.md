@@ -14,7 +14,6 @@ Personal development setup and workflow guide for Kokobrain.
 | Backend | Tauri 2 (Rust) | Native desktop shell, filesystem, IPC |
 | Database | SQLite (rusqlite) with WAL mode | Persistent storage for search index, history, semantic embeddings |
 | Search | FTS5 + ONNX Runtime (BGE-M3) | Full-text search + local semantic embeddings |
-| Terminal | portable-pty + xterm.js | Integrated terminal with WebGL rendering |
 | Package manager | pnpm | Fast, disk-efficient dependency management |
 
 ## Prerequisites
@@ -184,12 +183,12 @@ src/lib/
                         #   auto-move, command-palette, quick-switcher, folder-notes,
                         #   outgoing-links, deep-link, views
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
-                        #   graph-view, terminal, queryjs, word-count, kanban, one-on-one
+                        #   graph-view, queryjs, word-count, kanban, one-on-one
   utils/                # Pure shared utilities (no state, no side effects)
 
 src-tauri/src/
   commands/             # Tauri command handlers (vault, files, search, semantic, history,
-                        #   terminal, debug, fonts, db)
+                        #   debug, fonts, db)
   db/                   # SQLite: schema, FTS5, history, semantic repos
   search/               # FTS indexing, text search, fuzzy expansion
   semantic/             # ONNX model, embedder, markdown chunker

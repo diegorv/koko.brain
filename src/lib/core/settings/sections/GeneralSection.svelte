@@ -79,17 +79,4 @@
 		/>
 	</SettingItem>
 
-	<SettingItem
-		label="Terminal"
-		description="Show the terminal sidebar panel"
-	>
-		<Switch
-			checked={settingsStore.layout.terminalVisible}
-			onCheckedChange={(v) => {
-				settingsStore.updateLayout({ terminalVisible: v });
-				onchange();
-			}}
-		/>
-	</SettingItem>
-
 </div>

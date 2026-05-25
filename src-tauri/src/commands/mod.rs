@@ -6,6 +6,5 @@ pub mod history;
 pub mod search;
 pub mod search_index;
 pub mod semantic;
-pub mod terminal;
 pub mod update_channel;
 pub mod vault;

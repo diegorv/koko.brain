@@ -55,22 +55,20 @@ describe('settingsStore', () => {
 		});
 
 		it('updateLayout merges with existing', () => {
-			settingsStore.updateLayout({ terminalVisible: true });
-			expect(settingsStore.layout.terminalVisible).toBe(true);
-			expect(settingsStore.layout.rightSidebarVisible).toBe(DEFAULT_SETTINGS.layout.rightSidebarVisible);
+			settingsStore.updateLayout({ rightSidebarVisible: true });
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+			expect(settingsStore.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
 		});
 
 		it('includes default pane sizes', () => {
 			expect(settingsStore.layout.leftPaneSize).toBe(25);
 			expect(settingsStore.layout.rightSidebarSize).toBe(25);
-			expect(settingsStore.layout.terminalPaneSize).toBe(25);
 		});
 
 		it('updateLayout updates leftPaneSize', () => {
 			settingsStore.updateLayout({ leftPaneSize: 30 });
 			expect(settingsStore.layout.leftPaneSize).toBe(30);
 			expect(settingsStore.layout.rightSidebarSize).toBe(DEFAULT_SETTINGS.layout.rightSidebarSize);
-			expect(settingsStore.layout.terminalPaneSize).toBe(DEFAULT_SETTINGS.layout.terminalPaneSize);
 		});
 
 		it('updateLayout updates rightSidebarSize', () => {
@@ -79,15 +77,10 @@ describe('settingsStore', () => {
 			expect(settingsStore.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
 		});
 
-		it('updateLayout updates terminalPaneSize', () => {
-			settingsStore.updateLayout({ terminalPaneSize: 35 });
-			expect(settingsStore.layout.terminalPaneSize).toBe(35);
-		});
-
 		it('updateLayout preserves visibility flags when updating sizes', () => {
-			settingsStore.updateLayout({ terminalVisible: true });
+			settingsStore.updateLayout({ rightSidebarVisible: true });
 			settingsStore.updateLayout({ leftPaneSize: 20 });
-			expect(settingsStore.layout.terminalVisible).toBe(true);
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 			expect(settingsStore.layout.leftPaneSize).toBe(20);
 		});
 
@@ -129,12 +122,6 @@ describe('settingsStore', () => {
 		it('updateAppearance merges with existing', () => {
 			settingsStore.updateAppearance({ activeTheme: 'Custom' } as any);
 			expect(settingsStore.appearance.activeTheme).toBe('Custom');
-		});
-
-		it('updateTerminal merges with existing', () => {
-			settingsStore.updateTerminal({ fontSize: 20 });
-			expect(settingsStore.terminal.fontSize).toBe(20);
-			expect(settingsStore.terminal.fontFamily).toBe(DEFAULT_SETTINGS.terminal.fontFamily);
 		});
 
 		it('updateHistory merges with existing', () => {
@@ -248,7 +235,7 @@ describe('settingsStore', () => {
 
 	describe('reset', () => {
 		it('restores all settings to defaults', () => {
-			settingsStore.updateLayout({ terminalVisible: true });
+			settingsStore.updateLayout({ rightSidebarVisible: true });
 			settingsStore.updateEditor({ fontSize: 24 });
 
 			settingsStore.reset();

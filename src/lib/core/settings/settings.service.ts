@@ -108,10 +108,6 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...parsed.templates,
 			},
 			appearance: normalizeAppearance(parsed.appearance ?? {}),
-			terminal: {
-				...DEFAULT_SETTINGS.terminal,
-				...parsed.terminal,
-			},
 			history: {
 				...DEFAULT_SETTINGS.history,
 				...parsed.history,

@@ -36,16 +36,6 @@ export function clampHeadingLetterSpacing(spacing: number): number {
 	return Math.max(-0.1, Math.min(0.1, spacing));
 }
 
-/** Clamps a terminal font size to the valid range (8–24 px) */
-export function clampTerminalFontSize(size: number): number {
-	return Math.max(8, Math.min(24, size));
-}
-
-/** Clamps a terminal line height to the valid range (1.0–2.0) */
-export function clampTerminalLineHeight(height: number): number {
-	return Math.max(1.0, Math.min(2.0, height));
-}
-
 /** Validates that a folder name is a reasonable vault-relative path */
 export function isValidFolderName(name: string): boolean {
 	if (!name.trim()) return false;
@@ -94,7 +84,6 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 			{ id: 'file-history', label: 'File History' },
 			{ id: 'auto-move', label: 'Auto Move' },
 			{ id: 'trash', label: 'Trash' },
-			{ id: 'terminal', label: 'Terminal' },
 			{ id: 'queryjs', label: 'QueryJS' },
 		],
 	},

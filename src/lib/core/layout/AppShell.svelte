@@ -18,7 +18,6 @@
 	import TableOfContentsPanel from '$lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
 	import StatusBar from '$lib/core/status-bar/StatusBar.svelte';
 	import WordCount from '$lib/plugins/word-count/WordCount.svelte';
-	import TerminalPanel from '$lib/plugins/terminal/TerminalPanel.svelte';
 	import SearchStatus from '$lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '$lib/core/status-bar/SemanticIndexStatus.svelte';
@@ -58,10 +57,6 @@
 		debouncedSave();
 	}
 
-	function handleTerminalResize(size: number) {
-		settingsStore.updateLayout({ terminalPaneSize: size });
-		debouncedSave();
-	}
 </script>
 
 {#if !vaultStore.isOpen}
@@ -125,18 +120,6 @@
 				</Resizable.PaneGroup>
 			</Resizable.Pane>
 
-			{#if settingsStore.layout.terminalVisible}
-				<Resizable.Handle />
-
-				<Resizable.Pane
-					defaultSize={settingsStore.layout.terminalPaneSize}
-					minSize={15}
-					maxSize={40}
-					onResize={handleTerminalResize}
-				>
-					<TerminalPanel />
-				</Resizable.Pane>
-			{/if}
 		</Resizable.PaneGroup>
 
 		<StatusBar>

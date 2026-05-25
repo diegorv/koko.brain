@@ -5,7 +5,6 @@ pub mod semantic;
 pub mod utils;
 pub mod vault;
 
-use commands::terminal::TerminalState;
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::Emitter;
 use utils::logger::init_logger;
@@ -103,7 +102,6 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .manage(TerminalState::new())
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
         .invoke_handler(tauri::generate_handler![
@@ -140,11 +138,6 @@ pub fn run() {
             vault::watcher::stop_vault_watcher,
             commands::files::read_files_batch,
             commands::search::search_vault,
-            commands::terminal::spawn_terminal,
-            commands::terminal::write_terminal,
-            commands::terminal::resize_terminal,
-            commands::terminal::kill_terminal,
-            commands::terminal::kill_all_terminals,
             commands::search_index::build_search_index,
             commands::search_index::search_fts,
             commands::search_index::update_search_index_file,

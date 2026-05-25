@@ -164,14 +164,14 @@ describe('loadSettings', () => {
 	it('merges layout settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ layout: { terminalVisible: true } }),
+			JSON.stringify({ layout: { rightSidebarVisible: true } }),
 		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.terminalVisible).toBe(true);
-		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(DEFAULT_SETTINGS.layout.rightSidebarVisible);
+		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
+		expect(settingsStore.settings.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
 	});
 
 	it('uses default pane sizes when not present in saved settings', async () => {
@@ -185,7 +185,6 @@ describe('loadSettings', () => {
 
 		expect(settingsStore.settings.layout.leftPaneSize).toBe(25);
 		expect(settingsStore.settings.layout.rightSidebarSize).toBe(25);
-		expect(settingsStore.settings.layout.terminalPaneSize).toBe(25);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
 	});
 
@@ -196,7 +195,6 @@ describe('loadSettings', () => {
 				layout: {
 					leftPaneSize: 30,
 					rightSidebarSize: 20,
-					terminalPaneSize: 35,
 					rightSidebarVisible: true,
 				},
 			}),
@@ -207,21 +205,6 @@ describe('loadSettings', () => {
 
 		expect(settingsStore.settings.layout.leftPaneSize).toBe(30);
 		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
-		expect(settingsStore.settings.layout.terminalPaneSize).toBe(35);
-	});
-
-	it('merges terminal settings with defaults', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ terminal: { fontSize: 18 } }),
-		);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-		await loadSettings('/vault');
-
-		expect(settingsStore.settings.terminal.fontSize).toBe(18);
-		expect(settingsStore.settings.terminal.fontFamily).toBe(DEFAULT_SETTINGS.terminal.fontFamily);
-		expect(settingsStore.settings.terminal.shell).toBe(DEFAULT_SETTINGS.terminal.shell);
 	});
 
 	it('merges history settings with defaults', async () => {

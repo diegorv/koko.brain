@@ -62,7 +62,7 @@ src/lib/
                       #   folder-notes, outgoing-links, properties, quick-switcher, search, tags,
                       #   tasks, type-definitions
   plugins/            # Optional modules: calendar, encrypted-notes, graph-view, kanban, one-on-one,
-                      #   periodic-notes, queryjs, quick-note, templates, terminal, word-count
+                      #   periodic-notes, queryjs, quick-note, templates, word-count
   utils/              # Pure shared utilities (no state, no side effects)
 ```
 

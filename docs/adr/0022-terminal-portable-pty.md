@@ -2,7 +2,7 @@
 type: ADR
 id: "0022"
 title: "Terminal plugin via portable-pty with per-session managed state"
-status: active
+status: superseded
 date: 2026-04-22
 ---
 

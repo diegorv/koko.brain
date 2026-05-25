@@ -8,7 +8,7 @@ date: 2026-04-22
 
 ## Context
 
-Obsidian-style note apps accrete functionality quickly: file explorer, editor, search, backlinks, tags, canvas, calendar, templates, terminal, graph view, kanban, encrypted notes, semantic search, and so on. Without a layout discipline, all of this collapses into a flat folder where dependencies run in every direction, impossible-to-toggle features appear on the hot startup path, and every new feature becomes a question of "where does it go and what can it import?"
+Obsidian-style note apps accrete functionality quickly: file explorer, editor, search, backlinks, tags, canvas, calendar, templates, graph view, kanban, encrypted notes, semantic search, and so on. Without a layout discipline, all of this collapses into a flat folder where dependencies run in every direction, impossible-to-toggle features appear on the hot startup path, and every new feature becomes a question of "where does it go and what can it import?"
 
 The project needed a taxonomy that answers:
 
@@ -24,7 +24,7 @@ Use **four layers under `src/lib/`, each with enforceable import rules**:
 - **`src/lib/components/ui/`** — shadcn-svelte generated primitives, customized via Tailwind (see ADR-0002).
 - **`src/lib/core/`** — essential subsystems; removing any folder breaks the app. Currently: `app-lifecycle`, `editor`, `file-explorer`, `filesystem`, `keybindings`, `layout`, `markdown-editor`, `note-creator`, `settings`, `status-bar`, `trash`, `vault`, `zoom`.
 - **`src/lib/features/`** — always-loaded, self-contained features. Currently 18 features including `backlinks`, `search`, `tags`, `tasks`, `canvas`, `properties`, `command-palette`, `quick-switcher`.
-- **`src/lib/plugins/`** — optional modules; app works without any of them. Currently 11 plugins including `calendar`, `queryjs`, `graph-view`, `encrypted-notes`, `terminal`, `templates`.
+- **`src/lib/plugins/`** — optional modules; app works without any of them. Currently 10 plugins including `calendar`, `queryjs`, `graph-view`, `encrypted-notes`, `templates`.
 - **`src/lib/utils/`** — pure utilities, no state, no side effects, may be imported by any layer.
 
 Layer rules (from `CLAUDE.md` Layer Rules):

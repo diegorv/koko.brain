@@ -4,7 +4,7 @@
  * Routes every Rust command the frontend invokes to either:
  *   - `virtualFS` (file CRUD + legacy v1 vault scan)
  *   - `vaultIndex` (the `*_v2` family that mirrors the Rust `VaultIndex`)
- *   - a typed no-op (semantic search, history, terminal, fonts)
+ *   - a typed no-op (semantic search, history, fonts)
  *
  * Coverage target is "every command grep-able from src/lib", so the
  * E2E suite never falls through to the unknown-command warning. Add new
@@ -200,28 +200,6 @@ function handleComputeDiff(): unknown[] {
 	return [];
 }
 
-// ─── Terminal (no-ops; terminal plugin isn't a golden path) ────────────────
-
-function handleSpawnTerminal(): null {
-	return null;
-}
-
-function handleWriteTerminal(): void {
-	/* no-op */
-}
-
-function handleResizeTerminal(): void {
-	/* no-op */
-}
-
-function handleKillTerminal(): void {
-	/* no-op */
-}
-
-function handleKillAllTerminals(): void {
-	/* no-op */
-}
-
 // ─── System (debug, fonts, memory) ─────────────────────────────────────────
 
 function handleSetTauriDebugMode(): void {
@@ -288,13 +266,6 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	get_snapshot_content: handleGetSnapshotContent,
 	save_snapshot: handleSaveSnapshot,
 	compute_diff: handleComputeDiff,
-
-	// Terminal
-	spawn_terminal: handleSpawnTerminal,
-	write_terminal: handleWriteTerminal,
-	resize_terminal: handleResizeTerminal,
-	kill_terminal: handleKillTerminal,
-	kill_all_terminals: handleKillAllTerminals,
 
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,

@@ -51,7 +51,6 @@ Your notes are plain Markdown files stored locally - no cloud, no lock-in, priva
 
 ### ⚙️ Power User
 
-- **Integrated terminal** - real shell sessions with full interactivity
 - **File history** - automatic snapshots with diff viewer and restore
 - **Deep links** - open notes and trigger actions from outside the app via `kokobrain://` URLs
 
@@ -89,7 +88,6 @@ Concept-level inspirations from Obsidian community plugins I used daily. No code
 | Auto-move | [obsidian-auto-note-mover](https://github.com/farux/obsidian-auto-note-mover) |
 | QueryJS | [obsidian-dataview](https://github.com/blacksmithgu/obsidian-dataview) |
 | Templates | [Templater](https://github.com/SilentVoid13/Templater) |
-| Terminal | [obsidian-terminal](https://github.com/polyipseity/obsidian-terminal) |
 | Calendar | [oz-calendar](https://github.com/ozntel/oz-calendar) |
 | Folder notes | [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes) |
 | Auto open & Pin tab | [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage) |

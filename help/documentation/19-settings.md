@@ -33,7 +33,6 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 | **Outgoing Links** | Show the Outgoing Links panel | Enabled |
 | **Tags** | Show the Tags panel | Enabled |
 | **Folder Notes** | Clicking a folder also opens its matching .md file | Disabled |
-| **Terminal** | Show the terminal panel | Enabled |
 
 ## Editor
 
@@ -130,15 +129,6 @@ See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Folder** | Folder name for template files (relative to vault root) | `_templates` |
-
-## Terminal
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Font family** | CSS font-family for the terminal | System monospace |
-| **Font size** | Terminal font size in pixels (8--24) | `13` |
-| **Line height** | Terminal line spacing (1.0--2.0) | `1.2` |
-| **Shell** | Shell executable path (empty = system $SHELL) | -- |
 
 ## Search
 

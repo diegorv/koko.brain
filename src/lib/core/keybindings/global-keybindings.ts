@@ -17,7 +17,6 @@ import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
-import { toggleTerminal } from '$lib/plugins/terminal/terminal.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
@@ -106,11 +105,6 @@ export function registerGlobalKeybindings(): () => void {
 			code: 'Comma',
 			meta: true,
 			handler: () => settingsDialogStore.toggle(),
-		}),
-		registerKeybinding({
-			code: 'Backquote',
-			meta: true,
-			handler: () => { toggleTerminal().catch(console.error); },
 		}),
 		registerKeybinding({
 			key: 'h',

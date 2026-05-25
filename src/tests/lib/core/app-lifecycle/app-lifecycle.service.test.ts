@@ -148,10 +148,6 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	resetPeriodicNotes: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/terminal/terminal.service', () => ({
-	resetTerminal: vi.fn(),
-}));
-
 vi.mock('$lib/features/quick-switcher/quick-switcher.service', () => ({
 	resetQuickSwitcher: vi.fn(),
 }));
@@ -187,7 +183,6 @@ import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calen
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { resetTerminal } from '$lib/plugins/terminal/terminal.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
@@ -455,7 +450,6 @@ describe('teardownVault', () => {
 		expect(resetGraphView).toHaveBeenCalled();
 		expect(resetTemplates).toHaveBeenCalled();
 		expect(resetCalendar).toHaveBeenCalled();
-		expect(resetTerminal).toHaveBeenCalled();
 	});
 
 	it('resets UI state (quick switcher, command palette)', () => {

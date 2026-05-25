@@ -14,7 +14,6 @@
 	import QuickNoteSection from './sections/QuickNoteSection.svelte';
 	import OneOnOneSection from './sections/OneOnOneSection.svelte';
 	import TemplatesSection from './sections/TemplatesSection.svelte';
-	import TerminalSection from './sections/TerminalSection.svelte';
 	import SearchSection from './sections/SearchSection.svelte';
 	import FileHistorySection from './sections/FileHistorySection.svelte';
 	import AutoMoveSection from '$lib/features/auto-move/AutoMoveSection.svelte';
@@ -31,7 +30,6 @@
 	import ZapIcon from '@lucide/svelte/icons/zap';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
-	import TerminalIcon from '@lucide/svelte/icons/terminal';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import HistoryIcon from '@lucide/svelte/icons/history';
 	import FolderOutputIcon from '@lucide/svelte/icons/folder-output';
@@ -52,7 +50,6 @@
 		'quick-note': ZapIcon,
 		'one-on-one': UsersIcon,
 		templates: FileTextIcon,
-		terminal: TerminalIcon,
 		search: SearchIcon,
 		'file-history': HistoryIcon,
 		'auto-move': FolderOutputIcon,
@@ -197,8 +194,6 @@
 					<OneOnOneSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'templates'}
 					<TemplatesSection onchange={debouncedSave} />
-				{:else if settingsDialogStore.activeSection === 'terminal'}
-					<TerminalSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'search'}
 					<SearchSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'file-history'}
