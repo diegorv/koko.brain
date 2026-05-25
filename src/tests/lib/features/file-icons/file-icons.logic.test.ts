@@ -7,7 +7,10 @@ import {
 	filterIcons,
 	addRecentIcon,
 	extractIconFromFrontmatter,
+	extractIconColorsFromFrontmatter,
 	extractIconFromParsedFrontmatter,
+	extractIconColorsFromParsedFrontmatter,
+	parseIconValuePermissive,
 } from '$lib/features/file-icons/file-icons.logic';
 import type { FileIconEntry, NormalizedIcon, RecentIcon } from '$lib/features/file-icons/file-icons.types';
 
@@ -211,12 +214,54 @@ describe('addRecentIcon', () => {
 	});
 });
 
+describe('parseIconValuePermissive', () => {
+	it('parses pack:name format', () => {
+		expect(parseIconValuePermissive('lucide:star')).toEqual({ iconPack: 'lucide', iconName: 'star' });
+	});
+
+	it('parses bare name as lucide', () => {
+		expect(parseIconValuePermissive('rocket')).toEqual({ iconPack: 'lucide', iconName: 'rocket' });
+	});
+
+	it('returns null for empty string', () => {
+		expect(parseIconValuePermissive('')).toBeNull();
+		expect(parseIconValuePermissive('  ')).toBeNull();
+	});
+
+	it('returns null for invalid pack with colon', () => {
+		expect(parseIconValuePermissive('badpack:star')).toBeNull();
+	});
+
+	it('trims whitespace', () => {
+		expect(parseIconValuePermissive('  lucide:star  ')).toEqual({ iconPack: 'lucide', iconName: 'star' });
+		expect(parseIconValuePermissive('  rocket  ')).toEqual({ iconPack: 'lucide', iconName: 'rocket' });
+	});
+
+	it('handles emoji pack', () => {
+		expect(parseIconValuePermissive('emoji:🎯')).toEqual({ iconPack: 'emoji', iconName: '🎯' });
+	});
+});
+
 describe('extractIconFromFrontmatter', () => {
-	it('extracts icon from frontmatter', () => {
+	it('extracts _icon from frontmatter', () => {
+		const content = '---\ntitle: My Note\n_icon: lucide:star\n---\n# Hello';
+		const result = extractIconFromFrontmatter(content);
+
+		expect(result).toEqual({ iconPack: 'lucide', iconName: 'star' });
+	});
+
+	it('extracts legacy icon (no underscore) from frontmatter', () => {
 		const content = '---\ntitle: My Note\nicon: lucide:star\n---\n# Hello';
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toEqual({ iconPack: 'lucide', iconName: 'star' });
+	});
+
+	it('extracts bare icon name as lucide', () => {
+		const content = '---\n_icon: rocket\n---\nBody';
+		const result = extractIconFromFrontmatter(content);
+
+		expect(result).toEqual({ iconPack: 'lucide', iconName: 'rocket' });
 	});
 
 	it('returns null for no frontmatter', () => {
@@ -233,21 +278,14 @@ describe('extractIconFromFrontmatter', () => {
 	});
 
 	it('returns null for invalid pack name', () => {
-		const content = '---\nicon: invalidpack:star\n---\nBody';
+		const content = '---\n_icon: invalidpack:star\n---\nBody';
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toBeNull();
 	});
 
-	it('returns null for missing icon name', () => {
-		const content = '---\nicon: lucide:\n---\nBody';
-		const result = extractIconFromFrontmatter(content);
-
-		expect(result).toBeNull();
-	});
-
-	it('returns null for missing colon separator', () => {
-		const content = '---\nicon: star\n---\nBody';
+	it('returns null for missing icon name after pack', () => {
+		const content = '---\n_icon: lucide:\n---\nBody';
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toBeNull();
@@ -259,73 +297,161 @@ describe('extractIconFromFrontmatter', () => {
 			'octicons', 'boxicons', 'coolicons', 'simple-icons', 'tabler', 'remix', 'emoji',
 		];
 		for (const pack of packs) {
-			const content = `---\nicon: ${pack}:test-icon\n---\nBody`;
+			const content = `---\n_icon: ${pack}:test-icon\n---\nBody`;
 			const result = extractIconFromFrontmatter(content);
 			expect(result).toEqual({ iconPack: pack, iconName: 'test-icon' });
 		}
 	});
 
 	it('handles quoted values', () => {
-		const content = '---\nicon: "lucide:star"\n---\nBody';
+		const content = '---\n_icon: "lucide:star"\n---\nBody';
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toEqual({ iconPack: 'lucide', iconName: 'star' });
 	});
 
 	it('handles single-quoted values', () => {
-		const content = "---\nicon: 'feather:heart'\n---\nBody";
+		const content = "---\n_icon: 'feather:heart'\n---\nBody";
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toEqual({ iconPack: 'feather', iconName: 'heart' });
 	});
 
 	it('handles Windows line endings', () => {
-		const content = '---\r\ntitle: Test\r\nicon: lucide:star\r\n---\r\nBody';
+		const content = '---\r\ntitle: Test\r\n_icon: lucide:star\r\n---\r\nBody';
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toEqual({ iconPack: 'lucide', iconName: 'star' });
 	});
 
 	it('handles emoji pack', () => {
-		const content = '---\nicon: emoji:🎯\n---\nBody';
+		const content = '---\n_icon: emoji:🎯\n---\nBody';
 		const result = extractIconFromFrontmatter(content);
 
 		expect(result).toEqual({ iconPack: 'emoji', iconName: '🎯' });
 	});
 });
 
+describe('extractIconColorsFromFrontmatter', () => {
+	it('extracts _color and _title_color', () => {
+		const content = '---\n_color: "#ff0000"\n_title_color: "#00ff00"\n---\nBody';
+		const result = extractIconColorsFromFrontmatter(content);
+
+		expect(result).toEqual({ color: '#ff0000', titleColor: '#00ff00' });
+	});
+
+	it('extracts only _color when _title_color absent', () => {
+		const content = '---\n_color: "#ff0000"\n---\nBody';
+		const result = extractIconColorsFromFrontmatter(content);
+
+		expect(result).toEqual({ color: '#ff0000' });
+	});
+
+	it('extracts only _title_color when _color absent', () => {
+		const content = '---\n_title_color: blue\n---\nBody';
+		const result = extractIconColorsFromFrontmatter(content);
+
+		expect(result).toEqual({ titleColor: 'blue' });
+	});
+
+	it('returns empty object when no color fields', () => {
+		const content = '---\ntitle: test\n---\nBody';
+		const result = extractIconColorsFromFrontmatter(content);
+
+		expect(result).toEqual({});
+	});
+
+	it('returns empty object when no frontmatter', () => {
+		expect(extractIconColorsFromFrontmatter('# No frontmatter')).toEqual({});
+	});
+
+	it('handles unquoted color values', () => {
+		const content = '---\n_color: red\n---\nBody';
+		const result = extractIconColorsFromFrontmatter(content);
+
+		expect(result).toEqual({ color: 'red' });
+	});
+
+	it('reads legacy color (no underscore) via alias regex', () => {
+		const content = '---\ncolor: "#abc"\n---\nBody';
+		const result = extractIconColorsFromFrontmatter(content);
+
+		expect(result).toEqual({ color: '#abc' });
+	});
+});
+
 describe('extractIconFromParsedFrontmatter', () => {
-	it('extracts a valid pack:name icon string', () => {
-		const result = extractIconFromParsedFrontmatter({ icon: 'lucide:star' });
+	it('extracts a valid pack:name from _icon key', () => {
+		const result = extractIconFromParsedFrontmatter({ _icon: 'lucide:star' });
 		expect(result).toEqual({ iconPack: 'lucide', iconName: 'star' });
 	});
 
-	it('returns null when icon key is missing', () => {
+	it('extracts bare name as lucide from _icon key', () => {
+		const result = extractIconFromParsedFrontmatter({ _icon: 'rocket' });
+		expect(result).toEqual({ iconPack: 'lucide', iconName: 'rocket' });
+	});
+
+	it('returns null when _icon key is missing', () => {
 		const result = extractIconFromParsedFrontmatter({ title: 'No icon' });
 		expect(result).toBeNull();
 	});
 
-	it('returns null when icon value is not a string (parsed YAML edge case)', () => {
-		const result = extractIconFromParsedFrontmatter({ icon: ['lucide', 'star'] });
-		expect(result).toBeNull();
-	});
-
-	it('returns null when icon string lacks a colon', () => {
-		const result = extractIconFromParsedFrontmatter({ icon: 'star' });
+	it('returns null when _icon value is not a string', () => {
+		const result = extractIconFromParsedFrontmatter({ _icon: ['lucide', 'star'] });
 		expect(result).toBeNull();
 	});
 
 	it('returns null when pack is invalid', () => {
-		const result = extractIconFromParsedFrontmatter({ icon: 'unknown-pack:star' });
+		const result = extractIconFromParsedFrontmatter({ _icon: 'unknown-pack:star' });
 		expect(result).toBeNull();
 	});
 
 	it('handles emoji pack', () => {
-		const result = extractIconFromParsedFrontmatter({ icon: 'emoji:🎯' });
+		const result = extractIconFromParsedFrontmatter({ _icon: 'emoji:🎯' });
 		expect(result).toEqual({ iconPack: 'emoji', iconName: '🎯' });
 	});
 
 	it('returns null for empty frontmatter', () => {
 		expect(extractIconFromParsedFrontmatter({})).toBeNull();
+	});
+});
+
+describe('extractIconColorsFromParsedFrontmatter', () => {
+	it('extracts _color and _title_color', () => {
+		const result = extractIconColorsFromParsedFrontmatter({ _color: '#ff0000', _title_color: '#00ff00' });
+		expect(result).toEqual({ color: '#ff0000', titleColor: '#00ff00' });
+	});
+
+	it('extracts only _color when _title_color absent', () => {
+		const result = extractIconColorsFromParsedFrontmatter({ _color: 'red' });
+		expect(result).toEqual({ color: 'red' });
+	});
+
+	it('extracts only _title_color when _color absent', () => {
+		const result = extractIconColorsFromParsedFrontmatter({ _title_color: 'blue' });
+		expect(result).toEqual({ titleColor: 'blue' });
+	});
+
+	it('returns empty object when no color fields', () => {
+		expect(extractIconColorsFromParsedFrontmatter({ title: 'test' })).toEqual({});
+	});
+
+	it('returns empty object for empty frontmatter', () => {
+		expect(extractIconColorsFromParsedFrontmatter({})).toEqual({});
+	});
+
+	it('ignores empty string values', () => {
+		const result = extractIconColorsFromParsedFrontmatter({ _color: '', _title_color: '  ' });
+		expect(result).toEqual({});
+	});
+
+	it('trims whitespace from color values', () => {
+		const result = extractIconColorsFromParsedFrontmatter({ _color: '  #ff0000  ' });
+		expect(result).toEqual({ color: '#ff0000' });
+	});
+
+	it('ignores non-string values', () => {
+		const result = extractIconColorsFromParsedFrontmatter({ _color: 42, _title_color: null });
+		expect(result).toEqual({});
 	});
 });

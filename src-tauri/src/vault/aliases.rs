@@ -21,6 +21,7 @@ static ALIAS_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
 	m.insert("sidebar_label", "_sidebar_label");
 	m.insert("sidebar label", "_sidebar_label");
 	m.insert("color", "_color");
+	m.insert("title_color", "_title_color");
 	m.insert("template", "_template");
 	m.insert("view", "_view");
 	m.insert("visible", "_visible");
@@ -53,6 +54,7 @@ mod tests {
 		assert_eq!(canonicalize_key("sidebar_label"), "_sidebar_label");
 		assert_eq!(canonicalize_key("sidebar label"), "_sidebar_label");
 		assert_eq!(canonicalize_key("color"), "_color");
+		assert_eq!(canonicalize_key("title_color"), "_title_color");
 		assert_eq!(canonicalize_key("template"), "_template");
 		assert_eq!(canonicalize_key("view"), "_view");
 		assert_eq!(canonicalize_key("visible"), "_visible");
@@ -65,6 +67,7 @@ mod tests {
 		assert_eq!(canonicalize_key("belongs_to"), "belongs_to");
 		assert_eq!(canonicalize_key("_organized"), "_organized");
 		assert_eq!(canonicalize_key("_icon"), "_icon");
+		assert_eq!(canonicalize_key("_title_color"), "_title_color");
 	}
 
 	#[test]

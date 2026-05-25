@@ -76,8 +76,22 @@ function parseIconValue(raw: string): { iconPack: IconPackId; iconName: string }
 }
 
 /**
+ * Parses an icon value that may be either `pack:name` or a bare name.
+ * Bare names (no colon) are treated as lucide icons.
+ */
+export function parseIconValuePermissive(raw: string): { iconPack: IconPackId; iconName: string } | null {
+	const trimmed = raw.trim();
+	if (!trimmed) return null;
+	const strict = parseIconValue(trimmed);
+	if (strict) return strict;
+	if (trimmed.indexOf(':') !== -1) return null;
+	return { iconPack: 'lucide', iconName: trimmed };
+}
+
+/**
  * Extracts icon assignment from raw markdown content's YAML frontmatter.
- * Looks for `icon` property in format `pack:name` (e.g. `lucide:star`).
+ * Looks for `_icon` or `icon` property in format `pack:name` (e.g. `lucide:star`)
+ * or bare name (e.g. `star`, treated as lucide).
  *
  * Used by the per-save updater path (`updateFrontmatterIconForFile`)
  * which receives raw content from `notifyAfterSave`. The bulk indexer
@@ -90,27 +104,65 @@ export function extractIconFromFrontmatter(content: string): { iconPack: IconPac
 	if (!match) return null;
 
 	const yaml = match[1];
-	const iconMatch = yaml.match(/^icon:\s*(.+)$/m);
+	const iconMatch = yaml.match(/^_?icon:\s*(.+)$/m);
 	if (!iconMatch) return null;
 
 	const raw = iconMatch[1].trim().replace(/^['"]|['"]$/g, '');
-	return parseIconValue(raw);
+	return parseIconValuePermissive(raw);
+}
+
+/**
+ * Extracts `_color` and `_title_color` from raw markdown frontmatter.
+ * Returns an object with optional color and titleColor fields.
+ */
+export function extractIconColorsFromFrontmatter(content: string): { color?: string; titleColor?: string } {
+	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+	if (!match) return {};
+
+	const yaml = match[1];
+	const result: { color?: string; titleColor?: string } = {};
+
+	const colorMatch = yaml.match(/^_?color:\s*(.+)$/m);
+	if (colorMatch) {
+		const raw = colorMatch[1].trim().replace(/^['"]|['"]$/g, '');
+		if (raw) result.color = raw;
+	}
+
+	const titleColorMatch = yaml.match(/^_?title_color:\s*(.+)$/m);
+	if (titleColorMatch) {
+		const raw = titleColorMatch[1].trim().replace(/^['"]|['"]$/g, '');
+		if (raw) result.titleColor = raw;
+	}
+
+	return result;
 }
 
 /**
  * Extracts the icon assignment from already-parsed frontmatter (from a
- * Rust `NoteEntryV2.frontmatter` snapshot). Returns null when the
- * `icon` key is absent, non-string, or not in the `pack:name` format.
- *
- * Phase 11.5g — replaces the per-file regex re-parse for the bulk
- * indexer; the save-time path keeps using `extractIconFromFrontmatter`.
+ * Rust `NoteEntryV2.frontmatter` snapshot). Reads `_icon` (canonical key
+ * after Rust alias resolution). Accepts both `pack:name` and bare name formats.
  */
 export function extractIconFromParsedFrontmatter(
 	frontmatter: Record<string, FrontmatterValue>,
 ): { iconPack: IconPackId; iconName: string } | null {
-	const value = frontmatter['icon'];
+	const value = frontmatter['_icon'];
 	if (typeof value !== 'string') return null;
-	return parseIconValue(value.trim());
+	return parseIconValuePermissive(value.trim());
+}
+
+/**
+ * Extracts `_color` and `_title_color` from already-parsed frontmatter.
+ * Returns an object with optional color and titleColor fields.
+ */
+export function extractIconColorsFromParsedFrontmatter(
+	frontmatter: Record<string, FrontmatterValue>,
+): { color?: string; titleColor?: string } {
+	const result: { color?: string; titleColor?: string } = {};
+	const color = frontmatter['_color'];
+	if (typeof color === 'string' && color.trim()) result.color = color.trim();
+	const titleColor = frontmatter['_title_color'];
+	if (typeof titleColor === 'string' && titleColor.trim()) result.titleColor = titleColor.trim();
+	return result;
 }
 
 /** Filters icons by a search query matching name or keywords */

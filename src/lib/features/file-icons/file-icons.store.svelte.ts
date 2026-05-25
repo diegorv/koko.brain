@@ -1,9 +1,11 @@
 import type { FileIconEntry, IconPackId, RecentIcon } from './file-icons.types';
 
-/** Reference to a frontmatter-derived icon (pack + name) */
-interface FrontmatterIconRef {
+/** Reference to a frontmatter-derived icon (pack + name + optional colors) */
+export interface FrontmatterIconRef {
 	iconPack: IconPackId;
 	iconName: string;
+	color?: string;
+	titleColor?: string;
 }
 
 let entries = $state<FileIconEntry[]>([]);

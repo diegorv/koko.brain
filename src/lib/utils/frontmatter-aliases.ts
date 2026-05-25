@@ -17,6 +17,7 @@ const ALIAS_MAP: ReadonlyMap<string, string> = new Map([
 	['sidebar_label', '_sidebar_label'],
 	['sidebar label', '_sidebar_label'],
 	['color', '_color'],
+	['title_color', '_title_color'],
 	['template', '_template'],
 	['view', '_view'],
 	['visible', '_visible'],

@@ -1,14 +1,16 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import type { FileIconEntry, IconPackId, RecentIcon } from './file-icons.types';
-import { fileIconsStore } from './file-icons.store.svelte';
+import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
 	setFileIcon,
 	removeFileIcon,
 	updateFileIconPaths,
 	addRecentIcon,
 	extractIconFromFrontmatter,
+	extractIconColorsFromFrontmatter,
 	extractIconFromParsedFrontmatter,
+	extractIconColorsFromParsedFrontmatter,
 } from './file-icons.logic';
 import { preloadPacks } from './file-icons.icon-data';
 import { debug, error, timeAsync } from '$lib/utils/debug';
@@ -158,12 +160,14 @@ export async function updateFileIconPathsAfterMove(
 export async function buildFrontmatterIconIndex(): Promise<void> {
 	await timeAsync('FILE_ICONS', 'buildFrontmatterIconIndex', async () => {
 		const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
-		const index = new Map<string, { iconPack: IconPackId; iconName: string }>();
+		const index = new Map<string, FrontmatterIconRef>();
 
 		for (const entry of entries) {
 			const ref = extractIconFromParsedFrontmatter(entry.frontmatter);
 			if (ref) {
-				index.set(entry.path, ref);
+				const colors = extractIconColorsFromParsedFrontmatter(entry.frontmatter);
+				const full: FrontmatterIconRef = { ...ref, ...colors };
+				index.set(entry.path, full);
 			}
 		}
 
@@ -178,15 +182,26 @@ export async function buildFrontmatterIconIndex(): Promise<void> {
 
 /**
  * Incrementally updates the frontmatter icon for a single file.
- * Skips the update if the icon hasn't changed.
+ * Skips the update if the icon and colors haven't changed.
  */
 export function updateFrontmatterIconForFile(filePath: string, content: string): void {
-	const newRef = extractIconFromFrontmatter(content);
+	const iconRef = extractIconFromFrontmatter(content);
+	const colors = extractIconColorsFromFrontmatter(content);
 	const oldRef = fileIconsStore.getFrontmatterIcon(filePath);
+
+	const newRef: FrontmatterIconRef | null = iconRef
+		? { ...iconRef, ...colors }
+		: null;
 
 	// Early skip: both null or identical
 	if (!newRef && !oldRef) return;
-	if (newRef && oldRef && newRef.iconPack === oldRef.iconPack && newRef.iconName === oldRef.iconName) return;
+	if (
+		newRef && oldRef &&
+		newRef.iconPack === oldRef.iconPack &&
+		newRef.iconName === oldRef.iconName &&
+		newRef.color === oldRef.color &&
+		newRef.titleColor === oldRef.titleColor
+	) return;
 
 	fileIconsStore.updateFrontmatterIcon(filePath, newRef);
 

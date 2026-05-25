@@ -368,7 +368,7 @@ fn extract_all_relationships(frontmatter: &BTreeMap<String, JsonValue>) -> BTree
 		"type", "belongs_to", "related_to",
 		"_organized", "_archived", "_favorite",
 		"_order", "_sort", "_icon", "_sidebar_label",
-		"_color", "_template", "_view", "_visible",
+		"_color", "_title_color", "_template", "_view", "_visible",
 		"_list_properties_display",
 		"tags", "aliases",
 	];

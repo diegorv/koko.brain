@@ -273,9 +273,9 @@ describe('buildFrontmatterIconIndex', () => {
 
 	it('extracts frontmatter icons from Rust entries into store', async () => {
 		mockEntriesV2([
-			entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } }),
+			entryV2('/vault/a.md', { frontmatter: { _icon: 'lucide:star' } }),
 			entryV2('/vault/b.md', { frontmatter: { title: 'No icon' } }),
-			entryV2('/vault/c.md', { frontmatter: { icon: 'feather:heart' } }),
+			entryV2('/vault/c.md', { frontmatter: { _icon: 'feather:heart' } }),
 		]);
 
 		await buildFrontmatterIconIndex();
@@ -289,7 +289,7 @@ describe('buildFrontmatterIconIndex', () => {
 
 	it('preloads packs referenced by frontmatter icons', async () => {
 		mockEntriesV2([
-			entryV2('/vault/a.md', { frontmatter: { icon: 'tabler:rocket' } }),
+			entryV2('/vault/a.md', { frontmatter: { _icon: 'tabler:rocket' } }),
 		]);
 
 		await buildFrontmatterIconIndex();
@@ -322,7 +322,7 @@ describe('updateFrontmatterIconForFile', () => {
 
 	it('skips update when icon is unchanged', async () => {
 		// Seed initial state via the migrated builder.
-		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { _icon: 'lucide:star' } })]);
 		await buildFrontmatterIconIndex();
 		vi.clearAllMocks();
 
@@ -340,7 +340,7 @@ describe('updateFrontmatterIconForFile', () => {
 	});
 
 	it('updates store when icon is removed', async () => {
-		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { _icon: 'lucide:star' } })]);
 		await buildFrontmatterIconIndex();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeDefined();
 
@@ -350,7 +350,7 @@ describe('updateFrontmatterIconForFile', () => {
 	});
 
 	it('updates store when icon pack changes', async () => {
-		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { _icon: 'lucide:star' } })]);
 		await buildFrontmatterIconIndex();
 
 		updateFrontmatterIconForFile('/vault/a.md', '---\nicon: feather:star\n---\nBody');
@@ -366,7 +366,7 @@ describe('updateFrontmatterIconForFile', () => {
 	});
 
 	it('does not preload when icon is removed', async () => {
-		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { icon: 'lucide:star' } })]);
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { _icon: 'lucide:star' } })]);
 		await buildFrontmatterIconIndex();
 		vi.clearAllMocks();
 
