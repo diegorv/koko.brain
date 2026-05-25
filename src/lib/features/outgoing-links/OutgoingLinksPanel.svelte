@@ -1,72 +1,57 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import ExternalLink from 'lucide-svelte/icons/external-link';
-	import Type from 'lucide-svelte/icons/type';
 	import FileText from 'lucide-svelte/icons/file-text';
 	import AlertCircle from 'lucide-svelte/icons/alert-circle';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { outgoingLinksStore } from './outgoing-links.store.svelte';
 	import { fetchOutgoingLinksV2 } from './outgoing-links.service';
-	import { debounce } from '$lib/utils/debounce';
 
-	let linksOpen = $state(true);
-	let unlinkedOpen = $state(true);
+	let expanded = $state(false);
+	let lastFetchedPath = $state<string | null>(null);
 
-	// 150 ms coalesce window matches +layout.svelte's tab-switch debounce.
-	// During a burst-open the panel effect re-fires for every path change;
-	// without this debounce each fire dispatches a pair of IPCs (links +
-	// unlinked-mentions), queueing on the Tauri command bus. With the
-	// debounce only the LAST path triggers a fetch.
-	const refetchOutgoing = debounce((path: string, content: string) => {
-		fetchOutgoingLinksV2(path, content).catch(() => { /* already logs */ });
-	}, 150);
+	function handleExpand() {
+		if (!expanded) fetchData();
+	}
 
-	// Refresh outgoing links + unlinked mentions on active path change OR
-	// on `vaultIndexVersion` bumps (save / watcher / external mutation).
-	// Same shape as `BacklinksPanel.svelte` (Phase 3.4 / Phase 6).
+	function fetchData() {
+		const path = editorStore.activeTabPath;
+		if (!path) return;
+		lastFetchedPath = path;
+		const content = editorStore.activeTab?.content ?? '';
+		fetchOutgoingLinksV2(path, content).catch(() => {});
+	}
+
 	$effect(() => {
 		const path = editorStore.activeTabPath;
-		// Read version so the effect re-runs on bump even when path is unchanged.
-		const _version = vaultStore.vaultIndexVersion;
-		if (!path) {
-			untrack(() => {
-				outgoingLinksStore.reset();
-				refetchOutgoing.cancel();
-			});
-			return;
+		if (path !== lastFetchedPath && expanded) {
+			expanded = false;
+			outgoingLinksStore.reset();
 		}
-		untrack(() => {
-			const content = editorStore.activeTab?.content ?? '';
-			refetchOutgoing(path, content);
-		});
 	});
 </script>
 
 <div class="flex flex-col">
-	<div class="flex items-center h-10 px-3 shrink-0">
-		<h2 class="font-semibold uppercase tracking-wide text-primary">Outgoing links</h2>
-	</div>
-	<Separator />
-	<div class="max-h-[50vh] overflow-y-auto p-2">
-		{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
-			<p class="text-muted-foreground px-2 py-4 text-center">Not available</p>
-		{:else if outgoingLinksStore.outgoingLinks.length === 0 && outgoingLinksStore.unlinkedMentions.length === 0}
-			<p class="text-muted-foreground px-2 py-4 text-center">No outgoing links</p>
-		{:else}
-			<Collapsible.Root bind:open={linksOpen}>
-				<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-accent transition-colors cursor-pointer">
-					<ChevronRight class="size-3.5 shrink-0 transition-transform {linksOpen ? 'rotate-90' : ''}" />
-					<ExternalLink class="size-3.5 shrink-0 text-muted-foreground" />
-					<span>Links</span>
-					<span class="ml-auto text-muted-foreground">{outgoingLinksStore.outgoingLinks.length}</span>
-				</Collapsible.Trigger>
-				<Collapsible.Content>
-					<div class="pl-2 mt-1 space-y-0.5">
+	<Collapsible.Root bind:open={expanded}>
+		<Collapsible.Trigger
+			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-accent/50 transition-colors cursor-pointer"
+			onclick={handleExpand}
+		>
+			<ChevronRight class="size-3.5 shrink-0 text-muted-foreground transition-transform {expanded ? 'rotate-90' : ''}" />
+			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-primary">Outgoing links</h2>
+		</Collapsible.Trigger>
+		<Collapsible.Content>
+			<Separator />
+			<div class="max-h-[50vh] overflow-y-auto p-2">
+				{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
+					<p class="text-muted-foreground px-2 py-4 text-center">Not available</p>
+				{:else if outgoingLinksStore.outgoingLinks.length === 0}
+					<p class="text-muted-foreground px-2 py-4 text-center">No outgoing links</p>
+				{:else}
+					<div class="space-y-0.5">
 						{#each outgoingLinksStore.outgoingLinks as link (link.target + link.position)}
 							{#if link.resolvedPath}
 								<button
@@ -92,35 +77,8 @@
 							{/if}
 						{/each}
 					</div>
-				</Collapsible.Content>
-			</Collapsible.Root>
-
-			{#if outgoingLinksStore.unlinkedMentions.length > 0}
-				<Collapsible.Root bind:open={unlinkedOpen} class="mt-2">
-					<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-accent transition-colors cursor-pointer">
-						<ChevronRight class="size-3.5 shrink-0 transition-transform {unlinkedOpen ? 'rotate-90' : ''}" />
-						<Type class="size-3.5 shrink-0 text-muted-foreground" />
-						<span>Unlinked mentions</span>
-						<span class="ml-auto text-muted-foreground">{outgoingLinksStore.unlinkedMentions.length}</span>
-					</Collapsible.Trigger>
-					<Collapsible.Content>
-						<div class="pl-2 mt-1 space-y-0.5">
-							{#each outgoingLinksStore.unlinkedMentions as mention (mention.notePath)}
-								<button
-									class="w-full text-left rounded-md px-2 py-1 hover:bg-accent transition-colors cursor-pointer"
-									onclick={() => openFileInEditor(mention.notePath)}
-								>
-									<div class="flex items-center gap-1.5">
-										<FileText class="size-3.5 shrink-0 text-muted-foreground" />
-										<span class="text-[14px] truncate">{mention.noteName}</span>
-										<span class="text-[14px] ml-auto text-muted-foreground">{mention.count}</span>
-									</div>
-								</button>
-							{/each}
-						</div>
-					</Collapsible.Content>
-				</Collapsible.Root>
-			{/if}
-		{/if}
-	</div>
+				{/if}
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
 </div>

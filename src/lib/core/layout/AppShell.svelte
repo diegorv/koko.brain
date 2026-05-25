@@ -109,14 +109,14 @@
 									{#if settingsStore.layout.propertiesVisible}
 										<PropertiesView />
 									{/if}
+									{#if settingsStore.layout.tableOfContentsVisible}
+										<TableOfContentsPanel />
+									{/if}
 									{#if settingsStore.layout.backlinksVisible}
 										<BacklinksPanel />
 									{/if}
 									{#if settingsStore.layout.outgoingLinksVisible}
 										<OutgoingLinksPanel />
-									{/if}
-									{#if settingsStore.layout.tableOfContentsVisible}
-										<TableOfContentsPanel />
 									{/if}
 								</ScrollArea>
 							</div>
