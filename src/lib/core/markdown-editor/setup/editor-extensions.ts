@@ -23,6 +23,7 @@ import { livePreview } from '../extensions/live-preview';
 import { markdownHighlight, markdownLanguage } from '../highlight-styles';
 import { copyBlockLinkToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
 import { buildEditorTheme } from './editor-theme';
+import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
 // Debug extension for composition issues (dead-key accents on WebKit).
 // Uncomment to enable: logs composition events, DOM mutations, and exposes window.dbg.* toggles.
 // import { compositionDebugExtension } from '../extensions/debug-composition';
@@ -50,7 +51,7 @@ export interface CreateExtensionsOptions {
 	/** Compartment for switching highlight style */
 	highlightStyleCompartment: Compartment;
 	/** Callback invoked when the document content changes */
-	onDocChanged: (content: string) => void;
+	onDocChanged: (content: string, frontmatterChanged: boolean) => void;
 	/** Returns whether a tab switch is in progress (suppresses onDocChanged) */
 	isTabSwitching: () => boolean;
 }
@@ -100,7 +101,23 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		// compositionDebugExtension(),
 		EditorView.updateListener.of((update) => {
 			if (update.docChanged && !opts.isTabSwitching()) {
-				opts.onDocChanged(update.state.doc.toString());
+				const doc = update.startState.doc;
+				let fmChanged = false;
+				if (doc.lines >= 2 && FRONTMATTER_FENCE_RE.test(doc.line(1).text)) {
+					let fmEnd = -1;
+					for (let i = 2; i <= doc.lines; i++) {
+						if (FRONTMATTER_FENCE_RE.test(doc.line(i).text)) {
+							fmEnd = doc.line(i).to;
+							break;
+						}
+					}
+					if (fmEnd !== -1) {
+						update.changes.iterChangedRanges((fromA, _toA) => {
+							if (fromA <= fmEnd) fmChanged = true;
+						});
+					}
+				}
+				opts.onDocChanged(update.state.doc.toString(), fmChanged);
 			}
 		}),
 	];

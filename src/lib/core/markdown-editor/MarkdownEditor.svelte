@@ -190,7 +190,7 @@
 				editorThemeCompartment,
 				languageCompartment,
 				highlightStyleCompartment,
-				onDocChanged: (content) => onContentChange(content),
+				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
 				isTabSwitching: () => isTabSwitching,
 			}),
 			selection: EditorSelection.cursor(cursorPos),

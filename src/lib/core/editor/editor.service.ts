@@ -154,27 +154,35 @@ export async function saveFileByPath(path: string): Promise<boolean> {
 	}
 }
 
-/**
- * Auto-save: triggers a save of ALL dirty tabs 2 seconds after the last keystroke.
- * Iterates every open tab and saves any that have unsaved changes,
- * so edits are never lost when the user switches between tabs.
- */
-const debouncedSave = debounce(() => {
+function saveDirtyTabs() {
 	for (const tab of editorStore.tabs) {
 		if (!isVirtualTab(tab) && isTabDirty(tab)) {
 			saveFileByPath(tab.path);
 		}
 	}
-}, 2000);
+}
+
+/** Auto-save: 2 seconds after last body keystroke */
+const debouncedSave = debounce(saveDirtyTabs, 2000);
+
+/** Faster auto-save for frontmatter edits (500ms) */
+const debouncedSaveFrontmatter = debounce(saveDirtyTabs, 500);
 
 /** Called on every editor keystroke — updates store content and schedules an auto-save */
-export function onContentChange(content: string) {
+export function onContentChange(content: string, frontmatterChanged = false) {
 	editorStore.updateContent(content);
-	debouncedSave();
+	if (frontmatterChanged) {
+		debouncedSave.cancel();
+		debouncedSaveFrontmatter();
+	} else {
+		debouncedSaveFrontmatter.cancel();
+		debouncedSave();
+	}
 }
 
 /** Immediately saves all dirty tabs that have a pending auto-save */
 export function flushPendingSaves(): void {
+	debouncedSaveFrontmatter.flush();
 	debouncedSave.flush();
 }
 
@@ -185,6 +193,7 @@ export function flushPendingSaves(): void {
  */
 export async function saveAllDirtyTabs(): Promise<string[]> {
 	debouncedSave.cancel();
+	debouncedSaveFrontmatter.cancel();
 	const dirtyTabs = editorStore.tabs.filter(
 		(tab) => !isVirtualTab(tab) && isTabDirty(tab),
 	);
