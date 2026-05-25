@@ -97,6 +97,8 @@ For example, clicking the folder `Projects/` opens `Projects/Projects.md`.
 
 Folders that have a folder note are shown with an underlined name in the tree, making them easy to spot. This feature is useful for keeping a summary or index for each folder.
 
+Folder icons are stored in the folder note's frontmatter using the `_icon` field. When you assign an icon to a folder via the icon picker, Kokobrain writes it to the folder note (creating one if needed).
+
 > [!TIP]
 > You can toggle folder notes on or off in **Settings → Sidebar → Folder Notes**.
 
@@ -135,15 +137,25 @@ Lucide, Feather, Font Awesome (Solid, Regular, Brands), Octicons, Boxicons, Cool
 
 ### Frontmatter icons
 
-You can also set an icon via frontmatter in the note itself:
+You can also set icons and colors via frontmatter in the note itself:
 
 ```yaml
 ---
-icon: lucide/star
+_icon: lucide:star
+_color: "#e67e22"
+_title_color: "#3498db"
 ---
 ```
 
-This icon will appear in the file explorer and in editor tabs.
+| Field | Description |
+|-------|-------------|
+| `_icon` | Icon in `pack:name` format (e.g. `lucide:star`). A bare name like `star` defaults to the Lucide pack. |
+| `_color` | Icon color - accepts preset color names or custom hex/HSL values. |
+| `_title_color` | Tab title text color in the editor. |
+
+These fields are also written automatically when you use the icon picker UI. The legacy `icon` field (without underscore) is accepted as an alias for `_icon`.
+
+Icons set via frontmatter appear in the file explorer and in editor tabs.
 
 ## Next Steps
 
