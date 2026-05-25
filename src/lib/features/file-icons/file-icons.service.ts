@@ -116,7 +116,13 @@ export async function trackRecentIcon(vaultPath: string, iconPack: IconPackId, i
 	await saveRecentIcons(vaultPath);
 }
 
-/** Sets a custom icon for a file/folder path and saves to disk */
+const MD_EXT = /\.(?:md|markdown)$/i;
+
+/**
+ * Sets a custom icon for a file/folder path.
+ * For .md files: writes to frontmatter (_icon, _color, _title_color).
+ * For non-.md files: writes to .kokobrain/file-icons.json.
+ */
 export async function setIconForPath(
 	vaultPath: string,
 	path: string,
@@ -125,13 +131,31 @@ export async function setIconForPath(
 	color?: string,
 	textColor?: string,
 ): Promise<void> {
+	if (MD_EXT.test(path)) {
+		const { setFrontmatterIcon } = await import('./frontmatter-icon.service');
+		await setFrontmatterIcon(path, iconPack, iconName, color, textColor);
+		fileIconsStore.updateFrontmatterIcon(path, {
+			iconPack, iconName, color, titleColor: textColor,
+		});
+		return;
+	}
 	const updated = setFileIcon(fileIconsStore.entries, path, iconPack, iconName, color, textColor);
 	fileIconsStore.setEntries(updated);
 	await saveFileIcons(vaultPath);
 }
 
-/** Removes a custom icon from a file/folder path and saves to disk */
+/**
+ * Removes a custom icon from a file/folder path.
+ * For .md files: removes _icon, _color, _title_color from frontmatter.
+ * For non-.md files: removes entry from .kokobrain/file-icons.json.
+ */
 export async function removeIconForPath(vaultPath: string, path: string): Promise<void> {
+	if (MD_EXT.test(path)) {
+		const { removeFrontmatterIcon } = await import('./frontmatter-icon.service');
+		await removeFrontmatterIcon(path);
+		fileIconsStore.updateFrontmatterIcon(path, null);
+		return;
+	}
 	const updated = removeFileIcon(fileIconsStore.entries, path);
 	fileIconsStore.setEntries(updated);
 	await saveFileIcons(vaultPath);

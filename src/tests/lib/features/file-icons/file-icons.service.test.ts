@@ -197,32 +197,42 @@ describe('setIconForPath', () => {
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 	});
 
-	it('adds icon entry to store and saves', async () => {
+	it('routes .md files to frontmatter write', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
 		await setIconForPath('/vault', '/vault/a.md', 'lucide', 'star', '#ff0000');
 
-		expect(fileIconsStore.entries).toHaveLength(1);
-		expect(fileIconsStore.entries[0]).toEqual({
-			path: '/vault/a.md',
-			iconPack: 'lucide',
-			iconName: 'star',
-			color: '#ff0000',
-			textColor: undefined,
-		});
-		expect(writeTextFile).toHaveBeenCalled();
+		// Should write to frontmatter, not JSON
+		expect(fileIconsStore.entries).toHaveLength(0);
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).toContain('_icon: lucide:star');
+		// Should update frontmatter store
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeDefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')?.iconName).toBe('star');
 	});
 
-	it('replaces existing icon for same path', async () => {
-		await setIconForPath('/vault', '/vault/a.md', 'lucide', 'star');
-		await setIconForPath('/vault', '/vault/a.md', 'feather', 'heart');
+	it('routes non-.md files to JSON', async () => {
+		await setIconForPath('/vault', '/vault/image.png', 'lucide', 'image');
 
 		expect(fileIconsStore.entries).toHaveLength(1);
-		expect(fileIconsStore.entries[0].iconName).toBe('heart');
+		expect(fileIconsStore.entries[0].path).toBe('/vault/image.png');
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/.kokobrain/file-icons.json',
+			expect.any(String),
+		);
 	});
 
-	it('stores textColor when provided', async () => {
+	it('stores color and titleColor in frontmatter store for .md', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
 		await setIconForPath('/vault', '/vault/a.md', 'lucide', 'star', '#ff0000', '#00ff00');
 
-		expect(fileIconsStore.entries).toHaveLength(1);
+		const ref = fileIconsStore.getFrontmatterIcon('/vault/a.md');
+		expect(ref?.color).toBe('#ff0000');
+		expect(ref?.titleColor).toBe('#00ff00');
+	});
+
+	it('stores textColor on non-.md via JSON', async () => {
+		await setIconForPath('/vault', '/vault/pic.png', 'lucide', 'star', '#ff0000', '#00ff00');
+
 		expect(fileIconsStore.entries[0].color).toBe('#ff0000');
 		expect(fileIconsStore.entries[0].textColor).toBe('#00ff00');
 	});
@@ -236,14 +246,21 @@ describe('removeIconForPath', () => {
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 	});
 
-	it('removes icon entry from store and saves', async () => {
-		await setIconForPath('/vault', '/vault/a.md', 'lucide', 'star');
-		expect(fileIconsStore.entries).toHaveLength(1);
+	it('routes .md files to frontmatter remove', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n_icon: lucide:star\ntitle: Test\n---\nBody');
+		fileIconsStore.updateFrontmatterIcon('/vault/a.md', { iconPack: 'lucide', iconName: 'star' });
 
 		await removeIconForPath('/vault', '/vault/a.md');
 
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+	});
+
+	it('routes non-.md files to JSON remove', async () => {
+		fileIconsStore.setEntries([{ path: '/vault/pic.png', iconPack: 'lucide', iconName: 'star' }]);
+
+		await removeIconForPath('/vault', '/vault/pic.png');
+
 		expect(fileIconsStore.entries).toHaveLength(0);
-		expect(writeTextFile).toHaveBeenCalled();
 	});
 });
 
@@ -255,12 +272,12 @@ describe('updateFileIconPathsAfterMove', () => {
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 	});
 
-	it('updates path in entries and saves', async () => {
-		await setIconForPath('/vault', '/vault/old.md', 'lucide', 'star');
+	it('updates path in JSON entries and saves', async () => {
+		fileIconsStore.setEntries([{ path: '/vault/old.png', iconPack: 'lucide', iconName: 'star' }]);
 
-		await updateFileIconPathsAfterMove('/vault', '/vault/old.md', '/vault/new.md');
+		await updateFileIconPathsAfterMove('/vault', '/vault/old.png', '/vault/new.png');
 
-		expect(fileIconsStore.entries[0].path).toBe('/vault/new.md');
+		expect(fileIconsStore.entries[0].path).toBe('/vault/new.png');
 		expect(fileIconsStore.entries[0].iconName).toBe('star');
 	});
 });
