@@ -310,6 +310,11 @@
 					<Palette class="size-4" />
 					<span>Change icon</span>
 				</ContextMenu.Item>
+				<ContextMenu.Separator />
+				<ContextMenu.Item onclick={() => revealInSystemExplorer(path)}>
+					<FolderSearch class="size-4" />
+					<span>Reveal in Finder</span>
+				</ContextMenu.Item>
 			{:else if sectionContextName && !sectionContextPath}
 				{@const name = sectionContextName}
 				<ContextMenu.Item onclick={() => handleCreateTypeDefinition(name)}>
