@@ -103,7 +103,7 @@
 			</div>
 		{/each}
 
-		{#if untyped.length > 0}
+		{#if untyped.length > 0 && settingsStore.showUntypedNotes}
 			{@const untypedCollapsed = collapsedSections.has('__untyped')}
 			<div class="mb-1 mt-2 border-t border-border pt-1">
 				<button

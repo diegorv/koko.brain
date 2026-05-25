@@ -21,4 +21,19 @@
 			}}
 		/>
 	</SettingItem>
+
+	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Type sidebar</h3>
+
+	<SettingItem
+		label="Show untyped notes"
+		description="Show notes without a type in an 'Untyped' section at the bottom of the type sidebar."
+	>
+		<Switch
+			checked={settingsStore.showUntypedNotes}
+			onCheckedChange={(v) => {
+				settingsStore.setSettings({ ...settingsStore.settings, showUntypedNotes: v });
+				onchange();
+			}}
+		/>
+	</SettingItem>
 </div>

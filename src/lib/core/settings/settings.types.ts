@@ -298,4 +298,6 @@ export interface AppSettings {
 	updates: UpdateSettings;
 	/** Whether new notes start unorganized and require explicit organization (Portent inbox workflow) */
 	explicitOrganization: boolean;
+	/** Whether to show notes without a type in the type sidebar */
+	showUntypedNotes: boolean;
 }
