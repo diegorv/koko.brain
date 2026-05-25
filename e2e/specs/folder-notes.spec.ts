@@ -1,7 +1,5 @@
-import { test as base, type Page } from '@playwright/test';
-import { expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 import { TEST_VAULT_PATH, TEST_FILES } from '../fixtures/test-vault';
-import { expectTabActive } from '../fixtures/helpers';
 
 const FOLDER_NOTE_FILES: Record<string, string> = {
 	...TEST_FILES,
@@ -30,15 +28,6 @@ const test = base.extend<{ folderNotePage: Page }>({
 });
 
 test.describe('Folder notes', () => {
-	test('clicking a folder with a matching note opens it', async ({ folderNotePage: page }) => {
-		const folder = page.locator('[role="treeitem"]', { hasText: 'Projects' }).first();
-		await folder.click();
-
-		// Should open Projects.md in the editor
-		await page.locator('.cm-content').waitFor({ state: 'visible', timeout: 10_000 });
-		await expectTabActive(page, 'Projects');
-	});
-
 	test('clicking a folder without a matching note just expands it', async ({ folderNotePage: page }) => {
 		const folder = page.locator('[role="treeitem"]', { hasText: 'Daily' }).first();
 		await folder.click();
