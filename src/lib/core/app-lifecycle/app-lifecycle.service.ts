@@ -65,6 +65,7 @@ import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-hi
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
+import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
 
 /**
  * Delay (ms) before the deferred semantic-search init kicks in.
@@ -360,6 +361,7 @@ export function teardownVault(): void {
 	resetHooks();
 	queryjsSessionStore.reset();
 	clearMermaidCache();
+	clearCollectionCache();
 	resetTerminal();
 	resetEditor();
 	resetFileSystem();

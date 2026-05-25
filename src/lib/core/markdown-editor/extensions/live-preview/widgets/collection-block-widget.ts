@@ -19,18 +19,31 @@ import {
 	getColorForValue,
 } from '$lib/features/collection/linear-calendar.logic';
 
+/** Live-DOM cache: cacheKey -> rendered container. Survives widget destruction across viewport cycles. */
+const collectionCache = new Map<string, HTMLElement>();
+
+/** Drops all cached renders. Called during vault teardown. */
+export function clearCollectionCache(): void {
+	collectionCache.clear();
+}
+
 /** Widget that renders a ```collection code block as an inline table */
 export class CollectionBlockWidget extends WidgetType {
 	private readonly isIndexReady: boolean;
 	private readonly indexSize: number;
+	private readonly cacheKey: string;
 
 	constructor(readonly yamlContent: string) {
 		super();
 		this.isIndexReady = collectionStore.isIndexReady;
 		this.indexSize = collectionStore.propertyIndex.size;
+		this.cacheKey = `${yamlContent}|${this.indexSize}`;
 	}
 
 	toDOM() {
+		const cached = collectionCache.get(this.cacheKey);
+		if (cached && !cached.isConnected) return cached;
+
 		const container = document.createElement('div');
 		container.className = 'cm-lp-collection-block';
 
@@ -69,11 +82,13 @@ export class CollectionBlockWidget extends WidgetType {
 
 		if (view.type === 'calendar') {
 			this.buildCalendar(container, view, result.records);
+			collectionCache.set(this.cacheKey, container);
 			return container;
 		}
 
 		if (view.type === 'linear-calendar') {
 			this.buildLinearCalendar(container, view, result.records);
+			collectionCache.set(this.cacheKey, container);
 			return container;
 		}
 
@@ -82,6 +97,7 @@ export class CollectionBlockWidget extends WidgetType {
 			empty.className = 'cm-lp-collection-empty';
 			empty.textContent = 'No results match the current filters';
 			container.appendChild(empty);
+			collectionCache.set(this.cacheKey, container);
 			return container;
 		}
 
@@ -124,6 +140,7 @@ export class CollectionBlockWidget extends WidgetType {
 		table.appendChild(tbody);
 		container.appendChild(table);
 
+		collectionCache.set(this.cacheKey, container);
 		return container;
 	}
 
