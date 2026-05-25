@@ -127,6 +127,24 @@ Two independent plugins handle inline formatting:
 - **`inlineMarksPlugin`** — Mark visibility (show/hide `**`, `*`, etc.). Rebuilds on every selection change.
 - **`markdownStylePlugin`** — Content styling (bold weight, italic style, etc.). Rebuilds only on `docChanged`/`viewportChanged` — NOT on selection. More efficient.
 
+## Widget Caching (Live-DOM Pattern)
+
+Widgets with expensive `toDOM()` operations (IPC queries, diagram renders, script execution) must cache their DOM elements to survive viewport destruction cycles. CodeMirror destroys and recreates widgets as they scroll in and out of the viewport, calling `toDOM()` fresh each time.
+
+The pattern uses a session store that holds `Map<contentHash, HTMLElement>` and re-attaches the same live DOM node on cache hit:
+
+1. **Cache hit** -- re-attach existing element. No re-execution.
+2. **Cache miss** -- execute, store result in cache, attach element.
+3. **`isConnected` guard** -- when two identical blocks exist, only the first gets the cached element. The second renders fresh to avoid stealing the DOM node from a visible widget.
+4. **Vault teardown** -- clear cache via `resetHooks` / session store reset.
+
+Widgets using this pattern:
+- `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts` -- script execution, chart renders (session store)
+- `mermaid-widget.ts` -- diagram renders (module-level `mermaidCache` Map, cleared via `clearMermaidCache`)
+- `collection-block-widget.ts` -- IPC queries (module-level `collectionCache` Map, cleared via `clearCollectionCache`)
+
+The cache holds the **live element, not a clone**. `<canvas>` pixel buffers, `<video>` playback state, and chart interactivity survive widget destruction because the element stays referenced through the store.
+
 ## Adding a New Plugin
 
 1. Create parser in `parsers/` if needed (pure function, testable)
