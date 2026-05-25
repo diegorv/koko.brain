@@ -178,21 +178,21 @@
 						{@const defIconColor = defFmIcon ? undefined : defIconEntry?.color}
 						<div class="mb-1">
 							<button
-								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent transition-colors cursor-pointer"
+								class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none"
 								onclick={() => toggleSection(section.metadata.name)}
 								oncontextmenu={() => { sectionContextPath = defPath; contextTarget = null; }}
 							>
-								<ChevronRight class="size-3 shrink-0 transition-transform {collapsed ? '' : 'rotate-90'}" />
+								<ChevronRight class="size-3.5 shrink-0 text-muted-foreground transition-transform {collapsed ? '' : 'rotate-90'}" />
 								{#if defResolvedIcon}
-									<IconRenderer icon={defResolvedIcon} class="size-3.5 shrink-0" color={defIconColor} />
+									<IconRenderer icon={defResolvedIcon} class="size-4 shrink-0" color={defIconColor} />
 								{/if}
 								<span class="truncate">
 									{section.metadata.sidebarLabel}
 								</span>
-								<span class="ml-auto text-xs text-muted-foreground">{section.notes.length}</span>
+								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{section.notes.length}</span>
 							</button>
 							{#if !collapsed}
-								<div class="pl-4">
+								<div>
 									{#each section.notes as note (note.path)}
 										{@const customEntry = fileIconsStore.getIcon(note.path)}
 										{@const fmRef = fileIconsStore.getFrontmatterIcon(note.path)}
@@ -200,20 +200,24 @@
 										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
 										{@const resolvedIcon = fmIcon ?? customIcon}
 										{@const iconColor = fmIcon ? undefined : customEntry?.color}
+										{@const iconTextColor = fmIcon ? undefined : customEntry?.textColor}
 										{@const isActive = note.path === activePath}
 										<Tooltip.Root>
 											<Tooltip.Trigger>
 												{#snippet child({ props: tipProps })}
 													<button
 														{...tipProps}
-														class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm transition-colors truncate cursor-pointer {isActive ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
+														class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
+														style="padding-left: 40px;"
 														onclick={() => openFileInEditor(note.path)}
 														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; }}
 													>
 														{#if resolvedIcon}
-															<IconRenderer icon={resolvedIcon} class="size-3.5 shrink-0" color={iconColor} />
+															<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={iconColor} />
+														{:else}
+															<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 														{/if}
-														<span class="truncate">{note.title}</span>
+														<span class="truncate {isActive ? 'text-primary' : ''}" style:color={!isActive && iconTextColor ? iconTextColor : undefined}>{note.title}</span>
 													</button>
 												{/snippet}
 											</Tooltip.Trigger>
@@ -229,16 +233,15 @@
 						{@const untypedCollapsed = collapsedSections.has('__untyped')}
 						<div class="mb-1 mt-2 border-t border-border pt-1">
 							<button
-								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+								class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none"
 								onclick={() => toggleSection('__untyped')}
 							>
-								<ChevronRight class="size-3 shrink-0 transition-transform {untypedCollapsed ? '' : 'rotate-90'}" />
-								<FileText class="size-3.5 shrink-0" />
+								<ChevronRight class="size-3.5 shrink-0 text-muted-foreground transition-transform {untypedCollapsed ? '' : 'rotate-90'}" />
 								<span>Untyped</span>
-								<span class="ml-auto text-xs">{untyped.length}</span>
+								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{untyped.length}</span>
 							</button>
 							{#if !untypedCollapsed}
-								<div class="pl-4">
+								<div>
 									{#each untyped as note (note.path)}
 										{@const customEntry = fileIconsStore.getIcon(note.path)}
 										{@const fmRef = fileIconsStore.getFrontmatterIcon(note.path)}
@@ -246,20 +249,24 @@
 										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
 										{@const resolvedIcon = fmIcon ?? customIcon}
 										{@const iconColor = fmIcon ? undefined : customEntry?.color}
+										{@const iconTextColor = fmIcon ? undefined : customEntry?.textColor}
 										{@const isActive = note.path === activePath}
 										<Tooltip.Root>
 											<Tooltip.Trigger>
 												{#snippet child({ props: tipProps })}
 													<button
 														{...tipProps}
-														class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm transition-colors truncate cursor-pointer {isActive ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
+														class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
+														style="padding-left: 40px;"
 														onclick={() => openFileInEditor(note.path)}
 														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; }}
 													>
 														{#if resolvedIcon}
-															<IconRenderer icon={resolvedIcon} class="size-3.5 shrink-0" color={iconColor} />
+															<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={iconColor} />
+														{:else}
+															<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 														{/if}
-														<span class="truncate">{note.title}</span>
+														<span class="truncate {isActive ? 'text-primary' : ''}" style:color={!isActive && iconTextColor ? iconTextColor : undefined}>{note.title}</span>
 													</button>
 												{/snippet}
 											</Tooltip.Trigger>
