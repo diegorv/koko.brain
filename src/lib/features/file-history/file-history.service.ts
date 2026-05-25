@@ -81,22 +81,27 @@ export async function selectSnapshot(snapshot: SnapshotInfo): Promise<void> {
  */
 export async function restoreSnapshot(snapshotId: number): Promise<void> {
 	debug('HISTORY', `Restoring snapshot id=${snapshotId}`);
-	const restoredContent = await invoke<string>('get_snapshot_content', { snapshotId });
-	const filePath = fileHistoryStore.filePath;
-	if (!filePath) return;
+	try {
+		const restoredContent = await invoke<string>('get_snapshot_content', { snapshotId });
+		const filePath = fileHistoryStore.filePath;
+		if (!filePath) return;
 
-	// Dispatch to CodeMirror to replace content
-	const view = editorStore.editorView;
-	if (view) {
-		view.dispatch({
-			changes: { from: 0, to: view.state.doc.length, insert: restoredContent },
-		});
+		// Dispatch to CodeMirror to replace content
+		const view = editorStore.editorView;
+		if (view) {
+			view.dispatch({
+				changes: { from: 0, to: view.state.doc.length, insert: restoredContent },
+			});
+		}
+
+		// Trigger a normal save -- runs through editor save hooks
+		debug('HISTORY', 'Saving restored content via normal save flow for:', filePath);
+		await saveCurrentFile();
+		fileHistoryStore.reset();
+	} catch (err) {
+		error('HISTORY', 'Failed to restore snapshot:', err);
+		throw err;
 	}
-
-	// Trigger a normal save — runs through editor save hooks
-	debug('HISTORY', 'Saving restored content via normal save flow for:', filePath);
-	await saveCurrentFile();
-	fileHistoryStore.reset();
 }
 
 /**
