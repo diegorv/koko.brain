@@ -222,7 +222,7 @@
 														class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
 														style="padding-left: 40px;"
 														onclick={() => openFileInEditor(note.path)}
-														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; }}
+														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; sectionContextName = null; }}
 													>
 														{#if resolvedIcon}
 															<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={iconColor} />
@@ -271,7 +271,7 @@
 														class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
 														style="padding-left: 40px;"
 														onclick={() => openFileInEditor(note.path)}
-														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; }}
+														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; sectionContextName = null; }}
 													>
 														{#if resolvedIcon}
 															<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={iconColor} />
@@ -343,6 +343,12 @@
 						</ContextMenu.Item>
 					</ContextMenu.SubContent>
 				</ContextMenu.Sub>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Item onclick={() => handleSectionChangeIcon(target.path)}>
+					<Palette class="size-4" />
+					<span>Change icon</span>
+				</ContextMenu.Item>
 				<ContextMenu.Separator />
 
 				<ContextMenu.Item onclick={() => handleRevealInFinder(target)}>
