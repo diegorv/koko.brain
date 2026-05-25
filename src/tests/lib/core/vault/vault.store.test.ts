@@ -115,6 +115,37 @@ describe('vaultStore', () => {
 		});
 	});
 
+	describe('removeRecent', () => {
+		it('removes a vault from the recent list', () => {
+			vaultStore.open('/vault-a');
+			vaultStore.open('/vault-b');
+
+			vaultStore.removeRecent('/vault-a');
+
+			expect(vaultStore.recentVaults).toHaveLength(1);
+			expect(vaultStore.recentVaults[0].path).toBe('/vault-b');
+		});
+
+		it('persists the updated list to localStorage', () => {
+			vaultStore.open('/vault-a');
+			vi.clearAllMocks();
+
+			vaultStore.removeRecent('/vault-a');
+
+			expect(localStorageMock.setItem).toHaveBeenCalledOnce();
+			const parsed = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+			expect(parsed).toHaveLength(0);
+		});
+
+		it('is a no-op for paths not in the list', () => {
+			vaultStore.open('/vault-a');
+			vaultStore.removeRecent('/nonexistent');
+
+			expect(vaultStore.recentVaults).toHaveLength(1);
+			expect(vaultStore.recentVaults[0].path).toBe('/vault-a');
+		});
+	});
+
 	describe('vaultIndexVersion', () => {
 		it('starts at 0', () => {
 			expect(vaultStore.vaultIndexVersion).toBe(0);
