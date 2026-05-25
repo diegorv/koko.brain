@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 2
 
 # Add type, relationship, and lifecycle field resolvers to collection filters

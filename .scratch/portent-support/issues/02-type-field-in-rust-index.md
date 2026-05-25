@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 1
 
 # Add is_a type field to NoteEntryV2 and vault index

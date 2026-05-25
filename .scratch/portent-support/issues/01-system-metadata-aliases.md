@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 1
 
 # System metadata aliases for frontmatter normalization

@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Phase: 3
 
 # Type-grouped sidebar mode
