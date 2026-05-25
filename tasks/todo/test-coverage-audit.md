@@ -8,31 +8,31 @@ Audit of `src/tests/` (255 unit tests) and `e2e/specs/` (41 specs, 150+ tests) r
 
 ### Part A: Missing Unit Tests (New Files)
 
-- [ ] Task 1: Create `type-definitions.store.test.ts`
+- [x] Task 1: Create `type-definitions.store.test.ts`
   - Source: `src/lib/features/type-definitions/type-definitions.store.svelte.ts`
   - Test: `src/tests/lib/features/type-definitions/type-definitions.store.test.ts`
   - Cover: initial state, setTypeMetadataMap, getTypeMetadata (existing + unknown), `sortedTypes` computed getter (sorted by order, empty), setEntries bumps entriesVersion, reset
   - ~9 tests
 
-- [ ] Task 2: Create `lifecycle-filter.store.test.ts`
+- [x] Task 2: Create `lifecycle-filter.store.test.ts`
   - Source: `src/lib/features/properties/lifecycle-filter.store.svelte.ts`
   - Test: `src/tests/lib/features/properties/lifecycle-filter.store.test.ts`
   - Cover: initial state, setArchivedPaths (updates Set + count), isArchived (hit + miss), empty Set edge case, reset
   - ~7 tests
 
-- [ ] Task 3: Create `file-history.store.test.ts`
+- [x] Task 3: Create `file-history.store.test.ts`
   - Source: `src/lib/features/file-history/file-history.store.svelte.ts`
   - Test: `src/tests/lib/features/file-history/file-history.store.test.ts`
   - Cover: initial state (all 9 fields), each setter updates corresponding getter, setBackedUpTimestamps with Set, reset restores all defaults
   - ~12 tests
 
-- [ ] Task 4: Create `color-presets.test.ts`
+- [x] Task 4: Create `color-presets.test.ts`
   - Source: `src/lib/utils/color-presets.ts`
   - Test: `src/tests/lib/utils/color-presets.test.ts`
   - Cover: COLOR_PRESET_BG has 7 keys, values are rgba() with alpha 0.15, COLOR_PRESET_TEXT has same 7 keys, values are rgb(), both maps share same key set, spot-check specific values
   - ~5 tests
 
-- [ ] Task 5: Create `app-channel.test.ts`
+- [x] Task 5: Create `app-channel.test.ts`
   - Source: `src/lib/utils/app-channel.ts`
   - Test: `src/tests/lib/utils/app-channel.test.ts`
   - Cover: getBuildChannel() returns 'stable' in vitest (no define injection), return type is string
@@ -40,19 +40,19 @@ Audit of `src/tests/` (255 unit tests) and `e2e/specs/` (41 specs, 150+ tests) r
 
 ### Part B: Missing Coverage in Existing Store Tests
 
-- [ ] Task 6: Add `relationshipBacklinks` coverage to `backlinks.store.test.ts`
+- [x] Task 6: Add `relationshipBacklinks` coverage to `backlinks.store.test.ts`
   - Source getter: `backlinksStore.relationshipBacklinks` (line 13)
   - Source setter: `backlinksStore.setRelationshipBacklinks()` (line 21)
   - Source reset: clears it (line 28)
   - Add 3 tests: set updates getter, initial state check, reset clears it
 
-- [ ] Task 7: Add `externalContentSignal` coverage to `editor.store.test.ts`
+- [x] Task 7: Add `externalContentSignal` coverage to `editor.store.test.ts`
   - Source getter: `editorStore.externalContentSignal` (line 49)
   - Source method: `editorStore.bumpExternalContentSignal()` (line 116)
   - Source reset: resets to 0 (line 171)
   - Add 4 tests: starts at 0, bump increments, multiple bumps are monotonic, reset returns to 0
 
-- [ ] Task 8: Add `removeRecent` coverage to `vault.store.test.ts`
+- [x] Task 8: Add `removeRecent` coverage to `vault.store.test.ts`
   - Source method: `vaultStore.removeRecent(path)` (line 67)
   - Add 3 tests: removes vault from list, persists updated list, no-op for non-existent path
 
