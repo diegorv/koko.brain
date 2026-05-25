@@ -6,6 +6,9 @@ export const TASKS_VIRTUAL_PATH = '__virtual__/tasks';
 /** Virtual path used for the singleton Graph View tab */
 export const GRAPH_VIRTUAL_PATH = '__virtual__/graph';
 
+/** Virtual path used for the singleton Tags tab */
+export const TAGS_VIRTUAL_PATH = '__virtual__/tags';
+
 /** Returns true if the tab represents a virtual (non-file) view */
 export function isVirtualTab(tab: Pick<EditorTab, 'path'>): boolean {
 	return tab.path.startsWith('__virtual__/');

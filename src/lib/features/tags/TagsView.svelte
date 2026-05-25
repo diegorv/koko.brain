@@ -1,0 +1,104 @@
+<script lang="ts">
+	import { untrack } from 'svelte';
+	import ArrowDownAZ from 'lucide-svelte/icons/arrow-down-az';
+	import ArrowDown01 from 'lucide-svelte/icons/arrow-down-01';
+	import Filter from 'lucide-svelte/icons/filter';
+	import { tagsStore } from './tags.store.svelte';
+	import { scheduleTagIndexRebuild, updateTagSort } from './tags.service';
+	import { filterTagTree } from './tags.logic';
+	import { searchStore } from '$lib/features/search/search.store.svelte';
+	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { saveSettings } from '$lib/core/settings/settings.service';
+	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { debounce } from '$lib/utils/debounce';
+	import { setTagColor } from './tag-colors.logic';
+	import { error } from '$lib/utils/debug';
+	import TagItem from './TagItem.svelte';
+
+	const MIN_COUNT_THRESHOLD = 10;
+
+	const debouncedSave = debounce(() => {
+		if (vaultStore.path) {
+			saveSettings(vaultStore.path).catch((err) =>
+				error('TAGS', 'Failed to save tag colors:', err)
+			);
+		}
+	}, 300);
+
+	function handleTagClick(tag: string) {
+		searchStore.setQuery(`tag:${tag}`);
+		searchStore.setOpen(true);
+	}
+
+	function handleColorChange(tag: string, color: string | undefined) {
+		const updated = setTagColor(settingsStore.tagColors.colors, tag, color);
+		settingsStore.updateTagColors({ colors: updated });
+		debouncedSave();
+	}
+
+	function toggleSort() {
+		const newMode = tagsStore.sortMode === 'name' ? 'count' : 'name';
+		updateTagSort(newMode);
+	}
+
+	function toggleFilter() {
+		tagsStore.setHideRareTags(!tagsStore.hideRareTags);
+	}
+
+	let displayedTree = $derived(
+		tagsStore.hideRareTags
+			? filterTagTree(tagsStore.tagTree, MIN_COUNT_THRESHOLD)
+			: tagsStore.tagTree,
+	);
+
+	$effect(() => {
+		void vaultStore.vaultIndexVersion;
+		untrack(() => {
+			scheduleTagIndexRebuild();
+		});
+	});
+</script>
+
+<div class="flex h-full flex-col overflow-hidden">
+	<div class="flex items-center h-10 px-4 shrink-0 border-b border-border">
+		<h2 class="font-semibold text-sm text-primary">Tags</h2>
+		{#if !tagsStore.isLoading}
+			<span class="ml-2 text-xs text-muted-foreground">
+				{tagsStore.totalTagCount} {tagsStore.totalTagCount === 1 ? 'tag' : 'tags'}
+			</span>
+		{/if}
+		<div class="ml-auto flex items-center gap-1">
+			<button
+				class="p-1.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				onclick={toggleFilter}
+				title="{tagsStore.hideRareTags ? 'Show all tags' : 'Hide rare tags'}"
+			>
+				<Filter class="size-4 {tagsStore.hideRareTags ? 'text-primary' : 'text-muted-foreground'}" />
+			</button>
+			<button
+				class="p-1.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				onclick={toggleSort}
+				title="Sort by {tagsStore.sortMode === 'name' ? 'frequency' : 'name'}"
+			>
+				{#if tagsStore.sortMode === 'name'}
+					<ArrowDownAZ class="size-4 text-muted-foreground" />
+				{:else}
+					<ArrowDown01 class="size-4 text-muted-foreground" />
+				{/if}
+			</button>
+		</div>
+	</div>
+	<div class="flex-1 overflow-y-auto p-3">
+		{#if tagsStore.isLoading}
+			<p class="text-muted-foreground px-2 py-8 text-center">Indexing tags...</p>
+		{:else if displayedTree.length === 0}
+			<p class="text-muted-foreground px-2 py-8 text-center">No tags found</p>
+		{:else}
+			<div class="space-y-0.5">
+				{#each displayedTree as node (node.fullPath)}
+					<TagItem {node} onTagClick={handleTagClick} onColorChange={handleColorChange} />
+				{/each}
+			</div>
+		{/if}
+	</div>
+</div>

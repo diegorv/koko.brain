@@ -12,7 +12,6 @@
 	import EditorView from '$lib/core/markdown-editor/EditorView.svelte';
 	import BacklinksPanel from '$lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '$lib/features/outgoing-links/OutgoingLinksPanel.svelte';
-	import TagsPanel from '$lib/features/tags/TagsPanel.svelte';
 	import PropertiesView from '$lib/features/properties/PropertiesView.svelte';
 	import SearchPanel from '$lib/features/search/SearchPanel.svelte';
 	import CalendarPanel from '$lib/plugins/calendar/CalendarPanel.svelte';
@@ -115,9 +114,6 @@
 									{/if}
 									{#if settingsStore.layout.outgoingLinksVisible}
 										<OutgoingLinksPanel />
-									{/if}
-									{#if settingsStore.layout.tagsVisible}
-										<TagsPanel />
 									{/if}
 									{#if settingsStore.layout.tableOfContentsVisible}
 										<TableOfContentsPanel />

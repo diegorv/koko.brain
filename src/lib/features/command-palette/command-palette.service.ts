@@ -25,6 +25,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
+import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { toggleTerminal } from '$lib/plugins/terminal/terminal.service';
@@ -143,6 +144,14 @@ export function getBuiltInCommands(): AppCommand[] {
 			shortcut: { meta: true, shift: true, key: 't' },
 			action: () => {
 				toggleTasksTab();
+			},
+		},
+		{
+			id: 'tags:toggle',
+			label: 'Toggle Tags View',
+			category: 'Navigation',
+			action: () => {
+				toggleTagsTab();
 			},
 		},
 		{

@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
 import { debounce } from '$lib/utils/debounce';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { findTabIndex, TAGS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { tagsStore } from './tags.store.svelte';
 import { buildTagTree, sortTagTree } from './tags.logic';
 import type { TagAggregateV2 } from '$lib/types/vault-v2.types';
@@ -105,10 +107,47 @@ export async function flushScheduledTagIndexRebuild(): Promise<void> {
 	}
 }
 
+/** Opens or focuses the Tags tab. Creates it if it doesn't exist. */
+export function openTagsTab(): void {
+	const existingIndex = findTabIndex(editorStore.tabs, TAGS_VIRTUAL_PATH);
+	if (existingIndex >= 0) {
+		editorStore.setActiveIndex(existingIndex);
+		return;
+	}
+	editorStore.addTab({
+		path: TAGS_VIRTUAL_PATH,
+		name: 'Tags',
+		content: '',
+		savedContent: '',
+		fileType: 'tags',
+	});
+}
+
+/** Closes the Tags tab if it exists. */
+export function closeTagsTab(): void {
+	const index = findTabIndex(editorStore.tabs, TAGS_VIRTUAL_PATH);
+	if (index >= 0) {
+		editorStore.removeTab(index);
+	}
+}
+
+/** Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active. */
+export function toggleTagsTab(): void {
+	const existingIndex = findTabIndex(editorStore.tabs, TAGS_VIRTUAL_PATH);
+	if (existingIndex < 0) {
+		openTagsTab();
+	} else if (existingIndex === editorStore.activeIndex) {
+		editorStore.removeTab(existingIndex);
+	} else {
+		editorStore.setActiveIndex(existingIndex);
+	}
+}
+
 /** Resets all tag state and cancels any pending scheduled rebuild. */
 export function resetTags(): void {
 	debouncedTrigger.cancel();
 	isBuilding = false;
 	pendingRebuild = false;
 	tagsStore.reset();
+	closeTagsTab();
 }

@@ -54,16 +54,6 @@
 		/>
 	</SettingItem>
 
-	<SettingItem label="Tags" description="Show the tags panel in the right sidebar">
-		<Switch
-			checked={settingsStore.layout.tagsVisible}
-			onCheckedChange={(v) => {
-				settingsStore.updateLayout({ tagsVisible: v });
-				onchange();
-			}}
-		/>
-	</SettingItem>
-
 	<SettingItem label="Table of Contents" description="Show the document outline panel in the right sidebar">
 		<Switch
 			checked={settingsStore.layout.tableOfContentsVisible}

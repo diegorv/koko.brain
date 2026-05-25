@@ -11,6 +11,7 @@
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import CollectionView from '$lib/features/collection/CollectionView.svelte';
 	import TasksView from '$lib/features/tasks/TasksView.svelte';
+	import TagsView from '$lib/features/tags/TagsView.svelte';
 	import GraphView from '$lib/plugins/graph-view/GraphView.svelte';
 	import CanvasView from '$lib/features/canvas/CanvasView.svelte';
 	import KanbanView from '$lib/plugins/kanban/KanbanView.svelte';
@@ -27,6 +28,7 @@
 	let isCanvasTab = $derived(editorStore.activeTab?.fileType === 'canvas');
 	let isKanbanTab = $derived(editorStore.activeTab?.fileType === 'kanban');
 	let isTasksTab = $derived(editorStore.activeTab?.fileType === 'tasks');
+	let isTagsTab = $derived(editorStore.activeTab?.fileType === 'tags');
 	let isGraphTab = $derived(editorStore.activeTab?.fileType === 'graph');
 	let isVirtual = $derived(editorStore.activeTab ? isVirtualTab(editorStore.activeTab) : false);
 
@@ -45,6 +47,8 @@
 		<div class="relative flex-1 min-h-0 bg-card">
 			{#if isTasksTab}
 				<TasksView />
+			{:else if isTagsTab}
+				<TagsView />
 			{:else if isGraphTab}
 				<GraphView />
 			{:else if isKanbanTab && !kanbanSourceMode}

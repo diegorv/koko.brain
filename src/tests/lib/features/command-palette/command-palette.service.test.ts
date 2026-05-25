@@ -89,10 +89,10 @@ describe('getBuiltInCommands', () => {
 		settingsDialogStore.reset();
 	});
 
-	it('returns 24 built-in commands', () => {
+	it('returns 25 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(24);
+		expect(commands).toHaveLength(25);
 	});
 
 	it('every command has required fields', () => {
