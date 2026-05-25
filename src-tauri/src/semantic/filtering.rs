@@ -37,8 +37,10 @@ pub fn adaptive_filter(results: &[SemanticResult]) -> Option<FilterOutcome> {
 		}
 	}
 
-	// If the largest gap is significant (>4% of top score), cut there
-	let gap_threshold = top_score * 0.04;
+	// If the largest gap is significant (>4% of top score magnitude), cut there.
+	// abs() prevents negative reranker logits from making the threshold negative
+	// (which would cause any trivial gap to trigger the filter).
+	let gap_threshold = top_score.abs() * 0.04;
 	if max_gap > gap_threshold && gap_idx < scores.len() - 1 {
 		let cut_at = gap_idx + 1;
 		return Some(FilterOutcome {
