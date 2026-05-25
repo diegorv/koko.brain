@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ask } from '@tauri-apps/plugin-dialog';
+	import { icons } from '@lucide/svelte';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import FileText from 'lucide-svelte/icons/file-text';
 	import ExternalLink from 'lucide-svelte/icons/external-link';
@@ -9,10 +10,14 @@
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
+	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -20,12 +25,33 @@
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 
+	const TYPE_COLORS: Record<string, string> = {
+		red: '#ef4444',
+		blue: '#3b82f6',
+		purple: '#a855f7',
+		green: '#22c55e',
+		orange: '#f97316',
+		yellow: '#eab308',
+		pink: '#ec4899',
+		gray: '#9ca3af',
+	};
+
+	function toPascalCase(s: string): string {
+		return s.replace(/(^|[-_])(\w)/g, (_, __, c) => c.toUpperCase());
+	}
+
+	function getIconComponent(iconName: string) {
+		const key = toPascalCase(iconName) as keyof typeof icons;
+		return (icons[key] as unknown as typeof FileText) ?? FileText;
+	}
+
 	let filter = $state<SidebarFilter>('all');
 	let sections = $state<TypeSection[]>([]);
 	let untyped = $state<TypeSidebarNote[]>([]);
 	let inboxCount = $state(0);
 	let collapsedSections = $state<Set<string>>(new Set());
 	let contextTarget = $state<TypeSidebarNote | null>(null);
+	let activePath = $derived(editorStore.activeTabPath);
 	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
 	let filterTabs = $derived([
 		{ id: 'all' as SidebarFilter, label: 'All' },
@@ -33,6 +59,8 @@
 		{ id: 'archived' as SidebarFilter, label: 'Archived' },
 		{ id: 'favorites' as SidebarFilter, label: 'Favorites' },
 	]);
+
+	let initialized = false;
 
 	$effect(() => {
 		const _version = typeDefinitionsStore.entriesVersion;
@@ -42,6 +70,13 @@
 		sections = result.sections;
 		untyped = result.untyped;
 		inboxCount = countInbox(entries);
+		if (!initialized) {
+			initialized = true;
+			const collapsed = new Set<string>();
+			for (const s of result.sections) collapsed.add(s.metadata.name);
+			if (result.untyped.length > 0) collapsed.add('__untyped');
+			collapsedSections = collapsed;
+		}
 	});
 
 	function rebuildFromCache() {
@@ -124,13 +159,16 @@
 				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
 					{#each sections as section (section.metadata.name)}
 						{@const collapsed = collapsedSections.has(section.metadata.name)}
+						{@const SectionIcon = getIconComponent(section.metadata.icon)}
+						{@const sectionColor = TYPE_COLORS[section.metadata.color] ?? TYPE_COLORS.gray}
 						<div class="mb-1">
 							<button
 								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent transition-colors cursor-pointer"
 								onclick={() => toggleSection(section.metadata.name)}
 							>
 								<ChevronRight class="size-3 shrink-0 transition-transform {collapsed ? '' : 'rotate-90'}" />
-								<span class="truncate" style="color: var(--color-{section.metadata.color}, inherit)">
+								<SectionIcon class="size-3.5 shrink-0" style="color: {sectionColor}" />
+								<span class="truncate" style="color: {sectionColor}">
 									{section.metadata.sidebarLabel}
 								</span>
 								<span class="ml-auto text-xs text-muted-foreground">{section.notes.length}</span>
@@ -138,13 +176,31 @@
 							{#if !collapsed}
 								<div class="pl-4">
 									{#each section.notes as note (note.path)}
-										<button
-											class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors truncate cursor-pointer"
-											onclick={() => openFileInEditor(note.path)}
-											oncontextmenu={() => { contextTarget = note; }}
-										>
-											{note.title}
-										</button>
+										{@const customEntry = fileIconsStore.getIcon(note.path)}
+										{@const fmRef = fileIconsStore.getFrontmatterIcon(note.path)}
+										{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
+										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
+										{@const resolvedIcon = fmIcon ?? customIcon}
+										{@const iconColor = fmIcon ? undefined : customEntry?.color}
+										{@const isActive = note.path === activePath}
+										<Tooltip.Root>
+											<Tooltip.Trigger>
+												{#snippet child({ props: tipProps })}
+													<button
+														{...tipProps}
+														class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm transition-colors truncate cursor-pointer {isActive ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
+														onclick={() => openFileInEditor(note.path)}
+														oncontextmenu={() => { contextTarget = note; }}
+													>
+														{#if resolvedIcon}
+															<IconRenderer icon={resolvedIcon} class="size-3.5 shrink-0" color={iconColor} />
+														{/if}
+														<span class="truncate">{note.title}</span>
+													</button>
+												{/snippet}
+											</Tooltip.Trigger>
+											<Tooltip.Content side="right">{note.title}</Tooltip.Content>
+										</Tooltip.Root>
 									{/each}
 								</div>
 							{/if}
@@ -166,13 +222,31 @@
 							{#if !untypedCollapsed}
 								<div class="pl-4">
 									{#each untyped as note (note.path)}
-										<button
-											class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors truncate cursor-pointer"
-											onclick={() => openFileInEditor(note.path)}
-											oncontextmenu={() => { contextTarget = note; }}
-										>
-											{note.title}
-										</button>
+										{@const customEntry = fileIconsStore.getIcon(note.path)}
+										{@const fmRef = fileIconsStore.getFrontmatterIcon(note.path)}
+										{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
+										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
+										{@const resolvedIcon = fmIcon ?? customIcon}
+										{@const iconColor = fmIcon ? undefined : customEntry?.color}
+										{@const isActive = note.path === activePath}
+										<Tooltip.Root>
+											<Tooltip.Trigger>
+												{#snippet child({ props: tipProps })}
+													<button
+														{...tipProps}
+														class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm transition-colors truncate cursor-pointer {isActive ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
+														onclick={() => openFileInEditor(note.path)}
+														oncontextmenu={() => { contextTarget = note; }}
+													>
+														{#if resolvedIcon}
+															<IconRenderer icon={resolvedIcon} class="size-3.5 shrink-0" color={iconColor} />
+														{/if}
+														<span class="truncate">{note.title}</span>
+													</button>
+												{/snippet}
+											</Tooltip.Trigger>
+											<Tooltip.Content side="right">{note.title}</Tooltip.Content>
+										</Tooltip.Root>
 									{/each}
 								</div>
 							{/if}
