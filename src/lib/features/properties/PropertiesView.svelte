@@ -14,6 +14,7 @@
 	} from './properties.service';
 	import type { PropertyType } from './properties.types';
 	import PropertyField from './PropertyField.svelte';
+	import LifecycleActions from './LifecycleActions.svelte';
 
 	let newKeyInput = $state('');
 	let isAddingProperty = $state(false);
@@ -94,6 +95,10 @@
 		{/if}
 	</div>
 	<Separator />
+	{#if editorStore.activeTab && (!editorStore.activeTab.fileType || editorStore.activeTab.fileType === 'markdown')}
+		<LifecycleActions />
+		<Separator />
+	{/if}
 	<div class="max-h-[50vh] overflow-y-auto p-2">
 		{#if !editorStore.activeTab}
 			<p class="text-muted-foreground px-2 py-4 text-center">No file open</p>
