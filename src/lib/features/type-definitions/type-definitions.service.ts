@@ -1,8 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
-import { readDir } from '@tauri-apps/plugin-fs';
+import { readDir, writeTextFile } from '@tauri-apps/plugin-fs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { createFile } from '$lib/core/filesystem/fs.service';
 import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
 import { buildTypeMetadataMap } from './type-definitions.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
@@ -28,4 +30,14 @@ export async function createNoteOfType(typeName: string): Promise<void> {
 		: undefined;
 	const inlineTemplate = `---\ntype: ${typeName}\n---\n`;
 	await openOrCreateNote({ filePath, templatePath, inlineTemplate, title });
+}
+
+/** Creates a type definition note with default frontmatter and opens it. */
+export async function createTypeDefinition(typeName: string): Promise<void> {
+	if (!vaultStore.path) return;
+	const content = `---\ntype: Type\n_visible: true\n---\n\n# ${typeName}\n`;
+	const filePath = await createFile(vaultStore.path, `${typeName}.md`);
+	if (!filePath) return;
+	await writeTextFile(filePath, content);
+	openFileInEditor(filePath);
 }

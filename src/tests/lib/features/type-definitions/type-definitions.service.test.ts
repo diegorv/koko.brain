@@ -5,6 +5,7 @@ setupLocalStorage();
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readDir: vi.fn(),
+	writeTextFile: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -15,15 +16,25 @@ vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
+vi.mock('$lib/core/editor/editor.service', () => ({
+	openFileInEditor: vi.fn(),
+}));
+
+vi.mock('$lib/core/filesystem/fs.service', () => ({
+	createFile: vi.fn(),
+}));
+
 vi.mock('$lib/utils/log.service', () => ({
 	appendLog: vi.fn(),
 }));
 
-import { readDir } from '@tauri-apps/plugin-fs';
+import { readDir, writeTextFile } from '@tauri-apps/plugin-fs';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { createFile } from '$lib/core/filesystem/fs.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { createNoteOfType } from '$lib/features/type-definitions/type-definitions.service';
+import { createNoteOfType, createTypeDefinition } from '$lib/features/type-definitions/type-definitions.service';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
@@ -108,5 +119,48 @@ describe('createNoteOfType', () => {
 				title: 'Untitled Project 1',
 			}),
 		);
+	});
+});
+
+describe('createTypeDefinition', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+	});
+
+	afterEach(() => {
+		vaultStore._reset();
+		clearLocalStorage();
+	});
+
+	it('does nothing when vault path is not set', async () => {
+		vaultStore._reset();
+		await createTypeDefinition('Sprint');
+		expect(createFile).not.toHaveBeenCalled();
+	});
+
+	it('creates type definition file with frontmatter and opens it', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
+
+		await createTypeDefinition('Sprint');
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Sprint.md');
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/Sprint.md',
+			'---\ntype: Type\n_visible: true\n---\n\n# Sprint\n',
+		);
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Sprint.md');
+	});
+
+	it('does not write or open when createFile returns null', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValue(null);
+
+		await createTypeDefinition('Sprint');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 });

@@ -14,8 +14,8 @@
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { createFile, deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
-	import { createNoteOfType } from './type-definitions.service';
+	import { deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
+	import { createNoteOfType, createTypeDefinition } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
@@ -120,16 +120,6 @@
 		if (confirmed) {
 			await deleteItem(note.path, false);
 		}
-	}
-
-	async function handleCreateTypeDefinition(typeName: string) {
-		if (!vaultStore.path) return;
-		const content = `---\ntype: Type\n_visible: true\n---\n\n# ${typeName}\n`;
-		const filePath = await createFile(vaultStore.path, `${typeName}.md`);
-		if (!filePath) return;
-		const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-		await writeTextFile(filePath, content);
-		openFileInEditor(filePath);
 	}
 
 	function handleSectionChangeIcon(path: string) {
@@ -342,7 +332,7 @@
 					<span>New {name}</span>
 				</ContextMenu.Item>
 				<ContextMenu.Separator />
-				<ContextMenu.Item onclick={() => handleCreateTypeDefinition(name)}>
+				<ContextMenu.Item onclick={() => createTypeDefinition(name)}>
 					<FileText class="size-4" />
 					<span>Create type definition</span>
 				</ContextMenu.Item>
