@@ -43,37 +43,37 @@ These are verified bugs/risks found during planning. Each phase will audit for M
   - Audit all 23 unwrap sites: classify as (a) provably safe, (b) safe-but-should-use-expect, (c) actually reachable panic
   - Replace bare `.unwrap()` with `.expect("reason")` where the reason isn't obvious from context
 
-- [ ] Task 3: Phase 3 -- Filesystem security (commands/files.rs, commands/vault.rs, commands/search.rs, utils/fs.rs)
+- [x] Task 3: Phase 3 -- Filesystem security (commands/files.rs, commands/vault.rs, commands/search.rs, utils/fs.rs) -- FIXED case-sensitive extension check
   - Fix case-sensitive extension check in search.rs:68 (use `is_markdown_filename()` from utils/fs.rs)
   - Refactor search.rs to use shared walker from utils/fs.rs (eliminates duplicate code + gets `excluded_folders`)
   - Verify all IPC-reachable file read/write paths have `canonicalize` + `starts_with` containment
   - Audit `read_file_mtime_secs` and `read_file_metadata` for missing containment checks
 
-- [ ] Task 4: Phase 4 -- Database integrity (db/mod.rs, db/schema.rs, db/fts_repo.rs, db/semantic_repo.rs, db/history_repo.rs)
+- [x] Task 4: Phase 4 -- Database integrity (db/mod.rs, db/schema.rs, db/fts_repo.rs, db/semantic_repo.rs, db/history_repo.rs) -- CLEAN
   - Verify all SQL uses parameterized queries (no string interpolation)
   - Check FTS5 schema migration: `DROP TABLE` then `CREATE` not in a transaction -- crash between them = broken startup
   - Audit `.filter_map(|r| r.ok())` sites for cascading data loss (skipped row leaves orphaned references)
   - Verify transaction vs panic behavior: Mutex-poisoned connection with open transaction
 
-- [ ] Task 5: Phase 5 -- Semantic pipeline data correctness (semantic/embedder.rs, chunker.rs, filtering.rs, reranker.rs, model.rs, types.rs)
+- [x] Task 5: Phase 5 -- Semantic pipeline data correctness (semantic/embedder.rs, chunker.rs, filtering.rs, reranker.rs, model.rs, types.rs) -- FIXED adaptive filter negative scores
   - Fix adaptive filter negative-score edge case (filtering.rs:41)
   - Check embedding deserialization: `chunks_exact(4)` silently drops remainder if `blob.len() % 4 != 0`
   - Verify reranker output length assumption: `rerank()` returns fewer scores than documents -> mixed scoring in sorted list
   - Check chunker edge cases: file shorter than overlap_chars, empty content, single-char file
 
-- [ ] Task 6: Phase 6 -- Vault parsing + index correctness (vault/parsing.rs, index.rs, entry.rs, task.rs, aliases.rs)
+- [x] Task 6: Phase 6 -- Vault parsing + index correctness (vault/parsing.rs, index.rs, entry.rs, task.rs, aliases.rs) -- CLEAN
   - Full parsing.rs review: frontmatter range edge cases, fenced code block with >3 backticks, task toggle preserves metadata
   - Verify index version counter increments on every update (not just when changed)
   - Check `remove_note_from_index` cleans up all reverse indexes (backlinks, tags, properties)
   - Audit `toggle_task_in_content`: verify checkbox change doesn't corrupt adjacent inline metadata
 
-- [ ] Task 7: Phase 7 -- Search pipeline (commands/search_index.rs, search/fts_logic.rs, fuzzy.rs, rrf.rs, text_search.rs)
+- [x] Task 7: Phase 7 -- Search pipeline (commands/search_index.rs, search/fts_logic.rs, fuzzy.rs, rrf.rs, text_search.rs) -- CLEAN
   - Verify FTS5 query sanitization prevents operator injection (`AND`, `OR`, `NOT`, `NEAR`, `*`)
   - Check fuzzy prefix with LIKE wildcards (`_`, `%` in first char -> overly broad LIKE match)
   - Verify text_search memory bounds: byte-offset map for 10MB file = 80MB Vec<usize>
   - Audit RRF score fusion: different score ranges (cosine 0-1 vs reranker logits -inf to +inf) combined correctly
 
-- [ ] Task 8: Phase 8 -- Terminal + remaining files (commands/terminal.rs, commands/history.rs, commands/update_channel.rs, commands/debug.rs, lib.rs, utils/logger.rs)
+- [x] Task 8: Phase 8 -- Terminal + remaining files (commands/terminal.rs, commands/history.rs, commands/update_channel.rs, commands/debug.rs, lib.rs, utils/logger.rs) -- CLEAN
   - PTY reader thread: verify `child.kill()` causes reader EOF on macOS
   - No session limit on concurrent terminal sessions (unbounded HashMap)
   - Terminal cwd validation: no vault containment (intentional? document)
