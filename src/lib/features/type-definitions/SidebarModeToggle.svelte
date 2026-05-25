@@ -10,7 +10,7 @@
 	function toggleMode() {
 		const next = settingsStore.layout.sidebarMode === 'files' ? 'types' : 'files';
 		settingsStore.updateLayout({ sidebarMode: next });
-		if (vaultStore.path) saveSettings(vaultStore.path).catch(() => {});
+		if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => { console.error('saveSettings failed:', err); });
 	}
 
 	let isTypesMode = $derived(settingsStore.layout.sidebarMode === 'types');
