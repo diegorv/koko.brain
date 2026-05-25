@@ -6,6 +6,8 @@ import { getTypeMetadataFallback } from './type-definitions.logic';
 export interface TypeSection {
 	/** Type metadata (icon, color, order, label). */
 	metadata: TypeMetadata;
+	/** Path to the type definition note (if it exists). */
+	definitionPath: string | null;
 	/** Notes of this type, sorted. */
 	notes: TypeSidebarNote[];
 }
@@ -27,7 +29,12 @@ export function buildTypeSections(
 ): { sections: TypeSection[]; untyped: TypeSidebarNote[] } {
 	const filtered = applyFilter(entries, filter);
 	const typeGroups = new Map<string, TypeSidebarNote[]>();
+	const typeDefPaths = new Map<string, string>();
 	const untyped: TypeSidebarNote[] = [];
+
+	for (const entry of entries) {
+		if (entry.isA === 'Type') typeDefPaths.set(entry.title, entry.path);
+	}
 
 	for (const entry of filtered) {
 		if (entry.isA === 'Type') continue;
@@ -49,7 +56,7 @@ export function buildTypeSections(
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
 		notes.sort((a, b) => a.title.localeCompare(b.title));
-		sections.push({ metadata, notes });
+		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes });
 	}
 
 	sections.sort((a, b) => a.metadata.order - b.metadata.order);

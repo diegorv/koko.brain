@@ -7,6 +7,7 @@
 	import Pencil from 'lucide-svelte/icons/pencil';
 	import FolderSearch from 'lucide-svelte/icons/folder-search';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import Palette from 'lucide-svelte/icons/palette';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -16,7 +17,10 @@
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
+	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
+	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -30,8 +34,14 @@
 	let inboxCount = $state(0);
 	let collapsedSections = $state<Set<string>>(new Set());
 	let contextTarget = $state<TypeSidebarNote | null>(null);
+	let sectionContextPath = $state<string | null>(null);
+	let iconPickerPath = $state<string | null>(null);
+	let iconPickerOpen = $state(false);
 	let activePath = $derived(editorStore.activeTabPath);
 	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
+	let iconPickerEntry = $derived(
+		iconPickerPath ? fileIconsStore.getIcon(iconPickerPath) : undefined
+	);
 	let filterTabs = $derived([
 		{ id: 'all' as SidebarFilter, label: 'All' },
 		...(inboxEnabled ? [{ id: 'inbox' as SidebarFilter, label: 'Inbox' }] : []),
@@ -108,6 +118,27 @@
 			await deleteItem(note.path, false);
 		}
 	}
+
+	function handleSectionChangeIcon(path: string) {
+		iconPickerPath = path;
+		iconPickerOpen = true;
+	}
+
+	async function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
+		if (!vaultStore.path || !iconPickerPath) return;
+		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
+		await trackRecentIcon(vaultStore.path, pack, name);
+	}
+
+	async function handleIconRemove() {
+		if (!vaultStore.path || !iconPickerPath) return;
+		await removeIconForPath(vaultStore.path, iconPickerPath);
+	}
+
+	function handleIconPickerClose() {
+		iconPickerOpen = false;
+		iconPickerPath = null;
+	}
 </script>
 
 <Tooltip.Provider delayDuration={400}>
@@ -138,12 +169,23 @@
 				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
 					{#each sections as section (section.metadata.name)}
 						{@const collapsed = collapsedSections.has(section.metadata.name)}
+						{@const defPath = section.definitionPath}
+						{@const defIconEntry = defPath ? fileIconsStore.getIcon(defPath) : undefined}
+						{@const defFmRef = defPath ? fileIconsStore.getFrontmatterIcon(defPath) : undefined}
+						{@const defCustomIcon = defIconEntry ? getIconSync(defIconEntry.iconPack, defIconEntry.iconName) : undefined}
+						{@const defFmIcon = defFmRef ? getIconSync(defFmRef.iconPack, defFmRef.iconName) : undefined}
+						{@const defResolvedIcon = defFmIcon ?? defCustomIcon}
+						{@const defIconColor = defFmIcon ? undefined : defIconEntry?.color}
 						<div class="mb-1">
 							<button
 								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent transition-colors cursor-pointer"
 								onclick={() => toggleSection(section.metadata.name)}
+								oncontextmenu={() => { sectionContextPath = defPath; contextTarget = null; }}
 							>
 								<ChevronRight class="size-3 shrink-0 transition-transform {collapsed ? '' : 'rotate-90'}" />
+								{#if defResolvedIcon}
+									<IconRenderer icon={defResolvedIcon} class="size-3.5 shrink-0" color={defIconColor} />
+								{/if}
 								<span class="truncate">
 									{section.metadata.sidebarLabel}
 								</span>
@@ -166,7 +208,7 @@
 														{...tipProps}
 														class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm transition-colors truncate cursor-pointer {isActive ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
 														onclick={() => openFileInEditor(note.path)}
-														oncontextmenu={() => { contextTarget = note; }}
+														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; }}
 													>
 														{#if resolvedIcon}
 															<IconRenderer icon={resolvedIcon} class="size-3.5 shrink-0" color={iconColor} />
@@ -212,7 +254,7 @@
 														{...tipProps}
 														class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm transition-colors truncate cursor-pointer {isActive ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
 														onclick={() => openFileInEditor(note.path)}
-														oncontextmenu={() => { contextTarget = note; }}
+														oncontextmenu={() => { contextTarget = note; sectionContextPath = null; }}
 													>
 														{#if resolvedIcon}
 															<IconRenderer icon={resolvedIcon} class="size-3.5 shrink-0" color={iconColor} />
@@ -232,7 +274,18 @@
 			{/snippet}
 		</ContextMenu.Trigger>
 		<ContextMenu.Content class="w-56">
-			{#if contextTarget}
+			{#if sectionContextPath}
+				{@const path = sectionContextPath}
+				<ContextMenu.Item onclick={() => openFileInEditor(path)}>
+					<ExternalLink class="size-4" />
+					<span>Open type definition</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+				<ContextMenu.Item onclick={() => handleSectionChangeIcon(path)}>
+					<Palette class="size-4" />
+					<span>Change icon</span>
+				</ContextMenu.Item>
+			{:else if contextTarget}
 				{@const target = contextTarget}
 				<ContextMenu.Item onclick={() => handleOpenInNewTab(target)}>
 					<ExternalLink class="size-4" />
@@ -283,3 +336,16 @@
 	</ContextMenu.Root>
 </div>
 </Tooltip.Provider>
+
+{#if iconPickerPath}
+	<IconPicker
+		bind:open={iconPickerOpen}
+		currentPack={iconPickerEntry?.iconPack}
+		currentName={iconPickerEntry?.iconName}
+		currentColor={iconPickerEntry?.color}
+		currentTextColor={iconPickerEntry?.textColor}
+		onSelect={handleIconSelect}
+		onRemove={handleIconRemove}
+		onClose={handleIconPickerClose}
+	/>
+{/if}
