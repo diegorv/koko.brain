@@ -108,11 +108,18 @@ describe('vault-v2.types', () => {
 			// Runtime sanity-check that the keys exist (no rogue snake_case).
 			const keys = Object.keys(entry).sort();
 			expect(keys).toEqual([
+				'archived',
+				'belongsTo',
 				'createdAt',
+				'favorite',
 				'frontmatter',
+				'isA',
 				'modifiedAt',
+				'organized',
 				'outgoingLinks',
 				'path',
+				'relatedTo',
+				'relationships',
 				'size',
 				'snippet',
 				'tags',
