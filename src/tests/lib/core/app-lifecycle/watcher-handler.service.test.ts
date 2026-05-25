@@ -22,6 +22,7 @@ vi.mock('$lib/features/file-icons/file-icons.service', () => ({
 
 vi.mock('$lib/utils/index-dedupe', () => ({
 	clearIndexedEntry: vi.fn(),
+	markIndexed: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/calendar/calendar.service', () => ({
@@ -31,6 +32,10 @@ vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 
 vi.mock('$lib/core/editor/editor.hooks', () => ({
 	areAllRecentSaves: vi.fn(() => false),
+}));
+
+vi.mock('$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget', () => ({
+	invalidateQueryjsCache: vi.fn(),
 }));
 
 vi.mock('$lib/utils/debug', () => ({
