@@ -114,6 +114,19 @@ pub struct OutgoingUnlinkedMention {
 	pub count: usize,
 }
 
+/// A backlink from a frontmatter relationship field.
+/// Carries the source entry info plus the relationship type label.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelationshipBacklink {
+	/// Absolute path of the note that references the target.
+	pub source_path: String,
+	/// Title of the source note.
+	pub source_name: String,
+	/// Relationship type (e.g. "belongs_to", "related_to", or custom field name).
+	pub relationship_type: String,
+}
+
 /// Canonical per-note metadata used by the Rust `VaultIndex`.
 ///
 /// Constructed by Phase 1.5's `scan_vault_v2` and Phase 2's
@@ -165,6 +178,24 @@ pub struct NoteEntry {
 	/// `vault::parsing::extract_tasks` at construction time. Empty Vec when
 	/// the note has no tasks.
 	pub tasks: Vec<Task>,
+	/// Document type from the `type` frontmatter key (after alias resolution).
+	/// Casing normalized: first letter uppercase, rest preserved.
+	/// `None` when the note has no type field.
+	pub is_a: Option<String>,
+	/// Lifecycle flag: note has been explicitly organized. Default `false`.
+	pub organized: bool,
+	/// Lifecycle flag: note is archived (hidden from default views). Default `false`.
+	pub archived: bool,
+	/// Lifecycle flag: note is pinned as a favorite. Default `false`.
+	pub favorite: bool,
+	/// Hierarchical ownership targets from `belongs_to` frontmatter field.
+	/// Wikilink targets extracted from the value (e.g. `[[project]]` -> `"project"`).
+	pub belongs_to: Vec<String>,
+	/// Lateral relationship targets from `related_to` frontmatter field.
+	pub related_to: Vec<String>,
+	/// Generic relationships: frontmatter fields whose values contain wikilinks.
+	/// Key is the field name, value is the list of wikilink targets.
+	pub relationships: BTreeMap<String, Vec<String>>,
 }
 
 impl NoteEntry {
@@ -196,6 +227,13 @@ impl NoteEntry {
 		let outgoing_links = extract_outgoing_links(content);
 		let tags = extract_tags_strict(content);
 		let tasks = extract_tasks(content);
+		let is_a = extract_is_a(&frontmatter);
+		let organized = extract_bool_flag(&frontmatter, "_organized");
+		let archived = extract_bool_flag(&frontmatter, "_archived");
+		let favorite = extract_bool_flag(&frontmatter, "_favorite");
+		let belongs_to = extract_wikilink_targets(&frontmatter, "belongs_to");
+		let related_to = extract_wikilink_targets(&frontmatter, "related_to");
+		let relationships = extract_all_relationships(&frontmatter);
 		let body = strip_frontmatter(content);
 		let word_count = compute_word_count(body);
 		let snippet = compute_snippet(body);
@@ -211,6 +249,13 @@ impl NoteEntry {
 			word_count,
 			snippet,
 			tasks,
+			is_a,
+			organized,
+			archived,
+			favorite,
+			belongs_to,
+			related_to,
+			relationships,
 		}
 	}
 }
@@ -266,4 +311,114 @@ fn compute_snippet(body: &str) -> String {
 		snippet.truncate(end);
 	}
 	snippet
+}
+
+/// Extracts the `type` value from parsed frontmatter and normalizes casing
+/// (first letter uppercase, rest preserved). Returns `None` when absent or
+/// not a string.
+fn extract_is_a(frontmatter: &BTreeMap<String, JsonValue>) -> Option<String> {
+	let val = frontmatter.get("type")?;
+	let s = val.as_str()?;
+	if s.is_empty() {
+		return None;
+	}
+	Some(normalize_type_casing(s))
+}
+
+/// First letter uppercase, rest preserved.
+fn normalize_type_casing(s: &str) -> String {
+	let mut chars = s.chars();
+	match chars.next() {
+		None => String::new(),
+		Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+	}
+}
+
+/// Extracts a boolean flag from frontmatter. Returns `false` when absent
+/// or not a boolean value.
+fn extract_bool_flag(frontmatter: &BTreeMap<String, JsonValue>, key: &str) -> bool {
+	frontmatter
+		.get(key)
+		.and_then(|v| v.as_bool())
+		.unwrap_or(false)
+}
+
+/// Extracts wikilink targets from a frontmatter field value.
+/// Supports string values (`"[[target]]"`) and arrays (`["[[a]]", "[[b]]"]`).
+fn extract_wikilink_targets(frontmatter: &BTreeMap<String, JsonValue>, key: &str) -> Vec<String> {
+	let Some(val) = frontmatter.get(key) else {
+		return Vec::new();
+	};
+	match val {
+		JsonValue::String(s) => extract_wikilinks_from_str(s),
+		JsonValue::Array(arr) => {
+			arr.iter()
+				.filter_map(|v| v.as_str())
+				.flat_map(extract_wikilinks_from_str)
+				.collect()
+		}
+		_ => Vec::new(),
+	}
+}
+
+/// Extracts all frontmatter fields (excluding known system keys) that contain
+/// wikilinks in their values. Returns a map of field name -> wikilink targets.
+fn extract_all_relationships(frontmatter: &BTreeMap<String, JsonValue>) -> BTreeMap<String, Vec<String>> {
+	const SYSTEM_KEYS: &[&str] = &[
+		"type", "belongs_to", "related_to",
+		"_organized", "_archived", "_favorite",
+		"_order", "_sort", "_icon", "_sidebar_label",
+		"_color", "_template", "_view", "_visible",
+		"_list_properties_display",
+		"tags", "aliases",
+	];
+	let mut result = BTreeMap::new();
+	for (key, val) in frontmatter {
+		if SYSTEM_KEYS.contains(&key.as_str()) {
+			continue;
+		}
+		let targets = match val {
+			JsonValue::String(s) => extract_wikilinks_from_str(s),
+			JsonValue::Array(arr) => {
+				arr.iter()
+					.filter_map(|v| v.as_str())
+					.flat_map(extract_wikilinks_from_str)
+					.collect()
+			}
+			_ => Vec::new(),
+		};
+		if !targets.is_empty() {
+			result.insert(key.clone(), targets);
+		}
+	}
+	result
+}
+
+/// Extracts wikilink targets (`[[target]]`) from a string value.
+fn extract_wikilinks_from_str(s: &str) -> Vec<String> {
+	let mut targets = Vec::new();
+	let bytes = s.as_bytes();
+	let mut i = 0;
+	while i + 1 < bytes.len() {
+		if bytes[i] == b'[' && bytes[i + 1] == b'[' {
+			i += 2;
+			let start = i;
+			while i + 1 < bytes.len() && !(bytes[i] == b']' && bytes[i + 1] == b']') {
+				i += 1;
+			}
+			if i + 1 < bytes.len() {
+				let raw = &s[start..i];
+				let target = raw.split('|').next().unwrap_or(raw);
+				let target = target.split('#').next().unwrap_or(target);
+				let trimmed = target.trim();
+				if !trimmed.is_empty() {
+					targets.push(trimmed.to_string());
+				}
+				i += 2;
+			}
+		} else {
+			i += 1;
+		}
+	}
+	targets
 }

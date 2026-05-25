@@ -1,6 +1,6 @@
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
-use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention};
+use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
@@ -313,6 +313,20 @@ pub fn get_backlinks_v2(
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	Ok(idx.lookup_backlinks(&path))
+}
+
+/// Returns notes that reference `path` via frontmatter relationship fields
+/// (`belongs_to`, `related_to`, or custom wikilink-bearing fields).
+#[tauri::command]
+pub fn get_relationship_backlinks_v2(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<Vec<RelationshipBacklink>, String> {
+	let _trace = CmdTrace::new("get_relationship_backlinks_v2");
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(idx.lookup_relationship_backlinks(&path))
 }
 
 /// Returns the outgoing wikilinks of `path`, each resolved against the
@@ -647,6 +661,19 @@ fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 		Some(idx) if idx > 0 => path[..idx].to_string(),
 		_ => String::new(),
 	};
+	let mut properties = entry.frontmatter.clone();
+	if let Some(ref is_a) = entry.is_a {
+		properties.insert("type".to_string(), serde_json::Value::String(is_a.clone()));
+	}
+	properties.insert("organized".to_string(), serde_json::Value::Bool(entry.organized));
+	properties.insert("archived".to_string(), serde_json::Value::Bool(entry.archived));
+	properties.insert("favorite".to_string(), serde_json::Value::Bool(entry.favorite));
+	if !entry.belongs_to.is_empty() {
+		properties.insert("belongs_to".to_string(), serde_json::json!(entry.belongs_to));
+	}
+	if !entry.related_to.is_empty() {
+		properties.insert("related_to".to_string(), serde_json::json!(entry.related_to));
+	}
 	NoteRecord {
 		path: path.clone(),
 		name,
@@ -656,7 +683,7 @@ fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 		mtime: entry.modified_at.saturating_mul(1000),
 		ctime: entry.created_at.saturating_mul(1000),
 		size: entry.size,
-		properties: entry.frontmatter.clone(),
+		properties,
 	}
 }
 

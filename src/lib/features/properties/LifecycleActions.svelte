@@ -1,0 +1,61 @@
+<script lang="ts">
+	import Archive from 'lucide-svelte/icons/archive';
+	import ArchiveRestore from 'lucide-svelte/icons/archive-restore';
+	import FolderCheck from 'lucide-svelte/icons/folder-check';
+	import Inbox from 'lucide-svelte/icons/inbox';
+	import Star from 'lucide-svelte/icons/star';
+	import { propertiesStore } from './properties.store.svelte';
+	import { getLifecycleState, isFavorite } from './lifecycle.logic';
+	import { setOrganized, setArchived, setFavorite } from './lifecycle.service';
+
+	let lifecycleState = $derived(getLifecycleState(propertiesStore.properties));
+	let favorited = $derived(isFavorite(propertiesStore.properties));
+</script>
+
+<div class="flex items-center gap-1 px-3 py-1.5">
+	{#if lifecycleState === 'archived'}
+		<button
+			class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+			onclick={() => setArchived(false)}
+			title="Unarchive"
+		>
+			<ArchiveRestore class="size-3.5" />
+			Unarchive
+		</button>
+	{:else}
+		{#if lifecycleState === 'inbox'}
+			<button
+				class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+				onclick={() => setOrganized(true)}
+				title="Mark as organized"
+			>
+				<FolderCheck class="size-3.5" />
+				Organize
+			</button>
+		{:else}
+			<button
+				class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+				onclick={() => setOrganized(false)}
+				title="Move back to inbox"
+			>
+				<Inbox class="size-3.5" />
+				To Inbox
+			</button>
+		{/if}
+		<button
+			class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+			onclick={() => setArchived(true)}
+			title="Archive"
+		>
+			<Archive class="size-3.5" />
+			Archive
+		</button>
+	{/if}
+	<button
+		class="ml-auto p-1 rounded-md transition-colors cursor-pointer {favorited ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
+		onclick={() => setFavorite(!favorited)}
+		title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+	>
+		<Star class="size-3.5" fill={favorited ? 'currentColor' : 'none'} />
+	</button>
+</div>

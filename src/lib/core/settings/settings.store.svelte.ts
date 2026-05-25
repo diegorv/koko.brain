@@ -44,6 +44,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		templatePath: '_system/templates/One on One.md',
 	},
 	layout: {
+		sidebarMode: 'files',
 		rightSidebarVisible: false,
 		calendarVisible: true,
 		propertiesVisible: true,
@@ -117,6 +118,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		autoCheck: false,
 		lastCheckedAt: null,
 	},
+	explicitOrganization: false,
+	showUntypedNotes: false,
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -147,6 +150,8 @@ export const settingsStore = {
 	get tagColors() { return settings.tagColors; },
 	get queryjs() { return settings.queryjs; },
 	get updates() { return settings.updates; },
+	get explicitOrganization() { return settings.explicitOrganization; },
+	get showUntypedNotes() { return settings.showUntypedNotes; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {

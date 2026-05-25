@@ -8,6 +8,7 @@
 	import * as Resizable from '$lib/components/ui/resizable';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import FileExplorer from '$lib/core/file-explorer/FileExplorer.svelte';
+	import TypeSidebar from '$lib/features/type-definitions/TypeSidebar.svelte';
 	import EditorView from '$lib/core/markdown-editor/EditorView.svelte';
 	import BacklinksPanel from '$lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '$lib/features/outgoing-links/OutgoingLinksPanel.svelte';
@@ -79,6 +80,8 @@
 					>
 						{#if searchStore.isOpen}
 							<SearchPanel />
+						{:else if settingsStore.layout.sidebarMode === 'types'}
+							<TypeSidebar />
 						{:else}
 							<FileExplorer />
 						{/if}

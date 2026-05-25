@@ -561,3 +561,40 @@ describe('round-trip: parse → serialize → rebuild', () => {
 		expect(reparsed[2]).toEqual({ key: 'tags', value: ['a', 'b'], type: 'list' });
 	});
 });
+
+describe('frontmatter alias normalization', () => {
+	it('normalizes is_a to type', () => {
+		const content = '---\nis_a: person\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props[0]).toEqual({ key: 'type', value: 'person', type: 'text' });
+	});
+
+	it('normalizes space-separated aliases', () => {
+		const content = '---\nis a: place\nbelongs to: geography\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props.find((p) => p.key === 'type')?.value).toBe('place');
+		expect(props.find((p) => p.key === 'belongs_to')?.value).toBe('geography');
+	});
+
+	it('normalizes underscore-prefixed system keys', () => {
+		const content = '---\nicon: rocket\nfavorite: true\norder: 5\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props.find((p) => p.key === '_icon')?.value).toBe('rocket');
+		expect(props.find((p) => p.key === '_favorite')?.value).toBe(true);
+		expect(props.find((p) => p.key === '_order')?.value).toBe(5);
+	});
+
+	it('leaves non-aliased keys unchanged', () => {
+		const content = '---\ntitle: Hello\ntags: [a, b]\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props[0].key).toBe('title');
+		expect(props[1].key).toBe('tags');
+	});
+
+	it('leaves already-canonical keys unchanged', () => {
+		const content = '---\n_icon: star\ntype: note\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props.find((p) => p.key === '_icon')?.value).toBe('star');
+		expect(props.find((p) => p.key === 'type')?.value).toBe('note');
+	});
+});

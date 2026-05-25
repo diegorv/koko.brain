@@ -1,11 +1,15 @@
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
+import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.service';
+import { refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
 
 /**
  * Registers a listener for the native macOS menu "Settings" event.
@@ -79,6 +83,12 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	let unlisten: (() => void) | undefined;
 	listen<UpdateResultV2>('vault-index-updated', (event) => {
 		vaultStore.bumpVaultIndexVersion(event.payload.version);
+		invoke<NoteEntryV2[]>('get_all_vault_entries_v2').then((entries) => {
+			if (cancelled) return;
+			refreshArchivedPaths(entries);
+			refreshTypeDefinitions(entries);
+			typeDefinitionsStore.setEntries(entries);
+		}).catch((err) => { console.error('get_all_vault_entries_v2 failed:', err); });
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;

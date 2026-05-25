@@ -35,6 +35,13 @@ function entry(path: string, title?: string): NoteEntryV2 {
 		wordCount: 0,
 		snippet: '',
 		tasks: [],
+		isA: null,
+		organized: false,
+		archived: false,
+		favorite: false,
+		belongsTo: [],
+		relatedTo: [],
+		relationships: {},
 	};
 }
 

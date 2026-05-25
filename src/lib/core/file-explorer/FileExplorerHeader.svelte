@@ -12,6 +12,7 @@
 	import { changeSortOption } from '$lib/core/filesystem/fs.service';
 	import type { SortOption } from '$lib/core/filesystem/fs.types';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
+	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
 
 	/** Props passed from the parent FileExplorer component */
 	interface Props {
@@ -129,5 +130,7 @@
 				</DropdownMenu.Item>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
+
+		<SidebarModeToggle />
 	</div>
 </div>

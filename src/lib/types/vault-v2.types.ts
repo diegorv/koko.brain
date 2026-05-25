@@ -114,6 +114,35 @@ export interface NoteEntryV2 {
 	snippet: string;
 	/** Markdown task list items in document order. Phase 7. */
 	tasks: TaskV2[];
+	/** Document type from `type` frontmatter key (alias-resolved, casing normalized). `null` when absent. */
+	isA: string | null;
+	/** Lifecycle flag: note has been explicitly organized. */
+	organized: boolean;
+	/** Lifecycle flag: note is archived (hidden from default views). */
+	archived: boolean;
+	/** Lifecycle flag: note is pinned as a favorite. */
+	favorite: boolean;
+	/** Hierarchical ownership targets from `belongs_to` frontmatter (wikilink targets). */
+	belongsTo: string[];
+	/** Lateral relationship targets from `related_to` frontmatter (wikilink targets). */
+	relatedTo: string[];
+	/** Generic relationships: field name -> wikilink targets for fields containing `[[...]]`. */
+	relationships: Record<string, string[]>;
+}
+
+/**
+ * A backlink from a frontmatter relationship field.
+ * Returned by `invoke('get_relationship_backlinks_v2', { path })`.
+ *
+ * @experimental
+ */
+export interface RelationshipBacklinkV2 {
+	/** Absolute path of the source note. */
+	sourcePath: string;
+	/** Title of the source note. */
+	sourceName: string;
+	/** Relationship type (e.g. "belongs_to", "related_to", or custom field name). */
+	relationshipType: string;
 }
 
 /**

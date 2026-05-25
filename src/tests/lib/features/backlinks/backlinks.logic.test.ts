@@ -189,6 +189,13 @@ describe('noteEntryV2ToBacklinkEntry', () => {
 			wordCount: 0,
 			snippet: '',
 			tasks: [],
+			isA: null,
+			organized: false,
+			archived: false,
+			favorite: false,
+			belongsTo: [],
+			relatedTo: [],
+			relationships: {},
 			...overrides,
 		};
 	}

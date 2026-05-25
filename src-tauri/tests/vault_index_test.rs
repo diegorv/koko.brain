@@ -5,7 +5,7 @@
 
 use kokobrain_lib::vault::entry::{NoteEntry, WikiLink};
 use kokobrain_lib::vault::index::{UpdateResult, VaultIndex};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Builds a minimal `NoteEntry` with the given path and outgoing-link
 /// targets. Title is derived; everything else is left at defaults.
@@ -1284,7 +1284,6 @@ fn remove_entry_rebuilds_backlinks_for_promoted_surviving_sibling() {
 // ============================================================================
 
 use serde_json::json;
-use std::collections::BTreeMap;
 
 /// Builds a minimal `NoteEntry` carrying frontmatter properties.
 fn entry_with_props(path: &str, props: &[(&str, serde_json::Value)]) -> NoteEntry {
@@ -1885,4 +1884,83 @@ fn audit_finding_11_many_concurrent_writers_against_growing_index() {
 			);
 		}
 	}
+}
+
+// --- Relationship backlinks (Portent issue 07) -------------------------------
+
+#[test]
+fn lookup_relationship_backlinks_finds_belongs_to() {
+	let mut idx = VaultIndex::default();
+	let task = NoteEntry {
+		path: "/v/task.md".to_string(),
+		title: "task".to_string(),
+		belongs_to: vec!["project".to_string()],
+		..Default::default()
+	};
+	let project = entry_with_links("/v/project.md", &[]);
+	idx.build(vec![task, project]);
+
+	let results = idx.lookup_relationship_backlinks("/v/project.md");
+	assert_eq!(results.len(), 1);
+	assert_eq!(results[0].source_path, "/v/task.md");
+	assert_eq!(results[0].relationship_type, "belongs_to");
+}
+
+#[test]
+fn lookup_relationship_backlinks_finds_related_to() {
+	let mut idx = VaultIndex::default();
+	let note = NoteEntry {
+		path: "/v/note.md".to_string(),
+		title: "note".to_string(),
+		related_to: vec!["topic".to_string()],
+		..Default::default()
+	};
+	let topic = entry_with_links("/v/topic.md", &[]);
+	idx.build(vec![note, topic]);
+
+	let results = idx.lookup_relationship_backlinks("/v/topic.md");
+	assert_eq!(results.len(), 1);
+	assert_eq!(results[0].relationship_type, "related_to");
+}
+
+#[test]
+fn lookup_relationship_backlinks_finds_custom_field() {
+	let mut idx = VaultIndex::default();
+	let mut rels = BTreeMap::new();
+	rels.insert("mentor".to_string(), vec!["john".to_string()]);
+	let note = NoteEntry {
+		path: "/v/note.md".to_string(),
+		title: "note".to_string(),
+		relationships: rels,
+		..Default::default()
+	};
+	let john = entry_with_links("/v/john.md", &[]);
+	idx.build(vec![note, john]);
+
+	let results = idx.lookup_relationship_backlinks("/v/john.md");
+	assert_eq!(results.len(), 1);
+	assert_eq!(results[0].relationship_type, "mentor");
+}
+
+#[test]
+fn lookup_relationship_backlinks_empty_when_no_refs() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a.md", &[]),
+		entry_with_links("/v/b.md", &[]),
+	]);
+	assert!(idx.lookup_relationship_backlinks("/v/a.md").is_empty());
+}
+
+#[test]
+fn lookup_relationship_backlinks_does_not_include_self() {
+	let mut idx = VaultIndex::default();
+	let note = NoteEntry {
+		path: "/v/self.md".to_string(),
+		title: "self".to_string(),
+		belongs_to: vec!["self".to_string()],
+		..Default::default()
+	};
+	idx.build(vec![note]);
+	assert!(idx.lookup_relationship_backlinks("/v/self.md").is_empty());
 }

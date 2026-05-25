@@ -83,6 +83,13 @@ describe('vault-v2.types', () => {
 				wordCount: 5,
 				snippet: 'Hello world',
 				tasks: [],
+				isA: null,
+				organized: false,
+				archived: false,
+				favorite: false,
+				belongsTo: [],
+				relatedTo: [],
+				relationships: {},
 			};
 
 			// Type-level checks lock the field names + types so a Rust-side
@@ -101,11 +108,18 @@ describe('vault-v2.types', () => {
 			// Runtime sanity-check that the keys exist (no rogue snake_case).
 			const keys = Object.keys(entry).sort();
 			expect(keys).toEqual([
+				'archived',
+				'belongsTo',
 				'createdAt',
+				'favorite',
 				'frontmatter',
+				'isA',
 				'modifiedAt',
+				'organized',
 				'outgoingLinks',
 				'path',
+				'relatedTo',
+				'relationships',
 				'size',
 				'snippet',
 				'tags',

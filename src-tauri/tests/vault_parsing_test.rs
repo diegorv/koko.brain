@@ -973,3 +973,62 @@ fn find_plain_text_mention_still_finds_match_before_lowercase_byte_shift() {
 	let positions = find_plain_text_mention_positions(content, &stripped_lower, "Note A");
 	assert_eq!(positions, vec![0]);
 }
+
+// --- Frontmatter alias normalization -----------------------------------------
+
+#[test]
+fn parse_frontmatter_normalizes_is_a_to_type() {
+	let content = "---\nis_a: person\ntitle: Bob\n---\n";
+	let fm = parse_frontmatter(content);
+	assert_eq!(fm.get("type"), Some(&json!("person")));
+	assert!(fm.get("is_a").is_none());
+}
+
+#[test]
+fn parse_frontmatter_normalizes_space_aliases() {
+	let content = "---\nis a: place\nbelongs to: geography\nrelated to: maps\n---\n";
+	let fm = parse_frontmatter(content);
+	assert_eq!(fm.get("type"), Some(&json!("place")));
+	assert_eq!(fm.get("belongs_to"), Some(&json!("geography")));
+	assert_eq!(fm.get("related_to"), Some(&json!("maps")));
+}
+
+#[test]
+fn parse_frontmatter_normalizes_system_underscore_keys() {
+	let content = "---\nicon: rocket\nfavorite: true\norder: 5\ncolor: red\n---\n";
+	let fm = parse_frontmatter(content);
+	assert_eq!(fm.get("_icon"), Some(&json!("rocket")));
+	assert_eq!(fm.get("_favorite"), Some(&json!(true)));
+	assert_eq!(fm.get("_order"), Some(&json!(5)));
+	assert_eq!(fm.get("_color"), Some(&json!("red")));
+	assert!(fm.get("icon").is_none());
+}
+
+#[test]
+fn parse_frontmatter_normalizes_sidebar_label_variants() {
+	let content = "---\nsidebar_label: Notes\n---\n";
+	let fm = parse_frontmatter(content);
+	assert_eq!(fm.get("_sidebar_label"), Some(&json!("Notes")));
+	assert!(fm.get("sidebar_label").is_none());
+
+	let content2 = "---\nsidebar label: Docs\n---\n";
+	let fm2 = parse_frontmatter(content2);
+	assert_eq!(fm2.get("_sidebar_label"), Some(&json!("Docs")));
+}
+
+#[test]
+fn parse_frontmatter_leaves_unknown_keys_unchanged() {
+	let content = "---\ntitle: Hello\ntags: [a, b]\n---\n";
+	let fm = parse_frontmatter(content);
+	assert_eq!(fm.get("title"), Some(&json!("Hello")));
+	assert_eq!(fm.get("tags"), Some(&json!(["a", "b"])));
+}
+
+#[test]
+fn parse_frontmatter_leaves_canonical_keys_unchanged() {
+	let content = "---\n_icon: star\ntype: note\n_organized: true\n---\n";
+	let fm = parse_frontmatter(content);
+	assert_eq!(fm.get("_icon"), Some(&json!("star")));
+	assert_eq!(fm.get("type"), Some(&json!("note")));
+	assert_eq!(fm.get("_organized"), Some(&json!(true)));
+}

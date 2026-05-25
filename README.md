@@ -49,6 +49,9 @@ Your notes are plain Markdown files stored locally — no cloud, no lock-in, pri
 - **Auto-move** — automatically route notes to folders based on expression rules
 - **Deep links** — open notes and trigger actions from outside the app via `kokobrain://` URLs
 - **Meta-bind** — interactive inline inputs and action buttons that read/write frontmatter
+- **Note types** — declare `type: Project` in frontmatter, browse notes grouped by type in a dedicated sidebar mode
+- **Relationships** — semantic `belongs_to` / `related_to` fields with relationship backlinks in the sidebar
+- **Lifecycle** — organize, archive, and favorite notes with inbox workflow and filtered views
 - **Custom file icons** — 11 icon packs + emoji with color picker
 - **Bookmarks**, **tags**, **backlinks**, **outgoing links**, **properties** panel
 - **Templates**, **quick note** capture, and **1:1 meeting notes**
@@ -110,7 +113,7 @@ src/lib/
   features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
                         #   collection, file-history, bookmarks, file-icons, copy-block-link,
                         #   auto-move, command-palette, quick-switcher, folder-notes,
-                        #   outgoing-links, deep-link
+                        #   outgoing-links, deep-link, type-definitions
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
                         #   graph-view, terminal, queryjs, word-count, kanban, one-on-one,
                         #   table-of-contents
@@ -133,6 +136,7 @@ src-tauri/src/
 - **[Commit Conventions](docs/COMMITS.md)** — Commit message format and examples
 - **[Live Preview Architecture](docs/LIVE-PREVIEW.md)** — Editor live preview plugin system
 - **[Search Architecture](docs/SEARCH.md)** — Retrieval pipeline, chunking, models, RRF, versioning levers
+- **[Types & Relationships](help/documentation/25-types-and-relationships.md)** — Note types, semantic relationships, lifecycle workflow
 - **[GitHub Workflows](GITHUB-WORKFLOW.md)** — What each CI workflow tests, when it runs, and what it does not cover
 - **[Release Channels](docs/RELEASE-CHANNELS.md)** — Stable vs Nightly channels, version semantics, switching from inside the app
 
@@ -216,6 +220,7 @@ Some features in Kokobrain were inspired by ideas from Obsidian community plugin
 - **Calendar** — inspired by [oz-calendar](https://github.com/ozntel/oz-calendar)
 - **Folder notes** — inspired by [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes)
 - **Auto open & Pin tab** — inspired by [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage)
+- **Types & Relationships** — inspired by the [Portent](https://portent.md) knowledge base spec (document types, semantic relationships, lifecycle workflow)
 
 ## License
 
