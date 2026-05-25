@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildTypeSections, countInbox } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {
@@ -115,6 +116,33 @@ describe('buildTypeSections', () => {
 			entryV2('/v/a.md', { title: 'A', isA: 'Hidden' }),
 		];
 		const map = new Map([['Hidden', meta('Hidden', { visible: false })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections.length).toBe(0);
+	});
+
+	it('shows type definitions with no notes as empty sections', () => {
+		const entries = [
+			entryV2('/v/Sprint.md', { title: 'Sprint', isA: 'Type' }),
+			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
+		];
+		const map = new Map([
+			['Sprint', meta('Sprint', { order: 1, sidebarLabel: 'Sprints' })],
+			['Project', meta('Project', { order: 2 })],
+		]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections.length).toBe(2);
+		expect(sections[0].metadata.name).toBe('Sprint');
+		expect(sections[0].notes.length).toBe(0);
+		expect(sections[0].definitionPath).toBe('/v/Sprint.md');
+		expect(sections[1].metadata.name).toBe('Project');
+		expect(sections[1].notes.length).toBe(1);
+	});
+
+	it('does not show empty sections for invisible type definitions', () => {
+		const entries: NoteEntryV2[] = [];
+		const map = new Map([
+			['Hidden', meta('Hidden', { visible: false })],
+		]);
 		const { sections } = buildTypeSections(entries, map, 'all');
 		expect(sections.length).toBe(0);
 	});

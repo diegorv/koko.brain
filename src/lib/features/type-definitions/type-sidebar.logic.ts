@@ -52,11 +52,18 @@ export function buildTypeSections(
 	}
 
 	const sections: TypeSection[] = [];
+	const seen = new Set<string>();
 	for (const [typeName, notes] of typeGroups) {
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
 		notes.sort((a, b) => a.title.localeCompare(b.title));
 		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes });
+		seen.add(typeName);
+	}
+
+	for (const [typeName, metadata] of typeMetadataMap) {
+		if (seen.has(typeName) || !metadata.visible) continue;
+		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes: [] });
 	}
 
 	sections.sort((a, b) => a.metadata.order - b.metadata.order);
