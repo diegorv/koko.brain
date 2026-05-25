@@ -129,4 +129,6 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0022](0022-terminal-portable-pty.md) | Terminal plugin via portable-pty with per-session managed state                      | active |
 | [0023](0023-canvas-xyflow-svelte.md) | Canvas as a feature backed by @xyflow/svelte                                         | active |
 | [0024](0024-auto-update-tauri-plugin-updater.md) | Auto-update via tauri-plugin-updater with GitHub Releases + minisign signatures      | active |
-| [0025](0025-rust-vault-index.md) | Rust VaultIndex as source of truth for vault metadata; native Rust watcher           | proposed |
+| [0025](0025-rust-vault-index.md) | Rust VaultIndex as source of truth for vault metadata; native Rust watcher           | active |
+| [0026](0026-type-definitions-relationships-lifecycle.md) | Type definitions, semantic relationships, and lifecycle flags via frontmatter         | active |
+| [0027](0027-frontmatter-system-metadata-underscore-prefix.md) | Underscore prefix convention for system metadata with Rust-side alias resolution      | active |

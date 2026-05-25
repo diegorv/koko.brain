@@ -2,7 +2,7 @@
 type: ADR
 id: "0025"
 title: "Rust VaultIndex as source of truth for vault metadata; native Rust watcher; vault-index-updated event"
-status: proposed
+status: active
 date: 2026-04-28
 ---
 
