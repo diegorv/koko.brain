@@ -5,7 +5,7 @@
 </script>
 
 <div
-	class="flex h-[22px] shrink-0 items-center justify-between border-t border-border bg-background px-2 text-xs text-muted-foreground"
+	class="flex h-[32px] shrink-0 items-center justify-between border-t border-border bg-background px-2 text-xs text-muted-foreground"
 >
 	<div class="flex items-center gap-3">
 		{#if left}

@@ -127,10 +127,10 @@
 		<StatusBar>
 			{#snippet left()}
 				<SearchStatus />
+				<SemanticIndexStatus />
 			{/snippet}
 			{#snippet right()}
 				<SaveStatus />
-				<SemanticIndexStatus />
 				<WordCount />
 			{/snippet}
 		</StatusBar>

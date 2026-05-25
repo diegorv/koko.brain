@@ -64,9 +64,9 @@ describe('resolveStatusLabel', () => {
 		expect(resolveStatusLabel(null)).toBeNull();
 	});
 
-	it('returns the model-off label when the embedder is not loaded', () => {
+	it('returns the loading label when the embedder is not loaded', () => {
 		const status: SemanticFileStatus = { chunkCount: 3, lastEmbeddedAt: 1000, modelLoaded: false };
-		expect(resolveStatusLabel(status)).toEqual({ kind: 'model-off', text: 'Semantic off' });
+		expect(resolveStatusLabel(status)).toEqual({ kind: 'loading', text: 'Loading model...' });
 	});
 
 	it('returns the indexed label with plural form when chunkCount > 1', () => {
@@ -84,8 +84,8 @@ describe('resolveStatusLabel', () => {
 		expect(resolveStatusLabel(status)).toEqual({ kind: 'not-indexed', text: 'Not indexed' });
 	});
 
-	it('prefers the model-off branch over chunk presence', () => {
+	it('prefers the loading branch over chunk presence', () => {
 		const status: SemanticFileStatus = { chunkCount: 99, lastEmbeddedAt: 1, modelLoaded: false };
-		expect(resolveStatusLabel(status)?.kind).toBe('model-off');
+		expect(resolveStatusLabel(status)?.kind).toBe('loading');
 	});
 });

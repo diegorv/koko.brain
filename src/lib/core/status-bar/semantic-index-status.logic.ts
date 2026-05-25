@@ -10,8 +10,8 @@ export interface SemanticFileStatus {
 
 /** Resolved label kind shown in the status bar for the current markdown tab. */
 export type IndexStatusLabelKind =
-	/** Embedder not loaded — semantic search is effectively off. */
-	| 'model-off'
+	/** Embedder not loaded yet — semantic search enabled but model still loading. */
+	| 'loading'
 	/** File has at least one chunk in the index. */
 	| 'indexed'
 	/** Embedder loaded but the file has zero chunks. */
@@ -49,7 +49,7 @@ export function isMarkdownPath(path: string | null | undefined): boolean {
  */
 export function resolveStatusLabel(status: SemanticFileStatus | null): IndexStatusLabel | null {
 	if (!status) return null;
-	if (!status.modelLoaded) return { kind: 'model-off', text: 'Semantic off' };
+	if (!status.modelLoaded) return { kind: 'loading', text: 'Loading model...' };
 	if (status.chunkCount > 0) {
 		const chunkWord = status.chunkCount === 1 ? 'chunk' : 'chunks';
 		return { kind: 'indexed', text: `Indexed (${status.chunkCount} ${chunkWord})` };

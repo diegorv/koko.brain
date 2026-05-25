@@ -2,13 +2,14 @@
 	import { onMount, untrack } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import BrainIcon from '@lucide/svelte/icons/brain';
-	import BrainCogIcon from '@lucide/svelte/icons/brain-cog';
+	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import BrainCircuitIcon from '@lucide/svelte/icons/brain-circuit';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { isVirtualTab } from '$lib/core/editor/editor.logic';
 	import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
+	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import {
 		toVaultRelativePath,
 		isMarkdownPath,
@@ -54,12 +55,12 @@
 	let label = $derived(resolveStatusLabel(status));
 </script>
 
-{#if label}
+{#if settingsStore.search.semanticSearchEnabled && label}
 	<span class="flex items-center gap-1 text-muted-foreground" title={label.text}>
 		{#if label.kind === 'indexed'}
 			<BrainIcon class="size-3" />
-		{:else if label.kind === 'model-off'}
-			<BrainCogIcon class="size-3 opacity-60" />
+		{:else if label.kind === 'loading'}
+			<LoaderIcon class="size-3 animate-spin opacity-60" />
 		{:else}
 			<BrainCircuitIcon class="size-3 opacity-60" />
 		{/if}
