@@ -22,6 +22,7 @@
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
+	import { updateTypeDefinitionIcon } from './type-definitions.service';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
@@ -128,6 +129,11 @@
 		if (!vaultStore.path || !iconPickerPath) return;
 		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
 		await trackRecentIcon(vaultStore.path, pack, name);
+		if (sectionContextPath === iconPickerPath) {
+			await updateTypeDefinitionIcon(iconPickerPath, name, color ?? null).catch((err) => {
+				console.error('updateTypeDefinitionIcon failed:', err);
+			});
+		}
 	}
 
 	async function handleIconRemove() {
@@ -176,6 +182,7 @@
 						{@const defFmIcon = defFmRef ? getIconSync(defFmRef.iconPack, defFmRef.iconName) : undefined}
 						{@const defResolvedIcon = defFmIcon ?? defCustomIcon}
 						{@const defIconColor = defFmIcon ? undefined : defIconEntry?.color}
+						{@const defTextColor = defFmIcon ? undefined : defIconEntry?.textColor}
 						<div class="mb-1">
 							<button
 								class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none"
@@ -186,7 +193,7 @@
 								{#if defResolvedIcon}
 									<IconRenderer icon={defResolvedIcon} class="size-4 shrink-0" color={defIconColor} />
 								{/if}
-								<span class="truncate">
+								<span class="truncate" style:color={defTextColor ?? undefined}>
 									{section.metadata.sidebarLabel}
 								</span>
 								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{section.notes.length}</span>
