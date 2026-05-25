@@ -16,6 +16,7 @@ export interface TypeSection {
 export interface TypeSidebarNote {
 	path: string;
 	title: string;
+	order: number;
 }
 
 /** Filter mode for the type sidebar. */
@@ -38,7 +39,10 @@ export function buildTypeSections(
 
 	for (const entry of filtered) {
 		if (entry.isA === 'Type') continue;
-		const note: TypeSidebarNote = { path: entry.path, title: entry.title };
+		const rawOrder = entry.frontmatter['_order'];
+		const parsed = typeof rawOrder === 'number' ? rawOrder : Number(rawOrder);
+		const order = Number.isFinite(parsed) ? parsed : Infinity;
+		const note: TypeSidebarNote = { path: entry.path, title: entry.title, order };
 		if (entry.isA) {
 			const group = typeGroups.get(entry.isA);
 			if (group) {
@@ -56,7 +60,7 @@ export function buildTypeSections(
 	for (const [typeName, notes] of typeGroups) {
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
-		notes.sort((a, b) => a.title.localeCompare(b.title));
+		notes.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
 		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes });
 		seen.add(typeName);
 	}

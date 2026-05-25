@@ -111,6 +111,28 @@ describe('buildTypeSections', () => {
 		expect(sections[1].metadata.name).toBe('Person');
 	});
 
+	it('sorts notes within a section by _order then title', () => {
+		const entries = [
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', frontmatter: { _order: 3 } }),
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', frontmatter: { _order: 1 } }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', frontmatter: { _order: 2 } }),
+			entryV2('/v/d.md', { title: 'D', isA: 'Project' }),
+			entryV2('/v/e.md', { title: 'E', isA: 'Project' }),
+		];
+		const { sections } = buildTypeSections(entries, new Map(), 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['A', 'B', 'C', 'D', 'E']);
+	});
+
+	it('handles string _order values from quoted YAML', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', frontmatter: { _order: '2' } }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', frontmatter: { _order: '1' } }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', frontmatter: { _order: '3' } }),
+		];
+		const { sections } = buildTypeSections(entries, new Map(), 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'A', 'C']);
+	});
+
 	it('hides sections with visible: false', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Hidden' }),
