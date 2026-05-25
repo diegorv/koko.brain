@@ -1,9 +1,9 @@
 # Exploratory Bug Audit - Master Summary
 
 **Scope:** ~50K lines in src/lib/ across 7 phases.
-**Result:** 24 unique real bugs found. 18 fixed, 6 remaining.
+**Result:** 24 unique real bugs found. 22 fixed, 2 remaining (1 deferred, 1 feature request).
 
-## FIXED (18 bugs - 12 commits)
+## FIXED (22 bugs - 15 commits)
 
 | # | Bug | Commit | Fix |
 |---|-----|--------|-----|
@@ -28,20 +28,14 @@
 
 ---
 
-## REMAINING (6 bugs)
+| 20 | Chart.js CDN -> bundled | `1f4f848` | Install chart.js, dynamic import, tighten CSP |
+| 21 | OutgoingLinksPanel untrack | `bb57174` | Move reset into untrack() |
+| 22 | SearchSection untrack | `bb57174` | Wrap refreshRerankerStatus in untrack() |
+| 23 | Command palette catch | `bb57174` | Log errors instead of swallowing |
 
-### P2: Security (2 bugs)
+## REMAINING (2 bugs)
 
-| # | Bug | File | Description |
-|---|-----|------|-------------|
-| 19 | No queryjs execution timeout | queryjs-block-widget.ts:158-203 | while(true) -> persistent DoS via shared vault |
-| 20 | Chart.js CDN without SRI | kb-ui.ts:948-974 | Supply chain risk |
-
-### P3: Cosmetic / Low Priority (4 bugs)
-
-| # | Bug | File | Description |
-|---|-----|------|-------------|
-| 21 | OutgoingLinksPanel untrack | OutgoingLinksPanel.svelte:37 | Store mutation outside untrack |
-| 22 | SearchSection untrack | SearchSection.svelte:35 | invoke() without untrack |
-| 23 | Command palette swallows errors | command-palette.service.ts:155,165 | .catch(() => {}) discards errors |
-| 24 | CollectionTableView no virtualization | CollectionTableView.svelte:43 | Freezes on large vaults |
+| # | Bug | Status | Description |
+|---|-----|--------|-------------|
+| 19 | No queryjs execution timeout | DEFERRED | Needs architectural decision (timeout vs worker vs iframe sandbox) |
+| 24 | CollectionTableView no virtualization | FEATURE REQUEST | Performance for 5000+ note vaults, not a bug |
