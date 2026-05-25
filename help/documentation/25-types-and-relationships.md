@@ -73,6 +73,19 @@ The left sidebar has two modes, toggled by the button in the file explorer heade
 
 In type mode, notes are organized into collapsible sections by type. Each section shows the type icon, label, and note count. Notes without a type appear in an "Untyped" section at the bottom.
 
+### Note Order
+
+Notes within a type section are sorted alphabetically by title by default. You can override this by adding `_order` (or `order`) to a note's frontmatter:
+
+```yaml
+---
+type: Project
+_order: 1
+---
+```
+
+Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` appear after, sorted alphabetically. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+
 ### Filters
 
 The type sidebar has four filter tabs:
@@ -167,14 +180,24 @@ Archived notes remain accessible through the "Archived" filter tab.
 
 Kokobrain recognizes alternative spellings for system metadata keys:
 
-| Alias | Canonical form |
-|-------|---------------|
-| `is_a`, `is a` | `type` |
-| `belongs to` | `belongs_to` |
-| `related to` | `related_to` |
-| `organized` | `_organized` |
-| `archived` | `_archived` |
-| `favorite` | `_favorite` |
+| Alias | Canonical form | Used in |
+|-------|---------------|---------|
+| `is_a`, `is a` | `type` | Type sidebar grouping, collection filters, inbox workflow |
+| `belongs to` | `belongs_to` | Backlinks panel "Relationships" section |
+| `related to` | `related_to` | Backlinks panel "Relationships" section |
+| `organized` | `_organized` | Inbox filter tab, lifecycle actions in Properties panel |
+| `archived` | `_archived` | Archived filter tab, hidden from All/Favorites/Quick Switcher |
+| `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
+| `order` | `_order` | Sort order of type sections and notes within sections |
+| `sort` | `_sort` | Not yet implemented |
+| `icon` | `_icon` | Custom icon in type sidebar, file explorer, and editor tabs |
+| `sidebar_label`, `sidebar label` | `_sidebar_label` | Section header label in type sidebar |
+| `color` | `_color` | Icon color in type sidebar, file explorer, and editor tabs |
+| `title_color` | `_title_color` | Title text color in type sidebar, file explorer, and editor tabs |
+| `template` | `_template` | Not yet implemented |
+| `view` | `_view` | Not yet implemented |
+| `visible` | `_visible` | Show/hide type section in sidebar |
+| `list_properties_display` | `_list_properties_display` | Not yet implemented |
 
 You can use either form in your frontmatter. The app normalizes them internally.
 
