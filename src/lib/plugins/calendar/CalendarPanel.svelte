@@ -6,6 +6,7 @@
 	import CalendarPlus from 'lucide-svelte/icons/calendar-plus';
 	import FileText from 'lucide-svelte/icons/file-text';
 	import { Separator } from '$lib/components/ui/separator';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
 	import { calendarStore } from './calendar.store.svelte';
@@ -37,6 +38,7 @@
 	}
 </script>
 
+<Tooltip.Provider delayDuration={400}>
 <div class="flex flex-col h-full">
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
@@ -141,3 +143,4 @@
 		{/if}
 	</div>
 </div>
+</Tooltip.Provider>
