@@ -6,6 +6,8 @@
 	import CalendarPlus from 'lucide-svelte/icons/calendar-plus';
 	import FileText from 'lucide-svelte/icons/file-text';
 	import { Separator } from '$lib/components/ui/separator';
+	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
+	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
 	import { calendarStore } from './calendar.store.svelte';
 	import { openOrCreateDailyNoteForDate, openOrCreatePeriodicNoteForDate, openCalendarFile } from './calendar.service';
 	import { buildMonthGrid, formatDateLabel, extractDisplayName } from './calendar.logic';
@@ -35,9 +37,12 @@
 	}
 </script>
 
-<div class="flex flex-col">
-	<div class="flex items-center h-10 px-3 shrink-0">
-		<h2 class="font-semibold uppercase tracking-wide text-primary">Calendar</h2>
+<div class="flex flex-col h-full">
+	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
+		<div class="flex items-center gap-0.5">
+			<DailyNoteButton />
+			<SidebarModeToggle />
+		</div>
 	</div>
 	<Separator />
 	<div class="p-2">

@@ -46,7 +46,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	layout: {
 		sidebarMode: 'files',
 		rightSidebarVisible: false,
-		calendarVisible: true,
 		propertiesVisible: true,
 		backlinksVisible: true,
 		outgoingLinksVisible: true,

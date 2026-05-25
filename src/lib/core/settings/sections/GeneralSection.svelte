@@ -24,16 +24,6 @@
 
 	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Sidebar sections</h3>
 
-	<SettingItem label="Calendar" description="Show the calendar panel in the right sidebar">
-		<Switch
-			checked={settingsStore.layout.calendarVisible}
-			onCheckedChange={(v) => {
-				settingsStore.updateLayout({ calendarVisible: v });
-				onchange();
-			}}
-		/>
-	</SettingItem>
-
 	<SettingItem label="Properties" description="Show the properties panel in the right sidebar">
 		<Switch
 			checked={settingsStore.layout.propertiesVisible}

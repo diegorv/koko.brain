@@ -80,6 +80,8 @@
 					>
 						{#if searchStore.isOpen}
 							<SearchPanel />
+						{:else if settingsStore.layout.sidebarMode === 'calendar'}
+							<CalendarPanel />
 						{:else if settingsStore.layout.sidebarMode === 'types'}
 							<TypeSidebar />
 						{:else}
@@ -105,9 +107,6 @@
 							<div class="flex h-full flex-col text-[15px]">
 								<div class="h-10 shrink-0 bg-tab-bar" data-tauri-drag-region></div>
 								<ScrollArea class="min-h-0 flex-1">
-									{#if settingsStore.layout.calendarVisible}
-										<CalendarPanel />
-									{/if}
 									{#if settingsStore.layout.propertiesVisible}
 										<PropertiesView />
 									{/if}

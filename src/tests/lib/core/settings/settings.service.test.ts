@@ -172,7 +172,6 @@ describe('loadSettings', () => {
 
 		expect(settingsStore.settings.layout.terminalVisible).toBe(true);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(DEFAULT_SETTINGS.layout.rightSidebarVisible);
-		expect(settingsStore.settings.layout.calendarVisible).toBe(DEFAULT_SETTINGS.layout.calendarVisible);
 	});
 
 	it('uses default pane sizes when not present in saved settings', async () => {
