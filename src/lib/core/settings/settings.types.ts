@@ -43,7 +43,12 @@ export interface PeriodicNotesUpdate {
 }
 
 /** Configuration for layout visibility preferences */
+/** Left sidebar mode: file explorer (default) or type-grouped view (Portent) */
+export type SidebarMode = 'files' | 'types';
+
 export interface LayoutSettings {
+	/** Left sidebar mode: file explorer or type-grouped */
+	sidebarMode: SidebarMode;
 	/** Whether the right sidebar (Properties, Backlinks, Tags, etc.) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the calendar panel is shown in the right sidebar */

@@ -5,6 +5,8 @@ import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.sv
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.service';
+import { refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
 
 /**
@@ -79,6 +81,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	let unlisten: (() => void) | undefined;
 	listen<UpdateResultV2>('vault-index-updated', (event) => {
 		vaultStore.bumpVaultIndexVersion(event.payload.version);
+		refreshArchivedPaths().catch(() => {});
+		refreshTypeDefinitions().catch(() => {});
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;

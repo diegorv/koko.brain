@@ -44,6 +44,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		templatePath: '_system/templates/One on One.md',
 	},
 	layout: {
+		sidebarMode: 'files',
 		rightSidebarVisible: false,
 		calendarVisible: true,
 		propertiesVisible: true,
