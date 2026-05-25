@@ -116,6 +116,12 @@ export interface NoteEntryV2 {
 	tasks: TaskV2[];
 	/** Document type from `type` frontmatter key (alias-resolved, casing normalized). `null` when absent. */
 	isA: string | null;
+	/** Lifecycle flag: note has been explicitly organized. */
+	organized: boolean;
+	/** Lifecycle flag: note is archived (hidden from default views). */
+	archived: boolean;
+	/** Lifecycle flag: note is pinned as a favorite. */
+	favorite: boolean;
 }
 
 /**

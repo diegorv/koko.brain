@@ -190,6 +190,9 @@ describe('noteEntryV2ToBacklinkEntry', () => {
 			snippet: '',
 			tasks: [],
 			isA: null,
+			organized: false,
+			archived: false,
+			favorite: false,
 			...overrides,
 		};
 	}
