@@ -117,6 +117,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		autoCheck: false,
 		lastCheckedAt: null,
 	},
+	explicitOrganization: false,
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
