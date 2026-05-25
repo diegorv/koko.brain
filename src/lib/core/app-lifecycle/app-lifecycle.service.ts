@@ -64,6 +64,7 @@ import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
+import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 
 /**
  * Delay (ms) before the deferred semantic-search init kicks in.
@@ -358,6 +359,7 @@ export function teardownVault(): void {
 	// ── Reset hooks + stores ────────────────────────────────────────
 	resetHooks();
 	queryjsSessionStore.reset();
+	clearMermaidCache();
 	resetTerminal();
 	resetEditor();
 	resetFileSystem();

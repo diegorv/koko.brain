@@ -27,6 +27,14 @@ async function getMermaid(): Promise<typeof import('mermaid').default> {
 /** Counter to generate unique IDs for each mermaid render */
 let renderCounter = 0;
 
+/** Live-DOM cache: source text -> rendered container. Survives widget destruction across viewport cycles. */
+const mermaidCache = new Map<string, HTMLElement>();
+
+/** Drops all cached renders. Called during vault teardown. */
+export function clearMermaidCache(): void {
+	mermaidCache.clear();
+}
+
 /**
  * Widget that renders a ```mermaid fenced code block as an inline SVG diagram.
  * Uses mermaid.render() with async rendering and shows an error message for invalid syntax.
@@ -37,6 +45,9 @@ export class MermaidWidget extends WidgetType {
 	}
 
 	toDOM() {
+		const cached = mermaidCache.get(this.source);
+		if (cached && !cached.isConnected) return cached;
+
 		const container = document.createElement('div');
 		container.className = 'cm-lp-mermaid';
 
@@ -65,15 +76,17 @@ export class MermaidWidget extends WidgetType {
 		// Validate with parse() first to avoid mermaid injecting error elements into the body,
 		// then render only if valid
 		const id = `mermaid-${Date.now()}-${renderCounter++}`;
+		const source = this.source;
 		(async () => {
 			try {
 				const mermaid = await getMermaid();
-				await mermaid.parse(this.source);
-				const result = await mermaid.render(id, this.source);
+				await mermaid.parse(source);
+				const result = await mermaid.render(id, source);
 				// Sanitize before inserting to strip any scripts/event handlers from mermaid output
 				diagramEl.innerHTML = sanitizeMermaidSvg(result.svg);
 				const svg = diagramEl.querySelector('svg');
 				if (svg) svg.removeAttribute('id');
+				mermaidCache.set(source, container);
 			} catch (err: unknown) {
 				diagramEl.className = 'cm-lp-mermaid-error';
 				const message = err instanceof Error ? err.message : String(err);
