@@ -56,7 +56,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 | `_color` | Display color | `gray` |
 | `_order` | Sidebar sort order (lower = higher) | `50` |
 | `_sidebar_label` | Override the section label | `{Name}s` |
-| `_sort` | Sort field for notes | `title` |
+| `_sort` | Sort mode for notes within section | `title` |
 | `_view` | Default view mode | `all` |
 | `_visible` | Whether to show in sidebar | `true` |
 | `_template` | Vault-relative path to template file for new notes | none |
@@ -111,7 +111,28 @@ _order: 1
 ---
 ```
 
-Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` appear after, sorted alphabetically. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` appear after, sorted by `_sort` mode (see below). Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+
+### Sort Mode
+
+The `_sort` field on a type definition controls how notes without `_order` are sorted within that type section:
+
+| Value | Behavior |
+|-------|----------|
+| `title` | Alphabetical by title (default) |
+| `modified` | Newest modified first |
+| `created` | Newest created first |
+| `modified-asc` | Oldest modified first |
+| `created-asc` | Oldest created first |
+
+```yaml
+---
+type: Type
+_sort: modified
+---
+```
+
+Notes with `_order` always appear first regardless of `_sort`. The sort mode only affects notes without an explicit `_order` value. In the Favorites tab, `_favorite_index` is used instead of `_sort`.
 
 ### Filters
 
@@ -119,9 +140,9 @@ The type sidebar has four filter tabs:
 
 | Filter | Shows | Sort |
 |--------|-------|------|
-| All | All notes except archived | `_order`, then title |
-| Inbox | Notes not yet organized (requires Explicit Organization) | `_order`, then title |
-| Archived | Archived notes only | `_order`, then title |
+| All | All notes except archived | `_order`, then `_sort` mode |
+| Inbox | Notes not yet organized (requires Explicit Organization) | `_order`, then `_sort` mode |
+| Archived | Archived notes only | `_order`, then `_sort` mode |
 | Favorites | Favorited notes (excluding archived) | `_favorite_index`, then title |
 
 ### Favorite Order
@@ -231,7 +252,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
 | `order` | `_order` | Sort order of type sections and notes within sections |
 | `favorite_index` | `_favorite_index` | Sort order of notes in Favorites tab |
-| `sort` | `_sort` | Not yet implemented |
+| `sort` | `_sort` | Sort mode for notes in type sidebar sections |
 | `icon` | `_icon` | Custom icon in type sidebar, file explorer, and editor tabs |
 | `sidebar_label`, `sidebar label` | `_sidebar_label` | Section header label in type sidebar |
 | `color` | `_color` | Icon color in type sidebar, file explorer, and editor tabs |

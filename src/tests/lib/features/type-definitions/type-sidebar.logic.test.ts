@@ -154,6 +154,84 @@ describe('buildTypeSections', () => {
 		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'A', 'C']);
 	});
 
+	it('sorts notes by modified (newest first) when _sort is modified', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'modified' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
+	});
+
+	it('sorts notes by created (newest first) when _sort is created', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', createdAt: 300 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', createdAt: 100 }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', createdAt: 200 }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'created' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['A', 'C', 'B']);
+	});
+
+	it('_order overrides _sort as primary sort key', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100, frontmatter: { _order: 1 } }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'modified' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes[0].title).toBe('A');
+		expect(sections[0].notes[1].title).toBe('B');
+	});
+
+	it('sorts notes alphabetically when _sort is title', () => {
+		const entries = [
+			entryV2('/v/c.md', { title: 'C', isA: 'Project' }),
+			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project' }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'title' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['A', 'B', 'C']);
+	});
+
+	it('sorts notes by modified-asc (oldest first)', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 300 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 100 }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'modified-asc' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
+	});
+
+	it('sorts notes by created-asc (oldest first)', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', createdAt: 200 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', createdAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', createdAt: 100 }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'created-asc' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['C', 'A', 'B']);
+	});
+
+	it('falls back to title sort for unknown _sort value', () => {
+		const entries = [
+			entryV2('/v/c.md', { title: 'C', isA: 'Project' }),
+			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project' }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'nonsense' })]]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['A', 'B', 'C']);
+	});
+
 	it('hides sections with visible: false', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Hidden' }),

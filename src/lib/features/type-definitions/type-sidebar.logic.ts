@@ -18,6 +18,8 @@ export interface TypeSidebarNote {
 	title: string;
 	order: number;
 	favoriteIndex: number;
+	modifiedAt: number;
+	createdAt: number;
 }
 
 /** Filter mode for the type sidebar. */
@@ -46,7 +48,10 @@ export function buildTypeSections(
 		const rawFavIdx = entry.frontmatter['_favorite_index'];
 		const parsedFavIdx = typeof rawFavIdx === 'number' ? rawFavIdx : Number(rawFavIdx);
 		const favoriteIndex = Number.isFinite(parsedFavIdx) ? parsedFavIdx : Infinity;
-		const note: TypeSidebarNote = { path: entry.path, title: entry.title, order, favoriteIndex };
+		const note: TypeSidebarNote = {
+			path: entry.path, title: entry.title, order, favoriteIndex,
+			modifiedAt: entry.modifiedAt, createdAt: entry.createdAt,
+		};
 		if (entry.isA) {
 			const group = typeGroups.get(entry.isA);
 			if (group) {
@@ -64,8 +69,7 @@ export function buildTypeSections(
 	for (const [typeName, notes] of typeGroups) {
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
-		const sortKey = filter === 'favorites' ? 'favoriteIndex' : 'order';
-		notes.sort((a, b) => a[sortKey] - b[sortKey] || a.title.localeCompare(b.title));
+		sortNotes(notes, metadata.sort, filter);
 		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes });
 		seen.add(typeName);
 	}
@@ -79,6 +83,32 @@ export function buildTypeSections(
 	untyped.sort((a, b) => a.title.localeCompare(b.title));
 
 	return { sections, untyped };
+}
+
+/** Sorts notes in place by the type's _sort setting, with _order as primary override. */
+function sortNotes(notes: TypeSidebarNote[], sort: string, filter: SidebarFilter): void {
+	if (filter === 'favorites') {
+		notes.sort((a, b) => a.favoriteIndex - b.favoriteIndex || a.title.localeCompare(b.title));
+		return;
+	}
+	const secondary = buildSecondaryComparator(sort);
+	notes.sort((a, b) => a.order - b.order || secondary(a, b));
+}
+
+function buildSecondaryComparator(sort: string): (a: TypeSidebarNote, b: TypeSidebarNote) => number {
+	switch (sort) {
+		case 'modified':
+			return (a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title);
+		case 'created':
+			return (a, b) => b.createdAt - a.createdAt || a.title.localeCompare(b.title);
+		case 'modified-asc':
+			return (a, b) => a.modifiedAt - b.modifiedAt || a.title.localeCompare(b.title);
+		case 'created-asc':
+			return (a, b) => a.createdAt - b.createdAt || a.title.localeCompare(b.title);
+		case 'title':
+		default:
+			return (a, b) => a.title.localeCompare(b.title);
+	}
 }
 
 /** Applies the sidebar filter to entries. */
