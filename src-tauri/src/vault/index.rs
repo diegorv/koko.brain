@@ -10,7 +10,7 @@
 //! See ADR 0025 (`docs/adr/0025-rust-vault-index.md`) for the migration
 //! plan and how this replaces the per-feature TS stores.
 
-use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention};
+use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task};
 use serde::{Deserialize, Serialize};
@@ -544,6 +544,69 @@ impl VaultIndex {
 		};
 		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
 		sources
+	}
+
+	/// Returns notes that reference the target note via frontmatter relationship
+	/// fields (`belongs_to`, `related_to`, or custom fields in `relationships`).
+	/// Resolves wikilink targets against `by_path` to match on absolute paths.
+	pub fn lookup_relationship_backlinks(&self, target_path: &str) -> Vec<RelationshipBacklink> {
+		let target_name = target_path
+			.rsplit('/')
+			.next()
+			.unwrap_or(target_path)
+			.strip_suffix(".md")
+			.or_else(|| target_path.rsplit('/').next().unwrap_or(target_path).strip_suffix(".markdown"))
+			.unwrap_or(target_path.rsplit('/').next().unwrap_or(target_path));
+		let target_lower = target_name.to_lowercase();
+
+		let mut results = Vec::new();
+		for entry in self.entries.values() {
+			if entry.path == target_path {
+				continue;
+			}
+			for t in &entry.belongs_to {
+				if self.resolves_to(t, target_path, &target_lower) {
+					results.push(RelationshipBacklink {
+						source_path: entry.path.clone(),
+						source_name: entry.title.clone(),
+						relationship_type: "belongs_to".to_string(),
+					});
+					break;
+				}
+			}
+			for t in &entry.related_to {
+				if self.resolves_to(t, target_path, &target_lower) {
+					results.push(RelationshipBacklink {
+						source_path: entry.path.clone(),
+						source_name: entry.title.clone(),
+						relationship_type: "related_to".to_string(),
+					});
+					break;
+				}
+			}
+			for (field_name, targets) in &entry.relationships {
+				for t in targets {
+					if self.resolves_to(t, target_path, &target_lower) {
+						results.push(RelationshipBacklink {
+							source_path: entry.path.clone(),
+							source_name: entry.title.clone(),
+							relationship_type: field_name.clone(),
+						});
+						break;
+					}
+				}
+			}
+		}
+		results.sort_by(|a, b| a.source_name.to_lowercase().cmp(&b.source_name.to_lowercase()));
+		results
+	}
+
+	/// Checks if a wikilink target resolves to the given path.
+	fn resolves_to(&self, target: &str, expected_path: &str, expected_name_lower: &str) -> bool {
+		if let Some(resolved) = self.by_path.get(&target.to_lowercase()) {
+			return resolved == expected_path;
+		}
+		target.to_lowercase() == *expected_name_lower
 	}
 
 	/// Returns the outgoing wikilinks of the entry at `path`, each with its

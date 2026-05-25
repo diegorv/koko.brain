@@ -5,7 +5,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2, RelationshipBacklinkV2 } from '$lib/types/vault-v2.types';
 
 /**
  * Returns true when the IPC result for `fetchedPath` is still relevant
@@ -127,6 +127,22 @@ async function fetchBacklinksV2Inner(path: string): Promise<void> {
 	}
 }
 export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: string) => path);
+
+/**
+ * Fetches relationship backlinks for a file from the Rust `VaultIndex`.
+ * These are notes that reference the target via frontmatter fields
+ * (`belongs_to`, `related_to`, or custom wikilink-bearing fields).
+ */
+async function fetchRelationshipBacklinksInner(path: string): Promise<void> {
+	try {
+		const entries = await invoke<RelationshipBacklinkV2[]>('get_relationship_backlinks_v2', { path });
+		if (!isStillCurrentPath(path)) return;
+		backlinksStore.setRelationshipBacklinks(entries);
+	} catch (err) {
+		errorLog('BACKLINKS', 'fetchRelationshipBacklinks failed:', err);
+	}
+}
+export const fetchRelationshipBacklinks = dedupeInflight(fetchRelationshipBacklinksInner, (path: string) => path);
 
 /**
  * Computes unlinked mentions on demand by invoking the Rust
