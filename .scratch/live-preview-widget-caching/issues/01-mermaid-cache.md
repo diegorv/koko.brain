@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Cache mermaid widget renders across viewport cycles
 

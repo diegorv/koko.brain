@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Cache collection block widget queries across viewport cycles
 

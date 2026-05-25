@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Add markIndexed to watcher incremental update path
 

@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Cache block math widget renders across viewport cycles
 
