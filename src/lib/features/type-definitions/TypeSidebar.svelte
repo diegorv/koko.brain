@@ -4,6 +4,7 @@
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import FileText from 'lucide-svelte/icons/file-text';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
@@ -15,6 +16,7 @@
 	let untyped = $state<TypeSidebarNote[]>([]);
 	let inboxCount = $state(0);
 	let collapsedSections = $state<Set<string>>(new Set());
+	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
 
 	$effect(() => {
 		const _version = vaultStore.vaultIndexVersion;
@@ -43,24 +45,25 @@
 </script>
 
 <div class="flex flex-col h-full">
-	<div class="flex items-center h-10 px-3 bg-tab-bar shrink-0" data-tauri-drag-region>
+	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<SidebarModeToggle />
-		<span class="ml-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Types</span>
 	</div>
 	<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border">
 		<button
 			class="px-2 py-0.5 text-xs rounded {filter === 'all' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
 			onclick={() => { filter = 'all'; rebuildSections(); }}
 		>All</button>
-		<button
-			class="px-2 py-0.5 text-xs rounded {filter === 'inbox' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
-			onclick={() => { filter = 'inbox'; rebuildSections(); }}
-		>
-			Inbox
-			{#if inboxCount > 0}
-				<span class="ml-0.5 text-[10px] bg-primary/20 text-primary px-1 rounded-full">{inboxCount}</span>
-			{/if}
-		</button>
+		{#if inboxEnabled}
+			<button
+				class="px-2 py-0.5 text-xs rounded {filter === 'inbox' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
+				onclick={() => { filter = 'inbox'; rebuildSections(); }}
+			>
+				Inbox
+				{#if inboxCount > 0}
+					<span class="ml-0.5 text-[10px] bg-primary/20 text-primary px-1 rounded-full">{inboxCount}</span>
+				{/if}
+			</button>
+		{/if}
 		<button
 			class="px-2 py-0.5 text-xs rounded {filter === 'archived' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
 			onclick={() => { filter = 'archived'; rebuildSections(); }}
