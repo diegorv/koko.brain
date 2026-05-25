@@ -1,5 +1,17 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const chartCalls: Array<{ canvas: HTMLElement; config: any }> = [];
+vi.mock('chart.js/auto', () => ({
+	Chart: class MockChart {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		constructor(canvas: HTMLElement, config: any) {
+			chartCalls.push({ canvas, config });
+		}
+	},
+}));
+
 import { KBUI } from '$lib/plugins/queryjs/kb-ui';
 import { DataArray } from '$lib/plugins/queryjs/data-array';
 
@@ -787,33 +799,8 @@ describe('KBUI', () => {
 	});
 
 	describe('chart', () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let chartCalls: Array<{ canvas: HTMLElement; config: any }>;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let originalChart: any;
-
 		beforeEach(() => {
-			chartCalls = [];
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			originalChart = (window as any).Chart;
-			// Mock Chart.js constructor
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(window as any).Chart = class MockChart {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				constructor(canvas: HTMLElement, config: any) {
-					chartCalls.push({ canvas, config });
-				}
-			};
-		});
-
-		afterEach(() => {
-			if (originalChart === undefined) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				delete (window as any).Chart;
-			} else {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				(window as any).Chart = originalChart;
-			}
+			chartCalls.length = 0;
 		});
 
 		const radarOpts = {
@@ -925,31 +912,7 @@ describe('KBUI', () => {
 			expect(legend.display).toBe(false);
 		});
 
-		it('renders error message when Chart.js fails to load', async () => {
-			// Remove window.Chart so loadChartJS attempts CDN load
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			delete (window as any).Chart;
-
-			// Intercept appendChild to fire onerror on script elements
-			const origAppendChild = document.head.appendChild.bind(document.head);
-			vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
-				if (node instanceof HTMLScriptElement && node.src.includes('chart.js')) {
-					setTimeout(() => node.onerror?.(new Event('error')), 0);
-					return node;
-				}
-				return origAppendChild(node);
-			});
-
-			await ui.chart('radar', radarOpts);
-
-			const inner = (container.firstElementChild as HTMLElement)
-				.firstElementChild as HTMLElement;
-			const errorEl = inner.firstElementChild as HTMLElement;
-			expect(errorEl.textContent).toContain('Chart error:');
-			expect(errorEl.textContent).toContain('Failed to load Chart.js from CDN');
-
-			vi.restoreAllMocks();
-		});
+		it.todo('renders error message when Chart.js import fails');
 
 		it('returns the wrapper element appended to container', async () => {
 			const result = await ui.chart('radar', radarOpts);

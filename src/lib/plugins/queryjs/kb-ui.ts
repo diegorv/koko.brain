@@ -32,8 +32,8 @@ const DEFAULT_HEATMAP_COLORS = [
 ];
 
 
-/** Timeout in milliseconds for loading Chart.js from CDN */
-const CHARTJS_LOAD_TIMEOUT = 10_000;
+/** Lazy-loaded Chart.js module (bundled, no CDN) */
+let ChartModule: typeof import('chart.js/auto') | null = null;
 
 /** Default status color mapping */
 const DEFAULT_STATUS_COLORS: KBStatusColorMap = {
@@ -542,9 +542,11 @@ export class KBUI {
 		wrapper.appendChild(inner);
 		this.container.appendChild(wrapper);
 
-		// Attempt to load Chart.js
+		// Lazy-load Chart.js from bundle
+		let ChartCtor: typeof import('chart.js/auto').Chart;
 		try {
-			await KBUI.loadChartJS();
+			const mod = await KBUI.loadChartJS();
+			ChartCtor = mod.Chart;
 		} catch (err) {
 			const errorEl = document.createElement('div');
 			errorEl.style.cssText =
@@ -569,8 +571,6 @@ export class KBUI {
 		);
 
 		// Build Chart.js config
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const ChartCtor = (window as any).Chart;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const config: Record<string, any> = {
 			type,
@@ -632,7 +632,8 @@ export class KBUI {
 			};
 		}
 
-		new ChartCtor(canvas, config);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		new ChartCtor(canvas, config as any);
 
 		return wrapper;
 	}
@@ -942,35 +943,13 @@ export class KBUI {
 	}
 
 	/**
-	 * Lazy-loads Chart.js from CDN if not already available on window.
-	 * Caches on window.Chart. Rejects after timeout or network error.
+	 * Lazy-loads Chart.js from the bundled dependency.
+	 * Uses dynamic import so the ~200 KB module is only loaded on first chart render.
 	 */
-	private static loadChartJS(): Promise<void> {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		if ((window as any).Chart) return Promise.resolve();
-
-		return new Promise<void>((resolve, reject) => {
-			const script = document.createElement('script');
-			script.src = 'https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js';
-
-			const timer = setTimeout(() => {
-				script.remove();
-				reject(new Error('Chart.js load timeout (10s)'));
-			}, CHARTJS_LOAD_TIMEOUT);
-
-			script.onload = () => {
-				clearTimeout(timer);
-				resolve();
-			};
-
-			script.onerror = () => {
-				clearTimeout(timer);
-				script.remove();
-				reject(new Error('Failed to load Chart.js from CDN'));
-			};
-
-			document.head.appendChild(script);
-		});
+	private static async loadChartJS(): Promise<typeof import('chart.js/auto')> {
+		if (ChartModule) return ChartModule;
+		ChartModule = await import('chart.js/auto');
+		return ChartModule;
 	}
 
 	/** Returns true for chart types that render best in a square aspect ratio */

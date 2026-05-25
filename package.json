@@ -68,6 +68,7 @@
     "@xterm/xterm": "^6.0.0",
     "@xyflow/svelte": "^1.5.2",
     "bits-ui": "^2.18.1",
+    "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "codemirror": "^6.0.2",
     "d3-drag": "^3.0.0",
