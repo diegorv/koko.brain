@@ -33,9 +33,9 @@
 	}
 </script>
 
-<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
-	<div class="flex items-center gap-0.5">
-		<SidebarModeToggle />
+<div class="flex items-center h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
+	<SidebarModeToggle />
+	<div class="flex items-center gap-0.5 ml-auto">
 		<DailyNoteButton />
 
 		<Tooltip.Root>
