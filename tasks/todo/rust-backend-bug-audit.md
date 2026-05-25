@@ -30,14 +30,14 @@ These are verified bugs/risks found during planning. Each phase will audit for M
 
 ## Tasks
 
-- [ ] Task 1: Phase 1 -- Concurrency audit (commands/semantic.rs, commands/terminal.rs, db/mod.rs, vault/watcher.rs)
+- [x] Task 1: Phase 1 -- Concurrency audit (commands/semantic.rs, commands/terminal.rs, db/mod.rs, vault/watcher.rs) -- CLEAN, no bugs
   - Map every static Mutex/RwLock/AtomicU64 and document lock ordering
   - Verify no function holds 2+ locks simultaneously in conflicting order (already disproved ABBA between VAULT_PATH/EMBEDDER -- `init_semantic_search` drops VAULT_PATH before acquiring EMBEDDER)
   - Check lock poisoning handling at every `.lock()` / `.try_lock()` site
   - Check `std::sync::Mutex` held inside `tokio::spawn` closures (schedule_embedder_unload, schedule_reranker_unload)
   - Verify watcher bridge thread cleanup when starting new watcher
 
-- [ ] Task 2: Phase 2 -- Unsafe code + panicking unwraps (fonts.rs, parsing.rs, task.rs, chunker.rs, semantic.rs)
+- [x] Task 2: Phase 2 -- Unsafe code + panicking unwraps (fonts.rs, parsing.rs, task.rs, chunker.rs, semantic.rs) -- CLEAN, all safe
   - Verify fonts.rs CoreText FFI: retained vs non-retained refs, buffer sizing, null termination
   - Verify parsing.rs:861 `from_utf8_unchecked` safety invariant; replace with safe alternative if cost is negligible
   - Audit all 23 unwrap sites: classify as (a) provably safe, (b) safe-but-should-use-expect, (c) actually reachable panic

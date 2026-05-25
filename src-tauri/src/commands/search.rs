@@ -65,7 +65,7 @@ fn collect_search_matches(
 
 		if metadata.is_dir() {
 			collect_search_matches(&path, query_lower, results, depth + 1)?;
-		} else if file_name.ends_with(".md") || file_name.ends_with(".markdown") {
+		} else if vault_fs::is_markdown_filename(&file_name) {
 			// Skip files that are too large
 			if metadata.len() > MAX_FILE_SIZE {
 				continue;
