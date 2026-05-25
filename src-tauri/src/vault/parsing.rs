@@ -12,6 +12,7 @@
 //! the markers (`[`, `]`, `|`, `#`, backtick, `<`, `>`) are all ASCII and
 //! UTF-8 multi-byte sequences never collide with them.
 
+use crate::vault::aliases::canonicalize_key;
 use crate::vault::entry::WikiLink;
 use crate::vault::task::{RecurrenceRule, Task, TaskMetadata, TaskPriority, TaskStatus};
 use regex::Regex;
@@ -501,7 +502,7 @@ fn parse_yaml_lines(lines: &[&str]) -> BTreeMap<String, JsonValue> {
 			continue;
 		};
 
-		let key = key.to_string();
+		let key = canonicalize_key(key).to_string();
 		let value_trimmed = raw_value.trim();
 
 		if value_trimmed.is_empty() {
