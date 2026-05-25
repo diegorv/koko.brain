@@ -59,7 +59,8 @@ src/lib/
                       #   layout, markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
   features/           # Built-in features: auto-move, backlinks, bookmarks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, file-history, file-icons,
-                      #   folder-notes, outgoing-links, properties, quick-switcher, search, tags, tasks, views
+                      #   folder-notes, outgoing-links, properties, quick-switcher, search, tags,
+                      #   tasks, type-definitions
   plugins/            # Optional modules: calendar, encrypted-notes, graph-view, kanban, one-on-one,
                       #   periodic-notes, queryjs, quick-note, templates, terminal, word-count
   utils/              # Pure shared utilities (no state, no side effects)
@@ -220,7 +221,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 1. **Use `Decoration.mark()` + CSS over `Decoration.replace()` + widgets** — marks are CSS-only (GPU-accelerated paint), widgets cause DOM reflow. Only use widgets for complex interactive elements (tables, code blocks, meta-bind selects, queryjs blocks). For simple visual replacements (bullets, HR, hard breaks), use marks with `font-size: 0` + `::before`/`::after` pseudo-elements.
 
-2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache expensive results (scripts, API calls) and re-attach the cached DOM in `toDOM()`. See `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts` for the live-DOM cache pattern.
+2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache expensive results (scripts, API calls) and re-attach the cached DOM in `toDOM()`. See `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts` for the live-DOM cache pattern. The same pattern is used by `mermaid-block-widget.ts` (diagram renders) and `collection-block-widget.ts` (IPC queries).
 
 3. **Widgets with `eq()` don't prevent `toDOM()` calls** — `eq()` returning `true` keeps existing DOM, but when the widget is removed from viewport and re-enters, CM calls `toDOM()` fresh. Cache is the only way to avoid re-execution.
 
@@ -261,15 +262,17 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 6. **Save flow: `notifyAfterSave` fires the Rust IPC, then the TS-side per-file updaters** — `editor.hooks.ts` runs `update_note_in_index` (Rust, fire-and-forget) for every save AND, when the (path, content) signature is fresh per `index-dedupe`, runs the TS-only updaters (`updateNoteInIndex` for collection panel, `updateFrontmatterIconForFile`, `updateCalendarForFile`). The Rust IPC sits OUTSIDE the dedup guard because Rust has its own `UpdateResult.changed` short-circuit.
 
-7. **Index dedupe** (`$lib/utils/index-dedupe.ts`) — shared `Map<path, lastContent>` with `isAlreadyIndexed` / `markIndexed` / `clearIndexedEntry` / `clearAllIndexed`. Both `updateIndexesForFile` (content-effect, 1 s debounce) and `notifyAfterSave` guard on the signature up front. `clearIndexedEntry` is called by `fs.service.ts::deleteItem` and the watcher's deletion path so a re-created file with identical bytes re-indexes. `resetHooks` wipes the whole map on vault teardown. Memory cost is one Map entry per indexed file (~50 B × N).
+7. **Frontmatter auto-save uses a faster debounce** — `editor.service.ts` runs two mutually exclusive timers: 500 ms for frontmatter-only edits (property changes via meta-bind, icon picker, lifecycle actions) and 2000 ms for body text. The timers cancel each other so only one fires per edit burst.
 
-8. **Absolute paths everywhere** — `FileTreeNode.path`, editor tabs, all `*_v2` IPC params and return `path` fields are absolute. Never convert to vault-relative paths before storing or invoking. Path traversal protection lives in Rust's `read_files_batch` (`canonicalize` + `starts_with`); the frontend doesn't strip prefixes.
+8. **Index dedupe** (`$lib/utils/index-dedupe.ts`) — shared `Map<path, lastContent>` with `isAlreadyIndexed` / `markIndexed` / `clearIndexedEntry` / `clearAllIndexed`. Both `updateIndexesForFile` (content-effect, 1 s debounce) and `notifyAfterSave` guard on the signature up front. `clearIndexedEntry` is called by `fs.service.ts::deleteItem` and the watcher's deletion path so a re-created file with identical bytes re-indexes. `resetHooks` wipes the whole map on vault teardown. Memory cost is one Map entry per indexed file (~50 B × N).
 
-9. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500 ms saved per save). Independent of the `VaultIndex` flow above; both fire from `notifyAfterSave`.
+9. **Absolute paths everywhere** — `FileTreeNode.path`, editor tabs, all `*_v2` IPC params and return `path` fields are absolute. Never convert to vault-relative paths before storing or invoking. Path traversal protection lives in Rust's `read_files_batch` (`canonicalize` + `starts_with`); the frontend doesn't strip prefixes.
 
-10. **Properties parse cache** — `parseFrontmatterProperties` is LRU-cached (capacity 16) by raw frontmatter substring. Meta-bind's per-keystroke rebuild path doesn't re-parse identical YAML. The cache lives in `properties.logic.ts` and is independent of the Rust `VaultIndex` (which does its own parse during `update_note_in_index`).
+10. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500 ms saved per save). Independent of the `VaultIndex` flow above; both fire from `notifyAfterSave`.
 
-11. **QueryJS KBAPI consumes a Rust entries snapshot** — `kb-api.ts` is constructed with `entries: NoteEntryV2[]` (one IPC fetch per widget render via `get_all_vault_entries_v2`). `buildKBPage` reads `entry.tags` / `entry.tasks` / `entry.outgoingLinks` directly — no per-file YAML re-parse. Wikilink resolution still uses TS-side `buildResolutionCache` + `resolveWikilinkCached` over the snapshot's path list (O(N) build, O(1) per outlink). The session cache (`queryjs-session.store.svelte.ts`) keeps live DOM elements across viewport scrolls; `_pendingViews` (no regex rewrite) handles awaitless `kb.view()`.
+11. **Properties parse cache** — `parseFrontmatterProperties` is LRU-cached (capacity 16) by raw frontmatter substring. Meta-bind's per-keystroke rebuild path doesn't re-parse identical YAML. The cache lives in `properties.logic.ts` and is independent of the Rust `VaultIndex` (which does its own parse during `update_note_in_index`).
+
+12. **QueryJS KBAPI consumes a Rust entries snapshot** — `kb-api.ts` is constructed with `entries: NoteEntryV2[]` (one IPC fetch per widget render via `get_all_vault_entries_v2`). `buildKBPage` reads `entry.tags` / `entry.tasks` / `entry.outgoingLinks` directly — no per-file YAML re-parse. Wikilink resolution still uses TS-side `buildResolutionCache` + `resolveWikilinkCached` over the snapshot's path list (O(N) build, O(1) per outlink). The session cache (`queryjs-session.store.svelte.ts`) keeps live DOM elements across viewport scrolls; `_pendingViews` (no regex rewrite) handles awaitless `kb.view()`.
 
 ## Documentation Index
 
