@@ -100,6 +100,9 @@ fn note_entry_serializes_with_camel_case_keys() {
 		organized: false,
 		archived: false,
 		favorite: false,
+		belongs_to: Vec::new(),
+		related_to: Vec::new(),
+		relationships: BTreeMap::new(),
 	};
 
 	let value = serde_json::to_value(&entry).unwrap();
@@ -122,6 +125,9 @@ fn note_entry_serializes_with_camel_case_keys() {
 		"organized",
 		"archived",
 		"favorite",
+		"belongsTo",
+		"relatedTo",
+		"relationships",
 	];
 	for key in expected_keys {
 		assert!(obj.contains_key(key), "missing key: {}", key);
@@ -190,6 +196,9 @@ fn note_entry_round_trips_through_json() {
 		organized: false,
 		archived: false,
 		favorite: false,
+		belongs_to: Vec::new(),
+		related_to: Vec::new(),
+		relationships: BTreeMap::new(),
 	};
 
 	let json = serde_json::to_string(&original).unwrap();
@@ -453,4 +462,73 @@ fn from_content_lifecycle_flags_ignore_non_boolean() {
 	assert!(!entry.organized);
 	assert!(!entry.archived);
 	assert!(!entry.favorite);
+}
+
+// --- Relationship fields (Portent issue 06) ----------------------------------
+
+#[test]
+fn from_content_belongs_to_single_wikilink() {
+	let content = "---\nbelongs_to: \"[[project]]\"\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.belongs_to, vec!["project"]);
+}
+
+#[test]
+fn from_content_belongs_to_array_of_wikilinks() {
+	let content = "---\nbelongs_to: [\"[[a]]\", \"[[b]]\"]\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.belongs_to, vec!["a", "b"]);
+}
+
+#[test]
+fn from_content_belongs_to_via_alias() {
+	let content = "---\nbelongs to: \"[[project]]\"\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.belongs_to, vec!["project"]);
+}
+
+#[test]
+fn from_content_related_to_single_wikilink() {
+	let content = "---\nrelated_to: \"[[maps]]\"\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.related_to, vec!["maps"]);
+}
+
+#[test]
+fn from_content_relationships_empty_when_no_wikilinks() {
+	let content = "---\ntitle: Hello\nstatus: draft\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert!(entry.relationships.is_empty());
+}
+
+#[test]
+fn from_content_relationships_custom_field_with_wikilink() {
+	let content = "---\nmentor: \"[[john]]\"\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.relationships.get("mentor"), Some(&vec!["john".to_string()]));
+}
+
+#[test]
+fn from_content_relationships_excludes_system_keys() {
+	let content = "---\ntype: Project\ntags: [work]\nmentor: \"[[john]]\"\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert!(!entry.relationships.contains_key("type"));
+	assert!(!entry.relationships.contains_key("tags"));
+	assert!(entry.relationships.contains_key("mentor"));
+}
+
+#[test]
+fn from_content_wikilink_strips_alias_and_heading() {
+	let content = "---\nbelongs_to: \"[[project|My Project]]\"\nrelated_to: \"[[note#section]]\"\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert_eq!(entry.belongs_to, vec!["project"]);
+	assert_eq!(entry.related_to, vec!["note"]);
+}
+
+#[test]
+fn from_content_belongs_to_empty_when_absent() {
+	let content = "---\ntitle: No rels\n---\n";
+	let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+	assert!(entry.belongs_to.is_empty());
+	assert!(entry.related_to.is_empty());
 }

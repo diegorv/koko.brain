@@ -33,6 +33,9 @@ export function entryV2(
 		organized: false,
 		archived: false,
 		favorite: false,
+		belongsTo: [],
+		relatedTo: [],
+		relationships: {},
 		...overrides,
 	};
 }

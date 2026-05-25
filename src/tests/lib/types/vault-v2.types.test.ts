@@ -87,6 +87,9 @@ describe('vault-v2.types', () => {
 				organized: false,
 				archived: false,
 				favorite: false,
+				belongsTo: [],
+				relatedTo: [],
+				relationships: {},
 			};
 
 			// Type-level checks lock the field names + types so a Rust-side
