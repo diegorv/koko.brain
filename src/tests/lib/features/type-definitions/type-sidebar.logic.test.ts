@@ -97,6 +97,27 @@ describe('buildTypeSections', () => {
 		expect(sections[0].notes.length).toBe(1);
 	});
 
+	it('sorts favorites by _favorite_index then title', () => {
+		const entries = [
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', favorite: true, frontmatter: { _favorite_index: 3 } }),
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, frontmatter: { _favorite_index: 1 } }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: true, frontmatter: { _favorite_index: 2 } }),
+			entryV2('/v/d.md', { title: 'D', isA: 'Project', favorite: true }),
+			entryV2('/v/e.md', { title: 'E', isA: 'Project', favorite: true }),
+		];
+		const { sections } = buildTypeSections(entries, new Map(), 'favorites');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['A', 'B', 'C', 'D', 'E']);
+	});
+
+	it('favorites ignores _order and uses _favorite_index', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, frontmatter: { _order: 1, _favorite_index: 2 } }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: true, frontmatter: { _order: 2, _favorite_index: 1 } }),
+		];
+		const { sections } = buildTypeSections(entries, new Map(), 'favorites');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'A']);
+	});
+
 	it('sorts sections by order', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),

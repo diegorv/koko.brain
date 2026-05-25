@@ -12,6 +12,7 @@ const ALIAS_MAP: ReadonlyMap<string, string> = new Map([
 	['archived', '_archived'],
 	['favorite', '_favorite'],
 	['order', '_order'],
+	['favorite_index', '_favorite_index'],
 	['sort', '_sort'],
 	['icon', '_icon'],
 	['sidebar_label', '_sidebar_label'],

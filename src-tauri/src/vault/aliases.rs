@@ -16,6 +16,7 @@ static ALIAS_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
 	m.insert("archived", "_archived");
 	m.insert("favorite", "_favorite");
 	m.insert("order", "_order");
+	m.insert("favorite_index", "_favorite_index");
 	m.insert("sort", "_sort");
 	m.insert("icon", "_icon");
 	m.insert("sidebar_label", "_sidebar_label");
@@ -49,6 +50,7 @@ mod tests {
 		assert_eq!(canonicalize_key("archived"), "_archived");
 		assert_eq!(canonicalize_key("favorite"), "_favorite");
 		assert_eq!(canonicalize_key("order"), "_order");
+		assert_eq!(canonicalize_key("favorite_index"), "_favorite_index");
 		assert_eq!(canonicalize_key("sort"), "_sort");
 		assert_eq!(canonicalize_key("icon"), "_icon");
 		assert_eq!(canonicalize_key("sidebar_label"), "_sidebar_label");
