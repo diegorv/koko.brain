@@ -60,15 +60,24 @@
 	/** The current board state, parsed from markdown */
 	let board = $state<KanbanBoard>({ lanes: [], archive: [], settings: {} });
 
+	/** Skip re-parse when the content change was triggered by our own applyChange */
+	let selfUpdate = false;
+
 	// Parse when content changes (initial load + file watcher reload)
 	$effect(() => {
-		board = parseKanbanBoard(markdownContent);
+		const _md = markdownContent;
+		if (selfUpdate) {
+			selfUpdate = false;
+			return;
+		}
+		board = parseKanbanBoard(_md);
 	});
 
 	/** Apply a board mutation: update local state + serialize + persist */
 	function applyChange(newBoard: KanbanBoard) {
 		if (newBoard === board) return; // no-op guard
 		board = newBoard;
+		selfUpdate = true;
 		onContentChange(serializeKanbanBoard(newBoard));
 	}
 
