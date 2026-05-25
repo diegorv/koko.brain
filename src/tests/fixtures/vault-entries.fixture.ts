@@ -30,6 +30,9 @@ export function entryV2(
 		snippet: '',
 		tasks: [],
 		isA: null,
+		organized: false,
+		archived: false,
+		favorite: false,
 		...overrides,
 	};
 }

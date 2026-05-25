@@ -169,6 +169,12 @@ pub struct NoteEntry {
 	/// Casing normalized: first letter uppercase, rest preserved.
 	/// `None` when the note has no type field.
 	pub is_a: Option<String>,
+	/// Lifecycle flag: note has been explicitly organized. Default `false`.
+	pub organized: bool,
+	/// Lifecycle flag: note is archived (hidden from default views). Default `false`.
+	pub archived: bool,
+	/// Lifecycle flag: note is pinned as a favorite. Default `false`.
+	pub favorite: bool,
 }
 
 impl NoteEntry {
@@ -201,6 +207,9 @@ impl NoteEntry {
 		let tags = extract_tags_strict(content);
 		let tasks = extract_tasks(content);
 		let is_a = extract_is_a(&frontmatter);
+		let organized = extract_bool_flag(&frontmatter, "_organized");
+		let archived = extract_bool_flag(&frontmatter, "_archived");
+		let favorite = extract_bool_flag(&frontmatter, "_favorite");
 		let body = strip_frontmatter(content);
 		let word_count = compute_word_count(body);
 		let snippet = compute_snippet(body);
@@ -217,6 +226,9 @@ impl NoteEntry {
 			snippet,
 			tasks,
 			is_a,
+			organized,
+			archived,
+			favorite,
 		}
 	}
 }
@@ -293,4 +305,13 @@ fn normalize_type_casing(s: &str) -> String {
 		None => String::new(),
 		Some(c) => c.to_uppercase().to_string() + chars.as_str(),
 	}
+}
+
+/// Extracts a boolean flag from frontmatter. Returns `false` when absent
+/// or not a boolean value.
+fn extract_bool_flag(frontmatter: &BTreeMap<String, JsonValue>, key: &str) -> bool {
+	frontmatter
+		.get(key)
+		.and_then(|v| v.as_bool())
+		.unwrap_or(false)
 }
