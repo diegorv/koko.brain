@@ -1,11 +1,22 @@
 <script lang="ts">
+	import { ask } from '@tauri-apps/plugin-dialog';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import FileText from 'lucide-svelte/icons/file-text';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import Copy from 'lucide-svelte/icons/copy';
+	import Pencil from 'lucide-svelte/icons/pencil';
+	import FolderSearch from 'lucide-svelte/icons/folder-search';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+	import { deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
+	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
+	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 
@@ -14,6 +25,7 @@
 	let untyped = $state<TypeSidebarNote[]>([]);
 	let inboxCount = $state(0);
 	let collapsedSections = $state<Set<string>>(new Set());
+	let contextTarget = $state<TypeSidebarNote | null>(null);
 	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
 	let filterTabs = $derived([
 		{ id: 'all' as SidebarFilter, label: 'All' },
@@ -46,6 +58,42 @@
 		else next.add(name);
 		collapsedSections = next;
 	}
+
+	async function handleOpenInNewTab(note: TypeSidebarNote) {
+		openFileInEditor(note.path);
+	}
+
+	async function handleDuplicate(note: TypeSidebarNote) {
+		await duplicateItem(note.path, false);
+	}
+
+	async function handleCopyAbsolutePath(note: TypeSidebarNote) {
+		await navigator.clipboard.writeText(note.path);
+	}
+
+	async function handleCopyRelativePath(note: TypeSidebarNote) {
+		if (!vaultStore.path) return;
+		await navigator.clipboard.writeText(getRelativePath(vaultStore.path, note.path));
+	}
+
+	async function handleRevealInFinder(note: TypeSidebarNote) {
+		await revealInSystemExplorer(note.path);
+	}
+
+	function handleStartRename(note: TypeSidebarNote) {
+		fsStore.setRenamingPath(note.path);
+		settingsStore.updateLayout({ sidebarMode: 'files' });
+	}
+
+	async function handleDelete(note: TypeSidebarNote) {
+		const confirmed = await ask(
+			`Move "${note.title}" to trash?`,
+			{ title: 'Move to Trash', kind: 'warning' }
+		);
+		if (confirmed) {
+			await deleteItem(note.path, false);
+		}
+	}
 </script>
 
 <Tooltip.Provider delayDuration={400}>
@@ -70,61 +118,118 @@
 		{/each}
 	</div>
 
-	<div class="flex-1 overflow-y-auto px-1 py-1">
-		{#each sections as section (section.metadata.name)}
-			{@const collapsed = collapsedSections.has(section.metadata.name)}
-			<div class="mb-1">
-				<button
-					class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent transition-colors cursor-pointer"
-					onclick={() => toggleSection(section.metadata.name)}
-				>
-					<ChevronRight class="size-3 shrink-0 transition-transform {collapsed ? '' : 'rotate-90'}" />
-					<span class="truncate" style="color: var(--color-{section.metadata.color}, inherit)">
-						{section.metadata.sidebarLabel}
-					</span>
-					<span class="ml-auto text-xs text-muted-foreground">{section.notes.length}</span>
-				</button>
-				{#if !collapsed}
-					<div class="pl-4">
-						{#each section.notes as note (note.path)}
+	<ContextMenu.Root>
+		<ContextMenu.Trigger>
+			{#snippet child({ props })}
+				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
+					{#each sections as section (section.metadata.name)}
+						{@const collapsed = collapsedSections.has(section.metadata.name)}
+						<div class="mb-1">
 							<button
-								class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors truncate cursor-pointer"
-								onclick={() => openFileInEditor(note.path)}
+								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent transition-colors cursor-pointer"
+								onclick={() => toggleSection(section.metadata.name)}
 							>
-								{note.title}
+								<ChevronRight class="size-3 shrink-0 transition-transform {collapsed ? '' : 'rotate-90'}" />
+								<span class="truncate" style="color: var(--color-{section.metadata.color}, inherit)">
+									{section.metadata.sidebarLabel}
+								</span>
+								<span class="ml-auto text-xs text-muted-foreground">{section.notes.length}</span>
 							</button>
-						{/each}
-					</div>
-				{/if}
-			</div>
-		{/each}
+							{#if !collapsed}
+								<div class="pl-4">
+									{#each section.notes as note (note.path)}
+										<button
+											class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors truncate cursor-pointer"
+											onclick={() => openFileInEditor(note.path)}
+											oncontextmenu={() => { contextTarget = note; }}
+										>
+											{note.title}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/each}
 
-		{#if untyped.length > 0 && settingsStore.showUntypedNotes}
-			{@const untypedCollapsed = collapsedSections.has('__untyped')}
-			<div class="mb-1 mt-2 border-t border-border pt-1">
-				<button
-					class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
-					onclick={() => toggleSection('__untyped')}
-				>
-					<ChevronRight class="size-3 shrink-0 transition-transform {untypedCollapsed ? '' : 'rotate-90'}" />
-					<FileText class="size-3.5 shrink-0" />
-					<span>Untyped</span>
-					<span class="ml-auto text-xs">{untyped.length}</span>
-				</button>
-				{#if !untypedCollapsed}
-					<div class="pl-4">
-						{#each untyped as note (note.path)}
+					{#if untyped.length > 0 && settingsStore.showUntypedNotes}
+						{@const untypedCollapsed = collapsedSections.has('__untyped')}
+						<div class="mb-1 mt-2 border-t border-border pt-1">
 							<button
-								class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors truncate cursor-pointer"
-								onclick={() => openFileInEditor(note.path)}
+								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+								onclick={() => toggleSection('__untyped')}
 							>
-								{note.title}
+								<ChevronRight class="size-3 shrink-0 transition-transform {untypedCollapsed ? '' : 'rotate-90'}" />
+								<FileText class="size-3.5 shrink-0" />
+								<span>Untyped</span>
+								<span class="ml-auto text-xs">{untyped.length}</span>
 							</button>
-						{/each}
-					</div>
-				{/if}
-			</div>
-		{/if}
-	</div>
+							{#if !untypedCollapsed}
+								<div class="pl-4">
+									{#each untyped as note (note.path)}
+										<button
+											class="flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors truncate cursor-pointer"
+											onclick={() => openFileInEditor(note.path)}
+											oncontextmenu={() => { contextTarget = note; }}
+										>
+											{note.title}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/snippet}
+		</ContextMenu.Trigger>
+		<ContextMenu.Content class="w-56">
+			{#if contextTarget}
+				{@const target = contextTarget}
+				<ContextMenu.Item onclick={() => handleOpenInNewTab(target)}>
+					<ExternalLink class="size-4" />
+					<span>Open in new tab</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Item onclick={() => handleDuplicate(target)}>
+					<Copy class="size-4" />
+					<span>Duplicate</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Sub>
+					<ContextMenu.SubTrigger>
+						<Copy class="size-4" />
+						<span>Copy path</span>
+					</ContextMenu.SubTrigger>
+					<ContextMenu.SubContent>
+						<ContextMenu.Item onclick={() => handleCopyAbsolutePath(target)}>
+							<span>Copy absolute path</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleCopyRelativePath(target)}>
+							<span>Copy relative path</span>
+						</ContextMenu.Item>
+					</ContextMenu.SubContent>
+				</ContextMenu.Sub>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Item onclick={() => handleRevealInFinder(target)}>
+					<FolderSearch class="size-4" />
+					<span>Reveal in Finder</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Item onclick={() => handleStartRename(target)}>
+					<Pencil class="size-4" />
+					<span>Rename</span>
+					<ContextMenu.Shortcut>F2</ContextMenu.Shortcut>
+				</ContextMenu.Item>
+				<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target)}>
+					<Trash2 class="size-4" />
+					<span>Move to Trash</span>
+					<ContextMenu.Shortcut>⌘⌫</ContextMenu.Shortcut>
+				</ContextMenu.Item>
+			{/if}
+		</ContextMenu.Content>
+	</ContextMenu.Root>
 </div>
 </Tooltip.Provider>
