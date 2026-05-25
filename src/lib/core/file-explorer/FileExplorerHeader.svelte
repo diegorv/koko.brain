@@ -12,6 +12,7 @@
 	import { changeSortOption } from '$lib/core/filesystem/fs.service';
 	import type { SortOption } from '$lib/core/filesystem/fs.types';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
+	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
 
 	/** Props passed from the parent FileExplorer component */
 	interface Props {
@@ -34,6 +35,7 @@
 
 <div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
 	<div class="flex items-center gap-0.5">
+		<SidebarModeToggle />
 		<DailyNoteButton />
 
 		<Tooltip.Root>

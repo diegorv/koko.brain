@@ -7,6 +7,7 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countInbox, type SidebarFilter, type TypeSection, type TypeSidebarNote } from './type-sidebar.logic';
+	import SidebarModeToggle from './SidebarModeToggle.svelte';
 	import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 	let filter = $state<SidebarFilter>('all');
@@ -42,6 +43,9 @@
 </script>
 
 <div class="flex flex-col h-full">
+	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
+		<SidebarModeToggle />
+	</div>
 	<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border">
 		<button
 			class="px-2 py-0.5 text-xs rounded {filter === 'all' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'} cursor-pointer"
