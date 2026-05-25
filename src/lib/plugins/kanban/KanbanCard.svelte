@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Check from 'lucide-svelte/icons/check';
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 	import Pencil from 'lucide-svelte/icons/pencil';
@@ -143,13 +144,17 @@
 	let linkedContent = $state('');
 
 	$effect(() => {
-		if (hasWikilink) {
-			loadLinkedFileContent(item.text).then((content) => {
-				linkedContent = content;
-			});
-		} else {
-			linkedContent = '';
-		}
+		const wikilink = hasWikilink;
+		const text = item.text;
+		untrack(() => {
+			if (wikilink) {
+				loadLinkedFileContent(text).then((content) => {
+					linkedContent = content;
+				});
+			} else {
+				linkedContent = '';
+			}
+		});
 	});
 </script>
 
