@@ -81,8 +81,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	let unlisten: (() => void) | undefined;
 	listen<UpdateResultV2>('vault-index-updated', (event) => {
 		vaultStore.bumpVaultIndexVersion(event.payload.version);
-		refreshArchivedPaths().catch(() => {});
-		refreshTypeDefinitions().catch(() => {});
+		refreshArchivedPaths().catch((err) => { console.error('refreshArchivedPaths failed:', err); });
+		refreshTypeDefinitions().catch((err) => { console.error('refreshTypeDefinitions failed:', err); });
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
