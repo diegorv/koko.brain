@@ -10,12 +10,14 @@
 
 	let lifecycleState = $derived(getLifecycleState(propertiesStore.properties));
 	let favorited = $derived(isFavorite(propertiesStore.properties));
+
+	const btnClass = 'flex flex-1 items-center justify-center gap-1.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer';
 </script>
 
-<div class="flex items-center gap-1 px-3 py-1.5">
+<div class="flex items-center gap-1 px-2 py-1.5">
 	{#if lifecycleState === 'archived'}
 		<button
-			class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+			class={btnClass}
 			onclick={() => setArchived(false)}
 			title="Unarchive"
 		>
@@ -25,7 +27,7 @@
 	{:else}
 		{#if lifecycleState === 'inbox'}
 			<button
-				class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+				class={btnClass}
 				onclick={() => setOrganized(true)}
 				title="Mark as organized"
 			>
@@ -34,7 +36,7 @@
 			</button>
 		{:else}
 			<button
-				class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+				class={btnClass}
 				onclick={() => setOrganized(false)}
 				title="Move back to inbox"
 			>
@@ -43,7 +45,7 @@
 			</button>
 		{/if}
 		<button
-			class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+			class={btnClass}
 			onclick={() => setArchived(true)}
 			title="Archive"
 		>
@@ -52,10 +54,11 @@
 		</button>
 	{/if}
 	<button
-		class="ml-auto p-1 rounded-md transition-colors cursor-pointer {favorited ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
+		class="flex flex-1 items-center justify-center gap-1.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer {favorited ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
 		onclick={() => setFavorite(!favorited)}
 		title={favorited ? 'Remove from favorites' : 'Add to favorites'}
 	>
 		<Star class="size-3.5" fill={favorited ? 'currentColor' : 'none'} />
+		{favorited ? 'Favorited' : 'Favorite'}
 	</button>
 </div>

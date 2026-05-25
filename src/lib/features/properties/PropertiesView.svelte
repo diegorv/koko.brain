@@ -25,9 +25,13 @@
 		if (addInputRef) addInputRef.focus();
 	});
 
-	/** Properties sorted alphabetically by key for display */
+	const LIFECYCLE_KEYS = new Set(['_favorite', '_organized', '_archived']);
+
+	/** Properties sorted alphabetically by key, excluding lifecycle keys shown as buttons */
 	let sortedProperties = $derived(
-		[...propertiesStore.properties].sort((a, b) => a.key.localeCompare(b.key))
+		[...propertiesStore.properties]
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key))
+			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
 	// Re-parse properties when active tab content changes (debounced)
