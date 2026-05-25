@@ -90,12 +90,26 @@ Notes with `_order` appear first (lower = higher), sorted among themselves by or
 
 The type sidebar has four filter tabs:
 
-| Filter | Shows |
-|--------|-------|
-| All | All notes except archived |
-| Inbox | Notes not yet organized (requires Explicit Organization) |
-| Archived | Archived notes only |
-| Favorites | Favorited notes (excluding archived) |
+| Filter | Shows | Sort |
+|--------|-------|------|
+| All | All notes except archived | `_order`, then title |
+| Inbox | Notes not yet organized (requires Explicit Organization) | `_order`, then title |
+| Archived | Archived notes only | `_order`, then title |
+| Favorites | Favorited notes (excluding archived) | `_favorite_index`, then title |
+
+### Favorite Order
+
+In the Favorites tab, notes are sorted by `_favorite_index` (or `favorite_index`) instead of `_order`:
+
+```yaml
+---
+type: Project
+_favorite: true
+_favorite_index: 1
+---
+```
+
+Notes with `_favorite_index` appear first (lower = higher). Notes without it fall to the end, sorted alphabetically.
 
 ---
 
@@ -189,6 +203,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `archived` | `_archived` | Archived filter tab, hidden from All/Favorites/Quick Switcher |
 | `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
 | `order` | `_order` | Sort order of type sections and notes within sections |
+| `favorite_index` | `_favorite_index` | Sort order of notes in Favorites tab |
 | `sort` | `_sort` | Not yet implemented |
 | `icon` | `_icon` | Custom icon in type sidebar, file explorer, and editor tabs |
 | `sidebar_label`, `sidebar label` | `_sidebar_label` | Section header label in type sidebar |
