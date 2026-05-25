@@ -353,6 +353,33 @@ describe('onContentChange', () => {
 		});
 	});
 
+	it('retries save after failure so data is not silently lost', async () => {
+		vi.useFakeTimers();
+		addTab('/vault/note.md', 'original');
+		editorStore.setActiveIndex(0);
+		editorStore.updateContent('modified');
+
+		// First save fails
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		// Second save succeeds
+		vi.mocked(writeTextFile).mockResolvedValueOnce(undefined);
+
+		onContentChange('modified');
+
+		// Wait for the first (failed) save to complete
+		await vi.advanceTimersByTimeAsync(100);
+
+		// Tab should still be dirty after failed save
+		expect(editorStore.tabs[0].savedContent).toBe('original');
+
+		// A retry should be scheduled. Advance past the retry delay.
+		await vi.advanceTimersByTimeAsync(6000);
+
+		// After retry, save should succeed
+		expect(editorStore.tabs[0].savedContent).toBe('modified');
+		vi.useRealTimers();
+	});
+
 	it('skips clean and virtual tabs during auto-save', () => {
 		// Clean tab
 		addTab('/vault/clean.md', 'same');

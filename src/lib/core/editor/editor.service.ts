@@ -154,11 +154,19 @@ export async function saveFileByPath(path: string): Promise<boolean> {
 	}
 }
 
-function saveDirtyTabs() {
-	for (const tab of editorStore.tabs) {
-		if (!isVirtualTab(tab) && isTabDirty(tab)) {
-			saveFileByPath(tab.path);
-		}
+/** Retry delay when auto-save fails (ms) */
+const SAVE_RETRY_DELAY_MS = 5000;
+
+async function saveDirtyTabs() {
+	const dirtyTabs = editorStore.tabs.filter(
+		(tab) => !isVirtualTab(tab) && isTabDirty(tab),
+	);
+	if (dirtyTabs.length === 0) return;
+	const results = await Promise.all(
+		dirtyTabs.map((tab) => saveFileByPath(tab.path)),
+	);
+	if (results.some((ok) => !ok)) {
+		setTimeout(saveDirtyTabs, SAVE_RETRY_DELAY_MS);
 	}
 }
 
