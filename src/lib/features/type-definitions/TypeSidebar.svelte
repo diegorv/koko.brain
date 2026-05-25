@@ -43,8 +43,9 @@
 </script>
 
 <div class="flex flex-col h-full">
-	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
+	<div class="flex items-center h-10 px-3 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<SidebarModeToggle />
+		<span class="ml-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">Types</span>
 	</div>
 	<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border">
 		<button
