@@ -293,3 +293,14 @@ fn canonicalizes_symlinked_vault_path() {
     let results = search_vault(link_path.to_string_lossy().to_string(), "findme".into()).unwrap();
     assert_eq!(results.len(), 1);
 }
+
+#[test]
+fn skips_file_exceeding_max_size() {
+    let dir = TempDir::new().unwrap();
+    let large = "x".repeat(10 * 1024 * 1024 + 1);
+    fs::write(dir.path().join("huge.md"), &large).unwrap();
+    fs::write(dir.path().join("small.md"), "findme here").unwrap();
+
+    let results = search_vault(dir.path().to_string_lossy().to_string(), "findme".into()).unwrap();
+    assert_eq!(results.len(), 1, "only small file should be searched");
+}

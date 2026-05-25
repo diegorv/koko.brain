@@ -689,4 +689,37 @@ mod tests {
 		assert!(chunks[0].content.chars().count() <= 10);
 	}
 
+	#[test]
+	fn unclosed_frontmatter_treated_as_no_frontmatter() {
+		let content = "---\ntitle: oops\nno closing marker\n# Heading\nBody text here.";
+		let chunks = chunk_markdown("test.md", content, &ChunkOptions::default());
+		assert!(!chunks.is_empty(), "unclosed frontmatter should not suppress all content");
+		assert!(
+			chunks.iter().any(|c| c.content.contains("Body text")),
+			"body content should be included"
+		);
+	}
+
+	#[test]
+	fn nested_code_blocks_handled() {
+		let content = "# Code\n````markdown\n```rust\nfn main() {}\n```\n````\nAfter code with enough text to pass minimum threshold easily.";
+		let options = ChunkOptions {
+			min_chunk_chars: 1,
+			..ChunkOptions::default()
+		};
+		let chunks = chunk_markdown("test.md", content, &options);
+		assert!(!chunks.is_empty());
+	}
+
+	#[test]
+	fn frontmatter_only_file_produces_no_chunks() {
+		let content = "---\ntitle: Empty\ntags: [test]\n---\n";
+		let options = ChunkOptions {
+			min_chunk_chars: 10,
+			..ChunkOptions::default()
+		};
+		let chunks = chunk_markdown("test.md", content, &options);
+		assert!(chunks.is_empty(), "frontmatter-only file should produce 0 chunks");
+	}
+
 }

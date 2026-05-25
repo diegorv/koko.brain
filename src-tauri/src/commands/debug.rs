@@ -29,3 +29,14 @@ pub fn get_process_memory() -> Result<u64, String> {
 		.ok_or_else(|| "Failed to find current process".to_string())?;
 	Ok(process.memory())
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn get_process_memory_returns_positive_value() {
+		let rss = get_process_memory().expect("should read process memory");
+		assert!(rss > 0, "RSS should be positive for a running process");
+	}
+}

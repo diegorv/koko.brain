@@ -82,4 +82,11 @@ mod tests {
 		// Should not panic even without APP_HANDLE set
 		debug_log("TEST", "this should be silently ignored");
 	}
+
+	#[test]
+	fn debug_log_enabled_without_app_handle_does_not_panic() {
+		set_debug_mode(true);
+		debug_log("TEST", "enabled but no APP_HANDLE - should print to stderr, not panic");
+		set_debug_mode(false);
+	}
 }

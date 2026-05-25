@@ -177,3 +177,16 @@ fn open_vault_db_rejects_file_as_vault() {
 	assert!(result.is_err());
 	assert!(result.unwrap_err().contains("not a directory"));
 }
+
+#[test]
+fn with_fts_db_returns_error_when_not_open() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	let result: Result<usize, String> = db::with_fts_db(|_conn| Ok(42));
+	assert!(result.is_err());
+	assert!(
+		result.unwrap_err().contains("not open"),
+		"should report FTS database not open"
+	);
+}

@@ -120,4 +120,19 @@ mod tests {
 		let fused = rrf_fuse(&[&a, &b], DEFAULT_RRF_K);
 		assert_eq!(fused.len(), 2);
 	}
+
+	#[test]
+	fn duplicate_key_in_single_ranking_uses_first_occurrence() {
+		let a = ["x", "y", "x"];
+		let fused = rrf_fuse(&[&a], DEFAULT_RRF_K);
+		let x_entries: Vec<_> = fused.iter().filter(|(k, _)| k == "x").collect();
+		assert_eq!(x_entries.len(), 1, "duplicate key should appear once");
+	}
+
+	#[test]
+	fn k_zero_does_not_panic() {
+		let a = ["a", "b"];
+		let fused = rrf_fuse(&[&a], 0);
+		assert_eq!(fused.len(), 2, "k=0 should still produce results");
+	}
 }
