@@ -661,6 +661,19 @@ fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 		Some(idx) if idx > 0 => path[..idx].to_string(),
 		_ => String::new(),
 	};
+	let mut properties = entry.frontmatter.clone();
+	if let Some(ref is_a) = entry.is_a {
+		properties.insert("type".to_string(), serde_json::Value::String(is_a.clone()));
+	}
+	properties.insert("organized".to_string(), serde_json::Value::Bool(entry.organized));
+	properties.insert("archived".to_string(), serde_json::Value::Bool(entry.archived));
+	properties.insert("favorite".to_string(), serde_json::Value::Bool(entry.favorite));
+	if !entry.belongs_to.is_empty() {
+		properties.insert("belongs_to".to_string(), serde_json::json!(entry.belongs_to));
+	}
+	if !entry.related_to.is_empty() {
+		properties.insert("related_to".to_string(), serde_json::json!(entry.related_to));
+	}
 	NoteRecord {
 		path: path.clone(),
 		name,
@@ -670,7 +683,7 @@ fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 		mtime: entry.modified_at.saturating_mul(1000),
 		ctime: entry.created_at.saturating_mul(1000),
 		size: entry.size,
-		properties: entry.frontmatter.clone(),
+		properties,
 	}
 }
 
