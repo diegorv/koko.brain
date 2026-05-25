@@ -8,12 +8,14 @@
 	import FolderSearch from 'lucide-svelte/icons/folder-search';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Palette from 'lucide-svelte/icons/palette';
+	import Plus from 'lucide-svelte/icons/plus';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { createFile, deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
+	import { createNoteOfType } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
@@ -295,6 +297,13 @@
 		<ContextMenu.Content class="w-56">
 			{#if sectionContextName && sectionContextPath}
 				{@const path = sectionContextPath}
+				{@const typeName = sectionContextName}
+				<ContextMenu.Item onclick={() => createNoteOfType(typeName)}>
+					<Plus class="size-4" />
+					<span>New {typeName}</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
 				<ContextMenu.Item onclick={() => openFileInEditor(path)}>
 					<ExternalLink class="size-4" />
 					<span>Open type definition</span>
@@ -328,6 +337,11 @@
 				</ContextMenu.Item>
 			{:else if sectionContextName && !sectionContextPath}
 				{@const name = sectionContextName}
+				<ContextMenu.Item onclick={() => createNoteOfType(name)}>
+					<Plus class="size-4" />
+					<span>New {name}</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
 				<ContextMenu.Item onclick={() => handleCreateTypeDefinition(name)}>
 					<FileText class="size-4" />
 					<span>Create type definition</span>

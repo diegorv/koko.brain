@@ -59,8 +59,35 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 | `_sort` | Sort field for notes | `title` |
 | `_view` | Default view mode | `all` |
 | `_visible` | Whether to show in sidebar | `true` |
-| `_template` | Template for new notes of this type | none |
+| `_template` | Vault-relative path to template file for new notes | none |
 | `_list_properties_display` | Properties to show in list views | none |
+
+---
+
+## Creating Notes from Types
+
+Right-click a type section header in the sidebar and select **New [TypeName]** to create a note of that type. The new file is named "Untitled [TypeName].md" (auto-deduplicated if it already exists).
+
+If the type definition has a `_template` field, the template file is read and its content (including `<% %>` expressions) is used as the initial content. If no template is set, the note starts with minimal frontmatter:
+
+```yaml
+---
+type: Project
+---
+```
+
+### Template example
+
+In the type definition:
+
+```yaml
+---
+type: Type
+_template: _system/templates/ProjectTemplate.md
+---
+```
+
+The template file (`_system/templates/ProjectTemplate.md`) is a regular markdown file that can use template expressions like `<% tp.file.title %>`, `<% created %>`, etc.
 
 ---
 
@@ -209,7 +236,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `sidebar_label`, `sidebar label` | `_sidebar_label` | Section header label in type sidebar |
 | `color` | `_color` | Icon color in type sidebar, file explorer, and editor tabs |
 | `title_color` | `_title_color` | Title text color in type sidebar, file explorer, and editor tabs |
-| `template` | `_template` | Not yet implemented |
+| `template` | `_template` | Template file for "New [Type]" action in type sidebar |
 | `view` | `_view` | Not yet implemented |
 | `visible` | `_visible` | Show/hide type section in sidebar |
 | `list_properties_display` | `_list_properties_display` | Not yet implemented |

@@ -1,5 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
+import { readDir } from '@tauri-apps/plugin-fs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
 import { buildTypeMetadataMap } from './type-definitions.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 
@@ -8,4 +12,20 @@ export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<v
 	const data = entries ?? await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
 	const map = buildTypeMetadataMap(data);
 	typeDefinitionsStore.setTypeMetadataMap(map);
+}
+
+/** Creates a new note of a given type, applying the type's template if configured. */
+export async function createNoteOfType(typeName: string): Promise<void> {
+	if (!vaultStore.path) return;
+	const entries = await readDir(vaultStore.path);
+	const siblingNames = entries.map((e) => e.name);
+	const uniqueName = generateUniqueName(`Untitled ${typeName}.md`, false, siblingNames);
+	const filePath = `${vaultStore.path}/${uniqueName}`;
+	const title = uniqueName.replace(/\.md$/, '');
+	const metadata = typeDefinitionsStore.typeMetadataMap.get(typeName);
+	const templatePath = metadata?.template
+		? `${vaultStore.path}/${metadata.template}`
+		: undefined;
+	const inlineTemplate = `---\ntype: ${typeName}\n---\n`;
+	await openOrCreateNote({ filePath, templatePath, inlineTemplate, title });
 }
