@@ -5,11 +5,11 @@ import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { markRecentSave } from '$lib/core/editor/editor.hooks';
+import { markRecentSave, notifyAfterSave } from '$lib/core/editor/editor.hooks';
 import { deepLinkStore } from './deep-link.store.svelte';
 import {
 	parseDeepLinkUri,
@@ -199,11 +199,11 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		const fileExists = await exists(fullPath);
 		if (fileExists) {
 			const existing = await readTextFile(fullPath);
-			// markRecentSave: tell the watcher we wrote this file ourselves so
-			// rebuildAllIndexes is skipped 500 ms later (areAllRecentSaves).
+			const newContent = content + '\n' + existing;
 			markRecentSave(fullPath);
-			await writeTextFile(fullPath, content + '\n' + existing);
-			// Tree structure unchanged (file already existed) — skip refreshTree.
+			await writeTextFile(fullPath, newContent);
+			syncExternalContentToEditor(fullPath, newContent);
+			notifyAfterSave(fullPath, newContent);
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
 			}
@@ -217,9 +217,11 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		const fileExists = await exists(fullPath);
 		if (fileExists) {
 			const existing = await readTextFile(fullPath);
+			const newContent = existing + '\n' + content;
 			markRecentSave(fullPath);
-			await writeTextFile(fullPath, existing + '\n' + content);
-			// Tree structure unchanged — skip refreshTree.
+			await writeTextFile(fullPath, newContent);
+			syncExternalContentToEditor(fullPath, newContent);
+			notifyAfterSave(fullPath, newContent);
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
 			}
@@ -234,6 +236,8 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		await mkdir(parentDir, { recursive: true });
 		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
+		syncExternalContentToEditor(fullPath, content);
+		notifyAfterSave(fullPath, content);
 		// File may be new — refresh in background so callback returns fast.
 		void refreshTree();
 		if (!action.silent) {
@@ -248,6 +252,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		await mkdir(parentDir, { recursive: true });
 		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
+		notifyAfterSave(fullPath, content);
 		void refreshTree();
 	} else {
 		await openOrCreateNote({
@@ -287,16 +292,14 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 
 	const existing = await readTextFile(filePath);
 
-	markRecentSave(filePath);
-	if (action.prepend) {
-		await writeTextFile(filePath, content + '\n' + existing);
-	} else {
-		// Default to append
-		await writeTextFile(filePath, existing + '\n' + content);
-	}
+	const newContent = action.prepend
+		? content + '\n' + existing
+		: existing + '\n' + content;
 
-	// Daily note exists already (line above bails out if not) — tree structure
-	// is unchanged, so refreshTree would re-scan the full vault for nothing.
+	markRecentSave(filePath);
+	await writeTextFile(filePath, newContent);
+	syncExternalContentToEditor(filePath, newContent);
+	notifyAfterSave(filePath, newContent);
 }
 
 /**
@@ -373,7 +376,8 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 
 	markRecentSave(filePath);
 	await writeTextFile(filePath, fileContent);
-	// Capture writes a fresh quick-note path → tree usually gains a node.
+	notifyAfterSave(filePath, fileContent);
+	// Capture writes a fresh quick-note path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
 	void refreshTree();
 }

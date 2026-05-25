@@ -30,6 +30,7 @@ vi.mock('$lib/utils/debug', () => ({
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(() => Promise.resolve()),
+	syncExternalContentToEditor: vi.fn(),
 }));
 
 vi.mock('$lib/core/note-creator/note-creator.service', () => ({
@@ -57,6 +58,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 
 vi.mock('$lib/core/editor/editor.hooks', () => ({
 	markRecentSave: vi.fn(),
+	notifyAfterSave: vi.fn(),
 }));
 
 vi.mock('$lib/utils/template', () => ({

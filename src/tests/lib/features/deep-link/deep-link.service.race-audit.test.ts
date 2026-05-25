@@ -75,7 +75,6 @@ import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave, notifyAfterSave } from '$lib/core/editor/editor.hooks';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { deepLinkStore } from '$lib/features/deep-link/deep-link.store.svelte';
 import { executePendingAction } from '$lib/features/deep-link/deep-link.service';
 
@@ -97,17 +96,14 @@ describe('AUDIT: deep-link data integrity (P0 bugs)', () => {
 
 			deepLinkStore.setPendingAction({
 				type: 'new',
-				body: 'appended text',
+				vault: 'test',
+				content: 'appended text',
 				append: true,
-				path: '/vault/note.md',
+				name: 'note.md',
 			});
 
 			await executePendingAction();
 
-			// BUG: markRecentSave is called (suppressing watcher), but notifyAfterSave
-			// is NEVER called. This means VaultIndex, FTS5, semantic, collection,
-			// calendar, and icon indexes all have stale data for this file.
-			// The watcher would normally update them, but markRecentSave suppresses it.
 			expect(markRecentSave).toHaveBeenCalledWith('/vault/note.md');
 			expect(notifyAfterSave).toHaveBeenCalledWith(
 				'/vault/note.md',
@@ -122,9 +118,10 @@ describe('AUDIT: deep-link data integrity (P0 bugs)', () => {
 
 			deepLinkStore.setPendingAction({
 				type: 'new',
-				body: 'prepended text',
+				vault: 'test',
+				content: 'prepended text',
 				prepend: true,
-				path: '/vault/note.md',
+				name: 'note.md',
 			});
 
 			await executePendingAction();
@@ -152,24 +149,17 @@ describe('AUDIT: deep-link data integrity (P0 bugs)', () => {
 
 			deepLinkStore.setPendingAction({
 				type: 'new',
-				body: 'appended text',
+				vault: 'test',
+				content: 'appended text',
 				append: true,
-				path: '/vault/note.md',
+				name: 'note.md',
 			});
 
 			await executePendingAction();
 
-			// BUG: After writing to disk, the deep-link service does NOT sync
-			// the new content to the editor. The editor still has 'dirty editor content'.
-			// On next auto-save, the editor writes its stale content to disk,
-			// overwriting the deep-link's appended content.
-			//
-			// CORRECT behavior: call syncExternalContentToEditor so the editor
-			// reflects the new disk state.
 			expect(syncExternalContentToEditor).toHaveBeenCalledWith(
 				'/vault/note.md',
 				expect.stringContaining('appended text'),
-				true,
 			);
 		});
 	});
