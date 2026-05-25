@@ -300,6 +300,23 @@
 					<span>Open type definition</span>
 				</ContextMenu.Item>
 				<ContextMenu.Separator />
+
+				<ContextMenu.Sub>
+					<ContextMenu.SubTrigger>
+						<Copy class="size-4" />
+						<span>Copy path</span>
+					</ContextMenu.SubTrigger>
+					<ContextMenu.SubContent>
+						<ContextMenu.Item onclick={() => navigator.clipboard.writeText(path)}>
+							<span>Copy absolute path</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => { if (vaultStore.path) navigator.clipboard.writeText(getRelativePath(vaultStore.path, path)); }}>
+							<span>Copy relative path</span>
+						</ContextMenu.Item>
+					</ContextMenu.SubContent>
+				</ContextMenu.Sub>
+				<ContextMenu.Separator />
+
 				<ContextMenu.Item onclick={() => handleSectionChangeIcon(path)}>
 					<Palette class="size-4" />
 					<span>Change icon</span>
