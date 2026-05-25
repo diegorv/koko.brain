@@ -2560,7 +2560,7 @@ dependencies = [
 
 [[package]]
 name = "kokobrain"
-version = "2.4.0-alpha"
+version = "2.3.3-alpha"
 dependencies = [
  "chrono",
  "futures-util",
