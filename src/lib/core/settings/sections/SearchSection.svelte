@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { Switch } from '$lib/components/ui/switch';
 	import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -33,7 +34,7 @@
 	}
 
 	$effect(() => {
-		refreshRerankerStatus();
+		untrack(() => refreshRerankerStatus());
 	});
 
 	async function handleRerankerDownload() {

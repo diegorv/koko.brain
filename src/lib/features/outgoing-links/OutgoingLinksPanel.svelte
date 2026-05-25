@@ -34,8 +34,10 @@
 		// Read version so the effect re-runs on bump even when path is unchanged.
 		const _version = vaultStore.vaultIndexVersion;
 		if (!path) {
-			outgoingLinksStore.reset();
-			untrack(() => refetchOutgoing.cancel());
+			untrack(() => {
+				outgoingLinksStore.reset();
+				refetchOutgoing.cancel();
+			});
 			return;
 		}
 		untrack(() => {

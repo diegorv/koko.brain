@@ -1,4 +1,5 @@
 import { toast } from 'svelte-sonner';
+import { error } from '$lib/utils/debug';
 import type { AppCommand } from './command-palette.types';
 import { commandPaletteStore } from './command-palette.store.svelte';
 import {
@@ -152,7 +153,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => {
 				const current = settingsStore.layout.rightSidebarVisible;
 				settingsStore.updateLayout({ rightSidebarVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch(() => {});
+				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
 		},
 		{
@@ -162,7 +163,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => {
 				const current = settingsStore.layout.tableOfContentsVisible;
 				settingsStore.updateLayout({ tableOfContentsVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch(() => {});
+				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
 		},
 		{
