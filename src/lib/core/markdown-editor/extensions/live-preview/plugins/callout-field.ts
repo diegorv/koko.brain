@@ -104,10 +104,17 @@ class CalloutTypeSwitcherWidget extends WidgetType {
 			if (!wrap.contains(e.target as Node)) popover.style.display = 'none';
 		};
 		document.addEventListener('mousedown', onDocMousedown);
+		(wrap as any).__cleanupDocListener = () => {
+			document.removeEventListener('mousedown', onDocMousedown);
+		};
 
 		wrap.appendChild(label);
 		wrap.appendChild(popover);
 		return wrap;
+	}
+
+	destroy(dom: HTMLElement) {
+		(dom as any).__cleanupDocListener?.();
 	}
 
 	eq(other: CalloutTypeSwitcherWidget) {
