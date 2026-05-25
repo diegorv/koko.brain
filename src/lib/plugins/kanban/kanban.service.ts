@@ -33,8 +33,13 @@ export function resetKanban(): void {
 
 // ── Card linked file content preview ────────────────────────────
 
-/** Cache for card content preview: card text → markdown body (without frontmatter) */
+/** Cache for card content preview: card text -> markdown body (without frontmatter) */
 const linkedContentCache = new Map<string, string>();
+
+/** Clears the linked content cache so card previews re-read from disk. */
+export function clearLinkedContentCache(): void {
+	linkedContentCache.clear();
+}
 
 /**
  * Loads the markdown content (without frontmatter) from the first wikilinked

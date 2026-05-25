@@ -8,6 +8,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { clearIndexedEntry, markIndexed } from '$lib/utils/index-dedupe';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
+import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
 import type { FileReadResult } from '$lib/core/filesystem/fs.types';
 
@@ -80,6 +81,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	// their reactive `$effect`s on `vaultIndexVersion`.
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
+	clearLinkedContentCache();
 
 	debug('WATCHER-HANDLER', `Full rebuildAllIndexes completed in ${(performance.now() - start).toFixed(1)}ms`);
 	logProcessMemory();
@@ -162,4 +164,5 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 	// the Rust calls above. Nothing extra to do here for the active tab.
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
+	clearLinkedContentCache();
 }

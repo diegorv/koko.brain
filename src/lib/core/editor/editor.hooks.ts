@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
+import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
 import { updateNoteInIndex } from '$lib/features/collection/collection.service';
 import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
 import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
@@ -190,6 +191,7 @@ export function notifyAfterSave(filePath: string, content: string): void {
 	});
 
 	invalidateQueryjsCache();
+	clearLinkedContentCache();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);
 	for (const observer of afterSaveObservers) {
 		try {

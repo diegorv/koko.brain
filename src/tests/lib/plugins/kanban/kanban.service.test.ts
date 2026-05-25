@@ -19,7 +19,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard } from '$lib/plugins/kanban/kanban.logic';
-import { createKanbanFile, resetKanban, loadLinkedFileContent } from '$lib/plugins/kanban/kanban.service';
+import { createKanbanFile, resetKanban, loadLinkedFileContent, clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
 import { kanbanStore } from '$lib/plugins/kanban/kanban.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 
@@ -136,5 +136,20 @@ describe('loadLinkedFileContent', () => {
 
 		// readTextFile should only be called once due to caching
 		expect(readTextFile).toHaveBeenCalledTimes(1);
+	});
+
+	it('re-reads file after cache is cleared (e.g. linked file was edited)', async () => {
+		vi.mocked(readTextFile)
+			.mockResolvedValueOnce('Old content')
+			.mockResolvedValueOnce('Updated content');
+
+		const first = await loadLinkedFileContent('Review [[My Note]]');
+		expect(first).toBe('Old content');
+
+		clearLinkedContentCache();
+
+		const second = await loadLinkedFileContent('Review [[My Note]]');
+		expect(second).toBe('Updated content');
+		expect(readTextFile).toHaveBeenCalledTimes(2);
 	});
 });
