@@ -9,13 +9,14 @@
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Palette from 'lucide-svelte/icons/palette';
 	import Plus from 'lucide-svelte/icons/plus';
+	import Star from 'lucide-svelte/icons/star';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
-	import { createNoteOfType, createTypeDefinition } from './type-definitions.service';
+	import { createNoteOfType, createTypeDefinition, toggleFavoriteForPath } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
@@ -369,6 +370,12 @@
 				<ContextMenu.Item onclick={() => handleSectionChangeIcon(target.path)}>
 					<Palette class="size-4" />
 					<span>Change icon</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Item onclick={() => toggleFavoriteForPath(target.path, !target.favorite)}>
+					<Star class="size-4 {target.favorite ? 'fill-current' : ''}" />
+					<span>{target.favorite ? 'Unfavorite' : 'Favorite'}</span>
 				</ContextMenu.Item>
 				<ContextMenu.Separator />
 

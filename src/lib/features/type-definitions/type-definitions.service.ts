@@ -1,11 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
-import { readDir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
+import { parseFrontmatterProperties, extractBody, rebuildContent } from '$lib/features/properties/properties.logic';
+import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
 import { buildTypeMetadataMap } from './type-definitions.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 
@@ -40,4 +43,18 @@ export async function createTypeDefinition(typeName: string): Promise<void> {
 	if (!filePath) return;
 	await writeTextFile(filePath, content);
 	openFileInEditor(filePath);
+}
+
+/** Toggles _favorite on a note by path, updating file and editor if open. */
+export async function toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> {
+	const content = await readTextFile(filePath);
+	const properties = parseFrontmatterProperties(content);
+	const body = extractBody(content);
+	const updated = toggleFavorite(properties, favorite);
+	const newContent = rebuildContent(updated, body);
+	await writeTextFile(filePath, newContent);
+	if (editorStore.activeTabPath === filePath) {
+		syncExternalContentToEditor(filePath, newContent, false);
+	}
+	await invoke('update_note_in_index', { path: filePath });
 }

@@ -18,6 +18,7 @@ export interface TypeSidebarNote {
 	title: string;
 	order: number;
 	favoriteIndex: number;
+	favorite: boolean;
 	modifiedAt: number;
 	createdAt: number;
 }
@@ -50,7 +51,7 @@ export function buildTypeSections(
 		const favoriteIndex = Number.isFinite(parsedFavIdx) ? parsedFavIdx : Infinity;
 		const note: TypeSidebarNote = {
 			path: entry.path, title: entry.title, order, favoriteIndex,
-			modifiedAt: entry.modifiedAt, createdAt: entry.createdAt,
+			favorite: entry.favorite, modifiedAt: entry.modifiedAt, createdAt: entry.createdAt,
 		};
 		if (entry.isA) {
 			const group = typeGroups.get(entry.isA);

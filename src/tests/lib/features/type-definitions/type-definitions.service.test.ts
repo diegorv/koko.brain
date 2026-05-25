@@ -5,6 +5,7 @@ setupLocalStorage();
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readDir: vi.fn(),
+	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 }));
 
@@ -18,6 +19,7 @@ vi.mock('$lib/core/note-creator/note-creator.service', () => ({
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
+	syncExternalContentToEditor: vi.fn(),
 }));
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
@@ -28,13 +30,15 @@ vi.mock('$lib/utils/log.service', () => ({
 	appendLog: vi.fn(),
 }));
 
-import { readDir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { createNoteOfType, createTypeDefinition } from '$lib/features/type-definitions/type-definitions.service';
+import { createNoteOfType, createTypeDefinition, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
@@ -162,5 +166,64 @@ describe('createTypeDefinition', () => {
 
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+});
+
+describe('toggleFavoriteForPath', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+	});
+
+	afterEach(() => {
+		vaultStore._reset();
+		clearLocalStorage();
+	});
+
+	it('adds _favorite: true to frontmatter', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
+
+		await toggleFavoriteForPath('/vault/note.md', true);
+
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/note.md',
+			expect.stringContaining('_favorite: true'),
+		);
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/note.md' });
+	});
+
+	it('sets _favorite: false when unfavoriting', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n_favorite: true\n---\n\n# My Note\n');
+
+		await toggleFavoriteForPath('/vault/note.md', false);
+
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/note.md',
+			expect.stringContaining('_favorite: false'),
+		);
+	});
+
+	it('syncs editor when file is active tab', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note', content: '', savedContent: '' });
+
+		await toggleFavoriteForPath('/vault/note.md', true);
+
+		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
+			'/vault/note.md',
+			expect.stringContaining('_favorite: true'),
+			false,
+		);
+	});
+
+	it('does not sync editor when file is not active tab', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
+		editorStore.reset();
+
+		await toggleFavoriteForPath('/vault/note.md', true);
+
+		expect(syncExternalContentToEditor).not.toHaveBeenCalled();
 	});
 });
