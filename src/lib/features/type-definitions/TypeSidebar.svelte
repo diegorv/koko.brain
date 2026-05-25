@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { ask } from '@tauri-apps/plugin-dialog';
-	import { icons } from '@lucide/svelte';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import FileText from 'lucide-svelte/icons/file-text';
 	import ExternalLink from 'lucide-svelte/icons/external-link';
@@ -24,26 +23,6 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
-
-	const TYPE_COLORS: Record<string, string> = {
-		red: '#ef4444',
-		blue: '#3b82f6',
-		purple: '#a855f7',
-		green: '#22c55e',
-		orange: '#f97316',
-		yellow: '#eab308',
-		pink: '#ec4899',
-		gray: '#9ca3af',
-	};
-
-	function toPascalCase(s: string): string {
-		return s.replace(/(^|[-_])(\w)/g, (_, __, c) => c.toUpperCase());
-	}
-
-	function getIconComponent(iconName: string) {
-		const key = toPascalCase(iconName) as keyof typeof icons;
-		return (icons[key] as unknown as typeof FileText) ?? FileText;
-	}
 
 	let filter = $state<SidebarFilter>('all');
 	let sections = $state<TypeSection[]>([]);
@@ -159,16 +138,13 @@
 				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
 					{#each sections as section (section.metadata.name)}
 						{@const collapsed = collapsedSections.has(section.metadata.name)}
-						{@const SectionIcon = getIconComponent(section.metadata.icon)}
-						{@const sectionColor = TYPE_COLORS[section.metadata.color] ?? TYPE_COLORS.gray}
 						<div class="mb-1">
 							<button
 								class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent transition-colors cursor-pointer"
 								onclick={() => toggleSection(section.metadata.name)}
 							>
 								<ChevronRight class="size-3 shrink-0 transition-transform {collapsed ? '' : 'rotate-90'}" />
-								<SectionIcon class="size-3.5 shrink-0" style="color: {sectionColor}" />
-								<span class="truncate" style="color: {sectionColor}">
+								<span class="truncate">
 									{section.metadata.sidebarLabel}
 								</span>
 								<span class="ml-auto text-xs text-muted-foreground">{section.notes.length}</span>
