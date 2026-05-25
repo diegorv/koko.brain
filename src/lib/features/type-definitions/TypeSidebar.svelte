@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { invoke } from '@tauri-apps/api/core';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import FileText from 'lucide-svelte/icons/file-text';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
@@ -11,7 +8,6 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
-	import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 	let filter = $state<SidebarFilter>('all');
 	let sections = $state<TypeSection[]>([]);
@@ -27,21 +23,21 @@
 	]);
 
 	$effect(() => {
-		const _version = vaultStore.vaultIndexVersion;
-		if (!vaultStore.isOpen) return;
-		untrack(() => {
-			rebuildSections();
-		});
+		const _version = typeDefinitionsStore.entriesVersion;
+		const entries = typeDefinitionsStore.entries;
+		if (entries.length === 0) return;
+		const result = buildTypeSections(entries, typeDefinitionsStore.typeMetadataMap, filter);
+		sections = result.sections;
+		untyped = result.untyped;
+		inboxCount = countInbox(entries);
 	});
 
-	async function rebuildSections() {
-		try {
-			const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
-			const result = buildTypeSections(entries, typeDefinitionsStore.typeMetadataMap, filter);
-			sections = result.sections;
-			untyped = result.untyped;
-			inboxCount = countInbox(entries);
-		} catch (err) { console.error('TypeSidebar rebuildSections failed:', err); }
+	function rebuildFromCache() {
+		const entries = typeDefinitionsStore.entries;
+		const result = buildTypeSections(entries, typeDefinitionsStore.typeMetadataMap, filter);
+		sections = result.sections;
+		untyped = result.untyped;
+		inboxCount = countInbox(entries);
 	}
 
 	function toggleSection(name: string) {
@@ -64,7 +60,7 @@
 		{#each filterTabs as f (f.id)}
 			<button
 				class="flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer border-b-2 {filter === f.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-				onclick={() => { filter = f.id as SidebarFilter; rebuildSections(); }}
+				onclick={() => { filter = f.id as SidebarFilter; rebuildFromCache(); }}
 			>
 				{f.label}
 				{#if f.id === 'inbox' && inboxCount > 0}
