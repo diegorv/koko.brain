@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import {
 		SvelteFlow,
 		Background,
@@ -207,6 +208,7 @@
 	/** Debounce-persist when node data changes (e.g. text editing via updateNodeData) */
 	let nodesChangeTimer: ReturnType<typeof setTimeout>;
 	let skipInitialWatch = true;
+	let pendingPersist = false;
 	$effect(() => {
 		const _n = nodes;
 		if (skipInitialWatch) {
@@ -214,9 +216,21 @@
 			return;
 		}
 		if (syncing) return;
+		pendingPersist = true;
 		clearTimeout(nodesChangeTimer);
-		nodesChangeTimer = setTimeout(() => persistChanges(nodes, edges), 300);
+		nodesChangeTimer = setTimeout(() => {
+			persistChanges(nodes, edges);
+			pendingPersist = false;
+		}, 300);
 		return () => clearTimeout(nodesChangeTimer);
+	});
+
+	// Flush pending persist on component destroy so the last edit is not
+	// lost when the user quits within the 300ms debounce window.
+	onDestroy(() => {
+		if (pendingPersist) {
+			persistChanges(nodes, edges);
+		}
 	});
 
 	/** Handle keyboard shortcuts on the canvas */
