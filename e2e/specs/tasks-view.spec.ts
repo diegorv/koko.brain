@@ -37,6 +37,30 @@ test.describe('Tasks view', () => {
 		await expect(taskTexts.first()).toBeVisible({ timeout: 5_000 });
 	});
 
+	test('toggling a task persists the checked state', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Shift+T');
+		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
+		await sectionTagInput.fill('');
+		await page.waitForTimeout(500);
+
+		// Disable "hide completed" so toggled tasks stay visible
+		const hideBtn = page.locator('button[title*="completed"]').first();
+		await hideBtn.click();
+		await page.waitForTimeout(300);
+
+		// Click to toggle "Ship feature A" from unchecked to checked
+		const taskButton = page.locator('button', { hasText: 'Ship feature A' }).first();
+		await expect(taskButton).toBeVisible({ timeout: 5_000 });
+		await taskButton.click();
+		await page.waitForTimeout(1000);
+
+		// Verify the toggle persisted to virtual FS
+		const content = await page.evaluate(() => {
+			return (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md');
+		});
+		expect(content).toContain('- [x] Ship feature A');
+	});
+
 	test('Cmd+Shift+T again closes the Tasks tab', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		await expect(page.locator('[role="tab"]', { hasText: 'Tasks' })).toBeVisible();

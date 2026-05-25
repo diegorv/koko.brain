@@ -94,10 +94,14 @@ function handleGetTasksInSectionV2(args: Args): unknown {
 }
 
 function handleToggleTaskStatus(args: Args): unknown {
-	return vaultIndex.toggleTaskStatus(
+	const result = vaultIndex.toggleTaskStatus(
 		get<string>(args, 'path'),
 		get<number>(args, 'lineNumber'),
 	);
+	if (result.updateResult.changed && typeof window !== 'undefined') {
+		(window as any).__e2e?.events?.emit('vault-index-updated', result.updateResult);
+	}
+	return result;
 }
 
 function handleUpdateNoteInIndex(args: Args): unknown {
