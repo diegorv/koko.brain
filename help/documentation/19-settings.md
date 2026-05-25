@@ -28,8 +28,7 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Right Sidebar** | Show or hide the entire right sidebar | Visible |
-| **Calendar** | Show the Calendar panel | Enabled |
-| **Properties** | Show the Properties panel (frontmatter editor) | Enabled |
+| **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
 | **Outgoing Links** | Show the Outgoing Links panel | Enabled |
 | **Tags** | Show the Tags panel | Enabled |

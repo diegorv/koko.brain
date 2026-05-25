@@ -17,7 +17,7 @@ Each note can be created from a template with pre-filled content, so you never s
 
 ## The Calendar Panel
 
-The calendar panel is located in the right sidebar. Toggle it with **Cmd+B**.
+The calendar panel is a left sidebar mode. Click the calendar icon in the sidebar header to switch to it.
 
 It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days already have a daily note.
 

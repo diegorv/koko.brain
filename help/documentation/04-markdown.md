@@ -625,7 +625,7 @@ Your note content starts here.
 
 - The `---` block **must** be the very first thing in the file — no blank lines before it
 - Frontmatter is parsed automatically and displayed in the **Properties** panel in the right sidebar
-- In live preview, frontmatter is shown as a clean property table rather than raw YAML
+- In live preview, frontmatter is hidden from the editor -- properties are managed exclusively via the right sidebar
 
 ### Common Fields
 

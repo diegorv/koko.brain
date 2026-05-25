@@ -16,7 +16,7 @@ The right sidebar provides contextual information about the note you are current
 
 ## Calendar
 
-A monthly calendar grid sits at the top of the right sidebar. It acts as a visual navigator for your periodic notes.
+The calendar is a left sidebar mode (alongside File Explorer and Type View). Click the calendar icon in the sidebar header to switch to it. It acts as a visual navigator for your periodic notes.
 
 ![Calendar panel with dot indicators](screenshots/calendar.png)
 
