@@ -35,12 +35,12 @@
 				class="size-6"
 				onclick={toggleMode}
 			>
-				{#if mode === 'types'}
-					<FolderTree class="size-3.5" />
-				{:else if mode === 'calendar'}
+				{#if mode === 'files'}
+					<LayoutGrid class="size-3.5" />
+				{:else if mode === 'types'}
 					<Calendar class="size-3.5" />
 				{:else}
-					<LayoutGrid class="size-3.5" />
+					<FolderTree class="size-3.5" />
 				{/if}
 			</Button>
 		{/snippet}
