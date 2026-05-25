@@ -193,6 +193,9 @@ describe('noteEntryV2ToBacklinkEntry', () => {
 			organized: false,
 			archived: false,
 			favorite: false,
+			belongsTo: [],
+			relatedTo: [],
+			relationships: {},
 			...overrides,
 		};
 	}

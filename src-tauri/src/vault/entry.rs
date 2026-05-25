@@ -175,6 +175,14 @@ pub struct NoteEntry {
 	pub archived: bool,
 	/// Lifecycle flag: note is pinned as a favorite. Default `false`.
 	pub favorite: bool,
+	/// Hierarchical ownership targets from `belongs_to` frontmatter field.
+	/// Wikilink targets extracted from the value (e.g. `[[project]]` -> `"project"`).
+	pub belongs_to: Vec<String>,
+	/// Lateral relationship targets from `related_to` frontmatter field.
+	pub related_to: Vec<String>,
+	/// Generic relationships: frontmatter fields whose values contain wikilinks.
+	/// Key is the field name, value is the list of wikilink targets.
+	pub relationships: BTreeMap<String, Vec<String>>,
 }
 
 impl NoteEntry {
@@ -210,6 +218,9 @@ impl NoteEntry {
 		let organized = extract_bool_flag(&frontmatter, "_organized");
 		let archived = extract_bool_flag(&frontmatter, "_archived");
 		let favorite = extract_bool_flag(&frontmatter, "_favorite");
+		let belongs_to = extract_wikilink_targets(&frontmatter, "belongs_to");
+		let related_to = extract_wikilink_targets(&frontmatter, "related_to");
+		let relationships = extract_all_relationships(&frontmatter);
 		let body = strip_frontmatter(content);
 		let word_count = compute_word_count(body);
 		let snippet = compute_snippet(body);
@@ -229,6 +240,9 @@ impl NoteEntry {
 			organized,
 			archived,
 			favorite,
+			belongs_to,
+			related_to,
+			relationships,
 		}
 	}
 }
@@ -314,4 +328,84 @@ fn extract_bool_flag(frontmatter: &BTreeMap<String, JsonValue>, key: &str) -> bo
 		.get(key)
 		.and_then(|v| v.as_bool())
 		.unwrap_or(false)
+}
+
+/// Extracts wikilink targets from a frontmatter field value.
+/// Supports string values (`"[[target]]"`) and arrays (`["[[a]]", "[[b]]"]`).
+fn extract_wikilink_targets(frontmatter: &BTreeMap<String, JsonValue>, key: &str) -> Vec<String> {
+	let Some(val) = frontmatter.get(key) else {
+		return Vec::new();
+	};
+	match val {
+		JsonValue::String(s) => extract_wikilinks_from_str(s),
+		JsonValue::Array(arr) => {
+			arr.iter()
+				.filter_map(|v| v.as_str())
+				.flat_map(extract_wikilinks_from_str)
+				.collect()
+		}
+		_ => Vec::new(),
+	}
+}
+
+/// Extracts all frontmatter fields (excluding known system keys) that contain
+/// wikilinks in their values. Returns a map of field name -> wikilink targets.
+fn extract_all_relationships(frontmatter: &BTreeMap<String, JsonValue>) -> BTreeMap<String, Vec<String>> {
+	const SYSTEM_KEYS: &[&str] = &[
+		"type", "belongs_to", "related_to",
+		"_organized", "_archived", "_favorite",
+		"_order", "_sort", "_icon", "_sidebar_label",
+		"_color", "_template", "_view", "_visible",
+		"_list_properties_display",
+		"tags", "aliases",
+	];
+	let mut result = BTreeMap::new();
+	for (key, val) in frontmatter {
+		if SYSTEM_KEYS.contains(&key.as_str()) {
+			continue;
+		}
+		let targets = match val {
+			JsonValue::String(s) => extract_wikilinks_from_str(s),
+			JsonValue::Array(arr) => {
+				arr.iter()
+					.filter_map(|v| v.as_str())
+					.flat_map(extract_wikilinks_from_str)
+					.collect()
+			}
+			_ => Vec::new(),
+		};
+		if !targets.is_empty() {
+			result.insert(key.clone(), targets);
+		}
+	}
+	result
+}
+
+/// Extracts wikilink targets (`[[target]]`) from a string value.
+fn extract_wikilinks_from_str(s: &str) -> Vec<String> {
+	let mut targets = Vec::new();
+	let bytes = s.as_bytes();
+	let mut i = 0;
+	while i + 1 < bytes.len() {
+		if bytes[i] == b'[' && bytes[i + 1] == b'[' {
+			i += 2;
+			let start = i;
+			while i + 1 < bytes.len() && !(bytes[i] == b']' && bytes[i + 1] == b']') {
+				i += 1;
+			}
+			if i + 1 < bytes.len() {
+				let raw = &s[start..i];
+				let target = raw.split('|').next().unwrap_or(raw);
+				let target = target.split('#').next().unwrap_or(target);
+				let trimmed = target.trim();
+				if !trimmed.is_empty() {
+					targets.push(trimmed.to_string());
+				}
+				i += 2;
+			}
+		} else {
+			i += 1;
+		}
+	}
+	targets
 }

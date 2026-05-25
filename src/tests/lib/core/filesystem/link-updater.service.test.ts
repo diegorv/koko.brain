@@ -39,6 +39,9 @@ function entry(path: string, title?: string): NoteEntryV2 {
 		organized: false,
 		archived: false,
 		favorite: false,
+		belongsTo: [],
+		relatedTo: [],
+		relationships: {},
 	};
 }
 

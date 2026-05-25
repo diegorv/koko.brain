@@ -122,6 +122,12 @@ export interface NoteEntryV2 {
 	archived: boolean;
 	/** Lifecycle flag: note is pinned as a favorite. */
 	favorite: boolean;
+	/** Hierarchical ownership targets from `belongs_to` frontmatter (wikilink targets). */
+	belongsTo: string[];
+	/** Lateral relationship targets from `related_to` frontmatter (wikilink targets). */
+	relatedTo: string[];
+	/** Generic relationships: field name -> wikilink targets for fields containing `[[...]]`. */
+	relationships: Record<string, string[]>;
 }
 
 /**
