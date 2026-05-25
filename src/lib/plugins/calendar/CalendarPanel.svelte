@@ -48,9 +48,9 @@
 		</div>
 	</div>
 	<Separator />
-	<div class="p-2">
+	<div class="flex flex-1 flex-col overflow-hidden p-2">
 		<!-- Month/Year navigation: « < Month Year > » -->
-		<div class="flex items-center justify-center gap-1 mb-0.5">
+		<div class="flex shrink-0 items-center justify-center gap-1 mb-0.5">
 			<button
 				class="p-0.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
 				onclick={() => calendarStore.prevYear()}
@@ -128,7 +128,7 @@
 
 			<!-- File list for selected date -->
 			{#if calendarStore.selectedDateFiles.length > 0}
-				<div class="h-[200px] overflow-y-auto space-y-0.5">
+				<div class="flex-1 overflow-y-auto space-y-0.5">
 					{#each calendarStore.selectedDateFiles as filePath}
 						<button
 							class="flex items-center gap-1.5 w-full px-2 py-1 text-foreground rounded-md hover:bg-accent transition-colors cursor-pointer text-left"
