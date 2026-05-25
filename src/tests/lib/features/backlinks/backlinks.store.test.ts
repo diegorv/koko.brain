@@ -9,6 +9,7 @@ describe('backlinksStore', () => {
 	it('starts with empty state', () => {
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
+		expect(backlinksStore.relationshipBacklinks).toEqual([]);
 		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 
@@ -22,6 +23,12 @@ describe('backlinksStore', () => {
 		const mentions = [{ filePath: '/a.md' }] as any;
 		backlinksStore.setUnlinkedMentions(mentions);
 		expect(backlinksStore.unlinkedMentions).toBe(mentions);
+	});
+
+	it('setRelationshipBacklinks updates relationship backlinks', () => {
+		const entries = [{ sourcePath: '/a.md', targetPath: '/b.md' }] as any;
+		backlinksStore.setRelationshipBacklinks(entries);
+		expect(backlinksStore.relationshipBacklinks).toBe(entries);
 	});
 
 	it('markUnlinkedDirty sets the dirty flag', () => {
@@ -40,12 +47,14 @@ describe('backlinksStore', () => {
 
 	it('reset clears backlinks state including dirty flag', () => {
 		backlinksStore.setLinkedMentions([{}] as any);
+		backlinksStore.setRelationshipBacklinks([{}] as any);
 		backlinksStore.markUnlinkedDirty();
 
 		backlinksStore.reset();
 
 		expect(backlinksStore.linkedMentions).toEqual([]);
 		expect(backlinksStore.unlinkedMentions).toEqual([]);
+		expect(backlinksStore.relationshipBacklinks).toEqual([]);
 		expect(backlinksStore.unlinkedDirty).toBe(false);
 	});
 });
