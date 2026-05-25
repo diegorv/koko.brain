@@ -5,9 +5,11 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { toast } from 'svelte-sonner';
 	import { createFile } from '$lib/core/filesystem/fs.service';
+	import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 	import { quickSwitcherStore } from './quick-switcher.store.svelte';
 	import { flattenFileTree, filterAndRank, getRelativePath } from './quick-switcher.logic';
 	import FileText from '@lucide/svelte/icons/file-text';
+	import Archive from '@lucide/svelte/icons/archive';
 	import FilePlus from '@lucide/svelte/icons/file-plus';
 
 	let searchQuery = $state('');
@@ -63,13 +65,18 @@
 		{#if hasResults}
 			<Command.Group>
 				{#each filteredFiles as file (file.path)}
+					{@const isArchived = lifecycleFilterStore.isArchived(file.path)}
 					<Command.Item
 						value={file.path}
 						onSelect={() => selectFile(file.path)}
 					>
-						<FileText class="size-4 text-muted-foreground" />
+						{#if isArchived}
+							<Archive class="size-4 text-muted-foreground/50" />
+						{:else}
+							<FileText class="size-4 text-muted-foreground" />
+						{/if}
 						<div class="flex flex-col gap-0.5">
-							<span>{file.nameWithoutExt}</span>
+							<span class={isArchived ? 'opacity-50' : ''}>{file.nameWithoutExt}</span>
 							{#if vaultStore.path}
 								<span class="text-xs text-muted-foreground">
 									{getRelativePath(file.path, vaultStore.path)}
