@@ -114,6 +114,8 @@ export interface NoteEntryV2 {
 	snippet: string;
 	/** Markdown task list items in document order. Phase 7. */
 	tasks: TaskV2[];
+	/** Document type from `type` frontmatter key (alias-resolved, casing normalized). `null` when absent. */
+	isA: string | null;
 }
 
 /**

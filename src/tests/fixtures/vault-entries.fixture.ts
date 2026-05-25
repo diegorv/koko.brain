@@ -29,6 +29,7 @@ export function entryV2(
 		wordCount: 0,
 		snippet: '',
 		tasks: [],
+		isA: null,
 		...overrides,
 	};
 }
