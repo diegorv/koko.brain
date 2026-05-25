@@ -220,6 +220,7 @@ Some features in Kokobrain were inspired by ideas from Obsidian community plugin
 - **Calendar** — inspired by [oz-calendar](https://github.com/ozntel/oz-calendar)
 - **Folder notes** — inspired by [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes)
 - **Auto open & Pin tab** — inspired by [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage)
+- **Types & Relationships** — inspired by the [Portent](https://portent.md) knowledge base spec (document types, semantic relationships, lifecycle workflow)
 
 ## License
 
