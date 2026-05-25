@@ -66,6 +66,7 @@ import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/dee
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
+import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/block-math-widget';
 
 /**
  * Delay (ms) before the deferred semantic-search init kicks in.
@@ -362,6 +363,7 @@ export function teardownVault(): void {
 	queryjsSessionStore.reset();
 	clearMermaidCache();
 	clearCollectionCache();
+	clearMathCache();
 	resetTerminal();
 	resetEditor();
 	resetFileSystem();
