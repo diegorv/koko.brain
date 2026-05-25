@@ -108,7 +108,7 @@
 			</p>
 		{:else}
 			{#if propertiesStore.properties.length > 0}
-				<div class="divide-y divide-divider/60">
+				<div class="flex flex-col">
 					{#each sortedProperties as property (property.key)}
 						<PropertyField
 							{property}
