@@ -606,7 +606,8 @@ impl VaultIndex {
 		if let Some(resolved) = self.by_path.get(&target.to_lowercase()) {
 			return resolved == expected_path;
 		}
-		target.to_lowercase() == *expected_name_lower
+		let basename = note_name_from_target(target).to_lowercase();
+		basename == *expected_name_lower
 	}
 
 	/// Returns the outgoing wikilinks of the entry at `path`, each with its
