@@ -131,6 +131,21 @@ export interface NoteEntryV2 {
 }
 
 /**
+ * A backlink from a frontmatter relationship field.
+ * Returned by `invoke('get_relationship_backlinks_v2', { path })`.
+ *
+ * @experimental
+ */
+export interface RelationshipBacklinkV2 {
+	/** Absolute path of the source note. */
+	sourcePath: string;
+	/** Title of the source note. */
+	sourceName: string;
+	/** Relationship type (e.g. "belongs_to", "related_to", or custom field name). */
+	relationshipType: string;
+}
+
+/**
  * One outgoing wikilink already resolved by the Rust `VaultIndex` —
  * returned by `invoke('get_outgoing_links_v2', { path })`. Mirrors
  * `kokobrain_lib::vault::entry::OutgoingLink` and the legacy TS

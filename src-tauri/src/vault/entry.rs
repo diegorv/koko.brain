@@ -114,6 +114,19 @@ pub struct OutgoingUnlinkedMention {
 	pub count: usize,
 }
 
+/// A backlink from a frontmatter relationship field.
+/// Carries the source entry info plus the relationship type label.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelationshipBacklink {
+	/// Absolute path of the note that references the target.
+	pub source_path: String,
+	/// Title of the source note.
+	pub source_name: String,
+	/// Relationship type (e.g. "belongs_to", "related_to", or custom field name).
+	pub relationship_type: String,
+}
+
 /// Canonical per-note metadata used by the Rust `VaultIndex`.
 ///
 /// Constructed by Phase 1.5's `scan_vault_v2` and Phase 2's

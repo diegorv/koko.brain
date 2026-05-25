@@ -2,17 +2,20 @@
 	import { untrack } from 'svelte';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import Link from 'lucide-svelte/icons/link';
+	import GitBranch from 'lucide-svelte/icons/git-branch';
 	import Type from 'lucide-svelte/icons/type';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { backlinksStore } from './backlinks.store.svelte';
-	import { computeUnlinkedMentionsForFile, fetchBacklinksV2 } from './backlinks.service';
+	import { computeUnlinkedMentionsForFile, fetchBacklinksV2, fetchRelationshipBacklinks } from './backlinks.service';
+	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { debounce } from '$lib/utils/debounce';
 	import LinkItem from './LinkItem.svelte';
 
 	let linkedOpen = $state(true);
+	let relationshipsOpen = $state(true);
 	let unlinkedOpen = $state(true);
 
 	// 150 ms coalesce window matches +layout.svelte's tab-switch debounce.
@@ -23,6 +26,7 @@
 	// the service this collapses 5 burst opens into 1 fetch per panel.
 	const refetchBacklinks = debounce((path: string) => {
 		fetchBacklinksV2(path).catch(() => { /* fetchBacklinksV2 already logs */ });
+		fetchRelationshipBacklinks(path).catch(() => { /* already logs */ });
 	}, 150);
 
 	const recomputeUnlinked = debounce((path: string) => {
@@ -85,6 +89,30 @@
 					</div>
 				</Collapsible.Content>
 			</Collapsible.Root>
+
+			{#if backlinksStore.relationshipBacklinks.length > 0}
+				<Collapsible.Root bind:open={relationshipsOpen} class="mt-2">
+					<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-accent transition-colors cursor-pointer">
+						<ChevronRight class="size-3.5 shrink-0 transition-transform {relationshipsOpen ? 'rotate-90' : ''}" />
+						<GitBranch class="size-3.5 shrink-0 text-muted-foreground" />
+						<span>Relationships</span>
+						<span class="ml-auto text-muted-foreground">{backlinksStore.relationshipBacklinks.length}</span>
+					</Collapsible.Trigger>
+					<Collapsible.Content>
+						<div class="pl-2 mt-1 space-y-0.5">
+							{#each backlinksStore.relationshipBacklinks as rel (rel.sourcePath + rel.relationshipType)}
+								<button
+									class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-accent transition-colors text-left cursor-pointer"
+									onclick={() => openFileInEditor(rel.sourcePath)}
+								>
+									<span class="truncate">{rel.sourceName}</span>
+									<span class="ml-auto text-xs text-muted-foreground shrink-0">{rel.relationshipType.replace('_', ' ')}</span>
+								</button>
+							{/each}
+						</div>
+					</Collapsible.Content>
+				</Collapsible.Root>
+			{/if}
 
 			<Collapsible.Root bind:open={unlinkedOpen} class="mt-2">
 				<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-accent transition-colors cursor-pointer">

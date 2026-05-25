@@ -117,6 +117,7 @@ pub fn run() {
             commands::vault::scan_vault,
             commands::vault::scan_vault_v2,
             commands::vault::get_backlinks_v2,
+            commands::vault::get_relationship_backlinks_v2,
             commands::vault::get_outgoing_links_v2,
             commands::vault::get_outgoing_unlinked_mentions_v2,
             commands::vault::get_all_vault_entries_v2,
