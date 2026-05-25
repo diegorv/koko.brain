@@ -84,6 +84,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 			{ id: 'quick-note', label: 'Quick Note' },
 			{ id: 'one-on-one', label: '1:1 Notes' },
 			{ id: 'templates', label: 'Templates' },
+			{ id: 'types', label: 'Types' },
 		],
 	},
 	{

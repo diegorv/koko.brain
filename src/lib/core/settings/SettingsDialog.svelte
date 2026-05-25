@@ -23,6 +23,7 @@
 	import TroubleshootingSection from './sections/TroubleshootingSection.svelte';
 	import UpdateSection from './sections/UpdateSection.svelte';
 	import QueryjsSection from './sections/QueryjsSection.svelte';
+	import TypesSection from './sections/TypesSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -39,6 +40,7 @@
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
+	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
 	import type { SettingsSection } from './settings.types';
 	import type { Component } from 'svelte';
 
@@ -59,6 +61,7 @@
 		troubleshooting: BugIcon,
 		update: DownloadIcon,
 		queryjs: Code2Icon,
+		types: LayoutGridIcon,
 	};
 
 	const debouncedSave = debounce(() => {
@@ -206,6 +209,8 @@
 					<TrashSection />
 				{:else if settingsDialogStore.activeSection === 'todoist'}
 					<TodoistSection onchange={debouncedSave} />
+				{:else if settingsDialogStore.activeSection === 'types'}
+					<TypesSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'troubleshooting'}
 					<TroubleshootingSection onchange={debouncedSave} />
 				{:else if settingsDialogStore.activeSection === 'update'}
