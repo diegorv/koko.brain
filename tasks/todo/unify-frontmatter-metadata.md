@@ -35,8 +35,8 @@ JSON is NOT restricted to non-.md files. A `.md` without `_icon` in frontmatter 
 
 ## Tasks
 
-- [ ] Task 1: Extend `FrontmatterIconRef` with color fields + fix `_icon` key reading
-- [ ] Task 2: Add `_title_color` to Rust `SYSTEM_KEYS`
+- [x] Task 1: Extend `FrontmatterIconRef` with color fields + fix `_icon` key reading
+- [x] Task 2: Add `_title_color` to Rust `SYSTEM_KEYS`
 - [ ] Task 3: Create frontmatter icon write service (`setFrontmatterIcon`/`removeFrontmatterIcon`)
 - [ ] Task 4: Route `setIconForPath`/`removeIconForPath` to frontmatter for .md files
 - [ ] Task 5: Update UI resolution to use frontmatter colors (FileTreeItem, EditorTabs, TypeSidebar)

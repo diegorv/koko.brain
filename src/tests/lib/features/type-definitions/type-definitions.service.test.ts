@@ -24,7 +24,7 @@ describe('updateTypeDefinitionIcon', () => {
 		);
 		await updateTypeDefinitionIcon('/vault/Project.md', 'rocket', null);
 		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
-		expect(written).toContain('_icon: rocket');
+		expect(written).toContain('_icon: lucide:rocket');
 		expect(written).toContain('type: Type');
 		expect(written).toContain('# Project');
 	});
@@ -35,7 +35,7 @@ describe('updateTypeDefinitionIcon', () => {
 		);
 		await updateTypeDefinitionIcon('/vault/Project.md', 'rocket', null);
 		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
-		expect(written).toContain('_icon: rocket');
+		expect(written).toContain('_icon: lucide:rocket');
 		expect(written).not.toContain('file-text');
 	});
 
@@ -55,7 +55,7 @@ describe('updateTypeDefinitionIcon', () => {
 		);
 		await updateTypeDefinitionIcon('/vault/Topic.md', 'users', 'blue');
 		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
-		expect(written).toContain('_icon: users');
+		expect(written).toContain('_icon: lucide:users');
 		expect(written).toContain('_color: blue');
 		expect(written).not.toContain('tag');
 		expect(written).not.toContain('green');
