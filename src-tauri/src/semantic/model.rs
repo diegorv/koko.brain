@@ -201,3 +201,88 @@ impl ModelManager {
 		result
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::fs;
+	use tempfile::tempdir;
+
+	#[test]
+	fn bge_m3_embedding_dimensions_regression() {
+		assert_eq!(BGE_M3_EMBEDDER.embedding_dimensions, Some(1024));
+	}
+
+	#[test]
+	fn bge_reranker_embedding_dimensions_is_none() {
+		assert_eq!(BGE_RERANKER_V2_M3.embedding_dimensions, None);
+	}
+
+	#[test]
+	fn model_constants_have_two_files_each() {
+		assert_eq!(BGE_M3_EMBEDDER.files.len(), 2);
+		assert_eq!(BGE_M3_EMBEDDER.downloads.len(), 2);
+		assert_eq!(BGE_RERANKER_V2_M3.files.len(), 2);
+		assert_eq!(BGE_RERANKER_V2_M3.downloads.len(), 2);
+	}
+
+	#[test]
+	fn download_filenames_match_required_files() {
+		let download_names: Vec<&str> = BGE_M3_EMBEDDER.downloads.iter().map(|(_, f)| *f).collect();
+		for required in BGE_M3_EMBEDDER.files {
+			assert!(download_names.contains(required), "missing download for {}", required);
+		}
+	}
+
+	#[test]
+	fn is_model_available_false_for_empty_dir() {
+		let tmp = tempdir().unwrap();
+		let mgr = ModelManager::new(tmp.path(), &BGE_M3_EMBEDDER);
+		assert!(!mgr.is_model_available());
+	}
+
+	#[test]
+	fn is_model_available_false_when_partial_files() {
+		let tmp = tempdir().unwrap();
+		let model_dir = tmp.path().join(".kokobrain/models/bge-m3");
+		fs::create_dir_all(&model_dir).unwrap();
+		fs::write(model_dir.join("tokenizer.json"), "{}").unwrap();
+		let mgr = ModelManager::new(tmp.path(), &BGE_M3_EMBEDDER);
+		assert!(!mgr.is_model_available(), "should be false with only tokenizer.json");
+	}
+
+	#[test]
+	fn is_model_available_true_when_all_files_present() {
+		let tmp = tempdir().unwrap();
+		let model_dir = tmp.path().join(".kokobrain/models/bge-m3");
+		fs::create_dir_all(&model_dir).unwrap();
+		fs::write(model_dir.join("model.onnx"), "fake").unwrap();
+		fs::write(model_dir.join("tokenizer.json"), "{}").unwrap();
+		let mgr = ModelManager::new(tmp.path(), &BGE_M3_EMBEDDER);
+		assert!(mgr.is_model_available());
+	}
+
+	#[test]
+	fn model_path_structure() {
+		let tmp = tempdir().unwrap();
+		let mgr = ModelManager::new(tmp.path(), &BGE_M3_EMBEDDER);
+		let expected = tmp.path().join(".kokobrain/models/bge-m3");
+		assert_eq!(mgr.model_path(), expected);
+	}
+
+	#[test]
+	fn for_embedder_uses_bge_m3() {
+		let tmp = tempdir().unwrap();
+		let mgr = ModelManager::for_embedder(tmp.path());
+		assert_eq!(mgr.embedding_dimensions(), Some(1024));
+		assert!(mgr.model_path().ends_with("bge-m3"));
+	}
+
+	#[test]
+	fn for_reranker_uses_bge_reranker() {
+		let tmp = tempdir().unwrap();
+		let mgr = ModelManager::for_reranker(tmp.path());
+		assert_eq!(mgr.embedding_dimensions(), None);
+		assert!(mgr.model_path().ends_with("bge-reranker-v2-m3"));
+	}
+}
