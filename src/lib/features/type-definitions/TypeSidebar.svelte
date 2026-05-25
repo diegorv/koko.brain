@@ -192,8 +192,8 @@
 						{@const defCustomIcon = defIconEntry ? getIconSync(defIconEntry.iconPack, defIconEntry.iconName) : undefined}
 						{@const defFmIcon = defFmRef ? getIconSync(defFmRef.iconPack, defFmRef.iconName) : undefined}
 						{@const defResolvedIcon = defFmIcon ?? defCustomIcon}
-						{@const defIconColor = defFmIcon ? undefined : defIconEntry?.color}
-						{@const defTextColor = defFmIcon ? undefined : defIconEntry?.textColor}
+						{@const defIconColor = defFmRef?.color ?? defIconEntry?.color}
+						{@const defTextColor = defFmRef?.titleColor ?? defIconEntry?.textColor}
 						<div class="mb-1">
 							<button
 								class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none"
@@ -217,8 +217,8 @@
 										{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
 										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
 										{@const resolvedIcon = fmIcon ?? customIcon}
-										{@const iconColor = fmIcon ? undefined : customEntry?.color}
-										{@const iconTextColor = fmIcon ? undefined : customEntry?.textColor}
+										{@const iconColor = fmRef?.color ?? customEntry?.color}
+										{@const iconTextColor = fmRef?.titleColor ?? customEntry?.textColor}
 										{@const isActive = note.path === activePath}
 										<Tooltip.Root>
 											<Tooltip.Trigger>
@@ -266,8 +266,8 @@
 										{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
 										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
 										{@const resolvedIcon = fmIcon ?? customIcon}
-										{@const iconColor = fmIcon ? undefined : customEntry?.color}
-										{@const iconTextColor = fmIcon ? undefined : customEntry?.textColor}
+										{@const iconColor = fmRef?.color ?? customEntry?.color}
+										{@const iconTextColor = fmRef?.titleColor ?? customEntry?.textColor}
 										{@const isActive = note.path === activePath}
 										<Tooltip.Root>
 											<Tooltip.Trigger>

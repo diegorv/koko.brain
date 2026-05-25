@@ -75,8 +75,8 @@
 	let frontmatterRef = $derived(fileIconsStore.getFrontmatterIcon(node.path));
 	let frontmatterIcon = $derived(frontmatterRef ? getIconSync(frontmatterRef.iconPack, frontmatterRef.iconName) : undefined);
 	let resolvedIcon = $derived(frontmatterIcon ?? customIcon);
-	let resolvedColor = $derived(frontmatterIcon ? undefined : customIconEntry?.color);
-	let resolvedTextColor = $derived(frontmatterIcon ? undefined : customIconEntry?.textColor);
+	let resolvedColor = $derived(frontmatterRef?.color ?? customIconEntry?.color);
+	let resolvedTextColor = $derived(frontmatterRef?.titleColor ?? customIconEntry?.textColor);
 
 	/** Path to the folder note inside this directory, if one exists */
 	let folderNotePath = $derived(

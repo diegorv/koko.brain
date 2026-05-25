@@ -11,7 +11,6 @@
 	import { isTabDirty, isTabPinned, isVirtualTab } from '$lib/core/editor/editor.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
-	import { extractIconFromFrontmatter } from '$lib/features/file-icons/file-icons.logic';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 </script>
@@ -21,10 +20,11 @@
 		{#each editorStore.tabs as tab, index}
 			{@const customEntry = fileIconsStore.getIcon(tab.path)}
 			{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
-			{@const frontmatterRef = extractIconFromFrontmatter(tab.content)}
+			{@const frontmatterRef = fileIconsStore.getFrontmatterIcon(tab.path)}
 			{@const frontmatterIcon = frontmatterRef ? getIconSync(frontmatterRef.iconPack, frontmatterRef.iconName) : undefined}
 			{@const tabIcon = frontmatterIcon ?? customIcon}
-			{@const tabTextColor = frontmatterIcon ? undefined : customEntry?.textColor}
+			{@const tabColor = frontmatterRef?.color ?? customEntry?.color}
+			{@const tabTextColor = frontmatterRef?.titleColor ?? customEntry?.textColor}
 			{@const pinned = isTabPinned(tab)}
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
@@ -56,7 +56,7 @@
 							{:else if tab.fileType === 'kanban'}
 								<Kanban class="size-3.5 shrink-0 text-muted-foreground" />
 							{:else if tabIcon}
-								<IconRenderer icon={tabIcon} class="size-3.5 shrink-0" color={frontmatterIcon ? undefined : customEntry?.color} />
+								<IconRenderer icon={tabIcon} class="size-3.5 shrink-0" color={tabColor} />
 							{:else}
 								<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 							{/if}
