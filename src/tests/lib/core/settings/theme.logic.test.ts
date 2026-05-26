@@ -91,8 +91,8 @@ describe('normalizeAppearance', () => {
 	it('returns defaults for empty input', () => {
 		const result = normalizeAppearance({});
 		expect(result.activeTheme).toBe(DEFAULT_THEME_NAME);
-		expect(result.themes).toHaveLength(1);
-		expect(result.themes[0].name).toBe(DEFAULT_THEME_NAME);
+		expect(result.themes).toHaveLength(4);
+		expect(result.themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
 	});
 
 	it('prepends default theme if missing', () => {
@@ -104,17 +104,17 @@ describe('normalizeAppearance', () => {
 			activeTheme: 'Custom',
 			themes: [customTheme],
 		});
-		expect(result.themes).toHaveLength(2);
-		expect(result.themes[0].name).toBe(DEFAULT_THEME_NAME);
-		expect(result.themes[1].name).toBe('Custom');
+		expect(result.themes).toHaveLength(5);
+		expect(result.themes[0].name).toBe('Custom');
+		expect(result.themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
 	});
 
-	it('does not duplicate default theme if already present', () => {
+	it('does not duplicate built-in themes if already present', () => {
 		const result = normalizeAppearance({
 			themes: [KOKOBRAIN_DEFAULT_THEME],
 		});
-		expect(result.themes).toHaveLength(1);
-		expect(result.themes[0].name).toBe(DEFAULT_THEME_NAME);
+		expect(result.themes).toHaveLength(4);
+		expect(result.themes.filter((t) => t.name === DEFAULT_THEME_NAME)).toHaveLength(1);
 	});
 
 	it('preserves activeTheme from input', () => {
@@ -161,8 +161,11 @@ describe('DEFAULT_APPEARANCE', () => {
 		expect(DEFAULT_APPEARANCE.activeTheme).toBe(DEFAULT_THEME_NAME);
 	});
 
-	it('contains only the built-in theme', () => {
-		expect(DEFAULT_APPEARANCE.themes).toHaveLength(1);
+	it('contains all built-in themes', () => {
+		expect(DEFAULT_APPEARANCE.themes).toHaveLength(4);
 		expect(DEFAULT_APPEARANCE.themes[0]).toBe(KOKOBRAIN_DEFAULT_THEME);
+		expect(DEFAULT_APPEARANCE.themes.map((t) => t.name)).toEqual([
+			'KokoBrain Default', 'Sakura', 'Lavender Haze', 'Twilight Violet',
+		]);
 	});
 });
