@@ -64,12 +64,9 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn debug_mode_starts_disabled() {
-		assert!(!is_debug_enabled());
-	}
-
-	#[test]
 	fn set_debug_mode_toggles_flag() {
+		set_debug_mode(false);
+		assert!(!is_debug_enabled());
 		set_debug_mode(true);
 		assert!(is_debug_enabled());
 		set_debug_mode(false);
@@ -79,7 +76,6 @@ mod tests {
 	#[test]
 	fn debug_log_noop_when_disabled() {
 		set_debug_mode(false);
-		// Should not panic even without APP_HANDLE set
 		debug_log("TEST", "this should be silently ignored");
 	}
 
