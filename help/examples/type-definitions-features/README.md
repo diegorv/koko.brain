@@ -1,8 +1,13 @@
 # Type definitions examples
 
 Sample notes demonstrating types, relationships, lifecycle flags, and
-type definitions. Open these in Kokobrain to see the type sidebar,
-relationship backlinks, and lifecycle actions in action.
+type definitions -- inspired by the [Portent](https://portent.md) knowledge base
+specification. Portent defines eight default types (Projects, Operations,
+Responsibilities, Tasks, Events, Notes, Topics, People) with graph-style
+relationships (`belongs_to`, `related_to`) and a capture/organize/archive
+lifecycle. This folder shows how Kokobrain implements those ideas with
+free-form types and frontmatter flags. Open in Kokobrain to see the type
+sidebar, relationship backlinks, and lifecycle actions in action.
 
 ## What's here
 

@@ -1,6 +1,13 @@
 # Types, Relationships & Lifecycle
 
-Kokobrain supports structured note types, semantic relationships between notes, and a lifecycle workflow for organizing your knowledge base. These features are inspired by the [Portent](https://portent.md) knowledge base specification.
+Kokobrain supports structured note types, semantic relationships between notes, and a lifecycle workflow for organizing your knowledge base.
+
+These features are inspired by [Portent](https://portent.md), an open specification for knowledge bases created by [Luca Rossi](https://refactoring.fm) (the creator of [Tolaria](https://tolaria.app)). Portent provides conventions for organizing information around three ideas: **types** (what is this?), **relationships** (what is it connected to?), and **lifecycle** (is it captured, organized, or archived?).
+
+Kokobrain implements the Portent model with some adaptations -- types are free-form (you can use any name, not only the eight Portent defaults), and the lifecycle is managed via frontmatter flags (`_organized`, `_archived`, `_favorite`) rather than a single status property.
+
+> [!TIP]
+> See [About Portent](#about-portent) at the end of this page for a full overview of the specification, the default type taxonomy, and links to the reference material.
 
 ---
 
@@ -342,6 +349,201 @@ The Collection feature supports filtering by Portent fields:
 - Filter by lifecycle state (`organized`, `archived`, `favorite`)
 
 See [Collection](12-collection.md) for details on building filtered views.
+
+---
+
+## About Portent
+
+[Portent](https://portent.md) is an open specification for work and personal knowledge bases, created by [Luca Rossi](https://refactoring.fm) alongside [Tolaria](https://tolaria.app). It favors convention over configuration: instead of asking "where should this go?", it asks *what is this?*, *what is it useful for?*, and *is it captured, organized, or archived?*
+
+### The Eight Default Types
+
+Portent defines eight types organized into two groups:
+
+**PORT** (actionable -- things to do):
+
+| Type | Description |
+|------|-------------|
+| **Project** | Time-bound effort with a beginning, end, and success criteria |
+| **Operation** | Recurring work completable in one sitting (procedures, reviews, checklists) |
+| **Responsibility** | Long-running area of accountability with metrics or KPIs |
+| **Task** | One-off work completable in one sitting |
+
+**ENTP** (non-actionable -- knowledge records):
+
+| Type | Description |
+|------|-------------|
+| **Event** | Things that happened (meetings, decisions, incidents) |
+| **Note** | Durable knowledge artifacts (documents, references, research) |
+| **Topic** | Areas of interest or conceptual categories |
+| **Person** | People, collaborators, contacts, or AI agents as actors |
+
+The name "Portent" is an acronym of the first seven types (PORT + ENT), plus People.
+
+Kokobrain suggests Project, Person, Event, Topic, Task, and Note as built-in type hints with default icons and colors, but you can use any type name freely -- including the full Portent set or your own custom types.
+
+### Relationships as a Graph
+
+Portent models knowledge as a graph with two default relationships:
+
+- **`belongs_to`** -- strong ownership/composition (e.g., an Operation belongs to a Responsibility, a meeting belongs to a Project)
+- **`related_to`** -- loose many-to-many association (e.g., a Note is related to a Topic, an Event is related to a Person)
+
+The mental model: use `belongs_to` for relationships towards or between PORT items, and `related_to` for connections between ENTP items. This is simpler than relational schemas (where every table pair needs explicit joins) and more expressive than folders (where each item can only live in one place).
+
+### Capture, Organize, Archive
+
+Portent separates capture from organization through a three-step lifecycle:
+
+1. **Capture** -- save information quickly so it is not lost. Captured notes are messy and that is fine.
+2. **Organize** -- assign a type and relationships. Ask: *what is this?* and *what should I do with it?*
+3. **Archive** -- hide from active views when the information has served its purpose but should be retained.
+
+In Kokobrain, this maps to the `_organized` and `_archived` frontmatter flags, plus the Inbox/Archive navigation in the type sidebar.
+
+### Using Portent in Kokobrain
+
+#### Step 1: Create your type definitions
+
+Create a `_types` folder in your vault (or any folder you prefer). For each type you want, create a note with `type: Type` in the frontmatter. The note title becomes the type name.
+
+**Minimal setup** -- start with just 3-4 types and expand later:
+
+```yaml
+# _types/Project.md
+---
+type: Type
+_icon: rocket
+_color: red
+_sidebar_label: Projects
+_order: 1
+---
+Projects are time-bound efforts with clear goals and deliverables.
+```
+
+```yaml
+# _types/Topic.md
+---
+type: Type
+_icon: tag
+_color: green
+_sidebar_label: Topics
+_order: 3
+---
+Topics are areas of interest or knowledge domains.
+```
+
+```yaml
+# _types/Person.md
+---
+type: Type
+_icon: users
+_color: blue
+_sidebar_label: People
+_order: 2
+---
+People you work with or reference in your notes.
+```
+
+You can also use the full Portent set of eight types (Project, Operation, Responsibility, Task, Event, Note, Topic, Person) or invent your own (Recipe, Book, Place -- anything).
+
+> [!TIP]
+> Switch to the **Types** sidebar mode (click the grid icon in the sidebar header) to see your types appear as sections.
+
+#### Step 2: Assign types to your notes
+
+Add `type: Project` (or whatever type fits) to a note's frontmatter. The note shows up under that type section in the sidebar.
+
+```yaml
+---
+type: Project
+status: active
+manager: "[[alice]]"
+---
+# Website Redesign
+```
+
+Don't overthink this. If a note doesn't fit any type, leave it untyped -- it still works like a regular note.
+
+#### Step 3: Connect notes with relationships
+
+Use `belongs_to` for ownership (this note *belongs to* that project) and `related_to` for loose associations:
+
+```yaml
+---
+type: Event
+belongs_to: "[[Website Redesign]]"
+related_to:
+  - "[[design-systems]]"
+  - "[[accessibility]]"
+attendees:
+  - "[[alice]]"
+  - "[[bob]]"
+---
+# Kickoff Meeting
+```
+
+Any frontmatter field with wikilink values creates a relationship automatically. Open the Backlinks panel on "Website Redesign" and you will see this meeting listed under Relationships.
+
+**When to use which:**
+
+| Relationship | Use for | Example |
+|-------------|---------|---------|
+| `belongs_to` | Strong ownership, composition, hierarchy | Meeting belongs to Project, Task belongs to Responsibility |
+| `related_to` | Loose association, cross-references | Note related to Topic, Event related to Person |
+| Custom fields | Domain-specific connections | `manager: "[[alice]]"`, `client: "[[acme]]"` |
+
+#### Step 4: Use the lifecycle
+
+**Daily capture:** Create notes fast, don't worry about organization. If you have Explicit Organization enabled (Settings > Types), new notes start in the Inbox automatically.
+
+**Weekly organize:** Open the Inbox in the type sidebar. For each note, ask:
+
+1. *What is this?* -- assign a type
+2. *What is it connected to?* -- add `belongs_to` or `related_to`
+3. Click **Organize** in the Properties panel to move it out of the inbox
+
+**Archive when done:** Finished a project? Click **Archive**. The note hides from default views but stays searchable through the "Archived" tab.
+
+```
+Capture (fast, messy)  -->  Organize (type + relationships)  -->  Archive (done, hidden)
+```
+
+#### Step 5: Create views for filtered lists
+
+For recurring queries, create `.view` files instead of searching every time:
+
+```yaml
+# active-projects.view
+---
+_sidebar_label: Active Projects
+_icon: rocket
+_color: green
+_order: 10
+---
+
+type == "Project" and status == "active"
+```
+
+```yaml
+# this-week-meetings.view
+---
+_sidebar_label: This Week
+_icon: calendar
+_order: 11
+---
+
+type == "Meeting" and file.created > today() - duration("7d")
+```
+
+Views appear in the sidebar alongside types. See [Collection](12-collection.md) for the full expression language.
+
+### Reference Material
+
+- Portent website: [portent.md](https://portent.md)
+- Vault template: [github.com/refactoringhq/portent-vault-template](https://github.com/refactoringhq/portent-vault-template)
+- Specification repository: [github.com/refactoringhq/portent](https://github.com/refactoringhq/portent)
+- "Introducing Portent" essay by Luca Rossi: available in the template vault
 
 ---
 
