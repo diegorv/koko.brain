@@ -220,7 +220,13 @@ where
 		.watch(Path::new(vault_path), RecursiveMode::Recursive)
 		.map_err(|e| format!("watch start: {}", e))?;
 
-	thread::spawn(move || run_debounce_loop(event_rx, stop_rx, vault_prefix, on_change));
+	thread::spawn(move || {
+		if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+			run_debounce_loop(event_rx, stop_rx, vault_prefix, on_change);
+		})) {
+			debug_log("WATCHER", format!("bridge thread panicked: {:?}", e));
+		}
+	});
 
 	Ok(VaultWatcher {
 		_watcher: watcher,
