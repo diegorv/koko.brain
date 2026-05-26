@@ -223,7 +223,7 @@
 	</div>
 
 	{#if showSubFilter}
-		<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border shrink-0">
+		<div class="flex items-center pt-1.5 border-b border-border shrink-0">
 			<button
 				class="flex flex-1 items-center justify-center gap-1.5 py-1 text-xs cursor-pointer border-b-2 {subFilter === 'open' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
 				onclick={() => { subFilter = 'open'; }}
