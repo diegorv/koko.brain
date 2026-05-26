@@ -5,6 +5,8 @@ tags:
   - systems
 _organized: true
 _favorite: true
+_favorite_index: 1
+_order: 2
 ---
 
 # Rust

@@ -1,0 +1,14 @@
+---
+_sidebar_label: Active Projects
+_order: 10
+_sort: modified
+_icon: rocket
+_color: green
+_title_color: "#22c55e"
+_list_properties_display:
+  - status
+  - priority
+  - manager
+---
+
+type == "Project" and status == "active"

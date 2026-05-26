@@ -29,5 +29,19 @@ button group on the top-left switches Board → List → Table.
 | `tagColors` | All three files |
 | `viewMode` | One per file (see table above) |
 
+## Interactions not shown in file format
+
+These features are UI-only and cannot be demonstrated in static files:
+
+| Feature | How to use |
+|---------|-----------|
+| **Keyboard navigation** | Arrow keys navigate lanes/cards, Enter edits, Space toggles checkbox, Delete removes, N adds card |
+| **Card context menu** | Right-click a card for Edit, Archive, Card Color (color picker submenu), Delete |
+| **Wikilink autocomplete** | Type `[[` while editing a card to get file suggestions |
+| **Linked file preview** | Cards with `[[wikilink]]` show the linked file's content below the card |
+| **Drag and drop** | Drag cards between lanes or reorder within a lane (Board view) |
+| **Lane context menu** | Click lane menu (three dots) for rename, max items, auto-complete, archive completed, delete |
+| **Date picker** | Click a date badge on a card to open an interactive date picker |
+
 Copy any of these into your vault as starting points — the file extension
 (`.kanban`) is what tells Kokobrain to render the board UI.

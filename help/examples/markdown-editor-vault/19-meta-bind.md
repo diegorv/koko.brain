@@ -135,7 +135,123 @@ ESPERADO:
 - NAO deve crashar o editor
 %%
 
-## 9. Edge Cases
+## 9. Number Input
+
+Score: `INPUT[number():score]`
+
+%%
+ESPERADO:
+- Cursor fora: input numerico renderizado
+- Aceita apenas numeros
+- Atualiza propriedade "score" no frontmatter
+%%
+
+## 10. Date Input
+
+Data: `INPUT[date():data_entrega]`
+
+%%
+ESPERADO:
+- Cursor fora: date picker renderizado (formato YYYY-MM-DD)
+- Atualiza propriedade "data_entrega" no frontmatter
+%%
+
+## 11. Toggle / Boolean Input
+
+Arquivado: `INPUT[toggle():arquivado]`
+
+Ativo: `INPUT[boolean():ativo]`
+
+%%
+ESPERADO:
+- Cursor fora: checkbox/switch renderizado
+- Toggle: true/yes/1/on (case-insensitive) = checked
+- Atualiza propriedade no frontmatter como true/false
+%%
+
+## 12. Option Labels (Value/Label Syntax)
+
+Humor: `INPUT[inlineSelect(option(1, muito ruim), option(2, ruim), option(3, ok), option(4, bom), option(5, otimo)):humor]`
+
+%%
+ESPERADO:
+- Dropdown mostra labels (muito ruim, ruim, ok, bom, otimo)
+- Valor armazenado no frontmatter e numerico (1-5)
+%%
+
+## 13. Button - Open Action
+
+```meta-bind-button
+label: Abrir Projeto
+style: primary
+action:
+  type: open
+  link: "[[project-kokobrain]]"
+  newTab: true
+```
+
+%%
+ESPERADO:
+- Botao que abre a nota "project-kokobrain" em nova aba
+%%
+
+## 14. Button - Create Note Action
+
+```meta-bind-button
+label: Nova Ideia
+style: default
+action:
+  type: createNote
+  fileName: Nova Ideia
+  folderPath: Inbox
+  openNote: true
+```
+
+%%
+ESPERADO:
+- Botao que cria "Inbox/Nova Ideia.md" e abre
+%%
+
+## 15. Button - Multiple Actions Chain
+
+```meta-bind-button
+label: Finalizar e Arquivar
+style: destructive
+tooltip: Marca como done e arquiva
+actions:
+  - type: updateMetadata
+    prop: status
+    value: done
+  - type: updateMetadata
+    prop: arquivado
+    value: true
+```
+
+%%
+ESPERADO:
+- Botao executa duas acoes em sequencia
+- Tooltip aparece no hover
+%%
+
+## 16. Button - Hidden with ID
+
+```meta-bind-button
+id: reset-btn
+hidden: true
+label: Reset Oculto
+action:
+  type: updateMetadata
+  prop: status
+  value: todo
+```
+
+%%
+ESPERADO:
+- Bloco nao visivel em live preview (hidden: true)
+- Pode ser referenciado por id "reset-btn"
+%%
+
+## 17. Edge Cases
 
 Inline select com propriedade inexistente: `INPUT[inlineSelect(a, b, c):propriedade_nova]`
 
@@ -143,4 +259,11 @@ Inline select com propriedade inexistente: `INPUT[inlineSelect(a, b, c):propried
 ESPERADO:
 - Propriedade deve ser criada no frontmatter ao selecionar um valor
 - Dropdown deve mostrar vazio/default inicialmente
+%%
+
+Tipo desconhecido com opcoes (fallback para select): `INPUT[customType(x, y, z):campo_custom]`
+
+%%
+ESPERADO:
+- Tipo nao reconhecido com opcoes deve renderizar como inline select
 %%

@@ -110,7 +110,100 @@ ESPERADO:
 - Cores disponiveis: blue, green, red, orange, purple, yellow, gray
 %%
 
-## 4. Combined — All Three Together
+## 4. link() — Clickable Links
+
+```collection
+formulas:
+  noteLink: "file.asLink()"
+  externalLink: "if(url != null, link(url, 'Open'), '')"
+
+properties:
+  formula.noteLink:
+    displayName: Note Link
+  formula.externalLink:
+    displayName: External
+
+views:
+  - type: table
+    name: Links
+    filters: "status != null"
+    order:
+      - formula.noteLink
+      - status
+      - formula.externalLink
+    sort:
+      - column: file.name
+        direction: ASC
+```
+
+%%
+ESPERADO:
+- Coluna Note Link: wikilink clicavel para a nota
+- Coluna External: link clicavel "Open" para URL (se existir no frontmatter)
+- Sintaxe: link(href, displayText), file.asLink()
+%%
+
+## 5. icon() — Inline Lucide Icons
+
+```collection
+formulas:
+  statusIcon: "if(status == 'active', icon('rocket'), if(status == 'completed', icon('check-circle'), icon('circle')))"
+
+properties:
+  formula.statusIcon:
+    displayName: ""
+  file.name:
+    displayName: Item
+
+views:
+  - type: table
+    name: With Icons
+    filters: "status != null"
+    order:
+      - formula.statusIcon
+      - file.name
+      - status
+    sort:
+      - column: file.name
+        direction: ASC
+```
+
+%%
+ESPERADO:
+- Coluna vazia (sem header): icone Lucide renderizado (rocket, check-circle, circle)
+- Sintaxe: icon(lucide-icon-name)
+%%
+
+## 6. html() and escapeHTML()
+
+```collection
+formulas:
+  richStatus: "html('<strong>' + escapeHTML(status) + '</strong>')"
+
+properties:
+  formula.richStatus:
+    displayName: Rich Status
+
+views:
+  - type: table
+    name: HTML
+    filters: "status != null"
+    order:
+      - file.name
+      - formula.richStatus
+    sort:
+      - column: file.name
+        direction: ASC
+```
+
+%%
+ESPERADO:
+- Coluna Rich Status: texto em negrito via HTML
+- escapeHTML previne XSS em valores do frontmatter
+- Sintaxe: html(content), escapeHTML(text)
+%%
+
+## 7. Combined — All Functions Together
 
 ```collection
 formulas:

@@ -81,6 +81,23 @@ ESPERADO:
 - Hover state visivel no checkbox
 %%
 
+## 6b. Extended Task Statuses
+
+- [ ] Todo (pendente)
+- [x] Done (completa)
+- [/] In Progress (em andamento)
+- [-] Cancelled (cancelada)
+- [?] Question (precisa esclarecimento)
+- [>] Forwarded (delegada)
+- [!] Important (alta prioridade)
+
+%%
+ESPERADO:
+- Cada status deve ter estilo visual distinto
+- [/] [?] [>] [!] sao status estendidos alem do padrao [ ] e [x]
+- Todos devem funcionar como checkboxes interativos
+%%
+
 ## 7. Listas Aninhadas
 
 - Item nivel 1
