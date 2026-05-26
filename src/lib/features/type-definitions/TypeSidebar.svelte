@@ -23,6 +23,7 @@
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countNavItems, type TypeSection, type NavItemId, type TypeSidebarSelection } from './type-sidebar.logic';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
@@ -112,6 +113,7 @@
 	}
 </script>
 
+<Tooltip.Provider delayDuration={400}>
 <div class="flex flex-col h-full">
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
@@ -239,6 +241,7 @@
 		</ContextMenu.Content>
 	</ContextMenu.Root>
 </div>
+</Tooltip.Provider>
 
 {#if iconPickerPath}
 	<IconPicker
