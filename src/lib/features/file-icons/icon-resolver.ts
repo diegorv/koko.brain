@@ -37,13 +37,6 @@ export function resolveIconForPath(path: string): ResolvedIcon | undefined {
 	const typeResult = resolveTypeIconForPath(path);
 	if (typeResult) return typeResult;
 
-	// Priority 3: custom icon from file-icons.json
-	const customEntry = fileIconsStore.getIcon(path);
-	if (customEntry) {
-		const icon = getIconSync(customEntry.iconPack, customEntry.iconName);
-		if (icon) return { icon, color: customEntry.color, titleColor: customEntry.textColor };
-	}
-
 	return undefined;
 }
 

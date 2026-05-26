@@ -80,17 +80,6 @@ describe('resolveIconForPath', () => {
 		expect(result).toEqual({ icon, color: 'blue', titleColor: undefined });
 	});
 
-	it('priority 3: returns custom icon when no frontmatter or type icon', () => {
-		const icon = mockIcon('file');
-		fileIconsStore.setEntries([
-			{ path: '/vault/image.png', iconPack: 'lucide', iconName: 'file', color: 'green', textColor: 'red' },
-		]);
-		vi.mocked(getIconSync).mockReturnValue(icon);
-
-		const result = resolveIconForPath('/vault/image.png');
-		expect(result).toEqual({ icon, color: 'green', titleColor: 'red' });
-	});
-
 	it('frontmatter takes priority over type definition icon', () => {
 		const starIcon = mockIcon('star');
 		const rocketIcon = mockIcon('rocket');
@@ -112,48 +101,6 @@ describe('resolveIconForPath', () => {
 
 		const result = resolveIconForPath('/vault/my-project.md');
 		expect(result?.icon.name).toBe('star');
-	});
-
-	it('frontmatter takes priority over custom icon', () => {
-		const starIcon = mockIcon('star');
-		const fileIcon = mockIcon('file');
-		fileIconsStore.setFrontmatterIcons(
-			new Map([['/vault/note.md', { iconPack: 'lucide', iconName: 'star' }]]),
-		);
-		fileIconsStore.setEntries([
-			{ path: '/vault/note.md', iconPack: 'lucide', iconName: 'file' },
-		]);
-		vi.mocked(getIconSync).mockImplementation((_pack, name) => {
-			if (name === 'star') return starIcon;
-			if (name === 'file') return fileIcon;
-			return undefined;
-		});
-
-		const result = resolveIconForPath('/vault/note.md');
-		expect(result?.icon.name).toBe('star');
-	});
-
-	it('type definition takes priority over custom icon', () => {
-		const rocketIcon = mockIcon('rocket');
-		const fileIcon = mockIcon('file');
-		typeDefinitionsStore.setEntries([
-			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
-			makeEntry({ path: '/vault/my-project.md', title: 'my-project', isA: 'Project' }),
-		]);
-		fileIconsStore.setFrontmatterIcons(
-			new Map([['/vault/Project.md', { iconPack: 'lucide', iconName: 'rocket' }]]),
-		);
-		fileIconsStore.setEntries([
-			{ path: '/vault/my-project.md', iconPack: 'lucide', iconName: 'file' },
-		]);
-		vi.mocked(getIconSync).mockImplementation((_pack, name) => {
-			if (name === 'rocket') return rocketIcon;
-			if (name === 'file') return fileIcon;
-			return undefined;
-		});
-
-		const result = resolveIconForPath('/vault/my-project.md');
-		expect(result?.icon.name).toBe('rocket');
 	});
 
 	it('returns undefined when getIconSync returns undefined (pack not loaded)', () => {

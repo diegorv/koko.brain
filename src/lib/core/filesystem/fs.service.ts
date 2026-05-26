@@ -7,7 +7,6 @@ import { getParentPath, getFileName, isMarkdownFile, generateCopyName, generateU
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
-import { updateFileIconPathsAfterMove } from '$lib/features/file-icons/file-icons.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
@@ -232,7 +231,6 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		if (vaultStore.path) {
 			updateBookmarkPathsAfterMove(vaultStore.path, oldPath, newPath);
-			updateFileIconPathsAfterMove(vaultStore.path, oldPath, newPath);
 		}
 
 		debug('FS', 'renamed item:', oldPath, '→', newPath);
@@ -273,7 +271,6 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		if (vaultStore.path) {
 			updateBookmarkPathsAfterMove(vaultStore.path, sourcePath, newPath);
-			updateFileIconPathsAfterMove(vaultStore.path, sourcePath, newPath);
 		}
 
 		debug('FS', 'moved item:', sourcePath, '→', newPath);

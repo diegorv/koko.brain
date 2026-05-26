@@ -1,11 +1,8 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import type { FileIconEntry, IconPackId, RecentIcon } from './file-icons.types';
+import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
-	setFileIcon,
-	removeFileIcon,
-	updateFileIconPaths,
 	addRecentIcon,
 	extractIconFromFrontmatter,
 	extractIconColorsFromFrontmatter,
@@ -20,13 +17,7 @@ import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 /** Internal directory inside the vault that stores app metadata */
 const KOKOBRAIN_DIR = '.kokobrain';
-const ICONS_FILE = 'file-icons.json';
 const RECENT_ICONS_FILE = 'recent-icons.json';
-
-/** Resolves the full path to the file icons JSON file */
-function getIconsPath(vaultPath: string): string {
-	return `${vaultPath}/${KOKOBRAIN_DIR}/${ICONS_FILE}`;
-}
 
 /** Resolves the full path to the recently used icons JSON file */
 function getRecentIconsPath(vaultPath: string): string {
@@ -44,28 +35,6 @@ async function ensureDir(vaultPath: string): Promise<void> {
 	const dirExists = await exists(dirPath);
 	if (!dirExists) {
 		await mkdir(dirPath);
-	}
-}
-
-/** Reads file icons from disk. Falls back to empty array if file is missing or invalid. */
-export async function loadFileIcons(vaultPath: string): Promise<void> {
-	const filePath = getIconsPath(vaultPath);
-	try {
-		const fileExists = await exists(filePath);
-		if (!fileExists) {
-			fileIconsStore.setEntries([]);
-			return;
-		}
-		const content = await readTextFile(filePath);
-		const parsed = JSON.parse(content) as FileIconEntry[];
-		const entries = Array.isArray(parsed) ? parsed : [];
-		fileIconsStore.setEntries(entries);
-		// Pre-load icon packs referenced by saved entries so they render synchronously
-		const packs = [...new Set(entries.map((e) => e.iconPack))];
-		if (packs.length > 0) await preloadPacks(packs);
-	} catch (err) {
-		error('FILE_ICONS', 'Failed to load file icons:', err);
-		fileIconsStore.setEntries([]);
 	}
 }
 
@@ -96,18 +65,6 @@ async function saveRecentIcons(vaultPath: string): Promise<void> {
 		await writeTextFile(filePath, content);
 	} catch (err) {
 		error('FILE_ICONS', 'Failed to save recent icons:', err);
-	}
-}
-
-/** Persists the current file icons to disk, creating the `.kokobrain` dir if needed */
-export async function saveFileIcons(vaultPath: string): Promise<void> {
-	const filePath = getIconsPath(vaultPath);
-	try {
-		await ensureDir(vaultPath);
-		const content = JSON.stringify(fileIconsStore.entries, null, 2);
-		await writeTextFile(filePath, content);
-	} catch (err) {
-		error('FILE_ICONS', 'Failed to save file icons:', err);
 	}
 }
 
@@ -146,7 +103,6 @@ async function ensureFolderNote(dirPath: string): Promise<string> {
  * Sets a custom icon for a file/folder path.
  * - .md files: writes to frontmatter (_icon, _color, _title_color).
  * - Directories (isDirectory=true): writes to folder note frontmatter (auto-creates if needed).
- * - Other files: writes to .kokobrain/file-icons.json.
  */
 export async function setIconForPath(
 	vaultPath: string,
@@ -175,17 +131,12 @@ export async function setIconForPath(
 		fileIconsStore.updateFrontmatterIcon(path, ref);
 		return;
 	}
-
-	const updated = setFileIcon(fileIconsStore.entries, path, iconPack, iconName, color, textColor);
-	fileIconsStore.setEntries(updated);
-	await saveFileIcons(vaultPath);
 }
 
 /**
  * Removes a custom icon from a file/folder path.
  * - .md files: removes _icon, _color, _title_color from frontmatter.
  * - Directories (isDirectory=true): removes icon from folder note frontmatter.
- * - Other files: removes entry from .kokobrain/file-icons.json.
  */
 export async function removeIconForPath(vaultPath: string, path: string, isDirectory = false): Promise<void> {
 	if (isMarkdown(path)) {
@@ -206,31 +157,13 @@ export async function removeIconForPath(vaultPath: string, path: string, isDirec
 		fileIconsStore.updateFrontmatterIcon(path, null);
 		return;
 	}
-
-	const updated = removeFileIcon(fileIconsStore.entries, path);
-	fileIconsStore.setEntries(updated);
-	await saveFileIcons(vaultPath);
-}
-
-/** Updates icon paths after a rename or move and saves to disk */
-export async function updateFileIconPathsAfterMove(
-	vaultPath: string,
-	oldPath: string,
-	newPath: string,
-): Promise<void> {
-	const updated = updateFileIconPaths(fileIconsStore.entries, oldPath, newPath);
-	fileIconsStore.setEntries(updated);
-	await saveFileIcons(vaultPath);
 }
 
 /**
  * Scans all vault notes for the frontmatter `icon` property and
  * populates `fileIconsStore.frontmatterIcons`. Reads pre-parsed
  * frontmatter from the Rust `VaultIndex` via `get_all_vault_entries_v2`
- * — no per-file YAML re-parse on the JS side.
- *
- * Phase 11.5g — replaces the previous noteIndexStore.noteContents
- * iteration. Call after the Rust index is bootstrapped (Phase 3.5b).
+ * - no per-file YAML re-parse on the JS side.
  */
 export async function buildFrontmatterIconIndex(): Promise<void> {
 	await timeAsync('FILE_ICONS', 'buildFrontmatterIconIndex', async () => {

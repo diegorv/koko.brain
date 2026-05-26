@@ -119,7 +119,6 @@ vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
 }));
 
 vi.mock('$lib/features/file-icons/file-icons.service', () => ({
-	loadFileIcons: vi.fn(),
 	loadRecentIcons: vi.fn(),
 	// Phase 11.5g: buildFrontmatterIconIndex is async (awaits Rust IPC).
 	// Mock with a resolved promise so the `.catch()` chain in the
@@ -178,7 +177,7 @@ import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
 import { resetTemplates, ensureTemplatesFolder } from '$lib/plugins/templates/templates.service';
 import { loadBookmarks, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
-import { loadFileIcons, loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '$lib/features/file-icons/file-icons.service';
+import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '$lib/features/file-icons/file-icons.service';
 import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
@@ -238,7 +237,6 @@ describe('initializeVault', () => {
 		await initializeVault('/vault');
 
 		expect(loadBookmarks).toHaveBeenCalledWith('/vault');
-		expect(loadFileIcons).toHaveBeenCalledWith('/vault');
 		expect(loadRecentIcons).toHaveBeenCalledWith('/vault');
 	});
 
@@ -654,7 +652,6 @@ describe('state transitions: teardown → reinitialize', () => {
 		expect(loadDirectoryTree).toHaveBeenCalledWith('/vault-b');
 		expect(startWatching).toHaveBeenCalledWith('/vault-b');
 		expect(loadBookmarks).toHaveBeenCalledWith('/vault-b');
-		expect(loadFileIcons).toHaveBeenCalledWith('/vault-b');
 		expect(loadRecentIcons).toHaveBeenCalledWith('/vault-b');
 
 		// Vault A path should not appear in any calls after reinit

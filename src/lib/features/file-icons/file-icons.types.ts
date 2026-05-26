@@ -13,20 +13,6 @@ export type IconPackId =
 	| 'remix'
 	| 'emoji';
 
-/** A custom icon assigned to a file or folder */
-export interface FileIconEntry {
-	/** Absolute path to the file or folder */
-	path: string;
-	/** Which icon pack this icon belongs to */
-	iconPack: IconPackId;
-	/** Icon identifier (icon name for SVG packs, or emoji character) */
-	iconName: string;
-	/** Optional hex color override for the icon (e.g. '#ff5733') */
-	color?: string;
-	/** Optional hex color override for the filename text (e.g. '#ff5733') */
-	textColor?: string;
-}
-
 /** A recently used icon reference (pack + name, no path) */
 export interface RecentIcon {
 	/** Which icon pack this icon belongs to */

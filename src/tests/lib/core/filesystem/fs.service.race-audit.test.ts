@@ -42,9 +42,7 @@ vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
 	updateBookmarkPathsAfterMove: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
-	updateFileIconPathsAfterMove: vi.fn(),
-}));
+vi.mock('$lib/features/file-icons/file-icons.service', () => ({}));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	closeTabsForDeletedPath: vi.fn(),

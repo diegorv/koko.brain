@@ -62,8 +62,8 @@
 	let targetIsBookmarked = $derived(
 		contextTargetNode ? bookmarksStore.isBookmarked(contextTargetNode.path) : false
 	);
-	let iconPickerEntry = $derived(
-		iconPickerNode ? fileIconsStore.getIcon(iconPickerNode.path) : undefined
+	let iconPickerRef = $derived(
+		iconPickerNode ? fileIconsStore.getFrontmatterIcon(iconPickerNode.path) : undefined
 	);
 
 	setFileExplorerContext({
@@ -383,10 +383,10 @@
 {#if iconPickerNode}
 	<IconPicker
 		bind:open={iconPickerOpen}
-		currentPack={iconPickerEntry?.iconPack}
-		currentName={iconPickerEntry?.iconName}
-		currentColor={iconPickerEntry?.color}
-		currentTextColor={iconPickerEntry?.textColor}
+		currentPack={iconPickerRef?.iconPack}
+		currentName={iconPickerRef?.iconName}
+		currentColor={iconPickerRef?.color}
+		currentTextColor={iconPickerRef?.titleColor}
 		onSelect={handleIconSelect}
 		onRemove={handleIconRemove}
 		onClose={handleIconPickerClose}

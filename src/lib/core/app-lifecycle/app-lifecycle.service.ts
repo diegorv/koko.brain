@@ -46,7 +46,6 @@ import {
 } from '$lib/features/bookmarks/bookmarks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import {
-	loadFileIcons,
 	loadRecentIcons,
 	buildFrontmatterIconIndex,
 	resetFileIcons,
@@ -175,7 +174,6 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	try {
 		await Promise.all([
 			loadBookmarks(vaultPath),
-			loadFileIcons(vaultPath),
 			loadRecentIcons(vaultPath),
 			loadTrash(vaultPath),
 			loadAutoMoveConfig(vaultPath),

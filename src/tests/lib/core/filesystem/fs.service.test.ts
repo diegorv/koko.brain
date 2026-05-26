@@ -31,9 +31,7 @@ vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
 	updateBookmarkPathsAfterMove: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
-	updateFileIconPathsAfterMove: vi.fn(),
-}));
+vi.mock('$lib/features/file-icons/file-icons.service', () => ({}));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	closeTabsForDeletedPath: vi.fn(),
@@ -63,7 +61,6 @@ import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
-import { updateFileIconPathsAfterMove } from '$lib/features/file-icons/file-icons.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { moveToTrash } from '$lib/core/trash/trash.service';
@@ -629,7 +626,6 @@ describe('renameItem', () => {
 		expect(result).toBe('/vault/new.md');
 		expect(rename).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
 		expect(updateBookmarkPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/old.md', '/vault/new.md');
-		expect(updateFileIconPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/old.md', '/vault/new.md');
 	});
 
 	it('removes old path from tag index on successful rename', async () => {
@@ -714,7 +710,6 @@ describe('moveItem', () => {
 		expect(result).toBe('/vault/folder/note.md');
 		expect(rename).toHaveBeenCalledWith('/vault/note.md', '/vault/folder/note.md');
 		expect(updateBookmarkPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/folder/note.md');
-		expect(updateFileIconPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/folder/note.md');
 	});
 
 	it('removes old path from tag index on successful move', async () => {

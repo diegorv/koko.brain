@@ -46,8 +46,8 @@
 	let iconPickerOpen = $state(false);
 	let activePath = $derived(editorStore.activeTabPath);
 	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
-	let iconPickerEntry = $derived(
-		iconPickerPath ? fileIconsStore.getIcon(iconPickerPath) : undefined
+	let iconPickerRef = $derived(
+		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
 	);
 	let filterTabs = $derived([
 		{ id: 'all' as SidebarFilter, label: 'All', icon: LayoutGrid },
@@ -402,10 +402,10 @@
 {#if iconPickerPath}
 	<IconPicker
 		bind:open={iconPickerOpen}
-		currentPack={iconPickerEntry?.iconPack}
-		currentName={iconPickerEntry?.iconName}
-		currentColor={iconPickerEntry?.color}
-		currentTextColor={iconPickerEntry?.textColor}
+		currentPack={iconPickerRef?.iconPack}
+		currentName={iconPickerRef?.iconName}
+		currentColor={iconPickerRef?.color}
+		currentTextColor={iconPickerRef?.titleColor}
 		onSelect={handleIconSelect}
 		onRemove={handleIconRemove}
 		onClose={handleIconPickerClose}

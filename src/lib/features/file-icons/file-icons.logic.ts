@@ -1,49 +1,5 @@
-import type { FileIconEntry, IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
+import type { IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
 import type { FrontmatterValue } from '$lib/types/vault-v2.types';
-
-/** Adds or updates a file icon entry. Returns a new array. */
-export function setFileIcon(
-	entries: FileIconEntry[],
-	path: string,
-	iconPack: FileIconEntry['iconPack'],
-	iconName: string,
-	color?: string,
-	textColor?: string,
-): FileIconEntry[] {
-	const filtered = entries.filter((e) => e.path !== path);
-	return [...filtered, { path, iconPack, iconName, color, textColor }];
-}
-
-/** Removes a file icon entry by path. Returns unchanged array if not found. */
-export function removeFileIcon(entries: FileIconEntry[], path: string): FileIconEntry[] {
-	return entries.filter((e) => e.path !== path);
-}
-
-/** Looks up a file icon entry by path */
-export function getFileIcon(entries: FileIconEntry[], path: string): FileIconEntry | undefined {
-	return entries.find((e) => e.path === path);
-}
-
-/**
- * Updates icon entry paths after a rename or move.
- * Handles both exact matches and child paths under a renamed directory.
- */
-export function updateFileIconPaths(
-	entries: FileIconEntry[],
-	oldPath: string,
-	newPath: string,
-): FileIconEntry[] {
-	return entries.map((e) => {
-		if (e.path === oldPath) {
-			return { ...e, path: newPath };
-		}
-		if (e.path.startsWith(oldPath + '/')) {
-			const suffix = e.path.substring(oldPath.length);
-			return { ...e, path: newPath + suffix };
-		}
-		return e;
-	});
-}
 
 /** Maximum number of recently used icons to keep */
 const MAX_RECENT_ICONS = 20;

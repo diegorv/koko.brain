@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-	setFileIcon,
-	removeFileIcon,
-	getFileIcon,
-	updateFileIconPaths,
 	filterIcons,
 	addRecentIcon,
 	extractIconFromFrontmatter,
@@ -12,11 +8,7 @@ import {
 	extractIconColorsFromParsedFrontmatter,
 	parseIconValuePermissive,
 } from '$lib/features/file-icons/file-icons.logic';
-import type { FileIconEntry, NormalizedIcon, RecentIcon } from '$lib/features/file-icons/file-icons.types';
-
-function makeEntry(path: string, pack = 'lucide', name = 'star', color?: string): FileIconEntry {
-	return { path, iconPack: pack as FileIconEntry['iconPack'], iconName: name, color };
-}
+import type { NormalizedIcon, RecentIcon } from '$lib/features/file-icons/file-icons.types';
 
 function makeIcon(name: string, pack = 'lucide', keywords: string[] = []): NormalizedIcon {
 	return { name, pack: pack as NormalizedIcon['pack'], svgContent: '<path/>', viewBox: '0 0 24 24', keywords };
@@ -25,110 +17,6 @@ function makeIcon(name: string, pack = 'lucide', keywords: string[] = []): Norma
 function makeRecent(pack: string, name: string): RecentIcon {
 	return { iconPack: pack as RecentIcon['iconPack'], iconName: name };
 }
-
-describe('setFileIcon', () => {
-	it('adds a new icon entry', () => {
-		const result = setFileIcon([], '/vault/a.md', 'lucide', 'star');
-
-		expect(result).toHaveLength(1);
-		expect(result[0]).toEqual({ path: '/vault/a.md', iconPack: 'lucide', iconName: 'star', color: undefined, textColor: undefined });
-	});
-
-	it('replaces an existing entry for the same path', () => {
-		const entries = [makeEntry('/vault/a.md', 'lucide', 'star')];
-		const result = setFileIcon(entries, '/vault/a.md', 'feather', 'heart', '#ff0000');
-
-		expect(result).toHaveLength(1);
-		expect(result[0].iconPack).toBe('feather');
-		expect(result[0].iconName).toBe('heart');
-		expect(result[0].color).toBe('#ff0000');
-	});
-
-	it('preserves other entries', () => {
-		const entries = [makeEntry('/vault/a.md'), makeEntry('/vault/b.md')];
-		const result = setFileIcon(entries, '/vault/a.md', 'emoji', '🎯');
-
-		expect(result).toHaveLength(2);
-		expect(result.find((e) => e.path === '/vault/b.md')).toBeDefined();
-	});
-
-	it('stores textColor when provided', () => {
-		const result = setFileIcon([], '/vault/a.md', 'lucide', 'star', '#ff0000', '#00ff00');
-
-		expect(result).toHaveLength(1);
-		expect(result[0].color).toBe('#ff0000');
-		expect(result[0].textColor).toBe('#00ff00');
-	});
-
-	it('stores textColor as undefined when not provided', () => {
-		const result = setFileIcon([], '/vault/a.md', 'lucide', 'star', '#ff0000');
-
-		expect(result[0].textColor).toBeUndefined();
-	});
-});
-
-describe('removeFileIcon', () => {
-	it('removes an entry by path', () => {
-		const entries = [makeEntry('/vault/a.md'), makeEntry('/vault/b.md')];
-		const result = removeFileIcon(entries, '/vault/a.md');
-
-		expect(result).toHaveLength(1);
-		expect(result[0].path).toBe('/vault/b.md');
-	});
-
-	it('returns unchanged array if path not found', () => {
-		const entries = [makeEntry('/vault/a.md')];
-		const result = removeFileIcon(entries, '/vault/missing.md');
-
-		expect(result).toHaveLength(1);
-	});
-});
-
-describe('getFileIcon', () => {
-	it('returns the entry for a matching path', () => {
-		const entries = [makeEntry('/vault/a.md', 'lucide', 'star')];
-		const result = getFileIcon(entries, '/vault/a.md');
-
-		expect(result).toBeDefined();
-		expect(result!.iconName).toBe('star');
-	});
-
-	it('returns undefined for a non-matching path', () => {
-		const result = getFileIcon([], '/vault/a.md');
-
-		expect(result).toBeUndefined();
-	});
-});
-
-describe('updateFileIconPaths', () => {
-	it('updates an exact path match', () => {
-		const entries = [makeEntry('/vault/old.md')];
-		const result = updateFileIconPaths(entries, '/vault/old.md', '/vault/new.md');
-
-		expect(result[0].path).toBe('/vault/new.md');
-	});
-
-	it('updates child paths under a renamed directory', () => {
-		const entries = [makeEntry('/vault/folder/note.md')];
-		const result = updateFileIconPaths(entries, '/vault/folder', '/vault/renamed');
-
-		expect(result[0].path).toBe('/vault/renamed/note.md');
-	});
-
-	it('leaves unrelated paths unchanged', () => {
-		const entries = [makeEntry('/vault/other.md')];
-		const result = updateFileIconPaths(entries, '/vault/folder', '/vault/renamed');
-
-		expect(result[0].path).toBe('/vault/other.md');
-	});
-
-	it('handles deeply nested child paths', () => {
-		const entries = [makeEntry('/vault/a/b/c.md')];
-		const result = updateFileIconPaths(entries, '/vault/a', '/vault/x');
-
-		expect(result[0].path).toBe('/vault/x/b/c.md');
-	});
-});
 
 describe('filterIcons', () => {
 	const icons = [
