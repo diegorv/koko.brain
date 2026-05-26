@@ -6,7 +6,7 @@ Kokobrain ships on two channels: **Stable** and **Nightly**. Pick the one that m
 
 | Channel | Cadence | GitHub release tag | DMG URL pattern | `latest.json` URL |
 |---|---|---|---|---|
-| **Stable** | Manual, ~every few weeks. Tagged `X.Y.Z-alpha` and built by `release.yml`. | `X.Y.Z-alpha` | `releases/download/X.Y.Z-alpha/KokoBrain_<version>_aarch64.dmg` | `releases/latest/download/latest.json` |
+| **Stable** | Manual, ~every few weeks. Tagged `X.Y.Z` and built by `release.yml`. | `X.Y.Z` | `releases/download/X.Y.Z/KokoBrain_<version>_aarch64.dmg` | `releases/latest/download/latest.json` |
 | **Nightly** | Every accepted push to `main`. Tagged `nightly` (single fixed tag, assets rotate). Built by `nightly.yml`. | `nightly` | `releases/download/nightly/KokoBrain_<version>_aarch64.dmg` | `releases/download/nightly/latest.json` |
 
 Both channels are signed with the same Apple Developer cert and the same Tauri auto-update private key. No new install warning, no new signing config to trust.
@@ -29,18 +29,18 @@ The "Last checked" row in the same section shows how recently the app asked GitH
 
 ## Version-string semantics
 
-- Stable: the version from `package.json`, e.g. `2.0.19-alpha`.
-- Nightly: `<base>-nightly.<commitCount>.<sha>`, e.g. `2.0.19-alpha-nightly.1234.34158e03`.
+- Stable: the version from `package.json`, e.g. `2.8.0`.
+- Nightly: `<base>-nightly.<commitCount>.<sha>`, e.g. `2.8.0-nightly.1234.34158e03`.
 
 The `commitCount` is `git rev-list --count HEAD` from the build commit. It is a numeric semver prerelease identifier, so consecutive nightlies compare numerically and sort monotonically. The `sha` follows for visibility.
 
-By design, a Nightly version is semver-greater than the same-base Stable version (the prerelease identifier `alpha-nightly` sorts after `alpha`). This is the one-way-update invariant explained below.
+By design, a Nightly version is semver-greater than the same-base Stable version (a prerelease identifier like `-nightly.1234` makes it semver-less than the bare `X.Y.Z`, but the commit count ensures nightlies sort monotonically among themselves). This is the one-way-update invariant explained below.
 
 ## One-way update rule
 
 **The auto-updater never downgrades. Switching the channel toggle from Nightly to Stable does not reinstall a Stable build.**
 
-Why: the installed Nightly carries version `2.0.19-alpha-nightly.1234.<sha>`, which is semver-greater than `2.0.19-alpha`. When the auto-updater fetches Stable's `latest.json` and compares, it sees the local version as already newer and reports "you are up to date" — even though you are actually still on Nightly.
+Why: the installed Nightly carries version `2.9.0-nightly.1234.<sha>` (minor+1 from stable `2.8.0`), which is semver-greater than `2.8.0`. When the auto-updater fetches Stable's `latest.json` and compares, it sees the local version as already newer and reports "you are up to date" — even though you are actually still on Nightly.
 
 To genuinely move back to Stable: download the Stable DMG from [GitHub Releases](https://github.com/diegorv/koko.brain/releases/latest) and reinstall manually. macOS will replace the app in-place; your `.kokobrain/settings.json` and vault contents are untouched.
 

@@ -35,7 +35,7 @@ jobs:
   # to its own `main` would attempt to publish nightlies to its own
   # GitHub Releases — wasted CI and confusing notifications for fork
   # maintainers. The version-bump skip prevents the stable release flow
-  # from duplicating work: `chore: bump version to X.Y.Z-alpha` lands on
+  # from duplicating work: `chore: bump version to X.Y.Z` lands on
   # main first, then the tag push triggers release.yml. Without this
   # skip, nightly.yml builds the same SHA in parallel for ~30 minutes
   # and publishes a nightly that's effectively the upcoming stable.
@@ -173,7 +173,14 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           COMMIT_COUNT=$(git rev-list --count HEAD)
           BASE_VERSION=$(jq -r '.version' package.json)
-          NIGHTLY_VERSION="${BASE_VERSION}-nightly.${COMMIT_COUNT}.${SHORT_SHA}"
+          # Bump minor+1 so the nightly prerelease is semver-greater than
+          # the current stable (e.g. 2.8.0 → 2.9.0-nightly.1234.abc).
+          # Without this, semver rules make X.Y.Z-pre < X.Y.Z, and the
+          # auto-updater would "downgrade" nightly users to stable.
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$(echo "$BASE_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')"
+          NEXT_MINOR="$((MINOR + 1))"
+          NIGHTLY_BASE="${MAJOR}.${NEXT_MINOR}.0"
+          NIGHTLY_VERSION="${NIGHTLY_BASE}-nightly.${COMMIT_COUNT}.${SHORT_SHA}"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
           echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"

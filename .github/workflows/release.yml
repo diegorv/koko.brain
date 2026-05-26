@@ -5,8 +5,8 @@ name: Release
 # allowlist lives in the `validate` job below, where it can be
 # updated without touching the workflow trigger and surfaces a clear
 # error message when a tag falls outside accepted channels. Today
-# the allowed channels are `alpha` (current pre-release), `beta`,
-# `rc.N` (planned), and bare semver (planned stable). Edit the
+# the allowed channels are bare semver (current stable), `alpha`,
+# `beta`, `rc.N` (all accepted for backwards compat). Edit the
 # regex in `validate` to add or remove a channel.
 on:
   push:

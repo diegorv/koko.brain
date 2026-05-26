@@ -4,20 +4,20 @@ import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } fr
 describe('resolveVersion', () => {
 	it('returns the pkg version unchanged on the stable channel', () => {
 		expect(resolveVersion({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: '34158e03',
 			commitCount: '1234',
 			channel: 'stable',
-		})).toBe('2.0.19-alpha');
+		})).toBe('2.8.0');
 	});
 
-	it('appends -nightly.<count>.<sha> on the nightly channel', () => {
+	it('bumps minor+1 and appends -nightly.<count>.<sha> on the nightly channel', () => {
 		expect(resolveVersion({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: '34158e03',
 			commitCount: '1234',
 			channel: 'nightly',
-		})).toBe('2.0.19-alpha-nightly.1234.34158e03');
+		})).toBe('2.9.0-nightly.1234.34158e03');
 	});
 
 	it('keeps short hashes intact', () => {
@@ -26,52 +26,52 @@ describe('resolveVersion', () => {
 			gitHash: 'abc1234',
 			commitCount: '7',
 			channel: 'nightly',
-		})).toBe('1.0.0-nightly.7.abc1234');
+		})).toBe('1.1.0-nightly.7.abc1234');
 	});
 
 	it('handles the "unknown" git-hash fallback on stable', () => {
 		expect(resolveVersion({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: 'unknown',
 			commitCount: '0',
 			channel: 'stable',
-		})).toBe('2.0.19-alpha');
+		})).toBe('2.8.0');
 	});
 
 	it('still appends suffix when git-hash is unknown on nightly', () => {
 		expect(resolveVersion({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: 'unknown',
 			commitCount: '0',
 			channel: 'nightly',
-		})).toBe('2.0.19-alpha-nightly.0.unknown');
+		})).toBe('2.9.0-nightly.0.unknown');
 	});
 });
 
 describe('formatBuildInfo', () => {
 	it('formats stable as "version (sha) (time)"', () => {
 		expect(formatBuildInfo({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: '34158e03',
 			commitCount: '1234',
 			buildTime: '2026-05-13T12:00:00',
 			channel: 'stable',
-		})).toBe('2.0.19-alpha (34158e03) (2026-05-13T12:00:00)');
+		})).toBe('2.8.0 (34158e03) (2026-05-13T12:00:00)');
 	});
 
 	it('omits the (sha) parens on nightly because the version already ends with the hash', () => {
 		expect(formatBuildInfo({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: '34158e03',
 			commitCount: '1234',
 			buildTime: '2026-05-13T12:00:00',
 			channel: 'nightly',
-		})).toBe('2.0.19-alpha-nightly.1234.34158e03 (2026-05-13T12:00:00)');
+		})).toBe('2.9.0-nightly.1234.34158e03 (2026-05-13T12:00:00)');
 	});
 
 	it('nightly never repeats the git hash in the rendered string', () => {
 		const result = formatBuildInfo({
-			pkgVersion: '2.0.19-alpha',
+			pkgVersion: '2.8.0',
 			gitHash: 'deadbeef',
 			commitCount: '99',
 			buildTime: '2026-05-13T12:00:00',

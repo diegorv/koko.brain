@@ -8,7 +8,7 @@ date: 2026-04-22
 
 ## Context
 
-An alpha-stage desktop app ships fixes and features at a rapid cadence. Forcing users to visit a website, download a build, move it to Applications, and re-open is enough friction to leave real users on months-old releases — precisely when we need feedback on current code.
+A desktop app ships fixes and features at a rapid cadence. Forcing users to visit a website, download a build, move it to Applications, and re-open is enough friction to leave real users on months-old releases — precisely when we need feedback on current code.
 
 A self-updater must satisfy four constraints:
 
@@ -49,7 +49,7 @@ The Settings pane offers a "Check for updates" button. On click: `check()` retur
 
 ### Release process
 
-- `scripts/release.sh` bumps `package.json` / `Cargo.toml` / `tauri.conf.json` versions and tags a release with `-alpha` suffix (see `scripts/release.sh:5`).
+- `scripts/release.sh` bumps `package.json` / `Cargo.toml` / `tauri.conf.json` versions and tags a release with plain semver (see `scripts/release.sh`).
 - CI (`.github/workflows/release.yml`) builds signed bundles and produces `latest.json` as the update manifest consumed by the endpoint URL above.
 - Every release tag carries the minisign signatures that `tauri-plugin-updater` verifies against the embedded `pubkey` before applying the update.
 
@@ -57,7 +57,7 @@ The Settings pane offers a "Check for updates" button. On click: `check()` retur
 
 - **No updater at all, manual downloads only**: realistic for a beta hidden among friends; unacceptable for actual users providing feedback. Rejected.
 - **Sparkle (macOS) / Squirrel / Omaha**: proven updater frameworks with mature infrastructure. None of them integrate naturally with Tauri's cross-platform bundle format; reusing Tauri's updater keeps Windows/Linux parity trivial when we get there.
-- **Run our own update server (Cloudflare Workers, S3, etc.)**: more control over phased rollouts, download analytics, geographic routing. Prohibitive operational cost for a solo-dev alpha. GitHub Releases is free, highly available, and its CDN is good enough.
+- **Run our own update server (Cloudflare Workers, S3, etc.)**: more control over phased rollouts, download analytics, geographic routing. Prohibitive operational cost for a solo-dev project. GitHub Releases is free, highly available, and its CDN is good enough.
 - **Homebrew cask as the primary distribution**: great for CLI-first macOS users, terrible for the rest. Can still be added later alongside the built-in updater.
 - **Auto-apply updates in the background**: convenience vs. control. We chose control — updates interrupt the user's workflow only on explicit check.
 - **Use SSH / GPG signatures instead of minisign**: minisign is what Tauri's updater speaks out of the box; no reason to invent a second signing pipeline.
@@ -68,6 +68,6 @@ The Settings pane offers a "Check for updates" button. On click: `check()` retur
 - `latest.json` at `github.com/diegorv/koko.brain/releases/latest/download/` is fetched from the user's machine; GitHub outages briefly break "check for updates." Acceptable — users can still use the app; they just can't upgrade during the window.
 - Rollback requires publishing a new release with a lower version tag, or serving a custom `latest.json` — either is manual. We don't have a release-channel feature (canary vs stable) today; all users on the updater endpoint get the latest tagged build.
 - No telemetry on update adoption. We don't know how many users are on which version without asking them. An opt-in version beacon is a future possibility and out of scope here.
-- The `-alpha` suffix on versions is a convention that signals "not yet stable" to any user inspecting the version string; it does not change the updater's behavior.
 - `createUpdaterArtifacts: true` must stay on in `tauri.conf.json` — accidentally disabling it produces releases that the updater cannot consume.
-- Re-evaluation triggers: the project leaves alpha and wants canary + stable channels (would require either a second endpoint or a channel-aware `latest.json` generator); GitHub Releases stops being an acceptable host (rate limits, repo policy changes); user count grows to where we need staged rollouts / percentage-based distribution.
+- Nightly versions use minor+1 from the stable base (e.g. `2.9.0-nightly.1234.abc` for stable `2.8.0`) so the prerelease is always semver-greater than the current stable, preventing the auto-updater from downgrading nightly users.
+- Re-evaluation triggers: canary + stable channels (would require either a second endpoint or a channel-aware `latest.json` generator); GitHub Releases stops being an acceptable host (rate limits, repo policy changes); user count grows to where we need staged rollouts / percentage-based distribution.

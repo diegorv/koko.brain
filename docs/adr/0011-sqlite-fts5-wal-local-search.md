@@ -54,6 +54,6 @@ Commands (`src-tauri/src/commands/`): `search.rs`, `search_index.rs`, `history.r
 - The DB file lives inside the user's vault under `.kokobrain/`. Users who sync vaults across machines (iCloud, Syncthing, Git) should exclude this subfolder or accept that re-indexing is cheaper than syncing the DB. A single shared `.kokobrain/` across sync providers can produce WAL corruption; documented as a known caveat.
 - Every table is tested — `src-tauri/tests/db_schema_test.rs`, `db_history_repo_test.rs`, `db_semantic_repo_test.rs`, `search_fts_test.rs`, `search_fts_logic_test.rs`. Rust changes that touch `src-tauri/src/db/` must pass `cargo test --manifest-path src-tauri/Cargo.toml`.
 - FTS5 content-storing mode doubles storage cost vs external-content mode. For a typical note vault (<500 MB of markdown), the FTS5 index stays well under 2 GB.
-- Schema migrations today are "add `IF NOT EXISTS` and hope" — sufficient for the alpha but must be replaced with a real migration ledger before shipping a stable v1.
+- Schema migrations today are "add `IF NOT EXISTS` and hope" — must be replaced with a real migration ledger before the schema grows more complex.
 - WAL requires two extra files next to the DB (`*-wal`, `*-shm`). Backup scripts that copy only the `.sqlite` file silently miss uncheckpointed writes; the app calls a checkpoint on clean shutdown.
 - Re-evaluation triggers: vault-size growth pushes FTS5 storage past tolerable limits; a need for cross-vault search arises (would force DB out of vault); migration pain from `IF NOT EXISTS`-only schema becomes blocking.
