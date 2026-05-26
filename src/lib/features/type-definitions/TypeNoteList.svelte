@@ -26,7 +26,7 @@
 	import { appendLog } from '$lib/utils/log.service';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
@@ -252,56 +252,64 @@
 			<ContextMenu.Trigger>
 				{#snippet child({ props })}
 					<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
-						{#each notes as note (note.path)}
+						{#each notes as note, i (note.path)}
 							{@const resolved = resolveNoteIcon(note.path)}
 							{@const isActive = note.path === activePath}
+							{#if i > 0}
+								<div class="h-px bg-border"></div>
+							{/if}
 							<button
-								class="flex w-full items-start gap-2 rounded px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
+								class="flex w-full flex-col rounded px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
 								onclick={() => openFileInEditor(note.path)}
 								oncontextmenu={() => { contextTarget = note; }}
 							>
-								{#if resolved?.icon}
-									<IconRenderer icon={resolved.icon} class="size-4 shrink-0 mt-0.5" color={resolved.color} />
-								{:else}
-									<FileText class="size-4 shrink-0 mt-0.5 text-muted-foreground" />
-								{/if}
-								<div class="min-w-0 flex-1">
-									<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
-										{note.title}
+								<div class="flex w-full items-start gap-2">
+									{#if resolved?.icon}
+										<IconRenderer icon={resolved.icon} class="size-4 shrink-0 mt-0.5" color={resolved.color} />
+									{:else}
+										<FileText class="size-4 shrink-0 mt-0.5 text-muted-foreground" />
+									{/if}
+									<div class="min-w-0 flex-1">
+										<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
+											{note.title}
+										</div>
 									</div>
-									{#if listProperties.length > 0}
-										<div class="flex flex-wrap gap-1 mt-1">
-											{#each listProperties as prop (prop)}
-												{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
-												{#each pills as pill, i (prop + '-' + pill.text + '-' + i)}
-													{#if pill.wikilink}
-														{@const resolved = resolveWikilink(pill.wikilink, allPaths)}
-														<!-- svelte-ignore a11y_no_static_element_interactions -->
-														<span
-															class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
-															role="link"
-															tabindex="-1"
-															onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
-															onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { e.stopPropagation(); if (resolved) openFileInEditor(resolved); } }}
-															title={resolved ? pill.wikilink : pill.wikilink + ' (not found)'}
-														>
-															{pill.text}
-														</span>
-													{:else}
-														<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
-															{pill.text}
-														</span>
-													{/if}
-												{/each}
-											{/each}
-										</div>
-									{/if}
-									{#if note.modifiedAt || note.createdAt}
-										<div class="text-[11px] text-muted-foreground/60 mt-1">
-											{formatDatePair(note.modifiedAt, note.createdAt)}
-										</div>
-									{/if}
 								</div>
+								{#if listProperties.length > 0}
+									<div class="flex flex-wrap gap-1 mt-1">
+										{#each listProperties as prop (prop)}
+											{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
+											{#each pills as pill, i (prop + '-' + pill.text + '-' + i)}
+												{#if pill.wikilink}
+													{@const resolved = resolveWikilink(pill.wikilink, allPaths)}
+													<!-- svelte-ignore a11y_no_static_element_interactions -->
+													<span
+														class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
+														role="link"
+														tabindex="-1"
+														onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
+														onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { e.stopPropagation(); if (resolved) openFileInEditor(resolved); } }}
+														title={resolved ? pill.wikilink : pill.wikilink + ' (not found)'}
+													>
+														{pill.text}
+													</span>
+												{:else}
+													<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
+														{pill.text}
+													</span>
+												{/if}
+											{/each}
+										{/each}
+									</div>
+								{/if}
+								{#if note.modifiedAt || note.createdAt}
+									<div class="flex w-full items-center justify-between text-[11px] text-muted-foreground/60 mt-1">
+										<span>{formatRelativeTime(note.modifiedAt)}</span>
+										{#if note.createdAt}
+											<span>Created {formatNoteDate(note.createdAt)}</span>
+										{/if}
+									</div>
+								{/if}
 							</button>
 						{/each}
 
