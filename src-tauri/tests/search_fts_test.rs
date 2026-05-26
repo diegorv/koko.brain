@@ -435,3 +435,73 @@ fn build_search_index_rejects_file_as_vault() {
 
 	teardown();
 }
+
+#[test]
+fn build_search_index_skips_rebuild_when_counts_match() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	// First build: full index
+	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
+	assert_eq!(stats1.total_documents, 4);
+
+	// Second build: should skip (counts match)
+	let stats2 = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats2.total_documents, 4);
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_rebuilds_when_files_added() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
+	assert_eq!(stats1.total_documents, 4);
+
+	// Add enough files to exceed the 5% threshold
+	for i in 0..10 {
+		fs::write(
+			tmp.path().join(format!("new-{i}.md")),
+			format!("# New note {i}\n\nContent.\n"),
+		)
+		.unwrap();
+	}
+
+	// Rebuild should detect diff and rebuild
+	let stats2 = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats2.total_documents, 14);
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_rebuilds_when_vault_emptied() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
+	assert_eq!(stats1.total_documents, 4);
+
+	// Remove all markdown files
+	for entry in fs::read_dir(tmp.path()).unwrap() {
+		let path = entry.unwrap().path();
+		if path.extension().map_or(false, |e| e == "md") {
+			fs::remove_file(path).unwrap();
+		}
+	}
+	fs::remove_dir_all(tmp.path().join("subfolder")).unwrap();
+
+	// Should rebuild (disk_count=0 guard)
+	let stats2 = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats2.total_documents, 0);
+
+	teardown();
+}
