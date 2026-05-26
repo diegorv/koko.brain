@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// Bumped whenever `NoteEntry` shape changes in any way that affects
 /// serialization (field add/remove/reorder/type change). Mismatch on
 /// load -> discard cache -> full scan.
-pub const INDEX_SCHEMA_VERSION: u32 = 2;
+pub const INDEX_SCHEMA_VERSION: u32 = 3;
 
 /// Top-level envelope persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,9 +27,11 @@ pub struct IndexSnapshot {
 	pub entries: Vec<NoteEntry>,
 }
 
-/// Serializes a snapshot to MessagePack bytes.
+/// Serializes a snapshot to MessagePack bytes. Uses `to_vec_named` so
+/// struct fields are keyed by name (not ordinal), which is required for
+/// `serde_json::Value` fields to round-trip through `deserialize_any`.
 pub fn serialize_snapshot(snapshot: &IndexSnapshot) -> Result<Vec<u8>, String> {
-	rmp_serde::to_vec(snapshot).map_err(|e| format!("snapshot serialize failed: {e}"))
+	rmp_serde::to_vec_named(snapshot).map_err(|e| format!("snapshot serialize failed: {e}"))
 }
 
 /// Deserializes a snapshot from MessagePack bytes. Returns an error on
