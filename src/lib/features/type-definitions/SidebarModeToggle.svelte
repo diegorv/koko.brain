@@ -26,13 +26,13 @@
 					variant="ghost"
 					size="icon-sm"
 					class="size-6"
-					onclick={() => switchTo('files')}
+					onclick={() => switchTo('types')}
 				>
-					<FolderTree class="size-3.5 {mode === 'files' ? 'text-primary' : ''}" />
+					<LayoutGrid class="size-3.5 {mode === 'types' ? 'text-primary' : ''}" />
 				</Button>
 			{/snippet}
 		</Tooltip.Trigger>
-		<Tooltip.Content>File explorer</Tooltip.Content>
+		<Tooltip.Content>Type view</Tooltip.Content>
 	</Tooltip.Root>
 
 	<Tooltip.Root>
@@ -43,13 +43,13 @@
 					variant="ghost"
 					size="icon-sm"
 					class="size-6"
-					onclick={() => switchTo('types')}
+					onclick={() => switchTo('files')}
 				>
-					<LayoutGrid class="size-3.5 {mode === 'types' ? 'text-primary' : ''}" />
+					<FolderTree class="size-3.5 {mode === 'files' ? 'text-primary' : ''}" />
 				</Button>
 			{/snippet}
 		</Tooltip.Trigger>
-		<Tooltip.Content>Type view</Tooltip.Content>
+		<Tooltip.Content>File explorer</Tooltip.Content>
 	</Tooltip.Root>
 
 	<Tooltip.Root>
