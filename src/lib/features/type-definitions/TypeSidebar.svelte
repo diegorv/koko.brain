@@ -10,10 +10,11 @@
 	import Table from '@lucide/svelte/icons/table';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { isViewFile } from '$lib/core/filesystem/fs.logic';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
-	import { createNoteOfType, createTypeDefinition } from './type-definitions.service';
+	import { createNoteOfType, createTypeDefinition, updateViewIcon, removeViewIcon } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
@@ -96,13 +97,21 @@
 
 	async function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
 		if (!vaultStore.path || !iconPickerPath) return;
-		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
+		if (isViewFile(iconPickerPath)) {
+			await updateViewIcon(iconPickerPath, `${pack}:${name}`, color, textColor);
+		} else {
+			await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
+		}
 		await trackRecentIcon(vaultStore.path, pack, name);
 	}
 
 	async function handleIconRemove() {
 		if (!vaultStore.path || !iconPickerPath) return;
-		await removeIconForPath(vaultStore.path, iconPickerPath);
+		if (isViewFile(iconPickerPath)) {
+			await removeViewIcon(iconPickerPath);
+		} else {
+			await removeIconForPath(vaultStore.path, iconPickerPath);
+		}
 	}
 
 	function handleIconPickerClose() {

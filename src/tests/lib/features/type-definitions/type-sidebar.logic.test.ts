@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles, updateViewIconYaml } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -721,5 +721,39 @@ describe('getNotesForViewPaths', () => {
 		];
 		const matching = new Set(['/v/x.md']);
 		expect(getNotesForViewPaths(entries, matching)).toEqual([]);
+	});
+});
+
+describe('updateViewIconYaml', () => {
+	it('sets _icon, _color, and _title_color', () => {
+		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
+		const result = updateViewIconYaml(input, 'lucide:rocket', 'red', '#fff');
+		expect(result).toContain('_icon: lucide:rocket');
+		expect(result).toContain('_color: red');
+		expect(result).toContain('_title_color: "#fff"');
+		expect(result).toContain('_sidebar_label: Test');
+	});
+
+	it('removes _icon, _color, and _title_color when undefined/empty', () => {
+		const input = '_icon: lucide:star\n_color: blue\n_title_color: white\n_sidebar_label: Test\n';
+		const result = updateViewIconYaml(input, undefined, undefined, undefined);
+		expect(result).not.toContain('_icon');
+		expect(result).not.toContain('_color');
+		expect(result).not.toContain('_title_color');
+		expect(result).toContain('_sidebar_label: Test');
+	});
+
+	it('handles empty content', () => {
+		const result = updateViewIconYaml('', 'lucide:star', 'red');
+		expect(result).toContain('_icon: lucide:star');
+		expect(result).toContain('_color: red');
+	});
+
+	it('preserves other fields', () => {
+		const input = '_order: 5\nfilters: "type = \'Project\'"\n';
+		const result = updateViewIconYaml(input, 'lucide:rocket', 'green');
+		expect(result).toContain('_order: 5');
+		expect(result).toContain('_icon: lucide:rocket');
+		expect(result).toContain('_color: green');
 	});
 });

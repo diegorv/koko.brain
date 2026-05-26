@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import type { TypeMetadata } from './type-definitions.logic';
@@ -365,4 +366,30 @@ function collectViewFilesWalk(nodes: FileTreeNode[], out: ViewFileEntry[]): void
 			});
 		}
 	}
+}
+
+/** Updates _icon, _color, and _title_color in a .view YAML string. Returns the updated YAML. */
+export function updateViewIconYaml(yamlString: string, icon?: string, color?: string, titleColor?: string): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch {
+		return yamlString;
+	}
+	if (icon !== undefined) {
+		raw._icon = icon;
+	} else {
+		delete raw._icon;
+	}
+	if (color) {
+		raw._color = color;
+	} else {
+		delete raw._color;
+	}
+	if (titleColor) {
+		raw._title_color = titleColor;
+	} else {
+		delete raw._title_color;
+	}
+	return stringifyYaml(raw);
 }

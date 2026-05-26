@@ -227,3 +227,36 @@ describe('toggleFavoriteForPath', () => {
 		expect(syncExternalContentToEditor).not.toHaveBeenCalled();
 	});
 });
+
+describe('updateViewIcon', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('writes updated YAML with icon, color, and titleColor', async () => {
+		const { updateViewIcon } = await import('$lib/features/type-definitions/type-definitions.service');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Test\n');
+
+		await updateViewIcon('/vault/test.view', 'lucide:rocket', 'red', '#fff');
+
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/test.view',
+			expect.stringContaining('_icon: lucide:rocket'),
+		);
+		expect(vi.mocked(writeTextFile).mock.calls[0][1]).toContain('_color: red');
+		expect(vi.mocked(writeTextFile).mock.calls[0][1]).toContain('_sidebar_label: Test');
+	});
+
+	it('removes icon fields via removeViewIcon', async () => {
+		const { removeViewIcon } = await import('$lib/features/type-definitions/type-definitions.service');
+		vi.mocked(readTextFile).mockResolvedValue('_icon: lucide:star\n_color: blue\n_title_color: white\n_sidebar_label: Test\n');
+
+		await removeViewIcon('/vault/test.view');
+
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).not.toContain('_icon');
+		expect(written).not.toContain('_color');
+		expect(written).not.toContain('_title_color');
+		expect(written).toContain('_sidebar_label: Test');
+	});
+});

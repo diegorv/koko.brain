@@ -10,6 +10,7 @@ import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
 import { parseFrontmatterProperties, extractBody, rebuildContent } from '$lib/features/properties/properties.logic';
 import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
 import { buildTypeMetadataMap } from './type-definitions.logic';
+import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */
@@ -57,4 +58,20 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 		syncExternalContentToEditor(filePath, newContent, false);
 	}
 	await invoke('update_note_in_index', { path: filePath });
+}
+
+/** Updates _icon, _color, and _title_color in a .view YAML file. */
+export async function updateViewIcon(
+	path: string,
+	icon?: string,
+	color?: string,
+	titleColor?: string,
+): Promise<void> {
+	const content = await readTextFile(path);
+	await writeTextFile(path, updateViewIconYaml(content, icon, color, titleColor));
+}
+
+/** Removes _icon, _color, and _title_color from a .view YAML file. */
+export async function removeViewIcon(path: string): Promise<void> {
+	await updateViewIcon(path, undefined, undefined, undefined);
 }
