@@ -4,7 +4,6 @@
 	import CommandPalette from '$lib/features/command-palette/CommandPalette.svelte';
 	import TemplatePicker from '$lib/plugins/templates/TemplatePicker.svelte';
 	import OneOnOnePicker from '$lib/plugins/one-on-one/OneOnOnePicker.svelte';
-	import SettingsDialog from '$lib/core/settings/SettingsDialog.svelte';
 	import FileHistoryDialog from '$lib/features/file-history/FileHistoryDialog.svelte';
 </script>
 
@@ -13,5 +12,4 @@
 <CommandPalette />
 <TemplatePicker />
 <OneOnOnePicker />
-<SettingsDialog />
 <FileHistoryDialog />

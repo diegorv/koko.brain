@@ -40,8 +40,8 @@ vi.mock('$lib/core/settings/settings.store.svelte', () => ({
 	},
 }));
 
-vi.mock('$lib/core/settings/settings-dialog.store.svelte', () => ({
-	settingsDialogStore: { toggle: vi.fn() },
+vi.mock('$lib/core/settings/settings-window.service', () => ({
+	openSettingsWindow: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('$lib/core/settings/settings.service', () => ({
@@ -83,7 +83,7 @@ import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
+import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
 import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
@@ -397,13 +397,25 @@ describe('registerGlobalKeybindings', () => {
 			expect(openOneOnOnePicker).toHaveBeenCalledTimes(1);
 		});
 
-		it('Cmd+, handler calls settingsDialogStore.toggle', () => {
+		it('Cmd+, handler calls openSettingsWindow with vault path', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ code: 'Comma', meta: true });
 
 			handler();
 
-			expect(settingsDialogStore.toggle).toHaveBeenCalledTimes(1);
+			expect(openSettingsWindow).toHaveBeenCalledWith('/vault');
+		});
+
+		it('Cmd+, handler does nothing when vault path is null', () => {
+			(vaultStore as any).path = null;
+			registerGlobalKeybindings();
+			const handler = findHandler({ code: 'Comma', meta: true });
+
+			handler();
+
+			expect(openSettingsWindow).not.toHaveBeenCalled();
+
+			(vaultStore as any).path = '/vault';
 		});
 
 		it('Cmd+Shift+H handler calls openFileHistory with active tab path', () => {

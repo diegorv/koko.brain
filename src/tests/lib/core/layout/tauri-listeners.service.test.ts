@@ -51,6 +51,14 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('$lib/core/settings/settings-window.service', () => ({
+	openSettingsWindow: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('$lib/core/settings/settings.service', () => ({
+	loadSettings: vi.fn(() => Promise.resolve()),
+}));
+
 // vault.store.svelte uses localStorage on module load — provide a minimal stub
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -67,11 +75,12 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 
 import { listen } from '@tauri-apps/api/event';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
+import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
+import { loadSettings } from '$lib/core/settings/settings.service';
+import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener, registerSettingsChangedListener } from '$lib/core/layout/tauri-listeners.service';
 
 // --- Tests ---
 
@@ -79,7 +88,7 @@ describe('registerMenuSettingsListener', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		capturedEventHandler = undefined;
-		settingsDialogStore.reset();
+		vaultStore._reset();
 	});
 
 	it('listens for the menu:settings event', async () => {
@@ -90,13 +99,21 @@ describe('registerMenuSettingsListener', () => {
 		expect(listen).toHaveBeenCalledWith('menu:settings', expect.any(Function));
 	});
 
-	it('opens the settings dialog when the event fires', async () => {
+	it('opens the settings window when the event fires and vault is open', async () => {
+		vaultStore.open('/test-vault');
 		registerMenuSettingsListener();
 		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
 
-		expect(settingsDialogStore.isOpen).toBe(false);
 		capturedEventHandler!(undefined);
-		expect(settingsDialogStore.isOpen).toBe(true);
+		expect(openSettingsWindow).toHaveBeenCalledWith('/test-vault');
+	});
+
+	it('does not open the settings window when vault path is null', async () => {
+		registerMenuSettingsListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		capturedEventHandler!(undefined);
+		expect(openSettingsWindow).not.toHaveBeenCalled();
 	});
 
 	it('returns a cleanup function that unsubscribes', async () => {
@@ -354,6 +371,61 @@ describe('registerFocusListener', () => {
 
 		const unlistenFn = vi.fn();
 		resolveFocus!(unlistenFn);
+
+		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe('registerSettingsChangedListener', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedEventHandler = undefined;
+		vaultStore._reset();
+	});
+
+	it('listens for the settings-changed event', async () => {
+		registerSettingsChangedListener();
+
+		await vi.waitFor(() => expect(listen).toHaveBeenCalledTimes(1));
+		expect(listen).toHaveBeenCalledWith('settings-changed', expect.any(Function));
+	});
+
+	it('reloads settings when the event fires and vault is open', async () => {
+		vaultStore.open('/test-vault');
+		registerSettingsChangedListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		capturedEventHandler!(undefined);
+		expect(loadSettings).toHaveBeenCalledWith('/test-vault');
+	});
+
+	it('does not reload settings when vault path is null', async () => {
+		registerSettingsChangedListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		capturedEventHandler!(undefined);
+		expect(loadSettings).not.toHaveBeenCalled();
+	});
+
+	it('returns a cleanup function that unsubscribes', async () => {
+		const cleanup = registerSettingsChangedListener();
+		await vi.waitFor(() => expect(mockUnlistenEvent).not.toHaveBeenCalled());
+
+		cleanup();
+		expect(mockUnlistenEvent).toHaveBeenCalledTimes(1);
+	});
+
+	it('cleanup cancels subscription if called before listen resolves', () => {
+		let resolveListen: ((fn: () => void) => void) | undefined;
+		vi.mocked(listen).mockImplementationOnce(() =>
+			new Promise((resolve) => { resolveListen = resolve; }),
+		);
+
+		const cleanup = registerSettingsChangedListener();
+		cleanup();
+
+		const unlistenFn = vi.fn();
+		resolveListen!(unlistenFn);
 
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
 	});

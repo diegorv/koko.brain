@@ -59,6 +59,10 @@ vi.mock('$lib/features/file-history/file-history.service', () => ({
 	openFileHistory: vi.fn(),
 }));
 
+vi.mock('$lib/core/settings/settings-window.service', () => ({
+	openSettingsWindow: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn() },
 }));
@@ -70,7 +74,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
-import { settingsDialogStore } from '$lib/core/settings/settings-dialog.store.svelte';
+import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
 import { getBuiltInCommands } from '$lib/features/command-palette/command-palette.service';
 
 describe('getBuiltInCommands', () => {
@@ -82,7 +86,7 @@ describe('getBuiltInCommands', () => {
 		settingsStore.reset();
 		fsStore.reset();
 		searchStore.reset();
-		settingsDialogStore.reset();
+		vi.mocked(openSettingsWindow).mockClear();
 	});
 
 	it('returns 25 built-in commands', () => {
@@ -261,13 +265,21 @@ describe('getBuiltInCommands', () => {
 		expect(searchStore.isOpen).toBe(true);
 	});
 
-	it('settings open action opens settingsDialogStore', () => {
+	it('settings open action calls openSettingsWindow when vault is open', () => {
+		vaultStore.open('/test-vault');
 		const commands = getBuiltInCommands();
 		const settings = commands.find((c) => c.id === 'settings:open');
 
-		expect(settingsDialogStore.isOpen).toBe(false);
 		settings!.action();
-		expect(settingsDialogStore.isOpen).toBe(true);
+		expect(openSettingsWindow).toHaveBeenCalledWith('/test-vault');
+	});
+
+	it('settings open action does nothing when vault path is null', () => {
+		const commands = getBuiltInCommands();
+		const settings = commands.find((c) => c.id === 'settings:open');
+
+		settings!.action();
+		expect(openSettingsWindow).not.toHaveBeenCalled();
 	});
 
 });
