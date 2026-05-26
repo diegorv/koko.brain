@@ -16,3 +16,6 @@ minimumReleaseAgeExclude:
   # keep the frontend/Rust pair compatible. Continuous policy, not a
   # one-off patch.
   - '@tauri-apps/*'
+
+overrides:
+  cookie: '>=0.7.0'
