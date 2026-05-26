@@ -25,7 +25,9 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
+	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
@@ -45,6 +47,7 @@
 	let iconPickerRef = $derived(
 		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
 	);
+	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
 
 	let headerLabel = $derived.by(() => {
 		if (!selection) return '';
@@ -263,12 +266,27 @@
 									{#if listProperties.length > 0}
 										<div class="flex flex-wrap gap-1 mt-1">
 											{#each listProperties as prop (prop)}
-												{@const val = formatPropertyValue(note.frontmatter[prop])}
-												{#if val}
-													<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
-														{val}
-													</span>
-												{/if}
+												{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
+												{#each pills as pill, i (prop + '-' + i)}
+													{#if pill.wikilink}
+														{@const resolved = resolveWikilink(pill.wikilink, allPaths)}
+														<!-- svelte-ignore a11y_no_static_element_interactions -->
+														<span
+															class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
+															role="link"
+															tabindex="-1"
+															onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
+															onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { e.stopPropagation(); if (resolved) openFileInEditor(resolved); } }}
+															title={resolved ? pill.wikilink : pill.wikilink + ' (not found)'}
+														>
+															{pill.text}
+														</span>
+													{:else}
+														<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
+															{pill.text}
+														</span>
+													{/if}
+												{/each}
 											{/each}
 										</div>
 									{/if}

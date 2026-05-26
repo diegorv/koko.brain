@@ -340,6 +340,35 @@ export function formatPropertyValue(value: unknown): string {
 	return '';
 }
 
+export interface PropertyPill {
+	text: string;
+	wikilink?: string;
+}
+
+/** Splits a property value into pills, extracting wikilinks as separate entries. */
+export function splitPropertyIntoPills(value: unknown): PropertyPill[] {
+	if (value == null) return [];
+	if (Array.isArray(value)) return value.flatMap(splitPropertyIntoPills);
+	const str = formatPropertyValue(value);
+	if (!str) return [];
+	const re = /\[\[([^\]]+)\]\]/g;
+	const pills: PropertyPill[] = [];
+	let last = 0;
+	for (const m of str.matchAll(re)) {
+		const before = str.slice(last, m.index).trim();
+		if (before) pills.push({ text: before });
+		const raw = m[1];
+		const display = raw.includes('|') ? raw.split('|')[1] : raw;
+		const target = raw.includes('|') ? raw.split('|')[0] : raw;
+		pills.push({ text: display, wikilink: target });
+		last = m.index + m[0].length;
+	}
+	const after = str.slice(last).trim();
+	if (after) pills.push({ text: after });
+	if (pills.length === 0 && str) pills.push({ text: str });
+	return pills;
+}
+
 /** A .view file entry for sidebar rendering. */
 export interface ViewFileEntry {
 	/** Absolute path to the .view file. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -638,6 +638,69 @@ describe('formatPropertyValue', () => {
 
 	it('returns empty for objects', () => {
 		expect(formatPropertyValue({ key: 'val' })).toBe('');
+	});
+});
+
+describe('splitPropertyIntoPills', () => {
+	it('returns empty for null', () => {
+		expect(splitPropertyIntoPills(null)).toEqual([]);
+	});
+
+	it('returns empty for undefined', () => {
+		expect(splitPropertyIntoPills(undefined)).toEqual([]);
+	});
+
+	it('returns plain text for non-wikilink string', () => {
+		expect(splitPropertyIntoPills('active')).toEqual([{ text: 'active' }]);
+	});
+
+	it('extracts single wikilink', () => {
+		expect(splitPropertyIntoPills('[[My Note]]')).toEqual([
+			{ text: 'My Note', wikilink: 'My Note' },
+		]);
+	});
+
+	it('handles wikilink with alias', () => {
+		expect(splitPropertyIntoPills('[[path/Note|Display Name]]')).toEqual([
+			{ text: 'Display Name', wikilink: 'path/Note' },
+		]);
+	});
+
+	it('splits mixed text and wikilink', () => {
+		expect(splitPropertyIntoPills('status: [[Done]]')).toEqual([
+			{ text: 'status:' },
+			{ text: 'Done', wikilink: 'Done' },
+		]);
+	});
+
+	it('handles multiple wikilinks', () => {
+		expect(splitPropertyIntoPills('[[A]] and [[B]]')).toEqual([
+			{ text: 'A', wikilink: 'A' },
+			{ text: 'and' },
+			{ text: 'B', wikilink: 'B' },
+		]);
+	});
+
+	it('flattens array with wikilinks', () => {
+		expect(splitPropertyIntoPills(['[[Note A]]', '[[Note B]]'])).toEqual([
+			{ text: 'Note A', wikilink: 'Note A' },
+			{ text: 'Note B', wikilink: 'Note B' },
+		]);
+	});
+
+	it('handles array with mixed plain and wikilink values', () => {
+		expect(splitPropertyIntoPills(['plain', '[[Link]]'])).toEqual([
+			{ text: 'plain' },
+			{ text: 'Link', wikilink: 'Link' },
+		]);
+	});
+
+	it('returns plain pill for number', () => {
+		expect(splitPropertyIntoPills(42)).toEqual([{ text: '42' }]);
+	});
+
+	it('returns plain pill for boolean', () => {
+		expect(splitPropertyIntoPills(true)).toEqual([{ text: 'true' }]);
 	});
 });
 
