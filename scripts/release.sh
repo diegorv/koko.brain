@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─── Config ───────────────────────────────────────────────────────────
-SUFFIX="-alpha"
+SUFFIX=""
 
 # ─── Helpers ──────────────────────────────────────────────────────────
 usage() {
@@ -18,13 +18,13 @@ usage() {
   echo "  major             Breaking changes (reseta minor e patch pra 0)"
   echo "                    0.6.0 → 1.0.0 → 2.0.0 → 3.0.0 ..."
   echo ""
-  echo "O sufixo '${SUFFIX}' é adicionado automaticamente."
+  echo "Versões são plain semver (sem sufixo)."
   echo "Todas as tags são annotated com changelog dos commits desde a última tag."
   echo ""
   echo "Exemplos:"
-  echo "  $0              # 0.3.0-alpha → 0.3.1-alpha"
-  echo "  $0 minor        # 0.3.1-alpha → 0.4.0-alpha"
-  echo "  $0 major        # 0.4.0-alpha → 1.0.0-alpha"
+  echo "  $0              # 2.8.0 → 2.8.1"
+  echo "  $0 minor        # 2.8.1 → 2.9.0"
+  echo "  $0 major        # 2.9.0 → 3.0.0"
   exit 1
 }
 
