@@ -17,10 +17,10 @@
 	import { Popover, PopoverTrigger, PopoverContent } from '$lib/components/ui/popover';
 	import { Button } from '$lib/components/ui/button';
 	import CalendarConfigPanel from './toolbar/CalendarConfigPanel.svelte';
-	import ListFilter from 'lucide-svelte/icons/list-filter';
-	import ArrowUpDown from 'lucide-svelte/icons/arrow-up-down';
-	import Columns3 from 'lucide-svelte/icons/columns-3';
-	import Calendar from 'lucide-svelte/icons/calendar';
+	import ListFilter from '@lucide/svelte/icons/list-filter';
+	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import Columns3 from '@lucide/svelte/icons/columns-3';
+	import Calendar from '@lucide/svelte/icons/calendar';
 
 	interface Props {
 		yamlContent: string;

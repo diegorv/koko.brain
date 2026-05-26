@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Check from 'lucide-svelte/icons/check';
+	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard } from './kanban.types';
 	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, getDateProximity } from './kanban.logic';
 	import { today } from '$lib/utils/date';

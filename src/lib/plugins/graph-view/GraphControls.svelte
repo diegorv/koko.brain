@@ -1,9 +1,9 @@
 <script lang="ts">
-	import X from 'lucide-svelte/icons/x';
-	import ZoomIn from 'lucide-svelte/icons/zoom-in';
-	import ZoomOut from 'lucide-svelte/icons/zoom-out';
-	import Globe from 'lucide-svelte/icons/globe';
-	import Target from 'lucide-svelte/icons/target';
+	import X from '@lucide/svelte/icons/x';
+	import ZoomIn from '@lucide/svelte/icons/zoom-in';
+	import ZoomOut from '@lucide/svelte/icons/zoom-out';
+	import Globe from '@lucide/svelte/icons/globe';
+	import Target from '@lucide/svelte/icons/target';
 	import { graphViewStore } from './graph-view.store.svelte';
 	import { closeGraphTab } from './graph-view.service';
 	import type { GraphNode } from './graph-view.types';

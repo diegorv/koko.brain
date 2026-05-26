@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CANVAS_COLOR_MAP } from './canvas.types';
 	import type { CanvasColor } from './canvas.types';
-	import X from 'lucide-svelte/icons/x';
+	import X from '@lucide/svelte/icons/x';
 
 	interface Props {
 		/** Currently selected color */

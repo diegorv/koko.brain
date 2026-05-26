@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Plus from 'lucide-svelte/icons/plus';
-	import MoreHorizontal from 'lucide-svelte/icons/more-horizontal';
-	import Pencil from 'lucide-svelte/icons/pencil';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import Archive from 'lucide-svelte/icons/archive';
-	import GripVertical from 'lucide-svelte/icons/grip-vertical';
-	import ChevronDown from 'lucide-svelte/icons/chevron-down';
-	import ChevronRight from 'lucide-svelte/icons/chevron-right';
-	import CircleCheck from 'lucide-svelte/icons/circle-check';
-	import Hash from 'lucide-svelte/icons/hash';
+	import Plus from '@lucide/svelte/icons/plus';
+	import MoreHorizontal from '@lucide/svelte/icons/more-horizontal';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Archive from '@lucide/svelte/icons/archive';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import CircleCheck from '@lucide/svelte/icons/circle-check';
+	import Hash from '@lucide/svelte/icons/hash';
 	import type { KanbanLane, KanbanItem } from './kanban.types';
 	import KanbanCard from './KanbanCard.svelte';
 	import KanbanWikilinkSuggestions from './KanbanWikilinkSuggestions.svelte';

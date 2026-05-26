@@ -1,10 +1,10 @@
 <script lang="ts">
-	import ChevronsLeft from 'lucide-svelte/icons/chevrons-left';
-	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
-	import ChevronRight from 'lucide-svelte/icons/chevron-right';
-	import ChevronsRight from 'lucide-svelte/icons/chevrons-right';
-	import CalendarPlus from 'lucide-svelte/icons/calendar-plus';
-	import FileText from 'lucide-svelte/icons/file-text';
+	import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
+	import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';

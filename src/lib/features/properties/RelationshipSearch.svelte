@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Plus from 'lucide-svelte/icons/plus';
-	import FileText from 'lucide-svelte/icons/file-text';
+	import Plus from '@lucide/svelte/icons/plus';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import * as Popover from '$lib/components/ui/popover';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';

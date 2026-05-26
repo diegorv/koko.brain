@@ -8,10 +8,10 @@
 		getWeekDayLabels,
 		formatDateKey,
 	} from './calendar.logic';
-	import ChevronsLeft from 'lucide-svelte/icons/chevrons-left';
-	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
-	import ChevronRight from 'lucide-svelte/icons/chevron-right';
-	import ChevronsRight from 'lucide-svelte/icons/chevrons-right';
+	import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
 
 	interface Props {
 		result: QueryResult;

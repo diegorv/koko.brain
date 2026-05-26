@@ -11,11 +11,11 @@
 	import { findFolderNote } from '$lib/features/folder-notes/folder-notes.logic';
 	import Self from './FileTreeItem.svelte';
 	import { useFileExplorerContext } from './file-explorer.context';
-	import ChevronRight from 'lucide-svelte/icons/chevron-right';
-	import ChevronDown from 'lucide-svelte/icons/chevron-down';
-	import FolderOpen from 'lucide-svelte/icons/folder-open';
-	import Folder from 'lucide-svelte/icons/folder';
-	import File from 'lucide-svelte/icons/file';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import FolderOpen from '@lucide/svelte/icons/folder-open';
+	import Folder from '@lucide/svelte/icons/folder';
+	import File from '@lucide/svelte/icons/file';
 
 	/**
 	 * Recursive tree item — renders a single file or folder row,

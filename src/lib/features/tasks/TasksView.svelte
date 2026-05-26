@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
-	import Circle from 'lucide-svelte/icons/circle';
-	import CircleCheckBig from 'lucide-svelte/icons/circle-check-big';
-	import Eye from 'lucide-svelte/icons/eye';
-	import EyeOff from 'lucide-svelte/icons/eye-off';
-	import Hash from 'lucide-svelte/icons/hash';
-	import Cloud from 'lucide-svelte/icons/cloud';
-	import CloudCheck from 'lucide-svelte/icons/cloud-check';
-	import RefreshCcw from 'lucide-svelte/icons/refresh-ccw';
-	import Loader2 from 'lucide-svelte/icons/loader-2';
+	import Circle from '@lucide/svelte/icons/circle';
+	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import Hash from '@lucide/svelte/icons/hash';
+	import Cloud from '@lucide/svelte/icons/cloud';
+	import CloudCheck from '@lucide/svelte/icons/cloud-check';
+	import RefreshCcw from '@lucide/svelte/icons/refresh-ccw';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { tasksStore } from './tasks.store.svelte';
 	import { todoistStore } from './todoist.store.svelte';

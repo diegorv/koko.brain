@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import Plus from 'lucide-svelte/icons/plus';
-	import FileText from 'lucide-svelte/icons/file-text';
-	import ChevronDown from 'lucide-svelte/icons/chevron-down';
-	import Blocks from 'lucide-svelte/icons/blocks';
+	import Plus from '@lucide/svelte/icons/plus';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import Blocks from '@lucide/svelte/icons/blocks';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -32,7 +32,7 @@
 		type ResolvedLink,
 	} from './properties.logic';
 	import type { PropertyType } from './properties.types';
-	import X from 'lucide-svelte/icons/x';
+	import X from '@lucide/svelte/icons/x';
 	import PropertyField from './PropertyField.svelte';
 	import LifecycleActions from './LifecycleActions.svelte';
 	import RelationshipSearch from './RelationshipSearch.svelte';

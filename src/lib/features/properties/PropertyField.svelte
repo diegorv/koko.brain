@@ -1,12 +1,12 @@
 <script lang="ts">
-	import X from 'lucide-svelte/icons/x';
-	import Plus from 'lucide-svelte/icons/plus';
-	import Type from 'lucide-svelte/icons/type';
-	import Hash from 'lucide-svelte/icons/hash';
-	import Calendar from 'lucide-svelte/icons/calendar';
-	import ToggleLeft from 'lucide-svelte/icons/toggle-left';
-	import List from 'lucide-svelte/icons/list';
-	import Tag from 'lucide-svelte/icons/tag';
+	import X from '@lucide/svelte/icons/x';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Type from '@lucide/svelte/icons/type';
+	import Hash from '@lucide/svelte/icons/hash';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import ToggleLeft from '@lucide/svelte/icons/toggle-left';
+	import List from '@lucide/svelte/icons/list';
+	import Tag from '@lucide/svelte/icons/tag';
 	import { Input } from '$lib/components/ui/input';
 	import type { Property, PropertyType } from './properties.types';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';

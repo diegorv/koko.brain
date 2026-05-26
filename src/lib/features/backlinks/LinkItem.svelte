@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FileText from 'lucide-svelte/icons/file-text';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import type { BacklinkEntry } from './backlinks.types';
 

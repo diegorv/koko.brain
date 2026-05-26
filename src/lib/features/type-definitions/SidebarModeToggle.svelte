@@ -1,9 +1,9 @@
 <script lang="ts">
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Button } from '$lib/components/ui/button';
-	import FolderTree from 'lucide-svelte/icons/folder-tree';
-	import LayoutGrid from 'lucide-svelte/icons/layout-grid';
-	import Calendar from 'lucide-svelte/icons/calendar';
+	import FolderTree from '@lucide/svelte/icons/folder-tree';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import Calendar from '@lucide/svelte/icons/calendar';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { saveSettings } from '$lib/core/settings/settings.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';

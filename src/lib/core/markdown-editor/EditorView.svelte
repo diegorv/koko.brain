@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Code from 'lucide-svelte/icons/code';
-	import Eye from 'lucide-svelte/icons/eye';
-	import Table from 'lucide-svelte/icons/table';
-	import FileText from 'lucide-svelte/icons/file-text';
-	import LayoutDashboard from 'lucide-svelte/icons/layout-dashboard';
-	import Kanban from 'lucide-svelte/icons/kanban';
+	import Code from '@lucide/svelte/icons/code';
+	import Eye from '@lucide/svelte/icons/eye';
+	import Table from '@lucide/svelte/icons/table';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+	import Kanban from '@lucide/svelte/icons/kanban';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { onContentChange } from '$lib/core/editor/editor.service';
 	import EditorTabs from './EditorTabs.svelte';

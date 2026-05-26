@@ -7,8 +7,8 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import X from 'lucide-svelte/icons/x';
-	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
+	import X from '@lucide/svelte/icons/x';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
 	/**
 	 * Modal dialog for selecting an icon and color for a file/folder.

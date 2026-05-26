@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import type { TagTreeNode } from './tags.types';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';

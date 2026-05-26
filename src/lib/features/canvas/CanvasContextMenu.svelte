@@ -1,18 +1,18 @@
 <script lang="ts">
-	import Type from 'lucide-svelte/icons/type';
-	import FileText from 'lucide-svelte/icons/file-text';
-	import ExternalLink from 'lucide-svelte/icons/external-link';
-	import ImageIcon from 'lucide-svelte/icons/image';
-	import Square from 'lucide-svelte/icons/square';
-	import Copy from 'lucide-svelte/icons/copy';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import Pencil from 'lucide-svelte/icons/pencil';
-	import MousePointer2 from 'lucide-svelte/icons/mouse-pointer-2';
-	import Maximize2 from 'lucide-svelte/icons/maximize-2';
-	import Tag from 'lucide-svelte/icons/tag';
-	import Palette from 'lucide-svelte/icons/palette';
-	import CircleArrowLeft from 'lucide-svelte/icons/circle-arrow-left';
-	import CircleArrowRight from 'lucide-svelte/icons/circle-arrow-right';
+	import Type from '@lucide/svelte/icons/type';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import ImageIcon from '@lucide/svelte/icons/image';
+	import Square from '@lucide/svelte/icons/square';
+	import Copy from '@lucide/svelte/icons/copy';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import MousePointer2 from '@lucide/svelte/icons/mouse-pointer-2';
+	import Maximize2 from '@lucide/svelte/icons/maximize-2';
+	import Tag from '@lucide/svelte/icons/tag';
+	import Palette from '@lucide/svelte/icons/palette';
+	import CircleArrowLeft from '@lucide/svelte/icons/circle-arrow-left';
+	import CircleArrowRight from '@lucide/svelte/icons/circle-arrow-right';
 	import ColorPicker from './ColorPicker.svelte';
 	import type { CanvasColor } from './canvas.types';
 

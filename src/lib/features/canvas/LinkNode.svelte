@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Handle, Position, NodeResizer, useSvelteFlow, type Node, type NodeProps } from '@xyflow/svelte';
-	import ExternalLink from 'lucide-svelte/icons/external-link';
-	import Pencil from 'lucide-svelte/icons/pencil';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Pencil from '@lucide/svelte/icons/pencil';
 	import { resolveColor } from './canvas.logic';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { isSafeUrl } from '$lib/utils/sanitize-url';

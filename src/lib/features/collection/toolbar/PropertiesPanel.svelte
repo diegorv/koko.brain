@@ -10,9 +10,9 @@
 		validateFormulaName,
 	} from './formula.logic';
 	import FormulaRow from './FormulaRow.svelte';
-	import Plus from 'lucide-svelte/icons/plus';
-	import Pencil from 'lucide-svelte/icons/pencil';
-	import X from 'lucide-svelte/icons/x';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import X from '@lucide/svelte/icons/x';
 
 	interface Props {
 		/** Currently visible columns */

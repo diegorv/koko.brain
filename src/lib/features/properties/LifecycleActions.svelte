@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Archive from 'lucide-svelte/icons/archive';
-	import ArchiveRestore from 'lucide-svelte/icons/archive-restore';
-	import FolderCheck from 'lucide-svelte/icons/folder-check';
-	import Inbox from 'lucide-svelte/icons/inbox';
-	import Star from 'lucide-svelte/icons/star';
+	import Archive from '@lucide/svelte/icons/archive';
+	import ArchiveRestore from '@lucide/svelte/icons/archive-restore';
+	import FolderCheck from '@lucide/svelte/icons/folder-check';
+	import Inbox from '@lucide/svelte/icons/inbox';
+	import Star from '@lucide/svelte/icons/star';
 	import { propertiesStore } from './properties.store.svelte';
 	import { getLifecycleState, isFavorite } from './lifecycle.logic';
 	import { setOrganized, setArchived, setFavorite } from './lifecycle.service';
