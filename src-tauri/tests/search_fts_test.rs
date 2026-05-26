@@ -186,7 +186,7 @@ fn update_search_index_file_updates_content() {
 	assert!(!results.is_empty(), "should find 'greetings' in hello.md");
 
 	// Update the file content in the index
-	search_index::update_search_index_file(
+	search_index::update_search_index_file_inner(
 		"hello.md".to_string(),
 		"# Updated Hello\n\nThis is brand new updated content about elephants.\n".to_string(),
 	)
@@ -218,7 +218,7 @@ fn remove_from_search_index_removes_file() {
 	assert!(!results.is_empty(), "should find rust.md");
 
 	// Remove file from index
-	search_index::remove_from_search_index("rust.md".to_string()).unwrap();
+	search_index::remove_from_search_index_inner("rust.md".to_string()).unwrap();
 
 	// File should no longer be found
 	let results = search_index::search_fts("rust".to_string(), Some(10), Some(false)).unwrap();

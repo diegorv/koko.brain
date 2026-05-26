@@ -154,8 +154,18 @@ pub fn search_fts_inner(
 
 /// Updates the FTS5 index for a single file (called on save).
 /// Uses a transaction to ensure delete+insert is atomic (no partial state on failure).
+///
+/// Runs on a blocking worker thread so the slow FTS5 DELETE does not block
+/// the Tauri IPC thread (same pattern as `build_search_index`).
 #[tauri::command]
-pub fn update_search_index_file(file_path: String, content: String) -> Result<(), String> {
+pub async fn update_search_index_file(file_path: String, content: String) -> Result<(), String> {
+	tokio::task::spawn_blocking(move || update_search_index_file_inner(file_path, content))
+		.await
+		.map_err(|e| format!("update_search_index_file task join error: {e}"))?
+}
+
+/// Synchronous implementation used by the async command and by tests.
+pub fn update_search_index_file_inner(file_path: String, content: String) -> Result<(), String> {
 	debug_log("FTS", format!("Updating: {}", file_path));
 	db::with_fts_db_transaction("fts update file", |conn| {
 		db::fts_repo::delete_entry(conn, &file_path)?;
@@ -169,8 +179,18 @@ pub fn update_search_index_file(file_path: String, content: String) -> Result<()
 }
 
 /// Removes a file from the FTS5 index (called on file delete).
+///
+/// Runs on a blocking worker thread so the slow FTS5 DELETE does not block
+/// the Tauri IPC thread.
 #[tauri::command]
-pub fn remove_from_search_index(file_path: String) -> Result<(), String> {
+pub async fn remove_from_search_index(file_path: String) -> Result<(), String> {
+	tokio::task::spawn_blocking(move || remove_from_search_index_inner(file_path))
+		.await
+		.map_err(|e| format!("remove_from_search_index task join error: {e}"))?
+}
+
+/// Synchronous implementation used by the async command and by tests.
+pub fn remove_from_search_index_inner(file_path: String) -> Result<(), String> {
 	debug_log("FTS", format!("Removing: {}", file_path));
 	db::with_fts_db(|conn| db::fts_repo::delete_entry(conn, &file_path))
 }
