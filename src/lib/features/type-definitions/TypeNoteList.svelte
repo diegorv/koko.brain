@@ -101,7 +101,19 @@
 
 	function formatDate(epochSeconds: number): string {
 		if (epochSeconds === 0) return '';
-		return dayjs(epochSeconds * 1000).format('MMM D, YYYY');
+		const d = dayjs(epochSeconds * 1000);
+		const now = dayjs();
+		if (d.year() === now.year()) return d.format('MMM D');
+		return d.format('MMM D, YYYY');
+	}
+
+	function formatDatePair(modifiedAt: number, createdAt: number): string {
+		if (!modifiedAt && !createdAt) return '';
+		const mod = formatDate(modifiedAt);
+		const cre = formatDate(createdAt);
+		if (mod && cre && mod !== cre) return `${mod} · created ${cre}`;
+		if (mod) return mod;
+		return `created ${cre}`;
 	}
 
 	function formatPropertyValue(value: unknown): string {
@@ -219,29 +231,24 @@
 									<FileText class="size-4 shrink-0 mt-0.5 text-muted-foreground" />
 								{/if}
 								<div class="min-w-0 flex-1">
-									<div class="truncate text-[14px] {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
+									<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
 										{note.title}
 									</div>
 									{#if listProperties.length > 0}
-										<div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+										<div class="flex flex-wrap gap-1 mt-1">
 											{#each listProperties as prop (prop)}
 												{@const val = formatPropertyValue(note.frontmatter[prop])}
 												{#if val}
-													<span class="text-xs text-muted-foreground truncate max-w-[160px]">
-														<span class="text-muted-foreground/60">{prop}:</span> {val}
+													<span class="inline-flex items-center rounded-sm bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground truncate max-w-[140px]">
+														{val}
 													</span>
 												{/if}
 											{/each}
 										</div>
 									{/if}
 									{#if note.modifiedAt || note.createdAt}
-										<div class="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-											{#if note.modifiedAt}
-												<span>{formatDate(note.modifiedAt)}</span>
-											{/if}
-											{#if note.createdAt}
-												<span>Created {formatDate(note.createdAt)}</span>
-											{/if}
+										<div class="text-[11px] text-muted-foreground/60 mt-1">
+											{formatDatePair(note.modifiedAt, note.createdAt)}
 										</div>
 									{/if}
 								</div>
