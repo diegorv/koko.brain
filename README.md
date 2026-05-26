@@ -109,7 +109,7 @@ Licensed under the [Apache License 2.0](LICENSE).
 [codeql-url]: https://github.com/diegorv/koko.brain/security/code-scanning
 [privacy-badge]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml/badge.svg
 [privacy-url]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml
-[release-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/release.yml?label=Release
+[release-badge]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg?event=push
 [release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
 [nightly-badge]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml/badge.svg
 [nightly-url]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml
