@@ -99,23 +99,23 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 <!-- ─── Badge reference definitions ────────────────────────────── -->
 
-[ci-badge]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml/badge.svg?branch=main&event=workflow_call
+[ci-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/ci.yml?branch=main&event=workflow_call&label=CI&logo=github&logoColor=white
 [ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml
-[e2e-badge]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml/badge.svg
+[e2e-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/e2e.yml?label=E2E&logo=playwright&logoColor=white
 [e2e-url]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml
-[security-badge]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml/badge.svg
+[security-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/security.yml?label=Security&logo=github&logoColor=white
 [security-url]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml
 [codeql-badge]: https://img.shields.io/badge/CodeQL-enabled-2ea44f?logo=github&logoColor=white
 [codeql-url]: https://github.com/diegorv/koko.brain/security/code-scanning
-[privacy-badge]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml/badge.svg
+[privacy-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/privacy.yml?label=Privacy&logo=github&logoColor=white
 [privacy-url]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml
-[release-badge]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml/badge.svg?event=push
+[release-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/release.yml?event=push&label=Release&logo=github&logoColor=white
 [release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
-[nightly-badge]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml/badge.svg
+[nightly-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/nightly.yml?label=Nightly&logo=github&logoColor=white
 [nightly-url]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml
-[wiki-badge]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml/badge.svg
+[wiki-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/sync-wiki.yml?label=Wiki%20Sync&logo=github&logoColor=white
 [wiki-url]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml
-[dependabot-badge]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates/badge.svg
+[dependabot-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/dependabot/dependabot-updates?label=Dependabot&logo=dependabot&logoColor=white
 [dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
 [version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue
 [version-url]: https://github.com/diegorv/koko.brain/releases
