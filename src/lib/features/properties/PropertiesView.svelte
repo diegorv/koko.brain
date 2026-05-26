@@ -25,7 +25,6 @@
 		consumeSkipNextParse,
 	} from './properties.service';
 	import {
-		extractWikilinks,
 		resolveRelationshipLinks,
 		computeAddRelationshipValue,
 		computeRemoveRelationshipValue,
@@ -85,15 +84,6 @@
 		}
 	}
 
-	let extraRelationshipKeys = $derived.by(() => {
-		const keys = new Set<string>();
-		for (const p of propertiesStore.properties) {
-			if (LIFECYCLE_KEYS.has(p.key) || RELATIONSHIP_KEYS.has(p.key)) continue;
-			if (extractWikilinks(p.value).length > 0) keys.add(p.key);
-		}
-		return keys;
-	});
-
 	let typeProperty = $derived(propertiesStore.properties.find((p) => p.key === 'type'));
 	let typeMetadata = $derived(typeProperty ? typeDefinitionsStore.getTypeMetadata(String(typeProperty.value)) : undefined);
 	let availableTypes = $derived(typeDefinitionsStore.sortedTypes);
@@ -101,7 +91,7 @@
 	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
 	let sortedProperties = $derived(
 		[...propertiesStore.properties]
-			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !RELATIONSHIP_KEYS.has(p.key) && !extraRelationshipKeys.has(p.key) && p.key !== 'type')
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !RELATIONSHIP_KEYS.has(p.key) && p.key !== 'type')
 			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
