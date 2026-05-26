@@ -90,12 +90,40 @@ describe('typeDefinitionsStore', () => {
 		});
 	});
 
+	describe('selectedTypeOrNav', () => {
+		it('starts null', () => {
+			expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+		});
+
+		it('sets a type selection', () => {
+			typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
+			expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Project' });
+		});
+
+		it('sets a nav selection', () => {
+			typeDefinitionsStore.setSelection({ kind: 'nav', id: 'inbox' });
+			expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'nav', id: 'inbox' });
+		});
+
+		it('sets an untyped selection', () => {
+			typeDefinitionsStore.setSelection({ kind: 'untyped' });
+			expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'untyped' });
+		});
+
+		it('clears selection with null', () => {
+			typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
+			typeDefinitionsStore.setSelection(null);
+			expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+		});
+	});
+
 	describe('reset', () => {
 		it('clears all state to defaults', () => {
 			typeDefinitionsStore.setTypeMetadataMap(
 				new Map([['X', makeMeta({ name: 'X', order: 1 })]])
 			);
 			typeDefinitionsStore.setEntries([{} as any]);
+			typeDefinitionsStore.setSelection({ kind: 'type', name: 'X' });
 
 			typeDefinitionsStore.reset();
 
@@ -103,6 +131,7 @@ describe('typeDefinitionsStore', () => {
 			expect(typeDefinitionsStore.entries).toEqual([]);
 			expect(typeDefinitionsStore.entriesVersion).toBe(0);
 			expect(typeDefinitionsStore.sortedTypes).toEqual([]);
+			expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 		});
 	});
 });

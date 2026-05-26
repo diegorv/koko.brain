@@ -26,6 +26,42 @@ export interface TypeSidebarNote {
 /** Filter mode for the type sidebar. */
 export type SidebarFilter = 'all' | 'inbox' | 'archived' | 'favorites';
 
+/** Identifiers for the top nav items in the type sidebar. */
+export type NavItemId = 'inbox' | 'all' | 'archive' | 'favorites';
+
+/** What is currently selected in the type sidebar. */
+export type TypeSidebarSelection =
+	| { kind: 'type'; name: string }
+	| { kind: 'nav'; id: NavItemId }
+	| { kind: 'untyped' };
+
+/** Counts for each top nav item. */
+export interface NavItemCounts {
+	inbox: number;
+	all: number;
+	archive: number;
+	favorites: number;
+}
+
+/** Computes counts for each top nav item (cross-type). */
+export function countNavItems(entries: NoteEntryV2[]): NavItemCounts {
+	let inbox = 0;
+	let all = 0;
+	let archive = 0;
+	let favorites = 0;
+	for (const e of entries) {
+		if (e.isA === 'Type') continue;
+		if (e.archived) {
+			archive++;
+		} else {
+			all++;
+			if (!e.organized) inbox++;
+		}
+		if (e.favorite && !e.archived) favorites++;
+	}
+	return { inbox, all, archive, favorites };
+}
+
 /** Builds type-grouped sections from vault entries. */
 export function buildTypeSections(
 	entries: NoteEntryV2[],

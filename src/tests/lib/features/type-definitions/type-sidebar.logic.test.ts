@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -278,5 +278,45 @@ describe('countInbox', () => {
 			entryV2('/v/d.md', { organized: false, archived: false, isA: 'Type' }),
 		];
 		expect(countInbox(entries)).toBe(1);
+	});
+});
+
+describe('countNavItems', () => {
+	it('counts all nav item categories', () => {
+		const entries = [
+			entryV2('/v/a.md', { organized: false, archived: false, isA: 'Project' }),
+			entryV2('/v/b.md', { organized: true, archived: false, isA: 'Project' }),
+			entryV2('/v/c.md', { organized: false, archived: true, isA: 'Project' }),
+			entryV2('/v/d.md', { organized: true, archived: false, favorite: true, isA: 'Person' }),
+		];
+		const counts = countNavItems(entries);
+		expect(counts.inbox).toBe(1);
+		expect(counts.all).toBe(3);
+		expect(counts.archive).toBe(1);
+		expect(counts.favorites).toBe(1);
+	});
+
+	it('excludes Type entries from all counts', () => {
+		const entries = [
+			entryV2('/v/Project.md', { isA: 'Type', organized: false, archived: false }),
+			entryV2('/v/a.md', { isA: 'Project', organized: true, archived: false }),
+		];
+		const counts = countNavItems(entries);
+		expect(counts.all).toBe(1);
+		expect(counts.inbox).toBe(0);
+	});
+
+	it('returns zeros for empty entries', () => {
+		const counts = countNavItems([]);
+		expect(counts).toEqual({ inbox: 0, all: 0, archive: 0, favorites: 0 });
+	});
+
+	it('does not count archived favorites', () => {
+		const entries = [
+			entryV2('/v/a.md', { favorite: true, archived: true, organized: true, isA: 'Project' }),
+		];
+		const counts = countNavItems(entries);
+		expect(counts.favorites).toBe(0);
+		expect(counts.archive).toBe(1);
 	});
 });
