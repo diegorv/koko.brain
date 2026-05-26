@@ -75,10 +75,9 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	try { await buildFrontmatterIconIndex(); } catch (err) { error('WATCHER', 'buildFrontmatterIconIndex failed:', err); }
 	try { scanFilesForCalendar(); } catch (err) { error('WATCHER', 'scanFilesForCalendar failed:', err); }
 
-	// rebuildIndex() above already invokes scan_vault_v2 which rebuilds the
-	// Rust VaultIndex AND emits `vault-index-updated` — `BacklinksPanel`,
-	// `OutgoingLinksPanel`, `TagsPanel`, and `TasksView` all auto-refresh via
-	// their reactive `$effect`s on `vaultIndexVersion`.
+	// rebuildIndex() above invokes scan_vault_v2_cached which rebuilds the
+	// Rust VaultIndex (re-reading only changed files) AND emits
+	// `vault-index-updated` — panels auto-refresh via `vaultIndexVersion`.
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
 	clearLinkedContentCache();
