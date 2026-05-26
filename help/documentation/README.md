@@ -36,7 +36,6 @@ After that, explore any topic that interests you.
 | 14 | [Graph View](14-graph-view.md) | Interactive knowledge graph of note connections |
 | 15 | [File History](15-file-history.md) | Snapshots, diff viewer, retention policy, restore |
 | 16 | [Table of Contents](16-table-of-contents.md) | Auto-generated outline panel from document headings |
-| 17 | [Terminal](17-terminal.md) | Integrated terminal with multiple sessions |
 | 18 | [Trash](18-trash.md) | Built-in recycle bin, restore, permanent deletion |
 | 19 | [Settings](19-settings.md) | Complete reference for all app settings |
 | 20 | [Keyboard Shortcuts](20-keyboard-shortcuts.md) | Full shortcut reference card |
@@ -45,6 +44,7 @@ After that, explore any topic that interests you.
 | 23 | [Deep Links](23-deep-links.md) | Open notes and trigger actions from outside the app via `kokobrain://` URLs |
 | 24 | [Meta-Bind](24-meta-bind.md) | Interactive inline inputs and action buttons that read/write frontmatter |
 | 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, semantic relationships, lifecycle workflow, type sidebar |
+| 26 | [Theming](26-theming.md) | Color themes, region layout, CSS variables, creating custom themes |
 
 ## Embedded Local Files (`file://` images)
 
