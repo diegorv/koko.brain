@@ -116,6 +116,20 @@
 		return icon ? { icon, color: fmRef.color } : undefined;
 	}
 
+	let fileTypeMap = $derived.by(() => {
+		const map = new Map<string, string>();
+		for (const entry of typeDefinitionsStore.entries) {
+			if (entry.isA && entry.isA !== 'Type') map.set(entry.path, entry.isA);
+		}
+		return map;
+	});
+
+	function getTypeIconForPath(path: string) {
+		const typeName = fileTypeMap.get(path);
+		if (!typeName) return undefined;
+		return getTypeIcon(typeName);
+	}
+
 	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
 	let sortedProperties = $derived(
 		[...propertiesStore.properties]
@@ -294,13 +308,22 @@
 					{#if links.length > 0}
 						<div class="mt-1 space-y-0.5">
 							{#each links as link (link.raw)}
+								{@const linkRef = link.resolvedPath ? fileIconsStore.getFrontmatterIcon(link.resolvedPath) : undefined}
+								{@const linkIcon = linkRef ? getIconSync(linkRef.iconPack, linkRef.iconName) : undefined}
+								{@const linkTypeIcon = !linkIcon && link.resolvedPath ? getTypeIconForPath(link.resolvedPath) : undefined}
 								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[14px] hover:bg-accent transition-colors">
 									{#if link.resolvedPath}
 										<button
 											class="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer text-left"
 											onclick={() => openFileInEditor(link.resolvedPath!)}
 										>
-											<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+											{#if linkIcon}
+												<IconRenderer icon={linkIcon} class="size-3.5 shrink-0" color={linkRef?.color} />
+											{:else if linkTypeIcon}
+												<IconRenderer icon={linkTypeIcon.icon} class="size-3.5 shrink-0" color={linkTypeIcon.color} />
+											{:else}
+												<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+											{/if}
 											<span class="truncate">{link.display}</span>
 										</button>
 									{:else}
