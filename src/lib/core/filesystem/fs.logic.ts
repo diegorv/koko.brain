@@ -271,16 +271,26 @@ export function collectAllDirPaths(nodes: FileTreeNode[]): Set<string> {
 }
 
 /**
- * Recursively reorders directory nodes according to a custom folder order map.
- * Files are left untouched — only the relative order of folders changes.
- * Folders listed in the map appear first (in the specified order),
- * followed by any unlisted folders in their original sort order.
+ * Recursively reorders directory nodes according to folder-order.json
+ * and _order frontmatter values.
+ *
+ * Priority for folders:
+ *   1. folder-order.json (explicit list wins outright)
+ *   2. _order from folder note frontmatter (numeric sort)
+ *   3. Original sort order (name or modified)
+ *
+ * Priority for files:
+ *   1. _order from frontmatter (numeric sort, lower first)
+ *   2. Original sort order
+ *
+ * Files with _order come before files without _order.
  */
 export function applyFolderOrder(
 	nodes: FileTreeNode[],
 	orderMap: FolderOrderMap,
 	vaultPath: string,
 	currentPath: string,
+	contentOrder?: Map<string, number>,
 ): FileTreeNode[] {
 	const relativeKey = currentPath === vaultPath
 		? '.'
@@ -305,16 +315,51 @@ export function applyFolderOrder(
 			}
 		}
 		const remaining = folders.filter((f) => foldersByName.has(f.name));
+		// Sort remaining folders by _order if available
+		if (contentOrder) {
+			remaining.sort((a, b) => {
+				const oa = contentOrder.get(a.path);
+				const ob = contentOrder.get(b.path);
+				if (oa !== undefined && ob !== undefined) return oa - ob;
+				if (oa !== undefined) return -1;
+				if (ob !== undefined) return 1;
+				return 0;
+			});
+		}
 		reorderedFolders = [...ordered, ...remaining];
+	} else if (contentOrder) {
+		reorderedFolders = [...folders].sort((a, b) => {
+			const oa = contentOrder.get(a.path);
+			const ob = contentOrder.get(b.path);
+			if (oa !== undefined && ob !== undefined) return oa - ob;
+			if (oa !== undefined) return -1;
+			if (ob !== undefined) return 1;
+			return 0;
+		});
 	} else {
 		reorderedFolders = folders;
 	}
 
+	// Sort files by _order if available
+	let reorderedFiles: FileTreeNode[];
+	if (contentOrder) {
+		reorderedFiles = [...files].sort((a, b) => {
+			const oa = contentOrder.get(a.path);
+			const ob = contentOrder.get(b.path);
+			if (oa !== undefined && ob !== undefined) return oa - ob;
+			if (oa !== undefined) return -1;
+			if (ob !== undefined) return 1;
+			return 0;
+		});
+	} else {
+		reorderedFiles = files;
+	}
+
 	const result = reorderedFolders.map((folder) =>
 		folder.children
-			? { ...folder, children: applyFolderOrder(folder.children, orderMap, vaultPath, folder.path) }
+			? { ...folder, children: applyFolderOrder(folder.children, orderMap, vaultPath, folder.path, contentOrder) }
 			: folder
 	);
 
-	return [...result, ...files];
+	return [...result, ...reorderedFiles];
 }

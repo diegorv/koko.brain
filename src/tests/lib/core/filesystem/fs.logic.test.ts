@@ -781,4 +781,80 @@ describe('applyFolderOrder', () => {
 		const result = applyFolderOrder(nodes, order, vault, vault);
 		expect(result.map((n) => n.name)).toEqual(['Beta', 'Alpha']);
 	});
+
+	describe('contentOrder', () => {
+		it('sorts files by _order value', () => {
+			const nodes: FileTreeNode[] = [
+				makeFile('c.md'),
+				makeFile('a.md'),
+				makeFile('b.md'),
+			];
+			const co = new Map([
+				[`${vault}/b.md`, 1],
+				[`${vault}/a.md`, 2],
+				[`${vault}/c.md`, 3],
+			]);
+			const result = applyFolderOrder(nodes, {}, vault, vault, co);
+			expect(result.map((n) => n.name)).toEqual(['b.md', 'a.md', 'c.md']);
+		});
+
+		it('files with _order come before files without', () => {
+			const nodes: FileTreeNode[] = [
+				makeFile('z.md'),
+				makeFile('a.md'),
+				makeFile('m.md'),
+			];
+			const co = new Map([
+				[`${vault}/m.md`, 10],
+			]);
+			const result = applyFolderOrder(nodes, {}, vault, vault, co);
+			expect(result[0].name).toBe('m.md');
+		});
+
+		it('sorts folders by _order when not in folder-order.json', () => {
+			const nodes: FileTreeNode[] = [
+				makeDir('Gamma'),
+				makeDir('Alpha'),
+				makeDir('Beta'),
+			];
+			const co = new Map([
+				[`${vault}/Beta`, 1],
+				[`${vault}/Alpha`, 2],
+			]);
+			const result = applyFolderOrder(nodes, {}, vault, vault, co);
+			expect(result.map((n) => n.name)).toEqual(['Beta', 'Alpha', 'Gamma']);
+		});
+
+		it('folder-order.json takes priority over _order for listed folders', () => {
+			const nodes: FileTreeNode[] = [
+				makeDir('Alpha'),
+				makeDir('Beta'),
+				makeDir('Gamma'),
+			];
+			const order = { '.': ['Gamma', 'Alpha'] };
+			const co = new Map([
+				[`${vault}/Alpha`, 1],
+				[`${vault}/Beta`, 2],
+				[`${vault}/Gamma`, 3],
+			]);
+			const result = applyFolderOrder(nodes, order, vault, vault, co);
+			// Gamma and Alpha in folder-order.json order; Beta sorted by _order after
+			expect(result.map((n) => n.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
+		});
+
+		it('applies contentOrder recursively to subfolders', () => {
+			const nodes: FileTreeNode[] = [
+				makeDir('Projects', [
+					makeFile('z.md', `${vault}/Projects`),
+					makeFile('a.md', `${vault}/Projects`),
+				]),
+			];
+			const co = new Map([
+				[`${vault}/Projects/a.md`, 1],
+				[`${vault}/Projects/z.md`, 2],
+			]);
+			const result = applyFolderOrder(nodes, {}, vault, vault, co);
+			expect(result[0].children!.map((n) => n.name)).toEqual(['a.md', 'z.md']);
+		});
+	});
 });

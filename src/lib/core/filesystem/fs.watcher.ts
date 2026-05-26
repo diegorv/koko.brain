@@ -175,8 +175,9 @@ async function handleChangedPaths(changedPaths: string[]) {
 				sortBy: fsStore.sortBy,
 			});
 			if (watchVersion !== version) return;
-			if (Object.keys(order).length > 0) {
-				subtree = applyFolderOrder(subtree, order, vaultPath, parentDir);
+			const co = fsStore.contentOrder;
+			if (Object.keys(order).length > 0 || co.size > 0) {
+				subtree = applyFolderOrder(subtree, order, vaultPath, parentDir, co.size > 0 ? co : undefined);
 			}
 			currentTree = patchSubtree(currentTree, parentDir, subtree);
 		} catch {

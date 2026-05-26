@@ -8,6 +8,8 @@ let fileTree = $state<FileTreeNode[]>([]);
 let selectedFilePath = $state<string | null>(null);
 /** Custom folder ordering loaded from `.kokobrain/folder-order.json` */
 let folderOrder = $state<FolderOrderMap>({});
+/** Content-based ordering from _order frontmatter (path -> numeric order) */
+let contentOrder = $state<Map<string, number>>(new Map());
 /** Number of in-flight loading operations — isLoading is true when > 0 */
 let loadingCount = $state(0);
 /** Set of directory paths that are visually expanded in the tree — must be replaced (not mutated) to trigger reactivity */
@@ -32,9 +34,11 @@ export const fsStore = {
 	get renamingPath() { return renamingPath; },
 	get pendingCreationPath() { return pendingCreationPath; },
 	get folderOrder() { return folderOrder; },
+	get contentOrder() { return contentOrder; },
 
 	setFileTree(tree: FileTreeNode[]) { fileTree = tree; },
 	setFolderOrder(order: FolderOrderMap) { folderOrder = order; },
+	setContentOrder(order: Map<string, number>) { contentOrder = order; },
 	setSelectedFilePath(path: string | null) { selectedFilePath = path; },
 	/** Increments or decrements the loading counter. isLoading is true while counter > 0. */
 	startLoading() { loadingCount++; },
@@ -77,6 +81,7 @@ export const fsStore = {
 		renamingPath = null;
 		pendingCreationPath = null;
 		folderOrder = {};
+		contentOrder = new Map();
 		sortBy = 'name';
 	},
 };

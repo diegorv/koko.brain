@@ -65,6 +65,10 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
+import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
+import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
 import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/block-math-widget';
@@ -198,6 +202,23 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		toast.error('Failed to load vault contents. The file explorer or search may not work.');
 	}
 	perfEnd('LIFECYCLE', 'Step 4: buildIndex+loadDirectoryTree(parallel)', t4);
+	if (initVersion !== version) return;
+
+	// ── Step 4b: Apply _order frontmatter to file tree ──────────────
+	// Index is now ready, fetch entries once to build contentOrder map.
+	// The watcher handles subsequent updates via fsStore.contentOrder.
+	try {
+		const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+		const contentOrder = buildContentOrderMap(entries);
+		fsStore.setContentOrder(contentOrder);
+		if (contentOrder.size > 0 && fsStore.fileTree.length > 0) {
+			const sorted = applyFolderOrder(fsStore.fileTree, fsStore.folderOrder, vaultPath, vaultPath, contentOrder);
+			attachFileCounts(sorted);
+			fsStore.setFileTree(sorted);
+		}
+	} catch (err) {
+		error('LIFECYCLE', 'Failed to build content order:', err);
+	}
 	if (initVersion !== version) return;
 
 	// ── Step 5: Post-index setup ─────────────────────────────────────

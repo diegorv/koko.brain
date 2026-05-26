@@ -90,8 +90,10 @@ export async function loadDirectoryTree(vaultPath: string, expectedSortVersion?:
 			if (expectedSortVersion !== undefined && sortVersion !== expectedSortVersion) return;
 
 			debug('FS', 'loadDirectoryTree:', vaultPath);
-			const orderedTree = Object.keys(order).length > 0
-				? applyFolderOrder(tree, order, vaultPath, vaultPath)
+			const co = fsStore.contentOrder;
+			const hasOrder = Object.keys(order).length > 0 || co.size > 0;
+			const orderedTree = hasOrder
+				? applyFolderOrder(tree, order, vaultPath, vaultPath, co.size > 0 ? co : undefined)
 				: tree;
 			attachFileCounts(orderedTree);
 			fsStore.setFileTree(orderedTree);

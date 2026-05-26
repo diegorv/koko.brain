@@ -9,6 +9,8 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.service';
 import { refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
 import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
 
 /**
@@ -88,6 +90,7 @@ export function registerVaultIndexUpdatedListener(): () => void {
 			refreshArchivedPaths(entries);
 			refreshTypeDefinitions(entries);
 			typeDefinitionsStore.setEntries(entries);
+			fsStore.setContentOrder(buildContentOrderMap(entries));
 		}).catch((err) => { console.error('get_all_vault_entries_v2 failed:', err); });
 	}).then((fn) => {
 		if (cancelled) fn();
