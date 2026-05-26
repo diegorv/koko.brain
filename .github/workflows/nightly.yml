@@ -21,6 +21,15 @@ permissions:
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "docs/agents/**"
+      - "docs/adr/**"
+      - "tasks/**"
+      - ".scratch/**"
+      - "help/**"
   workflow_dispatch:
 
 concurrency:
