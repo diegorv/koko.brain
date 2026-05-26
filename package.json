@@ -65,7 +65,6 @@
     "katex": "^0.16.47",
     "lowlight": "^3.3.0",
     "lucide-static": "^1.16.0",
-    "lucide-svelte": "^1.0.1",
     "marked": "^18.0.3",
     "mermaid": "^11.15.0",
     "simple-icons": "^16.20.0",
