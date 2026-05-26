@@ -285,7 +285,7 @@
 			style:color={!isSelected && resolvedTextColor ? resolvedTextColor : undefined}
 		>{node.name}</span>
 		{#if node.isDirectory && fileCount > 0}
-			<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{String(fileCount).padStart(2, '0')}</span>
+			<span class="ml-auto shrink-0 pr-1 text-xs text-file-explorer-badge-fg">{String(fileCount).padStart(2, '0')}</span>
 		{/if}
 	</div>
 {/if}

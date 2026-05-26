@@ -54,6 +54,8 @@ export interface UIColors {
 	fileExplorerPrimary: string;
 	/** File explorer border/separator color */
 	fileExplorerBorder: string;
+	/** File explorer badge/count text color */
+	fileExplorerBadgeFg: string;
 	/** Right sidebar panel background */
 	rightSidebarBg: string;
 	/** Right sidebar primary text color */

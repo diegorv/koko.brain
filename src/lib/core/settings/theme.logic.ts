@@ -93,6 +93,7 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = {
 			fileExplorerAccent: 'oklch(0.28 0.025 272)',
 			fileExplorerPrimary: 'oklch(0.73 0.08 278)',
 			fileExplorerBorder: 'oklch(0.28 0.025 272)',
+			fileExplorerBadgeFg: '#8a8faa',
 			rightSidebarBg: '#2a2e3d',
 			rightSidebarFg: '#F8F8F2',
 			rightSidebarMutedFg: 'oklch(0.55 0.06 268)',

@@ -175,7 +175,7 @@
 							>
 								<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
 								<span class="truncate">{item.label}</span>
-								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{navCounts[item.id]}</span>
+								<span class="ml-auto shrink-0 pr-1 text-xs text-file-explorer-badge-fg">{navCounts[item.id]}</span>
 							</button>
 						{/each}
 					</div>
@@ -208,7 +208,7 @@
 									{viewLabel}
 								</span>
 								{#if viewCounts.has(view.path)}
-									<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{viewCounts.get(view.path)}</span>
+									<span class="ml-auto shrink-0 pr-1 text-xs text-file-explorer-badge-fg">{viewCounts.get(view.path)}</span>
 								{/if}
 							</button>
 						{/each}
@@ -239,7 +239,7 @@
 							<span class="truncate" style:color={!isTypeSelected(section.metadata.name) && defTextColor ? defTextColor : undefined}>
 								{section.metadata.sidebarLabel}
 							</span>
-							<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{section.notes.length}</span>
+							<span class="ml-auto shrink-0 pr-1 text-xs text-file-explorer-badge-fg">{section.notes.length}</span>
 						</button>
 					{/each}
 
@@ -251,7 +251,7 @@
 							>
 								<FileText class="size-4 shrink-0 text-file-explorer-muted-fg" />
 								<span class="truncate">Untyped</span>
-								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{untypedCount}</span>
+								<span class="ml-auto shrink-0 pr-1 text-xs text-file-explorer-badge-fg">{untypedCount}</span>
 							</button>
 						</div>
 					{/if}
