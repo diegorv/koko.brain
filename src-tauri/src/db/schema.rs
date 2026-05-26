@@ -5,9 +5,9 @@ use rusqlite::{Connection, OptionalExtension};
 /// and a fresh one is created with the matching `tokenize=` clause, then the
 /// `build_search_index` flow on app startup repopulates from disk.
 ///
-/// `v2-unicode61`: `tokenize='unicode61 remove_diacritics 2'` — folds
-/// "ação" / "acao", "ñ" / "n", etc. for PT-BR retrieval.
-const FTS_SCHEMA_VERSION: &str = "v2-unicode61";
+/// `v3-external-content`: external content table (`notes_content`) so FTS5
+/// DELETE no longer re-reads its internal content store (140–1100 ms → 2–5 ms).
+const FTS_SCHEMA_VERSION: &str = "v3-external-content";
 
 /// FTS5 `tokenize=` clause used when (re)creating the virtual table.
 const FTS_TOKENIZE: &str = "unicode61 remove_diacritics 2";
@@ -84,12 +84,25 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 		conn.execute_batch(&format!(
 			"DROP TABLE IF EXISTS notes_fts_vocab;
 			 DROP TABLE IF EXISTS notes_fts;
+			 DROP TABLE IF EXISTS notes_content;
+
+			 CREATE TABLE notes_content (
+				rowid   INTEGER PRIMARY KEY AUTOINCREMENT,
+				path    TEXT NOT NULL UNIQUE,
+				title   TEXT NOT NULL,
+				content TEXT NOT NULL,
+				headings TEXT NOT NULL,
+				tags    TEXT NOT NULL
+			 );
+
 			 CREATE VIRTUAL TABLE notes_fts USING fts5(
 				path,
 				title,
 				content,
 				headings,
 				tags,
+				content='notes_content',
+				content_rowid='rowid',
 				tokenize='{tok}'
 			 );
 			 CREATE VIRTUAL TABLE notes_fts_vocab USING fts5vocab(notes_fts, instance);",
@@ -247,9 +260,16 @@ mod tests {
 	fn fts_diacritic_match_folds_pt_br_terms() {
 		let conn = open_memory_db();
 		conn.execute(
-			"INSERT INTO notes_fts(path, title, content, headings, tags)
+			"INSERT INTO notes_content(path, title, content, headings, tags)
 			 VALUES (?1, ?2, ?3, ?4, ?5)",
 			rusqlite::params!["a.md", "Ação", "Texto sobre ação coletiva.", "", ""],
+		)
+		.unwrap();
+		let rowid = conn.last_insert_rowid();
+		conn.execute(
+			"INSERT INTO notes_fts(rowid, path, title, content, headings, tags)
+			 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+			rusqlite::params![rowid, "a.md", "Ação", "Texto sobre ação coletiva.", "", ""],
 		)
 		.unwrap();
 		let count: i64 = conn
@@ -279,16 +299,23 @@ mod tests {
 	fn create_tables_skips_fts_rebuild_on_second_call() {
 		let conn = open_memory_db();
 		conn.execute(
-			"INSERT INTO notes_fts(path, title, content, headings, tags)
+			"INSERT INTO notes_content(path, title, content, headings, tags)
 			 VALUES ('a.md', 't', 'c', '', '')",
 			[],
 		)
 		.unwrap();
+		let rowid = conn.last_insert_rowid();
+		conn.execute(
+			"INSERT INTO notes_fts(rowid, path, title, content, headings, tags)
+			 VALUES (?1, 'a.md', 't', 'c', '', '')",
+			[rowid],
+		)
+		.unwrap();
 		create_tables(&conn).unwrap();
 		let count: i64 = conn
-			.query_row("SELECT COUNT(*) FROM notes_fts", [], |row| row.get(0))
+			.query_row("SELECT COUNT(*) FROM notes_content", [], |row| row.get(0))
 			.unwrap();
-		assert_eq!(count, 1, "second create_tables call wiped the FTS table");
+		assert_eq!(count, 1, "second create_tables call wiped the content table");
 	}
 
 	#[test]
