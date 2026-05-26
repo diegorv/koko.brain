@@ -7,6 +7,7 @@ import {
 	getFileExtension,
 	isMarkdownFile,
 	isCollectionFile,
+	isViewFile,
 	isCanvasFile,
 	isKanbanFile,
 	isBinaryFile,
@@ -218,6 +219,21 @@ describe('isCollectionFile', () => {
 
 	it('is case insensitive', () => {
 		expect(isCollectionFile('test.COLLECTION')).toBe(true);
+	});
+});
+
+describe('isViewFile', () => {
+	it('returns true for .view files', () => {
+		expect(isViewFile('test.view')).toBe(true);
+	});
+
+	it('returns false for other files', () => {
+		expect(isViewFile('test.md')).toBe(false);
+		expect(isViewFile('test.collection')).toBe(false);
+	});
+
+	it('is case insensitive', () => {
+		expect(isViewFile('test.VIEW')).toBe(true);
 	});
 });
 

@@ -65,6 +65,11 @@ export function isCollectionFile(fileName: string): boolean {
 	return getFileExtension(fileName).toLowerCase() === '.collection';
 }
 
+/** Checks whether the file name has a .view extension (.collection alias for sidebar views) */
+export function isViewFile(fileName: string): boolean {
+	return getFileExtension(fileName).toLowerCase() === '.view';
+}
+
 /** Checks whether the file name has a .canvas extension */
 export function isCanvasFile(fileName: string): boolean {
 	return getFileExtension(fileName).toLowerCase() === '.canvas';
@@ -112,7 +117,7 @@ export function isBinaryFile(fileName: string): boolean {
  */
 export function getLanguageForFile(fileName: string): LanguageDescription | null {
 	if (isMarkdownFile(fileName)) return null;
-	if (isCollectionFile(fileName)) return LanguageDescription.matchFilename(languages, 'file.yaml') ?? null;
+	if (isCollectionFile(fileName) || isViewFile(fileName)) return LanguageDescription.matchFilename(languages, 'file.yaml') ?? null;
 	if (isCanvasFile(fileName)) return LanguageDescription.matchFilename(languages, 'file.json') ?? null;
 	if (isKanbanFile(fileName)) return null; // Kanban files are markdown-based
 	return LanguageDescription.matchFilename(languages, fileName) ?? null;
