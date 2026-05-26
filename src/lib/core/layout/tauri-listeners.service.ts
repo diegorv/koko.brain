@@ -10,7 +10,7 @@ import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.
 import { refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
+import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
 import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
 
@@ -96,10 +96,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 			const orderChanged = newOrder.size !== oldOrder.size
 				|| [...newOrder].some(([k, v]) => oldOrder.get(k) !== v);
 			fsStore.setContentOrder(newOrder);
-			if (orderChanged && fsStore.fileTree.length > 0 && vaultStore.path) {
-				const sorted = applyFolderOrder(fsStore.fileTree, fsStore.folderOrder, vaultStore.path, vaultStore.path, newOrder);
-				attachFileCounts(sorted);
-				fsStore.setFileTree(sorted);
+			if (orderChanged && vaultStore.path) {
+				loadDirectoryTree(vaultStore.path);
 			}
 		}).catch((err) => { console.error('get_all_vault_entries_v2 failed:', err); });
 	}).then((fn) => {
