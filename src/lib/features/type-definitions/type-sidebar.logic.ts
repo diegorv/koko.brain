@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
@@ -273,4 +274,46 @@ export function countInbox(entries: NoteEntryV2[]): number {
 		if (!e.organized && !e.archived && e.isA !== 'Type') count++;
 	}
 	return count;
+}
+
+/** Formats an epoch-seconds timestamp as a short date. Omits year if same as current. */
+export function formatNoteDate(epochSeconds: number): string {
+	if (epochSeconds === 0) return '';
+	const d = dayjs(epochSeconds * 1000);
+	const now = dayjs();
+	if (d.year() === now.year()) return d.format('MMM D');
+	return d.format('MMM D, YYYY');
+}
+
+/** Formats an epoch-seconds timestamp as relative time (e.g. "9m ago"). */
+export function formatRelativeTime(epochSeconds: number, nowMs?: number): string {
+	if (epochSeconds === 0) return '';
+	const diffMs = (nowMs ?? Date.now()) - epochSeconds * 1000;
+	const mins = Math.floor(diffMs / 60000);
+	if (mins < 1) return 'just now';
+	if (mins < 60) return `${mins}m ago`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	if (days < 30) return `${days}d ago`;
+	return formatNoteDate(epochSeconds);
+}
+
+/** Formats modified + created timestamps as a single display string. */
+export function formatDatePair(modifiedAt: number, createdAt: number): string {
+	if (!modifiedAt && !createdAt) return '';
+	const mod = formatRelativeTime(modifiedAt);
+	const cre = formatNoteDate(createdAt);
+	if (mod && cre) return `${mod} · created ${cre}`;
+	if (mod) return mod;
+	return `created ${cre}`;
+}
+
+/** Formats a frontmatter value for display. */
+export function formatPropertyValue(value: unknown): string {
+	if (value == null) return '';
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+	if (Array.isArray(value)) return value.map(formatPropertyValue).filter(Boolean).join(', ');
+	return '';
 }

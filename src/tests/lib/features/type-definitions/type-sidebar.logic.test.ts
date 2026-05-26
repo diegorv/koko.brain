@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, shouldShowSubFilter, countSubFilters } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -529,5 +529,114 @@ describe('countSubFilters', () => {
 		const counts = countSubFilters(entries, { kind: 'nav', id: 'all' });
 		expect(counts.open).toBe(1);
 		expect(counts.archived).toBe(1);
+	});
+});
+
+describe('formatNoteDate', () => {
+	it('returns empty for zero', () => {
+		expect(formatNoteDate(0)).toBe('');
+	});
+
+	it('omits year for current year', () => {
+		const now = new Date();
+		const epoch = Math.floor(new Date(now.getFullYear(), 0, 15).getTime() / 1000);
+		expect(formatNoteDate(epoch)).toBe('Jan 15');
+	});
+
+	it('includes year for different year', () => {
+		const epoch = Math.floor(new Date(2020, 5, 10).getTime() / 1000);
+		expect(formatNoteDate(epoch)).toBe('Jun 10, 2020');
+	});
+});
+
+describe('formatRelativeTime', () => {
+	const base = 1700000000000;
+
+	it('returns empty for zero', () => {
+		expect(formatRelativeTime(0, base)).toBe('');
+	});
+
+	it('returns just now for < 1 minute', () => {
+		const epoch = (base - 30000) / 1000;
+		expect(formatRelativeTime(epoch, base)).toBe('just now');
+	});
+
+	it('returns minutes ago', () => {
+		const epoch = (base - 5 * 60000) / 1000;
+		expect(formatRelativeTime(epoch, base)).toBe('5m ago');
+	});
+
+	it('returns hours ago', () => {
+		const epoch = (base - 3 * 3600000) / 1000;
+		expect(formatRelativeTime(epoch, base)).toBe('3h ago');
+	});
+
+	it('returns days ago', () => {
+		const epoch = (base - 7 * 86400000) / 1000;
+		expect(formatRelativeTime(epoch, base)).toBe('7d ago');
+	});
+
+	it('falls back to absolute date after 30 days', () => {
+		const epoch = (base - 45 * 86400000) / 1000;
+		expect(formatRelativeTime(epoch, base)).toMatch(/\w+ \d+/);
+	});
+});
+
+describe('formatDatePair', () => {
+	it('returns empty for both zero', () => {
+		expect(formatDatePair(0, 0)).toBe('');
+	});
+
+	it('returns only modified when no created', () => {
+		const result = formatDatePair(Math.floor(Date.now() / 1000), 0);
+		expect(result).toBe('just now');
+	});
+
+	it('returns only created when no modified', () => {
+		const epoch = Math.floor(new Date(2020, 5, 10).getTime() / 1000);
+		expect(formatDatePair(0, epoch)).toBe('created Jun 10, 2020');
+	});
+
+	it('combines modified and created', () => {
+		const now = Math.floor(Date.now() / 1000);
+		const created = Math.floor(new Date(2020, 5, 10).getTime() / 1000);
+		const result = formatDatePair(now, created);
+		expect(result).toContain('just now');
+		expect(result).toContain('created Jun 10, 2020');
+		expect(result).toContain('·');
+	});
+});
+
+describe('formatPropertyValue', () => {
+	it('returns empty for null', () => {
+		expect(formatPropertyValue(null)).toBe('');
+	});
+
+	it('returns empty for undefined', () => {
+		expect(formatPropertyValue(undefined)).toBe('');
+	});
+
+	it('returns string as-is', () => {
+		expect(formatPropertyValue('active')).toBe('active');
+	});
+
+	it('converts number to string', () => {
+		expect(formatPropertyValue(42)).toBe('42');
+	});
+
+	it('converts boolean to string', () => {
+		expect(formatPropertyValue(true)).toBe('true');
+	});
+
+	it('joins array values with commas', () => {
+		expect(formatPropertyValue(['a', 'b', 'c'])).toBe('a, b, c');
+	});
+
+	it('filters null values from arrays', () => {
+		expect(formatPropertyValue(['a', null, 'b'])).toBe('a, b');
+	});
+
+	it('returns empty for objects', () => {
+		expect(formatPropertyValue({ key: 'val' })).toBe('');
 	});
 });

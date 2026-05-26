@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { ask } from '@tauri-apps/plugin-dialog';
-	import dayjs from 'dayjs';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Copy from '@lucide/svelte/icons/copy';
@@ -25,7 +24,7 @@
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, shouldShowSubFilter, countSubFilters, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { getNotesForSelection, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 
 	let notes = $state<TypeSidebarNote[]>([]);
@@ -99,43 +98,7 @@
 		}
 	});
 
-	function formatDate(epochSeconds: number): string {
-		if (epochSeconds === 0) return '';
-		const d = dayjs(epochSeconds * 1000);
-		const now = dayjs();
-		if (d.year() === now.year()) return d.format('MMM D');
-		return d.format('MMM D, YYYY');
-	}
 
-	function formatRelative(epochSeconds: number): string {
-		if (epochSeconds === 0) return '';
-		const diffMs = Date.now() - epochSeconds * 1000;
-		const mins = Math.floor(diffMs / 60000);
-		if (mins < 1) return 'just now';
-		if (mins < 60) return `${mins}m ago`;
-		const hours = Math.floor(mins / 60);
-		if (hours < 24) return `${hours}h ago`;
-		const days = Math.floor(hours / 24);
-		if (days < 30) return `${days}d ago`;
-		return formatDate(epochSeconds);
-	}
-
-	function formatDatePair(modifiedAt: number, createdAt: number): string {
-		if (!modifiedAt && !createdAt) return '';
-		const mod = formatRelative(modifiedAt);
-		const cre = formatDate(createdAt);
-		if (mod && cre) return `${mod} · created ${cre}`;
-		if (mod) return mod;
-		return `created ${cre}`;
-	}
-
-	function formatPropertyValue(value: unknown): string {
-		if (value == null) return '';
-		if (typeof value === 'string') return value;
-		if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-		if (Array.isArray(value)) return value.map(formatPropertyValue).filter(Boolean).join(', ');
-		return '';
-	}
 
 	function resolveNoteIcon(notePath: string) {
 		const noteResolved = resolveIconForPath(notePath);
