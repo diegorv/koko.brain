@@ -37,12 +37,18 @@ const lastFetchedBacklinksVersion = new Map<string, number>();
 /** Same idea as `lastFetchedBacklinksVersion`, for unlinked-mentions. */
 const lastFetchedUnlinkedVersion = new Map<string, number>();
 
+interface CachedScanResult {
+	source: 'cache' | 'cache_reconciled' | 'full_scan';
+	entryCount: number;
+	loadMs: number;
+	filesReread: number;
+}
+
 /**
- * Bootstraps the Rust `VaultIndex` for the given vault path. Replaces
- * the old TS scan + parse loop that populated `noteIndexStore`. The
- * Rust `scan_vault_v2` command walks the filesystem, builds VaultIndex,
- * and emits `vault-index-updated` once complete; `vaultStore.vaultIndexVersion`
- * bumps and every panel `$effect` reactively refetches.
+ * Bootstraps the Rust `VaultIndex` for the given vault path. Uses the
+ * persistent disk cache when available, falling back to a full scan on
+ * cache miss. Mtime reconciliation re-reads only files that changed
+ * since the cache was written.
  */
 export async function buildIndex(path: string) {
 	if (isBuilding) {
@@ -54,11 +60,14 @@ export async function buildIndex(path: string) {
 
 	const t0 = perfStart();
 	try {
-		await invoke('scan_vault_v2', { path });
-		perfEnd('BACKLINKS', 'buildIndex:scan_vault_v2', t0);
-		debug('BACKLINKS', 'Rust VaultIndex bootstrapped');
+		const result = await invoke<CachedScanResult>('scan_vault_v2_cached', { path });
+		perfEnd('BACKLINKS', `buildIndex:${result.source}`, t0);
+		debug(
+			'BACKLINKS',
+			`VaultIndex loaded: source=${result.source} entries=${result.entryCount} reread=${result.filesReread} ${result.loadMs}ms`,
+		);
 	} catch (err) {
-		errorLog('BACKLINKS', 'scan_vault_v2 failed:', err);
+		errorLog('BACKLINKS', 'scan_vault_v2_cached failed:', err);
 	} finally {
 		isBuilding = false;
 		if (pendingRebuild && vaultPath) {

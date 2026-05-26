@@ -24,15 +24,20 @@ describe('buildIndex', () => {
 		editorStore.reset();
 	});
 
-	it('invokes scan_vault_v2 with the vault path', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce(undefined);
+	it('invokes scan_vault_v2_cached with the vault path', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce({
+			source: 'full_scan',
+			entryCount: 10,
+			loadMs: 100,
+			filesReread: 10,
+		});
 
 		await buildIndex('/vault');
 
-		expect(invoke).toHaveBeenCalledWith('scan_vault_v2', { path: '/vault' });
+		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault' });
 	});
 
-	it('swallows scan_vault_v2 IPC failures (logs but does not throw)', async () => {
+	it('swallows scan_vault_v2_cached IPC failures (logs but does not throw)', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('Rust panic'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -42,13 +47,19 @@ describe('buildIndex', () => {
 	});
 
 	it('queues a pending rebuild when called concurrently', async () => {
+		const cachedResult = {
+			source: 'full_scan',
+			entryCount: 10,
+			loadMs: 100,
+			filesReread: 10,
+		};
 		// First call slow-resolves; second call should be queued.
-		let resolveFirst: () => void = () => {};
-		const firstPending = new Promise<void>((r) => { resolveFirst = r; });
+		let resolveFirst: (v: unknown) => void = () => {};
+		const firstPending = new Promise<unknown>((r) => { resolveFirst = r; });
 		vi.mocked(invoke)
 			.mockReturnValueOnce(firstPending)
-			.mockResolvedValueOnce(undefined)
-			.mockResolvedValueOnce(undefined);
+			.mockResolvedValueOnce(cachedResult)
+			.mockResolvedValueOnce(cachedResult);
 
 		const first = buildIndex('/vault');
 		const second = buildIndex('/vault'); // marks pendingRebuild + returns
@@ -56,7 +67,7 @@ describe('buildIndex', () => {
 		// Only the first scan should have been invoked so far.
 		expect(invoke).toHaveBeenCalledTimes(1);
 
-		resolveFirst();
+		resolveFirst(cachedResult);
 		await first;
 
 		// pendingRebuild flag re-fires buildIndex once the first call completes.
@@ -73,14 +84,25 @@ describe('rebuildIndex', () => {
 	});
 
 	it('replays the cached vault path through buildIndex', async () => {
-		vi.mocked(invoke).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValue({
+			source: 'cache',
+			entryCount: 10,
+			loadMs: 50,
+			filesReread: 0,
+		});
 
 		await buildIndex('/vault');
 		vi.mocked(invoke).mockClear();
+		vi.mocked(invoke).mockResolvedValue({
+			source: 'cache_reconciled',
+			entryCount: 10,
+			loadMs: 80,
+			filesReread: 2,
+		});
 
 		await rebuildIndex();
 
-		expect(invoke).toHaveBeenCalledWith('scan_vault_v2', { path: '/vault' });
+		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault' });
 	});
 
 	it('is a no-op when no vault has been bootstrapped', async () => {

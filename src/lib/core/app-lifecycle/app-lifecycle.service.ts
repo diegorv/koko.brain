@@ -68,6 +68,7 @@ import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/feat
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
 import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
@@ -379,6 +380,13 @@ export function teardownVault(): void {
 	stopSemanticProgressListener();
 	stopTauriDebugListener();
 	teardownLogSession();
+
+	// ── Save index cache before teardown ─────────────────────────────
+	if (vaultStore.path) {
+		invoke('save_vault_cache', { path: vaultStore.path }).catch((err: unknown) => {
+			error('LIFECYCLE', 'Failed to save vault cache:', err);
+		});
+	}
 
 	// ── Close database + async cleanup ───────────────────────────────
 	debug('LIFECYCLE', 'Closing vault database...');
