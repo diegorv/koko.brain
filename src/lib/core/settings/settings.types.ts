@@ -63,6 +63,8 @@ export interface LayoutSettings {
 	tableOfContentsVisible: boolean;
 	/** Saved width percentage of the left sidebar pane (file explorer / search) */
 	leftPaneSize: number;
+	/** Saved width percentage of the middle panel (type note list, types mode only) */
+	middlePanelSize: number;
 	/** Saved width percentage of the right sidebar pane */
 	rightSidebarSize: number;
 }

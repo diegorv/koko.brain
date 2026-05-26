@@ -62,6 +62,52 @@ export function countNavItems(entries: NoteEntryV2[]): NavItemCounts {
 	return { inbox, all, archive, favorites };
 }
 
+/** Returns notes matching the current sidebar selection, sorted by the type's sort setting. */
+export function getNotesForSelection(
+	entries: NoteEntryV2[],
+	selection: TypeSidebarSelection,
+	typeMetadataMap: Map<string, TypeMetadata>,
+): TypeSidebarNote[] {
+	let filtered: NoteEntryV2[];
+	let sort = 'title';
+
+	switch (selection.kind) {
+		case 'type': {
+			filtered = entries.filter((e) => e.isA === selection.name && !e.archived);
+			const meta = getTypeMetadataFallback(selection.name, typeMetadataMap);
+			sort = meta.sort;
+			break;
+		}
+		case 'untyped':
+			filtered = entries.filter((e) => !e.isA && e.isA !== 'Type' && !e.archived);
+			break;
+		case 'nav':
+			return [];
+	}
+
+	const notes = filtered.map(toSidebarNote);
+	sortNotes(notes, sort, 'all');
+	return notes;
+}
+
+function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
+	const rawOrder = entry.frontmatter['_order'];
+	const parsedOrder = typeof rawOrder === 'number' ? rawOrder : Number(rawOrder);
+	const order = Number.isFinite(parsedOrder) ? parsedOrder : Infinity;
+	const rawFavIdx = entry.frontmatter['_favorite_index'];
+	const parsedFavIdx = typeof rawFavIdx === 'number' ? rawFavIdx : Number(rawFavIdx);
+	const favoriteIndex = Number.isFinite(parsedFavIdx) ? parsedFavIdx : Infinity;
+	return {
+		path: entry.path,
+		title: entry.title,
+		order,
+		favoriteIndex,
+		favorite: entry.favorite,
+		modifiedAt: entry.modifiedAt,
+		createdAt: entry.createdAt,
+	};
+}
+
 /** Builds type-grouped sections from vault entries. */
 export function buildTypeSections(
 	entries: NoteEntryV2[],

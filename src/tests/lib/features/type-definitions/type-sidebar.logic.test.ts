@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -318,5 +318,65 @@ describe('countNavItems', () => {
 		const counts = countNavItems(entries);
 		expect(counts.favorites).toBe(0);
 		expect(counts.archive).toBe(1);
+	});
+});
+
+describe('getNotesForSelection', () => {
+	it('returns notes matching selected type', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Person' }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project' }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		expect(notes.length).toBe(2);
+		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
+	});
+
+	it('excludes archived notes for type selection', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		expect(notes.length).toBe(1);
+		expect(notes[0].title).toBe('A');
+	});
+
+	it('uses type sort setting', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
+		];
+		const map = new Map([['Project', meta('Project', { sort: 'modified' })]]);
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, map);
+		expect(notes.map((n) => n.title)).toEqual(['B', 'A']);
+	});
+
+	it('returns untyped notes for untyped selection', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: null }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project' }),
+			entryV2('/v/c.md', { title: 'C', isA: null }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
+		expect(notes.length).toBe(2);
+		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
+	});
+
+	it('returns empty array for nav selection', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
+		expect(notes.length).toBe(0);
+	});
+
+	it('returns empty when no notes match type', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		expect(notes.length).toBe(0);
 	});
 });

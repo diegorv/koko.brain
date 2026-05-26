@@ -52,6 +52,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		tagsVisible: true,
 		tableOfContentsVisible: true,
 		leftPaneSize: 25,
+		middlePanelSize: 20,
 		rightSidebarSize: 25,
 	},
 	folderNotes: {

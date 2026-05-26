@@ -10,6 +10,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import FileExplorer from '$lib/core/file-explorer/FileExplorer.svelte';
 	import TypeSidebar from '$lib/features/type-definitions/TypeSidebar.svelte';
+	import TypeNoteList from '$lib/features/type-definitions/TypeNoteList.svelte';
 	import EditorView from '$lib/core/markdown-editor/EditorView.svelte';
 	import BacklinksPanel from '$lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '$lib/features/outgoing-links/OutgoingLinksPanel.svelte';
@@ -53,10 +54,19 @@
 		debouncedSave();
 	}
 
+	function handleMiddlePanelResize(size: number) {
+		settingsStore.updateLayout({ middlePanelSize: size });
+		debouncedSave();
+	}
+
 	function handleRightSidebarResize(size: number) {
 		settingsStore.updateLayout({ rightSidebarSize: size });
 		debouncedSave();
 	}
+
+	let showMiddlePanel = $derived(
+		!searchStore.isOpen && settingsStore.layout.sidebarMode === 'types'
+	);
 
 </script>
 
@@ -85,6 +95,19 @@
 					</Resizable.Pane>
 
 					<Resizable.Handle />
+
+					{#if showMiddlePanel}
+						<Resizable.Pane
+							defaultSize={settingsStore.layout.middlePanelSize}
+							minSize={15}
+							maxSize={35}
+							onResize={handleMiddlePanelResize}
+						>
+							<TypeNoteList />
+						</Resizable.Pane>
+
+						<Resizable.Handle />
+					{/if}
 
 					<Resizable.Pane>
 						<EditorView />
