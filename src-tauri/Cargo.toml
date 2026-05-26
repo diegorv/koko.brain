@@ -36,6 +36,7 @@ sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 
 # Shared infrastructure
 chrono = "0.4"
+rmp-serde = "1.3"
 rusqlite = { version = "0.39", features = ["bundled"] }
 sha2 = "0.11"
 

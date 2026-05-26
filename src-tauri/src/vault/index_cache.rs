@@ -1,10 +1,11 @@
 //! Persistent snapshot codec for the `VaultIndex`.
 //!
-//! Serializes `Vec<NoteEntry>` to a versioned JSON file. Reverse indexes
-//! are NOT persisted — they are rebuilt at load time via
-//! `VaultIndex::build`. JSON chosen over bincode because `NoteEntry`
-//! contains `serde_json::Value` fields (frontmatter) which require
-//! `deserialize_any` — unsupported by non-self-describing formats.
+//! Serializes `Vec<NoteEntry>` to a versioned MessagePack file via
+//! `rmp-serde`. Reverse indexes are NOT persisted — they are rebuilt at
+//! load time via `VaultIndex::build`. MessagePack chosen over bincode
+//! because `NoteEntry` contains `serde_json::Value` fields requiring
+//! `deserialize_any` (only self-describing formats support it), and over
+//! plain JSON for ~2x faster deserialization and ~50% smaller files.
 
 use crate::vault::entry::NoteEntry;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// Bumped whenever `NoteEntry` shape changes in any way that affects
 /// serialization (field add/remove/reorder/type change). Mismatch on
 /// load -> discard cache -> full scan.
-pub const INDEX_SCHEMA_VERSION: u32 = 1;
+pub const INDEX_SCHEMA_VERSION: u32 = 2;
 
 /// Top-level envelope persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,23 +27,23 @@ pub struct IndexSnapshot {
 	pub entries: Vec<NoteEntry>,
 }
 
-/// Serializes a snapshot to JSON bytes.
+/// Serializes a snapshot to MessagePack bytes.
 pub fn serialize_snapshot(snapshot: &IndexSnapshot) -> Result<Vec<u8>, String> {
-	serde_json::to_vec(snapshot).map_err(|e| format!("snapshot serialize failed: {e}"))
+	rmp_serde::to_vec(snapshot).map_err(|e| format!("snapshot serialize failed: {e}"))
 }
 
-/// Deserializes a snapshot from JSON bytes. Returns an error on
+/// Deserializes a snapshot from MessagePack bytes. Returns an error on
 /// truncation, corruption, or any decode failure.
 pub fn deserialize_snapshot(bytes: &[u8]) -> Result<IndexSnapshot, String> {
-	serde_json::from_slice(bytes).map_err(|e| format!("snapshot deserialize failed: {e}"))
+	rmp_serde::from_slice(bytes).map_err(|e| format!("snapshot deserialize failed: {e}"))
 }
 
 /// Returns the path to the cache file for the given vault.
-/// Location: `<vault_path>/.kokobrain/vault-index.json`.
+/// Location: `<vault_path>/.kokobrain/vault-index.msgpack`.
 pub fn cache_file_path(vault_path: &str) -> std::path::PathBuf {
 	std::path::PathBuf::from(vault_path)
 		.join(".kokobrain")
-		.join("vault-index.json")
+		.join("vault-index.msgpack")
 }
 
 /// Writes bytes to disk atomically: write to .tmp, fsync, rename.
@@ -56,7 +57,7 @@ pub fn write_snapshot_atomic(path: &std::path::Path, bytes: &[u8]) -> Result<(),
 			.map_err(|e| format!("create cache dir failed: {e}"))?;
 	}
 
-	let tmp_path = path.with_extension("json.tmp");
+	let tmp_path = path.with_extension("msgpack.tmp");
 
 	let mut file = fs::File::create(&tmp_path)
 		.map_err(|e| format!("create tmp cache file failed: {e}"))?;
@@ -212,14 +213,14 @@ mod tests {
 		let path = cache_file_path("/Users/foo/my-vault");
 		assert_eq!(
 			path,
-			std::path::PathBuf::from("/Users/foo/my-vault/.kokobrain/vault-index.json")
+			std::path::PathBuf::from("/Users/foo/my-vault/.kokobrain/vault-index.msgpack")
 		);
 	}
 
 	#[test]
 	fn atomic_write_roundtrip() {
 		let dir = tempfile::tempdir().unwrap();
-		let cache_path = dir.path().join("vault-index.json");
+		let cache_path = dir.path().join("vault-index.msgpack");
 
 		let snapshot = IndexSnapshot {
 			schema_version: INDEX_SCHEMA_VERSION,
@@ -236,7 +237,7 @@ mod tests {
 		assert_eq!(restored.entries[0].path, "/vault/note-one.md");
 
 		// No .tmp file left behind
-		assert!(!cache_path.with_extension("json.tmp").exists());
+		assert!(!cache_path.with_extension("msgpack.tmp").exists());
 	}
 
 	#[test]
