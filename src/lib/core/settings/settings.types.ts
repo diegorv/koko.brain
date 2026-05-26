@@ -49,6 +49,8 @@ export type SidebarMode = 'files' | 'types' | 'calendar';
 export interface LayoutSettings {
 	/** Left sidebar mode: file explorer or type-grouped */
 	sidebarMode: SidebarMode;
+	/** Whether the left sidebar is visible */
+	leftSidebarVisible: boolean;
 	/** Whether the right sidebar (Properties, Backlinks, Tags, etc.) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */

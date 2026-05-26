@@ -154,6 +154,17 @@ export function getBuiltInCommands(): AppCommand[] {
 			},
 		},
 		{
+			id: 'layout:toggle-left-sidebar',
+			label: 'Toggle Left Sidebar',
+			category: 'Layout',
+			shortcut: { meta: true, shift: true, key: 'b' },
+			action: () => {
+				const current = settingsStore.layout.leftSidebarVisible;
+				settingsStore.updateLayout({ leftSidebarVisible: !current });
+				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
+			},
+		},
+		{
 			id: 'layout:toggle-right-sidebar',
 			label: 'Toggle Right Sidebar',
 			category: 'Layout',

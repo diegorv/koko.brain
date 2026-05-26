@@ -6,6 +6,7 @@
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Kanban from '@lucide/svelte/icons/kanban';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
+	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { onContentChange } from '$lib/core/editor/editor.service';
 	import EditorTabs from './EditorTabs.svelte';
 	import MarkdownEditor from './MarkdownEditor.svelte';

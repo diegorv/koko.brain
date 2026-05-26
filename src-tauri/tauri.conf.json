@@ -15,6 +15,7 @@
         "title": "KokoBrain",
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
+        "trafficLightPosition": { "x": 8, "y": 22 },
         "width": 1200,
         "height": 800,
         "minWidth": 800,

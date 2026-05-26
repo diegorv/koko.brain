@@ -24,6 +24,7 @@
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '$lib/core/status-bar/SemanticIndexStatus.svelte';
 	import { saveSettings } from '$lib/core/settings/settings.service';
+	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
 	import { debounce } from '$lib/utils/debounce';
 	import { error } from '$lib/utils/debug';
@@ -76,7 +77,14 @@
 {:else}
 	<div class="relative flex h-screen flex-col">
 		<button
-			class="absolute right-2 top-3 z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
+			class="absolute left-[82px] top-2 z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
+			onclick={() => { const v = settingsStore.layout.leftSidebarVisible; settingsStore.updateLayout({ leftSidebarVisible: !v }); }}
+			title={settingsStore.layout.leftSidebarVisible ? 'Hide left sidebar' : 'Show left sidebar'}
+		>
+			<PanelLeft class="size-3.5" />
+		</button>
+		<button
+			class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
 			onclick={() => { const v = settingsStore.layout.rightSidebarVisible; settingsStore.updateLayout({ rightSidebarVisible: !v }); }}
 			title={settingsStore.layout.rightSidebarVisible ? 'Hide right sidebar' : 'Show right sidebar'}
 		>
@@ -85,25 +93,33 @@
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
-					<Resizable.Pane
-						order={1}
-						defaultSize={settingsStore.layout.leftPaneSize}
-						minSize={5}
-						maxSize={40}
-						onResize={handleLeftPaneResize}
-					>
-						{#if searchStore.isOpen}
-							<SearchPanel />
-						{:else if settingsStore.layout.sidebarMode === 'calendar'}
-							<CalendarPanel />
-						{:else if settingsStore.layout.sidebarMode === 'types'}
-							<TypeSidebar />
-						{:else}
-							<FileExplorer />
-						{/if}
-					</Resizable.Pane>
+					{#if !settingsStore.layout.leftSidebarVisible}
+						<div class="flex flex-col w-[116px] shrink-0">
+							<div class="h-10 bg-tab-bar shrink-0"></div>
+							<div class="flex-1 bg-card"></div>
+						</div>
+					{/if}
+					{#if settingsStore.layout.leftSidebarVisible}
+						<Resizable.Pane
+							order={1}
+							defaultSize={settingsStore.layout.leftPaneSize}
+							minSize={5}
+							maxSize={40}
+							onResize={handleLeftPaneResize}
+						>
+							{#if searchStore.isOpen}
+								<SearchPanel />
+							{:else if settingsStore.layout.sidebarMode === 'calendar'}
+								<CalendarPanel />
+							{:else if settingsStore.layout.sidebarMode === 'types'}
+								<TypeSidebar />
+							{:else}
+								<FileExplorer />
+							{/if}
+						</Resizable.Pane>
 
-					<Resizable.Handle />
+						<Resizable.Handle />
+					{/if}
 
 					{#if showMiddlePanel}
 						<Resizable.Pane

@@ -45,6 +45,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	layout: {
 		sidebarMode: 'types',
+		leftSidebarVisible: true,
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,

@@ -84,6 +84,16 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({
 			key: 'b',
 			meta: true,
+			shift: true,
+			handler: () => {
+				const current = settingsStore.layout.leftSidebarVisible;
+				settingsStore.updateLayout({ leftSidebarVisible: !current });
+				if (vaultStore.path) saveSettings(vaultStore.path).catch(err => error('SETTINGS', 'Failed to save settings:', err));
+			},
+		}),
+		registerKeybinding({
+			key: 'b',
+			meta: true,
 			handler: () => {
 				const current = settingsStore.layout.rightSidebarVisible;
 				settingsStore.updateLayout({ rightSidebarVisible: !current });
