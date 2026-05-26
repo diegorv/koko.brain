@@ -45,7 +45,7 @@ pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String
 
 	// Skip rebuild if FTS index is already populated and roughly matches
 	let existing_count = db::with_fts_db(|conn| db::fts_repo::count_entries(conn)).unwrap_or(0);
-	if existing_count > 0 {
+	if existing_count > 0 && disk_count > 0 {
 		let diff = (disk_count as i64 - existing_count as i64).unsigned_abs();
 		let threshold = (disk_count / 20).max(5); // 5% or at least 5
 		if diff <= threshold {

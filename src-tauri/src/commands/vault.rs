@@ -942,7 +942,9 @@ pub fn scan_vault_v2_cached(
 			debug_log("VAULT-CACHE", format!("cache read error: {e} — full scan"));
 			// Delete corrupt cache file
 			let cache_path = index_cache::cache_file_path(&path);
-			let _ = std::fs::remove_file(&cache_path);
+			if let Err(del_err) = std::fs::remove_file(&cache_path) {
+				debug_log("VAULT-CACHE", format!("failed to delete corrupt cache: {del_err}"));
+			}
 			None
 		}
 	};
@@ -1008,7 +1010,7 @@ pub fn scan_vault_v2_cached(
 				// Unchanged — use cached entry
 				final_entries.push(cached);
 			} else {
-				// mtime changed — re-read
+				// mtime changed — re-read; fallback to stale cache on failure
 				match fs::read_to_string(abs) {
 					Ok(content) => {
 						final_entries.push(NoteEntry::from_content_full(
@@ -1019,8 +1021,9 @@ pub fn scan_vault_v2_cached(
 					Err(err) => {
 						debug_log(
 							"VAULT-CACHE",
-							format!("skip re-read {abs_str}: {err}"),
+							format!("re-read failed, keeping cached: {abs_str}: {err}"),
 						);
+						final_entries.push(cached);
 					}
 				}
 			}
