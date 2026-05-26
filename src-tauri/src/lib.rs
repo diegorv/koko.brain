@@ -114,6 +114,8 @@ pub fn run() {
             commands::history::cleanup_history,
             commands::vault::scan_vault,
             commands::vault::scan_vault_v2,
+            commands::vault::scan_vault_v2_cached,
+            commands::vault::save_vault_cache,
             commands::vault::get_backlinks_v2,
             commands::vault::get_relationship_backlinks_v2,
             commands::vault::get_outgoing_links_v2,

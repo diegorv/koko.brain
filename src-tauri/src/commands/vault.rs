@@ -887,6 +887,255 @@ pub fn scan_vault_v2(
 	Ok(notes)
 }
 
+/// Result payload for `scan_vault_v2_cached`, reporting how the index
+/// was loaded so the frontend can log telemetry.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CachedScanResult {
+	/// "cache" if loaded from snapshot without changes, "cache_reconciled"
+	/// if loaded from snapshot but some files needed re-reading,
+	/// "full_scan" if cache was missing/invalid and a full scan ran.
+	pub source: String,
+	pub entry_count: usize,
+	pub load_ms: u64,
+	pub files_reread: usize,
+}
+
+/// Loads the vault index from the on-disk cache if available, falling
+/// back to a full `scan_vault_v2` on cache miss or corruption. When
+/// loading from cache, performs an mtime reconciliation: walks the vault
+/// for current file metadata, re-reads only files whose mtime changed,
+/// adds new files, and drops deleted entries.
+#[tauri::command]
+pub fn scan_vault_v2_cached(
+	app: tauri::AppHandle,
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<CachedScanResult, String> {
+	use crate::vault::index_cache;
+
+	let _trace = CmdTrace::new("scan_vault_v2_cached");
+	let start = Instant::now();
+
+	// Try loading the cache
+	let snapshot = match index_cache::read_snapshot(&path) {
+		Ok(Some(snap)) => {
+			if snap.schema_version != index_cache::INDEX_SCHEMA_VERSION {
+				debug_log(
+					"VAULT-CACHE",
+					format!(
+						"schema version mismatch: expected {}, got {} — full scan",
+						index_cache::INDEX_SCHEMA_VERSION,
+						snap.schema_version,
+					),
+				);
+				None
+			} else {
+				Some(snap)
+			}
+		}
+		Ok(None) => {
+			debug_log("VAULT-CACHE", "no cache file found — full scan".to_string());
+			None
+		}
+		Err(e) => {
+			debug_log("VAULT-CACHE", format!("cache read error: {e} — full scan"));
+			// Delete corrupt cache file
+			let cache_path = index_cache::cache_file_path(&path);
+			let _ = std::fs::remove_file(&cache_path);
+			None
+		}
+	};
+
+	// Cache miss -> full scan (existing path)
+	let Some(snapshot) = snapshot else {
+		let notes = collect_v2_entries(&path)?;
+		let build_start = Instant::now();
+		let entry_count = notes.len();
+		let new_version = {
+			let mut idx = state
+				.write()
+				.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
+			idx.build(notes.clone());
+			idx.version()
+		};
+		debug_log(
+			"VAULT-CACHE",
+			format!(
+				"full scan: {} entries, build {}ms",
+				entry_count,
+				build_start.elapsed().as_millis(),
+			),
+		);
+		emit_index_updated(&app, new_version);
+		// Write cache for next boot
+		if let Err(e) = index_cache::write_snapshot(&path, &notes) {
+			debug_log("VAULT-CACHE", format!("cache write failed: {e}"));
+		}
+		return Ok(CachedScanResult {
+			source: "full_scan".to_string(),
+			entry_count,
+			load_ms: start.elapsed().as_millis() as u64,
+			files_reread: entry_count,
+		});
+	};
+
+	// Cache hit -> mtime reconciliation
+	debug_log(
+		"VAULT-CACHE",
+		format!("cache loaded: {} entries", snapshot.entries.len()),
+	);
+
+	// Build a map of cached entries by path for O(1) lookup
+	let mut cached_by_path: std::collections::HashMap<String, NoteEntry> = snapshot
+		.entries
+		.into_iter()
+		.map(|e| (e.path.clone(), e))
+		.collect();
+
+	// Walk disk for current file metadata (path + mtime + ctime + size)
+	let root = vault_fs::validate_vault_path(&path)?;
+	let disk_entries = vault_fs::collect_markdown_paths_with_metadata(&root, &[])?;
+
+	let mut final_entries: Vec<NoteEntry> = Vec::with_capacity(disk_entries.len());
+	let mut files_reread: usize = 0;
+
+	for (_rel, abs, mtime, ctime, size) in &disk_entries {
+		let abs_str = abs.to_string_lossy().to_string();
+
+		if let Some(cached) = cached_by_path.remove(&abs_str) {
+			if cached.modified_at == *mtime {
+				// Unchanged — use cached entry
+				final_entries.push(cached);
+			} else {
+				// mtime changed — re-read
+				match fs::read_to_string(abs) {
+					Ok(content) => {
+						final_entries.push(NoteEntry::from_content_full(
+							abs_str, &content, *mtime, *ctime, *size,
+						));
+						files_reread += 1;
+					}
+					Err(err) => {
+						debug_log(
+							"VAULT-CACHE",
+							format!("skip re-read {abs_str}: {err}"),
+						);
+					}
+				}
+			}
+		} else {
+			// New file (not in cache) — read
+			match fs::read_to_string(abs) {
+				Ok(content) => {
+					final_entries.push(NoteEntry::from_content_full(
+						abs_str, &content, *mtime, *ctime, *size,
+					));
+					files_reread += 1;
+				}
+				Err(err) => {
+					debug_log(
+						"VAULT-CACHE",
+						format!("skip new file {abs_str}: {err}"),
+					);
+				}
+			}
+		}
+	}
+
+	// Anything left in cached_by_path was deleted from disk — dropped
+	let deleted_count = cached_by_path.len();
+	if deleted_count > 0 {
+		debug_log(
+			"VAULT-CACHE",
+			format!("{deleted_count} cached entries no longer on disk (deleted)"),
+		);
+	}
+
+	let entry_count = final_entries.len();
+	let build_start = Instant::now();
+	let new_version = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
+		idx.build(final_entries.clone());
+		idx.version()
+	};
+
+	debug_log(
+		"VAULT-CACHE",
+		format!(
+			"reconciled: {} entries (reread={}, deleted={}), build {}ms, total {}ms",
+			entry_count,
+			files_reread,
+			deleted_count,
+			build_start.elapsed().as_millis(),
+			start.elapsed().as_millis(),
+		),
+	);
+
+	emit_index_updated(&app, new_version);
+
+	// Update cache if anything changed
+	if files_reread > 0 || deleted_count > 0 {
+		if let Err(e) = index_cache::write_snapshot(&path, &final_entries) {
+			debug_log("VAULT-CACHE", format!("cache write failed: {e}"));
+		}
+	}
+
+	let source = if files_reread == 0 && deleted_count == 0 {
+		"cache"
+	} else {
+		"cache_reconciled"
+	};
+
+	Ok(CachedScanResult {
+		source: source.to_string(),
+		entry_count,
+		load_ms: start.elapsed().as_millis() as u64,
+		files_reread,
+	})
+}
+
+/// Emits the `vault-index-updated` event with the given version.
+fn emit_index_updated(app: &tauri::AppHandle, version: u64) {
+	let payload = UpdateResult {
+		changed: true,
+		affected: Vec::new(),
+		version,
+	};
+	if let Err(e) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
+		debug_log(
+			"VAULT-CACHE",
+			format!("vault-index-updated emit failed: {e}"),
+		);
+	}
+}
+
+/// Saves the current in-memory VaultIndex entries to the disk cache.
+/// Called from the frontend on vault teardown so the next boot can
+/// load from cache.
+#[tauri::command]
+pub fn save_vault_cache(
+	path: String,
+	state: tauri::State<'_, VaultIndexState>,
+) -> Result<(), String> {
+	use crate::vault::index_cache;
+
+	let _trace = CmdTrace::new("save_vault_cache");
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
+	let entries: Vec<NoteEntry> = idx.entries().values().cloned().collect();
+	drop(idx);
+	index_cache::write_snapshot(&path, &entries)?;
+	debug_log(
+		"VAULT-CACHE",
+		format!("saved cache: {} entries", entries.len()),
+	);
+	Ok(())
+}
+
 fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
     nodes.sort_by(|a, b| {
         // Directories always come first
