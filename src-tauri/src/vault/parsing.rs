@@ -476,6 +476,17 @@ pub fn parse_frontmatter(content: &str) -> BTreeMap<String, JsonValue> {
 	parse_yaml_lines(&lines)
 }
 
+/// Parses entire content as YAML (no `---` delimiters). Used for `.view` files
+/// where the whole file is YAML metadata + collection definition.
+pub fn parse_frontmatter_raw_yaml(content: &str) -> BTreeMap<String, JsonValue> {
+	let lines: Vec<&str> = content
+		.split('\n')
+		.map(|l| l.strip_suffix('\r').unwrap_or(l))
+		.collect();
+
+	parse_yaml_lines(&lines)
+}
+
 fn parse_yaml_lines(lines: &[&str]) -> BTreeMap<String, JsonValue> {
 	let mut result: BTreeMap<String, JsonValue> = BTreeMap::new();
 	let mut i = 0usize;
@@ -2892,5 +2903,27 @@ mod tests {
 		let content = "line one\n- [ ] task on line two\nline three";
 		let result = toggle_task_in_content(content, 2);
 		assert_eq!(result, "line one\n- [x] task on line two\nline three");
+	}
+
+	#[test]
+	fn parse_frontmatter_raw_yaml_extracts_top_level_keys() {
+		let content = "_icon: rocket\n_color: red\n_order: 5\n";
+		let fm = parse_frontmatter_raw_yaml(content);
+		assert_eq!(fm.get("_icon").and_then(|v| v.as_str()), Some("rocket"));
+		assert_eq!(fm.get("_color").and_then(|v| v.as_str()), Some("red"));
+		assert_eq!(fm.get("_order").and_then(|v| v.as_i64()), Some(5));
+	}
+
+	#[test]
+	fn parse_frontmatter_raw_yaml_empty_content() {
+		let fm = parse_frontmatter_raw_yaml("");
+		assert!(fm.is_empty());
+	}
+
+	#[test]
+	fn parse_frontmatter_raw_yaml_ignores_nested_keys() {
+		let content = "views:\n  - type: table\n    name: All\n_icon: star\n";
+		let fm = parse_frontmatter_raw_yaml(content);
+		assert_eq!(fm.get("_icon").and_then(|v| v.as_str()), Some("star"));
 	}
 }

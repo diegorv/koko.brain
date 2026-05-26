@@ -9,9 +9,10 @@
 //! `search::fts_logic::extract_tags` keeps its own broader rules for FTS
 //! recall and intentionally diverges from this one.
 
+use crate::utils::fs::is_view_filename;
 use crate::vault::parsing::{
 	extract_outgoing_links, extract_tags_strict, extract_tasks, parse_frontmatter,
-	strip_frontmatter,
+	parse_frontmatter_raw_yaml, strip_frontmatter,
 };
 use crate::vault::task::Task;
 use serde::{Deserialize, Serialize};
@@ -223,7 +224,11 @@ impl NoteEntry {
 		size: u64,
 	) -> Self {
 		let title = extract_title_from_path(&path);
-		let frontmatter = parse_frontmatter(content);
+		let frontmatter = if is_view_filename(&path) {
+			parse_frontmatter_raw_yaml(content)
+		} else {
+			parse_frontmatter(content)
+		};
 		let outgoing_links = extract_outgoing_links(content);
 		let tags = extract_tags_strict(content);
 		let tasks = extract_tasks(content);
@@ -270,6 +275,8 @@ fn extract_title_from_path(path: &str) -> String {
 	let name = path.rsplit('/').next().unwrap_or(path);
 	name.strip_suffix(".md")
 		.or_else(|| name.strip_suffix(".markdown"))
+		.or_else(|| name.strip_suffix(".view"))
+		.or_else(|| name.strip_suffix(".VIEW"))
 		.unwrap_or(name)
 		.to_string()
 }
@@ -938,5 +945,44 @@ mod tests {
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert!(entry.belongs_to.is_empty());
 		assert!(entry.related_to.is_empty());
+	}
+
+	#[test]
+	fn from_content_full_view_file_strips_extension_for_title() {
+		let entry = NoteEntry::from_content_full(
+			"/vault/Views/My Projects.view".into(),
+			"_icon: rocket\n_color: red\nviews:\n  - type: table\n    name: All\n",
+			1714305600, 1714305000, 100,
+		);
+		assert_eq!(entry.title, "My Projects");
+	}
+
+	#[test]
+	fn from_content_full_view_file_parses_yaml_as_frontmatter() {
+		let content = "_icon: rocket\n_color: red\n_sidebar_label: Projects\n";
+		let entry = NoteEntry::from_content_full(
+			"/vault/test.view".into(), content, 0, 0, 50,
+		);
+		assert_eq!(
+			entry.frontmatter.get("_icon").and_then(|v| v.as_str()),
+			Some("rocket"),
+		);
+		assert_eq!(
+			entry.frontmatter.get("_color").and_then(|v| v.as_str()),
+			Some("red"),
+		);
+		assert_eq!(
+			entry.frontmatter.get("_sidebar_label").and_then(|v| v.as_str()),
+			Some("Projects"),
+		);
+	}
+
+	#[test]
+	fn from_content_full_md_file_still_requires_frontmatter_delimiters() {
+		let content = "_icon: rocket\n_color: red\n";
+		let entry = NoteEntry::from_content_full(
+			"/vault/note.md".into(), content, 0, 0, 50,
+		);
+		assert!(entry.frontmatter.is_empty());
 	}
 }

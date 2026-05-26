@@ -85,7 +85,12 @@ pub fn collect_markdown_paths_with_metadata(
 /// 2k-note vault scale; would need profiling at 100k+ notes if cost matters.
 pub fn is_markdown_filename(file_name: &str) -> bool {
 	let lower = file_name.to_ascii_lowercase();
-	lower.ends_with(".md") || lower.ends_with(".markdown")
+	lower.ends_with(".md") || lower.ends_with(".markdown") || lower.ends_with(".view")
+}
+
+/// Returns true when the filename has a `.view` extension (case-insensitive).
+pub fn is_view_filename(file_name: &str) -> bool {
+	file_name.to_ascii_lowercase().ends_with(".view")
 }
 
 fn walk_dir(
@@ -259,4 +264,25 @@ fn walk_dir_with_metadata(
 	}
 
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn is_view_filename_matches_view_extension() {
+		assert!(is_view_filename("projects.view"));
+		assert!(is_view_filename("My View.VIEW"));
+		assert!(!is_view_filename("note.md"));
+		assert!(!is_view_filename("data.collection"));
+	}
+
+	#[test]
+	fn is_markdown_filename_includes_view() {
+		assert!(is_markdown_filename("test.view"));
+		assert!(is_markdown_filename("test.md"));
+		assert!(is_markdown_filename("test.markdown"));
+		assert!(!is_markdown_filename("test.txt"));
+	}
 }
