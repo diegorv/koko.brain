@@ -67,12 +67,12 @@ Each region can have its own background, text, and accent colors. This lets you 
 
 ### Global
 
-These apply to shared surfaces (popovers, dialogs, status bar) and act as defaults for regions that don't override them.
+These apply to shared surfaces (popovers, dialogs) and act as fallback defaults for regions that don't override them.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `background` | `--background` | Base app background, status bar |
-| `foreground` | `--foreground` | Default text color (global fallback) |
+| `background` | `--background` | Base app background; used by surfaces without a dedicated variable |
+| `foreground` | `--foreground` | Default body text color; fallback for regions without their own fg |
 | `card` | `--card` | Generic card surface background |
 | `cardForeground` | `--card-foreground` | Text on card surfaces |
 | `popover` | `--popover` | Popover/dropdown background |
@@ -95,25 +95,32 @@ These apply to shared surfaces (popovers, dialogs, status bar) and act as defaul
 
 ### Left Sidebar
 
-Controls the file explorer, search panel, calendar panel, and type sidebar.
+Controls the file explorer, search panel, calendar panel, and type sidebar. These panels share the left pane and switch depending on sidebar mode.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `fileExplorerBg` | `--file-explorer-bg` | Background |
-| `fileExplorerFg` | `--file-explorer-fg` | Primary text |
-| `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary/muted text, icons |
-| `fileExplorerAccent` | `--file-explorer-accent` | Hover and selection surfaces |
+| `fileExplorerBg` | `--file-explorer-bg` | Background fill of the entire left sidebar pane |
+| `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: file/folder names, search input text, calendar file list, daily note button labels |
+| `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary text and icons: tree chevrons, folder/file icons, search placeholder, weekday headers, section labels ("Views", "Types") |
+| `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: file tree item hover, calendar day hover, search close button hover, quarter/week button hover |
+| `fileExplorerPrimary` | `--file-explorer-primary` | Primary accent color: selected file name, "Search" heading, calendar month label, weekend day numbers, active fuzzy toggle, type/view selected state, dot indicators |
+| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: search input border, type sidebar section dividers, untyped section top border |
+| `fileExplorerBadgeFg` | `--file-explorer-badge-fg` | Numeric count badges: file count in folders, note count in type/view/nav items |
+| `searchSemanticBg` | `--search-semantic-bg` | Background of the "Semantic" badge pill in search results |
+| `searchSemanticFg` | `--search-semantic-fg` | Text color of the "Semantic" badge pill in search results |
 
 ### Right Sidebar
 
-Controls the properties panel, table of contents, backlinks, and outgoing links.
+Controls the properties panel, table of contents, backlinks, and outgoing links. All panels stack vertically in the right pane's scroll area.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `rightSidebarBg` | `--right-sidebar-bg` | Background |
-| `rightSidebarFg` | `--right-sidebar-fg` | Primary text |
-| `rightSidebarMutedFg` | `--right-sidebar-muted-fg` | Secondary/muted text, icons |
-| `rightSidebarAccent` | `--right-sidebar-accent` | Hover and selection surfaces |
+| `rightSidebarBg` | `--right-sidebar-bg` | Background fill of the entire right sidebar pane |
+| `rightSidebarFg` | `--right-sidebar-fg` | Primary readable text: property values, boolean labels, relationship link names, heading text in TOC |
+| `rightSidebarMutedFg` | `--right-sidebar-muted-fg` | Secondary text and icons: property keys, file icons, snippet text, link/relationship counts, chevron icons, empty state messages ("No backlinks found") |
+| `rightSidebarAccent` | `--right-sidebar-accent` | Hover/selection background: collapsible trigger hover, backlink/outgoing link item hover, property row hover, lifecycle button hover, list item container bg |
+| `rightSidebarPrimary` | `--right-sidebar-primary` | Primary accent color: panel headings ("Properties", "Backlinks", "TOC", "Outgoing links", "Relationships"), link highlight text in backlink snippets, TOC heading hover |
+| `rightSidebarBorder` | `--right-sidebar-border` | Borders and separators: TOC indent guide lines (via CSS gradient) |
 
 ### Editor
 
@@ -121,35 +128,42 @@ Controls the markdown editor area, CodeMirror, and active tab.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `editorBg` | `--editor-bg` | Editor background (CodeMirror + container) |
-| `editorFg` | `--editor-fg` | Editor text and caret color |
-| `editorEmptyBg` | `--editor-empty-bg` | Background when no file is open |
+| `editorBg` | `--editor-bg` | Background fill of the CodeMirror editor, gutter area, and active tab; the main writing surface |
+| `editorFg` | `--editor-fg` | Editor body text, caret (blinking cursor), and drop cursor color |
+| `editorEmptyBg` | `--editor-empty-bg` | Background shown when no file is open ("Select a file to view its contents") |
 
 ### Tab Bar and Tabs
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `tabBar` | `--tab-bar` | Tab bar background |
-| `tabTextActive` | `--tab-text-active` | Active tab text |
-| `tabTextInactive` | `--tab-text-inactive` | Inactive tab text |
+| `tabBar` | `--tab-bar` | Background of the horizontal tab strip above the editor and the sidebar header bars |
+| `tabTextActive` | `--tab-text-active` | Text color of the currently active/selected tab |
+| `tabTextInactive` | `--tab-text-inactive` | Text color of inactive/unselected tabs; also used for property type icons |
+
+### Status Bar
+
+| Token | CSS Variable | Description |
+|-------|-------------|-------------|
+| `statusBarBg` | `--status-bar-bg` | Background of the bottom status bar strip (search status, save status, word count) |
+| `statusBarFg` | `--status-bar-fg` | Text color of status bar items |
 
 ### Settings Dialog
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `settingsDialogBg` | `--settings-dialog-bg` | Dialog background |
-| `settingsSidebarBg` | `--settings-sidebar-bg` | Settings sidebar background |
-| `settingsText` | `--settings-text` | Settings text |
-| `settingsHoverBg` | `--settings-hover-bg` | Button hover background |
-| `settingItemBg` | `--setting-item-bg` | Setting row background |
+| `settingsDialogBg` | `--settings-dialog-bg` | Background of the Settings modal overlay |
+| `settingsSidebarBg` | `--settings-sidebar-bg` | Background of the Settings navigation sidebar (General, Notes, Tools, etc.) |
+| `settingsText` | `--settings-text` | Text color inside the Settings dialog |
+| `settingsHoverBg` | `--settings-hover-bg` | Hover background for Settings sidebar navigation items |
+| `settingItemBg` | `--setting-item-bg` | Background of individual setting rows |
 
 ### Form Elements
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `inputBg` | `--input-bg` | Input field background |
-| `inputText` | `--input-text` | Input field text |
-| `switchUncheckedBg` | `--switch-unchecked-bg` | Switch unchecked track |
+| `inputBg` | `--input-bg` | Background of text inputs, dropdowns, and select fields across the app |
+| `inputText` | `--input-text` | Text color inside input fields |
+| `switchUncheckedBg` | `--switch-unchecked-bg` | Background of toggle switch track when unchecked/off |
 
 ---
 
