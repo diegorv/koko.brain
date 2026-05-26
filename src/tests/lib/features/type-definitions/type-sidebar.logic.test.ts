@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, shouldShowSubFilter, countSubFilters } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -425,5 +425,88 @@ describe('getNotesForSelection', () => {
 			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
 			expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
 		});
+	});
+
+	describe('sub-filter', () => {
+		it('type selection with archived sub-filter shows only archived', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
+				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map(), 'archived');
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('B');
+		});
+
+		it('type selection with open sub-filter shows only non-archived', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
+				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map(), 'open');
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('A');
+		});
+
+		it('all nav with archived sub-filter shows archived notes', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
+				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map(), 'archived');
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('B');
+		});
+	});
+});
+
+describe('shouldShowSubFilter', () => {
+	it('returns true for type selection', () => {
+		expect(shouldShowSubFilter({ kind: 'type', name: 'Project' })).toBe(true);
+	});
+
+	it('returns true for untyped selection', () => {
+		expect(shouldShowSubFilter({ kind: 'untyped' })).toBe(true);
+	});
+
+	it('returns true for all nav item', () => {
+		expect(shouldShowSubFilter({ kind: 'nav', id: 'all' })).toBe(true);
+	});
+
+	it('returns false for inbox nav item', () => {
+		expect(shouldShowSubFilter({ kind: 'nav', id: 'inbox' })).toBe(false);
+	});
+
+	it('returns false for archive nav item', () => {
+		expect(shouldShowSubFilter({ kind: 'nav', id: 'archive' })).toBe(false);
+	});
+
+	it('returns false for favorites nav item', () => {
+		expect(shouldShowSubFilter({ kind: 'nav', id: 'favorites' })).toBe(false);
+	});
+});
+
+describe('countSubFilters', () => {
+	it('counts open and archived for type selection', () => {
+		const entries = [
+			entryV2('/v/a.md', { isA: 'Project', archived: false }),
+			entryV2('/v/b.md', { isA: 'Project', archived: true }),
+			entryV2('/v/c.md', { isA: 'Project', archived: false }),
+			entryV2('/v/d.md', { isA: 'Person', archived: false }),
+		];
+		const counts = countSubFilters(entries, { kind: 'type', name: 'Project' });
+		expect(counts.open).toBe(2);
+		expect(counts.archived).toBe(1);
+	});
+
+	it('counts for all nav item across types', () => {
+		const entries = [
+			entryV2('/v/a.md', { isA: 'Project', archived: false }),
+			entryV2('/v/b.md', { isA: 'Person', archived: true }),
+			entryV2('/v/c.md', { isA: 'Type', archived: false }),
+		];
+		const counts = countSubFilters(entries, { kind: 'nav', id: 'all' });
+		expect(counts.open).toBe(1);
+		expect(counts.archived).toBe(1);
 	});
 });

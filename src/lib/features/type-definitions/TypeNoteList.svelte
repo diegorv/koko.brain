@@ -25,15 +25,19 @@
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, type TypeSidebarNote } from './type-sidebar.logic';
+	import { getNotesForSelection, shouldShowSubFilter, countSubFilters, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 
 	let notes = $state<TypeSidebarNote[]>([]);
+	let subFilter = $state<NoteListSubFilter>('open');
+	let subCounts = $state({ open: 0, archived: 0 });
 	let contextTarget = $state<TypeSidebarNote | null>(null);
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
 	let activePath = $derived(editorStore.activeTabPath);
 	let selection = $derived(typeDefinitionsStore.selectedTypeOrNav);
+	let showSubFilter = $derived(selection ? shouldShowSubFilter(selection) : false);
+	let prevSelectionKey = $state('');
 	let iconPickerRef = $derived(
 		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
 	);
@@ -60,15 +64,34 @@
 	let canCreate = $derived(selection?.kind === 'type');
 	let typeName = $derived(selection?.kind === 'type' ? selection.name : null);
 
+	function selectionKey(sel: typeof selection): string {
+		if (!sel) return '';
+		switch (sel.kind) {
+			case 'type': return `type:${sel.name}`;
+			case 'nav': return `nav:${sel.id}`;
+			case 'untyped': return 'untyped';
+		}
+	}
+
 	$effect(() => {
 		const _version = typeDefinitionsStore.entriesVersion;
 		const entries = typeDefinitionsStore.entries;
 		const sel = typeDefinitionsStore.selectedTypeOrNav;
 		if (!sel || entries.length === 0) {
 			notes = [];
+			subCounts = { open: 0, archived: 0 };
 			return;
 		}
-		notes = getNotesForSelection(entries, sel, typeDefinitionsStore.typeMetadataMap);
+		const key = selectionKey(sel);
+		if (key !== prevSelectionKey) {
+			subFilter = 'open';
+			prevSelectionKey = key;
+		}
+		const sf = shouldShowSubFilter(sel) ? subFilter : undefined;
+		notes = getNotesForSelection(entries, sel, typeDefinitionsStore.typeMetadataMap, sf);
+		if (shouldShowSubFilter(sel)) {
+			subCounts = countSubFilters(entries, sel);
+		}
 	});
 
 	function formatModifiedDate(epochSeconds: number): string {
@@ -145,6 +168,25 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if showSubFilter}
+		<div class="flex items-center gap-1 px-2 py-1.5 border-b border-border shrink-0">
+			<button
+				class="flex flex-1 items-center justify-center gap-1.5 py-1 text-xs cursor-pointer border-b-2 {subFilter === 'open' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+				onclick={() => { subFilter = 'open'; }}
+			>
+				Open
+				<span class="text-[10px] tabular-nums">{subCounts.open}</span>
+			</button>
+			<button
+				class="flex flex-1 items-center justify-center gap-1.5 py-1 text-xs cursor-pointer border-b-2 {subFilter === 'archived' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+				onclick={() => { subFilter = 'archived'; }}
+			>
+				Archived
+				<span class="text-[10px] tabular-nums">{subCounts.archived}</span>
+			</button>
+		</div>
+	{/if}
 
 	<ContextMenu.Root>
 			<ContextMenu.Trigger>
