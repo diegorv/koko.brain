@@ -24,6 +24,7 @@
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '$lib/core/status-bar/SemanticIndexStatus.svelte';
 	import { saveSettings } from '$lib/core/settings/settings.service';
+	import PanelRight from '@lucide/svelte/icons/panel-right';
 	import { debounce } from '$lib/utils/debounce';
 	import { error } from '$lib/utils/debug';
 
@@ -73,7 +74,14 @@
 {#if !vaultStore.isOpen}
 	{@render children()}
 {:else}
-	<div class="flex h-screen flex-col">
+	<div class="relative flex h-screen flex-col">
+		<button
+			class="absolute right-2 top-3 z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
+			onclick={() => { const v = settingsStore.layout.rightSidebarVisible; settingsStore.updateLayout({ rightSidebarVisible: !v }); }}
+			title={settingsStore.layout.rightSidebarVisible ? 'Hide right sidebar' : 'Show right sidebar'}
+		>
+			<PanelRight class="size-3.5" />
+		</button>
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
