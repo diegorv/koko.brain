@@ -45,7 +45,7 @@
 <div class="flex h-full flex-col">
 	{#if editorStore.activeTab}
 		<EditorTabs />
-		<div class="relative flex-1 min-h-0 bg-card">
+		<div class="relative flex-1 min-h-0 bg-editor-bg">
 			{#if isTasksTab}
 				<TasksView />
 			{:else if isTagsTab}

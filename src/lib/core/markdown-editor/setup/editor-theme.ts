@@ -12,8 +12,8 @@ export function buildEditorTheme(
 	return EditorView.theme(
 		{
 			'&': {
-				backgroundColor: 'var(--card)',
-				color: 'var(--foreground)',
+				backgroundColor: 'var(--editor-bg)',
+				color: 'var(--editor-fg)',
 				height: '100%',
 			},
 			'.cm-scroller': {
@@ -23,7 +23,7 @@ export function buildEditorTheme(
 				lineHeight: `${lineHeight}`,
 			},
 			'.cm-content': {
-				caretColor: 'var(--foreground)',
+				caretColor: 'var(--editor-fg)',
 				padding: '16px clamp(24px, 5vw, 80px)',
 				userSelect: 'text',
 				fontSize: '1.05em',
@@ -39,7 +39,7 @@ export function buildEditorTheme(
 				}),
 			},
 			'.cm-cursor, .cm-dropCursor': {
-				borderLeftColor: 'var(--foreground)',
+				borderLeftColor: 'var(--editor-fg)',
 			},
 			'.cm-activeLine': {
 				backgroundColor: 'var(--syntax-active-line)',
@@ -48,7 +48,7 @@ export function buildEditorTheme(
 				backgroundColor: 'var(--syntax-selection)',
 			},
 			'.cm-gutters': {
-				backgroundColor: 'var(--card)',
+				backgroundColor: 'var(--editor-bg)',
 				color: 'var(--muted-foreground)',
 				borderRight: '1px solid var(--border)',
 			},

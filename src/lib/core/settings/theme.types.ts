@@ -58,6 +58,10 @@ export interface UIColors {
 	rightSidebarMutedFg: string;
 	/** Right sidebar accent surface (hover, selected) */
 	rightSidebarAccent: string;
+	/** Editor content area background */
+	editorBg: string;
+	/** Editor primary text color */
+	editorFg: string;
 	/** Empty editor state background */
 	editorEmptyBg: string;
 	/** Active tab text color */

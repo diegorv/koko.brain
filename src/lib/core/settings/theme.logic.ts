@@ -95,6 +95,8 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = {
 			rightSidebarFg: '#F8F8F2',
 			rightSidebarMutedFg: 'oklch(0.55 0.06 268)',
 			rightSidebarAccent: 'oklch(0.28 0.025 272)',
+			editorBg: '#2a2e3d',
+			editorFg: '#F8F8F2',
 			editorEmptyBg: '#2b2f40',
 			tabTextActive: '#bac5ee',
 			tabTextInactive: '#9ca3c7',
