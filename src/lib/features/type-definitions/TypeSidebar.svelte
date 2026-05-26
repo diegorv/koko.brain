@@ -224,6 +224,8 @@
 													>
 														{#if resolvedIcon}
 															<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={iconColor} />
+														{:else if defResolvedIcon}
+															<IconRenderer icon={defResolvedIcon} class="size-4 shrink-0" color={defIconColor} />
 														{:else}
 															<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 														{/if}
