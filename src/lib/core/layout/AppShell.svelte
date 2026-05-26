@@ -78,6 +78,7 @@
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
 					<Resizable.Pane
+						order={1}
 						defaultSize={settingsStore.layout.leftPaneSize}
 						minSize={5}
 						maxSize={40}
@@ -98,6 +99,7 @@
 
 					{#if showMiddlePanel}
 						<Resizable.Pane
+							order={2}
 							defaultSize={settingsStore.layout.middlePanelSize}
 							minSize={15}
 							maxSize={35}
@@ -109,7 +111,7 @@
 						<Resizable.Handle />
 					{/if}
 
-					<Resizable.Pane>
+					<Resizable.Pane order={3}>
 						<EditorView />
 					</Resizable.Pane>
 
@@ -117,6 +119,7 @@
 						<Resizable.Handle />
 
 						<Resizable.Pane
+							order={4}
 							defaultSize={settingsStore.layout.rightSidebarSize}
 							minSize={5}
 							maxSize={30}
