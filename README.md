@@ -6,7 +6,7 @@
 | **Security** | [![Dependabot][dependabot-badge]][dependabot-url] [![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url] |
 | **Project** | [![Latest release][version-badge]][version-url] [![License][license-badge]][license-url] [![Platform][platform-badge]][platform-url] [![Claude Code][claude-badge]][claude-url] |
 
-A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) and [Tolaria.md](https://tolaria.md/), built with Svelte 5 and Tauri 2
+A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) and [Tolaria](https://github.com/refactoringhq/tolaria), built with Svelte 5 and Tauri 2
 
 Your notes are plain Markdown files stored locally - no cloud, no lock-in, privacy first. Built entirely with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and human review.
 
@@ -91,7 +91,8 @@ Concept-level inspirations from Obsidian community plugins I used daily. No code
 | Calendar | [oz-calendar](https://github.com/ozntel/oz-calendar) |
 | Folder notes | [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes) |
 | Auto open & Pin tab | [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage) |
-| Types & Relationships | [Portent](https://portent.md) knowledge base spec |
+| Types | [Tolaria](https://github.com/refactoringhq/tolaria) note types system |
+| Relationships | [Portent](https://portent.md) knowledge base spec |
 
 ## 📄 License
 
