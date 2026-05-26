@@ -26,8 +26,8 @@
 				<ContextMenu.Trigger>
 					{#snippet children()}
 						<div
-							class="group flex items-center gap-1.5 rounded-t-lg py-1.5 text-sm cursor-pointer select-none shrink-0 transition-colors
-								{pinned ? 'px-2' : 'px-3'}
+							class="group flex items-center gap-1.5 rounded-t-lg text-sm cursor-pointer select-none shrink-0 transition-colors
+								{pinned ? 'px-2 py-2' : 'px-3 py-1.5'}
 								{index === editorStore.activeIndex
 									? 'bg-card text-tab-text-active border-b-2 border-b-primary'
 									: 'bg-tab-bar text-tab-text-inactive hover:bg-muted/30'}"
