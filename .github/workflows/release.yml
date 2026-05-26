@@ -183,6 +183,10 @@ jobs:
 
             ${{ steps.changelog.outputs.prev_tag && format('**Full diff:** [{0}...{1}](https://github.com/{2}/compare/{0}...{1})', steps.changelog.outputs.prev_tag, github.ref_name, github.repository) || '' }}
 
+            ## Documentation
+
+            Download the help vault with documentation and examples: [`kokobrain-help-${{ github.ref_name }}.tar.gz`](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/kokobrain-help-${{ github.ref_name }}.tar.gz)
+
             ## Verify download integrity
 
             After downloading, verify the SHA-256 checksum against the `checksums-sha256.txt` file:
@@ -213,4 +217,20 @@ jobs:
           set -euo pipefail
           gh release upload "${{ github.ref_name }}" \
             src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
+            --clobber
+
+      - name: Package help documentation
+        run: |
+          set -euo pipefail
+          tar czf "kokobrain-help-${{ github.ref_name }}.tar.gz" \
+            --exclude='.DS_Store' \
+            -C help .
+
+      - name: Upload help documentation to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload "${{ github.ref_name }}" \
+            "kokobrain-help-${{ github.ref_name }}.tar.gz" \
             --clobber
