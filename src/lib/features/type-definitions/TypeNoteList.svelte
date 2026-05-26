@@ -267,7 +267,7 @@
 										<div class="flex flex-wrap gap-1 mt-1">
 											{#each listProperties as prop (prop)}
 												{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
-												{#each pills as pill, i (prop + '-' + i)}
+												{#each pills as pill, i (prop + '-' + pill.text + '-' + i)}
 													{#if pill.wikilink}
 														{@const resolved = resolveWikilink(pill.wikilink, allPaths)}
 														<!-- svelte-ignore a11y_no_static_element_interactions -->
