@@ -15,6 +15,10 @@ export function buildEditorTheme(
 				backgroundColor: 'var(--editor-bg)',
 				color: 'var(--editor-fg)',
 				height: '100%',
+				outline: 'none',
+			},
+			'&.cm-focused': {
+				outline: 'none',
 			},
 			'.cm-scroller': {
 				overflow: 'auto',

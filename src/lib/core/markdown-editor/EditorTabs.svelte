@@ -15,7 +15,7 @@
 </script>
 
 {#if editorStore.tabs.length > 0}
-	<div class="flex items-end h-10 bg-tab-bar overflow-x-auto pt-1 px-1 gap-0.5" role="tablist" data-tauri-drag-region>
+	<div class="editor-tabs-bar flex items-end h-10 bg-tab-bar overflow-x-auto pt-1 px-1 gap-0.5" role="tablist" data-tauri-drag-region>
 		{#each editorStore.tabs as tab, index}
 			{@const tabResolved = resolveIconForPath(tab.path)}
 			{@const tabIcon = tabResolved?.icon}
@@ -87,3 +87,9 @@
 		{/each}
 	</div>
 {/if}
+
+<style>
+	.editor-tabs-bar {
+		box-shadow: inset 0 -1px 0 var(--divider);
+	}
+</style>
