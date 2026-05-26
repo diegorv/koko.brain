@@ -37,14 +37,66 @@ pub fn deserialize_snapshot(bytes: &[u8]) -> Result<IndexSnapshot, String> {
 	serde_json::from_slice(bytes).map_err(|e| format!("snapshot deserialize failed: {e}"))
 }
 
-/// Computes the vault path hash used as the cache file name component.
-/// Returns the first 16 hex chars of sha256(canonicalize(vault_path)).
-pub fn vault_path_hash(vault_path: &str) -> Result<String, String> {
-	let canonical = std::fs::canonicalize(vault_path)
-		.map_err(|e| format!("canonicalize vault path failed: {e}"))?;
-	use sha2::Digest;
-	let hash = sha2::Sha256::digest(canonical.to_string_lossy().as_bytes());
-	Ok(hash[..8].iter().map(|b| format!("{b:02x}")).collect())
+/// Returns the path to the cache file for the given vault.
+/// Location: `<vault_path>/.kokobrain/vault-index.json`.
+pub fn cache_file_path(vault_path: &str) -> std::path::PathBuf {
+	std::path::PathBuf::from(vault_path)
+		.join(".kokobrain")
+		.join("vault-index.json")
+}
+
+/// Writes bytes to disk atomically: write to .tmp, fsync, rename.
+/// Parent directory is created if missing.
+pub fn write_snapshot_atomic(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+	use std::fs;
+	use std::io::Write;
+
+	if let Some(parent) = path.parent() {
+		fs::create_dir_all(parent)
+			.map_err(|e| format!("create cache dir failed: {e}"))?;
+	}
+
+	let tmp_path = path.with_extension("json.tmp");
+
+	let mut file = fs::File::create(&tmp_path)
+		.map_err(|e| format!("create tmp cache file failed: {e}"))?;
+	file.write_all(bytes)
+		.map_err(|e| format!("write cache bytes failed: {e}"))?;
+	file.sync_all()
+		.map_err(|e| format!("fsync cache file failed: {e}"))?;
+	drop(file);
+
+	fs::rename(&tmp_path, path)
+		.map_err(|e| format!("rename cache file failed: {e}"))?;
+
+	Ok(())
+}
+
+/// Reads the cache file from disk. Returns None if the file does not
+/// exist; returns Err on read/parse failures.
+pub fn read_snapshot(vault_path: &str) -> Result<Option<IndexSnapshot>, String> {
+	let path = cache_file_path(vault_path);
+	match std::fs::read(&path) {
+		Ok(bytes) => {
+			let snapshot = deserialize_snapshot(&bytes)?;
+			Ok(Some(snapshot))
+		}
+		Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+		Err(e) => Err(format!("read cache file failed: {e}")),
+	}
+}
+
+/// Writes a snapshot to the cache file atomically.
+pub fn write_snapshot(vault_path: &str, entries: &[NoteEntry]) -> Result<(), String> {
+	let snapshot = IndexSnapshot {
+		schema_version: INDEX_SCHEMA_VERSION,
+		vault_path_hash: vault_path.to_string(),
+		written_at_secs: chrono::Utc::now().timestamp(),
+		entries: entries.to_vec(),
+	};
+	let bytes = serialize_snapshot(&snapshot)?;
+	let path = cache_file_path(vault_path);
+	write_snapshot_atomic(&path, &bytes)
 }
 
 #[cfg(test)]
@@ -153,5 +205,76 @@ mod tests {
 	fn corrupt_bytes_errors() {
 		let result = deserialize_snapshot(&[0xFF, 0xFE, 0xFD, 0x00, 0x01]);
 		assert!(result.is_err());
+	}
+
+	#[test]
+	fn cache_file_path_resolves_correctly() {
+		let path = cache_file_path("/Users/foo/my-vault");
+		assert_eq!(
+			path,
+			std::path::PathBuf::from("/Users/foo/my-vault/.kokobrain/vault-index.json")
+		);
+	}
+
+	#[test]
+	fn atomic_write_roundtrip() {
+		let dir = tempfile::tempdir().unwrap();
+		let cache_path = dir.path().join("vault-index.json");
+
+		let snapshot = IndexSnapshot {
+			schema_version: INDEX_SCHEMA_VERSION,
+			vault_path_hash: "test".to_string(),
+			written_at_secs: 1700000000,
+			entries: sample_entries(),
+		};
+		let bytes = serialize_snapshot(&snapshot).unwrap();
+		write_snapshot_atomic(&cache_path, &bytes).unwrap();
+
+		let read_bytes = std::fs::read(&cache_path).unwrap();
+		let restored = deserialize_snapshot(&read_bytes).unwrap();
+		assert_eq!(restored.entries.len(), 2);
+		assert_eq!(restored.entries[0].path, "/vault/note-one.md");
+
+		// No .tmp file left behind
+		assert!(!cache_path.with_extension("json.tmp").exists());
+	}
+
+	#[test]
+	fn write_and_read_snapshot() {
+		let dir = tempfile::tempdir().unwrap();
+		let vault_path = dir.path().join("vault");
+		std::fs::create_dir_all(vault_path.join(".kokobrain")).unwrap();
+		let vault_str = vault_path.to_string_lossy().to_string();
+
+		write_snapshot(&vault_str, &sample_entries()).unwrap();
+
+		let restored = read_snapshot(&vault_str).unwrap().unwrap();
+		assert_eq!(restored.schema_version, INDEX_SCHEMA_VERSION);
+		assert_eq!(restored.entries.len(), 2);
+	}
+
+	#[test]
+	fn read_snapshot_missing_file_returns_none() {
+		let dir = tempfile::tempdir().unwrap();
+		let vault_str = dir.path().to_string_lossy().to_string();
+		let result = read_snapshot(&vault_str).unwrap();
+		assert!(result.is_none());
+	}
+
+	#[test]
+	fn atomic_write_creates_parent_dir() {
+		let dir = tempfile::tempdir().unwrap();
+		let cache_path = dir.path().join("nested").join("dir").join("cache.json");
+
+		let bytes = serialize_snapshot(&IndexSnapshot {
+			schema_version: INDEX_SCHEMA_VERSION,
+			vault_path_hash: "x".to_string(),
+			written_at_secs: 0,
+			entries: vec![],
+		})
+		.unwrap();
+
+		write_snapshot_atomic(&cache_path, &bytes).unwrap();
+		assert!(cache_path.exists());
 	}
 }
