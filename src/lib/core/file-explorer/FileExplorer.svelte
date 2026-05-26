@@ -242,10 +242,7 @@
 
 <Tooltip.Provider delayDuration={400}>
 	<div class="flex h-full flex-col bg-file-explorer-bg">
-		<FileExplorerHeader
-			onNewFile={() => handleNewFile(null)}
-			onNewFolder={() => handleNewFolder(null)}
-		/>
+		<FileExplorerHeader />
 		<Separator />
 		<ScrollArea class="flex-1 overflow-hidden">
 			<ContextMenu.Root>

@@ -2,25 +2,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import FilePlus from '@lucide/svelte/icons/file-plus';
-	import FolderPlus from '@lucide/svelte/icons/folder-plus';
 	import ChevronsDownUp from '@lucide/svelte/icons/chevrons-down-up';
 	import ArrowDownAZ from '@lucide/svelte/icons/arrow-down-az';
 	import ArrowDownWideNarrow from '@lucide/svelte/icons/arrow-down-wide-narrow';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { changeSortOption } from '$lib/core/filesystem/fs.service';
 	import type { SortOption } from '$lib/core/filesystem/fs.types';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
-
-	/** Props passed from the parent FileExplorer component */
-	interface Props {
-		onNewFile: () => void;
-		onNewFolder: () => void;
-	}
-
-	let { onNewFile, onNewFolder }: Props = $props();
 
 	/** Collapses every expanded directory in the file tree */
 	function handleCollapseAll() {
@@ -35,40 +24,6 @@
 
 <div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar" data-tauri-drag-region>
 	<div class="flex items-center gap-0.5">
-		<Tooltip.Root>
-			<Tooltip.Trigger>
-				{#snippet child({ props })}
-					<Button
-						{...props}
-						variant="ghost"
-						size="icon-sm"
-						class="size-6"
-						onclick={onNewFile}
-					>
-						<FilePlus class="size-3.5" />
-					</Button>
-				{/snippet}
-			</Tooltip.Trigger>
-			<Tooltip.Content>New File</Tooltip.Content>
-		</Tooltip.Root>
-
-		<Tooltip.Root>
-			<Tooltip.Trigger>
-				{#snippet child({ props })}
-					<Button
-						{...props}
-						variant="ghost"
-						size="icon-sm"
-						class="size-6"
-						onclick={onNewFolder}
-					>
-						<FolderPlus class="size-3.5" />
-					</Button>
-				{/snippet}
-			</Tooltip.Trigger>
-			<Tooltip.Content>New Folder</Tooltip.Content>
-		</Tooltip.Root>
-
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}
