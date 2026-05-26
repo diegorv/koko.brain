@@ -13,11 +13,16 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 
 | File | Demonstrates |
 |------|--------------|
-| **Type definitions** | |
-| `_types/Project.md` | Type definition with custom icon, color, order, and template |
-| `_types/Person.md` | Type definition with built-in fallback overrides |
-| `_types/Topic.md` | Type definition with list properties display |
-| `_types/Meeting.md` | Type definition with `_view`, `_title_color`, and date-based sorting |
+| **Type definitions (all 8 Portent types + Meeting)** | |
+| `_types/Responsibility.md` | PORT: long-running area of accountability |
+| `_types/Project.md` | PORT: type definition with custom icon, color, order, and template |
+| `_types/Operation.md` | PORT: recurring work with frequency and `belongs_to` display |
+| `_types/Task.md` | PORT: one-off work with priority and `belongs_to` display |
+| `_types/Event.md` | ENTP: things that happened, date-based sorting |
+| `_types/Note.md` | ENTP: default type for knowledge artifacts |
+| `_types/Topic.md` | ENTP: type definition with list properties display |
+| `_types/Person.md` | ENTP: type definition with built-in fallback overrides |
+| `_types/Meeting.md` | Custom type with `_view`, `_title_color`, and date-based sorting |
 | **View files** | |
 | `active-projects.view` | View with filter expression, custom icon/color, and `_title_color` |
 | `recent-meetings.view` | View with date-based filter and `duration()` function |
@@ -29,6 +34,11 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 | `person-bob.md` | Person note in inbox (not organized) |
 | `topic-rust.md` | Topic note with favorites, `_order`, and multiple backlinks |
 | `topic-svelte.md` | Topic note referenced by projects |
+| `responsibility-stay-in-shape.md` | Responsibility with metrics and linked operations |
+| `operation-strength-training.md` | Operation with `belongs_to` Responsibility and frequency |
+| `task-sign-up-playtomic.md` | Task with checklist, `belongs_to` Responsibility |
+| `event-product-launch.md` | Event with date, `belongs_to` Project, multiple relationships |
+| `note-portent-overview.md` | Note with `belongs_to` and `related_to`, reference material |
 | `meeting-kickoff.md` | Untyped note with `belongs_to` relationship |
 | `meeting-weekly-standup.md` | Meeting note using `is_a` alias, with `_order` and attendees |
 
@@ -57,7 +67,7 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 
 1. Copy this folder into your vault.
 2. Switch to type sidebar mode (click the grid icon in the file explorer header).
-3. Browse Projects, People, Topics, and Meetings sections. Also check "Active Projects" and "Recent Meetings" view entries.
+3. Browse all sections: Responsibilities, Projects, Operations, Meetings, Topics, Tasks, Events, Notes, and People. Also check "Active Projects" and "Recent Meetings" view entries.
 4. Open `project-kokobrain.md` and check the Backlinks panel for relationship backlinks.
 5. Enable Explicit Organization in Settings > Types to see the Inbox filter.
 
