@@ -24,11 +24,10 @@
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countNavItems, collectViewFiles, sortViewFiles, getViewLabel, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
-	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 	import { debounce } from '$lib/utils/debounce';
+	import { refreshViewDefinition, setViewQueryResult } from './view-parse-cache';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
@@ -73,34 +72,20 @@
 		}
 	});
 
-	const viewParseCache = new Map<string, { contentHash: string; definition: ReturnType<typeof parseCollectionYaml> }>();
 	let viewCountsGeneration = 0;
 
-	function simpleHash(str: string): string {
-		let h = 0;
-		for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-		return h.toString(36);
-	}
-
-	const updateViewCounts = debounce(async (views: ViewFileEntry[], generation: number) => {
+	const updateViewCounts = debounce(async (views: ViewFileEntry[], generation: number, propertyIndex: typeof collectionStore.propertyIndex) => {
 		if (views.length === 0) { viewCounts = new Map(); return; }
 		const counts = new Map<string, number>();
 		await Promise.all(views.map(async (v) => {
 			try {
-				const content = await readTextFile(v.path);
-				const contentHash = simpleHash(content);
-				const cached = viewParseCache.get(v.path);
-				let parsed;
-				if (cached && cached.contentHash === contentHash) {
-					parsed = cached.definition;
-				} else {
-					parsed = parseCollectionYaml(content);
-					viewParseCache.set(v.path, { contentHash, definition: parsed });
-				}
+				const parsed = await refreshViewDefinition(v.path);
 				if (!parsed.success) return;
 				const view = parsed.definition.views[0];
-				const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
-				counts.set(v.path, result.records.length);
+				const result = executeQuery(parsed.definition, view, propertyIndex);
+				const matchingPaths = new Set(result.records.map((r) => r.path));
+				setViewQueryResult(v.path, matchingPaths);
+				counts.set(v.path, matchingPaths.size);
 			} catch { /* skip */ }
 		}));
 		if (generation === viewCountsGeneration) viewCounts = counts;
@@ -109,8 +94,9 @@
 	$effect(() => {
 		const views = sortedViewFiles;
 		const _version = typeDefinitionsStore.entriesVersion;
+		const propertyIndex = collectionStore.propertyIndex;
 		viewCountsGeneration++;
-		updateViewCounts(views, viewCountsGeneration);
+		updateViewCounts(views, viewCountsGeneration, propertyIndex);
 	});
 
 	function selectNav(id: NavItemId) {

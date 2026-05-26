@@ -22,15 +22,14 @@
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
-	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+	import { getViewQueryResult, getCachedViewDefinition } from './view-parse-cache';
 	import { getFileName } from '$lib/core/filesystem/fs.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 
@@ -125,11 +124,17 @@
 
 	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries) {
 		try {
-			const content = await readTextFile(viewPath);
+			const cachedPaths = getViewQueryResult(viewPath);
+			if (cachedPaths) {
+				const viewEntry = entries.find((e) => e.path === viewPath);
+				notes = getNotesForViewPaths(entries, cachedPaths, getViewSort(viewEntry));
+				return;
+			}
+			const parsed = await getCachedViewDefinition(viewPath);
 			const sel = typeDefinitionsStore.selectedTypeOrNav;
 			if (sel?.kind !== 'view' || sel.path !== viewPath) return;
+			if (typeDefinitionsStore.entries.length === 0) return;
 
-			const parsed = parseCollectionYaml(content);
 			if (!parsed.success) {
 				notes = [];
 				return;
