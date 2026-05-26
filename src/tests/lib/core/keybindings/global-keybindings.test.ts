@@ -35,7 +35,7 @@ vi.mock('$lib/features/command-palette/command-palette.store.svelte', () => ({
 
 vi.mock('$lib/core/settings/settings.store.svelte', () => ({
 	settingsStore: {
-		layout: { rightSidebarVisible: true },
+		layout: { leftSidebarVisible: true, rightSidebarVisible: true },
 		updateLayout: vi.fn(),
 	},
 }));
@@ -99,7 +99,7 @@ function findHandler(match: Partial<{ key: string; code: string; meta: boolean; 
 		if (match.key !== undefined && binding.key !== match.key) return false;
 		if (match.code !== undefined && binding.code !== match.code) return false;
 		if (match.meta !== undefined && binding.meta !== match.meta) return false;
-		if (match.shift !== undefined && binding.shift !== match.shift) return false;
+		if (match.shift !== undefined && !!binding.shift !== !!match.shift) return false;
 		return true;
 	});
 	if (!found) throw new Error(`No handler found for ${JSON.stringify(match)}`);
@@ -111,10 +111,10 @@ describe('registerGlobalKeybindings', () => {
 		vi.clearAllMocks();
 	});
 
-	it('registers all 19 global keybindings', () => {
+	it('registers all 20 global keybindings', () => {
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(19);
+		expect(registerKeybinding).toHaveBeenCalledTimes(20);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -333,9 +333,32 @@ describe('registerGlobalKeybindings', () => {
 			expect(toggleTasksTab).toHaveBeenCalledTimes(1);
 		});
 
+		it('Cmd+Shift+B handler toggles left sidebar and saves settings', () => {
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'b', meta: true, shift: true });
+
+			handler();
+
+			expect(settingsStore.updateLayout).toHaveBeenCalledWith({ leftSidebarVisible: false });
+			expect(saveSettings).toHaveBeenCalledWith('/vault');
+		});
+
+		it('Cmd+Shift+B handler does not save settings when vault path is null', () => {
+			(vaultStore as any).path = null;
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'b', meta: true, shift: true });
+
+			handler();
+
+			expect(settingsStore.updateLayout).toHaveBeenCalledTimes(1);
+			expect(saveSettings).not.toHaveBeenCalled();
+
+			(vaultStore as any).path = '/vault';
+		});
+
 		it('Cmd+B handler toggles right sidebar and saves settings', () => {
 			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'b', meta: true });
+			const handler = findHandler({ key: 'b', meta: true, shift: false });
 
 			handler();
 
@@ -346,7 +369,7 @@ describe('registerGlobalKeybindings', () => {
 		it('Cmd+B handler does not save settings when vault path is null', () => {
 			(vaultStore as any).path = null;
 			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'b', meta: true });
+			const handler = findHandler({ key: 'b', meta: true, shift: false });
 
 			handler();
 
