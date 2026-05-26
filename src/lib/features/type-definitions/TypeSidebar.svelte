@@ -184,7 +184,7 @@
 					{#if sortedViewFiles.length > 0}
 						<div class="mx-2 mb-1.5 flex items-center gap-2">
 							<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Views</span>
-							<div class="flex-1 h-px bg-border"></div>
+							<div class="flex-1 h-px bg-file-explorer-border"></div>
 						</div>
 
 						{#each sortedViewFiles as view (view.path)}
@@ -217,7 +217,7 @@
 
 					<div class="mx-2 mb-1.5 flex items-center gap-2">
 						<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Types</span>
-						<div class="flex-1 h-px bg-border"></div>
+						<div class="flex-1 h-px bg-file-explorer-border"></div>
 					</div>
 
 					{#each sections as section (section.metadata.name)}
@@ -244,7 +244,7 @@
 					{/each}
 
 					{#if untypedCount > 0 && settingsStore.showUntypedNotes}
-						<div class="mt-2 border-t border-border pt-1">
+						<div class="mt-2 border-t border-file-explorer-border pt-1">
 							<button
 								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-file-explorer-primary/10 cursor-default select-none {isUntypedSelected() ? 'bg-file-explorer-primary/25 text-file-explorer-primary' : ''}"
 								onclick={selectUntyped}

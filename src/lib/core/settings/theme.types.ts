@@ -52,6 +52,8 @@ export interface UIColors {
 	fileExplorerAccent: string;
 	/** File explorer primary accent color (links, headings, selected items) */
 	fileExplorerPrimary: string;
+	/** File explorer border/separator color */
+	fileExplorerBorder: string;
 	/** Right sidebar panel background */
 	rightSidebarBg: string;
 	/** Right sidebar primary text color */
@@ -62,6 +64,8 @@ export interface UIColors {
 	rightSidebarAccent: string;
 	/** Right sidebar primary accent color (headings, links) */
 	rightSidebarPrimary: string;
+	/** Right sidebar border/separator color */
+	rightSidebarBorder: string;
 	/** Editor content area background */
 	editorBg: string;
 	/** Editor primary text color */
