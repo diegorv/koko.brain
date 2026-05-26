@@ -109,6 +109,8 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = {
 			settingsText: '#bfcaf3',
 			settingsHoverBg: '#393e50',
 			settingItemBg: '#20212d',
+			statusBarBg: '#21222e',
+			statusBarFg: 'oklch(0.55 0.06 268)',
 			inputBg: '#333544',
 			inputText: '#9aa1c5',
 			switchUncheckedBg: '#444660',

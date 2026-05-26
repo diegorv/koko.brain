@@ -47,6 +47,8 @@
 	--color-settings-text: var(--settings-text);
 	--color-settings-hover-bg: var(--settings-hover-bg);
 	--color-setting-item-bg: var(--setting-item-bg);
+	--color-status-bar-bg: var(--status-bar-bg);
+	--color-status-bar-fg: var(--status-bar-fg);
 	--color-input-bg: var(--input-bg);
 	--color-input-text: var(--input-text);
 	--color-switch-unchecked-bg: var(--switch-unchecked-bg);
@@ -92,6 +94,8 @@
 	--right-sidebar-border: oklch(0.88 0.01 100);
 	--editor-bg: oklch(1 0 0);
 	--editor-fg: oklch(0.243 0.015 280);
+	--status-bar-bg: oklch(0.978 0.005 100);
+	--status-bar-fg: oklch(0.529 0.07 265);
 	--radius: 0.625rem;
 }
 
@@ -135,6 +139,8 @@
 	--editor-bg: #2a2e3d;
 	--editor-fg: #F8F8F2;
 	--editor-empty-bg: #2b2f40;
+	--status-bar-bg: #21222e;
+	--status-bar-fg: oklch(0.55 0.06 268);
 	--tab-text-active: #bac5ee;
 	--tab-text-inactive: #9ca3c7;
 	--settings-dialog-bg: #313549;

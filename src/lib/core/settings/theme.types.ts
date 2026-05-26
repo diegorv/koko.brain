@@ -90,6 +90,10 @@ export interface UIColors {
 	inputBg: string;
 	/** Input field text color */
 	inputText: string;
+	/** Status bar background */
+	statusBarBg: string;
+	/** Status bar text color */
+	statusBarFg: string;
 	/** Switch unchecked track background */
 	switchUncheckedBg: string;
 }

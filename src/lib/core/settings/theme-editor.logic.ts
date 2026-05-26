@@ -62,7 +62,7 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 	},
 	{
 		label: 'App Shell',
-		keys: ['tabBar', 'divider', 'tabTextActive', 'tabTextInactive'],
+		keys: ['tabBar', 'divider', 'tabTextActive', 'tabTextInactive', 'statusBarBg', 'statusBarFg'],
 	},
 	{
 		label: 'Left Sidebar',
