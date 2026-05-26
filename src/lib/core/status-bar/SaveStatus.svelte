@@ -1,4 +1,6 @@
 <script lang="ts">
+	import CircleCheck from '@lucide/svelte/icons/circle-check';
+	import Circle from '@lucide/svelte/icons/circle';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { isTabDirty, isVirtualTab } from '$lib/core/editor/editor.logic';
 
@@ -10,7 +12,13 @@
 </script>
 
 {#if status === 'modified'}
-	<span class="text-yellow-400">Modified</span>
+	<span class="inline-flex items-center gap-1 text-muted-foreground">
+		<Circle class="size-3 fill-current animate-pulse" />
+		Modified
+	</span>
 {:else if status === 'saved'}
-	<span>Saved</span>
+	<span class="inline-flex items-center gap-1">
+		<CircleCheck class="size-3" />
+		Saved
+	</span>
 {/if}
