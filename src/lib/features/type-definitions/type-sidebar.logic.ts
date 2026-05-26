@@ -149,10 +149,11 @@ export function getNotesForSelection(
 export function getNotesForViewPaths(
 	entries: NoteEntryV2[],
 	matchingPaths: ReadonlySet<string>,
+	sort = 'modified',
 ): TypeSidebarNote[] {
 	const filtered = entries.filter((e) => matchingPaths.has(e.path));
 	const notes = filtered.map(toSidebarNote);
-	sortNotes(notes, 'modified', 'all');
+	sortNotes(notes, sort, 'all');
 	return notes;
 }
 
@@ -366,6 +367,43 @@ function collectViewFilesWalk(nodes: FileTreeNode[], out: ViewFileEntry[]): void
 			});
 		}
 	}
+}
+
+/** Extracts _sidebar_label from a view entry's frontmatter. Falls back to the given name. */
+export function getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: string): string {
+	const label = entry?.frontmatter['_sidebar_label'];
+	return typeof label === 'string' && label ? label : fallbackName;
+}
+
+/** Extracts _order from a view entry's frontmatter. Defaults to 50. */
+export function getViewOrder(entry: NoteEntryV2 | undefined): number {
+	const order = entry?.frontmatter['_order'];
+	return typeof order === 'number' ? order : 50;
+}
+
+/** Extracts _sort from a view entry's frontmatter. Defaults to 'modified'. */
+export function getViewSort(entry: NoteEntryV2 | undefined): string {
+	const sort = entry?.frontmatter['_sort'];
+	return typeof sort === 'string' ? sort : 'modified';
+}
+
+/** Extracts _list_properties_display from a view entry's frontmatter. */
+export function getViewListProperties(entry: NoteEntryV2 | undefined): string[] {
+	const raw = entry?.frontmatter['_list_properties_display'];
+	if (!Array.isArray(raw)) return [];
+	return raw.filter((v): v is string => typeof v === 'string');
+}
+
+/** Sorts view files by _order from entries, then alphabetically. */
+export function sortViewFiles(views: ViewFileEntry[], entries: NoteEntryV2[]): ViewFileEntry[] {
+	return [...views].sort((a, b) => {
+		const ea = entries.find((e) => e.path === a.path);
+		const eb = entries.find((e) => e.path === b.path);
+		const oa = getViewOrder(ea);
+		const ob = getViewOrder(eb);
+		if (oa !== ob) return oa - ob;
+		return a.name.localeCompare(b.name);
+	});
 }
 
 /** Updates _icon, _color, and _title_color in a .view YAML string. Returns the updated YAML. */

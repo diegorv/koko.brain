@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles, updateViewIconYaml } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -755,5 +755,89 @@ describe('updateViewIconYaml', () => {
 		expect(result).toContain('_order: 5');
 		expect(result).toContain('_icon: lucide:rocket');
 		expect(result).toContain('_color: green');
+	});
+});
+
+describe('getViewLabel', () => {
+	it('returns _sidebar_label from frontmatter', () => {
+		const entry = entryV2('/v/test.view', { frontmatter: { _sidebar_label: 'My View' } });
+		expect(getViewLabel(entry, 'fallback')).toBe('My View');
+	});
+
+	it('returns fallback when no label', () => {
+		const entry = entryV2('/v/test.view', {});
+		expect(getViewLabel(entry, 'fallback')).toBe('fallback');
+	});
+
+	it('returns fallback for undefined entry', () => {
+		expect(getViewLabel(undefined, 'fallback')).toBe('fallback');
+	});
+});
+
+describe('getViewOrder', () => {
+	it('returns _order from frontmatter', () => {
+		const entry = entryV2('/v/test.view', { frontmatter: { _order: 5 } });
+		expect(getViewOrder(entry)).toBe(5);
+	});
+
+	it('defaults to 50', () => {
+		expect(getViewOrder(undefined)).toBe(50);
+		expect(getViewOrder(entryV2('/v/test.view', {}))).toBe(50);
+	});
+});
+
+describe('getViewSort', () => {
+	it('returns _sort from frontmatter', () => {
+		const entry = entryV2('/v/test.view', { frontmatter: { _sort: 'title' } });
+		expect(getViewSort(entry)).toBe('title');
+	});
+
+	it('defaults to modified', () => {
+		expect(getViewSort(undefined)).toBe('modified');
+	});
+});
+
+describe('getViewListProperties', () => {
+	it('returns string array from frontmatter', () => {
+		const entry = entryV2('/v/test.view', { frontmatter: { _list_properties_display: ['status', 'due'] } });
+		expect(getViewListProperties(entry)).toEqual(['status', 'due']);
+	});
+
+	it('filters non-string items', () => {
+		const entry = entryV2('/v/test.view', { frontmatter: { _list_properties_display: ['ok', 42, null] } });
+		expect(getViewListProperties(entry)).toEqual(['ok']);
+	});
+
+	it('returns empty for undefined', () => {
+		expect(getViewListProperties(undefined)).toEqual([]);
+	});
+});
+
+describe('sortViewFiles', () => {
+	it('sorts by _order then alphabetically', () => {
+		const views = [
+			{ path: '/v/b.view', name: 'b' },
+			{ path: '/v/a.view', name: 'a' },
+			{ path: '/v/c.view', name: 'c' },
+		];
+		const entries = [
+			entryV2('/v/b.view', { frontmatter: { _order: 10 } }),
+			entryV2('/v/a.view', { frontmatter: { _order: 5 } }),
+			entryV2('/v/c.view', { frontmatter: { _order: 10 } }),
+		];
+		const result = sortViewFiles(views, entries);
+		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
+	});
+
+	it('defaults to order 50 when missing', () => {
+		const views = [
+			{ path: '/v/high.view', name: 'high' },
+			{ path: '/v/low.view', name: 'low' },
+		];
+		const entries = [
+			entryV2('/v/low.view', { frontmatter: { _order: 1 } }),
+		];
+		const result = sortViewFiles(views, entries);
+		expect(result.map((v) => v.name)).toEqual(['low', 'high']);
 	});
 });

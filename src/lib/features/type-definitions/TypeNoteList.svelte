@@ -25,7 +25,7 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
@@ -63,8 +63,8 @@
 					case 'favorites': return 'Favorites';
 				}
 			case 'view': {
-				const name = getFileName(selection.path);
-				return name.replace(/\.view$/i, '');
+				const entry = typeDefinitionsStore.entries.find((e) => e.path === selection.path);
+				return getViewLabel(entry, getFileName(selection.path).replace(/\.view$/i, ''));
 			}
 		}
 	});
@@ -72,9 +72,15 @@
 	let canCreate = $derived(selection?.kind === 'type');
 	let typeName = $derived(selection?.kind === 'type' ? selection.name : null);
 	let listProperties = $derived.by(() => {
-		if (selection?.kind !== 'type') return [];
-		const meta = typeDefinitionsStore.getTypeMetadata(selection.name);
-		return meta?.listPropertiesDisplay ?? [];
+		if (selection?.kind === 'type') {
+			const meta = typeDefinitionsStore.getTypeMetadata(selection.name);
+			return meta?.listPropertiesDisplay ?? [];
+		}
+		if (selection?.kind === 'view') {
+			const entry = typeDefinitionsStore.entries.find((e) => e.path === selection.path);
+			return getViewListProperties(entry);
+		}
+		return [];
 	});
 
 	function selectionKey(sel: typeof selection): string {
@@ -128,7 +134,8 @@
 			const view = parsed.definition.views[0];
 			const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
-			notes = getNotesForViewPaths(entries, matchingPaths);
+			const viewEntry = entries.find((e) => e.path === viewPath);
+			notes = getNotesForViewPaths(entries, matchingPaths, getViewSort(viewEntry));
 		} catch {
 			notes = [];
 		}

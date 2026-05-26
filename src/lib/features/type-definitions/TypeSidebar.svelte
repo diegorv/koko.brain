@@ -23,7 +23,7 @@
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { buildTypeSections, countNavItems, collectViewFiles, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
+	import { buildTypeSections, countNavItems, collectViewFiles, sortViewFiles, getViewLabel, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
@@ -33,6 +33,7 @@
 	let untypedCount = $state(0);
 	let navCounts = $state({ inbox: 0, all: 0, archive: 0, favorites: 0 });
 	let viewFiles = $derived(collectViewFiles(fsStore.fileTree));
+	let sortedViewFiles = $derived(sortViewFiles(viewFiles, typeDefinitionsStore.entries));
 	let sectionContextPath = $state<string | null>(null);
 	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
@@ -147,13 +148,15 @@
 						{/each}
 					</div>
 
-					{#if viewFiles.length > 0}
+					{#if sortedViewFiles.length > 0}
 						<div class="mx-2 mb-1 flex items-center gap-2">
 							<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Views</span>
 							<div class="flex-1 h-px bg-border"></div>
 						</div>
 
-						{#each viewFiles as view (view.path)}
+						{#each sortedViewFiles as view (view.path)}
+							{@const viewEntry = typeDefinitionsStore.entries.find((e) => e.path === view.path)}
+							{@const viewLabel = getViewLabel(viewEntry, view.name)}
 							{@const viewResolved = resolveIconForPath(view.path)}
 							{@const viewIcon = viewResolved?.icon}
 							{@const viewIconColor = viewResolved?.color}
@@ -169,7 +172,7 @@
 									<Table class="size-4 shrink-0 text-muted-foreground" />
 								{/if}
 								<span class="truncate" style:color={!(selection?.kind === 'view' && selection.path === view.path) && viewTextColor ? viewTextColor : undefined}>
-									{view.name}
+									{viewLabel}
 								</span>
 							</button>
 						{/each}
