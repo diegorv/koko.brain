@@ -107,11 +107,24 @@
 		return d.format('MMM D, YYYY');
 	}
 
+	function formatRelative(epochSeconds: number): string {
+		if (epochSeconds === 0) return '';
+		const diffMs = Date.now() - epochSeconds * 1000;
+		const mins = Math.floor(diffMs / 60000);
+		if (mins < 1) return 'just now';
+		if (mins < 60) return `${mins}m ago`;
+		const hours = Math.floor(mins / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		if (days < 30) return `${days}d ago`;
+		return formatDate(epochSeconds);
+	}
+
 	function formatDatePair(modifiedAt: number, createdAt: number): string {
 		if (!modifiedAt && !createdAt) return '';
-		const mod = formatDate(modifiedAt);
+		const mod = formatRelative(modifiedAt);
 		const cre = formatDate(createdAt);
-		if (mod && cre && mod !== cre) return `${mod} · created ${cre}`;
+		if (mod && cre) return `${mod} · created ${cre}`;
 		if (mod) return mod;
 		return `created ${cre}`;
 	}
@@ -239,7 +252,7 @@
 											{#each listProperties as prop (prop)}
 												{@const val = formatPropertyValue(note.frontmatter[prop])}
 												{#if val}
-													<span class="inline-flex items-center rounded-sm bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground truncate max-w-[140px]">
+													<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
 														{val}
 													</span>
 												{/if}
