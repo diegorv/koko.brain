@@ -65,16 +65,16 @@ Kokobrain uses a three-column layout that you can customize to your liking.
 
 | Area | Location | What it shows |
 |------|----------|---------------|
-| **Left sidebar** | Far left | File explorer (your notes and folders) or the Search panel |
+| **Left sidebar** | Far left | One of three modes: **File Explorer** (folder tree), **Type View** (notes grouped by type and lifecycle), or **Calendar** (date-based navigation). Toggle via the sidebar mode switcher at the top. |
 | **Editor area** | Center | Your open notes, arranged in tabs |
-| **Right sidebar** | Far right (optional) | Calendar, Properties, Backlinks, Tags, and more |
+| **Right sidebar** | Far right (optional) | Properties, Table of Contents, Backlinks, and Outgoing Links |
 
 At the bottom of the window you will find the **status bar**, which shows information like word count and save status.
 
 ### Toggling the sidebars
 
 - **Right sidebar**: Press `Cmd+B` to show or hide it.
-- **Left sidebar**: Drag its edge to resize, or collapse it entirely.
+- **Left sidebar**: Press `Cmd+Shift+B` or click the toggle button at the top-left of the window. You can also drag its edge to resize.
 
 ![App layout overview](screenshots/app-layout.png)
 
@@ -91,6 +91,12 @@ Everything Kokobrain creates lives inside your vault folder. Here is what each f
 | `.kokobrain/kokobrain.db` | File history snapshots and full-text search index (SQLite) |
 | `.kokobrain/bookmarks.json` | Your bookmarked notes |
 | `.kokobrain/recent-icons.json` | Recently used icons in the icon picker |
+| `.kokobrain/trash/` | Trash manifest and deleted files |
+| `.kokobrain/folder-order.json` | Custom folder ordering |
+| `.kokobrain/file-icons.json` | Custom icon assignments |
+| `.kokobrain/auto-move-rules.json` | Auto-move rule configuration |
+| `.kokobrain/todoist-sent.json` | Tracks which tasks were sent to Todoist |
+| `.kokobrain/logs/` | Session log files |
 
 The `.kokobrain/` folder is hidden by default in Finder. You can safely back it up alongside your notes. If you ever delete it, the only things you lose are settings and history -- your notes remain untouched.
 

@@ -21,7 +21,7 @@ The calendar panel is a left sidebar mode. Click the calendar icon in the sideba
 
 It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days already have a daily note.
 
-**Dot indicators**: Small dots appear below days that have an existing daily note, giving you a quick visual overview of your journaling activity.
+**Dot indicators**: Small dots appear below days that have files created on that date (based on the frontmatter `created` property or filesystem creation date), giving you a quick visual overview of your vault activity.
 
 ![Calendar panel](screenshots/calendar.png)
 
@@ -29,21 +29,24 @@ It displays a monthly calendar grid where you can navigate between months and ye
 
 | Click target | What happens |
 |---|---|
-| A day cell | Opens or creates the daily note for that date |
+| A day cell | Selects the date and shows files created that day below the calendar |
 | Week number (left column) | Opens or creates the weekly note for that week |
 | Month name (header) | Opens or creates the monthly note |
 | Quarter badge (Q1-Q4) | Opens or creates the quarterly note |
 | ◀ / ▶ arrows | Navigate to previous/next month |
 | Year arrows | Navigate to previous/next year |
+| Double-click month name | Jump back to today |
 
 ### Selected Date
 
 When you click a day, a panel below the calendar shows:
 
 - A **"Daily note"** button to open or create that day's note
-- A list of files created or modified on that date
+- A list of all files created on that date, each clickable to open in the editor
 
-This makes the calendar a useful tool not just for periodic notes, but for browsing your vault's activity by date.
+ISO week numbers appear on the left column. Weeks start on Monday (ISO convention).
+
+The calendar header also includes a **Daily Note** button and a **Sidebar Mode Toggle** for quick access.
 
 ## Configuration
 
@@ -57,7 +60,7 @@ Example: `_notes`
 
 All periodic notes will be created under this folder, with subfolders determined by the format string.
 
-### Per Period Type (Daily, Weekly, Monthly, Quarterly)
+### Per Period Type (Daily, Weekly, Monthly, Quarterly, Yearly)
 
 Each period type has its own settings:
 
@@ -68,8 +71,9 @@ Each period type has its own settings:
 
 ### Daily-Only Settings
 
-- **Auto-open**: Automatically opens today's daily note when the vault loads. Useful if daily journaling is the first thing you do.
-- **Auto-pin**: Pins the daily note tab so it cannot be accidentally closed. The pinned tab stays at the left edge of your tab bar.
+- **Auto-open**: Automatically opens today's daily note when the vault loads. Useful if daily journaling is the first thing you do. Enabled by default.
+- **Auto-pin**: Pins the daily note tab so it cannot be accidentally closed. The pinned tab stays at the left edge of your tab bar. Requires Auto-open to be enabled. Enabled by default.
+- **Date-change refresh**: When the app window regains focus and the date has changed (e.g., past midnight), the previous daily note is automatically unpinned and replaced with today's note.
 
 ## Understanding Format Strings
 

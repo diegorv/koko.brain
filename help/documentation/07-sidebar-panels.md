@@ -20,12 +20,14 @@ The calendar is a left sidebar mode (alongside File Explorer and Type View). Cli
 
 ![Calendar panel with dot indicators](screenshots/calendar.png)
 
-- **Dot indicators** appear below each day that already has a daily note, so you can see at a glance which days have entries.
-- **Click a day** to open the daily note for that date. If the note does not exist yet, Kokobrain creates it for you.
+- **Dot indicators** appear below each day that has files created on that date (based on frontmatter `created` property or filesystem creation date), so you can see at a glance which days have activity.
+- **Click a day** to select it and view a list of files created on that date below the calendar. To open or create a daily note, click the **Daily Note** button in the calendar header.
 - **Click a week number** (the left column) to open or create the weekly note for that week.
 - **Click the month name** to open or create the monthly note.
 - **Click the quarter badge** (Q1, Q2, Q3, or Q4) to open or create the quarterly note.
 - Use the arrow buttons (< >) to navigate between months.
+- **Double-click the month name** to jump back to today.
+- **ISO week numbers** are shown on the left column. Weeks start on Monday.
 
 > [!TIP]
 > The calendar is the quickest way to navigate your periodic notes. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) for full details.
@@ -48,11 +50,17 @@ The Properties panel shows the YAML frontmatter of the current note as editable 
 | Checkbox | Toggle switch | `true` / `false` |
 | List | Multi-value text list | `["tag1", "tag2"]` |
 
+### Lifecycle Actions
+
+If the current note has a type defined, lifecycle action buttons appear at the top of the Properties panel: **Organize**, **To Inbox**, **Archive**, **Unarchive**, and **Favorite**. These change the note's `_lifecycle` property. See [Types & Relationships](25-types-and-relationships.md) for details.
+
 ### Adding a property
 
 1. Click the **"+"** button at the top of the Properties panel.
 2. Type the property name and press Enter.
 3. Enter the value.
+
+For relationship properties (fields that hold wikilinks), a **"+"** search button appears next to the field, letting you search your vault and pick a note to add as a relationship link.
 
 ### Editing a property
 
@@ -75,16 +83,11 @@ The Backlinks panel shows which other notes link **to** the currently open note.
 
 ![Backlinks panel showing linked and unlinked mentions](screenshots/backlinks.png)
 
-The panel is divided into two sections:
-
-- **Linked mentions** — Notes that contain an explicit `[[wikilink]]` pointing to this note.
-- **Unlinked mentions** — Notes that mention the current note's name as plain text, without wrapping it in a wikilink.
-
-Click any backlink to open that source note.
+The panel shows **linked mentions** — notes that contain an explicit `[[wikilink]]` pointing to this note. Click any backlink to open that source note.
 
 ### Relationship Backlinks
 
-Below the linked and unlinked mention sections, a **Relationships** section shows notes that reference the current note through frontmatter relationship fields (`belongs_to`, `related_to`, or custom wikilink-bearing fields). Each entry shows the source note and the relationship field name. See [Types & Relationships](25-types-and-relationships.md) for details.
+Below the linked mentions, a **Relationships** section shows notes that reference the current note through frontmatter relationship fields (`belongs_to`, `related_to`, or custom wikilink-bearing fields). Each entry shows the source note and the relationship field name. See [Types & Relationships](25-types-and-relationships.md) for details.
 
 ### Why backlinks matter
 
@@ -96,12 +99,7 @@ Backlinks let you discover connections you might not remember. If you link to "P
 
 The Outgoing Links panel shows all `[[wikilinks]]` found in the currently open note. It is the complement of Backlinks: instead of showing what points here, it shows what this note points to.
 
-The panel is divided into two sections:
-
-- **Links** — Resolved wikilinks where the target note exists. These are shown as clickable links.
-- **Unlinked mentions** — Notes whose names appear as plain text in your note but are not linked with `[[]]`.
-
-Unresolved links (where the target note does not exist yet) are highlighted with a warning icon. This is useful for seeing at a glance what your note references and whether any links are broken.
+The panel shows all outgoing links — resolved wikilinks (clickable) and unresolved links (highlighted with a warning icon, where the target note does not exist yet). This is useful for seeing at a glance what your note references and whether any links are broken.
 
 ---
 
@@ -115,11 +113,13 @@ The Tags panel shows all `#tags` used across your entire vault, organized in a h
 
 - **Sort** — Toggle between A-Z (alphabetical) and by count (most used first).
 - **Filter** — A text input to narrow the tag list by name.
-- **Hide rare tags** — Toggle to hide tags used only once or twice.
+- **Hide rare tags** — Toggle to hide tags with fewer than 10 uses.
 
 ### Clicking a tag
 
 Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
+
+You can also open Tags as a **dedicated virtual tab** via the Command Palette: `Cmd+P` → "Toggle Tags View".
 
 ### Tag colors
 
@@ -140,7 +140,7 @@ Tag colors are stored under `tagColors.colors` in your settings and apply everyw
 
 Go to **Settings > Sidebar** to:
 
-- Toggle each panel on or off individually: Calendar, Properties, Backlinks, Outgoing Links, Tags.
+- Toggle each panel on or off individually: Properties, Backlinks, Outgoing Links, Table of Contents.
 - Enable or disable Folder Notes.
 
 You can keep only the panels you use most, reducing visual clutter in the sidebar.

@@ -45,6 +45,10 @@ When your cursor is outside the backticks, the expression renders as an interact
 
 `number`, `date`, `toggle`, and `boolean` are valid with empty parentheses. All other types currently need at least one option.
 
+Unrecognized input types that have options will fall back to rendering as an inline select.
+
+The `toggle` widget treats these frontmatter values as checked/truthy (case-insensitive): `true`, `yes`, `1`, `on`.
+
 ### Option labels
 
 By default each comma-separated argument is used as both the stored value and the displayed label. To show a different label than the stored value, use the `option(value, label)` form:
@@ -85,6 +89,8 @@ action:
 | `tooltip` | no | Hover tooltip. |
 | `action` | one of | A single action object. Mutually exclusive with `actions`. |
 | `actions` | one of | An array of action objects executed in sequence. Mutually exclusive with `action`. |
+| `id` | no | Unique identifier for referencing this button inline. |
+| `hidden` | no | When `true`, the button block is hidden in live preview (useful for code-only blocks referenced by `id`). |
 
 If neither `action` nor `actions` is provided — or if the YAML is malformed — Kokobrain replaces the button with an inline error widget so the editor does not crash.
 

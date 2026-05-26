@@ -24,7 +24,7 @@ When you have unsaved changes, a filled dot appears next to the tab name. Press 
 
 You can pin important tabs so they stay visible and can't be accidentally closed.
 
-- Right-click a tab and select **Pin Tab** (or use the Command Palette and search for "Pin/Unpin Tab")
+- Right-click a tab to open a context menu with **Pin Tab** / **Unpin Tab** and **Close Tab** (or use the Command Palette and search for "Pin/Unpin Tab")
 - Pinned tabs are marked with a pin icon and stay on the left side of the tab bar
 - Pinned tabs cannot be closed with **Cmd+W** — you must explicitly unpin them first
 
@@ -33,7 +33,7 @@ You can pin important tabs so they stay visible and can't be accidentally closed
 
 ## Editor Modes
 
-The markdown editor has two modes, toggled via the button in the bottom-right corner of the editor.
+The markdown editor has two modes, toggled via the button in the bottom-right corner of the editor or by pressing `Cmd+K`.
 
 ### Source Mode
 
@@ -65,6 +65,8 @@ Different file types open with different editors:
 | Tasks (virtual) | Tasks view | Aggregated tasks from all notes (see [Tasks](10-tasks-and-todoist.md)) |
 | Graph (virtual) | Graph view | Knowledge graph visualization (see [Graph View](14-graph-view.md)) |
 
+| Tags (virtual) | Tags view | All tags across your vault with counts |
+
 "Virtual" tabs don't correspond to a file on disk — they are generated views.
 
 For Canvas, Collection, and Kanban files, a toggle button in the bottom-right lets you switch between the visual editor and raw source — JSON for canvas, YAML for collection, Markdown for kanban. The source-mode preference resets when you switch tabs.
@@ -82,18 +84,41 @@ If the linked note doesn't exist, Kokobrain will create it for you. Learn more i
 
 Type `[[` to trigger the autocomplete popup. Start typing to filter by note name, then press **Enter** to insert the selected link or **Escape** to dismiss. The popup shows all notes in your vault.
 
+## Auto-Save
+
+Kokobrain saves your notes automatically. There are two debounce timers:
+
+- **Body text changes** — saved after 2 seconds of inactivity
+- **Frontmatter-only changes** (e.g., property edits via the sidebar) — saved after 500ms
+
+If you close a tab with unsaved changes, a confirmation dialog asks whether to discard them.
+
+## Editor Features
+
+Beyond basic text editing, the markdown editor supports several advanced features:
+
+- **Multiple cursors** — Hold `Option` and click to place additional cursors. All cursors edit simultaneously.
+- **Rectangular selection** — Hold `Ctrl+Shift` and drag to select a rectangular region.
+- **Tab indentation** — Press `Tab` to indent, `Shift+Tab` to dedent.
+- **Bracket matching** — Matching brackets are highlighted when the cursor is adjacent to one.
+- **Paste as table** — Pasting TSV or Excel data from the clipboard automatically converts it into a Markdown pipe table.
+
 ## Status Bar
 
 At the bottom of the window, the status bar shows contextual information about your current note.
 
 **Left side:**
-- Search indexing progress (while indexing is running)
+- **Search index stats** — shows "N notes indexed" after indexing completes, or progress while indexing
+- **Semantic index status** — shows "Indexed (N chunks)", "Not indexed", or "Loading model..." per-file when semantic search is enabled
 
 **Right side:**
-- **Word count** — three metrics that update live as you type:
+- **Save status** — "Modified" (yellow) when you have unsaved changes, or "Saved"
+- **Cursor position** — current line and column (Ln/Col)
+- **Word count** — three metrics (YAML frontmatter is excluded from counts, only shown for markdown files):
   - **Word count**: total number of words in the note
   - **Character count**: total number of characters
-  - **Reading time**: estimated reading time based on 200 words per minute
+  - **Reading time**: estimated reading time based on 200 words per minute (minimum 1 minute)
+- **Editor mode** — current mode (Source or Live Preview)
 
 ## Right-Click in the Editor
 

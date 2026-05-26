@@ -18,6 +18,21 @@ Quick Note creates a new timestamped note immediately, without any prompt or dia
 | **Filename format** | dayjs format for the note name | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
 | **Template** | Path to a template file (optional) | `_system/templates/Quick Note.md` |
 
+Quick notes are placed under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder), with the subfolder determined by the folder format.
+
+### Template Variables
+
+Quick note templates can use these additional variables:
+
+| Variable | Value |
+|---|---|
+| `<% created %>` | ISO date-time when the note was created |
+| `<% year %>` | 4-digit year |
+| `<% month %>` | Zero-padded month |
+| `<% monthName %>` | Full month name |
+| `<% dailyNotePath %>` | Wikilink path to today's daily note |
+| `<% dailyNoteDisplay %>` | Display name for today's daily note |
+
 ### Example
 
 With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
@@ -64,6 +79,22 @@ With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 
 The `{person}` placeholder is replaced with the selected person's name.
 
+1:1 notes are placed under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder).
+
+### Template Variables
+
+1:1 note templates can use these additional variables:
+
+| Variable | Value |
+|---|---|
+| `<% created %>` | ISO date-time when the note was created |
+| `<% year %>` | 4-digit year |
+| `<% month %>` | Zero-padded month |
+| `<% monthName %>` | Full month name |
+| `<% person %>` | Name of the selected person |
+| `<% dailyNotePath %>` | Wikilink path to today's daily note |
+| `<% dailyNoteDisplay %>` | Display name for today's daily note |
+
 ### Example
 
 Selecting "Alice Smith" on Feb 17, 2026 with the default settings creates:
@@ -94,7 +125,12 @@ Templates are `.md` files that serve as starting points for new notes. Instead o
 
 ![Template picker dialog](screenshots/template-picker.png)
 
-**Configure the templates folder** in Settings → Templates → Folder (default: `_templates`).
+**Configure the templates folder** in Settings → Templates → Folder (default: `_system/templates`).
+
+New notes from templates are created at the **vault root**.
+
+> [!NOTE]
+> On vault initialization, Kokobrain auto-creates the templates folder and placeholder files for all configured periodic note, quick note, and 1:1 note templates if they don't exist yet.
 
 ---
 

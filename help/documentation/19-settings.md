@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a sidebar for navigation on the left and a content area on the right where you can adjust each section.
+The Settings dialog has a sidebar organized into groups: **General** (Appearance, Editor, Sidebar), **Notes** (Periodic Notes, Quick Note, 1:1 Notes, Templates, Types), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist), and **Advanced** (Troubleshooting, Update).
 
 ![Settings dialog](screenshots/settings.png)
 
@@ -27,22 +27,23 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Right Sidebar** | Show or hide the entire right sidebar | Visible |
+| **Sidebar Mode** | Default left sidebar mode | `types` (options: `files`, `types`, `calendar`) |
+| **Right Sidebar** | Show or hide the entire right sidebar | Hidden |
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
 | **Outgoing Links** | Show the Outgoing Links panel | Enabled |
-| **Tags** | Show the Tags panel | Enabled |
-| **Folder Notes** | Clicking a folder also opens its matching .md file | Disabled |
+| **Table of Contents** | Show the Table of Contents panel | Enabled |
+| **Folder Notes** | Clicking a folder also opens its matching .md file | Enabled |
 
 ## Editor
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Font family** | CSS font-family string for the editor | `MonoLisa, monospace` |
-| **Font size** | Font size in pixels (8--32) | `14` |
+| **Font family** | CSS font-family string for the editor | `iA Writer Duo S` |
+| **Font size** | Font size in pixels (8--32) | `18` |
 | **Line height** | Line spacing multiplier (1.0--3.0) | `1.6` |
 | **Content width** | Maximum width of the editor content in pixels. `0` removes the cap so the editor fills the pane. | `0` |
-| **Paragraph spacing** | Extra vertical space after each paragraph, in `em`. `0` keeps the default Markdown spacing. | `0` |
+| **Paragraph spacing** | Extra vertical space after each paragraph, in `em`. `0` keeps the default Markdown spacing. | `0.05` |
 
 ### Heading Typography
 
@@ -69,31 +70,31 @@ Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Not
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Format | dayjs format string for filename/path | `YYYY/MM-MMM/_journal-day-DD-MM-YYYY` |
-| Template | Path to template file | -- |
-| Auto-open | Open today's daily note on vault load | `false` |
-| Auto-pin | Pin the daily note tab | `false` |
+| Format | dayjs format string for filename/path | `YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY` |
+| Template | Path to template file | `_system/templates/Daily Note.md` |
+| Auto-open | Open today's daily note on vault load | `true` |
+| Auto-pin | Pin the daily note tab (requires Auto-open) | `true` |
 
 **Weekly:**
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Format | dayjs format string | `YYYY/MM-MMM/_review-week-WW` |
-| Template | Path to template file | -- |
+| Format | dayjs format string | `YYYY/MM-MMM/[__journal-week-]WW[-]YYYY` |
+| Template | Path to template file | `_system/templates/Weekly Note.md` |
 
 **Monthly:**
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Format | dayjs format string | `YYYY/MM-MMM/_review-month-MM` |
-| Template | Path to template file | -- |
+| Format | dayjs format string | `YYYY/MM-MMM/MM-MMM` |
+| Template | Path to template file | `_system/templates/Monthly Note.md` |
 
 **Quarterly:**
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Format | dayjs format string | `YYYY/_review-quarter-Q` |
-| Template | Path to template file | -- |
+| Format | dayjs format string | `YYYY/[_journal-quarter-]YYYY[-Q]Q` |
+| Template | Path to template file | `_system/templates/Quarterly Note.md` |
 
 **Yearly:**
 
@@ -128,7 +129,16 @@ See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Folder** | Folder name for template files (relative to vault root) | `_templates` |
+| **Folder** | Folder name for template files (relative to vault root) | `_system/templates` |
+
+## Types
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Explicit Organization** | New notes start unorganized and appear in the Inbox | Disabled |
+| **Show Untyped Notes** | Show notes without a type in an "Untyped" section at the bottom of the type sidebar | Disabled |
+
+See [Types & Relationships](25-types-and-relationships.md) for details.
 
 ## Search
 
@@ -136,7 +146,11 @@ See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 |---------|-------------|---------|
 | **Semantic search** | Enable AI-powered semantic search | Disabled |
 
-When enabled for the first time, Kokobrain downloads the BGE-M3 ONNX model (~118 MB). The dialog shows download progress, then index build progress. Once complete, it displays stats (total chunks / total files indexed).
+When enabled for the first time, Kokobrain downloads the BGE-M3 ONNX model (~542 MB). The dialog shows download progress, then index build progress. Once complete, it displays stats (total chunks / total files indexed).
+
+When semantic search is enabled, an optional **Reranker** download button appears. Downloading the BGE-reranker-v2-m3 cross-encoder model (~571 MB) improves search precision by re-scoring results with a deeper model. The reranker is optional — semantic search works without it.
+
+Both models are automatically unloaded after 120 seconds of inactivity to free memory, then lazy-reloaded on next use.
 
 > [!NOTE]
 > The semantic model runs entirely on your machine. No data is sent to any server. You need an internet connection only for the initial download.
@@ -168,7 +182,7 @@ Configuration for automatic file organization. See [Auto Move](22-auto-move.md) 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Enabled** | Globally enable or disable the auto-move feature | Disabled |
-| **Debounce delay** | Milliseconds to wait after saving before evaluating rules | `2000` |
+| **Debounce delay** | Milliseconds to wait after saving before evaluating rules | `3000` |
 
 Rules and excluded folders are managed in the Auto Move settings section and stored in `.kokobrain/auto-move-rules.json` inside the vault. This file is separate from `settings.json`.
 
@@ -187,6 +201,7 @@ See [Tasks & Todoist](10-tasks-and-todoist.md) for details on the integration.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Auto-run policy** (`queryjs.autoRunQueries`) | When `` ```queryjs `` blocks should execute. `manual` shows a ▶ Run button; `first-open` runs once per session and caches; `always` re-runs on every render. | `first-open` |
+| **Clear cache** | Button to drop all cached query results and auto-run markers | — |
 
 See [QueryJS → Execution policy](13-queryjs.md#execution-policy) for the full behavior matrix and notes on the per-session result cache.
 
@@ -217,12 +232,24 @@ You set colors interactively from the Tags panel by clicking the dot next to a t
 | **Debug Mode (Tauri)** | Forwards Rust backend logs to browser DevTools | Disabled |
 | **Save Tauri Log to File** | Writes backend logs to the system log directory | Disabled |
 | **Live preview profiling** (`livePreviewProfiling`) | Emit `LP-PROFILE` timing entries to the log so you can measure per-plugin decoration cost | Disabled |
-| **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations (e.g. math, mermaid, queryjs, tables). Stored as a map keyed by decorator name. Useful for isolating which decoration causes lag on a specific file. | `{}` |
+| **Debug heartbeat** | Emits "[HB] alive" ticks every 250ms for diagnosing UI freezes | Disabled |
+| **Build info** | Shows release channel, version, commit hash, and build time | — |
+| **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations. Available decorators: `table`, `metaBindInput`, `queryjs`, `codeBlock`, `frontmatter`, `callout`, `link`, `inlineMarks`, `simpleWidget`, `heading`, `blockquote`, `markdownStyle`. | `{}` |
 
 > [!NOTE]
 > These settings are only useful when diagnosing bugs. Enable them before reproducing an issue, then share the log files when reporting a bug.
 >
 > Log files are stored in the system log directory (`~/Library/Logs/` on macOS), not inside the vault.
+
+## Update
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Release channel** | Choose between `stable` and `nightly` builds | `stable` |
+| **Auto-check on launch** | Automatically check for updates when the app starts | Disabled |
+| **Check for updates** | Button to manually check for available updates | — |
+
+When an update is available, the section shows download progress and a "Restart to update" button. When switching from nightly to stable, an "Install Stable (downgrade)" option appears.
 
 ## Settings File Location
 

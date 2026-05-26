@@ -109,7 +109,7 @@ In type mode, the layout splits into three panels:
 
 Click a type in the left sidebar to see its notes in the middle panel. Click a note card to open it in the editor.
 
-Notes without a type appear in an "Untyped" section at the bottom of the left sidebar.
+Notes without a type appear in an "Untyped" section at the bottom of the left sidebar (when enabled in Settings → Types → Show Untyped Notes).
 
 ### Note Order
 
@@ -163,7 +163,9 @@ The left sidebar also has two navigation items:
 | Nav Item | Shows |
 |----------|-------|
 | Inbox | Notes with `_organized: false` (not yet triaged) |
+| All | All non-archived notes across all types |
 | Archive | All archived notes across types |
+| Favorites | All favorited, non-archived notes across types |
 
 ### Favorite Order
 
@@ -281,11 +283,53 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `color` | `_color` | Icon color in type sidebar, file explorer, and editor tabs |
 | `title_color` | `_title_color` | Title text color in type sidebar, file explorer, and editor tabs |
 | `template` | `_template` | Template file for "New [Type]" action in type sidebar |
-| `view` | `_view` | Not yet implemented |
+| `view` | `_view` | Default view mode for the type section |
 | `visible` | `_visible` | Show/hide type section in sidebar |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note cards in middle panel |
 
 You can use either form in your frontmatter. The app normalizes them internally.
+
+---
+
+## View Files (.view)
+
+View files are saved collection-style query definitions that appear as navigation items in the type sidebar. They let you create custom filtered lists of notes that live alongside your type sections.
+
+### Creating a View
+
+Create a `.view` file in your vault with YAML frontmatter:
+
+```yaml
+---
+_sidebar_label: Active Projects
+_order: 5
+_sort: modified
+_icon: rocket
+_color: blue
+_title_color: "#3498db"
+_list_properties_display:
+  - status
+  - priority
+---
+
+type = "Project" and status = "active"
+```
+
+The body of the file contains a filter expression using the same [Collection expression language](12-collection.md).
+
+### View Frontmatter Fields
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `_sidebar_label` | Display name in the sidebar | Filename |
+| `_order` | Sidebar sort order (lower = higher) | `50` |
+| `_sort` | Sort mode for matching notes | `title` |
+| `_icon` | Lucide icon name | none |
+| `_color` | Icon color | none |
+| `_title_color` | Label text color | none |
+| `_list_properties_display` | Properties to show on note cards | none |
+
+Views appear in the type sidebar alongside type sections. Click a view to see its matching notes in the middle panel.
 
 ---
 

@@ -13,7 +13,7 @@ The power of wikilinks becomes clear as your vault grows: the connections betwee
 ## Creating a Wikilink
 
 1. Type `[[` in the editor to trigger the autocomplete popup.
-2. Start typing a note name to filter the list.
+2. Start typing a note name to filter the list. Notes that have frontmatter `aliases` will also appear by their alias names, so you can link to a note by any of its aliases.
 3. Press **Enter** to select a note, or **Escape** to dismiss.
 
 ![Wikilink autocomplete popup](screenshots/wikilink-autocomplete.png)
@@ -29,6 +29,7 @@ Kokobrain supports several wikilink formats, each serving a different purpose:
 | `[[Note Name]]` | Links to a note by its filename | `[[Project Ideas]]` |
 | `[[Note Name\|Display Text]]` | Links to a note but shows different text | `[[2026-02-17\|Today's Note]]` |
 | `[[Note Name#Heading]]` | Links to a specific heading within a note | `[[Meeting Notes#Action Items]]` |
+| `[[#Heading]]` | Links to a heading within the same note | `[[#Action Items]]` |
 | `[[Note Name#^blockid]]` | Links to a specific block (paragraph, list item) | `[[Research#^abc123]]` |
 | `![[Note Name]]` | Embeds the entire note's content inline | `![[Template Header]]` |
 | `![[Note Name#Heading]]` | Embeds a specific section | `![[FAQ#Getting Started]]` |
@@ -73,7 +74,7 @@ A "block" is any paragraph, list item, or other content element in a note. You c
 
 ### Creating a block embed
 
-1. Use the Command Palette (`Cmd+P`) and select "Copy Block Embed".
+1. Press `Cmd+Shift+L` (or use the Command Palette `Cmd+P` and select "Copy Block Embed").
 2. This works the same as a block link, but copies `![[Note Name#^a1b2c3]]` — which embeds the block's content inline instead of just linking to it.
 
 > [!NOTE]

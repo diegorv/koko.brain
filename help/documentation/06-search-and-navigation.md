@@ -39,7 +39,8 @@ The Command Palette gives you a searchable list of all available commands in the
 
 | Category | Command | Shortcut |
 |----------|---------|----------|
-| **Editor** | Save File | `Cmd+S` |
+| **Editor** | Toggle Source / Live Preview | `Cmd+K` |
+| | Save File | `Cmd+S` |
 | | Close Tab | `Cmd+W` |
 | | Next Tab | `Cmd+Shift+]` |
 | | Previous Tab | `Cmd+Shift+[` |
@@ -50,16 +51,19 @@ The Command Palette gives you a searchable list of all available commands in the
 | **File Explorer** | New File | — |
 | | New Folder | — |
 | **Canvas** | New Canvas | — |
+| **Kanban** | New Kanban Board | — |
 | **Navigation** | Open Quick Switcher | `Cmd+O` |
 | | Search in Vault | `Cmd+Shift+F` |
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
-| | Toggle Terminal | `` Cmd+` `` |
+| | Toggle Left Sidebar | `Cmd+Shift+B` |
 | **Notes** | Open Daily Note | — |
 | | Create Quick Note | `Cmd+N` |
 | | Create 1:1 Note | `Cmd+Shift+N` |
 | | New File from Template | — |
+| **View** | Toggle Tags View | — |
+| | Toggle Table of Contents | — |
 | **Settings** | Open Settings | `Cmd+,` |
 
 ---
@@ -86,7 +90,7 @@ The FTS index uses the `unicode61` tokenizer with diacritic folding, so `acao` m
 
 Semantic search understands the *meaning* of your query, not just the exact keywords. For example, searching "meeting with client" can find a note titled "customer sync-up" even though none of the words match.
 
-- Requires a one-time model download (~120 MB for the embedder). Enable it in **Settings > Search > Semantic Search**.
+- Requires a one-time model download (~542 MB for the embedder). Enable it in **Settings > Search > Semantic Search**.
 - Uses local AI models (BGE-M3 embedder, plus an optional BGE-reranker-v2-m3 cross-encoder) that run entirely on your machine — your data never leaves your computer.
 
 **How it works under the hood:**
@@ -108,7 +112,7 @@ This mode is only available when semantic search is enabled. The reranker step i
 
 ### Fuzzy Toggle
 
-Click the `~` button next to the search input to enable **fuzzy matching**. When enabled, the search tolerates typos and approximate matches. For example, "meating" will still find notes containing "meeting".
+Click the `~` button next to the search input to toggle **fuzzy matching** (enabled by default). When enabled, the search tolerates typos and approximate matches. For example, "meating" will still find notes containing "meeting".
 
 ### Search Results
 

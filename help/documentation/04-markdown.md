@@ -41,6 +41,16 @@ Headings create structure in your notes. Start a line with one or more `#` symbo
 ###### Heading 6
 ```
 
+You can also use **setext-style headings** for levels 1 and 2 by underlining text:
+
+```
+Heading 1
+=========
+
+Heading 2
+---------
+```
+
 - `# Heading 1` is the largest and is typically used as the note title
 - `###### Heading 6` is the smallest
 - Each additional `#` creates a deeper level of nesting
@@ -101,6 +111,9 @@ Task lists are regular list items with a checkbox at the start:
 - [x] Completed item
 - [/] In progress
 - [-] Cancelled
+- [?] Question
+- [>] Forwarded
+- [!] Important
 ```
 
 In live preview mode, you can **click the checkbox** to toggle its state — no need to edit the raw text.
@@ -220,6 +233,8 @@ This renders as:
 >
 > > Nested quotes work too.
 
+Nested blockquotes have visual depth indicators — the 1st, 2nd, and 3rd+ levels each have distinct styling to help you see the nesting structure at a glance.
+
 ---
 
 ## Callouts
@@ -245,6 +260,8 @@ Callouts are special blockquotes that highlight important information with an ic
 
 Each callout type has its own color and icon, making it easy to scan a document for important information at a glance.
 
+In live preview, callouts show a **clickable type label** — click it to open a dropdown and change the callout type inline without editing the raw syntax.
+
 ### All Available Callout Types
 
 | Type         | Use for                                      |
@@ -263,6 +280,16 @@ Each callout type has its own color and icon, making it easy to scan a document 
 | `FAILURE`    | Negative outcomes or errors                  |
 | `QUESTION`   | Open questions or things to investigate      |
 | `ABSTRACT`   | Summaries or overviews                       |
+| `SUMMARY`    | Alias for Abstract                           |
+| `TODO`       | Alias for Note                               |
+| `CHECK`      | Alias for Success                            |
+| `DONE`       | Alias for Success                            |
+| `HELP`       | Alias for Question                           |
+| `FAQ`        | Alias for Question                           |
+| `FAIL`       | Alias for Failure                            |
+| `MISSING`    | Alias for Failure                            |
+| `ERROR`      | Alias for Danger                             |
+| `CITE`       | Alias for Quote                              |
 
 If you omit the title text (e.g. `> [!NOTE]` with nothing after the type), the callout type is used as the default title.
 
@@ -310,6 +337,8 @@ Create tables using pipes `|` and dashes `-`:
 ```
 
 This renders as a formatted table with borders and proper alignment.
+
+In live preview, tables show floating **+col** and **+row** buttons on hover, letting you add columns and rows without editing the raw Markdown.
 
 ### Column Alignment
 
@@ -369,7 +398,9 @@ fn main() {
 }
 ````
 
-Supported languages include: `javascript`, `typescript`, `python`, `rust`, `html`, `css`, `json`, `yaml`, `bash`, `sql`, `go`, `java`, `c`, `cpp`, `swift`, `ruby`, `php`, `markdown`, and many more.
+Supported languages include: `javascript`, `typescript`, `jsx`, `tsx`, `python`, `rust`, `go`, `java`, `kotlin`, `swift`, `c`, `cpp`, `csharp`, `php`, `ruby`, `sql`, `html`, `css`, `scss`, `json`, `yaml`, `toml`, `xml`, `markdown`, `bash`, `shell`, `powershell`, `dockerfile`, `graphql`, `lua`, `elixir`, `haskell`, `scala`, `diff`, `ini`, `makefile`, `r`, `perl`, `objectivec`, `arduino`, and more.
+
+In live preview, code blocks show a **language switcher dropdown** in the header (change syntax highlighting without editing the fence) and a **Copy button** for quick clipboard copy.
 
 > [!TIP]
 > If you omit the language name, the code block still renders with a monospace font — it just won't have syntax highlighting.
@@ -652,6 +683,19 @@ Kokobrain supports two interactive widgets that read and write the current note'
 - Button blocks: a ` ```meta-bind-button ` fenced block defines a clickable button that runs one or more actions (update frontmatter, open a note, create a note).
 
 See [Meta-Bind](24-meta-bind.md) for the full reference and a copy-pasteable example for every input type and button action.
+
+---
+
+## Special Code Blocks
+
+In addition to syntax-highlighted code, Kokobrain supports special fenced code blocks that render as interactive widgets in live preview:
+
+| Language | What it renders | See |
+|----------|----------------|-----|
+| `collection` | Inline database/table view over vault notes | [Collection](12-collection.md) |
+| `queryjs` | Executable JavaScript with access to vault data | [QueryJS](13-queryjs.md) |
+| `mermaid` | Diagrams (see above) | [Mermaid docs](https://mermaid.js.org) |
+| `meta-bind-button` | Clickable action button | [Meta-Bind](24-meta-bind.md) |
 
 ---
 

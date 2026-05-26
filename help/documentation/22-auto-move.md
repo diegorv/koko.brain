@@ -77,7 +77,7 @@ Files inside excluded folders are skipped entirely — no evaluation, no moves.
 
 Auto Move does not run instantly on every keystroke. It waits a configurable number of milliseconds after the last save before evaluating rules. This prevents unnecessary moves while you are actively editing a note.
 
-The default is `2000 ms` (2 seconds). Increase it if you find moves happening too eagerly; decrease it for a more responsive experience.
+The default is `3000 ms` (3 seconds). Increase it if you find moves happening too eagerly; decrease it for a more responsive experience.
 
 ## Applying Icons After Move
 

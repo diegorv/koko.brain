@@ -66,7 +66,8 @@ You can add structured metadata to tasks using emoji signifiers, following the O
 | Emoji | Priority |
 |-------|----------|
 | 🔺    | Highest  |
-| 🔼    | High     |
+| ⏫    | High     |
+| 🔼    | Medium   |
 | 🔽    | Low      |
 | ⏬    | Lowest   |
 
@@ -97,7 +98,7 @@ The Tasks View toolbar provides several filters to help you focus on what matter
 |--------------------|--------------------------------------|------------------------------------|
 | **Date**           | All Time / Last 7 Days / Last 30 Days | Filter tasks by date              |
 | **Hide completed** | Toggle                               | Hide `- [x]` done tasks           |
-| **Section filter** | Text input                           | Filter by source file name         |
+| **Section filter** | Text input                           | Filter by heading/section tag (e.g. `#to-list`). Default: `#to-list` |
 
 Combine filters to narrow down your view. For example, toggle **Hide completed** on and set the date range to **Last 7 Days** to see only recent, unfinished tasks.
 
@@ -107,6 +108,14 @@ Combine filters to narrow down your view. For example, toggle **Hide completed**
 
 - **Click a checkbox** — toggles the task status in the actual file. The change is written directly to the `.md` file on disk, so you will see the update the next time you open that note.
 - **Click a file name** — opens that file in the editor, scrolled to the task's location. This lets you quickly jump to the surrounding context of any task.
+
+### Due Date Indicators
+
+Tasks with due dates show visual indicators:
+
+- **Due today** — highlighted to draw attention
+- **Due soon** — subtle indicator for upcoming deadlines
+- **Overdue** — red indicator for past-due tasks
 
 ---
 
@@ -127,7 +136,8 @@ Kokobrain can sync tasks with [Todoist](https://todoist.com), a popular task man
 
 - **Sync button** in the Tasks View toolbar refreshes task status from Todoist.
 - **Cloud icon** on tasks shows their Todoist sync status.
-- **Send to Todoist**: Click the Todoist icon on any vault task to send it to your Todoist inbox.
+- **Send to Todoist**: Click the Todoist icon on any vault task to send it. A popover lets you select the **project**, **section**, and **priority** before sending.
+- **Completion indicator**: Tasks that have been completed in Todoist show a check mark badge.
 
 > [!NOTE]
 > The Todoist sync is triggered manually (not real-time). Press the sync button to fetch the latest status from Todoist.

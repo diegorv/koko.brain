@@ -48,14 +48,17 @@ The controls panel lets you narrow down what the graph displays:
 | **Filter by folder** | Show only notes in specific folders |
 | **Filter by search** | Text filter on note names |
 | **Show orphans** | Toggle to hide notes with no incoming or outgoing wikilinks |
+| **Show arrows** | Display directional arrows on edges (bidirectional arrows for mutual links) |
 
 Filters work in all modes and can be combined to focus on exactly the subset of notes you care about.
+
+The controls panel also includes **Zoom In / Zoom Out** buttons and a **Close** button.
 
 ## Layout
 
 The graph uses a force-directed simulation under the hood. The link distance and charge strength are **tuned automatically based on vault size** — small vaults get longer links and stronger repulsion so clusters spread out; larger vaults get tighter packing so everything fits on screen. Orphan notes drift outward to a soft orbit around the connected core.
 
-These parameters are not currently user-configurable. Drag nodes if you want to nudge layout manually for the current session.
+The charge strength and link distance adapt automatically to vault size: larger vaults (200+ notes) use lighter forces for performance. Drag nodes if you want to nudge layout manually for the current session.
 
 ## Stats
 

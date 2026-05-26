@@ -6,7 +6,7 @@ Kokobrain has a built-in recycle bin. Deleted files are not permanently removed 
 
 ## How Deletion Works
 
-When you delete a file or folder from the file explorer (right-click → **Delete** or `Cmd+Delete`), a confirmation dialog appears. On confirm, the item is moved to Kokobrain's internal trash — **not** the system trash (Finder's Trash).
+When you delete a file or folder from the file explorer (right-click → **Move to Trash**), a confirmation dialog appears. On confirm, the item is moved to Kokobrain's internal trash — **not** the system trash (Finder's Trash).
 
 The file disappears from the file explorer but remains safely stored inside `.kokobrain/trash/` until you choose to restore or permanently delete it.
 
@@ -17,7 +17,7 @@ Open **Settings** (`Cmd+,`) and navigate to the **Trash** section in the sidebar
 - **File/folder icon** — indicates whether the trashed item is a file or directory
 - **File name** — the original name of the deleted item
 - **Original path** — the vault-relative path where the item originally lived (e.g., `notes/meeting.md`)
-- **Time** — a relative timestamp ("Just now", "5 min ago", "2h ago", "3d ago", or a specific date for older items)
+- **Time** — a relative timestamp: "Just now", "N min ago", "Nh ago", or "Nd ago" for items less than 30 days old; a full date string for items 30 days or older
 - **Restore button** (undo icon) — moves the item back to its original location
 - **Delete button** (trash icon, red) — permanently deletes the item
 
@@ -54,9 +54,9 @@ Trashed items are stored under `.kokobrain/trash/` inside your vault:
 .kokobrain/trash/
   trash-manifest.json          # metadata about all trashed items
   items/
-    1708185600000/             # timestamped container (one per deleted item)
-      meeting.md               # the actual deleted file
-    1708185700000/
+    550e8400-e29b-41d4-a716-446655440000/   # UUID container (one per deleted item)
+      meeting.md                             # the actual deleted file
+    7c9e6679-7425-40de-944b-e07fc1f90ae7/
       old-project/             # deleted folders keep their structure
         README.md
         notes.md

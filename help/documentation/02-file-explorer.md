@@ -6,14 +6,12 @@ The file explorer is the left sidebar that displays every file and folder in you
 
 ## Overview
 
-The file explorer header contains four buttons:
+The file explorer header contains two elements:
 
 - **Daily Note** — Opens today's daily note, creating it if it doesn't exist yet.
-- **New File** — Creates a new Markdown file.
-- **New Folder** — Creates a new folder.
-- **Collapse All** — Collapses every expanded folder in the tree.
+- **Sidebar Mode Toggle** — Three icons that switch the left sidebar between **Type View**, **File Explorer**, and **Calendar**.
 
-A **sort dropdown** lets you switch between sorting by Name or Date Modified. At the bottom of the sidebar, the name of the currently open vault is displayed.
+Below the header, the file tree displays all files and folders in the vault. At the bottom of the sidebar, the name of the currently open vault is displayed.
 
 ## Creating Files and Folders
 
@@ -31,7 +29,7 @@ After creating an item, an inline text field appears. Type a name and press **En
 
 There are three ways to start a rename:
 
-1. **Double-click** the file or folder name.
+1. **Double-click** the file name (files only — folders must be renamed via the context menu or F2).
 2. Press **F2** while the item is selected.
 3. **Right-click** the item and choose "Rename".
 
@@ -54,8 +52,7 @@ You can also drop items onto the root area below all files to move them to the v
 
 To delete an item:
 
-- **Right-click** it and choose "Delete", or
-- **Select** it and press `Cmd+Delete`.
+- **Right-click** it and choose **"Move to Trash"**.
 
 A confirmation dialog appears before anything is removed. Deleted items are moved to Kokobrain's internal trash — **not** the system trash. You can review, restore, or permanently delete trashed items from **Settings → Trash**. See [Trash](18-trash.md) for details.
 
@@ -76,15 +73,15 @@ Right-clicking a file or folder opens a context menu with the following options:
 | **Copy Path** | Submenu with two options: Copy absolute path or Copy relative path to clipboard |
 | **Reveal in Finder** | Opens the item's location in macOS Finder |
 | **Rename** | Starts inline rename mode (same as F2) |
-| **Delete** | Moves to trash with confirmation dialog |
+| **Move to Trash** | Moves to trash with confirmation dialog |
 
 ![Context menu on a file](screenshots/context-menu.png)
 
 ## Sorting
 
-Click the sort button in the file explorer header to switch between two modes:
+Right-click in the file explorer to access sorting options:
 
-- **Sort by Name** — Alphabetical order (A–Z).
+- **Sort by Name** — Alphabetical order (A-Z).
 - **Sort by Date Modified** — Most recently changed files appear first.
 
 Folders always appear above files regardless of which sort mode is active.
@@ -122,7 +119,23 @@ Folder icons are stored in the folder note's frontmatter using the `_icon` field
 
 Click the chevron (▶) or the folder name to expand or collapse a folder.
 
-Use the **Collapse All** button in the header to collapse every folder at once. This is especially helpful when the tree gets deeply nested and you want a clean starting view.
+Use the right-click context menu to collapse all folders at once. This is especially helpful when the tree gets deeply nested and you want a clean starting view.
+
+## File Count Badges
+
+Each folder displays a small badge showing how many files it contains, visible at a glance next to the folder name.
+
+## Indent Guide Lines
+
+The file tree draws vertical guide lines at each nesting depth, helping you visually track which items belong to which folder — especially useful in deeply nested vaults.
+
+## Sidebar Modes
+
+The left sidebar supports three modes, toggled via the sidebar mode switcher at the top of the panel:
+
+- **File Explorer** — The default folder tree view described in this guide.
+- **Type View** — Groups notes by their type and lifecycle stage instead of folder structure. See [Types & Relationships](25-types-and-relationships.md).
+- **Calendar** — A date-based view for navigating notes by creation date. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
 
 ## Bookmarks
 

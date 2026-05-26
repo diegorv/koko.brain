@@ -25,8 +25,8 @@ By default, queryjs blocks do **not** auto-run when you open a note. The policy 
 
 | Policy | Behavior |
 |--------|----------|
-| **Manual** (default) | The block renders a ▶ Run button. Click it to execute. Results are cached for the session — switching tabs and back replays the cached output instantly. |
-| **First open** | The block runs the first time you open the note in the current session, then caches. Re-opening the same note does not re-run; subsequent edits or a different note still need a manual click. |
+| **Manual** | The block renders a ▶ Run button. Click it to execute. Results are cached for the session — switching tabs and back replays the cached output instantly. |
+| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Re-opening the same note does not re-run; subsequent edits or a different note still need a manual click. |
 | **Always** | The block runs every time you open or scroll to it. Use sparingly for queries that read live external data. |
 
 A manual run in the **Manual** policy does *not* promote the file to "auto-run on first open" — even if you switch the policy later, the block re-shows ▶ Run on next render until the policy explicitly says otherwise.
@@ -63,7 +63,7 @@ kb.pages('#project')        // Pages with #project tag (includes subtags like #p
 kb.pages('"folder/path"')   // Pages in a specific folder (note the double quotes inside)
 ```
 
-Returns a `DataArray<DVPage>`.
+Returns a `DataArray<KBPage>` (also known as `DVPage` — both the `kb` and `dv` API prefixes work interchangeably).
 
 ### `kb.page(path)` — Get a single page
 
@@ -135,7 +135,7 @@ Each page returned by `kb.pages()` has these properties:
 | `file.tags` | `string[]` | All tags (from frontmatter + inline `#tags`) |
 | `file.inlinks` | `DVLink[]` | Notes that link TO this page (backlinks) |
 | `file.outlinks` | `DVLink[]` | Notes this page links TO |
-| `file.tasks` | `object[]` | Task items (`- [ ]`) found in this note |
+| `file.tasks` | `object[]` | Task items (`- [ ]`) found in this note. Each task has `text`, `completed`, `line` (1-based line number), and `path` (absolute file path). |
 | `file.link` | `DVLink` | A link object pointing to this page |
 
 ### Frontmatter properties
@@ -153,7 +153,7 @@ pages.filter(p => p.rating >= 4);
 
 ### Working with tasks (`file.tasks`)
 
-Each task object has the shape `{ text: string, completed: boolean }`:
+Each task object has the shape `{ text: string, completed: boolean, line: number, path: string }`:
 
 ```javascript
 // Render tasks from a specific page
@@ -326,6 +326,7 @@ pages.length        // Number of items
 pages.values        // Raw JavaScript array
 pages.array()       // Copy as plain array
 pages.join(', ')    // Join as string
+pages.concat(other) // Concatenate two DataArrays
 ```
 
 ### Aggregation
@@ -433,6 +434,8 @@ if (dt !== null) {
 | `.hour` | `number` | Hour (0–23) |
 | `.minute` | `number` | Minute (0–59) |
 | `.ts` | `number` | Timestamp in milliseconds |
+| `.quarter` | `number` | Quarter (1-4) |
+| `.weekNumber` | `number` | ISO 8601 week number (1-53) |
 
 ```javascript
 const hoje = kb.date("2026-02-17");
@@ -456,7 +459,14 @@ d.minus({ months: 1 })                   // 2026-01-17
 d.startOf('day')                          // Start of current day
 d.startOf('week')                         // Monday of current week
 d.startOf('month')                        // First day of month
+d.startOf('quarter')                      // First day of current quarter
 d.startOf('year')                         // January 1st
+
+d.endOf('day')                            // End of current day
+d.endOf('week')                           // Sunday of current week
+d.endOf('month')                          // Last day of month
+d.endOf('quarter')                        // Last day of current quarter
+d.endOf('year')                           // December 31st
 ```
 
 ### Formatting
@@ -624,6 +634,7 @@ kb.ui.table(
 | `striped` | `boolean` | Alternating row background colors |
 | `footer` | `any[]` | Footer row with summary data |
 | `rowStyle` | `(row) => string \| null` | Return a CSS background color for conditional formatting |
+| `pageSize` | `number` | When set to a positive number and there are more rows than fit, Prev/Next pagination controls appear |
 
 ### `kb.ui.progressBar(value, max, options?)` — Progress bar
 
@@ -917,7 +928,7 @@ Accepts the same `{ date, intensity?, color?, content? }` entries as `heatmapCal
 
 ### `kb.ui.chart(type, options)` — Chart.js charts
 
-Renders interactive Chart.js visualizations with automatic CDN loading, theme detection, and simplified dataset colors. **This method is async** — use `await`.
+Renders interactive Chart.js visualizations with theme detection and simplified dataset colors. Chart.js is bundled with the app (loaded via dynamic import, no CDN needed). **This method is async** — use `await`.
 
 Supported types: `'bar'`, `'line'`, `'radar'`, `'pie'`, `'doughnut'`, `'polarArea'`.
 
@@ -974,7 +985,7 @@ await kb.ui.chart('doughnut', {
 Each dataset `color` can be a single CSS color string or an array of strings (for per-segment coloring in pie/doughnut/polarArea). A single color is automatically expanded into `borderColor`, `backgroundColor` (with transparency), and point highlight colors.
 
 > [!NOTE]
-> Chart.js is loaded automatically from CDN on first use. If loading fails (e.g., no internet), an error message is shown inline instead of the chart.
+> Chart.js is bundled with Kokobrain and loaded automatically on first use via dynamic import. No internet connection is required.
 
 ### Dashboard example
 

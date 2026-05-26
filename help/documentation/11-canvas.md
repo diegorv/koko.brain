@@ -43,9 +43,9 @@ The canvas supports five types of nodes:
 |-----------|-------------|------------|
 | **Text** | A card with editable Markdown content | Click "Text" in the toolbar |
 | **File** | Embeds a vault note -- shows its content inside the card | Click "File" in the toolbar, select a note |
-| **Link** | An external URL reference | Click "Link" in the toolbar, enter a URL |
+| **Link** | An external URL reference with optional display label | Click "Link" in the toolbar, enter a URL |
 | **Image** | Displays an image from your vault | Click "Image" in the toolbar, select an image |
-| **Group** | A visual container to group other nodes, with an optional label | Click "Group" in the toolbar |
+| **Group** | A visual container to group other nodes, with an optional label and background image | Click "Group" in the toolbar |
 
 ## Working with Nodes
 
@@ -53,7 +53,8 @@ Once you have nodes on the canvas, you can manipulate them in several ways:
 
 - **Move** -- Click and drag a node to reposition it anywhere on the canvas.
 - **Resize** -- Drag the corners or edges of a node to change its size.
-- **Edit text** -- Double-click a text node to edit its Markdown content.
+- **Edit text** -- Double-click a text node to edit its Markdown content. Double-click a link node to edit its URL and title.
+- **Duplicate** -- Right-click a node and select "Duplicate" to create a copy.
 - **Select multiple** -- Click and drag on the background to create a selection rectangle around multiple nodes.
 - **Delete** -- Select a node and press `Delete` or `Backspace`, or right-click the node and choose "Delete".
 
@@ -81,8 +82,10 @@ Both nodes and edges support custom colors to help you visually categorize items
 
 Right-click anywhere on the canvas for context-sensitive options:
 
-- On a **node** -- Change color, edit content, delete the node.
-- On an **edge** -- Change color, add or edit a label, delete the edge.
+- On a **text node** -- Edit, Change Color, Duplicate, Delete.
+- On a **file node** -- Open in Editor, Change Color, Duplicate, Delete.
+- On a **link node** -- Open URL, Edit (change URL and title), Change Color, Duplicate, Delete.
+- On an **edge** -- Go to Source, Go to Target, Change Color, Delete.
 - On **empty space** -- Add new nodes of any type at that position.
 
 ## Keyboard Shortcuts

@@ -70,8 +70,27 @@ You can:
 - **Edit a card** — click the card text to edit inline.
 - **Check/uncheck a card** — click the checkbox on the card.
 - **Move a card** — drag it to a different lane or position within the same lane.
-- **Delete a card** — hover the card and click the delete icon.
+- **Delete a card** — hover the card and click the delete icon, or right-click and choose Delete.
 - **Archive a card** — hover the card and click the archive icon. The card moves to the Archive section.
+- **Right-click a card** — opens a context menu with Edit, Archive, Card Color (submenu with color swatches), and Delete.
+
+### Wikilink Autocomplete
+
+When editing a card, type `[[` to trigger wikilink autocomplete, just like in the markdown editor.
+
+### Linked File Preview
+
+When a card contains a `[[wikilink]]`, the linked file's content (without frontmatter) is loaded and displayed as a preview below the card text.
+
+### Keyboard Navigation
+
+| Key | Action |
+|-----|--------|
+| Arrow keys | Navigate between lanes and cards |
+| `Enter` | Edit the focused card |
+| `Space` | Toggle the focused card's checkbox |
+| `Delete` / `Backspace` | Remove the focused card |
+| `N` | Focus the add-card input in the current lane |
 
 ### Archive
 
@@ -120,7 +139,7 @@ Add `#tags` anywhere in the card text:
 - [ ] Refactor auth module #backend #tech-debt
 ```
 
-Tags are displayed as colored chips on the card. You can assign a color to each tag in the board settings.
+Tags are displayed as colored chips on the card. You can assign a color to each tag in the board settings (stored in `settings.tagColors`).
 
 ### Wikilinks
 
@@ -134,6 +153,7 @@ Each lane has additional configuration accessible via the lane menu (⋯):
 |---------|-------------|
 | **Max items (WIP limit)** | Maximum number of cards allowed in the lane. When the limit is reached, adding more cards is blocked. `0` = unlimited. |
 | **Auto-complete** | When a card is dragged into this lane, it is automatically marked as checked. Useful for "Done" lanes. |
+| **Archive completed** | Archives all checked items in the lane at once. Available via the lane menu. |
 
 ## Filtering Cards
 

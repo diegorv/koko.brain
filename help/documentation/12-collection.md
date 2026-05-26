@@ -257,6 +257,100 @@ views:
 
 Source mode is helpful when you want to make bulk edits, copy a view configuration, or troubleshoot filter logic.
 
+## Expression Language Reference
+
+The filter and formula expressions used in Collection (and in Auto Move rules) support a rich set of functions, methods, and operators.
+
+### Operators
+
+| Category | Operators |
+|----------|-----------|
+| Arithmetic | `+`, `-`, `*`, `/`, `%` |
+| Comparison | `==`, `!=`, `>`, `<`, `>=`, `<=` |
+| Logical | `&&` / `and`, `\|\|` / `or`, `!` / `not` |
+| Date arithmetic | `date + "1d"`, `date - date`, duration strings like `"1h 30m"`, `"2 weeks"` |
+
+Literals: `true`, `false`, `[1, 2, 3]` (arrays), quoted strings, numbers.
+
+### Built-in Functions
+
+| Function | Description |
+|----------|-------------|
+| `now()` | Current date-time |
+| `today()` | Current date (midnight) |
+| `date(string)` | Parse a date from a string |
+| `number(value)` | Convert to number |
+| `contains(haystack, needle)` | Check if value contains another |
+| `startsWith(str, prefix)` | Check string prefix |
+| `endsWith(str, suffix)` | Check string suffix |
+| `isEmpty(value)` | Check if value is empty/null |
+| `max(a, b)` | Larger of two values |
+| `min(a, b)` | Smaller of two values |
+| `list(items...)` | Create a list |
+| `duration(string)` | Parse a duration (e.g., `"2h 30m"`) |
+
+### Display Helpers
+
+These functions render rich content inside table cells:
+
+| Function | Description |
+|----------|-------------|
+| `link(href, displayText)` | Clickable link |
+| `image(src, alt)` | Inline image |
+| `icon(name)` | Lucide icon |
+| `html(content)` | Raw HTML |
+| `badge(text, color)` | Colored badge |
+| `progress(value, max, color)` | Progress bar |
+| `color(text, color)` | Colored text |
+| `escapeHTML(text)` | Escape HTML entities |
+
+### File Namespace (`file.*`)
+
+| Accessor / Method | Description |
+|-------------------|-------------|
+| `file.name` | Filename without extension |
+| `file.path` | Full vault-relative path |
+| `file.folder` | Parent folder path |
+| `file.ext` | File extension |
+| `file.created` | Creation date |
+| `file.modified` | Last modified date |
+| `file.size` | File size in bytes |
+| `file.tags` | Array of tags |
+| `file.properties` | All frontmatter as an object |
+| `file.hasTag(tag)` | Check if note has a tag |
+| `file.inFolder(path)` | Check if note is in a folder |
+| `file.hasProperty(key)` | Check if frontmatter key exists |
+| `file.asLink()` | Render as a wikilink |
+
+### Value Methods
+
+**String:** `.lower()`, `.title()`, `.trim()`, `.replace(find, rep)`, `.split(sep)`, `.slice(start, end)`, `.matches(regex)`, `.length`
+
+**Number:** `.abs()`, `.round()`, `.ceil()`, `.floor()`, `.toFixed(digits)`
+
+**Date:** `.format(pattern)`, `.relative()`, `.date()`, `.time()`, `.year`, `.month`, `.day`, `.hour`, `.minute`, `.second`
+
+**List:** `.contains(item)`, `.sort()`, `.unique()`, `.join(sep)`, `.flat()`, `.slice(start, end)`, `.filter(pred)`, `.map(fn)`, `.length`
+
+**Object:** `.keys()`, `.values()`, `.isEmpty()`
+
+**Universal (any value):** `.contains()`, `.startsWith()`, `.endsWith()`, `.isEmpty()`, `.isTruthy()`, `.isType(typeName)`, `.toString()`
+
+### Examples
+
+```yaml
+# Filter: active projects with high priority
+filters: "type == 'Project' and status == 'active' and priority == 'high'"
+
+# Formula: days until due
+formulas:
+  daysLeft: "date - today()"
+  statusBadge: "badge(status, if(status == 'active', 'green', 'gray'))"
+  progress: "progress(completed, total, 'blue')"
+```
+
+---
+
 ## Setting Up Your Notes for Collection
 
 For Collection to work well, your notes need consistent frontmatter. Add a YAML frontmatter block at the top of each note with the properties you want to query:

@@ -12,6 +12,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+G` | Toggle Graph View |
 | `Cmd+Shift+T` | Toggle Tasks View |
 | `Cmd+B` | Toggle Right Sidebar |
+| `Cmd+Shift+B` | Toggle Left Sidebar |
 
 ## Editor
 
@@ -22,6 +23,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+]` | Switch to next tab |
 | `Cmd+Shift+[` | Switch to previous tab |
 | `Cmd+Shift+H` | View File History |
+| `Cmd+K` | Toggle Source / Live Preview mode |
 | `Cmd+Shift+L` | Copy Link to Block |
 
 ## Note Creation
@@ -36,7 +38,6 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+,` | Open Settings |
-| `` Cmd+` `` | Toggle Terminal |
 | `Cmd+=` / `Cmd+Shift+=` | Zoom In |
 | `Cmd+-` | Zoom Out |
 | `Cmd+0` | Reset Zoom to 100% |
@@ -69,6 +70,8 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Open Daily Note | Open or create today's daily note |
 | Pin/Unpin Tab | Pin or unpin the active tab |
 | Copy Block Embed | Copy an embed link to the current block |
+| Toggle Tags View | Open tags as a dedicated virtual tab |
+| Toggle Table of Contents | Toggle the TOC panel in the right sidebar |
 
 > [!TIP]
 > You can always reach any command by pressing `Cmd+P` and typing part of its name. The Command Palette is the universal access point for all actions.
@@ -85,9 +88,9 @@ Navigation          Editor              Notes / App
 ─────────────────   ─────────────────   ─────────────────
 Cmd+O   Switcher    Cmd+S   Save        Cmd+N     Quick Note
 Cmd+P   Commands    Cmd+W   Close Tab   Cmd+Shift+N  1:1 Note
-Cmd+Shift+F Search  Cmd+Shift+] Next    Cmd+,     Settings
-Cmd+G   Graph       Cmd+Shift+[ Prev    Cmd+`     Terminal
-Cmd+Shift+T Tasks   Cmd+Shift+H History Cmd+=     Zoom In
-Cmd+B   Sidebar     Cmd+Shift+L Block   Cmd+-     Zoom Out
-                                        Cmd+0     Reset Zoom
+Cmd+Shift+F Search  Cmd+K   Mode Toggle Cmd+,     Settings
+Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In
+Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
+Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom
+Cmd+Shift+B L Side  Cmd+Shift+L Block
 ```

@@ -1,14 +1,17 @@
 # Table of Contents
 
-The **Table of Contents** panel shows an auto-generated outline of all headings in the active markdown document. It updates in real time as you type.
+The **Table of Contents** panel shows an auto-generated outline of all headings in the active markdown document. It updates in real time as you type when the panel is expanded.
 
 ## Opening the Panel
 
-The Table of Contents panel lives in the right sidebar. It appears alongside other panels (backlinks, outgoing links, tags, properties) in the sidebar area.
+The Table of Contents panel lives in the right sidebar as a **collapsible section**. Click it to expand and view the outline. It appears alongside other panels (backlinks, outgoing links, properties) in the sidebar area.
+
+The panel is **lazy-loaded** — headings are only parsed when the panel is expanded. If you switch files while the panel is collapsed, it resets and requires re-expanding to show the new file's headings.
 
 ## How It Works
 
 - Headings (`# H1` through `###### H6`) are extracted from the document as you type.
+- Headings inside fenced code blocks are excluded (e.g., a `# comment` inside a code block does not appear in the TOC).
 - The panel displays them in document order with visual indentation reflecting the heading level.
 - Clicking any heading scrolls the editor to that position and places the cursor on the heading line.
 
