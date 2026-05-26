@@ -18,10 +18,9 @@ test.describe('Keyboard shortcuts', () => {
 		await expect(input).toHaveCount(0);
 	});
 
-	test('Cmd+Comma opens the settings dialog', async ({ vaultPage: page }) => {
+	test('Cmd+Comma opens the settings window', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Comma');
-		await expect(page.getByRole('dialog').filter({ hasText: /settings|appearance|editor/i }).first()).toBeVisible();
-		await page.keyboard.press('Escape');
+		await page.waitForFunction(() => window.__e2e.webviewWindows.has('settings'), null, { timeout: 5000 });
 	});
 
 	test('Cmd+W closes a tab', async ({ vaultPage: page }) => {

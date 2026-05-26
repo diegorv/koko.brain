@@ -59,6 +59,7 @@ const playwrightMocks = {
   "@tauri-apps/plugin-http":     path.resolve("./e2e/mocks/tauri-http.ts"),
   "@tauri-apps/plugin-deep-link": path.resolve("./e2e/mocks/tauri-deep-link.ts"),
   "@tauri-apps/api/window":      path.resolve("./e2e/mocks/tauri-window.ts"),
+  "@tauri-apps/api/webviewWindow": path.resolve("./e2e/mocks/tauri-webview-window.ts"),
 };
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ export default defineConfig(async () => ({
           "@tauri-apps/plugin-dialog",
           "@tauri-apps/plugin-opener",
           "@tauri-apps/plugin-http",
+          "@tauri-apps/api/webviewWindow",
           "@tauri-apps/plugin-deep-link",
           "@tauri-apps/plugin-updater",
         ]

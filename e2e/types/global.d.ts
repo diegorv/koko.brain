@@ -29,6 +29,7 @@ interface E2eAPI {
 	dialog: E2eDialog;
 	events: E2eEvents;
 	vaultIndex: typeof vaultIndex;
+	webviewWindows: Map<string, { label: string; url: string }>;
 }
 
 declare global {
