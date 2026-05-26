@@ -32,11 +32,43 @@ pub async fn build_search_index(vault_path: String) -> Result<IndexStats, String
 /// Synchronous implementation of the FTS5 rebuild. Exposed for tests and for
 /// callers that are already running on a blocking context. Production callers
 /// from the frontend go through the async `build_search_index` wrapper above.
+///
+/// Skips the rebuild when the existing index entry count matches the vault
+/// file count (within a tolerance of 5%). This avoids re-reading every
+/// markdown file and re-tokenizing on every boot when the index is already
+/// populated from a previous session.
 pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String> {
 	let start = std::time::Instant::now();
 	let vault = vault_fs::validate_vault_path(&vault_path)?;
 	let entries = vault_fs::collect_markdown_paths(&vault, &[])?;
-	debug_log("FTS", format!("Building index: {} files", entries.len()));
+	let disk_count = entries.len() as u64;
+
+	// Skip rebuild if FTS index is already populated and roughly matches
+	let existing_count = db::with_fts_db(|conn| db::fts_repo::count_entries(conn)).unwrap_or(0);
+	if existing_count > 0 {
+		let diff = (disk_count as i64 - existing_count as i64).unsigned_abs();
+		let threshold = (disk_count / 20).max(5); // 5% or at least 5
+		if diff <= threshold {
+			debug_log(
+				"FTS",
+				format!(
+					"Skipping rebuild: index has {} entries, disk has {} files (diff={}, threshold={}), {}ms",
+					existing_count, disk_count, diff, threshold,
+					start.elapsed().as_millis(),
+				),
+			);
+			return Ok(IndexStats { total_documents: existing_count });
+		}
+		debug_log(
+			"FTS",
+			format!(
+				"Index stale: {} entries vs {} files (diff={} > threshold={}) — rebuilding",
+				existing_count, disk_count, diff, threshold,
+			),
+		);
+	} else {
+		debug_log("FTS", format!("Building index: {} files", disk_count));
+	}
 
 	// Read file contents, logging any files that fail to read
 	let total_entries = entries.len();
@@ -55,7 +87,7 @@ pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String
 		debug_log("FTS", format!("Skipped {} of {} files due to read errors", skipped, total_entries));
 	}
 
-	db::with_fts_db_transaction("fts index rebuild", |conn| {
+	let result = db::with_fts_db_transaction("fts index rebuild", |conn| {
 		db::fts_repo::clear_index(conn)?;
 
 		let mut count = 0u64;
@@ -72,7 +104,15 @@ pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String
 		Ok(IndexStats {
 			total_documents: count,
 		})
-	})
+	})?;
+
+	// Compact WAL after large batch write so the next incremental
+	// update_search_index_file doesn't trigger an expensive auto-checkpoint.
+	if let Err(e) = db::checkpoint_fts_wal() {
+		debug_log("FTS", format!("WAL checkpoint after rebuild failed: {e}"));
+	}
+
+	Ok(result)
 }
 
 /// Searches the FTS5 index using BM25 ranking with optional fuzzy matching.

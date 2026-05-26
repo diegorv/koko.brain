@@ -74,6 +74,11 @@ pub fn open_database(vault_path: &Path) -> Result<(), String> {
 	fts_conn
 		.pragma_update(None, "busy_timeout", 5000)
 		.map_err(|e| format!("Failed to set busy_timeout on FTS connection: {e}"))?;
+	// NORMAL is safe in WAL mode: fsyncs only at checkpoint, not every
+	// commit. Prevents incremental FTS updates from blocking on fsync.
+	fts_conn
+		.pragma_update(None, "synchronous", "NORMAL")
+		.map_err(|e| format!("Failed to set synchronous on FTS connection: {e}"))?;
 	{
 		let mut fts_db = FTS_DB.lock().map_err(|e| format!("Lock error: {e}"))?;
 		*fts_db = Some(fts_conn);
@@ -171,4 +176,16 @@ where
 			Err(e)
 		}
 	}
+}
+
+/// Runs a WAL checkpoint on the FTS connection. Call after large batch
+/// writes (full index rebuild) to compact the WAL and prevent the next
+/// small transaction from triggering an expensive auto-checkpoint.
+pub fn checkpoint_fts_wal() -> Result<(), String> {
+	let db = FTS_DB.lock().map_err(|e| format!("Lock error: {e}"))?;
+	let conn = db.as_ref().ok_or("FTS database not open")?;
+	conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+		.map_err(|e| format!("WAL checkpoint failed: {e}"))?;
+	debug_log("DB", "FTS WAL checkpoint (TRUNCATE) completed".to_string());
+	Ok(())
 }
