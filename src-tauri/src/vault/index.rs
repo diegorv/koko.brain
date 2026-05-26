@@ -1069,3 +1069,770 @@ impl VaultIndex {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::vault::entry::WikiLink;
+	use crate::vault::task::Task;
+	use serde_json::json;
+
+	// ---- helpers --------------------------------------------------------
+
+	fn make_entry(path: &str, links: &[&str], tags: &[&str]) -> NoteEntry {
+		NoteEntry {
+			path: path.to_string(),
+			title: note_name_from_target(path).to_string(),
+			outgoing_links: links
+				.iter()
+				.map(|t| WikiLink {
+					target: t.to_string(),
+					..Default::default()
+				})
+				.collect(),
+			tags: tags.iter().map(|t| t.to_string()).collect(),
+			..Default::default()
+		}
+	}
+
+	fn make_entry_with_fm(
+		path: &str,
+		links: &[&str],
+		tags: &[&str],
+		frontmatter: BTreeMap<String, JsonValue>,
+	) -> NoteEntry {
+		let mut e = make_entry(path, links, tags);
+		e.frontmatter = frontmatter;
+		e
+	}
+
+	fn make_entry_with_rels(
+		path: &str,
+		belongs_to: &[&str],
+		related_to: &[&str],
+		relationships: BTreeMap<String, Vec<String>>,
+	) -> NoteEntry {
+		let mut e = make_entry(path, &[], &[]);
+		e.belongs_to = belongs_to.iter().map(|s| s.to_string()).collect();
+		e.related_to = related_to.iter().map(|s| s.to_string()).collect();
+		e.relationships = relationships;
+		e
+	}
+
+	fn fm(pairs: &[(&str, JsonValue)]) -> BTreeMap<String, JsonValue> {
+		pairs.iter().map(|(k, v)| (k.to_string(), v.clone())).collect()
+	}
+
+	// ---- Group 1: Private helpers --------------------------------------
+
+	#[test]
+	fn note_name_strips_extension() {
+		assert_eq!(note_name_from_target("foo.md"), "foo");
+		assert_eq!(note_name_from_target("bar.markdown"), "bar");
+		assert_eq!(note_name_from_target("baz.tar.gz"), "baz.tar");
+	}
+
+	#[test]
+	fn note_name_strips_directory() {
+		assert_eq!(note_name_from_target("/vault/sub/note.md"), "note");
+		assert_eq!(note_name_from_target("sub/deep/file.txt"), "file");
+	}
+
+	#[test]
+	fn note_name_hidden_file_stays() {
+		assert_eq!(note_name_from_target(".hidden"), ".hidden");
+		assert_eq!(note_name_from_target("/vault/.config"), ".config");
+	}
+
+	#[test]
+	fn note_name_no_extension() {
+		assert_eq!(note_name_from_target("README"), "README");
+		assert_eq!(note_name_from_target("/vault/README"), "README");
+	}
+
+	#[test]
+	fn note_name_bare_target() {
+		assert_eq!(note_name_from_target("foo"), "foo");
+	}
+
+	#[test]
+	fn canon_value_key_deterministic() {
+		assert_eq!(canon_value_key(&json!("hello")), r#""hello""#);
+		assert_eq!(canon_value_key(&json!(42)), "42");
+		assert_eq!(canon_value_key(&json!(true)), "true");
+		assert_eq!(canon_value_key(&json!(null)), "null");
+	}
+
+	#[test]
+	fn resolve_with_cache_exact_match() {
+		let mut cache = HashMap::new();
+		cache.insert("foo".to_string(), "/vault/foo.md".to_string());
+		assert_eq!(
+			resolve_with_cache("foo", &cache),
+			Some("/vault/foo.md".to_string())
+		);
+	}
+
+	#[test]
+	fn resolve_with_cache_case_insensitive() {
+		let mut cache = HashMap::new();
+		cache.insert("foo".to_string(), "/vault/foo.md".to_string());
+		assert_eq!(
+			resolve_with_cache("FOO", &cache),
+			Some("/vault/foo.md".to_string())
+		);
+	}
+
+	#[test]
+	fn resolve_with_cache_basename_fallback() {
+		let mut cache = HashMap::new();
+		cache.insert("note".to_string(), "/vault/note.md".to_string());
+		assert_eq!(
+			resolve_with_cache("sub/note", &cache),
+			Some("/vault/note.md".to_string())
+		);
+	}
+
+	#[test]
+	fn resolve_with_cache_no_fallback_when_same_as_target() {
+		let cache = HashMap::new();
+		assert_eq!(resolve_with_cache("missing", &cache), None);
+	}
+
+	#[test]
+	fn resolve_with_cache_empty_input() {
+		let cache = HashMap::new();
+		assert_eq!(resolve_with_cache("", &cache), None);
+	}
+
+	// ---- Group 2: build() ----------------------------------------------
+
+	#[test]
+	fn build_empty_entries() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![]);
+		assert!(idx.is_empty());
+		assert_eq!(idx.version(), 1);
+	}
+
+	#[test]
+	fn build_single_entry_populates_all_indexes() {
+		let mut idx = VaultIndex::default();
+		let entry = make_entry_with_fm(
+			"/v/note.md",
+			&[],
+			&["rust", "dev"],
+			fm(&[("type", json!("project"))]),
+		);
+		idx.build(vec![entry]);
+
+		assert_eq!(idx.len(), 1);
+		assert!(idx.entries().contains_key("/v/note.md"));
+		assert_eq!(idx.by_path().get("note"), Some(&"/v/note.md".to_string()));
+		assert!(idx.tags_index().get("rust").unwrap().contains("/v/note.md"));
+		assert!(idx.tags_index().get("dev").unwrap().contains("/v/note.md"));
+		assert!(idx.properties_index().get("type").is_some());
+	}
+
+	#[test]
+	fn build_backlinks_from_wikilinks() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b"], &[]);
+		let b = make_entry("/v/b.md", &[], &[]);
+		idx.build(vec![a, b]);
+
+		let backlinks_b = idx.backlinks().get("/v/b.md");
+		assert!(backlinks_b.is_some());
+		assert!(backlinks_b.unwrap().contains("/v/a.md"));
+	}
+
+	#[test]
+	fn build_self_links_filtered() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["a"], &[]);
+		idx.build(vec![a]);
+
+		let backlinks_a = idx.backlinks().get("/v/a.md");
+		assert!(backlinks_a.is_none());
+	}
+
+	#[test]
+	fn build_unresolved_links_no_backlink() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["nonexistent"], &[]);
+		idx.build(vec![a]);
+
+		assert!(idx.backlinks().is_empty());
+	}
+
+	#[test]
+	fn build_stem_collision_first_wins() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/sub1/note.md", &[], &[]);
+		let b = make_entry("/v/sub2/note.md", &[], &[]);
+		idx.build(vec![a, b]);
+
+		let resolved = idx.by_path().get("note").unwrap();
+		assert_eq!(resolved, "/v/sub1/note.md");
+	}
+
+	#[test]
+	fn build_tags_lowercased() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &[], &["JavaScript"]);
+		let b = make_entry("/v/b.md", &[], &["javascript"]);
+		idx.build(vec![a, b]);
+
+		let tag_set = idx.tags_index().get("javascript").unwrap();
+		assert_eq!(tag_set.len(), 2);
+	}
+
+	#[test]
+	fn build_properties_indexed() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry_with_fm("/v/a.md", &[], &[], fm(&[("status", json!("active"))]));
+		let b = make_entry_with_fm("/v/b.md", &[], &[], fm(&[("status", json!("active"))]));
+		let c = make_entry_with_fm("/v/c.md", &[], &[], fm(&[("status", json!("done"))]));
+		idx.build(vec![a, b, c]);
+
+		let by_value = idx.properties_index().get("status").unwrap();
+		assert_eq!(by_value.get(&canon_value_key(&json!("active"))).unwrap().len(), 2);
+		assert_eq!(by_value.get(&canon_value_key(&json!("done"))).unwrap().len(), 1);
+	}
+
+	#[test]
+	fn build_version_bumped_once() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/a.md", &[], &[])]);
+		assert_eq!(idx.version(), 1);
+	}
+
+	#[test]
+	fn build_multiple_links_between_notes() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b", "c"], &[]);
+		let b = make_entry("/v/b.md", &["c"], &[]);
+		let c = make_entry("/v/c.md", &[], &[]);
+		idx.build(vec![a, b, c]);
+
+		let bl_b = idx.backlinks().get("/v/b.md").unwrap();
+		assert!(bl_b.contains("/v/a.md"));
+
+		let bl_c = idx.backlinks().get("/v/c.md").unwrap();
+		assert!(bl_c.contains("/v/a.md"));
+		assert!(bl_c.contains("/v/b.md"));
+	}
+
+	// ---- Group 3: update_entry() ---------------------------------------
+
+	#[test]
+	fn update_entry_insert_new() {
+		let mut idx = VaultIndex::default();
+		let result = idx.update_entry(make_entry("/v/a.md", &[], &[]));
+		assert!(result.changed);
+		assert_eq!(idx.len(), 1);
+		assert_eq!(idx.version(), 1);
+	}
+
+	#[test]
+	fn update_entry_same_data_not_changed() {
+		let mut idx = VaultIndex::default();
+		let entry = make_entry("/v/a.md", &[], &["tag1"]);
+		idx.update_entry(entry.clone());
+		let result = idx.update_entry(entry);
+		assert!(!result.changed);
+		assert_eq!(idx.version(), 2);
+	}
+
+	#[test]
+	fn update_entry_adds_backlinks() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/b.md", &[], &[])]);
+
+		let a = make_entry("/v/a.md", &["b"], &[]);
+		let result = idx.update_entry(a);
+
+		assert!(result.changed);
+		assert!(result.affected.contains(&"/v/b.md".to_string()));
+		assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/a.md"));
+	}
+
+	#[test]
+	fn update_entry_removes_backlinks() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b"], &[]);
+		let b = make_entry("/v/b.md", &[], &[]);
+		idx.build(vec![a, b]);
+
+		assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/a.md"));
+
+		let a_no_links = make_entry("/v/a.md", &[], &[]);
+		let result = idx.update_entry(a_no_links);
+
+		assert!(result.changed);
+		assert!(result.affected.contains(&"/v/b.md".to_string()));
+		assert!(idx.backlinks().get("/v/b.md").is_none());
+	}
+
+	#[test]
+	fn update_entry_updates_tags() {
+		let mut idx = VaultIndex::default();
+		idx.update_entry(make_entry("/v/a.md", &[], &["old"]));
+		assert!(idx.tags_index().contains_key("old"));
+
+		idx.update_entry(make_entry("/v/a.md", &[], &["new"]));
+		assert!(!idx.tags_index().contains_key("old"));
+		assert!(idx.tags_index().contains_key("new"));
+	}
+
+	#[test]
+	fn update_entry_updates_properties() {
+		let mut idx = VaultIndex::default();
+		idx.update_entry(make_entry_with_fm(
+			"/v/a.md", &[], &[],
+			fm(&[("status", json!("draft"))]),
+		));
+		assert!(idx.properties_index().get("status").unwrap()
+			.contains_key(&canon_value_key(&json!("draft"))));
+
+		idx.update_entry(make_entry_with_fm(
+			"/v/a.md", &[], &[],
+			fm(&[("status", json!("published"))]),
+		));
+		assert!(!idx.properties_index().get("status").unwrap()
+			.contains_key(&canon_value_key(&json!("draft"))));
+		assert!(idx.properties_index().get("status").unwrap()
+			.contains_key(&canon_value_key(&json!("published"))));
+	}
+
+	#[test]
+	fn update_entry_empty_backlink_sets_pruned() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b"], &[]);
+		let b = make_entry("/v/b.md", &[], &[]);
+		idx.build(vec![a, b]);
+		assert!(idx.backlinks().contains_key("/v/b.md"));
+
+		idx.update_entry(make_entry("/v/a.md", &[], &[]));
+		assert!(!idx.backlinks().contains_key("/v/b.md"));
+	}
+
+	#[test]
+	fn update_entry_retroactive_backlinks() {
+		let mut idx = VaultIndex::default();
+		idx.update_entry(make_entry("/v/a.md", &["b"], &[]));
+		assert!(idx.backlinks().get("/v/b.md").is_none());
+
+		idx.update_entry(make_entry("/v/b.md", &[], &[]));
+		let bl = idx.backlinks().get("/v/b.md");
+		assert!(bl.is_some(), "retroactive backlinks should exist");
+		assert!(bl.unwrap().contains("/v/a.md"));
+	}
+
+	#[test]
+	fn update_entry_by_path_first_write_wins() {
+		let mut idx = VaultIndex::default();
+		idx.update_entry(make_entry("/v/sub1/note.md", &[], &[]));
+		idx.update_entry(make_entry("/v/sub2/note.md", &[], &[]));
+
+		assert_eq!(idx.by_path().get("note"), Some(&"/v/sub1/note.md".to_string()));
+	}
+
+	// ---- Group 4: remove_entry() ---------------------------------------
+
+	#[test]
+	fn remove_entry_cleans_all_indexes() {
+		let mut idx = VaultIndex::default();
+		let entry = make_entry_with_fm(
+			"/v/a.md",
+			&["b"],
+			&["tag1"],
+			fm(&[("status", json!("active"))]),
+		);
+		let b = make_entry("/v/b.md", &[], &[]);
+		idx.build(vec![entry, b]);
+
+		assert_eq!(idx.len(), 2);
+		assert!(idx.tags_index().contains_key("tag1"));
+		assert!(idx.properties_index().contains_key("status"));
+		assert!(idx.backlinks().contains_key("/v/b.md"));
+
+		let result = idx.remove_entry("/v/a.md");
+		assert!(result.changed);
+		assert_eq!(idx.len(), 1);
+		assert!(!idx.tags_index().contains_key("tag1"));
+		assert!(!idx.properties_index().contains_key("status"));
+		assert!(!idx.backlinks().contains_key("/v/b.md"));
+	}
+
+	#[test]
+	fn remove_entry_nonexistent_path() {
+		let mut idx = VaultIndex::default();
+		let result = idx.remove_entry("/v/nope.md");
+		assert!(!result.changed);
+		assert!(idx.version() > 0);
+	}
+
+	#[test]
+	fn remove_entry_source_cleans_target_backlinks() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b"], &[]);
+		let b = make_entry("/v/b.md", &[], &[]);
+		idx.build(vec![a, b]);
+
+		assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/a.md"));
+
+		idx.remove_entry("/v/a.md");
+		assert!(!idx.backlinks().contains_key("/v/b.md"));
+	}
+
+	#[test]
+	fn remove_entry_by_path_promotion() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/sub1/note.md", &[], &[]);
+		let b = make_entry("/v/sub2/note.md", &[], &[]);
+		idx.build(vec![a, b]);
+
+		assert_eq!(idx.by_path().get("note"), Some(&"/v/sub1/note.md".to_string()));
+
+		idx.remove_entry("/v/sub1/note.md");
+		assert_eq!(idx.by_path().get("note"), Some(&"/v/sub2/note.md".to_string()));
+	}
+
+	#[test]
+	fn remove_entry_retroactive_backlinks_for_promoted() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/sub1/note.md", &[], &[]);
+		let b = make_entry("/v/sub2/note.md", &[], &[]);
+		let c = make_entry("/v/c.md", &["note"], &[]);
+		idx.build(vec![a, b, c]);
+
+		assert!(idx.backlinks().get("/v/sub1/note.md").unwrap().contains("/v/c.md"));
+
+		idx.remove_entry("/v/sub1/note.md");
+		let bl = idx.backlinks().get("/v/sub2/note.md");
+		assert!(bl.is_some(), "promoted entry should have retroactive backlinks");
+		assert!(bl.unwrap().contains("/v/c.md"));
+	}
+
+	#[test]
+	fn remove_entry_empty_tag_sets_pruned() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/a.md", &[], &["lonely"])]);
+		assert!(idx.tags_index().contains_key("lonely"));
+
+		idx.remove_entry("/v/a.md");
+		assert!(!idx.tags_index().contains_key("lonely"));
+	}
+
+	// ---- Group 5: Lookup functions -------------------------------------
+
+	#[test]
+	fn lookup_backlinks_sorted_by_title() {
+		let mut idx = VaultIndex::default();
+		let mut z = make_entry("/v/z.md", &["target"], &[]);
+		z.title = "Zebra".to_string();
+		let mut a = make_entry("/v/a.md", &["target"], &[]);
+		a.title = "Alpha".to_string();
+		let target = make_entry("/v/target.md", &[], &[]);
+		idx.build(vec![z, a, target]);
+
+		let bl = idx.lookup_backlinks("/v/target.md");
+		assert_eq!(bl.len(), 2);
+		assert_eq!(bl[0].title, "Alpha");
+		assert_eq!(bl[1].title, "Zebra");
+	}
+
+	#[test]
+	fn lookup_backlinks_unknown_path_empty() {
+		let idx = VaultIndex::default();
+		assert!(idx.lookup_backlinks("/v/nope.md").is_empty());
+	}
+
+	#[test]
+	fn lookup_relationship_backlinks_belongs_to() {
+		let mut idx = VaultIndex::default();
+		let parent = make_entry("/v/parent.md", &[], &[]);
+		let child = make_entry_with_rels("/v/child.md", &["parent"], &[], BTreeMap::new());
+		idx.build(vec![parent, child]);
+
+		let rels = idx.lookup_relationship_backlinks("/v/parent.md");
+		assert_eq!(rels.len(), 1);
+		assert_eq!(rels[0].relationship_type, "belongs_to");
+		assert_eq!(rels[0].source_path, "/v/child.md");
+	}
+
+	#[test]
+	fn lookup_relationship_backlinks_related_to() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &[], &[]);
+		let b = make_entry_with_rels("/v/b.md", &[], &["a"], BTreeMap::new());
+		idx.build(vec![a, b]);
+
+		let rels = idx.lookup_relationship_backlinks("/v/a.md");
+		assert_eq!(rels.len(), 1);
+		assert_eq!(rels[0].relationship_type, "related_to");
+	}
+
+	#[test]
+	fn lookup_relationship_backlinks_custom() {
+		let mut idx = VaultIndex::default();
+		let target = make_entry("/v/target.md", &[], &[]);
+		let mut rels_map = BTreeMap::new();
+		rels_map.insert("blocks".to_string(), vec!["target".to_string()]);
+		let source = make_entry_with_rels("/v/source.md", &[], &[], rels_map);
+		idx.build(vec![target, source]);
+
+		let rels = idx.lookup_relationship_backlinks("/v/target.md");
+		assert_eq!(rels.len(), 1);
+		assert_eq!(rels[0].relationship_type, "blocks");
+	}
+
+	#[test]
+	fn lookup_outgoing_links_resolves_targets() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b", "missing"], &[]);
+		let b = make_entry("/v/b.md", &[], &[]);
+		idx.build(vec![a, b]);
+
+		let links = idx.lookup_outgoing_links("/v/a.md");
+		assert_eq!(links.len(), 2);
+
+		let resolved: Vec<_> = links.iter().filter(|l| l.resolved_path.is_some()).collect();
+		assert_eq!(resolved.len(), 1);
+		assert_eq!(resolved[0].resolved_path, Some("/v/b.md".to_string()));
+
+		let broken: Vec<_> = links.iter().filter(|l| l.resolved_path.is_none()).collect();
+		assert_eq!(broken.len(), 1);
+		assert_eq!(broken[0].target, "missing");
+	}
+
+	#[test]
+	fn lookup_outgoing_links_unknown_path_empty() {
+		let idx = VaultIndex::default();
+		assert!(idx.lookup_outgoing_links("/v/nope.md").is_empty());
+	}
+
+	#[test]
+	fn unlinked_mentions_candidates_excludes_self_and_linked() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["b"], &[]);
+		let b = make_entry("/v/b.md", &[], &[]);
+		let c = make_entry("/v/c.md", &[], &[]);
+		idx.build(vec![a, b, c]);
+
+		let cands = idx.unlinked_mentions_candidates("/v/a.md");
+		assert_eq!(cands.note_name, "a");
+		assert!(!cands.candidate_paths.contains(&"/v/a.md".to_string()));
+	}
+
+	#[test]
+	fn lookup_notes_with_tag_case_insensitive() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![
+			make_entry("/v/a.md", &[], &["Rust"]),
+			make_entry("/v/b.md", &[], &["rust"]),
+		]);
+
+		let notes = idx.lookup_notes_with_tag("RUST");
+		assert_eq!(notes.len(), 2);
+	}
+
+	#[test]
+	fn lookup_notes_with_tag_strips_hash() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/a.md", &[], &["tag1"])]);
+
+		let notes = idx.lookup_notes_with_tag("#tag1");
+		assert_eq!(notes.len(), 1);
+	}
+
+	#[test]
+	fn lookup_all_tags_aggregated_sorted() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![
+			make_entry("/v/a.md", &[], &["beta", "Alpha"]),
+			make_entry("/v/b.md", &[], &["alpha"]),
+		]);
+
+		let tags = idx.lookup_all_tags();
+		assert_eq!(tags.len(), 2);
+		assert_eq!(tags[0].name.to_lowercase(), "alpha");
+		assert_eq!(tags[0].count, 2);
+		assert_eq!(tags[1].name.to_lowercase(), "beta");
+		assert_eq!(tags[1].count, 1);
+	}
+
+	#[test]
+	fn lookup_all_tasks_sorted_by_modified_desc() {
+		let mut idx = VaultIndex::default();
+		let mut old = make_entry("/v/old.md", &[], &[]);
+		old.modified_at = 100;
+		old.tasks = vec![Task { text: "task".to_string(), ..Default::default() }];
+		let mut new = make_entry("/v/new.md", &[], &[]);
+		new.modified_at = 200;
+		new.tasks = vec![Task { text: "task".to_string(), ..Default::default() }];
+		idx.build(vec![old, new]);
+
+		let groups = idx.lookup_all_tasks();
+		assert_eq!(groups.len(), 2);
+		assert_eq!(groups[0].file_path, "/v/new.md");
+		assert_eq!(groups[1].file_path, "/v/old.md");
+	}
+
+	#[test]
+	fn lookup_all_tasks_skips_empty() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/a.md", &[], &[])]);
+		assert!(idx.lookup_all_tasks().is_empty());
+	}
+
+	#[test]
+	fn lookup_tasks_in_path_returns_tasks_or_empty() {
+		let mut idx = VaultIndex::default();
+		let mut e = make_entry("/v/a.md", &[], &[]);
+		e.tasks = vec![Task { text: "do it".to_string(), ..Default::default() }];
+		idx.build(vec![e]);
+
+		assert_eq!(idx.lookup_tasks_in_path("/v/a.md").len(), 1);
+		assert!(idx.lookup_tasks_in_path("/v/nope.md").is_empty());
+	}
+
+	#[test]
+	fn lookup_notes_by_property_canonical_match() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![
+			make_entry_with_fm("/v/a.md", &[], &[], fm(&[("type", json!("project"))])),
+			make_entry_with_fm("/v/b.md", &[], &[], fm(&[("type", json!("note"))])),
+		]);
+
+		let notes = idx.lookup_notes_by_property("type", &json!("project"));
+		assert_eq!(notes.len(), 1);
+		assert_eq!(notes[0].path, "/v/a.md");
+	}
+
+	#[test]
+	fn lookup_notes_by_property_unknown_key_empty() {
+		let idx = VaultIndex::default();
+		assert!(idx.lookup_notes_by_property("nope", &json!("x")).is_empty());
+	}
+
+	#[test]
+	fn lookup_property_values_sorted() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![
+			make_entry_with_fm("/v/a.md", &[], &[], fm(&[("status", json!("beta"))])),
+			make_entry_with_fm("/v/b.md", &[], &[], fm(&[("status", json!("alpha"))])),
+		]);
+
+		let vals = idx.lookup_property_values("status");
+		assert_eq!(vals.len(), 2);
+		assert_eq!(vals[0], json!("alpha"));
+		assert_eq!(vals[1], json!("beta"));
+	}
+
+	#[test]
+	fn lookup_note_properties_clone_or_default() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry_with_fm(
+			"/v/a.md", &[], &[],
+			fm(&[("key", json!("val"))]),
+		)]);
+
+		let props = idx.lookup_note_properties("/v/a.md");
+		assert_eq!(props.get("key"), Some(&json!("val")));
+
+		let empty = idx.lookup_note_properties("/v/nope.md");
+		assert!(empty.is_empty());
+	}
+
+	// ---- Group 6: Edge cases -------------------------------------------
+
+	#[test]
+	fn entry_no_links_no_tags_no_fm() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/plain.md", &[], &[])]);
+		assert_eq!(idx.len(), 1);
+		assert!(idx.backlinks().is_empty());
+		assert!(idx.tags_index().is_empty());
+		assert!(idx.properties_index().is_empty());
+	}
+
+	#[test]
+	fn resolve_public_wrapper() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![make_entry("/v/foo.md", &[], &[])]);
+		assert_eq!(idx.resolve("foo"), Some("/v/foo.md".to_string()));
+		assert_eq!(idx.resolve(""), None);
+		assert_eq!(idx.resolve("nonexistent"), None);
+	}
+
+	#[test]
+	fn unicode_note_names_and_tags() {
+		let mut idx = VaultIndex::default();
+		let entry = make_entry("/v/caf\u{00e9}.md", &[], &["\u{65e5}\u{672c}\u{8a9e}"]);
+		idx.build(vec![entry]);
+
+		assert_eq!(idx.len(), 1);
+		assert!(idx.tags_index().contains_key("\u{65e5}\u{672c}\u{8a9e}"));
+	}
+
+	#[test]
+	fn build_then_rebuild_clears_stale_data() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![
+			make_entry("/v/a.md", &["b"], &["tag1"]),
+			make_entry("/v/b.md", &[], &[]),
+		]);
+		assert!(idx.backlinks().contains_key("/v/b.md"));
+		assert!(idx.tags_index().contains_key("tag1"));
+
+		idx.build(vec![make_entry("/v/c.md", &[], &["tag2"])]);
+		assert_eq!(idx.len(), 1);
+		assert!(!idx.backlinks().contains_key("/v/b.md"));
+		assert!(!idx.tags_index().contains_key("tag1"));
+		assert!(idx.tags_index().contains_key("tag2"));
+	}
+
+	#[test]
+	fn update_then_remove_then_reinsert() {
+		let mut idx = VaultIndex::default();
+		idx.update_entry(make_entry("/v/a.md", &[], &["tag"]));
+		assert!(idx.tags_index().contains_key("tag"));
+
+		idx.remove_entry("/v/a.md");
+		assert!(!idx.tags_index().contains_key("tag"));
+		assert_eq!(idx.len(), 0);
+
+		let result = idx.update_entry(make_entry("/v/a.md", &[], &["tag"]));
+		assert!(result.changed);
+		assert_eq!(idx.len(), 1);
+		assert!(idx.tags_index().contains_key("tag"));
+	}
+
+	#[test]
+	fn remove_entry_with_inbound_backlinks_cleans_own_set() {
+		let mut idx = VaultIndex::default();
+		let a = make_entry("/v/a.md", &["target"], &[]);
+		let b = make_entry("/v/b.md", &["target"], &[]);
+		let target = make_entry("/v/target.md", &[], &[]);
+		idx.build(vec![a, b, target]);
+
+		assert_eq!(idx.backlinks().get("/v/target.md").unwrap().len(), 2);
+
+		idx.remove_entry("/v/target.md");
+		assert!(!idx.backlinks().contains_key("/v/target.md"));
+	}
+
+	#[test]
+	fn update_entry_affected_sorted() {
+		let mut idx = VaultIndex::default();
+		idx.build(vec![
+			make_entry("/v/z.md", &[], &[]),
+			make_entry("/v/a.md", &[], &[]),
+		]);
+
+		let result = idx.update_entry(make_entry("/v/src.md", &["z", "a"], &[]));
+		assert_eq!(result.affected, vec!["/v/a.md", "/v/z.md"]);
+	}
+}
