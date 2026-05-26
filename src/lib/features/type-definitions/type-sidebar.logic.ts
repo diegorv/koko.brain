@@ -37,7 +37,8 @@ export type NavItemId = 'inbox' | 'all' | 'archive' | 'favorites';
 export type TypeSidebarSelection =
 	| { kind: 'type'; name: string }
 	| { kind: 'nav'; id: NavItemId }
-	| { kind: 'untyped' };
+	| { kind: 'untyped' }
+	| { kind: 'view'; path: string };
 
 /** Counts for each top nav item. */
 export interface NavItemCounts {
@@ -73,6 +74,7 @@ export type NoteListSubFilter = 'open' | 'archived' | 'favorites';
 export function shouldShowSubFilter(selection: TypeSidebarSelection): boolean {
 	if (selection.kind === 'type' || selection.kind === 'untyped') return true;
 	if (selection.kind === 'nav') return selection.id === 'all';
+	if (selection.kind === 'view') return false;
 	return false;
 }
 
@@ -103,6 +105,8 @@ function matchesSelection(entry: NoteEntryV2, selection: TypeSidebarSelection): 
 			return !entry.isA && entry.isA !== 'Type';
 		case 'nav':
 			return entry.isA !== 'Type';
+		case 'view':
+			return false;
 	}
 }
 
@@ -130,10 +134,24 @@ export function getNotesForSelection(
 			filtered = filterByNavItem(entries, selection.id, subFilter);
 			sort = 'modified';
 			break;
+		case 'view':
+			filtered = [];
+			break;
 	}
 
 	const notes = filtered.map(toSidebarNote);
 	sortNotes(notes, sort, 'all');
+	return notes;
+}
+
+/** Converts entries matching a set of paths into sidebar notes, sorted by modified (newest first). */
+export function getNotesForViewPaths(
+	entries: NoteEntryV2[],
+	matchingPaths: ReadonlySet<string>,
+): TypeSidebarNote[] {
+	const filtered = entries.filter((e) => matchingPaths.has(e.path));
+	const notes = filtered.map(toSidebarNote);
+	sortNotes(notes, 'modified', 'all');
 	return notes;
 }
 

@@ -10,7 +10,6 @@
 	import Table from '@lucide/svelte/icons/table';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
@@ -33,7 +32,6 @@
 	let untypedCount = $state(0);
 	let navCounts = $state({ inbox: 0, all: 0, archive: 0, favorites: 0 });
 	let viewFiles = $derived(collectViewFiles(fsStore.fileTree));
-	let activeEditorPath = $derived(editorStore.activeTabPath);
 	let sectionContextPath = $state<string | null>(null);
 	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
@@ -152,8 +150,8 @@
 							{@const viewIconColor = viewResolved?.color}
 							{@const viewTextColor = viewResolved?.titleColor}
 							<button
-								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {activeEditorPath === view.path ? 'bg-primary/25 text-primary' : ''}"
-								onclick={() => openFileInEditor(view.path)}
+								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {selection?.kind === 'view' && selection.path === view.path ? 'bg-primary/25 text-primary' : ''}"
+								onclick={() => typeDefinitionsStore.setSelection({ kind: 'view', path: view.path })}
 								oncontextmenu={() => { sectionContextPath = view.path; sectionContextName = null; }}
 							>
 								{#if viewIcon}
@@ -161,7 +159,7 @@
 								{:else}
 									<Table class="size-4 shrink-0 text-muted-foreground" />
 								{/if}
-								<span class="truncate" style:color={activeEditorPath !== view.path && viewTextColor ? viewTextColor : undefined}>
+								<span class="truncate" style:color={!(selection?.kind === 'view' && selection.path === view.path) && viewTextColor ? viewTextColor : undefined}>
 									{view.name}
 								</span>
 							</button>

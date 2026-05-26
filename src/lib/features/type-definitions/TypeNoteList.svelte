@@ -22,9 +22,14 @@
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
+	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
+	import { executeQuery } from '$lib/features/collection/collection.logic';
+	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+	import { getFileName } from '$lib/core/filesystem/fs.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 
 	let notes = $state<TypeSidebarNote[]>([]);
@@ -57,6 +62,10 @@
 					case 'archive': return 'Archive';
 					case 'favorites': return 'Favorites';
 				}
+			case 'view': {
+				const name = getFileName(selection.path);
+				return name.replace(/\.view$/i, '');
+			}
 		}
 	});
 
@@ -74,6 +83,7 @@
 			case 'type': return `type:${sel.name}`;
 			case 'nav': return `nav:${sel.id}`;
 			case 'untyped': return 'untyped';
+			case 'view': return `view:${sel.path}`;
 		}
 	}
 
@@ -91,12 +101,38 @@
 			subFilter = 'open';
 			prevSelectionKey = key;
 		}
+
+		if (sel.kind === 'view') {
+			loadViewNotes(sel.path, entries);
+			return;
+		}
+
 		const sf = shouldShowSubFilter(sel) ? subFilter : undefined;
 		notes = getNotesForSelection(entries, sel, typeDefinitionsStore.typeMetadataMap, sf);
 		if (shouldShowSubFilter(sel)) {
 			subCounts = countSubFilters(entries, sel);
 		}
 	});
+
+	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries) {
+		try {
+			const content = await readTextFile(viewPath);
+			const sel = typeDefinitionsStore.selectedTypeOrNav;
+			if (sel?.kind !== 'view' || sel.path !== viewPath) return;
+
+			const parsed = parseCollectionYaml(content);
+			if (!parsed.success) {
+				notes = [];
+				return;
+			}
+			const view = parsed.definition.views[0];
+			const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
+			const matchingPaths = new Set(result.records.map((r) => r.path));
+			notes = getNotesForViewPaths(entries, matchingPaths);
+		} catch {
+			notes = [];
+		}
+	}
 
 
 

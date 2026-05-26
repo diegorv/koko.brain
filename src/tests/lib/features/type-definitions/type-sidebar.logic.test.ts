@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -689,5 +689,37 @@ describe('collectViewFiles', () => {
 		];
 		const result = collectViewFiles(tree);
 		expect(result.map((v) => v.name)).toEqual(['alpha', 'mid', 'zebra']);
+	});
+});
+
+describe('getNotesForViewPaths', () => {
+	it('returns notes matching the given paths', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', modifiedAt: 200 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 50 }),
+		];
+		const matching = new Set(['/v/a.md', '/v/c.md']);
+		const result = getNotesForViewPaths(entries, matching);
+		expect(result.map((n) => n.title)).toEqual(['A', 'C']);
+	});
+
+	it('sorts by modified (newest first)', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', modifiedAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 200 }),
+		];
+		const matching = new Set(['/v/a.md', '/v/b.md', '/v/c.md']);
+		const result = getNotesForViewPaths(entries, matching);
+		expect(result.map((n) => n.title)).toEqual(['B', 'C', 'A']);
+	});
+
+	it('returns empty when no paths match', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A' }),
+		];
+		const matching = new Set(['/v/x.md']);
+		expect(getNotesForViewPaths(entries, matching)).toEqual([]);
 	});
 });
