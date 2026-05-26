@@ -24,6 +24,10 @@
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { buildTypeSections, countNavItems, collectViewFiles, sortViewFiles, getViewLabel, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
+	import { readTextFile } from '@tauri-apps/plugin-fs';
+	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
+	import { executeQuery } from '$lib/features/collection/collection.logic';
+	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
@@ -42,6 +46,7 @@
 	let iconPickerRef = $derived(
 		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
 	);
+	let viewCounts = $state<Map<string, number>>(new Map());
 
 	const navItems: { id: NavItemId; label: string; icon: typeof Inbox }[] = [
 		{ id: 'inbox', label: 'Inbox', icon: Inbox },
@@ -65,6 +70,23 @@
 		if (!typeDefinitionsStore.selectedTypeOrNav && result.sections.length > 0) {
 			typeDefinitionsStore.setSelection({ kind: 'type', name: result.sections[0].metadata.name });
 		}
+	});
+
+	$effect(() => {
+		const views = sortedViewFiles;
+		const _version = typeDefinitionsStore.entriesVersion;
+		if (views.length === 0) { viewCounts = new Map(); return; }
+		const counts = new Map<string, number>();
+		Promise.all(views.map(async (v) => {
+			try {
+				const content = await readTextFile(v.path);
+				const parsed = parseCollectionYaml(content);
+				if (!parsed.success) return;
+				const view = parsed.definition.views[0];
+				const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
+				counts.set(v.path, result.records.length);
+			} catch { /* skip */ }
+		})).then(() => { viewCounts = counts; });
 	});
 
 	function selectNav(id: NavItemId) {
@@ -174,6 +196,9 @@
 								<span class="truncate" style:color={!(selection?.kind === 'view' && selection.path === view.path) && viewTextColor ? viewTextColor : undefined}>
 									{viewLabel}
 								</span>
+								{#if viewCounts.has(view.path)}
+									<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{viewCounts.get(view.path)}</span>
+								{/if}
 							</button>
 						{/each}
 					{/if}
