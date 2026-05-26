@@ -122,7 +122,7 @@
 </script>
 
 <Tooltip.Provider delayDuration={400}>
-<div class="flex flex-col h-full">
+<div class="flex flex-col h-full bg-background">
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
 			<DailyNoteButton />
