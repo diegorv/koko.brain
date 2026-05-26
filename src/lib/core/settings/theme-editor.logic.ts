@@ -62,7 +62,19 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 	},
 	{
 		label: 'App Shell',
-		keys: ['tabBar', 'divider', 'fileExplorerBg', 'editorEmptyBg', 'tabTextActive', 'tabTextInactive'],
+		keys: ['tabBar', 'divider', 'tabTextActive', 'tabTextInactive'],
+	},
+	{
+		label: 'Left Sidebar',
+		keys: ['fileExplorerBg', 'fileExplorerFg', 'fileExplorerMutedFg', 'fileExplorerAccent'],
+	},
+	{
+		label: 'Right Sidebar',
+		keys: ['rightSidebarBg', 'rightSidebarFg', 'rightSidebarMutedFg', 'rightSidebarAccent'],
+	},
+	{
+		label: 'Editor',
+		keys: ['editorBg', 'editorFg', 'editorEmptyBg'],
 	},
 	{
 		label: 'Settings',
