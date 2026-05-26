@@ -30,5 +30,17 @@
 </script>
 
 {#if isMarkdown}
-	<span>{words} words, {characters} characters, {readingTime} min read</span>
+	<span class="word-count-stats">{words} words <span class="sep"></span> {characters} characters <span class="sep"></span> {readingTime} min read</span>
 {/if}
+
+<style>
+	.sep {
+		display: inline-block;
+		width: 1px;
+		height: 12px;
+		margin: 0 6px;
+		background: var(--status-bar-fg);
+		opacity: 0.3;
+		vertical-align: middle;
+	}
+</style>
