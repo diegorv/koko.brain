@@ -12,8 +12,7 @@
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import { resolveIconForPath, resolveIconForType } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import { propertiesStore } from './properties.store.svelte';
 	import {
@@ -98,37 +97,6 @@
 	let typeProperty = $derived(propertiesStore.properties.find((p) => p.key === 'type'));
 	let typeMetadata = $derived(typeProperty ? typeDefinitionsStore.getTypeMetadata(String(typeProperty.value)) : undefined);
 	let availableTypes = $derived(typeDefinitionsStore.sortedTypes);
-
-	let typeDefPaths = $derived.by(() => {
-		const map = new Map<string, string>();
-		for (const entry of typeDefinitionsStore.entries) {
-			if (entry.isA === 'Type') map.set(entry.title, entry.path);
-		}
-		return map;
-	});
-
-	function getTypeIcon(typeName: string) {
-		const defPath = typeDefPaths.get(typeName);
-		if (!defPath) return undefined;
-		const fmRef = fileIconsStore.getFrontmatterIcon(defPath);
-		if (!fmRef) return undefined;
-		const icon = getIconSync(fmRef.iconPack, fmRef.iconName);
-		return icon ? { icon, color: fmRef.color } : undefined;
-	}
-
-	let fileTypeMap = $derived.by(() => {
-		const map = new Map<string, string>();
-		for (const entry of typeDefinitionsStore.entries) {
-			if (entry.isA && entry.isA !== 'Type') map.set(entry.path, entry.isA);
-		}
-		return map;
-	});
-
-	function getTypeIconForPath(path: string) {
-		const typeName = fileTypeMap.get(path);
-		if (!typeName) return undefined;
-		return getTypeIcon(typeName);
-	}
 
 	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
 	let sortedProperties = $derived(
@@ -223,7 +191,7 @@
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
-									{@const selectedTypeIcon = getTypeIcon(String(typeProperty.value))}
+									{@const selectedTypeIcon = resolveIconForType(String(typeProperty.value))}
 								<button
 										{...props}
 										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-[14px] font-medium text-foreground/70 transition-colors cursor-pointer hover:bg-accent"
@@ -238,7 +206,7 @@
 							</DropdownMenu.Trigger>
 							<DropdownMenu.Content align="start" class="w-48">
 								{#each availableTypes as t (t.name)}
-									{@const tIcon = getTypeIcon(t.name)}
+									{@const tIcon = resolveIconForType(t.name)}
 									<DropdownMenu.Item
 										onclick={() => handleUpdate('type', t.name)}
 									>
@@ -308,19 +276,15 @@
 					{#if links.length > 0}
 						<div class="mt-1 space-y-0.5">
 							{#each links as link (link.raw)}
-								{@const linkRef = link.resolvedPath ? fileIconsStore.getFrontmatterIcon(link.resolvedPath) : undefined}
-								{@const linkIcon = linkRef ? getIconSync(linkRef.iconPack, linkRef.iconName) : undefined}
-								{@const linkTypeIcon = !linkIcon && link.resolvedPath ? getTypeIconForPath(link.resolvedPath) : undefined}
+								{@const linkResolved = link.resolvedPath ? resolveIconForPath(link.resolvedPath) : undefined}
 								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[14px] hover:bg-accent transition-colors">
 									{#if link.resolvedPath}
 										<button
 											class="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer text-left"
 											onclick={() => openFileInEditor(link.resolvedPath!)}
 										>
-											{#if linkIcon}
-												<IconRenderer icon={linkIcon} class="size-3.5 shrink-0" color={linkRef?.color} />
-											{:else if linkTypeIcon}
-												<IconRenderer icon={linkTypeIcon.icon} class="size-3.5 shrink-0" color={linkTypeIcon.color} />
+											{#if linkResolved}
+												<IconRenderer icon={linkResolved.icon} class="size-3.5 shrink-0" color={linkResolved.color} />
 											{:else}
 												<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 											{/if}

@@ -5,11 +5,8 @@
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { flattenFileTree, filterAndRank, getRelativePath } from '$lib/features/quick-switcher/quick-switcher.logic';
-	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
-	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-	import type { NormalizedIcon } from '$lib/features/file-icons/file-icons.types';
 
 	interface Props {
 		onSelect: (fileName: string) => void;
@@ -23,39 +20,6 @@
 
 	let allFiles = $derived(flattenFileTree(fsStore.fileTree));
 	let results = $derived(filterAndRank(query, allFiles, []).slice(0, 20));
-
-	/** Map typeName -> type definition's icon ref (for fallback) */
-	let typeDefIconMap = $derived.by(() => {
-		const map = new Map<string, { icon: NormalizedIcon; color?: string }>();
-		for (const entry of typeDefinitionsStore.entries) {
-			if (entry.isA !== 'Type') continue;
-			const ref = fileIconsStore.getFrontmatterIcon(entry.path);
-			if (!ref) continue;
-			const icon = getIconSync(ref.iconPack, ref.iconName);
-			if (icon) map.set(entry.title, { icon, color: ref.color });
-		}
-		return map;
-	});
-
-	/** Map filePath -> typeName (for looking up type icon fallback) */
-	let fileTypeMap = $derived.by(() => {
-		const map = new Map<string, string>();
-		for (const entry of typeDefinitionsStore.entries) {
-			if (entry.isA && entry.isA !== 'Type') map.set(entry.path, entry.isA);
-		}
-		return map;
-	});
-
-	function getFileIcon(path: string): { icon: NormalizedIcon; color?: string } | undefined {
-		const ref = fileIconsStore.getFrontmatterIcon(path);
-		if (ref) {
-			const icon = getIconSync(ref.iconPack, ref.iconName);
-			if (icon) return { icon, color: ref.color };
-		}
-		const typeName = fileTypeMap.get(path);
-		if (typeName) return typeDefIconMap.get(typeName);
-		return undefined;
-	}
 
 	function handleSelect(fileName: string) {
 		onSelect(fileName);
@@ -95,7 +59,7 @@
 			<div class="max-h-48 overflow-y-auto">
 				{#if results.length > 0}
 					{#each results as file (file.path)}
-						{@const resolved = getFileIcon(file.path)}
+						{@const resolved = resolveIconForPath(file.path)}
 						<button
 							class="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-accent transition-colors cursor-pointer"
 							onmousedown={(e) => {

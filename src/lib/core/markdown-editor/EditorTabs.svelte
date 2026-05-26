@@ -9,8 +9,7 @@
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { switchTab, closeTab, togglePinTab } from '$lib/core/editor/editor.service';
 	import { isTabDirty, isTabPinned, isVirtualTab } from '$lib/core/editor/editor.logic';
-	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 </script>
@@ -18,13 +17,10 @@
 {#if editorStore.tabs.length > 0}
 	<div class="flex items-end h-10 bg-tab-bar overflow-x-auto pt-1 px-1 gap-0.5" role="tablist" data-tauri-drag-region>
 		{#each editorStore.tabs as tab, index}
-			{@const customEntry = fileIconsStore.getIcon(tab.path)}
-			{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
-			{@const frontmatterRef = fileIconsStore.getFrontmatterIcon(tab.path)}
-			{@const frontmatterIcon = frontmatterRef ? getIconSync(frontmatterRef.iconPack, frontmatterRef.iconName) : undefined}
-			{@const tabIcon = frontmatterIcon ?? customIcon}
-			{@const tabColor = frontmatterRef?.color ?? customEntry?.color}
-			{@const tabTextColor = frontmatterRef?.titleColor ?? customEntry?.textColor}
+			{@const tabResolved = resolveIconForPath(tab.path)}
+			{@const tabIcon = tabResolved?.icon}
+			{@const tabColor = tabResolved?.color}
+			{@const tabTextColor = tabResolved?.titleColor}
 			{@const pinned = isTabPinned(tab)}
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>

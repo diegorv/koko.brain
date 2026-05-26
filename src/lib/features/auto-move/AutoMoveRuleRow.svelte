@@ -11,6 +11,7 @@
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import type { AutoMoveRule } from './auto-move.types';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { validateExpression } from './auto-move.logic';
@@ -53,6 +54,7 @@
 
 	/** Resolve the icon for rendering (sync lookup from cache) */
 	function getResolvedIcon() {
+		void fileIconsStore.packVersion;
 		if (!rule.icon) return null;
 		return getIconSync(rule.icon.iconPack, rule.icon.iconName) ?? null;
 	}

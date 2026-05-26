@@ -22,8 +22,8 @@
 	import { createNoteOfType, createTypeDefinition, toggleFavoriteForPath } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
+	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
@@ -179,13 +179,10 @@
 					{#each sections as section (section.metadata.name)}
 						{@const collapsed = collapsedSections.has(section.metadata.name)}
 						{@const defPath = section.definitionPath}
-						{@const defIconEntry = defPath ? fileIconsStore.getIcon(defPath) : undefined}
-						{@const defFmRef = defPath ? fileIconsStore.getFrontmatterIcon(defPath) : undefined}
-						{@const defCustomIcon = defIconEntry ? getIconSync(defIconEntry.iconPack, defIconEntry.iconName) : undefined}
-						{@const defFmIcon = defFmRef ? getIconSync(defFmRef.iconPack, defFmRef.iconName) : undefined}
-						{@const defResolvedIcon = defFmIcon ?? defCustomIcon}
-						{@const defIconColor = defFmRef?.color ?? defIconEntry?.color}
-						{@const defTextColor = defFmRef?.titleColor ?? defIconEntry?.textColor}
+						{@const defResolved = defPath ? resolveIconForPath(defPath) : undefined}
+						{@const defResolvedIcon = defResolved?.icon}
+						{@const defIconColor = defResolved?.color}
+						{@const defTextColor = defResolved?.titleColor}
 						<div class="mb-1">
 							<button
 								class="flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary cursor-default select-none"
@@ -204,13 +201,10 @@
 							{#if !collapsed}
 								<div>
 									{#each section.notes as note (note.path)}
-										{@const customEntry = fileIconsStore.getIcon(note.path)}
-										{@const fmRef = fileIconsStore.getFrontmatterIcon(note.path)}
-										{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
-										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
-										{@const resolvedIcon = fmIcon ?? customIcon}
-										{@const iconColor = fmRef?.color ?? customEntry?.color}
-										{@const iconTextColor = fmRef?.titleColor ?? customEntry?.textColor}
+										{@const noteResolved = resolveIconForPath(note.path)}
+										{@const resolvedIcon = noteResolved?.icon}
+										{@const iconColor = noteResolved?.color}
+										{@const iconTextColor = noteResolved?.titleColor}
 										{@const isActive = note.path === activePath}
 										<Tooltip.Root>
 											<Tooltip.Trigger>
@@ -255,13 +249,10 @@
 							{#if !untypedCollapsed}
 								<div>
 									{#each untyped as note (note.path)}
-										{@const customEntry = fileIconsStore.getIcon(note.path)}
-										{@const fmRef = fileIconsStore.getFrontmatterIcon(note.path)}
-										{@const customIcon = customEntry ? getIconSync(customEntry.iconPack, customEntry.iconName) : undefined}
-										{@const fmIcon = fmRef ? getIconSync(fmRef.iconPack, fmRef.iconName) : undefined}
-										{@const resolvedIcon = fmIcon ?? customIcon}
-										{@const iconColor = fmRef?.color ?? customEntry?.color}
-										{@const iconTextColor = fmRef?.titleColor ?? customEntry?.textColor}
+										{@const noteResolved = resolveIconForPath(note.path)}
+										{@const resolvedIcon = noteResolved?.icon}
+										{@const iconColor = noteResolved?.color}
+										{@const iconTextColor = noteResolved?.titleColor}
 										{@const isActive = note.path === activePath}
 										<Tooltip.Root>
 											<Tooltip.Trigger>

@@ -5,8 +5,7 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { renameItem, moveItem } from '$lib/core/filesystem/fs.service';
 	import { isValidFileName, validateDragDrop } from '$lib/core/filesystem/fs.logic';
-	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
+	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { findFolderNote } from '$lib/features/folder-notes/folder-notes.logic';
@@ -70,13 +69,10 @@
 		}
 	});
 
-	let customIconEntry = $derived(fileIconsStore.getIcon(node.path));
-	let customIcon = $derived(customIconEntry ? getIconSync(customIconEntry.iconPack, customIconEntry.iconName) : undefined);
-	let frontmatterRef = $derived(fileIconsStore.getFrontmatterIcon(node.path));
-	let frontmatterIcon = $derived(frontmatterRef ? getIconSync(frontmatterRef.iconPack, frontmatterRef.iconName) : undefined);
-	let resolvedIcon = $derived(frontmatterIcon ?? customIcon);
-	let resolvedColor = $derived(frontmatterRef?.color ?? customIconEntry?.color);
-	let resolvedTextColor = $derived(frontmatterRef?.titleColor ?? customIconEntry?.textColor);
+	let resolved = $derived(resolveIconForPath(node.path));
+	let resolvedIcon = $derived(resolved?.icon);
+	let resolvedColor = $derived(resolved?.color);
+	let resolvedTextColor = $derived(resolved?.titleColor);
 
 	/** Path to the folder note inside this directory, if one exists */
 	let folderNotePath = $derived(
