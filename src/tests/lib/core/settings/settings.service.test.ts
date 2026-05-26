@@ -428,13 +428,15 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.appearance.activeTheme).toBe('Custom');
-		// normalizeAppearance should prepend the default theme
-		expect(settingsStore.settings.appearance.themes).toHaveLength(2);
-		expect(settingsStore.settings.appearance.themes[0].name).toBe(DEFAULT_THEME_NAME);
-		expect(settingsStore.settings.appearance.themes[1].name).toBe('Custom');
+		// normalizeAppearance keeps user theme + ensures all built-in themes present
+		const themes = settingsStore.settings.appearance.themes;
+		expect(themes).toHaveLength(5); // 1 custom + 4 built-in
+		expect(themes[0].name).toBe('Custom');
 		// Custom theme colors merged with defaults
-		expect(settingsStore.settings.appearance.themes[1].colors.ui.background).toBe('#ff0000');
-		expect(settingsStore.settings.appearance.themes[1].colors.ui.foreground).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.foreground);
+		expect(themes[0].colors.ui.background).toBe('#ff0000');
+		expect(themes[0].colors.ui.foreground).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.foreground);
+		// All built-in themes appended
+		expect(themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
 	});
 });
 
