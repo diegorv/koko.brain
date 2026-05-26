@@ -18,7 +18,7 @@
 	data-slot="resizable-handle"
 	class={cn(
 		"resizable-handle group relative flex cursor-col-resize items-center justify-center transition-[background] duration-150",
-		"w-[3px] data-[direction=vertical]:h-[3px] data-[direction=vertical]:w-full data-[direction=vertical]:cursor-row-resize",
+		"w-px data-[direction=vertical]:h-px data-[direction=vertical]:w-full data-[direction=vertical]:cursor-row-resize",
 		"after:absolute after:inset-y-0 after:start-1/2 after:w-3 after:cursor-col-resize after:-translate-x-1/2 after:content-['']",
 		"data-[direction=vertical]:after:inset-x-0 data-[direction=vertical]:after:start-0 data-[direction=vertical]:after:h-3 data-[direction=vertical]:after:w-full data-[direction=vertical]:after:cursor-row-resize data-[direction=vertical]:after:translate-x-0 data-[direction=vertical]:after:-translate-y-1/2",
 		"focus-visible:ring-ring focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden",
