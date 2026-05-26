@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Middle panel with type note list
 

@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Left sidebar refactor + selection state
 
