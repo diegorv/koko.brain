@@ -2,8 +2,8 @@
 
 | | Status |
 |---|---|
-| **CI** | [![CI][ci-badge]][ci-url] [![E2E][e2e-badge]][e2e-url] [![Release][release-badge]][release-url] [![Nightly][nightly-badge]][nightly-url] [![Wiki Sync][wiki-badge]][wiki-url] [![Dependabot][dependabot-badge]][dependabot-url] |
-| **Security** | [![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url] |
+| **CI** | [![CI][ci-badge]][ci-url] [![E2E][e2e-badge]][e2e-url] [![Release][release-badge]][release-url] [![Nightly][nightly-badge]][nightly-url] [![Wiki Sync][wiki-badge]][wiki-url] |
+| **Security** | [![Dependabot][dependabot-badge]][dependabot-url] [![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url] |
 | **Project** | [![Latest release][version-badge]][version-url] [![License][license-badge]][license-url] [![Platform][platform-badge]][platform-url] [![Claude Code][claude-badge]][claude-url] |
 
 A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) and [Tolaria.md](https://tolaria.md/), built with Svelte 5 and Tauri 2
