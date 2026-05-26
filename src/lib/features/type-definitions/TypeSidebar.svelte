@@ -182,9 +182,8 @@
 					<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 
 					{#if sortedViewFiles.length > 0}
-						<div class="mx-2 mb-1.5 flex items-center gap-2">
+						<div class="mx-2 mb-1.5">
 							<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Views</span>
-							<div class="flex-1 h-px bg-file-explorer-border"></div>
 						</div>
 
 						{#each sortedViewFiles as view (view.path)}
@@ -212,12 +211,11 @@
 								{/if}
 							</button>
 						{/each}
-						<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 					{/if}
+					<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 
-					<div class="mx-2 mb-1.5 flex items-center gap-2">
+					<div class="mx-2 mb-1.5">
 						<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Types</span>
-						<div class="flex-1 h-px bg-file-explorer-border"></div>
 					</div>
 
 					{#each sections as section (section.metadata.name)}
