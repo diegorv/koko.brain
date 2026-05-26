@@ -364,19 +364,66 @@ describe('getNotesForSelection', () => {
 		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
 	});
 
-	it('returns empty array for nav selection', () => {
-		const entries = [
-			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
-		];
-		const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
-		expect(notes.length).toBe(0);
-	});
-
 	it('returns empty when no notes match type', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),
 		];
 		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
 		expect(notes.length).toBe(0);
+	});
+
+	describe('nav selections', () => {
+		it('all returns non-archived, non-Type entries', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
+				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
+				entryV2('/v/c.md', { title: 'C', isA: 'Type' }),
+				entryV2('/v/d.md', { title: 'D', isA: null, archived: false }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
+			expect(notes.map((n) => n.title)).toEqual(['A', 'D']);
+		});
+
+		it('inbox returns unorganized non-archived entries', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', organized: false, archived: false, isA: 'Project' }),
+				entryV2('/v/b.md', { title: 'B', organized: true, archived: false, isA: 'Project' }),
+				entryV2('/v/c.md', { title: 'C', organized: false, archived: true, isA: 'Project' }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'inbox' }, new Map());
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('A');
+		});
+
+		it('archive returns only archived entries', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', archived: true, isA: 'Project' }),
+				entryV2('/v/b.md', { title: 'B', archived: false, isA: 'Project' }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'archive' }, new Map());
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('A');
+		});
+
+		it('favorites returns favorited non-archived entries', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', favorite: true, archived: false, isA: 'Project' }),
+				entryV2('/v/b.md', { title: 'B', favorite: false, archived: false, isA: 'Project' }),
+				entryV2('/v/c.md', { title: 'C', favorite: true, archived: true, isA: 'Project' }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'favorites' }, new Map());
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('A');
+		});
+
+		it('nav sorts by modified (newest first)', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
+				entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
+				entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
+			expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
+		});
 	});
 });

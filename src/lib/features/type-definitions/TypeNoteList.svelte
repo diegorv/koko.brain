@@ -48,7 +48,12 @@
 			case 'untyped':
 				return 'Untyped';
 			case 'nav':
-				return '';
+				switch (selection.id) {
+					case 'inbox': return 'Inbox';
+					case 'all': return 'All Notes';
+					case 'archive': return 'Archive';
+					case 'favorites': return 'Favorites';
+				}
 		}
 	});
 
@@ -141,12 +146,7 @@
 		{/if}
 	</div>
 
-	{#if selection?.kind === 'nav'}
-		<div class="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4">
-			<span class="text-center">Cross-type views coming soon</span>
-		</div>
-	{:else}
-		<ContextMenu.Root>
+	<ContextMenu.Root>
 			<ContextMenu.Trigger>
 				{#snippet child({ props })}
 					<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
@@ -246,7 +246,6 @@
 				{/if}
 			</ContextMenu.Content>
 		</ContextMenu.Root>
-	{/if}
 </div>
 
 {#if iconPickerPath}

@@ -82,7 +82,9 @@ export function getNotesForSelection(
 			filtered = entries.filter((e) => !e.isA && e.isA !== 'Type' && !e.archived);
 			break;
 		case 'nav':
-			return [];
+			filtered = filterByNavItem(entries, selection.id);
+			sort = 'modified';
+			break;
 	}
 
 	const notes = filtered.map(toSidebarNote);
@@ -106,6 +108,20 @@ function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 		modifiedAt: entry.modifiedAt,
 		createdAt: entry.createdAt,
 	};
+}
+
+/** Filters entries by nav item selection. */
+function filterByNavItem(entries: NoteEntryV2[], id: NavItemId): NoteEntryV2[] {
+	switch (id) {
+		case 'all':
+			return entries.filter((e) => e.isA !== 'Type' && !e.archived);
+		case 'inbox':
+			return entries.filter((e) => e.isA !== 'Type' && !e.organized && !e.archived);
+		case 'archive':
+			return entries.filter((e) => e.isA !== 'Type' && e.archived);
+		case 'favorites':
+			return entries.filter((e) => e.isA !== 'Type' && e.favorite && !e.archived);
+	}
 }
 
 /** Builds type-grouped sections from vault entries. */
