@@ -448,12 +448,12 @@ export function updateViewIconYaml(yamlString: string, icon?: string, color?: st
 	} else {
 		delete raw._icon;
 	}
-	if (color) {
+	if (color !== undefined) {
 		raw._color = color;
 	} else {
 		delete raw._color;
 	}
-	if (titleColor) {
+	if (titleColor !== undefined) {
 		raw._title_color = titleColor;
 	} else {
 		delete raw._title_color;

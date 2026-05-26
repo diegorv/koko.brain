@@ -812,6 +812,14 @@ describe('updateViewIconYaml', () => {
 		expect(result).toContain('_color: red');
 	});
 
+	it('sets _color and _title_color to empty string without deleting', () => {
+		const input = '_icon: lucide:star\n_color: blue\n_title_color: white\n';
+		const result = updateViewIconYaml(input, undefined, '', '');
+		expect(result).not.toContain('_icon');
+		expect(result).toContain('_color: ""');
+		expect(result).toContain('_title_color: ""');
+	});
+
 	it('preserves other fields', () => {
 		const input = '_order: 5\nfilters: "type = \'Project\'"\n';
 		const result = updateViewIconYaml(input, 'lucide:rocket', 'green');
