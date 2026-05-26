@@ -44,7 +44,7 @@
 	<div class="grid grid-cols-7 gap-y-0.5 flex-1">
 		{#each DAY_HEADERS as header, i}
 			<div class="flex items-center justify-center h-6 text-xs font-medium
-				{i >= 5 ? 'text-primary' : 'text-file-explorer-muted-fg'}">
+				{i >= 5 ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}">
 				{header}
 			</div>
 		{/each}
@@ -54,16 +54,16 @@
 				{@const count = dayFileCounts.get(day.dateKey) ?? 0}
 				<button
 					class="relative flex items-center justify-center h-7 text-[13px] rounded-md transition-colors cursor-pointer
-						{day.isCurrentMonth ? (di >= 5 ? 'text-primary' : 'text-file-explorer-fg') : 'text-file-explorer-muted-fg/40'}
-						{day.isToday ? 'font-bold ring-1 ring-primary' : ''}
-						{selectedDateKey === day.dateKey ? 'bg-primary text-primary-foreground' : 'hover:bg-file-explorer-accent'}"
+						{day.isCurrentMonth ? (di >= 5 ? 'text-file-explorer-primary' : 'text-file-explorer-fg') : 'text-file-explorer-muted-fg/40'}
+						{day.isToday ? 'font-bold ring-1 ring-file-explorer-primary' : ''}
+						{selectedDateKey === day.dateKey ? 'bg-file-explorer-primary text-primary-foreground' : 'hover:bg-file-explorer-accent'}"
 					onclick={() => onDayClick(day.dateKey)}
 				>
 					{day.day}
 					{#if count > 0}
 						<span class="absolute bottom-0.5 flex gap-px">
 							{#each { length: dotCount(count) } as _}
-								<span class="w-1 h-1 rounded-full bg-primary"></span>
+								<span class="w-1 h-1 rounded-full bg-file-explorer-primary"></span>
 							{/each}
 						</span>
 					{/if}

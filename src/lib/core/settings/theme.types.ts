@@ -50,6 +50,8 @@ export interface UIColors {
 	fileExplorerMutedFg: string;
 	/** File explorer accent surface (hover, selected) */
 	fileExplorerAccent: string;
+	/** File explorer primary accent color (links, headings, selected items) */
+	fileExplorerPrimary: string;
 	/** Right sidebar panel background */
 	rightSidebarBg: string;
 	/** Right sidebar primary text color */
@@ -58,6 +60,8 @@ export interface UIColors {
 	rightSidebarMutedFg: string;
 	/** Right sidebar accent surface (hover, selected) */
 	rightSidebarAccent: string;
+	/** Right sidebar primary accent color (headings, links) */
+	rightSidebarPrimary: string;
 	/** Editor content area background */
 	editorBg: string;
 	/** Editor primary text color */

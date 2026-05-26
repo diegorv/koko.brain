@@ -236,8 +236,8 @@
 {:else}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] text-file-explorer-fg hover:bg-primary/10 hover:text-primary text-left cursor-default select-none
-			{isSelected ? 'bg-primary/25' : ''}
+		class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] text-file-explorer-fg hover:bg-file-explorer-primary/10 hover:text-file-explorer-primary text-left cursor-default select-none
+			{isSelected ? 'bg-file-explorer-primary/25' : ''}
 			{isDragOver ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}
 			{depth > 0 ? 'ft-indent-lines' : ''}"
 		style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
@@ -279,7 +279,7 @@
 			{/if}
 		{/if}
 		<span
-			class="truncate {isSelected ? 'text-primary' : ''}"
+			class="truncate {isSelected ? 'text-file-explorer-primary' : ''}"
 			class:underline={!!folderNotePath}
 			style:text-underline-offset={folderNotePath ? '2px' : undefined}
 			style:color={!isSelected && resolvedTextColor ? resolvedTextColor : undefined}

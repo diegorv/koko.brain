@@ -197,11 +197,11 @@ describe('parseThemeFromImport', () => {
 });
 
 describe('color group constants', () => {
-	it('UI_COLOR_GROUPS covers all 42 UI tokens', () => {
+	it('UI_COLOR_GROUPS covers all 44 UI tokens', () => {
 		const allKeys = UI_COLOR_GROUPS.flatMap((g) => g.keys);
-		expect(allKeys).toHaveLength(42);
+		expect(allKeys).toHaveLength(44);
 		// Verify no duplicates
-		expect(new Set(allKeys).size).toBe(42);
+		expect(new Set(allKeys).size).toBe(44);
 	});
 
 	it('SYNTAX_COLOR_GROUPS covers all 19 syntax tokens', () => {

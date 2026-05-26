@@ -66,11 +66,11 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 	},
 	{
 		label: 'Left Sidebar',
-		keys: ['fileExplorerBg', 'fileExplorerFg', 'fileExplorerMutedFg', 'fileExplorerAccent'],
+		keys: ['fileExplorerBg', 'fileExplorerFg', 'fileExplorerMutedFg', 'fileExplorerAccent', 'fileExplorerPrimary'],
 	},
 	{
 		label: 'Right Sidebar',
-		keys: ['rightSidebarBg', 'rightSidebarFg', 'rightSidebarMutedFg', 'rightSidebarAccent'],
+		keys: ['rightSidebarBg', 'rightSidebarFg', 'rightSidebarMutedFg', 'rightSidebarAccent', 'rightSidebarPrimary'],
 	},
 	{
 		label: 'Editor',

@@ -41,7 +41,7 @@
 			onclick={handleExpand}
 		>
 			<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg transition-transform {expanded ? 'rotate-90' : ''}" />
-			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-primary">Outgoing links</h2>
+			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-right-sidebar-primary">Outgoing links</h2>
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="max-h-[50vh] overflow-y-auto p-2">

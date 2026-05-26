@@ -66,7 +66,7 @@
 				<ChevronLeft class="size-3.5 text-file-explorer-muted-fg" />
 			</button>
 			<button
-				class="px-2 py-0.5 text-primary font-semibold rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
+				class="px-2 py-0.5 text-file-explorer-primary font-semibold rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 				onclick={handleMonthClick}
 				ondblclick={() => calendarStore.goToToday()}
 				title="Open monthly note — double-click to go to today"
@@ -112,7 +112,7 @@
 			<Separator class="my-2" />
 
 			<!-- Selected date label -->
-			<p class="text-xs text-primary font-semibold px-1 mb-1.5 text-center">
+			<p class="text-xs text-file-explorer-primary font-semibold px-1 mb-1.5 text-center">
 				{formatDateLabel(calendarStore.selectedDateKey)}
 			</p>
 

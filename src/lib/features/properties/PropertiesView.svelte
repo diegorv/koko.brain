@@ -146,7 +146,7 @@
 
 <div class="flex flex-col">
 	<div class="flex items-center h-10 px-3 shrink-0">
-		<h2 class="font-semibold uppercase tracking-wide text-primary">
+		<h2 class="font-semibold uppercase tracking-wide text-right-sidebar-primary">
 			Properties
 		</h2>
 		{#if editorStore.activeTab && (!editorStore.activeTab.fileType || editorStore.activeTab.fileType === 'markdown')}
@@ -253,7 +253,7 @@
 
 			<!-- Relationships section -->
 			<Separator class="my-2" />
-			<h2 class="font-semibold uppercase tracking-wide text-primary px-2 mb-1">Relationships</h2>
+			<h2 class="font-semibold uppercase tracking-wide text-right-sidebar-primary px-2 mb-1">Relationships</h2>
 			{#each FIXED_RELATIONSHIPS as rel (rel.key)}
 				{@const links = relLinksMap.get(rel.key) ?? []}
 				<div class="px-2 py-1">

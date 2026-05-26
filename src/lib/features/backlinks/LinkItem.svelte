@@ -21,7 +21,7 @@
 	{#each entry.snippets as snippet}
 		<p class="text-[14px] text-right-sidebar-muted-fg leading-relaxed pl-5 truncate">
 			{#if snippet.linkStart >= 0 && snippet.linkEnd > snippet.linkStart && snippet.linkEnd <= snippet.text.length}
-				{snippet.text.substring(0, snippet.linkStart)}<span class="text-primary font-semibold">{snippet.text.substring(snippet.linkStart, snippet.linkEnd)}</span>{snippet.text.substring(snippet.linkEnd)}
+				{snippet.text.substring(0, snippet.linkStart)}<span class="text-right-sidebar-primary font-semibold">{snippet.text.substring(snippet.linkStart, snippet.linkEnd)}</span>{snippet.text.substring(snippet.linkEnd)}
 			{:else}
 				{snippet.text}
 			{/if}

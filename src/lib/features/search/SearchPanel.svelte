@@ -74,7 +74,7 @@
 	<Separator />
 	<div class="px-2 py-1.5 space-y-1.5 shrink-0">
 		<div class="flex items-center">
-			<h2 class="text-xs font-semibold uppercase tracking-wide text-primary">Search</h2>
+			<h2 class="text-xs font-semibold uppercase tracking-wide text-file-explorer-primary">Search</h2>
 		</div>
 		<div class="relative">
 			<Search class="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-file-explorer-muted-fg" />
@@ -89,7 +89,7 @@
 			/>
 			{#if searchStore.mode === 'text'}
 				<button
-					class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-primary/20 text-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
+					class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
 					onclick={toggleFuzzy}
 					title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
 				>~</button>

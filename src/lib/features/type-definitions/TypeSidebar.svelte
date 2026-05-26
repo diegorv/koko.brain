@@ -170,10 +170,10 @@
 					<div class="mb-1">
 						{#each navItems as item (item.id)}
 							<button
-								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isNavSelected(item.id) ? 'bg-primary/25 text-primary' : ''}"
+								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-file-explorer-primary/10 cursor-default select-none {isNavSelected(item.id) ? 'bg-file-explorer-primary/25 text-file-explorer-primary' : ''}"
 								onclick={() => selectNav(item.id)}
 							>
-								<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-primary' : 'text-file-explorer-muted-fg'}" />
+								<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
 								<span class="truncate">{item.label}</span>
 								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{navCounts[item.id]}</span>
 							</button>
@@ -195,7 +195,7 @@
 							{@const viewIconColor = viewResolved?.color}
 							{@const viewTextColor = viewResolved?.titleColor}
 							<button
-								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {selection?.kind === 'view' && selection.path === view.path ? 'bg-primary/25 text-primary' : ''}"
+								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-file-explorer-primary/10 cursor-default select-none {selection?.kind === 'view' && selection.path === view.path ? 'bg-file-explorer-primary/25 text-file-explorer-primary' : ''}"
 								onclick={() => typeDefinitionsStore.setSelection({ kind: 'view', path: view.path })}
 								oncontextmenu={() => { sectionContextPath = view.path; sectionContextName = null; }}
 							>
@@ -227,7 +227,7 @@
 						{@const defIconColor = defResolved?.color}
 						{@const defTextColor = defResolved?.titleColor}
 						<button
-							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isTypeSelected(section.metadata.name) ? 'bg-primary/25 text-primary' : ''}"
+							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-file-explorer-primary/10 cursor-default select-none {isTypeSelected(section.metadata.name) ? 'bg-file-explorer-primary/25 text-file-explorer-primary' : ''}"
 							onclick={() => selectType(section.metadata.name)}
 							oncontextmenu={() => { sectionContextPath = defPath; sectionContextName = section.metadata.name; }}
 						>
@@ -246,7 +246,7 @@
 					{#if untypedCount > 0 && settingsStore.showUntypedNotes}
 						<div class="mt-2 border-t border-border pt-1">
 							<button
-								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isUntypedSelected() ? 'bg-primary/25 text-primary' : ''}"
+								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-file-explorer-primary/10 cursor-default select-none {isUntypedSelected() ? 'bg-file-explorer-primary/25 text-file-explorer-primary' : ''}"
 								onclick={selectUntyped}
 							>
 								<FileText class="size-4 shrink-0 text-file-explorer-muted-fg" />

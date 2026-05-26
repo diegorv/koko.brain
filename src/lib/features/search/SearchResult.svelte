@@ -134,7 +134,7 @@
 				<span
 					class="text-[9px] px-1 rounded ml-auto shrink-0
 						{badgeSource === 'both'
-						? 'bg-primary/15 text-primary'
+						? 'bg-file-explorer-primary/15 text-file-explorer-primary'
 						: badgeSource === 'semantic'
 							? 'bg-blue-500/15 text-blue-400'
 							: 'bg-muted text-file-explorer-muted-fg'}"
@@ -147,7 +147,7 @@
 		</div>
 
 		<!-- Row 2: Subtitle (path or § heading) — always present -->
-		<p class="text-[10px] truncate pl-5 {hasHeading ? 'text-primary/70' : 'text-file-explorer-fg/40'}">
+		<p class="text-[10px] truncate pl-5 {hasHeading ? 'text-file-explorer-primary/70' : 'text-file-explorer-fg/40'}">
 			{subtitle}
 		</p>
 

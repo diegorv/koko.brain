@@ -46,7 +46,7 @@
 			onclick={handleExpand}
 		>
 			<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg transition-transform {expanded ? 'rotate-90' : ''}" />
-			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-primary">Table of Contents</h2>
+			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-right-sidebar-primary">Table of Contents</h2>
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="p-2">
@@ -60,7 +60,7 @@
 							{@const depth = heading.level - 1}
 							<button
 								type="button"
-								class="relative flex w-full items-center gap-1 rounded-md py-[5px] pr-2 text-left text-[15px] hover:bg-primary/10 hover:text-primary cursor-pointer select-none {depth > 0 ? 'toc-indent-lines' : ''}"
+								class="relative flex w-full items-center gap-1 rounded-md py-[5px] pr-2 text-left text-[15px] hover:bg-right-sidebar-primary/10 hover:text-right-sidebar-primary cursor-pointer select-none {depth > 0 ? 'toc-indent-lines' : ''}"
 								style="padding-left: {depth * 16 + 8}px; --toc-indent-depth: {depth};"
 								title={heading.text}
 								onclick={() => scrollToHeading(heading.pos)}
