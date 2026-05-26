@@ -28,6 +28,7 @@
 	import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+	import { debounce } from '$lib/utils/debounce';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
@@ -72,21 +73,44 @@
 		}
 	});
 
-	$effect(() => {
-		const views = sortedViewFiles;
-		const _version = typeDefinitionsStore.entriesVersion;
+	const viewParseCache = new Map<string, { contentHash: string; definition: ReturnType<typeof parseCollectionYaml> }>();
+	let viewCountsGeneration = 0;
+
+	function simpleHash(str: string): string {
+		let h = 0;
+		for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+		return h.toString(36);
+	}
+
+	const updateViewCounts = debounce(async (views: ViewFileEntry[], generation: number) => {
 		if (views.length === 0) { viewCounts = new Map(); return; }
 		const counts = new Map<string, number>();
-		Promise.all(views.map(async (v) => {
+		await Promise.all(views.map(async (v) => {
 			try {
 				const content = await readTextFile(v.path);
-				const parsed = parseCollectionYaml(content);
+				const contentHash = simpleHash(content);
+				const cached = viewParseCache.get(v.path);
+				let parsed;
+				if (cached && cached.contentHash === contentHash) {
+					parsed = cached.definition;
+				} else {
+					parsed = parseCollectionYaml(content);
+					viewParseCache.set(v.path, { contentHash, definition: parsed });
+				}
 				if (!parsed.success) return;
 				const view = parsed.definition.views[0];
 				const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
 				counts.set(v.path, result.records.length);
 			} catch { /* skip */ }
-		})).then(() => { viewCounts = counts; });
+		}));
+		if (generation === viewCountsGeneration) viewCounts = counts;
+	}, 1000);
+
+	$effect(() => {
+		const views = sortedViewFiles;
+		const _version = typeDefinitionsStore.entriesVersion;
+		viewCountsGeneration++;
+		updateViewCounts(views, viewCountsGeneration);
 	});
 
 	function selectNav(id: NavItemId) {
