@@ -172,10 +172,19 @@
       "identifier": "fs:allow-exists",
       "allow": [
         {
+          "path": "$DOCUMENT"
+        },
+        {
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$HOME/MyFiles"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/kokobrain-vault"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
