@@ -29,6 +29,10 @@
 	--color-file-explorer-fg: var(--file-explorer-fg);
 	--color-file-explorer-muted-fg: var(--file-explorer-muted-fg);
 	--color-file-explorer-accent: var(--file-explorer-accent);
+	--color-right-sidebar-bg: var(--right-sidebar-bg);
+	--color-right-sidebar-fg: var(--right-sidebar-fg);
+	--color-right-sidebar-muted-fg: var(--right-sidebar-muted-fg);
+	--color-right-sidebar-accent: var(--right-sidebar-accent);
 	--color-editor-empty-bg: var(--editor-empty-bg);
 	--color-tab-text-active: var(--tab-text-active);
 	--color-tab-text-inactive: var(--tab-text-inactive);
@@ -72,6 +76,10 @@
 	--file-explorer-fg: oklch(0.243 0.015 280);
 	--file-explorer-muted-fg: oklch(0.529 0.07 265);
 	--file-explorer-accent: oklch(0.92 0.008 100);
+	--right-sidebar-bg: oklch(1 0 0);
+	--right-sidebar-fg: oklch(0.243 0.015 280);
+	--right-sidebar-muted-fg: oklch(0.529 0.07 265);
+	--right-sidebar-accent: oklch(0.92 0.008 100);
 	--radius: 0.625rem;
 }
 
@@ -104,6 +112,10 @@
 	--file-explorer-fg: #F8F8F2;
 	--file-explorer-muted-fg: oklch(0.55 0.06 268);
 	--file-explorer-accent: oklch(0.28 0.025 272);
+	--right-sidebar-bg: #2a2e3d;
+	--right-sidebar-fg: #F8F8F2;
+	--right-sidebar-muted-fg: oklch(0.55 0.06 268);
+	--right-sidebar-accent: oklch(0.28 0.025 272);
 	--editor-empty-bg: #2b2f40;
 	--tab-text-active: #bac5ee;
 	--tab-text-inactive: #9ca3c7;

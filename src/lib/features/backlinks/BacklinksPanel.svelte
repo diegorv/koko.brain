@@ -40,27 +40,27 @@
 <div class="flex flex-col">
 	<Collapsible.Root bind:open={expanded}>
 		<Collapsible.Trigger
-			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-accent/50 transition-colors cursor-pointer"
+			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
 			onclick={handleExpand}
 		>
-			<ChevronRight class="size-3.5 shrink-0 text-muted-foreground transition-transform {expanded ? 'rotate-90' : ''}" />
+			<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg transition-transform {expanded ? 'rotate-90' : ''}" />
 			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-primary">Backlinks</h2>
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="max-h-[50vh] overflow-y-auto p-2">
 				{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
-					<p class="text-muted-foreground px-2 py-4 text-center">Not available</p>
+					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">Not available</p>
 				{:else if vaultStore.isOpen && vaultStore.vaultIndexVersion === 0}
-					<p class="text-muted-foreground px-2 py-4 text-center">Indexing vault...</p>
+					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">Indexing vault...</p>
 				{:else if backlinksStore.linkedMentions.length === 0}
-					<p class="text-muted-foreground px-2 py-4 text-center">No backlinks found</p>
+					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No backlinks found</p>
 				{:else}
 					<Collapsible.Root bind:open={linkedOpen}>
-						<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-accent transition-colors cursor-pointer">
+						<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-right-sidebar-accent transition-colors cursor-pointer">
 							<ChevronRight class="size-3.5 shrink-0 transition-transform {linkedOpen ? 'rotate-90' : ''}" />
-							<Link class="size-3.5 shrink-0 text-muted-foreground" />
+							<Link class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
 							<span>Linked mentions</span>
-							<span class="ml-auto text-muted-foreground">{backlinksStore.linkedMentions.length}</span>
+							<span class="ml-auto text-right-sidebar-muted-fg">{backlinksStore.linkedMentions.length}</span>
 						</Collapsible.Trigger>
 						<Collapsible.Content>
 							<div class="pl-2 mt-1 space-y-0.5">
@@ -73,21 +73,21 @@
 
 					{#if backlinksStore.relationshipBacklinks.length > 0}
 						<Collapsible.Root bind:open={relationshipsOpen} class="mt-2">
-							<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-accent transition-colors cursor-pointer">
+							<Collapsible.Trigger class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-medium hover:bg-right-sidebar-accent transition-colors cursor-pointer">
 								<ChevronRight class="size-3.5 shrink-0 transition-transform {relationshipsOpen ? 'rotate-90' : ''}" />
-								<GitBranch class="size-3.5 shrink-0 text-muted-foreground" />
+								<GitBranch class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
 								<span>Relationships</span>
-								<span class="ml-auto text-muted-foreground">{backlinksStore.relationshipBacklinks.length}</span>
+								<span class="ml-auto text-right-sidebar-muted-fg">{backlinksStore.relationshipBacklinks.length}</span>
 							</Collapsible.Trigger>
 							<Collapsible.Content>
 								<div class="pl-2 mt-1 space-y-0.5">
 									{#each backlinksStore.relationshipBacklinks as rel (rel.sourcePath + rel.relationshipType)}
 										<button
-											class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-accent transition-colors text-left cursor-pointer"
+											class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-right-sidebar-accent transition-colors text-left cursor-pointer"
 											onclick={() => openFileInEditor(rel.sourcePath)}
 										>
 											<span class="truncate">{rel.sourceName}</span>
-											<span class="ml-auto text-xs text-muted-foreground shrink-0">{rel.relationshipType.replace('_', ' ')}</span>
+											<span class="ml-auto text-xs text-right-sidebar-muted-fg shrink-0">{rel.relationshipType.replace('_', ' ')}</span>
 										</button>
 									{/each}
 								</div>

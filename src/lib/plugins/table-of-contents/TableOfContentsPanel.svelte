@@ -42,18 +42,18 @@
 <div class="flex flex-col">
 	<Collapsible.Root bind:open={expanded}>
 		<Collapsible.Trigger
-			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-accent/50 transition-colors cursor-pointer"
+			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
 			onclick={handleExpand}
 		>
-			<ChevronRight class="size-3.5 shrink-0 text-muted-foreground transition-transform {expanded ? 'rotate-90' : ''}" />
+			<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg transition-transform {expanded ? 'rotate-90' : ''}" />
 			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-primary">Table of Contents</h2>
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="p-2">
 				{#if isNonMarkdown}
-					<p class="text-muted-foreground px-2 py-4 text-center">Not available</p>
+					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">Not available</p>
 				{:else if tocStore.headings.length === 0}
-					<p class="text-muted-foreground px-2 py-4 text-center">No headings found</p>
+					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No headings found</p>
 				{:else}
 					<div class="space-y-0.5">
 						{#each tocStore.headings as heading (heading.pos)}
@@ -65,7 +65,7 @@
 								title={heading.text}
 								onclick={() => scrollToHeading(heading.pos)}
 							>
-								<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" />
+								<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
 								<span class="truncate">{heading.text}</span>
 							</button>
 						{/each}
@@ -81,7 +81,7 @@
 		background-image: repeating-linear-gradient(
 			to right,
 			transparent 0 12px,
-			color-mix(in oklch, var(--muted-foreground) 40%, transparent) 12px 13px,
+			color-mix(in oklch, var(--right-sidebar-muted-fg) 40%, transparent) 12px 13px,
 			transparent 13px 16px
 		);
 		background-size: calc(var(--toc-indent-depth, 0) * 16px) 100%;

@@ -149,7 +149,7 @@
 							maxSize={30}
 							onResize={handleRightSidebarResize}
 						>
-							<div class="flex h-full flex-col text-[15px]">
+							<div class="flex h-full flex-col text-[15px] bg-right-sidebar-bg text-right-sidebar-fg">
 								<div class="h-10 shrink-0 bg-tab-bar" data-tauri-drag-region></div>
 								<ScrollArea class="min-h-0 flex-1">
 									{#if settingsStore.layout.propertiesVisible}

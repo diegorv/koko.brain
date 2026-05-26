@@ -151,11 +151,11 @@
 		</h2>
 		{#if editorStore.activeTab && (!editorStore.activeTab.fileType || editorStore.activeTab.fileType === 'markdown')}
 			<button
-				class="ml-auto p-1 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				class="ml-auto p-1 rounded-md hover:bg-right-sidebar-accent transition-colors cursor-pointer"
 				onclick={() => (isAddingProperty = !isAddingProperty)}
 				title="Add property"
 			>
-				<Plus class="size-3.5 text-muted-foreground" />
+				<Plus class="size-3.5 text-right-sidebar-muted-fg" />
 			</button>
 		{/if}
 	</div>
@@ -166,25 +166,25 @@
 	{/if}
 	<div class="p-2">
 		{#if !editorStore.activeTab}
-			<p class="text-muted-foreground px-2 py-4 text-center">No file open</p>
+			<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No file open</p>
 		{:else if editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
-			<p class="text-muted-foreground px-2 py-4 text-center">
+			<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">
 				Not available
 			</p>
 		{:else}
 			<!-- Type selector -->
 			{#if typeProperty}
-				<div class="group flex flex-col gap-1 rounded-md px-2 py-1.5 hover:bg-accent/50 transition-colors">
+				<div class="group flex flex-col gap-1 rounded-md px-2 py-1.5 hover:bg-right-sidebar-accent/50 transition-colors">
 					<div class="flex items-center gap-2 min-h-7">
 						<Blocks class="size-3.5 shrink-0 text-tab-text-inactive" />
-						<span class="flex-[2] min-w-0 text-[14px] font-medium px-1 truncate text-muted-foreground">type</span>
+						<span class="flex-[2] min-w-0 text-[14px] font-medium px-1 truncate text-right-sidebar-muted-fg">type</span>
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
 									{@const selectedTypeIcon = resolveIconForType(String(typeProperty.value))}
 								<button
 										{...props}
-										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-[14px] font-medium text-foreground/70 transition-colors cursor-pointer hover:bg-accent"
+										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-[14px] font-medium text-right-sidebar-fg/70 transition-colors cursor-pointer hover:bg-right-sidebar-accent"
 									>
 										{#if selectedTypeIcon}
 											<IconRenderer icon={selectedTypeIcon.icon} class="size-3.5 shrink-0" color={selectedTypeIcon.color} />
@@ -205,7 +205,7 @@
 										{/if}
 										<span>{t.name}</span>
 										{#if String(typeProperty.value) === t.name}
-											<span class="ml-auto text-xs text-muted-foreground">&#10003;</span>
+											<span class="ml-auto text-xs text-right-sidebar-muted-fg">&#10003;</span>
 										{/if}
 									</DropdownMenu.Item>
 								{/each}
@@ -232,7 +232,7 @@
 			<!-- Add property row -->
 			{#if isAddingProperty}
 				<div class="flex items-center gap-1.5 mt-1 px-2 py-1">
-					<Plus class="size-3.5 shrink-0 text-muted-foreground/60" />
+					<Plus class="size-3.5 shrink-0 text-right-sidebar-muted-fg/60" />
 					<input
 						bind:this={addInputRef}
 						class="flex-1 h-6 text-[14px] bg-transparent border border-input rounded px-1.5 outline-none focus:border-ring"
@@ -243,7 +243,7 @@
 				</div>
 			{:else}
 				<button
-					class="flex items-center gap-1.5 w-full mt-1 px-2 py-1.5 rounded-md text-tab-text-inactive/60 hover:text-tab-text-inactive hover:bg-accent/50 transition-colors cursor-pointer"
+					class="flex items-center gap-1.5 w-full mt-1 px-2 py-1.5 rounded-md text-tab-text-inactive/60 hover:text-tab-text-inactive hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
 					onclick={() => (isAddingProperty = true)}
 				>
 					<Plus class="size-3.5" />
@@ -258,7 +258,7 @@
 				{@const links = relLinksMap.get(rel.key) ?? []}
 				<div class="px-2 py-1">
 					<div class="flex items-center gap-1">
-						<span class="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">{rel.label}</span>
+						<span class="text-[12px] font-medium text-right-sidebar-muted-fg uppercase tracking-wide">{rel.label}</span>
 						<div class="ml-auto">
 							<RelationshipSearch onSelect={(name) => addRelationshipLink(rel.key, name)} />
 						</div>
@@ -267,7 +267,7 @@
 						<div class="mt-1 space-y-0.5">
 							{#each links as link (link.raw)}
 								{@const linkResolved = link.resolvedPath ? resolveIconForPath(link.resolvedPath) : undefined}
-								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[14px] hover:bg-accent transition-colors">
+								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[14px] hover:bg-right-sidebar-accent transition-colors">
 									{#if link.resolvedPath}
 										<button
 											class="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer text-left"
@@ -276,7 +276,7 @@
 											{#if linkResolved}
 												<IconRenderer icon={linkResolved.icon} class="size-3.5 shrink-0" color={linkResolved.color} />
 											{:else}
-												<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+												<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
 											{/if}
 											<span class="truncate">{link.display}</span>
 										</button>

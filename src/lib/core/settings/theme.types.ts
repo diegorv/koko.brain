@@ -50,6 +50,14 @@ export interface UIColors {
 	fileExplorerMutedFg: string;
 	/** File explorer accent surface (hover, selected) */
 	fileExplorerAccent: string;
+	/** Right sidebar panel background */
+	rightSidebarBg: string;
+	/** Right sidebar primary text color */
+	rightSidebarFg: string;
+	/** Right sidebar secondary/muted text color */
+	rightSidebarMutedFg: string;
+	/** Right sidebar accent surface (hover, selected) */
+	rightSidebarAccent: string;
 	/** Empty editor state background */
 	editorEmptyBg: string;
 	/** Active tab text color */

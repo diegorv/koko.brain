@@ -92,7 +92,7 @@
 	}
 </script>
 
-<div class="group flex flex-col gap-1 rounded-md px-2 py-1.5 hover:bg-accent/50 transition-colors">
+<div class="group flex flex-col gap-1 rounded-md px-2 py-1.5 hover:bg-right-sidebar-accent/50 transition-colors">
 	<!-- Main row: icon + key + value + delete -->
 	<div class="flex items-center gap-2 min-h-7">
 		<!-- Type icon -->
@@ -100,7 +100,7 @@
 
 		<!-- Property key -->
 		<input
-			class="flex-[2] min-w-0 text-[14px] font-medium bg-transparent px-1 outline-none truncate text-muted-foreground focus:text-foreground"
+			class="flex-[2] min-w-0 text-[14px] font-medium bg-transparent px-1 outline-none truncate text-right-sidebar-muted-fg focus:text-right-sidebar-fg"
 			data-property-key
 			value={property.key}
 			onblur={handleKeyBlur}
@@ -116,14 +116,14 @@
 					onchange={handleValueChange}
 					class="rounded border-input"
 				/>
-				<span class="text-foreground/90">{String(property.value)}</span>
+				<span class="text-right-sidebar-fg/90">{String(property.value)}</span>
 			</label>
 		{:else if property.type !== 'list'}
 			<Input
 				type={property.type === 'number' ? 'number' : property.type === 'date' ? 'date' : 'text'}
 				value={String(property.value)}
 				oninput={handleValueChange}
-				class="h-6 flex-[3] min-w-0 text-[14px] px-2.5 border-none shadow-none focus-visible:ring-0{property.type !== 'date' ? ' !text-foreground/70' : ''}"
+				class="h-6 flex-[3] min-w-0 text-[14px] px-2.5 border-none shadow-none focus-visible:ring-0{property.type !== 'date' ? ' !text-right-sidebar-fg/70' : ''}"
 				placeholder="--"
 			/>
 		{:else}
@@ -134,7 +134,7 @@
 				onclick={() => { isAddingListItem = true; }}
 				title="Add item"
 			>
-				<Plus class="size-3 text-muted-foreground" />
+				<Plus class="size-3 text-right-sidebar-muted-fg" />
 			</button>
 		{/if}
 
@@ -150,12 +150,12 @@
 
 	<!-- List items (shown below main row) -->
 	{#if property.type === 'list' && (listItems.length > 0 || isAddingListItem)}
-		<div class="flex flex-col gap-1 rounded-md bg-accent px-2 py-1.5">
+		<div class="flex flex-col gap-1 rounded-md bg-right-sidebar-accent px-2 py-1.5">
 			{#each listItems as item, i (i)}
 				{@const tagColor = property.key === 'tags' ? getTagColor(item, settingsStore.tagColors.colors) : undefined}
 				<div class="flex items-center gap-1.5 text-[14px]">
-					<Tag class="size-3 shrink-0 text-muted-foreground" style="color: {tagColor ?? ''}" />
-					<span class="truncate text-foreground/80">{item}</span>
+					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" style="color: {tagColor ?? ''}" />
+					<span class="truncate text-right-sidebar-fg/80">{item}</span>
 					<button
 						class="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0 ml-auto"
 						onclick={() => removeListItem(i)}
@@ -167,12 +167,12 @@
 			{/each}
 			{#if isAddingListItem}
 				<div class="flex items-center gap-1.5 text-[14px]">
-					<Tag class="size-3 shrink-0 text-muted-foreground" />
+					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" />
 					<input
 						bind:this={addListInputRef}
 						bind:value={newListItem}
 						placeholder="Add item..."
-						class="flex-1 min-w-0 bg-transparent outline-none text-foreground/80 placeholder:text-muted-foreground/30"
+						class="flex-1 min-w-0 bg-transparent outline-none text-right-sidebar-fg/80 placeholder:text-right-sidebar-muted-fg/30"
 						onkeydown={(e) => {
 							if (e.key === 'Enter') { e.preventDefault(); addListItem(); }
 							else if (e.key === 'Escape') { isAddingListItem = false; newListItem = ''; }
