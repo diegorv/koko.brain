@@ -89,6 +89,22 @@ Click the sort button in the file explorer header to switch between two modes:
 
 Folders always appear above files regardless of which sort mode is active.
 
+### Custom ordering with `_order`
+
+You can override the sort position of any note by adding `_order` to its frontmatter:
+
+```yaml
+---
+_order: 1
+---
+```
+
+Notes with `_order` appear before notes without it, sorted by value (lower = higher). Notes without `_order` keep the default sort. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+
+For folders, add `_order` to the folder note's frontmatter. For example, `Projects/Projects.md` with `_order: 1` moves the `Projects` folder to the top.
+
+The `folder-order.json` file (inside `.kokobrain/`) takes priority over `_order` for folders that are explicitly listed there.
+
 ## Folder Notes
 
 When enabled, clicking a folder also opens its "folder note" — a Markdown file inside the folder that shares the same name as the folder.

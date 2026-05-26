@@ -113,6 +113,9 @@ _order: 1
 
 Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` appear after, sorted by `_sort` mode (see below). Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
 
+> [!TIP]
+> `_order` also controls sort position in the [file explorer](02-file-explorer.md#custom-ordering-with-_order). A note with `_order: 1` appears first in both the type sidebar and the file tree.
+
 ### Sort Mode
 
 The `_sort` field on a type definition controls how notes without `_order` are sorted within that type section:
