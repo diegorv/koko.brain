@@ -89,8 +89,8 @@ Everything Kokobrain creates lives inside your vault folder. Here is what each f
 | `*.md` files | Your notes -- plain Markdown text files |
 | `.kokobrain/settings.json` | Vault-specific settings (theme, editor preferences, etc.) |
 | `.kokobrain/kokobrain.db` | File history snapshots and full-text search index (SQLite) |
-| `.kokobrain/file-icons.json` | Custom icons you have assigned to files or folders |
 | `.kokobrain/bookmarks.json` | Your bookmarked notes |
+| `.kokobrain/recent-icons.json` | Recently used icons in the icon picker |
 
 The `.kokobrain/` folder is hidden by default in Finder. You can safely back it up alongside your notes. If you ever delete it, the only things you lose are settings and history -- your notes remain untouched.
 
