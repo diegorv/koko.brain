@@ -3,6 +3,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { propertiesStore } from '$lib/features/properties/properties.store.svelte';
 import {
 	updateProperty,
+	upsertProperty,
 	renameProperty,
 	removePropertyByKey,
 	addNewProperty,
@@ -57,6 +58,56 @@ describe('updateProperty', () => {
 		expect(consumeSkipNextParse()).toBe(true);
 		// Second call should return false (consumed)
 		expect(consumeSkipNextParse()).toBe(false);
+	});
+});
+
+describe('upsertProperty', () => {
+	beforeEach(() => {
+		editorStore.reset();
+		propertiesStore.reset();
+	});
+
+	it('creates a new property when key does not exist', () => {
+		openTabWithContent('---\ntitle: Hello\n---\nBody');
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+
+		upsertProperty('belongs_to', '[[Note]]');
+
+		expect(propertiesStore.properties).toHaveLength(2);
+		const added = propertiesStore.properties.find((p) => p.key === 'belongs_to');
+		expect(added?.value).toBe('[[Note]]');
+		expect(added?.type).toBe('text');
+		expect(editorStore.activeTab?.content).toContain('belongs_to: "[[Note]]"');
+	});
+
+	it('updates existing property value', () => {
+		openTabWithContent('---\ntitle: Old\n---\nBody');
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+
+		upsertProperty('title', 'New');
+
+		expect(propertiesStore.properties).toHaveLength(1);
+		expect(propertiesStore.properties[0].value).toBe('New');
+	});
+
+	it('creates list property when array value provided', () => {
+		openTabWithContent('---\ntitle: Hello\n---\n');
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+
+		upsertProperty('tags', ['a', 'b']);
+
+		const added = propertiesStore.properties.find((p) => p.key === 'tags');
+		expect(added?.type).toBe('list');
+		expect(added?.value).toEqual(['a', 'b']);
+	});
+
+	it('sets skipNextParse flag', () => {
+		openTabWithContent('---\ntitle: Hello\n---\n');
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+
+		upsertProperty('new_key', 'value');
+
+		expect(consumeSkipNextParse()).toBe(true);
 	});
 });
 

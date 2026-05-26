@@ -11,6 +11,11 @@ import {
 	removeProperty,
 	updatePropertyValue,
 	renamePropertyKey,
+	extractWikilinks,
+	resolveRelationshipLinks,
+	computeAddRelationshipValue,
+	computeRemoveRelationshipValue,
+	formatRelationshipLabel,
 } from '$lib/features/properties/properties.logic';
 
 describe('extractRawFrontmatter', () => {
@@ -596,5 +601,123 @@ describe('frontmatter alias normalization', () => {
 		const props = parseFrontmatterProperties(content);
 		expect(props.find((p) => p.key === '_icon')?.value).toBe('star');
 		expect(props.find((p) => p.key === 'type')?.value).toBe('note');
+	});
+});
+
+describe('extractWikilinks', () => {
+	it('extracts single wikilink from string', () => {
+		expect(extractWikilinks('[[My Note]]')).toEqual(['My Note']);
+	});
+
+	it('extracts multiple wikilinks', () => {
+		expect(extractWikilinks('[[A]] and [[B]]')).toEqual(['A', 'B']);
+	});
+
+	it('extracts from array values', () => {
+		expect(extractWikilinks(['[[A]]', '[[B]]'])).toEqual(['A', 'B']);
+	});
+
+	it('preserves alias syntax', () => {
+		expect(extractWikilinks('[[target|display]]')).toEqual(['target|display']);
+	});
+
+	it('returns empty for no wikilinks', () => {
+		expect(extractWikilinks('plain text')).toEqual([]);
+	});
+
+	it('returns empty for null/undefined', () => {
+		expect(extractWikilinks(null)).toEqual([]);
+		expect(extractWikilinks(undefined)).toEqual([]);
+	});
+
+	it('handles number and boolean values', () => {
+		expect(extractWikilinks(42)).toEqual([]);
+		expect(extractWikilinks(true)).toEqual([]);
+	});
+});
+
+describe('resolveRelationshipLinks', () => {
+	const paths = ['/vault/Alpha.md', '/vault/sub/Beta.md'];
+	const resolve = (target: string, allPaths: string[]) =>
+		allPaths.find((p) => p.endsWith(`/${target}.md`)) ?? null;
+
+	it('resolves simple wikilink', () => {
+		const result = resolveRelationshipLinks('[[Alpha]]', paths, resolve);
+		expect(result).toEqual([{ raw: 'Alpha', display: 'Alpha', resolvedPath: '/vault/Alpha.md' }]);
+	});
+
+	it('splits alias into display and target', () => {
+		const result = resolveRelationshipLinks('[[Alpha|My Alpha]]', paths, resolve);
+		expect(result).toEqual([{ raw: 'Alpha|My Alpha', display: 'My Alpha', resolvedPath: '/vault/Alpha.md' }]);
+	});
+
+	it('returns null resolvedPath for unresolvable link', () => {
+		const result = resolveRelationshipLinks('[[Missing]]', paths, resolve);
+		expect(result[0].resolvedPath).toBeNull();
+	});
+
+	it('resolves multiple links from array', () => {
+		const result = resolveRelationshipLinks(['[[Alpha]]', '[[Beta]]'], paths, resolve);
+		expect(result).toHaveLength(2);
+		expect(result[0].resolvedPath).toBe('/vault/Alpha.md');
+		expect(result[1].resolvedPath).toBe('/vault/sub/Beta.md');
+	});
+});
+
+describe('computeAddRelationshipValue', () => {
+	it('creates new wikilink for undefined (new property)', () => {
+		const result = computeAddRelationshipValue(undefined, 'Note');
+		expect(result).toEqual({ value: '[[Note]]', isNew: true });
+	});
+
+	it('appends to array value', () => {
+		const result = computeAddRelationshipValue(['[[A]]'], 'B');
+		expect(result).toEqual({ value: ['[[A]]', '[[B]]'], isNew: false });
+	});
+
+	it('converts string with existing wikilink to array', () => {
+		const result = computeAddRelationshipValue('[[A]]', 'B');
+		expect(result).toEqual({ value: ['[[A]]', '[[B]]'], isNew: false });
+	});
+
+	it('replaces plain string value', () => {
+		const result = computeAddRelationshipValue('plain text', 'Note');
+		expect(result).toEqual({ value: '[[Note]]', isNew: false });
+	});
+});
+
+describe('computeRemoveRelationshipValue', () => {
+	it('removes from array and keeps remaining', () => {
+		const result = computeRemoveRelationshipValue(['[[A]]', '[[B]]'], 'A');
+		expect(result).toEqual({ value: ['[[B]]'], shouldDelete: false });
+	});
+
+	it('marks for deletion when array becomes empty', () => {
+		const result = computeRemoveRelationshipValue(['[[A]]'], 'A');
+		expect(result).toEqual({ value: [], shouldDelete: true });
+	});
+
+	it('marks for deletion on string value', () => {
+		const result = computeRemoveRelationshipValue('[[A]]', 'A');
+		expect(result).toEqual({ value: [], shouldDelete: true });
+	});
+
+	it('marks for deletion on undefined', () => {
+		const result = computeRemoveRelationshipValue(undefined, 'A');
+		expect(result).toEqual({ value: [], shouldDelete: true });
+	});
+});
+
+describe('formatRelationshipLabel', () => {
+	it('converts snake_case to Title Case', () => {
+		expect(formatRelationshipLabel('belongs_to')).toBe('Belongs To');
+	});
+
+	it('handles single word', () => {
+		expect(formatRelationshipLabel('has')).toBe('Has');
+	});
+
+	it('handles triple underscore segments', () => {
+		expect(formatRelationshipLabel('related_to_also')).toBe('Related To Also');
 	});
 });

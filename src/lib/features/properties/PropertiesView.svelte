@@ -21,12 +21,22 @@
 		renameProperty,
 		removePropertyByKey,
 		addNewProperty,
+		upsertProperty,
 		parseAndSetProperties,
 		consumeSkipNextParse,
 	} from './properties.service';
+	import {
+		extractWikilinks,
+		resolveRelationshipLinks,
+		computeAddRelationshipValue,
+		computeRemoveRelationshipValue,
+		type ResolvedLink,
+	} from './properties.logic';
 	import type { PropertyType } from './properties.types';
+	import X from 'lucide-svelte/icons/x';
 	import PropertyField from './PropertyField.svelte';
 	import LifecycleActions from './LifecycleActions.svelte';
+	import RelationshipSearch from './RelationshipSearch.svelte';
 
 	let newKeyInput = $state('');
 	let isAddingProperty = $state(false);
@@ -38,46 +48,49 @@
 	});
 
 	const LIFECYCLE_KEYS = new Set(['_favorite', '_organized', '_archived']);
-	interface RelationshipGroup {
-		label: string;
-		links: { display: string; resolvedPath: string | null }[];
-	}
+	const FIXED_RELATIONSHIPS: { key: string; label: string }[] = [
+		{ key: 'belongs_to', label: 'Belongs To' },
+		{ key: 'related_to', label: 'Related To' },
+		{ key: 'has', label: 'Has' },
+	];
+	const RELATIONSHIP_KEYS = new Set(FIXED_RELATIONSHIPS.map((r) => r.key));
 
-	function extractWikilinks(value: unknown): string[] {
-		const text = Array.isArray(value) ? value.join(' ') : String(value ?? '');
-		const targets: string[] = [];
-		const re = /\[\[([^\]]+)\]\]/g;
-		for (const m of text.matchAll(re)) targets.push(m[1]);
-		return targets;
-	}
-
-	function formatLabel(key: string): string {
-		return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-	}
-
-	let relationshipGroups = $derived.by(() => {
+	let relLinksMap = $derived.by(() => {
 		const allPaths = flattenFileTree(fsStore.fileTree).map((f) => f.path);
-		const groups: RelationshipGroup[] = [];
-		for (const p of propertiesStore.properties) {
-			if (LIFECYCLE_KEYS.has(p.key)) continue;
-			const targets = extractWikilinks(p.value);
-			if (targets.length === 0) continue;
-			groups.push({
-				label: formatLabel(p.key),
-				links: targets.map((t) => {
-					const display = t.includes('|') ? t.split('|')[1] : t;
-					const target = t.includes('|') ? t.split('|')[0] : t;
-					return { display, resolvedPath: resolveWikilink(target, allPaths) };
-				}),
-			});
+		const map = new Map<string, ResolvedLink[]>();
+		for (const rel of FIXED_RELATIONSHIPS) {
+			const prop = propertiesStore.properties.find((p) => p.key === rel.key);
+			map.set(rel.key, prop ? resolveRelationshipLinks(prop.value, allPaths, resolveWikilink) : []);
 		}
-		return groups;
+		return map;
 	});
 
-	let relationshipKeys = $derived.by(() => {
+	function addRelationshipLink(key: string, fileName: string) {
+		const prop = propertiesStore.properties.find((p) => p.key === key);
+		const result = computeAddRelationshipValue(prop?.value, fileName);
+		if (result.isNew) {
+			upsertProperty(key, result.value);
+		} else {
+			updateProperty(key, result.value);
+		}
+	}
+
+	function removeRelationshipLink(key: string, raw: string) {
+		const prop = propertiesStore.properties.find((p) => p.key === key);
+		if (!prop) return;
+		const result = computeRemoveRelationshipValue(prop.value, raw);
+		if (result.shouldDelete) {
+			removePropertyByKey(key);
+		} else {
+			updateProperty(key, result.value);
+		}
+	}
+
+	let extraRelationshipKeys = $derived.by(() => {
 		const keys = new Set<string>();
 		for (const p of propertiesStore.properties) {
-			if (!LIFECYCLE_KEYS.has(p.key) && extractWikilinks(p.value).length > 0) keys.add(p.key);
+			if (LIFECYCLE_KEYS.has(p.key) || RELATIONSHIP_KEYS.has(p.key)) continue;
+			if (extractWikilinks(p.value).length > 0) keys.add(p.key);
 		}
 		return keys;
 	});
@@ -106,7 +119,7 @@
 	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
 	let sortedProperties = $derived(
 		[...propertiesStore.properties]
-			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !relationshipKeys.has(p.key) && p.key !== 'type')
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !RELATIONSHIP_KEYS.has(p.key) && !extraRelationshipKeys.has(p.key) && p.key !== 'type')
 			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
@@ -179,7 +192,7 @@
 		<LifecycleActions />
 		<Separator />
 	{/if}
-	<div class="max-h-[50vh] overflow-y-auto p-2">
+	<div class="p-2">
 		{#if !editorStore.activeTab}
 			<p class="text-muted-foreground px-2 py-4 text-center">No file open</p>
 		{:else if editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
@@ -267,36 +280,49 @@
 			{/if}
 
 			<!-- Relationships section -->
-			{#if relationshipGroups.length > 0}
-				<Separator class="my-2" />
-				<h2 class="font-semibold uppercase tracking-wide text-primary px-2 mb-1">Relationships</h2>
-				<div>
-					{#each relationshipGroups as group (group.label)}
-						<div class="px-2 py-1">
-							<span class="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">{group.label}</span>
-							<div class="mt-1 space-y-0.5">
-								{#each group.links as link (link.display)}
+			<Separator class="my-2" />
+			<h2 class="font-semibold uppercase tracking-wide text-primary px-2 mb-1">Relationships</h2>
+			{#each FIXED_RELATIONSHIPS as rel (rel.key)}
+				{@const links = relLinksMap.get(rel.key) ?? []}
+				<div class="px-2 py-1">
+					<div class="flex items-center gap-1">
+						<span class="text-[12px] font-medium text-muted-foreground uppercase tracking-wide">{rel.label}</span>
+						<div class="ml-auto">
+							<RelationshipSearch onSelect={(name) => addRelationshipLink(rel.key, name)} />
+						</div>
+					</div>
+					{#if links.length > 0}
+						<div class="mt-1 space-y-0.5">
+							{#each links as link (link.raw)}
+								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[14px] hover:bg-accent transition-colors">
 									{#if link.resolvedPath}
 										<button
-											class="flex items-center gap-1.5 w-full px-1 py-0.5 rounded-md text-[14px] hover:bg-accent transition-colors cursor-pointer text-left"
+											class="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer text-left"
 											onclick={() => openFileInEditor(link.resolvedPath!)}
 										>
 											<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 											<span class="truncate">{link.display}</span>
 										</button>
 									{:else}
-										<div class="flex items-center gap-1.5 px-1 py-0.5 text-[14px] opacity-50">
+										<div class="flex items-center gap-1.5 min-w-0 flex-1 opacity-50">
 											<FileText class="size-3.5 shrink-0" />
 											<span class="truncate">{link.display}</span>
 										</div>
 									{/if}
-								{/each}
-							</div>
+									<button
+										class="p-0.5 rounded opacity-0 group-hover/rel:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0"
+										onclick={() => removeRelationshipLink(rel.key, link.raw)}
+										title="Remove"
+									>
+										<X class="size-2.5" />
+									</button>
+								</div>
+							{/each}
 						</div>
-					{/each}
+					{/if}
 				</div>
-				<Separator class="mt-2" />
-			{/if}
+			{/each}
+			<Separator class="mt-2" />
 		{/if}
 	</div>
 </div>

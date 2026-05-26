@@ -271,3 +271,71 @@ export function renamePropertyKey(
 		return { ...p, key: newKey };
 	});
 }
+
+// --- Relationship helpers ---
+
+/** Extracts wikilink targets from a property value (string, array, or unknown) */
+export function extractWikilinks(value: unknown): string[] {
+	const text = Array.isArray(value) ? value.join(' ') : String(value ?? '');
+	const targets: string[] = [];
+	const re = /\[\[([^\]]+)\]\]/g;
+	for (const m of text.matchAll(re)) targets.push(m[1]);
+	return targets;
+}
+
+export interface ResolvedLink {
+	raw: string;
+	display: string;
+	resolvedPath: string | null;
+}
+
+/** Resolves wikilink targets from a property value against a list of file paths */
+export function resolveRelationshipLinks(
+	value: unknown,
+	allPaths: string[],
+	resolveWikilink: (target: string, paths: string[]) => string | null,
+): ResolvedLink[] {
+	return extractWikilinks(value).map((t) => {
+		const display = t.includes('|') ? t.split('|')[1] : t;
+		const target = t.includes('|') ? t.split('|')[0] : t;
+		return { raw: t, display, resolvedPath: resolveWikilink(target, allPaths) };
+	});
+}
+
+/** Computes the new property value after adding a wikilink to a relationship */
+export function computeAddRelationshipValue(
+	currentValue: string | number | boolean | string[] | undefined,
+	fileName: string,
+): { value: string | string[]; isNew: boolean } {
+	const wikilink = `[[${fileName}]]`;
+	if (currentValue === undefined) {
+		return { value: wikilink, isNew: true };
+	}
+	if (Array.isArray(currentValue)) {
+		return { value: [...currentValue, wikilink], isNew: false };
+	}
+	const existing = String(currentValue);
+	if (existing.includes('[[')) {
+		return { value: [existing, wikilink], isNew: false };
+	}
+	return { value: wikilink, isNew: false };
+}
+
+/** Computes the new property value after removing a wikilink, or null if the property should be deleted */
+export function computeRemoveRelationshipValue(
+	currentValue: string | number | boolean | string[] | undefined,
+	raw: string,
+): { value: string[]; shouldDelete: boolean } {
+	if (currentValue === undefined) return { value: [], shouldDelete: true };
+	const wikilink = `[[${raw}]]`;
+	if (Array.isArray(currentValue)) {
+		const filtered = currentValue.filter((v) => String(v) !== wikilink);
+		return { value: filtered, shouldDelete: filtered.length === 0 };
+	}
+	return { value: [], shouldDelete: true };
+}
+
+/** Converts a snake_case key to Title Case label */
+export function formatRelationshipLabel(key: string): string {
+	return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}

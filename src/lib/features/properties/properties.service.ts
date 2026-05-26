@@ -58,6 +58,23 @@ export function updateProperty(
 	commitChanges(updated);
 }
 
+/** Creates or updates a property in one commit */
+export function upsertProperty(
+	key: string,
+	value: string | number | boolean | string[],
+	type?: PropertyType,
+): void {
+	const existing = propertiesStore.properties.find((p) => p.key === key);
+	if (existing) {
+		const updated = updatePropertyValue(propertiesStore.properties, key, value, type);
+		commitChanges(updated);
+	} else {
+		const t = type ?? (Array.isArray(value) ? 'list' : 'text');
+		const updated = [...propertiesStore.properties, { key, value, type: t } as Property];
+		commitChanges(updated);
+	}
+}
+
 /**
  * Renames a property key in the active note.
  * @returns false if the new key already exists (prevents data loss on serialization)
