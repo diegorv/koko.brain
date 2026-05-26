@@ -181,7 +181,7 @@
 		<ContextMenu.Trigger>
 			{#snippet child({ props })}
 				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
-					<div class="mb-2">
+					<div class="mb-1">
 						{#each navItems as item (item.id)}
 							<button
 								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isNavSelected(item.id) ? 'bg-primary/25 text-primary' : ''}"
@@ -193,9 +193,10 @@
 							</button>
 						{/each}
 					</div>
+					<div class="mx-2 my-2 h-px bg-foreground/8"></div>
 
 					{#if sortedViewFiles.length > 0}
-						<div class="mx-2 mb-1 flex items-center gap-2">
+						<div class="mx-2 mb-1.5 flex items-center gap-2">
 							<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Views</span>
 							<div class="flex-1 h-px bg-border"></div>
 						</div>
@@ -225,9 +226,10 @@
 								{/if}
 							</button>
 						{/each}
+						<div class="mx-2 my-2 h-px bg-foreground/8"></div>
 					{/if}
 
-					<div class="mx-2 mb-1 flex items-center gap-2">
+					<div class="mx-2 mb-1.5 flex items-center gap-2">
 						<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Types</span>
 						<div class="flex-1 h-px bg-border"></div>
 					</div>
