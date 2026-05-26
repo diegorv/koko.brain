@@ -121,7 +121,7 @@
 						<Resizable.Handle />
 					{/if}
 
-					{#if showMiddlePanel}
+					{#if showMiddlePanel && settingsStore.layout.leftSidebarVisible}
 						<Resizable.Pane
 							order={2}
 							defaultSize={settingsStore.layout.middlePanelSize}
