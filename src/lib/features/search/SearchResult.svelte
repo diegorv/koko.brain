@@ -123,12 +123,12 @@
 <!-- Fixed-height wrapper ensures every card is exactly the same size -->
 <div class="h-20 overflow-hidden">
 	<button
-		class="w-full h-full text-left px-2 py-2 hover:bg-accent/60 transition-colors cursor-pointer"
+		class="w-full h-full text-left px-2 py-2 hover:bg-file-explorer-accent/60 transition-colors cursor-pointer"
 		onclick={handleClick}
 	>
 		<!-- Row 1: Icon + Title + optional right element -->
 		<div class="flex items-center gap-1.5">
-			<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+			<FileText class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 			<span class="text-xs font-medium truncate">{title}</span>
 			{#if badgeSource}
 				<span
@@ -137,22 +137,22 @@
 						? 'bg-primary/15 text-primary'
 						: badgeSource === 'semantic'
 							? 'bg-blue-500/15 text-blue-400'
-							: 'bg-muted text-muted-foreground'}"
+							: 'bg-muted text-file-explorer-muted-fg'}"
 				>
 					{badgeSource === 'both' ? 'Both' : badgeSource === 'semantic' ? 'Semantic' : 'Text'}
 				</span>
 			{:else if rightLabel}
-				<span class="text-[10px] text-foreground/40 ml-auto shrink-0">{rightLabel}</span>
+				<span class="text-[10px] text-file-explorer-fg/40 ml-auto shrink-0">{rightLabel}</span>
 			{/if}
 		</div>
 
 		<!-- Row 2: Subtitle (path or § heading) — always present -->
-		<p class="text-[10px] truncate pl-5 {hasHeading ? 'text-primary/70' : 'text-foreground/40'}">
+		<p class="text-[10px] truncate pl-5 {hasHeading ? 'text-primary/70' : 'text-file-explorer-fg/40'}">
 			{subtitle}
 		</p>
 
 		<!-- Row 3: Snippet — 2-line clamp -->
-		<p class="text-xs text-foreground/60 leading-tight pl-5 mt-0.5 line-clamp-2">
+		<p class="text-xs text-file-explorer-fg/60 leading-tight pl-5 mt-0.5 line-clamp-2">
 			{#if snippetIsHtml && snippet}
 				{@html sanitizeSnippetHtml(snippet)}
 			{:else}

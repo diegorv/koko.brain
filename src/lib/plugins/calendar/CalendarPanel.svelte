@@ -43,7 +43,7 @@
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
 			<DailyNoteButton />
-			<div class="mx-0.5 h-4 w-px bg-foreground/30"></div>
+			<div class="mx-0.5 h-4 w-px bg-file-explorer-fg/30"></div>
 			<SidebarModeToggle />
 		</div>
 	</div>
@@ -52,21 +52,21 @@
 		<!-- Month/Year navigation: « < Month Year > » -->
 		<div class="flex shrink-0 items-center justify-center gap-1 mb-0.5">
 			<button
-				class="p-0.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				class="p-0.5 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 				onclick={() => calendarStore.prevYear()}
 				title="Previous year"
 			>
-				<ChevronsLeft class="size-3.5 text-muted-foreground" />
+				<ChevronsLeft class="size-3.5 text-file-explorer-muted-fg" />
 			</button>
 			<button
-				class="p-0.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				class="p-0.5 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 				onclick={() => calendarStore.prevMonth()}
 				title="Previous month"
 			>
-				<ChevronLeft class="size-3.5 text-muted-foreground" />
+				<ChevronLeft class="size-3.5 text-file-explorer-muted-fg" />
 			</button>
 			<button
-				class="px-2 py-0.5 text-primary font-semibold rounded-md hover:bg-accent transition-colors cursor-pointer"
+				class="px-2 py-0.5 text-primary font-semibold rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 				onclick={handleMonthClick}
 				ondblclick={() => calendarStore.goToToday()}
 				title="Open monthly note — double-click to go to today"
@@ -74,24 +74,24 @@
 				{grid.label}
 			</button>
 			<button
-				class="p-0.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				class="p-0.5 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 				onclick={() => calendarStore.nextMonth()}
 				title="Next month"
 			>
-				<ChevronRight class="size-3.5 text-muted-foreground" />
+				<ChevronRight class="size-3.5 text-file-explorer-muted-fg" />
 			</button>
 			<button
-				class="p-0.5 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				class="p-0.5 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 				onclick={() => calendarStore.nextYear()}
 				title="Next year"
 			>
-				<ChevronsRight class="size-3.5 text-muted-foreground" />
+				<ChevronsRight class="size-3.5 text-file-explorer-muted-fg" />
 			</button>
 		</div>
 
 		<!-- Quarter label -->
 		<button
-			class="block w-full text-xs text-foreground/70 text-center mb-2 rounded-md hover:bg-accent hover:text-foreground transition-colors cursor-pointer py-0.5"
+			class="block w-full text-xs text-file-explorer-fg/70 text-center mb-2 rounded-md hover:bg-file-explorer-accent hover:text-file-explorer-fg transition-colors cursor-pointer py-0.5"
 			onclick={handleQuarterClick}
 			title="Open quarterly note (Q{grid.quarter})"
 		>
@@ -118,7 +118,7 @@
 
 			<!-- Daily note button -->
 			<button
-				class="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 mb-1.5 text-[13px] text-foreground/70 rounded-md bg-divider hover:bg-divider/80 transition-colors cursor-pointer"
+				class="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 mb-1.5 text-[13px] text-file-explorer-fg/70 rounded-md bg-divider hover:bg-divider/80 transition-colors cursor-pointer"
 				onclick={() => openOrCreateDailyNoteForDate(calendarStore.selectedDateKey!)}
 				title="Open or create daily note"
 			>
@@ -131,7 +131,7 @@
 				<div class="flex-1 overflow-y-auto space-y-0.5">
 					{#each calendarStore.selectedDateFiles as filePath}
 						<button
-							class="flex items-center gap-1.5 w-full px-2 py-1 text-foreground rounded-md hover:bg-accent transition-colors cursor-pointer text-left"
+							class="flex items-center gap-1.5 w-full px-2 py-1 text-file-explorer-fg rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer text-left"
 							onclick={() => openCalendarFile(filePath)}
 							title={filePath}
 						>

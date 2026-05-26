@@ -44,6 +44,12 @@ export interface UIColors {
 	divider: string;
 	/** File explorer panel background */
 	fileExplorerBg: string;
+	/** File explorer primary text color */
+	fileExplorerFg: string;
+	/** File explorer secondary/muted text color */
+	fileExplorerMutedFg: string;
+	/** File explorer accent surface (hover, selected) */
+	fileExplorerAccent: string;
 	/** Empty editor state background */
 	editorEmptyBg: string;
 	/** Active tab text color */

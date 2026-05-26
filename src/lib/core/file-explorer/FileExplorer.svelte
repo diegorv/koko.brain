@@ -250,7 +250,7 @@
 					{#snippet child({ props })}
 						<div
 							{...props}
-							class="p-1 min-h-full {isRootDragOver ? 'bg-accent/30' : ''}"
+							class="p-1 min-h-full {isRootDragOver ? 'bg-file-explorer-accent/30' : ''}"
 							role="tree"
 							tabindex="0"
 							ondragover={handleRootDragOver}
@@ -371,8 +371,8 @@
 		</ScrollArea>
 		<Separator />
 		<div class="flex items-center gap-1.5 px-3 py-2 shrink-0">
-			<Vault class="size-3.5 text-muted-foreground shrink-0" />
-			<span class="truncate text-xs text-muted-foreground">{vaultStore.name}</span>
+			<Vault class="size-3.5 text-file-explorer-muted-fg shrink-0" />
+			<span class="truncate text-xs text-file-explorer-muted-fg">{vaultStore.name}</span>
 		</div>
 	</div>
 </Tooltip.Provider>

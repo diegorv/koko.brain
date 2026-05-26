@@ -221,24 +221,24 @@
 		oncontextmenu={handleRenameContextMenu}
 	>
 		{#if node.isDirectory}
-			<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
+			<FolderOpen class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 		{:else}
-			<File class="size-3.5 shrink-0 text-muted-foreground" />
+			<File class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 		{/if}
 		<input
 			bind:this={renameInput}
 			bind:value={renameValue}
 			onkeydown={handleRenameKeydown}
 			onblur={commitRename}
-			class="h-5 flex-1 rounded border border-ring bg-background px-1 text-sm outline-none"
+			class="h-5 flex-1 rounded border border-ring bg-background px-1 text-sm text-file-explorer-fg outline-none"
 		/>
 	</div>
 {:else}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 hover:text-primary text-left cursor-default select-none
+		class="relative flex w-full items-center gap-1 rounded px-2 py-[5px] text-[15px] text-file-explorer-fg hover:bg-primary/10 hover:text-primary text-left cursor-default select-none
 			{isSelected ? 'bg-primary/25' : ''}
-			{isDragOver ? 'bg-accent/50 outline-dashed outline-1 outline-ring' : ''}
+			{isDragOver ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}
 			{depth > 0 ? 'ft-indent-lines' : ''}"
 		style="padding-left: {depth * 16 + 8}px; --ft-indent-depth: {depth};"
 		onclick={handleClick}
@@ -260,22 +260,22 @@
 	>
 		{#if node.isDirectory}
 			{#if isExpanded}
-				<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" />
+				<ChevronDown class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 			{:else}
-				<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" />
+				<ChevronRight class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 			{/if}
 			{#if resolvedIcon}
 				<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={resolvedColor} />
 			{:else if isExpanded}
-				<FolderOpen class="size-3.5 shrink-0 text-muted-foreground" />
+				<FolderOpen class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 			{:else}
-				<Folder class="size-3.5 shrink-0 text-muted-foreground" />
+				<Folder class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 			{/if}
 		{:else}
 			{#if resolvedIcon}
 				<IconRenderer icon={resolvedIcon} class="size-4 shrink-0" color={resolvedColor} />
 			{:else}
-				<File class="size-3.5 shrink-0 text-muted-foreground" />
+				<File class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
 			{/if}
 		{/if}
 		<span
@@ -301,7 +301,7 @@
 		background-image: repeating-linear-gradient(
 			to right,
 			transparent 0 12px,
-			color-mix(in oklch, var(--muted-foreground) 40%, transparent) 12px 13px,
+			color-mix(in oklch, var(--file-explorer-muted-fg) 40%, transparent) 12px 13px,
 			transparent 13px 16px
 		);
 		background-size: calc(var(--ft-indent-depth, 0) * 16px) 100%;

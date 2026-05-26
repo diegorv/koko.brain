@@ -64,11 +64,11 @@
 <div class="flex h-full flex-col bg-file-explorer-bg">
 	<div class="flex items-center justify-end h-10 px-3 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<button
-			class="p-1 rounded-md hover:bg-accent transition-colors cursor-pointer"
+			class="p-1 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
 			onclick={handleClose}
 			aria-label="Close search"
 		>
-			<X class="size-3.5 text-muted-foreground" />
+			<X class="size-3.5 text-file-explorer-muted-fg" />
 		</button>
 	</div>
 	<Separator />
@@ -77,7 +77,7 @@
 			<h2 class="text-xs font-semibold uppercase tracking-wide text-primary">Search</h2>
 		</div>
 		<div class="relative">
-			<Search class="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+			<Search class="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-file-explorer-muted-fg" />
 			<input
 				bind:this={inputEl}
 				type="text"
@@ -85,11 +85,11 @@
 				value={searchStore.query}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				class="w-full rounded-md border border-border bg-background px-2 py-1.5 pl-7 pr-8 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+				class="w-full rounded-md border border-border bg-background px-2 py-1.5 pl-7 pr-8 text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
 			/>
 			{#if searchStore.mode === 'text'}
 				<button
-					class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}"
+					class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-primary/20 text-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
 					onclick={toggleFuzzy}
 					title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
 				>~</button>
@@ -101,7 +101,7 @@
 			{#each modes as m}
 				<button
 					class="flex-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer
-						{searchStore.mode === m.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}
+						{searchStore.mode === m.value ? 'bg-background text-file-explorer-fg shadow-sm' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}
 						{m.value !== 'text' && !searchStore.modelAvailable ? 'opacity-40 cursor-not-allowed' : ''}"
 					disabled={m.value !== 'text' && !searchStore.modelAvailable}
 					onclick={() => setMode(m.value)}
@@ -112,7 +112,7 @@
 		</div>
 
 		<!-- Index stats + progress -->
-		<div class="flex items-center gap-2 text-[10px] text-muted-foreground">
+		<div class="flex items-center gap-2 text-[10px] text-file-explorer-muted-fg">
 			{#if searchStore.isIndexing || searchStore.isSemanticIndexing}
 				<Loader2 class="size-3 animate-spin" />
 				<span>
@@ -129,13 +129,13 @@
 	<ScrollArea class="flex-1 min-h-0">
 		<div class="px-2 pb-2">
 			{#if searchStore.isSearching}
-				<p class="text-xs text-muted-foreground text-center py-4">Searching...</p>
+				<p class="text-xs text-file-explorer-muted-fg text-center py-4">Searching...</p>
 			{:else if !searchStore.query.trim()}
-				<p class="text-xs text-muted-foreground text-center py-4">Type to search across all files</p>
+				<p class="text-xs text-file-explorer-muted-fg text-center py-4">Type to search across all files</p>
 			{:else if !hasResults}
-				<p class="text-xs text-muted-foreground text-center py-4">No results found</p>
+				<p class="text-xs text-file-explorer-muted-fg text-center py-4">No results found</p>
 			{:else}
-				<p class="text-[10px] text-muted-foreground mb-1">
+				<p class="text-[10px] text-file-explorer-muted-fg mb-1">
 					{resultCount} {resultCount === 1 ? 'result' : 'results'}
 				</p>
 				<div class="divide-y divide-divider/20">

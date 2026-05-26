@@ -7,7 +7,7 @@
 	<div class="flex items-center gap-0.5">
 		<DailyNoteButton />
 
-		<div class="mx-0.5 h-4 w-px bg-foreground/30"></div>
+		<div class="mx-0.5 h-4 w-px bg-file-explorer-fg/30"></div>
 
 		<SidebarModeToggle />
 	</div>

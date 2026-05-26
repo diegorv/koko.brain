@@ -158,7 +158,7 @@
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
 			<DailyNoteButton />
-			<div class="mx-0.5 h-4 w-px bg-foreground/30"></div>
+			<div class="mx-0.5 h-4 w-px bg-file-explorer-fg/30"></div>
 			<SidebarModeToggle />
 		</div>
 	</div>
@@ -173,17 +173,17 @@
 								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isNavSelected(item.id) ? 'bg-primary/25 text-primary' : ''}"
 								onclick={() => selectNav(item.id)}
 							>
-								<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-primary' : 'text-muted-foreground'}" />
+								<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-primary' : 'text-file-explorer-muted-fg'}" />
 								<span class="truncate">{item.label}</span>
 								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{navCounts[item.id]}</span>
 							</button>
 						{/each}
 					</div>
-					<div class="mx-2 my-2 h-px bg-foreground/8"></div>
+					<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 
 					{#if sortedViewFiles.length > 0}
 						<div class="mx-2 mb-1.5 flex items-center gap-2">
-							<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Views</span>
+							<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Views</span>
 							<div class="flex-1 h-px bg-border"></div>
 						</div>
 
@@ -202,7 +202,7 @@
 								{#if viewIcon}
 									<IconRenderer icon={viewIcon} class="size-4 shrink-0" color={viewIconColor} />
 								{:else}
-									<Table class="size-4 shrink-0 text-muted-foreground" />
+									<Table class="size-4 shrink-0 text-file-explorer-muted-fg" />
 								{/if}
 								<span class="truncate" style:color={!(selection?.kind === 'view' && selection.path === view.path) && viewTextColor ? viewTextColor : undefined}>
 									{viewLabel}
@@ -212,11 +212,11 @@
 								{/if}
 							</button>
 						{/each}
-						<div class="mx-2 my-2 h-px bg-foreground/8"></div>
+						<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 					{/if}
 
 					<div class="mx-2 mb-1.5 flex items-center gap-2">
-						<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Types</span>
+						<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Types</span>
 						<div class="flex-1 h-px bg-border"></div>
 					</div>
 
@@ -234,7 +234,7 @@
 							{#if defResolvedIcon}
 								<IconRenderer icon={defResolvedIcon} class="size-4 shrink-0" color={defIconColor} />
 							{:else}
-								<FileText class="size-4 shrink-0 text-muted-foreground" />
+								<FileText class="size-4 shrink-0 text-file-explorer-muted-fg" />
 							{/if}
 							<span class="truncate" style:color={!isTypeSelected(section.metadata.name) && defTextColor ? defTextColor : undefined}>
 								{section.metadata.sidebarLabel}
@@ -249,7 +249,7 @@
 								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isUntypedSelected() ? 'bg-primary/25 text-primary' : ''}"
 								onclick={selectUntyped}
 							>
-								<FileText class="size-4 shrink-0 text-muted-foreground" />
+								<FileText class="size-4 shrink-0 text-file-explorer-muted-fg" />
 								<span class="truncate">Untyped</span>
 								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{untypedCount}</span>
 							</button>

@@ -30,7 +30,7 @@
 		<div class="flex flex-col gap-y-0.5 bg-background/70 rounded-md px-0.5 py-0.5">
 			{#each grid.weeks as week, wi}
 				<button
-					class="flex items-center justify-center h-7 w-6 text-xs text-foreground/70 rounded-sm hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+					class="flex items-center justify-center h-7 w-6 text-xs text-file-explorer-fg/70 rounded-sm hover:bg-file-explorer-accent hover:text-file-explorer-fg transition-colors cursor-pointer"
 					onclick={() => onWeekClick?.(week[0].dateKey)}
 					title="Open weekly note (W{grid.weekNumbers[wi]})"
 				>
@@ -44,7 +44,7 @@
 	<div class="grid grid-cols-7 gap-y-0.5 flex-1">
 		{#each DAY_HEADERS as header, i}
 			<div class="flex items-center justify-center h-6 text-xs font-medium
-				{i >= 5 ? 'text-primary' : 'text-muted-foreground'}">
+				{i >= 5 ? 'text-primary' : 'text-file-explorer-muted-fg'}">
 				{header}
 			</div>
 		{/each}
@@ -54,9 +54,9 @@
 				{@const count = dayFileCounts.get(day.dateKey) ?? 0}
 				<button
 					class="relative flex items-center justify-center h-7 text-[13px] rounded-md transition-colors cursor-pointer
-						{day.isCurrentMonth ? (di >= 5 ? 'text-primary' : 'text-foreground') : 'text-muted-foreground/40'}
+						{day.isCurrentMonth ? (di >= 5 ? 'text-primary' : 'text-file-explorer-fg') : 'text-file-explorer-muted-fg/40'}
 						{day.isToday ? 'font-bold ring-1 ring-primary' : ''}
-						{selectedDateKey === day.dateKey ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
+						{selectedDateKey === day.dateKey ? 'bg-primary text-primary-foreground' : 'hover:bg-file-explorer-accent'}"
 					onclick={() => onDayClick(day.dateKey)}
 				>
 					{day.day}
