@@ -7,9 +7,12 @@
 	import Archive from '@lucide/svelte/icons/archive';
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
+	import Table from '@lucide/svelte/icons/table';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
 	import { createNoteOfType, createTypeDefinition } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
@@ -20,7 +23,7 @@
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { buildTypeSections, countNavItems, type TypeSection, type NavItemId, type TypeSidebarSelection } from './type-sidebar.logic';
+	import { buildTypeSections, countNavItems, collectViewFiles, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
@@ -29,6 +32,8 @@
 	let sections = $state<TypeSection[]>([]);
 	let untypedCount = $state(0);
 	let navCounts = $state({ inbox: 0, all: 0, archive: 0, favorites: 0 });
+	let viewFiles = $derived(collectViewFiles(fsStore.fileTree));
+	let activeEditorPath = $derived(editorStore.activeTabPath);
 	let sectionContextPath = $state<string | null>(null);
 	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
@@ -135,6 +140,34 @@
 						{/each}
 					</div>
 
+					{#if viewFiles.length > 0}
+						<div class="mx-2 mb-1 flex items-center gap-2">
+							<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Views</span>
+							<div class="flex-1 h-px bg-border"></div>
+						</div>
+
+						{#each viewFiles as view (view.path)}
+							{@const viewResolved = resolveIconForPath(view.path)}
+							{@const viewIcon = viewResolved?.icon}
+							{@const viewIconColor = viewResolved?.color}
+							{@const viewTextColor = viewResolved?.titleColor}
+							<button
+								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {activeEditorPath === view.path ? 'bg-primary/25 text-primary' : ''}"
+								onclick={() => openFileInEditor(view.path)}
+								oncontextmenu={() => { sectionContextPath = view.path; sectionContextName = null; }}
+							>
+								{#if viewIcon}
+									<IconRenderer icon={viewIcon} class="size-4 shrink-0" color={viewIconColor} />
+								{:else}
+									<Table class="size-4 shrink-0 text-muted-foreground" />
+								{/if}
+								<span class="truncate" style:color={activeEditorPath !== view.path && viewTextColor ? viewTextColor : undefined}>
+									{view.name}
+								</span>
+							</button>
+						{/each}
+					{/if}
+
 					<div class="mx-2 mb-1 flex items-center gap-2">
 						<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Types</span>
 						<div class="flex-1 h-px bg-border"></div>
@@ -191,6 +224,39 @@
 				<ContextMenu.Item onclick={() => openFileInEditor(path)}>
 					<ExternalLink class="size-4" />
 					<span>Open type definition</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Sub>
+					<ContextMenu.SubTrigger>
+						<Copy class="size-4" />
+						<span>Copy path</span>
+					</ContextMenu.SubTrigger>
+					<ContextMenu.SubContent>
+						<ContextMenu.Item onclick={() => navigator.clipboard.writeText(path)}>
+							<span>Copy absolute path</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => { if (vaultStore.path) navigator.clipboard.writeText(getRelativePath(vaultStore.path, path)); }}>
+							<span>Copy relative path</span>
+						</ContextMenu.Item>
+					</ContextMenu.SubContent>
+				</ContextMenu.Sub>
+				<ContextMenu.Separator />
+
+				<ContextMenu.Item onclick={() => handleSectionChangeIcon(path)}>
+					<Palette class="size-4" />
+					<span>Change icon</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+				<ContextMenu.Item onclick={() => revealInSystemExplorer(path)}>
+					<FolderSearch class="size-4" />
+					<span>Reveal in Finder</span>
+				</ContextMenu.Item>
+			{:else if !sectionContextName && sectionContextPath}
+				{@const path = sectionContextPath}
+				<ContextMenu.Item onclick={() => openFileInEditor(path)}>
+					<ExternalLink class="size-4" />
+					<span>Open view</span>
 				</ContextMenu.Item>
 				<ContextMenu.Separator />
 

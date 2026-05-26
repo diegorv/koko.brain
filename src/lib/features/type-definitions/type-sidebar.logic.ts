@@ -1,7 +1,9 @@
 import dayjs from 'dayjs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
+import { isViewFile } from '$lib/core/filesystem/fs.logic';
 
 /** A section in the type-grouped sidebar. */
 export interface TypeSection {
@@ -316,4 +318,33 @@ export function formatPropertyValue(value: unknown): string {
 	if (typeof value === 'number' || typeof value === 'boolean') return String(value);
 	if (Array.isArray(value)) return value.map(formatPropertyValue).filter(Boolean).join(', ');
 	return '';
+}
+
+/** A .view file entry for sidebar rendering. */
+export interface ViewFileEntry {
+	/** Absolute path to the .view file. */
+	path: string;
+	/** Display name (filename without .view extension). */
+	name: string;
+}
+
+/** Collects .view files from the file tree, sorted alphabetically. */
+export function collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] {
+	const views: ViewFileEntry[] = [];
+	collectViewFilesWalk(tree, views);
+	views.sort((a, b) => a.name.localeCompare(b.name));
+	return views;
+}
+
+function collectViewFilesWalk(nodes: FileTreeNode[], out: ViewFileEntry[]): void {
+	for (const node of nodes) {
+		if (node.isDirectory) {
+			if (node.children) collectViewFilesWalk(node.children, out);
+		} else if (isViewFile(node.name)) {
+			out.push({
+				path: node.path,
+				name: node.name.replace(/\.view$/i, ''),
+			});
+		}
+	}
 }

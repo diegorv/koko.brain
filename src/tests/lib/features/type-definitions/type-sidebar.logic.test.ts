@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, collectViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -638,5 +638,56 @@ describe('formatPropertyValue', () => {
 
 	it('returns empty for objects', () => {
 		expect(formatPropertyValue({ key: 'val' })).toBe('');
+	});
+});
+
+describe('collectViewFiles', () => {
+	it('finds .view files in flat tree', () => {
+		const tree = [
+			{ name: 'tasks.view', path: '/v/tasks.view', isDirectory: false },
+			{ name: 'note.md', path: '/v/note.md', isDirectory: false },
+		];
+		const result = collectViewFiles(tree);
+		expect(result).toEqual([{ path: '/v/tasks.view', name: 'tasks' }]);
+	});
+
+	it('finds .view files in nested directories', () => {
+		const tree = [
+			{
+				name: 'views', path: '/v/views', isDirectory: true,
+				children: [
+					{ name: 'projects.view', path: '/v/views/projects.view', isDirectory: false },
+				],
+			},
+			{ name: 'top.view', path: '/v/top.view', isDirectory: false },
+		];
+		const result = collectViewFiles(tree);
+		expect(result.map((v) => v.name)).toEqual(['projects', 'top']);
+	});
+
+	it('returns empty when no .view files exist', () => {
+		const tree = [
+			{ name: 'note.md', path: '/v/note.md', isDirectory: false },
+			{ name: 'data.collection', path: '/v/data.collection', isDirectory: false },
+		];
+		expect(collectViewFiles(tree)).toEqual([]);
+	});
+
+	it('is case insensitive for extension', () => {
+		const tree = [
+			{ name: 'TEST.VIEW', path: '/v/TEST.VIEW', isDirectory: false },
+		];
+		const result = collectViewFiles(tree);
+		expect(result).toEqual([{ path: '/v/TEST.VIEW', name: 'TEST' }]);
+	});
+
+	it('sorts alphabetically by name', () => {
+		const tree = [
+			{ name: 'zebra.view', path: '/v/zebra.view', isDirectory: false },
+			{ name: 'alpha.view', path: '/v/alpha.view', isDirectory: false },
+			{ name: 'mid.view', path: '/v/mid.view', isDirectory: false },
+		];
+		const result = collectViewFiles(tree);
+		expect(result.map((v) => v.name)).toEqual(['alpha', 'mid', 'zebra']);
 	});
 });
