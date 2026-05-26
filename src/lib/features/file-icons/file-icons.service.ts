@@ -12,7 +12,9 @@ import {
 	extractIconFromParsedFrontmatter,
 	extractIconColorsFromParsedFrontmatter,
 } from './file-icons.logic';
-import { preloadPacks } from './file-icons.icon-data';
+import { preloadPacks, setOnPacksLoaded } from './file-icons.icon-data';
+
+setOnPacksLoaded(() => fileIconsStore.bumpPackVersion());
 import { debug, error, timeAsync } from '$lib/utils/debug';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
@@ -258,7 +260,7 @@ export async function buildFrontmatterIconIndex(): Promise<void> {
 
 		// Preload packs referenced by frontmatter icons
 		const packs = [...new Set([...index.values()].map((r) => r.iconPack))];
-		if (packs.length > 0) preloadPacks(packs);
+		if (packs.length > 0) await preloadPacks(packs);
 	});
 }
 

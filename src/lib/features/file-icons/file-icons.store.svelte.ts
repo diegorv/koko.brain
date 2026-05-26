@@ -12,6 +12,7 @@ let entries = $state<FileIconEntry[]>([]);
 let cachedEntriesMap = $state<Map<string, FileIconEntry>>(new Map());
 let recentIcons = $state<RecentIcon[]>([]);
 let frontmatterIcons = $state<Map<string, FrontmatterIconRef>>(new Map());
+let packVersion = $state(0);
 
 /** Reactive store for custom file/folder icons */
 export const fileIconsStore = {
@@ -20,6 +21,8 @@ export const fileIconsStore = {
 	get entriesMap() { return cachedEntriesMap; },
 	get recentIcons() { return recentIcons; },
 	get frontmatterIcons() { return frontmatterIcons; },
+	/** Version counter incremented when icon packs finish loading into cache */
+	get packVersion() { return packVersion; },
 
 	/** Looks up a custom icon for the given path */
 	getIcon(path: string): FileIconEntry | undefined {
@@ -52,6 +55,11 @@ export const fileIconsStore = {
 		frontmatterIcons = value;
 	},
 
+	/** Increments packVersion to trigger reactive re-render in icon consumers */
+	bumpPackVersion() {
+		packVersion++;
+	},
+
 	/** Updates or removes a single frontmatter icon entry */
 	updateFrontmatterIcon(path: string, ref: FrontmatterIconRef | null) {
 		const next = new Map(frontmatterIcons);
@@ -69,5 +77,6 @@ export const fileIconsStore = {
 		cachedEntriesMap = new Map();
 		recentIcons = [];
 		frontmatterIcons = new Map();
+		packVersion = 0;
 	},
 };

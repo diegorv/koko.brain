@@ -3,6 +3,14 @@ import type { IconPackId, IconPackMeta, NormalizedIcon } from './file-icons.type
 /** Cache for loaded icon packs to avoid re-processing */
 const packCache = new Map<IconPackId, NormalizedIcon[]>();
 
+/** Optional callback invoked after packs are loaded into cache */
+let onPacksLoaded: (() => void) | null = null;
+
+/** Registers a callback to invoke when icon packs finish loading */
+export function setOnPacksLoaded(cb: () => void): void {
+	onPacksLoaded = cb;
+}
+
 /** Returns metadata about all available icon packs */
 export function getAllIconPacks(): IconPackMeta[] {
 	return [
@@ -286,4 +294,5 @@ export function getIconSync(pack: IconPackId, name: string): NormalizedIcon | un
 export async function preloadPacks(packIds: IconPackId[]): Promise<void> {
 	const unique = [...new Set(packIds)];
 	await Promise.all(unique.map((id) => getIconsForPack(id)));
+	if (onPacksLoaded) onPacksLoaded();
 }

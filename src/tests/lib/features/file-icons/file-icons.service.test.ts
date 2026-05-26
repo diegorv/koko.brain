@@ -13,6 +13,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 	preloadPacks: vi.fn(),
+	setOnPacksLoaded: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
