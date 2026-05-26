@@ -29,6 +29,7 @@ const SETTINGS = {
 	},
 	queryjs: { autoRunQueries: 'manual' },
 	layout: {
+		sidebarMode: 'files',
 		rightSidebarVisible: false,
 		calendarVisible: false,
 		propertiesVisible: false,
