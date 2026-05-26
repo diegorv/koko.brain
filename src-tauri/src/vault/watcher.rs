@@ -150,8 +150,8 @@ pub fn run_debounce_loop<F>(
 			Ok(path) => {
 				if !is_inside_hidden_dir(&path, &vault_prefix) {
 					buffer.insert(path);
+					last_event = Instant::now();
 				}
-				last_event = Instant::now();
 			}
 			Err(mpsc::RecvTimeoutError::Timeout) => {
 				// No event in `DEBOUNCE_MS`. Emit if we have a non-empty
@@ -600,6 +600,37 @@ mod tests {
 		handle
 			.join()
 			.expect("loop should exit after stop signal");
+	}
+
+	#[test]
+	fn debounce_hidden_events_do_not_delay_real_files() {
+		let (event_tx, event_rx) = mpsc::channel::<String>();
+		let (_stop_tx, stop_rx) = mpsc::channel::<()>();
+		let (emit_tx, emit_rx) = mpsc::channel::<Vec<String>>();
+
+		let handle = thread::spawn(move || {
+			run_debounce_loop(event_rx, stop_rx, "/v/".to_string(), move |paths| {
+				let _ = emit_tx.send(paths);
+			});
+		});
+
+		// Real file enters buffer first
+		event_tx.send("/v/note.md".to_string()).unwrap();
+		// Burst of hidden events — should NOT reset debounce timer
+		for i in 0..20 {
+			thread::sleep(Duration::from_millis(30));
+			event_tx
+				.send(format!("/v/.git/objects/{}", i))
+				.unwrap();
+		}
+		drop(event_tx);
+
+		// Real file should emit within ~1s despite hidden event burst
+		let emitted = emit_rx
+			.recv_timeout(Duration::from_secs(2))
+			.expect("real file should emit without being delayed by hidden events");
+		assert!(emitted.contains(&"/v/note.md".to_string()));
+		handle.join().unwrap();
 	}
 
 	// ---------- payload serialization ----------
