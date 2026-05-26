@@ -56,6 +56,10 @@ export interface UIColors {
 	fileExplorerBorder: string;
 	/** File explorer badge/count text color */
 	fileExplorerBadgeFg: string;
+	/** Search semantic badge background */
+	searchSemanticBg: string;
+	/** Search semantic badge text color */
+	searchSemanticFg: string;
 	/** Right sidebar panel background */
 	rightSidebarBg: string;
 	/** Right sidebar primary text color */

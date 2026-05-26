@@ -94,6 +94,8 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = {
 			fileExplorerPrimary: 'oklch(0.73 0.08 278)',
 			fileExplorerBorder: 'oklch(0.28 0.025 272)',
 			fileExplorerBadgeFg: '#8a8faa',
+			searchSemanticBg: 'rgba(59, 130, 246, 0.15)',
+			searchSemanticFg: '#60a5fa',
 			rightSidebarBg: '#2a2e3d',
 			rightSidebarFg: '#F8F8F2',
 			rightSidebarMutedFg: 'oklch(0.55 0.06 268)',

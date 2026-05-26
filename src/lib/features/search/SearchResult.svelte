@@ -136,7 +136,7 @@
 						{badgeSource === 'both'
 						? 'bg-file-explorer-primary/15 text-file-explorer-primary'
 						: badgeSource === 'semantic'
-							? 'bg-blue-500/15 text-blue-400'
+							? 'bg-search-semantic-bg text-search-semantic-fg'
 							: 'bg-muted text-file-explorer-muted-fg'}"
 				>
 					{badgeSource === 'both' ? 'Both' : badgeSource === 'semantic' ? 'Semantic' : 'Text'}

@@ -32,6 +32,8 @@
 	--color-file-explorer-primary: var(--file-explorer-primary);
 	--color-file-explorer-border: var(--file-explorer-border);
 	--color-file-explorer-badge-fg: var(--file-explorer-badge-fg);
+	--color-search-semantic-bg: var(--search-semantic-bg);
+	--color-search-semantic-fg: var(--search-semantic-fg);
 	--color-right-sidebar-bg: var(--right-sidebar-bg);
 	--color-right-sidebar-fg: var(--right-sidebar-fg);
 	--color-right-sidebar-muted-fg: var(--right-sidebar-muted-fg);
@@ -88,6 +90,8 @@
 	--file-explorer-primary: oklch(0.734 0.16 300);
 	--file-explorer-border: oklch(0.88 0.01 100);
 	--file-explorer-badge-fg: #8a8faa;
+	--search-semantic-bg: rgba(59, 130, 246, 0.15);
+	--search-semantic-fg: #60a5fa;
 	--right-sidebar-bg: oklch(1 0 0);
 	--right-sidebar-fg: oklch(0.243 0.015 280);
 	--right-sidebar-muted-fg: oklch(0.529 0.07 265);
@@ -133,6 +137,8 @@
 	--file-explorer-primary: oklch(0.73 0.08 278);
 	--file-explorer-border: oklch(0.28 0.025 272);
 	--file-explorer-badge-fg: #8a8faa;
+	--search-semantic-bg: rgba(59, 130, 246, 0.15);
+	--search-semantic-fg: #60a5fa;
 	--right-sidebar-bg: #2a2e3d;
 	--right-sidebar-fg: #F8F8F2;
 	--right-sidebar-muted-fg: oklch(0.55 0.06 268);
