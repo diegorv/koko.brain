@@ -94,7 +94,7 @@
 		}
 	});
 
-	function formatModifiedDate(epochSeconds: number): string {
+	function formatDate(epochSeconds: number): string {
 		if (epochSeconds === 0) return '';
 		return dayjs(epochSeconds * 1000).format('MMM D, YYYY');
 	}
@@ -209,9 +209,14 @@
 									<div class="truncate text-[14px] {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
 										{note.title}
 									</div>
-									{#if note.modifiedAt}
-										<div class="text-xs text-muted-foreground mt-0.5">
-											{formatModifiedDate(note.modifiedAt)}
+									{#if note.modifiedAt || note.createdAt}
+										<div class="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+											{#if note.modifiedAt}
+												<span>{formatDate(note.modifiedAt)}</span>
+											{/if}
+											{#if note.createdAt}
+												<span>Created {formatDate(note.createdAt)}</span>
+											{/if}
 										</div>
 									{/if}
 								</div>
