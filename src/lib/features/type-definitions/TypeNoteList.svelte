@@ -49,6 +49,7 @@
 		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
 	);
 	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
+	let viewLoadGeneration = 0;
 
 	let headerLabel = $derived.by(() => {
 		if (!selection) return '';
@@ -113,7 +114,7 @@
 		}
 
 		if (sel.kind === 'view') {
-			loadViewNotes(sel.path, entries);
+			loadViewNotes(sel.path, entries, ++viewLoadGeneration);
 			return;
 		}
 
@@ -124,10 +125,11 @@
 		}
 	});
 
-	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries) {
+	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries, generation: number) {
 		const t0 = performance.now();
 		try {
 			const parsed = await getCachedViewDefinition(viewPath);
+			if (generation !== viewLoadGeneration) return;
 			const sel = typeDefinitionsStore.selectedTypeOrNav;
 			if (sel?.kind !== 'view' || sel.path !== viewPath) return;
 			if (typeDefinitionsStore.entries.length === 0) return;
