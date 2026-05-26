@@ -22,6 +22,8 @@
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
+	import { untrack } from 'svelte';
+	import { appendLog } from '$lib/utils/log.service';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatDatePair, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
@@ -29,7 +31,7 @@
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-	import { getViewQueryResult, getCachedViewDefinition } from './view-parse-cache';
+	import { getCachedViewDefinition } from './view-parse-cache';
 	import { getFileName } from '$lib/core/filesystem/fs.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 
@@ -123,13 +125,8 @@
 	});
 
 	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries) {
+		const t0 = performance.now();
 		try {
-			const cachedPaths = getViewQueryResult(viewPath);
-			if (cachedPaths) {
-				const viewEntry = entries.find((e) => e.path === viewPath);
-				notes = getNotesForViewPaths(entries, cachedPaths, getViewSort(viewEntry));
-				return;
-			}
 			const parsed = await getCachedViewDefinition(viewPath);
 			const sel = typeDefinitionsStore.selectedTypeOrNav;
 			if (sel?.kind !== 'view' || sel.path !== viewPath) return;
@@ -140,10 +137,12 @@
 				return;
 			}
 			const view = parsed.definition.views[0];
+			const freshEntries = typeDefinitionsStore.entries;
 			const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
-			const viewEntry = entries.find((e) => e.path === viewPath);
-			notes = getNotesForViewPaths(entries, matchingPaths, getViewSort(viewEntry));
+			const viewEntry = freshEntries.find((e) => e.path === viewPath);
+			notes = getNotesForViewPaths(freshEntries, matchingPaths, getViewSort(viewEntry));
+			appendLog('VIEW-NOTES', `${notes.length} notes in ${(performance.now() - t0).toFixed(1)}ms`);
 		} catch {
 			notes = [];
 		}
