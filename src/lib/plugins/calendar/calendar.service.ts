@@ -1,5 +1,6 @@
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { isMarkdownFile } from '$lib/core/filesystem/fs.logic';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import type { PeriodType } from '$lib/core/settings/settings.types';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
@@ -47,6 +48,8 @@ export function scanFilesForCalendar(): void {
 					if (node.children) walk(node.children);
 					continue;
 				}
+
+				if (!isMarkdownFile(node.name)) continue;
 
 				// Try frontmatter `created` property first
 				let frontmatterKey: string | null = null;

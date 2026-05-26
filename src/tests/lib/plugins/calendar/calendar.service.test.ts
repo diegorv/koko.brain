@@ -96,6 +96,25 @@ describe('scanFilesForCalendar', () => {
 
 		expect(calendarStore.dayPaths.size).toBe(0);
 	});
+
+	it('excludes non-markdown files from calendar', () => {
+		const ts = 1705276800000;
+		fsStore.setFileTree([
+			{ name: 'note.md', path: '/vault/note.md', isDirectory: false, createdAt: ts, children: [] },
+			{ name: 'image.webp', path: '/vault/image.webp', isDirectory: false, createdAt: ts, children: [] },
+			{ name: 'data.json', path: '/vault/data.json', isDirectory: false, createdAt: ts, children: [] },
+			{ name: 'doc.markdown', path: '/vault/doc.markdown', isDirectory: false, createdAt: ts, children: [] },
+		]);
+
+		scanFilesForCalendar();
+
+		const expectedKey = dayjs(ts).format('YYYY-MM-DD');
+		const paths = calendarStore.dayPaths.get(expectedKey) ?? [];
+		expect(paths).toContain('/vault/note.md');
+		expect(paths).toContain('/vault/doc.markdown');
+		expect(paths).not.toContain('/vault/image.webp');
+		expect(paths).not.toContain('/vault/data.json');
+	});
 });
 
 describe('updateCalendarForFile', () => {
