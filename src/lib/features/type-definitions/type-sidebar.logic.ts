@@ -63,8 +63,8 @@ export function countNavItems(entries: NoteEntryV2[]): NavItemCounts {
 	return { inbox, all, archive, favorites };
 }
 
-/** Sub-filter for Open/Archived tabs in the middle panel. */
-export type NoteListSubFilter = 'open' | 'archived';
+/** Sub-filter for tabs in the middle panel. */
+export type NoteListSubFilter = 'open' | 'archived' | 'favorites';
 
 /** Whether the Open/Archived bottom tabs should be shown for a given selection. */
 export function shouldShowSubFilter(selection: TypeSidebarSelection): boolean {
@@ -73,19 +73,23 @@ export function shouldShowSubFilter(selection: TypeSidebarSelection): boolean {
 	return false;
 }
 
-/** Counts open and archived notes for a selection (for bottom tab pills). */
+/** Counts notes per sub-filter for a selection. */
 export function countSubFilters(
 	entries: NoteEntryV2[],
 	selection: TypeSidebarSelection,
-): { open: number; archived: number } {
+): { open: number; archived: number; favorites: number } {
 	let open = 0;
 	let archived = 0;
+	let favorites = 0;
 	for (const e of entries) {
 		if (!matchesSelection(e, selection)) continue;
 		if (e.archived) archived++;
-		else open++;
+		else {
+			open++;
+			if (e.favorite) favorites++;
+		}
 	}
-	return { open, archived };
+	return { open, archived, favorites };
 }
 
 function matchesSelection(entry: NoteEntryV2, selection: TypeSidebarSelection): boolean {
@@ -108,17 +112,16 @@ export function getNotesForSelection(
 ): TypeSidebarNote[] {
 	let filtered: NoteEntryV2[];
 	let sort = 'title';
-	const archivedFilter = subFilter === 'archived';
 
 	switch (selection.kind) {
 		case 'type': {
-			filtered = entries.filter((e) => e.isA === selection.name && e.archived === archivedFilter);
+			filtered = entries.filter((e) => e.isA === selection.name && matchesSubFilter(e, subFilter));
 			const meta = getTypeMetadataFallback(selection.name, typeMetadataMap);
 			sort = meta.sort;
 			break;
 		}
 		case 'untyped':
-			filtered = entries.filter((e) => !e.isA && e.isA !== 'Type' && e.archived === archivedFilter);
+			filtered = entries.filter((e) => !e.isA && e.isA !== 'Type' && matchesSubFilter(e, subFilter));
 			break;
 		case 'nav':
 			filtered = filterByNavItem(entries, selection.id, subFilter);
@@ -150,13 +153,19 @@ function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 	};
 }
 
+function matchesSubFilter(entry: NoteEntryV2, subFilter?: NoteListSubFilter): boolean {
+	switch (subFilter) {
+		case 'archived': return entry.archived;
+		case 'favorites': return entry.favorite && !entry.archived;
+		default: return !entry.archived;
+	}
+}
+
 /** Filters entries by nav item selection. */
 function filterByNavItem(entries: NoteEntryV2[], id: NavItemId, subFilter?: NoteListSubFilter): NoteEntryV2[] {
 	switch (id) {
-		case 'all': {
-			const archivedFilter = subFilter === 'archived';
-			return entries.filter((e) => e.isA !== 'Type' && e.archived === archivedFilter);
-		}
+		case 'all':
+			return entries.filter((e) => e.isA !== 'Type' && matchesSubFilter(e, subFilter));
 		case 'inbox':
 			return entries.filter((e) => e.isA !== 'Type' && !e.organized && !e.archived);
 		case 'archive':

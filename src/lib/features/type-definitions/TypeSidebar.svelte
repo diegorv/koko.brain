@@ -45,7 +45,6 @@
 		{ id: 'inbox', label: 'Inbox', icon: Inbox },
 		{ id: 'all', label: 'All Notes', icon: LayoutGrid },
 		{ id: 'archive', label: 'Archive', icon: Archive },
-		{ id: 'favorites', label: 'Favorites', icon: Star },
 	];
 
 	$effect(() => {

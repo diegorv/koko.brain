@@ -30,7 +30,7 @@
 
 	let notes = $state<TypeSidebarNote[]>([]);
 	let subFilter = $state<NoteListSubFilter>('open');
-	let subCounts = $state({ open: 0, archived: 0 });
+	let subCounts = $state({ open: 0, archived: 0, favorites: 0 });
 	let contextTarget = $state<TypeSidebarNote | null>(null);
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
@@ -84,7 +84,7 @@
 		const sel = typeDefinitionsStore.selectedTypeOrNav;
 		if (!sel || entries.length === 0) {
 			notes = [];
-			subCounts = { open: 0, archived: 0 };
+			subCounts = { open: 0, archived: 0, favorites: 0 };
 			return;
 		}
 		const key = selectionKey(sel);
@@ -222,6 +222,13 @@
 			>
 				Archived
 				<span class="text-[10px] tabular-nums">{subCounts.archived}</span>
+			</button>
+			<button
+				class="flex flex-1 items-center justify-center gap-1.5 py-1 text-xs cursor-pointer border-b-2 {subFilter === 'favorites' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+				onclick={() => { subFilter = 'favorites'; }}
+			>
+				Favorites
+				<span class="text-[10px] tabular-nums">{subCounts.favorites}</span>
 			</button>
 		</div>
 	{/if}

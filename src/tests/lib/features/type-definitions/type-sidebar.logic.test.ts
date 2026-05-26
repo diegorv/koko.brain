@@ -457,6 +457,17 @@ describe('getNotesForSelection', () => {
 			expect(notes.length).toBe(1);
 			expect(notes[0].title).toBe('B');
 		});
+
+		it('type selection with favorites sub-filter shows only favorited non-archived', () => {
+			const entries = [
+				entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, archived: false }),
+				entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: false, archived: false }),
+				entryV2('/v/c.md', { title: 'C', isA: 'Project', favorite: true, archived: true }),
+			];
+			const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map(), 'favorites');
+			expect(notes.length).toBe(1);
+			expect(notes[0].title).toBe('A');
+		});
 	});
 });
 
@@ -487,15 +498,25 @@ describe('shouldShowSubFilter', () => {
 });
 
 describe('countSubFilters', () => {
-	it('counts open and archived for type selection', () => {
+	it('counts open, archived, and favorites for type selection', () => {
 		const entries = [
-			entryV2('/v/a.md', { isA: 'Project', archived: false }),
+			entryV2('/v/a.md', { isA: 'Project', archived: false, favorite: true }),
 			entryV2('/v/b.md', { isA: 'Project', archived: true }),
-			entryV2('/v/c.md', { isA: 'Project', archived: false }),
+			entryV2('/v/c.md', { isA: 'Project', archived: false, favorite: false }),
 			entryV2('/v/d.md', { isA: 'Person', archived: false }),
 		];
 		const counts = countSubFilters(entries, { kind: 'type', name: 'Project' });
 		expect(counts.open).toBe(2);
+		expect(counts.archived).toBe(1);
+		expect(counts.favorites).toBe(1);
+	});
+
+	it('does not count archived favorites', () => {
+		const entries = [
+			entryV2('/v/a.md', { isA: 'Project', archived: true, favorite: true }),
+		];
+		const counts = countSubFilters(entries, { kind: 'type', name: 'Project' });
+		expect(counts.favorites).toBe(0);
 		expect(counts.archived).toBe(1);
 	});
 
