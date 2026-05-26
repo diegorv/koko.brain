@@ -21,6 +21,7 @@ export interface TypeSidebarNote {
 	favorite: boolean;
 	modifiedAt: number;
 	createdAt: number;
+	frontmatter: Record<string, import('$lib/types/vault-v2.types').FrontmatterValue>;
 }
 
 /** Filter mode for the type sidebar. */
@@ -145,6 +146,7 @@ function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 		favorite: entry.favorite,
 		modifiedAt: entry.modifiedAt,
 		createdAt: entry.createdAt,
+		frontmatter: entry.frontmatter,
 	};
 }
 
@@ -181,16 +183,7 @@ export function buildTypeSections(
 
 	for (const entry of filtered) {
 		if (entry.isA === 'Type') continue;
-		const rawOrder = entry.frontmatter['_order'];
-		const parsedOrder = typeof rawOrder === 'number' ? rawOrder : Number(rawOrder);
-		const order = Number.isFinite(parsedOrder) ? parsedOrder : Infinity;
-		const rawFavIdx = entry.frontmatter['_favorite_index'];
-		const parsedFavIdx = typeof rawFavIdx === 'number' ? rawFavIdx : Number(rawFavIdx);
-		const favoriteIndex = Number.isFinite(parsedFavIdx) ? parsedFavIdx : Infinity;
-		const note: TypeSidebarNote = {
-			path: entry.path, title: entry.title, order, favoriteIndex,
-			favorite: entry.favorite, modifiedAt: entry.modifiedAt, createdAt: entry.createdAt,
-		};
+		const note = toSidebarNote(entry);
 		if (entry.isA) {
 			const group = typeGroups.get(entry.isA);
 			if (group) {

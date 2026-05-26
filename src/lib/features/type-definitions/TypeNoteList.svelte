@@ -63,6 +63,11 @@
 
 	let canCreate = $derived(selection?.kind === 'type');
 	let typeName = $derived(selection?.kind === 'type' ? selection.name : null);
+	let listProperties = $derived.by(() => {
+		if (selection?.kind !== 'type') return [];
+		const meta = typeDefinitionsStore.getTypeMetadata(selection.name);
+		return meta?.listPropertiesDisplay ?? [];
+	});
 
 	function selectionKey(sel: typeof selection): string {
 		if (!sel) return '';
@@ -97,6 +102,14 @@
 	function formatDate(epochSeconds: number): string {
 		if (epochSeconds === 0) return '';
 		return dayjs(epochSeconds * 1000).format('MMM D, YYYY');
+	}
+
+	function formatPropertyValue(value: unknown): string {
+		if (value == null) return '';
+		if (typeof value === 'string') return value;
+		if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+		if (Array.isArray(value)) return value.map(formatPropertyValue).filter(Boolean).join(', ');
+		return '';
 	}
 
 	function resolveNoteIcon(notePath: string) {
@@ -209,6 +222,18 @@
 									<div class="truncate text-[14px] {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
 										{note.title}
 									</div>
+									{#if listProperties.length > 0}
+										<div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+											{#each listProperties as prop (prop)}
+												{@const val = formatPropertyValue(note.frontmatter[prop])}
+												{#if val}
+													<span class="text-xs text-muted-foreground truncate max-w-[160px]">
+														<span class="text-muted-foreground/60">{prop}:</span> {val}
+													</span>
+												{/if}
+											{/each}
+										</div>
+									{/if}
 									{#if note.modifiedAt || note.createdAt}
 										<div class="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
 											{#if note.modifiedAt}
