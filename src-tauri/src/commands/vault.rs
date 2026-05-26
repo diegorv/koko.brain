@@ -284,14 +284,16 @@ pub fn update_note_in_index(
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 		update_note_in_index_inner(&mut idx, path, &content, mtime)
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"update_note_in_index: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
+	if result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+			debug_log(
+				"VAULT-V2",
+				format!(
+					"update_note_in_index: vault-index-updated emit failed: {}",
+					emit_err,
+				),
+			);
+		}
 	}
 	Ok(result)
 }
@@ -816,14 +818,16 @@ pub fn remove_note_from_index(
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 		idx.remove_entry(&path)
 	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"remove_note_from_index: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
+	if result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+			debug_log(
+				"VAULT-V2",
+				format!(
+					"remove_note_from_index: vault-index-updated emit failed: {}",
+					emit_err,
+				),
+			);
+		}
 	}
 	Ok(result)
 }
