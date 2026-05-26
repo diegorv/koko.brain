@@ -93,12 +93,23 @@ The template file (`_system/templates/ProjectTemplate.md`) is a regular markdown
 
 ## Type Sidebar
 
-The left sidebar has two modes, toggled by the button in the file explorer header:
+The left sidebar has three modes, toggled by buttons in the header:
 
 - **Files** (default) -- standard file explorer tree
-- **Types** -- notes grouped by their `type` field
+- **Types** -- three-panel layout for browsing notes by type
+- **Calendar** -- calendar view
 
-In type mode, notes are organized into collapsible sections by type. Each section shows the type icon, label, and note count. Notes without a type appear in an "Untyped" section at the bottom.
+### Three-Panel Layout
+
+In type mode, the layout splits into three panels:
+
+1. **Left sidebar** -- navigation with Inbox and Archive at the top, followed by type names with note counts
+2. **Middle panel** -- note list for the selected type, with Open/Archived/Favorites tabs and note cards showing title, icon, properties, and dates
+3. **Editor** -- the selected note
+
+Click a type in the left sidebar to see its notes in the middle panel. Click a note card to open it in the editor.
+
+Notes without a type appear in an "Untyped" section at the bottom of the left sidebar.
 
 ### Note Order
 
@@ -139,14 +150,20 @@ Notes with `_order` always appear first regardless of `_sort`. The sort mode onl
 
 ### Filters
 
-The type sidebar has four filter tabs:
+The middle panel has three sub-filter tabs (shown for type selections and Inbox/Archive nav):
 
-| Filter | Shows | Sort |
-|--------|-------|------|
-| All | All notes except archived | `_order`, then `_sort` mode |
-| Inbox | Notes not yet organized (requires Explicit Organization) | `_order`, then `_sort` mode |
+| Tab | Shows | Sort |
+|-----|-------|------|
+| Open | Non-archived notes | `_order`, then `_sort` mode |
 | Archived | Archived notes only | `_order`, then `_sort` mode |
-| Favorites | Favorited notes (excluding archived) | `_favorite_index`, then title |
+| Favorites | Favorited notes (excluding archived) | `_order`, then `_sort` mode |
+
+The left sidebar also has two navigation items:
+
+| Nav Item | Shows |
+|----------|-------|
+| Inbox | Notes with `_organized: false` (not yet triaged) |
+| Archive | All archived notes across types |
 
 ### Favorite Order
 
@@ -207,9 +224,12 @@ Notes have three lifecycle states controlled by frontmatter flags:
 
 | State | Flags | Meaning |
 |-------|-------|---------|
-| Inbox | `_organized: false` (or absent) | Newly created, not yet triaged |
-| Organized | `_organized: true` | Deliberately placed in your system |
+| Organized | absent or `_organized: true` | Default state for all notes |
+| Inbox | `_organized: false` | Explicitly marked as not yet triaged |
 | Archived | `_archived: true` | No longer active, hidden from default views |
+
+> [!NOTE]
+> Notes without `_organized` in their frontmatter are treated as organized by default. Only notes explicitly created with `_organized: false` (via the Explicit Organization workflow) appear in the Inbox.
 
 ### Lifecycle Actions
 
@@ -263,7 +283,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `template` | `_template` | Template file for "New [Type]" action in type sidebar |
 | `view` | `_view` | Not yet implemented |
 | `visible` | `_visible` | Show/hide type section in sidebar |
-| `list_properties_display` | `_list_properties_display` | Not yet implemented |
+| `list_properties_display` | `_list_properties_display` | Properties shown on note cards in middle panel |
 
 You can use either form in your frontmatter. The app normalizes them internally.
 

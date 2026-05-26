@@ -228,7 +228,10 @@ impl NoteEntry {
 		let tags = extract_tags_strict(content);
 		let tasks = extract_tasks(content);
 		let is_a = extract_is_a(&frontmatter);
-		let organized = extract_bool_flag(&frontmatter, "_organized");
+		let organized = frontmatter
+			.get("_organized")
+			.and_then(|v| v.as_bool())
+			.unwrap_or(true);
 		let archived = extract_bool_flag(&frontmatter, "_archived");
 		let favorite = extract_bool_flag(&frontmatter, "_favorite");
 		let belongs_to = extract_wikilink_targets(&frontmatter, "belongs_to");
@@ -814,10 +817,10 @@ mod tests {
 	}
 
 	#[test]
-	fn from_content_lifecycle_flags_default_false() {
+	fn from_content_lifecycle_flags_defaults() {
 		let content = "---\ntitle: Hello\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
-		assert!(!entry.organized);
+		assert!(entry.organized, "organized defaults to true (existing notes are organized)");
 		assert!(!entry.archived);
 		assert!(!entry.favorite);
 	}
@@ -865,7 +868,7 @@ mod tests {
 	fn from_content_lifecycle_flags_ignore_non_boolean() {
 		let content = "---\n_organized: yes\n_archived: 1\n_favorite: on\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
-		assert!(!entry.organized);
+		assert!(entry.organized, "non-boolean _organized falls back to true");
 		assert!(!entry.archived);
 		assert!(!entry.favorite);
 	}
