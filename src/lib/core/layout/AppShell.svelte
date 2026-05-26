@@ -93,7 +93,7 @@
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
-					{#if !settingsStore.layout.leftSidebarVisible}
+					{#if !settingsStore.layout.leftSidebarVisible && !settingsStore.layout.rightSidebarVisible}
 						<div class="flex flex-col w-[116px] shrink-0">
 							<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
 							<div class="flex-1 bg-editor-bg"></div>
@@ -169,7 +169,7 @@
 							</div>
 						</Resizable.Pane>
 					{/if}
-						{#if !settingsStore.layout.rightSidebarVisible}
+						{#if !settingsStore.layout.rightSidebarVisible && !settingsStore.layout.leftSidebarVisible}
 							<div class="flex flex-col w-[116px] shrink-0">
 								<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
 								<div class="flex-1 bg-editor-bg"></div>
