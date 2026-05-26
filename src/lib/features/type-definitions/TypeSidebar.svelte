@@ -4,10 +4,8 @@
 	import Copy from '@lucide/svelte/icons/copy';
 	import Palette from '@lucide/svelte/icons/palette';
 	import Plus from '@lucide/svelte/icons/plus';
-	import Star from '@lucide/svelte/icons/star';
 	import Archive from '@lucide/svelte/icons/archive';
 	import Inbox from '@lucide/svelte/icons/inbox';
-	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
@@ -35,7 +33,6 @@
 	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
-	let inboxEnabled = $derived(settingsStore.settings.explicitOrganization);
 	let selection = $derived(typeDefinitionsStore.selectedTypeOrNav);
 	let iconPickerRef = $derived(
 		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
@@ -43,7 +40,6 @@
 
 	const navItems: { id: NavItemId; label: string; icon: typeof Inbox }[] = [
 		{ id: 'inbox', label: 'Inbox', icon: Inbox },
-		{ id: 'all', label: 'All Notes', icon: LayoutGrid },
 		{ id: 'archive', label: 'Archive', icon: Archive },
 	];
 
@@ -128,16 +124,14 @@
 				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
 					<div class="mb-2">
 						{#each navItems as item (item.id)}
-							{#if item.id !== 'inbox' || inboxEnabled}
-								<button
-									class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isNavSelected(item.id) ? 'bg-primary/25 text-primary' : ''}"
-									onclick={() => selectNav(item.id)}
-								>
-									<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-primary' : 'text-muted-foreground'}" />
-									<span class="truncate">{item.label}</span>
-									<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{navCounts[item.id]}</span>
-								</button>
-							{/if}
+							<button
+								class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] hover:bg-primary/10 cursor-default select-none {isNavSelected(item.id) ? 'bg-primary/25 text-primary' : ''}"
+								onclick={() => selectNav(item.id)}
+							>
+								<item.icon class="size-4 shrink-0 {isNavSelected(item.id) ? 'text-primary' : 'text-muted-foreground'}" />
+								<span class="truncate">{item.label}</span>
+								<span class="ml-auto shrink-0 pr-1 text-xs text-[#8a8faa]">{navCounts[item.id]}</span>
+							</button>
 						{/each}
 					</div>
 
