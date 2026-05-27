@@ -16,7 +16,7 @@ export function generateLifecycleRules(
 		rules.push({
 			id: `lifecycle-archive-${typeName.toLowerCase()}`,
 			name: `[${typeName}] Archive`,
-			expression: `type.lower() == "${typeName.toLowerCase()}" and _archived == true`,
+			expression: `type.lower() == "${typeName.toLowerCase()}" && _archived == true`,
 			destination: metadata.archiveTo,
 			enabled: true,
 		});
