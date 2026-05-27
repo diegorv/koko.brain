@@ -73,8 +73,7 @@ test.describe('Live Preview - Inline Formatting', () => {
 		const boldLine = page.locator('.cm-line').filter({ hasText: 'bold text' });
 		const marks = boldLine.locator('.cm-formatting-inline');
 		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-inline-visible/);
-		}
+		expect(count).toBeGreaterThan(0);
+		await expect(marks.first()).not.toHaveClass(/cm-formatting-inline-visible/);
 	});
 });

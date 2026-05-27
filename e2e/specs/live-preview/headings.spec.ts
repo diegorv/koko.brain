@@ -55,9 +55,8 @@ test.describe('Live Preview - Headings', () => {
 		const headingLine = page.locator('.cm-lp-h1').first();
 		const marks = headingLine.locator('.cm-formatting-block');
 		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-block-visible/);
-		}
+		expect(count).toBeGreaterThan(0);
+		await expect(marks.first()).not.toHaveClass(/cm-formatting-block-visible/);
 	});
 
 	test('heading marks visible when cursor is on heading', async ({ lpPage: page }) => {

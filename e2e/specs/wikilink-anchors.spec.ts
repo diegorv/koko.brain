@@ -43,7 +43,7 @@ async function seedAnchorFiles(page: import('@playwright/test').Page) {
 		({ paths }) => window.__e2e.events.emit('vault-files-changed', { paths }),
 		{ paths: [`${TEST_VAULT_PATH}/Reference.md`, `${TEST_VAULT_PATH}/Source.md`] },
 	);
-	await page.waitForTimeout(200);
+	await page.waitForTimeout(600);
 }
 
 test.describe('Wikilink anchor navigation', () => {

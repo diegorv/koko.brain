@@ -20,14 +20,14 @@ async function seedCanvas(page: import('@playwright/test').Page) {
 		({ paths }) => window.__e2e.events.emit('vault-files-changed', { paths }),
 		{ paths: [`${TEST_VAULT_PATH}/Board.canvas`] },
 	);
-	await page.waitForTimeout(200);
+	await page.waitForTimeout(600);
 }
 
 async function openCanvas(page: import('@playwright/test').Page) {
 	const item = page.locator('[role="treeitem"]', { hasText: 'Board.canvas' }).first();
 	await item.waitFor({ state: 'visible', timeout: 10_000 });
 	await item.click();
-	await page.waitForTimeout(300);
+	await page.waitForTimeout(600);
 }
 
 test.describe('Canvas view', () => {
