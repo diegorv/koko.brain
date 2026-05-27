@@ -26,7 +26,7 @@ describe('generateLifecycleRules', () => {
 
 		const rules = generateLifecycleRules(map);
 		expect(rules).toHaveLength(1);
-		expect(rules[0].expression).toBe('type == "Project" and _archived == true');
+		expect(rules[0].expression).toBe('type.lower() == "project" and _archived == true');
 		expect(rules[0].destination).toBe('{folder}/_archive');
 		expect(rules[0].enabled).toBe(true);
 	});
