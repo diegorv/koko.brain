@@ -22,6 +22,8 @@ export interface TypeMetadata {
 	visible: boolean;
 	/** Properties to display in list views. */
 	listPropertiesDisplay: string[];
+	/** Destination template when _archived is set to true (e.g. "{folder}/_archive"). */
+	archiveTo: string | null;
 }
 
 /** Built-in fallback metadata for common types. */
@@ -46,6 +48,7 @@ const DEFAULTS: TypeMetadata = {
 	view: 'all',
 	visible: true,
 	listPropertiesDisplay: [],
+	archiveTo: null,
 };
 
 /** Extracts a string from a frontmatter value. */
@@ -95,6 +98,7 @@ export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 		view: fmString(fm, '_view') ?? DEFAULTS.view,
 		visible: fmBool(fm, '_visible') ?? DEFAULTS.visible,
 		listPropertiesDisplay: fmStringArray(fm, '_list_properties_display') ?? DEFAULTS.listPropertiesDisplay,
+		archiveTo: fmString(fm, '_archive_to') ?? DEFAULTS.archiveTo,
 	};
 }
 

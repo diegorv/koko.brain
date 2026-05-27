@@ -8,6 +8,8 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { findMatchingRule, isInExcludedFolder, isAlreadyInDestination, resolveDestination } from './auto-move.logic';
 import type { AutoMoveConfig } from './auto-move.types';
+import { generateLifecycleRules } from './type-lifecycle-rules';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { debug, error } from '$lib/utils/debug';
 
 /** Internal directory inside the vault for metadata */
@@ -92,8 +94,9 @@ export function registerAutoMoveHook(): () => void {
 	return addAfterSaveObserver((filePath, content) => {
 		if (!settingsStore.autoMove.enabled) return;
 
-		const enabledRules = autoMoveStore.enabledRules;
-		if (enabledRules.length === 0) return;
+		const hasUserRules = autoMoveStore.enabledRules.length > 0;
+		const hasLifecycleRules = typeDefinitionsStore.typeMetadataMap.size > 0;
+		if (!hasUserRules && !hasLifecycleRules) return;
 
 		const vaultPath = vaultStore.path;
 		if (!vaultPath) return;
@@ -147,7 +150,10 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 	// Build a fresh NoteRecord from the saved content
 	const record = buildNoteRecord(filePath, content, Date.now(), Date.now());
 
-	const rule = findMatchingRule(autoMoveStore.enabledRules, record);
+	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);
+	const allRules = [...autoMoveStore.enabledRules, ...lifecycleRules];
+
+	const rule = findMatchingRule(allRules, record);
 	if (!rule) {
 		debug('AUTO-MOVE', 'No matching rule for:', filePath);
 		return;

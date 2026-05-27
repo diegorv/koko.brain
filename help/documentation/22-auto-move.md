@@ -115,6 +115,33 @@ The default is `3000 ms` (3 seconds). Increase it if you find moves happening to
 
 Each rule can optionally assign an icon to the moved file. This integrates with [File Icons](02-file-explorer.md#file-icons) — you pick an icon pack, icon name, and optional colors. The icon is applied to the file at its new path after the move completes.
 
+## Type-Driven Lifecycle Rules
+
+Type definitions can declare an `_archive_to` field in their frontmatter. When present, Kokobrain automatically generates an auto-move rule for that type — no manual rule needed.
+
+### Example type definition
+
+```yaml
+---
+type: Type
+_icon: rocket
+_color: red
+_archive_to: "{folder}/_archive"
+---
+# Project
+```
+
+With this definition, any note with `type: Project` and `_archived: true` will be automatically moved to `_archive/` within its current folder.
+
+### How it works
+
+1. Kokobrain reads all type definitions (notes with `type: Type`)
+2. For each type with `_archive_to`, a rule is generated: `type == "TypeName" and _archived == true`
+3. The destination supports [dynamic templates](#dynamic-destinations) (e.g. `{folder}/_archive`)
+4. Generated rules run **after** user-defined rules — user rules take priority
+
+This means you can define archive behavior once in the type definition, and it applies to all notes of that type across the entire vault.
+
 ## Configuration File
 
 Rules and excluded folders are stored in `.kokobrain/auto-move-rules.json` inside your vault (separate from the main `settings.json`). The enabled/disabled toggle and debounce delay are stored in `settings.json`.
