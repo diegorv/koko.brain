@@ -28,7 +28,7 @@ describe('generateLifecycleRules', () => {
 		expect(rules).toHaveLength(2);
 
 		expect(rules[0].name).toBe('[Project] Archive');
-		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true');
+		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true && !file.folder.endsWith("_archive")');
 		expect(rules[0].destination).toBe('{folder}/_archive');
 
 		expect(rules[1].name).toBe('[Project] Unarchive');

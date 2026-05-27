@@ -19,7 +19,7 @@ export function generateLifecycleRules(
 		rules.push({
 			id: `lifecycle-archive-${typeName.toLowerCase()}`,
 			name: `[${typeName}] Archive`,
-			expression: `${typeExpr} && _archived == true`,
+			expression: `${typeExpr} && _archived == true && !file.folder.endsWith("_archive")`,
 			destination: metadata.archiveTo,
 			enabled: true,
 		});
