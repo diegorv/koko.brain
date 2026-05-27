@@ -68,6 +68,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 | `_visible` | Whether to show in sidebar | `true` |
 | `_template` | Vault-relative path to template file for new notes | none |
 | `_list_properties_display` | Properties to show in list views | none |
+| `_archive_to` | Destination template when `_archived` is set to true (e.g. `{folder}/_archive`). See [Auto Move](22-auto-move.md#type-driven-lifecycle-rules) | none |
 
 ---
 
@@ -240,6 +241,19 @@ Notes have three lifecycle states controlled by frontmatter flags:
 > [!NOTE]
 > Notes without `_organized` in their frontmatter are treated as organized by default. Only notes explicitly created with `_organized: false` (via the Explicit Organization workflow) appear in the Inbox.
 
+### Auto-Archive via Type Definitions
+
+If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived, and moves them back when unarchived. No manual auto-move rules needed.
+
+```yaml
+---
+type: Type
+_archive_to: "{folder}/_archive"
+---
+```
+
+With this configuration, archiving a Project in `work/squad-payments/` moves it to `work/squad-payments/_archive/`. Unarchiving moves it back. See [Auto Move — Type-Driven Lifecycle Rules](22-auto-move.md#type-driven-lifecycle-rules) for details.
+
 ### Lifecycle Actions
 
 The Properties panel shows lifecycle action buttons below the frontmatter fields:
@@ -293,6 +307,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `view` | `_view` | Default view mode for the type section |
 | `visible` | `_visible` | Show/hide type section in sidebar |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note cards in middle panel |
+| `archive_to` | `_archive_to` | Auto-move destination when note is archived |
 
 You can use either form in your frontmatter. The app normalizes them internally.
 
