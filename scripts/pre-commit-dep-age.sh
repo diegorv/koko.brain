@@ -102,13 +102,16 @@ is_workspace_excluded() {
 # Lines in the packages: section look like:
 #   +  '@codemirror/language@6.12.3':
 #   +  'dayjs@1.11.20':
+# pnpm v9 lockfile may append peer-dep context in parentheses:
+#   +  '@csstools/css-calc@3.2.1(@csstools/css-parser-algorithms@4.0.0)':
+# Strip everything from the first '(' onward to get the bare name@version.
 new_packages=()
 while IFS= read -r entry; do
 	[[ -n "$entry" ]] && new_packages+=("$entry")
 done < <(
 	git diff --cached -- pnpm-lock.yaml \
 		| grep "^+  '" \
-		| sed "s/^+  '//;s/':$//" \
+		| sed "s/^+  '//;s/(.*//;s/'*:*$//" \
 		| sort -u
 )
 
