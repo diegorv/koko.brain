@@ -39,10 +39,22 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain"
+        },
+        {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles"
         },
         {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault"
@@ -65,7 +77,13 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
@@ -82,7 +100,13 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
@@ -102,7 +126,19 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain"
+        },
+        {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
@@ -128,7 +164,13 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
@@ -145,7 +187,13 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
@@ -162,7 +210,13 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"
@@ -182,10 +236,22 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain"
+        },
+        {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles"
         },
         {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault"
@@ -214,7 +280,13 @@
           "path": "$DOCUMENT/**"
         },
         {
+          "path": "$DOCUMENT/**/.kokobrain/**"
+        },
+        {
           "path": "$HOME/MyFiles/**"
+        },
+        {
+          "path": "$HOME/MyFiles/**/.kokobrain/**"
         },
         {
           "path": "$HOME/kokobrain-vault/**"

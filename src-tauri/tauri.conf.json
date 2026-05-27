@@ -30,8 +30,11 @@
         "enable": true,
         "scope": [
           "$DOCUMENT/**",
+          "$DOCUMENT/**/.kokobrain/**",
           "$HOME/MyFiles/**",
+          "$HOME/MyFiles/**/.kokobrain/**",
           "$HOME/kokobrain-vault/**",
+          "$HOME/kokobrain-vault/.kokobrain/**",
           "$DESKTOP/**",
           "$PICTURE/**",
           "$DOWNLOAD/**",
