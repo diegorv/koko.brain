@@ -5,6 +5,7 @@ import {
 	isAlreadyInDestination,
 	validateExpression,
 	generateRuleId,
+	resolveDestination,
 } from '$lib/features/auto-move/auto-move.logic';
 import type { AutoMoveRule } from '$lib/features/auto-move/auto-move.types';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
@@ -236,6 +237,60 @@ describe('validateExpression', () => {
 	it('returns error for unclosed strings', () => {
 		const result = validateExpression("file.hasTag('test");
 		expect(result).toBeTruthy();
+	});
+});
+
+describe('resolveDestination', () => {
+	const vaultPath = '/Users/me/vault';
+
+	it('resolves {folder} to vault-relative folder', () => {
+		const record = makeRecord({ folder: '/Users/me/vault/work/squad-payments' });
+		expect(resolveDestination('{folder}/_archive', record, vaultPath)).toBe('work/squad-payments/_archive');
+	});
+
+	it('resolves {basename}', () => {
+		const record = makeRecord({ basename: 'Migrate-Gateway' });
+		expect(resolveDestination('archive/{basename}', record, vaultPath)).toBe('archive/Migrate-Gateway');
+	});
+
+	it('resolves {type} and {status} from properties', () => {
+		const record = makeRecord();
+		record.properties.set('type', 'project');
+		record.properties.set('status', 'done');
+		expect(resolveDestination('archive/{type}/{status}', record, vaultPath)).toBe('archive/project/done');
+	});
+
+	it('resolves {year} and {month}', () => {
+		const record = makeRecord();
+		const result = resolveDestination('{year}/{month}', record, vaultPath);
+		const now = new Date();
+		expect(result).toBe(`${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`);
+	});
+
+	it('leaves unknown variables as-is', () => {
+		const record = makeRecord();
+		expect(resolveDestination('{unknown}/path', record, vaultPath)).toBe('{unknown}/path');
+	});
+
+	it('returns static destination unchanged', () => {
+		const record = makeRecord();
+		expect(resolveDestination('Archive/done', record, vaultPath)).toBe('Archive/done');
+	});
+
+	it('handles file at vault root (empty folder)', () => {
+		const record = makeRecord({ folder: '/Users/me/vault' });
+		expect(resolveDestination('{folder}/_archive', record, vaultPath)).toBe('_archive');
+	});
+
+	it('handles missing properties gracefully', () => {
+		const record = makeRecord();
+		expect(resolveDestination('{type}/{status}', record, vaultPath)).toBe('');
+	});
+
+	it('resolves multiple variables in one template', () => {
+		const record = makeRecord({ folder: '/Users/me/vault/work', basename: 'My-Note' });
+		record.properties.set('type', 'task');
+		expect(resolveDestination('{folder}/_archive/{type}/{basename}', record, vaultPath)).toBe('work/_archive/task/My-Note');
 	});
 });
 

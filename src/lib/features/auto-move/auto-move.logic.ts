@@ -113,7 +113,8 @@ export function resolveDestination(
 		month: String(now.getMonth() + 1).padStart(2, '0'),
 	};
 
-	return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
+	const resolved = template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
+	return resolved.replace(/\/+/g, '/').replace(/^\//, '').replace(/\/$/, '');
 }
 
 /**
