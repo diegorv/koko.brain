@@ -103,7 +103,7 @@
 						<Resizable.Pane
 							order={1}
 							defaultSize={settingsStore.layout.leftPaneSize}
-							minSize={5}
+							minSize={3}
 							maxSize={40}
 							onResize={handleLeftPaneResize}
 						>
@@ -125,7 +125,7 @@
 						<Resizable.Pane
 							order={2}
 							defaultSize={settingsStore.layout.middlePanelSize}
-							minSize={15}
+							minSize={8}
 							maxSize={35}
 							onResize={handleMiddlePanelResize}
 						>
