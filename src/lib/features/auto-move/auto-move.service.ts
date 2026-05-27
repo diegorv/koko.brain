@@ -6,7 +6,7 @@ import { buildNoteRecord } from '$lib/features/collection/collection.logic';
 import { autoMoveStore } from './auto-move.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { findMatchingRule, isInExcludedFolder, isAlreadyInDestination } from './auto-move.logic';
+import { findMatchingRule, isInExcludedFolder, isAlreadyInDestination, resolveDestination } from './auto-move.logic';
 import type { AutoMoveConfig } from './auto-move.types';
 import { debug, error } from '$lib/utils/debug';
 
@@ -153,14 +153,15 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 		return;
 	}
 
-	const alreadyInDest = isAlreadyInDestination(filePath, vaultPath, rule.destination);
+	const resolvedDest = resolveDestination(rule.destination, record, vaultPath);
+	const alreadyInDest = isAlreadyInDestination(filePath, vaultPath, resolvedDest);
 	let targetPath = filePath;
 
 	if (alreadyInDest) {
 		debug('AUTO-MOVE', 'Already in destination, skipping move:', filePath);
 	} else {
 		// Ensure destination folder exists
-		const destPath = `${vaultPath}/${rule.destination}`;
+		const destPath = `${vaultPath}/${resolvedDest}`;
 		try {
 			const destExists = await exists(destPath);
 			if (!destExists) {

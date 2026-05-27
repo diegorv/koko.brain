@@ -87,6 +87,36 @@ export function validateExpression(expression: string): string | null {
 }
 
 /**
+ * Resolves template variables in a destination string.
+ * Variables use {name} syntax (e.g. "{folder}/_archive").
+ * Unknown variables are left as-is.
+ */
+export function resolveDestination(
+	template: string,
+	record: NoteRecord,
+	vaultPath: string,
+): string {
+	const absFolder = record.folder;
+	const relFolder = absFolder.startsWith(vaultPath + '/')
+		? absFolder.slice(vaultPath.length + 1)
+		: absFolder === vaultPath
+			? ''
+			: absFolder;
+
+	const now = new Date();
+	const vars: Record<string, string> = {
+		folder: relFolder,
+		basename: record.basename,
+		type: String(record.properties.get('type') ?? ''),
+		status: String(record.properties.get('status') ?? ''),
+		year: String(now.getFullYear()),
+		month: String(now.getMonth() + 1).padStart(2, '0'),
+	};
+
+	return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
+}
+
+/**
  * Generates a unique rule ID based on timestamp + random suffix.
  */
 export function generateRuleId(): string {

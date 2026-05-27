@@ -28,7 +28,7 @@ Each rule consists of:
 |-------|-------------|
 | **Name** | A human-readable label for the rule (e.g. "Archive completed projects") |
 | **Expression** | A condition written in the Collection expression language (see below) |
-| **Destination** | Target folder path, relative to the vault root (e.g. `Archive/done`) |
+| **Destination** | Target folder path, relative to the vault root. Supports `{variable}` templates (see below) |
 | **Enabled** | Individual toggle — you can disable a rule without deleting it |
 | **Icon** (optional) | An icon applied to the file after it is moved |
 
@@ -62,6 +62,38 @@ Move notes with a `due` date in the past.
 
 > [!TIP]
 > Open [Collection](12-collection.md) to experiment with expressions before adding them as Auto Move rules. The Collection table view uses the same expression engine, so you can validate your filter there first.
+
+## Dynamic Destinations
+
+Destination paths support `{variable}` templates that are resolved at move time based on the note's properties and location.
+
+| Variable | Value | Example |
+|----------|-------|---------|
+| `{folder}` | Current vault-relative folder of the note | `work/squad-payments` |
+| `{basename}` | Filename without extension | `Migrate-Gateway` |
+| `{type}` | Frontmatter `type` property | `project` |
+| `{status}` | Frontmatter `status` property | `done` |
+| `{year}` | Current year | `2026` |
+| `{month}` | Current month (zero-padded) | `05` |
+
+### Examples
+
+```
+{folder}/_archive
+```
+Move to an `_archive` subfolder within the note's current folder. A note in `work/squad-payments/` moves to `work/squad-payments/_archive/`.
+
+```
+Archive/{type}/{year}
+```
+Move to a type-organized archive by year. A project archived in 2026 moves to `Archive/project/2026/`.
+
+```
+{folder}/_archive/{status}
+```
+Combine folder-relative archiving with status. A done project in `work/` moves to `work/_archive/done/`.
+
+Unknown variables are left as-is in the path.
 
 ## Excluded Folders
 
