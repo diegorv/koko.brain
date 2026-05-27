@@ -147,13 +147,13 @@ Controls the markdown editor area, CodeMirror, and active tab.
 | `statusBarBg` | `--status-bar-bg` | Background of the bottom status bar strip (search status, save status, word count) |
 | `statusBarFg` | `--status-bar-fg` | Text color of status bar items |
 
-### Settings Dialog
+### Settings Panel
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `settingsDialogBg` | `--settings-dialog-bg` | Background of the Settings modal overlay |
+| `settingsDialogBg` | `--settings-dialog-bg` | Background of the Settings panel |
 | `settingsSidebarBg` | `--settings-sidebar-bg` | Background of the Settings navigation sidebar (General, Notes, Tools, etc.) |
-| `settingsText` | `--settings-text` | Text color inside the Settings dialog |
+| `settingsText` | `--settings-text` | Text color inside the Settings panel |
 | `settingsHoverBg` | `--settings-hover-bg` | Hover background for Settings sidebar navigation items |
 | `settingItemBg` | `--setting-item-bg` | Background of individual setting rows |
 
