@@ -6,7 +6,12 @@ Learn how to open a vault, create your first note, and understand the app layout
 
 ## What is a Vault?
 
-A **vault** is simply any folder on your Mac that you choose to open with Kokobrain. There is no special format or proprietary container -- a vault is just a regular directory full of files.
+A **vault** is a folder inside one of two designated locations on your Mac:
+
+- `~/Documents/kokobrain-vaults/`
+- `~/kokobrain-vaults/`
+
+Each subfolder you create there becomes its own vault. There is no special format or proprietary container -- a vault is just a regular directory full of files.
 
 Kokobrain reads and writes standard `.md` (Markdown) files directly inside that folder. This means you can open the same folder with Finder, VS Code, or any other app at any time. Your files are never locked in.
 
@@ -22,7 +27,7 @@ When you open a folder as a vault, Kokobrain creates a hidden `.kokobrain/` dire
 When you launch Kokobrain for the first time, you are greeted by a **welcome screen** with an **Open Vault** button in the center.
 
 1. Click **Open Vault**.
-2. A native macOS folder picker appears. Navigate to any existing folder, or click **New Folder** to create one from scratch.
+2. A native macOS folder picker appears. Navigate to `~/Documents/kokobrain-vaults/` or `~/kokobrain-vaults/`, then select or create a subfolder.
 3. Select the folder and click **Open**.
 
 Kokobrain will scan the folder, build a search index, and display its contents in the file explorer.
@@ -30,7 +35,7 @@ Kokobrain will scan the folder, build a search index, and display its contents i
 ![Welcome screen with Open Vault button](screenshots/welcome-screen.png)
 
 > [!NOTE]
-> You can open any folder -- even one that already contains `.md` files from another app. Kokobrain will recognize them immediately.
+> You can open any folder inside the designated vault locations -- even one that already contains `.md` files from another app. Kokobrain will recognize them immediately.
 
 ---
 

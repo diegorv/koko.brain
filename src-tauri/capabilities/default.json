@@ -33,40 +33,28 @@
       "identifier": "fs:allow-read-dir",
       "allow": [
         {
-          "path": "$DOCUMENT"
+          "path": "$DOCUMENT/kokobrain-vaults"
         },
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles"
+          "path": "$HOME/kokobrain-vaults"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         }
       ]
     },
@@ -74,22 +62,16 @@
       "identifier": "fs:allow-read-text-file",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         }
       ]
     },
@@ -97,22 +79,16 @@
       "identifier": "fs:allow-write-text-file",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         },
         {
           "path": "$APPLOG/**"
@@ -123,31 +99,28 @@
       "identifier": "fs:allow-mkdir",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain"
+          "path": "$HOME/kokobrain-vaults"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/kokobrain-vault/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain"
         },
         {
-          "path": "$HOME/kokobrain-vault/.kokobrain"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         },
         {
           "path": "$APPLOG"
@@ -161,22 +134,16 @@
       "identifier": "fs:allow-remove",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         }
       ]
     },
@@ -184,22 +151,16 @@
       "identifier": "fs:allow-rename",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         }
       ]
     },
@@ -207,22 +168,16 @@
       "identifier": "fs:allow-copy-file",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         }
       ]
     },
@@ -230,40 +185,28 @@
       "identifier": "fs:allow-exists",
       "allow": [
         {
-          "path": "$DOCUMENT"
+          "path": "$DOCUMENT/kokobrain-vaults"
         },
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles"
+          "path": "$HOME/kokobrain-vaults"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         },
         {
           "path": "$APPLOG"
@@ -277,22 +220,16 @@
       "identifier": "fs:allow-watch",
       "allow": [
         {
-          "path": "$DOCUMENT/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**"
         },
         {
-          "path": "$DOCUMENT/**/.kokobrain/**"
+          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
         },
         {
-          "path": "$HOME/MyFiles/**"
+          "path": "$HOME/kokobrain-vaults/**"
         },
         {
-          "path": "$HOME/MyFiles/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vault/.kokobrain/**"
+          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
         }
       ]
     },
