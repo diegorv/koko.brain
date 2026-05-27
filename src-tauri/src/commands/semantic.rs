@@ -10,7 +10,7 @@ use crate::utils::logger::debug_log;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
@@ -23,6 +23,11 @@ static VAULT_PATH: Mutex<Option<String>> = Mutex::new(None);
 /// Generation counter for debounced unload. Each use bumps this; only the latest
 /// scheduled unload fires (if the generation hasn't changed since scheduling).
 static UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Tracks whether the embedder was successfully loaded at least once this session.
+/// Stays true even after idle/post-index unloads (the model lazy-reloads on demand).
+/// Reset only on `shutdown_semantic` (vault close / switch).
+static MODEL_AVAILABLE: AtomicBool = AtomicBool::new(false);
 
 /// Seconds of inactivity before the embedder is automatically unloaded to free memory.
 const EMBEDDER_IDLE_TIMEOUT_SECS: u64 = 120;
@@ -238,6 +243,7 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 		let embedder = Embedder::load(&manager.model_path(), expected_dim)?;
 		let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 		*guard = Some(embedder);
+		MODEL_AVAILABLE.store(true, Ordering::SeqCst);
 		Ok(true)
 	})
 	.await
@@ -849,7 +855,7 @@ pub fn get_semantic_stats() -> Result<SemanticStats, String> {
 /// per-file query so the UI can distinguish "not indexed" from "semantic off".
 #[tauri::command]
 pub fn get_semantic_file_status(file_path: String) -> Result<SemanticFileStatus, String> {
-	let model_loaded = EMBEDDER.lock().map(|g| g.is_some()).unwrap_or(false);
+	let model_loaded = MODEL_AVAILABLE.load(Ordering::SeqCst);
 	let (chunk_count, last_embedded_at) =
 		db::with_db(|conn| db::semantic_repo::get_file_index_info(conn, &file_path))?;
 	Ok(SemanticFileStatus {
@@ -864,6 +870,7 @@ pub fn get_semantic_file_status(file_path: String) -> Result<SemanticFileStatus,
 #[tauri::command]
 pub fn shutdown_semantic() -> Result<(), String> {
 	debug_log("SEMANTIC", "Shutting down: releasing model + clearing cache");
+	MODEL_AVAILABLE.store(false, Ordering::SeqCst);
 	if let Ok(mut guard) = EMBEDDER.lock() {
 		*guard = None;
 	}
@@ -1118,7 +1125,7 @@ fn update_stored_mtime(file_path: &str, vault_path: &str) -> Result<(), String> 
 
 /// Inner implementation of get_semantic_stats (non-command, reusable).
 fn get_semantic_stats_inner() -> Result<SemanticStats, String> {
-	let model_loaded = EMBEDDER.lock().map(|g| g.is_some()).unwrap_or(false);
+	let model_loaded = MODEL_AVAILABLE.load(Ordering::SeqCst);
 
 	db::with_db(|conn| {
 		let total_chunks = db::semantic_repo::count_chunks(conn)?;
