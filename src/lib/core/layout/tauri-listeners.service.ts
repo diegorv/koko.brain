@@ -2,8 +2,7 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
-import { loadSettings } from '$lib/core/settings/settings.service';
+import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -24,8 +23,7 @@ export function registerMenuSettingsListener(): () => void {
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
 	listen('menu:settings', () => {
-		const path = vaultStore.path;
-		if (path) openSettingsWindow(path);
+		settingsPanelStore.toggle();
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
@@ -114,32 +112,6 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	};
 }
 
-/**
- * Registers a listener for cross-window settings-changed events.
- * When the settings window saves, reloads settings from disk and applies theme.
- * Returns a cleanup function to unsubscribe.
- */
-export function registerSettingsChangedListener(): () => void {
-	let cancelled = false;
-	let unlisten: (() => void) | undefined;
-	listen('settings-changed', () => {
-		const path = vaultStore.path;
-		if (path) {
-			loadSettings(path).catch((err) => {
-				console.error('Failed to reload settings after cross-window change:', err);
-			});
-		}
-	}).then((fn) => {
-		if (cancelled) fn();
-		else unlisten = fn;
-	}).catch((err) => {
-		console.error('Failed to listen for settings-changed:', err);
-	});
-	return () => {
-		cancelled = true;
-		unlisten?.();
-	};
-}
 
 /**
  * Registers a listener for window focus changes.

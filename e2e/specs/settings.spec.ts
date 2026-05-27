@@ -1,27 +1,30 @@
 import { test, expect } from '../fixtures/test-vault';
 import { pressShortcut } from '../fixtures/helpers';
 
-test.describe('Settings window', () => {
-	test('Cmd+, opens the settings window', async ({ vaultPage: page }) => {
+test.describe('Settings panel', () => {
+	test('Cmd+, opens the panel', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Comma');
-		await page.waitForFunction(() => window.__e2e.webviewWindows.has('settings'), null, { timeout: 5000 });
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await expect(panel).toBeVisible();
 	});
 
-	test('settings window URL contains vault path', async ({ vaultPage: page }) => {
+	test('navigating between sections updates the visible content', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Comma');
-		await page.waitForFunction(() => window.__e2e.webviewWindows.has('settings'), null, { timeout: 5000 });
-		const url = await page.evaluate(() => window.__e2e.webviewWindows.get('settings')?.url ?? '');
-		expect(url).toContain('/settings');
-		expect(url).toContain('vault=');
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await expect(panel).toBeVisible();
+
+		const editorTab = panel.getByRole('button', { name: /^editor$/i }).first();
+		if (await editorTab.isVisible().catch(() => false)) {
+			await editorTab.click();
+			await expect(panel.getByText(/font/i).first()).toBeVisible();
+		}
 	});
 
-	test('second Cmd+, focuses existing window instead of creating duplicate', async ({ vaultPage: page }) => {
+	test('Escape closes the panel', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Comma');
-		await page.waitForFunction(() => window.__e2e.webviewWindows.has('settings'), null, { timeout: 5000 });
-		await pressShortcut(page, 'Mod+Comma');
-		// Small delay for the second call to resolve
-		await page.waitForTimeout(200);
-		const count = await page.evaluate(() => window.__e2e.webviewWindows.size);
-		expect(count).toBeLessThanOrEqual(1);
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await expect(panel).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(panel).not.toBeVisible();
 	});
 });

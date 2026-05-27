@@ -59,8 +59,12 @@ vi.mock('$lib/features/file-history/file-history.service', () => ({
 	openFileHistory: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/settings-window.service', () => ({
-	openSettingsWindow: vi.fn(() => Promise.resolve()),
+vi.mock('$lib/core/settings/settings-panel.store.svelte', () => ({
+	settingsPanelStore: {
+		toggle: vi.fn(),
+		open: vi.fn(),
+		close: vi.fn(),
+	},
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -74,7 +78,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
-import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
+import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { getBuiltInCommands } from '$lib/features/command-palette/command-palette.service';
 
 describe('getBuiltInCommands', () => {
@@ -86,7 +90,7 @@ describe('getBuiltInCommands', () => {
 		settingsStore.reset();
 		fsStore.reset();
 		searchStore.reset();
-		vi.mocked(openSettingsWindow).mockClear();
+		vi.mocked(settingsPanelStore.toggle).mockClear();
 	});
 
 	it('returns 25 built-in commands', () => {
@@ -265,21 +269,12 @@ describe('getBuiltInCommands', () => {
 		expect(searchStore.isOpen).toBe(true);
 	});
 
-	it('settings open action calls openSettingsWindow when vault is open', () => {
-		vaultStore.open('/test-vault');
+	it('settings open action toggles settings panel', () => {
 		const commands = getBuiltInCommands();
 		const settings = commands.find((c) => c.id === 'settings:open');
 
 		settings!.action();
-		expect(openSettingsWindow).toHaveBeenCalledWith('/test-vault');
-	});
-
-	it('settings open action does nothing when vault path is null', () => {
-		const commands = getBuiltInCommands();
-		const settings = commands.find((c) => c.id === 'settings:open');
-
-		settings!.action();
-		expect(openSettingsWindow).not.toHaveBeenCalled();
+		expect(settingsPanelStore.toggle).toHaveBeenCalledTimes(1);
 	});
 
 });

@@ -23,7 +23,7 @@ import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-note
 import { openTemplatePicker } from '$lib/plugins/templates/templates.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
-import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
+import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
@@ -243,7 +243,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'Open Settings',
 			category: 'Settings',
 			shortcut: { meta: true, code: 'Comma' },
-			action: () => { if (vaultStore.path) openSettingsWindow(vaultStore.path); },
+			action: () => { settingsPanelStore.toggle(); },
 		},
 		{
 			id: 'file-history:open',

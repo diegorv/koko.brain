@@ -8,7 +8,7 @@
 	import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
 	import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 	import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener, registerSettingsChangedListener } from '$lib/core/layout/tauri-listeners.service';
+	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
 	import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 	import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
@@ -46,10 +46,6 @@
 
 	$effect(() => {
 		return registerVaultIndexUpdatedListener();
-	});
-
-	$effect(() => {
-		return registerSettingsChangedListener();
 	});
 
 	// ── Vault initialization / teardown ─────────────────────────────

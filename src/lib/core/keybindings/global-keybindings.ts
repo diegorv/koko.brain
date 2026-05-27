@@ -12,7 +12,7 @@ import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { openSettingsWindow } from '$lib/core/settings/settings-window.service';
+import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
@@ -114,9 +114,7 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({
 			code: 'Comma',
 			meta: true,
-			handler: () => {
-				if (vaultStore.path) openSettingsWindow(vaultStore.path);
-			},
+			handler: () => { settingsPanelStore.toggle(); },
 		}),
 		registerKeybinding({
 			key: 'h',
