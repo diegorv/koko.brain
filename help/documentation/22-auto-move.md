@@ -70,6 +70,7 @@ Destination paths support `{variable}` templates that are resolved at move time 
 | Variable | Value | Example |
 |----------|-------|---------|
 | `{folder}` | Current vault-relative folder of the note | `work/squad-payments` |
+| `{parent}` | Parent of the current folder | `work` |
 | `{basename}` | Filename without extension | `Migrate-Gateway` |
 | `{type}` | Frontmatter `type` property | `project` |
 | `{status}` | Frontmatter `status` property | `done` |
