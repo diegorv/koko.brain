@@ -8,7 +8,7 @@ export interface RecentVault {
 	openedAt: number;
 }
 
-const MAX_RECENT_VAULTS = 10;
+const MAX_RECENT_VAULTS = 3;
 
 /** Extracts the vault name from its path (e.g. "/Users/me/notes" → "notes") */
 export function extractVaultName(path: string): string {

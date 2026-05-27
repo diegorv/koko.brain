@@ -33,7 +33,7 @@
 
 	const containerClass = $derived(
 		variant === 'footer'
-			? 'inline-flex items-center gap-2 font-mono text-xs text-muted-foreground/50'
+			? 'inline-flex items-center gap-2 rounded-md border border-muted-foreground/10 bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground'
 			: 'inline-flex items-center gap-2 font-mono text-sm text-muted-foreground',
 	);
 </script>
