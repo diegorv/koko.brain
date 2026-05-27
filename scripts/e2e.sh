@@ -65,7 +65,7 @@ done
 # ─── Run tests ────────────────────────────────────────────────────────
 echo ""
 set +e
-npx playwright test --config e2e/playwright.config.ts "$@"
+npx playwright test --config e2e/playwright.config.ts -x "$@"
 TEST_EXIT=$?
 set -e
 exit $TEST_EXIT
