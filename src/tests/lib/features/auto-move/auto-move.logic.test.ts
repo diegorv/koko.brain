@@ -287,6 +287,16 @@ describe('resolveDestination', () => {
 		expect(resolveDestination('{type}/{status}', record, vaultPath)).toBe('');
 	});
 
+	it('resolves {parent} to parent of current folder', () => {
+		const record = makeRecord({ folder: '/Users/me/vault/work/squad-payments/_archive' });
+		expect(resolveDestination('{parent}', record, vaultPath)).toBe('work/squad-payments');
+	});
+
+	it('{parent} at one level deep returns empty string', () => {
+		const record = makeRecord({ folder: '/Users/me/vault/work' });
+		expect(resolveDestination('{parent}', record, vaultPath)).toBe('');
+	});
+
 	it('resolves multiple variables in one template', () => {
 		const record = makeRecord({ folder: '/Users/me/vault/work', basename: 'My-Note' });
 		record.properties.set('type', 'task');

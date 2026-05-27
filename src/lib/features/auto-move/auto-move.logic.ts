@@ -103,9 +103,13 @@ export function resolveDestination(
 			? ''
 			: absFolder;
 
+	const lastSlash = relFolder.lastIndexOf('/');
+	const parentFolder = lastSlash > 0 ? relFolder.substring(0, lastSlash) : '';
+
 	const now = new Date();
 	const vars: Record<string, string> = {
 		folder: relFolder,
+		parent: parentFolder,
 		basename: record.basename,
 		type: String(record.properties.get('type') ?? ''),
 		status: String(record.properties.get('status') ?? ''),
