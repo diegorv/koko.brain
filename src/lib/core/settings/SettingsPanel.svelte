@@ -75,22 +75,21 @@
 	});
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
+		if (event.key === 'Escape' && settingsPanelStore.isOpen) {
 			settingsPanelStore.close();
 		}
 	}
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 {#if settingsPanelStore.isOpen}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		class="fixed top-0 right-0 z-40 flex flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
 		style="bottom: 24px; width: 820px; max-width: 80vw;"
 		transition:fly={{ x: 820, duration: 200 }}
 		role="dialog"
 		aria-label="Settings"
-		tabindex="-1"
-		onkeydown={handleKeydown}
 	>
 		<!-- Sidebar -->
 		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 py-5 bg-settings-sidebar-bg">
