@@ -118,7 +118,7 @@ where
 	let db = DB.lock().map_err(|e| format!("Lock error: {e}"))?;
 	let conn = db.as_ref().ok_or("Database not open")?;
 	debug_log("DB", format!("BEGIN — {label}"));
-	conn.execute_batch("BEGIN")
+	conn.execute_batch("BEGIN IMMEDIATE")
 		.map_err(|e| format!("Failed to begin transaction: {e}"))?;
 	match f(conn) {
 		Ok(result) => {
@@ -159,7 +159,7 @@ where
 	let db = FTS_DB.lock().map_err(|e| format!("Lock error: {e}"))?;
 	let conn = db.as_ref().ok_or("FTS database not open")?;
 	debug_log("DB", format!("BEGIN — {label}"));
-	conn.execute_batch("BEGIN")
+	conn.execute_batch("BEGIN IMMEDIATE")
 		.map_err(|e| format!("Failed to begin transaction: {e}"))?;
 	match f(conn) {
 		Ok(result) => {
