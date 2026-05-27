@@ -65,7 +65,7 @@ Move notes with a `due` date in the past.
 
 ## Dynamic Destinations
 
-Destination paths support `{variable}` templates that are resolved at move time based on the note's properties and location.
+Destination paths support `{variable}` templates that are resolved at move time based on the note's properties and location. This works in **all rules** — both user-defined rules and auto-generated [lifecycle rules](#type-driven-lifecycle-rules).
 
 | Variable | Value | Example |
 |----------|-------|---------|
