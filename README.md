@@ -91,8 +91,8 @@ Concept-level inspirations from Obsidian community plugins I used daily. No code
 | Calendar | [oz-calendar](https://github.com/ozntel/oz-calendar) |
 | Folder notes | [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes) |
 | Auto open & Pin tab | [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage) |
-| Types | [Tolaria](https://github.com/refactoringhq/tolaria) note types system |
-| Relationships | [Portent](https://portent.md) knowledge base spec |
+| Types | [Tolaria note types system](https://github.com/refactoringhq/tolaria) |
+| Relationships | [Portent knowledge base spec](https://portent.md) |
 
 ## 📄 License
 
