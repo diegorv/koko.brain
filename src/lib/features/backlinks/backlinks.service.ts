@@ -140,7 +140,7 @@ export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: str
 /**
  * Fetches relationship backlinks for a file from the Rust `VaultIndex`.
  * These are notes that reference the target via frontmatter fields
- * (`belongs_to`, `related_to`, or custom wikilink-bearing fields).
+ * (`_belongs_to`, `_related_to`, `_has_many`, or custom wikilink-bearing fields).
  */
 async function fetchRelationshipBacklinksInner(path: string): Promise<void> {
 	try {

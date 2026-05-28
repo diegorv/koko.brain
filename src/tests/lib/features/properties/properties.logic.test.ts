@@ -575,10 +575,21 @@ describe('frontmatter alias normalization', () => {
 	});
 
 	it('normalizes space-separated aliases', () => {
-		const content = '---\nis a: place\nbelongs to: geography\n---\n';
+		const content = '---\nis a: place\nsidebar label: Places\n---\n';
 		const props = parseFrontmatterProperties(content);
 		expect(props.find((p) => p.key === 'type')?.value).toBe('place');
-		expect(props.find((p) => p.key === 'belongs_to')?.value).toBe('geography');
+		expect(props.find((p) => p.key === '_sidebar_label')?.value).toBe('Places');
+	});
+
+	it('does not alias relationship keys', () => {
+		// Relationship fields are underscore-canonical and take no alias:
+		// the bare/space spellings stay verbatim.
+		const content = '---\nbelongs to: geography\nrelated_to: maps\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props.find((p) => p.key === 'belongs_to')).toBeUndefined();
+		expect(props.find((p) => p.key === '_belongs_to')).toBeUndefined();
+		expect(props.find((p) => p.key === 'belongs to')?.value).toBe('geography');
+		expect(props.find((p) => p.key === 'related_to')?.value).toBe('maps');
 	});
 
 	it('normalizes underscore-prefixed system keys', () => {
@@ -711,10 +722,11 @@ describe('computeRemoveRelationshipValue', () => {
 describe('formatRelationshipLabel', () => {
 	it('converts snake_case to Title Case', () => {
 		expect(formatRelationshipLabel('belongs_to')).toBe('Belongs To');
+		expect(formatRelationshipLabel('has_many')).toBe('Has Many');
 	});
 
 	it('handles single word', () => {
-		expect(formatRelationshipLabel('has')).toBe('Has');
+		expect(formatRelationshipLabel('mentor')).toBe('Mentor');
 	});
 
 	it('handles triple underscore segments', () => {

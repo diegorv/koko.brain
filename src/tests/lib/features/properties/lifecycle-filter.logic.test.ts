@@ -26,6 +26,7 @@ function entry(path: string, archived: boolean): NoteEntryV2 {
 		favorite: false,
 		belongsTo: [],
 		relatedTo: [],
+		hasMany: [],
 		relationships: {},
 	};
 }

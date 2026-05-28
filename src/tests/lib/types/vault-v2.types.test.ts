@@ -89,6 +89,7 @@ describe('vault-v2.types', () => {
 				favorite: false,
 				belongsTo: [],
 				relatedTo: [],
+				hasMany: [],
 				relationships: {},
 			};
 
@@ -113,6 +114,7 @@ describe('vault-v2.types', () => {
 				'createdAt',
 				'favorite',
 				'frontmatter',
+				'hasMany',
 				'isA',
 				'modifiedAt',
 				'organized',

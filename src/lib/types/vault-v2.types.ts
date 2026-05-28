@@ -122,10 +122,12 @@ export interface NoteEntryV2 {
 	archived: boolean;
 	/** Lifecycle flag: note is pinned as a favorite. */
 	favorite: boolean;
-	/** Hierarchical ownership targets from `belongs_to` frontmatter (wikilink targets). */
+	/** Hierarchical ownership targets from `_belongs_to` frontmatter (wikilink targets). */
 	belongsTo: string[];
-	/** Lateral relationship targets from `related_to` frontmatter (wikilink targets). */
+	/** Lateral relationship targets from `_related_to` frontmatter (wikilink targets). */
 	relatedTo: string[];
+	/** Inverse-ownership targets from `_has_many` frontmatter (wikilink targets). */
+	hasMany: string[];
 	/** Generic relationships: field name -> wikilink targets for fields containing `[[...]]`. */
 	relationships: Record<string, string[]>;
 }
@@ -141,7 +143,7 @@ export interface RelationshipBacklinkV2 {
 	sourcePath: string;
 	/** Title of the source note. */
 	sourceName: string;
-	/** Relationship type (e.g. "belongs_to", "related_to", or custom field name). */
+	/** Relationship type (e.g. "belongs_to", "related_to", "has_many", or custom field name). */
 	relationshipType: string;
 }
 

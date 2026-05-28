@@ -71,13 +71,13 @@ describe('upsertProperty', () => {
 		openTabWithContent('---\ntitle: Hello\n---\nBody');
 		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
 
-		upsertProperty('belongs_to', '[[Note]]');
+		upsertProperty('_belongs_to', '[[Note]]');
 
 		expect(propertiesStore.properties).toHaveLength(2);
-		const added = propertiesStore.properties.find((p) => p.key === 'belongs_to');
+		const added = propertiesStore.properties.find((p) => p.key === '_belongs_to');
 		expect(added?.value).toBe('[[Note]]');
 		expect(added?.type).toBe('text');
-		expect(editorStore.activeTab?.content).toContain('belongs_to: "[[Note]]"');
+		expect(editorStore.activeTab?.content).toContain('_belongs_to: "[[Note]]"');
 	});
 
 	it('updates existing property value', () => {

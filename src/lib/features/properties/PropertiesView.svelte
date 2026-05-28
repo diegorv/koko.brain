@@ -47,9 +47,9 @@
 
 	const LIFECYCLE_KEYS = new Set(['_favorite', '_organized', '_archived']);
 	const FIXED_RELATIONSHIPS: { key: string; label: string }[] = [
-		{ key: 'belongs_to', label: 'Belongs To' },
-		{ key: 'related_to', label: 'Related To' },
-		{ key: 'has', label: 'Has' },
+		{ key: '_belongs_to', label: 'Belongs To' },
+		{ key: '_related_to', label: 'Related To' },
+		{ key: '_has_many', label: 'Has Many' },
 	];
 	const RELATIONSHIP_KEYS = new Set(FIXED_RELATIONSHIPS.map((r) => r.key));
 

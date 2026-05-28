@@ -39,6 +39,7 @@ const makeEntry = (overrides: Partial<NoteEntryV2>): NoteEntryV2 => ({
 	favorite: false,
 	belongsTo: [],
 	relatedTo: [],
+	hasMany: [],
 	relationships: {},
 	...overrides,
 });

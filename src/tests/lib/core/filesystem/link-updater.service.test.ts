@@ -41,6 +41,7 @@ function entry(path: string, title?: string): NoteEntryV2 {
 		favorite: false,
 		belongsTo: [],
 		relatedTo: [],
+		hasMany: [],
 		relationships: {},
 	};
 }

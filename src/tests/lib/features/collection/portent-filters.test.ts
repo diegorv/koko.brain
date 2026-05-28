@@ -68,23 +68,33 @@ describe('Portent collection filters', () => {
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
-	it('filters by belongs_to contains', () => {
+	it('filters by _belongs_to contains', () => {
 		const index = makeIndex([
-			makeRecord('/a.md', { belongs_to: ['project', 'area'] }),
-			makeRecord('/b.md', { belongs_to: ['other'] }),
+			makeRecord('/a.md', { _belongs_to: ['project', 'area'] }),
+			makeRecord('/b.md', { _belongs_to: ['other'] }),
 			makeRecord('/c.md', {}),
 		]);
-		const def = baseDef("belongs_to.contains('project')");
+		const def = baseDef("_belongs_to.contains('project')");
 		const result = executeQuery(def, baseView(), index);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
-	it('filters by related_to contains', () => {
+	it('filters by _related_to contains', () => {
 		const index = makeIndex([
-			makeRecord('/a.md', { related_to: ['maps'] }),
+			makeRecord('/a.md', { _related_to: ['maps'] }),
 			makeRecord('/b.md', {}),
 		]);
-		const def = baseDef("related_to.contains('maps')");
+		const def = baseDef("_related_to.contains('maps')");
+		const result = executeQuery(def, baseView(), index);
+		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
+	});
+
+	it('filters by _has_many contains', () => {
+		const index = makeIndex([
+			makeRecord('/a.md', { _has_many: ['task-a', 'task-b'] }),
+			makeRecord('/b.md', {}),
+		]);
+		const def = baseDef("_has_many.contains('task-a')");
 		const result = executeQuery(def, baseView(), index);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});

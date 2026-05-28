@@ -195,6 +195,7 @@ describe('noteEntryV2ToBacklinkEntry', () => {
 			favorite: false,
 			belongsTo: [],
 			relatedTo: [],
+			hasMany: [],
 			relationships: {},
 			...overrides,
 		};
