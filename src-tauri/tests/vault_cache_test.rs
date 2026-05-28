@@ -2,7 +2,7 @@
 
 use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index_cache::{
-	self, cache_file_path, deserialize_snapshot, read_snapshot, serialize_snapshot, write_snapshot,
+	cache_file_path, deserialize_snapshot, read_snapshot, serialize_snapshot, write_snapshot,
 	IndexSnapshot, INDEX_SCHEMA_VERSION,
 };
 use std::collections::BTreeMap;
