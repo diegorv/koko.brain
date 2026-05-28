@@ -30,23 +30,71 @@ pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
 pub const COMPOSER_WINDOW_LABEL: &str = "composer";
 
 /// Pure helper: read the clipboard via the injected adapter, decide
-/// the kind(s), and serialize each result into a kokobrain
-/// `CaptureAction`-shaped JSON object — minus `vault`, which the
-/// frontend fills from the active vault.
+/// the kind(s), materialize any in-memory shot bytes to a temp file,
+/// and serialize each result into a kokobrain `CaptureAction`-shaped
+/// JSON object — minus `vault`, which the frontend fills from the
+/// active vault.
 ///
 /// Returns one `Value` per detected input. An empty clipboard or an
 /// empty file list returns the underlying `KindDetectError` as a
-/// String.
+/// String. A failed temp-file write surfaces as `Err`.
 pub fn capture_clipboard_now_with(
     clipboard: &dyn Clipboard,
     captured_at: String,
 ) -> Result<Vec<Value>, String> {
     let snapshot = clipboard.read().map_err(|e| e.to_string())?;
     let inputs = decide(snapshot).map_err(|e| e.to_string())?;
-    Ok(inputs
-        .into_iter()
-        .map(|input| capture_input_to_payload(input, &captured_at))
-        .collect())
+    let mut out = Vec::with_capacity(inputs.len());
+    for input in inputs {
+        let resolved = materialize_input(input)?;
+        out.push(capture_input_to_payload(resolved, &captured_at));
+    }
+    Ok(out)
+}
+
+/// Resolve a `CaptureInput` against the filesystem before it goes out
+/// as a payload. The only variant that needs work is
+/// `Shot::Bytes` — the kokobrain capture handler accepts a `file://`
+/// path embed, not in-memory bytes, so we write the PNG out to the
+/// OS temp directory and rewrite the input to `Shot::Path` pointing
+/// at it. All other variants pass through unchanged.
+fn materialize_input(input: CaptureInput) -> Result<CaptureInput, String> {
+    match input {
+        CaptureInput::Shot {
+            source: ShotSource::Bytes { bytes, mime },
+        } => {
+            let path = write_shot_bytes_to_temp(&bytes, &mime)?;
+            Ok(CaptureInput::Shot {
+                source: ShotSource::Path { path, mime },
+            })
+        }
+        other => Ok(other),
+    }
+}
+
+/// Write clipboard image bytes to a uniquely-named file in
+/// `std::env::temp_dir()`. Returns the absolute path of the new file.
+/// File names are `qc-shot-<utc-rfc3339-no-colons>.<ext>` so multiple
+/// captures within the same second never collide.
+fn write_shot_bytes_to_temp(bytes: &[u8], mime: &str) -> Result<std::path::PathBuf, String> {
+    let ext = match mime {
+        "image/png" => "png",
+        "image/jpeg" | "image/jpg" => "jpg",
+        // Default to .bin so an unknown mime is still writable. The
+        // CommonMark image embed in `deep-link.service.ts` falls back
+        // to a plain link when the mime is not image/*, so this stays
+        // visually correct.
+        _ => "bin",
+    };
+    // chrono's RFC3339 includes colons + dots that some filesystems
+    // dislike; replace with dashes. Microseconds make collisions on a
+    // single-machine clock effectively impossible.
+    let stamp = chrono::Utc::now()
+        .format("%Y%m%dT%H%M%S%6f")
+        .to_string();
+    let path = std::env::temp_dir().join(format!("qc-shot-{stamp}.{ext}"));
+    std::fs::write(&path, bytes).map_err(|e| format!("write shot temp: {e}"))?;
+    Ok(path)
 }
 
 /// Map one detected input to a `CaptureAction`-shaped JSON object.
@@ -236,16 +284,31 @@ mod tests {
     }
 
     #[test]
-    fn image_clipboard_emits_pending_shot_payload() {
+    fn image_clipboard_writes_temp_file_and_emits_path_payload() {
+        let bytes = vec![1, 2, 3, 4];
         let out = run(Ok(ClipboardSnapshot::Image {
-            bytes: vec![1, 2, 3, 4],
+            bytes: bytes.clone(),
             mime: "image/png".into(),
         }));
         assert_eq!(out.len(), 1);
         assert_eq!(out[0]["kind"], "shot");
         assert_eq!(out[0]["mime"], "image/png");
-        assert_eq!(out[0]["pending"], true);
-        assert_eq!(out[0]["path"], "");
+        let path = out[0]["path"]
+            .as_str()
+            .expect("path field present on shot payload");
+        assert!(!path.is_empty(), "path must be filled after materialization");
+        assert!(path.ends_with(".png"), "extension follows mime: got {path}");
+        let buf = std::path::PathBuf::from(path);
+        let read_back = std::fs::read(&buf).expect("temp shot file readable");
+        assert_eq!(read_back, bytes, "bytes preserved through temp write");
+        // Test housekeeping: drop the temp file so we do not leak across
+        // test runs (cargo isolates per process but multiple tests in
+        // the same binary share /tmp, so be explicit).
+        let _ = std::fs::remove_file(&buf);
+        assert!(
+            out[0].get("pending").is_none(),
+            "materialized payload must not carry pending=true"
+        );
     }
 
     #[test]
