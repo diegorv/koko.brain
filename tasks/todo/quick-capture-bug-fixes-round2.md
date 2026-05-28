@@ -18,7 +18,7 @@ relevant tests before each commit (CLAUDE.md rule 6).
   exists. Verify: pnpm check + vitest (new test: exists()->true yields a suffixed
   write path).
 
-- [ ] N3 (LOW) — Esc during the 180ms save flash double-invokes dismiss_composer.
+- [x] N3 (LOW) — Esc during the 180ms save flash double-invokes dismiss_composer.
   The `saving` guard doesn't block the Esc branch of onKeyDown
   (composer/+page.svelte). Guard the dismiss path so a save-in-progress (or
   already-dismissing) Esc is a no-op. Verify: pnpm check.

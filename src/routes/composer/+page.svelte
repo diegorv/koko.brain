@@ -8,11 +8,16 @@
 	let text = $state('');
 	let saved = $state(false);
 	let saving = false;
+	let dismissing = false;
 	let textareaEl: HTMLTextAreaElement | undefined = $state();
 	let unlisten: UnlistenFn | undefined;
 	const SAVE_FLASH_MS = 180;
 
 	async function dismiss() {
+		// Idempotent: Esc during the save flash (or Esc spam) must not fire
+		// dismiss_composer twice. Reset per show in resetForShow().
+		if (dismissing) return;
+		dismissing = true;
 		try {
 			await invoke('dismiss_composer');
 		} catch (err) {
@@ -49,6 +54,7 @@
 		text = '';
 		saved = false;
 		saving = false;
+		dismissing = false;
 		// Defer focus to the next tick so the show + reset commits to DOM first.
 		queueMicrotask(() => textareaEl?.focus());
 	}
