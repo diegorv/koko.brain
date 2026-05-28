@@ -49,6 +49,39 @@ describe('settingsStore', () => {
 			expect(settingsStore.quickNote.filenameFormat).toBe(DEFAULT_SETTINGS.quickNote.filenameFormat);
 		});
 
+		it('quickCapture default templates point at the bundled Quick Note template for every kind', () => {
+			const expected = '_system/templates/Quick Note.md';
+			expect(settingsStore.quickCapture.templates.note).toBe(expected);
+			expect(settingsStore.quickCapture.templates.clip).toBe(expected);
+			expect(settingsStore.quickCapture.templates.link).toBe(expected);
+			expect(settingsStore.quickCapture.templates.shot).toBe(expected);
+			expect(settingsStore.quickCapture.templates.file).toBe(expected);
+		});
+
+		it('updateQuickCapture merges folder/filename without touching templates', () => {
+			settingsStore.updateQuickCapture({ folderFormat: 'YYYY' });
+			expect(settingsStore.quickCapture.folderFormat).toBe('YYYY');
+			expect(settingsStore.quickCapture.filenameFormat).toBe(
+				DEFAULT_SETTINGS.quickCapture.filenameFormat,
+			);
+			expect(settingsStore.quickCapture.templates).toEqual(
+				DEFAULT_SETTINGS.quickCapture.templates,
+			);
+		});
+
+		it('updateQuickCapture templates merges by kind without wiping other kinds', () => {
+			settingsStore.updateQuickCapture({
+				templates: { note: '_system/templates/Custom.md' },
+			});
+			expect(settingsStore.quickCapture.templates.note).toBe('_system/templates/Custom.md');
+			expect(settingsStore.quickCapture.templates.clip).toBe(
+				DEFAULT_SETTINGS.quickCapture.templates.clip,
+			);
+			expect(settingsStore.quickCapture.templates.link).toBe(
+				DEFAULT_SETTINGS.quickCapture.templates.link,
+			);
+		});
+
 		it('updateOneOnOne merges with existing', () => {
 			settingsStore.updateOneOnOne({ peopleFolder: '_team' });
 			expect(settingsStore.oneOnOne.peopleFolder).toBe('_team');

@@ -99,6 +99,14 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.quickNote,
 				...parsed.quickNote,
 			},
+			quickCapture: {
+				...DEFAULT_SETTINGS.quickCapture,
+				...parsed.quickCapture,
+				templates: {
+					...DEFAULT_SETTINGS.quickCapture.templates,
+					...(parsed.quickCapture?.templates ?? {}),
+				},
+			},
 			oneOnOne: {
 				...DEFAULT_SETTINGS.oneOnOne,
 				...parsed.oneOnOne,

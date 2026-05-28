@@ -13,6 +13,7 @@
 	import EditorSection from '$lib/core/settings/sections/EditorSection.svelte';
 	import PeriodicNotesSection from '$lib/core/settings/sections/PeriodicNotesSection.svelte';
 	import QuickNoteSection from '$lib/core/settings/sections/QuickNoteSection.svelte';
+	import QuickCaptureSection from '$lib/core/settings/sections/QuickCaptureSection.svelte';
 	import OneOnOneSection from '$lib/core/settings/sections/OneOnOneSection.svelte';
 	import TemplatesSection from '$lib/core/settings/sections/TemplatesSection.svelte';
 	import SearchSection from '$lib/core/settings/sections/SearchSection.svelte';
@@ -50,6 +51,7 @@
 		editor: PencilLineIcon,
 		'periodic-notes': CalendarDaysIcon,
 		'quick-note': ZapIcon,
+		'quick-capture': ZapIcon,
 		'one-on-one': UsersIcon,
 		templates: FileTextIcon,
 		search: SearchIcon,
@@ -134,6 +136,8 @@
 					<PeriodicNotesSection onchange={debouncedSave} />
 				{:else if settingsPanelStore.activeSection === 'quick-note'}
 					<QuickNoteSection onchange={debouncedSave} />
+				{:else if settingsPanelStore.activeSection === 'quick-capture'}
+					<QuickCaptureSection onchange={debouncedSave} />
 				{:else if settingsPanelStore.activeSection === 'one-on-one'}
 					<OneOnOneSection onchange={debouncedSave} />
 				{:else if settingsPanelStore.activeSection === 'templates'}

@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -35,6 +35,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		folderFormat: 'YYYY/MM-MMM',
 		filenameFormat: '[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS',
 		templatePath: '_system/templates/Quick Note.md',
+	},
+	quickCapture: {
+		folderFormat: 'YYYY/MM-MMM',
+		filenameFormat: '[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS',
+		templates: {
+			note: '_system/templates/Quick Note.md',
+			clip: '_system/templates/Quick Note.md',
+			link: '_system/templates/Quick Note.md',
+			shot: '_system/templates/Quick Note.md',
+			file: '_system/templates/Quick Note.md',
+		},
 	},
 	oneOnOne: {
 		peopleFolder: 'Personal/_people',
@@ -122,6 +133,7 @@ export const settingsStore = {
 	get settings() { return settings; },
 	get periodicNotes() { return settings.periodicNotes; },
 	get quickNote() { return settings.quickNote; },
+	get quickCapture() { return settings.quickCapture; },
 	get oneOnOne() { return settings.oneOnOne; },
 	get layout() { return settings.layout; },
 	get folderNotes() { return settings.folderNotes; },
@@ -172,6 +184,23 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			quickNote: { ...settings.quickNote, ...value },
+		};
+	},
+
+	/**
+	 * Partially updates Quick Capture settings, merging with existing
+	 * values. Templates are merged shallowly so a partial update of just
+	 * `templates.note` does not wipe the other four kinds.
+	 */
+	updateQuickCapture(value: QuickCaptureUpdate) {
+		const current = settings.quickCapture;
+		settings = {
+			...settings,
+			quickCapture: {
+				...current,
+				...value,
+				templates: { ...current.templates, ...(value.templates ?? {}) },
+			},
 		};
 	},
 

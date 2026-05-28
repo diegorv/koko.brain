@@ -148,6 +148,36 @@ export interface QuickNoteSettings {
 	templatePath?: string;
 }
 
+/**
+ * Per-kind template paths for the Quick Capture composer + clipboard
+ * shortcut. Each kind picks its own template; an empty string means
+ * "no template — just write the rendered body".
+ */
+export interface QuickCaptureTemplates {
+	note: string;
+	clip: string;
+	link: string;
+	shot: string;
+	file: string;
+}
+
+/** Configuration for the Quick Capture surface (composer popover + clipboard shortcut) */
+export interface QuickCaptureSettings {
+	/** dayjs format for the subfolder path (e.g. "YYYY/MM-MMM") */
+	folderFormat: string;
+	/** dayjs format for the filename (e.g. "[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS") */
+	filenameFormat: string;
+	/** Template file paths relative to vault root, keyed by capture kind */
+	templates: QuickCaptureTemplates;
+}
+
+/** Partial Quick Capture update — `templates` accepts a per-kind subset */
+export interface QuickCaptureUpdate {
+	folderFormat?: string;
+	filenameFormat?: string;
+	templates?: Partial<QuickCaptureTemplates>;
+}
+
 /** Configuration for the file history feature */
 export interface HistorySettings {
 	/** Whether automatic snapshots are enabled */
@@ -235,12 +265,13 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
 	periodicNotes: PeriodicNotesSettings;
 	quickNote: QuickNoteSettings;
+	quickCapture: QuickCaptureSettings;
 	oneOnOne: OneOnOneSettings;
 	layout: LayoutSettings;
 	folderNotes: FolderNotesSettings;

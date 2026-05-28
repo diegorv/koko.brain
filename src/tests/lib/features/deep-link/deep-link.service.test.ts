@@ -96,6 +96,12 @@ describe('deep-link.service', () => {
 		vaultStore._reset();
 		searchStore.reset();
 		deepLinkStore.reset();
+		// Capture-template resolution now lives on settingsStore.quickCapture.templates
+		// (per kind). Default to empty strings so each capture test sees the
+		// "no template" path and opts in by writing the kind it exercises.
+		settingsStore.updateQuickCapture({
+			templates: { note: '', clip: '', link: '', shot: '', file: '' },
+		});
 	});
 
 	// ── resolveVaultPath ────────────────────────────────────────────
@@ -686,6 +692,7 @@ describe('deep-link.service', () => {
 
 				it('applies the configured template and appends the rendered body', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { note: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template\n---');
 
 					const action: DeepLinkAction = {
@@ -705,6 +712,7 @@ describe('deep-link.service', () => {
 
 				it('falls back to the raw body when the template file is not found', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { note: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockRejectedValue(new Error('File not found'));
 
 					const action: DeepLinkAction = {
@@ -741,6 +749,7 @@ describe('deep-link.service', () => {
 
 				it('merges deep-link tags with template frontmatter tags', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { note: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('---\ntags: [template-tag]\n---\nTemplate body');
 					vi.mocked(processTemplate).mockReturnValue('---\ntags: [template-tag]\n---\nTemplate body');
 
@@ -776,6 +785,7 @@ describe('deep-link.service', () => {
 
 				it('exposes filename-derived title to the template (no deep-link title for note kind)', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { note: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
@@ -887,6 +897,7 @@ describe('deep-link.service', () => {
 
 				it('replaces the template title when a deep-link title is provided', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { link: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('---\ntitle: template-title\n---\nTemplate body');
 					vi.mocked(processTemplate).mockReturnValue('---\ntitle: template-title\n---\nTemplate body');
 
@@ -907,6 +918,7 @@ describe('deep-link.service', () => {
 
 				it('exposes the deep-link title to the template as `title` var', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { link: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
@@ -927,6 +939,7 @@ describe('deep-link.service', () => {
 
 				it('falls back to the filename-derived title when no deep-link title is provided', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { link: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
@@ -1005,6 +1018,7 @@ describe('deep-link.service', () => {
 			describe('template variables', () => {
 				it('exposes kind and empty provenance defaults for a note without source fields', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { note: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
@@ -1026,6 +1040,7 @@ describe('deep-link.service', () => {
 
 				it('forwards provenance fields for a clip capture', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { clip: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {
@@ -1051,6 +1066,7 @@ describe('deep-link.service', () => {
 
 				it('exposes the canonical url for a link capture', async () => {
 					settingsStore.updateQuickNote({ templatePath: 'templates/Quick Note.md' });
+					settingsStore.updateQuickCapture({ templates: { link: 'templates/Quick Note.md' } });
 					vi.mocked(readTextFile).mockResolvedValue('template body');
 
 					const action: DeepLinkAction = {

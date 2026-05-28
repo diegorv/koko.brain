@@ -316,14 +316,25 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
  */
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
 	const quickNote = settingsStore.quickNote;
+	const quickCapture = settingsStore.quickCapture;
 	const periodicNotes = settingsStore.periodicNotes;
 	const date = dayjs();
+
+	// Quick Capture (composer + clipboard shortcut) uses its own folder,
+	// filename, and per-kind template configuration. The folder/filename
+	// fields fall back to the legacy quickNote settings when blank so
+	// users upgrading without touching the new Settings tab keep their
+	// existing folder layout, but the template path is per-kind only —
+	// quickNote.templatePath governs the Cmd+N flow and has no role here.
+	const folderFormat = quickCapture.folderFormat || quickNote.folderFormat;
+	const filenameFormat = quickCapture.filenameFormat || quickNote.filenameFormat;
+	const templatePathForKind = quickCapture.templates[action.kind] ?? '';
 
 	const filePath = buildQuickNotePath(
 		vaultPath,
 		periodicNotes.folder,
-		quickNote.folderFormat,
-		quickNote.filenameFormat,
+		folderFormat,
+		filenameFormat,
 		date,
 	);
 
@@ -335,11 +346,11 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	const body = renderCaptureBody(action);
 	let fileContent = body;
 
-	if (quickNote.templatePath) {
-		const templateFullPath = `${vaultPath}/${quickNote.templatePath}`;
+	if (templatePathForKind) {
+		const templateFullPath = `${vaultPath}/${templatePathForKind}`;
 		try {
 			const template = await readTextFile(templateFullPath);
-			const fileTitle = getQuickNoteTitle(quickNote.filenameFormat, date);
+			const fileTitle = getQuickNoteTitle(filenameFormat, date);
 			const vars = buildQuickNoteVariables(date, periodicNotes);
 			vars.content = body;
 			// Expose the deep-link `title` (link kind only) to user templates via
