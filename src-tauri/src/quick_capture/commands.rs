@@ -17,8 +17,8 @@ use tauri::{Emitter, Manager};
 use crate::quick_capture::clipboard::{Clipboard, SystemClipboard};
 use crate::quick_capture::kind_detect::{decide, CaptureInput, ShotSource};
 use crate::quick_capture::source::{
-    activate_prev_app, bundle_id_for_pid, frontmost_bundle_id, resolve_context_for_bundle,
-    CaptureContext, PrevFrontmostPid,
+    activate_prev_app, bundle_id_for_pid, frontmost_bundle_id, record_prev_frontmost,
+    resolve_context_for_bundle, CaptureContext, PrevFrontmostPid,
 };
 
 /// Event name used to deliver detected captures to the frontend.
@@ -208,11 +208,16 @@ pub fn capture_clipboard_now<R: tauri::Runtime>(
 }
 
 /// Show the composer popover window and emit `qc:open-composer` so the
-/// route resets its focus state. P4.2 wires `record_prev_frontmost`
-/// here; for now the show path is just `show + set_focus`.
+/// route resets its focus state. Snapshots the frontmost app first, on
+/// the main thread, before the popover takes focus — so the save path
+/// can stamp `sourceApp` and dismiss can restore focus to that app.
 pub fn show_composer<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
+        // macOS AppKit reads (NSWorkspace.frontmostApplication) belong on
+        // the main thread. Record BEFORE show/set_focus, otherwise the
+        // popover itself becomes frontmost and we lose the prior app.
+        record_prev_frontmost(&handle);
         if let Some(window) = handle.get_webview_window(COMPOSER_WINDOW_LABEL) {
             let _ = window.show();
             let _ = window.set_focus();

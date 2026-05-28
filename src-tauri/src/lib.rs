@@ -18,7 +18,7 @@ use quick_capture::commands::{
 };
 use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use quick_capture::source::{
-    frontmost_bundle_id, record_prev_frontmost, resolve_context_for_bundle, PrevFrontmostPid,
+    frontmost_bundle_id, resolve_context_for_bundle, PrevFrontmostPid,
 };
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
@@ -31,13 +31,10 @@ use vault::VaultIndexState;
 fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutId) {
     match id {
         ShortcutId::OpenComposer => {
-            // Snapshot the frontmost app BEFORE showing the popover so
-            // the composer save path can stamp `sourceApp` and the
-            // dismiss path can restore focus to that app.
-            record_prev_frontmost(app);
-            // `show_composer` shows the popover AND emits
-            // `qc:open-composer` so the route resets its focus state.
-            // Do not emit it again here — that produced a duplicate event.
+            // `show_composer` snapshots the frontmost app (on the main
+            // thread, before the popover takes focus), shows the popover,
+            // and emits `qc:open-composer` so the route resets its focus
+            // state. Single emit — do not fire the event again here.
             show_composer(app);
         }
         ShortcutId::CaptureClipboard => {
