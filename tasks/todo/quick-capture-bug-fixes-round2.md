@@ -23,7 +23,7 @@ relevant tests before each commit (CLAUDE.md rule 6).
   (composer/+page.svelte). Guard the dismiss path so a save-in-progress (or
   already-dismissing) Esc is a no-op. Verify: pnpm check.
 
-- [ ] N6 (LOW) — Startup micro-race: global hotkey is live before the composer
+- [x] N6 (LOW) — Startup micro-race: global hotkey is live before the composer
   window is built in setup, so an early Ctrl+Alt+Cmd+Space finds no window and
   emits to nobody (self-corrects next press). Fix: ensure the composer window is
   built before the shortcuts can show it (reorder setup), or make show_composer

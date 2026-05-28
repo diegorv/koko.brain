@@ -10,7 +10,9 @@ use std::str::FromStr;
 
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
-use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{
+    Builder as ShortcutBuilder, GlobalShortcutExt, Shortcut, ShortcutState,
+};
 
 use quick_capture::clipboard::SystemClipboard;
 use quick_capture::commands::{
@@ -223,7 +225,14 @@ pub fn run() {
         })
         .collect();
     let dispatch_table = parsed.clone();
-    let mut shortcut_builder = ShortcutBuilder::new().with_handler(move |app, shortcut, evt| {
+    // Accelerators to activate at runtime. We deliberately do NOT pre-register
+    // them on the plugin builder (`with_shortcut`): that turns on the OS hotkey
+    // during the plugin's setup, which runs BEFORE the app setup hook that
+    // builds the composer window. An early Ctrl+Alt+Cmd+Space would then hit a
+    // missing window and no-op. Registering inside setup, after
+    // `build_composer_window`, closes that startup race.
+    let shortcuts: Vec<Shortcut> = parsed.iter().map(|(s, _)| *s).collect();
+    let shortcut_builder = ShortcutBuilder::new().with_handler(move |app, shortcut, evt| {
         if evt.state() != ShortcutState::Pressed {
             return;
         }
@@ -231,18 +240,16 @@ pub fn run() {
             dispatch_shortcut(app, binding.id);
         }
     });
-    for (shortcut, _) in &parsed {
-        shortcut_builder = shortcut_builder
-            .with_shortcut(*shortcut)
-            .expect("failed to register accelerator");
-    }
 
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(move |app| {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             init_logger(app.handle());
             build_composer_window(app.handle())?;
+            // Activate the global hotkeys only now that the composer window
+            // exists, so the handler can always find it.
+            app.global_shortcut().register_multiple(shortcuts)?;
             Ok(())
         })
         .on_menu_event(|app, event| {
