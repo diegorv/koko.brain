@@ -15,7 +15,6 @@ use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, Shortcut, Shortcu
 use quick_capture::clipboard::SystemClipboard;
 use quick_capture::commands::{
     capture_clipboard_now_with, show_composer, COMPOSER_WINDOW_LABEL, QC_CAPTURE_DETECTED_EVENT,
-    QC_OPEN_COMPOSER_EVENT,
 };
 use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use quick_capture::source::{
@@ -36,10 +35,10 @@ fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutI
             // the composer save path can stamp `sourceApp` and the
             // dismiss path can restore focus to that app.
             record_prev_frontmost(app);
+            // `show_composer` shows the popover AND emits
+            // `qc:open-composer` so the route resets its focus state.
+            // Do not emit it again here — that produced a duplicate event.
             show_composer(app);
-            // Keep the event for any current listeners; the composer
-            // route ignores empty payloads as a no-op.
-            let _ = app.emit(QC_OPEN_COMPOSER_EVENT, "");
         }
         ShortcutId::CaptureClipboard => {
             let captured_at = chrono::Utc::now().to_rfc3339();
