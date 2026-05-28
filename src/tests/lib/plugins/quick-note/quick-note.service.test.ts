@@ -26,10 +26,10 @@ describe('createQuickNote', () => {
 		settingsStore.reset();
 		vaultStore.open('/vault');
 		settingsStore.updatePeriodicNotes({ folder: '_notes' });
-		settingsStore.updateQuickNote({
+		settingsStore.updateQuickCapture({
 			folderFormat: 'YYYY/MM-MMM',
 			filenameFormat: '[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS',
-			templatePath: '_templates/Quick Note.md',
+			templates: { note: '_templates/Quick Note.md' },
 		});
 		// Freeze time so millisecond-precision formats match between service and test
 		vi.useFakeTimers();
@@ -44,17 +44,17 @@ describe('createQuickNote', () => {
 		await createQuickNote();
 
 		const now = dayjs();
-		const quickNote = settingsStore.quickNote;
+		const quickCapture = settingsStore.quickCapture;
 		const periodicNotes = settingsStore.periodicNotes;
 
 		const expectedPath = buildQuickNotePath(
 			'/vault',
 			periodicNotes.folder,
-			quickNote.folderFormat,
-			quickNote.filenameFormat,
+			quickCapture.folderFormat,
+			quickCapture.filenameFormat,
 			now,
 		);
-		const expectedTitle = getQuickNoteTitle(quickNote.filenameFormat, now);
+		const expectedTitle = getQuickNoteTitle(quickCapture.filenameFormat, now);
 		const expectedVars = buildQuickNoteVariables(now, periodicNotes);
 
 		expect(openOrCreateNote).toHaveBeenCalledWith({
@@ -75,7 +75,7 @@ describe('createQuickNote', () => {
 	});
 
 	it('omits templatePath when setting is empty', async () => {
-		settingsStore.updateQuickNote({ templatePath: '' });
+		settingsStore.updateQuickCapture({ templates: { note: '' } });
 
 		await createQuickNote();
 

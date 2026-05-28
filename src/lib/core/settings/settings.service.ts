@@ -95,10 +95,6 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 					h6: { ...DEFAULT_SETTINGS.editor.headingTypography.h6, ...(parsed.editor?.headingTypography?.h6 ?? {}) },
 				},
 			},
-			quickNote: {
-				...DEFAULT_SETTINGS.quickNote,
-				...parsed.quickNote,
-			},
 			quickCapture: {
 				...DEFAULT_SETTINGS.quickCapture,
 				...parsed.quickCapture,

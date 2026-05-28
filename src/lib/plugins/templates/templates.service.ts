@@ -80,9 +80,14 @@ export async function ensureTemplatesFolder(): Promise<void> {
 		.map((s) => s.templatePath)
 		.filter((p): p is string => !!p);
 
-	const quickNoteTemplatePath = settingsStore.quickNote.templatePath;
-	if (quickNoteTemplatePath) {
-		templatePaths.push(quickNoteTemplatePath);
+	// Quick Capture per-kind templates — collect the deduped set so the
+	// templates folder watcher knows about each referenced file.
+	const captureTemplatePaths = Object.values(settingsStore.quickCapture.templates).filter(
+		(p): p is string => !!p,
+	);
+	const uniqueCaptureTemplates = Array.from(new Set(captureTemplatePaths));
+	for (const path of uniqueCaptureTemplates) {
+		templatePaths.push(path);
 	}
 
 	const oneOnOneTemplatePath = settingsStore.oneOnOne.templatePath;

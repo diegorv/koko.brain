@@ -9,30 +9,32 @@ import {
 } from './quick-note.logic';
 
 /**
- * Creates and opens a new quick note instantly.
- * The filename includes a millisecond timestamp to ensure uniqueness.
- * If the file already exists (extremely unlikely), it is simply opened.
+ * Creates and opens a new quick note instantly via the in-editor note-
+ * composer surface (Cmd+N). The filename includes a millisecond
+ * timestamp to ensure uniqueness. Shares folder / filename / template
+ * configuration with the popover composer and the clipboard shortcut
+ * through `settingsStore.quickCapture` — the `note` kind covers this
+ * surface.
  */
 export async function createQuickNote(): Promise<void> {
 	const vaultPath = vaultStore.path;
 	if (!vaultPath) return;
 
-	const quickNoteSettings = settingsStore.quickNote;
+	const quickCapture = settingsStore.quickCapture;
 	const periodicNotesSettings = settingsStore.periodicNotes;
 	const date = dayjs();
 
 	const filePath = buildQuickNotePath(
 		vaultPath,
 		periodicNotesSettings.folder,
-		quickNoteSettings.folderFormat,
-		quickNoteSettings.filenameFormat,
+		quickCapture.folderFormat,
+		quickCapture.filenameFormat,
 		date,
 	);
 
-	const title = getQuickNoteTitle(quickNoteSettings.filenameFormat, date);
-	const templatePath = quickNoteSettings.templatePath
-		? `${vaultPath}/${quickNoteSettings.templatePath}`
-		: undefined;
+	const title = getQuickNoteTitle(quickCapture.filenameFormat, date);
+	const noteTemplate = quickCapture.templates.note;
+	const templatePath = noteTemplate ? `${vaultPath}/${noteTemplate}` : undefined;
 	const customVariables = buildQuickNoteVariables(date, periodicNotesSettings);
 
 	await openOrCreateNote({

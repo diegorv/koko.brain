@@ -315,19 +315,16 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
  *   referenced file; durable attachments are a future change.
  */
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
-	const quickNote = settingsStore.quickNote;
 	const quickCapture = settingsStore.quickCapture;
 	const periodicNotes = settingsStore.periodicNotes;
 	const date = dayjs();
 
-	// Quick Capture (composer + clipboard shortcut) uses its own folder,
-	// filename, and per-kind template configuration. The folder/filename
-	// fields fall back to the legacy quickNote settings when blank so
-	// users upgrading without touching the new Settings tab keep their
-	// existing folder layout, but the template path is per-kind only —
-	// quickNote.templatePath governs the Cmd+N flow and has no role here.
-	const folderFormat = quickCapture.folderFormat || quickNote.folderFormat;
-	const filenameFormat = quickCapture.filenameFormat || quickNote.filenameFormat;
+	// Quick Capture (composer + clipboard shortcut + Cmd+N note composer)
+	// owns the folder/filename and the per-kind template config. The
+	// `note` kind covers the Cmd+N in-editor surface too — there is no
+	// separate "quick note" settings any more.
+	const folderFormat = quickCapture.folderFormat;
+	const filenameFormat = quickCapture.filenameFormat;
 	const templatePathForKind = quickCapture.templates[action.kind] ?? '';
 
 	const filePath = buildQuickNotePath(

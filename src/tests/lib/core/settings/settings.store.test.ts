@@ -43,12 +43,6 @@ describe('settingsStore', () => {
 			expect(settingsStore.periodicNotes.weekly).toEqual(originalWeekly);
 		});
 
-		it('updateQuickNote merges with existing', () => {
-			settingsStore.updateQuickNote({ folderFormat: 'YYYY' });
-			expect(settingsStore.quickNote.folderFormat).toBe('YYYY');
-			expect(settingsStore.quickNote.filenameFormat).toBe(DEFAULT_SETTINGS.quickNote.filenameFormat);
-		});
-
 		it('quickCapture default templates point at the bundled Quick Note template for every kind', () => {
 			const expected = '_system/templates/Quick Note.md';
 			expect(settingsStore.quickCapture.templates.note).toBe(expected);

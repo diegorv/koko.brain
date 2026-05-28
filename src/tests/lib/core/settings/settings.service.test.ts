@@ -268,17 +268,22 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.todoist.apiToken).toBe('token123');
 	});
 
-	it('merges quickNote settings with defaults', async () => {
+	it('merges quickCapture settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ quickNote: { folderFormat: 'YYYY' } }),
+			JSON.stringify({ quickCapture: { folderFormat: 'YYYY' } }),
 		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.quickNote.folderFormat).toBe('YYYY');
-		expect(settingsStore.settings.quickNote.filenameFormat).toBe(DEFAULT_SETTINGS.quickNote.filenameFormat);
+		expect(settingsStore.settings.quickCapture.folderFormat).toBe('YYYY');
+		expect(settingsStore.settings.quickCapture.filenameFormat).toBe(
+			DEFAULT_SETTINGS.quickCapture.filenameFormat,
+		);
+		expect(settingsStore.settings.quickCapture.templates).toEqual(
+			DEFAULT_SETTINGS.quickCapture.templates,
+		);
 	});
 
 	it('merges oneOnOne settings with defaults', async () => {

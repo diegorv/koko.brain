@@ -138,16 +138,6 @@ export interface OneOnOneSettings {
 	templatePath?: string;
 }
 
-/** Configuration for the quick note plugin */
-export interface QuickNoteSettings {
-	/** dayjs format for the subfolder path (e.g. "YYYY/MM-MMM") */
-	folderFormat: string;
-	/** dayjs format for the filename (e.g. "[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS") */
-	filenameFormat: string;
-	/** Path to template file relative to vault (e.g. "_templates/Quick Note.md") */
-	templatePath?: string;
-}
-
 /**
  * Per-kind template paths for the Quick Capture composer + clipboard
  * shortcut. Each kind picks its own template; an empty string means
@@ -265,12 +255,11 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-note' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
 	periodicNotes: PeriodicNotesSettings;
-	quickNote: QuickNoteSettings;
 	quickCapture: QuickCaptureSettings;
 	oneOnOne: OneOnOneSettings;
 	layout: LayoutSettings;

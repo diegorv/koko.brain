@@ -205,7 +205,7 @@ describe('ensureTemplatesFolder', () => {
 			monthly: { templatePath: '_system/templates/Monthly Note.md' },
 			quarterly: { templatePath: '_system/templates/Quarterly Note.md' },
 		});
-		settingsStore.updateQuickNote({ templatePath: '_system/templates/Quick Note.md' });
+		settingsStore.updateQuickCapture({ templates: { note: '_system/templates/Quick Note.md' } });
 		settingsStore.updateOneOnOne({ templatePath: '_system/templates/One on One.md' });
 
 		vi.mocked(exists).mockResolvedValue(false);

@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickNoteSettings, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -30,11 +30,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 			format: 'YYYY/YYYY',
 			templatePath: '_system/templates/Yearly Note.md',
 		},
-	},
-	quickNote: {
-		folderFormat: 'YYYY/MM-MMM',
-		filenameFormat: '[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS',
-		templatePath: '_system/templates/Quick Note.md',
 	},
 	quickCapture: {
 		folderFormat: 'YYYY/MM-MMM',
@@ -132,7 +127,6 @@ let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
 export const settingsStore = {
 	get settings() { return settings; },
 	get periodicNotes() { return settings.periodicNotes; },
-	get quickNote() { return settings.quickNote; },
 	get quickCapture() { return settings.quickCapture; },
 	get oneOnOne() { return settings.oneOnOne; },
 	get layout() { return settings.layout; },
@@ -176,14 +170,6 @@ export const settingsStore = {
 				quarterly: { ...current.quarterly, ...(value.quarterly ?? {}) },
 				yearly: { ...current.yearly, ...(value.yearly ?? {}) },
 			},
-		};
-	},
-
-	/** Partially updates quick note settings, merging with existing values */
-	updateQuickNote(value: Partial<QuickNoteSettings>) {
-		settings = {
-			...settings,
-			quickNote: { ...settings.quickNote, ...value },
 		};
 	},
 

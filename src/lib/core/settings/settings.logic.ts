@@ -71,7 +71,6 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		group: 'Notes',
 		sections: [
 			{ id: 'periodic-notes', label: 'Periodic Notes' },
-			{ id: 'quick-note', label: 'Quick Note' },
 			{ id: 'quick-capture', label: 'Quick Capture' },
 			{ id: 'one-on-one', label: '1:1 Notes' },
 			{ id: 'templates', label: 'Templates' },
