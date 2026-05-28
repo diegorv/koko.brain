@@ -92,6 +92,11 @@ import type { DeepLinkAction } from '$lib/features/deep-link/deep-link.types';
 describe('deep-link.service', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// clearAllMocks wipes call history but NOT mockResolvedValue
+		// implementations, so reset exists() to a clean default — otherwise a
+		// prior test's `exists -> true` leaks in, and the capture-path
+		// uniqueness guard (resolveUniqueCapturePath) would loop forever.
+		vi.mocked(exists).mockResolvedValue(false);
 		clearLocalStorage();
 		vaultStore._reset();
 		searchStore.reset();
@@ -667,6 +672,28 @@ describe('deep-link.service', () => {
 						'My captured text',
 					);
 					expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+				});
+
+				it('appends a numeric suffix when the target path already exists', async () => {
+					// resolveUniqueCapturePath: exists(base) -> true, exists(base-1) -> false.
+					vi.mocked(exists).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'note',
+						text: 'Dup capture',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/capture-note-.*-1\.md$/),
+						'Dup capture',
+					);
+					// The marked path must match the suffixed path actually written.
+					const [markedPath] = vi.mocked(markRecentSave).mock.calls[0];
+					const [writtenPath] = vi.mocked(writeTextFile).mock.calls[0];
+					expect(markedPath).toBe(writtenPath);
 				});
 
 				it('appends a source footer when sourceUrl is present', async () => {

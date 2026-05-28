@@ -49,9 +49,21 @@ export interface QuickCaptureDetectedPayload {
 export function registerQuickCaptureListener(): () => void {
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
+	// Serialize capture handling. A multi-file clipboard capture emits one
+	// `qc:capture-detected` event per file in a tight Rust-side loop; running
+	// the handlers concurrently lets two writes resolve the same
+	// timestamp-based filename and overwrite each other. Chaining each handler
+	// after the previous one completes keeps the writes ordered (and makes the
+	// exists()-then-write uniqueness guard in `executeCaptureAction` race-free).
+	let queue: Promise<void> = Promise.resolve();
 
 	listen<QuickCaptureDetectedPayload>(QC_CAPTURE_DETECTED_EVENT, (event) => {
-		void handleDetectedCapture(event.payload);
+		queue = queue
+			.then(() => handleDetectedCapture(event.payload))
+			.catch((err) => {
+				// Keep the queue alive: one failed capture must not stall the rest.
+				error('QUICK_CAPTURE', 'Capture handler failed:', err);
+			});
 	})
 		.then((fn) => {
 			if (cancelled) fn();

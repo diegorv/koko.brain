@@ -314,6 +314,29 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
  *   path as the text kinds. The note breaks if the user later moves or deletes
  *   the referenced file; durable attachments are a future change.
  */
+/**
+ * Returns a capture path that does not yet exist on disk. If `filePath` is
+ * free it is returned unchanged; otherwise a numeric suffix (`-1`, `-2`, ...)
+ * is inserted before the extension until a free path is found. Prevents one
+ * capture from silently overwriting another that resolved the same
+ * timestamp-based filename (e.g. a multi-file clipboard capture). Capture
+ * dispatch is serialized in `registerQuickCaptureListener`, so this
+ * exists-then-write sequence is race-free.
+ */
+async function resolveUniqueCapturePath(filePath: string): Promise<string> {
+	if (!(await exists(filePath))) return filePath;
+	const dot = filePath.lastIndexOf('.');
+	const base = dot === -1 ? filePath : filePath.slice(0, dot);
+	const ext = dot === -1 ? '' : filePath.slice(dot);
+	let n = 1;
+	let candidate = `${base}-${n}${ext}`;
+	while (await exists(candidate)) {
+		n += 1;
+		candidate = `${base}-${n}${ext}`;
+	}
+	return candidate;
+}
+
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
 	const quickCapture = settingsStore.quickCapture;
 	const periodicNotes = settingsStore.periodicNotes;
@@ -382,9 +405,11 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		fileContent = injectTagsIntoContent(fileContent, action.tags);
 	}
 
-	markRecentSave(filePath);
-	await writeTextFile(filePath, fileContent);
-	notifyAfterSave(filePath, fileContent);
+	// Never overwrite an existing note: disambiguate with a numeric suffix.
+	const targetPath = await resolveUniqueCapturePath(filePath);
+	markRecentSave(targetPath);
+	await writeTextFile(targetPath, fileContent);
+	notifyAfterSave(targetPath, fileContent);
 	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
 	void refreshTree();
