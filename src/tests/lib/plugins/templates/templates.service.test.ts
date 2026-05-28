@@ -189,12 +189,16 @@ describe('ensureTemplatesFolder', () => {
 		// Phase 8.8: folder creation routes through Rust `create_folder`.
 		const { invoke } = await import('@tauri-apps/api/core');
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/_system/templates' });
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Monthly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quarterly Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quick Note.md', '');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/One on One.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Daily-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Weekly-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Monthly-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/Quarterly-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/Composer-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/Clip-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/Link-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/Shot-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/File-Note.md', '');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/One-On-One.md', '');
 		expect(refreshTree).toHaveBeenCalled();
 	});
 

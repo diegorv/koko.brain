@@ -43,13 +43,12 @@ describe('settingsStore', () => {
 			expect(settingsStore.periodicNotes.weekly).toEqual(originalWeekly);
 		});
 
-		it('quickCapture default templates point at the bundled Quick Note template for every kind', () => {
-			const expected = '_system/templates/Quick Note.md';
-			expect(settingsStore.quickCapture.templates.note).toBe(expected);
-			expect(settingsStore.quickCapture.templates.clip).toBe(expected);
-			expect(settingsStore.quickCapture.templates.link).toBe(expected);
-			expect(settingsStore.quickCapture.templates.shot).toBe(expected);
-			expect(settingsStore.quickCapture.templates.file).toBe(expected);
+		it('quickCapture default templates point at the dedicated per-kind templates', () => {
+			expect(settingsStore.quickCapture.templates.note).toBe('_system/templates/quick-capture/Composer-Note.md');
+			expect(settingsStore.quickCapture.templates.clip).toBe('_system/templates/quick-capture/Clip-Note.md');
+			expect(settingsStore.quickCapture.templates.link).toBe('_system/templates/quick-capture/Link-Note.md');
+			expect(settingsStore.quickCapture.templates.shot).toBe('_system/templates/quick-capture/Shot-Note.md');
+			expect(settingsStore.quickCapture.templates.file).toBe('_system/templates/quick-capture/File-Note.md');
 		});
 
 		it('updateQuickCapture merges folder/filename without touching templates', () => {
