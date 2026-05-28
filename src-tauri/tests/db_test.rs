@@ -9,6 +9,20 @@ use tempfile::TempDir;
 static TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
+fn is_open_reflects_open_and_close() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+	assert!(!db::is_open(), "no vault open after close");
+
+	let tmp = TempDir::new().unwrap();
+	db::open_database(tmp.path()).unwrap();
+	assert!(db::is_open(), "vault open after open_database");
+
+	db::close_database().unwrap();
+	assert!(!db::is_open(), "no vault open after close_database");
+}
+
+#[test]
 fn open_database_creates_kokobrain_dir_and_db_file() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _ = db::close_database();

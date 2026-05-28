@@ -32,6 +32,13 @@ use vault::VaultIndexState;
 /// `qc:capture-detected` event per detected input. `OpenComposer` summons
 /// the composer popover via the shared `show_composer` helper.
 fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutId) {
+    // Quick capture writes into the active vault. With no vault open, both
+    // hotkeys do nothing — no composer popover, no clipboard capture —
+    // instead of opening a surface that cannot save or emitting a capture
+    // the main window would only drop.
+    if !crate::db::is_open() {
+        return;
+    }
     match id {
         ShortcutId::OpenComposer => {
             // `show_composer` snapshots the frontmost app (on the main

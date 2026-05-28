@@ -98,6 +98,13 @@ pub fn close_database() -> Result<(), String> {
 	Ok(())
 }
 
+/// Returns true when a vault database connection is currently open.
+/// Used to gate vault-dependent actions (e.g. the quick-capture hotkeys)
+/// so they no-op when no vault is loaded.
+pub fn is_open() -> bool {
+	DB.lock().map(|db| db.is_some()).unwrap_or(false)
+}
+
 /// Runs a closure with a reference to the open database connection.
 /// Returns Err if the database is not open.
 pub fn with_db<F, T>(f: F) -> Result<T, String>
