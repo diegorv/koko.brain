@@ -207,6 +207,30 @@ pub fn capture_clipboard_now<R: tauri::Runtime>(
     Ok(())
 }
 
+/// Re-fire `set_focus` a couple of times after a show() to cover a macOS
+/// race between Tauri's `makeKeyAndOrderFront` and an in-flight
+/// `MoveToActiveSpace` transition. When the popover is summoned from a
+/// Space other than the one it last lived on, AppKit animates the move;
+/// the synchronous `set_focus` after `show` can fire before that
+/// animation settles, leaving the window visible but not key (gray
+/// traffic lights, keyboard input goes nowhere) until the user clicks it.
+/// Two retries (150ms + 280ms) give the move a wide window to land in
+/// without hurting perceived latency. Idempotent: a no-op at the AppKit
+/// layer if the window is already key. Ported from quick-capture.
+fn schedule_refocus_after_space_move<R: tauri::Runtime>(window: tauri::WebviewWindow<R>) {
+    const RETRY_DELAYS_MS: [u64; 2] = [150, 280];
+    let app = window.app_handle().clone();
+    std::thread::spawn(move || {
+        for &delay in &RETRY_DELAYS_MS {
+            std::thread::sleep(std::time::Duration::from_millis(delay));
+            let w = window.clone();
+            let _ = app.run_on_main_thread(move || {
+                let _ = w.set_focus();
+            });
+        }
+    });
+}
+
 /// Show the composer popover window and emit `qc:open-composer` so the
 /// route resets its focus state. Snapshots the frontmost app first, on
 /// the main thread, before the popover takes focus — so the save path
@@ -221,6 +245,8 @@ pub fn show_composer<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         if let Some(window) = handle.get_webview_window(COMPOSER_WINDOW_LABEL) {
             let _ = window.show();
             let _ = window.set_focus();
+            // Win the Space-move focus race (see helper doc).
+            schedule_refocus_after_space_move(window);
         }
         let _ = handle.emit(QC_OPEN_COMPOSER_EVENT, "");
     });
