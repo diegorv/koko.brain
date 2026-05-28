@@ -10,6 +10,7 @@
 	import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
+	import { registerQuickCaptureListener } from '$lib/plugins/quick-capture/quick-capture.service';
 	import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 	import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
 	import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
@@ -38,6 +39,10 @@
 
 	$effect(() => {
 		return registerDeepLinkListener();
+	});
+
+	$effect(() => {
+		return registerQuickCaptureListener();
 	});
 
 	$effect(() => {
