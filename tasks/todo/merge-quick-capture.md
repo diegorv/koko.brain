@@ -91,10 +91,11 @@ Items moved out of the core merge scope but tracked for follow-up:
 
 - [ ] P5.1 — Status toast on clipboard capture success (was P3.4). Pure `buildCaptureSuccessMessage(action)` helper + `toast.success` call in `handleDetectedCapture`. Vitest covers the formatter (note/clip preview truncation, link URL, shot "Captured image", file basename fallback).
 - [ ] P5.2 — Wikilink `[[` autocomplete in composer (was P2.6/P2.7). Swap textarea → CodeMirror, port `quick-capture/src/lib/wikilink/`, add Rust IPC exposing vault entries to the composer webview.
+- [ ] P5.3 — Settings panel UI (was P4.1). "Quick Capture" tab with hotkey-enable toggles + folder/template overrides. Needs Rust-side persistent settings state since the hotkey dispatcher runs outside any webview.
 
 ### Phase 4 — Settings + polish
 
-- [ ] P4.1 — Add Settings panel section in kokobrain's existing settings UI: "Quick Capture" tab. Fields: enable composer hotkey, enable clipboard hotkey, capture folder (defaults to existing `quickNote.folderFormat`), template path (defaults to existing `quickNote.templatePath`). Settings store extension under `settingsStore.quickCapture`. Vitest covers store getters + defaults.
+- [~] P4.1 — _Deferred to Phase 5 (nice-to-have)._ Settings panel UI for Quick Capture. Hotkeys ship always-on; folder/template defaults already come from existing `settingsStore.quickNote.*`. Adding a dedicated UI requires Rust-side persistent state for the hotkey toggles, which is more weight than the merge needs to ship.
 - [ ] P4.2 — Composer dismiss + restore-frontmost: port QC's `record_prev_frontmost` (macOS NSWorkspace.frontmostApplication via objc2) — captures the app that was frontmost when composer summoned, restores focus on dismiss. **Also populate `sourceApp` on every capture payload** (clipboard shortcut + composer save) via the same `frontmost_bundle_id` helper; `sourceTitle` + `sourceUrl` follow via AppleScript for Chrome/Safari (browser-only — other apps stay null). Cargo test covers the recording fn against a fake NSWorkspace + payload merge.
 - [ ] P4.3 — Update `docs/adr/` with an ADR noting the merge decision and the dropped surfaces. Update `CONTEXT.md` if it lists quick-capture as an external dependency. No code changes.
 - [ ] P4.4 — Cleanup: any "quick-capture" comments in `src/lib/features/deep-link/deep-link.types.ts:83,127` and `src/tests/lib/features/deep-link/deep-link.service.test.ts` that referenced QC as an external app can be retired or rewritten to reflect the internal wiring. Surgical edit only.
