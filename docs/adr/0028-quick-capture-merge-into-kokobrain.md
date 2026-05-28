@@ -41,7 +41,7 @@ Two apps for one user is friction. Every capture had to round-trip across proces
 - `kind_detect` emits an intermediate `CaptureInput` enum shaped like the kokobrain `CaptureAction` discriminated union (no `Shot::Bytes` → bytes resolve to a temp file before payload serialization in `commands::materialize_input`).
 - The clipboard-shortcut path emits a `qc:capture-detected` Tauri event; the frontend listener in `src/lib/plugins/quick-capture/quick-capture.service.ts` fills `vault` from `vaultStore.name` and dispatches via `deep-link.service.ts::executeAction`. Same path the URI handler uses.
 - The composer route runs in a separate webview from the main window; it cannot import `vaultStore`. The save handler invokes a Rust IPC `submit_composer_capture(text)` which emits the same `qc:capture-detected` event so the main-window listener does the actual `executeAction` dispatch.
-- `executeCaptureAction` switched the template lookup to `settingsStore.quickCapture.templates[kind]` so each capture kind picks its own template. Folder/filename fall back to `quickNote.*` when blank; the template path is the new system only.
+- `executeCaptureAction` switched the template lookup to `settingsStore.quickCapture.templates[kind]` so each capture kind picks its own template. Folder/filename read straight from `quickCapture.folderFormat` / `quickCapture.filenameFormat` — the old `quickNote.*` settings were renamed wholesale into `quickCapture` (same logic, new namespace), so there is no fallback path and no legacy key left to read.
 
 ## Consequences
 
