@@ -25,6 +25,12 @@ tauri-plugin-fs = { version = "2", features = ["watch"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-global-shortcut = "2"
+
+# Quick Capture (clipboard adapter, kind detection, image re-encode)
+arboard = "3"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+mime_guess = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
