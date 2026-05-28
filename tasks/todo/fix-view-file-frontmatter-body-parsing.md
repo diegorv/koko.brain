@@ -20,7 +20,7 @@ a non-existent problem.
 
 - [x] Task 1: Rewrite the two example `.view` files to pure YAML
       (`views:` + `filters:` + top-level `_*` metadata), using `&&` not `and`.
-- [ ] Task 2: Fix doc 25 "View Files" section to show the pure-YAML format
+- [x] Task 2: Fix doc 25 "View Files" section to show the pure-YAML format
       (currently shows frontmatter + body). Keep the `and`->`&&` / `=`->`==` fixes.
 - [ ] Task 3: Commit doc 12 fixes (`&&`/`||`/`!` operator table, `and`->`&&` example).
 

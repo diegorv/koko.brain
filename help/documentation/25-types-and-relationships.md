@@ -318,10 +318,11 @@ View files are saved collection-style query definitions that appear as navigatio
 
 ### Creating a View
 
-Create a `.view` file in your vault with YAML frontmatter:
+Create a `.view` file in your vault. It is a single YAML document: the sidebar
+metadata keys live at the top level, alongside a `views:` array and a `filters:`
+expression.
 
 ```yaml
----
 _sidebar_label: Active Projects
 _order: 5
 _sort: modified
@@ -331,14 +332,17 @@ _title_color: "#3498db"
 _list_properties_display:
   - status
   - priority
----
-
-type = "Project" and status = "active"
+views:
+  - type: table
+    name: Active Projects
+filters: 'type == "Project" && status == "active"'
 ```
 
-The body of the file contains a filter expression using the same [Collection expression language](12-collection.md).
+The `filters` value is a filter expression using the same [Collection expression language](12-collection.md). A `.view` shares the `.collection` file format, so any view configuration valid in a `.collection` file works here too.
 
-### View Frontmatter Fields
+### View Metadata Fields
+
+These keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block).
 
 | Field | Description | Default |
 |-------|-------------|---------|
@@ -529,25 +533,25 @@ For recurring queries, create `.view` files instead of searching every time:
 
 ```yaml
 # active-projects.view
----
 _sidebar_label: Active Projects
 _icon: rocket
 _color: green
 _order: 10
----
-
-type == "Project" and status == "active"
+views:
+  - type: table
+    name: Active Projects
+filters: 'type == "Project" && status == "active"'
 ```
 
 ```yaml
 # this-week-meetings.view
----
 _sidebar_label: This Week
 _icon: calendar
 _order: 11
----
-
-type == "Meeting" and file.created > today() - duration("7d")
+views:
+  - type: table
+    name: This Week
+filters: 'type == "Meeting" && file.created > today() - duration("7d")'
 ```
 
 Views appear in the sidebar alongside types. See [Collection](12-collection.md) for the full expression language.
