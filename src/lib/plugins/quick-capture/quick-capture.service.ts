@@ -29,6 +29,12 @@ export interface QuickCaptureDetectedPayload {
 	mime?: string;
 	originalName?: string | null;
 	capturedAt?: string;
+	/** macOS bundle id of the app that was frontmost when the capture fired. */
+	sourceApp?: string;
+	/** Browser tab title (Chrome / Safari only). */
+	sourceTitle?: string;
+	/** Browser tab URL (Chrome / Safari only). */
+	sourceUrl?: string;
 	pending?: boolean;
 }
 
@@ -108,6 +114,9 @@ export function buildCaptureAction(
 		type: 'capture' as const,
 		vault: vaultName,
 		capturedAt: payload.capturedAt,
+		sourceApp: payload.sourceApp,
+		sourceTitle: payload.sourceTitle,
+		sourceUrl: payload.sourceUrl,
 	};
 
 	switch (payload.kind) {

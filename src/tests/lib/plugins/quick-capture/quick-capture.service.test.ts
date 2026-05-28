@@ -180,5 +180,60 @@ describe('quick-capture service', () => {
 			});
 			expect(executeActionMock).not.toHaveBeenCalled();
 		});
+
+		it('propagates sourceApp/Title/Url from payload to action', async () => {
+			vaultStore.open('/vault');
+			await handleDetectedCapture({
+				type: 'capture',
+				kind: 'clip',
+				text: 'snippet',
+				capturedAt: '2026-05-28T10:00:00Z',
+				sourceApp: 'com.google.Chrome',
+				sourceTitle: 'Example - Chrome',
+				sourceUrl: 'https://example.com',
+			});
+			expect(executeActionMock).toHaveBeenCalledTimes(1);
+			const [action] = executeActionMock.mock.calls[0] as [
+				{ sourceApp: string; sourceTitle: string; sourceUrl: string },
+				string,
+			];
+			expect(action.sourceApp).toBe('com.google.Chrome');
+			expect(action.sourceTitle).toBe('Example - Chrome');
+			expect(action.sourceUrl).toBe('https://example.com');
+		});
+	});
+
+	describe('buildCaptureAction (source fields)', () => {
+		it('includes sourceApp/Title/Url when present', () => {
+			const action = buildCaptureAction(
+				{
+					type: 'capture',
+					kind: 'note',
+					text: 'idea',
+					sourceApp: 'com.apple.Safari',
+					sourceTitle: 'Tab title',
+					sourceUrl: 'https://x.dev',
+				},
+				'V',
+			);
+			expect(action).toMatchObject({
+				kind: 'note',
+				vault: 'V',
+				sourceApp: 'com.apple.Safari',
+				sourceTitle: 'Tab title',
+				sourceUrl: 'https://x.dev',
+			});
+		});
+
+		it('leaves source fields undefined when payload omits them', () => {
+			const action = buildCaptureAction(
+				{ type: 'capture', kind: 'note', text: 'idea' },
+				'V',
+			);
+			expect(action).toMatchObject({ kind: 'note' });
+			expect((action as { sourceApp?: string }).sourceApp).toBeUndefined();
+			expect((action as { sourceTitle?: string }).sourceTitle).toBeUndefined();
+			expect((action as { sourceUrl?: string }).sourceUrl).toBeUndefined();
+		});
 	});
 });
