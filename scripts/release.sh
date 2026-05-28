@@ -6,7 +6,11 @@ SUFFIX=""
 
 # ─── Helpers ──────────────────────────────────────────────────────────
 usage() {
-  echo "Usage: $0 [patch|minor|major]"
+  echo "Usage: $0 [patch|minor|major] [--no-push|--local]"
+  echo ""
+  echo "Flags:"
+  echo "  --no-push, --local   Bump version, commit and create the tag locally,"
+  echo "                       but do NOT push to origin (and skip remote pruning)."
   echo ""
   echo "Bump types:"
   echo "  patch  (default)  Correções e ajustes pequenos"
@@ -28,13 +32,17 @@ usage() {
   exit 1
 }
 
-# ─── Parse bump type ─────────────────────────────────────────────────
-BUMP="${1:-patch}"
-case "$BUMP" in
-  patch|minor|major) ;;
-  -h|--help) usage ;;
-  *) echo "Error: unknown bump type '$BUMP'"; usage ;;
-esac
+# ─── Parse args ──────────────────────────────────────────────────────
+BUMP="patch"
+NO_PUSH=0
+for arg in "$@"; do
+  case "$arg" in
+    patch|minor|major) BUMP="$arg" ;;
+    --no-push|--local) NO_PUSH=1 ;;
+    -h|--help) usage ;;
+    *) echo "Error: unknown argument '$arg'"; usage ;;
+  esac
+done
 
 # ─── Get latest tag ──────────────────────────────────────────────────
 LATEST_TAG=$(git tag --sort=-v:refname | grep -v '^nightly$' | head -1)
@@ -119,6 +127,14 @@ echo ""
 
 # ─── Create annotated tag ────────────────────────────────────────────
 git tag -a "$NEW_VERSION" -m "$TAG_BODY"
+
+if [ "$NO_PUSH" = "1" ]; then
+  echo ""
+  echo "Tag $NEW_VERSION created locally. Skipping push (--no-push)."
+  echo "Push later with:"
+  echo "  git push origin main && git push origin $NEW_VERSION"
+  exit 0
+fi
 
 echo ""
 echo "Tag $NEW_VERSION created. Pushing to origin..."
