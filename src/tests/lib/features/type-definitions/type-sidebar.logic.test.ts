@@ -16,6 +16,7 @@ function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata
 		view: 'all',
 		visible: true,
 		listPropertiesDisplay: [],
+		archiveTo: null,
 		...overrides,
 	};
 }

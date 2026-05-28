@@ -52,6 +52,7 @@ function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMeta
 		view: 'all',
 		visible: true,
 		listPropertiesDisplay: [],
+		archiveTo: null,
 		...overrides,
 	};
 }
