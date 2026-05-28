@@ -10,3 +10,4 @@ pub mod clipboard;
 pub mod commands;
 pub mod kind_detect;
 pub mod shortcuts;
+pub mod source;

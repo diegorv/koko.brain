@@ -16,6 +16,10 @@ use tauri::{Emitter, Manager};
 
 use crate::quick_capture::clipboard::{Clipboard, SystemClipboard};
 use crate::quick_capture::kind_detect::{decide, CaptureInput, ShotSource};
+use crate::quick_capture::source::{
+    activate_prev_app, bundle_id_for_pid, frontmost_bundle_id, resolve_context_for_bundle,
+    CaptureContext, PrevFrontmostPid,
+};
 
 /// Event name used to deliver detected captures to the frontend.
 pub const QC_CAPTURE_DETECTED_EVENT: &str = "qc:capture-detected";
@@ -41,13 +45,14 @@ pub const COMPOSER_WINDOW_LABEL: &str = "composer";
 pub fn capture_clipboard_now_with(
     clipboard: &dyn Clipboard,
     captured_at: String,
+    context: CaptureContext,
 ) -> Result<Vec<Value>, String> {
     let snapshot = clipboard.read().map_err(|e| e.to_string())?;
     let inputs = decide(snapshot).map_err(|e| e.to_string())?;
     let mut out = Vec::with_capacity(inputs.len());
     for input in inputs {
         let resolved = materialize_input(input)?;
-        out.push(capture_input_to_payload(resolved, &captured_at));
+        out.push(capture_input_to_payload(resolved, &captured_at, &context));
     }
     Ok(out)
 }
@@ -104,8 +109,12 @@ fn write_shot_bytes_to_temp(bytes: &[u8], mime: &str) -> Result<std::path::PathB
 /// `sourceUrl` are not populated here — the frontend or caller adds
 /// them. `type: 'capture'` is included so the frontend can hand the
 /// payload directly to `executeAction`.
-fn capture_input_to_payload(input: CaptureInput, captured_at: &str) -> Value {
-    match input {
+fn capture_input_to_payload(
+    input: CaptureInput,
+    captured_at: &str,
+    context: &CaptureContext,
+) -> Value {
+    let mut payload = match input {
         CaptureInput::Note { text } => json!({
             "type": "capture",
             "kind": "note",
@@ -137,10 +146,9 @@ fn capture_input_to_payload(input: CaptureInput, captured_at: &str) -> Value {
         CaptureInput::Shot {
             source: ShotSource::Bytes { bytes: _, mime },
         } => {
-            // P3.3 will write the bytes to a temp file and convert this
-            // into a `Path` variant before dispatch. For now the
-            // payload carries the mime + a `pending: true` marker so
-            // the frontend can decide what to do (toast, ignore, etc.).
+            // Defensive: `materialize_input` rewrites Bytes → Path before
+            // this is called from the public path. Kept here for safety
+            // if the helper is ever invoked directly with raw Bytes.
             json!({
                 "type": "capture",
                 "kind": "shot",
@@ -162,17 +170,40 @@ fn capture_input_to_payload(input: CaptureInput, captured_at: &str) -> Value {
             "originalName": original_name,
             "capturedAt": captured_at,
         }),
+    };
+    merge_context(&mut payload, context);
+    payload
+}
+
+/// Inject `sourceApp` / `sourceTitle` / `sourceUrl` from `context`
+/// into `payload`. Each field is only set when present so the deep-
+/// link template renderer treats absent fields as empty rather than
+/// `"null"`.
+fn merge_context(payload: &mut Value, context: &CaptureContext) {
+    let Some(obj) = payload.as_object_mut() else {
+        return;
+    };
+    if let Some(ref app) = context.source_app {
+        obj.insert("sourceApp".to_string(), Value::String(app.clone()));
+    }
+    if let Some(ref title) = context.source_title {
+        obj.insert("sourceTitle".to_string(), Value::String(title.clone()));
+    }
+    if let Some(ref url) = context.source_url {
+        obj.insert("sourceUrl".to_string(), Value::String(url.clone()));
     }
 }
 
-/// Tauri command: read the system clipboard, detect kind(s), emit one
-/// `qc:capture-detected` event per detected input.
+/// Tauri command: read the system clipboard, detect kind(s), stamp
+/// the live frontmost-app context (bundle id + browser tab when
+/// applicable), and emit one `qc:capture-detected` event per result.
 #[tauri::command]
 pub fn capture_clipboard_now<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
 ) -> Result<(), String> {
     let captured_at = chrono::Utc::now().to_rfc3339();
-    let payloads = capture_clipboard_now_with(&SystemClipboard::new(), captured_at)?;
+    let context = resolve_context_for_bundle(frontmost_bundle_id().as_deref());
+    let payloads = capture_clipboard_now_with(&SystemClipboard::new(), captured_at, context)?;
     for payload in payloads {
         app.emit(QC_CAPTURE_DETECTED_EVENT, payload)
             .map_err(|e| e.to_string())?;
@@ -202,9 +233,9 @@ pub fn open_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), 
     Ok(())
 }
 
-/// Hide the composer popover. Called from the route on Esc / blur /
-/// after a successful save. P4.2 will add `activate_prev_app` so focus
-/// returns to whatever was frontmost before the popover summoned.
+/// Hide the composer popover. Called from the route on Esc / after a
+/// successful save. Restores focus to whichever app was frontmost
+/// before the popover summoned (PID stored by `record_prev_frontmost`).
 #[tauri::command]
 pub fn dismiss_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
     let handle = app.clone();
@@ -212,20 +243,27 @@ pub fn dismiss_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(
         if let Some(window) = handle.get_webview_window(COMPOSER_WINDOW_LABEL) {
             let _ = window.hide();
         }
+        activate_prev_app(&handle);
     })
     .map_err(|e| e.to_string())
 }
 
-/// Build a `note`-kind capture payload from composer text. Pure so the
-/// caller-side guard (trim → no-emit on empty) is testable without a
-/// Tauri runtime.
-pub fn build_composer_note_payload(text: &str, captured_at: String) -> Value {
-    json!({
+/// Build a `note`-kind capture payload from composer text, stamped
+/// with `context`. Pure so the caller-side guard (trim → no-emit on
+/// empty) is testable without a Tauri runtime.
+pub fn build_composer_note_payload(
+    text: &str,
+    captured_at: String,
+    context: &CaptureContext,
+) -> Value {
+    let mut payload = json!({
         "type": "capture",
         "kind": "note",
         "text": text,
         "capturedAt": captured_at,
-    })
+    });
+    merge_context(&mut payload, context);
+    payload
 }
 
 /// Composer-side save path. The composer webview cannot directly invoke
@@ -234,6 +272,9 @@ pub fn build_composer_note_payload(text: &str, captured_at: String) -> Value {
 /// Instead it posts the typed text here and Rust emits the same
 /// `qc:capture-detected` event the clipboard-shortcut path uses — the
 /// main-window listener then fills the active vault and dispatches.
+///
+/// Source-app context comes from the PID recorded at summon (see
+/// `record_prev_frontmost`); we `peek` so dismiss can still take it.
 #[tauri::command]
 pub fn submit_composer_capture<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
@@ -245,7 +286,10 @@ pub fn submit_composer_capture<R: tauri::Runtime>(
         return Ok(());
     }
     let captured_at = chrono::Utc::now().to_rfc3339();
-    let payload = build_composer_note_payload(&text, captured_at);
+    let prev_pid = app.state::<PrevFrontmostPid>().peek();
+    let bundle = bundle_id_for_pid(prev_pid);
+    let context = resolve_context_for_bundle(bundle.as_deref());
+    let payload = build_composer_note_payload(&text, captured_at, &context);
     app.emit(QC_CAPTURE_DETECTED_EVENT, payload)
         .map_err(|e| e.to_string())
 }
@@ -260,7 +304,16 @@ mod tests {
 
     fn run(snapshot: Result<ClipboardSnapshot, crate::quick_capture::clipboard::ClipboardError>) -> Vec<Value> {
         let fake = FakeClipboard::with(snapshot);
-        capture_clipboard_now_with(&fake, FIXED_TS.to_string()).expect("inner")
+        capture_clipboard_now_with(&fake, FIXED_TS.to_string(), CaptureContext::default())
+            .expect("inner")
+    }
+
+    fn run_with_context(
+        snapshot: Result<ClipboardSnapshot, crate::quick_capture::clipboard::ClipboardError>,
+        ctx: CaptureContext,
+    ) -> Vec<Value> {
+        let fake = FakeClipboard::with(snapshot);
+        capture_clipboard_now_with(&fake, FIXED_TS.to_string(), ctx).expect("inner")
     }
 
     #[test]
@@ -332,6 +385,7 @@ mod tests {
         let err = capture_clipboard_now_with(
             &FakeClipboard::with(Ok(ClipboardSnapshot::Text(String::new()))),
             FIXED_TS.to_string(),
+            CaptureContext::default(),
         )
         .expect_err("empty text must error");
         assert!(err.contains("clipboard text is empty"), "got: {err}");
@@ -339,7 +393,11 @@ mod tests {
 
     #[test]
     fn composer_note_payload_has_note_kind() {
-        let p = build_composer_note_payload("a thought", FIXED_TS.to_string());
+        let p = build_composer_note_payload(
+            "a thought",
+            FIXED_TS.to_string(),
+            &CaptureContext::default(),
+        );
         assert_eq!(p["type"], "capture");
         assert_eq!(p["kind"], "note");
         assert_eq!(p["text"], "a thought");
@@ -352,7 +410,44 @@ mod tests {
         // itself must keep the user's exact body verbatim — preserving
         // leading/trailing newlines and indentation.
         let body = "\n  indented line\nsecond\n";
-        let p = build_composer_note_payload(body, FIXED_TS.to_string());
+        let p = build_composer_note_payload(body, FIXED_TS.to_string(), &CaptureContext::default());
         assert_eq!(p["text"], body);
+    }
+
+    #[test]
+    fn payload_includes_source_app_when_context_present() {
+        let ctx = CaptureContext {
+            source_app: Some("com.google.Chrome".into()),
+            source_title: Some("Example".into()),
+            source_url: Some("https://example.com".into()),
+        };
+        let out = run_with_context(Ok(ClipboardSnapshot::Text("idea".into())), ctx);
+        assert_eq!(out[0]["sourceApp"], "com.google.Chrome");
+        assert_eq!(out[0]["sourceTitle"], "Example");
+        assert_eq!(out[0]["sourceUrl"], "https://example.com");
+    }
+
+    #[test]
+    fn payload_omits_source_fields_when_context_empty() {
+        let out = run_with_context(
+            Ok(ClipboardSnapshot::Text("idea".into())),
+            CaptureContext::default(),
+        );
+        assert!(out[0].get("sourceApp").is_none());
+        assert!(out[0].get("sourceTitle").is_none());
+        assert!(out[0].get("sourceUrl").is_none());
+    }
+
+    #[test]
+    fn composer_payload_includes_source_app_from_context() {
+        let ctx = CaptureContext {
+            source_app: Some("com.apple.Safari".into()),
+            source_title: None,
+            source_url: None,
+        };
+        let p = build_composer_note_payload("idea", FIXED_TS.to_string(), &ctx);
+        assert_eq!(p["sourceApp"], "com.apple.Safari");
+        assert!(p.get("sourceTitle").is_none());
+        assert!(p.get("sourceUrl").is_none());
     }
 }

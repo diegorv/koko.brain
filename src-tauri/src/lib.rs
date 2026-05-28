@@ -18,6 +18,9 @@ use quick_capture::commands::{
     QC_OPEN_COMPOSER_EVENT,
 };
 use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
+use quick_capture::source::{
+    frontmost_bundle_id, record_prev_frontmost, resolve_context_for_bundle, PrevFrontmostPid,
+};
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
@@ -29,6 +32,10 @@ use vault::VaultIndexState;
 fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutId) {
     match id {
         ShortcutId::OpenComposer => {
+            // Snapshot the frontmost app BEFORE showing the popover so
+            // the composer save path can stamp `sourceApp` and the
+            // dismiss path can restore focus to that app.
+            record_prev_frontmost(app);
             show_composer(app);
             // Keep the event for any current listeners; the composer
             // route ignores empty payloads as a no-op.
@@ -36,7 +43,11 @@ fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutI
         }
         ShortcutId::CaptureClipboard => {
             let captured_at = chrono::Utc::now().to_rfc3339();
-            match capture_clipboard_now_with(&SystemClipboard::new(), captured_at) {
+            // The clipboard shortcut fires while the user's app is
+            // still frontmost (kokobrain stays backgrounded); reading
+            // `frontmostApplication` directly gives the right source.
+            let context = resolve_context_for_bundle(frontmost_bundle_id().as_deref());
+            match capture_clipboard_now_with(&SystemClipboard::new(), captured_at, context) {
                 Ok(payloads) => {
                     for payload in payloads {
                         let _ = app.emit(QC_CAPTURE_DETECTED_EVENT, payload);
@@ -237,6 +248,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
+        .manage(PrevFrontmostPid::new())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
