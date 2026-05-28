@@ -189,11 +189,14 @@ pub struct NoteEntry {
 	pub archived: bool,
 	/// Lifecycle flag: note is pinned as a favorite. Default `false`.
 	pub favorite: bool,
-	/// Hierarchical ownership targets from `belongs_to` frontmatter field.
+	/// Hierarchical ownership targets from the `_belongs_to` frontmatter field.
 	/// Wikilink targets extracted from the value (e.g. `[[project]]` -> `"project"`).
 	pub belongs_to: Vec<String>,
-	/// Lateral relationship targets from `related_to` frontmatter field.
+	/// Lateral relationship targets from the `_related_to` frontmatter field.
 	pub related_to: Vec<String>,
+	/// Inverse-ownership targets from the `_has_many` frontmatter field.
+	/// Wikilink targets extracted from the value, same shape as `belongs_to`.
+	pub has_many: Vec<String>,
 	/// Generic relationships: frontmatter fields whose values contain wikilinks.
 	/// Key is the field name, value is the list of wikilink targets.
 	pub relationships: BTreeMap<String, Vec<String>>,
@@ -239,8 +242,9 @@ impl NoteEntry {
 			.unwrap_or(true);
 		let archived = extract_bool_flag(&frontmatter, "_archived");
 		let favorite = extract_bool_flag(&frontmatter, "_favorite");
-		let belongs_to = extract_wikilink_targets(&frontmatter, "belongs_to");
-		let related_to = extract_wikilink_targets(&frontmatter, "related_to");
+		let belongs_to = extract_wikilink_targets(&frontmatter, "_belongs_to");
+		let related_to = extract_wikilink_targets(&frontmatter, "_related_to");
+		let has_many = extract_wikilink_targets(&frontmatter, "_has_many");
 		let relationships = extract_all_relationships(&frontmatter);
 		let body = strip_frontmatter(content);
 		let word_count = compute_word_count(body);
@@ -263,6 +267,7 @@ impl NoteEntry {
 			favorite,
 			belongs_to,
 			related_to,
+			has_many,
 			relationships,
 		}
 	}
@@ -375,7 +380,7 @@ fn extract_wikilink_targets(frontmatter: &BTreeMap<String, JsonValue>, key: &str
 /// wikilinks in their values. Returns a map of field name -> wikilink targets.
 fn extract_all_relationships(frontmatter: &BTreeMap<String, JsonValue>) -> BTreeMap<String, Vec<String>> {
 	const SYSTEM_KEYS: &[&str] = &[
-		"type", "belongs_to", "related_to",
+		"type", "_belongs_to", "_related_to", "_has_many",
 		"_organized", "_archived", "_favorite",
 		"_order", "_sort", "_icon", "_sidebar_label",
 		"_color", "_title_color", "_template", "_view", "_visible",
@@ -530,6 +535,7 @@ mod tests {
 			favorite: false,
 			belongs_to: Vec::new(),
 			related_to: Vec::new(),
+			has_many: Vec::new(),
 			relationships: BTreeMap::new(),
 		};
 
@@ -555,6 +561,7 @@ mod tests {
 			"favorite",
 			"belongsTo",
 			"relatedTo",
+			"hasMany",
 			"relationships",
 		];
 		for key in expected_keys {
@@ -626,6 +633,7 @@ mod tests {
 			favorite: false,
 			belongs_to: Vec::new(),
 			related_to: Vec::new(),
+			has_many: Vec::new(),
 			relationships: BTreeMap::new(),
 		};
 
@@ -882,30 +890,48 @@ mod tests {
 
 	#[test]
 	fn from_content_belongs_to_single_wikilink() {
-		let content = "---\nbelongs_to: \"[[project]]\"\n---\n";
+		let content = "---\n_belongs_to: \"[[project]]\"\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert_eq!(entry.belongs_to, vec!["project"]);
 	}
 
 	#[test]
 	fn from_content_belongs_to_array_of_wikilinks() {
-		let content = "---\nbelongs_to: [\"[[a]]\", \"[[b]]\"]\n---\n";
+		let content = "---\n_belongs_to: [\"[[a]]\", \"[[b]]\"]\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert_eq!(entry.belongs_to, vec!["a", "b"]);
 	}
 
 	#[test]
-	fn from_content_belongs_to_via_alias() {
-		let content = "---\nbelongs to: \"[[project]]\"\n---\n";
+	fn from_content_bare_belongs_to_is_not_recognized() {
+		// Canonical key is `_belongs_to`; the bare/space spellings take no
+		// alias, so they do NOT populate the first-class field. A bare
+		// `belongs_to` carrying a wikilink falls through to `relationships`.
+		let content = "---\nbelongs_to: \"[[project]]\"\nbelongs to: \"[[other]]\"\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
-		assert_eq!(entry.belongs_to, vec!["project"]);
+		assert!(entry.belongs_to.is_empty());
+		assert_eq!(entry.relationships.get("belongs_to"), Some(&vec!["project".to_string()]));
 	}
 
 	#[test]
 	fn from_content_related_to_single_wikilink() {
-		let content = "---\nrelated_to: \"[[maps]]\"\n---\n";
+		let content = "---\n_related_to: \"[[maps]]\"\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert_eq!(entry.related_to, vec!["maps"]);
+	}
+
+	#[test]
+	fn from_content_has_many_single_wikilink() {
+		let content = "---\n_has_many: \"[[task-a]]\"\n---\n";
+		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+		assert_eq!(entry.has_many, vec!["task-a"]);
+	}
+
+	#[test]
+	fn from_content_has_many_array_of_wikilinks() {
+		let content = "---\n_has_many: [\"[[a]]\", \"[[b]]\"]\n---\n";
+		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+		assert_eq!(entry.has_many, vec!["a", "b"]);
 	}
 
 	#[test]
@@ -924,16 +950,18 @@ mod tests {
 
 	#[test]
 	fn from_content_relationships_excludes_system_keys() {
-		let content = "---\ntype: Project\ntags: [work]\nmentor: \"[[john]]\"\n---\n";
+		let content = "---\ntype: Project\ntags: [work]\n_belongs_to: \"[[p]]\"\n_has_many: \"[[t]]\"\nmentor: \"[[john]]\"\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert!(!entry.relationships.contains_key("type"));
 		assert!(!entry.relationships.contains_key("tags"));
+		assert!(!entry.relationships.contains_key("_belongs_to"));
+		assert!(!entry.relationships.contains_key("_has_many"));
 		assert!(entry.relationships.contains_key("mentor"));
 	}
 
 	#[test]
 	fn from_content_wikilink_strips_alias_and_heading() {
-		let content = "---\nbelongs_to: \"[[project|My Project]]\"\nrelated_to: \"[[note#section]]\"\n---\n";
+		let content = "---\n_belongs_to: \"[[project|My Project]]\"\n_related_to: \"[[note#section]]\"\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert_eq!(entry.belongs_to, vec!["project"]);
 		assert_eq!(entry.related_to, vec!["note"]);

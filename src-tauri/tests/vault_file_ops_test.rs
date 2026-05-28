@@ -257,14 +257,19 @@ fn project_record_belongs_to_and_related_to() {
 	entry.path = "/v/child.md".to_string();
 	entry.belongs_to = vec!["parent".to_string()];
 	entry.related_to = vec!["sibling1".to_string(), "sibling2".to_string()];
+	entry.has_many = vec!["task1".to_string()];
 	let rec = project_note_record(&entry);
 	assert_eq!(
-		rec.properties.get("belongs_to"),
+		rec.properties.get("_belongs_to"),
 		Some(&serde_json::json!(["parent"]))
 	);
 	assert_eq!(
-		rec.properties.get("related_to"),
+		rec.properties.get("_related_to"),
 		Some(&serde_json::json!(["sibling1", "sibling2"]))
+	);
+	assert_eq!(
+		rec.properties.get("_has_many"),
+		Some(&serde_json::json!(["task1"]))
 	);
 }
 
@@ -273,8 +278,9 @@ fn project_record_empty_relations_omitted() {
 	let mut entry = NoteEntry::default();
 	entry.path = "/v/solo.md".to_string();
 	let rec = project_note_record(&entry);
-	assert!(rec.properties.get("belongs_to").is_none());
-	assert!(rec.properties.get("related_to").is_none());
+	assert!(rec.properties.get("_belongs_to").is_none());
+	assert!(rec.properties.get("_related_to").is_none());
+	assert!(rec.properties.get("_has_many").is_none());
 }
 
 #[test]

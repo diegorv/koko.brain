@@ -547,8 +547,9 @@ impl VaultIndex {
 	}
 
 	/// Returns notes that reference the target note via frontmatter relationship
-	/// fields (`belongs_to`, `related_to`, or custom fields in `relationships`).
-	/// Resolves wikilink targets against `by_path` to match on absolute paths.
+	/// fields (`_belongs_to`, `_related_to`, `_has_many`, or custom fields in
+	/// `relationships`). Resolves wikilink targets against `by_path` to match
+	/// on absolute paths.
 	pub fn lookup_relationship_backlinks(&self, target_path: &str) -> Vec<RelationshipBacklink> {
 		let target_name = target_path
 			.rsplit('/')
@@ -580,6 +581,16 @@ impl VaultIndex {
 						source_path: entry.path.clone(),
 						source_name: entry.title.clone(),
 						relationship_type: "related_to".to_string(),
+					});
+					break;
+				}
+			}
+			for t in &entry.has_many {
+				if self.resolves_to(t, target_path, &target_lower) {
+					results.push(RelationshipBacklink {
+						source_path: entry.path.clone(),
+						source_name: entry.title.clone(),
+						relationship_type: "has_many".to_string(),
 					});
 					break;
 				}
@@ -1572,6 +1583,20 @@ mod tests {
 		let rels = idx.lookup_relationship_backlinks("/v/a.md");
 		assert_eq!(rels.len(), 1);
 		assert_eq!(rels[0].relationship_type, "related_to");
+	}
+
+	#[test]
+	fn lookup_relationship_backlinks_has_many() {
+		let mut idx = VaultIndex::default();
+		let target = make_entry("/v/task.md", &[], &[]);
+		let mut owner = make_entry("/v/owner.md", &[], &[]);
+		owner.has_many = vec!["task".to_string()];
+		idx.build(vec![target, owner]);
+
+		let rels = idx.lookup_relationship_backlinks("/v/task.md");
+		assert_eq!(rels.len(), 1);
+		assert_eq!(rels[0].relationship_type, "has_many");
+		assert_eq!(rels[0].source_path, "/v/owner.md");
 	}
 
 	#[test]

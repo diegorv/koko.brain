@@ -671,10 +671,13 @@ pub fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 	properties.insert("archived".to_string(), serde_json::Value::Bool(entry.archived));
 	properties.insert("favorite".to_string(), serde_json::Value::Bool(entry.favorite));
 	if !entry.belongs_to.is_empty() {
-		properties.insert("belongs_to".to_string(), serde_json::json!(entry.belongs_to));
+		properties.insert("_belongs_to".to_string(), serde_json::json!(entry.belongs_to));
 	}
 	if !entry.related_to.is_empty() {
-		properties.insert("related_to".to_string(), serde_json::json!(entry.related_to));
+		properties.insert("_related_to".to_string(), serde_json::json!(entry.related_to));
+	}
+	if !entry.has_many.is_empty() {
+		properties.insert("_has_many".to_string(), serde_json::json!(entry.has_many));
 	}
 	NoteRecord {
 		path: path.clone(),
