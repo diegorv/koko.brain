@@ -1,0 +1,11 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "composer",
+	"description": "Capability for the quick-capture composer popover window. The popover only needs to invoke the dismiss command and listen for the open-composer event; no filesystem, no clipboard, no other IPC.",
+	"windows": ["composer"],
+	"permissions": [
+		"core:default",
+		"core:window:allow-hide",
+		"core:window:allow-set-focus"
+	]
+}

@@ -13,24 +13,26 @@ use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, Shortcut, ShortcutState};
 
 use quick_capture::clipboard::SystemClipboard;
-use quick_capture::commands::{capture_clipboard_now_with, QC_CAPTURE_DETECTED_EVENT};
+use quick_capture::commands::{
+    capture_clipboard_now_with, show_composer, COMPOSER_WINDOW_LABEL, QC_CAPTURE_DETECTED_EVENT,
+    QC_OPEN_COMPOSER_EVENT,
+};
 use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
 
-/// Event emitted when Ctrl+Alt+Cmd+Space fires. Wired to the real
-/// composer window in P2.3; for now the frontend logs the event.
-pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
-
 /// Dispatch a fired global shortcut to its side-effect. `CaptureClipboard`
 /// runs the same helper the IPC command uses and emits one
-/// `qc:capture-detected` event per detected input. `OpenComposer` is a
-/// placeholder until P2.3 wires the composer window.
+/// `qc:capture-detected` event per detected input. `OpenComposer` summons
+/// the composer popover via the shared `show_composer` helper.
 fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutId) {
     match id {
         ShortcutId::OpenComposer => {
-            let _ = app.emit(QC_OPEN_COMPOSER_EVENT, ());
+            show_composer(app);
+            // Keep the event for any current listeners; the composer
+            // route ignores empty payloads as a no-op.
+            let _ = app.emit(QC_OPEN_COMPOSER_EVENT, "");
         }
         ShortcutId::CaptureClipboard => {
             let captured_at = chrono::Utc::now().to_rfc3339();
@@ -86,10 +88,6 @@ fn apply_move_to_active_space(window: &tauri::WebviewWindow) {
 
 #[cfg(not(target_os = "macos"))]
 fn apply_move_to_active_space(_window: &tauri::WebviewWindow) {}
-
-/// Composer popover label used to look the window up later (show /
-/// dismiss handlers in P2.3).
-pub const COMPOSER_WINDOW_LABEL: &str = "composer";
 
 /// Build the composer popover. Config copied from quick-capture:
 /// 600x240 frameless popover, transparent, not resizable, hidden at
@@ -298,6 +296,8 @@ pub fn run() {
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
             quick_capture::commands::capture_clipboard_now,
+            quick_capture::commands::open_composer,
+            quick_capture::commands::dismiss_composer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

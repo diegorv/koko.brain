@@ -12,13 +12,22 @@
 //! real `SystemClipboard`.
 
 use serde_json::{json, Value};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 use crate::quick_capture::clipboard::{Clipboard, SystemClipboard};
 use crate::quick_capture::kind_detect::{decide, CaptureInput, ShotSource};
 
 /// Event name used to deliver detected captures to the frontend.
 pub const QC_CAPTURE_DETECTED_EVENT: &str = "qc:capture-detected";
+
+/// Event the composer popover listens for to focus its textarea after a
+/// show. Carries an optional initial-text payload (empty for the
+/// shortcut-summoned path).
+pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
+
+/// Tauri label of the composer popover window. Must match the value
+/// passed to `WebviewWindowBuilder::new` in `lib.rs::build_composer_window`.
+pub const COMPOSER_WINDOW_LABEL: &str = "composer";
 
 /// Pure helper: read the clipboard via the injected adapter, decide
 /// the kind(s), and serialize each result into a kokobrain
@@ -121,6 +130,42 @@ pub fn capture_clipboard_now<R: tauri::Runtime>(
             .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// Show the composer popover window and emit `qc:open-composer` so the
+/// route resets its focus state. P4.2 wires `record_prev_frontmost`
+/// here; for now the show path is just `show + set_focus`.
+pub fn show_composer<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if let Some(window) = handle.get_webview_window(COMPOSER_WINDOW_LABEL) {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        let _ = handle.emit(QC_OPEN_COMPOSER_EVENT, "");
+    });
+}
+
+/// Tauri command counterpart of `show_composer`. Exposed so the
+/// frontend can also summon the popover (e.g. from an in-window menu).
+#[tauri::command]
+pub fn open_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    show_composer(&app);
+    Ok(())
+}
+
+/// Hide the composer popover. Called from the route on Esc / blur /
+/// after a successful save. P4.2 will add `activate_prev_app` so focus
+/// returns to whatever was frontmost before the popover summoned.
+#[tauri::command]
+pub fn dismiss_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    let handle = app.clone();
+    app.run_on_main_thread(move || {
+        if let Some(window) = handle.get_webview_window(COMPOSER_WINDOW_LABEL) {
+            let _ = window.hide();
+        }
+    })
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
