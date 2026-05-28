@@ -31,8 +31,9 @@ the Quick Capture settings section. Reuses the existing inbox notion
 - [x] Task 4: Service `features/dock-badge/dock-badge.service.ts` -> `applyDockBadge(value: number | null)`
       calls `getCurrentWindow().setBadgeCount`, maps `null`/`0`/negative -> clear (undefined), try/catch + log (swallows;
       cosmetic). Test with mocked `@tauri-apps/api/window` + `$lib/utils/debug`.
-- [ ] Task 5: Wire app-level `$effect` in `AppShell.svelte` (read toggle + `entriesVersion`, compute via logic,
-      `applyDockBadge` inside `untrack()`).
+- [x] Task 5: Wire app-level `$effect` in `AppShell.svelte` (read toggle + `entriesVersion`, compute via logic,
+      `applyDockBadge` inside `untrack()`). No component unit test: repo has none for `.svelte` (effect-wiring
+      components like TasksView/WordCount follow the same pattern); coverage = logic+service tests (Tasks 3-4) + manual (Task 7).
 - [ ] Task 6: Add the toggle to `QuickCaptureSection.svelte` (SettingItem + checkbox bound to the setting, calls `onchange`).
 - [ ] Task 7: Manual verify in app — badge appears with inbox count, updates on organize/archive, clears on toggle OFF.
 

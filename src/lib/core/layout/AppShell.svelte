@@ -1,10 +1,13 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import { appendLog } from '$lib/utils/log.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+	import { dockBadgeCount } from '$lib/features/dock-badge/dock-badge.logic';
+	import { applyDockBadge } from '$lib/features/dock-badge/dock-badge.service';
 	import * as Resizable from '$lib/components/ui/resizable';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Separator } from '$lib/components/ui/separator';
@@ -30,6 +33,18 @@
 	import { error } from '$lib/utils/debug';
 
 	let { children }: { children: Snippet } = $props();
+
+	// Keep the macOS dock badge in sync with the lifecycle inbox count.
+	// Tracks the toggle and the vault entries version; the actual OS call
+	// is wrapped in untrack() so the service's reads never become deps.
+	$effect(() => {
+		const enabled = settingsStore.dockBadgeInboxCount;
+		void typeDefinitionsStore.entriesVersion;
+		const value = dockBadgeCount(enabled, typeDefinitionsStore.entries);
+		untrack(() => {
+			applyDockBadge(value);
+		});
+	});
 
 	// [FE-STARTUP-PROBE]
 	onMount(async () => {
