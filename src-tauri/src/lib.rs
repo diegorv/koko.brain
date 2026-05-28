@@ -9,7 +9,7 @@ pub mod vault;
 use std::str::FromStr;
 
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
-use tauri::Emitter;
+use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, Shortcut, ShortcutState};
 
 use quick_capture::clipboard::SystemClipboard;
@@ -46,6 +46,74 @@ fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutI
             }
         }
     }
+}
+
+/// Convert a window's macOS Close button into a Hide. Ported from
+/// quick-capture so the composer popover behaves like a popover instead
+/// of being permanently destroyed when the user clicks the red dot.
+fn intercept_close_as_hide(window: &tauri::WebviewWindow) {
+    let target = window.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            let _ = target.hide();
+        }
+    });
+}
+
+/// macOS: make the window summon onto whichever Space is currently
+/// active, instead of yanking the user back to the Space where it last
+/// lived. Sets `NSWindowCollectionBehaviorMoveToActiveSpace` on the
+/// underlying NSWindow. Ported verbatim from quick-capture.
+#[cfg(target_os = "macos")]
+fn apply_move_to_active_space(window: &tauri::WebviewWindow) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    // NSWindowCollectionBehaviorMoveToActiveSpace = 1 << 1.
+    const MOVE_TO_ACTIVE_SPACE: usize = 1 << 1;
+    let Ok(ns_window) = window.ns_window() else {
+        return;
+    };
+    let ns_window = ns_window as *mut AnyObject;
+    if ns_window.is_null() {
+        return;
+    }
+    unsafe {
+        let current: usize = msg_send![ns_window, collectionBehavior];
+        let _: () = msg_send![ns_window, setCollectionBehavior: current | MOVE_TO_ACTIVE_SPACE];
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn apply_move_to_active_space(_window: &tauri::WebviewWindow) {}
+
+/// Composer popover label used to look the window up later (show /
+/// dismiss handlers in P2.3).
+pub const COMPOSER_WINDOW_LABEL: &str = "composer";
+
+/// Build the composer popover. Config copied from quick-capture:
+/// 600x240 frameless popover, transparent, not resizable, hidden at
+/// startup, centred, intercepts close as hide so the popover stays
+/// alive across global-shortcut summons.
+fn build_composer_window(app: &tauri::AppHandle) -> tauri::Result<tauri::WebviewWindow> {
+    let composer_window = WebviewWindowBuilder::new(
+        app,
+        COMPOSER_WINDOW_LABEL,
+        WebviewUrl::App("/composer".into()),
+    )
+    .visible(false)
+    .title("")
+    .inner_size(600.0, 240.0)
+    .decorations(false)
+    .transparent(true)
+    .resizable(false)
+    .skip_taskbar(true)
+    .shadow(true)
+    .center()
+    .build()?;
+    intercept_close_as_hide(&composer_window);
+    apply_move_to_active_space(&composer_window);
+    Ok(composer_window)
 }
 
 fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
@@ -152,6 +220,7 @@ pub fn run() {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             init_logger(app.handle());
+            build_composer_window(app.handle())?;
             Ok(())
         })
         .on_menu_event(|app, event| {
