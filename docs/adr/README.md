@@ -132,3 +132,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0025](0025-rust-vault-index.md) | Rust VaultIndex as source of truth for vault metadata; native Rust watcher           | active |
 | [0026](0026-type-definitions-relationships-lifecycle.md) | Type definitions, semantic relationships, and lifecycle flags via frontmatter         | active |
 | [0027](0027-frontmatter-system-metadata-underscore-prefix.md) | Underscore prefix convention for system metadata with Rust-side alias resolution      | active |
+| [0028](0028-quick-capture-merge-into-kokobrain.md) | Merge quick-capture surface into kokobrain — composer popover + clipboard shortcut    | active |
