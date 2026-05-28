@@ -22,7 +22,7 @@ a non-existent problem.
       (`views:` + `filters:` + top-level `_*` metadata), using `&&` not `and`.
 - [x] Task 2: Fix doc 25 "View Files" section to show the pure-YAML format
       (currently shows frontmatter + body). Keep the `and`->`&&` / `=`->`==` fixes.
-- [ ] Task 3: Commit doc 12 fixes (`&&`/`||`/`!` operator table, `and`->`&&` example).
+- [x] Task 3: Commit doc 12 fixes (`&&`/`||`/`!` operator table, `and`->`&&` example).
 
 ## Notes
 

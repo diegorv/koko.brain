@@ -267,7 +267,7 @@ The filter and formula expressions used in Collection (and in Auto Move rules) s
 |----------|-----------|
 | Arithmetic | `+`, `-`, `*`, `/`, `%` |
 | Comparison | `==`, `!=`, `>`, `<`, `>=`, `<=` |
-| Logical | `&&` / `and`, `\|\|` / `or`, `!` / `not` |
+| Logical | `&&`, `\|\|`, `!` |
 | Date arithmetic | `date + "1d"`, `date - date`, duration strings like `"1h 30m"`, `"2 weeks"` |
 
 Literals: `true`, `false`, `[1, 2, 3]` (arrays), quoted strings, numbers.
@@ -340,7 +340,7 @@ These functions render rich content inside table cells:
 
 ```yaml
 # Filter: active projects with high priority
-filters: "type == 'Project' and status == 'active' and priority == 'high'"
+filters: "type == 'Project' && status == 'active' && priority == 'high'"
 
 # Formula: days until due
 formulas:
