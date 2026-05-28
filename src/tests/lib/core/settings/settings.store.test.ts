@@ -11,6 +11,17 @@ describe('settingsStore', () => {
 		expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 	});
 
+	describe('dockBadgeInboxCount', () => {
+		it('defaults to true', () => {
+			expect(settingsStore.dockBadgeInboxCount).toBe(true);
+		});
+
+		it('getter reflects setSettings', () => {
+			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), dockBadgeInboxCount: false });
+			expect(settingsStore.dockBadgeInboxCount).toBe(false);
+		});
+	});
+
 	describe('setSettings', () => {
 		it('replaces entire settings object', () => {
 			const custom = { ...structuredClone(DEFAULT_SETTINGS), periodicNotes: { ...DEFAULT_SETTINGS.periodicNotes, folder: '_custom' } };
