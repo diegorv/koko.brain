@@ -23,6 +23,7 @@ LOG_DIR = Path.home() / "Library" / "Logs" / "com.diegorv.kokobrain"
 RED = "\033[1;31m"
 YELLOW = "\033[0;33m"
 DIM = "\033[2m"
+WHITE = "\033[1;37m"
 RESET = "\033[0m"
 CYAN = "\033[0;36m"
 GREEN = "\033[0;32m"
@@ -43,7 +44,7 @@ def colorize(line: str) -> str:
         return f"{RED}{stripped}{RESET}"
     if "WARN" in stripped:
         return f"{YELLOW}{stripped}{RESET}"
-    return f"{DIM}{stripped}{RESET}"
+    return f"{WHITE}{stripped}{RESET}"
 
 
 def tail_file(path: Path, errors_only: bool) -> None:
