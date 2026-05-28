@@ -7,6 +7,7 @@
 	import Clock from '@lucide/svelte/icons/clock';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import X from '@lucide/svelte/icons/x';
 
 	async function handleOpenVault() {
 		await openVaultDialog();
@@ -14,6 +15,10 @@
 
 	async function handleOpenRecent(path: string) {
 		await openRecentVault(path);
+	}
+
+	function handleRemoveRecent(path: string) {
+		vaultStore.removeRecent(path);
 	}
 </script>
 
@@ -39,16 +44,24 @@
 				<span>Allowed locations: <span class="font-medium text-foreground/80">~/Documents/kokobrain-vaults/</span> and <span class="font-medium text-foreground/80">~/kokobrain-vaults/</span></span>
 			</div>
 			{#each vaultStore.recentVaults as vault}
-				<button
-					class="group flex items-center gap-2 text-left transition-all"
-					onclick={() => handleOpenRecent(vault.path)}
-				>
+				<div class="group flex items-center gap-2">
 					<ChevronRight class="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
-					<div class="flex flex-1 flex-col rounded-md border bg-card px-3 py-2 transition-all group-hover:bg-secondary group-hover:scale-[1.02] group-hover:shadow-md group-hover:border-muted-foreground/30">
+					<button
+						class="flex flex-1 flex-col rounded-md border bg-card px-3 py-2 text-left transition-all group-hover:bg-secondary group-hover:scale-[1.02] group-hover:shadow-md group-hover:border-muted-foreground/30"
+						onclick={() => handleOpenRecent(vault.path)}
+					>
 						<span class="text-sm font-medium">{vault.name}</span>
 						<span class="truncate text-xs text-muted-foreground">{vault.path}</span>
-					</div>
-				</button>
+					</button>
+					<button
+						class="shrink-0 rounded-md p-1.5 text-muted-foreground/50 opacity-0 transition-all hover:bg-secondary hover:text-foreground group-hover:opacity-100"
+						title="Remove from recent"
+						aria-label="Remove {vault.name} from recent vaults"
+						onclick={() => handleRemoveRecent(vault.path)}
+					>
+						<X class="size-4" />
+					</button>
+				</div>
 			{/each}
 		</div>
 	{/if}
