@@ -69,7 +69,7 @@ Stand up the infrastructure both composer and clipboard need. End-of-phase smoke
 End-of-phase: Ctrl+Alt+Cmd+Space opens the popover; user types text; Enter (or Cmd+Enter) saves via `executeAction` and dismisses.
 
 - [x] P2.1 — Add composer window block in `src-tauri/src/lib.rs` setup, copying QC's config (600x240, decorations false, transparent, resizable false, skip_taskbar, shadow, centered, hidden at startup). Port `apply_move_to_active_space` helper (macOS-only with no-op fallback already in QC) and `intercept_close_as_hide`.
-- [ ] P2.2 — Add `src/routes/composer/+page.svelte` route + layout. Bare textarea-only first pass. Loads vault path via IPC (read kokobrain's tauri-store, since stores from main window don't share across webviews).
+- [x] P2.2 — Add `src/routes/composer/+page.svelte` route + layout. Bare textarea-only first pass. Loads vault path via IPC (read kokobrain's tauri-store, since stores from main window don't share across webviews). _(Vault-path read deferred to P2.5 save handler; route is bare textarea + autofocus + transparent backdrop styling.)_
 - [ ] P2.3 — Tauri commands `show_composer` / `dismiss_composer` (port from QC `commands::show_composer` / `dismiss_composer`, drop the `record_prev_frontmost` logic for now). Wire to Ctrl+Alt+Cmd+Space shortcut.
 - [ ] P2.4 — Port composer Svelte UI from `quick-capture/src/lib/composer/` into `src/lib/plugins/quick-capture/composer/`: textarea, Save button, Esc to dismiss, blur-to-dismiss behavior. Vitest mirrors QC's composer tests.
 - [ ] P2.5 — Save handler: builds `CaptureAction` (kind: 'note', text, captured_at, source_app fields blank), calls `executeAction` directly (no URI). Vitest covers save → executeAction invocation → window dismissed.
