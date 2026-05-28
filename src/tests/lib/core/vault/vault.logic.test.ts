@@ -55,16 +55,16 @@ describe('updateRecentVaults', () => {
 		expect(result[2].path).toBe('/path/b');
 	});
 
-	it('limits to 10 recent vaults', () => {
-		const existing: RecentVault[] = Array.from({ length: 10 }, (_, i) => ({
+	it('limits to 3 recent vaults', () => {
+		const existing: RecentVault[] = Array.from({ length: 5 }, (_, i) => ({
 			path: `/path/${i}`,
 			name: `${i}`,
 			openedAt: i,
 		}));
 		const result = updateRecentVaults(existing, '/path/new', 'new', now);
-		expect(result).toHaveLength(10);
+		expect(result).toHaveLength(3);
 		expect(result[0].path).toBe('/path/new');
-		expect(result[9].path).toBe('/path/8');
+		expect(result[2].path).toBe('/path/1');
 	});
 
 	it('handles duplicate path already at the front', () => {
