@@ -112,7 +112,7 @@ export default defineConfig(async () => ({
     },
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
     watch: {
-      ignored: ["**/src-tauri/**", "**/src/tests/**", "**/tasks/**"],
+      ignored: ["**/src-tauri/**", "**/src/tests/**", "**/tasks/**", "**/help/**", "**/docs/**"],
     },
   },
 }));
