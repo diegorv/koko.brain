@@ -298,6 +298,7 @@ pub fn run() {
             quick_capture::commands::capture_clipboard_now,
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,
+            quick_capture::commands::submit_composer_capture,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

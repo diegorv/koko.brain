@@ -30,12 +30,15 @@
 		}
 		saving = true;
 		try {
-			// P2.5 wires the actual executeAction call; for now we just
-			// log the body so the flow is observable in dev.
-			console.log('[QUICK_CAPTURE] composer save (P2.5 will wire executeAction):', body);
+			// Post the text to Rust, which emits `qc:capture-detected` on the
+			// main window where the registered listener fills the active vault
+			// and dispatches through deep-link's executeAction.
+			await invoke('submit_composer_capture', { text: body });
 			saved = true;
 			await new Promise<void>((resolve) => setTimeout(resolve, SAVE_FLASH_MS));
 			saved = false;
+		} catch (err) {
+			console.error('submit_composer_capture failed', err);
 		} finally {
 			saving = false;
 		}

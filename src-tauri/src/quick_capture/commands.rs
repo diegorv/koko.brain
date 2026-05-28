@@ -168,6 +168,40 @@ pub fn dismiss_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(
     .map_err(|e| e.to_string())
 }
 
+/// Build a `note`-kind capture payload from composer text. Pure so the
+/// caller-side guard (trim → no-emit on empty) is testable without a
+/// Tauri runtime.
+pub fn build_composer_note_payload(text: &str, captured_at: String) -> Value {
+    json!({
+        "type": "capture",
+        "kind": "note",
+        "text": text,
+        "capturedAt": captured_at,
+    })
+}
+
+/// Composer-side save path. The composer webview cannot directly invoke
+/// `executeAction` because it lives in a separate JS context from the
+/// main window (different webview origin → no shared `vaultStore`).
+/// Instead it posts the typed text here and Rust emits the same
+/// `qc:capture-detected` event the clipboard-shortcut path uses — the
+/// main-window listener then fills the active vault and dispatches.
+#[tauri::command]
+pub fn submit_composer_capture<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    text: String,
+) -> Result<(), String> {
+    if text.trim().is_empty() {
+        // Empty composer body should never reach Rust (the route filters
+        // before calling), but the guard makes the contract explicit.
+        return Ok(());
+    }
+    let captured_at = chrono::Utc::now().to_rfc3339();
+    let payload = build_composer_note_payload(&text, captured_at);
+    app.emit(QC_CAPTURE_DETECTED_EVENT, payload)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,5 +272,24 @@ mod tests {
         )
         .expect_err("empty text must error");
         assert!(err.contains("clipboard text is empty"), "got: {err}");
+    }
+
+    #[test]
+    fn composer_note_payload_has_note_kind() {
+        let p = build_composer_note_payload("a thought", FIXED_TS.to_string());
+        assert_eq!(p["type"], "capture");
+        assert_eq!(p["kind"], "note");
+        assert_eq!(p["text"], "a thought");
+        assert_eq!(p["capturedAt"], FIXED_TS);
+    }
+
+    #[test]
+    fn composer_note_payload_preserves_whitespace_in_text() {
+        // The caller trims to decide whether to emit, but the payload
+        // itself must keep the user's exact body verbatim — preserving
+        // leading/trailing newlines and indentation.
+        let body = "\n  indented line\nsecond\n";
+        let p = build_composer_note_payload(body, FIXED_TS.to_string());
+        assert_eq!(p["text"], body);
     }
 }
