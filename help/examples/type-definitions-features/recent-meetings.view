@@ -1,9 +1,9 @@
----
 _sidebar_label: Recent Meetings
 _order: 20
 _sort: created
 _icon: calendar
 _color: purple
----
-
-type == "Meeting" and file.created > today() - duration("30d")
+views:
+  - type: table
+    name: Recent Meetings
+filters: 'type == "Meeting" && file.created > today() - duration("30d")'

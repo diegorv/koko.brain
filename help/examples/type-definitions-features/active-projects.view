@@ -1,4 +1,3 @@
----
 _sidebar_label: Active Projects
 _order: 10
 _sort: modified
@@ -9,6 +8,7 @@ _list_properties_display:
   - status
   - priority
   - manager
----
-
-type == "Project" and status == "active"
+views:
+  - type: table
+    name: Active Projects
+filters: 'type == "Project" && status == "active"'
