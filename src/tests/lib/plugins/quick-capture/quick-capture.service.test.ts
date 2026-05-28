@@ -149,17 +149,16 @@ describe('quick-capture service', () => {
 			});
 		});
 
-		it('skips pending image captures (P3.3 wires this up)', async () => {
+		it('ignores a shot payload with an empty path (no executeAction, no info toast)', async () => {
 			vaultStore.open('/vault');
 			await handleDetectedCapture({
 				type: 'capture',
 				kind: 'shot',
 				path: '',
 				mime: 'image/png',
-				pending: true,
 			});
 			expect(executeActionMock).not.toHaveBeenCalled();
-			expect(toast.info).toHaveBeenCalledWith('Image clipboard capture not yet supported');
+			expect(toast.info).not.toHaveBeenCalled();
 		});
 
 		it('shows an error toast when no vault is open', async () => {

@@ -14,10 +14,10 @@ import { debug, error } from '$lib/utils/debug';
 export const QC_CAPTURE_DETECTED_EVENT = 'qc:capture-detected';
 
 /**
- * Partial `CaptureAction` shape emitted by the Rust side. Missing `vault`
- * (filled here) and may carry a `pending: true` marker for image-clipboard
- * captures whose bytes have not yet been written to a path (P3.3 lands the
- * temp-file step).
+ * Partial `CaptureAction` shape emitted by the Rust side. Missing `vault`,
+ * which the frontend fills from `vaultStore` before dispatching. Image
+ * clipboard bytes are always materialized to a temp file path by the Rust
+ * side before this is emitted, so every shot payload carries a real `path`.
  */
 export interface QuickCaptureDetectedPayload {
 	type: 'capture';
@@ -35,7 +35,6 @@ export interface QuickCaptureDetectedPayload {
 	sourceTitle?: string;
 	/** Browser tab URL (Chrome / Safari only). */
 	sourceUrl?: string;
-	pending?: boolean;
 }
 
 /**
@@ -69,19 +68,13 @@ export function registerQuickCaptureListener(): () => void {
 }
 
 /**
- * Handles a single detected capture: fills `vault` from the active vault,
- * skips pending image captures (until P3.3), and dispatches via
- * `executeAction`. Exposed for unit tests so they don't need a Tauri runtime.
+ * Handles a single detected capture: fills `vault` from the active vault
+ * and dispatches via `executeAction`. Exposed for unit tests so they don't
+ * need a Tauri runtime.
  */
 export async function handleDetectedCapture(
 	payload: QuickCaptureDetectedPayload,
 ): Promise<void> {
-	if (payload.pending) {
-		debug('QUICK_CAPTURE', 'Skipping pending capture (P3.3 will wire image bytes)');
-		toast.info('Image clipboard capture not yet supported');
-		return;
-	}
-
 	const vaultPath = vaultStore.path;
 	const vaultName = vaultStore.name;
 	if (!vaultPath || !vaultName) {

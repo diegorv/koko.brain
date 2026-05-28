@@ -52,7 +52,7 @@ pub fn capture_clipboard_now_with(
     let mut out = Vec::with_capacity(inputs.len());
     for input in inputs {
         let resolved = materialize_input(input)?;
-        out.push(capture_input_to_payload(resolved, &captured_at, &context));
+        out.push(capture_input_to_payload(resolved, &captured_at, &context)?);
     }
     Ok(out)
 }
@@ -113,7 +113,7 @@ fn capture_input_to_payload(
     input: CaptureInput,
     captured_at: &str,
     context: &CaptureContext,
-) -> Value {
+) -> Result<Value, String> {
     let mut payload = match input {
         CaptureInput::Note { text } => json!({
             "type": "capture",
@@ -144,19 +144,15 @@ fn capture_input_to_payload(
             "capturedAt": captured_at,
         }),
         CaptureInput::Shot {
-            source: ShotSource::Bytes { bytes: _, mime },
+            source: ShotSource::Bytes { .. },
         } => {
-            // Defensive: `materialize_input` rewrites Bytes → Path before
-            // this is called from the public path. Kept here for safety
-            // if the helper is ever invoked directly with raw Bytes.
-            json!({
-                "type": "capture",
-                "kind": "shot",
-                "path": "",
-                "mime": mime,
-                "capturedAt": captured_at,
-                "pending": true,
-            })
+            // `materialize_input` rewrites Bytes -> Path before this is
+            // ever reached on the public path. Raw bytes here mean a
+            // caller skipped that step; refuse rather than emit a
+            // path-less payload the frontend can't render.
+            return Err(
+                "shot bytes must be materialized to a temp-file path before serialization".into(),
+            );
         }
         CaptureInput::File {
             path,
@@ -172,7 +168,7 @@ fn capture_input_to_payload(
         }),
     };
     merge_context(&mut payload, context);
-    payload
+    Ok(payload)
 }
 
 /// Inject `sourceApp` / `sourceTitle` / `sourceUrl` from `context`
