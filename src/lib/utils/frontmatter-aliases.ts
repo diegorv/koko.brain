@@ -6,8 +6,6 @@
 const ALIAS_MAP: ReadonlyMap<string, string> = new Map([
 	['is_a', 'type'],
 	['is a', 'type'],
-	['belongs to', 'belongs_to'],
-	['related to', 'related_to'],
 	['organized', '_organized'],
 	['archived', '_archived'],
 	['favorite', '_favorite'],

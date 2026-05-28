@@ -7,11 +7,6 @@ describe('canonicalizeKey', () => {
 		expect(canonicalizeKey('is a')).toBe('type');
 	});
 
-	it('resolves relationship aliases', () => {
-		expect(canonicalizeKey('belongs to')).toBe('belongs_to');
-		expect(canonicalizeKey('related to')).toBe('related_to');
-	});
-
 	it('resolves system underscore aliases', () => {
 		expect(canonicalizeKey('organized')).toBe('_organized');
 		expect(canonicalizeKey('archived')).toBe('_archived');
@@ -33,7 +28,10 @@ describe('canonicalizeKey', () => {
 
 	it('passes through canonical keys unchanged', () => {
 		expect(canonicalizeKey('type')).toBe('type');
-		expect(canonicalizeKey('belongs_to')).toBe('belongs_to');
+		// Relationship keys are underscore-canonical and take no alias.
+		expect(canonicalizeKey('_belongs_to')).toBe('_belongs_to');
+		expect(canonicalizeKey('_related_to')).toBe('_related_to');
+		expect(canonicalizeKey('_has_many')).toBe('_has_many');
 		expect(canonicalizeKey('_organized')).toBe('_organized');
 		expect(canonicalizeKey('_icon')).toBe('_icon');
 	});

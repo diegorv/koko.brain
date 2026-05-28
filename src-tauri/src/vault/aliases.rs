@@ -10,8 +10,6 @@ static ALIAS_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
 	let mut m = HashMap::new();
 	m.insert("is_a", "type");
 	m.insert("is a", "type");
-	m.insert("belongs to", "belongs_to");
-	m.insert("related to", "related_to");
 	m.insert("organized", "_organized");
 	m.insert("archived", "_archived");
 	m.insert("favorite", "_favorite");
@@ -44,8 +42,6 @@ mod tests {
 	fn known_aliases_resolve() {
 		assert_eq!(canonicalize_key("is_a"), "type");
 		assert_eq!(canonicalize_key("is a"), "type");
-		assert_eq!(canonicalize_key("belongs to"), "belongs_to");
-		assert_eq!(canonicalize_key("related to"), "related_to");
 		assert_eq!(canonicalize_key("organized"), "_organized");
 		assert_eq!(canonicalize_key("archived"), "_archived");
 		assert_eq!(canonicalize_key("favorite"), "_favorite");
@@ -66,7 +62,10 @@ mod tests {
 	#[test]
 	fn canonical_keys_pass_through() {
 		assert_eq!(canonicalize_key("type"), "type");
-		assert_eq!(canonicalize_key("belongs_to"), "belongs_to");
+		// Relationship keys are underscore-canonical and take no alias.
+		assert_eq!(canonicalize_key("_belongs_to"), "_belongs_to");
+		assert_eq!(canonicalize_key("_related_to"), "_related_to");
+		assert_eq!(canonicalize_key("_has_many"), "_has_many");
 		assert_eq!(canonicalize_key("_organized"), "_organized");
 		assert_eq!(canonicalize_key("_icon"), "_icon");
 		assert_eq!(canonicalize_key("_title_color"), "_title_color");

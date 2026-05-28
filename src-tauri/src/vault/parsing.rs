@@ -2454,10 +2454,21 @@ mod tests {
 
 	#[test]
 	fn parse_frontmatter_normalizes_space_aliases() {
-		let content = "---\nis a: place\nbelongs to: geography\nrelated to: maps\n---\n";
+		let content = "---\nis a: place\nsidebar label: Places\n---\n";
 		let fm = parse_frontmatter(content);
 		assert_eq!(fm.get("type"), Some(&json!("place")));
-		assert_eq!(fm.get("belongs_to"), Some(&json!("geography")));
+		assert_eq!(fm.get("_sidebar_label"), Some(&json!("Places")));
+	}
+
+	#[test]
+	fn parse_frontmatter_does_not_alias_relationship_keys() {
+		// Relationship fields are underscore-canonical and take no alias:
+		// the bare/space spellings stay verbatim (not normalized).
+		let content = "---\nbelongs to: geography\nrelated_to: maps\n---\n";
+		let fm = parse_frontmatter(content);
+		assert!(fm.get("belongs_to").is_none());
+		assert!(fm.get("_belongs_to").is_none());
+		assert_eq!(fm.get("belongs to"), Some(&json!("geography")));
 		assert_eq!(fm.get("related_to"), Some(&json!("maps")));
 	}
 
