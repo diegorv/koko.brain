@@ -25,8 +25,9 @@ the Quick Capture settings section. Reuses the existing inbox notion
       `loadSettings` merge, and store getter (no dedicated setter; section uses `setSettings` like `explicitOrganization`).
       Tests: store getter default + reflects setSettings, settings.service load merges default when absent / respects false.
 - [x] Task 2: Add `"core:window:allow-set-badge-count"` to `src-tauri/capabilities/default.json` permissions.
-- [ ] Task 3: Pure logic `core/dock-badge/dock-badge.logic.ts` -> `dockBadgeCount(enabled, entries): number | null`
-      (null when disabled, else `getInboxCount`). Test happy/empty/disabled.
+- [x] Task 3: Pure logic `features/dock-badge/dock-badge.logic.ts` -> `dockBadgeCount(enabled, entries): number | null`
+      (null when disabled, else `getInboxCount`). Test happy/empty/disabled. Placed in features/ (not core/) to avoid a
+      core->features import: it reuses `getInboxCount` + the type-definitions store, both features-layer.
 - [ ] Task 4: Service `core/dock-badge/dock-badge.service.ts` -> `applyDockBadge(value: number | null)`
       calls `getCurrentWindow().setBadgeCount`, maps `null`/`0` -> clear, try/catch + log. Test with mocked `@tauri-apps/api/window`.
 - [ ] Task 5: Wire app-level `$effect` in `AppShell.svelte` (read toggle + `entriesVersion`, compute via logic,
