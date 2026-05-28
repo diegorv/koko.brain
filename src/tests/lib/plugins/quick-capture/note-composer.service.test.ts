@@ -12,13 +12,13 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import {
-	buildQuickNotePath,
-	getQuickNoteTitle,
-	buildQuickNoteVariables,
-} from '$lib/plugins/quick-note/quick-note.logic';
-import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
+	buildCapturePath,
+	getCaptureTitle,
+	buildCaptureVariables,
+} from '$lib/plugins/quick-capture/note-composer.logic';
+import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 
-describe('createQuickNote', () => {
+describe('createNoteComposer', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
@@ -41,21 +41,21 @@ describe('createQuickNote', () => {
 	});
 
 	it('builds path, title, variables and calls openOrCreateNote', async () => {
-		await createQuickNote();
+		await createNoteComposer();
 
 		const now = dayjs();
 		const quickCapture = settingsStore.quickCapture;
 		const periodicNotes = settingsStore.periodicNotes;
 
-		const expectedPath = buildQuickNotePath(
+		const expectedPath = buildCapturePath(
 			'/vault',
 			periodicNotes.folder,
 			quickCapture.folderFormat,
 			quickCapture.filenameFormat,
 			now,
 		);
-		const expectedTitle = getQuickNoteTitle(quickCapture.filenameFormat, now);
-		const expectedVars = buildQuickNoteVariables(now, periodicNotes);
+		const expectedTitle = getCaptureTitle(quickCapture.filenameFormat, now);
+		const expectedVars = buildCaptureVariables(now, periodicNotes);
 
 		expect(openOrCreateNote).toHaveBeenCalledWith({
 			filePath: expectedPath,
@@ -68,7 +68,7 @@ describe('createQuickNote', () => {
 	it('returns early when vaultPath is null', async () => {
 		vaultStore.close();
 
-		await createQuickNote();
+		await createNoteComposer();
 
 		expect(openOrCreateNote).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe(null);
@@ -77,7 +77,7 @@ describe('createQuickNote', () => {
 	it('omits templatePath when setting is empty', async () => {
 		settingsStore.updateQuickCapture({ templates: { note: '' } });
 
-		await createQuickNote();
+		await createNoteComposer();
 
 		expect(openOrCreateNote).toHaveBeenCalledWith(
 			expect.objectContaining({ templatePath: undefined }),
@@ -87,6 +87,6 @@ describe('createQuickNote', () => {
 	it('propagates error when openOrCreateNote rejects', async () => {
 		vi.mocked(openOrCreateNote).mockRejectedValueOnce(new Error('write failed'));
 
-		await expect(createQuickNote()).rejects.toThrow('write failed');
+		await expect(createNoteComposer()).rejects.toThrow('write failed');
 	});
 });

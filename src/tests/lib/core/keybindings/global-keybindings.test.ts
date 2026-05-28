@@ -56,8 +56,8 @@ vi.mock('$lib/core/vault/vault.store.svelte', () => ({
 	vaultStore: { path: '/vault' },
 }));
 
-vi.mock('$lib/plugins/quick-note/quick-note.service', () => ({
-	createQuickNote: vi.fn(() => Promise.resolve()),
+vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
+	createNoteComposer: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
@@ -90,7 +90,7 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
+import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
@@ -383,13 +383,13 @@ describe('registerGlobalKeybindings', () => {
 			(vaultStore as any).path = '/vault';
 		});
 
-		it('Cmd+N handler calls createQuickNote', () => {
+		it('Cmd+N handler calls createNoteComposer', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'n', meta: true, shift: undefined });
 
 			handler();
 
-			expect(createQuickNote).toHaveBeenCalledTimes(1);
+			expect(createNoteComposer).toHaveBeenCalledTimes(1);
 		});
 
 		it('Cmd+Shift+N handler calls openOneOnOnePicker', () => {

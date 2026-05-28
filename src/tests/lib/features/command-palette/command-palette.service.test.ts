@@ -43,8 +43,8 @@ vi.mock('$lib/features/copy-block-link/copy-block-link.service', () => ({
 	copyBlockEmbedToClipboard: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/quick-note/quick-note.service', () => ({
-	createQuickNote: vi.fn(),
+vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
+	createNoteComposer: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
@@ -190,13 +190,13 @@ describe('getBuiltInCommands', () => {
 		expect(daily!.category).toBe('Daily Notes');
 	});
 
-	it('includes quick note command with Cmd+N shortcut', () => {
+	it('includes quick capture note command with Cmd+N shortcut', () => {
 		const commands = getBuiltInCommands();
-		const cmd = commands.find((c) => c.id === 'quick-note:create');
+		const cmd = commands.find((c) => c.id === 'quick-capture:create-note');
 
 		expect(cmd).toBeDefined();
-		expect(cmd!.label).toBe('Create Quick Note');
-		expect(cmd!.category).toBe('Quick Note');
+		expect(cmd!.label).toBe('Create Quick Capture Note');
+		expect(cmd!.category).toBe('Quick Capture');
 		expect(cmd!.shortcut).toEqual({ meta: true, key: 'n' });
 	});
 

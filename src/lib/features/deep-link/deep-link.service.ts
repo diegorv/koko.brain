@@ -21,7 +21,7 @@ import {
 import type { DeepLinkAction, DailyAction, NewAction, CaptureAction } from './deep-link.types';
 import { buildPeriodicNotePath } from '$lib/plugins/periodic-notes/periodic-notes.logic';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { buildQuickNotePath, getQuickNoteTitle, buildQuickNoteVariables } from '$lib/plugins/quick-note/quick-note.logic';
+import { buildCapturePath, getCaptureTitle, buildCaptureVariables } from '$lib/plugins/quick-capture/note-composer.logic';
 import { processTemplate } from '$lib/utils/template';
 import { debug, error } from '$lib/utils/debug';
 
@@ -303,16 +303,16 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 }
 
 /**
- * Handles the v2 `capture` action — creates a quick note from a typed
- * `CaptureAction`. Branches on `action.kind`:
+ * Handles the v2 `capture` action — creates a Quick Capture note from
+ * a typed `CaptureAction`. Branches on `action.kind`:
  *
  * - `note` / `clip` / `link`: renders the body via `renderCaptureBody`, applies
- *   the user's quick-note template if configured, injects the link `title` as
- *   YAML frontmatter (link kind only), and merges `tags` into frontmatter.
+ *   the per-kind template if configured, injects the link `title` as YAML
+ *   frontmatter (link kind only), and merges `tags` into frontmatter.
  * - `shot` / `file`: renders a `file://` CommonMark link/embed to the local
- *   path (no copy into the vault) and writes through the same quick-note path
- *   as the text kinds. The note breaks if the user later moves or deletes the
- *   referenced file; durable attachments are a future change.
+ *   path (no copy into the vault) and writes through the same Quick Capture
+ *   path as the text kinds. The note breaks if the user later moves or deletes
+ *   the referenced file; durable attachments are a future change.
  */
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
 	const quickCapture = settingsStore.quickCapture;
@@ -327,7 +327,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	const filenameFormat = quickCapture.filenameFormat;
 	const templatePathForKind = quickCapture.templates[action.kind] ?? '';
 
-	const filePath = buildQuickNotePath(
+	const filePath = buildCapturePath(
 		vaultPath,
 		periodicNotes.folder,
 		folderFormat,
@@ -347,8 +347,8 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		const templateFullPath = `${vaultPath}/${templatePathForKind}`;
 		try {
 			const template = await readTextFile(templateFullPath);
-			const fileTitle = getQuickNoteTitle(filenameFormat, date);
-			const vars = buildQuickNoteVariables(date, periodicNotes);
+			const fileTitle = getCaptureTitle(filenameFormat, date);
+			const vars = buildCaptureVariables(date, periodicNotes);
 			vars.content = body;
 			// Expose the deep-link `title` (link kind only) to user templates via
 			// `<% title %>`. Falls back to the filename-derived title so templates
@@ -385,7 +385,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	markRecentSave(filePath);
 	await writeTextFile(filePath, fileContent);
 	notifyAfterSave(filePath, fileContent);
-	// Capture writes a fresh quick-note path -> tree usually gains a node.
+	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
 	void refreshTree();
 }

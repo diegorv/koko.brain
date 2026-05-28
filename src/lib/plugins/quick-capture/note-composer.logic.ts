@@ -6,7 +6,7 @@ import { buildWikilinkPath } from '$lib/plugins/periodic-notes/periodic-notes.lo
  * Builds the full absolute path for a quick note.
  * Combines: vaultPath / baseFolder / folderFormat(date) / filenameFormat(date).md
  */
-export function buildQuickNotePath(
+export function buildCapturePath(
 	vaultPath: string,
 	baseFolder: string,
 	folderFormat: string,
@@ -24,7 +24,7 @@ export function buildQuickNotePath(
 /**
  * Extracts the title for template processing (tp.file.title).
  */
-export function getQuickNoteTitle(filenameFormat: string, date: dayjs.Dayjs): string {
+export function getCaptureTitle(filenameFormat: string, date: dayjs.Dayjs): string {
 	return date.format(filenameFormat);
 }
 
@@ -33,7 +33,7 @@ export function getQuickNoteTitle(filenameFormat: string, date: dayjs.Dayjs): st
  * These are passed as customVariables to openOrCreateNote() and
  * used in the template as <% variableName %>.
  */
-export function buildQuickNoteVariables(
+export function buildCaptureVariables(
 	date: dayjs.Dayjs,
 	periodicNotesSettings: PeriodicNotesSettings,
 ): Record<string, string> {

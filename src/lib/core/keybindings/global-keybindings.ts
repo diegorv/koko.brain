@@ -15,7 +15,7 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { saveSettings } from '$lib/core/settings/settings.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
+import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
@@ -103,7 +103,7 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({
 			key: 'n',
 			meta: true,
-			handler: () => { createQuickNote().catch(console.error); },
+			handler: () => { createNoteComposer().catch(console.error); },
 		}),
 		registerKeybinding({
 			key: 'n',

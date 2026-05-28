@@ -26,7 +26,7 @@ import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/featur
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { toggleTagsTab } from '$lib/features/tags/tags.service';
-import { createQuickNote } from '$lib/plugins/quick-note/quick-note.service';
+import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 
@@ -198,11 +198,11 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => openOrCreateDailyNote(),
 		},
 		{
-			id: 'quick-note:create',
-			label: 'Create Quick Note',
-			category: 'Quick Note',
+			id: 'quick-capture:create-note',
+			label: 'Create Quick Capture Note',
+			category: 'Quick Capture',
 			shortcut: { meta: true, key: 'n' },
-			action: () => createQuickNote(),
+			action: () => createNoteComposer(),
 		},
 		{
 			id: 'one-on-one:create',
