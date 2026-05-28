@@ -116,28 +116,30 @@ export interface CaptureLinkAction extends CaptureCommon {
 
 /**
  * kokobrain://capture?v=2&kind=shot&vault=X&path=/abs/path.png&mime=image/png —
- * capture a screenshot file path. Quick-capture emits `blob_path` for pasted-bytes
- * screenshots (app-owned, stable) and `source_path` for drag-in screenshots; both
- * arrive here as `path`.
+ * capture a screenshot file path. The in-app clipboard-shortcut path writes
+ * pasted image bytes to an OS temp file and forwards the absolute path here;
+ * Finder-copy paths come through unchanged. External automation (Apple
+ * Shortcuts, Raycast, scripts) using the `kokobrain://capture` URI passes the
+ * same `path` parameter.
  */
 export interface CaptureShotAction extends CaptureCommon {
 	kind: 'shot';
 	/** Absolute local path to the image file */
 	path: string;
-	/** Optional MIME type emitted by quick-capture (e.g. `image/png`) */
+	/** Optional MIME type (e.g. `image/png`) */
 	mime?: string;
 }
 
 /**
  * kokobrain://capture?v=2&kind=file&vault=X&path=/abs/path&mime=...&original_name=notes.pdf —
- * capture an arbitrary local file path. `original_name` is the user-facing filename
- * preserved by quick-capture; the renderer uses it as the link label.
+ * capture an arbitrary local file path. `original_name` is the user-facing
+ * filename; the renderer uses it as the link label.
  */
 export interface CaptureFileAction extends CaptureCommon {
 	kind: 'file';
 	/** Absolute local path to the file */
 	path: string;
-	/** Optional MIME type emitted by quick-capture */
+	/** Optional MIME type */
 	mime?: string;
 	/** Optional user-facing filename; falls back to the path basename when absent */
 	originalName?: string;
@@ -147,8 +149,8 @@ export interface CaptureFileAction extends CaptureCommon {
  * Discriminated union of v2 capture actions, branched by `kind`.
  *
  * The v1 schema (`?content=...&tags=...&title=...` without `v` or `kind`) was
- * removed in favor of this typed schema. Old quick-capture builds that still
- * emit v1 URIs will fail with a `Missing required parameter` toast.
+ * removed in favor of this typed schema. External callers that still emit v1
+ * URIs will fail with a `Missing required parameter` toast.
  */
 export type CaptureAction =
 	| CaptureNoteAction
