@@ -24,7 +24,7 @@ the Quick Capture settings section. Reuses the existing inbox notion
 - [x] Task 1: Add `dockBadgeInboxCount: boolean` (default `true`) to `AppSettings` type, `DEFAULT_SETTINGS`,
       `loadSettings` merge, and store getter (no dedicated setter; section uses `setSettings` like `explicitOrganization`).
       Tests: store getter default + reflects setSettings, settings.service load merges default when absent / respects false.
-- [ ] Task 2: Add `"core:window:allow-set-badge-count"` to `src-tauri/capabilities/default.json` permissions.
+- [x] Task 2: Add `"core:window:allow-set-badge-count"` to `src-tauri/capabilities/default.json` permissions.
 - [ ] Task 3: Pure logic `core/dock-badge/dock-badge.logic.ts` -> `dockBadgeCount(enabled, entries): number | null`
       (null when disabled, else `getInboxCount`). Test happy/empty/disabled.
 - [ ] Task 4: Service `core/dock-badge/dock-badge.service.ts` -> `applyDockBadge(value: number | null)`
