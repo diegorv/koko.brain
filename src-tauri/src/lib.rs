@@ -6,11 +6,47 @@ pub mod semantic;
 pub mod utils;
 pub mod vault;
 
+use std::str::FromStr;
+
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
 use tauri::Emitter;
+use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, Shortcut, ShortcutState};
+
+use quick_capture::clipboard::SystemClipboard;
+use quick_capture::commands::{capture_clipboard_now_with, QC_CAPTURE_DETECTED_EVENT};
+use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
+
+/// Event emitted when Ctrl+Alt+Cmd+Space fires. Wired to the real
+/// composer window in P2.3; for now the frontend logs the event.
+pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
+
+/// Dispatch a fired global shortcut to its side-effect. `CaptureClipboard`
+/// runs the same helper the IPC command uses and emits one
+/// `qc:capture-detected` event per detected input. `OpenComposer` is a
+/// placeholder until P2.3 wires the composer window.
+fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutId) {
+    match id {
+        ShortcutId::OpenComposer => {
+            let _ = app.emit(QC_OPEN_COMPOSER_EVENT, ());
+        }
+        ShortcutId::CaptureClipboard => {
+            let captured_at = chrono::Utc::now().to_rfc3339();
+            match capture_clipboard_now_with(&SystemClipboard::new(), captured_at) {
+                Ok(payloads) => {
+                    for payload in payloads {
+                        let _ = app.emit(QC_CAPTURE_DETECTED_EVENT, payload);
+                    }
+                }
+                Err(err) => {
+                    eprintln!("capture_clipboard_now (shortcut) failed: {err}");
+                }
+            }
+        }
+    }
+}
 
 fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let settings_item = MenuItemBuilder::new("Settings...")
@@ -83,6 +119,34 @@ fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Parse each accelerator once so the OS-level handler can compare
+    // the `Shortcut` instance the plugin hands back against the ones we
+    // registered. We cannot key on string form: `HotKey`'s Display impl
+    // normalises (`control+alt+super+space`) while the registry stores
+    // the user-facing `Ctrl+Alt+Cmd+Space` spelling.
+    let parsed: Vec<(Shortcut, ShortcutBinding)> = default_registry()
+        .iter()
+        .map(|binding| {
+            let shortcut = Shortcut::from_str(binding.accelerator)
+                .expect("invalid accelerator string in default_registry");
+            (shortcut, binding.clone())
+        })
+        .collect();
+    let dispatch_table = parsed.clone();
+    let mut shortcut_builder = ShortcutBuilder::new().with_handler(move |app, shortcut, evt| {
+        if evt.state() != ShortcutState::Pressed {
+            return;
+        }
+        if let Some((_, binding)) = dispatch_table.iter().find(|(s, _)| s == shortcut) {
+            dispatch_shortcut(app, binding.id);
+        }
+    });
+    for (shortcut, _) in &parsed {
+        shortcut_builder = shortcut_builder
+            .with_shortcut(*shortcut)
+            .expect("failed to register accelerator");
+    }
+
     tauri::Builder::default()
         .setup(|app| {
             let menu = build_menu(app)?;
@@ -101,7 +165,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(shortcut_builder.build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(VaultIndexState::default())
