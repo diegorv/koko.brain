@@ -33,26 +33,72 @@ pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
 /// passed to `WebviewWindowBuilder::new` in `lib.rs::build_composer_window`.
 pub const COMPOSER_WINDOW_LABEL: &str = "composer";
 
+/// Session-only memory of the most recently captured clipboard
+/// signature. Suppresses re-capturing identical clipboard content when
+/// the user fires the capture shortcut twice in a row. Resets on app
+/// restart — quick-capture compared against its persistent SQLite store,
+/// which the merge dropped, so dedup here is best-effort and in-session.
+#[derive(Default)]
+pub struct LastCaptureSignature(pub std::sync::Mutex<Option<String>>);
+
+/// Stable per-kind key identifying a detected input, for dedup. Returns
+/// `None` for in-memory image bytes (`Shot::Bytes`) — those have no cheap
+/// stable key, matching quick-capture which never deduped them. The NUL
+/// separator keeps the kind tag from colliding with the value.
+fn capture_signature(input: &CaptureInput) -> Option<String> {
+    match input {
+        CaptureInput::Clip { text } => Some(format!("clip\u{0}{text}")),
+        CaptureInput::Note { text } => Some(format!("note\u{0}{text}")),
+        CaptureInput::Link { url, .. } => Some(format!("link\u{0}{url}")),
+        CaptureInput::File { path, .. } => Some(format!("file\u{0}{}", path.to_string_lossy())),
+        CaptureInput::Shot {
+            source: ShotSource::Path { path, .. },
+        } => Some(format!("shot\u{0}{}", path.to_string_lossy())),
+        CaptureInput::Shot {
+            source: ShotSource::Bytes { .. },
+        } => None,
+    }
+}
+
 /// Pure helper: read the clipboard via the injected adapter, decide
 /// the kind(s), materialize any in-memory shot bytes to a temp file,
 /// and serialize each result into a kokobrain `CaptureAction`-shaped
 /// JSON object — minus `vault`, which the frontend fills from the
 /// active vault.
 ///
-/// Returns one `Value` per detected input. An empty clipboard or an
+/// `last_signature` carries the previously-captured signature across
+/// calls (and advances within a single multi-item batch). A dedup-able
+/// input matching it is skipped, so pressing the capture shortcut twice
+/// on the same clipboard does not write a duplicate note. A
+/// non-dedup-able image-bytes capture clears the anchor.
+///
+/// Returns one `Value` per emitted input. An empty clipboard or an
 /// empty file list returns the underlying `KindDetectError` as a
 /// String. A failed temp-file write surfaces as `Err`.
 pub fn capture_clipboard_now_with(
     clipboard: &dyn Clipboard,
     captured_at: String,
     context: CaptureContext,
+    last_signature: &mut Option<String>,
 ) -> Result<Vec<Value>, String> {
     let snapshot = clipboard.read().map_err(|e| e.to_string())?;
     let inputs = decide(snapshot).map_err(|e| e.to_string())?;
     let mut out = Vec::with_capacity(inputs.len());
     for input in inputs {
+        let signature = capture_signature(&input);
+        // Skip a dedup-able input identical to the last captured one.
+        // The anchor advances below as we go, so two identical
+        // consecutive items in one batch also dedupe.
+        if let Some(sig) = &signature {
+            if last_signature.as_deref() == Some(sig.as_str()) {
+                continue;
+            }
+        }
         let resolved = materialize_input(input)?;
         out.push(capture_input_to_payload(resolved, &captured_at, &context)?);
+        // Advance the anchor to the emitted item (None for image bytes,
+        // which clears it so an unrelated following item can't match).
+        *last_signature = signature;
     }
     Ok(out)
 }
@@ -196,10 +242,14 @@ fn merge_context(payload: &mut Value, context: &CaptureContext) {
 #[tauri::command]
 pub fn capture_clipboard_now<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
+    last_signature: tauri::State<'_, LastCaptureSignature>,
 ) -> Result<(), String> {
     let captured_at = chrono::Utc::now().to_rfc3339();
     let context = resolve_context_for_bundle(frontmost_bundle_id().as_deref());
-    let payloads = capture_clipboard_now_with(&SystemClipboard::new(), captured_at, context)?;
+    let payloads = {
+        let mut guard = last_signature.0.lock().map_err(|e| e.to_string())?;
+        capture_clipboard_now_with(&SystemClipboard::new(), captured_at, context, &mut guard)?
+    };
     for payload in payloads {
         app.emit(QC_CAPTURE_DETECTED_EVENT, payload)
             .map_err(|e| e.to_string())?;
@@ -331,7 +381,8 @@ mod tests {
 
     fn run(snapshot: Result<ClipboardSnapshot, crate::quick_capture::clipboard::ClipboardError>) -> Vec<Value> {
         let fake = FakeClipboard::with(snapshot);
-        capture_clipboard_now_with(&fake, FIXED_TS.to_string(), CaptureContext::default())
+        let mut last = None;
+        capture_clipboard_now_with(&fake, FIXED_TS.to_string(), CaptureContext::default(), &mut last)
             .expect("inner")
     }
 
@@ -340,7 +391,8 @@ mod tests {
         ctx: CaptureContext,
     ) -> Vec<Value> {
         let fake = FakeClipboard::with(snapshot);
-        capture_clipboard_now_with(&fake, FIXED_TS.to_string(), ctx).expect("inner")
+        let mut last = None;
+        capture_clipboard_now_with(&fake, FIXED_TS.to_string(), ctx, &mut last).expect("inner")
     }
 
     #[test]
@@ -413,9 +465,69 @@ mod tests {
             &FakeClipboard::with(Ok(ClipboardSnapshot::Text(String::new()))),
             FIXED_TS.to_string(),
             CaptureContext::default(),
+            &mut None,
         )
         .expect_err("empty text must error");
         assert!(err.contains("clipboard text is empty"), "got: {err}");
+    }
+
+    #[test]
+    fn duplicate_text_on_a_repeat_press_is_deduped() {
+        let mut last = None;
+        let first = capture_clipboard_now_with(
+            &FakeClipboard::with(Ok(ClipboardSnapshot::Text("repeat me".into()))),
+            FIXED_TS.to_string(),
+            CaptureContext::default(),
+            &mut last,
+        )
+        .expect("first capture");
+        assert_eq!(first.len(), 1, "first press emits");
+        let second = capture_clipboard_now_with(
+            &FakeClipboard::with(Ok(ClipboardSnapshot::Text("repeat me".into()))),
+            FIXED_TS.to_string(),
+            CaptureContext::default(),
+            &mut last,
+        )
+        .expect("second capture");
+        assert!(second.is_empty(), "identical clipboard on a repeat press is skipped");
+    }
+
+    #[test]
+    fn different_text_after_a_capture_is_not_deduped() {
+        let mut last = None;
+        let _ = capture_clipboard_now_with(
+            &FakeClipboard::with(Ok(ClipboardSnapshot::Text("first".into()))),
+            FIXED_TS.to_string(),
+            CaptureContext::default(),
+            &mut last,
+        )
+        .expect("first capture");
+        let second = capture_clipboard_now_with(
+            &FakeClipboard::with(Ok(ClipboardSnapshot::Text("second".into()))),
+            FIXED_TS.to_string(),
+            CaptureContext::default(),
+            &mut last,
+        )
+        .expect("second capture");
+        assert_eq!(second.len(), 1, "different content still captures");
+        assert_eq!(second[0]["text"], "second");
+    }
+
+    #[test]
+    fn duplicate_path_within_one_batch_is_deduped() {
+        let mut last = None;
+        let out = capture_clipboard_now_with(
+            &FakeClipboard::with(Ok(ClipboardSnapshot::Files(vec![
+                PathBuf::from("/tmp/doc.pdf"),
+                PathBuf::from("/tmp/doc.pdf"),
+            ]))),
+            FIXED_TS.to_string(),
+            CaptureContext::default(),
+            &mut last,
+        )
+        .expect("batch capture");
+        assert_eq!(out.len(), 1, "two identical paths in one batch dedupe to one");
+        assert_eq!(out[0]["path"], "/tmp/doc.pdf");
     }
 
     #[test]

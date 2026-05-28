@@ -9,12 +9,13 @@ pub mod vault;
 use std::str::FromStr;
 
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
-use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, Shortcut, ShortcutState};
 
 use quick_capture::clipboard::SystemClipboard;
 use quick_capture::commands::{
-    capture_clipboard_now_with, show_composer, COMPOSER_WINDOW_LABEL, QC_CAPTURE_DETECTED_EVENT,
+    capture_clipboard_now_with, show_composer, COMPOSER_WINDOW_LABEL, LastCaptureSignature,
+    QC_CAPTURE_DETECTED_EVENT,
 };
 use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use quick_capture::source::{
@@ -43,8 +44,24 @@ fn dispatch_shortcut<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: ShortcutI
             // still frontmost (kokobrain stays backgrounded); reading
             // `frontmostApplication` directly gives the right source.
             let context = resolve_context_for_bundle(frontmost_bundle_id().as_deref());
-            match capture_clipboard_now_with(&SystemClipboard::new(), captured_at, context) {
+            let signature = app.state::<LastCaptureSignature>();
+            let mut guard = match signature.0.lock() {
+                Ok(g) => g,
+                Err(err) => {
+                    eprintln!("capture_clipboard_now (shortcut) signature lock poisoned: {err}");
+                    return;
+                }
+            };
+            match capture_clipboard_now_with(
+                &SystemClipboard::new(),
+                captured_at,
+                context,
+                &mut guard,
+            ) {
                 Ok(payloads) => {
+                    // Release the lock before emitting so listeners never
+                    // contend on it.
+                    drop(guard);
                     for payload in payloads {
                         let _ = app.emit(QC_CAPTURE_DETECTED_EVENT, payload);
                     }
@@ -245,6 +262,7 @@ pub fn run() {
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
         .manage(PrevFrontmostPid::new())
+        .manage(LastCaptureSignature::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
