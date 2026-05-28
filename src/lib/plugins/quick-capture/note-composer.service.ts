@@ -35,7 +35,10 @@ export async function createNoteComposer(): Promise<void> {
 	const title = getCaptureTitle(quickCapture.filenameFormat, date);
 	const noteTemplate = quickCapture.templates.note;
 	const templatePath = noteTemplate ? `${vaultPath}/${noteTemplate}` : undefined;
-	const customVariables = buildCaptureVariables(date, periodicNotesSettings);
+	// Pass `title` (and the implicit `note` kind) so the template resolves
+	// <% title %> / <% kind %> / <% sourceUrl %> etc. the same way the
+	// clipboard/deep-link capture path does.
+	const customVariables = buildCaptureVariables(date, periodicNotesSettings, title);
 
 	await openOrCreateNote({
 		filePath,

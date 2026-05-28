@@ -55,7 +55,7 @@ describe('createNoteComposer', () => {
 			now,
 		);
 		const expectedTitle = getCaptureTitle(quickCapture.filenameFormat, now);
-		const expectedVars = buildCaptureVariables(now, periodicNotes);
+		const expectedVars = buildCaptureVariables(now, periodicNotes, expectedTitle);
 
 		expect(openOrCreateNote).toHaveBeenCalledWith({
 			filePath: expectedPath,
@@ -63,6 +63,23 @@ describe('createNoteComposer', () => {
 			templatePath: '/vault/_templates/Quick Note.md',
 			customVariables: expectedVars,
 		});
+	});
+
+	it('passes capture-provenance variables so the template resolves placeholders', async () => {
+		await createNoteComposer();
+
+		const now = dayjs();
+		const expectedTitle = getCaptureTitle(settingsStore.quickCapture.filenameFormat, now);
+		const vars = vi.mocked(openOrCreateNote).mock.calls[0][0].customVariables;
+
+		// title/kind resolve to real values; source fields default to empty so
+		// the template never falls through to the literal placeholder name.
+		expect(vars?.title).toBe(expectedTitle);
+		expect(vars?.kind).toBe('note');
+		expect(vars?.sourceApp).toBe('');
+		expect(vars?.sourceTitle).toBe('');
+		expect(vars?.sourceUrl).toBe('');
+		expect(vars?.capturedAt).toBe(vars?.created);
 	});
 
 	it('returns early when vaultPath is null', async () => {

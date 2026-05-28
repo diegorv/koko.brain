@@ -96,4 +96,23 @@ describe('buildCaptureVariables', () => {
 		const vars = buildCaptureVariables(fixedDate, settings);
 		expect(vars.dailyNoteDisplay).toBe('11-02-2026');
 	});
+
+	it('seeds capture-provenance defaults so templates resolve placeholders', () => {
+		const vars = buildCaptureVariables(fixedDate, settings);
+		expect(vars.title).toBe('');
+		expect(vars.kind).toBe('note');
+		expect(vars.sourceApp).toBe('');
+		expect(vars.sourceTitle).toBe('');
+		expect(vars.sourceUrl).toBe('');
+		expect(vars.url).toBe('');
+		expect(vars.content).toBe('');
+		// capturedAt mirrors created for a manually composed note
+		expect(vars.capturedAt).toBe('2026-02-11T14:30:45');
+	});
+
+	it('uses the supplied title and kind when provided', () => {
+		const vars = buildCaptureVariables(fixedDate, settings, 'My Note', 'link');
+		expect(vars.title).toBe('My Note');
+		expect(vars.kind).toBe('link');
+	});
 });
