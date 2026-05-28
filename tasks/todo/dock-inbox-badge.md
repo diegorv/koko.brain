@@ -28,8 +28,9 @@ the Quick Capture settings section. Reuses the existing inbox notion
 - [x] Task 3: Pure logic `features/dock-badge/dock-badge.logic.ts` -> `dockBadgeCount(enabled, entries): number | null`
       (null when disabled, else `getInboxCount`). Test happy/empty/disabled. Placed in features/ (not core/) to avoid a
       core->features import: it reuses `getInboxCount` + the type-definitions store, both features-layer.
-- [ ] Task 4: Service `core/dock-badge/dock-badge.service.ts` -> `applyDockBadge(value: number | null)`
-      calls `getCurrentWindow().setBadgeCount`, maps `null`/`0` -> clear, try/catch + log. Test with mocked `@tauri-apps/api/window`.
+- [x] Task 4: Service `features/dock-badge/dock-badge.service.ts` -> `applyDockBadge(value: number | null)`
+      calls `getCurrentWindow().setBadgeCount`, maps `null`/`0`/negative -> clear (undefined), try/catch + log (swallows;
+      cosmetic). Test with mocked `@tauri-apps/api/window` + `$lib/utils/debug`.
 - [ ] Task 5: Wire app-level `$effect` in `AppShell.svelte` (read toggle + `entriesVersion`, compute via logic,
       `applyDockBadge` inside `untrack()`).
 - [ ] Task 6: Add the toggle to `QuickCaptureSection.svelte` (SettingItem + checkbox bound to the setting, calls `onchange`).
