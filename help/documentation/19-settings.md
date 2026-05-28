@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a sidebar organized into groups: **General** (Appearance, Editor, Sidebar), **Notes** (Periodic Notes, Quick Note, 1:1 Notes, Templates, Types), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist), and **Advanced** (Troubleshooting, Update).
+The Settings dialog has a sidebar organized into groups: **General** (Appearance, Editor, Sidebar), **Notes** (Periodic Notes, Quick Capture, 1:1 Notes, Templates, Types), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist), and **Advanced** (Troubleshooting, Update).
 
 ![Settings dialog](screenshots/settings.png)
 
@@ -103,15 +103,21 @@ Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Not
 | Format | dayjs format string | `YYYY/YYYY` |
 | Template | Path to template file | `_system/templates/Yearly Note.md` |
 
-## Quick Note
+## Quick Capture
+
+Shared by all three capture surfaces: the in-editor note composer (`Cmd+N`), the global composer popover (`Ctrl+Alt+Cmd+Space`), and the silent clipboard capture (`Ctrl+Alt+Cmd+C`).
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Folder format** | dayjs format for the subfolder path | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format for the note filename | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
-| **Template** | Path to a template file | `_system/templates/Quick Note.md` |
+| **Note template** | Template for free-form notes (composer + Cmd+N) | `_system/templates/Quick Note.md` |
+| **Clip template** | Template for clipboard text captures | `_system/templates/Quick Note.md` |
+| **Link template** | Template for auto-detected URLs from the clipboard | `_system/templates/Quick Note.md` |
+| **Shot template** | Template for clipboard images (PNG written to OS temp) | `_system/templates/Quick Note.md` |
+| **File template** | Template for non-image file paths in the clipboard | `_system/templates/Quick Note.md` |
 
-See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
+An empty template path means "no template — just write the rendered body." See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
 ## 1:1 Notes
 
@@ -123,7 +129,7 @@ See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
 | **Template** | Path to a template file | `_system/templates/One on One.md` |
 
-See [Quick Notes & Templates](09-quick-notes-and-templates.md) for details.
+See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
 ## Templates
 

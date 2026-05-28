@@ -234,5 +234,5 @@ This means the navigation links in your templates (like the "Yesterday" and "Tom
 
 ## Next Steps
 
-- [Quick Notes & Templates](09-quick-notes-and-templates.md) -- Other ways to create structured notes
+- [Quick Capture & Templates](09-quick-notes-and-templates.md) -- Other ways to create structured notes
 - [Sidebar Panels](07-sidebar-panels.md) -- Calendar panel and properties

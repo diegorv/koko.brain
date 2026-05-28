@@ -28,7 +28,7 @@ After that, explore any topic that interests you.
 | 06 | [Search & Navigation](06-search-and-navigation.md) | Quick Switcher, Command Palette, full-text and semantic search |
 | 07 | [Sidebar Panels](07-sidebar-panels.md) | Backlinks, outgoing links, tags, properties, calendar |
 | 08 | [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) | Daily/weekly/monthly/quarterly notes, calendar panel |
-| 09 | [Quick Notes & Templates](09-quick-notes-and-templates.md) | Instant capture, 1:1 meeting notes, template system |
+| 09 | [Quick Capture & Templates](09-quick-notes-and-templates.md) | Instant capture (composer popover + clipboard shortcut + Cmd+N), 1:1 meeting notes, template system |
 | 10 | [Tasks & Todoist](10-tasks-and-todoist.md) | Aggregated task view, metadata, Todoist sync |
 | 11 | [Canvas](11-canvas.md) | Infinite visual canvas with nodes, edges, and colors |
 | 12 | [Collection](12-collection.md) | Table/database view for querying notes by properties |

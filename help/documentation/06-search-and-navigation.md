@@ -59,7 +59,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
 | | Toggle Left Sidebar | `Cmd+Shift+B` |
 | **Notes** | Open Daily Note | — |
-| | Create Quick Note | `Cmd+N` |
+| | Create Quick Capture Note | `Cmd+N` |
 | | Create 1:1 Note | `Cmd+Shift+N` |
 | | New File from Template | — |
 | **View** | Toggle Tags View | — |

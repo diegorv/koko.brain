@@ -22,7 +22,7 @@ Your notes are plain Markdown files stored locally - no cloud, no lock-in, priva
 - **Wikilinks** (`[[note]]`) with autocomplete, block references, and embeds
 - **Meta-bind** - interactive inline inputs and action buttons that read/write frontmatter
 - **Table of contents** - auto-generated outline panel from document headings
-- **Templates**, **quick note** capture, and **1:1 meeting notes**
+- **Templates**, **Quick Capture** (in-editor `Cmd+N`, global composer popover, clipboard shortcut), and **1:1 meeting notes**
 
 ### 🔍 Search & Discovery
 

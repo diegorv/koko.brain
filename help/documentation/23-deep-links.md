@@ -72,7 +72,7 @@ kokobrain://new?vault=MyVault&file=Projects/idea&append=true&clipboard=true
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `vault` | Yes | Vault name |
-| `name` | Yes* | Note filename (without path). Creates the note in the default quick-note folder. |
+| `name` | Yes* | Note filename (without path). Creates the note in the default Quick Capture folder. |
 | `file` | Yes* | Note path relative to vault root. Use this to control location. |
 | `content` | No | Text to write into the note. |
 | `clipboard` | No | `true` — use the current clipboard content instead of `content`. |
@@ -183,7 +183,7 @@ Body = `text` verbatim, plus the source footer when `source_url` is present. Sam
 | Param | Required | Description |
 |-------|----------|-------------|
 | `url` | Yes | Canonical URL of the link. |
-| `title` | No | Optional page title. When present, it becomes the markdown link label, is injected into the YAML `title:` frontmatter, and is exposed to your Quick Note template as `<% title %>`. |
+| `title` | No | Optional page title. When present, it becomes the markdown link label, is injected into the YAML `title:` frontmatter, and is exposed to your Quick Capture link template as `<% title %>`. |
 
 Body = `[<title or url>](<url>)`. When `source_url` is present AND different from `url`, the source footer is appended:
 
@@ -210,7 +210,7 @@ The parser accepts these kinds for forward compatibility. The service currently 
 
 #### Template integration
 
-The note is created in the quick-note folder (configured in `Settings → Quick Note`). When `Settings → Quick Note → Template Path` is set, the template is read and the following variables are exposed:
+The note is created in the Quick Capture folder (configured in `Settings → Quick Capture`). When the matching per-kind template path is set in `Settings → Quick Capture → <Kind> template`, the template is read and the following variables are exposed:
 
 - `<% content %>` — the rendered body (the same markdown the brain writes after `renderCaptureBody`).
 - `<% title %>` — the deep-link `title` (link kind only) or, when absent, the filename-derived title. Templates that reference `<% title %>` always resolve.
@@ -288,5 +288,5 @@ kokobrain://search?vault=Work&query=standup
 ## Next Steps
 
 - [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) — Configure the daily note this feature targets
-- [Quick Notes & Templates](09-quick-notes-and-templates.md) — Configure the quick-note folder used by `capture`
+- [Quick Capture & Templates](09-quick-notes-and-templates.md) — Configure the Quick Capture folder + per-kind templates used by `capture`
 - [Keyboard Shortcuts](20-keyboard-shortcuts.md) — In-app shortcuts for common actions

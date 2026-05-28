@@ -30,8 +30,15 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd+N` | Create Quick Note |
+| `Cmd+N` | Create Quick Capture note (in-editor) |
 | `Cmd+Shift+N` | Create 1:1 Note (person picker) |
+
+## Quick Capture (global, work even when Kokobrain is in the background)
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Alt+Cmd+Space` | Open Quick Capture composer popover |
+| `Ctrl+Alt+Cmd+C` | Capture from clipboard (text / URL / image / file) |
 
 ## Application
 
@@ -86,7 +93,7 @@ Here's a condensed version you can print or keep handy:
 ```
 Navigation          Editor              Notes / App
 ─────────────────   ─────────────────   ─────────────────
-Cmd+O   Switcher    Cmd+S   Save        Cmd+N     Quick Note
+Cmd+O   Switcher    Cmd+S   Save        Cmd+N     Quick Capture Note
 Cmd+P   Commands    Cmd+W   Close Tab   Cmd+Shift+N  1:1 Note
 Cmd+Shift+F Search  Cmd+K   Mode Toggle Cmd+,     Settings
 Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In

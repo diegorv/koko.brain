@@ -1,28 +1,50 @@
-# Quick Notes & Templates
+# Quick Capture & Templates
 
-Learn three powerful tools for creating structured notes: Quick Note for instant capture, 1:1 Notes for meetings, and Templates for reusable structures.
+Learn three powerful tools for creating structured notes: Quick Capture for instant capture across three surfaces, 1:1 Notes for meetings, and Templates for reusable structures.
 
-## Quick Note — Instant Capture
+## Quick Capture — Instant Capture (3 surfaces, 1 settings block)
 
-**Shortcut:** `Cmd+N`
+Quick Capture writes a new timestamped note into your vault without any prompt or dialog. Three triggers feed into the same folder / filename / per-kind template settings:
 
-Quick Note creates a new timestamped note immediately, without any prompt or dialog. Press the shortcut and start typing right away. It is perfect for capturing a thought, idea, or link before you forget.
+| Surface | Shortcut | What fires |
+|---------|----------|------------|
+| **Note composer** (in-editor) | `Cmd+N` | Creates a timestamped note and opens it in the main editor. Best when you are already inside Kokobrain. |
+| **Composer popover** (global) | `Ctrl+Alt+Cmd+Space` | Floating 600×240 popover that summons over any frontmost app. Type, press `Cmd+Enter` to save, `Esc` to cancel. Focus returns to the previous app on dismiss. |
+| **Clipboard capture** (global, silent) | `Ctrl+Alt+Cmd+C` | No window. Reads the system clipboard, detects whether it is text, a URL, an image, or a file list, and writes the matching note immediately. |
 
-![Quick note created automatically](screenshots/quick-note.png)
+The clipboard shortcut auto-classifies the payload into one of five **kinds** — `note`, `clip` (plain text), `link` (auto-detected URL), `shot` (image), `file` (anything else). Each kind picks its own template (see Settings).
 
-### Configuration (Settings → Quick Note)
+![Quick capture popover summoned from another app](screenshots/quick-note.png)
+
+### Configuration (Settings → Quick Capture)
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Folder format** | dayjs format for the subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format for the note name | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
-| **Template** | Path to a template file (optional) | `_system/templates/Quick Note.md` |
+| **Note template** (composer + Cmd+N) | Template file for free-form notes | `_system/templates/Quick Note.md` |
+| **Clip template** (clipboard text) | Template for non-URL text captures | `_system/templates/Quick Note.md` |
+| **Link template** (clipboard URL) | Template for auto-detected URLs | `_system/templates/Quick Note.md` |
+| **Shot template** (clipboard image) | Template for clipboard images (saved to OS temp, embedded via `file://`) | `_system/templates/Quick Note.md` |
+| **File template** (clipboard files) | Template for non-image file paths in clipboard | `_system/templates/Quick Note.md` |
 
-Quick notes are placed under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder), with the subfolder determined by the folder format.
+Captures land under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder), with the subfolder determined by the folder format. An empty template path means "no template — just write the rendered body."
+
+### Source provenance (browser captures)
+
+When the active app is Chrome or Safari at capture time, the YAML frontmatter is stamped with the browser tab's title and URL plus the app bundle id:
+
+```yaml
+source_app: com.google.Chrome
+source_title: Example Page
+source: https://example.com
+```
+
+macOS will prompt for Apple Events permission the first time the AppleScript runs. Other apps still fill `source_app` from NSWorkspace; only `source_title` + `source` need the AppleScript.
 
 ### Template Variables
 
-Quick note templates can use these additional variables:
+Quick Capture templates can use these additional variables:
 
 | Variable | Value |
 |---|---|
@@ -30,6 +52,12 @@ Quick note templates can use these additional variables:
 | `<% year %>` | 4-digit year |
 | `<% month %>` | Zero-padded month |
 | `<% monthName %>` | Full month name |
+| `<% kind %>` | Capture kind (`note` / `clip` / `link` / `shot` / `file`) |
+| `<% sourceApp %>` | Bundle id of the foreground app at capture time |
+| `<% sourceTitle %>` | Browser tab title (Chrome / Safari only) |
+| `<% sourceUrl %>` | Browser tab URL (Chrome / Safari only) |
+| `<% capturedAt %>` | ISO 8601 timestamp of the capture |
+| `<% url %>` | Canonical URL (link captures only) |
 | `<% dailyNotePath %>` | Wikilink path to today's daily note |
 | `<% dailyNoteDisplay %>` | Display name for today's daily note |
 
@@ -42,7 +70,7 @@ With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 ```
 
 > [!TIP]
-> Quick Notes are great for a "capture inbox" workflow: quickly jot things down throughout the day, then review and organize them later.
+> Quick Capture is great for a "capture inbox" workflow: jot or paste things throughout the day from any app, then review and organize them later. The popover and clipboard shortcuts work even when Kokobrain is in the background — your previous app keeps focus.
 
 ---
 
@@ -130,7 +158,7 @@ Templates are `.md` files that serve as starting points for new notes. Instead o
 New notes from templates are created at the **vault root**.
 
 > [!NOTE]
-> On vault initialization, Kokobrain auto-creates the templates folder and placeholder files for all configured periodic note, quick note, and 1:1 note templates if they don't exist yet.
+> On vault initialization, Kokobrain auto-creates the templates folder and placeholder files for all configured periodic note, Quick Capture per-kind, and 1:1 note templates if they don't exist yet.
 
 ---
 
