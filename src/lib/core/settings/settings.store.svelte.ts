@@ -10,25 +10,25 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		daily: {
 			format: 'YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY',
 			template: '',
-			templatePath: '_system/templates/Daily-Note.md',
+			templatePath: '_system/templates/periodic-note/Daily-Note.md',
 			autoOpen: true,
 			autoPin: true,
 		},
 		weekly: {
 			format: 'YYYY/MM-MMM/[__journal-week-]WW[-]YYYY',
-			templatePath: '_system/templates/Weekly-Note.md',
+			templatePath: '_system/templates/periodic-note/Weekly-Note.md',
 		},
 		monthly: {
 			format: 'YYYY/MM-MMM/MM-MMM',
-			templatePath: '_system/templates/Monthly-Note.md',
+			templatePath: '_system/templates/periodic-note/Monthly-Note.md',
 		},
 		quarterly: {
 			format: 'YYYY/[_journal-quarter-]YYYY[-Q]Q',
-			templatePath: '_system/templates/Quarterly-Note.md',
+			templatePath: '_system/templates/periodic-note/Quarterly-Note.md',
 		},
 		yearly: {
 			format: 'YYYY/YYYY',
-			templatePath: '_system/templates/Yearly-Note.md',
+			templatePath: '_system/templates/periodic-note/Yearly-Note.md',
 		},
 	},
 	quickCapture: {
@@ -47,7 +47,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		workPeopleFolder: 'Work/_people',
 		folderFormat: 'YYYY/MM-MMM',
 		filenameFormat: '[-1on1-]{person}[-]DD-MM-YYYY',
-		templatePath: '_system/templates/One-On-One.md',
+		templatePath: '_system/templates/periodic-note/One-On-One.md',
 	},
 	layout: {
 		sidebarMode: 'types',

@@ -75,8 +75,8 @@ export async function ensureTemplatesFolder(): Promise<void> {
 	if (!vaultPath) return;
 
 	const folderPath = buildTemplatesFolderPath(vaultPath, settingsStore.templates.folder);
-	const { daily, weekly, monthly, quarterly } = settingsStore.periodicNotes;
-	const templatePaths = [daily, weekly, monthly, quarterly]
+	const { daily, weekly, monthly, quarterly, yearly } = settingsStore.periodicNotes;
+	const templatePaths = [daily, weekly, monthly, quarterly, yearly]
 		.map((s) => s.templatePath)
 		.filter((p): p is string => !!p);
 
