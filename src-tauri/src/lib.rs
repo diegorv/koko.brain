@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod db;
+pub mod quick_capture;
 pub mod search;
 pub mod semantic;
 pub mod utils;
