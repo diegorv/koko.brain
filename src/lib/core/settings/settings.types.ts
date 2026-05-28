@@ -304,4 +304,6 @@ export interface AppSettings {
 	explicitOrganization: boolean;
 	/** Whether to show notes without a type in the type sidebar */
 	showUntypedNotes: boolean;
+	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
+	dockBadgeInboxCount: boolean;
 }
