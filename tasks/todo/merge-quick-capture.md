@@ -83,7 +83,14 @@ Phase 1 already lands the basic clipboard wire. Phase 3 covers the kinds that ne
 - [x] P3.1 — Extend `kind_detect` integration to handle `Files` snapshot. _(Already done in P1.5: `kind_detect::decide()` expands `Files` to one `CaptureInput` per path, `capture_clipboard_now_with` returns `Vec<Value>`, the dispatcher emits one event per result, and the frontend listener dispatches `executeAction` per event. Test `files_clipboard_emits_one_payload_per_path` covers it.)_
 - [x] P3.2 — Shot kind: file:// reference into the markdown note. _(Already done: kokobrain's `deep-link.service.ts::executeCaptureAction` handles `shot` kind with a `file://` CommonMark image embed via `renderCaptureBody`. Our P1.5 emits the right payload shape; the existing handler does the rest.)_
 - [x] P3.3 — Image clipboard: SystemClipboard already re-encodes RGBA → PNG. Decide where the PNG bytes live before kokobrain references them with `file://`. Two choices live in this task: (a) write to OS temp dir + reference `file:///tmp/...`, (b) write next to the markdown file. **Default (a)** — matches "no asset copy into vault" decision. Cargo test covers temp-write happy path.
-- [ ] P3.4 — Status toast / notification frontend: when clipboard capture succeeds, show a kokobrain-style toast ("Captured: text/link/image/file: <preview>"). Reuse kokobrain's existing toast infra. Vitest covers toast emit.
+- [~] P3.4 — _Deferred to Phase 5 (nice-to-have)._ Status toast on clipboard capture success.
+
+### Phase 5 — Nice-to-haves (post-merge polish)
+
+Items moved out of the core merge scope but tracked for follow-up:
+
+- [ ] P5.1 — Status toast on clipboard capture success (was P3.4). Pure `buildCaptureSuccessMessage(action)` helper + `toast.success` call in `handleDetectedCapture`. Vitest covers the formatter (note/clip preview truncation, link URL, shot "Captured image", file basename fallback).
+- [ ] P5.2 — Wikilink `[[` autocomplete in composer (was P2.6/P2.7). Swap textarea → CodeMirror, port `quick-capture/src/lib/wikilink/`, add Rust IPC exposing vault entries to the composer webview.
 
 ### Phase 4 — Settings + polish
 
