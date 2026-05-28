@@ -87,7 +87,7 @@ The panel shows **linked mentions** — notes that contain an explicit `[[wikili
 
 ### Relationship Backlinks
 
-Below the linked mentions, a **Relationships** section shows notes that reference the current note through frontmatter relationship fields (`belongs_to`, `related_to`, or custom wikilink-bearing fields). Each entry shows the source note and the relationship field name. See [Types & Relationships](25-types-and-relationships.md) for details.
+Below the linked mentions, a **Relationships** section shows notes that reference the current note through frontmatter relationship fields (`_belongs_to`, `_related_to`, or custom wikilink-bearing fields). Each entry shows the source note and the relationship field name. See [Types & Relationships](25-types-and-relationships.md) for details.
 
 ### Why backlinks matter
 

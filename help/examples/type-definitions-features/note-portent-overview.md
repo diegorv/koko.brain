@@ -1,9 +1,9 @@
 ---
 type: Note
-related_to:
+_related_to:
   - "[[topic-rust]]"
   - "[[topic-svelte]]"
-belongs_to: "[[project-kokobrain]]"
+_belongs_to: "[[project-kokobrain]]"
 tags:
   - reference
   - knowledge-management
@@ -16,7 +16,7 @@ Reference note summarizing the Portent specification.
 
 ## Core Ideas
 - **Types:** PORT (Project, Operation, Responsibility, Task) + ENTP (Event, Note, Topic, Person)
-- **Relationships:** `belongs_to` (strong/ownership) and `related_to` (loose/association)
+- **Relationships:** `_belongs_to` (strong/ownership) and `_related_to` (loose/association)
 - **Lifecycle:** Capture → Organize → Archive
 
 ## Links

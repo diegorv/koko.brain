@@ -1,5 +1,5 @@
 ---
-belongs_to: "[[project-kokobrain]]"
+_belongs_to: "[[project-kokobrain]]"
 date: 2026-01-15
 attendees:
   - "[[person-alice]]"

@@ -8,7 +8,7 @@ _sort: created
 _visible: true
 _list_properties_display:
   - date
-  - belongs_to
+  - _belongs_to
 ---
 
 # Event

@@ -15,7 +15,7 @@ underscore-prefixed form and they take NO alias:
 - [x] Task 1: Alias maps — remove the relationship space-aliases from `aliases.rs` + `frontmatter-aliases.ts` (no relationship entry at all). Update both alias test suites. (Both layers -> cargo test + pnpm check + pnpm vitest run.)
 - [x] Task 2: Rust — switch frontmatter key lookups to `_belongs_to`/`_related_to`, add `_has_many` first-class. `entry.rs` (struct field, parse keys, SYSTEM_KEYS, fixtures, parse tests), `index.rs` (`lookup_relationship_backlinks` has_many loop + test, relationship_type strings stay bare), `commands/vault.rs` (`to_note_record` insert keys `_belongs_to`/`_related_to`/`_has_many`), integration tests (`vault_index_test.rs`, `vault_file_ops_test.rs`). (Rust only -> cargo test.)
 - [x] Task 3: TS — `vault-v2.types.ts` add `hasMany`; `PropertiesView.svelte` FIXED_RELATIONSHIPS keys `_belongs_to`/`_related_to`/`_has_many` + labels; `portent-filters.test.ts` keys `_belongs_to`/`_related_to`; `properties.logic.test.ts` `formatRelationshipLabel('has_many')`. (Frontend only -> pnpm check + pnpm vitest run.)
-- [ ] Task 4: Migrate shipped content — 10 `help/` files (doc page + 9 example notes + README) bare `belongs_to:`/`related_to:` -> `_belongs_to:`/`_related_to:`; update ADR 0026 to document the underscore convention. (Content only.)
+- [x] Task 4: Migrate shipped content — 10 `help/` files (doc page + 9 example notes + README) bare `belongs_to:`/`related_to:` -> `_belongs_to:`/`_related_to:`; update ADR 0026 to document the underscore convention. (Content only.)
 
 ## Notes
 

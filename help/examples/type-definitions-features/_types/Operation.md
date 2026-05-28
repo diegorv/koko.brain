@@ -7,7 +7,7 @@ _sidebar_label: Operations
 _sort: title
 _visible: true
 _list_properties_display:
-  - belongs_to
+  - _belongs_to
   - frequency
 ---
 

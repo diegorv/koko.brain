@@ -7,7 +7,7 @@ _sidebar_label: Tasks
 _sort: modified
 _visible: true
 _list_properties_display:
-  - belongs_to
+  - _belongs_to
   - priority
 ---
 

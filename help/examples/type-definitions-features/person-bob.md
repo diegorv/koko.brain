@@ -2,7 +2,7 @@
 type: Person
 role: Frontend Engineer
 team: Platform
-related_to: "[[topic-svelte]]"
+_related_to: "[[topic-svelte]]"
 tags:
   - engineering
   - frontend

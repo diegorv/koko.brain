@@ -1,8 +1,8 @@
 ---
 type: Event
 date: 2026-03-15
-belongs_to: "[[project-kokobrain]]"
-related_to:
+_belongs_to: "[[project-kokobrain]]"
+_related_to:
   - "[[person-alice]]"
   - "[[topic-rust]]"
 tags:

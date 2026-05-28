@@ -3,7 +3,7 @@ type: Project
 status: completed
 priority: low
 manager: "[[person-alice]]"
-belongs_to: "[[project-kokobrain]]"
+_belongs_to: "[[project-kokobrain]]"
 tags:
   - marketing
   - design

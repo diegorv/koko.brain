@@ -4,7 +4,7 @@ date: 2026-05-20
 attendees:
   - "[[person-alice]]"
   - "[[person-bob]]"
-belongs_to: "[[project-kokobrain]]"
+_belongs_to: "[[project-kokobrain]]"
 _organized: true
 _order: 1
 ---

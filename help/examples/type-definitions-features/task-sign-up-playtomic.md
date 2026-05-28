@@ -1,7 +1,7 @@
 ---
 type: Task
 priority: low
-belongs_to: "[[responsibility-stay-in-shape]]"
+_belongs_to: "[[responsibility-stay-in-shape]]"
 _organized: true
 ---
 

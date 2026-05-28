@@ -7,8 +7,8 @@ _sidebar_label: Notes
 _sort: modified
 _visible: true
 _list_properties_display:
-  - belongs_to
-  - related_to
+  - _belongs_to
+  - _related_to
 ---
 
 # Note

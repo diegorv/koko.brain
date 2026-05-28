@@ -199,17 +199,18 @@ Notes can declare semantic relationships to other notes using frontmatter fields
 
 ```yaml
 ---
-belongs_to: "[[Parent Project]]"
-related_to:
+_belongs_to: "[[Parent Project]]"
+_related_to:
   - "[[Topic A]]"
   - "[[Topic B]]"
 ---
 ```
 
-- **`belongs_to`** -- hierarchical ownership (this note belongs to another)
-- **`related_to`** -- non-hierarchical association
+- **`_belongs_to`** -- hierarchical ownership (this note belongs to another)
+- **`_related_to`** -- non-hierarchical association
+- **`_has_many`** -- inverse ownership (this note owns/contains others)
 
-Both fields accept a single wikilink or a list of wikilinks.
+All three fields accept a single wikilink or a list of wikilinks.
 
 ### Custom relationship fields
 
@@ -224,7 +225,7 @@ client: "[[Acme Corp]]"
 
 ### Relationship Backlinks
 
-The Backlinks panel (right sidebar) includes a **Relationships** section that shows notes referencing the current note through relationship fields. Each entry displays the source note and the field name (e.g., "belongs_to", "manager").
+The Backlinks panel (right sidebar) includes a **Relationships** section that shows notes referencing the current note through relationship fields. Each entry displays the source note and the field name (e.g., "_belongs_to", "manager").
 
 ---
 
@@ -291,8 +292,6 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | Alias | Canonical form | Used in |
 |-------|---------------|---------|
 | `is_a`, `is a` | `type` | Type sidebar grouping, collection filters, inbox workflow |
-| `belongs to` | `belongs_to` | Backlinks panel "Relationships" section |
-| `related to` | `related_to` | Backlinks panel "Relationships" section |
 | `organized` | `_organized` | Inbox filter tab, lifecycle actions in Properties panel |
 | `archived` | `_archived` | Archived filter tab, hidden from All/Favorites/Quick Switcher |
 | `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
@@ -360,7 +359,7 @@ Views appear in the type sidebar alongside type sections. Click a view to see it
 The Collection feature supports filtering by Portent fields:
 
 - Filter by `type` to show only notes of a specific type
-- Filter by `belongs_to` or `related_to` relationships
+- Filter by `_belongs_to` or `_related_to` relationships
 - Filter by lifecycle state (`organized`, `archived`, `favorite`)
 
 See [Collection](12-collection.md) for details on building filtered views.
@@ -401,10 +400,10 @@ Kokobrain suggests Project, Person, Event, Topic, Task, and Note as built-in typ
 
 Portent models knowledge as a graph with two default relationships:
 
-- **`belongs_to`** -- strong ownership/composition (e.g., an Operation belongs to a Responsibility, a meeting belongs to a Project)
-- **`related_to`** -- loose many-to-many association (e.g., a Note is related to a Topic, an Event is related to a Person)
+- **`_belongs_to`** -- strong ownership/composition (e.g., an Operation belongs to a Responsibility, a meeting belongs to a Project)
+- **`_related_to`** -- loose many-to-many association (e.g., a Note is related to a Topic, an Event is related to a Person)
 
-The mental model: use `belongs_to` for relationships towards or between PORT items, and `related_to` for connections between ENTP items. This is simpler than relational schemas (where every table pair needs explicit joins) and more expressive than folders (where each item can only live in one place).
+The mental model: use `_belongs_to` for relationships towards or between PORT items, and `_related_to` for connections between ENTP items. This is simpler than relational schemas (where every table pair needs explicit joins) and more expressive than folders (where each item can only live in one place).
 
 ### Capture, Organize, Archive
 
@@ -482,13 +481,13 @@ Don't overthink this. If a note doesn't fit any type, leave it untyped -- it sti
 
 #### Step 3: Connect notes with relationships
 
-Use `belongs_to` for ownership (this note *belongs to* that project) and `related_to` for loose associations:
+Use `_belongs_to` for ownership (this note *belongs to* that project) and `_related_to` for loose associations:
 
 ```yaml
 ---
 type: Event
-belongs_to: "[[Website Redesign]]"
-related_to:
+_belongs_to: "[[Website Redesign]]"
+_related_to:
   - "[[design-systems]]"
   - "[[accessibility]]"
 attendees:
@@ -504,8 +503,8 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 
 | Relationship | Use for | Example |
 |-------------|---------|---------|
-| `belongs_to` | Strong ownership, composition, hierarchy | Meeting belongs to Project, Task belongs to Responsibility |
-| `related_to` | Loose association, cross-references | Note related to Topic, Event related to Person |
+| `_belongs_to` | Strong ownership, composition, hierarchy | Meeting belongs to Project, Task belongs to Responsibility |
+| `_related_to` | Loose association, cross-references | Note related to Topic, Event related to Person |
 | Custom fields | Domain-specific connections | `manager: "[[alice]]"`, `client: "[[acme]]"` |
 
 #### Step 4: Use the lifecycle
@@ -515,7 +514,7 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 **Weekly organize:** Open the Inbox in the type sidebar. For each note, ask:
 
 1. *What is this?* -- assign a type
-2. *What is it connected to?* -- add `belongs_to` or `related_to`
+2. *What is it connected to?* -- add `_belongs_to` or `_related_to`
 3. Click **Organize** in the Properties panel to move it out of the inbox
 
 **Archive when done:** Finished a project? Click **Archive**. The note hides from default views but stays searchable through the "Archived" tab.

@@ -1,7 +1,7 @@
 ---
 type: Operation
 frequency: 3x per week
-belongs_to: "[[responsibility-stay-in-shape]]"
+_belongs_to: "[[responsibility-stay-in-shape]]"
 tags:
   - health
   - fitness

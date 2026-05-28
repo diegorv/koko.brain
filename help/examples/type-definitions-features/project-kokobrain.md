@@ -3,7 +3,7 @@ type: Project
 status: active
 priority: high
 manager: "[[person-alice]]"
-related_to:
+_related_to:
   - "[[topic-rust]]"
   - "[[topic-svelte]]"
 tags:

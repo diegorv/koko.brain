@@ -30,6 +30,8 @@ The Portent knowledge base spec provided a clean model for document types, seman
 - Any other frontmatter field whose value contains wikilinks is extracted as a generic relationship (`src-tauri/src/vault/entry.rs:366`, `extract_all_relationships`).
 - The backlinks panel (`src/lib/features/backlinks/BacklinksPanel.svelte`) shows relationship context alongside regular backlinks.
 
+> **Amendment (2026-05-28):** The built-in relationship fields are now underscore-canonical and take no alias. The frontmatter keys are `_belongs_to` and `_related_to` (the bare/space spellings are no longer normalized). A third first-class field `_has_many` was added for inverse ownership (this note owns/contains others), with full parity to the other two: a dedicated `NoteEntry.has_many` field, reverse-index relationship backlinks (`relationship_type: "has_many"`), and a "Has Many" row in the Properties panel. Internal field names and the emitted `relationship_type` strings stay bare (`belongs_to`/`related_to`/`has_many`); only the on-disk frontmatter keys carry the underscore. The PropertiesView FIXED_RELATIONSHIPS and the `to_note_record` projection key on the underscore form.
+
 ### Lifecycle
 
 - `_organized: true` -- note has been explicitly organized (triaged from inbox).

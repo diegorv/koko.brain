@@ -4,7 +4,7 @@ Sample notes demonstrating types, relationships, lifecycle flags, and
 type definitions -- inspired by the [Portent](https://portent.md) knowledge base
 specification. Portent defines eight default types (Projects, Operations,
 Responsibilities, Tasks, Events, Notes, Topics, People) with graph-style
-relationships (`belongs_to`, `related_to`) and a capture/organize/archive
+relationships (`_belongs_to`, `_related_to`) and a capture/organize/archive
 lifecycle. This folder shows how Kokobrain implements those ideas with
 free-form types and frontmatter flags. Open in Kokobrain to see the type
 sidebar, relationship backlinks, and lifecycle actions in action.
@@ -16,8 +16,8 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 | **Type definitions (all 8 Portent types + Meeting)** | |
 | `_types/Responsibility.md` | PORT: long-running area of accountability |
 | `_types/Project.md` | PORT: type definition with custom icon, color, order, and template |
-| `_types/Operation.md` | PORT: recurring work with frequency and `belongs_to` display |
-| `_types/Task.md` | PORT: one-off work with priority and `belongs_to` display |
+| `_types/Operation.md` | PORT: recurring work with frequency and `_belongs_to` display |
+| `_types/Task.md` | PORT: one-off work with priority and `_belongs_to` display |
 | `_types/Event.md` | ENTP: things that happened, date-based sorting |
 | `_types/Note.md` | ENTP: default type for knowledge artifacts |
 | `_types/Topic.md` | ENTP: type definition with list properties display |
@@ -35,11 +35,11 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 | `topic-rust.md` | Topic note with favorites, `_order`, and multiple backlinks |
 | `topic-svelte.md` | Topic note referenced by projects |
 | `responsibility-stay-in-shape.md` | Responsibility with metrics and linked operations |
-| `operation-strength-training.md` | Operation with `belongs_to` Responsibility and frequency |
-| `task-sign-up-playtomic.md` | Task with checklist, `belongs_to` Responsibility |
-| `event-product-launch.md` | Event with date, `belongs_to` Project, multiple relationships |
-| `note-portent-overview.md` | Note with `belongs_to` and `related_to`, reference material |
-| `meeting-kickoff.md` | Untyped note with `belongs_to` relationship |
+| `operation-strength-training.md` | Operation with `_belongs_to` Responsibility and frequency |
+| `task-sign-up-playtomic.md` | Task with checklist, `_belongs_to` Responsibility |
+| `event-product-launch.md` | Event with date, `_belongs_to` Project, multiple relationships |
+| `note-portent-overview.md` | Note with `_belongs_to` and `_related_to`, reference material |
+| `meeting-kickoff.md` | Untyped note with `_belongs_to` relationship |
 | `meeting-weekly-standup.md` | Meeting note using `is_a` alias, with `_order` and attendees |
 
 ## How types work
@@ -51,8 +51,8 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 
 ## How relationships work
 
-1. `belongs_to: "[[project-kokobrain]]"` creates a hierarchical link.
-2. `related_to: ["[[topic-rust]]", "[[topic-svelte]]"]` creates associations.
+1. `_belongs_to: "[[project-kokobrain]]"` creates a hierarchical link.
+2. `_related_to: ["[[topic-rust]]", "[[topic-svelte]]"]` creates associations.
 3. Any frontmatter field with wikilink values creates a relationship.
 4. The Backlinks panel shows a Relationships section with these connections.
 
