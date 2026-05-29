@@ -18,10 +18,11 @@ Collection are great for:
 
 ## Creating a Collection
 
-There are two ways to create a collection:
+There are three ways to create a collection:
 
-1. **From the file explorer:** Create a new file and give it a `.collection` extension (e.g., `projects.collection`).
-2. **Manually:** You can also create the file from any file manager or terminal — just make sure the extension is `.collection`.
+1. **Right-click in the file explorer** — Choose **"New Collection"**. Kokobrain writes an `Untitled.collection` with one empty table view and immediately puts the file in rename mode.
+2. **Inside a `.md` file** — Use a ` ```collection ` fenced code block to embed a collection inline (see [Inline Collection](#inline-collection-code-blocks)).
+3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.collection`.
 
 When you open a `.collection` file for the first time, Kokobrain will present an empty table ready for configuration.
 

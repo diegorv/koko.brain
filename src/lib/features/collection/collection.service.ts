@@ -1,9 +1,33 @@
 import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
+import { createFile } from '$lib/core/filesystem/fs.service';
 import { collectionStore } from './collection.store.svelte';
 import type { NoteRecord } from './collection.types';
 import type { NoteRecordV2 } from '$lib/types/vault-v2.types';
 import { buildNoteRecord } from './collection.logic';
+
+/** Minimal valid .collection body — a single table view with no filters. */
+const DEFAULT_COLLECTION_TEMPLATE = `views:
+  - type: table
+    name: All
+`;
+
+/**
+ * Creates a new .collection file with a minimal valid body (one empty table
+ * view, no filters). Returns the file path on success, or null on failure.
+ */
+export async function createCollectionFile(parentPath: string): Promise<string | null> {
+	try {
+		const filePath = await createFile(parentPath, 'Untitled.collection');
+		if (!filePath) return null;
+		await writeTextFile(filePath, DEFAULT_COLLECTION_TEMPLATE);
+		return filePath;
+	} catch (err) {
+		errorLog('COLLECTION', 'Failed to create collection file:', err);
+		return null;
+	}
+}
 
 /**
  * Converts a `NoteRecordV2` (Rust IPC, properties as a JSON object)

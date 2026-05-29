@@ -4,10 +4,29 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	writeTextFile: vi.fn(),
+}));
+
+vi.mock('$lib/core/filesystem/fs.service', () => ({
+	createFile: vi.fn(),
+}));
+
+vi.mock('$lib/utils/debug', () => ({
+	debug: vi.fn(),
+	error: vi.fn((_tag: string, ...args: unknown[]) => {
+		console.error(...args);
+	}),
+	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { createFile } from '$lib/core/filesystem/fs.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import {
 	buildPropertyIndex,
+	createCollectionFile,
 	updateNoteInIndex,
 	removeNoteFromIndex,
 	resetCollection,
@@ -155,5 +174,47 @@ describe('resetCollection', () => {
 
 		expect(collectionStore.propertyIndex.size).toBe(0);
 		expect(collectionStore.isIndexReady).toBe(false);
+	});
+});
+
+describe('createCollectionFile', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('creates the file and writes the minimal valid template', async () => {
+		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.collection');
+
+		const result = await createCollectionFile('/vault');
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.collection');
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/Untitled.collection',
+			expect.stringContaining('views:'),
+		);
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).toContain('  - type: table');
+		expect(written).toContain('    name: All');
+		expect(result).toBe('/vault/Untitled.collection');
+	});
+
+	it('returns null when createFile returns null', async () => {
+		vi.mocked(createFile).mockResolvedValue(null);
+
+		const result = await createCollectionFile('/vault');
+
+		expect(result).toBeNull();
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('returns null and logs on failure', async () => {
+		vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await createCollectionFile('/vault');
+
+		expect(result).toBeNull();
+		expect(consoleSpy).toHaveBeenCalledWith('Failed to create collection file:', expect.any(Error));
+		consoleSpy.mockRestore();
 	});
 });

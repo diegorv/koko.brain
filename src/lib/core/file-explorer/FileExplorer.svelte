@@ -25,6 +25,7 @@
 	} from '$lib/core/filesystem/fs.logic';
 	import { createCanvasFile } from '$lib/features/canvas/canvas.service';
 	import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
+	import { createCollectionFile } from '$lib/features/collection/collection.service';
 	import { ask } from '@tauri-apps/plugin-dialog';
 	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
 	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
@@ -34,6 +35,7 @@
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Kanban from '@lucide/svelte/icons/kanban';
+	import Table from '@lucide/svelte/icons/table';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Copy from '@lucide/svelte/icons/copy';
@@ -127,6 +129,18 @@
 		if (!dir) return;
 		if (target?.isDirectory) fsStore.expandDir(target.path);
 		const path = await createKanbanFile(dir);
+		if (path) {
+			fsStore.setPendingCreationPath(path);
+			fsStore.setRenamingPath(path);
+		}
+	}
+
+	/** Creates a new .collection file at the resolved target dir and enters rename mode */
+	async function handleNewCollection(target: FileTreeNode | null) {
+		const dir = getCreationDir(target);
+		if (!dir) return;
+		if (target?.isDirectory) fsStore.expandDir(target.path);
+		const path = await createCollectionFile(dir);
 		if (path) {
 			fsStore.setPendingCreationPath(path);
 			fsStore.setRenamingPath(path);
@@ -294,6 +308,10 @@
 							<Kanban class="size-4" />
 							<span>New Kanban Board</span>
 						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewCollection(target)}>
+							<Table class="size-4" />
+							<span>New Collection</span>
+						</ContextMenu.Item>
 						<ContextMenu.Separator />
 
 						<ContextMenu.Item onclick={() => handleDuplicate(target)}>
@@ -364,6 +382,10 @@
 						<ContextMenu.Item onclick={() => handleNewKanban(null)}>
 							<Kanban class="size-4" />
 							<span>New Kanban Board</span>
+						</ContextMenu.Item>
+						<ContextMenu.Item onclick={() => handleNewCollection(null)}>
+							<Table class="size-4" />
+							<span>New Collection</span>
 						</ContextMenu.Item>
 					{/if}
 				</ContextMenu.Content>

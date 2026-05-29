@@ -18,7 +18,7 @@ Below the header, the file tree displays all files and folders in the vault. At 
 There are three ways to create new items:
 
 1. **Header buttons** — Click the New File (page+) or New Folder (folder+) icon in the file explorer header.
-2. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", or "New Kanban Board".
+2. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", "New Kanban Board", or "New Collection".
 3. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board".
 
 New items are created inside the currently selected folder. If nothing is selected, they are placed at the vault root.
@@ -67,6 +67,7 @@ Right-clicking a file or folder opens a context menu with the following options:
 | **New Folder** | Creates a new folder in this location |
 | **New Canvas** | Creates a new `.canvas` file in this location |
 | **New Kanban Board** | Creates a new `.kanban` file in this location |
+| **New Collection** | Creates a new `.collection` file in this location with a minimal table view (see [Collection](12-collection.md)) |
 | **Duplicate** | Creates a copy with a "-copy" suffix |
 | **Bookmark / Remove Bookmark** | Adds or removes the item from your bookmarks |
 | **Change Icon** | Opens the icon picker to assign a custom icon (see [Custom File Icons](#custom-file-icons) below) |
