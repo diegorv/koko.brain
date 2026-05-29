@@ -82,6 +82,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	templates: {
 		folder: '_system/templates',
+		systemFolder: '_system',
 	},
 	appearance: DEFAULT_APPEARANCE,
 	history: {

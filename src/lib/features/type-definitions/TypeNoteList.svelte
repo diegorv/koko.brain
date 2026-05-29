@@ -26,7 +26,7 @@
 	import { appendLog } from '$lib/utils/log.service';
 	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { excludeSystemFolder, getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
@@ -100,7 +100,8 @@
 
 	$effect(() => {
 		const _version = typeDefinitionsStore.entriesVersion;
-		const entries = typeDefinitionsStore.entries;
+		const rawEntries = typeDefinitionsStore.entries;
+		const entries = excludeSystemFolder(rawEntries, vaultStore.path, settingsStore.templates.systemFolder);
 		const sel = typeDefinitionsStore.selectedTypeOrNav;
 		if (!sel || entries.length === 0) {
 			notes = [];
@@ -139,7 +140,11 @@
 				return;
 			}
 			const view = parsed.definition.views[0];
-			const freshEntries = typeDefinitionsStore.entries;
+			const freshEntries = excludeSystemFolder(
+				typeDefinitionsStore.entries,
+				vaultStore.path,
+				settingsStore.templates.systemFolder,
+			);
 			const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
 			const viewEntry = freshEntries.find((e) => e.path === viewPath);

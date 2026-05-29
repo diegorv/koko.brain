@@ -21,4 +21,17 @@
 			}}
 		/>
 	</SettingItem>
+
+	<SettingItem
+		label="System folder"
+		description="Vault-relative folder whose files are hidden from the type sidebar (note list, nav counts, inbox dock badge). Leave empty to disable."
+	>
+		<Input
+			value={settingsStore.templates.systemFolder}
+			oninput={(e) => {
+				settingsStore.updateTemplates({ systemFolder: (e.currentTarget as HTMLInputElement).value });
+				onchange();
+			}}
+		/>
+	</SettingItem>
 </div>

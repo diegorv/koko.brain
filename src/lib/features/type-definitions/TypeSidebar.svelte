@@ -23,7 +23,7 @@
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { buildTypeSections, countNavItems, collectViewFiles, sortViewFiles, getViewLabel, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
+	import { buildTypeSections, countNavItems, collectViewFiles, sortViewFiles, getViewLabel, excludeSystemFolder, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 	import { debounce } from '$lib/utils/debounce';
@@ -55,7 +55,11 @@
 
 	$effect(() => {
 		const _version = typeDefinitionsStore.entriesVersion;
-		const entries = typeDefinitionsStore.entries;
+		const entries = excludeSystemFolder(
+			typeDefinitionsStore.entries,
+			vaultStore.path,
+			settingsStore.templates.systemFolder,
+		);
 		if (entries.length === 0) {
 			sections = [];
 			untypedCount = 0;

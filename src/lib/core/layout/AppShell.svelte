@@ -6,6 +6,7 @@
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+	import { excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
 	import { dockBadgeCount } from '$lib/features/dock-badge/dock-badge.logic';
 	import { applyDockBadge } from '$lib/features/dock-badge/dock-badge.service';
 	import * as Resizable from '$lib/components/ui/resizable';
@@ -40,7 +41,12 @@
 	$effect(() => {
 		const enabled = settingsStore.dockBadgeInboxCount;
 		void typeDefinitionsStore.entriesVersion;
-		const value = dockBadgeCount(enabled, typeDefinitionsStore.entries);
+		const entries = excludeSystemFolder(
+			typeDefinitionsStore.entries,
+			vaultStore.path,
+			settingsStore.templates.systemFolder,
+		);
+		const value = dockBadgeCount(enabled, entries);
 		untrack(() => {
 			applyDockBadge(value);
 		});

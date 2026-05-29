@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, isInsideSystemFolder, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -913,3 +913,101 @@ describe('sortViewFiles', () => {
 		expect(result.map((v) => v.name)).toEqual(['low', 'high']);
 	});
 });
+
+describe('isInsideSystemFolder', () => {
+	it('returns true for paths inside the configured folder', () => {
+		expect(isInsideSystemFolder('/vault/_system/templates/x.md', '/vault', '_system')).toBe(true);
+		expect(isInsideSystemFolder('/vault/_system/types/Task.md', '/vault', '_system')).toBe(true);
+	});
+
+	it('returns false for paths outside the configured folder', () => {
+		expect(isInsideSystemFolder('/vault/notes/a.md', '/vault', '_system')).toBe(false);
+		expect(isInsideSystemFolder('/vault/_system.md', '/vault', '_system')).toBe(false);
+	});
+
+	it('returns false when systemFolder is empty', () => {
+		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault', '')).toBe(false);
+		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault', '   ')).toBe(false);
+	});
+
+	it('returns false when vaultPath is null or empty', () => {
+		expect(isInsideSystemFolder('/vault/_system/x.md', null, '_system')).toBe(false);
+		expect(isInsideSystemFolder('/vault/_system/x.md', '', '_system')).toBe(false);
+	});
+
+	it('tolerates trailing slash on vaultPath and leading/trailing slashes on folder', () => {
+		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault/', '/_system/')).toBe(true);
+		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault/', '_system')).toBe(true);
+	});
+
+	it('supports nested folder paths', () => {
+		expect(isInsideSystemFolder('/v/foo/bar/x.md', '/v', 'foo/bar')).toBe(true);
+		expect(isInsideSystemFolder('/v/foo/baz/x.md', '/v', 'foo/bar')).toBe(false);
+	});
+});
+
+describe('excludeSystemFolder', () => {
+	it('removes entries inside the system folder', () => {
+		const entries = [
+			entryV2('/vault/notes/a.md', { title: 'A', isA: 'Task' }),
+			entryV2('/vault/_system/templates/types/Task.md', { title: 'Task', isA: 'Task' }),
+			entryV2('/vault/_system/queryjs/x.md', { title: 'X', isA: 'Task' }),
+		];
+		const result = excludeSystemFolder(entries, '/vault', '_system');
+		expect(result.length).toBe(1);
+		expect(result[0].path).toBe('/vault/notes/a.md');
+	});
+
+	it('returns the input when systemFolder is empty', () => {
+		const entries = [
+			entryV2('/vault/notes/a.md'),
+			entryV2('/vault/_system/x.md'),
+		];
+		const result = excludeSystemFolder(entries, '/vault', '');
+		expect(result.length).toBe(2);
+	});
+
+	it('returns the input when vaultPath is null', () => {
+		const entries = [
+			entryV2('/vault/notes/a.md'),
+			entryV2('/vault/_system/x.md'),
+		];
+		const result = excludeSystemFolder(entries, null, '_system');
+		expect(result.length).toBe(2);
+	});
+
+	it('returns empty when all entries are inside the system folder', () => {
+		const entries = [
+			entryV2('/vault/_system/a.md'),
+			entryV2('/vault/_system/b.md'),
+		];
+		const result = excludeSystemFolder(entries, '/vault', '_system');
+		expect(result.length).toBe(0);
+	});
+
+	it('keeps entries whose name only prefix-matches the folder', () => {
+		// `_system.md` and `_system-archive/` must not be treated as inside `_system/`.
+		const entries = [
+			entryV2('/vault/_system.md'),
+			entryV2('/vault/_system-archive/x.md'),
+			entryV2('/vault/_system/x.md'),
+		];
+		const result = excludeSystemFolder(entries, '/vault', '_system');
+		expect(result.map((e) => e.path)).toEqual(['/vault/_system.md', '/vault/_system-archive/x.md']);
+	});
+
+	it('removes notes that would otherwise count in nav/inbox helpers', () => {
+		const entries = [
+			entryV2('/vault/notes/a.md', { isA: 'Task', organized: false, archived: false }),
+			entryV2('/vault/_system/templates/types/Task.md', { isA: 'Task', organized: false, archived: false }),
+		];
+		const filtered = excludeSystemFolder(entries, '/vault', '_system');
+		// countInbox/countNavItems are pure — they don't know about systemFolder, the upstream filter must.
+		expect(countInbox(filtered)).toBe(1);
+		expect(countNavItems(filtered).inbox).toBe(1);
+		const list = getNotesForSelection(filtered, { kind: 'type', name: 'Task' }, new Map(), 'open');
+		expect(list.length).toBe(1);
+		expect(list[0].path).toBe('/vault/notes/a.md');
+	});
+});
+

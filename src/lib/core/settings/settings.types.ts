@@ -122,6 +122,12 @@ export interface EditorSettings {
 export interface TemplatesSettings {
 	/** Folder name (relative to vault root) where templates are stored */
 	folder: string;
+	/**
+	 * Vault-relative folder that holds system/template files which should be
+	 * excluded from the type sidebar (note list, nav counts, inbox dock badge).
+	 * Empty string disables the exclusion. Defaults to `_system`.
+	 */
+	systemFolder: string;
 }
 
 /** Configuration for the 1:1 notes plugin */

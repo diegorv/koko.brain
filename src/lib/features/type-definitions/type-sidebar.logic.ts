@@ -49,6 +49,41 @@ export interface NavItemCounts {
 	favorites: number;
 }
 
+/**
+ * Returns true when the given absolute note path lives inside the configured
+ * vault-relative system folder. Empty `systemFolder` or missing `vaultPath`
+ * disables exclusion (returns false for every input).
+ */
+export function isInsideSystemFolder(
+	notePath: string,
+	vaultPath: string | null | undefined,
+	systemFolder: string,
+): boolean {
+	if (!vaultPath) return false;
+	const folder = systemFolder.trim().replace(/^\/+|\/+$/g, '');
+	if (!folder) return false;
+	const base = vaultPath.replace(/\/+$/, '');
+	const prefix = `${base}/${folder}/`;
+	return notePath.startsWith(prefix);
+}
+
+/**
+ * Returns a new array containing only entries whose `path` is outside the
+ * configured system folder. Use this as an upstream filter before any sidebar
+ * logic call (counts, lists, sections).
+ */
+export function excludeSystemFolder(
+	entries: NoteEntryV2[],
+	vaultPath: string | null | undefined,
+	systemFolder: string,
+): NoteEntryV2[] {
+	const folder = systemFolder.trim().replace(/^\/+|\/+$/g, '');
+	if (!vaultPath || !folder) return entries;
+	const base = vaultPath.replace(/\/+$/, '');
+	const prefix = `${base}/${folder}/`;
+	return entries.filter((e) => !e.path.startsWith(prefix));
+}
+
 /** Computes counts for each top nav item (cross-type). */
 export function countNavItems(entries: NoteEntryV2[]): NavItemCounts {
 	let inbox = 0;
