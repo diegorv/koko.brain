@@ -30,7 +30,7 @@ Scope (confirmed with user):
   - Persist via `updateViewQuery` (Task 2). Use a `selfUpdate` flag to skip the next re-seed when our own write bubbles back via `entriesVersion`.
   - Active-state color: `text-primary` when filters/sorts non-empty, `text-muted-foreground` otherwise.
 
-- [ ] Task 4: Cover the new code paths in tests. Existing files:
+- [x] Task 4: Cover the new code paths in tests. Existing files:
   - `view-parse-cache.test.ts` — already covered in Task 1.
   - `type-definitions.service.test.ts` — already covered in Task 2.
   - `type-note-list.logic.test.ts` — created in Task 3a.
