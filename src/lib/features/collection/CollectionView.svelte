@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { parseCollectionYaml, updateCollectionYaml } from './yaml-parser';
+	import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType, type ViewType } from './yaml-parser';
 	import { executeQuery } from './collection.logic';
 	import { collectionStore } from './collection.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
@@ -21,6 +21,8 @@
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import Columns3 from '@lucide/svelte/icons/columns-3';
 	import Calendar from '@lucide/svelte/icons/calendar';
+	import Plus from '@lucide/svelte/icons/plus';
+	import * as ContextMenu from '$lib/components/ui/context-menu';
 
 	interface Props {
 		yamlContent: string;
@@ -41,6 +43,15 @@
 	let activeViewIndex = $state(0);
 	/** Index of the view whose state was last loaded into the local toolbar state */
 	let seededIndex = $state(-1);
+
+	/** Index of the tab currently being renamed inline (null = no rename in progress) */
+	let renamingTabIndex = $state<number | null>(null);
+	/** Working buffer for the inline rename input */
+	let renamingTabValue = $state('');
+	/** Index targeted by the per-tab context menu */
+	let tabContextIndex = $state<number | null>(null);
+	/** DOM node of the rename input, used to focus/select on open */
+	let renameInputEl = $state<HTMLInputElement | null>(null);
 
 	/** Panel open states */
 	let filterOpen = $state(false);
@@ -246,6 +257,72 @@
 		}
 	}
 
+	/** Writes a structural YAML mutation back to disk (used for tab add/remove/rename/type). */
+	function commitStructural(newYaml: string) {
+		if (!onYamlChange) return;
+		if (newYaml === yamlContent) return;
+		selfUpdate = true;
+		onYamlChange(newYaml);
+	}
+
+	/** Appends a fresh "Untitled" table view and selects it, opening inline rename. */
+	function handleAddView() {
+		if (!definition) return;
+		const newIndex = definition.views.length;
+		commitStructural(addView(yamlContent, 'Untitled', 'table'));
+		activeViewIndex = newIndex;
+		// Defer the rename to the next microtask so the tab has rendered.
+		queueMicrotask(() => startTabRename(newIndex));
+	}
+
+	/** Removes the view at `idx`, clamping the active tab if necessary. */
+	function handleDeleteView(idx: number) {
+		if (!definition || definition.views.length <= 1) return;
+		commitStructural(removeView(yamlContent, idx));
+		if (activeViewIndex >= idx && activeViewIndex > 0) activeViewIndex -= 1;
+	}
+
+	/** Changes the view type at `idx`. */
+	function handleSetViewType(idx: number, type: ViewType) {
+		commitStructural(setViewType(yamlContent, idx, type));
+	}
+
+	/** Opens inline rename for the tab at `idx`. */
+	function startTabRename(idx: number) {
+		if (!definition) return;
+		const current = definition.views[idx]?.name ?? '';
+		renamingTabIndex = idx;
+		renamingTabValue = current;
+		requestAnimationFrame(() => {
+			renameInputEl?.focus();
+			renameInputEl?.select();
+		});
+	}
+
+	/** Commits the inline rename. Empty/whitespace input is treated as cancel. */
+	function commitTabRename() {
+		if (renamingTabIndex === null) return;
+		const idx = renamingTabIndex;
+		const value = renamingTabValue;
+		renamingTabIndex = null;
+		commitStructural(renameView(yamlContent, idx, value));
+	}
+
+	/** Discards the inline rename. */
+	function cancelTabRename() {
+		renamingTabIndex = null;
+	}
+
+	function handleRenameKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitTabRename();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelTabRename();
+		}
+	}
+
 	function handleClickRow(record: NoteRecord) {
 		openFileInEditor(record.path);
 	}
@@ -267,20 +344,76 @@
 		<!-- Toolbar -->
 		{#if activeView}
 			<div class="flex h-10 shrink-0 items-center border-b border-border px-3 gap-1">
-				<!-- Left: view tabs (if >1) or single view name + result count -->
-				{#if definition && definition.views.length > 1}
-					<div class="flex items-center gap-0.5 overflow-x-auto">
-						{#each definition.views as v, i (i)}
-							<button
-								class="text-xs px-2 py-0.5 rounded shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
-								onclick={() => activeViewIndex = i}
-							>
-								{v.name}
-							</button>
-						{/each}
-					</div>
-				{:else}
-					<span class="text-xs font-medium text-muted-foreground">{activeView.name}</span>
+				<!-- Left: view tabs (rename / context menu / add) -->
+				{#if definition}
+					<ContextMenu.Root>
+						<ContextMenu.Trigger>
+							{#snippet child({ props })}
+								<div {...props} class="flex items-center gap-0.5 overflow-x-auto">
+									{#each definition.views as v, i (i)}
+										{#if renamingTabIndex === i}
+											<input
+												bind:this={renameInputEl}
+												bind:value={renamingTabValue}
+												onkeydown={handleRenameKeydown}
+												onblur={commitTabRename}
+												class="text-xs px-2 py-0.5 h-6 rounded shrink-0 border border-ring bg-background outline-none"
+												style="min-width: 80px;"
+											/>
+										{:else}
+											<button
+												class="text-xs px-2 py-0.5 rounded shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
+												onclick={() => activeViewIndex = i}
+												ondblclick={() => startTabRename(i)}
+												oncontextmenu={() => { tabContextIndex = i; }}
+											>
+												{v.name}
+											</button>
+										{/if}
+									{/each}
+									<button
+										class="text-xs px-1.5 py-0.5 rounded shrink-0 cursor-default text-muted-foreground hover:text-foreground hover:bg-muted"
+										title="Add view"
+										onclick={handleAddView}
+									>
+										<Plus class="size-3" />
+									</button>
+								</div>
+							{/snippet}
+						</ContextMenu.Trigger>
+						<ContextMenu.Content class="w-44">
+							{#if tabContextIndex !== null}
+								{@const idx = tabContextIndex}
+								<ContextMenu.Item onclick={() => startTabRename(idx)}>
+									<span class="text-xs">Rename</span>
+								</ContextMenu.Item>
+								<ContextMenu.Sub>
+									<ContextMenu.SubTrigger>
+										<span class="text-xs">Change type</span>
+									</ContextMenu.SubTrigger>
+									<ContextMenu.SubContent>
+										<ContextMenu.Item onclick={() => handleSetViewType(idx, 'table')}>
+											<span class="text-xs">Table</span>
+										</ContextMenu.Item>
+										<ContextMenu.Item onclick={() => handleSetViewType(idx, 'calendar')}>
+											<span class="text-xs">Calendar</span>
+										</ContextMenu.Item>
+										<ContextMenu.Item onclick={() => handleSetViewType(idx, 'linear-calendar')}>
+											<span class="text-xs">Linear Calendar</span>
+										</ContextMenu.Item>
+									</ContextMenu.SubContent>
+								</ContextMenu.Sub>
+								<ContextMenu.Separator />
+								<ContextMenu.Item
+									variant="destructive"
+									disabled={definition.views.length <= 1}
+									onclick={() => handleDeleteView(idx)}
+								>
+									<span class="text-xs">Delete view</span>
+								</ContextMenu.Item>
+							{/if}
+						</ContextMenu.Content>
+					</ContextMenu.Root>
 				{/if}
 				<span class="ml-1 text-xs text-muted-foreground/60">{queryResult.records.length} results</span>
 

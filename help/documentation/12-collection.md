@@ -137,7 +137,17 @@ A single `.collection` or `.view` file can contain multiple named views. Each vi
 - Visible columns
 - View type (`table`, `calendar`, or `linear-calendar`)
 
-When a file has more than one view, the collection editor renders a tab strip at the top — one tab per view name. Click a tab to switch the visible view. The Filter, Sort, and Properties toolbar panels rebind to the active view, so edits go into the view you are looking at. Files with a single view skip the tab strip entirely and just show the view name as a label.
+When a file has more than one view, the collection editor renders a tab strip at the top — one tab per view name. Click a tab to switch the visible view. The Filter, Sort, and Properties toolbar panels rebind to the active view, so edits go into the view you are looking at. Files with a single view also show the tab strip with a single tab, alongside the controls described below.
+
+### Managing views
+
+The tab strip exposes three editing affordances:
+
+- **Add a view** — click the **+** button at the end of the tab strip. A fresh `Untitled` table view is appended and selected, with the tab name pre-focused for renaming. Press **Enter** to confirm or **Escape** to keep the default name.
+- **Rename a view** — double-click a tab, type the new name, then press **Enter** (or click elsewhere) to confirm. **Escape** discards the change. Empty or whitespace-only names are ignored.
+- **Right-click a tab** for the full menu: **Rename**, **Change type** (Table / Calendar / Linear Calendar), or **Delete view**. Delete is disabled when only one view remains — every `.collection` and `.view` must keep at least one view.
+
+When you change a view's type, all calendar-specific keys (`dateProperty`, `endDateProperty`, `weekStartDay`, `colorProperty`) stay in the YAML even after switching to `table`. The table renderer ignores them, but they reappear unchanged when you switch back to a calendar layout, so toggling type does not lose configuration.
 
 This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.collection` file.
 

@@ -230,3 +230,96 @@ export function updateCollectionYaml(yamlString: string, updates: CollectionYaml
 
 	return stringifyYaml(raw);
 }
+
+/** Supported view types for setViewType. */
+export type ViewType = 'table' | 'calendar' | 'linear-calendar';
+
+/**
+ * Appends a new view at the end of the `views:` array with the given type and
+ * name. Returns the original string unchanged when the YAML cannot be parsed.
+ * The new view ships with no filters / sort / order — the caller is expected
+ * to drive subsequent edits through updateCollectionYaml.
+ */
+export function addView(yamlString: string, name: string, type: ViewType = 'table'): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch {
+		return yamlString;
+	}
+
+	if (!Array.isArray(raw.views)) raw.views = [];
+	(raw.views as unknown[]).push({ type, name });
+
+	return stringifyYaml(raw);
+}
+
+/**
+ * Removes the view at the given index from the `views:` array. Refuses to
+ * remove the last remaining view — a .collection / .view must always have at
+ * least one view to render. Returns the original string unchanged on parse
+ * failure, out-of-range index, or the last-view guard.
+ */
+export function removeView(yamlString: string, index: number): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch {
+		return yamlString;
+	}
+
+	if (!Array.isArray(raw.views)) return yamlString;
+	const views = raw.views as unknown[];
+	if (index < 0 || index >= views.length) return yamlString;
+	if (views.length <= 1) return yamlString;
+	views.splice(index, 1);
+
+	return stringifyYaml(raw);
+}
+
+/**
+ * Renames the view at the given index. Trims whitespace; refuses empty names.
+ * Returns the original string unchanged on parse failure, out-of-range index,
+ * or empty/whitespace-only name.
+ */
+export function renameView(yamlString: string, index: number, newName: string): string {
+	const trimmed = newName.trim();
+	if (trimmed === '') return yamlString;
+
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch {
+		return yamlString;
+	}
+
+	if (!Array.isArray(raw.views)) return yamlString;
+	const views = raw.views as Record<string, unknown>[];
+	if (index < 0 || index >= views.length) return yamlString;
+	views[index].name = trimmed;
+
+	return stringifyYaml(raw);
+}
+
+/**
+ * Changes the type of the view at the given index. Calendar-only fields
+ * (dateProperty / endDateProperty / weekStartDay / colorProperty) are left
+ * intact even when switching to `table`, since they are harmless extra keys
+ * the parser ignores — preserving them lets the user toggle back without
+ * losing configuration.
+ */
+export function setViewType(yamlString: string, index: number, type: ViewType): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch {
+		return yamlString;
+	}
+
+	if (!Array.isArray(raw.views)) return yamlString;
+	const views = raw.views as Record<string, unknown>[];
+	if (index < 0 || index >= views.length) return yamlString;
+	views[index].type = type;
+
+	return stringifyYaml(raw);
+}

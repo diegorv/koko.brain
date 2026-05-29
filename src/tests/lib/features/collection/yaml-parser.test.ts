@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCollectionYaml, updateCollectionYaml } from '$lib/features/collection/yaml-parser';
+import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType } from '$lib/features/collection/yaml-parser';
 
 describe('parseCollectionYaml', () => {
 	it('parses a minimal collection with one table view', () => {
@@ -687,5 +687,154 @@ views:
 		expect(parsed.success).toBe(true);
 		if (!parsed.success) return;
 		expect(parsed.definition.views[0].colorProperty).toBeUndefined();
+	});
+});
+
+describe('addView', () => {
+	const yaml = `views:
+  - type: table
+    name: All
+`;
+
+	it('appends a new table view by default', () => {
+		const result = addView(yaml, 'Second');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views).toHaveLength(2);
+		expect(parsed.definition.views[1]).toMatchObject({ type: 'table', name: 'Second' });
+	});
+
+	it('honours the requested view type', () => {
+		const result = addView(yaml, 'Cal', 'calendar');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views[1]).toMatchObject({ type: 'calendar', name: 'Cal' });
+	});
+
+	it('initialises the views array when the document has no views key', () => {
+		const result = addView('filters: "x == 1"\n', 'First');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views).toHaveLength(1);
+		expect(parsed.definition.views[0]).toMatchObject({ type: 'table', name: 'First' });
+	});
+
+	it('returns the original string when the YAML cannot be parsed', () => {
+		const broken = '::: invalid yaml :::\n  - [';
+		expect(addView(broken, 'X')).toBe(broken);
+	});
+});
+
+describe('removeView', () => {
+	const yaml = `views:
+  - type: table
+    name: First
+  - type: calendar
+    name: Second
+    dateProperty: due
+  - type: linear-calendar
+    name: Third
+    dateProperty: due
+`;
+
+	it('removes the view at the given index', () => {
+		const result = removeView(yaml, 1);
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views.map((v) => v.name)).toEqual(['First', 'Third']);
+	});
+
+	it('refuses to remove the only remaining view', () => {
+		const oneView = `views:
+  - type: table
+    name: Only
+`;
+		const result = removeView(oneView, 0);
+		expect(result).toBe(oneView);
+	});
+
+	it('returns the original string for an out-of-range index', () => {
+		expect(removeView(yaml, 99)).toBe(yaml);
+		expect(removeView(yaml, -1)).toBe(yaml);
+	});
+
+	it('returns the original string when the YAML cannot be parsed', () => {
+		const broken = '::: invalid yaml :::';
+		expect(removeView(broken, 0)).toBe(broken);
+	});
+});
+
+describe('renameView', () => {
+	const yaml = `views:
+  - type: table
+    name: Old
+  - type: calendar
+    name: Other
+    dateProperty: due
+`;
+
+	it('renames the view at the given index', () => {
+		const result = renameView(yaml, 0, 'New Name');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views[0].name).toBe('New Name');
+		expect(parsed.definition.views[1].name).toBe('Other');
+	});
+
+	it('trims surrounding whitespace from the new name', () => {
+		const result = renameView(yaml, 0, '  Trimmed  ');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views[0].name).toBe('Trimmed');
+	});
+
+	it('rejects empty or whitespace-only names', () => {
+		expect(renameView(yaml, 0, '')).toBe(yaml);
+		expect(renameView(yaml, 0, '   ')).toBe(yaml);
+	});
+
+	it('returns the original string for an out-of-range index', () => {
+		expect(renameView(yaml, 99, 'X')).toBe(yaml);
+		expect(renameView(yaml, -1, 'X')).toBe(yaml);
+	});
+});
+
+describe('setViewType', () => {
+	const yaml = `views:
+  - type: table
+    name: Switchable
+  - type: calendar
+    name: Other
+    dateProperty: due
+    weekStartDay: 1
+`;
+
+	it('changes the view type at the given index', () => {
+		const result = setViewType(yaml, 0, 'calendar');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views[0].type).toBe('calendar');
+	});
+
+	it('preserves calendar config when switching back to table', () => {
+		const result = setViewType(yaml, 1, 'table');
+		const parsed = parseCollectionYaml(result);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.definition.views[1].type).toBe('table');
+		expect(parsed.definition.views[1].dateProperty).toBe('due');
+		expect(parsed.definition.views[1].weekStartDay).toBe(1);
+	});
+
+	it('returns the original string for an out-of-range index', () => {
+		expect(setViewType(yaml, 99, 'calendar')).toBe(yaml);
+		expect(setViewType(yaml, -1, 'calendar')).toBe(yaml);
 	});
 });
