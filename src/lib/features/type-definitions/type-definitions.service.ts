@@ -48,6 +48,22 @@ export async function createTypeDefinition(typeName: string): Promise<void> {
 	openFileInEditor(filePath);
 }
 
+/**
+ * Creates a new empty .view file at the vault root with a minimal table view
+ * and no filters, then selects it in the type sidebar so the user can configure
+ * filters and sort via the inline toolbar without first having to open the raw
+ * YAML.
+ */
+export async function createView(): Promise<void> {
+	if (!vaultStore.path) return;
+	const filePath = await createFile(vaultStore.path, 'Untitled.view');
+	if (!filePath) return;
+	const title = (filePath.split('/').pop() ?? 'Untitled').replace(/\.view$/i, '');
+	const content = `_sidebar_label: ${title}\n_sort: title\nviews:\n  - type: table\n    name: ${title}\n`;
+	await writeTextFile(filePath, content);
+	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
+}
+
 /** Toggles _favorite on a note by path, updating file and editor if open. */
 export async function toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> {
 	const content = await readTextFile(filePath);

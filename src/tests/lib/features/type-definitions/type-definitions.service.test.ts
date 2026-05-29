@@ -270,6 +270,68 @@ describe('updateViewIcon', () => {
 	});
 });
 
+describe('createView', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vaultStore._reset();
+		typeDefinitionsStore.reset();
+	});
+
+	afterEach(() => {
+		vaultStore._reset();
+		typeDefinitionsStore.reset();
+	});
+
+	it('does nothing when vault path is not set', async () => {
+		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		vaultStore._reset();
+		await createView();
+		expect(createFile).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+	});
+
+	it('aborts when createFile returns null', async () => {
+		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValue(null);
+
+		await createView();
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+	});
+
+	it('writes a minimal .view body and selects the new view in the sidebar', async () => {
+		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.view');
+
+		await createView();
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.view');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/Untitled.view', expect.stringContaining('_sidebar_label: Untitled'));
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).toContain('views:');
+		expect(written).toContain('  - type: table');
+		expect(written).toContain('    name: Untitled');
+		expect(written).not.toContain('filters:');
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Untitled.view' });
+	});
+
+	it('uses the deduplicated filename returned by createFile as the title', async () => {
+		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValue('/vault/Untitled 2.view');
+
+		await createView();
+
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).toContain('_sidebar_label: Untitled 2');
+		expect(written).toContain('name: Untitled 2');
+	});
+});
+
 describe('updateViewQuery', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

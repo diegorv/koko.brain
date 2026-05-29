@@ -14,7 +14,7 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
-	import { createNoteOfType, createTypeDefinition, updateViewIcon, removeViewIcon } from './type-definitions.service';
+	import { createNoteOfType, createTypeDefinition, createView, updateViewIcon, removeViewIcon } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
@@ -185,11 +185,18 @@
 					</div>
 					<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 
-					{#if sortedViewFiles.length > 0}
-						<div class="mx-2 mb-1.5">
-							<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Views</span>
-						</div>
+					<div class="mx-2 mb-1.5 flex items-center">
+						<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Views</span>
+						<button
+							class="ml-auto shrink-0 rounded p-0.5 hover:bg-file-explorer-primary/10 cursor-default"
+							title="New view"
+							onclick={() => createView()}
+						>
+							<Plus class="size-3.5 text-file-explorer-muted-fg" />
+						</button>
+					</div>
 
+					{#if sortedViewFiles.length > 0}
 						{#each sortedViewFiles as view (view.path)}
 							{@const viewEntry = typeDefinitionsStore.entries.find((e) => e.path === view.path)}
 							{@const viewLabel = getViewLabel(viewEntry, view.name)}

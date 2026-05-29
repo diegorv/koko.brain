@@ -320,9 +320,9 @@ View files are saved collection-style query definitions that appear as navigatio
 
 ### Creating a View
 
-Create a `.view` file in your vault. It is a single YAML document: the sidebar
-metadata keys live at the top level, alongside a `views:` array and a `filters:`
-expression.
+The fastest way is to click the **+** button next to the **VIEWS** label in the type sidebar. Kokobrain creates an `Untitled.view` (auto-deduplicated) at the vault root, selects it in the sidebar, and lets you start configuring filters via the inline toolbar without ever touching YAML.
+
+You can also create the file by hand. A `.view` is a single YAML document: the sidebar metadata keys live at the top level, alongside a `views:` array and a `filters:` expression.
 
 ```yaml
 _sidebar_label: Active Projects
