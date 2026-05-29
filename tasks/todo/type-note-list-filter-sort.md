@@ -14,7 +14,7 @@ Scope (confirmed with user):
 
 - [x] Task 1: Extend `view-parse-cache.ts` to also cache raw YAML text alongside the parsed definition. Expose `getCachedViewYaml(path)` (sync, returns `string | undefined`). `refreshViewDefinition` already reads from disk — store its content into the new field. Add tests.
 
-- [ ] Task 2: Add `updateViewQuery(path, updates)` to `type-definitions.service.ts`. Wraps `updateCollectionYaml(content, updates)` + `writeTextFile` + `refreshViewDefinition(path)` to bust the parse cache. Mirrors `updateViewIcon` shape. Updates type signature is the same `CollectionYamlUpdates` accepted by `updateCollectionYaml`. Add tests (mock writeTextFile + readTextFile).
+- [x] Task 2: Add `updateViewQuery(path, updates)` to `type-definitions.service.ts`. Wraps `updateCollectionYaml(content, updates)` + `writeTextFile` + `refreshViewDefinition(path)` to bust the parse cache. Mirrors `updateViewIcon` shape. Updates type signature is the same `CollectionYamlUpdates` accepted by `updateCollectionYaml`. Add tests (mock writeTextFile + readTextFile).
 
 - [ ] Task 3: Modify `TypeNoteList.svelte`:
   - When `selection.kind === 'view'` AND cached parse succeeded, render `[ArrowUpDown] [ListFilter]` icon buttons on the right of the header row, replacing nothing existing (the `+` button only renders for `canCreate`/type selections, so no conflict).

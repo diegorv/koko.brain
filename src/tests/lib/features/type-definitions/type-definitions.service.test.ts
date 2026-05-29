@@ -30,6 +30,14 @@ vi.mock('$lib/utils/log.service', () => ({
 	appendLog: vi.fn(),
 }));
 
+vi.mock('$lib/features/collection/yaml-parser', () => ({
+	updateCollectionYaml: vi.fn(),
+}));
+
+vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
+	refreshViewDefinition: vi.fn(),
+}));
+
 import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -259,5 +267,57 @@ describe('updateViewIcon', () => {
 		expect(written).not.toContain('_color');
 		expect(written).not.toContain('_title_color');
 		expect(written).toContain('_sidebar_label: Test');
+	});
+});
+
+describe('updateViewQuery', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('writes the patched YAML and refreshes the parse cache', async () => {
+		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
+		const { refreshViewDefinition } = await import('$lib/features/type-definitions/view-parse-cache');
+
+		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
+		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
+
+		await updateViewQuery('/vault/test.view', { filters: "status == 'active'" });
+
+		expect(updateCollectionYaml).toHaveBeenCalledWith('original yaml\n', { filters: "status == 'active'" });
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/test.view', 'patched yaml\n');
+		expect(refreshViewDefinition).toHaveBeenCalledWith('/vault/test.view');
+	});
+
+	it('skips write and cache refresh when patch produces no change', async () => {
+		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
+		const { refreshViewDefinition } = await import('$lib/features/type-definitions/view-parse-cache');
+
+		vi.mocked(readTextFile).mockResolvedValue('unchanged yaml\n');
+		vi.mocked(updateCollectionYaml).mockReturnValue('unchanged yaml\n');
+
+		await updateViewQuery('/vault/test.view', { viewSort: [] });
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(refreshViewDefinition).not.toHaveBeenCalled();
+	});
+
+	it('forwards view-level sort and filter updates verbatim', async () => {
+		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
+
+		vi.mocked(readTextFile).mockResolvedValue('y\n');
+		vi.mocked(updateCollectionYaml).mockReturnValue('y2\n');
+
+		const updates = {
+			filters: 'file.hasTag("projeto")',
+			viewFilters: { and: ['status != "completed"'] },
+			viewSort: [{ column: 'due', direction: 'ASC' as const }],
+		};
+		await updateViewQuery('/vault/test.view', updates);
+
+		expect(updateCollectionYaml).toHaveBeenCalledWith('y\n', updates);
 	});
 });

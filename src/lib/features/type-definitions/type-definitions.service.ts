@@ -12,6 +12,8 @@ import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
 import { buildTypeMetadataMap } from './type-definitions.logic';
 import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
+import { updateCollectionYaml, type CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
+import { refreshViewDefinition } from './view-parse-cache';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */
 export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<void> {
@@ -74,4 +76,18 @@ export async function updateViewIcon(
 /** Removes _icon, _color, and _title_color from a .view YAML file. */
 export async function removeViewIcon(path: string): Promise<void> {
 	await updateViewIcon(path, undefined, undefined, undefined);
+}
+
+/**
+ * Applies a CollectionYamlUpdates patch to a .view file, preserving all unrelated
+ * YAML content. Used to persist filter, sort, and column changes made from the
+ * TypeNoteList toolbar. After writing, refreshes the parse cache so the next
+ * read returns the updated definition.
+ */
+export async function updateViewQuery(path: string, updates: CollectionYamlUpdates): Promise<void> {
+	const content = await readTextFile(path);
+	const updated = updateCollectionYaml(content, updates);
+	if (updated === content) return;
+	await writeTextFile(path, updated);
+	await refreshViewDefinition(path);
 }
