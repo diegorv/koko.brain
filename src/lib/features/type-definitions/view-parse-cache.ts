@@ -3,6 +3,8 @@ import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
 
 interface ParseCacheEntry {
 	contentHash: string;
+	/** Raw YAML content read from disk. Kept for round-trip edits via updateCollectionYaml. */
+	yaml: string;
 	definition: ReturnType<typeof parseCollectionYaml>;
 }
 
@@ -22,7 +24,7 @@ export async function refreshViewDefinition(path: string): Promise<ReturnType<ty
 	const cached = parseCache.get(path);
 	if (cached && cached.contentHash === contentHash) return cached.definition;
 	const parsed = parseCollectionYaml(content);
-	parseCache.set(path, { contentHash, definition: parsed });
+	parseCache.set(path, { contentHash, yaml: content, definition: parsed });
 	return parsed;
 }
 
@@ -31,6 +33,15 @@ export async function getCachedViewDefinition(path: string): Promise<ReturnType<
 	const cached = parseCache.get(path);
 	if (cached) return cached.definition;
 	return refreshViewDefinition(path);
+}
+
+/**
+ * Returns the raw YAML text most recently read for this view.
+ * Returns undefined if the view has not been refreshed in this session.
+ * Used by callers that need to perform round-trip edits via updateCollectionYaml.
+ */
+export function getCachedViewYaml(path: string): string | undefined {
+	return parseCache.get(path)?.yaml;
 }
 
 /** Stores query result paths for a view (set by TypeSidebar counts effect). */

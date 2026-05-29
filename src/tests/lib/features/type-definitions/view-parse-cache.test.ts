@@ -10,7 +10,7 @@ vi.mock('$lib/features/collection/yaml-parser', () => ({
 	parseCollectionYaml: vi.fn(),
 }));
 
-import { refreshViewDefinition, getCachedViewDefinition, setViewQueryResult, getViewQueryResult, clearViewParseCache, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
+import { refreshViewDefinition, getCachedViewDefinition, getCachedViewYaml, setViewQueryResult, getViewQueryResult, clearViewParseCache, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 
 const mockReadTextFile = vi.mocked(readTextFile);
 const mockParseCollectionYaml = vi.mocked(parseCollectionYaml);
@@ -86,6 +86,43 @@ describe('getCachedViewDefinition', () => {
 
 		expect(mockReadTextFile).toHaveBeenCalledWith('/v/test.view');
 		expect(result).toBe(PARSED_RESULT);
+	});
+});
+
+describe('getCachedViewYaml', () => {
+	it('returns the raw YAML text after a refresh', async () => {
+		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
+		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
+
+		await refreshViewDefinition('/v/test.view');
+
+		expect(getCachedViewYaml('/v/test.view')).toBe(YAML_CONTENT);
+	});
+
+	it('returns the updated YAML after content changes', async () => {
+		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
+		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
+		await refreshViewDefinition('/v/test.view');
+
+		const newContent = 'source: notes\nviews:\n  - name: updated';
+		mockReadTextFile.mockResolvedValue(newContent);
+		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
+		await refreshViewDefinition('/v/test.view');
+
+		expect(getCachedViewYaml('/v/test.view')).toBe(newContent);
+	});
+
+	it('returns undefined for uncached paths', () => {
+		expect(getCachedViewYaml('/v/missing.view')).toBeUndefined();
+	});
+
+	it('returns undefined after clearViewParseCache', async () => {
+		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
+		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
+		await refreshViewDefinition('/v/test.view');
+		clearViewParseCache('/v/test.view');
+
+		expect(getCachedViewYaml('/v/test.view')).toBeUndefined();
 	});
 });
 
