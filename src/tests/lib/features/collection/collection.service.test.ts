@@ -109,6 +109,24 @@ describe('updateNoteInIndex', () => {
 		expect(r.ctime).toBe(0);
 		expect(r.size).toBe(0);
 	});
+
+	it('merges inline body #tags into the tags property', () => {
+		updateNoteInIndex(
+			'/vault/inline.md',
+			'---\ntitle: T\n---\n\n#brain idea in body',
+		);
+		const r = collectionStore.propertyIndex.get('/vault/inline.md')!;
+		expect(r.properties.get('tags')).toEqual(['brain']);
+	});
+
+	it('unions frontmatter tags with inline body #tags', () => {
+		updateNoteInIndex(
+			'/vault/both.md',
+			'---\ntags: [project]\n---\n\n#brain note',
+		);
+		const r = collectionStore.propertyIndex.get('/vault/both.md')!;
+		expect(r.properties.get('tags')).toEqual(['project', 'brain']);
+	});
 });
 
 describe('removeNoteFromIndex', () => {

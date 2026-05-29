@@ -670,6 +670,10 @@ pub fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 	properties.insert("organized".to_string(), serde_json::Value::Bool(entry.organized));
 	properties.insert("archived".to_string(), serde_json::Value::Bool(entry.archived));
 	properties.insert("favorite".to_string(), serde_json::Value::Bool(entry.favorite));
+	// Override `tags` with the merged frontmatter+inline set so Collection
+	// filters (`file.tags`, `file.hasTag`) see body `#tags`, matching QueryJS
+	// and the docs contract (`file.tags` = frontmatter + inline).
+	properties.insert("tags".to_string(), serde_json::json!(entry.tags));
 	if !entry.belongs_to.is_empty() {
 		properties.insert("_belongs_to".to_string(), serde_json::json!(entry.belongs_to));
 	}

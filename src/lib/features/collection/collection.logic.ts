@@ -11,6 +11,7 @@ import { evaluate, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
 import { isDisplayValue, type ASTNode } from './expression/expression.types';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
+import { extractAllTags } from '$lib/features/tags/tags.logic';
 import { getFileExtension, getFileName } from '$lib/core/filesystem/fs.logic';
 
 /**
@@ -34,6 +35,13 @@ export function buildNoteRecord(
 	const parsed = parseFrontmatterProperties(content);
 	for (const prop of parsed) {
 		properties.set(prop.key, prop.value);
+	}
+	// Override `tags` with the merged frontmatter+inline set so Collection
+	// filters see inline `#tags` from the body. Mirrors the Rust-side merge
+	// in `project_note_record` (see src-tauri/src/commands/vault.rs).
+	const allTags = extractAllTags(content);
+	if (allTags.length > 0) {
+		properties.set('tags', allTags);
 	}
 
 	return { path: filePath, name, basename, folder, ext, mtime, ctime, size, properties };
