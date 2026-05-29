@@ -23,7 +23,7 @@ Scope (confirmed with user):
   - `countActiveFilters(global, view)` → `number`.
   - No framework imports. Pure transformations. Add tests in `src/tests/lib/features/type-definitions/type-note-list.logic.test.ts`.
 
-- [ ] Task 3b: Modify `TypeNoteList.svelte` to use those helpers + render the toolbar:
+- [x] Task 3b: Modify `TypeNoteList.svelte` to use those helpers + render the toolbar:
   - When `selection.kind === 'view'` AND the local state was seeded for that view, render `[ArrowUpDown] [ListFilter]` icon buttons on the right of the header row (no conflict with the `+` button — that one only renders for type selections).
   - Local state `localGlobalFilters`, `localViewFilters`, `localSort`, `viewFormulas`, seeded via `seedToolbarStateFromDefinition` on view switch. Reset on non-view selections.
   - In `loadViewNotes`, apply `buildOverriddenQuery` on top of the parsed definition before calling `executeQuery`.

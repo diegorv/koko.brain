@@ -24,14 +24,29 @@
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { untrack } from 'svelte';
 	import { appendLog } from '$lib/utils/log.service';
-	import { createNoteOfType, toggleFavoriteForPath } from './type-definitions.service';
+	import { createNoteOfType, toggleFavoriteForPath, updateViewQuery } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
 	import { excludeSystemFolder, getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+	import type { SortDef } from '$lib/features/collection/collection.types';
+	import type { FilterGroup } from '$lib/features/collection/toolbar/toolbar.types';
+	import FilterPanel from '$lib/features/collection/toolbar/FilterPanel.svelte';
+	import SortPanel from '$lib/features/collection/toolbar/SortPanel.svelte';
+	import { Popover, PopoverTrigger, PopoverContent } from '$lib/components/ui/popover';
+	import { Button } from '$lib/components/ui/button';
+	import ListFilter from '@lucide/svelte/icons/list-filter';
+	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import { getCachedViewDefinition } from './view-parse-cache';
+	import {
+		seedToolbarStateFromDefinition,
+		buildOverriddenQuery,
+		combineAvailableProperties,
+		countActiveFilters,
+		buildViewYamlUpdates,
+	} from './type-note-list.logic';
 	import { getFileName } from '$lib/core/filesystem/fs.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 
@@ -50,6 +65,28 @@
 	);
 	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
 	let viewLoadGeneration = 0;
+
+	/** Local filter/sort state for the active view selection. Seeded once per view. */
+	let localGlobalFilters = $state<FilterGroup[]>([]);
+	let localViewFilters = $state<FilterGroup[]>([]);
+	let localSort = $state<SortDef[]>([]);
+	/** Path of the view whose YAML seeded the local state. Triggers re-seed when it changes. */
+	let seededViewPath = $state<string | null>(null);
+	/** Suppresses the next re-seed when the YAML change came from our own write. */
+	let selfUpdate = $state(false);
+	/** Popover open states. */
+	let filterOpen = $state(false);
+	let sortOpen = $state(false);
+
+	let activeFilterCount = $derived(countActiveFilters(localGlobalFilters, localViewFilters));
+
+	/** Formulas declared in the active .view (read-only here — Properties panel is out of scope). */
+	let viewFormulas = $state<Record<string, string>>({});
+
+	let availableProperties = $derived(combineAvailableProperties(collectionStore.propertyIndex, viewFormulas));
+
+	let isViewSelection = $derived(selection?.kind === 'view');
+	let viewToolbarReady = $derived(isViewSelection && seededViewPath === (selection?.kind === 'view' ? selection.path : null));
 
 	let headerLabel = $derived.by(() => {
 		if (!selection) return '';
@@ -137,15 +174,42 @@
 
 			if (!parsed.success) {
 				notes = [];
+				seededViewPath = viewPath;
 				return;
 			}
 			const view = parsed.definition.views[0];
+
+			// Seed local toolbar state when switching to a different view, or after a
+			// remote/external YAML change. Skip re-seeding when our own persistState
+			// caused the reload (selfUpdate flag).
+			if (selfUpdate) {
+				selfUpdate = false;
+			} else if (seededViewPath !== viewPath) {
+				const seed = seedToolbarStateFromDefinition(parsed.definition, view);
+				localGlobalFilters = seed.globalFilters;
+				localViewFilters = seed.viewFilters;
+				localSort = seed.sort;
+				viewFormulas = seed.formulas;
+				seededViewPath = viewPath;
+			}
+
+			const overridden = buildOverriddenQuery(
+				parsed.definition,
+				view,
+				localGlobalFilters,
+				localViewFilters,
+				localSort,
+			);
+			if (!overridden) {
+				notes = [];
+				return;
+			}
 			const freshEntries = excludeSystemFolder(
 				typeDefinitionsStore.entries,
 				vaultStore.path,
 				settingsStore.templates.systemFolder,
 			);
-			const result = executeQuery(parsed.definition, view, collectionStore.propertyIndex);
+			const result = executeQuery(overridden.definition, overridden.view, collectionStore.propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
 			const viewEntry = freshEntries.find((e) => e.path === viewPath);
 			notes = getNotesForViewPaths(freshEntries, matchingPaths, getViewSort(viewEntry));
@@ -154,6 +218,49 @@
 			notes = [];
 		}
 	}
+
+	/** Persists current local filter/sort state back into the .view YAML file. */
+	async function persistViewState() {
+		const sel = typeDefinitionsStore.selectedTypeOrNav;
+		if (sel?.kind !== 'view') return;
+		const viewPath = sel.path;
+		selfUpdate = true;
+		try {
+			await updateViewQuery(viewPath, buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort));
+			// Re-run the query so the panel updates immediately. Bump the generation
+			// so the in-flight effect re-trigger (from entriesVersion bump) does not
+			// race with this manual call.
+			loadViewNotes(viewPath, typeDefinitionsStore.entries, ++viewLoadGeneration);
+		} catch {
+			selfUpdate = false;
+		}
+	}
+
+	function handleGlobalFiltersChange(groups: FilterGroup[]) {
+		localGlobalFilters = groups;
+		persistViewState();
+	}
+
+	function handleViewFiltersChange(groups: FilterGroup[]) {
+		localViewFilters = groups;
+		persistViewState();
+	}
+
+	function handleSortsChange(sorts: SortDef[]) {
+		localSort = sorts;
+		persistViewState();
+	}
+
+	// Reset seeded state when leaving view selections, so a re-entry triggers a fresh seed.
+	$effect(() => {
+		if (selection?.kind !== 'view') {
+			seededViewPath = null;
+			localGlobalFilters = [];
+			localViewFilters = [];
+			localSort = [];
+			viewFormulas = {};
+		}
+	});
 
 
 
@@ -224,6 +331,51 @@
 			>
 				<Plus class="size-4 text-muted-foreground" />
 			</button>
+		{:else if viewToolbarReady}
+			<div class="ml-auto flex items-center gap-0.5">
+				<Popover bind:open={sortOpen}>
+					<PopoverTrigger>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							class={localSort.length > 0 ? 'text-primary' : 'text-muted-foreground'}
+						>
+							<ArrowUpDown class="size-3.5" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent align="end" class="w-72 p-3">
+						<SortPanel
+							sorts={localSort}
+							{availableProperties}
+							propertyConfigs={{}}
+							propertyIndex={collectionStore.propertyIndex}
+							onSortsChange={handleSortsChange}
+						/>
+					</PopoverContent>
+				</Popover>
+
+				<Popover bind:open={filterOpen}>
+					<PopoverTrigger>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							class={activeFilterCount > 0 ? 'text-primary' : 'text-muted-foreground'}
+						>
+							<ListFilter class="size-3.5" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent align="end" class="w-80 p-3">
+						<FilterPanel
+							globalFilters={localGlobalFilters}
+							viewFilters={localViewFilters}
+							{availableProperties}
+							propertyIndex={collectionStore.propertyIndex}
+							onGlobalFiltersChange={handleGlobalFiltersChange}
+							onViewFiltersChange={handleViewFiltersChange}
+						/>
+					</PopoverContent>
+				</Popover>
+			</div>
 		{/if}
 	</div>
 

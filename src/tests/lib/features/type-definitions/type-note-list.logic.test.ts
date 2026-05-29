@@ -6,6 +6,7 @@ import {
 	buildOverriddenQuery,
 	combineAvailableProperties,
 	countActiveFilters,
+	buildViewYamlUpdates,
 } from '$lib/features/type-definitions/type-note-list.logic';
 
 function makeView(overrides: Partial<CollectionViewDef> = {}): CollectionViewDef {
@@ -176,6 +177,31 @@ describe('combineAvailableProperties', () => {
 		const props = combineAvailableProperties(index, { remaining: '100' });
 		expect(props.filter((p) => p === 'remaining')).toHaveLength(1);
 		expect(props.filter((p) => p === 'formula.remaining')).toHaveLength(1);
+	});
+});
+
+describe('buildViewYamlUpdates', () => {
+	it('produces the three-key patch consumed by updateCollectionYaml', () => {
+		const global: FilterGroup[] = [
+			{ conjunction: 'and', rows: [{ id: '1', property: 'status', operator: 'is', value: 'active' }] },
+		];
+		const view: FilterGroup[] = [
+			{ conjunction: 'and', rows: [{ id: '2', property: 'priority', operator: 'is', value: 'high' }] },
+		];
+		const sort: SortDef[] = [{ column: 'due', direction: 'ASC' }];
+
+		const out = buildViewYamlUpdates(global, view, sort);
+
+		expect(out).toEqual({
+			filters: "status == 'active'",
+			viewFilters: "priority == 'high'",
+			viewSort: sort,
+		});
+	});
+
+	it('emits undefined filters when groups are empty so YAML keys get removed', () => {
+		const out = buildViewYamlUpdates([], [], []);
+		expect(out).toEqual({ filters: undefined, viewFilters: undefined, viewSort: [] });
 	});
 });
 

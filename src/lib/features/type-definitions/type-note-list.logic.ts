@@ -1,6 +1,7 @@
 import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '$lib/features/collection/collection.types';
 import type { FilterGroup } from '$lib/features/collection/toolbar/toolbar.types';
 import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '$lib/features/collection/toolbar/filter.logic';
+import type { CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
 
 /**
  * Seed shape produced from a successfully-parsed .view definition. The TypeNoteList
@@ -85,4 +86,21 @@ export function countActiveFilters(globalFilters: FilterGroup[], viewFilters: Fi
 		globalFilters.reduce((n, g) => n + g.rows.length, 0) +
 		viewFilters.reduce((n, g) => n + g.rows.length, 0)
 	);
+}
+
+/**
+ * Translates the live local toolbar state into the patch shape accepted by
+ * updateCollectionYaml — exactly the three keys the .view round-trip cares about.
+ * Keeps the persistence call site free of filter-serialisation details.
+ */
+export function buildViewYamlUpdates(
+	localGlobalFilters: FilterGroup[],
+	localViewFilters: FilterGroup[],
+	localSort: SortDef[],
+): CollectionYamlUpdates {
+	return {
+		filters: filterGroupsToFilter(localGlobalFilters),
+		viewFilters: filterGroupsToFilter(localViewFilters),
+		viewSort: localSort,
+	};
 }
