@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, isInsideSystemFolder, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, isInsideSystemFolder, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -496,6 +496,10 @@ describe('shouldShowSubFilter', () => {
 	it('returns false for favorites nav item', () => {
 		expect(shouldShowSubFilter({ kind: 'nav', id: 'favorites' })).toBe(false);
 	});
+
+	it('returns true for view selection so the sub-filter row mirrors type listings', () => {
+		expect(shouldShowSubFilter({ kind: 'view', path: '/v/projects.view' })).toBe(true);
+	});
 });
 
 describe('countSubFilters', () => {
@@ -785,6 +789,65 @@ describe('getNotesForViewPaths', () => {
 		];
 		const matching = new Set(['/v/x.md']);
 		expect(getNotesForViewPaths(entries, matching)).toEqual([]);
+	});
+
+	it('omits archived notes by default (open sub-filter)', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', archived: false }),
+			entryV2('/v/b.md', { title: 'B', archived: true }),
+		];
+		const matching = new Set(['/v/a.md', '/v/b.md']);
+		const result = getNotesForViewPaths(entries, matching, 'title', 'open');
+		expect(result.map((n) => n.title)).toEqual(['A']);
+	});
+
+	it('returns only archived notes for the archived sub-filter', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', archived: false }),
+			entryV2('/v/b.md', { title: 'B', archived: true }),
+		];
+		const matching = new Set(['/v/a.md', '/v/b.md']);
+		const result = getNotesForViewPaths(entries, matching, 'title', 'archived');
+		expect(result.map((n) => n.title)).toEqual(['B']);
+	});
+
+	it('returns only non-archived favorites for the favorites sub-filter', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', favorite: true, archived: false }),
+			entryV2('/v/b.md', { title: 'B', favorite: true, archived: true }),
+			entryV2('/v/c.md', { title: 'C', favorite: false }),
+		];
+		const matching = new Set(['/v/a.md', '/v/b.md', '/v/c.md']);
+		const result = getNotesForViewPaths(entries, matching, 'title', 'favorites');
+		expect(result.map((n) => n.title)).toEqual(['A']);
+	});
+});
+
+describe('countSubFiltersForPaths', () => {
+	it('counts open, archived, and favorites limited to the matching set', () => {
+		const entries = [
+			entryV2('/v/a.md', { archived: false, favorite: true }),
+			entryV2('/v/b.md', { archived: true }),
+			entryV2('/v/c.md', { archived: false, favorite: false }),
+			entryV2('/v/outside.md', { archived: false, favorite: true }),
+		];
+		const matching = new Set(['/v/a.md', '/v/b.md', '/v/c.md']);
+		const counts = countSubFiltersForPaths(entries, matching);
+		expect(counts).toEqual({ open: 2, archived: 1, favorites: 1 });
+	});
+
+	it('does not count archived favorites', () => {
+		const entries = [entryV2('/v/a.md', { archived: true, favorite: true })];
+		const matching = new Set(['/v/a.md']);
+		const counts = countSubFiltersForPaths(entries, matching);
+		expect(counts.favorites).toBe(0);
+		expect(counts.archived).toBe(1);
+	});
+
+	it('returns zero counts when no entry matches', () => {
+		const entries = [entryV2('/v/a.md', { archived: false })];
+		const counts = countSubFiltersForPaths(entries, new Set(['/v/missing.md']));
+		expect(counts).toEqual({ open: 0, archived: 0, favorites: 0 });
 	});
 });
 

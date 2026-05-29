@@ -110,8 +110,32 @@ export type NoteListSubFilter = 'open' | 'archived' | 'favorites';
 export function shouldShowSubFilter(selection: TypeSidebarSelection): boolean {
 	if (selection.kind === 'type' || selection.kind === 'untyped') return true;
 	if (selection.kind === 'nav') return selection.id === 'all';
-	if (selection.kind === 'view') return false;
+	if (selection.kind === 'view') return true;
 	return false;
+}
+
+/**
+ * Counts sub-filter buckets for a pre-resolved set of paths (typically the result
+ * of a .view collection query). Distinct from countSubFilters, which buckets by
+ * matchesSelection — that path returns false for view selections because views
+ * are not derivable from a single entry.
+ */
+export function countSubFiltersForPaths(
+	entries: NoteEntryV2[],
+	matchingPaths: ReadonlySet<string>,
+): { open: number; archived: number; favorites: number } {
+	let open = 0;
+	let archived = 0;
+	let favorites = 0;
+	for (const e of entries) {
+		if (!matchingPaths.has(e.path)) continue;
+		if (e.archived) archived++;
+		else {
+			open++;
+			if (e.favorite) favorites++;
+		}
+	}
+	return { open, archived, favorites };
 }
 
 /** Counts notes per sub-filter for a selection. */
@@ -185,8 +209,9 @@ export function getNotesForViewPaths(
 	entries: NoteEntryV2[],
 	matchingPaths: ReadonlySet<string>,
 	sort = 'modified',
+	subFilter?: NoteListSubFilter,
 ): TypeSidebarNote[] {
-	const filtered = entries.filter((e) => matchingPaths.has(e.path));
+	const filtered = entries.filter((e) => matchingPaths.has(e.path) && matchesSubFilter(e, subFilter));
 	const notes = filtered.map(toSidebarNote);
 	sortNotes(notes, sort, 'all');
 	return notes;

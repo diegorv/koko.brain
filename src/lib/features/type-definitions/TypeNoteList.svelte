@@ -26,7 +26,7 @@
 	import { appendLog } from '$lib/utils/log.service';
 	import { createNoteOfType, toggleFavoriteForPath, updateViewQuery } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { excludeSystemFolder, getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
+	import { excludeSystemFolder, getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
@@ -152,7 +152,7 @@
 		}
 
 		if (sel.kind === 'view') {
-			loadViewNotes(sel.path, entries, ++viewLoadGeneration);
+			loadViewNotes(sel.path, entries, subFilter, ++viewLoadGeneration);
 			return;
 		}
 
@@ -163,7 +163,7 @@
 		}
 	});
 
-	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries, generation: number) {
+	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries, sf: NoteListSubFilter, generation: number) {
 		const t0 = performance.now();
 		try {
 			const parsed = await getCachedViewDefinition(viewPath);
@@ -174,6 +174,7 @@
 
 			if (!parsed.success) {
 				notes = [];
+				subCounts = { open: 0, archived: 0, favorites: 0 };
 				seededViewPath = viewPath;
 				return;
 			}
@@ -212,7 +213,8 @@
 			const result = executeQuery(overridden.definition, overridden.view, collectionStore.propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
 			const viewEntry = freshEntries.find((e) => e.path === viewPath);
-			notes = getNotesForViewPaths(freshEntries, matchingPaths, getViewSort(viewEntry));
+			notes = getNotesForViewPaths(freshEntries, matchingPaths, getViewSort(viewEntry), sf);
+			subCounts = countSubFiltersForPaths(freshEntries, matchingPaths);
 			appendLog('VIEW-NOTES', `${notes.length} notes in ${(performance.now() - t0).toFixed(1)}ms`);
 		} catch {
 			notes = [];
@@ -230,7 +232,7 @@
 			// Re-run the query so the panel updates immediately. Bump the generation
 			// so the in-flight effect re-trigger (from entriesVersion bump) does not
 			// race with this manual call.
-			loadViewNotes(viewPath, typeDefinitionsStore.entries, ++viewLoadGeneration);
+			loadViewNotes(viewPath, typeDefinitionsStore.entries, subFilter, ++viewLoadGeneration);
 		} catch {
 			selfUpdate = false;
 		}
