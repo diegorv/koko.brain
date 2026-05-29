@@ -369,6 +369,10 @@ Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the sa
 
 Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an external editor while it is the active sidebar selection will not refresh the inline panels until you navigate away and back — switch to another sidebar item, then back to the view.
 
+### Multiple Views in a .view File
+
+A `.view` can declare more than one entry under `views:`, but the type sidebar only ever renders the first one. The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
+
 ### Open / Archived / Favorites for Views
 
 Underneath the header, the same three sub-filter tabs that appear for type sections also appear for `.view` selections:

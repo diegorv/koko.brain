@@ -130,15 +130,19 @@ Formula columns are useful for creating derived data without modifying the under
 
 ## Multiple Views
 
-A single `.collection` file can contain multiple named views. Each view has its own independent set of:
+A single `.collection` or `.view` file can contain multiple named views. Each view has its own independent set of:
 
 - Filters
 - Sort order
 - Visible columns
+- View type (`table`, `calendar`, or `linear-calendar`)
 
-Switch between views using the tabs at the top of the collection editor.
+When a file has more than one view, the collection editor renders a tab strip at the top — one tab per view name. Click a tab to switch the visible view. The Filter, Sort, and Properties toolbar panels rebind to the active view, so edits go into the view you are looking at. Files with a single view skip the tab strip entirely and just show the view name as a label.
 
 This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.collection` file.
+
+> [!NOTE]
+> When a `.view` file is selected from the **type sidebar** (instead of opened from the file explorer), only the first view in the `views:` array is rendered, and the rest are ignored. The type sidebar's note list cannot draw calendar or linear-calendar layouts. Open the `.view` from the file explorer to access the full multi-view experience with the tab strip.
 
 ## Result Limit
 

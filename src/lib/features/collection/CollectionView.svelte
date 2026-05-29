@@ -37,6 +37,11 @@
 	/** Flag to skip re-initialization when we triggered the YAML change ourselves */
 	let selfUpdate = $state(false);
 
+	/** Index of the currently displayed view within definition.views */
+	let activeViewIndex = $state(0);
+	/** Index of the view whose state was last loaded into the local toolbar state */
+	let seededIndex = $state(-1);
+
 	/** Panel open states */
 	let filterOpen = $state(false);
 	let sortOpen = $state(false);
@@ -60,18 +65,26 @@
 	);
 
 	let activeView = $derived(
-		definition?.views[0] ?? null,
+		definition?.views[activeViewIndex] ?? null,
 	);
 
-	// Initialize local state from view definition
+	// Clamp activeViewIndex if the views array shrinks (e.g. a hand-edit removed views)
 	$effect(() => {
-		if (activeView && !initialized) {
+		const max = (definition?.views.length ?? 1) - 1;
+		if (activeViewIndex > max) activeViewIndex = Math.max(0, max);
+	});
+
+	// Initialize local state from the active view definition. Re-seeds whenever the
+	// user switches tabs (seededIndex diverges) or after a non-self YAML change.
+	$effect(() => {
+		if (activeView && (!initialized || seededIndex !== activeViewIndex)) {
 			localSort = activeView.sort ? [...activeView.sort] : [];
 			localGlobalFilters = parseFilterToGroups(definition?.filters);
 			localViewFilters = parseFilterToGroups(activeView.filters);
 			localColumns = activeView.order ? [...activeView.order] : undefined;
 			localFormulas = formulasToEntries(definition?.formulas);
 			initialized = true;
+			seededIndex = activeViewIndex;
 		}
 	});
 
@@ -83,6 +96,7 @@
 			return;
 		}
 		initialized = false;
+		seededIndex = -1;
 	});
 
 	/** Computed formulas record — only includes confirmed (non-editing) entries */
@@ -155,6 +169,7 @@
 			viewSort: localSort,
 			viewFilters: viewFilter,
 			viewOrder: localColumns,
+			viewIndex: activeViewIndex,
 		});
 		if (newYaml !== yamlContent) {
 			selfUpdate = true;
@@ -224,7 +239,7 @@
 	/** Persists calendar-specific config fields to YAML */
 	function persistCalendarConfig(fields: { viewDateProperty?: string; viewEndDateProperty?: string | undefined; viewWeekStartDay?: number; viewColorProperty?: string | undefined }) {
 		if (!onYamlChange) return;
-		const newYaml = updateCollectionYaml(yamlContent, fields);
+		const newYaml = updateCollectionYaml(yamlContent, { ...fields, viewIndex: activeViewIndex });
 		if (newYaml !== yamlContent) {
 			selfUpdate = true;
 			onYamlChange(newYaml);
@@ -252,8 +267,21 @@
 		<!-- Toolbar -->
 		{#if activeView}
 			<div class="flex h-10 shrink-0 items-center border-b border-border px-3 gap-1">
-				<!-- Left: view name + result count -->
-				<span class="text-xs font-medium text-muted-foreground">{activeView.name}</span>
+				<!-- Left: view tabs (if >1) or single view name + result count -->
+				{#if definition && definition.views.length > 1}
+					<div class="flex items-center gap-0.5 overflow-x-auto">
+						{#each definition.views as v, i (i)}
+							<button
+								class="text-xs px-2 py-0.5 rounded shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
+								onclick={() => activeViewIndex = i}
+							>
+								{v.name}
+							</button>
+						{/each}
+					</div>
+				{:else}
+					<span class="text-xs font-medium text-muted-foreground">{activeView.name}</span>
+				{/if}
 				<span class="ml-1 text-xs text-muted-foreground/60">{queryResult.records.length} results</span>
 
 				<!-- Right: toolbar buttons -->
