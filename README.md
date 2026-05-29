@@ -34,8 +34,8 @@ Your notes are plain Markdown files stored locally - no cloud, no lock-in, priva
 ### 📁 Organization
 
 - **Note types** - declare `type: Project` in frontmatter, browse by type in a dedicated sidebar
-- **Relationships** - semantic `belongs_to` / `related_to` fields with relationship backlinks
-- **Lifecycle** - organize, archive, and favorite notes with inbox workflow and filtered views
+- **Relationships** - semantic `_belongs_to` / `_related_to` / `_has_many` fields with relationship backlinks
+- **Lifecycle** - organize, archive, and favorite notes with inbox workflow, filtered views, and a macOS dock badge showing the inbox count
 - **Auto-move** - automatically route notes to folders based on expression rules
 - **Custom file icons** - 11 icon packs + emoji with color picker
 - **Bookmarks** and **folder notes**

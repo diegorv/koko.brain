@@ -149,10 +149,10 @@ These apply to every kind and travel as their own query params (no URL-encoded b
 | Parameter | Description |
 |-----------|-------------|
 | `tags` | Comma-separated list of tags injected into the note's YAML `tags:` frontmatter. Merged with template-supplied tags (deduplicated). |
-| `source_app` | Bundle id of the foreground app at capture time (e.g. `com.google.Chrome`). Currently stored as provenance; not rendered into the body. |
+| `source_app` | Bundle id of the foreground app at capture time (e.g. `com.google.Chrome`). Not rendered into the body, but exposed to per-kind templates as `<% sourceApp %>` (so a template can stamp it into frontmatter). |
 | `source_title` | Title of the source window or page at capture time. Used as the label of the `> Source:` footer when present. |
 | `source_url` | URL of the source page at capture time. When present (and different from `url` for the `link` kind), a `> Source: [<source_title or source_url>](<source_url>)` footer is appended to the body. |
-| `captured_at` | ISO 8601 timestamp of when the capture happened. Stored as provenance; not rendered into the body. |
+| `captured_at` | ISO 8601 timestamp of when the capture happened. Not rendered into the body, but exposed to per-kind templates as `<% capturedAt %>`. |
 
 #### Per-kind params and rendering
 
@@ -195,13 +195,19 @@ Body = `[<title or url>](<url>)`. When `source_url` is present AND different fro
 
 A `source_url` that equals the canonical `url` is treated as redundant and the footer is suppressed.
 
-##### `kind=shot` / `kind=file` — Local file references (not yet supported)
+##### `kind=shot` / `kind=file` — Local file references
 
 | Param | Required | Description |
 |-------|----------|-------------|
 | `path` | Yes | Absolute local path to the file (image for `shot`, anything for `file`). |
+| `original_name` | No | (`file` only) Display label for the link. Falls back to the path basename when absent. |
 
-The parser accepts these kinds for forward compatibility. The service currently shows a `Capture kind "shot" not yet supported` (or `"file"`) toast and does not write a file. A future change will wire the renderer; the emitter side can already ship URIs with these kinds against this brain version without breaking anything else.
+Both kinds render a `file://` reference to the local path (the file is **not** copied into the vault, so the note breaks if the referenced file later moves):
+
+- `shot` → an image embed `![<basename>](file://<encoded-path>)`. No source footer (the image is the content).
+- `file` → a link `[<original_name or basename>](file://<encoded-path>)`. No source footer.
+
+The note is then written through the same Quick Capture path as the other kinds (folder/filename/template settings apply).
 
 #### Tags and title injection
 

@@ -58,11 +58,11 @@ src/lib/
   core/               # Essential: app-lifecycle, editor, file-explorer, filesystem, keybindings,
                       #   layout, markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
   features/           # Built-in features: auto-move, backlinks, bookmarks, canvas, collection,
-                      #   command-palette, copy-block-link, deep-link, file-history, file-icons,
-                      #   folder-notes, outgoing-links, properties, quick-switcher, search, tags,
-                      #   tasks, type-definitions
-  plugins/            # Optional modules: calendar, encrypted-notes, graph-view, kanban, one-on-one,
-                      #   periodic-notes, queryjs, quick-capture, templates, word-count
+                      #   command-palette, copy-block-link, deep-link, dock-badge, file-history,
+                      #   file-icons, folder-notes, outgoing-links, properties, quick-switcher,
+                      #   search, tags, tasks, type-definitions
+  plugins/            # Optional modules: calendar, graph-view, kanban, one-on-one, periodic-notes,
+                      #   queryjs, quick-capture, table-of-contents, templates, word-count
   utils/              # Pure shared utilities (no state, no side effects)
 ```
 

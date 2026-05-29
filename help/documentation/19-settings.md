@@ -32,6 +32,7 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
 | **Outgoing Links** | Show the Outgoing Links panel | Enabled |
+| **Tags** | Show the Tags panel | Enabled |
 | **Table of Contents** | Show the Table of Contents panel | Enabled |
 | **Folder Notes** | Clicking a folder also opens its matching .md file | Enabled |
 
@@ -71,7 +72,7 @@ Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Not
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Format | dayjs format string for filename/path | `YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY` |
-| Template | Path to template file | `_system/templates/Daily Note.md` |
+| Template | Path to template file | `_system/templates/periodic-note/Daily-Note.md` |
 | Auto-open | Open today's daily note on vault load | `true` |
 | Auto-pin | Pin the daily note tab (requires Auto-open) | `true` |
 
@@ -80,28 +81,28 @@ Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Not
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Format | dayjs format string | `YYYY/MM-MMM/[__journal-week-]WW[-]YYYY` |
-| Template | Path to template file | `_system/templates/Weekly Note.md` |
+| Template | Path to template file | `_system/templates/periodic-note/Weekly-Note.md` |
 
 **Monthly:**
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Format | dayjs format string | `YYYY/MM-MMM/MM-MMM` |
-| Template | Path to template file | `_system/templates/Monthly Note.md` |
+| Template | Path to template file | `_system/templates/periodic-note/Monthly-Note.md` |
 
 **Quarterly:**
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Format | dayjs format string | `YYYY/[_journal-quarter-]YYYY[-Q]Q` |
-| Template | Path to template file | `_system/templates/Quarterly Note.md` |
+| Template | Path to template file | `_system/templates/periodic-note/Quarterly-Note.md` |
 
 **Yearly:**
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Format | dayjs format string | `YYYY/YYYY` |
-| Template | Path to template file | `_system/templates/Yearly Note.md` |
+| Template | Path to template file | `_system/templates/periodic-note/Yearly-Note.md` |
 
 ## Quick Capture
 
@@ -111,11 +112,12 @@ Shared by all three capture surfaces: the in-editor note composer (`Cmd+N`), the
 |---------|-------------|---------|
 | **Folder format** | dayjs format for the subfolder path | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format for the note filename | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
-| **Note template** | Template for free-form notes (composer + Cmd+N) | `_system/templates/Quick Note.md` |
-| **Clip template** | Template for clipboard text captures | `_system/templates/Quick Note.md` |
-| **Link template** | Template for auto-detected URLs from the clipboard | `_system/templates/Quick Note.md` |
-| **Shot template** | Template for clipboard images (PNG written to OS temp) | `_system/templates/Quick Note.md` |
-| **File template** | Template for non-image file paths in the clipboard | `_system/templates/Quick Note.md` |
+| **Note template** | Template for free-form notes (composer + Cmd+N) | `_system/templates/quick-capture/Composer-Note.md` |
+| **Clip template** | Template for clipboard text captures | `_system/templates/quick-capture/Clip-Note.md` |
+| **Link template** | Template for auto-detected URLs from the clipboard | `_system/templates/quick-capture/Link-Note.md` |
+| **Shot template** | Template for clipboard images (PNG written to OS temp) | `_system/templates/quick-capture/Shot-Note.md` |
+| **File template** | Template for non-image file paths in the clipboard | `_system/templates/quick-capture/File-Note.md` |
+| **Show inbox count on dock** (`dockBadgeInboxCount`) | Red badge on the macOS dock icon showing the number of inbox notes (unorganized, not archived). | Enabled |
 
 An empty template path means "no template — just write the rendered body." See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
@@ -127,7 +129,7 @@ An empty template path means "no template — just write the rendered body." See
 | **Work people folder** (`workPeopleFolder`) | Folder containing work person files | `Work/_people` |
 | **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
-| **Template** | Path to a template file | `_system/templates/One on One.md` |
+| **Template** | Path to a template file | `_system/templates/periodic-note/One-On-One.md` |
 
 See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 

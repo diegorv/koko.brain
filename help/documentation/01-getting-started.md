@@ -43,6 +43,8 @@ Kokobrain will scan the folder, build a search index, and display its contents i
 
 After you have opened a vault at least once, it appears in the **Recent Vaults** list on the welcome screen. The next time you launch Kokobrain, you can click any entry in that list to reopen the vault instantly -- no need to navigate through the folder picker again.
 
+To clean up the list, hover over an entry and click the **X** button to remove it from Recent Vaults. This only forgets the entry -- it does not delete the vault folder or any notes on disk.
+
 ![Recent vaults list](screenshots/recent-vaults.png)
 
 ---

@@ -225,7 +225,7 @@ client: "[[Acme Corp]]"
 
 ### Relationship Backlinks
 
-The Backlinks panel (right sidebar) includes a **Relationships** section that shows notes referencing the current note through relationship fields. Each entry displays the source note and the field name (e.g., "_belongs_to", "manager").
+The Backlinks panel (right sidebar) includes a **Relationships** section that shows notes referencing the current note through relationship fields. Each entry displays the source note and the relationship label, with the leading underscore rendered as a space (e.g., "belongs to", "has many", or a custom field name like "manager").
 
 ---
 
@@ -363,7 +363,7 @@ Views appear in the type sidebar alongside type sections. Click a view to see it
 The Collection feature supports filtering by Portent fields:
 
 - Filter by `type` to show only notes of a specific type
-- Filter by `_belongs_to` or `_related_to` relationships
+- Filter by `_belongs_to`, `_related_to`, or `_has_many` relationships
 - Filter by lifecycle state (`organized`, `archived`, `favorite`)
 
 See [Collection](12-collection.md) for details on building filtered views.
@@ -408,6 +408,8 @@ Portent models knowledge as a graph with two default relationships:
 - **`_related_to`** -- loose many-to-many association (e.g., a Note is related to a Topic, an Event is related to a Person)
 
 The mental model: use `_belongs_to` for relationships towards or between PORT items, and `_related_to` for connections between ENTP items. This is simpler than relational schemas (where every table pair needs explicit joins) and more expressive than folders (where each item can only live in one place).
+
+Kokobrain adds a third built-in relationship, **`_has_many`**, for the inverse-ownership direction (a note that owns or contains others). It is also a first-class relationship field with its own "Has Many" row in the Properties panel and its own backlink type.
 
 ### Capture, Organize, Archive
 

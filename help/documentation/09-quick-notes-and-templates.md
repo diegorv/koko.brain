@@ -22,11 +22,11 @@ The clipboard shortcut auto-classifies the payload into one of five **kinds** �
 |---------|-------------|---------|
 | **Folder format** | dayjs format for the subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format for the note name | `[capture-note-]YYYY-MM-DD[_]HH-mm-ss-SSS` |
-| **Note template** (composer + Cmd+N) | Template file for free-form notes | `_system/templates/Quick Note.md` |
-| **Clip template** (clipboard text) | Template for non-URL text captures | `_system/templates/Quick Note.md` |
-| **Link template** (clipboard URL) | Template for auto-detected URLs | `_system/templates/Quick Note.md` |
-| **Shot template** (clipboard image) | Template for clipboard images (saved to OS temp, embedded via `file://`) | `_system/templates/Quick Note.md` |
-| **File template** (clipboard files) | Template for non-image file paths in clipboard | `_system/templates/Quick Note.md` |
+| **Note template** (composer + Cmd+N) | Template file for free-form notes | `_system/templates/quick-capture/Composer-Note.md` |
+| **Clip template** (clipboard text) | Template for non-URL text captures | `_system/templates/quick-capture/Clip-Note.md` |
+| **Link template** (clipboard URL) | Template for auto-detected URLs | `_system/templates/quick-capture/Link-Note.md` |
+| **Shot template** (clipboard image) | Template for clipboard images (saved to OS temp, embedded via `file://`) | `_system/templates/quick-capture/Shot-Note.md` |
+| **File template** (clipboard files) | Template for non-image file paths in clipboard | `_system/templates/quick-capture/File-Note.md` |
 
 Captures land under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder), with the subfolder determined by the folder format. An empty template path means "no template — just write the rendered body."
 
@@ -103,7 +103,7 @@ With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 | **Work people folder** (`workPeopleFolder`) | Folder containing work person files | `Work/_people` |
 | **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
-| **Template** | Path to a template file | `_system/templates/One on One.md` |
+| **Template** | Path to a template file | `_system/templates/periodic-note/One-On-One.md` |
 
 The `{person}` placeholder is replaced with the selected person's name.
 
