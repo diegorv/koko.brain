@@ -70,5 +70,6 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 3. Browse all sections: Responsibilities, Projects, Operations, Meetings, Topics, Tasks, Events, Notes, and People. Also check "Active Projects" and "Recent Meetings" view entries.
 4. Open `project-kokobrain.md` and check the Backlinks panel for relationship backlinks.
 5. Enable Explicit Organization in Settings > Types to see the Inbox filter.
+6. Click "Active Projects" in the sidebar and use the Filter (funnel) and Sort (⇅) icons in the header to tweak the query — every edit writes back to `active-projects.view`. The Open / Archived / Favorites tabs underneath behave like the type listings.
 
 See [Types & Relationships](../../documentation/25-types-and-relationships.md) for the full guide.

@@ -158,13 +158,15 @@ Notes with `_order` always appear first regardless of `_sort`. The sort mode onl
 
 ### Filters
 
-The middle panel has three sub-filter tabs (shown for type selections and Inbox/Archive nav):
+The middle panel has three sub-filter tabs, shown whenever the active selection is a type, the Untyped section, the "All Notes" nav item, or a `.view` file:
 
 | Tab | Shows | Sort |
 |-----|-------|------|
 | Open | Non-archived notes | `_order`, then `_sort` mode |
 | Archived | Archived notes only | `_order`, then `_sort` mode |
 | Favorites | Favorited notes (excluding archived) | `_order`, then `_sort` mode |
+
+The tabs are hidden for the Inbox, Archive, and Favorites nav items, since those selections already imply a specific lifecycle filter. For `.view` selections, the counts next to each tab reflect the view's matching set, not the whole vault.
 
 The left sidebar also has two navigation items:
 
@@ -355,6 +357,29 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 | `_list_properties_display` | Properties to show on note cards | none |
 
 Views appear in the type sidebar alongside type sections. Click a view to see its matching notes in the middle panel.
+
+### Inline Filter and Sort Toolbar
+
+When a `.view` is selected in the sidebar, the middle panel header shows two icon buttons on the right:
+
+- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. Sorts apply on top of the view's results.
+- **Filter** (funnel) — opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
+
+Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The two icons highlight in the accent color whenever any filter row or sort entry is active.
+
+Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an external editor while it is the active sidebar selection will not refresh the inline panels until you navigate away and back — switch to another sidebar item, then back to the view.
+
+### Open / Archived / Favorites for Views
+
+Underneath the header, the same three sub-filter tabs that appear for type sections also appear for `.view` selections:
+
+| Tab | Shows |
+|-----|-------|
+| Open | View results that are not archived |
+| Archived | View results that are archived |
+| Favorites | View results that are favorited and not archived |
+
+The counts next to each tab reflect the view's matching set after the inline filters above are applied. Switching to a different sidebar item resets the active tab to **Open**.
 
 ---
 
