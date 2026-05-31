@@ -19,3 +19,13 @@ minimumReleaseAgeExclude:
 
 overrides:
   cookie: '>=0.7.0'
+
+# Dependencies allowed to run install/build scripts. pnpm 11 (see
+# package.json#packageManager) hard-fails `pnpm install` with
+# ERR_PNPM_IGNORED_BUILDS when CI=true and a dependency with a build
+# script is not listed here; locally it only warns, which is why the
+# break surfaced in CI but not on dev machines. esbuild's postinstall
+# links its platform binary; core-js's is a donation notice.
+onlyBuiltDependencies:
+  - esbuild
+  - core-js
