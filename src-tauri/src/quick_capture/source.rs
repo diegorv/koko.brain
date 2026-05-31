@@ -307,8 +307,8 @@ mod tests {
 
     #[test]
     fn parse_url_then_title_trims_whitespace_and_drops_empty_lines() {
-        let (title, url) = parse_url_then_title(Some("  https://x  \n   ".into()));
-        assert_eq!(url.as_deref(), Some("https://x"));
+        let (title, url) = parse_url_then_title(Some("  https://x  \n   ".into())); // privacy-ok: test input, no network call
+        assert_eq!(url.as_deref(), Some("https://x")); // privacy-ok: test assertion, no network call
         assert!(title.is_none());
     }
 

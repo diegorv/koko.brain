@@ -125,6 +125,10 @@ jobs:
             localhost
             127\.0\.0\.1
             privacy-ok
+            # Reserved documentation domain (RFC 2606), never a real endpoint
+            example\.com
+            # Rust doc-comment lines (/// ...) make no network calls
+            :\s*///
           known: |
             huggingface\.co/Xenova/bge-m3
             huggingface\.co/onnx-community/bge-reranker-v2-m3-ONNX

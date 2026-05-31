@@ -151,8 +151,8 @@ fn url_from_trimmed(trimmed: &str) -> Option<String> {
     }
 
     let lower = trimmed.to_ascii_lowercase();
-    if lower.starts_with("http://")
-        || lower.starts_with("https://")
+    if lower.starts_with("http://") // privacy-ok: scheme-prefix detection, no network call
+        || lower.starts_with("https://") // privacy-ok: scheme-prefix detection, no network call
         || lower.starts_with("mailto:")
     {
         let scheme_end = lower.find(':').expect("scheme contains ':'");
@@ -167,7 +167,7 @@ fn url_from_trimmed(trimmed: &str) -> Option<String> {
         return None;
     }
     if lower.starts_with("www.") && trimmed.len() > 4 {
-        return Some(format!("https://{trimmed}"));
+        return Some(format!("https://{trimmed}")); // privacy-ok: builds URL string from clipboard, no network call
     }
     None
 }
@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn bare_scheme_is_not_a_link() {
-        let input = one(snap("https://"));
+        let input = one(snap("https://")); // privacy-ok: test input, no network call
         assert!(matches!(input, CaptureInput::Clip { .. }));
     }
 
