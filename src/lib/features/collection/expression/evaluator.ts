@@ -72,14 +72,61 @@ export function evaluateExpression(expression: string, ctx: EvalContext): unknow
 	return evaluate(ast, ctx);
 }
 
+/**
+ * Frontmatter aliases recognised inside filter expressions.
+ *
+ * Mirrors the parser-side aliases documented in
+ * `help/documentation/25-types-and-relationships.md::Frontmatter Key Aliases`
+ * (the source-of-truth list). When the user writes `is_a == "Person"` we
+ * resolve it to the same value as `type == "Person"`.
+ *
+ * Keys are the alias as written in the expression; values are the canonical
+ * property name to look up in `record.properties`.
+ */
+const IDENTIFIER_ALIASES: Record<string, string> = {
+	is_a: 'type',
+	'is a': 'type',
+};
+
+/** Returns the canonical property name for an identifier, applying aliases. */
+function canonicalPropertyName(name: string): string {
+	return IDENTIFIER_ALIASES[name] ?? name;
+}
+
+/**
+ * Returns true when the AST node resolves the note's `type` property
+ * (either as the bare `type` / `is_a` identifier or via a `note.` /
+ * `property.` member access).
+ *
+ * Used by `evaluateBinary` to make `==` / `!=` against the `type` field
+ * case-insensitive. The Rust side normalises the stored value to
+ * first-letter-uppercase in `src-tauri/src/vault/entry.rs::normalize_type_casing`,
+ * so a user who writes `type == "person"` would otherwise get zero
+ * matches against notes containing `type: person`. Limiting the relaxed
+ * comparison to this single identifier pair keeps unrelated fields
+ * (e.g. `name == "alice"`) strictly case-sensitive.
+ */
+function isTypeIdentifier(node: ASTNode): boolean {
+	if (node.type === 'identifier') {
+		return canonicalPropertyName(node.name) === 'type';
+	}
+	if (node.type === 'member' && node.object.type === 'identifier') {
+		const ns = node.object.name;
+		if (ns === 'note' || ns === 'property') {
+			return canonicalPropertyName(node.property) === 'type';
+		}
+	}
+	return false;
+}
+
 /** Resolves a bare identifier to a value from the record's properties */
 function resolveIdentifier(name: string, ctx: EvalContext, depth: number): unknown {
 	// Check for formula
 	if (ctx.formulas[name] !== undefined) {
 		return evaluateFormula(name, ctx, depth);
 	}
-	// Look up in note properties
-	return ctx.record.properties.get(name) ?? null;
+	// Look up in note properties (applying frontmatter aliases)
+	return ctx.record.properties.get(canonicalPropertyName(name)) ?? null;
 }
 
 /**
@@ -100,7 +147,7 @@ function resolveMember(node: ASTNode & { type: 'member' }, ctx: EvalContext, dep
 				return evaluateFormula(property, ctx, depth);
 			case 'note':
 			case 'property':
-				return ctx.record.properties.get(property) ?? null;
+				return ctx.record.properties.get(canonicalPropertyName(property)) ?? null;
 		}
 	}
 
@@ -184,6 +231,16 @@ function evaluateBinary(op: string, left: ASTNode, right: ASTNode, ctx: EvalCont
 		if (op === '-' && l instanceof Date && r instanceof Date) {
 			return l.getTime() - r.getTime();
 		}
+	}
+
+	// Case-insensitive equality for the `type` / `is_a` identifier.
+	// See `isTypeIdentifier` for the rationale (Rust capitalises the stored
+	// value). Scope is narrow: only `==` / `!=`, only when at least one side
+	// is the type identifier, and only when the resolved value is a string.
+	if ((op === '==' || op === '!=') && (isTypeIdentifier(left) || isTypeIdentifier(right))) {
+		const ll = typeof l === 'string' ? l.toLowerCase() : l;
+		const rr = typeof r === 'string' ? r.toLowerCase() : r;
+		return op === '==' ? looseEqual(ll, rr) : !looseEqual(ll, rr);
 	}
 
 	switch (op) {

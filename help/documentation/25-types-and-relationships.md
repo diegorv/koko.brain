@@ -312,6 +312,9 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 
 You can use either form in your frontmatter. The app normalizes them internally.
 
+> [!IMPORTANT]
+> The `is_a` alias for `type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.collection` / `.view` / inline `collection` blocks). The other system-flag aliases (`organized`, `archived`, `favorite`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name (`_organized`, `_archived`, `_favorite`). The `type` / `is_a` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.
+
 ---
 
 ## View Files (.view)

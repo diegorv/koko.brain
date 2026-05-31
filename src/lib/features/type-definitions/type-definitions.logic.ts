@@ -4,6 +4,8 @@ import type { NoteEntryV2, FrontmatterValue } from '$lib/types/vault-v2.types';
 export interface TypeMetadata {
 	/** Type name (from entry title, e.g. "Project"). */
 	name: string;
+	/** Absolute path to the Type Definition note backing this metadata, or `null` when only a builtin/default fallback is available (no on-disk definition). */
+	path: string | null;
 	/** Display icon name (lucide). */
 	icon: string;
 	/** Display color. */
@@ -39,6 +41,7 @@ const BUILTIN_TYPES: Record<string, Partial<TypeMetadata>> = {
 /** Default metadata values. */
 const DEFAULTS: TypeMetadata = {
 	name: '',
+	path: null,
 	icon: 'file-text',
 	color: 'gray',
 	order: 50,
@@ -89,6 +92,7 @@ export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 
 	return {
 		name,
+		path: entry.path,
 		icon: fmString(fm, '_icon') ?? builtin.icon ?? DEFAULTS.icon,
 		color: fmString(fm, '_color') ?? builtin.color ?? DEFAULTS.color,
 		order: fmNumber(fm, '_order') ?? builtin.order ?? DEFAULTS.order,

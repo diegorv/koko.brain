@@ -194,6 +194,89 @@ describe('evaluate', () => {
 			const ctx = makeCtx({ status: 'done' });
 			expect(evaluateExpression('property.status', ctx)).toBe('done');
 		});
+
+		describe('frontmatter aliases (is_a -> type)', () => {
+			it('resolves bare is_a identifier to the type property', () => {
+				const ctx = makeCtx({ type: 'Person' });
+				expect(evaluateExpression('is_a', ctx)).toBe('Person');
+			});
+
+			it('compares is_a == "Person" against the stored type value', () => {
+				const ctx = makeCtx({ type: 'Person' });
+				expect(evaluateExpression('is_a == "Person"', ctx)).toBe(true);
+				expect(evaluateExpression('is_a == "Project"', ctx)).toBe(false);
+			});
+
+			it('resolves note.is_a via the namespace prefix', () => {
+				const ctx = makeCtx({ type: 'Project' });
+				expect(evaluateExpression('note.is_a', ctx)).toBe('Project');
+			});
+
+			it('resolves property.is_a via the namespace prefix', () => {
+				const ctx = makeCtx({ type: 'Task' });
+				expect(evaluateExpression('property.is_a', ctx)).toBe('Task');
+			});
+
+			it('returns null when neither type nor is_a is set', () => {
+				const ctx = makeCtx({});
+				expect(evaluateExpression('is_a', ctx)).toBeNull();
+				expect(evaluateExpression('note.is_a', ctx)).toBeNull();
+			});
+
+			it('does not affect lookup of unrelated identifiers ending in is_a', () => {
+				const ctx = makeCtx({ this_is_a_field: 'unrelated', type: 'Person' });
+				// `this_is_a_field` must NOT be aliased; only the exact identifier `is_a` is.
+				expect(evaluateExpression('this_is_a_field', ctx)).toBe('unrelated');
+			});
+		});
+
+		describe('case-insensitive equality for type / is_a', () => {
+			it('matches lowercase RHS against capitalised stored type', () => {
+				const ctx = makeCtx({ type: 'Person' });
+				expect(evaluateExpression('type == "person"', ctx)).toBe(true);
+				expect(evaluateExpression('type == "Person"', ctx)).toBe(true);
+				expect(evaluateExpression('type == "PERSON"', ctx)).toBe(true);
+				expect(evaluateExpression('type == "PeRsOn"', ctx)).toBe(true);
+			});
+
+			it('matches when the identifier sits on the RHS of ==', () => {
+				const ctx = makeCtx({ type: 'Person' });
+				expect(evaluateExpression('"person" == type', ctx)).toBe(true);
+				expect(evaluateExpression('"PERSON" == type', ctx)).toBe(true);
+			});
+
+			it('returns false for !=', () => {
+				const ctx = makeCtx({ type: 'Person' });
+				expect(evaluateExpression('type != "person"', ctx)).toBe(false);
+				expect(evaluateExpression('type != "project"', ctx)).toBe(true);
+			});
+
+			it('applies the relaxed comparison to the is_a alias too', () => {
+				const ctx = makeCtx({ type: 'Person' });
+				expect(evaluateExpression('is_a == "person"', ctx)).toBe(true);
+				expect(evaluateExpression('is_a != "project"', ctx)).toBe(true);
+			});
+
+			it('works through note.type and property.type member access', () => {
+				const ctx = makeCtx({ type: 'Project' });
+				expect(evaluateExpression('note.type == "project"', ctx)).toBe(true);
+				expect(evaluateExpression('property.type == "PROJECT"', ctx)).toBe(true);
+				expect(evaluateExpression('note.is_a == "project"', ctx)).toBe(true);
+			});
+
+			it('keeps comparisons of unrelated string fields strictly case-sensitive', () => {
+				const ctx = makeCtx({ type: 'Person', name: 'Alice' });
+				expect(evaluateExpression('name == "Alice"', ctx)).toBe(true);
+				expect(evaluateExpression('name == "alice"', ctx)).toBe(false);
+				expect(evaluateExpression('name == "ALICE"', ctx)).toBe(false);
+			});
+
+			it('preserves null semantics when the type property is missing', () => {
+				const ctx = makeCtx({});
+				expect(evaluateExpression('type == "person"', ctx)).toBe(false);
+				expect(evaluateExpression('type != "person"', ctx)).toBe(true);
+			});
+		});
 	});
 
 	describe('formula resolution', () => {

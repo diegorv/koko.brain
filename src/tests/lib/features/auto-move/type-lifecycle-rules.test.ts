@@ -5,6 +5,7 @@ import type { TypeMetadata } from '$lib/features/type-definitions/type-definitio
 function makeTypeMetadata(overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {
 		name: overrides.name ?? 'Project',
+		path: overrides.path ?? null,
 		icon: overrides.icon ?? 'rocket',
 		color: overrides.color ?? 'red',
 		order: overrides.order ?? 1,

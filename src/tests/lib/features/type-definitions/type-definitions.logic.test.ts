@@ -45,6 +45,7 @@ describe('extractTypeMetadata', () => {
 		});
 		const meta = extractTypeMetadata(entry);
 		expect(meta.name).toBe('Project');
+		expect(meta.path).toBe('/vault/Project.md');
 		expect(meta.icon).toBe('rocket');
 		expect(meta.color).toBe('red');
 		expect(meta.order).toBe(1);
@@ -54,6 +55,18 @@ describe('extractTypeMetadata', () => {
 		expect(meta.view).toBe('board');
 		expect(meta.visible).toBe(true);
 		expect(meta.listPropertiesDisplay).toEqual(['status', 'due']);
+	});
+
+	it('captures the source entry path so callers can locate the on-disk definition', () => {
+		const entry = entryV2('/vault/_system/types/Person.md', {
+			title: 'Person',
+			isA: 'Type',
+			frontmatter: { _sidebar_label: 'People' } as NoteEntryV2['frontmatter'],
+		});
+		const meta = extractTypeMetadata(entry);
+		expect(meta.name).toBe('Person');
+		expect(meta.path).toBe('/vault/_system/types/Person.md');
+		expect(meta.sidebarLabel).toBe('People');
 	});
 
 	it('falls back to builtin metadata for known types', () => {
@@ -108,12 +121,14 @@ describe('getTypeMetadataFallback', () => {
 		const map = new Map([['Project', extractTypeMetadata(typeDefEntry('Project', { _icon: 'star' }))]]);
 		const meta = getTypeMetadataFallback('Project', map);
 		expect(meta.icon).toBe('star');
+		expect(meta.path).toBe('/vault/Project.md');
 	});
 
 	it('falls back to builtin for known types', () => {
 		const meta = getTypeMetadataFallback('Project', new Map());
 		expect(meta.icon).toBe('rocket');
 		expect(meta.color).toBe('red');
+		expect(meta.path).toBeNull();
 	});
 
 	it('falls back to defaults for unknown types', () => {
@@ -121,5 +136,6 @@ describe('getTypeMetadataFallback', () => {
 		expect(meta.icon).toBe('file-text');
 		expect(meta.name).toBe('Widget');
 		expect(meta.sidebarLabel).toBe('Widgets');
+		expect(meta.path).toBeNull();
 	});
 });

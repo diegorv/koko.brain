@@ -7,6 +7,7 @@ import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {
 		name,
+		path: null,
 		icon: 'file-text',
 		color: 'gray',
 		order: 50,
@@ -248,7 +249,7 @@ describe('buildTypeSections', () => {
 			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
 		];
 		const map = new Map([
-			['Sprint', meta('Sprint', { order: 1, sidebarLabel: 'Sprints' })],
+			['Sprint', meta('Sprint', { order: 1, sidebarLabel: 'Sprints', path: '/v/Sprint.md' })],
 			['Project', meta('Project', { order: 2 })],
 		]);
 		const { sections } = buildTypeSections(entries, map, 'all');
@@ -258,6 +259,34 @@ describe('buildTypeSections', () => {
 		expect(sections[0].definitionPath).toBe('/v/Sprint.md');
 		expect(sections[1].metadata.name).toBe('Project');
 		expect(sections[1].notes.length).toBe(1);
+	});
+
+	it('resolves definitionPath from metadata even when the Type Definition entry is absent from the input array', () => {
+		// Regression: Type definitions living in the system folder are
+		// filtered out by `excludeSystemFolder` before `buildTypeSections`
+		// runs. The definitionPath must still come from the metadata map
+		// (which is built upstream from unfiltered entries), so the sidebar
+		// context menu can offer "Open type definition" rather than
+		// silently creating a duplicate at the vault root.
+		const entries = [
+			entryV2('/v/people/alice.md', { title: 'Alice', isA: 'Person' }),
+		];
+		const map = new Map([
+			['Person', meta('Person', { path: '/v/_system/types/Person.md' })],
+		]);
+		const { sections } = buildTypeSections(entries, map, 'all');
+		expect(sections.length).toBe(1);
+		expect(sections[0].definitionPath).toBe('/v/_system/types/Person.md');
+		expect(sections[0].notes.length).toBe(1);
+	});
+
+	it('leaves definitionPath null when metadata has no backing file (builtin/fallback)', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project' }),
+		];
+		const { sections } = buildTypeSections(entries, new Map(), 'all');
+		expect(sections.length).toBe(1);
+		expect(sections[0].definitionPath).toBeNull();
 	});
 
 	it('does not show empty sections for invisible type definitions', () => {

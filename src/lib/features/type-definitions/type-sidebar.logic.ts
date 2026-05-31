@@ -266,12 +266,7 @@ export function buildTypeSections(
 ): { sections: TypeSection[]; untyped: TypeSidebarNote[] } {
 	const filtered = applyFilter(entries, filter);
 	const typeGroups = new Map<string, TypeSidebarNote[]>();
-	const typeDefPaths = new Map<string, string>();
 	const untyped: TypeSidebarNote[] = [];
-
-	for (const entry of entries) {
-		if (entry.isA === 'Type') typeDefPaths.set(entry.title, entry.path);
-	}
 
 	for (const entry of filtered) {
 		if (entry.isA === 'Type') continue;
@@ -294,13 +289,13 @@ export function buildTypeSections(
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
 		sortNotes(notes, metadata.sort, filter);
-		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes });
+		sections.push({ metadata, definitionPath: metadata.path, notes });
 		seen.add(typeName);
 	}
 
 	for (const [typeName, metadata] of typeMetadataMap) {
 		if (seen.has(typeName) || !metadata.visible) continue;
-		sections.push({ metadata, definitionPath: typeDefPaths.get(typeName) ?? null, notes: [] });
+		sections.push({ metadata, definitionPath: metadata.path, notes: [] });
 	}
 
 	sections.sort((a, b) => a.metadata.order - b.metadata.order);

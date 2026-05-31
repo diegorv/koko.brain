@@ -51,6 +51,7 @@ import type { TypeMetadata } from '$lib/features/type-definitions/type-definitio
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
 	return {
+		path: null,
 		icon: 'file',
 		color: 'blue',
 		order: 50,

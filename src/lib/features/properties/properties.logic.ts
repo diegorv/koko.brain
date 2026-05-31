@@ -1,5 +1,6 @@
 import { parse as yamlParse, Document, type YAMLSeq } from 'yaml';
 import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
+import { appendLog } from '$lib/utils/log.service';
 import type { Property, PropertyType } from './properties.types';
 
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/;
@@ -131,7 +132,17 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 
 	const properties: Property[] = [];
 	for (const [rawKey, value] of Object.entries(parsed as Record<string, unknown>)) {
-		if (value !== null && typeof value === 'object' && !Array.isArray(value)) continue;
+		if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+			// Nested mappings are not representable in the Properties panel and
+			// would be silently lost on round-trip. Surface the data loss in the
+			// session log so a developer investigating "where did my nested key
+			// go?" can see what happened.
+			appendLog(
+				'PROPERTIES',
+				`dropped nested mapping value for key=${JSON.stringify(rawKey)} during frontmatter parse (round-trip would lose it)`,
+			);
+			continue;
+		}
 		properties.push(convertToProperty(canonicalizeKey(rawKey), value));
 	}
 	parseCache.set(rawFrontmatter, Object.freeze(properties.map(cloneProperty)));
@@ -192,6 +203,12 @@ export function serializePropertyValue(property: Property): string {
 /**
  * Serializes an array of properties into a YAML frontmatter string (without delimiters).
  * Uses the `yaml` Document API for spec-compliant output with inline arrays.
+ *
+ * Each `p.key` is passed through `canonicalizeKey` before emission so that
+ * Property[] values constructed outside `parseFrontmatterProperties` (e.g. by
+ * lifecycle.service, frontmatter-icon.service, deep-link.logic, type-definitions
+ * service, or external producers) cannot accidentally write a non-canonical
+ * alias. The call is idempotent for already-canonical keys.
  */
 export function serializeProperties(properties: Property[]): string {
 	if (properties.length === 0) return '';
@@ -199,12 +216,13 @@ export function serializeProperties(properties: Property[]): string {
 	const doc = new Document({});
 
 	for (const p of properties) {
+		const key = canonicalizeKey(p.key);
 		if (p.type === 'list') {
 			const seq = doc.createNode(p.value as string[]);
 			(seq as YAMLSeq).flow = true;
-			doc.set(p.key, seq);
+			doc.set(key, seq);
 		} else {
-			doc.set(p.key, p.value);
+			doc.set(key, p.value);
 		}
 	}
 

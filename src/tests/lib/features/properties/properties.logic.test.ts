@@ -1,4 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('$lib/utils/log.service', () => ({
+	appendLog: vi.fn(),
+}));
+
+import { appendLog } from '$lib/utils/log.service';
 import {
 	extractRawFrontmatter,
 	extractBody,
@@ -16,6 +22,7 @@ import {
 	computeAddRelationshipValue,
 	computeRemoveRelationshipValue,
 	formatRelationshipLabel,
+	_resetParseFrontmatterCache,
 } from '$lib/features/properties/properties.logic';
 
 describe('extractRawFrontmatter', () => {
@@ -261,6 +268,26 @@ describe('parseFrontmatterProperties', () => {
 		expect(props[1].key).toBe('tags');
 	});
 
+	it('logs a warning when a nested mapping is dropped', () => {
+		const appendLogMock = vi.mocked(appendLog);
+		appendLogMock.mockClear();
+		_resetParseFrontmatterCache();
+		const content = '---\ntitle: Hello\nmeta:\n  author: Alice\n---\nBody';
+		parseFrontmatterProperties(content);
+		expect(appendLogMock).toHaveBeenCalledWith(
+			'PROPERTIES',
+			expect.stringContaining('dropped nested mapping value for key="meta"'),
+		);
+	});
+
+	it('does not log when no nested mappings are present', () => {
+		const appendLogMock = vi.mocked(appendLog);
+		appendLogMock.mockClear();
+		_resetParseFrontmatterCache();
+		parseFrontmatterProperties('---\ntitle: Hello\ntags: [a, b]\n---\nBody');
+		expect(appendLogMock).not.toHaveBeenCalled();
+	});
+
 	it('handles scientific notation as number', () => {
 		const content = '---\nval: 1e5\n---\nBody';
 		const props = parseFrontmatterProperties(content);
@@ -381,6 +408,165 @@ describe('serializeProperties', () => {
 
 	it('returns empty string for empty properties', () => {
 		expect(serializeProperties([])).toBe('');
+	});
+
+	it('canonicalizes alias keys on write (favorite -> _favorite)', () => {
+		const props = [
+			{ key: 'favorite', value: true, type: 'boolean' as const },
+			{ key: 'icon', value: 'star', type: 'text' as const },
+			{ key: 'is_a', value: 'person', type: 'text' as const },
+		];
+		expect(serializeProperties(props)).toBe('_favorite: true\n_icon: star\ntype: person');
+	});
+
+	it('leaves already-canonical keys unchanged', () => {
+		const props = [
+			{ key: '_favorite', value: true, type: 'boolean' as const },
+			{ key: 'type', value: 'person', type: 'text' as const },
+		];
+		expect(serializeProperties(props)).toBe('_favorite: true\ntype: person');
+	});
+});
+
+/**
+ * Snapshot tests for the canonical serialization form documented in
+ * ADR 0029. Each test asserts the exact byte sequence emitted by
+ * serializeProperties for a property shape the Python generator at
+ * koko.brain-os/vault/work/people/_generate.py must match. If any of
+ * these break, either the canonical form has shifted (intentional —
+ * update both this file and the generator) or yaml@2.9.0 has changed
+ * (unintentional — re-pin or fix the predicate). Either way the test
+ * file is the source of truth.
+ */
+describe('canonical form snapshot (serializeProperties)', () => {
+	it('emits emails bare (mid-string @ does not quote)', () => {
+		expect(
+			serializeProperties([{ key: 'email', value: 'foo@bar.com', type: 'text' }]),
+		).toBe('email: foo@bar.com');
+	});
+
+	it('emits URN-style values bare (mid-string : does not quote)', () => {
+		expect(
+			serializeProperties([
+				{ key: 'ident_id', value: 'urn:example:identity:uuid:abc', type: 'text' },
+			]),
+		).toBe('ident_id: urn:example:identity:uuid:abc');
+	});
+
+	it('emits wikilinks with double quotes (leading [ forces quote)', () => {
+		expect(
+			serializeProperties([{ key: '_belongs_to', value: '[[Foo-Bar]]', type: 'text' }]),
+		).toBe('_belongs_to: "[[Foo-Bar]]"');
+	});
+
+	it('emits wikilinks inside lists with double quotes', () => {
+		expect(
+			serializeProperties([
+				{ key: 'related', value: ['[[A]]', '[[B-C]]'], type: 'list' },
+			]),
+		).toBe('related: ["[[A]]", "[[B-C]]"]');
+	});
+
+	it('emits empty text values as the empty double-quoted string', () => {
+		expect(
+			serializeProperties([
+				{ key: 'end_at', value: '', type: 'text' },
+				{ key: 'expire_at', value: '', type: 'text' },
+			]),
+		).toBe('end_at: ""\nexpire_at: ""');
+	});
+
+	it('emits lists in flow style with comma+space separator', () => {
+		expect(
+			serializeProperties([{ key: 'tags', value: ['a', 'b', 'c'], type: 'list' }]),
+		).toBe('tags: [a, b, c]');
+	});
+
+	it('emits an empty list as []', () => {
+		expect(
+			serializeProperties([{ key: 'tags', value: [], type: 'list' }]),
+		).toBe('tags: []');
+	});
+
+	it('quotes string values that look like reserved literals', () => {
+		expect(
+			serializeProperties([
+				{ key: 'a', value: 'true', type: 'text' },
+				{ key: 'b', value: 'false', type: 'text' },
+				{ key: 'c', value: 'null', type: 'text' },
+				{ key: 'd', value: 'TRUE', type: 'text' },
+				{ key: 'e', value: '~', type: 'text' },
+			]),
+		).toBe('a: "true"\nb: "false"\nc: "null"\nd: "TRUE"\ne: "~"');
+	});
+
+	it('emits yes/no/on/off as bare strings (not reserved in YAML 1.2 core)', () => {
+		expect(
+			serializeProperties([
+				{ key: 'a', value: 'yes', type: 'text' },
+				{ key: 'b', value: 'no', type: 'text' },
+				{ key: 'c', value: 'on', type: 'text' },
+				{ key: 'd', value: 'off', type: 'text' },
+			]),
+		).toBe('a: yes\nb: no\nc: on\nd: off');
+	});
+
+	it('emits native booleans bare and number-looking strings quoted', () => {
+		expect(
+			serializeProperties([
+				{ key: 'flag', value: true, type: 'boolean' },
+				{ key: 'count_str', value: '42', type: 'text' },
+				{ key: 'count_num', value: 42, type: 'number' },
+			]),
+		).toBe('flag: true\ncount_str: "42"\ncount_num: 42');
+	});
+
+	it('preserves the input key order', () => {
+		const props = [
+			{ key: 'type', value: 'person', type: 'text' as const },
+			{ key: '_organized', value: 'true', type: 'text' as const },
+			{ key: '_archived', value: 'false', type: 'text' as const },
+			{ key: '_favorite', value: true, type: 'boolean' as const },
+			{ key: 'created', value: '2026-05-31', type: 'date' as const },
+			{ key: 'name', value: 'Diego', type: 'text' as const },
+		];
+		expect(serializeProperties(props)).toBe(
+			'type: person\n_organized: "true"\n_archived: "false"\n_favorite: true\ncreated: 2026-05-31\nname: Diego',
+		);
+	});
+
+	it('emits a realistic person-note frontmatter matching the canonical form', () => {
+		const props = [
+			{ key: 'type', value: 'person', type: 'text' as const },
+			{ key: '_organized', value: 'true', type: 'text' as const },
+			{ key: '_archived', value: 'false', type: 'text' as const },
+			{ key: 'created', value: '2026-05-31', type: 'date' as const },
+			{ key: 'name', value: 'Jane Doe', type: 'text' as const },
+			{ key: 'email', value: 'jane.doe@example.com', type: 'text' as const },
+			{
+				key: 'ident_id',
+				value: 'urn:example:identity:uuid:00000000-0000-0000-0000-000000000000',
+				type: 'text' as const,
+			},
+			{ key: 'end_at', value: '', type: 'text' as const },
+			{ key: 'expire_at', value: '', type: 'text' as const },
+			{ key: '_belongs_to', value: '[[Some-Team]]', type: 'text' as const },
+			{ key: '_reports_to', value: '[[John-Smith]]', type: 'text' as const },
+		];
+		const expected = [
+			'type: person',
+			'_organized: "true"',
+			'_archived: "false"',
+			'created: 2026-05-31',
+			'name: Jane Doe',
+			'email: jane.doe@example.com',
+			'ident_id: urn:example:identity:uuid:00000000-0000-0000-0000-000000000000',
+			'end_at: ""',
+			'expire_at: ""',
+			'_belongs_to: "[[Some-Team]]"',
+			'_reports_to: "[[John-Smith]]"',
+		].join('\n');
+		expect(serializeProperties(props)).toBe(expected);
 	});
 });
 
