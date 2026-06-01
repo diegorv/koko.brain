@@ -232,6 +232,39 @@ fn canonicalizes_symlinked_vault_path() {
     assert_eq!(nodes[0].name, "note.md");
 }
 
+#[cfg(unix)]
+#[test]
+fn scan_vault_skips_unreadable_entry_instead_of_aborting() {
+    // Regression (deep-pass #5): a per-entry symlink_metadata failure must
+    // skip that entry, not abort the WHOLE tree (mirrors the Err(_) => continue
+    // in utils::fs::walk_dir). Pre-fix, scan_dir propagated the error via `?`
+    // so one un-stat-able file (e.g. deleted mid-scan) wiped the file explorer.
+    //
+    // Deterministic repro of a stat failure: a directory with read but NO
+    // execute permission — read_dir lists its entries, yet symlink_metadata
+    // on each child fails with EACCES (no search permission). Under root the
+    // x check is bypassed, so this only exercises the bug as a non-root user
+    // (the case CI and dev machines run as); it still asserts Ok either way.
+    use std::os::unix::fs::PermissionsExt;
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("visible.md"), "ok").unwrap();
+    let locked = dir.path().join("locked");
+    fs::create_dir(&locked).unwrap();
+    fs::write(locked.join("inner.md"), "hidden").unwrap();
+    // r--: read_dir(locked) still lists "inner.md", but stat-ing it fails.
+    fs::set_permissions(&locked, fs::Permissions::from_mode(0o400)).unwrap();
+
+    let result = scan_vault(dir.path().to_string_lossy().to_string(), "name".into());
+
+    // Restore perms BEFORE asserting so TempDir's recursive cleanup succeeds
+    // even if an assertion below panics.
+    fs::set_permissions(&locked, fs::Permissions::from_mode(0o700)).unwrap();
+
+    let nodes = result.expect("one unreadable entry must not abort the whole scan");
+    // The valid sibling survives; the unreadable dir yields empty children.
+    assert!(nodes.iter().any(|n| n.name == "visible.md"));
+}
+
 // --- collect_v2_entries (Phase 1.5 + 2.3) -----------------------------------
 //
 // `collect_v2_entries` is the pure I/O + parsing path used by both the

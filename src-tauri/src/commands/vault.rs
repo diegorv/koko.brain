@@ -99,8 +99,13 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
 
         // Use symlink_metadata (lstat) for atomic symlink check + metadata read,
         // eliminating the TOCTOU window between is_symlink() and metadata().
-        let metadata = fs::symlink_metadata(&file_path)
-            .map_err(|e| format!("Failed to read metadata for {}: {}", file_name, e))?;
+        // Skip (don't abort) on a per-entry stat failure: a file deleted/renamed
+        // mid-scan, or one the process can't stat, must not wipe the whole tree.
+        // Mirrors the Err(_) => continue in utils::fs::walk_dir.
+        let metadata = match fs::symlink_metadata(&file_path) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
 
         // Skip symlinks to prevent loops and path traversal
         if metadata.file_type().is_symlink() {
