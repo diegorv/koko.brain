@@ -119,6 +119,20 @@ function isTypeIdentifier(node: ASTNode): boolean {
 	return false;
 }
 
+/**
+ * Returns true when the AST node is a literal value (string / number /
+ * boolean) rather than a property reference.
+ *
+ * Used by `evaluateBinary` to gate the case-insensitive `type` comparison:
+ * it must only relax case when the type field is compared against a literal
+ * the user typed (`type == "person"`), never against another property
+ * (`type == status`) — relaxing the latter would silently lowercase the
+ * unrelated field's value, making it case-insensitive too.
+ */
+function isLiteralNode(node: ASTNode): boolean {
+	return node.type === 'string' || node.type === 'number' || node.type === 'boolean';
+}
+
 /** Resolves a bare identifier to a value from the record's properties */
 function resolveIdentifier(name: string, ctx: EvalContext, depth: number): unknown {
 	// Check for formula
@@ -235,12 +249,20 @@ function evaluateBinary(op: string, left: ASTNode, right: ASTNode, ctx: EvalCont
 
 	// Case-insensitive equality for the `type` / `is_a` identifier.
 	// See `isTypeIdentifier` for the rationale (Rust capitalises the stored
-	// value). Scope is narrow: only `==` / `!=`, only when at least one side
-	// is the type identifier, and only when the resolved value is a string.
-	if ((op === '==' || op === '!=') && (isTypeIdentifier(left) || isTypeIdentifier(right))) {
-		const ll = typeof l === 'string' ? l.toLowerCase() : l;
-		const rr = typeof r === 'string' ? r.toLowerCase() : r;
-		return op === '==' ? looseEqual(ll, rr) : !looseEqual(ll, rr);
+	// value). Scope is narrow: only `==` / `!=`, and only when the type
+	// identifier is compared against a *literal* (`type == "person"`). When
+	// the other side is another property reference (`type == status`) the
+	// comparison stays strictly case-sensitive — otherwise the unrelated
+	// field's value would be silently lowercased too.
+	if (op === '==' || op === '!=') {
+		const typeVsLiteral =
+			(isTypeIdentifier(left) && isLiteralNode(right)) ||
+			(isTypeIdentifier(right) && isLiteralNode(left));
+		if (typeVsLiteral) {
+			const ll = typeof l === 'string' ? l.toLowerCase() : l;
+			const rr = typeof r === 'string' ? r.toLowerCase() : r;
+			return op === '==' ? looseEqual(ll, rr) : !looseEqual(ll, rr);
+		}
 	}
 
 	switch (op) {

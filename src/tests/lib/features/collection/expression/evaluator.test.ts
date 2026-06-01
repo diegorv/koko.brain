@@ -276,6 +276,55 @@ describe('evaluate', () => {
 				expect(evaluateExpression('type == "person"', ctx)).toBe(false);
 				expect(evaluateExpression('type != "person"', ctx)).toBe(true);
 			});
+
+			it('keeps type == <otherField> case-sensitive (does not lowercase the other field)', () => {
+				// Headline repro: comparing the type field against ANOTHER property
+				// must not silently lowercase that property's value.
+				const ctx = makeCtx({ type: 'PERSON', status: 'person' });
+				expect(evaluateExpression('type == status', ctx)).toBe(false);
+				expect(evaluateExpression('type != status', ctx)).toBe(true);
+			});
+
+			it('keeps <otherField> == type case-sensitive when reversed', () => {
+				const ctx = makeCtx({ type: 'PERSON', status: 'person' });
+				expect(evaluateExpression('status == type', ctx)).toBe(false);
+				expect(evaluateExpression('status != type', ctx)).toBe(true);
+			});
+
+			it('matches type == <otherField> only when the actual stored cases agree', () => {
+				const ctx = makeCtx({ type: 'Person', role: 'Person' });
+				expect(evaluateExpression('type == role', ctx)).toBe(true);
+				expect(evaluateExpression('type != role', ctx)).toBe(false);
+			});
+
+			it('keeps cross-field comparison case-sensitive through member access', () => {
+				const ctx = makeCtx({ type: 'PERSON', status: 'person' });
+				expect(evaluateExpression('note.type == status', ctx)).toBe(false);
+				expect(evaluateExpression('property.type == status', ctx)).toBe(false);
+			});
+
+			it('does not relax case for ordering operators on type', () => {
+				// Only == / != are case-insensitive for type; >= / <= must compare
+				// the stored case. If case were folded, 'Person' and 'PERSON' would
+				// be equal and BOTH >= and <= would hold — they must not.
+				const ctx = makeCtx({ type: 'Person' });
+				const bothHold =
+					evaluateExpression('type >= "PERSON"', ctx) === true &&
+					evaluateExpression('type <= "PERSON"', ctx) === true;
+				expect(bothHold).toBe(false);
+			});
+
+			it('handles a numeric type value against a numeric literal', () => {
+				const ctx = makeCtx({ type: 3 });
+				expect(evaluateExpression('type == 3', ctx)).toBe(true);
+				expect(evaluateExpression('type != 4', ctx)).toBe(true);
+			});
+
+			it('handles a boolean type value against a boolean literal', () => {
+				const ctx = makeCtx({ type: true });
+				expect(evaluateExpression('type == true', ctx)).toBe(true);
+				expect(evaluateExpression('type != false', ctx)).toBe(true);
+			});
 		});
 	});
 
