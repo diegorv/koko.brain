@@ -55,3 +55,15 @@ colliding canonical keys and merge/throw instead of last-winning.
 ## Blocked by
 
 None. Audit ruled OUT a save-loop from this change (open/save verbatim, serialize idempotent).
+
+## Comments
+
+- Resolved in commit 4a0831b. Canonicalized the dedup guards in addNewProperty +
+  renameProperty; added a dedupeCanonicalKeys backstop to serializeProperties
+  (populated value beats empty placeholder, two-populated keeps first + logs);
+  extracted setPropertyByBindTarget (canonical-match, update-in-place) and routed
+  all three meta-bind write sites through it. `pnpm check` + properties/meta-bind
+  suites (209 tests across the touched files) green.
+- Out of scope (cosmetic, not data loss): meta-bind currentValue *read* lookups
+  (widgets.ts ~283, meta-bind-input-plugin.ts ~78) still match the raw bind
+  target, so an alias-bound control may render a stale value. Worth a follow-up.
