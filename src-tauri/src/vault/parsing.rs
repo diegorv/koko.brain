@@ -1111,12 +1111,6 @@ static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 static HEADING_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
 
-/// Regex matching the existing checkbox char on a line, used by
-/// `toggle_task_in_content` to flip checked → unchecked. Mirrors the TS
-/// branch `/\[[xX\-/?!>]\]/`.
-static CHECKED_BOX_RE: LazyLock<Regex> =
-	LazyLock::new(|| Regex::new(r"\[[xX\-/?!>]\]").expect("CHECKED_BOX_RE"));
-
 // --- Date signifiers -----------------------------------------------------
 
 /// Date signifier emojis mapped to their `TaskMetadata` field. Mirrors
@@ -1545,14 +1539,28 @@ pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
 		return content.to_string();
 	}
 	let line = &lines[idx];
-	let new_line = if line.contains("[ ]") {
-		line.replacen("[ ]", "[x]", 1)
-	} else if let Some(m) = CHECKED_BOX_RE.find(line) {
-		let whole = m.as_str().to_string();
-		line.replacen(&whole, "[ ]", 1)
-	} else {
+	// Flip the checkbox at the TASK MARKER (TASK_RE / ORDERED_TASK_RE group 2),
+	// NOT a `[ ]`/`[x]` anywhere on the line. A free substring match corrupted
+	// a checked task whose description contained a literal `[ ]` (e.g. a note
+	// about markdown checkbox syntax): it rewrote the description bracket and
+	// left the real checkbox untouched.
+	let box_match = TASK_RE
+		.captures(line)
+		.or_else(|| ORDERED_TASK_RE.captures(line))
+		.and_then(|c| c.get(2));
+	let Some(box_match) = box_match else {
 		return content.to_string();
 	};
+	// Group 2 is a single char: ' ' -> check, any other state -> uncheck.
+	let toggled = if &line[box_match.start()..box_match.end()] == " " {
+		"x"
+	} else {
+		" "
+	};
+	let mut new_line = String::with_capacity(line.len());
+	new_line.push_str(&line[..box_match.start()]);
+	new_line.push_str(toggled);
+	new_line.push_str(&line[box_match.end()..]);
 	lines[idx] = new_line;
 	lines.join("\n")
 }
@@ -2944,6 +2952,25 @@ mod tests {
 	fn toggle_task_in_content_only_first_match_on_line() {
 		let content = "- [ ] foo [ ] bar";
 		assert_eq!(toggle_task_in_content(content, 1), "- [x] foo [ ] bar");
+	}
+
+	#[test]
+	fn toggle_task_in_content_checked_with_bracket_in_description() {
+		// Regression (#9): a CHECKED task whose description contains a literal
+		// `[ ]` must toggle the CHECKBOX, not the description bracket. The old
+		// `line.contains("[ ]")` substring match rewrote the description's
+		// bracket (-> "[x] ... [x]") and left the real checkbox checked.
+		let content = "- [x] document the [ ] empty checkbox syntax";
+		assert_eq!(
+			toggle_task_in_content(content, 1),
+			"- [ ] document the [ ] empty checkbox syntax"
+		);
+	}
+
+	#[test]
+	fn toggle_task_in_content_ordered_task() {
+		assert_eq!(toggle_task_in_content("1. [ ] item", 1), "1. [x] item");
+		assert_eq!(toggle_task_in_content("1. [x] item", 1), "1. [ ] item");
 	}
 
 	#[test]

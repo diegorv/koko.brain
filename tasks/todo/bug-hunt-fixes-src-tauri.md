@@ -24,7 +24,7 @@ Workflow per item (Rust-only -> `cargo test --manifest-path src-tauri/Cargo.toml
 
 ## Batch 3 — low / niche
 
-- [ ] #9 toggle_task_in_content matches `[ ]` anywhere on the line -> toggling a checked task whose description contains a literal `[ ]` corrupts the description and leaves the checkbox unchanged. `vault/parsing.rs:1542`. Impact LOW (niche). Complexity MED. Fix: locate the checkbox at the task-marker position (reuse `TASK_RE`/`ORDERED_TASK_RE` group, or anchor `^(\s*(?:[-*+]|\d+\.)\s)\[([ xX\-/?!>])\]`) and flip only that char; leave description brackets untouched. Test: `- [x] document the [ ] empty checkbox` toggled -> checkbox flips, description intact.
+- [x] #9 toggle_task_in_content matches `[ ]` anywhere on the line -> toggling a checked task whose description contains a literal `[ ]` corrupts the description and leaves the checkbox unchanged. `vault/parsing.rs:1542`. Impact LOW (niche). Complexity MED. Fix: locate the checkbox at the task-marker position (reuse `TASK_RE`/`ORDERED_TASK_RE` group, or anchor `^(\s*(?:[-*+]|\d+\.)\s)\[([ xX\-/?!>])\]`) and flip only that char; leave description brackets untouched. Test: `- [x] document the [ ] empty checkbox` toggled -> checkbox flips, description intact.
 
 ## Batch 4 — parity divergences (DEBATABLE — skip unless the TS parity gate matters)
 
