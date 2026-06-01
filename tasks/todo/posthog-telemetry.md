@@ -37,7 +37,7 @@ it in Settings > Privacy.
 - [x] Task 4: Settings token field. Add `posthogToken: string` (default '') to
       `AppSettings`; store getter + updater `updatePosthogToken`; merge line in
       `loadSettings`. Tests.
-- [ ] Task 5: `telemetry.service.ts` — per-install anon id (fs + appConfigDir),
+- [x] Task 5: `telemetry.service.ts` — per-install anon id (fs + appConfigDir),
       `getTelemetryConfig` (settings token first, env fallback), `initTelemetry`,
       `teardownTelemetry`, `trackEvent`; `product-analytics.ts` domain wrappers +
       consent events. Tests.
