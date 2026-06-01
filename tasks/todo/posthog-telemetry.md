@@ -30,7 +30,7 @@ it in Settings > Privacy.
       `settings.store.test.ts`. (The `'privacy'` SettingsSection value moved to
       Task 6 — adding it standalone breaks the `sectionIcons` Record until the
       icon is wired.)
-- [ ] Task 3: `telemetry.logic.ts` (pure) — `resolveTelemetryConfig(env)`,
+- [x] Task 3: `telemetry.logic.ts` (pure) — `resolveTelemetryConfig(env)`,
       `isValidPosthogHost`, EU host constant. Tests.
 - [ ] Task 4: `telemetry.service.ts` — per-install anon id (fs + appConfigDir),
       `initTelemetry`, `teardownTelemetry`, `trackEvent`, `initTelemetryIfEnabled`;
