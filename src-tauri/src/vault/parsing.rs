@@ -293,7 +293,12 @@ fn extract_frontmatter_tags(content: &str) -> Vec<String> {
 	if let Some(rest) = after_colon.strip_prefix('[') {
 		let inner = match rest.rfind(']') {
 			Some(i) => &rest[..i],
-			None => rest,
+			// Unterminated array: match TS `slice(1, lastIndexOf(']'))`, which
+			// with no `]` becomes `slice(1, -1)` and drops the last char.
+			None => match rest.char_indices().next_back() {
+				Some((i, _)) => &rest[..i],
+				None => "",
+			},
 		};
 		return inner
 			.split(',')
@@ -1802,6 +1807,17 @@ mod tests {
 	fn frontmatter_inline_array_with_extra_whitespace() {
 		let content = "---\ntags: [  foo ,   bar  ]\n---\n";
 		assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+	}
+
+	#[test]
+	fn frontmatter_inline_array_unterminated_matches_ts_slice() {
+		// Parity (#7): TS `extractFrontmatterTags` does
+		// `valueAfterColon.slice(1, lastIndexOf(']'))`. With no closing `]`,
+		// lastIndexOf returns -1 and `slice(1, -1)` drops the LAST char, so
+		// "[foo, bar" -> inner "foo, ba" -> tags [foo, ba]. The Rust path must
+		// match (it previously kept the whole "foo, bar" -> [foo, bar]).
+		let content = "---\ntags: [foo, bar\n---\nbody";
+		assert_eq!(extract_tags_strict(content), vec!["foo", "ba"]);
 	}
 
 	#[test]

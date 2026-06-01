@@ -30,7 +30,7 @@ Workflow per item (Rust-only -> `cargo test --manifest-path src-tauri/Cargo.toml
 
 Both diverge from `tags.logic.ts` only on MALFORMED YAML, and in both cases the Rust output is arguably MORE correct than the TS mirror. Listed for completeness; not recommended unless byte-for-byte parity is contractually required (ADR 0025 / parity gate).
 
-- [ ] #7 unterminated inline-array `tags: [a, b` -> Rust keeps whole inner, TS `slice(1,-1)` drops last char. `vault/parsing.rs:296`. Impact LOW. Complexity LOW (~3 LOC). Fix (if pursued): drop last char of `rest` on the `None` branch to match TS, or document the intentional divergence.
+- [x] #7 unterminated inline-array `tags: [a, b` -> Rust keeps whole inner, TS `slice(1,-1)` drops last char. `vault/parsing.rs:296`. Impact LOW. Complexity LOW (~3 LOC). Fix (if pursued): drop last char of `rest` on the `None` branch to match TS, or document the intentional divergence.
 - [ ] #8 block-array stray `- ` (dash + only whitespace) item -> Rust continues, TS breaks. `vault/parsing.rs:323`. Impact LOW. Complexity LOW (~2 LOC). Fix (if pursued): `break` when `after_dash.is_empty()`.
 
 ## Notes
