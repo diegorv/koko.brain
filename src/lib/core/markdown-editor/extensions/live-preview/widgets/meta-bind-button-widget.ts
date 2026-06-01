@@ -81,8 +81,7 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 		case 'updateMetadata': {
 			const {
 				parseFrontmatterProperties,
-				updatePropertyValue,
-				addProperty,
+				setPropertyByBindTarget,
 				extractBody,
 				rebuildContent,
 			} = await import('$lib/features/properties/properties.logic');
@@ -91,14 +90,7 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 			const properties = parseFrontmatterProperties(doc);
 			const body = extractBody(doc);
 
-			const existing = properties.find((p) => p.key === action.bindTarget);
-			let updated;
-			if (existing) {
-				updated = updatePropertyValue(properties, action.bindTarget, action.value);
-			} else {
-				updated = addProperty(properties, action.bindTarget);
-				updated = updatePropertyValue(updated, action.bindTarget, action.value);
-			}
+			const updated = setPropertyByBindTarget(properties, action.bindTarget, action.value);
 
 			const newContent = rebuildContent(updated, body);
 			const frontmatterEnd = doc.length - body.length;

@@ -12,6 +12,7 @@ import {
 	parseFrontmatterProperties,
 	serializePropertyValue,
 	serializeProperties,
+	setPropertyByBindTarget,
 	rebuildContent,
 	addProperty,
 	removeProperty,
@@ -425,6 +426,82 @@ describe('serializeProperties', () => {
 			{ key: 'type', value: 'person', type: 'text' as const },
 		];
 		expect(serializeProperties(props)).toBe('_favorite: true\ntype: person');
+	});
+
+	it('merges an alias and its canonical twin, preferring the populated value', () => {
+		// _color holds the real value; an empty `color` placeholder must not
+		// clobber it via yaml last-wins.
+		expect(
+			serializeProperties([
+				{ key: '_color', value: 'red', type: 'text' as const },
+				{ key: 'color', value: '', type: 'text' as const },
+			]),
+		).toBe('_color: red');
+	});
+
+	it('prefers the populated twin regardless of operand order', () => {
+		expect(
+			serializeProperties([
+				{ key: 'color', value: '', type: 'text' as const },
+				{ key: '_color', value: 'red', type: 'text' as const },
+			]),
+		).toBe('_color: red');
+	});
+
+	it('does not log when an empty placeholder is merged into a populated twin', () => {
+		const appendLogMock = vi.mocked(appendLog);
+		appendLogMock.mockClear();
+		serializeProperties([
+			{ key: '_color', value: 'red', type: 'text' as const },
+			{ key: 'color', value: '', type: 'text' as const },
+		]);
+		expect(appendLogMock).not.toHaveBeenCalled();
+	});
+
+	it('keeps the first value and logs when both twins are populated (no silent loss)', () => {
+		const appendLogMock = vi.mocked(appendLog);
+		appendLogMock.mockClear();
+		const result = serializeProperties([
+			{ key: '_color', value: 'red', type: 'text' as const },
+			{ key: 'color', value: 'blue', type: 'text' as const },
+		]);
+		expect(result).toBe('_color: red');
+		expect(appendLogMock).toHaveBeenCalledWith(
+			'PROPERTIES',
+			expect.stringContaining('canonical key collision'),
+		);
+	});
+});
+
+describe('setPropertyByBindTarget', () => {
+	it('updates the canonical twin in place when the bind target is an alias', () => {
+		// Existing canonical `_favorite`; a `favorite` bind target must update it,
+		// not append a duplicate that collapses on serialize.
+		const props = [{ key: '_favorite', value: 'false', type: 'text' as const }];
+		const result = setPropertyByBindTarget(props, 'favorite', 'true');
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual({ key: '_favorite', value: 'true', type: 'text' });
+	});
+
+	it('updates an existing property addressed by its canonical key and preserves its type', () => {
+		const props = [{ key: '_favorite', value: 'false', type: 'boolean' as const }];
+		const result = setPropertyByBindTarget(props, '_favorite', 'true');
+		expect(result).toHaveLength(1);
+		expect(result[0].value).toBe('true');
+		expect(result[0].type).toBe('boolean');
+	});
+
+	it('appends a new text property when no twin exists', () => {
+		const props = [{ key: 'title', value: 'Hi', type: 'text' as const }];
+		const result = setPropertyByBindTarget(props, 'status', 'done');
+		expect(result).toHaveLength(2);
+		expect(result[1]).toEqual({ key: 'status', value: 'done', type: 'text' });
+	});
+
+	it('does not mutate the input array', () => {
+		const props = [{ key: '_favorite', value: 'false', type: 'text' as const }];
+		setPropertyByBindTarget(props, 'favorite', 'true');
+		expect(props[0].value).toBe('false');
 	});
 });
 

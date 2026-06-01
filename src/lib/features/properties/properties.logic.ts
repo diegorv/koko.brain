@@ -200,33 +200,100 @@ export function serializePropertyValue(property: Property): string {
 	return str.startsWith('_: ') ? str.slice(3) : str.slice(str.indexOf(': ') + 2);
 }
 
+/** True when a property value carries no data (empty string, null, or empty list). */
+function isEmptyPropertyValue(value: Property['value']): boolean {
+	if (value === '' || value === null || value === undefined) return true;
+	if (Array.isArray(value) && value.length === 0) return true;
+	return false;
+}
+
+/**
+ * Collapses properties whose keys canonicalize to the same name into a single
+ * entry per canonical key, returning a new array with canonical keys.
+ *
+ * `yaml`'s `doc.set` is last-wins: if an alias and its canonical twin (e.g.
+ * `color` + `_color`) both reach serialization, the earlier value is silently
+ * destroyed. This resolves collisions deterministically instead: a populated
+ * value always beats an empty placeholder, and when two populated values
+ * collide the first is kept and the discarded one is logged (never silent).
+ * Order follows the first appearance of each canonical key.
+ */
+function dedupeCanonicalKeys(properties: Property[]): Property[] {
+	const byKey = new Map<string, Property>();
+	for (const p of properties) {
+		const key = canonicalizeKey(p.key);
+		const prev = byKey.get(key);
+		if (!prev) {
+			byKey.set(key, { ...p, key });
+			continue;
+		}
+		if (isEmptyPropertyValue(prev.value) && !isEmptyPropertyValue(p.value)) {
+			// Existing entry was a placeholder; the populated twin wins (Map.set
+			// keeps the original insertion position, so order is preserved).
+			byKey.set(key, { ...p, key });
+		} else if (!isEmptyPropertyValue(prev.value) && !isEmptyPropertyValue(p.value)) {
+			appendLog(
+				'PROPERTIES',
+				`canonical key collision on ${JSON.stringify(key)}: kept ${JSON.stringify(prev.value)}, discarded ${JSON.stringify(p.value)}`,
+			);
+		}
+		// else: prev already populated, or both empty -> keep prev.
+	}
+	return [...byKey.values()];
+}
+
 /**
  * Serializes an array of properties into a YAML frontmatter string (without delimiters).
  * Uses the `yaml` Document API for spec-compliant output with inline arrays.
  *
- * Each `p.key` is passed through `canonicalizeKey` before emission so that
+ * Keys are canonicalized (via `dedupeCanonicalKeys`) before emission so that
  * Property[] values constructed outside `parseFrontmatterProperties` (e.g. by
  * lifecycle.service, frontmatter-icon.service, deep-link.logic, type-definitions
  * service, or external producers) cannot accidentally write a non-canonical
- * alias. The call is idempotent for already-canonical keys.
+ * alias. When an alias and its canonical twin coexist they are merged rather
+ * than silently last-won (see `dedupeCanonicalKeys`). Idempotent for
+ * already-canonical, collision-free input.
  */
 export function serializeProperties(properties: Property[]): string {
 	if (properties.length === 0) return '';
 
 	const doc = new Document({});
 
-	for (const p of properties) {
-		const key = canonicalizeKey(p.key);
+	for (const p of dedupeCanonicalKeys(properties)) {
 		if (p.type === 'list') {
 			const seq = doc.createNode(p.value as string[]);
 			(seq as YAMLSeq).flow = true;
-			doc.set(key, seq);
+			doc.set(p.key, seq);
 		} else {
-			doc.set(key, p.value);
+			doc.set(p.key, p.value);
 		}
 	}
 
 	return doc.toString({ lineWidth: 0, flowCollectionPadding: false }).trimEnd();
+}
+
+/**
+ * Sets a property value addressed by a (possibly aliased) meta-bind bind target,
+ * matching on the canonical key. Updates the existing canonical property in
+ * place when present, otherwise appends a new text property. Returns a new array.
+ *
+ * Meta-bind bind targets are authored as raw keys (`INPUT[toggle():favorite]`),
+ * but `parseFrontmatterProperties` already canonicalizes parsed keys. Matching
+ * the raw target literally would miss the canonical twin, append a duplicate,
+ * and collide on serialize. Canonicalizing the match here keeps a single entry.
+ */
+export function setPropertyByBindTarget(
+	properties: Property[],
+	bindTarget: string,
+	value: string,
+): Property[] {
+	const key = canonicalizeKey(bindTarget);
+	if (properties.some((p) => canonicalizeKey(p.key) === key)) {
+		return properties.map((p) =>
+			canonicalizeKey(p.key) === key ? { ...p, key, value } : p,
+		);
+	}
+	return [...properties, { key, value, type: 'text' as const }];
 }
 
 /**

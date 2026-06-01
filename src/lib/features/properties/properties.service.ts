@@ -1,5 +1,6 @@
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
+import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
 import { propertiesStore } from './properties.store.svelte';
 import {
 	parseFrontmatterProperties,
@@ -80,7 +81,16 @@ export function upsertProperty(
  * @returns false if the new key already exists (prevents data loss on serialization)
  */
 export function renameProperty(oldKey: string, newKey: string): boolean {
-	if (propertiesStore.properties.some((p) => p.key === newKey && p.key !== oldKey)) return false;
+	// Compare canonically: renaming to an alias whose canonical twin already
+	// exists (e.g. -> `color` while `_color` is present) would collide on
+	// serialize and lose data. Reject it, honoring this function's contract.
+	const canonicalNew = canonicalizeKey(newKey);
+	if (
+		propertiesStore.properties.some(
+			(p) => p.key !== oldKey && canonicalizeKey(p.key) === canonicalNew,
+		)
+	)
+		return false;
 	const updated = renamePropertyKey(propertiesStore.properties, oldKey, newKey);
 	commitChanges(updated);
 	return true;
@@ -99,7 +109,11 @@ export function removePropertyByKey(key: string): void {
 export function addNewProperty(key: string): boolean {
 	const trimmed = key.trim();
 	if (!trimmed) return false;
-	if (propertiesStore.properties.some((p) => p.key === trimmed)) return false;
+	// Compare canonically: adding an alias (`color`) when its canonical twin
+	// (`_color`) already exists would collide on serialize and destroy the
+	// existing value. Reject the duplicate up front.
+	const canonical = canonicalizeKey(trimmed);
+	if (propertiesStore.properties.some((p) => canonicalizeKey(p.key) === canonical)) return false;
 	const updated = addProperty(propertiesStore.properties, trimmed);
 	commitChanges(updated);
 	return true;

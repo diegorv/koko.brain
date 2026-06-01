@@ -7,8 +7,7 @@ import { WIKILINK_DECORATION_RE } from '../wikilink/decoration.logic';
 import type { Property } from '$lib/features/properties/properties.types';
 import {
 	parseFrontmatterProperties,
-	updatePropertyValue,
-	addProperty,
+	setPropertyByBindTarget,
 	extractBody,
 	rebuildContent,
 } from '$lib/features/properties/properties.logic';
@@ -765,14 +764,7 @@ export function createMetaBindSelect(
 		const properties = parseFrontmatterProperties(doc);
 		const body = extractBody(doc);
 
-		const existing = properties.find((p) => p.key === bindTarget);
-		let updated;
-		if (existing) {
-			updated = updatePropertyValue(properties, bindTarget, selectedValue);
-		} else {
-			updated = addProperty(properties, bindTarget);
-			updated = updatePropertyValue(updated, bindTarget, selectedValue);
-		}
+		const updated = setPropertyByBindTarget(properties, bindTarget, selectedValue);
 
 		const newContent = rebuildContent(updated, body);
 		const frontmatterEnd = doc.length - body.length;
@@ -823,10 +815,7 @@ export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, new
 	const doc = view.state.doc.toString();
 	const properties = parseFrontmatterProperties(doc);
 	const body = extractBody(doc);
-	const existing = properties.find((p) => p.key === bindTarget);
-	let updated = existing
-		? updatePropertyValue(properties, bindTarget, newValue)
-		: updatePropertyValue(addProperty(properties, bindTarget), bindTarget, newValue);
+	const updated = setPropertyByBindTarget(properties, bindTarget, newValue);
 	const newContent = rebuildContent(updated, body);
 	const frontmatterEnd = doc.length - body.length;
 	const newFrontmatter = newContent.slice(0, newContent.length - body.length);

@@ -151,6 +151,21 @@ describe('renameProperty', () => {
 		expect(result).toBe(true);
 		expect(propertiesStore.properties[0].key).toBe('title');
 	});
+
+	it('rejects renaming to an alias whose canonical twin already exists (no data loss)', () => {
+		openTabWithContent('---\nfoo: bar\n_color: red\n---\n');
+		propertiesStore.setProperties([
+			{ key: 'foo', value: 'bar', type: 'text' },
+			{ key: '_color', value: 'red', type: 'text' },
+		]);
+
+		// `color` canonicalizes to `_color`, which already exists -> would collide.
+		const result = renameProperty('foo', 'color');
+
+		expect(result).toBe(false);
+		expect(propertiesStore.properties.find((p) => p.key === 'foo')).toBeDefined();
+		expect(propertiesStore.properties.find((p) => p.key === '_color')?.value).toBe('red');
+	});
 });
 
 describe('removePropertyByKey', () => {
@@ -219,6 +234,29 @@ describe('addNewProperty', () => {
 		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
 
 		const result = addNewProperty('title');
+
+		expect(result).toBe(false);
+		expect(propertiesStore.properties).toHaveLength(1);
+	});
+
+	it('rejects an alias key when its canonical twin already exists (no data loss)', () => {
+		// Color picker wrote `_color`; adding a literal `color` would collide on
+		// serialize and destroy the real value. Reject it.
+		openTabWithContent('---\n_color: red\n---\n');
+		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }]);
+
+		const result = addNewProperty('color');
+
+		expect(result).toBe(false);
+		expect(propertiesStore.properties).toHaveLength(1);
+		expect(propertiesStore.properties[0]).toEqual({ key: '_color', value: 'red', type: 'text' });
+	});
+
+	it('rejects a canonical key when its alias already exists', () => {
+		openTabWithContent('---\nis_a: Person\n---\n');
+		propertiesStore.setProperties([{ key: 'is_a', value: 'Person', type: 'text' }]);
+
+		const result = addNewProperty('type');
 
 		expect(result).toBe(false);
 		expect(propertiesStore.properties).toHaveLength(1);
