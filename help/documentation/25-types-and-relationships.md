@@ -13,7 +13,7 @@ Kokobrain implements the Portent model with some adaptations -- types are free-f
 
 ## Note Types
 
-Every note can declare a type via the `type` (or `is_a`) frontmatter field. Types are free-form strings -- you can use any name you want.
+Every note can declare a type via the `type` frontmatter field (stored canonically as `_type`). Types are free-form strings -- you can use any name you want.
 
 ```yaml
 ---
@@ -293,7 +293,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 
 | Alias | Canonical form | Used in |
 |-------|---------------|---------|
-| `is_a`, `is a` | `type` | Type sidebar grouping, collection filters, inbox workflow |
+| `type` | `_type` | Type sidebar grouping, collection filters, inbox workflow |
 | `organized` | `_organized` | Inbox filter tab, lifecycle actions in Properties panel |
 | `archived` | `_archived` | Archived filter tab, hidden from All/Favorites/Quick Switcher |
 | `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
@@ -313,7 +313,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 You can use either form in your frontmatter. The app normalizes them internally.
 
 > [!IMPORTANT]
-> The `is_a` alias for `type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.collection` / `.view` / inline `collection` blocks). The other system-flag aliases (`organized`, `archived`, `favorite`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name (`_organized`, `_archived`, `_favorite`). The `type` / `is_a` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.
+> The `type` alias for the canonical `_type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.collection` / `.view` / inline `collection` blocks). The other system-flag aliases (`organized`, `archived`, `favorite`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name (`_organized`, `_archived`, `_favorite`). The `type` / `_type` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. The legacy `is_a` / `is a` spellings are no longer recognised. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.
 
 ---
 

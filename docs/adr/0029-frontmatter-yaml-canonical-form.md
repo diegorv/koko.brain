@@ -65,7 +65,7 @@ Input order is preserved. `serializeProperties` iterates the Property[] in array
 
 ### Aliases
 
-Every key is passed through `canonicalizeKey` (`src/lib/utils/frontmatter-aliases.ts:30`) on both the parse path (`properties.logic.ts:135`) and the write path (`properties.logic.ts:208`). External producers writing alias keys (`favorite`, `icon`, `is_a`, …) see them normalised to canonical (`_favorite`, `_icon`, `type`, …) on the next disk round-trip.
+Every key is passed through `canonicalizeKey` (`src/lib/utils/frontmatter-aliases.ts:30`) on both the parse path (`properties.logic.ts:135`) and the write path (`properties.logic.ts:208`). External producers writing alias keys (`favorite`, `icon`, `type`, …) see them normalised to canonical (`_favorite`, `_icon`, `_type`, …) on the next disk round-trip.
 
 ### Drops
 

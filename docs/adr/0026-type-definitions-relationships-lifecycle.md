@@ -42,7 +42,7 @@ The Portent knowledge base spec provided a clean model for document types, seman
 
 ### Parsing
 
-All fields are parsed Rust-side in `NoteEntryV2::from_content` (`src-tauri/src/vault/entry.rs:220-258`). The `is_a` field maps `type:` values; `belongs_to`, `related_to`, and `relationships` are extracted from wikilink-containing frontmatter values; lifecycle booleans are extracted via `extract_bool_flag`. Results are available to TS consumers via `get_all_vault_entries_v2`.
+All fields are parsed Rust-side in `NoteEntryV2::from_content` (`src-tauri/src/vault/entry.rs:220-258`). The `is_a` field maps the canonical `_type:` key (the bare `type:` spelling is alias-resolved to `_type` at parse time); `belongs_to`, `related_to`, and `relationships` are extracted from wikilink-containing frontmatter values; lifecycle booleans are extracted via `extract_bool_flag`. Results are available to TS consumers via `get_all_vault_entries_v2`.
 
 ## Alternatives considered
 

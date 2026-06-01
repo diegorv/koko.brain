@@ -34,8 +34,7 @@ The block below is normative. Drop into a JSON parser and consume directly.
     "flowCollectionPadding": false
   },
   "aliases": {
-    "is_a": "type",
-    "is a": "type",
+    "type": "_type",
     "organized": "_organized",
     "archived": "_archived",
     "favorite": "_favorite",

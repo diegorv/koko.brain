@@ -1,5 +1,5 @@
 ---
-is_a: Meeting
+type: Meeting
 date: 2026-05-20
 attendees:
   - "[[person-alice]]"

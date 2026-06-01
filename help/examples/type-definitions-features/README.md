@@ -40,11 +40,11 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 | `event-product-launch.md` | Event with date, `_belongs_to` Project, multiple relationships |
 | `note-portent-overview.md` | Note with `_belongs_to` and `_related_to`, reference material |
 | `meeting-kickoff.md` | Untyped note with `_belongs_to` relationship |
-| `meeting-weekly-standup.md` | Meeting note using `is_a` alias, with `_order` and attendees |
+| `meeting-weekly-standup.md` | Meeting note with `type`, `_order`, and attendees |
 
 ## How types work
 
-1. Notes declare their type via `type: Project` (or `is_a: Project`) in frontmatter.
+1. Notes declare their type via `type: Project` in frontmatter (stored canonically as `_type`).
 2. Type definition notes (`type: Type`) customize how each type appears in the sidebar.
 3. The type sidebar groups notes by type and supports filtering by lifecycle state.
 4. View files (`.view`) define saved filter queries that appear as sidebar nav items alongside types.

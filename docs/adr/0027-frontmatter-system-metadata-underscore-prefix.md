@@ -18,8 +18,8 @@ Previously, file icons were stored in a separate JSON file (`.kokobrain/file-ico
 
 ### Convention
 
-- System metadata fields that control app behavior use `_` prefix: `_icon`, `_color`, `_title_color`, `_order`, `_sort`, `_organized`, `_archived`, `_favorite`, `_sidebar_label`, `_template`, `_view`, `_visible`, `_list_properties_display`.
-- User content fields have no prefix: `type`, `belongs_to`, `related_to`, `tags`, `title`.
+- System metadata fields that control app behavior use `_` prefix: `_type`, `_icon`, `_color`, `_title_color`, `_order`, `_sort`, `_organized`, `_archived`, `_favorite`, `_sidebar_label`, `_template`, `_view`, `_visible`, `_list_properties_display`.
+- User content fields have no prefix: `belongs_to`, `related_to`, `tags`, `title`.
 - The `_` prefix signals "managed by the app" -- users can edit these fields manually, but the app may also write them programmatically (icon picker, lifecycle actions, type definition settings).
 
 ### Alias resolution
@@ -30,7 +30,7 @@ Key aliases:
 - `icon` -> `_icon`, `color` -> `_color`, `title_color` -> `_title_color`
 - `organized` -> `_organized`, `archived` -> `_archived`, `favorite` -> `_favorite`
 - `order` -> `_order`, `sort` -> `_sort`, `template` -> `_template`
-- `is_a` / `is a` -> `type`
+- `type` -> `_type` (the legacy `is_a` / `is a` spellings were dropped)
 - `belongs to` -> `belongs_to`, `related to` -> `related_to`
 - `sidebar_label` / `sidebar label` -> `_sidebar_label`
 

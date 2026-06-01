@@ -38,7 +38,7 @@ aliases are dropped entirely.
   - TS tests: `frontmatter-aliases.test.ts`, `evaluator.test.ts`.
   - Verify: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` +
     `pnpm vitest run`. Commit.
-- [ ] Task 2: Update docs + example vault.
+- [x] Task 2: Update docs + example vault.
   - ADR-0027 (reclassify `type` -> `_type` system metadata), ADR-0026, ADR-0029.
   - `help/documentation/25-types-and-relationships.md`, `12-collection.md`,
     `docs/specs/frontmatter-canonical-form.md`, QueryJS doc (`page.type` -> `page._type`).

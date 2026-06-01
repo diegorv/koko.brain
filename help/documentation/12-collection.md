@@ -370,28 +370,28 @@ A few specifics about how the engine resolves values that are easy to trip over 
 
 #### `type` is stored capitalised, but compared case-insensitively
 
-Whatever you write in the `type:` frontmatter is normalised to first-letter-uppercase before it reaches the filter engine. A note with `type: person` is queried as `"Person"`. When you compare against the `type` identifier (or its alias `is_a`) the engine uses case-insensitive equality, so all four forms below match the same notes:
+Whatever you write in the `type:` frontmatter is normalised to first-letter-uppercase before it reaches the filter engine. A note with `type: person` is queried as `"Person"`. When you compare against the `type` identifier (or its canonical form `_type`) the engine uses case-insensitive equality, so all four forms below match the same notes:
 
 ```yaml
-filters: 'type == "Person"'   # matches
-filters: 'type == "person"'   # matches
-filters: 'type == "PERSON"'   # matches
-filters: 'is_a == "person"'   # matches (is_a == type)
+filters: 'type == "Person"'    # matches
+filters: 'type == "person"'    # matches
+filters: 'type == "PERSON"'    # matches
+filters: '_type == "person"'   # matches (type == _type)
 ```
 
-The relaxed comparison is scoped to the `type` / `is_a` identifier only -- equality against other fields stays case-sensitive (`name == "alice"` will NOT match a note with `name: Alice`). It also only applies to `==` and `!=`; ordering operators (`<`, `>`, etc.) are not affected because the `type` field is a string label, not an ordered scalar.
+The relaxed comparison is scoped to the `type` / `_type` identifier only -- equality against other fields stays case-sensitive (`name == "alice"` will NOT match a note with `name: Alice`). It also only applies to `==` and `!=`; ordering operators (`<`, `>`, etc.) are not affected because the `type` field is a string label, not an ordered scalar.
 
 #### Frontmatter aliases in filter identifiers
 
-`is_a` (and the spaced form `is a`) is recognised as an alias for `type` both when parsing the note's frontmatter AND when used as an identifier in a filter expression. `is_a == "Person"` and `type == "Person"` are equivalent.
+`type` is an alias for the canonical `_type` key both when parsing the note's frontmatter AND when used as an identifier in a filter expression. `type == "Person"` and `_type == "Person"` are equivalent. (The legacy `is_a` / `is a` spellings are no longer recognised.)
 
 ```yaml
 # Note frontmatter accepts either spelling
-is_a: Project        # equivalent to: type: Project
+type: Project         # stored canonically as: _type: Project
 
 # Filter expressions accept either identifier
-filters: 'type == "Project"'   # works
-filters: 'is_a == "Project"'   # also works
+filters: 'type == "Project"'    # works
+filters: '_type == "Project"'   # also works
 ```
 
 Other system-flag aliases (`organized`, `archived`, `favorite`, etc. -- see the full list in [Types & Relationships > Frontmatter Key Aliases](25-types-and-relationships.md#frontmatter-key-aliases)) are recognised only on the frontmatter side. In filter expressions, use the canonical name (`_organized`, `_archived`, `_favorite`).
