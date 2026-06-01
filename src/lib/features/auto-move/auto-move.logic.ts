@@ -111,7 +111,7 @@ export function resolveDestination(
 		folder: relFolder,
 		parent: parentFolder,
 		basename: record.basename,
-		type: String(record.properties.get('type') ?? ''),
+		type: String(record.properties.get('_type') ?? ''),
 		status: String(record.properties.get('status') ?? ''),
 		year: String(now.getFullYear()),
 		month: String(now.getMonth() + 1).padStart(2, '0'),

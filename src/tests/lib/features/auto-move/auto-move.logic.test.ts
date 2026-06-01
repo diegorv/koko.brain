@@ -7,6 +7,7 @@ import {
 	generateRuleId,
 	resolveDestination,
 } from '$lib/features/auto-move/auto-move.logic';
+import { buildNoteRecord } from '$lib/features/collection/collection.logic';
 import type { AutoMoveRule } from '$lib/features/auto-move/auto-move.types';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 
@@ -254,10 +255,21 @@ describe('resolveDestination', () => {
 	});
 
 	it('resolves {type} and {status} from properties', () => {
+		// `{type}` reads the canonical `_type` key (frontmatter `type:` is
+		// aliased to `_type` at parse time); `status` is a plain user key.
 		const record = makeRecord();
-		record.properties.set('type', 'project');
+		record.properties.set('_type', 'project');
 		record.properties.set('status', 'done');
 		expect(resolveDestination('archive/{type}/{status}', record, vaultPath)).toBe('archive/project/done');
+	});
+
+	it('resolves {type} through the real buildNoteRecord parse path', () => {
+		// Regression guard: buildNoteRecord canonicalises the bare `type:`
+		// frontmatter key to `_type`, so resolveDestination must read `_type`.
+		// A hand-set `type` key would mask the alias mismatch and pass even
+		// when the real flow resolves `{type}` to an empty string.
+		const record = buildNoteRecord('/Users/me/vault/inbox/note.md', '---\ntype: Project\n---\n');
+		expect(resolveDestination('archive/{type}', record, vaultPath)).toBe('archive/Project');
 	});
 
 	it('resolves {year} and {month}', () => {
@@ -299,7 +311,7 @@ describe('resolveDestination', () => {
 
 	it('resolves multiple variables in one template', () => {
 		const record = makeRecord({ folder: '/Users/me/vault/work', basename: 'My-Note' });
-		record.properties.set('type', 'task');
+		record.properties.set('_type', 'task');
 		expect(resolveDestination('{folder}/_archive/{type}/{basename}', record, vaultPath)).toBe('work/_archive/task/My-Note');
 	});
 });
