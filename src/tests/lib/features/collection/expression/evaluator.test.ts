@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluate, evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
-import { parse } from '$lib/features/collection/expression/parser';
+import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 
 function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
@@ -195,44 +194,45 @@ describe('evaluate', () => {
 			expect(evaluateExpression('property.status', ctx)).toBe('done');
 		});
 
-		describe('frontmatter aliases (is_a -> type)', () => {
-			it('resolves bare is_a identifier to the type property', () => {
-				const ctx = makeCtx({ type: 'Person' });
-				expect(evaluateExpression('is_a', ctx)).toBe('Person');
+		describe('frontmatter aliases (type -> _type)', () => {
+			it('resolves bare type identifier to the canonical _type property', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				expect(evaluateExpression('type', ctx)).toBe('Person');
 			});
 
-			it('compares is_a == "Person" against the stored type value', () => {
-				const ctx = makeCtx({ type: 'Person' });
-				expect(evaluateExpression('is_a == "Person"', ctx)).toBe(true);
-				expect(evaluateExpression('is_a == "Project"', ctx)).toBe(false);
+			it('resolves the canonical _type identifier directly', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				expect(evaluateExpression('_type', ctx)).toBe('Person');
 			});
 
-			it('resolves note.is_a via the namespace prefix', () => {
-				const ctx = makeCtx({ type: 'Project' });
-				expect(evaluateExpression('note.is_a', ctx)).toBe('Project');
+			it('compares type == "Person" against the stored _type value', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				expect(evaluateExpression('type == "Person"', ctx)).toBe(true);
+				expect(evaluateExpression('type == "Project"', ctx)).toBe(false);
 			});
 
-			it('resolves property.is_a via the namespace prefix', () => {
-				const ctx = makeCtx({ type: 'Task' });
-				expect(evaluateExpression('property.is_a', ctx)).toBe('Task');
+			it('resolves note.type / property.type via the namespace prefix', () => {
+				const ctx = makeCtx({ _type: 'Project' });
+				expect(evaluateExpression('note.type', ctx)).toBe('Project');
+				expect(evaluateExpression('property.type', ctx)).toBe('Project');
 			});
 
-			it('returns null when neither type nor is_a is set', () => {
+			it('returns null when the type is not set', () => {
 				const ctx = makeCtx({});
-				expect(evaluateExpression('is_a', ctx)).toBeNull();
-				expect(evaluateExpression('note.is_a', ctx)).toBeNull();
+				expect(evaluateExpression('type', ctx)).toBeNull();
+				expect(evaluateExpression('note.type', ctx)).toBeNull();
 			});
 
-			it('does not affect lookup of unrelated identifiers ending in is_a', () => {
-				const ctx = makeCtx({ this_is_a_field: 'unrelated', type: 'Person' });
-				// `this_is_a_field` must NOT be aliased; only the exact identifier `is_a` is.
-				expect(evaluateExpression('this_is_a_field', ctx)).toBe('unrelated');
+			it('does not resolve the dropped is_a alias', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				// `is_a` is no longer an alias; it looks up a (missing) `is_a` property.
+				expect(evaluateExpression('is_a', ctx)).toBeNull();
 			});
 		});
 
-		describe('case-insensitive equality for type / is_a', () => {
+		describe('case-insensitive equality for type / _type', () => {
 			it('matches lowercase RHS against capitalised stored type', () => {
-				const ctx = makeCtx({ type: 'Person' });
+				const ctx = makeCtx({ _type: 'Person' });
 				expect(evaluateExpression('type == "person"', ctx)).toBe(true);
 				expect(evaluateExpression('type == "Person"', ctx)).toBe(true);
 				expect(evaluateExpression('type == "PERSON"', ctx)).toBe(true);
@@ -240,32 +240,31 @@ describe('evaluate', () => {
 			});
 
 			it('matches when the identifier sits on the RHS of ==', () => {
-				const ctx = makeCtx({ type: 'Person' });
+				const ctx = makeCtx({ _type: 'Person' });
 				expect(evaluateExpression('"person" == type', ctx)).toBe(true);
 				expect(evaluateExpression('"PERSON" == type', ctx)).toBe(true);
 			});
 
 			it('returns false for !=', () => {
-				const ctx = makeCtx({ type: 'Person' });
+				const ctx = makeCtx({ _type: 'Person' });
 				expect(evaluateExpression('type != "person"', ctx)).toBe(false);
 				expect(evaluateExpression('type != "project"', ctx)).toBe(true);
 			});
 
-			it('applies the relaxed comparison to the is_a alias too', () => {
-				const ctx = makeCtx({ type: 'Person' });
-				expect(evaluateExpression('is_a == "person"', ctx)).toBe(true);
-				expect(evaluateExpression('is_a != "project"', ctx)).toBe(true);
+			it('applies the relaxed comparison to the canonical _type identifier too', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				expect(evaluateExpression('_type == "person"', ctx)).toBe(true);
+				expect(evaluateExpression('_type != "project"', ctx)).toBe(true);
 			});
 
 			it('works through note.type and property.type member access', () => {
-				const ctx = makeCtx({ type: 'Project' });
+				const ctx = makeCtx({ _type: 'Project' });
 				expect(evaluateExpression('note.type == "project"', ctx)).toBe(true);
 				expect(evaluateExpression('property.type == "PROJECT"', ctx)).toBe(true);
-				expect(evaluateExpression('note.is_a == "project"', ctx)).toBe(true);
 			});
 
 			it('keeps comparisons of unrelated string fields strictly case-sensitive', () => {
-				const ctx = makeCtx({ type: 'Person', name: 'Alice' });
+				const ctx = makeCtx({ _type: 'Person', name: 'Alice' });
 				expect(evaluateExpression('name == "Alice"', ctx)).toBe(true);
 				expect(evaluateExpression('name == "alice"', ctx)).toBe(false);
 				expect(evaluateExpression('name == "ALICE"', ctx)).toBe(false);
@@ -280,25 +279,25 @@ describe('evaluate', () => {
 			it('keeps type == <otherField> case-sensitive (does not lowercase the other field)', () => {
 				// Headline repro: comparing the type field against ANOTHER property
 				// must not silently lowercase that property's value.
-				const ctx = makeCtx({ type: 'PERSON', status: 'person' });
+				const ctx = makeCtx({ _type: 'PERSON', status: 'person' });
 				expect(evaluateExpression('type == status', ctx)).toBe(false);
 				expect(evaluateExpression('type != status', ctx)).toBe(true);
 			});
 
 			it('keeps <otherField> == type case-sensitive when reversed', () => {
-				const ctx = makeCtx({ type: 'PERSON', status: 'person' });
+				const ctx = makeCtx({ _type: 'PERSON', status: 'person' });
 				expect(evaluateExpression('status == type', ctx)).toBe(false);
 				expect(evaluateExpression('status != type', ctx)).toBe(true);
 			});
 
 			it('matches type == <otherField> only when the actual stored cases agree', () => {
-				const ctx = makeCtx({ type: 'Person', role: 'Person' });
+				const ctx = makeCtx({ _type: 'Person', role: 'Person' });
 				expect(evaluateExpression('type == role', ctx)).toBe(true);
 				expect(evaluateExpression('type != role', ctx)).toBe(false);
 			});
 
 			it('keeps cross-field comparison case-sensitive through member access', () => {
-				const ctx = makeCtx({ type: 'PERSON', status: 'person' });
+				const ctx = makeCtx({ _type: 'PERSON', status: 'person' });
 				expect(evaluateExpression('note.type == status', ctx)).toBe(false);
 				expect(evaluateExpression('property.type == status', ctx)).toBe(false);
 			});
@@ -307,7 +306,7 @@ describe('evaluate', () => {
 				// Only == / != are case-insensitive for type; >= / <= must compare
 				// the stored case. If case were folded, 'Person' and 'PERSON' would
 				// be equal and BOTH >= and <= would hold — they must not.
-				const ctx = makeCtx({ type: 'Person' });
+				const ctx = makeCtx({ _type: 'Person' });
 				const bothHold =
 					evaluateExpression('type >= "PERSON"', ctx) === true &&
 					evaluateExpression('type <= "PERSON"', ctx) === true;
@@ -315,13 +314,13 @@ describe('evaluate', () => {
 			});
 
 			it('handles a numeric type value against a numeric literal', () => {
-				const ctx = makeCtx({ type: 3 });
+				const ctx = makeCtx({ _type: 3 });
 				expect(evaluateExpression('type == 3', ctx)).toBe(true);
 				expect(evaluateExpression('type != 4', ctx)).toBe(true);
 			});
 
 			it('handles a boolean type value against a boolean literal', () => {
-				const ctx = makeCtx({ type: true });
+				const ctx = makeCtx({ _type: true });
 				expect(evaluateExpression('type == true', ctx)).toBe(true);
 				expect(evaluateExpression('type != false', ctx)).toBe(true);
 			});

@@ -2445,18 +2445,28 @@ mod tests {
 	// --- Frontmatter alias normalization -----------------------------------------
 
 	#[test]
-	fn parse_frontmatter_normalizes_is_a_to_type() {
-		let content = "---\nis_a: person\ntitle: Bob\n---\n";
+	fn parse_frontmatter_normalizes_type_to_underscore_type() {
+		let content = "---\ntype: person\ntitle: Bob\n---\n";
 		let fm = parse_frontmatter(content);
-		assert_eq!(fm.get("type"), Some(&json!("person")));
-		assert!(fm.get("is_a").is_none());
+		assert_eq!(fm.get("_type"), Some(&json!("person")));
+		assert!(fm.get("type").is_none());
+	}
+
+	#[test]
+	fn parse_frontmatter_does_not_alias_dropped_is_a() {
+		// `is_a` / `is a` are no longer recognised aliases; they pass through
+		// verbatim and do not become the canonical `_type` key.
+		let content = "---\nis_a: person\nis a: place\n---\n";
+		let fm = parse_frontmatter(content);
+		assert!(fm.get("_type").is_none());
+		assert_eq!(fm.get("is_a"), Some(&json!("person")));
+		assert_eq!(fm.get("is a"), Some(&json!("place")));
 	}
 
 	#[test]
 	fn parse_frontmatter_normalizes_space_aliases() {
-		let content = "---\nis a: place\nsidebar label: Places\n---\n";
+		let content = "---\nsidebar label: Places\n---\n";
 		let fm = parse_frontmatter(content);
-		assert_eq!(fm.get("type"), Some(&json!("place")));
 		assert_eq!(fm.get("_sidebar_label"), Some(&json!("Places")));
 	}
 
@@ -2505,10 +2515,10 @@ mod tests {
 
 	#[test]
 	fn parse_frontmatter_leaves_canonical_keys_unchanged() {
-		let content = "---\n_icon: star\ntype: note\n_organized: true\n---\n";
+		let content = "---\n_icon: star\n_type: note\n_organized: true\n---\n";
 		let fm = parse_frontmatter(content);
 		assert_eq!(fm.get("_icon"), Some(&json!("star")));
-		assert_eq!(fm.get("type"), Some(&json!("note")));
+		assert_eq!(fm.get("_type"), Some(&json!("note")));
 		assert_eq!(fm.get("_organized"), Some(&json!(true)));
 	}
 

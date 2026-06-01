@@ -34,14 +34,14 @@ export async function createNoteOfType(typeName: string): Promise<void> {
 	const templatePath = metadata?.template
 		? `${vaultStore.path}/${metadata.template}`
 		: undefined;
-	const inlineTemplate = `---\ntype: ${typeName}\n---\n`;
+	const inlineTemplate = `---\n_type: ${typeName}\n---\n`;
 	await openOrCreateNote({ filePath, templatePath, inlineTemplate, title });
 }
 
 /** Creates a type definition note with default frontmatter and opens it. */
 export async function createTypeDefinition(typeName: string): Promise<void> {
 	if (!vaultStore.path) return;
-	const content = `---\ntype: Type\n_visible: true\n---\n\n# ${typeName}\n`;
+	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
 	const filePath = await createFile(vaultStore.path, `${typeName}.md`);
 	if (!filePath) return;
 	await writeTextFile(filePath, content);

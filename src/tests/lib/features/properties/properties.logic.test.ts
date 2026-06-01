@@ -411,21 +411,21 @@ describe('serializeProperties', () => {
 		expect(serializeProperties([])).toBe('');
 	});
 
-	it('canonicalizes alias keys on write (favorite -> _favorite)', () => {
+	it('canonicalizes alias keys on write (favorite -> _favorite, type -> _type)', () => {
 		const props = [
 			{ key: 'favorite', value: true, type: 'boolean' as const },
 			{ key: 'icon', value: 'star', type: 'text' as const },
-			{ key: 'is_a', value: 'person', type: 'text' as const },
+			{ key: 'type', value: 'person', type: 'text' as const },
 		];
-		expect(serializeProperties(props)).toBe('_favorite: true\n_icon: star\ntype: person');
+		expect(serializeProperties(props)).toBe('_favorite: true\n_icon: star\n_type: person');
 	});
 
 	it('leaves already-canonical keys unchanged', () => {
 		const props = [
 			{ key: '_favorite', value: true, type: 'boolean' as const },
-			{ key: 'type', value: 'person', type: 'text' as const },
+			{ key: '_type', value: 'person', type: 'text' as const },
 		];
-		expect(serializeProperties(props)).toBe('_favorite: true\ntype: person');
+		expect(serializeProperties(props)).toBe('_favorite: true\n_type: person');
 	});
 
 	it('merges an alias and its canonical twin, preferring the populated value', () => {
@@ -608,7 +608,7 @@ describe('canonical form snapshot (serializeProperties)', () => {
 			{ key: 'name', value: 'Diego', type: 'text' as const },
 		];
 		expect(serializeProperties(props)).toBe(
-			'type: person\n_organized: "true"\n_archived: "false"\n_favorite: true\ncreated: 2026-05-31\nname: Diego',
+			'_type: person\n_organized: "true"\n_archived: "false"\n_favorite: true\ncreated: 2026-05-31\nname: Diego',
 		);
 	});
 
@@ -631,7 +631,7 @@ describe('canonical form snapshot (serializeProperties)', () => {
 			{ key: '_reports_to', value: '[[John-Smith]]', type: 'text' as const },
 		];
 		const expected = [
-			'type: person',
+			'_type: person',
 			'_organized: "true"',
 			'_archived: "false"',
 			'created: 2026-05-31',
@@ -831,16 +831,23 @@ describe('round-trip: parse → serialize → rebuild', () => {
 });
 
 describe('frontmatter alias normalization', () => {
-	it('normalizes is_a to type', () => {
-		const content = '---\nis_a: person\n---\n';
+	it('normalizes type to _type', () => {
+		const content = '---\ntype: person\n---\n';
 		const props = parseFrontmatterProperties(content);
-		expect(props[0]).toEqual({ key: 'type', value: 'person', type: 'text' });
+		expect(props[0]).toEqual({ key: '_type', value: 'person', type: 'text' });
+	});
+
+	it('does not alias the dropped is_a / is a spellings', () => {
+		const content = '---\nis_a: person\nis a: place\n---\n';
+		const props = parseFrontmatterProperties(content);
+		expect(props.find((p) => p.key === '_type')).toBeUndefined();
+		expect(props.find((p) => p.key === 'is_a')?.value).toBe('person');
+		expect(props.find((p) => p.key === 'is a')?.value).toBe('place');
 	});
 
 	it('normalizes space-separated aliases', () => {
-		const content = '---\nis a: place\nsidebar label: Places\n---\n';
+		const content = '---\nsidebar label: Places\n---\n';
 		const props = parseFrontmatterProperties(content);
-		expect(props.find((p) => p.key === 'type')?.value).toBe('place');
 		expect(props.find((p) => p.key === '_sidebar_label')?.value).toBe('Places');
 	});
 
@@ -871,10 +878,10 @@ describe('frontmatter alias normalization', () => {
 	});
 
 	it('leaves already-canonical keys unchanged', () => {
-		const content = '---\n_icon: star\ntype: note\n---\n';
+		const content = '---\n_icon: star\n_type: note\n---\n';
 		const props = parseFrontmatterProperties(content);
 		expect(props.find((p) => p.key === '_icon')?.value).toBe('star');
-		expect(props.find((p) => p.key === 'type')?.value).toBe('note');
+		expect(props.find((p) => p.key === '_type')?.value).toBe('note');
 	});
 });
 

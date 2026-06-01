@@ -179,7 +179,8 @@ pub struct NoteEntry {
 	/// `vault::parsing::extract_tasks` at construction time. Empty Vec when
 	/// the note has no tasks.
 	pub tasks: Vec<Task>,
-	/// Document type from the `type` frontmatter key (after alias resolution).
+	/// Document type from the `_type` frontmatter key (after alias resolution;
+	/// the bare `type` spelling resolves to `_type`).
 	/// Casing normalized: first letter uppercase, rest preserved.
 	/// `None` when the note has no type field.
 	pub is_a: Option<String>,
@@ -328,11 +329,12 @@ fn compute_snippet(body: &str) -> String {
 	snippet
 }
 
-/// Extracts the `type` value from parsed frontmatter and normalizes casing
-/// (first letter uppercase, rest preserved). Returns `None` when absent or
-/// not a string.
+/// Extracts the `_type` value from parsed frontmatter and normalizes casing
+/// (first letter uppercase, rest preserved). Keys are already alias-resolved
+/// at parse time, so a note authored with the bare `type:` spelling lands
+/// here under `_type`. Returns `None` when absent or not a string.
 fn extract_is_a(frontmatter: &BTreeMap<String, JsonValue>) -> Option<String> {
-	let val = frontmatter.get("type")?;
+	let val = frontmatter.get("_type")?;
 	let s = val.as_str()?;
 	if s.is_empty() {
 		return None;
@@ -380,7 +382,7 @@ fn extract_wikilink_targets(frontmatter: &BTreeMap<String, JsonValue>, key: &str
 /// wikilinks in their values. Returns a map of field name -> wikilink targets.
 fn extract_all_relationships(frontmatter: &BTreeMap<String, JsonValue>) -> BTreeMap<String, Vec<String>> {
 	const SYSTEM_KEYS: &[&str] = &[
-		"type", "_belongs_to", "_related_to", "_has_many",
+		"_type", "_belongs_to", "_related_to", "_has_many",
 		"_organized", "_archived", "_favorite",
 		"_order", "_sort", "_icon", "_sidebar_label",
 		"_color", "_title_color", "_template", "_view", "_visible",
@@ -811,10 +813,19 @@ mod tests {
 	}
 
 	#[test]
-	fn from_content_is_a_via_alias_is_a() {
-		let content = "---\nis_a: Person\n---\n";
+	fn from_content_is_a_via_canonical_underscore_type() {
+		let content = "---\n_type: Person\n---\n";
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert_eq!(entry.is_a, Some("Person".to_string()));
+	}
+
+	#[test]
+	fn from_content_is_a_ignores_dropped_is_a_alias() {
+		// `is_a` / `is a` are no longer recognised; they stay as plain
+		// user frontmatter fields and do not populate the document type.
+		let content = "---\nis_a: Person\n---\n";
+		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+		assert_eq!(entry.is_a, None);
 	}
 
 	#[test]

@@ -665,7 +665,7 @@ pub fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 	};
 	let mut properties = entry.frontmatter.clone();
 	if let Some(ref is_a) = entry.is_a {
-		properties.insert("type".to_string(), serde_json::Value::String(is_a.clone()));
+		properties.insert("_type".to_string(), serde_json::Value::String(is_a.clone()));
 	}
 	properties.insert("organized".to_string(), serde_json::Value::Bool(entry.organized));
 	properties.insert("archived".to_string(), serde_json::Value::Bool(entry.archived));

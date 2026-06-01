@@ -253,9 +253,10 @@ describe('addNewProperty', () => {
 	});
 
 	it('rejects a canonical key when its alias already exists', () => {
-		openTabWithContent('---\nis_a: Person\n---\n');
-		propertiesStore.setProperties([{ key: 'is_a', value: 'Person', type: 'text' }]);
+		openTabWithContent('---\n_type: Person\n---\n');
+		propertiesStore.setProperties([{ key: '_type', value: 'Person', type: 'text' }]);
 
+		// `type` is an alias for the canonical `_type`, which already exists.
 		const result = addNewProperty('type');
 
 		expect(result).toBe(false);

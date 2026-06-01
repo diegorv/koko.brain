@@ -84,14 +84,14 @@
 		}
 	}
 
-	let typeProperty = $derived(propertiesStore.properties.find((p) => p.key === 'type'));
+	let typeProperty = $derived(propertiesStore.properties.find((p) => p.key === '_type'));
 	let typeMetadata = $derived(typeProperty ? typeDefinitionsStore.getTypeMetadata(String(typeProperty.value)) : undefined);
 	let availableTypes = $derived(typeDefinitionsStore.sortedTypes);
 
 	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
 	let sortedProperties = $derived(
 		[...propertiesStore.properties]
-			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !RELATIONSHIP_KEYS.has(p.key) && p.key !== 'type')
+			.filter((p) => !LIFECYCLE_KEYS.has(p.key) && !RELATIONSHIP_KEYS.has(p.key) && p.key !== '_type')
 			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
@@ -198,7 +198,7 @@
 								{#each availableTypes as t (t.name)}
 									{@const tIcon = resolveIconForType(t.name)}
 									<DropdownMenu.Item
-										onclick={() => handleUpdate('type', t.name)}
+										onclick={() => handleUpdate('_type', t.name)}
 									>
 										{#if tIcon}
 											<IconRenderer icon={tIcon.icon} class="size-4 shrink-0" color={tIcon.color} />

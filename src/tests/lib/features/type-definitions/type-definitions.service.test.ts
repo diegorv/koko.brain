@@ -96,7 +96,7 @@ describe('createNoteOfType', () => {
 		expect(openOrCreateNote).toHaveBeenCalledWith({
 			filePath: '/vault/Untitled Project.md',
 			templatePath: undefined,
-			inlineTemplate: '---\ntype: Project\n---\n',
+			inlineTemplate: '---\n_type: Project\n---\n',
 			title: 'Untitled Project',
 		});
 	});
@@ -114,7 +114,7 @@ describe('createNoteOfType', () => {
 		expect(openOrCreateNote).toHaveBeenCalledWith({
 			filePath: '/vault/Untitled Person.md',
 			templatePath: '/vault/_system/templates/Person.md',
-			inlineTemplate: '---\ntype: Person\n---\n',
+			inlineTemplate: '---\n_type: Person\n---\n',
 			title: 'Untitled Person',
 		});
 	});
@@ -163,7 +163,7 @@ describe('createTypeDefinition', () => {
 		expect(createFile).toHaveBeenCalledWith('/vault', 'Sprint.md');
 		expect(writeTextFile).toHaveBeenCalledWith(
 			'/vault/Sprint.md',
-			'---\ntype: Type\n_visible: true\n---\n\n# Sprint\n',
+			'---\n_type: Type\n_visible: true\n---\n\n# Sprint\n',
 		);
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Sprint.md');
 	});

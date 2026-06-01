@@ -223,7 +223,7 @@ fn project_record_is_a_injected_as_type() {
 	entry.is_a = Some("Person".to_string());
 	let rec = project_note_record(&entry);
 	assert_eq!(
-		rec.properties.get("type"),
+		rec.properties.get("_type"),
 		Some(&serde_json::Value::String("Person".to_string()))
 	);
 }

@@ -29,8 +29,8 @@ function baseView(overrides: Partial<CollectionViewDef> = {}): CollectionViewDef
 describe('Portent collection filters', () => {
 	it('filters by type equals', () => {
 		const index = makeIndex([
-			makeRecord('/a.md', { type: 'Project' }),
-			makeRecord('/b.md', { type: 'Person' }),
+			makeRecord('/a.md', { _type: 'Project' }),
+			makeRecord('/b.md', { _type: 'Person' }),
 			makeRecord('/c.md', {}),
 		]);
 		const def = baseDef("type == 'Project'");
@@ -101,9 +101,9 @@ describe('Portent collection filters', () => {
 
 	it('combines type and archived filters', () => {
 		const index = makeIndex([
-			makeRecord('/a.md', { type: 'Project', archived: false }),
-			makeRecord('/b.md', { type: 'Project', archived: true }),
-			makeRecord('/c.md', { type: 'Person', archived: false }),
+			makeRecord('/a.md', { _type: 'Project', archived: false }),
+			makeRecord('/b.md', { _type: 'Project', archived: true }),
+			makeRecord('/c.md', { _type: 'Person', archived: false }),
 		]);
 		const def = baseDef({ and: ["type == 'Project'", "archived == false"] });
 		const result = executeQuery(def, baseView(), index);

@@ -77,15 +77,16 @@ export function evaluateExpression(expression: string, ctx: EvalContext): unknow
  *
  * Mirrors the parser-side aliases documented in
  * `help/documentation/25-types-and-relationships.md::Frontmatter Key Aliases`
- * (the source-of-truth list). When the user writes `is_a == "Person"` we
- * resolve it to the same value as `type == "Person"`.
+ * (the source-of-truth list). The canonical document-type key is `_type`
+ * (system metadata, like `_organized`); the bare `type` identifier resolves
+ * to it so `type == "Person"` matches the stored `_type` value. The legacy
+ * `is_a` / `is a` aliases were dropped.
  *
  * Keys are the alias as written in the expression; values are the canonical
  * property name to look up in `record.properties`.
  */
 const IDENTIFIER_ALIASES: Record<string, string> = {
-	is_a: 'type',
-	'is a': 'type',
+	type: '_type',
 };
 
 /** Returns the canonical property name for an identifier, applying aliases. */
@@ -94,26 +95,26 @@ function canonicalPropertyName(name: string): string {
 }
 
 /**
- * Returns true when the AST node resolves the note's `type` property
- * (either as the bare `type` / `is_a` identifier or via a `note.` /
- * `property.` member access).
+ * Returns true when the AST node resolves the note's `_type` property
+ * (as the bare `type` identifier — which aliases to `_type` — the canonical
+ * `_type` identifier, or a `note.` / `property.` member access to either).
  *
- * Used by `evaluateBinary` to make `==` / `!=` against the `type` field
+ * Used by `evaluateBinary` to make `==` / `!=` against the type field
  * case-insensitive. The Rust side normalises the stored value to
  * first-letter-uppercase in `src-tauri/src/vault/entry.rs::normalize_type_casing`,
  * so a user who writes `type == "person"` would otherwise get zero
  * matches against notes containing `type: person`. Limiting the relaxed
- * comparison to this single identifier pair keeps unrelated fields
+ * comparison to this single canonical key keeps unrelated fields
  * (e.g. `name == "alice"`) strictly case-sensitive.
  */
 function isTypeIdentifier(node: ASTNode): boolean {
 	if (node.type === 'identifier') {
-		return canonicalPropertyName(node.name) === 'type';
+		return canonicalPropertyName(node.name) === '_type';
 	}
 	if (node.type === 'member' && node.object.type === 'identifier') {
 		const ns = node.object.name;
 		if (ns === 'note' || ns === 'property') {
-			return canonicalPropertyName(node.property) === 'type';
+			return canonicalPropertyName(node.property) === '_type';
 		}
 	}
 	return false;
@@ -247,7 +248,7 @@ function evaluateBinary(op: string, left: ASTNode, right: ASTNode, ctx: EvalCont
 		}
 	}
 
-	// Case-insensitive equality for the `type` / `is_a` identifier.
+	// Case-insensitive equality for the `type` / `_type` identifier.
 	// See `isTypeIdentifier` for the rationale (Rust capitalises the stored
 	// value). Scope is narrow: only `==` / `!=`, and only when the type
 	// identifier is compared against a *literal* (`type == "person"`). When

@@ -44,8 +44,8 @@ describe('Relationship filters through the .view/.collection pipeline', () => {
 	it('_belongs_to.contains matches a single projected wikilink target', () => {
 		const index = makeIndex([
 			// single `_belongs_to: "[[Website Redesign]]"` projects to a 1-element array
-			makeRecord('/kickoff.md', { type: 'Event', _belongs_to: ['Website Redesign'] }),
-			makeRecord('/other.md', { type: 'Event', _belongs_to: ['Mobile App'] }),
+			makeRecord('/kickoff.md', { _type: 'Event', _belongs_to: ['Website Redesign'] }),
+			makeRecord('/other.md', { _type: 'Event', _belongs_to: ['Mobile App'] }),
 			makeRecord('/untyped.md', {}),
 		]);
 		const yaml = [
@@ -100,9 +100,9 @@ describe('Relationship filters through the .view/.collection pipeline', () => {
 
 	it('combines type and a relationship filter with && (real .view usage)', () => {
 		const index = makeIndex([
-			makeRecord('/m1.md', { type: 'Event', _belongs_to: ['Website Redesign'] }),
-			makeRecord('/m2.md', { type: 'Note', _belongs_to: ['Website Redesign'] }),
-			makeRecord('/m3.md', { type: 'Event', _belongs_to: ['Mobile App'] }),
+			makeRecord('/m1.md', { _type: 'Event', _belongs_to: ['Website Redesign'] }),
+			makeRecord('/m2.md', { _type: 'Note', _belongs_to: ['Website Redesign'] }),
+			makeRecord('/m3.md', { _type: 'Event', _belongs_to: ['Mobile App'] }),
 		]);
 		const yaml = [
 			'views:',
@@ -115,9 +115,9 @@ describe('Relationship filters through the .view/.collection pipeline', () => {
 
 	it('combines type and a relationship filter with the structured {and} form', () => {
 		const index = makeIndex([
-			makeRecord('/m1.md', { type: 'Event', _belongs_to: ['Website Redesign'] }),
-			makeRecord('/m2.md', { type: 'Note', _belongs_to: ['Website Redesign'] }),
-			makeRecord('/m3.md', { type: 'Event', _belongs_to: ['Mobile App'] }),
+			makeRecord('/m1.md', { _type: 'Event', _belongs_to: ['Website Redesign'] }),
+			makeRecord('/m2.md', { _type: 'Note', _belongs_to: ['Website Redesign'] }),
+			makeRecord('/m3.md', { _type: 'Event', _belongs_to: ['Mobile App'] }),
 		]);
 		const yaml = [
 			'views:',
@@ -136,7 +136,7 @@ describe('Relationship filters through the .view/.collection pipeline', () => {
 		// write `type == "X" and status == "Y"` tokenize `and` as an identifier and
 		// silently match nothing. Use `&&` in string filters or the {and:[...]} form.
 		const index = makeIndex([
-			makeRecord('/m1.md', { type: 'Event', _belongs_to: ['Website Redesign'] }),
+			makeRecord('/m1.md', { _type: 'Event', _belongs_to: ['Website Redesign'] }),
 		]);
 		const yaml = [
 			'views:',

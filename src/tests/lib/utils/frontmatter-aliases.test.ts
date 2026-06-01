@@ -2,9 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
 
 describe('canonicalizeKey', () => {
-	it('resolves type aliases', () => {
-		expect(canonicalizeKey('is_a')).toBe('type');
-		expect(canonicalizeKey('is a')).toBe('type');
+	it('resolves the type alias to the canonical _type key', () => {
+		expect(canonicalizeKey('type')).toBe('_type');
+	});
+
+	it('does not resolve the dropped is_a / is a aliases', () => {
+		expect(canonicalizeKey('is_a')).toBe('is_a');
+		expect(canonicalizeKey('is a')).toBe('is a');
 	});
 
 	it('resolves system underscore aliases', () => {
@@ -27,7 +31,7 @@ describe('canonicalizeKey', () => {
 	});
 
 	it('passes through canonical keys unchanged', () => {
-		expect(canonicalizeKey('type')).toBe('type');
+		expect(canonicalizeKey('_type')).toBe('_type');
 		// Relationship keys are underscore-canonical and take no alias.
 		expect(canonicalizeKey('_belongs_to')).toBe('_belongs_to');
 		expect(canonicalizeKey('_related_to')).toBe('_related_to');
