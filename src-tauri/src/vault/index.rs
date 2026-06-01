@@ -614,11 +614,16 @@ impl VaultIndex {
 
 	/// Checks if a wikilink target resolves to the given path.
 	fn resolves_to(&self, target: &str, expected_path: &str, expected_name_lower: &str) -> bool {
-		if let Some(resolved) = self.by_path.get(&target.to_lowercase()) {
-			return resolved == expected_path;
+		// Resolve exactly like outgoing links do (`resolve_with_cache`:
+		// full-key then basename), so a path-qualified target such as
+		// "projects/Alpha" maps to the SINGLE resolved path instead of
+		// matching every note that merely shares the "Alpha" basename. The
+		// bare basename compare remains only as the final fallback for a
+		// target with no entry in the index at all (genuinely unresolvable).
+		match resolve_with_cache(target, &self.by_path) {
+			Some(resolved) => resolved == expected_path,
+			None => note_name_from_target(target).to_lowercase() == *expected_name_lower,
 		}
-		let basename = note_name_from_target(target).to_lowercase();
-		basename == *expected_name_lower
 	}
 
 	/// Returns the outgoing wikilinks of the entry at `path`, each with its
@@ -1611,6 +1616,35 @@ mod tests {
 		let rels = idx.lookup_relationship_backlinks("/v/target.md");
 		assert_eq!(rels.len(), 1);
 		assert_eq!(rels[0].relationship_type, "blocks");
+	}
+
+	#[test]
+	fn relationship_backlinks_no_false_positive_on_basename_collision() {
+		// Two notes share the basename "Note" in different folders. A third
+		// note's `_belongs_to` points at ONE of them via a path-qualified
+		// target ("a/Note"). resolves_to must map that to the single resolved
+		// path (first path wins on a basename collision, like every other link
+		// resolution), NOT match every "Note". Pre-fix the basename-only
+		// fallback matched both, giving the non-targeted peer a phantom
+		// relationship backlink.
+		let mut idx = VaultIndex::default();
+		// Insertion order fixes the resolution winner: "note" -> /v/a/Note.md.
+		let a = make_entry("/v/a/Note.md", &[], &[]);
+		let b = make_entry("/v/b/Note.md", &[], &[]);
+		let src = make_entry_with_rels("/v/src.md", &["a/Note"], &[], BTreeMap::new());
+		idx.build(vec![a, b, src]);
+
+		// The note the target resolves to gets the backlink...
+		let on_a = idx.lookup_relationship_backlinks("/v/a/Note.md");
+		assert_eq!(on_a.len(), 1);
+		assert_eq!(on_a[0].source_path, "/v/src.md");
+
+		// ...and the colliding peer that was NOT targeted gets none.
+		let on_b = idx.lookup_relationship_backlinks("/v/b/Note.md");
+		assert!(
+			on_b.is_empty(),
+			"basename-collision peer must not get a phantom relationship backlink"
+		);
 	}
 
 	#[test]
