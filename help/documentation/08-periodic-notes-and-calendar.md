@@ -48,6 +48,8 @@ ISO week numbers appear on the left column. Weeks start on Monday (ISO conventio
 
 The calendar header also includes a **Daily Note** button and a **Sidebar Mode Toggle** for quick access.
 
+You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
+
 ## Configuration
 
 Open **Settings → Periodic Notes** to customize how periodic notes are generated.
@@ -67,7 +69,7 @@ Each period type has its own settings:
 | Setting | Description | Example |
 |---|---|---|
 | **Format** | A dayjs format string that determines the folder structure and filename | `YYYY/MM-MMM/_journal-day-DD-MM-YYYY` |
-| **Template** | Path to a template file used when creating the note | `_templates/daily.md` |
+| **Template path** | Path to a template file (relative to the vault) used when creating the note | `_templates/daily.md` |
 
 ### Daily-Only Settings
 

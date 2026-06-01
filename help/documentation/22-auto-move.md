@@ -14,7 +14,7 @@ Auto Move watches every file save. When a note is saved, Kokobrain evaluates you
 
 1. Open **Settings** (`Cmd+,`).
 2. Go to the **Auto Move** section.
-3. Toggle **Enabled** on.
+3. Toggle **Enable Auto Move** on.
 
 When disabled, no files are ever moved, regardless of how many rules you have configured.
 
@@ -41,22 +41,22 @@ Expressions use the same language as [Collection](12-collection.md) filters. The
 ### Common examples
 
 ```
-status = "done"
+status == "done"
 ```
 Move notes where the `status` property equals `"done"`.
 
 ```
-tags contains "archived"
+file.hasTag("archived")
 ```
 Move notes that have the tag `archived`.
 
 ```
-priority = "high" and project = "work"
+priority == "high" && project == "work"
 ```
 Move notes matching both conditions.
 
 ```
-due < today
+due < today()
 ```
 Move notes with a `due` date in the past.
 
@@ -72,7 +72,7 @@ Destination paths support `{variable}` templates that are resolved at move time 
 | `{folder}` | Current vault-relative folder of the note | `work/squad-payments` |
 | `{parent}` | Parent of the current folder | `work` |
 | `{basename}` | Filename without extension | `Migrate-Gateway` |
-| `{type}` | Frontmatter `type` property | `project` |
+| `{type}` | Frontmatter `_type` property (the note's type) | `project` |
 | `{status}` | Frontmatter `status` property | `done` |
 | `{year}` | Current year | `2026` |
 | `{month}` | Current month (zero-padded) | `05` |
@@ -110,7 +110,7 @@ Files inside excluded folders are skipped entirely — no evaluation, no moves.
 
 Auto Move does not run instantly on every keystroke. It waits a configurable number of milliseconds after the last save before evaluating rules. This prevents unnecessary moves while you are actively editing a note.
 
-The default is `3000 ms` (3 seconds). Increase it if you find moves happening too eagerly; decrease it for a more responsive experience.
+The default is `3000 ms` (3 seconds). The Settings field is entered in seconds and accepts a range of 0.5 to 30 seconds. Increase it if you find moves happening too eagerly; decrease it for a more responsive experience.
 
 ## Applying Icons After Move
 
@@ -137,11 +137,17 @@ With this definition, any note with `type: Project` and `_archived: true` will b
 ### How it works
 
 1. Kokobrain reads all type definitions (notes with `type: Type`)
-2. For each type with `_archive_to`, a rule is generated: `type == "TypeName" and _archived == true`
+2. For each type with `_archive_to`, a rule is generated: `type.lower() == "typename" && _archived == true` (the type match is case-insensitive)
 3. The destination supports [dynamic templates](#dynamic-destinations) (e.g. `{folder}/_archive`)
 4. Generated rules run **after** user-defined rules — user rules take priority
 
 This means you can define archive behavior once in the type definition, and it applies to all notes of that type across the entire vault.
+
+### Automatic unarchiving
+
+When `_archive_to` has the simple shape `{folder}/<name>` (a single subfolder of the note's folder, such as `{folder}/_archive`), Kokobrain also generates a matching **unarchive** rule. Setting `_archived: false` again on a note that currently sits in the archive subfolder moves it back to its parent folder (the `{parent}` destination).
+
+Unarchive rules are only generated for the `{folder}/<name>` shape. For any other `_archive_to` (for example `Archive/{type}/{year}`), the original location cannot be recovered, so no automatic unarchive rule is created.
 
 ## Configuration File
 
@@ -153,9 +159,9 @@ You can inspect or back up the rules file manually:
 {
   "rules": [
     {
-      "id": "1710000000000",
+      "id": "rule-1710000000000-a1b2c",
       "name": "Archive completed",
-      "expression": "status = \"done\"",
+      "expression": "status == \"done\"",
       "destination": "Archive",
       "enabled": true
     }

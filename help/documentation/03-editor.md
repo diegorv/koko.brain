@@ -75,7 +75,7 @@ For Canvas, Collection, and Kanban files, a toggle button in the bottom-right le
 
 In both editor modes, you can navigate to linked notes:
 
-- **Source mode**: Hold **Cmd** and click a `[[wikilink]]`
+- **Source mode**: Click the underlined link text inside a `[[wikilink]]`
 - **Live preview**: Just click the rendered link
 
 If the linked note doesn't exist, Kokobrain will create it for you. Learn more in [Wikilinks & References](05-wikilinks.md).
@@ -97,8 +97,8 @@ If you close a tab with unsaved changes, a confirmation dialog asks whether to d
 
 Beyond basic text editing, the markdown editor supports several advanced features:
 
-- **Multiple cursors** — Hold `Option` and click to place additional cursors. All cursors edit simultaneously.
-- **Rectangular selection** — Hold `Ctrl+Shift` and drag to select a rectangular region.
+- **Multiple cursors** — Hold `Cmd` and click to place additional cursors. All cursors edit simultaneously.
+- **Rectangular selection** — Hold `Option` and drag to select a rectangular region.
 - **Tab indentation** — Press `Tab` to indent, `Shift+Tab` to dedent.
 - **Bracket matching** — Matching brackets are highlighted when the cursor is adjacent to one.
 - **Paste as table** — Pasting TSV or Excel data from the clipboard automatically converts it into a Markdown pipe table.
@@ -112,13 +112,11 @@ At the bottom of the window, the status bar shows contextual information about y
 - **Semantic index status** — shows "Indexed (N chunks)", "Not indexed", or "Loading model..." per-file when semantic search is enabled
 
 **Right side:**
-- **Save status** — "Modified" (yellow) when you have unsaved changes, or "Saved"
-- **Cursor position** — current line and column (Ln/Col)
+- **Save status** — "Modified" when you have unsaved changes, or "Saved"
 - **Word count** — three metrics (YAML frontmatter is excluded from counts, only shown for markdown files):
   - **Word count**: total number of words in the note
   - **Character count**: total number of characters
   - **Reading time**: estimated reading time based on 200 words per minute (minimum 1 minute)
-- **Editor mode** — current mode (Source or Live Preview)
 
 ## Right-Click in the Editor
 

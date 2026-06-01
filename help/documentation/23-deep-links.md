@@ -49,14 +49,14 @@ Opens a file in the editor. If no file is specified, just switches to the vault.
 ```
 kokobrain://open?vault=MyVault
 kokobrain://open?vault=MyVault&file=Projects/roadmap
-kokobrain://open?vault=MyVault&path=/absolute/path/to/note.md
+kokobrain://open?vault=MyVault&path=Projects/roadmap
 ```
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `vault` | Yes | Vault name |
 | `file` | No | File path relative to vault root. `.md` is added automatically if no extension is present. |
-| `path` | No | Absolute path to the file on disk. |
+| `path` | No | Alias for `file` — also resolved relative to the vault root (a leading `/` is stripped). Paths that resolve outside the vault are rejected. If both `file` and `path` are supplied, `file` is used. |
 
 ---
 
@@ -72,8 +72,8 @@ kokobrain://new?vault=MyVault&file=Projects/idea&append=true&clipboard=true
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `vault` | Yes | Vault name |
-| `name` | Yes* | Note filename (without path). Creates the note in the default Quick Capture folder. |
-| `file` | Yes* | Note path relative to vault root. Use this to control location. |
+| `name` | Yes* | Note name or path, resolved relative to the vault root. `.md` is added automatically if no extension is present. |
+| `file` | Yes* | Note path relative to vault root. `name` and `file` are equivalent; if both are supplied, `name` is used. |
 | `content` | No | Text to write into the note. |
 | `clipboard` | No | `true` — use the current clipboard content instead of `content`. |
 | `append` | No | `true` — if the note already exists, append `content` to it. |
@@ -83,7 +83,7 @@ kokobrain://new?vault=MyVault&file=Projects/idea&append=true&clipboard=true
 
 *Either `name` or `file` is required.
 
-**Content mode priority:** If multiple modes are set, `append` takes precedence over `prepend`, which takes precedence over `overwrite`. If none is set and the file exists, the action does nothing (no destructive default).
+**Content mode priority:** If multiple modes are set, `prepend` takes precedence over `append`, which takes precedence over `overwrite`. (Note: `prepend` and `append` only apply when the file already exists; if it does not, the note is created from scratch.) If none is set and the file exists, the existing note is opened without modifying its content (no destructive default).
 
 ---
 
@@ -117,10 +117,10 @@ kokobrain://daily?vault=MyVault&prepend=true&clipboard=true
 | `vault` | Yes | Vault name |
 | `content` | No | Text to add to the daily note. |
 | `clipboard` | No | `true` — use the current clipboard content instead of `content`. |
-| `append` | No | `true` — append `content` at the end of the daily note. |
+| `append` | No | `true` — append `content` at the end of the daily note. This is also the default whenever content is supplied. |
 | `prepend` | No | `true` — prepend `content` at the beginning of the daily note. |
 
-If neither `append` nor `prepend` is set, the daily note is opened without any content modification.
+Whenever `content` (or `clipboard`) resolves to non-empty text, it is written to the daily note: appended by default, or prepended when `prepend=true`. The `append` flag is not required to add content. If no content is supplied, the daily note is opened without modification.
 
 ---
 

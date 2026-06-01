@@ -24,7 +24,7 @@ The board toolbar exposes three views of the same `.kanban` file. The selected v
 | **List** | List | A stacked-list view: each lane becomes a section with a card count and a vertical list of cards. Useful for narrow windows or screen readers. |
 | **Table** | Table | A flat table with columns for *Lane*, *Card*, *Tags*, *Date*, and *Status*. Best for scanning many cards at once or copy-pasting card text. |
 
-List and Table are read-only with respect to layout (no drag-and-drop, no lane settings, no archive section), but you can still check / uncheck cards and click wikilinks. Switch back to **Board** to edit the structure.
+List and Table are read-only with respect to layout (no drag-and-drop, no lane settings, no archive section), but you can still check / uncheck cards. Wikilinks remain clickable in List view; in Table view card text is shown as plain text. Switch back to **Board** to edit the structure.
 
 ## Board Anatomy
 
@@ -41,11 +41,12 @@ Each column on the board is a **lane**. Lanes map to `## Heading` lines in the f
 ```
 
 You can:
-- **Add a lane** — click the **+** button at the end of the lane row.
-- **Rename a lane** — click the lane title to edit it inline.
-- **Reorder lanes** — drag a lane header to a new position.
-- **Delete a lane** — open the lane menu (⋯) and choose Delete.
+- **Add a lane** — click the **Add Lane** button at the end of the lane row.
+- **Rename a lane** — double-click the lane title to edit it inline, or right-click the title and choose Rename.
+- **Reorder lanes** — drag a lane header (via the grip handle) to a new position.
+- **Delete a lane** — right-click the lane title and choose Delete Lane.
 - **Collapse a lane** — click the collapse icon in the lane header. Collapsed state is saved per board.
+- **Resize a lane** — drag the resize handle on a lane's right edge (200-500 px). The width applies to all lanes and is saved per board.
 
 ### Cards
 
@@ -66,12 +67,12 @@ Each card is a Markdown task item inside a lane:
 - `- [x]` = checked (completed) card
 
 You can:
-- **Add a card** — click **+ Add card** at the bottom of a lane.
-- **Edit a card** — click the card text to edit inline.
+- **Add a card** — type in the **Add a card...** input at the bottom of a lane and press `Enter` (or click the **+** button).
+- **Edit a card** — double-click the card text to edit inline.
 - **Check/uncheck a card** — click the checkbox on the card.
 - **Move a card** — drag it to a different lane or position within the same lane.
-- **Delete a card** — hover the card and click the delete icon, or right-click and choose Delete.
-- **Archive a card** — hover the card and click the archive icon. The card moves to the Archive section.
+- **Delete a card** — right-click the card and choose Delete.
+- **Archive a card** — right-click the card and choose Archive. The card moves to the Archive section.
 - **Right-click a card** — opens a context menu with Edit, Archive, Card Color (submenu with color swatches), and Delete.
 
 ### Wikilink Autocomplete
@@ -91,10 +92,11 @@ When a card contains a `[[wikilink]]`, the linked file's content (without frontm
 | `Space` | Toggle the focused card's checkbox |
 | `Delete` / `Backspace` | Remove the focused card |
 | `N` | Focus the add-card input in the current lane |
+| `Escape` | Clear the keyboard focus |
 
 ### Archive
 
-Below the active board (separated by a `---` line in the file) lives the **Archive**. Completed or archived cards are stored here and hidden from the main board view. You can restore archived cards back to any lane.
+Below the active board (separated by a `---` line in the file) lives the **Archive**. Completed or archived cards are stored here and hidden from the main board view. Expand the Archive column, then use the restore icon to send a card back to the first lane, or the trash icon to delete it permanently.
 
 ## Card Metadata
 
@@ -113,8 +115,8 @@ The card shows a color-coded date badge:
 | Color | Meaning |
 |-------|---------|
 | Red | Overdue |
-| Orange | Due today |
-| Yellow | Due tomorrow |
+| Yellow | Due today |
+| Orange | Due tomorrow |
 | Blue | Due within 3 days |
 | Gray | Future date |
 
@@ -139,7 +141,7 @@ Add `#tags` anywhere in the card text:
 - [ ] Refactor auth module #backend #tech-debt
 ```
 
-Tags are displayed as colored chips on the card. You can assign a color to each tag in the board settings (stored in `settings.tagColors`).
+Tags are displayed as colored chips on the card. Click a tag chip to open a color popover and pick a color for that tag; the choice is stored in `settings.tagColors` and applied to every card using the tag.
 
 ### Wikilinks
 
@@ -147,13 +149,13 @@ Cards support `[[Note Name]]` wikilinks. Clicking a wikilink opens the linked no
 
 ## Lane Settings
 
-Each lane has additional configuration accessible via the lane menu (⋯):
+Each lane has additional configuration accessible by right-clicking the lane title:
 
 | Setting | Description |
 |---------|-------------|
-| **Max items (WIP limit)** | Maximum number of cards allowed in the lane. When the limit is reached, adding more cards is blocked. `0` = unlimited. |
-| **Auto-complete** | When a card is dragged into this lane, it is automatically marked as checked. Useful for "Done" lanes. |
-| **Archive completed** | Archives all checked items in the lane at once. Available via the lane menu. |
+| **Set Card Limit (WIP limit)** | Caps the number of cards in the lane. Choose from the preset limits (3, 5, 10, or 15 cards) or **No limit**. When the limit is reached, the lane border turns red and adding more cards is blocked. |
+| **Auto-Complete** | When a card is dragged into this lane, it is automatically marked as checked. Useful for "Done" lanes. |
+| **Archive Completed** | Archives all checked items in the lane at once. Only shown when the lane has at least one checked card. |
 
 ## Filtering Cards
 

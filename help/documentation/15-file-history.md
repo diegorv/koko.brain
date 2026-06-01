@@ -17,17 +17,17 @@ Every time you save a note (`Cmd+S`), Kokobrain silently stores a snapshot in th
 The dialog has two panes:
 
 - **Left pane — Snapshot list**: All saved versions of the note, grouped by day (Today, Yesterday, and specific dates). Each entry shows a relative timestamp such as "5 min ago" or "2 hours ago", so you can quickly find the version you are looking for.
-- **Right pane — Diff viewer**: A side-by-side comparison between the selected snapshot and the current content. Green lines indicate text that was added; red lines indicate text that was removed.
+- **Right pane — Diff viewer**: A unified line-by-line diff between the selected snapshot and the current content. Each line shows the old and new line numbers plus a `+`/`-` marker. Green lines (`+`) indicate text that was added; red lines (`-`) indicate text that was removed.
 
 ## Restoring a Version
 
 1. Click a snapshot in the left pane to preview the diff against the current content.
 2. Click **"Restore This Version"** to replace the current content with the selected snapshot.
-3. A confirmation dialog appears before the restore is applied — nothing happens until you confirm.
-4. The current content is **not lost**. Kokobrain automatically creates a new snapshot of the current state before performing the restore, so you can always undo it.
+3. A confirmation dialog appears before the restore is applied - nothing happens until you confirm.
+4. The current content is **not lost**. The version you had before restoring stays in history as its own snapshot, so you can always go back to it.
 
 > [!TIP]
-> Since restoring creates a safety snapshot first, you can always "undo" a restore by opening the history dialog again and choosing the snapshot that was auto-saved right before the restore.
+> Restoring replaces the editor content and saves it through the normal save flow. Because every save is snapshotted, the pre-restore version is still in the history list - to "undo" a restore, open the history dialog again and pick the snapshot from just before the restore.
 
 ## Deduplication
 
@@ -62,6 +62,8 @@ For example, with the default of 7 retention days:
 ### Snapshot Backup
 
 When **Snapshot backup** is enabled, Kokobrain also saves snapshots as plain `.md` files in `.kokobrain/snapshots-backup/`. This provides a human-readable backup that doesn't depend on the SQLite database. Useful if you want to version-control your vault's `.kokobrain/` folder or simply have an extra safety net.
+
+Snapshots that have a matching backup file show a drive icon in the snapshot list. Click it to reveal that backup `.md` file in your system file explorer.
 
 ### Snapshots and Trash
 

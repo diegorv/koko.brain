@@ -15,11 +15,10 @@ Below the header, the file tree displays all files and folders in the vault. At 
 
 ## Creating Files and Folders
 
-There are three ways to create new items:
+There are two ways to create new items:
 
-1. **Header buttons** — Click the New File (page+) or New Folder (folder+) icon in the file explorer header.
-2. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", "New Kanban Board", or "New Collection".
-3. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board".
+1. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", "New Kanban Board", or "New Collection".
+2. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board".
 
 New items are created inside the currently selected folder. If nothing is selected, they are placed at the vault root.
 
@@ -68,7 +67,7 @@ Right-clicking a file or folder opens a context menu with the following options:
 | **New Canvas** | Creates a new `.canvas` file in this location |
 | **New Kanban Board** | Creates a new `.kanban` file in this location |
 | **New Collection** | Creates a new `.collection` file in this location with a minimal table view (see [Collection](12-collection.md)) |
-| **Duplicate** | Creates a copy with a "-copy" suffix |
+| **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
 | **Bookmark / Remove Bookmark** | Adds or removes the item from your bookmarks |
 | **Change Icon** | Opens the icon picker to assign a custom icon (see [Custom File Icons](#custom-file-icons) below) |
 | **Copy Path** | Submenu with two options: Copy absolute path or Copy relative path to clipboard |
@@ -80,12 +79,9 @@ Right-clicking a file or folder opens a context menu with the following options:
 
 ## Sorting
 
-Right-click in the file explorer to access sorting options:
+The file tree is sorted alphabetically by name (A-Z). Folders always appear above files.
 
-- **Sort by Name** — Alphabetical order (A-Z).
-- **Sort by Date Modified** — Most recently changed files appear first.
-
-Folders always appear above files regardless of which sort mode is active.
+You can override the default order per note with the `_order` frontmatter field (described below).
 
 ### Custom ordering with `_order`
 
@@ -119,8 +115,6 @@ Folder icons are stored in the folder note's frontmatter using the `_icon` field
 ## Expanding and Collapsing
 
 Click the chevron (▶) or the folder name to expand or collapse a folder.
-
-Use the right-click context menu to collapse all folders at once. This is especially helpful when the tree gets deeply nested and you want a clean starting view.
 
 ## File Count Badges
 

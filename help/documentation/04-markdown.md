@@ -116,7 +116,7 @@ Task lists are regular list items with a checkbox at the start:
 - [!] Important
 ```
 
-In live preview mode, you can **click the checkbox** to toggle its state — no need to edit the raw text.
+In live preview mode, you can **click the checkbox** to toggle between unchecked (`[ ]`) and done (`[x]`), with no need to edit the raw text. The extended statuses (`[/]`, `[-]`, `[?]`, `[>]`, `[!]`) are recognized by the Tasks View but do not render a clickable checkbox in the editor; edit the raw character to change them.
 
 Tasks are collected automatically by the **Tasks View**, which gives you a unified list of all tasks across your vault. You can also sync them with external task managers. See [Tasks & Todoist](10-tasks-and-todoist.md) for details.
 
@@ -166,7 +166,7 @@ Wrap a URL or email in angle brackets for a quick link:
 
 ### Bare URL detection
 
-Plain URLs starting with `https://` are automatically detected and rendered as clickable links — no special syntax needed:
+Plain URLs starting with `http://` or `https://` are automatically detected and rendered as clickable links — no special syntax needed:
 
 ```
 Visit https://www.google.com for more info.

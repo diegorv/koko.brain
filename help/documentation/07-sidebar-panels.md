@@ -52,7 +52,7 @@ The Properties panel shows the YAML frontmatter of the current note as editable 
 
 ### Lifecycle Actions
 
-If the current note has a type defined, lifecycle action buttons appear at the top of the Properties panel: **Organize**, **To Inbox**, **Archive**, **Unarchive**, and **Favorite**. These change the note's `_lifecycle` property. See [Types & Relationships](25-types-and-relationships.md) for details.
+Lifecycle action buttons appear at the top of the Properties panel for any Markdown note: **Organize** / **To Inbox**, **Archive** / **Unarchive**, and **Favorite**. These toggle the note's `_organized`, `_archived`, and `_favorite` frontmatter flags. See [Types & Relationships](25-types-and-relationships.md) for details.
 
 ### Adding a property
 
@@ -60,7 +60,11 @@ If the current note has a type defined, lifecycle action buttons appear at the t
 2. Type the property name and press Enter.
 3. Enter the value.
 
-For relationship properties (fields that hold wikilinks), a **"+"** search button appears next to the field, letting you search your vault and pick a note to add as a relationship link.
+### Relationships
+
+A dedicated **Relationships** section at the bottom of the panel holds three fixed relationship fields: **Belongs To**, **Related To**, and **Has Many** (the `_belongs_to`, `_related_to`, and `_has_many` frontmatter keys). Each field has a **"+"** search button that lets you search your vault and pick a note to add as a relationship link. Linked notes appear below the field; hover over one and click the (x) button to remove it.
+
+When the note has a `_type` set, a **type selector** dropdown appears at the top of the panel, letting you change the note's type.
 
 ### Editing a property
 
@@ -81,9 +85,9 @@ For relationship properties (fields that hold wikilinks), a **"+"** search butto
 
 The Backlinks panel shows which other notes link **to** the currently open note. This creates a reverse index of your knowledge, letting you discover connections you might not remember.
 
-![Backlinks panel showing linked and unlinked mentions](screenshots/backlinks.png)
+![Backlinks panel showing linked mentions](screenshots/backlinks.png)
 
-The panel shows **linked mentions** — notes that contain an explicit `[[wikilink]]` pointing to this note. Click any backlink to open that source note.
+The panel shows **linked mentions** - notes that contain an explicit `[[wikilink]]` pointing to this note. Click any backlink to open that source note.
 
 ### Relationship Backlinks
 
@@ -111,9 +115,8 @@ The Tags panel shows all `#tags` used across your entire vault, organized in a h
 
 ### Controls at the top
 
-- **Sort** — Toggle between A-Z (alphabetical) and by count (most used first).
-- **Filter** — A text input to narrow the tag list by name.
-- **Hide rare tags** — Toggle to hide tags with fewer than 10 uses.
+- **Sort** - Toggle between A-Z (alphabetical) and by count (most used first).
+- **Hide rare tags** - The filter icon toggles hiding tags with fewer than 10 uses.
 
 ### Clicking a tag
 

@@ -17,11 +17,10 @@ Canvas is great for:
 
 ## Creating a Canvas
 
-There are three ways to create a new canvas:
+There are two ways to create a new canvas:
 
-1. **File explorer header** -- Click the canvas button in the file explorer header (if available).
-2. **Right-click** in the file explorer and select "New Canvas".
-3. **Command Palette** (`Cmd+P`) -- Search for "New Canvas".
+1. **Right-click** in the file explorer and select "New Canvas".
+2. **Command Palette** (`Cmd+P`) -- Search for "New Canvas".
 
 This creates a new `.canvas` file and opens it in the canvas editor.
 
@@ -57,25 +56,25 @@ Once you have nodes on the canvas, you can manipulate them in several ways:
 - **Duplicate** -- Right-click a node and select "Duplicate" to create a copy.
 - **Select multiple** -- Click and drag on the background to create a selection rectangle around multiple nodes.
 - **Delete** -- Select a node and press `Delete` or `Backspace`, or right-click the node and choose "Delete".
+- **Drag in from the file explorer** -- Drag a note onto the canvas to create a file node, or drag an image to create an image node. Dropping a `.canvas` file opens it as a tab instead.
+- **Group nesting** -- Drag a node onto a group to make it a child; the node moves with the group and stays inside its bounds. Drag it back out to release it.
 
 ## Connections (Edges)
 
 Edges are arrows or lines that connect two nodes, letting you express relationships between ideas.
 
-- **Create a connection** -- Drag from the edge handle on one node to another node.
-- **Arrow direction** -- Edges are directed, going from the source node to the target node.
-- **Edge endpoints** -- Each end can be set to show an arrow or none (no arrowhead).
-- **Labels** -- Right-click an edge to add a text label describing the relationship.
+- **Create a connection** -- Drag from a handle on one node to a handle on another node. Dragging from a handle and releasing on empty canvas creates a new text node already connected to the source.
+- **Arrow direction** -- New edges are directed, with an arrowhead at the target node. The arrowhead at each end (`fromEnd` / `toEnd`) is stored in the file and can be changed in Source Mode.
+- **Labels** -- Right-click an edge and choose "Edit label" to add or change a text label describing the relationship.
 
 ![Canvas with connected nodes](screenshots/canvas-connections.png)
 
 ## Colors
 
-Both nodes and edges support custom colors to help you visually categorize items:
+Both nodes and edges support colors to help you visually categorize items:
 
-- **Right-click** a node or edge and select the option to change its color.
-- **6 preset colors** are available: Red, Orange, Yellow, Green, Cyan, and Purple.
-- **Custom hex** -- Enter any hex color code for full control over the appearance.
+- **Right-click** a node or edge and pick a color swatch under the "Color" section of the menu.
+- **6 preset colors** are available: Red, Orange, Yellow, Green, Cyan, and Purple. Pick the crossed-out swatch to clear the color.
 - **Groups** also support colors, which tint the container background.
 
 ## Context Menu
@@ -85,7 +84,7 @@ Right-click anywhere on the canvas for context-sensitive options:
 - On a **text node** -- Edit, Change Color, Duplicate, Delete.
 - On a **file node** -- Open in Editor, Change Color, Duplicate, Delete.
 - On a **link node** -- Open URL, Edit (change URL and title), Change Color, Duplicate, Delete.
-- On an **edge** -- Go to Source, Go to Target, Change Color, Delete.
+- On an **edge** -- Edit label, Color, Go to source, Go to target, Delete.
 - On **empty space** -- Add new nodes of any type at that position.
 
 ## Keyboard Shortcuts

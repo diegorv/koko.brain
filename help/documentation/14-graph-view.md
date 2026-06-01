@@ -70,7 +70,7 @@ The bottom-right corner of the graph displays a summary: **"N notes · M links"*
 > Use the graph view to discover orphan notes — notes with no links in or out. These may need to be connected to your knowledge base, or they may be candidates for deletion.
 
 > [!TIP]
-> If the graph feels crowded, switch to Local Mode (`Cmd+G` while a note is open) to see only the immediate neighborhood of your current note.
+> If the graph feels crowded, switch to Local Mode (the target button in the controls panel, with a note open) to see only the immediate neighborhood of your current note.
 
 ---
 

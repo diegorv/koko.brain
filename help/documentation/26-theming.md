@@ -26,20 +26,25 @@ Themes are stored per vault in `.kokobrain/settings.json` under the `appearance`
 }
 ```
 
+KokoBrain ships with four built-in themes: **KokoBrain Default** (dark), **Sakura** (light pink), **Lavender Haze** (light purple), and **Twilight Violet** (dark purple). The built-in themes always stay available even if the file is edited.
+
 Each theme defines five color groups: **UI** (app shell), **Syntax** (markdown highlighting), **Preview** (live preview rendering), **Wikilink** (wikilink decorations), and **Callout** (callout block types).
 
 Colors are applied as CSS custom properties on the document root. Every color token accepts any valid CSS color value (hex, oklch, rgb, hsl, etc.).
 
 ## Creating and Editing Themes
 
-Open **Settings > Appearance**. The **Theme Editor** lets you:
+Open **Settings > Appearance**. Each theme row has hover actions to **Edit** (pencil), **Duplicate** (copy), and **Delete** (X). The KokoBrain Default theme cannot be edited or deleted; duplicate it to make an editable copy. The **Theme Editor** lets you:
 
-- **Clone** a built-in theme to create an editable copy
-- **Edit** any color token with a color picker or hex input
+- **Duplicate** a theme to create an editable copy
+- **Edit** any color token with a color picker or hex input. The text field accepts 3- or 6-digit hex (with or without `#`); values entered through the editor are normalized to lowercase 6-digit hex
 - **Import/Export** themes as JSON files
 - **Live preview** -- every color change applies immediately
 
-Missing tokens in user themes automatically fall back to the built-in default values.
+Missing tokens in imported themes automatically fall back to the built-in default values.
+
+> [!NOTE]
+> The theme JSON itself accepts any valid CSS color value (hex, oklch, rgb, hsl) and the built-in themes use a mix of hex, oklch, and rgba. The in-app editor's text field only accepts hex; to use other formats, edit or import the theme JSON directly.
 
 ## Region Layout
 
@@ -323,7 +328,7 @@ Control the accent color for each callout type.
 
 ## Tips for Theme Creators
 
-- **Start by cloning** the built-in theme and adjusting from there
+- **Start by duplicating** one of the four built-in themes (Default, Sakura, Lavender Haze, Twilight Violet) and adjusting from there
 - **Region variables default to global values** -- you only need to set them when you want a region to differ from the global palette
 - **Use the live preview** in the Theme Editor to see changes instantly
 - **Export your theme** as JSON to share it or back it up

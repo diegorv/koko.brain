@@ -39,8 +39,7 @@ The Command Palette gives you a searchable list of all available commands in the
 
 | Category | Command | Shortcut |
 |----------|---------|----------|
-| **Editor** | Toggle Source / Live Preview | `Cmd+K` |
-| | Save File | `Cmd+S` |
+| **Editor** | Save File | `Cmd+S` |
 | | Close Tab | `Cmd+W` |
 | | Next Tab | `Cmd+Shift+]` |
 | | Previous Tab | `Cmd+Shift+[` |
@@ -56,14 +55,14 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Search in Vault | `Cmd+Shift+F` |
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
+| | Toggle Tags View | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
 | | Toggle Left Sidebar | `Cmd+Shift+B` |
-| **Notes** | Open Daily Note | — |
-| | Create Quick Capture Note | `Cmd+N` |
-| | Create 1:1 Note | `Cmd+Shift+N` |
-| | New File from Template | — |
-| **View** | Toggle Tags View | — |
 | | Toggle Table of Contents | — |
+| **Daily Notes** | Open Daily Note | — |
+| **Quick Capture** | Create Quick Capture Note | `Cmd+N` |
+| **1:1 Notes** | Create 1:1 Note | `Cmd+Shift+N` |
+| **Templates** | New File from Template | — |
 | **Settings** | Open Settings | `Cmd+,` |
 
 ---
@@ -112,7 +111,7 @@ This mode is only available when semantic search is enabled. The reranker step i
 
 ### Fuzzy Toggle
 
-Click the `~` button next to the search input to toggle **fuzzy matching** (enabled by default). When enabled, the search tolerates typos and approximate matches. For example, "meating" will still find notes containing "meeting".
+In Text mode, click the `~` button next to the search input to toggle **fuzzy matching** (enabled by default). When enabled, the search tolerates typos and approximate matches. For example, "meating" will still find notes containing "meeting". The toggle only appears in Text mode.
 
 ### Search Results
 
@@ -124,9 +123,16 @@ Each result shows:
 
 Click any result to open that file in the editor. The search index updates automatically whenever you save files, so your results are always up to date.
 
-### Tag Search
+### Search Operators
 
-Clicking a tag in the Tags panel (right sidebar) automatically sets the search query to `tag:tagname`. This filters the results to show only notes that contain that specific tag.
+You can narrow text and hybrid searches with two operators, typed anywhere in the query:
+
+- `tag:tagname` - only matches notes that contain that tag (in frontmatter or inline). Combine multiple `tag:` operators to require all of them.
+- `path:folder` - only matches notes whose path contains that text, so you can scope a search to a folder.
+
+Operators can be combined with regular search terms, for example `meeting tag:work path:projects`.
+
+Clicking a tag in the Tags panel (right sidebar) automatically sets the search query to `tag:tagname`, which is the same as typing the operator yourself.
 
 ---
 

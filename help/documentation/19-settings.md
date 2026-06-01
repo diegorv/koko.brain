@@ -14,7 +14,7 @@ The Settings dialog has a sidebar organized into groups: **General** (Appearance
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Active theme** | Select the active color theme. Click a theme to preview its colors. | Dark |
+| **Active theme** | Select the active color theme. Click a theme to preview its colors. | KokoBrain Default |
 
 > [!TIP]
 > Themes define all colors used in the app (background, text, borders, accents). The selection shows color swatches for each theme.
@@ -27,14 +27,12 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Sidebar Mode** | Default left sidebar mode | `types` (options: `files`, `types`, `calendar`) |
-| **Right Sidebar** | Show or hide the entire right sidebar | Hidden |
+| **Right sidebar** | Show or hide the entire right sidebar | Hidden |
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
-| **Outgoing Links** | Show the Outgoing Links panel | Enabled |
-| **Tags** | Show the Tags panel | Enabled |
+| **Outgoing links** | Show the Outgoing Links panel | Enabled |
 | **Table of Contents** | Show the Table of Contents panel | Enabled |
-| **Folder Notes** | Clicking a folder also opens its matching .md file | Enabled |
+| **Folder notes** | Clicking a folder also opens its matching folder note | Enabled |
 
 ## Editor
 
@@ -137,7 +135,8 @@ See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Folder** | Folder name for template files (relative to vault root) | `_system/templates` |
+| **Templates folder** | Folder name for template files (relative to vault root) | `_system/templates` |
+| **System folder** | Vault-relative folder whose files are hidden from the type sidebar (note list, nav counts, inbox dock badge). Leave empty to disable. | `_system` |
 
 ## Types
 

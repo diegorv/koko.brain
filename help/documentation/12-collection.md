@@ -181,47 +181,32 @@ When the cursor is **outside** the block, it renders as an interactive table. Wh
 
 Click the toggle button in the bottom-right corner of the collection editor to switch between the visual table and the raw YAML source.
 
-### YAML structure for `.collection` files
+### YAML structure
+
+`.collection` files and inline ` ```collection ` code blocks use the same format. The root accepts `filters` (a global filter applied to every view), `formulas`, `properties` (display-name config), and `views` (at least one required). Each view sets its own `type`, `name`, `filters`, `order` (the visible columns, in order), `sort`, and `limit`:
 
 ```yaml
-name: Projects
-views:
-  - name: Active
-    query:
-      source: ""
-      filters:
-        - property: status
-          operator: eq
-          value: active
-      sort:
-        - property: date
-          direction: desc
-      properties:
-        - title
-        - status
-        - date
-        - tags
-      limit: 50
-```
-
-### YAML structure for inline code blocks
-
-Inline collection use a slightly different format with expression-based filters:
-
-```yaml
-filters: "status == 'active'"
+filters: "file.hasTag('project')"   # Optional global filter
 views:
   - type: table
-    name: My View
+    name: Active
+    filters: "status == 'active'"    # Optional view-specific filter
     order:
       - file.name
       - status
-      - priority
+      - date
+      - tags
     sort:
-      - column: priority
+      - column: date
         direction: DESC
-    limit: 10
+    limit: 50
 ```
+
+Notes on the format:
+
+- Filters are string expressions (or `and` / `or` / `not` objects), not `{property, operator, value}` entries.
+- `order` lists the columns to show; there is no `properties` array for column selection (`properties` only holds per-column `displayName` config).
+- `sort` entries use `column` and an uppercase `direction` (`ASC` or `DESC`). The key `property` is accepted as an alias for `column`.
 
 ### Filter expressions
 
@@ -323,12 +308,13 @@ These functions render rich content inside table cells:
 
 | Accessor / Method | Description |
 |-------------------|-------------|
-| `file.name` | Filename without extension |
-| `file.path` | Full vault-relative path |
+| `file.name` | Filename with extension |
+| `file.basename` | Filename without extension |
+| `file.path` | Full absolute path |
 | `file.folder` | Parent folder path |
 | `file.ext` | File extension |
-| `file.created` | Creation date |
-| `file.modified` | Last modified date |
+| `file.ctime` | Creation date |
+| `file.mtime` | Last modified date |
 | `file.size` | File size in bytes |
 | `file.tags` | Array of tags |
 | `file.properties` | All frontmatter as an object |

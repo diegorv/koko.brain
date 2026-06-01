@@ -89,8 +89,6 @@ action:
 | `tooltip` | no | Hover tooltip. |
 | `action` | one of | A single action object. Mutually exclusive with `actions`. |
 | `actions` | one of | An array of action objects executed in sequence. Mutually exclusive with `action`. |
-| `id` | no | Unique identifier for referencing this button inline. |
-| `hidden` | no | When `true`, the button block is hidden in live preview (useful for code-only blocks referenced by `id`). |
 
 If neither `action` nor `actions` is provided — or if the YAML is malformed — Kokobrain replaces the button with an inline error widget so the editor does not crash.
 
@@ -113,8 +111,9 @@ Sets the named frontmatter property to the given value. Missing keys are created
 action:
   type: open
   link: "[[Project Alpha]]"   # wikilink, or an https://… URL
-  newTab: true                # optional, default false
 ```
+
+A `[[wikilink]]` opens the resolved note; an `http(s)://` URL opens in your browser. The note opens in the current editor.
 
 #### `createNote` — create a new note
 
@@ -123,8 +122,9 @@ action:
   type: createNote
   fileName: New Idea           # without .md
   folderPath: Inbox            # optional, default vault root
-  openNote: true               # optional, default false
 ```
+
+The new note is created (or opened if it already exists) and opened in the editor.
 
 ### Multiple actions
 

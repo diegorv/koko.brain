@@ -40,10 +40,10 @@ Kokobrain supports several wikilink formats, each serving a different purpose:
 
 ## Navigating Wikilinks
 
-How you follow a wikilink depends on the editing mode:
+Click the link to follow it. This works the same in both editing modes:
 
-- **Source mode**: Hold `Cmd` and click the `[[wikilink]]`.
-- **Live preview**: Simply click the rendered link.
+- **Source mode**: Click the `[[wikilink]]` text.
+- **Live preview**: Click the rendered link.
 
 The linked note opens in a new tab, or switches to an existing tab if the note is already open.
 
@@ -60,6 +60,8 @@ When you type `[[Note Name#`, a second autocomplete popup appears showing all he
 
 This lets you link directly to a specific section within a note, so readers jump straight to the relevant content.
 
+Typing `[[Note Name#^` instead shows the note's existing block IDs, so you can link to a specific block without leaving the autocomplete.
+
 ## Block References
 
 A "block" is any paragraph, list item, or other content element in a note. You can create a link that points to a specific block.
@@ -74,8 +76,8 @@ A "block" is any paragraph, list item, or other content element in a note. You c
 
 ### Creating a block embed
 
-1. Press `Cmd+Shift+L` (or use the Command Palette `Cmd+P` and select "Copy Block Embed").
-2. This works the same as a block link, but copies `![[Note Name#^a1b2c3]]` — which embeds the block's content inline instead of just linking to it.
+1. Right-click and select "Copy block embed", or use the Command Palette (`Cmd+P`) and select "Copy Block Embed". (There is no default keyboard shortcut for the embed variant; `Cmd+Shift+L` always copies a plain link.)
+2. This works the same as a block link, but copies `![[Note Name#^a1b2c3]]` - which embeds the block's content inline instead of just linking to it.
 
 > [!NOTE]
 > Block IDs like `^a1b2c3` are generated automatically and appended to the line. Don't delete them if other notes reference that block.

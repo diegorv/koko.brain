@@ -12,7 +12,7 @@ Quick Capture writes a new timestamped note into your vault without any prompt o
 | **Composer popover** (global) | `Ctrl+Alt+Cmd+Space` | Floating 600×240 popover that summons over any frontmost app. Type, press `Cmd+Enter` to save, `Esc` to cancel. Focus returns to the previous app on dismiss. |
 | **Clipboard capture** (global, silent) | `Ctrl+Alt+Cmd+C` | No window. Reads the system clipboard, detects whether it is text, a URL, an image, or a file list, and writes the matching note immediately. |
 
-The clipboard shortcut auto-classifies the payload into one of five **kinds** — `note`, `clip` (plain text), `link` (auto-detected URL), `shot` (image), `file` (anything else). Each kind picks its own template (see Settings).
+The clipboard shortcut auto-classifies the payload into one of four **kinds** — `clip` (plain text), `link` (auto-detected URL), `shot` (image), `file` (anything else). The fifth kind, `note`, is what the composer surfaces (Cmd+N and the popover) write. Each kind picks its own template (see Settings).
 
 ![Quick capture popover summoned from another app](screenshots/quick-note.png)
 
@@ -32,7 +32,7 @@ Captures land under the **periodic notes base folder** (configured in Settings �
 
 ### Source provenance (browser captures)
 
-When the active app is Chrome or Safari at capture time, the YAML frontmatter is stamped with the browser tab's title and URL plus the app bundle id:
+When the active app is Chrome or Safari at capture time, the browser tab's title and URL plus the app bundle id are captured and exposed to your template as the `sourceApp`, `sourceTitle`, and `sourceUrl` variables (see Template Variables below). A template that references them produces frontmatter like:
 
 ```yaml
 source_app: com.google.Chrome
@@ -40,7 +40,9 @@ source_title: Example Page
 source: https://example.com
 ```
 
-macOS will prompt for Apple Events permission the first time the AppleScript runs. Other apps still fill `source_app` from NSWorkspace; only `source_title` + `source` need the AppleScript.
+If the per-kind template path is left empty, the rendered body instead carries the source as a `> Source: [title](url)` footer (for `note` / `clip` / `link` captures with a source URL).
+
+macOS will prompt for Apple Events permission the first time the AppleScript runs. Other apps still fill `sourceApp` from NSWorkspace; only `sourceTitle` + `sourceUrl` need the AppleScript.
 
 ### Template Variables
 
@@ -49,6 +51,7 @@ Quick Capture templates can use these additional variables:
 | Variable | Value |
 |---|---|
 | `<% created %>` | ISO date-time when the note was created |
+| `<% title %>` | Note title (link captures use the page title; otherwise the generated filename) |
 | `<% year %>` | 4-digit year |
 | `<% month %>` | Zero-padded month |
 | `<% monthName %>` | Full month name |
@@ -58,6 +61,7 @@ Quick Capture templates can use these additional variables:
 | `<% sourceUrl %>` | Browser tab URL (Chrome / Safari only) |
 | `<% capturedAt %>` | ISO 8601 timestamp of the capture |
 | `<% url %>` | Canonical URL (link captures only) |
+| `<% content %>` | Rendered capture body (appended after the template as well) |
 | `<% dailyNotePath %>` | Wikilink path to today's daily note |
 | `<% dailyNoteDisplay %>` | Display name for today's daily note |
 
@@ -66,8 +70,10 @@ Quick Capture templates can use these additional variables:
 With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 
 ```
-<vault>/2026/02-Feb/capture-note-2026-02-17_14-30-00-000.md
+<vault>/_notes/2026/02-Feb/capture-note-2026-02-17_14-30-00-000.md
 ```
+
+The `_notes/` prefix is the default periodic notes base folder; change it under Settings -> Periodic Notes -> Base Folder.
 
 > [!TIP]
 > Quick Capture is great for a "capture inbox" workflow: jot or paste things throughout the day from any app, then review and organize them later. The popover and clipboard shortcuts work even when Kokobrain is in the background — your previous app keeps focus.
@@ -128,7 +134,7 @@ The `{person}` placeholder is replaced with the selected person's name.
 Selecting "Alice Smith" on Feb 17, 2026 with the default settings creates:
 
 ```
-<vault>/2026/02-Feb/-1on1-Alice Smith-17-02-2026.md
+<vault>/_notes/2026/02-Feb/-1on1-Alice Smith-17-02-2026.md
 ```
 
 ---
@@ -139,7 +145,7 @@ Templates are `.md` files that serve as starting points for new notes. Instead o
 
 ### Creating a template
 
-1. Create a templates folder in your vault (default: `_templates/`).
+1. Create a templates folder in your vault (default: `_system/templates`).
 2. Add any `.md` file to it — this becomes a template.
 3. Write whatever content you want as the starting structure.
 

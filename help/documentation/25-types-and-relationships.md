@@ -103,8 +103,8 @@ The template file (`_system/templates/ProjectTemplate.md`) is a regular markdown
 
 The left sidebar has three modes, toggled by buttons in the header:
 
-- **Files** (default) -- standard file explorer tree
-- **Types** -- three-panel layout for browsing notes by type
+- **Files** -- standard file explorer tree
+- **Types** (default) -- three-panel layout for browsing notes by type
 - **Calendar** -- calendar view
 
 ### Three-Panel Layout
@@ -158,7 +158,7 @@ Notes with `_order` always appear first regardless of `_sort`. The sort mode onl
 
 ### Filters
 
-The middle panel has three sub-filter tabs, shown whenever the active selection is a type, the Untyped section, the "All Notes" nav item, or a `.view` file:
+The middle panel has three sub-filter tabs, shown whenever the active selection is a type, the Untyped section, or a `.view` file:
 
 | Tab | Shows | Sort |
 |-----|-------|------|
@@ -166,16 +166,14 @@ The middle panel has three sub-filter tabs, shown whenever the active selection 
 | Archived | Archived notes only | `_order`, then `_sort` mode |
 | Favorites | Favorited notes (excluding archived) | `_order`, then `_sort` mode |
 
-The tabs are hidden for the Inbox, Archive, and Favorites nav items, since those selections already imply a specific lifecycle filter. For `.view` selections, the counts next to each tab reflect the view's matching set, not the whole vault.
+The tabs are hidden for the Inbox and Archive nav items, since those selections already imply a specific lifecycle filter. For `.view` selections, the counts next to each tab reflect the view's matching set, not the whole vault.
 
 The left sidebar also has two navigation items:
 
 | Nav Item | Shows |
 |----------|-------|
 | Inbox | Notes with `_organized: false` (not yet triaged) |
-| All | All non-archived notes across all types |
 | Archive | All archived notes across types |
-| Favorites | All favorited, non-archived notes across types |
 
 ### Favorite Order
 
@@ -273,17 +271,15 @@ By default, notes are treated as organized. Enable **Explicit Organization** in 
 
 - New notes start as unorganized (inbox)
 - The Inbox filter tab appears in the type sidebar with a badge count
-- The Quick Switcher excludes archived notes from results
 
 ### Archived Note Filtering
 
 Archived notes are automatically excluded from:
 
 - The default "All" view in the type sidebar
-- The Quick Switcher results
 - The "Favorites" filter
 
-Archived notes remain accessible through the "Archived" filter tab.
+Archived notes remain accessible through the "Archived" filter tab. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
 
 ---
 
@@ -295,7 +291,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 |-------|---------------|---------|
 | `type` | `_type` | Type sidebar grouping, collection filters, inbox workflow |
 | `organized` | `_organized` | Inbox filter tab, lifecycle actions in Properties panel |
-| `archived` | `_archived` | Archived filter tab, hidden from All/Favorites/Quick Switcher |
+| `archived` | `_archived` | Archived filter tab, hidden from All/Favorites, dimmed in Quick Switcher |
 | `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
 | `order` | `_order` | Sort order of type sections and notes within sections |
 | `favorite_index` | `_favorite_index` | Sort order of notes in Favorites tab |
@@ -308,9 +304,8 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `view` | `_view` | Default view mode for the type section |
 | `visible` | `_visible` | Show/hide type section in sidebar |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note cards in middle panel |
-| `archive_to` | `_archive_to` | Auto-move destination when note is archived |
 
-You can use either form in your frontmatter. The app normalizes them internally.
+You can use either form in your frontmatter. The app normalizes them internally. The auto-move destination field `_archive_to` has no short alias -- write it with the leading underscore.
 
 > [!IMPORTANT]
 > The `type` alias for the canonical `_type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.collection` / `.view` / inline `collection` blocks). The other system-flag aliases (`organized`, `archived`, `favorite`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name (`_organized`, `_archived`, `_favorite`). The `type` / `_type` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. The legacy `is_a` / `is a` spellings are no longer recognised. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.
@@ -353,7 +348,7 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 |-------|-------------|---------|
 | `_sidebar_label` | Display name in the sidebar | Filename |
 | `_order` | Sidebar sort order (lower = higher) | `50` |
-| `_sort` | Sort mode for matching notes | `title` |
+| `_sort` | Sort mode for matching notes | `modified` |
 | `_icon` | Lucide icon name | none |
 | `_color` | Icon color | none |
 | `_title_color` | Label text color | none |

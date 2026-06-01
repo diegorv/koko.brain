@@ -21,12 +21,12 @@ Scripts support `async`/`await` — if `await` is detected, the script is automa
 
 ### Execution policy
 
-By default, queryjs blocks do **not** auto-run when you open a note. The policy is controlled by the **Settings → QueryJS → Auto-run policy** dropdown (`queryjs.autoRunQueries` in settings):
+By default (the **First open** policy), a queryjs block auto-runs the first time you open the note in a session, then caches the result. The policy is controlled by the **Settings → QueryJS → Auto-run policy** dropdown (`queryjs.autoRunQueries` in settings):
 
 | Policy | Behavior |
 |--------|----------|
 | **Manual** | The block renders a ▶ Run button. Click it to execute. Results are cached for the session — switching tabs and back replays the cached output instantly. |
-| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Re-opening the same note does not re-run; subsequent edits or a different note still need a manual click. |
+| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After you edit and save the block, the cache is dropped but the file stays marked, so the block shows a ▶ Run button instead of auto-running again. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). |
 | **Always** | The block runs every time you open or scroll to it. Use sparingly for queries that read live external data. |
 
 A manual run in the **Manual** policy does *not* promote the file to "auto-run on first open" — even if you switch the policy later, the block re-shows ▶ Run on next render until the policy explicitly says otherwise.
@@ -38,6 +38,8 @@ When a query runs, its rendered DOM tree is stored in a per-session cache keyed 
 - `<canvas>` charts keep their pixel buffer — no flicker, no re-draw cost.
 - `<video>` playback state, `<iframe>` content, and any imperatively attached event listeners survive viewport scrolls.
 - Cache invalidates when the script text changes, when you reload the vault, or when you re-run manually.
+
+To drop every cached result and reset the per-file first-open markers at once, use **Settings → QueryJS → Clear cache**. Each block then re-runs on its next render according to the current policy.
 
 ### Awaitless `kb.view()`
 
@@ -110,12 +112,12 @@ kb.number(4.5)            // 4.5
 Returns a unicode progress bar string. Useful as a cell value in `kb.table()`:
 
 ```javascript
-kb.progressBar(3, 5)    // "███░░ 3"
-kb.progressBar(5, 5)    // "█████ 5"
-kb.progressBar(0, 5)    // "░░░░░ 0"
+kb.progressBar(3, 5)    // "███░░"
+kb.progressBar(5, 5)    // "█████"
+kb.progressBar(0, 5)    // "░░░░░"
 ```
 
-The value is clamped between 0 and max for the bar, but the original value is always shown. This is also available as `kb.ui.progressBar()` with additional options.
+The value is clamped (and rounded) between 0 and max for the bar. The top-level `kb.progressBar()` returns only the bar - it does not append the numeric value. For a bar that also shows the number, use `kb.ui.progressBar()`, which appends the value by default and accepts additional options.
 
 ## The DVPage Object
 
@@ -633,7 +635,7 @@ kb.ui.table(
 | `align` | `string[]` | Column alignments: `'left'`, `'center'`, `'right'` |
 | `striped` | `boolean` | Alternating row background colors |
 | `footer` | `any[]` | Footer row with summary data |
-| `rowStyle` | `(row) => string \| null` | Return a CSS background color for conditional formatting |
+| `rowStyle` | `(row, index) => string \| null` | Return a CSS background color for conditional formatting. Receives the row's cell array and its 0-based index |
 | `pageSize` | `number` | When set to a positive number and there are more rows than fit, Prev/Next pagination controls appear |
 
 ### `kb.ui.progressBar(value, max, options?)` — Progress bar

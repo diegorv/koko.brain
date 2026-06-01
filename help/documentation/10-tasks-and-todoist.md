@@ -107,15 +107,7 @@ Combine filters to narrow down your view. For example, toggle **Hide completed**
 ## Interacting with Tasks
 
 - **Click a checkbox** — toggles the task status in the actual file. The change is written directly to the `.md` file on disk, so you will see the update the next time you open that note.
-- **Click a file name** — opens that file in the editor, scrolled to the task's location. This lets you quickly jump to the surrounding context of any task.
-
-### Due Date Indicators
-
-Tasks with due dates show visual indicators:
-
-- **Due today** — highlighted to draw attention
-- **Due soon** — subtle indicator for upcoming deadlines
-- **Overdue** — red indicator for past-due tasks
+- **Click a file name** — opens that file in the editor. This lets you quickly jump to the surrounding context of any task.
 
 ---
 
