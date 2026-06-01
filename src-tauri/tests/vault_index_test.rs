@@ -1676,6 +1676,26 @@ fn match_unlinked_mentions_strips_frontmatter_and_code_blocks() {
 }
 
 #[test]
+fn match_unlinked_mentions_finds_mention_after_byte_length_changing_uppercase() {
+	// Regression (#1): a body where a byte-length-changing uppercase char
+	// (İ, U+0130) precedes the mention. The lowercased search haystack was
+	// built with `.to_lowercase()`, which expands İ to "i\u{307}" (+1 byte)
+	// and shifts every later match offset relative to the original content —
+	// so the mention's word-boundary check read the wrong neighbouring char
+	// and the match was silently dropped. ASCII-only lowercasing keeps the
+	// haystack byte-aligned with `content`, so the mention is found.
+	let dir = TempDir::new().unwrap();
+	let p = dir.path().join("src.md");
+	fs::write(&p, "\u{0130}stanbul trip. See Project Plan for details.").unwrap();
+
+	let matched =
+		match_unlinked_mentions("Project Plan", vec![p.to_string_lossy().to_string()]);
+
+	assert_eq!(matched.len(), 1, "mention occurring after İ must still be found");
+	assert_eq!(matched[0], p.to_string_lossy());
+}
+
+#[test]
 fn lookup_entries_clones_full_note_entry_for_matched_paths() {
 	let (_dir, idx, paths) = build_index_with_fixtures(&[
 		("alpha.md", "alpha body"),

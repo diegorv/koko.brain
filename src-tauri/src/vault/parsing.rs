@@ -906,10 +906,15 @@ fn find_triple_backtick(bytes: &[u8], start: usize) -> Option<usize> {
 ///    `lineContent.lastIndexOf('[[', posInLine)` plus the closing `]]`
 ///    range check.
 ///
-/// `stripped_lower` should be `strip_non_body_content(content).to_lowercase()`
-/// — frontmatter and fenced code are spaced out so their mentions are not
-/// counted, while preserving byte positions so the wikilink-exclusion
-/// check against the ORIGINAL `content` lines up.
+/// `stripped_lower` should be
+/// `strip_non_body_content(content).to_ascii_lowercase()` — frontmatter and
+/// fenced code are spaced out so their mentions are not counted. It MUST be
+/// ASCII-only lowercased (not full `.to_lowercase()`): byte positions in
+/// `stripped_lower` are used to index the ORIGINAL `content` for the
+/// word-boundary + wikilink-exclusion checks, and full Unicode lowercasing
+/// changes the byte length of chars like İ/ẞ/Ⱥ/Ⱦ, shifting every later offset
+/// and silently dropping real mentions. ASCII-only lowercasing preserves byte
+/// length, so the needle is matched ASCII-case-insensitively below.
 ///
 /// Mirrors `backlinks.logic.ts::findPlainTextMentionPositions`. The TS
 /// version returns UTF-16 code-unit offsets; this version returns UTF-8
@@ -924,7 +929,9 @@ pub fn find_plain_text_mention_positions(
 	if search_term.is_empty() || stripped_lower.is_empty() {
 		return Vec::new();
 	}
-	let term_lower = search_term.to_lowercase();
+	// ASCII-only lowercase to match the haystack's scheme (see doc above):
+	// keeps the needle byte-aligned and case-insensitive for ASCII.
+	let term_lower = search_term.to_ascii_lowercase();
 	if term_lower.is_empty() {
 		return Vec::new();
 	}

@@ -127,7 +127,11 @@ pub fn match_unlinked_mentions(note_name: &str, candidate_paths: Vec<String>) ->
 			Err(_) => continue,
 		};
 		let stripped = strip_non_body_content(&content);
-		let stripped_lower = stripped.to_lowercase();
+		// ASCII-only lowercase preserves byte length (full `.to_lowercase()`
+		// changes the byte length of İ/ẞ/Ⱥ/Ⱦ), keeping match offsets aligned
+		// with `content` for the word-boundary check. See
+		// `find_plain_text_mention_positions`.
+		let stripped_lower = stripped.to_ascii_lowercase();
 		let positions =
 			find_plain_text_mention_positions(&content, &stripped_lower, note_name);
 		if !positions.is_empty() {
@@ -694,7 +698,11 @@ impl VaultIndex {
 			.unwrap_or_default();
 
 		let stripped = strip_non_body_content(content);
-		let stripped_lower = stripped.to_lowercase();
+		// ASCII-only lowercase preserves byte length (full `.to_lowercase()`
+		// changes the byte length of İ/ẞ/Ⱥ/Ⱦ), keeping match offsets aligned
+		// with `content` for the word-boundary check. See
+		// `find_plain_text_mention_positions`.
+		let stripped_lower = stripped.to_ascii_lowercase();
 		let mut mentions: Vec<OutgoingUnlinkedMention> = Vec::new();
 
 		for other_path in self.entries.keys() {
