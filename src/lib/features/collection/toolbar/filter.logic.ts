@@ -142,8 +142,11 @@ export function filterGroupsToFilter(groups: FilterGroup[]): CollectionFilter | 
 	const nonEmpty = groups.filter((g) => g.rows.length > 0);
 	if (nonEmpty.length === 0) return undefined;
 
-	// Single group with single row → return as plain string
-	if (nonEmpty.length === 1 && nonEmpty[0].rows.length === 1) {
+	// Single group with single row → return as plain string.
+	// A 'not' group must NOT take this shortcut: a bare expression is positive,
+	// so collapsing it would invert the filter. Let it fall through to the
+	// object branch and serialize as { not: [expr] }.
+	if (nonEmpty.length === 1 && nonEmpty[0].rows.length === 1 && nonEmpty[0].conjunction !== 'not') {
 		return filterRowToExpression(nonEmpty[0].rows[0]);
 	}
 

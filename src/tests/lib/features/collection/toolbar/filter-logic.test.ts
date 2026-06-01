@@ -9,7 +9,7 @@ import {
 	inferPropertyType,
 	createEmptyFilterRow,
 } from '$lib/features/collection/toolbar/filter.logic';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+import type { CollectionFilter, NoteRecord } from '$lib/features/collection/collection.types';
 import type { FilterRow } from '$lib/features/collection/toolbar/toolbar.types';
 
 function makeRecord(
@@ -437,6 +437,23 @@ describe('parseFilterToGroups / filterGroupsToFilter', () => {
 			{ conjunction: 'or', rows: [{ id: '1', property: 'x', operator: 'is', value: 'y' }] },
 		]);
 		expect(typeof filter).toBe('string');
+	});
+
+	it('keeps a single-row NOT group as a negated object, not a bare positive string', () => {
+		// Collapsing a single-row "not" group to the plain expression would invert
+		// the filter (the query would show exactly the rows the user excluded).
+		const filter = filterGroupsToFilter([{
+			conjunction: 'not',
+			rows: [{ id: '1', property: 'status', operator: 'is', value: 'active' }],
+		}]);
+		expect(typeof filter).toBe('object');
+		expect((filter as { not: string[] }).not).toEqual(["status == 'active'"]);
+
+		// The negation must survive a UI round-trip (parse back to a 'not' group).
+		const groups = parseFilterToGroups(filter as CollectionFilter);
+		expect(groups).toHaveLength(1);
+		expect(groups[0].conjunction).toBe('not');
+		expect(groups[0].rows).toHaveLength(1);
 	});
 });
 
