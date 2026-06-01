@@ -1,4 +1,4 @@
-Status: needs-info
+Status: wontfix
 
 # Collection evaluator type equality does not match array-valued type (multi-type notes)
 
@@ -44,3 +44,19 @@ list `contains`.
 ## Blocked by
 
 needs-info (multi-type supported?). Related: 01-evaluator-type-equality-lowercases-both-operands (same branch).
+
+## Comments
+
+- Closed as wontfix (confirmed by maintainer: `type` is single-valued, arrays do
+  not occur). The needs-info question is resolved against the code: a multi-valued
+  `type` is NOT a supported storage shape. Evidence:
+  - Rust `entry.rs:185` stores `is_a: Option<String>`; `extract_is_a` does
+    `val.as_str()?`, so an array-valued `type` resolves to `None` (no type).
+  - `normalize_type_casing` operates on a single string.
+  - UI type selector writes one string (`PropertiesView.svelte:201`,
+    `handleUpdate('type', t.name)`); reader coerces `String(typeProperty.value)`.
+  - Docs (`help/documentation/25-types-and-relationships.md`) only ever show
+    `type: Project` (single scalar).
+  An array `type` can only arise from hand-edited frontmatter; the Rust index
+  ignores it and the collection `false` result is correct for the single-scalar
+  model. No code change.
