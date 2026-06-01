@@ -121,6 +121,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	explicitOrganization: false,
 	showUntypedNotes: false,
 	dockBadgeInboxCount: true,
+	analyticsEnabled: false,
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -153,6 +154,7 @@ export const settingsStore = {
 	get explicitOrganization() { return settings.explicitOrganization; },
 	get showUntypedNotes() { return settings.showUntypedNotes; },
 	get dockBadgeInboxCount() { return settings.dockBadgeInboxCount; },
+	get analyticsEnabled() { return settings.analyticsEnabled; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -334,6 +336,11 @@ export const settingsStore = {
 			...settings,
 			updates: { ...settings.updates, ...value },
 		};
+	},
+
+	/** Updates the anonymous product analytics (PostHog) consent flag */
+	updateAnalyticsEnabled(value: boolean) {
+		settings = { ...settings, analyticsEnabled: value };
 	},
 
 	/** Restores all settings to their defaults */

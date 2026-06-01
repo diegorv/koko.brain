@@ -22,6 +22,30 @@ describe('settingsStore', () => {
 		});
 	});
 
+	describe('analyticsEnabled', () => {
+		it('defaults to false (opt-in)', () => {
+			expect(settingsStore.analyticsEnabled).toBe(false);
+		});
+
+		it('getter reflects setSettings', () => {
+			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), analyticsEnabled: true });
+			expect(settingsStore.analyticsEnabled).toBe(true);
+		});
+
+		it('updateAnalyticsEnabled toggles the flag', () => {
+			expect(settingsStore.analyticsEnabled).toBe(false);
+			settingsStore.updateAnalyticsEnabled(true);
+			expect(settingsStore.analyticsEnabled).toBe(true);
+			settingsStore.updateAnalyticsEnabled(false);
+			expect(settingsStore.analyticsEnabled).toBe(false);
+		});
+
+		it('updateAnalyticsEnabled preserves other settings', () => {
+			settingsStore.updateAnalyticsEnabled(true);
+			expect(settingsStore.dockBadgeInboxCount).toBe(DEFAULT_SETTINGS.dockBadgeInboxCount);
+		});
+	});
+
 	describe('setSettings', () => {
 		it('replaces entire settings object', () => {
 			const custom = { ...structuredClone(DEFAULT_SETTINGS), periodicNotes: { ...DEFAULT_SETTINGS.periodicNotes, folder: '_custom' } };

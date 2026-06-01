@@ -154,6 +154,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			explicitOrganization: parsed.explicitOrganization ?? DEFAULT_SETTINGS.explicitOrganization,
 			showUntypedNotes: parsed.showUntypedNotes ?? DEFAULT_SETTINGS.showUntypedNotes,
 			dockBadgeInboxCount: parsed.dockBadgeInboxCount ?? DEFAULT_SETTINGS.dockBadgeInboxCount,
+			analyticsEnabled: parsed.analyticsEnabled ?? DEFAULT_SETTINGS.analyticsEnabled,
 		};
 		settingsStore.setSettings(merged);
 		await saveSettings(vaultPath);

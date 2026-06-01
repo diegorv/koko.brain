@@ -24,10 +24,12 @@ it in Settings > Privacy.
       `ImportMetaEnv` augmentation to `src/app.d.ts`; add EU posthog hosts to
       `tauri.conf.json` CSP (`script-src` + `connect-src`); add `$APPCONFIG`
       fs scopes to `capabilities/default.json`. Verify `pnpm check`.
-- [ ] Task 2: Settings flag. Add `analyticsEnabled: boolean` (default false) to
-      `AppSettings` + `'privacy'` to `SettingsSection`; store getter
-      `analyticsEnabled` + updater `updateAnalyticsEnabled`; merge line in
-      `loadSettings`. Tests in `settings.store.test.ts`.
+- [x] Task 2: Settings flag. Add `analyticsEnabled: boolean` (default false) to
+      `AppSettings`; store getter `analyticsEnabled` + updater
+      `updateAnalyticsEnabled`; merge line in `loadSettings`. Tests in
+      `settings.store.test.ts`. (The `'privacy'` SettingsSection value moved to
+      Task 6 — adding it standalone breaks the `sectionIcons` Record until the
+      icon is wired.)
 - [ ] Task 3: `telemetry.logic.ts` (pure) — `resolveTelemetryConfig(env)`,
       `isValidPosthogHost`, EU host constant. Tests.
 - [ ] Task 4: `telemetry.service.ts` — per-install anon id (fs + appConfigDir),
@@ -35,9 +37,10 @@ it in Settings > Privacy.
       `product-analytics.ts` domain wrappers + consent events. Tests.
 - [ ] Task 5: Lifecycle wiring — `initTelemetryIfEnabled()` after `loadSettings`
       in `initializeVault`; `teardownTelemetry()` in `teardownVault`.
-- [ ] Task 6: Settings UI — `PrivacySection.svelte` (consent toggle wired to
-      init/teardown + opted-in/out events), nav item in `settings.logic.ts`,
-      icon + branch in `SettingsPanel.svelte`.
+- [ ] Task 6: Settings UI — add `'privacy'` to `SettingsSection`;
+      `PrivacySection.svelte` (consent toggle wired to init/teardown +
+      opted-in/out events), nav item in `settings.logic.ts`, icon + branch in
+      `SettingsPanel.svelte`.
 
 ## Notes
 

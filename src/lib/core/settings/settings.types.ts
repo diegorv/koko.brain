@@ -312,4 +312,10 @@ export interface AppSettings {
 	showUntypedNotes: boolean;
 	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
 	dockBadgeInboxCount: boolean;
+	/**
+	 * Whether anonymous product analytics (PostHog) are enabled. Opt-in:
+	 * defaults to false, so nothing is loaded or sent until the user turns
+	 * this on in Settings > Privacy.
+	 */
+	analyticsEnabled: boolean;
 }
