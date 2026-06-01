@@ -46,3 +46,11 @@ other side as written. Or restrict the relaxed branch to identifier-vs-literal p
 ## Blocked by
 
 None. Related: 03-evaluator-type-equality-array-values-no-match (same branch).
+
+## Comments
+
+- Resolved in commit 1fc71f7. Gated the relaxed `==`/`!=` branch to
+  type-identifier-vs-literal via new `isLiteralNode`; cross-field `type == status`
+  is case-sensitive again. Added cross-field / reversed / member-access /
+  ordering-operator / numeric / boolean tests. `pnpm check` + the evaluator suite
+  (101 tests) green.
