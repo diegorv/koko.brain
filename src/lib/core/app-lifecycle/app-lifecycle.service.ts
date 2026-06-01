@@ -34,6 +34,8 @@ import {
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { initTelemetry, teardownTelemetry } from '$lib/core/telemetry/telemetry.service';
+import { trackVaultOpened } from '$lib/core/telemetry/product-analytics';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
 import {
@@ -130,6 +132,17 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	await loadSettings(vaultPath);
 	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
+
+	// ── Telemetry (opt-in) ───────────────────────────────────────────
+	// Fire-and-forget: lazily loads PostHog only when the user has
+	// consented. initTelemetry swallows its own errors and is idempotent;
+	// the extra catch guards the trackVaultOpened chain. Never blocks init.
+	if (settingsStore.analyticsEnabled) {
+		debug('LIFECYCLE', 'Analytics enabled — initializing telemetry');
+		initTelemetry()
+			.then(() => trackVaultOpened())
+			.catch((err) => error('LIFECYCLE', 'Telemetry init failed:', err));
+	}
 
 	if (settingsStore.debugModeTauri) {
 		debug('LIFECYCLE', 'Tauri debug mode enabled — activating');
@@ -380,6 +393,7 @@ export function teardownVault(): void {
 	stopSemanticProgressListener();
 	stopTauriDebugListener();
 	teardownLogSession();
+	teardownTelemetry();
 
 	// ── Save index cache before teardown ─────────────────────────────
 	if (vaultStore.path) {

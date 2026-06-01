@@ -161,6 +161,15 @@ vi.mock('$lib/features/auto-move/auto-move.service', () => ({
 	resetAutoMove: vi.fn(),
 }));
 
+vi.mock('$lib/core/telemetry/telemetry.service', () => ({
+	initTelemetry: vi.fn(() => Promise.resolve()),
+	teardownTelemetry: vi.fn(),
+}));
+
+vi.mock('$lib/core/telemetry/product-analytics', () => ({
+	trackVaultOpened: vi.fn(),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
 import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
@@ -195,6 +204,8 @@ import {
 	stopSemanticProgressListener,
 } from '$lib/features/search/search.service';
 import { toast } from 'svelte-sonner';
+import { initTelemetry, teardownTelemetry } from '$lib/core/telemetry/telemetry.service';
+import { trackVaultOpened } from '$lib/core/telemetry/product-analytics';
 import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
@@ -341,6 +352,33 @@ describe('initializeVault', () => {
 	});
 });
 
+describe('initializeVault — telemetry (opt-in)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+	});
+
+	it('does not init telemetry when analytics is disabled (default)', async () => {
+		await initializeVault('/vault');
+
+		expect(initTelemetry).not.toHaveBeenCalled();
+		expect(trackVaultOpened).not.toHaveBeenCalled();
+	});
+
+	it('inits telemetry and tracks vault_opened when analytics is enabled', async () => {
+		settingsStore.updateAnalyticsEnabled(true);
+
+		await initializeVault('/vault');
+
+		expect(initTelemetry).toHaveBeenCalled();
+		// trackVaultOpened runs in the fire-and-forget .then chain.
+		await vi.waitFor(() => expect(trackVaultOpened).toHaveBeenCalled());
+	});
+});
+
 describe('initializeVault — file change listener', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -406,6 +444,12 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(stopWatching).toHaveBeenCalled();
+	});
+
+	it('tears down telemetry to prevent cross-vault leakage', () => {
+		teardownVault();
+
+		expect(teardownTelemetry).toHaveBeenCalled();
 	});
 
 	it('closes the shared database', () => {

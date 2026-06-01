@@ -41,7 +41,7 @@ it in Settings > Privacy.
       `getTelemetryConfig` (settings token first, env fallback), `initTelemetry`,
       `teardownTelemetry`, `trackEvent`; `product-analytics.ts` domain wrappers +
       consent events. Tests.
-- [ ] Task 6: Lifecycle wiring — init telemetry after `loadSettings` in
+- [x] Task 6: Lifecycle wiring — init telemetry after `loadSettings` in
       `initializeVault` when `analyticsEnabled`; `teardownTelemetry()` in
       `teardownVault`.
 - [ ] Task 7: Troubleshooting UI — "Analytics" subsection in
