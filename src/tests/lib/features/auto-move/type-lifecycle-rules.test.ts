@@ -66,19 +66,58 @@ describe('generateLifecycleRules', () => {
 		const map = new Map([
 			['Project', makeTypeMetadata({ name: 'Project', archiveTo: '{folder}/_archive' })],
 			['Task', makeTypeMetadata({ name: 'Task', archiveTo: '{folder}/_archive' })],
+			// Event uses a custom archiveTo that is NOT "{folder}/<segment>", so it
+			// only gets an archive rule -- {parent} cannot restore it correctly.
 			['Event', makeTypeMetadata({ name: 'Event', archiveTo: 'archive/events/{year}' })],
 		]);
 
 		const rules = generateLifecycleRules(map);
-		expect(rules).toHaveLength(6);
+		expect(rules).toHaveLength(5);
 		expect(rules.map(r => r.name)).toEqual([
 			'[Project] Archive',
 			'[Project] Unarchive',
 			'[Task] Archive',
 			'[Task] Unarchive',
 			'[Event] Archive',
-			'[Event] Unarchive',
 		]);
+	});
+
+	it('derives the archive folder segment for a custom {folder}/<segment> destination', () => {
+		const map = new Map([
+			['Project', makeTypeMetadata({ name: 'Project', archiveTo: '{folder}/done' })],
+		]);
+
+		const rules = generateLifecycleRules(map);
+		expect(rules).toHaveLength(2);
+		// Both guards use the derived segment "done", not the hardcoded "_archive".
+		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true && !file.folder.endsWith("done")');
+		expect(rules[1].expression).toBe('type.lower() == "project" && _archived == false && file.folder.endsWith("done")');
+		expect(rules[1].destination).toBe('{parent}');
+	});
+
+	it('emits only an archive rule (no folder guard, no unarchive) for non-{folder} destinations', () => {
+		const map = new Map([
+			['Event', makeTypeMetadata({ name: 'Event', archiveTo: 'archive/events/{year}' })],
+		]);
+
+		const rules = generateLifecycleRules(map);
+		expect(rules).toHaveLength(1);
+		expect(rules[0].name).toBe('[Event] Archive');
+		// No file.folder.endsWith(...) guard -- the service relies on
+		// isAlreadyInDestination to prevent re-archiving for dynamic destinations.
+		expect(rules[0].expression).toBe('type.lower() == "event" && _archived == true');
+		expect(rules[0].destination).toBe('archive/events/{year}');
+	});
+
+	it('does not emit an unarchive rule for a multi-segment {folder} destination', () => {
+		const map = new Map([
+			['Project', makeTypeMetadata({ name: 'Project', archiveTo: '{folder}/sub/_archive' })],
+		]);
+
+		const rules = generateLifecycleRules(map);
+		expect(rules).toHaveLength(1);
+		expect(rules[0].name).toBe('[Project] Archive');
+		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true');
 	});
 
 	it('generates stable deterministic IDs per type', () => {

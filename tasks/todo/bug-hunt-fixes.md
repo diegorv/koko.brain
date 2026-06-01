@@ -8,7 +8,7 @@ This batch fixes the **7 HIGH** bugs (one commit each). Medium + Low are backlog
 ## Tasks (HIGH — fix now, one commit each)
 
 - [x] H1: trash.service.ts data loss — `moveToTrash` cleanup deletes the user's file when `saveManifest` fails after a successful rename. `src/lib/core/trash/trash.service.ts:64-79`. Fix: `renamed` flag, guard cleanup `if (containerCreated && !renamed)`, wrap saveManifest in try/catch mirroring `restoreItem`.
-- [ ] H2: auto-move unarchive hardcodes `"_archive"` suffix -> never fires for other `archiveTo` destinations. `src/lib/features/auto-move/type-lifecycle-rules.ts:22-32`. Fix: derive suffix from resolved `metadata.archiveTo` tail, not literal.
+- [x] H2: auto-move unarchive hardcodes `"_archive"` suffix -> never fires for other `archiveTo` destinations. `src/lib/features/auto-move/type-lifecycle-rules.ts:22-32`. Fix: derive suffix from resolved `metadata.archiveTo` tail, not literal.
 - [ ] H3: collection parser — method/field chaining on a function-call result broken (`now().format()`, `today().date()`). `src/lib/features/collection/expression/parser.ts:130-143,206-212`. Fix: structural `methodCall` node holding receiver ASTNode, not flattened dotted string.
 - [ ] H4: collection filter — single-row `not` group collapses to bare positive expression, inverting filter + persisting inverted YAML. `src/lib/features/collection/toolbar/filter.logic.ts:146-148`. Fix: shortcut only when `conjunction !== 'not'`.
 - [ ] H5: properties panel crashes (Svelte `each_key_duplicate`) when frontmatter has alias + canonical twin (`color` + `_color`). `src/lib/features/properties/PropertiesView.svelte:92-96,221`. Fix: `dedupeCanonicalKeys` on parse path (or key=index).
