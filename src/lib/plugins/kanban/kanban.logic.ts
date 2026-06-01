@@ -685,6 +685,20 @@ export function filterItems(items: KanbanItem[], query: string): KanbanItem[] {
 	return items.filter((item) => item.text.toLowerCase().includes(q));
 }
 
+/**
+ * Whether manual drag-reordering of cards is valid for the current view.
+ *
+ * Drop positions are computed from the rendered (filtered + sorted) cards, but
+ * moveItem splices into the lane's full, stored item list. That mapping is only
+ * 1:1 when the rendered order equals the stored order: manual sort mode AND no
+ * active filter. When the board is sorted or filtered, the rendered cards are a
+ * reordered/subset view, so a drop index among them would misplace and persist
+ * cards. Callers disable item dragging when this returns false.
+ */
+export function canReorderItems(sortMode: KanbanSortMode, filterQuery: string): boolean {
+	return sortMode === 'manual' && filterQuery.trim() === '';
+}
+
 // ── View mode ───────────────────────────────────────────────────────
 
 /** Sets the board view mode */

@@ -40,6 +40,7 @@
 		setSortMode,
 		filterItems,
 		setViewMode,
+		canReorderItems,
 	} from './kanban.logic';
 	import type { KanbanBoard, KanbanSortMode, KanbanViewMode } from './kanban.types';
 	import { kanbanStore } from './kanban.store.svelte';
@@ -159,6 +160,10 @@
 
 	let currentSortMode = $derived(board.settings.sortMode ?? 'manual');
 	let isManualSort = $derived(currentSortMode === 'manual');
+	// Manual card drag-reorder is only valid when the rendered order matches the
+	// stored order: manual sort AND no active filter. Otherwise a drop index among
+	// the filtered/sorted cards would misplace cards in the full lane list.
+	let canReorder = $derived(canReorderItems(currentSortMode, kanbanStore.filterQuery));
 
 	function handleSetSortMode(mode: KanbanSortMode) {
 		applyChange(setSortMode(board, mode));
@@ -519,7 +524,7 @@
 			atLimit={isLaneAtLimit(board, lane.title)}
 			autoComplete={isLaneAutoComplete(board, lane.title)}
 			tagColors={board.settings.tagColors ?? {}}
-			disableDrag={!isManualSort}
+			disableDrag={!canReorder}
 			{dragItemId}
 			isDragOver={dragOverLaneId === lane.id}
 			{dropIndicatorIndex}

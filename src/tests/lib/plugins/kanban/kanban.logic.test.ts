@@ -46,6 +46,7 @@ import {
 	setSortMode,
 	filterItems,
 	setViewMode,
+	canReorderItems,
 } from '$lib/plugins/kanban/kanban.logic';
 import type { KanbanBoard, KanbanSettings } from '$lib/plugins/kanban/kanban.types';
 
@@ -1517,5 +1518,25 @@ describe('setViewMode', () => {
 		const md = serializeKanbanBoard(board);
 		const parsed = parseKanbanBoard(md);
 		expect(parsed.settings.viewMode).toBe('list');
+	});
+});
+
+describe('canReorderItems', () => {
+	it('allows manual reorder when sort is manual and no filter is active', () => {
+		expect(canReorderItems('manual', '')).toBe(true);
+		expect(canReorderItems('manual', '   ')).toBe(true);
+	});
+
+	it('blocks reorder when a filter is active (visible order != stored order)', () => {
+		// Drop positions are computed among the filtered DOM cards; mapping them
+		// into the lane's full item array misplaces and persists cards.
+		expect(canReorderItems('manual', 'x')).toBe(false);
+		expect(canReorderItems('manual', ' fix ')).toBe(false);
+	});
+
+	it('blocks reorder when the board is sorted (non-manual)', () => {
+		expect(canReorderItems('date-asc', '')).toBe(false);
+		expect(canReorderItems('text-desc', '')).toBe(false);
+		expect(canReorderItems('checked', 'x')).toBe(false);
 	});
 });
