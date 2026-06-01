@@ -3,6 +3,8 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { setTauriDebugMode } from '$lib/utils/debug';
 	import { initLogSession, teardownLogSession, openLogDir, startHeartbeat, stopHeartbeat, isLogSessionActive } from '$lib/utils/log.service';
+	import { initTelemetry, teardownTelemetry } from '$lib/core/telemetry/telemetry.service';
+	import { trackTelemetryOptedIn, trackTelemetryOptedOut } from '$lib/core/telemetry/product-analytics';
 	import { settingsStore } from '../settings.store.svelte';
 	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
@@ -18,6 +20,40 @@
 
 	function isDecoratorDisabled(name: string): boolean {
 		return settingsStore.disabledDecorators[name] ?? false;
+	}
+
+	/**
+	 * Toggles analytics consent. On enable, init telemetry (reads the current
+	 * token) then capture the opt-in event. On disable, capture the opt-out
+	 * event BEFORE teardown (teardown opts out + resets, after which capture
+	 * is a no-op).
+	 */
+	async function handleAnalyticsToggle(enabled: boolean) {
+		settingsStore.updateAnalyticsEnabled(enabled);
+		onchange();
+		if (enabled) {
+			await initTelemetry();
+			trackTelemetryOptedIn();
+		} else {
+			trackTelemetryOptedOut();
+			teardownTelemetry();
+		}
+	}
+
+	/** Persists the PostHog token as the user types. */
+	function handleTokenInput(value: string) {
+		settingsStore.updatePosthogToken(value);
+		onchange();
+	}
+
+	/**
+	 * Re-initializes telemetry on token commit (blur) so a changed token takes
+	 * effect without a restart. No-op while analytics is disabled.
+	 */
+	async function handleTokenCommit() {
+		if (!settingsStore.analyticsEnabled) return;
+		teardownTelemetry();
+		await initTelemetry();
 	}
 </script>
 
@@ -159,6 +195,32 @@
 				}
 				onchange();
 			}}
+		/>
+	</SettingItem>
+
+	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Analytics</h3>
+
+	<SettingItem
+		label="Send anonymous analytics"
+		description="Opt-in product analytics via PostHog. No autocapture, no session recording, no note content — only anonymous usage events tied to a per-install id"
+	>
+		<Switch
+			checked={settingsStore.analyticsEnabled}
+			onCheckedChange={(v) => handleAnalyticsToggle(v)}
+		/>
+	</SettingItem>
+
+	<SettingItem
+		label="PostHog token"
+		description="Project API key. Stored in settings.json. Takes effect immediately when analytics is enabled"
+	>
+		<input
+			type="text"
+			value={settingsStore.posthogToken}
+			oninput={(e) => handleTokenInput(e.currentTarget.value)}
+			onchange={() => handleTokenCommit()}
+			placeholder="phc_..."
+			class="h-8 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 		/>
 	</SettingItem>
 </div>

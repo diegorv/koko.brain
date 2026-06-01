@@ -44,7 +44,7 @@ it in Settings > Privacy.
 - [x] Task 6: Lifecycle wiring — init telemetry after `loadSettings` in
       `initializeVault` when `analyticsEnabled`; `teardownTelemetry()` in
       `teardownVault`.
-- [ ] Task 7: Troubleshooting UI — "Analytics" subsection in
+- [x] Task 7: Troubleshooting UI — "Analytics" subsection in
       `TroubleshootingSection.svelte`: enable Switch (wired to init/teardown +
       opted-in/out events) + PostHog token input. Re-init on token change while
       enabled.
