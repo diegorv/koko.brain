@@ -65,7 +65,9 @@ The block below is normative. Drop into a JSON parser and consume directly.
       "trailingWhitespaceOrColon": [" ", "\t", ":"],
       "substringsAnywhere": [": ", ":\t", " #", "\t#"],
       "reservedLiterals": ["true", "false", "null", "Null", "NULL", "True", "False", "TRUE", "FALSE", "~"],
-      "numericLikeRegex": "^[-+]?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$|^[-+]?\\.(?:inf|nan)$|^[-+]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?$|^0x[0-9a-fA-F]+$|^0o[0-7]+$",
+      "loneBlockIndicators": ["-", "?"],
+      "numericLikeRegex": "^0o[0-7]+$|^[-+]?[0-9]+$|^0x[0-9a-fA-F]+$|^(?:[-+]?\\.(?:inf|Inf|INF)|\\.nan|\\.NaN|\\.NAN)$|^[-+]?(?:\\.[0-9]+|[0-9]+(?:\\.[0-9]*)?)[eE][-+]?[0-9]+$|^[-+]?(?:\\.[0-9]+|[0-9]+\\.[0-9]*)$",
+      "numericLikeRegexNote": "Mirrors yaml@2.9.0 schema/core int.js + float.js exactly: decimal ints include leading-zero runs (007, 00); .inf is signed, .nan is unsigned, both only in .inf/.Inf/.INF and .nan/.NaN/.NAN casings; floats allow a trailing dot (1.) or leading dot (.5).",
       "controlCharsRegex": "[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]",
       "newline": true
     },
@@ -89,8 +91,8 @@ The block below is normative. Drop into a JSON parser and consume directly.
     }
   },
   "flowItem": {
-    "additionalMustQuoteSubstrings": [","],
-    "note": "Inside [a, b], any comma forces quoting because comma is the flow-sequence separator. So foo,bar quotes in flow context but stays bare in mapping context."
+    "additionalMustQuoteSubstrings": [",", "[", "]", "{", "}"],
+    "note": "Inside [a, b], any comma (the flow-sequence separator) or flow indicator ([ ] { }) anywhere in the value forces quoting. So foo,bar and a[b]c quote in flow context but stay bare in mapping context."
   },
   "list": {
     "style": "flow",
@@ -129,7 +131,7 @@ function shouldQuote(value):
     if (value[0] == '?' or value[0] == '-')
         and len(value) > 1
         and value[1] in (' ', '\t'):                      return true
-    if value[0] == '~' and len(value) == 1:               return true
+    if len(value) == 1 and value in ('-', '?', '~'):      return true
     if value[0] in (' ', '\t'):                           return true
     if value[-1] in (' ', '\t', ':'):                     return true
     for sub in [': ', ':\t', ' #', '\t#']:
@@ -139,7 +141,7 @@ function shouldQuote(value):
     return false
 ```
 
-For flow-item context: add `if ',' in value: return true` at the end (before the final `return false`).
+For flow-item context: add `if any(c in value for c in (',', '[', ']', '{', '}')): return true` at the end (before the final `return false`).
 
 ## Worked examples
 
@@ -161,6 +163,12 @@ For flow-item context: add `if ',' in value: return true` at the end (before the
 | `100%` | `100%` | `100%` |
 | `~tilde` | `~tilde` | `~tilde` |
 | `~` | `"~"` | `"~"` |
+| `007` (leading-zero int) | `"007"` | `"007"` |
+| `1.` (trailing-dot float) | `"1."` | `"1."` |
+| `.NaN` / `.Inf` | `".NaN"` | `".NaN"` |
+| `+.nan` (signed nan, not a number) | `+.nan` | `+.nan` |
+| `-` / `?` (lone block indicator) | `"-"` | `"-"` |
+| `a[b]c` (interior brackets) | `a[b]c` | `"a[b]c"` |
 
 ## Realistic person-note snapshot
 

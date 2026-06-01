@@ -127,6 +127,45 @@ describe('shouldQuoteScalar (mapping-value context)', () => {
 		expect(shouldQuoteScalar('.nan')).toBe(true);
 	});
 
+	it('quotes leading-zero integer runs (would re-parse as a number)', () => {
+		expect(shouldQuoteScalar('012')).toBe(true);
+		expect(shouldQuoteScalar('007')).toBe(true);
+		expect(shouldQuoteScalar('00')).toBe(true);
+		expect(shouldQuoteScalar('08')).toBe(true);
+	});
+
+	it('quotes mixed-case and signed .inf / unsigned .nan special floats', () => {
+		expect(shouldQuoteScalar('.NaN')).toBe(true);
+		expect(shouldQuoteScalar('.Inf')).toBe(true);
+		expect(shouldQuoteScalar('.INF')).toBe(true);
+		expect(shouldQuoteScalar('+.inf')).toBe(true);
+	});
+
+	it('leaves signed nan and non-standard inf/nan casings bare (not numbers)', () => {
+		expect(shouldQuoteScalar('+.nan')).toBe(false);
+		expect(shouldQuoteScalar('-.nan')).toBe(false);
+		expect(shouldQuoteScalar('+.NaN')).toBe(false);
+		expect(shouldQuoteScalar('.iNf')).toBe(false);
+		expect(shouldQuoteScalar('.nAn')).toBe(false);
+	});
+
+	it('quotes trailing-dot floats (would re-parse as a number)', () => {
+		expect(shouldQuoteScalar('1.')).toBe(true);
+		expect(shouldQuoteScalar('12.')).toBe(true);
+		expect(shouldQuoteScalar('1.e5')).toBe(true);
+	});
+
+	it('quotes a lone - or ? block indicator', () => {
+		expect(shouldQuoteScalar('-')).toBe(true);
+		expect(shouldQuoteScalar('?')).toBe(true);
+	});
+
+	it('leaves interior brackets bare in mapping-value context', () => {
+		expect(shouldQuoteScalar('a[b]c')).toBe(false);
+		expect(shouldQuoteScalar('a]b')).toBe(false);
+		expect(shouldQuoteScalar('a{b}c')).toBe(false);
+	});
+
 	it('leaves ISO date-like strings bare', () => {
 		expect(shouldQuoteScalar('2026-05-31')).toBe(false);
 		expect(shouldQuoteScalar('2026-05-31T12:00:00')).toBe(false);
@@ -172,6 +211,12 @@ describe('shouldQuoteScalar (flow-item context)', () => {
 
 	it('still quotes wikilinks in flow context', () => {
 		expect(shouldQuoteScalar('[[Foo]]', 'flow-item')).toBe(true);
+	});
+
+	it('quotes interior brackets in flow context (would malform the flow collection)', () => {
+		expect(shouldQuoteScalar('a[b]c', 'flow-item')).toBe(true);
+		expect(shouldQuoteScalar('a]b', 'flow-item')).toBe(true);
+		expect(shouldQuoteScalar('a{b}c', 'flow-item')).toBe(true);
 	});
 });
 
@@ -271,6 +316,38 @@ const PARITY_CASES_MAPPING: readonly string[] = [
 	'100%',
 	'foo%bar',
 	'foo@',
+	// --- f57482e6 audit: yaml@2.9.0 divergence classes (issue 04) ---
+	// Leading-zero integer runs re-parse as numbers -> quoted.
+	'012',
+	'007',
+	'00',
+	'01',
+	'08',
+	// Mixed-case / signed inf and (unsigned) nan special floats -> quoted.
+	'.NaN',
+	'.Inf',
+	'.INF',
+	'.NAN',
+	'+.inf',
+	'-.inf',
+	// Signed nan is NOT a number -> stays bare (was over-quoted).
+	'+.nan',
+	'-.nan',
+	'+.NaN',
+	// Other inf/nan casings are not numbers -> bare.
+	'.iNf',
+	'.nAn',
+	// Trailing-dot float re-parses as a number -> quoted.
+	'1.',
+	'12.',
+	'1.e5',
+	// Lone block indicators -> quoted.
+	'-',
+	'?',
+	// Interior brackets stay bare in mapping context.
+	'a[b]c',
+	'a]b',
+	'a{b}c',
 ];
 
 describe('parity with yaml@2.9.0 — mapping-value', () => {
@@ -296,6 +373,18 @@ const PARITY_CASES_FLOW: readonly string[] = [
 	'plain',
 	'#hash',
 	'@start',
+	// --- f57482e6 audit: yaml@2.9.0 divergence classes (issue 04) ---
+	// Interior flow indicators force quoting in flow-item context.
+	'a[b]c',
+	'a]b',
+	'a{b}c',
+	// Numeric / indicator divergences hold in flow context too.
+	'012',
+	'.NaN',
+	'+.nan',
+	'1.',
+	'-',
+	'?',
 ];
 
 describe('parity with yaml@2.9.0 — flow-item', () => {

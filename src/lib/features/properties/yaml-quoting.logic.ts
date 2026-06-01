@@ -69,18 +69,27 @@ export const SCALAR_MUST_QUOTE_SUBSTRINGS: readonly string[] = [
 ];
 
 /**
- * Additional substrings that quote inside a flow-sequence item (the
- * comma is the flow-sequence separator, so any `,` forces quoting).
+ * Additional substrings that quote inside a flow-sequence item. The comma
+ * is the flow-sequence separator and `[ ] { }` are flow indicators, so any
+ * of them appearing anywhere in the value (not just leading) would malform
+ * the flow collection and forces quoting. yaml@2.9.0 quotes `a[b]c` inside
+ * a flow sequence but leaves it bare in mapping-value context.
  */
-export const FLOW_ITEM_MUST_QUOTE_SUBSTRINGS: readonly string[] = [','];
+export const FLOW_ITEM_MUST_QUOTE_SUBSTRINGS: readonly string[] = [',', '[', ']', '{', '}'];
 
 /**
- * Matches strings that parse as YAML core-schema numbers (decimal,
- * hex, octal, float, scientific, .inf, .nan). These must be quoted
- * when written as a string scalar.
+ * Matches strings that parse as YAML core-schema numbers, mirroring the
+ * exact resolver regexes yaml@2.9.0 uses (`schema/core/int.js` +
+ * `schema/core/float.js`) so the predicate cannot diverge from the library:
+ * - octal `0o…`, decimal int `[-+]?[0-9]+` (leading-zero runs like `007`
+ *   included), hex `0x…`;
+ * - special floats: signed `.inf` / `.Inf` / `.INF` and UNSIGNED `.nan` /
+ *   `.NaN` / `.NAN` (other casings and signed nan are NOT numbers);
+ * - floats with a trailing dot (`1.`), leading dot (`.5`), or exponent.
+ * All of these must be quoted when written as a string scalar.
  */
 const NUMERIC_LIKE_REGEX =
-	/^[-+]?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$|^[-+]?\.(?:inf|nan)$|^[-+]?\.[0-9]+(?:[eE][-+]?[0-9]+)?$|^0x[0-9a-fA-F]+$|^0o[0-7]+$/;
+	/^0o[0-7]+$|^[-+]?[0-9]+$|^0x[0-9a-fA-F]+$|^(?:[-+]?\.(?:inf|Inf|INF)|\.nan|\.NaN|\.NAN)$|^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)[eE][-+]?[0-9]+$|^[-+]?(?:\.[0-9]+|[0-9]+\.[0-9]*)$/;
 
 /**
  * Matches an ISO-style date or date-time that yaml@2.9.0 would
@@ -121,7 +130,9 @@ export function shouldQuoteScalar(value: string, context: ScalarContext = 'mappi
 	const first = value[0];
 	if (MUST_QUOTE_LEADING_CHARS.has(first)) return true;
 	if ((first === '?' || first === '-') && value.length > 1 && (value[1] === ' ' || value[1] === '\t')) return true;
-	if (first === '~' && value.length === 1) return true;
+	// A lone `-` or `?` is a bare block indicator (sequence entry / mapping key)
+	// and is quoted by yaml; `~` is the null indicator (handled the same way).
+	if (value.length === 1 && (value === '-' || value === '?' || value === '~')) return true;
 	if (first === ' ' || first === '\t') return true;
 
 	const last = value[value.length - 1];
