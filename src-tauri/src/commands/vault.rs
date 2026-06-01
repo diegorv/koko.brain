@@ -761,16 +761,40 @@ pub fn get_all_property_records(
 	Ok(out)
 }
 
+/// Rejects a write target that could escape the vault before any disk write.
+/// These commands call `std::fs` directly, which (unlike the `plugin-fs`
+/// API) is NOT gated by Tauri's filesystem ACL, so the target must be
+/// validated here. A path is rejected when it is not absolute, or when it
+/// contains a `..` (parent-dir) component — the vector behind the audit
+/// finding, where a crafted `[[../../x]]` wikilink makes the FE build
+/// `{vault}/../../x.md` and plant a file outside the vault. Only true `..`
+/// path segments are rejected; a filename with literal dots (e.g.
+/// `a..b.md`) is a `Normal` component and is allowed.
+pub fn ensure_safe_write_path(path: &str) -> Result<(), String> {
+	let p = Path::new(path);
+	if !p.is_absolute() {
+		return Err(format!("Refusing to write to a non-absolute path: {}", path));
+	}
+	if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+		return Err(format!(
+			"Refusing to write to a path containing '..': {}",
+			path
+		));
+	}
+	Ok(())
+}
+
 /// Atomically creates a new note at `path` with the given `content`.
 /// Errors when the file already exists OR the parent directory doesn't
 /// exist. Updates the managed `VaultIndex` and emits
 /// `vault-index-updated` after dropping the lock. Phase 8.6.
 ///
-/// Caller responsibilities: ensure `path` is absolute (validated against
-/// the vault root by Tauri's plugin-fs ACL at the OS layer); pre-process
-/// any template content (template processing stays TS-side per the plan).
-/// On success, also call `markRecentSave(path)` from the FE so the
-/// watcher's self-save filter picks up this write and skips the rebuild.
+/// Caller responsibilities: ensure `path` is absolute; pre-process any
+/// template content (template processing stays TS-side per the plan). On
+/// success, also call `markRecentSave(path)` from the FE so the watcher's
+/// self-save filter picks up this write and skips the rebuild. The target
+/// is validated by `ensure_safe_write_path` before any write — `std::fs`
+/// is not covered by the plugin-fs ACL.
 #[tauri::command]
 pub fn create_note(
 	app: tauri::AppHandle,
@@ -779,6 +803,7 @@ pub fn create_note(
 	content: String,
 ) -> Result<UpdateResult, String> {
 	let _trace = CmdTrace::new("create_note");
+	ensure_safe_write_path(&path)?;
 	if Path::new(&path).exists() {
 		return Err(format!("File already exists: {}", path));
 	}
@@ -802,9 +827,12 @@ pub fn create_note(
 /// Creates a directory (recursive — equivalent to TS `mkdir(path, {
 /// recursive: true })`). No-op when the directory already exists.
 /// Doesn't touch the `VaultIndex` (folders aren't notes). Phase 8.6.
+/// The target is validated by `ensure_safe_write_path` before any write —
+/// `std::fs` is not covered by the plugin-fs ACL.
 #[tauri::command]
 pub fn create_folder(path: String) -> Result<(), String> {
 	let _trace = CmdTrace::new("create_folder");
+	ensure_safe_write_path(&path)?;
 	std::fs::create_dir_all(&path).map_err(|e| format!("mkdir failed for {}: {}", path, e))
 }
 

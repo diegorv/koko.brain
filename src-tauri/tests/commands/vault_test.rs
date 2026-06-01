@@ -1,4 +1,6 @@
-use kokobrain_lib::commands::vault::{collect_v2_entries, scan_vault, update_note_in_index_inner};
+use kokobrain_lib::commands::vault::{
+	collect_v2_entries, ensure_safe_write_path, scan_vault, update_note_in_index_inner,
+};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::VAULT_INDEX_UPDATED_EVENT;
 use std::fs;
@@ -525,4 +527,32 @@ fn update_inner_round_trip_through_save_event_pattern() {
     assert!(!idx.backlinks().contains_key("/v/a.md"));
     // b gains the source.
     assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/source.md"));
+}
+
+// --- ensure_safe_write_path (path-traversal guard for create_note/folder) ---
+
+#[test]
+fn ensure_safe_write_path_rejects_parent_dir_escape() {
+    // The audit vector: a `[[../../x]]` wikilink makes the FE build
+    // `{vault}/../../x.md`, which would plant a file outside the vault.
+    let err = ensure_safe_write_path("/vault/notes/../../../tmp/evil.md").unwrap_err();
+    assert!(err.contains(".."), "should reject `..` traversal: {err}");
+}
+
+#[test]
+fn ensure_safe_write_path_rejects_non_absolute() {
+    let err = ensure_safe_write_path("relative/note.md").unwrap_err();
+    assert!(err.contains("non-absolute"), "should reject relative paths: {err}");
+}
+
+#[test]
+fn ensure_safe_write_path_allows_normal_absolute_path() {
+    assert!(ensure_safe_write_path("/vault/notes/sub/foo.md").is_ok());
+}
+
+#[test]
+fn ensure_safe_write_path_allows_literal_dots_in_filename() {
+    // `a..b.md` is a single `Normal` component, not a `..` segment — allowed.
+    assert!(ensure_safe_write_path("/vault/a..b.md").is_ok());
+    assert!(ensure_safe_write_path("/vault/..hidden.md").is_ok());
 }
