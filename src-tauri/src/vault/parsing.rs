@@ -325,8 +325,9 @@ fn extract_frontmatter_tags(content: &str) -> Vec<String> {
 			// TS regex `/^\s*-\s+(.+)$/` requires at least one whitespace
 			// after the dash AND a non-empty captured value.
 			let after_dash = rest.trim_start();
-			if rest.len() == after_dash.len() {
-				// `-` not followed by whitespace -> regex fails -> stop.
+			if rest.len() == after_dash.len() || after_dash.is_empty() {
+				// `-` not followed by whitespace, OR nothing after the
+				// whitespace (`- `) -> the `(.+)` capture fails -> TS breaks.
 				break;
 			}
 			let cleaned = clean_tag_value(after_dash);
@@ -1854,6 +1855,16 @@ mod tests {
 	fn frontmatter_block_array_skips_blank_lines_then_stops_on_other_content() {
 		let content = "---\ntags:\n  - foo\n\n  - bar\nother: nope\n  - never\n---\n";
 		assert_eq!(extract_tags_strict(content), vec!["foo", "bar"]);
+	}
+
+	#[test]
+	fn frontmatter_block_array_stops_at_empty_dash_item() {
+		// Parity (#8): TS item regex `/^\s*-\s+(.+)$/` requires a NON-EMPTY
+		// value, so a bare `- ` (dash + only whitespace) does not match and
+		// the TS loop breaks. Rust must break too. Previously Rust skipped the
+		// empty item and kept collecting -> [alpha, beta].
+		let content = "---\ntags:\n  - alpha\n  - \n  - beta\n---\n";
+		assert_eq!(extract_tags_strict(content), vec!["alpha"]);
 	}
 
 	#[test]
