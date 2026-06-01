@@ -49,3 +49,14 @@ Fix direction (predicate + spec together, same rule set):
 ## Blocked by
 
 None. App-impact low (predicate unused in write path); contract/spec/external-producer impact is the real cost.
+
+## Comments
+
+- Resolved in commit 5b75c9e. Replaced NUMERIC_LIKE_REGEX with the exact union of
+  yaml@2.9.0's schema/core int.js + float.js resolver regexes (empirically probed
+  against the pinned lib), quoted lone -/?/~, and added [ ] { } to the flow-item
+  must-quote substrings. Extended both parity arrays with the six input classes
+  (auto-validated against yaml.stringify) + explicit assertions, and mirrored
+  every rule into docs/specs/frontmatter-canonical-form.md (regex, pseudocode,
+  flow note, worked-examples table). `pnpm check` + full `pnpm vitest run` green
+  (6182 passed; yaml-quoting suite 170).
