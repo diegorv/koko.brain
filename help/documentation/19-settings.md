@@ -252,11 +252,18 @@ You set colors interactively from the Tags panel by clicking the dot next to a t
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Release channel** | Choose between `stable` and `nightly` builds | `stable` |
-| **Auto-check on launch** | Automatically check for updates when the app starts | Disabled |
-| **Check for updates** | Button to manually check for available updates | — |
+| **Release channel** | Choose between `Stable` and `Nightly` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. | `Stable` |
+| **Auto-check on launch** | Silently check for an update when the app opens. Throttled to once per 24h. | Disabled |
+| **Last checked** | When the app most recently asked GitHub for a newer version. Shows `Never`, `Just now`, or a coarse "X min/h/d ago". | — |
+| **Check for updates** | Button to manually check the selected channel for a newer version | — |
 
-When an update is available, the section shows download progress and a "Restart to update" button. When switching from nightly to stable, an "Install Stable (downgrade)" option appears.
+When an update is available, the **Check for updates** row shows download progress (version and size) and then a **Restart to update** button. Changing the release channel resets any pending download, since it pointed at a build from the other channel.
+
+### Nightly to Stable downgrade
+
+The auto-updater never moves to a lower version, so switching the channel back from **Nightly** to **Stable** does not automatically downgrade. Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` and sort semver-greater than the same-base stable release.
+
+When you are running a Nightly build but have selected the **Stable** channel, an extra **Install Stable** row appears with an **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog (you will lose any changes that landed on `main` since the last Stable tag, until the next Stable release ships; your vault and settings are unaffected), then installs the latest Stable build in-app. A **Releases page** button next to it opens the GitHub Releases page as a manual fallback if the in-app install fails.
 
 ## Settings File Location
 

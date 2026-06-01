@@ -100,7 +100,7 @@ The Tasks View toolbar provides several filters to help you focus on what matter
 | **Hide completed** | Toggle                               | Hide `- [x]` done tasks           |
 | **Section filter** | Text input                           | Filter by heading/section tag (e.g. `#to-list`). Default: `#to-list` |
 
-Combine filters to narrow down your view. For example, toggle **Hide completed** on and set the date range to **Last 7 Days** to see only recent, unfinished tasks.
+Combine filters to narrow down your view. For example, toggle **Hide completed** on and set the date range to **Last 7 days** to see only recent, unfinished tasks.
 
 ---
 

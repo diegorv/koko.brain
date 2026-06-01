@@ -109,7 +109,7 @@ At the bottom of the window, the status bar shows contextual information about y
 
 **Left side:**
 - **Search index stats** — shows "N notes indexed" after indexing completes, or progress while indexing
-- **Semantic index status** — shows "Indexed (N chunks)", "Not indexed", or "Loading model..." per-file when semantic search is enabled
+- **Semantic index status** — appears only when semantic search is enabled in Settings. It reflects the current note with one of three states: **Loading model...** while the embedding model is still loading, **Indexed (N chunks)** once the note has been embedded (showing how many chunks it produced), or **Not indexed** when the model is ready but this note has no chunks yet
 
 **Right side:**
 - **Save status** — "Modified" when you have unsaved changes, or "Saved"
@@ -117,6 +117,18 @@ At the bottom of the window, the status bar shows contextual information about y
   - **Word count**: total number of words in the note
   - **Character count**: total number of characters
   - **Reading time**: estimated reading time based on 200 words per minute (minimum 1 minute)
+
+## Zoom
+
+You can scale the entire interface up or down. Zoom affects the whole UI, not just the editor text.
+
+- **Zoom in**: `Cmd+=` (or `Cmd+Shift+=`)
+- **Zoom out**: `Cmd+-`
+- **Reset to 100%**: `Cmd+0`
+
+Zoom steps through 11 fixed levels from 50% to 200% (the default is 100%). Each press moves one level up or down.
+
+See [Keyboard Shortcuts](20-keyboard-shortcuts.md) for the full shortcut list.
 
 ## Right-Click in the Editor
 

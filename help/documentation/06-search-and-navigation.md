@@ -13,6 +13,7 @@ The Quick Switcher is a popup dialog for opening files by name — the fastest w
 - **Fuzzy search**: type any part of the filename. The search is not case-sensitive, and the characters you type don't need to be contiguous. For example, typing "mtg" can match "Meeting Notes".
 - **Recent files**: before you type anything, the Quick Switcher shows your most recently opened files at the top, so you can jump back to them instantly.
 - **Create new note**: if no file matches your search, a "Create [your query]" option appears at the bottom of the list. Press Enter to create a new note with that name instantly.
+- **Archived notes**: archived notes are not hidden from the results. They appear with an archive icon and a faded (dimmed) name, so you can still find and open them without un-archiving first.
 
 Press **Enter** to open the selected file, or **Escape** to dismiss the dialog.
 

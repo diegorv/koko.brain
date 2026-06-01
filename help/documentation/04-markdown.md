@@ -213,6 +213,29 @@ Like reference-style links, you can define the URL separately:
 > [!TIP]
 > Create an `assets/` or `attachments/` folder in your vault to keep images organized separately from your notes.
 
+### Audio and video players
+
+Kokobrain renders inline `<audio>` and `<video>` HTML blocks as a playable media player in live preview. The block must start at the beginning of a line. Both a single-line form and a multi-line form (using a `<source>` child) are recognized:
+
+```
+<audio src="https://example.com/clip.mp3"></audio>
+
+<video src="https://example.com/clip.mp4"></video>
+```
+
+```
+<audio>
+	<source src="https://example.com/clip.mp3">
+</audio>
+```
+
+- The only attribute that is read is `src` (either `src="..."` or `src='...'`). In the multi-line form, the `src` can come from the opening tag or from a `<source>` line.
+- Players always render with playback controls, regardless of which attributes you write in the tag.
+- A block with no `src` is left as plain text and is not turned into a player.
+- Reliable sources are `http://` and `https://` URLs. `file://` URLs are not loaded for audio and video.
+
+The player only appears in live preview. When your cursor is inside the block, the raw HTML is shown so you can edit it.
+
 ---
 
 ## Blockquotes

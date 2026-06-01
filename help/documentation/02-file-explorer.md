@@ -36,8 +36,21 @@ An inline input field appears with the current name pre-selected. For files, the
 
 Press **Enter** to confirm or **Escape** to cancel.
 
+### Automatic wikilink updates on rename
+
+When you rename a Markdown file, Kokobrain automatically rewrites every wikilink across your vault that pointed to it, so your links never break. This happens silently, with no prompt and no confirmation. Every `[[old name]]` reference becomes `[[new name]]`.
+
+The rewrite preserves the rest of each link:
+
+- Embeds keep their leading `!`, so `![[old name]]` becomes `![[new name]]`.
+- Heading links keep the heading, so `[[old name#Section]]` becomes `[[new name#Section]]`.
+- Block links keep the block reference, so `[[old name#^block-id]]` becomes `[[new name#^block-id]]`.
+- Aliases keep the display text, so `[[old name|click here]]` becomes `[[new name|click here]]`.
+
+Matching is case-insensitive, so `[[old note]]` is updated even when the file is named `Old Note`.
+
 > [!TIP]
-> When you rename a file, Kokobrain automatically updates all wikilinks across your vault. Every `[[old name]]` reference becomes `[[new name]]`, so your links never break.
+> The update runs only when the note name actually changes. Moving a file to another folder (without renaming it) does not rewrite wikilinks, because basename-style links keep resolving to the same note.
 
 ## Moving Files and Folders (Drag and Drop)
 

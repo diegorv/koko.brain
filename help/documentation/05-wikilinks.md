@@ -82,6 +82,10 @@ A "block" is any paragraph, list item, or other content element in a note. You c
 > [!NOTE]
 > Block IDs like `^a1b2c3` are generated automatically and appended to the line. Don't delete them if other notes reference that block.
 
+In Live Preview the trailing `^a1b2c3` marker is hidden so it doesn't clutter the text. When you place your cursor on that line, the marker reappears (dimmed) so you can see and edit it.
+
+You can also reference a block in the same note without naming the file: write `[[#^a1b2c3]]`.
+
 ## Embeds
 
 Prefix any wikilink with `!` to embed the content instead of just linking to it. Embedded content is rendered inline, directly inside the current note.
@@ -99,6 +103,8 @@ Embed just one section:
 Embed just one block:
 ![[My Note#^abc123]]
 ```
+
+In Live Preview a note embed renders as an inline card: a header showing the note name (plus `> Heading` or `> ^block-id` when you target a section or block) above the embedded content. A plain `![[My Note]]` shows the note body without its frontmatter, trimmed to a preview length. `![[My Note#Heading]]` shows just that heading's section (up to the next heading of the same or higher level), and `![[My Note#^abc123]]` shows just that block's line. Put your cursor on the embed to reveal the raw `![[...]]` source for editing. Note embeds are distinct from image embeds: an `![[...]]` whose target ends in an image extension renders the picture instead (see below).
 
 ### Image embeds
 

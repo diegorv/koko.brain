@@ -77,7 +77,17 @@ You can:
 
 ### Wikilink Autocomplete
 
-When editing a card, type `[[` to trigger wikilink autocomplete, just like in the markdown editor.
+Type `[[` to trigger wikilink autocomplete, just like in the markdown editor. Autocomplete works both when editing a card inline (double-click the card text) and in the **Add a card...** input at the bottom of each lane, so you can link to a note while creating a card.
+
+A dropdown of matching files appears below the input. Use these keys to choose one:
+
+| Key | Action |
+|-----|--------|
+| `ArrowDown` / `ArrowUp` | Move the selection through the list (wraps at the ends) |
+| `Enter` or `Tab` | Insert the selected file as `[[Note Name]]` |
+| `Escape` | Cancel autocomplete navigation while keeping your text and staying in the input |
+
+You can also click a suggestion to insert it. While the dropdown is open, `Enter` confirms the suggestion instead of adding the card or saving the edit, and `Escape` is captured by the dropdown so it does not cancel the card edit.
 
 ### Linked File Preview
 

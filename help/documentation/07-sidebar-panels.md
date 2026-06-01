@@ -89,6 +89,8 @@ The Backlinks panel shows which other notes link **to** the currently open note.
 
 The panel shows **linked mentions** - notes that contain an explicit `[[wikilink]]` pointing to this note. Click any backlink to open that source note.
 
+The Backlinks panel is **collapsed by default**. It fetches its data only the first time you expand it, so opening a note does not compute backlinks until you ask for them. When you switch to a different note, the panel collapses and clears itself, then re-fetches the next time you expand it.
+
 ### Relationship Backlinks
 
 Below the linked mentions, a **Relationships** section shows notes that reference the current note through frontmatter relationship fields (`_belongs_to`, `_related_to`, `_has_many`, or custom wikilink-bearing fields). Each entry shows the source note and the relationship label (e.g. `belongs to`, `has many`, or a custom field name). See [Types & Relationships](25-types-and-relationships.md) for details.
@@ -104,6 +106,8 @@ Backlinks let you discover connections you might not remember. If you link to "P
 The Outgoing Links panel shows all `[[wikilinks]]` found in the currently open note. It is the complement of Backlinks: instead of showing what points here, it shows what this note points to.
 
 The panel shows all outgoing links — resolved wikilinks (clickable) and unresolved links (highlighted with a warning icon, where the target note does not exist yet). This is useful for seeing at a glance what your note references and whether any links are broken.
+
+Like Backlinks, the Outgoing Links panel is **collapsed by default** and fetches its links only on first expand. Switching to a different note collapses and clears it, so it re-fetches the next time you expand it.
 
 ---
 
@@ -122,7 +126,7 @@ The Tags panel shows all `#tags` used across your entire vault, organized in a h
 
 Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
 
-You can also open Tags as a **dedicated virtual tab** via the Command Palette: `Cmd+P` → "Toggle Tags View".
+You can also open Tags as a **dedicated virtual tab** via the Command Palette: `Cmd+P` → "Toggle Tags View". This opens a full-height Tags browser in the main editor area rather than the right sidebar. It offers the same controls as the sidebar panel - the **Sort** toggle (A-Z vs. by count) and the **Hide rare tags** filter (hides tags with fewer than 10 uses) - in a full-height layout, and clicking a tag still opens Search filtered to `tag:tagname`.
 
 ### Tag colors
 

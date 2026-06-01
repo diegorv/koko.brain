@@ -189,6 +189,33 @@ _favorite_index: 1
 
 Notes with `_favorite_index` appear first (lower = higher). Notes without it fall to the end, sorted alphabetically.
 
+### Sidebar context menu
+
+Right-click an item in the left sidebar to open a context menu. The available actions depend on what you click.
+
+**Type section header (with an on-disk type definition):**
+
+- **New [TypeName]** -- creates a note of that type
+- **Open type definition** -- opens the type's definition note in the editor
+- **Copy path** -- a submenu with **Copy absolute path** and **Copy relative path** (relative to the vault root)
+- **Change icon** -- opens the icon picker to set or remove the section icon
+- **Reveal in Finder** -- shows the definition file in the system file explorer
+
+**Type section header (no on-disk type definition yet):**
+
+- **New [TypeName]** -- creates a note of that type
+- **Create type definition** -- creates a definition note titled after the type with the frontmatter `_type: Type` and `_visible: true`, then opens it in the editor
+
+> [!TIP]
+> "Create type definition" only appears for types that are inferred from notes but have no definition file. Once you create the definition, right-clicking the section shows the full menu (Open type definition, Copy path, Change icon, Reveal in Finder).
+
+**View item:**
+
+- **Open view** -- opens the `.view` file in the editor
+- **Copy path** -- a submenu with **Copy absolute path** and **Copy relative path**
+- **Change icon** -- opens the icon picker for the view
+- **Reveal in Finder** -- shows the `.view` file in the system file explorer
+
 ---
 
 ## Relationships
@@ -267,10 +294,18 @@ The Properties panel shows lifecycle action buttons below the frontmatter fields
 
 ### Explicit Organization Mode
 
-By default, notes are treated as organized. Enable **Explicit Organization** in settings to activate the inbox workflow:
+By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types & Lifecycle** to activate the inbox workflow:
 
 - New notes start as unorganized (inbox)
 - The Inbox filter tab appears in the type sidebar with a badge count
+
+Disable it to treat all notes as organized by default.
+
+### Type Sidebar Settings
+
+**Settings → Types & Lifecycle** has a **Type sidebar** group with one toggle:
+
+- **Show untyped notes** -- shows notes without a type in an "Untyped" section at the bottom of the type sidebar. The section only appears when there is at least one untyped note.
 
 ### Archived Note Filtering
 
