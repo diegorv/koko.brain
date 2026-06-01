@@ -215,7 +215,7 @@ Like reference-style links, you can define the URL separately:
 
 ### Audio and video players
 
-Kokobrain renders inline `<audio>` and `<video>` HTML blocks as a playable media player in live preview. The block must start at the beginning of a line. Both a single-line form and a multi-line form (using a `<source>` child) are recognized:
+Kokobrain renders inline `<audio>` and `<video>` HTML blocks as a playable media player in live preview. The opening tag can be indented. Both a single-line form and a multi-line form (using a `<source>` child) are recognized:
 
 ```
 <audio src="https://example.com/clip.mp3"></audio>

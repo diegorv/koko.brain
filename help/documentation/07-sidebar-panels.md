@@ -126,7 +126,7 @@ The Tags panel shows all `#tags` used across your entire vault, organized in a h
 
 Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
 
-You can also open Tags as a **dedicated virtual tab** via the Command Palette: `Cmd+P` → "Toggle Tags View". This opens a full-height Tags browser in the main editor area rather than the right sidebar. It offers the same controls as the sidebar panel - the **Sort** toggle (A-Z vs. by count) and the **Hide rare tags** filter (hides tags with fewer than 10 uses) - in a full-height layout, and clicking a tag still opens Search filtered to `tag:tagname`.
+You can also open Tags as a **dedicated virtual tab** via the Command Palette: `Cmd+P` → "Toggle Tags View". This opens a full-height Tags browser in the main editor area (the tags UI is only ever shown here, not docked in a sidebar). It offers the same controls described above - the **Sort** toggle (A-Z vs. by count) and the **Hide rare tags** filter (hides tags with fewer than 10 uses) - and clicking a tag still opens Search filtered to `tag:tagname`.
 
 ### Tag colors
 

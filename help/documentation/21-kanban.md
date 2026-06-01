@@ -85,7 +85,7 @@ A dropdown of matching files appears below the input. Use these keys to choose o
 |-----|--------|
 | `ArrowDown` / `ArrowUp` | Move the selection through the list (wraps at the ends) |
 | `Enter` or `Tab` | Insert the selected file as `[[Note Name]]` |
-| `Escape` | Cancel autocomplete navigation while keeping your text and staying in the input |
+| `Escape` | Consumed by the dropdown so it does not cancel the card edit; the suggestions stay open until you clear the `[[` text or pick an item |
 
 You can also click a suggestion to insert it. While the dropdown is open, `Enter` confirms the suggestion instead of adding the card or saving the edit, and `Escape` is captured by the dropdown so it does not cancel the card edit.
 

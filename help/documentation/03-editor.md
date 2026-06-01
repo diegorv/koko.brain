@@ -109,7 +109,7 @@ At the bottom of the window, the status bar shows contextual information about y
 
 **Left side:**
 - **Search index stats** — shows "N notes indexed" after indexing completes, or progress while indexing
-- **Semantic index status** — appears only when semantic search is enabled in Settings. It reflects the current note with one of three states: **Loading model...** while the embedding model is still loading, **Indexed (N chunks)** once the note has been embedded (showing how many chunks it produced), or **Not indexed** when the model is ready but this note has no chunks yet
+- **Semantic index status** — appears only when semantic search is enabled in Settings. It reflects the current note with one of three states: **Loading model...** while the embedding model is still loading, **Indexed (1 chunk)** or **Indexed (N chunks)** once the note has been embedded (showing how many chunks it produced), or **Not indexed** when the model is ready but this note has no chunks yet
 
 **Right side:**
 - **Save status** — "Modified" when you have unsaved changes, or "Saved"
