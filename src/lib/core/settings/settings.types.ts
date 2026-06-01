@@ -315,7 +315,14 @@ export interface AppSettings {
 	/**
 	 * Whether anonymous product analytics (PostHog) are enabled. Opt-in:
 	 * defaults to false, so nothing is loaded or sent until the user turns
-	 * this on in Settings > Privacy.
+	 * this on in Settings > Troubleshooting > Analytics.
 	 */
 	analyticsEnabled: boolean;
+	/**
+	 * PostHog project API key entered in the UI. Empty by default. Takes
+	 * precedence over the build-time `VITE_POSTHOG_KEY`; when both are empty
+	 * telemetry stays a no-op even if `analyticsEnabled` is true. Stored in
+	 * plain text because it is a write-only ingestion key, not a secret.
+	 */
+	posthogToken: string;
 }

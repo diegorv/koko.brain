@@ -11,7 +11,13 @@ it in Settings > Privacy.
 
 - Region: EU (`https://eu.i.posthog.com`) default.
 - Consent: opt-in. `analyticsEnabled` defaults `false`.
-- Scope: full, including a Settings > Privacy toggle.
+- PostHog token: entered in the UI and persisted in `settings.json`
+  (`posthogToken`), per the user — it is a write-only project key, not
+  sensitive, and the user only tests on their own machine. The build-time
+  `VITE_POSTHOG_KEY` env var stays as a fallback when the setting is empty.
+- UI placement: an "Analytics" subsection inside the existing Troubleshooting
+  section (enable Switch + token text input). NO separate Privacy nav section,
+  so `SettingsSection` / `sectionIcons` stay untouched.
 - Anonymous id: per-install, stored in `appConfigDir()/telemetry-id.json`.
 - Network egress goes through the webview `fetch`/`sendBeacon` (gated by CSP
   `connect-src`), NOT the `@tauri-apps/plugin-http` plugin. posthog-js uses the
@@ -25,22 +31,23 @@ it in Settings > Privacy.
       `tauri.conf.json` CSP (`script-src` + `connect-src`); add `$APPCONFIG`
       fs scopes to `capabilities/default.json`. Verify `pnpm check`.
 - [x] Task 2: Settings flag. Add `analyticsEnabled: boolean` (default false) to
-      `AppSettings`; store getter `analyticsEnabled` + updater
-      `updateAnalyticsEnabled`; merge line in `loadSettings`. Tests in
-      `settings.store.test.ts`. (The `'privacy'` SettingsSection value moved to
-      Task 6 — adding it standalone breaks the `sectionIcons` Record until the
-      icon is wired.)
+      `AppSettings`; store getter + updater; merge line in `loadSettings`. Tests.
 - [x] Task 3: `telemetry.logic.ts` (pure) — `resolveTelemetryConfig(env)`,
       `isValidPosthogHost`, EU host constant. Tests.
-- [ ] Task 4: `telemetry.service.ts` — per-install anon id (fs + appConfigDir),
-      `initTelemetry`, `teardownTelemetry`, `trackEvent`, `initTelemetryIfEnabled`;
-      `product-analytics.ts` domain wrappers + consent events. Tests.
-- [ ] Task 5: Lifecycle wiring — `initTelemetryIfEnabled()` after `loadSettings`
-      in `initializeVault`; `teardownTelemetry()` in `teardownVault`.
-- [ ] Task 6: Settings UI — add `'privacy'` to `SettingsSection`;
-      `PrivacySection.svelte` (consent toggle wired to init/teardown +
-      opted-in/out events), nav item in `settings.logic.ts`, icon + branch in
-      `SettingsPanel.svelte`.
+- [x] Task 4: Settings token field. Add `posthogToken: string` (default '') to
+      `AppSettings`; store getter + updater `updatePosthogToken`; merge line in
+      `loadSettings`. Tests.
+- [ ] Task 5: `telemetry.service.ts` — per-install anon id (fs + appConfigDir),
+      `getTelemetryConfig` (settings token first, env fallback), `initTelemetry`,
+      `teardownTelemetry`, `trackEvent`; `product-analytics.ts` domain wrappers +
+      consent events. Tests.
+- [ ] Task 6: Lifecycle wiring — init telemetry after `loadSettings` in
+      `initializeVault` when `analyticsEnabled`; `teardownTelemetry()` in
+      `teardownVault`.
+- [ ] Task 7: Troubleshooting UI — "Analytics" subsection in
+      `TroubleshootingSection.svelte`: enable Switch (wired to init/teardown +
+      opted-in/out events) + PostHog token input. Re-init on token change while
+      enabled.
 
 ## Notes
 

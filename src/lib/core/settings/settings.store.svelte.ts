@@ -122,6 +122,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	showUntypedNotes: false,
 	dockBadgeInboxCount: true,
 	analyticsEnabled: false,
+	posthogToken: '',
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -155,6 +156,7 @@ export const settingsStore = {
 	get showUntypedNotes() { return settings.showUntypedNotes; },
 	get dockBadgeInboxCount() { return settings.dockBadgeInboxCount; },
 	get analyticsEnabled() { return settings.analyticsEnabled; },
+	get posthogToken() { return settings.posthogToken; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -341,6 +343,11 @@ export const settingsStore = {
 	/** Updates the anonymous product analytics (PostHog) consent flag */
 	updateAnalyticsEnabled(value: boolean) {
 		settings = { ...settings, analyticsEnabled: value };
+	},
+
+	/** Updates the PostHog project API key entered in the UI */
+	updatePosthogToken(value: string) {
+		settings = { ...settings, posthogToken: value };
 	},
 
 	/** Restores all settings to their defaults */

@@ -46,6 +46,28 @@ describe('settingsStore', () => {
 		});
 	});
 
+	describe('posthogToken', () => {
+		it('defaults to an empty string', () => {
+			expect(settingsStore.posthogToken).toBe('');
+		});
+
+		it('getter reflects setSettings', () => {
+			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), posthogToken: 'phc_abc' });
+			expect(settingsStore.posthogToken).toBe('phc_abc');
+		});
+
+		it('updatePosthogToken sets the value', () => {
+			settingsStore.updatePosthogToken('phc_xyz');
+			expect(settingsStore.posthogToken).toBe('phc_xyz');
+		});
+
+		it('updatePosthogToken preserves the consent flag', () => {
+			settingsStore.updateAnalyticsEnabled(true);
+			settingsStore.updatePosthogToken('phc_xyz');
+			expect(settingsStore.analyticsEnabled).toBe(true);
+		});
+	});
+
 	describe('setSettings', () => {
 		it('replaces entire settings object', () => {
 			const custom = { ...structuredClone(DEFAULT_SETTINGS), periodicNotes: { ...DEFAULT_SETTINGS.periodicNotes, folder: '_custom' } };
