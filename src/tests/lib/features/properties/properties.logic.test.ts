@@ -184,6 +184,18 @@ describe('parseFrontmatterProperties', () => {
 		});
 	});
 
+	it('collapses an alias and its canonical twin into a single entry', () => {
+		// `color` and `_color` both canonicalize to `_color`. Without de-dup the
+		// store would hold two `_color` entries and PropertiesView's keyed {#each}
+		// throws each_key_duplicate, breaking the whole panel.
+		const content = '---\ncolor: red\n_color: blue\n---\nBody';
+		const props = parseFrontmatterProperties(content);
+		const colorProps = props.filter((p) => p.key === '_color');
+		expect(colorProps).toHaveLength(1);
+		// First appearance wins (matches serializeProperties' dedupe semantics).
+		expect(colorProps[0]).toEqual({ key: '_color', value: 'red', type: 'text' });
+	});
+
 	it('returns empty array when no frontmatter', () => {
 		expect(parseFrontmatterProperties('Just text')).toEqual([]);
 	});

@@ -145,9 +145,13 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 		}
 		properties.push(convertToProperty(canonicalizeKey(rawKey), value));
 	}
-	parseCache.set(rawFrontmatter, Object.freeze(properties.map(cloneProperty)));
+	// Collapse alias/canonical twins (e.g. `color` + `_color`) into one entry per
+	// canonical key. Two entries with the same canonical key would otherwise reach
+	// the store and crash PropertiesView's keyed {#each} (each_key_duplicate).
+	const deduped = dedupeCanonicalKeys(properties);
+	parseCache.set(rawFrontmatter, Object.freeze(deduped.map(cloneProperty)));
 	evictLru();
-	return properties;
+	return deduped;
 }
 
 function evictLru(): void {
