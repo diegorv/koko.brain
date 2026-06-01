@@ -13,7 +13,7 @@ This batch fixes the **7 HIGH** bugs (one commit each). Medium + Low are backlog
 - [x] H4: collection filter — single-row `not` group collapses to bare positive expression, inverting filter + persisting inverted YAML. `src/lib/features/collection/toolbar/filter.logic.ts:146-148`. Fix: shortcut only when `conjunction !== 'not'`.
 - [x] H5: properties panel crashes (Svelte `each_key_duplicate`) when frontmatter has alias + canonical twin (`color` + `_color`). `src/lib/features/properties/PropertiesView.svelte:92-96,221`. Fix: `dedupeCanonicalKeys` on parse path (or key=index).
 - [x] H6: kanban drag-drop misplaces cards (DOM filtered index spliced into full array) when a filter is active -> corrupts `.kanban`. `src/lib/plugins/kanban/KanbanView.svelte:372-393`. Fix: disable drag while filtered, or map filtered->absolute index.
-- [ ] H7: Table of Contents empty for CRLF files (`\r` breaks HEADING_RE). `src/lib/plugins/table-of-contents/toc.logic.ts:63-93` (root: `wikilink/navigation.logic.ts:2`). Fix: split `/\r?\n/` or strip `\r`; also fixes wikilink `#heading` jump on CRLF docs.
+- [x] H7: Table of Contents empty for CRLF files (`\r` breaks HEADING_RE). `src/lib/plugins/table-of-contents/toc.logic.ts:63-93` (root: `wikilink/navigation.logic.ts:2`). Fix: split `/\r?\n/` or strip `\r`; also fixes wikilink `#heading` jump on CRLF docs.
 
 ## Backlog — MEDIUM (22)
 

@@ -1,5 +1,9 @@
-/** Regex matching any ATX heading: `# Title`, `## Title`, etc. */
-export const HEADING_RE = /^#{1,6}\s+(.+)$/;
+/**
+ * Regex matching any ATX heading: `# Title`, `## Title`, etc.
+ * Tolerates a trailing carriage return so headings are still matched when
+ * callers split CRLF (Windows) content on `\n` and the line retains its `\r`.
+ */
+export const HEADING_RE = /^#{1,6}\s+(.+)\r?$/;
 
 /** Regex matching a block-id marker at the end of a line: `text ^block-id` */
 export const BLOCK_ID_RE = /\^([^\s]+)\s*$/;

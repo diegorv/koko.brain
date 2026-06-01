@@ -58,6 +58,15 @@ describe('findHeadingPosition', () => {
 		const content = '# Intro\n\n## Intro\n\ntext';
 		expect(findHeadingPosition(content, 'Intro')).toBe(0);
 	});
+
+	it('finds headings in a document with CRLF line endings', () => {
+		// Windows/CRLF-authored notes leave a trailing \r on each split line;
+		// the heading regex must tolerate it. Positions are byte offsets that
+		// include the \r (split on \n keeps it in line.length).
+		const content = '# Heading One\r\n\r\nSome text\r\n## Heading Two\r\n';
+		expect(findHeadingPosition(content, 'Heading One')).toBe(0);
+		expect(findHeadingPosition(content, 'Heading Two')).toBe(28);
+	});
 });
 
 describe('findBlockIdPosition', () => {

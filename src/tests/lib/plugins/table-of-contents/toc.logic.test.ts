@@ -38,6 +38,16 @@ describe('extractTocHeadings', () => {
 		]);
 	});
 
+	it('extracts headings from a file with CRLF (Windows) line endings', () => {
+		// Each split line keeps a trailing \r; without tolerating it the regex
+		// matches nothing and the TOC is empty for unedited Windows notes.
+		const content = '# Heading One\r\n\r\nSome text\r\n## Heading Two\r\n';
+		expect(extractTocHeadings(content)).toEqual([
+			{ level: 1, text: 'Heading One', line: 0, pos: 0 },
+			{ level: 2, text: 'Heading Two', line: 3, pos: 28 },
+		]);
+	});
+
 	it('preserves heading order with gaps between levels', () => {
 		const content = '# A\n### C';
 		const result = extractTocHeadings(content);
