@@ -50,7 +50,6 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals();
-	vi.unstubAllEnvs();
 });
 
 describe('getOrCreateAnonymousId', () => {
@@ -102,7 +101,7 @@ describe('getOrCreateAnonymousId', () => {
 });
 
 describe('initTelemetry', () => {
-	it('does nothing when neither setting nor env provides a key', async () => {
+	it('does nothing when no token is set', async () => {
 		vi.stubGlobal('window', {});
 		const { svc } = await loadFresh();
 		await svc.initTelemetry();
@@ -130,23 +129,6 @@ describe('initTelemetry', () => {
 			'fixed-id',
 			expect.objectContaining({ release_channel: expect.any(String) }),
 		);
-	});
-
-	it('falls back to the env key when no setting token is present', async () => {
-		vi.stubGlobal('window', {});
-		vi.stubEnv('VITE_POSTHOG_KEY', 'phc_env');
-		const { svc } = await loadFresh();
-		await svc.initTelemetry();
-		expect(mockPosthog.init).toHaveBeenCalledWith('phc_env', expect.anything());
-	});
-
-	it('prefers the settings token over the env key', async () => {
-		vi.stubGlobal('window', {});
-		vi.stubEnv('VITE_POSTHOG_KEY', 'phc_env');
-		const { svc, settingsStore } = await loadFresh();
-		settingsStore.updatePosthogToken('phc_settings');
-		await svc.initTelemetry();
-		expect(mockPosthog.init).toHaveBeenCalledWith('phc_settings', expect.anything());
 	});
 
 	it('is idempotent — a second call does not re-init', async () => {

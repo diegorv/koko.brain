@@ -23,16 +23,11 @@ let posthogInstance: PostHog | null = null;
 let cachedAnonymousId: string | null = null;
 
 /**
- * Resolves telemetry config. The UI-entered `posthogToken` setting takes
- * precedence; the build-time `VITE_POSTHOG_KEY` is the fallback. Host comes
- * from `VITE_POSTHOG_HOST` or the EU default.
+ * Resolves telemetry config from the UI-entered `posthogToken` setting.
+ * Returns null (telemetry stays a no-op) when the token is empty.
  */
 function getTelemetryConfig(): TelemetryConfig | null {
-	const key = settingsStore.posthogToken?.trim() || import.meta.env.VITE_POSTHOG_KEY;
-	return resolveTelemetryConfig({
-		key,
-		host: import.meta.env.VITE_POSTHOG_HOST,
-	});
+	return resolveTelemetryConfig(settingsStore.posthogToken);
 }
 
 /**

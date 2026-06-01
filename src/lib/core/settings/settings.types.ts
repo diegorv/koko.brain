@@ -319,8 +319,7 @@ export interface AppSettings {
 	 */
 	analyticsEnabled: boolean;
 	/**
-	 * PostHog project API key entered in the UI. Empty by default. Takes
-	 * precedence over the build-time `VITE_POSTHOG_KEY`; when both are empty
+	 * PostHog project API key entered in the UI. Empty by default; when empty
 	 * telemetry stays a no-op even if `analyticsEnabled` is true. Stored in
 	 * plain text because it is a write-only ingestion key, not a secret.
 	 */
