@@ -30,3 +30,7 @@ overrides:
 allowBuilds:
   esbuild: true
   core-js: true
+  # protobufjs is a transitive dep of posthog-js (via @opentelemetry). Its
+  # postinstall only sets up the protobuf CLI/codegen, which the browser SDK
+  # path never uses, so the build script is intentionally NOT run.
+  protobufjs: false

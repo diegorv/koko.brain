@@ -26,7 +26,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://github.com https://objects.githubusercontent.com",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://eu.i.posthog.com https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://github.com https://objects.githubusercontent.com https://eu.i.posthog.com https://eu-assets.i.posthog.com",
       "assetProtocol": {
         "enable": true,
         "scope": [
