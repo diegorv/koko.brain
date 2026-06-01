@@ -946,9 +946,17 @@ pub async fn update_semantic_file(
 				}
 			};
 
-			let texts: Vec<&str> = chunks_to_embed.iter().map(|c| c.content.as_str()).collect();
+			// Embed the SAME projection the bulk indexer uses (`embed_text()` =
+			// heading tree + body), NOT raw `content`. The bulk path embeds
+			// `chunk.embed_text()` and `content_hash` is the hash of that same
+			// projection (see Chunk docs), so embedding raw `content` here both
+			// (a) places the vector in a different region than every bulk-indexed
+			// chunk and (b) is masked by the hash skip-logic (hash still matches),
+			// making the divergence sticky. Use embed_text() to stay consistent.
+			let texts: Vec<String> = chunks_to_embed.iter().map(|c| c.embed_text()).collect();
 			debug_log("EMBEDDER", format!("File update — {} changed of {} total chunks for {}", texts.len(), chunks.len(), file_path));
-			let result = embedder.embed_batch(&texts)?;
+			let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+			let result = embedder.embed_batch(&text_refs)?;
 
 			// Schedule auto-unload after idle timeout (guard must be dropped first)
 			drop(guard);

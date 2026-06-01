@@ -102,3 +102,47 @@ impl Chunk {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn chunk(content: &str, heading: Option<&str>, parents: &[&str]) -> Chunk {
+		Chunk {
+			key: "k".into(),
+			source_path: "p.md".into(),
+			content: content.into(),
+			heading: heading.map(|s| s.into()),
+			parent_headings: parents.iter().map(|s| (*s).into()).collect(),
+			line_start: 1,
+			line_end: 1,
+			content_hash: String::new(),
+		}
+	}
+
+	#[test]
+	fn embed_text_prefixes_full_heading_tree() {
+		let c = chunk("body text", Some("Daily journaling"), &["Stoicism", "Practical applications"]);
+		assert_eq!(
+			c.embed_text(),
+			"Stoicism > Practical applications > Daily journaling\n\nbody text"
+		);
+		// The projection MUST differ from raw content when headings exist —
+		// this is the invariant the incremental-save path relied on (#4): it
+		// previously embedded `content` while the bulk path embedded this.
+		assert_ne!(c.embed_text(), c.content);
+	}
+
+	#[test]
+	fn embed_text_uses_local_heading_when_no_parents() {
+		let c = chunk("body", Some("Intro"), &[]);
+		assert_eq!(c.embed_text(), "Intro\n\nbody");
+	}
+
+	#[test]
+	fn embed_text_is_bare_content_for_headless_chunk() {
+		let c = chunk("just body", None, &[]);
+		assert_eq!(c.embed_text(), "just body");
+		assert_eq!(c.embed_text(), c.content);
+	}
+}
