@@ -146,26 +146,36 @@ pub fn run_debounce_loop<F>(
 			return;
 		}
 
-		match event_rx.recv_timeout(debounce) {
+		// Wait only until the debounce window measured from the LAST REAL
+		// event elapses. With an empty buffer there is nothing pending, so
+		// block a full window (this also paces the stop check above).
+		//
+		// Audit 2026-06-01 (P1): `recv_timeout(debounce)` restarts a fresh
+		// window on every call and returns `Ok` the instant ANY event
+		// arrives — including hidden-dir events that are dropped below
+		// without touching the buffer. The flush used to live only in the
+		// `Timeout` arm, so a hidden-dir stream arriving faster than the
+		// debounce window (a nested `.git`, a sync client, or our own
+		// `.kokobrain/` DB-WAL writes during indexing) kept the loop in the
+		// `Ok` arm forever, the `Timeout` arm never ran, and a buffered
+		// real edit was never emitted until the stream paused for a full
+		// window. Shrinking the wait to the remaining deadline (and
+		// flushing after EVERY wakeup, below) makes a buffered change emit
+		// on schedule regardless of ongoing hidden noise.
+		let wait = if buffer.is_empty() {
+			debounce
+		} else {
+			debounce.saturating_sub(last_event.elapsed())
+		};
+
+		match event_rx.recv_timeout(wait) {
 			Ok(path) => {
 				if !is_inside_hidden_dir(&path, &vault_prefix) {
 					buffer.insert(path);
 					last_event = Instant::now();
 				}
 			}
-			Err(mpsc::RecvTimeoutError::Timeout) => {
-				// No event in `DEBOUNCE_MS`. Emit if we have a non-empty
-				// buffer AND the last event is at least one debounce
-				// window old (defends against a single late event
-				// extending the burst forever — match TS shape).
-				if !buffer.is_empty() && last_event.elapsed() >= debounce {
-					let raw: Vec<String> = buffer.drain().collect();
-					let filtered = filter_ancestor_paths(&raw);
-					if !filtered.is_empty() {
-						on_emit(filtered);
-					}
-				}
-			}
+			Err(mpsc::RecvTimeoutError::Timeout) => {}
 			Err(mpsc::RecvTimeoutError::Disconnected) => {
 				// Watcher dropped. Final flush, then exit.
 				if !buffer.is_empty() {
@@ -176,6 +186,22 @@ pub fn run_debounce_loop<F>(
 					}
 				}
 				return;
+			}
+		}
+
+		// Emit once the debounce window since the last real event has
+		// elapsed. Checked after EVERY wakeup (real event, dropped hidden
+		// event, or timeout) so a buffered change flushes on schedule even
+		// while filtered events keep waking the loop early. A real event
+		// resets `last_event` and so extends the window (matches the TS
+		// shape — a single late real edit folds into the same burst).
+		// Flushing empties the buffer, so the next iteration blocks a full
+		// window again — no busy-spin.
+		if !buffer.is_empty() && last_event.elapsed() >= debounce {
+			let raw: Vec<String> = buffer.drain().collect();
+			let filtered = filter_ancestor_paths(&raw);
+			if !filtered.is_empty() {
+				on_emit(filtered);
 			}
 		}
 	}
@@ -636,6 +662,68 @@ mod tests {
 			.recv_timeout(Duration::from_secs(2))
 			.expect("real file should emit without being delayed by hidden events");
 		assert!(emitted.contains(&"/v/note.md".to_string()));
+		handle.join().unwrap();
+	}
+
+	#[test]
+	fn debounce_sustained_hidden_stream_does_not_starve_real_file() {
+		// Regression (Audit 2026-06-01, P1): a hidden-dir event stream
+		// arriving faster than the debounce window used to keep
+		// `recv_timeout` returning `Ok` before it ever timed out, so the
+		// only flush path (the old `Timeout` arm) never ran and a buffered
+		// real edit was never emitted until the stream stopped. A nested
+		// `.git`, a sync client, or our own `.kokobrain/` DB-WAL writes
+		// during indexing reproduce this. The loop must now flush on a
+		// deadline measured from the last REAL event, regardless of the
+		// ongoing hidden noise.
+		//
+		// Unlike `debounce_hidden_events_do_not_delay_real_files`, the
+		// sender here is kept ALIVE past the assertion (a background pump
+		// thread keeps streaming), so the emit cannot come from the
+		// `Disconnected` final flush — it must come from the debounce
+		// deadline. Against the pre-fix loop this test times out and fails.
+		let (event_tx, event_rx) = mpsc::channel::<String>();
+		let (stop_tx, stop_rx) = mpsc::channel::<()>();
+		let (emit_tx, emit_rx) = mpsc::channel::<Vec<String>>();
+
+		let handle = thread::spawn(move || {
+			run_debounce_loop(event_rx, stop_rx, "/v/".to_string(), move |paths| {
+				let _ = emit_tx.send(paths);
+			});
+		});
+
+		// Real edit enters the buffer first.
+		event_tx.send("/v/note.md".to_string()).unwrap();
+
+		// Pump hidden-dir events every 100 ms (< 500 ms debounce) WITHOUT
+		// ever stopping or dropping the sender — models a `.git`/sync/
+		// DB-WAL churn loop. Stops when the loop's receiver goes away.
+		let pump_tx = event_tx.clone();
+		let pump = thread::spawn(move || {
+			for i in 0..30 {
+				if pump_tx
+					.send(format!("/v/.kokobrain/kokobrain.db-wal-{}", i))
+					.is_err()
+				{
+					break;
+				}
+				thread::sleep(Duration::from_millis(100));
+			}
+		});
+
+		// With the bug this times out (the real file is starved). Fixed:
+		// `note.md` flushes ~500 ms after it entered while hidden events
+		// are still streaming.
+		let emitted = emit_rx
+			.recv_timeout(Duration::from_secs(2))
+			.expect("real file must emit while a hidden stream is still active");
+		assert!(emitted.contains(&"/v/note.md".to_string()));
+
+		// Cleanup: stop the loop, drop our sender; the pump exits once the
+		// loop's receiver is gone (its sends start failing).
+		let _ = stop_tx.send(());
+		drop(event_tx);
+		pump.join().unwrap();
 		handle.join().unwrap();
 	}
 
