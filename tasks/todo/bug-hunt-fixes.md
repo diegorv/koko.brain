@@ -3,7 +3,12 @@
 Output of a 35-group multi-agent bug hunt across `src/` with adversarial verification.
 51 findings raised -> 45 confirmed (7 high, 22 medium, 16 low), 4 cosmetic-only, 2 false-positives.
 
-This batch fixes the **7 HIGH** bugs (one commit each). Medium + Low are backlog below.
+The **7 HIGH** bugs are fixed (one commit each, done below). Medium + Low remain as
+backlog, ordered by impact for a later pass. Recommended attack order = top of the
+MEDIUM tiers downward. Numbers [1]-[9] mark the planned next batch (Tier 1 + Tier 2).
+
+Workflow per item: test-first (add/extend `.test.ts`, confirm RED), fix, confirm
+GREEN, run `pnpm check` + `pnpm vitest run`, one commit each.
 
 ## Tasks (HIGH — fix now, one commit each)
 
@@ -15,30 +20,39 @@ This batch fixes the **7 HIGH** bugs (one commit each). Medium + Low are backlog
 - [x] H6: kanban drag-drop misplaces cards (DOM filtered index spliced into full array) when a filter is active -> corrupts `.kanban`. `src/lib/plugins/kanban/KanbanView.svelte:372-393`. Fix: disable drag while filtered, or map filtered->absolute index.
 - [x] H7: Table of Contents empty for CRLF files (`\r` breaks HEADING_RE). `src/lib/plugins/table-of-contents/toc.logic.ts:63-93` (root: `wikilink/navigation.logic.ts:2`). Fix: split `/\r?\n/` or strip `\r`; also fixes wikilink `#heading` jump on CRLF docs.
 
-## Backlog — MEDIUM (22)
+## Backlog — MEDIUM (22), ordered by impact
 
-- [ ] M08 `app-lifecycle/watcher-handler.service.ts:141-158` — incremental watcher leaves deleted files in TS collection propertyIndex (phantom pages).
-- [ ] M09 `core/editor/editor.service.ts:377-389` — `reloadExternallyChangedTabs` overwrites unsaved edits if tab becomes dirty during async disk read.
-- [ ] M10 `filesystem/link-updater.logic.ts:23-40` — corrupt wikilink when new file name contains `#`.
-- [ ] M11 `live-preview/parsers/callout.ts:52-62` — callout marker/title boundary miscomputed with trailing whitespace in header.
-- [ ] M12 `live-preview/widgets/collection-block-widget.ts:40,44-45,347-353` — cache keyed on index SIZE shows stale data after equal-count property edits.
-- [ ] M13 `live-preview/widgets/queryjs-block-widget.ts:84-89` — re-attaches cached DOM without `isConnected` guard, blanking a duplicate identical block.
-- [ ] M14 `auto-move/type-lifecycle-rules.ts:19-25` — archive `{year}/{month}` destination re-moves note across time boundaries on any edit.
-- [ ] M15 `outgoing-links/OutgoingLinksPanel.svelte:28-34` — panel never refreshes on `vaultIndexVersion` bump (stale).
-- [ ] M16 `backlinks/BacklinksPanel.svelte:31-37` — same as M15 for backlinks (stale until tab switch).
-- [ ] M17 `canvas/canvas.logic.ts:209` — clearing a node's color never persists to `.canvas`.
-- [ ] M18 `collection/linear-calendar.logic.ts:131,148` — drops Dec 31 events that carry a time-of-day.
-- [ ] M19 `folder-notes/folder-notes.logic.ts:24-25` — empty/whitespace `_order` coerces to 0, forcing note to top.
-- [ ] M20 `properties/PropertiesView.svelte:268` — adding the same relationship target twice crashes (duplicate `each` key).
-- [ ] M21 `properties/properties.service.ts:20-50` — global `skipNextParse` flag consumed by a different tab -> stale properties after fast tab switch.
-- [ ] M22 `search/SearchResult.svelte:100-110` — semantic/hybrid click passes a line number where a char offset is expected.
-- [ ] M23 `periodic-notes/periodic-notes.logic.ts:165` — weekly note paths not normalized to ISO-week start -> one week maps to multiple files.
+### Tier 1 — security / data loss / crash (planned next batch)
+- [ ] [1] M29 `utils/sanitize-url.ts:5-15` — SECURITY: `isSafeUrl` misclassifies URLs with interior control chars (tab/`\x01`-embedded `javascript:`) as safe -> XSS via note content. Fix: strip control/whitespace chars (0x00-0x20) before scheme classification. (NOTE: a WIP attempt was reverted; redo test-first.)
+- [ ] [2] M09 `core/editor/editor.service.ts:377-389` — `reloadExternallyChangedTabs` overwrites unsaved edits if tab becomes dirty during async disk read (data loss). Fix: re-check dirty flag after the await, skip reload if dirtied.
+- [ ] [3] M20 `properties/PropertiesView.svelte:268` — adding the same relationship target twice crashes the panel (duplicate `each` key). Fix: dedupe targets or key by index (same class as H5).
+
+### Tier 2 — silently wrong result / file churn (planned next batch)
+- [ ] [4] M23 `periodic-notes/periodic-notes.logic.ts:165` — weekly note paths not normalized to ISO-week start -> one week maps to multiple files. Fix: normalize date to ISO-week start before templating.
+- [ ] [5] M14 `auto-move/type-lifecycle-rules.ts:19-25` — archive `{year}/{month}` destination re-moves note across time boundaries on any edit. Fix: gate on isAlreadyInDestination against resolved parent / skip when already under the archive root.
+- [ ] [6] M22 `search/SearchResult.svelte:100-110` — semantic/hybrid click passes a line number where a char offset is expected -> wrong scroll position. Fix: convert line->char offset (or pass a line-targeted scroll).
+- [ ] [7] M12 `live-preview/widgets/collection-block-widget.ts:40,44-45,347-353` — cache keyed on index SIZE shows stale data after equal-count property edits. Fix: key cache on a content hash, not count.
+- [ ] [8] M21 `properties/properties.service.ts:20-50` — global `skipNextParse` flag consumed by a different tab -> stale properties after fast tab switch. Fix: scope the skip to a (path, content) signature instead of a global bool.
+- [ ] [9] M17 `canvas/canvas.logic.ts:209` — clearing a node's color never persists to `.canvas` (`'color' in d && d.color !== undefined` skips the delete). Fix: persist removal when color is cleared.
+
+### Tier 3 — stale UI on a common flow
+- [ ] M15 `outgoing-links/OutgoingLinksPanel.svelte:28-34` — panel never refreshes on `vaultIndexVersion` bump (stale). Fix: add `vaultIndexVersion` to the `$effect` deps.
+- [ ] M16 `backlinks/BacklinksPanel.svelte:31-37` — same as M15 for backlinks (stale until tab switch). (Pair with M15 — same root.)
+- [ ] M27 `kanban/KanbanView.svelte:64-82` — `selfUpdate` guard stuck true on no-op serialization, drops next external reload (board stale).
+- [ ] M19 `folder-notes/folder-notes.logic.ts:24-25` — empty/whitespace `_order` coerces to 0, forcing note to top. Fix: skip blank `_order` instead of `Number('')===0`.
+
+### Tier 4 — config-dependent / narrower edge
+- [ ] M10 `filesystem/link-updater.logic.ts:23-40` — corrupt wikilink when new file name contains `#`. Fix: escape/encode `#` or guard rename targets.
 - [ ] M24 `periodic-notes/periodic-notes.logic.ts:303-327` — `detectPeriodicNoteType` fails for `gggg/ww/wo/Wo` formats.
+- [ ] M08 `app-lifecycle/watcher-handler.service.ts:141-158` — incremental watcher leaves deleted files in TS collection propertyIndex (phantom pages). NOTE: re-verify — may overlap with the recent `fix(watcher)` commit `dac9bd0`.
+- [ ] M26 `graph-view/graph-view.logic.ts:35-38` — note linking to same target twice falsely marked bidirectional (wrong graph edges).
+
+### Tier 5 — narrow / visualization
+- [ ] M18 `collection/linear-calendar.logic.ts:131,148` — drops Dec 31 events that carry a time-of-day.
 - [ ] M25 `periodic-notes/periodic-notes.logic.ts:361-365` — uses calendar year as ISO week-year, mis-resolving weeks at year boundary.
-- [ ] M26 `graph-view/graph-view.logic.ts:35-38` — note linking to same target twice falsely marked bidirectional.
-- [ ] M27 `kanban/KanbanView.svelte:64-82` — `selfUpdate` guard stuck true on no-op serialization, drops next external reload.
 - [ ] M28 `queryjs/kb-ui.ts:686` — `heatmapCalendar` off-by-one day for UTC+ timezones.
-- [ ] M29 `utils/sanitize-url.ts:5-15` — `isSafeUrl` misclassifies URLs with interior control chars (tab/`\x01`-embedded `javascript:`) as safe.
+- [ ] M11 `live-preview/parsers/callout.ts:52-62` — callout marker/title boundary miscomputed with trailing whitespace in header.
+- [ ] M13 `live-preview/widgets/queryjs-block-widget.ts:84-89` — re-attaches cached DOM without `isConnected` guard, blanking a duplicate identical block.
 
 ## Backlog — LOW (16)
 
