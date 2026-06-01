@@ -58,6 +58,9 @@ export function evaluate(node: ASTNode, ctx: EvalContext, formulaDepth = 0): unk
 		case 'call':
 			return evaluateCall(node.callee, node.args, ctx, formulaDepth);
 
+		case 'methodCall':
+			return evaluateMethodCallNode(node.receiver, node.method, node.args, ctx, formulaDepth);
+
 		case 'array':
 			return node.elements.map((el) => evaluate(el, ctx, formulaDepth));
 	}
@@ -424,6 +427,23 @@ function evaluateMethodCall(callee: string, args: ASTNode[], ctx: EvalContext, d
 	}
 
 	// Dispatch through registry with evaluated args
+	const evaluatedArgs = args.map((a) => evaluate(a, ctx, depth));
+	return dispatchMethod(value, method, evaluatedArgs);
+}
+
+/**
+ * Evaluates a structural method call whose receiver is a computed AST node
+ * (e.g. `now().format("YYYY")`). The receiver is evaluated first, then the
+ * method is dispatched on the resulting value. Higher-order list methods
+ * (filter/map) still receive the unevaluated expression argument.
+ */
+function evaluateMethodCallNode(receiver: ASTNode, method: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown {
+	const value = evaluate(receiver, ctx, depth);
+
+	if (Array.isArray(value) && (method === 'filter' || method === 'map')) {
+		return evaluateListHigherOrder(value, method, args[0], ctx, depth);
+	}
+
 	const evaluatedArgs = args.map((a) => evaluate(a, ctx, depth));
 	return dispatchMethod(value, method, evaluatedArgs);
 }

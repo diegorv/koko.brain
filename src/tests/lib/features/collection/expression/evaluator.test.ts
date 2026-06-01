@@ -379,6 +379,21 @@ describe('evaluate', () => {
 			expect(result.getFullYear()).toBe(2024);
 		});
 
+		it('evaluates a method call on a function-call result (call().method())', () => {
+			expect(evaluateExpression("date('2024-06-15').format('YYYY')", makeCtx())).toBe('2024');
+		});
+
+		it('chains methods on a call result', () => {
+			const result = evaluateExpression("date('2024-06-15').date()", makeCtx()) as Date;
+			expect(result).toBeInstanceOf(Date);
+			expect(result.getHours()).toBe(0);
+			expect(evaluateExpression("date('2024-06-15').date().format('YYYY')", makeCtx())).toBe('2024');
+		});
+
+		it('evaluates now().relative() returning a string', () => {
+			expect(typeof evaluateExpression('now().relative()', makeCtx())).toBe('string');
+		});
+
 		it('evaluates number() converting values', () => {
 			expect(evaluateExpression("number('42')", makeCtx())).toBe(42);
 			expect(evaluateExpression('number(true)', makeCtx())).toBe(1);

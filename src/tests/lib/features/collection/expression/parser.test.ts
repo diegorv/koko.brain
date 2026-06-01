@@ -66,6 +66,38 @@ describe('parse', () => {
 		expect(ast.args).toHaveLength(3);
 	});
 
+	it('parses a method call on a function-call result as a methodCall node', () => {
+		expect(parse("now().format('YYYY')")).toEqual({
+			type: 'methodCall',
+			receiver: { type: 'call', callee: 'now', args: [] },
+			method: 'format',
+			args: [{ type: 'string', value: 'YYYY' }],
+		});
+	});
+
+	it('parses chained method calls on a call result (now().date().format())', () => {
+		expect(parse("now().date().format('YYYY')")).toEqual({
+			type: 'methodCall',
+			receiver: {
+				type: 'methodCall',
+				receiver: { type: 'call', callee: 'now', args: [] },
+				method: 'date',
+				args: [],
+			},
+			method: 'format',
+			args: [{ type: 'string', value: 'YYYY' }],
+		});
+	});
+
+	it('keeps property/file method calls as dotted-callee call nodes', () => {
+		expect(parse('status.lower()')).toEqual({ type: 'call', callee: 'status.lower', args: [] });
+		expect(parse("file.hasTag('x')")).toEqual({
+			type: 'call',
+			callee: 'file.hasTag',
+			args: [{ type: 'string', value: 'x' }],
+		});
+	});
+
 	it('parses arithmetic with correct precedence', () => {
 		// 1 + 2 * 3 should parse as 1 + (2 * 3)
 		const ast = parse('1 + 2 * 3');

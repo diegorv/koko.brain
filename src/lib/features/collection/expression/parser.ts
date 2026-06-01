@@ -128,8 +128,6 @@ export function parse(expression: string): ASTNode {
 				expect('RightParen');
 				node = { type: 'call', callee: node.name, args };
 			} else if (peek()?.type === 'LeftParen' && node.type === 'member') {
-				// Method-style call: file.something() — treat as call with callee being the full path
-				const callee = flattenMemberToString(node);
 				advance(); // skip (
 				const args: ASTNode[] = [];
 				if (peek()?.type !== 'RightParen') {
@@ -140,7 +138,16 @@ export function parse(expression: string): ASTNode {
 					}
 				}
 				expect('RightParen');
-				node = { type: 'call', callee, args };
+				if (isStaticPath(node.object)) {
+					// Static path like file.hasTag(), status.lower(), file.mtime.format() —
+					// resolvable by name, kept as a dotted-callee call node.
+					node = { type: 'call', callee: flattenMemberToString(node), args };
+				} else {
+					// Method call on a computed receiver like now().format() — the receiver
+					// (a call/expression) must be evaluated before dispatching the method,
+					// so keep it structurally instead of flattening to a lossy string.
+					node = { type: 'methodCall', receiver: node.object, method: node.property, args };
+				}
 			} else {
 				break;
 			}
@@ -209,4 +216,16 @@ function flattenMemberToString(node: ASTNode): string {
 		return flattenMemberToString(node.object) + '.' + node.property;
 	}
 	return '';
+}
+
+/**
+ * Returns true when the node is a static identifier/property path
+ * (e.g. `status`, `file.mtime`) that {@link flattenMemberToString} can turn
+ * into a resolvable dotted name. Computed receivers (calls, arithmetic, etc.)
+ * return false and must be kept as structural method-call receivers.
+ */
+function isStaticPath(node: ASTNode): boolean {
+	if (node.type === 'identifier') return true;
+	if (node.type === 'member') return isStaticPath(node.object);
+	return false;
 }

@@ -51,6 +51,19 @@ export interface CallExpr {
 	args: ASTNode[];
 }
 
+/**
+ * Method call on a computed receiver, e.g. `now().format("YYYY")` or
+ * `(a + b).round()`. Used when the receiver is not a static identifier/property
+ * path (those stay as dotted-callee {@link CallExpr} nodes); here the receiver
+ * is an arbitrary AST node that must be evaluated before the method is dispatched.
+ */
+export interface MethodCallExpr {
+	type: 'methodCall';
+	receiver: ASTNode;
+	method: string;
+	args: ASTNode[];
+}
+
 /** Array literal node (e.g. "[1, 2, 3]") */
 export interface ArrayLiteral {
 	type: 'array';
@@ -67,6 +80,7 @@ export type ASTNode =
 	| BinaryExpr
 	| UnaryExpr
 	| CallExpr
+	| MethodCallExpr
 	| ArrayLiteral;
 
 // --- Display types (returned by display functions for special rendering) ---
