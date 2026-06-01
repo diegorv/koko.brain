@@ -6,7 +6,7 @@ The **Table of Contents** panel shows an auto-generated outline of all headings 
 
 The Table of Contents panel lives in the right sidebar as a **collapsible section**. Click it to expand and view the outline. It appears alongside other panels (backlinks, outgoing links, properties) in the sidebar area.
 
-The panel can be hidden entirely. Toggle it from the command palette with **Toggle Table of Contents** (category: Layout), or in **Settings -> General**, switch off "Table of Contents". It is shown by default.
+The panel can be hidden entirely. Toggle it from the command palette with **Toggle Table of Contents** (category: Layout), or in **Settings -> Sidebar**, switch off "Table of Contents". It is shown by default.
 
 The panel is **lazy-loaded** — headings are only parsed when the panel is expanded. If you switch files while the panel is collapsed, it resets and requires re-expanding to show the new file's headings.
 

@@ -96,7 +96,7 @@ The Tasks View toolbar provides several filters to help you focus on what matter
 
 | Filter             | Options                              | Description                        |
 |--------------------|--------------------------------------|------------------------------------|
-| **Date**           | All Time / Last 7 Days / Last 30 Days | Filter tasks by date              |
+| **Date**           | All time / Last 7 days / Last 30 days | Filter tasks by date              |
 | **Hide completed** | Toggle                               | Hide `- [x]` done tasks           |
 | **Section filter** | Text input                           | Filter by heading/section tag (e.g. `#to-list`). Default: `#to-list` |
 
@@ -128,7 +128,7 @@ Kokobrain can sync tasks with [Todoist](https://todoist.com), a popular task man
 
 - **Sync button** in the Tasks View toolbar refreshes task status from Todoist.
 - **Cloud icon** on tasks shows their Todoist sync status.
-- **Send to Todoist**: Click the Todoist icon on any vault task to send it. A popover lets you select the **project**, **section**, and **priority** before sending.
+- **Send to Todoist**: Click the Send icon on any vault task to send it. A popover lets you select the **project**, **section**, and **priority** before sending.
 - **Completion indicator**: Tasks that have been completed in Todoist show a check mark badge.
 
 > [!NOTE]

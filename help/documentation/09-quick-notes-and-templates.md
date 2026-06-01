@@ -40,7 +40,7 @@ source_title: Example Page
 source: https://example.com
 ```
 
-If the per-kind template path is left empty, the rendered body instead carries the source as a `> Source: [title](url)` footer (for `note` / `clip` / `link` captures with a source URL).
+For `note` / `clip` / `link` captures with a source URL, the rendered body also carries the source as a `> Source: [title](url)` footer. This footer is part of the rendered body, so it appears whether or not a per-kind template is configured (with a template, the body is appended after the processed template).
 
 macOS will prompt for Apple Events permission the first time the AppleScript runs. Other apps still fill `sourceApp` from NSWorkspace; only `sourceTitle` + `sourceUrl` need the AppleScript.
 
@@ -199,7 +199,7 @@ Periodic note templates have additional variables (like `yesterdayPath`, `dailyL
 
 ## Example Templates
 
-### Meeting note template (`_templates/meeting.md`)
+### Meeting note template (`_system/templates/meeting.md`)
 
 ```markdown
 ---
@@ -226,7 +226,7 @@ tags: [meeting]
 ## Follow-up
 ```
 
-### Project note template (`_templates/project.md`)
+### Project note template (`_system/templates/project.md`)
 
 ```markdown
 ---
@@ -253,7 +253,7 @@ tags: [project]
 ## Notes
 ```
 
-### Book note template (`_templates/book.md`)
+### Book note template (`_system/templates/book.md`)
 
 ```markdown
 ---

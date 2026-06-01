@@ -56,7 +56,7 @@ kokobrain://open?vault=MyVault&path=Projects/roadmap
 |-----------|----------|-------------|
 | `vault` | Yes | Vault name |
 | `file` | No | File path relative to vault root. `.md` is added automatically if no extension is present. |
-| `path` | No | Alias for `file` — also resolved relative to the vault root (a leading `/` is stripped). Paths that resolve outside the vault are rejected. If both `file` and `path` are supplied, `file` is used. |
+| `path` | No | Alias for `file`. Also resolved relative to the vault root (a leading `/` is stripped). Paths that resolve outside the vault are rejected. If both `file` and `path` are supplied, `file` is used. |
 
 ---
 

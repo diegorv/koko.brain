@@ -153,7 +153,7 @@ Each lane has additional configuration accessible by right-clicking the lane tit
 
 | Setting | Description |
 |---------|-------------|
-| **Set Card Limit (WIP limit)** | Caps the number of cards in the lane. Choose from the preset limits (3, 5, 10, or 15 cards) or **No limit**. When the limit is reached, the lane border turns red and adding more cards is blocked. |
+| **Set Card Limit (WIP limit)** | Caps the number of cards in the lane. Choose from the preset limits (3, 5, 10, or 15 cards) or **No limit**. When the limit is reached, the lane border and count badge turn red as a warning, but you can still add more cards. |
 | **Auto-Complete** | When a card is dragged into this lane, it is automatically marked as checked. Useful for "Done" lanes. |
 | **Archive Completed** | Archives all checked items in the lane at once. Only shown when the lane has at least one checked card. |
 

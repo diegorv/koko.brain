@@ -65,7 +65,7 @@ Edges are arrows or lines that connect two nodes, letting you express relationsh
 
 - **Create a connection** -- Drag from a handle on one node to a handle on another node. Dragging from a handle and releasing on empty canvas creates a new text node already connected to the source.
 - **Arrow direction** -- New edges are directed, with an arrowhead at the target node. The arrowhead at each end (`fromEnd` / `toEnd`) is stored in the file and can be changed in Source Mode.
-- **Labels** -- Right-click an edge and choose "Edit label" to add or change a text label describing the relationship.
+- **Labels** -- Edges can carry a text label describing the relationship. Labels are set by editing the `label` field of the edge in Source Mode (the visual editor has no in-place label editor).
 
 ![Canvas with connected nodes](screenshots/canvas-connections.png)
 
@@ -81,10 +81,10 @@ Both nodes and edges support colors to help you visually categorize items:
 
 Right-click anywhere on the canvas for context-sensitive options:
 
-- On a **text node** -- Edit, Change Color, Duplicate, Delete.
-- On a **file node** -- Open in Editor, Change Color, Duplicate, Delete.
-- On a **link node** -- Open URL, Edit (change URL and title), Change Color, Duplicate, Delete.
-- On an **edge** -- Edit label, Color, Go to source, Go to target, Delete.
+- On a **text node** -- Edit, Color, Duplicate, Delete.
+- On a **file node** -- Color, Duplicate, Delete. (Click the file node's header to open the note in the editor.)
+- On a **link node** -- Edit (change URL and title), Color, Duplicate, Delete. (Click the link node's header to open the URL in your browser.)
+- On an **edge** -- Color, Go to source, Go to target, Delete.
 - On **empty space** -- Add new nodes of any type at that position.
 
 ## Keyboard Shortcuts

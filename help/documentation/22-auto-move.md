@@ -108,7 +108,7 @@ Files inside excluded folders are skipped entirely — no evaluation, no moves.
 
 ## Debounce Delay
 
-Auto Move does not run instantly on every keystroke. It waits a configurable number of milliseconds after the last save before evaluating rules. This prevents unnecessary moves while you are actively editing a note.
+Auto Move does not run instantly on every keystroke. It waits a configurable number of seconds after the last save before evaluating rules. This prevents unnecessary moves while you are actively editing a note.
 
 The default is `3000 ms` (3 seconds). The Settings field is entered in seconds and accepts a range of 0.5 to 30 seconds. Increase it if you find moves happening too eagerly; decrease it for a more responsive experience.
 

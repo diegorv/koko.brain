@@ -100,7 +100,6 @@ Everything Kokobrain creates lives inside your vault folder. Here is what each f
 | `.kokobrain/recent-icons.json` | Recently used icons in the icon picker |
 | `.kokobrain/trash/` | Trash manifest and deleted files |
 | `.kokobrain/folder-order.json` | Custom folder ordering |
-| `.kokobrain/file-icons.json` | Custom icon assignments |
 | `.kokobrain/auto-move-rules.json` | Auto-move rule configuration |
 | `.kokobrain/todoist-sent.json` | Tracks which tasks were sent to Todoist |
 

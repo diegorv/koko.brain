@@ -125,7 +125,7 @@ Click any result to open that file in the editor. The search index updates autom
 
 ### Search Operators
 
-You can narrow text and hybrid searches with two operators, typed anywhere in the query:
+You can narrow text searches with two operators, typed anywhere in the query:
 
 - `tag:tagname` - only matches notes that contain that tag (in frontmatter or inline). Combine multiple `tag:` operators to require all of them.
 - `path:folder` - only matches notes whose path contains that text, so you can scope a search to a folder.

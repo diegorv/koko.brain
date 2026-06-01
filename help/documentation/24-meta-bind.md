@@ -113,7 +113,7 @@ action:
   link: "[[Project Alpha]]"   # wikilink, or an https://… URL
 ```
 
-A `[[wikilink]]` opens the resolved note; an `http(s)://` URL opens in your browser. The note opens in the current editor.
+A `[[wikilink]]` opens the resolved note; an `http(s)://` URL opens in your browser. The note opens in a new editor tab (or focuses the tab if the note is already open).
 
 #### `createNote` — create a new note
 

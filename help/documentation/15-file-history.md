@@ -24,10 +24,10 @@ The dialog has two panes:
 1. Click a snapshot in the left pane to preview the diff against the current content.
 2. Click **"Restore This Version"** to replace the current content with the selected snapshot.
 3. A confirmation dialog appears before the restore is applied - nothing happens until you confirm.
-4. The current content is **not lost**. The version you had before restoring stays in history as its own snapshot, so you can always go back to it.
+4. Any previously **saved** version stays in history as its own snapshot, so you can go back to it. Note that unsaved edits in the editor are replaced by the restore and are not snapshotted first, so save your work before restoring if you want to keep it.
 
 > [!TIP]
-> Restoring replaces the editor content and saves it through the normal save flow. Because every save is snapshotted, the pre-restore version is still in the history list - to "undo" a restore, open the history dialog again and pick the snapshot from just before the restore.
+> Restoring replaces the editor content and saves it through the normal save flow. Because every save is snapshotted, each version you saved before the restore is still in the history list - to "undo" a restore, open the history dialog again and pick the snapshot from just before the restore.
 
 ## Deduplication
 

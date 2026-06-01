@@ -679,7 +679,7 @@ kb.ui.statusCards(
 
 Each item: `{ title: string, status: string, subtitle?: string }`.
 
-Built-in status colors: `active` (green), `done`/`completed` (blue), `draft` (orange), `planning` (blue), `archived` (gray), `cancelled` (red). Unknown statuses use gray.
+Built-in status colors: `active` (green), `planning` (blue), `done` (gray), `draft` (orange). Any other status (including `completed`, `archived`, `cancelled`) falls back to gray.
 
 Custom color map:
 

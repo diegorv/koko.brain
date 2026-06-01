@@ -48,9 +48,16 @@ The controls panel lets you narrow down what the graph displays:
 | **Filter by folder** | Show only notes in specific folders |
 | **Filter by search** | Text filter on note names |
 | **Show orphans** | Toggle to hide notes with no incoming or outgoing wikilinks |
-| **Show arrows** | Display directional arrows on edges (bidirectional arrows for mutual links) |
 
 Filters work in all modes and can be combined to focus on exactly the subset of notes you care about.
+
+## Display
+
+A separate **Display** panel controls how edges are drawn:
+
+| Control | Description |
+|---------|-------------|
+| **Arrows** | Toggle directional arrows on edges (bidirectional arrows for mutual links) |
 
 The controls panel also includes **Zoom In / Zoom Out** buttons and a **Close** button.
 

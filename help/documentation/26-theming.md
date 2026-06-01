@@ -34,14 +34,14 @@ Colors are applied as CSS custom properties on the document root. Every color to
 
 ## Creating and Editing Themes
 
-Open **Settings > Appearance**. Each theme row has hover actions to **Edit** (pencil), **Duplicate** (copy), and **Delete** (X). The KokoBrain Default theme cannot be edited or deleted; duplicate it to make an editable copy. The **Theme Editor** lets you:
+Open **Settings > Appearance**. Each theme row has hover actions to **Edit** (pencil) and **Duplicate** (copy); the **Delete** (X) button stays visible on non-default theme rows. The KokoBrain Default theme cannot be edited or deleted; duplicate it to make an editable copy. The **Theme Editor** lets you:
 
 - **Duplicate** a theme to create an editable copy
 - **Edit** any color token with a color picker or hex input. The text field accepts 3- or 6-digit hex (with or without `#`); values entered through the editor are normalized to lowercase 6-digit hex
 - **Import/Export** themes as JSON files
 - **Live preview** -- every color change applies immediately
 
-Missing tokens in imported themes automatically fall back to the built-in default values.
+Missing tokens in user themes automatically fall back to the built-in default values.
 
 > [!NOTE]
 > The theme JSON itself accepts any valid CSS color value (hex, oklch, rgb, hsl) and the built-in themes use a mix of hex, oklch, and rgba. The in-app editor's text field only accepts hex; to use other formats, edit or import the theme JSON directly.

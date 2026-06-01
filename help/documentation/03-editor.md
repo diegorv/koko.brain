@@ -101,7 +101,7 @@ Beyond basic text editing, the markdown editor supports several advanced feature
 - **Rectangular selection** — Hold `Option` and drag to select a rectangular region.
 - **Tab indentation** — Press `Tab` to indent, `Shift+Tab` to dedent.
 - **Bracket matching** — Matching brackets are highlighted when the cursor is adjacent to one.
-- **Paste as table** — Pasting TSV or Excel data from the clipboard automatically converts it into a Markdown pipe table.
+- **Paste as table** (Live Preview only) — Pasting TSV or Excel data from the clipboard automatically converts it into a Markdown pipe table.
 
 ## Status Bar
 

@@ -69,7 +69,7 @@ A "block" is any paragraph, list item, or other content element in a note. You c
 ### Creating a block link
 
 1. Place your cursor on the line you want to reference.
-2. Press `Cmd+Shift+L` (or right-click and select "Copy Link to Block").
+2. Press `Cmd+Shift+L` (or right-click and select "Copy link to block").
 3. Kokobrain automatically adds a block ID (like `^a1b2c3`) to the end of that line.
 4. A wikilink is copied to your clipboard: `[[Note Name#^a1b2c3]]`.
 5. Paste it anywhere in any note.
