@@ -48,6 +48,7 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
 	const item = createTrashItem(relativePath, isDirectory);
 	const itemDir = getTrashItemDir(vaultPath, item.id);
 	let containerCreated = false;
+	let renamed = false;
 
 	try {
 		// Ensure trash directories exist
@@ -65,16 +66,26 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
 		containerCreated = true;
 		const trashPath = getTrashItemPath(vaultPath, item.id, item.fileName);
 		await rename(absolutePath, trashPath);
+		renamed = true;
 
-		// Persist manifest to disk first, then update store (avoids desync on write failure)
-		await saveManifest(vaultPath, [item, ...trashStore.items]);
+		// File is now in the trash container. Persist the manifest; if that write
+		// fails, keep the in-memory store updated anyway -- the file is safely in
+		// trash on disk, so the entry would just be re-persisted on the next save.
+		// (Mirrors the phantom-handling in restoreItem; never throw away the file.)
+		try {
+			await saveManifest(vaultPath, [item, ...trashStore.items]);
+		} catch (err) {
+			error('Trash', 'Failed to save manifest after move to trash (file is safe in trash):', err);
+		}
 		trashStore.addItem(item);
 
 		debug('Trash', `Moved to trash: ${relativePath}`);
 		return true;
 	} catch (err) {
-		// Clean up orphaned container directory if it was created before the failure
-		if (containerCreated) {
+		// Clean up the orphaned container ONLY if the file was not yet moved into it.
+		// After a successful rename the container holds the user's only copy, so
+		// removing it here would permanently destroy the file.
+		if (containerCreated && !renamed) {
 			try { await remove(itemDir, { recursive: true }); } catch { /* ignore cleanup failure */ }
 		}
 		error('Trash', 'Failed to move to trash:', err);

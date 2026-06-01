@@ -187,6 +187,26 @@ describe('moveToTrash', () => {
 		const removedPath = mockRemove.mock.calls[0][0] as string;
 		expect(removedPath).toMatch(/^\/Users\/me\/vault\/\.kokobrain\/trash\/items\/[0-9a-f-]+$/);
 	});
+
+	it('does NOT delete the container (which now holds the file) when manifest save fails after rename', async () => {
+		// Rename succeeds -> the user's only copy is now inside the trash container.
+		// The manifest write then fails. The container must NOT be recursively removed,
+		// otherwise the file is permanently lost from both its original location and trash.
+		mockRename.mockResolvedValue(undefined);
+		mockWriteTextFile.mockRejectedValue(new Error('disk full'));
+
+		const result = await moveToTrash(VAULT, '/Users/me/vault/notes/important.md', false);
+
+		// The move into trash succeeded on disk, so the operation must report success
+		// and must never remove the container that now holds the file.
+		expect(result).toBe(true);
+		expect(mockRename).toHaveBeenCalledTimes(1);
+		expect(mockRemove).not.toHaveBeenCalled();
+		// Store stays consistent (phantom-handling, mirroring restoreItem): the item is
+		// tracked even though the manifest write failed, and will be re-persisted next save.
+		expect(trashStore.items).toHaveLength(1);
+		expect(trashStore.items[0].fileName).toBe('important.md');
+	});
 });
 
 describe('restoreItem', () => {
