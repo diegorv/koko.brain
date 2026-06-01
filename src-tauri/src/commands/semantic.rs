@@ -414,6 +414,29 @@ pub async fn build_semantic_index(
 	.await
 	.map_err(|e| format!("Task join error: {e}"))??;
 
+	// Phase 2.5: changed files that produced no chunks (emptied / below the
+	// min-chunk threshold) never enter an embed batch, so Phase 3 won't clear
+	// their stale chunks or advance their mtime. Handle them here. (Owned
+	// copies so nothing borrows `all_chunks` into Phase 3.)
+	let changed_for_empty: Vec<(String, i64)> =
+		changed_files.iter().map(|(p, _, m)| (p.clone(), *m)).collect();
+	let chunked_paths: HashSet<String> =
+		all_chunks.iter().map(|c| c.source_path.clone()).collect();
+	let cleared_empty = tokio::task::spawn_blocking(move || {
+		clear_changed_files_without_chunks(&changed_for_empty, &chunked_paths)
+	})
+	.await
+	.map_err(|e| format!("Task join error: {e}"))??;
+	if !cleared_empty.is_empty() {
+		debug_log(
+			"SEMANTIC",
+			format!(
+				"{} changed file(s) produced no chunks — cleared stale chunks + persisted mtime",
+				cleared_empty.len()
+			),
+		);
+	}
+
 	let changed_paths: Vec<String> = changed_files.iter().map(|(p, _, _)| p.clone()).collect();
 	let _ = app.emit(
 		"semantic-index-progress",
@@ -1175,6 +1198,41 @@ pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> 
 
 		Ok(())
 	})
+}
+
+/// Clears chunks + persists the new mtime for every changed file that
+/// produced ZERO chunks (emptied, frontmatter-only, or below the min-chunk
+/// threshold). `changed` is `(rel_path, mtime)` for every file re-read this
+/// build; `chunked` is the set of rel_paths that produced at least one chunk.
+/// Returns the rel_paths that were cleared.
+///
+/// Without this, the bulk `build_semantic_index` neither deletes such a
+/// file's now-stale chunks (Phase 3 only touches paths that appear in an
+/// embed batch) nor advances its mtime — so its orphaned embeddings keep
+/// surfacing in search AND the file is re-read + re-chunked on every build
+/// forever. Phase 4's `cleanup_orphaned_chunks` cannot help: the file still
+/// exists on disk, so it is not orphaned. Mirrors the zero-chunk branch of
+/// `update_semantic_file`. Runs in a single transaction.
+pub fn clear_changed_files_without_chunks(
+	changed: &[(String, i64)],
+	chunked: &HashSet<String>,
+) -> Result<Vec<String>, String> {
+	let empty: Vec<(String, i64)> = changed
+		.iter()
+		.filter(|(p, _)| !chunked.contains(p))
+		.cloned()
+		.collect();
+	if empty.is_empty() {
+		return Ok(Vec::new());
+	}
+	db::with_db_transaction("semantic clear empty changed files", |conn| {
+		for (path, _) in &empty {
+			db::semantic_repo::delete_chunks_for_path(conn, path)?;
+		}
+		db::semantic_repo::upsert_mtimes(conn, &empty)?;
+		Ok(())
+	})?;
+	Ok(empty.into_iter().map(|(p, _)| p).collect())
 }
 
 /// Identifier for the embedding recipe — the contract between chunking + embedding.

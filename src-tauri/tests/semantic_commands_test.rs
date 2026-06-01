@@ -1,9 +1,10 @@
 use kokobrain_lib::commands::semantic::{
-	check_and_update_model_hash, cleanup_orphaned_chunks, compute_model_hash,
-	get_semantic_stats, shutdown_semantic,
+	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
+	compute_model_hash, get_semantic_stats, shutdown_semantic,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::db::semantic_repo;
+use std::collections::HashSet;
 use std::sync::Mutex;
 use tempfile::TempDir;
 
@@ -362,6 +363,68 @@ fn cleanup_orphaned_chunks_all_entries_orphaned() {
 
 	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
 	assert_eq!(count, 0, "all chunks should be removed when no paths exist");
+
+	db::close_database().unwrap();
+}
+
+// --- clear_changed_files_without_chunks (regression for build_semantic_index #3) ---
+
+#[test]
+fn clear_changed_files_without_chunks_drops_stale_and_persists_mtime() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	// Prior index: both files had chunks + an old stored mtime.
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "emptied.md", "old body", None, &[], 1, 5, "h1", b"e1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "kept.md", "still here", None, &[], 1, 5, "h2", b"e2", 1000)?;
+		semantic_repo::upsert_mtimes(conn, &[("emptied.md".to_string(), 100), ("kept.md".to_string(), 100)])?;
+		Ok(())
+	})
+	.unwrap();
+
+	// This build re-read both (new mtime 999); only "kept.md" produced chunks.
+	// "emptied.md" was edited to nothing -> zero chunks.
+	let changed = vec![("emptied.md".to_string(), 999), ("kept.md".to_string(), 999)];
+	let mut chunked = HashSet::new();
+	chunked.insert("kept.md".to_string());
+
+	let cleared = clear_changed_files_without_chunks(&changed, &chunked).unwrap();
+	assert_eq!(cleared, vec!["emptied.md".to_string()]);
+
+	// Stale chunks for the emptied file are gone; the file that produced
+	// chunks is untouched. (Pre-fix the emptied file's chunks lingered.)
+	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	assert_eq!(sources, vec!["kept.md".to_string()]);
+
+	// The emptied file's mtime advanced to the new value, so it will NOT be
+	// re-read on every future build. (Pre-fix it stayed at 100 forever.)
+	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	assert_eq!(mtimes.get("emptied.md"), Some(&999));
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn clear_changed_files_without_chunks_noop_when_all_produced_chunks() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "a.md", "text", None, &[], 1, 5, "h", b"e", 1000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	let changed = vec![("a.md".to_string(), 5)];
+	let mut chunked = HashSet::new();
+	chunked.insert("a.md".to_string());
+
+	let cleared = clear_changed_files_without_chunks(&changed, &chunked).unwrap();
+	assert!(cleared.is_empty(), "nothing to clear when every changed file produced chunks");
+
+	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	assert_eq!(count, 1, "existing chunks must be left untouched");
 
 	db::close_database().unwrap();
 }
