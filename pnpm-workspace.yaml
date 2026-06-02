@@ -17,6 +17,24 @@ minimumReleaseAgeExclude:
   # one-off patch.
   - '@tauri-apps/*'
 
+# Supply chain hardening. The first two are pnpm v11 defaults (true) —
+# pinned explicitly so a future pnpm default flip can't silently disable
+# them. `trustPolicy` defaults to OFF, so it MUST be set to take effect.
+#
+# - blockExoticSubdeps: transitive deps may only resolve from the
+#   registry — git URLs and direct tarball URLs are rejected for
+#   subdeps (direct deps in package.json are exempt).
+# - strictDepBuilds: abort `pnpm install` with a non-zero exit if any
+#   dependency declares an unreviewed install/build script not listed in
+#   `allowBuilds` below. Backstops the allowBuilds gate.
+# - trustPolicy=no-downgrade: refuse a version whose publish-time trust
+#   level dropped vs an earlier release (e.g. a dep that previously
+#   shipped with OIDC/provenance suddenly ships without it) — a common
+#   account-compromise signal.
+blockExoticSubdeps: true
+strictDepBuilds: true
+trustPolicy: no-downgrade
+
 overrides:
   cookie: '>=0.7.0'
 
