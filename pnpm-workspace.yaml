@@ -34,6 +34,21 @@ minimumReleaseAgeExclude:
 blockExoticSubdeps: true
 strictDepBuilds: true
 trustPolicy: no-downgrade
+# Per-version waivers for `trustPolicy`. pnpm flags a "trust downgrade"
+# when a version's publish-time provenance/signing differs from an
+# earlier release. That is not always a takeover — a maintainer changing
+# their CI/publish setup across a major version trips the same signal.
+#
+# - chokidar@4.0.3: published 2024-12-18 by paulmillr (the canonical
+#   owner). v4 was a ground-up rewrite whose publish setup differs from
+#   the v3 line, so pnpm reports a downgrade. v5 re-adds OIDC provenance
+#   but is out of svelte-check's `^4.0.1` range. Benign and widely used;
+#   reaches us only as a dev-only transitive of svelte-check (never in
+#   the shipped app bundle). Textbook waiver example in
+#   lirantal/npm-security-best-practices. Re-audit if chokidar's
+#   maintainer set ever changes.
+trustPolicyExclude:
+  - 'chokidar@4.0.3'
 
 overrides:
   cookie: '>=0.7.0'
