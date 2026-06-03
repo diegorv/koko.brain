@@ -8,9 +8,20 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+  push:
+    # Solo project: commits land directly on main, so the full security
+    # suite runs on every push (Actions is free on this public repo). This
+    # is the primary trigger; PR / dispatch / cron are secondary.
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+  schedule:
+    # Daily full-tree OSV scan (12:30 UTC). Catches advisories disclosed
+    # for unchanged dependencies on days with no push.
+    - cron: "30 12 * * *"
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/release.yml` (as a gate
-  # before build-macos) and `.github/workflows/run-all.yml`.
+  # Reusable: invoked by `.github/workflows/release.yml` and
+  # `.github/workflows/run-all.yml`.
   workflow_call:
 
 concurrency:
@@ -93,15 +104,26 @@ jobs:
           fi
           echo "✅ minimumReleaseAge is $age minutes ($(( age / 1440 )) days)"
 
-  dependency-review:
-    name: Dependency Review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Review dependencies
-        uses: actions/dependency-review-action@v5
-        with:
-          fail-on-severity: moderate
+  osv-scanner:
+    name: OSV Scanner (full tree)
+    # Full-tree OSV scan (pnpm lockfile + Cargo.lock) -> Security tab. Unified
+    # dashboard on top of npm-audit (GHSA) and cargo-audit (RustSec). Report-only
+    # (`fail-on-vuln: false`) — never fails the build, same stance as npm-audit.
+    #
+    # `github.workflow == 'Security'` = run only when this workflow fires on its
+    # own triggers (push / PR / cron / dispatch). Skips the workflow_call
+    # invocations from release.yml / run-all.yml, where the caller narrows the
+    # token and the SARIF upload would fail.
+    if: github.workflow == 'Security'
+    # Job-level permissions REPLACE workflow-level (they're not merged), so the
+    # `contents: read` baseline is redeclared alongside the escalations the
+    # reusable workflow needs to push SARIF to the Security tab.
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    # Pinned by commit SHA, not tag — same supply-chain reasoning as the other
+    # third-party actions. Dependabot bumps via the trailing tag comment.
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      fail-on-vuln: false
