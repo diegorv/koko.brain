@@ -75,8 +75,8 @@ importers:
         specifier: ^1.6.3
         version: 1.6.3
       '@primer/octicons':
-        specifier: ^19.26.0
-        version: 19.26.0
+        specifier: ^19.27.0
+        version: 19.27.0
       '@tauri-apps/api':
         specifier: ^2.11.0
         version: 2.11.0
@@ -743,8 +743,8 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@primer/octicons@19.26.0':
-    resolution: {integrity: sha512-K+ewEvXf9w+65i4OeLDXOhd1yT5qdMIpU/miqmjTuaGufZCxFn4131SIh0CfrinmLFnL9Ow60kk3hxx0Y4oIAQ==}
+  '@primer/octicons@19.27.0':
+    resolution: {integrity: sha512-7xC6D89f9IcoDezeKTGETbgRAoXJnbZlakavqYzD4Wo+uTC6212k0fTE/dLV8WCDOwfp//WyONftdaFRdI1VdQ==}
 
   '@rolldown/binding-android-arm64@1.0.1':
     resolution: {integrity: sha512-fJI3I0r3C3Oj/zdBCpaCmBRZYf07xpaq4yCfDDoSFm+beWNzbIl26puW8RraUdugoJw/95zerNOn6jasAhzSmg==}
@@ -2897,7 +2897,7 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@primer/octicons@19.26.0':
+  '@primer/octicons@19.27.0':
     dependencies:
       object-assign: 4.1.1
 
