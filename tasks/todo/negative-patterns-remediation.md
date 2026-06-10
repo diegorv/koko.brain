@@ -49,7 +49,7 @@ per task, run the relevant tests before each commit (Quick Reference rule 6).
       `src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:28-34`.
       Tests: component/store tests asserting a version bump triggers a refetch.
 
-- [ ] Task 5: Harden async service flows against stale/cross-vault writes
+- [x] Task 5: Harden async service flows against stale/cross-vault writes
       Trace the full execution chain first (CLAUDE.md "Removing or Refactoring Code"
       mandatory checks) before changing orchestration; write a regression test
       capturing current behavior first.
