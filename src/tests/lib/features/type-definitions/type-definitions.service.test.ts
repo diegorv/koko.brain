@@ -203,8 +203,12 @@ describe('createTypeDefinition', () => {
 		// createFile's Rust create_note indexes an EMPTY file (content is written
 		// afterwards via writeTextFile, with the watcher suppressed by the
 		// recent-save guard) — without this explicit re-index the new type only
-		// appears after a full vault rescan.
-		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/Sprint.md' });
+		// appears after a full vault rescan. The Rust command REQUIRES content;
+		// passing only path rejects with "missing required key content".
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+			path: '/vault/Sprint.md',
+			content: '---\n_type: Type\n_visible: true\n---\n\n# Sprint\n',
+		});
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Sprint' });
 	});
 
@@ -240,7 +244,10 @@ describe('toggleFavoriteForPath', () => {
 			'/vault/note.md',
 			expect.stringContaining('_favorite: true'),
 		);
-		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/note.md' });
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+			path: '/vault/note.md',
+			content: expect.stringContaining('_favorite: true'),
+		});
 	});
 
 	it('sets _favorite: false when unfavoriting', async () => {

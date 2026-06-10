@@ -54,7 +54,7 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
 	// written just above, with the watcher suppressed by the recent-save
 	// guard) — re-index explicitly or the new type only shows after a full
 	// vault rescan. Same idiom as toggleFavoriteForPath below.
-	await invoke('update_note_in_index', { path: filePath });
+	await invoke('update_note_in_index', { path: filePath, content });
 	if (opts.select) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
 	} else {
@@ -89,7 +89,7 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 	if (editorStore.activeTabPath === filePath) {
 		syncExternalContentToEditor(filePath, newContent, false);
 	}
-	await invoke('update_note_in_index', { path: filePath });
+	await invoke('update_note_in_index', { path: filePath, content: newContent });
 }
 
 /** Updates _icon, _color, and _title_color in a .view YAML file. */
