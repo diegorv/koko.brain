@@ -193,6 +193,21 @@ describe('createTypeDefinition', () => {
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Sprint' });
 	});
 
+	it('re-indexes the definition after writing its frontmatter so the sidebar updates without a reload', async () => {
+		vaultStore.open('/vault');
+		typeDefinitionsStore.reset();
+		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
+
+		await createTypeDefinition('Sprint', { select: true });
+
+		// createFile's Rust create_note indexes an EMPTY file (content is written
+		// afterwards via writeTextFile, with the watcher suppressed by the
+		// recent-save guard) — without this explicit re-index the new type only
+		// appears after a full vault rescan.
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/Sprint.md' });
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Sprint' });
+	});
+
 	it('does not change the selection when createFile fails and select is set', async () => {
 		vaultStore.open('/vault');
 		typeDefinitionsStore.reset();

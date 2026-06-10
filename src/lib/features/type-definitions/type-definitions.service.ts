@@ -50,6 +50,11 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
 	const filePath = await createFile(vaultStore.path, `${typeName}.md`);
 	if (!filePath) return;
 	await writeTextFile(filePath, content);
+	// createFile's Rust create_note indexed the file EMPTY (the content is
+	// written just above, with the watcher suppressed by the recent-save
+	// guard) — re-index explicitly or the new type only shows after a full
+	// vault rescan. Same idiom as toggleFavoriteForPath below.
+	await invoke('update_note_in_index', { path: filePath });
 	if (opts.select) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
 	} else {
