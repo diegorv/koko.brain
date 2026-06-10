@@ -8,7 +8,7 @@ Task order respects dependencies: F2 reuses the dialog built in F3.
 
 ## Tasks
 
-- [ ] F1: Inline rename for notes in the type note list (no jump to File Explorer)
+- [x] F1: Inline rename for notes in the type note list (no jump to File Explorer)
 - [ ] F3: "New type" creation via a dialog, from the sidebar empty-area menu
 - [ ] F2: Rename a type - true rename + `_type:` member propagation - via a dialog
 - [ ] F4: `@today` / `@tomorrow` / `@yesterday` date autocomplete in the editor

@@ -7,6 +7,7 @@ import {
 	combineAvailableProperties,
 	countActiveFilters,
 	buildViewYamlUpdates,
+	buildRenameFileName,
 } from '$lib/features/type-definitions/type-note-list.logic';
 
 function makeView(overrides: Partial<CollectionViewDef> = {}): CollectionViewDef {
@@ -229,5 +230,33 @@ describe('countActiveFilters', () => {
 			{ conjunction: 'or', rows: [{ id: '2', property: 'b', operator: 'is', value: '2' }] },
 		];
 		expect(countActiveFilters(groups, [])).toBe(2);
+	});
+});
+
+describe('buildRenameFileName', () => {
+	it('builds the new file name from the edited title, preserving the extension', () => {
+		expect(buildRenameFileName('/vault/Projects/Old Name.md', 'Old Name', 'New Name')).toBe('New Name.md');
+	});
+
+	it('trims surrounding whitespace from the input', () => {
+		expect(buildRenameFileName('/vault/Note.md', 'Note', '  Renamed  ')).toBe('Renamed.md');
+	});
+
+	it('returns null when the input is empty or whitespace', () => {
+		expect(buildRenameFileName('/vault/Note.md', 'Note', '')).toBeNull();
+		expect(buildRenameFileName('/vault/Note.md', 'Note', '   ')).toBeNull();
+	});
+
+	it('returns null when the title is unchanged', () => {
+		expect(buildRenameFileName('/vault/Note.md', 'Note', 'Note')).toBeNull();
+	});
+
+	it('returns null when the resulting file name is invalid', () => {
+		expect(buildRenameFileName('/vault/Note.md', 'Note', 'bad/name')).toBeNull();
+		expect(buildRenameFileName('/vault/Note.md', 'Note', '.hidden')).toBeNull();
+	});
+
+	it('handles paths without an extension', () => {
+		expect(buildRenameFileName('/vault/Note', 'Note', 'Other')).toBe('Other');
 	});
 });

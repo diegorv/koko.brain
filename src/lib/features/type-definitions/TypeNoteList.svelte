@@ -14,7 +14,7 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { deleteItem, duplicateItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
+	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
@@ -46,6 +46,7 @@
 		combineAvailableProperties,
 		countActiveFilters,
 		buildViewYamlUpdates,
+		buildRenameFileName,
 	} from './type-note-list.logic';
 	import { getFileName } from '$lib/core/filesystem/fs.logic';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
@@ -54,6 +55,12 @@
 	let subFilter = $state<NoteListSubFilter>('open');
 	let subCounts = $state({ open: 0, archived: 0, favorites: 0 });
 	let contextTarget = $state<TypeSidebarNote | null>(null);
+	let renameValue = $state('');
+	let renameInput = $state<HTMLInputElement | undefined>();
+	/** Guards against blur firing commitRename after Escape already cancelled */
+	let renameCancelled = $state(false);
+	/** Path already prefilled into the rename input — prevents list refreshes from resetting a rename in progress */
+	let renamePrefilledPath = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
 	let activePath = $derived(editorStore.activeTabPath);
@@ -287,7 +294,53 @@
 
 	function handleStartRename(note: TypeSidebarNote) {
 		fsStore.setRenamingPath(note.path);
-		settingsStore.updateLayout({ sidebarMode: 'files' });
+	}
+
+	/** When rename mode targets a note in this list, prefill and focus the inline input */
+	$effect(() => {
+		const path = fsStore.renamingPath;
+		if (!path) {
+			renamePrefilledPath = null;
+			return;
+		}
+		const note = notes.find((n) => n.path === path);
+		if (!note || renamePrefilledPath === path) return;
+		renamePrefilledPath = path;
+		renameCancelled = false;
+		renameValue = note.title;
+		requestAnimationFrame(() => {
+			renameInput?.focus();
+			renameInput?.select();
+		});
+	});
+
+	/** Validates and applies the rename, or silently discards invalid input */
+	async function commitRename() {
+		if (renameCancelled) return;
+		const path = fsStore.renamingPath;
+		const note = path ? notes.find((n) => n.path === path) : null;
+		fsStore.setRenamingPath(null);
+		if (!note) return;
+		const newName = buildRenameFileName(note.path, note.title, renameValue);
+		if (!newName) return;
+		await renameItem(note.path, newName);
+	}
+
+	/** Exits rename mode without applying changes */
+	function cancelRename() {
+		renameCancelled = true;
+		fsStore.setRenamingPath(null);
+	}
+
+	/** Enter confirms the rename, Escape cancels it */
+	function handleRenameKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitRename();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelRename();
+		}
 	}
 
 	async function handleDelete(note: TypeSidebarNote) {
@@ -428,10 +481,31 @@
 							{#if i > 0}
 								<div class="h-px bg-border"></div>
 							{/if}
+							{#if note.path === fsStore.renamingPath}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="flex w-full items-center gap-2 rounded px-2 py-2"
+									oncontextmenu={(e) => { e.stopPropagation(); e.preventDefault(); }}
+								>
+									{#if resolved?.icon}
+										<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+									{:else}
+										<FileText class="size-4 shrink-0 text-muted-foreground" />
+									{/if}
+									<input
+										bind:this={renameInput}
+										bind:value={renameValue}
+										onkeydown={handleRenameKeydown}
+										onblur={commitRename}
+										class="h-6 flex-1 rounded border border-ring bg-background px-1 text-[13px] outline-none"
+									/>
+								</div>
+							{:else}
 							<button
 								class="flex w-full flex-col rounded px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
 								onclick={() => openFileInEditor(note.path)}
 								oncontextmenu={() => { contextTarget = note; }}
+								onkeydown={(e) => { if (e.key === 'F2') handleStartRename(note); }}
 							>
 								<div class="flex w-full items-start gap-2">
 									{#if resolved?.icon}
@@ -481,6 +555,7 @@
 									</div>
 								{/if}
 							</button>
+							{/if}
 						{/each}
 
 						{#if notes.length === 0}

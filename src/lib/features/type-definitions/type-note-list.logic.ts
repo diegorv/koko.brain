@@ -2,6 +2,25 @@ import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } fro
 import type { FilterGroup } from '$lib/features/collection/toolbar/toolbar.types';
 import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '$lib/features/collection/toolbar/filter.logic';
 import type { CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
+import { isValidFileName } from '$lib/core/filesystem/fs.logic';
+
+/**
+ * Builds the target file name for an inline note-list rename, where the user
+ * edits the TITLE (file name without extension) rather than the full name.
+ * Re-appends the original path's extension. Returns `null` when the rename
+ * should be discarded: empty/whitespace input, unchanged title, or a result
+ * that is not a legal file name.
+ */
+export function buildRenameFileName(path: string, currentTitle: string, input: string): string | null {
+	const trimmed = input.trim();
+	if (!trimmed || trimmed === currentTitle) return null;
+	const fileName = path.split('/').pop() ?? '';
+	const dotIndex = fileName.lastIndexOf('.');
+	const ext = dotIndex > 0 ? fileName.slice(dotIndex) : '';
+	const newName = trimmed + ext;
+	if (!isValidFileName(newName)) return null;
+	return newName;
+}
 
 /**
  * Seed shape produced from a successfully-parsed .view definition. The TypeNoteList
