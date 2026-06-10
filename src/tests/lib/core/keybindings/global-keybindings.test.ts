@@ -13,14 +13,6 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	toggleSourceMode: vi.fn(),
 }));
 
-vi.mock('$lib/features/quick-switcher/quick-switcher.store.svelte', () => ({
-	quickSwitcherStore: { toggle: vi.fn() },
-}));
-
-vi.mock('$lib/features/search/search.store.svelte', () => ({
-	searchStore: { toggle: vi.fn() },
-}));
-
 vi.mock('$lib/plugins/graph-view/graph-view.service', () => ({
 	toggleGraphTab: vi.fn(),
 }));
@@ -29,31 +21,8 @@ vi.mock('$lib/features/tasks/tasks.service', () => ({
 	toggleTasksTab: vi.fn(),
 }));
 
-vi.mock('$lib/features/command-palette/command-palette.store.svelte', () => ({
-	commandPaletteStore: { toggle: vi.fn() },
-}));
-
-vi.mock('$lib/core/settings/settings.store.svelte', () => ({
-	settingsStore: {
-		layout: { leftSidebarVisible: true, rightSidebarVisible: true },
-		updateLayout: vi.fn(),
-	},
-}));
-
-vi.mock('$lib/core/settings/settings-panel.store.svelte', () => ({
-	settingsPanelStore: {
-		toggle: vi.fn(),
-		open: vi.fn(),
-		close: vi.fn(),
-	},
-}));
-
 vi.mock('$lib/core/settings/settings.service', () => ({
 	saveSettings: vi.fn(() => Promise.resolve()),
-}));
-
-vi.mock('$lib/core/vault/vault.store.svelte', () => ({
-	vaultStore: { path: '/vault' },
 }));
 
 vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
@@ -62,10 +31,6 @@ vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
 
 vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
 	openOneOnOnePicker: vi.fn(() => Promise.resolve()),
-}));
-
-vi.mock('$lib/core/editor/editor.store.svelte', () => ({
-	editorStore: { activeTabPath: '/vault/note.md' },
 }));
 
 vi.mock('$lib/features/file-history/file-history.service', () => ({
@@ -113,6 +78,16 @@ function findHandler(match: Partial<{ key: string; code: string; meta: boolean; 
 describe('registerGlobalKeybindings', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Real stores (CLAUDE.md rule 1) — reset to a known baseline each test.
+		quickSwitcherStore.reset();
+		searchStore.reset();
+		commandPaletteStore.reset();
+		settingsStore.reset();
+		settingsPanelStore._reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
 	it('registers all 20 global keybindings', () => {
@@ -256,22 +231,22 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	describe('handler behavior', () => {
-		it('Cmd+P handler calls commandPaletteStore.toggle', () => {
+		it('Cmd+P handler opens the command palette', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'p', meta: true });
 
+			expect(commandPaletteStore.isOpen).toBe(false);
 			handler();
-
-			expect(commandPaletteStore.toggle).toHaveBeenCalledTimes(1);
+			expect(commandPaletteStore.isOpen).toBe(true);
 		});
 
-		it('Cmd+O handler calls quickSwitcherStore.toggle', () => {
+		it('Cmd+O handler opens the quick switcher', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'o', meta: true });
 
+			expect(quickSwitcherStore.isOpen).toBe(false);
 			handler();
-
-			expect(quickSwitcherStore.toggle).toHaveBeenCalledTimes(1);
+			expect(quickSwitcherStore.isOpen).toBe(true);
 		});
 
 		it('Cmd+S handler calls saveCurrentFile', () => {
@@ -310,13 +285,13 @@ describe('registerGlobalKeybindings', () => {
 			expect(switchToNextTab).toHaveBeenCalledTimes(1);
 		});
 
-		it('Cmd+Shift+F handler calls searchStore.toggle', () => {
+		it('Cmd+Shift+F handler opens search', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'f', meta: true, shift: true });
 
+			expect(searchStore.isOpen).toBe(false);
 			handler();
-
-			expect(searchStore.toggle).toHaveBeenCalledTimes(1);
+			expect(searchStore.isOpen).toBe(true);
 		});
 
 		it('Cmd+G handler calls toggleGraphTab', () => {
@@ -338,49 +313,49 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+Shift+B handler toggles left sidebar and saves settings', () => {
+			// Real default: leftSidebarVisible = true.
+			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });
 
 			handler();
 
-			expect(settingsStore.updateLayout).toHaveBeenCalledWith({ leftSidebarVisible: false });
+			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
 			expect(saveSettings).toHaveBeenCalledWith('/vault');
 		});
 
-		it('Cmd+Shift+B handler does not save settings when vault path is null', () => {
-			(vaultStore as any).path = null;
+		it('Cmd+Shift+B handler toggles layout but does not save when vault path is null', () => {
+			vaultStore._reset(); // path -> null
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });
 
 			handler();
 
-			expect(settingsStore.updateLayout).toHaveBeenCalledTimes(1);
+			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
 			expect(saveSettings).not.toHaveBeenCalled();
-
-			(vaultStore as any).path = '/vault';
 		});
 
 		it('Cmd+B handler toggles right sidebar and saves settings', () => {
+			// Real default: rightSidebarVisible = false -> handler flips it to true.
+			expect(settingsStore.layout.rightSidebarVisible).toBe(false);
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: false });
 
 			handler();
 
-			expect(settingsStore.updateLayout).toHaveBeenCalledWith({ rightSidebarVisible: false });
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 			expect(saveSettings).toHaveBeenCalledWith('/vault');
 		});
 
-		it('Cmd+B handler does not save settings when vault path is null', () => {
-			(vaultStore as any).path = null;
+		it('Cmd+B handler toggles layout but does not save when vault path is null', () => {
+			vaultStore._reset(); // path -> null
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: false });
 
 			handler();
 
-			expect(settingsStore.updateLayout).toHaveBeenCalledTimes(1);
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 			expect(saveSettings).not.toHaveBeenCalled();
-
-			(vaultStore as any).path = '/vault';
 		});
 
 		it('Cmd+N handler calls createNoteComposer', () => {
@@ -405,11 +380,9 @@ describe('registerGlobalKeybindings', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ code: 'Comma', meta: true });
 
+			expect(settingsPanelStore.isOpen).toBe(false);
 			handler();
-
-			expect(settingsPanelStore.toggle).toHaveBeenCalledTimes(1);
-
-			(vaultStore as any).path = '/vault';
+			expect(settingsPanelStore.isOpen).toBe(true);
 		});
 
 		it('Cmd+Shift+H handler calls openFileHistory with active tab path', () => {
@@ -422,15 +395,13 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+Shift+H handler does nothing when no active tab', () => {
-			(editorStore as any).activeTabPath = null;
+			editorStore.reset(); // no tabs -> activeTabPath is null
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'h', meta: true, shift: true });
 
 			handler();
 
 			expect(openFileHistory).not.toHaveBeenCalled();
-
-			(editorStore as any).activeTabPath = '/vault/note.md';
 		});
 
 		it('Cmd+= handler calls zoomIn', () => {
