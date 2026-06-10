@@ -16,9 +16,10 @@ performance rule 9); its `!isConnected` guard stays as partial mitigation.
 
 ## Tasks
 
-- [ ] Task 1: block-math-widget — cache the sanitized KaTeX HTML string instead
+- [x] Task 1: block-math-widget — cache the sanitized KaTeX HTML string instead
       of the element; regression tests incl. EditorView mount with a duplicated
-      `$$...$$` block
+      `$$...$$` block (multi-line form — the lezer parser rejects single-line
+      `$$x$$`; RED proven against the element cache: 1 of 2 blocks rendered)
 - [ ] Task 2: mermaid-widget — cache the sanitized SVG markup (after id strip)
       instead of the container; cache hits fill a fresh container synchronously;
       tests with a mocked mermaid module (jsdom cannot run real mermaid)
