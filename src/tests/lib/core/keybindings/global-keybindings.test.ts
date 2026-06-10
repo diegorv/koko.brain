@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+// vaultStore persists recent vaults via localStorage; Node's built-in
+// localStorage (no backing file) shadows jsdom's, so stub it explicitly.
+setupLocalStorage();
 
 vi.mock('$lib/utils/keybindings', () => ({
 	registerKeybinding: vi.fn(() => vi.fn()),
@@ -78,6 +83,7 @@ function findHandler(match: Partial<{ key: string; code: string; meta: boolean; 
 describe('registerGlobalKeybindings', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearLocalStorage();
 		// Real stores (CLAUDE.md rule 1) — reset to a known baseline each test.
 		quickSwitcherStore.reset();
 		searchStore.reset();
