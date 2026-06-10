@@ -41,16 +41,9 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	openOrCreateDailyNote: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.logic', async (importOriginal) => {
-	const original = await importOriginal<Record<string, unknown>>();
-	return {
-		...original,
-		buildPeriodicNotePath: vi.fn(
-			(vaultPath: string, folder: string, _format: string, _date: unknown) =>
-				folder ? `${vaultPath}/${folder}/daily-note.md` : `${vaultPath}/daily-note.md`,
-		),
-	};
-});
+// periodic-notes.logic is pure logic (CLAUDE.md: never mock .logic). The daily
+// tests assert the written path only by its .md suffix, so the real
+// buildPeriodicNotePath (which always yields a `<...>.md` path) is used directly.
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(() => Promise.resolve()),
