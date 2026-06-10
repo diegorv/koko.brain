@@ -28,7 +28,7 @@ performance rule 9); its `!isConnected` guard stays as partial mitigation.
       toDOM(); row/pill/bar click listeners must stay live, so HTML-string
       caching is not applicable here; widget-level tests with the real
       collectionStore
-- [ ] Task 4: update the CLAUDE.md performance note — mermaid/collection no
+- [x] Task 4: update the CLAUDE.md performance note — mermaid/collection no
       longer use the live-DOM re-attach pattern (queryjs remains the only
       live-element cache)
 

@@ -221,7 +221,11 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 1. **Use `Decoration.mark()` + CSS over `Decoration.replace()` + widgets** — marks are CSS-only (GPU-accelerated paint), widgets cause DOM reflow. Only use widgets for complex interactive elements (tables, code blocks, meta-bind selects, queryjs blocks). For simple visual replacements (bullets, HR, hard breaks), use marks with `font-size: 0` + `::before`/`::after` pseudo-elements.
 
-2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache expensive results (scripts, API calls) and re-attach the cached DOM in `toDOM()`. See `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts` for the live-DOM cache pattern. The same pattern is used by `mermaid-block-widget.ts` (diagram renders) and `collection-block-widget.ts` (IPC queries).
+2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache the expensive RESULT, but never hand a cached live element to more than one widget: CodeMirror builds new lines detached, so an `!isConnected` guard cannot tell "same widget re-entering the viewport" from "second widget for a duplicated block", and a shared node gets moved to the last widget, blanking the earlier occurrences. Cache by widget content:
+   - `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts`: the ONLY live-DOM cache — required so `<canvas>` / `<video>` / `<iframe>` state survives re-mount; the `!isConnected` guard is a partial mitigation there.
+   - `block-math-widget.ts` / `inline-math-widget.ts`: cache the sanitized KaTeX HTML string; every `toDOM()` builds a fresh element.
+   - `mermaid-widget.ts`: cache the sanitized SVG markup string (post id-strip).
+   - `collection-block-widget.ts`: cache the query DATA (view + QueryResult) and rebuild the DOM per `toDOM()` — rows/pills/bars carry click listeners, so markup strings don't work there.
 
 3. **Widgets with `eq()` don't prevent `toDOM()` calls** — `eq()` returning `true` keeps existing DOM, but when the widget is removed from viewport and re-enters, CM calls `toDOM()` fresh. Cache is the only way to avoid re-execution.
 
