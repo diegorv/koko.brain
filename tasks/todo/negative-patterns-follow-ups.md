@@ -13,7 +13,7 @@ its own spec (tasks/done/negative-patterns-remediation.md):
 
 ## Tasks
 
-- [ ] Task 1: component tests for the `vaultIndexVersion` refetch effect in
+- [x] Task 1: component tests for the `vaultIndexVersion` refetch effect in
       BacklinksPanel and OutgoingLinksPanel — Svelte 5 `mount` + `flushSync`
       in jsdom, real editorStore/vaultStore/feature stores, fetch services
       mocked (side-effect services), localStorage fixture for vaultStore.
