@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Link from '@lucide/svelte/icons/link';
 	import GitBranch from '@lucide/svelte/icons/git-branch';
@@ -34,6 +35,18 @@
 			expanded = false;
 			backlinksStore.reset();
 		}
+	});
+
+	// Refetch when the Rust VaultIndex changes (watcher / edits in another tab)
+	// while the panel is open, so backlinks don't go stale until the next tab
+	// switch. Reads only `vaultIndexVersion` reactively; the fetch runs under
+	// `untrack` so it doesn't subscribe to `activeTabPath` (the effect above
+	// owns path changes). See CLAUDE.md "Reactive consumer pattern".
+	$effect(() => {
+		void vaultStore.vaultIndexVersion;
+		untrack(() => {
+			if (expanded) fetchData();
+		});
 	});
 </script>
 

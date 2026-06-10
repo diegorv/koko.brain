@@ -51,13 +51,8 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('$lib/core/settings/settings-panel.store.svelte', () => ({
-	settingsPanelStore: {
-		toggle: vi.fn(),
-		open: vi.fn(),
-		close: vi.fn(),
-	},
-}));
+// settingsPanelStore is a real store per CLAUDE.md — not mocked. Tests reset it
+// via _reset() and assert real isOpen state.
 
 // vault.store.svelte uses localStorage on module load — provide a minimal stub
 const localStorageMock = (() => {
@@ -88,6 +83,7 @@ describe('registerMenuSettingsListener', () => {
 		vi.clearAllMocks();
 		capturedEventHandler = undefined;
 		vaultStore._reset();
+		settingsPanelStore._reset();
 	});
 
 	it('listens for the menu:settings event', async () => {
@@ -98,12 +94,14 @@ describe('registerMenuSettingsListener', () => {
 		expect(listen).toHaveBeenCalledWith('menu:settings', expect.any(Function));
 	});
 
-	it('toggles settings panel when the event fires', async () => {
+	it('toggles the real settings panel open when the event fires', async () => {
 		registerMenuSettingsListener();
 		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
 
+		expect(settingsPanelStore.isOpen).toBe(false);
 		capturedEventHandler!(undefined);
-		expect(settingsPanelStore.toggle).toHaveBeenCalledTimes(1);
+		// Real store state flips, not just a spy call count.
+		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 
 	it('returns a cleanup function that unsubscribes', async () => {
@@ -131,6 +129,22 @@ describe('registerMenuSettingsListener', () => {
 
 		// Use waitFor since the .then() callback runs asynchronously
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
+	});
+
+	it('logs via the project logger when registration fails', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(listen).mockRejectedValueOnce(new Error('listen failed'));
+
+		registerMenuSettingsListener();
+
+		await vi.waitFor(() =>
+			expect(consoleErrorSpy).toHaveBeenCalledWith(
+				expect.stringContaining('LISTENERS'),
+				'Failed to listen for menu:settings:',
+				expect.any(Error),
+			),
+		);
+		consoleErrorSpy.mockRestore();
 	});
 });
 

@@ -5,7 +5,7 @@ import { isDisplayValue } from '$lib/features/collection/expression/expression.t
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { sanitizeHtml } from '$lib/utils/sanitize';
-import type { NoteRecord, CollectionViewDef } from '$lib/features/collection/collection.types';
+import type { NoteRecord, CollectionViewDef, QueryResult } from '$lib/features/collection/collection.types';
 import {
 	getCalendarGrid,
 	groupRecordsByDate,
@@ -102,43 +102,7 @@ export class CollectionBlockWidget extends WidgetType {
 		}
 
 		// Build table
-		const table = document.createElement('table');
-		table.className = 'cm-lp-collection-table';
-
-		// Thead
-		const thead = document.createElement('thead');
-		const headerRow = document.createElement('tr');
-		for (const col of result.columns) {
-			const th = document.createElement('th');
-			th.textContent = col.displayName;
-			headerRow.appendChild(th);
-		}
-		thead.appendChild(headerRow);
-		table.appendChild(thead);
-
-		// Tbody
-		const tbody = document.createElement('tbody');
-		for (const record of result.records) {
-			const tr = document.createElement('tr');
-			tr.addEventListener('click', () => handleRowClick(record));
-
-			for (const col of result.columns) {
-				const td = document.createElement('td');
-				const value = getCellValue(record, col.key);
-				if (isDisplayValue(value) && value.__display === 'html') {
-					td.innerHTML = sanitizeHtml(value.html);
-				} else {
-					td.textContent = formatCellValue(value);
-				}
-				if (value === null || value === undefined) {
-					td.className = 'cm-lp-collection-null';
-				}
-				tr.appendChild(td);
-			}
-			tbody.appendChild(tr);
-		}
-		table.appendChild(tbody);
-		container.appendChild(table);
+		container.appendChild(buildCollectionTable(result));
 
 		collectionCache.set(this.cacheKey, container);
 		return container;
@@ -355,6 +319,51 @@ export class CollectionBlockWidget extends WidgetType {
 	ignoreEvent() {
 		return false;
 	}
+}
+
+/**
+ * Builds the `<table>` for a collection table view from a query result.
+ * Pure DOM construction: DisplayHTML cells render as sanitized innerHTML, plain
+ * values as textContent, and null/undefined as the null-class dash cell.
+ */
+export function buildCollectionTable(result: QueryResult): HTMLTableElement {
+	const table = document.createElement('table');
+	table.className = 'cm-lp-collection-table';
+
+	// Thead
+	const thead = document.createElement('thead');
+	const headerRow = document.createElement('tr');
+	for (const col of result.columns) {
+		const th = document.createElement('th');
+		th.textContent = col.displayName;
+		headerRow.appendChild(th);
+	}
+	thead.appendChild(headerRow);
+	table.appendChild(thead);
+
+	// Tbody
+	const tbody = document.createElement('tbody');
+	for (const record of result.records) {
+		const tr = document.createElement('tr');
+		tr.addEventListener('click', () => handleRowClick(record));
+
+		for (const col of result.columns) {
+			const td = document.createElement('td');
+			const value = getCellValue(record, col.key);
+			if (isDisplayValue(value) && value.__display === 'html') {
+				td.innerHTML = sanitizeHtml(value.html);
+			} else {
+				td.textContent = formatCellValue(value);
+			}
+			if (value === null || value === undefined) {
+				td.className = 'cm-lp-collection-null';
+			}
+			tr.appendChild(td);
+		}
+		tbody.appendChild(tr);
+	}
+	table.appendChild(tbody);
+	return table;
 }
 
 /** Navigates to the clicked note */

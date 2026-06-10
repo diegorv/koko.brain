@@ -41,16 +41,9 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	openOrCreateDailyNote: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.logic', async (importOriginal) => {
-	const original = await importOriginal<Record<string, unknown>>();
-	return {
-		...original,
-		buildPeriodicNotePath: vi.fn(
-			(vaultPath: string, folder: string, _format: string, _date: unknown) =>
-				folder ? `${vaultPath}/${folder}/daily-note.md` : `${vaultPath}/daily-note.md`,
-		),
-	};
-});
+// periodic-notes.logic is pure logic (CLAUDE.md: never mock .logic). The daily
+// tests assert the written path only by its .md suffix, so the real
+// buildPeriodicNotePath (which always yields a `<...>.md` path) is used directly.
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(() => Promise.resolve()),
@@ -69,6 +62,7 @@ import { toast } from 'svelte-sonner';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
 import { processTemplate } from '$lib/utils/template';
+import { error } from '$lib/utils/debug';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -273,6 +267,29 @@ describe('deep-link.service', () => {
 				expect(vi.mocked(refreshTree)).toHaveBeenCalled();
 				expect(vi.mocked(openOrCreateNote)).not.toHaveBeenCalled();
 				expect(vi.mocked(openFileInEditor)).not.toHaveBeenCalled();
+			});
+
+			it('logs instead of silently swallowing a failed background tree refresh', async () => {
+				vi.mocked(refreshTree).mockRejectedValueOnce(new Error('tree refresh failed'));
+				const action: DeepLinkAction = {
+					type: 'new',
+					vault: 'V',
+					name: 'test.md',
+					content: 'Silent content',
+					silent: true,
+				};
+
+				// executeAction returns without awaiting refreshTree (fire-and-forget);
+				// the rejection is handled on a later microtask.
+				await executeAction(action, vaultPath);
+
+				await vi.waitFor(() =>
+					expect(vi.mocked(error)).toHaveBeenCalledWith(
+						'DEEP_LINK',
+						'Failed to refresh tree after deep-link write:',
+						expect.any(Error),
+					),
+				);
 			});
 
 			it('appends content to existing file', async () => {

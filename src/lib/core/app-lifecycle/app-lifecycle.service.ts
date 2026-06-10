@@ -73,6 +73,7 @@ import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
 import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/block-math-widget';
+import { clearInlineMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/inline-math-widget';
 
 /**
  * Delay (ms) before the deferred semantic-search init kicks in.
@@ -299,7 +300,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 					return;
 				}
 				debug('LIFECYCLE', `Semantic model available: ${searchStore.modelAvailable}`);
-				buildSemanticIndex();
+				// Fire-and-forget: buildSemanticIndex self-handles its errors (logs
+				// + clears the indexing flag, never rejects). Deliberately NOT chained
+				// into the init `.catch` below — a transient build failure must not
+				// disable semantic search and show an "init failed" toast.
+				void buildSemanticIndex();
 			}).catch(async (err) => {
 				if (initVersion !== version) return;
 				error('LIFECYCLE', 'Semantic search init failed:', err);
@@ -401,6 +406,7 @@ export function teardownVault(): void {
 	clearMermaidCache();
 	clearCollectionCache();
 	clearMathCache();
+	clearInlineMathCache();
 	resetEditor();
 	resetFileSystem();
 	resetBacklinks();

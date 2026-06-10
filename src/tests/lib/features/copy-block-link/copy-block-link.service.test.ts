@@ -110,22 +110,36 @@ describe('copyBlockLink', () => {
 		expect(mockWriteText).toHaveBeenCalledWith('![[note#Heading]]');
 	});
 
-	it('shows toast when clipboard write fails for heading', async () => {
+	it('shows toast and logs via the project logger when clipboard write fails for heading', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const view = createMockView('## Heading');
 		mockWriteText.mockRejectedValue(new Error('Clipboard access denied'));
 
 		await copyBlockLink(view, false);
 
 		expect(toast.error).toHaveBeenCalledWith('Failed to copy link to clipboard.');
+		expect(consoleErrorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('COPY-BLOCK-LINK'),
+			'Failed to copy link to clipboard:',
+			expect.any(Error),
+		);
+		consoleErrorSpy.mockRestore();
 	});
 
-	it('shows toast when clipboard write fails for block', async () => {
+	it('shows toast and logs via the project logger when clipboard write fails for block', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const view = createMockView('some block ^existing');
 		mockWriteText.mockRejectedValue(new Error('Clipboard access denied'));
 
 		await copyBlockLink(view, false);
 
 		expect(toast.error).toHaveBeenCalledWith('Failed to copy link to clipboard.');
+		expect(consoleErrorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('COPY-BLOCK-LINK'),
+			'Failed to copy link to clipboard:',
+			expect.any(Error),
+		);
+		consoleErrorSpy.mockRestore();
 	});
 });
 

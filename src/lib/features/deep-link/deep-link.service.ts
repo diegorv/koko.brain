@@ -239,7 +239,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		syncExternalContentToEditor(fullPath, content);
 		notifyAfterSave(fullPath, content);
 		// File may be new — refresh in background so callback returns fast.
-		void refreshTree();
+		refreshTree().catch((err) => error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err));
 		if (!action.silent) {
 			await openFileInEditor(fullPath);
 		}
@@ -253,7 +253,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
 		notifyAfterSave(fullPath, content);
-		void refreshTree();
+		refreshTree().catch((err) => error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err));
 	} else {
 		await openOrCreateNote({
 			filePath: fullPath,
@@ -412,7 +412,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	notifyAfterSave(targetPath, fileContent);
 	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
-	void refreshTree();
+	refreshTree().catch((err) => error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err));
 }
 
 /**

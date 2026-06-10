@@ -361,6 +361,14 @@ export async function initSemanticSearch(): Promise<void> {
 
 /** In-flight build promise — prevents concurrent invocations from the frontend. */
 let activeBuildPromise: Promise<void> | null = null;
+/**
+ * Bumped on every vault teardown. A build started for the previous vault
+ * captures the generation at launch and, on completion, discards its result
+ * (and skips clearing the shared flags/promise) if the generation has moved on.
+ * Without this, a build kicked off for vault A could resolve after the user
+ * switched to vault B and write A's stats into B's store.
+ */
+let buildGeneration = 0;
 
 /** Builds the semantic index — chunks and embeds all files. */
 export async function buildSemanticIndex(): Promise<void> {
@@ -372,21 +380,31 @@ export async function buildSemanticIndex(): Promise<void> {
 	const vaultPath = vaultStore.path;
 	if (!vaultPath) return;
 
+	const generation = buildGeneration;
 	debug('SEARCH', 'buildSemanticIndex() starting — chunking + embedding all files...');
 	searchStore.setIsSemanticIndexing(true);
 
 	activeBuildPromise = (async () => {
 		try {
 			const stats = await invoke<SemanticStats>('build_semantic_index', { vaultPath });
+			if (generation !== buildGeneration) {
+				debug('SEARCH', 'Semantic build finished for a torn-down vault — discarding stats');
+				return;
+			}
 			debug('SEARCH', 'Semantic index built:', stats);
 			searchStore.setSemanticStats(stats);
 		} catch (err) {
+			if (generation !== buildGeneration) return;
 			debug('SEARCH', 'Semantic index build failed:', err);
 			error('SEARCH', 'Semantic index build failed:', err);
 		} finally {
-			searchStore.setIsSemanticIndexing(false);
-			searchStore.setSemanticProgress(null);
-			activeBuildPromise = null;
+			// Only the build that still owns the current generation may clear the
+			// shared flags/promise — a stale build must not stomp the new vault's.
+			if (generation === buildGeneration) {
+				searchStore.setIsSemanticIndexing(false);
+				searchStore.setSemanticProgress(null);
+				activeBuildPromise = null;
+			}
 		}
 	})();
 
@@ -396,5 +414,9 @@ export async function buildSemanticIndex(): Promise<void> {
 /** Resets search state. Called during vault teardown. */
 export function resetSearch() {
 	debug('SEARCH', 'resetSearch() — clearing all search state');
+	// Invalidate any in-flight build for the outgoing vault and release the
+	// dedup slot so the next vault can start its own build.
+	buildGeneration++;
+	activeBuildPromise = null;
 	searchStore.reset();
 }

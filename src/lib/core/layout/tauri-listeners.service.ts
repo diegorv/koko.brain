@@ -12,6 +12,7 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
+import { error } from '$lib/utils/debug';
 import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
 
 /**
@@ -28,7 +29,7 @@ export function registerMenuSettingsListener(): () => void {
 		if (cancelled) fn();
 		else unlisten = fn;
 	}).catch((err) => {
-		console.error('Failed to listen for menu:settings:', err);
+		error('LISTENERS', 'Failed to listen for menu:settings:', err);
 	});
 	return () => {
 		cancelled = true;
@@ -61,7 +62,7 @@ export function registerCloseHandler(): () => void {
 		if (cancelled) fn();
 		else unlisten = fn;
 	}).catch((err) => {
-		console.error('Failed to listen for close-requested:', err);
+		error('LISTENERS', 'Failed to listen for close-requested:', err);
 	});
 	return () => {
 		cancelled = true;
@@ -99,12 +100,12 @@ export function registerVaultIndexUpdatedListener(): () => void {
 			if (orderChanged && vaultStore.path) {
 				loadDirectoryTree(vaultStore.path);
 			}
-		}).catch((err) => { console.error('get_all_vault_entries_v2 failed:', err); });
+		}).catch((err) => { error('LISTENERS', 'get_all_vault_entries_v2 failed:', err); });
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
 	}).catch((err) => {
-		console.error('Failed to listen for vault-index-updated:', err);
+		error('LISTENERS', 'Failed to listen for vault-index-updated:', err);
 	});
 	return () => {
 		cancelled = true;
@@ -125,14 +126,14 @@ export function registerFocusListener(): () => void {
 	getCurrentWindow().onFocusChanged(({ payload: focused }) => {
 		if (focused) {
 			refreshDailyNoteIfDateChanged().catch((err) => {
-				console.error('Failed to refresh daily note on focus:', err);
+				error('LISTENERS', 'Failed to refresh daily note on focus:', err);
 			});
 		}
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
 	}).catch((err) => {
-		console.error('Failed to listen for focus changes:', err);
+		error('LISTENERS', 'Failed to listen for focus changes:', err);
 	});
 	return () => {
 		cancelled = true;
