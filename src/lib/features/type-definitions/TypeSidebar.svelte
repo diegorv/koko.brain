@@ -170,7 +170,19 @@
 	<ContextMenu.Root>
 		<ContextMenu.Trigger>
 			{#snippet child({ props })}
-				<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
+				<div
+					{...props}
+					class="flex-1 overflow-y-auto px-1 py-1"
+					oncontextmenu={(e) => {
+						if (e.target === e.currentTarget) {
+							sectionContextPath = null;
+							sectionContextName = null;
+							e.preventDefault();
+							return;
+						}
+						if (typeof props.oncontextmenu === 'function') props.oncontextmenu(e);
+					}}
+				>
 					<div class="mb-1">
 						{#each navItems as item (item.id)}
 							<button

@@ -410,7 +410,18 @@
 	<ContextMenu.Root>
 			<ContextMenu.Trigger>
 				{#snippet child({ props })}
-					<div {...props} class="flex-1 overflow-y-auto px-1 py-1">
+					<div
+						{...props}
+						class="flex-1 overflow-y-auto px-1 py-1"
+						oncontextmenu={(e) => {
+							if (e.target === e.currentTarget) {
+								contextTarget = null;
+								e.preventDefault();
+								return;
+							}
+							if (typeof props.oncontextmenu === 'function') props.oncontextmenu(e);
+						}}
+					>
 						{#each notes as note, i (note.path)}
 							{@const resolved = resolveNoteIcon(note.path)}
 							{@const isActive = note.path === activePath}
