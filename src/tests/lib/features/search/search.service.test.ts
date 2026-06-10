@@ -490,6 +490,51 @@ describe('buildSemanticIndex', () => {
 
 		expect(searchStore.isSemanticIndexing).toBe(false);
 	});
+
+	it('discards stats from a build that completes after the vault was torn down', async () => {
+		// Vault A's build hangs until we resolve it manually.
+		let resolveA!: (s: unknown) => void;
+		mockInvoke.mockReturnValueOnce(new Promise((r) => { resolveA = r; }));
+		const aBuild = buildSemanticIndex(); // generation 0, vaultPath '/vault'
+
+		// User switches vaults: teardown bumps the generation, then a new vault opens.
+		resetSearch();
+		vaultStore._reset();
+		vaultStore.open('/vaultB');
+
+		// Vault B's build resolves with its own stats.
+		const bStats = { totalChunks: 5, totalSources: 1, modelLoaded: true };
+		mockInvoke.mockResolvedValueOnce(bStats);
+		await buildSemanticIndex(); // generation 1, vaultPath '/vaultB'
+		expect(searchStore.semanticStats).toEqual(bStats);
+
+		// Vault A's stale build finally resolves — its stats must be discarded.
+		resolveA({ totalChunks: 999, totalSources: 99, modelLoaded: true });
+		await aBuild;
+		expect(searchStore.semanticStats).toEqual(bStats);
+	});
+
+	it('starts a fresh build for the new vault instead of reusing the torn-down promise', async () => {
+		let resolveA!: (s: unknown) => void;
+		mockInvoke.mockReturnValueOnce(new Promise((r) => { resolveA = r; }));
+		const aBuild = buildSemanticIndex();
+
+		resetSearch();
+		vaultStore._reset();
+		vaultStore.open('/vaultB');
+
+		mockInvoke.mockResolvedValueOnce({ totalChunks: 1, totalSources: 1, modelLoaded: true });
+		await buildSemanticIndex();
+
+		// Two distinct build invocations — B did not dedup onto A's in-flight promise.
+		const buildCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'build_semantic_index');
+		expect(buildCalls).toHaveLength(2);
+		expect(buildCalls[0][1]).toEqual({ vaultPath: '/vault' });
+		expect(buildCalls[1][1]).toEqual({ vaultPath: '/vaultB' });
+
+		resolveA({ totalChunks: 0, totalSources: 0, modelLoaded: true });
+		await aBuild;
+	});
 });
 
 describe('registerSearchIndexHook', () => {
