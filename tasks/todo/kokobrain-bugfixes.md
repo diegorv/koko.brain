@@ -6,7 +6,7 @@ the features plan touches the same type-definitions context menus that task B2 f
 ## Tasks
 
 - [x] B2: Fix stale/empty context menu on empty-area right-click (TypeSidebar + TypeNoteList)
-- [ ] B1: Preserve URLs when pasting links (Slack) - convert clipboard HTML anchors to markdown links
+- [x] B1: Preserve URLs when pasting links (Slack) - convert clipboard HTML anchors to markdown links
 
 ## B2 - empty-area context menu (Todoist 6gqPHXWpwhM725Mm)
 

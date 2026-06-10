@@ -21,6 +21,7 @@ import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
 import { inlineExtensions } from './inline/inline-extensions';
+import { pasteHtmlLinkHandler } from './handlers/paste-html-link-handler';
 import { pasteTsvHandler } from './handlers/paste-tsv-handler';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
@@ -66,8 +67,9 @@ export function livePreviewExtensions(): Extension[] {
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
-	// Paste handlers (after scroll/click so click takes precedence)
-	exts.push(pasteTsvHandler);
+	// Paste handlers (after scroll/click so click takes precedence);
+	// html-link runs before TSV so its null result falls through to the TSV check
+	exts.push(pasteHtmlLinkHandler, pasteTsvHandler);
 
 	return exts;
 }
