@@ -19,7 +19,7 @@ its own spec (tasks/done/negative-patterns-remediation.md):
       mocked (side-effect services), localStorage fixture for vaultStore.
       Assert: no fetch while collapsed (even on version bump), fetch on
       expand, refetch on version bump while expanded.
-- [ ] Task 2: deep-link tree-refresh failures show a toast — extract the
+- [x] Task 2: deep-link tree-refresh failures show a toast — extract the
       repeated `refreshTree().catch(...)` one-liner into a helper that logs
       AND calls `toast.error`, keeping the write itself non-blocking. TDD:
       failing test first (toast.error asserted on refreshTree rejection).

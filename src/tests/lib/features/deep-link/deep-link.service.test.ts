@@ -269,7 +269,7 @@ describe('deep-link.service', () => {
 				expect(vi.mocked(openFileInEditor)).not.toHaveBeenCalled();
 			});
 
-			it('logs instead of silently swallowing a failed background tree refresh', async () => {
+			it('logs and toasts a failed background tree refresh instead of swallowing it', async () => {
 				vi.mocked(refreshTree).mockRejectedValueOnce(new Error('tree refresh failed'));
 				const action: DeepLinkAction = {
 					type: 'new',
@@ -289,6 +289,34 @@ describe('deep-link.service', () => {
 						'Failed to refresh tree after deep-link write:',
 						expect.any(Error),
 					),
+				);
+				// The note WAS written — only the tree refresh failed, and the user
+				// must hear about it (the new note is missing from the explorer).
+				expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+					'Note was written, but the file tree failed to refresh.',
+				);
+			});
+
+			it('logs and toasts a failed tree refresh after a capture write', async () => {
+				vi.mocked(refreshTree).mockRejectedValueOnce(new Error('tree refresh failed'));
+				const action: DeepLinkAction = {
+					type: 'capture',
+					vault: 'V',
+					kind: 'note',
+					text: 'My captured text',
+				};
+
+				await executeAction(action, vaultPath);
+
+				await vi.waitFor(() =>
+					expect(vi.mocked(error)).toHaveBeenCalledWith(
+						'DEEP_LINK',
+						'Failed to refresh tree after deep-link write:',
+						expect.any(Error),
+					),
+				);
+				expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+					'Note was written, but the file tree failed to refresh.',
 				);
 			});
 
