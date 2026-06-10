@@ -1,6 +1,7 @@
 import type { EditorView } from '@codemirror/view';
 import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { error } from '$lib/utils/debug';
 import {
 	detectBlockElement,
 	generateBlockId,
@@ -34,7 +35,7 @@ export async function copyBlockLink(view: EditorView, embed: boolean): Promise<v
 		try {
 			await navigator.clipboard.writeText(linkText);
 		} catch (err) {
-			console.error('Failed to copy link to clipboard:', err);
+			error('COPY-BLOCK-LINK', 'Failed to copy link to clipboard:', err);
 			toast.error('Failed to copy link to clipboard.');
 			return;
 		}
@@ -56,7 +57,7 @@ export async function copyBlockLink(view: EditorView, embed: boolean): Promise<v
 	try {
 		await navigator.clipboard.writeText(linkText);
 	} catch (err) {
-		console.error('Failed to copy link to clipboard:', err);
+		error('COPY-BLOCK-LINK', 'Failed to copy link to clipboard:', err);
 		toast.error('Failed to copy link to clipboard.');
 	}
 }

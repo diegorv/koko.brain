@@ -132,6 +132,22 @@ describe('registerMenuSettingsListener', () => {
 		// Use waitFor since the .then() callback runs asynchronously
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
 	});
+
+	it('logs via the project logger when registration fails', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(listen).mockRejectedValueOnce(new Error('listen failed'));
+
+		registerMenuSettingsListener();
+
+		await vi.waitFor(() =>
+			expect(consoleErrorSpy).toHaveBeenCalledWith(
+				expect.stringContaining('LISTENERS'),
+				'Failed to listen for menu:settings:',
+				expect.any(Error),
+			),
+		);
+		consoleErrorSpy.mockRestore();
+	});
 });
 
 describe('registerCloseHandler', () => {

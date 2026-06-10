@@ -477,5 +477,41 @@ describe('registerGlobalKeybindings', () => {
 
 			expect(toggleSourceMode).toHaveBeenCalledTimes(1);
 		});
+
+		it('logs via the project logger when createNoteComposer rejects', async () => {
+			const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			vi.mocked(createNoteComposer).mockRejectedValueOnce(new Error('boom'));
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'n', meta: true, shift: undefined });
+
+			handler();
+
+			await vi.waitFor(() =>
+				expect(consoleErrorSpy).toHaveBeenCalledWith(
+					expect.stringContaining('KEYBINDINGS'),
+					'createNoteComposer failed:',
+					expect.any(Error),
+				),
+			);
+			consoleErrorSpy.mockRestore();
+		});
+
+		it('logs via the project logger when zoomIn rejects', async () => {
+			const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			vi.mocked(zoomIn).mockRejectedValueOnce(new Error('boom'));
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: '=', meta: true });
+
+			handler();
+
+			await vi.waitFor(() =>
+				expect(consoleErrorSpy).toHaveBeenCalledWith(
+					expect.stringContaining('KEYBINDINGS'),
+					'zoomIn failed:',
+					expect.any(Error),
+				),
+			);
+			consoleErrorSpy.mockRestore();
+		});
 	});
 });

@@ -103,13 +103,13 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({
 			key: 'n',
 			meta: true,
-			handler: () => { createNoteComposer().catch(console.error); },
+			handler: () => { createNoteComposer().catch((err) => error('KEYBINDINGS', 'createNoteComposer failed:', err)); },
 		}),
 		registerKeybinding({
 			key: 'n',
 			meta: true,
 			shift: true,
-			handler: () => { openOneOnOnePicker().catch(console.error); },
+			handler: () => { openOneOnOnePicker().catch((err) => error('KEYBINDINGS', 'openOneOnOnePicker failed:', err)); },
 		}),
 		registerKeybinding({
 			code: 'Comma',
@@ -126,10 +126,10 @@ export function registerGlobalKeybindings(): () => void {
 			},
 		}),
 		// Zoom: Cmd+= or Cmd+Shift+= (Cmd++)
-		registerKeybinding({ key: '=', meta: true, handler: () => { zoomIn().catch(console.error); } }),
-		registerKeybinding({ key: '+', meta: true, shift: true, handler: () => { zoomIn().catch(console.error); } }),
-		registerKeybinding({ key: '-', meta: true, handler: () => { zoomOut().catch(console.error); } }),
-		registerKeybinding({ key: '0', meta: true, handler: () => { resetZoom().catch(console.error); } }),
+		registerKeybinding({ key: '=', meta: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } }),
+		registerKeybinding({ key: '+', meta: true, shift: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } }),
+		registerKeybinding({ key: '-', meta: true, handler: () => { zoomOut().catch((err) => error('KEYBINDINGS', 'zoomOut failed:', err)); } }),
+		registerKeybinding({ key: '0', meta: true, handler: () => { resetZoom().catch((err) => error('KEYBINDINGS', 'resetZoom failed:', err)); } }),
 		registerKeybinding({
 			key: 'k',
 			meta: true,

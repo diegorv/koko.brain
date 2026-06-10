@@ -11,7 +11,7 @@ per task, run the relevant tests before each commit (Quick Reference rule 6).
 
 ## Tasks
 
-- [ ] Task 1: Replace `console.*` with `appendLog`/`debug` in non-debug code
+- [x] Task 1: Replace `console.*` with `appendLog`/`debug` in non-debug code
       Swap `console.error`/`console.log` for the project logger so failures are
       persisted to the session log.
       Files: `src/lib/core/layout/tauri-listeners.service.ts` (:31,:64,:102,:107,:128,:135),
