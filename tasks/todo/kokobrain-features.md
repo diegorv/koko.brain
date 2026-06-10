@@ -11,7 +11,7 @@ Task order respects dependencies: F2 reuses the dialog built in F3.
 - [x] F1: Inline rename for notes in the type note list (no jump to File Explorer)
 - [x] F3: "New type" creation via a dialog, from a "+" button on the TYPES header (approach changed by user from the empty-area context menu)
 - [ ] F2: Rename a type - true rename + `_type:` member propagation - via a dialog
-- [ ] F4: `@today` / `@tomorrow` / `@yesterday` date autocomplete in the editor
+- [x] F4: `@today` / `@tomorrow` / `@yesterday` date autocomplete in the editor
 - [ ] F5: Cycle-sidebar-view keyboard shortcut (Cmd+Shift+E) + command-palette command
 
 ## Data model (applies to F1/F2/F3)

@@ -14,9 +14,10 @@ import type { Compartment, Extension } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxHighlighting, indentOnInput } from '@codemirror/language';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
-import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 
-import { wikilinkCompletion, wikilinkDecoration } from '../extensions/wikilink';
+import { wikilinkCompletionSource, wikilinkDecoration } from '../extensions/wikilink';
+import { dateShortcutCompletionSource } from '../extensions/date-shortcut/completion';
 import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview } from '../extensions/live-preview';
@@ -69,7 +70,13 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		indentOnInput(),
 		compositionAwareBracketMatching(),
 		closeBrackets(),
-		wikilinkCompletion(),
+		// Single autocompletion instance for ALL completion sources — the
+		// config facet has no combiner for `override`, so a second
+		// autocompletion() extension would throw "Config merge conflict".
+		autocompletion({
+			override: [wikilinkCompletionSource, dateShortcutCompletionSource],
+			activateOnTyping: true,
+		}),
 		wikilinkDecoration(),
 		calloutDecoration(),
 		livePreview(opts.isLivePreview),

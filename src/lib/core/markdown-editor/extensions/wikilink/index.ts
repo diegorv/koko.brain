@@ -1,4 +1,4 @@
-export { wikilinkCompletion } from './completion';
+export { wikilinkCompletionSource } from './completion';
 export { wikilinkDecoration } from './decoration';
 export { findWikilinkInfoAtPosition } from './decoration.logic';
 export type { WikilinkInfo } from './decoration.logic';

@@ -1,6 +1,4 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
-import { autocompletion } from '@codemirror/autocomplete';
-import type { Extension } from '@codemirror/state';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
@@ -74,7 +72,12 @@ function getAliasesFromEntry(entry: NoteEntryV2): string[] {
 	return [];
 }
 
-async function wikilinkCompletionSource(context: CompletionContext): Promise<CompletionResult | null> {
+/**
+ * Completion source for `[[wikilinks]]` (files, aliases, headings, block
+ * IDs). Registered in the single shared `autocompletion()` instance built
+ * in editor-extensions.ts.
+ */
+export async function wikilinkCompletionSource(context: CompletionContext): Promise<CompletionResult | null> {
 	const { state, pos } = context;
 	const docText = state.doc.toString();
 
@@ -261,9 +264,3 @@ async function buildBlockIdCompletions(
 	};
 }
 
-export function wikilinkCompletion(): Extension {
-	return autocompletion({
-		override: [wikilinkCompletionSource],
-		activateOnTyping: true,
-	});
-}
