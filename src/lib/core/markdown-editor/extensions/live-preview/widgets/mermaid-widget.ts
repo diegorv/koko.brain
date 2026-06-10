@@ -27,8 +27,13 @@ async function getMermaid(): Promise<typeof import('mermaid').default> {
 /** Counter to generate unique IDs for each mermaid render */
 let renderCounter = 0;
 
-/** Live-DOM cache: source text -> rendered container. Survives widget destruction across viewport cycles. */
-const mermaidCache = new Map<string, HTMLElement>();
+/** Render cache: source text -> sanitized SVG markup (render id already
+ *  stripped). Skips the expensive mermaid parse + render + sanitize pass
+ *  across viewport cycles. Stores markup strings (never live elements) so two
+ *  widgets for a duplicated diagram can never share a DOM node — CodeMirror
+ *  builds new lines detached, and a shared node would be moved to the last
+ *  widget, blanking the earlier occurrences. */
+const mermaidCache = new Map<string, string>();
 
 /** Drops all cached renders. Called during vault teardown. */
 export function clearMermaidCache(): void {
@@ -45,9 +50,6 @@ export class MermaidWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const cached = mermaidCache.get(this.source);
-		if (cached && !cached.isConnected) return cached;
-
 		const container = document.createElement('div');
 		container.className = 'cm-lp-mermaid';
 
@@ -73,6 +75,12 @@ export class MermaidWidget extends WidgetType {
 			return container;
 		}
 
+		const cachedSvg = mermaidCache.get(this.source);
+		if (cachedSvg !== undefined) {
+			diagramEl.innerHTML = cachedSvg;
+			return container;
+		}
+
 		// Validate with parse() first to avoid mermaid injecting error elements into the body,
 		// then render only if valid
 		const id = `mermaid-${Date.now()}-${renderCounter++}`;
@@ -86,7 +94,8 @@ export class MermaidWidget extends WidgetType {
 				diagramEl.innerHTML = sanitizeMermaidSvg(result.svg);
 				const svg = diagramEl.querySelector('svg');
 				if (svg) svg.removeAttribute('id');
-				mermaidCache.set(source, container);
+				// Cache AFTER the id strip so cached copies carry no duplicate ids.
+				mermaidCache.set(source, diagramEl.innerHTML);
 			} catch (err: unknown) {
 				diagramEl.className = 'cm-lp-mermaid-error';
 				const message = err instanceof Error ? err.message : String(err);

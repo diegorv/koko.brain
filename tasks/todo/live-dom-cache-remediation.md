@@ -20,7 +20,7 @@ performance rule 9); its `!isConnected` guard stays as partial mitigation.
       of the element; regression tests incl. EditorView mount with a duplicated
       `$$...$$` block (multi-line form — the lezer parser rejects single-line
       `$$x$$`; RED proven against the element cache: 1 of 2 blocks rendered)
-- [ ] Task 2: mermaid-widget — cache the sanitized SVG markup (after id strip)
+- [x] Task 2: mermaid-widget — cache the sanitized SVG markup (after id strip)
       instead of the container; cache hits fill a fresh container synchronously;
       tests with a mocked mermaid module (jsdom cannot run real mermaid)
 - [ ] Task 3: collection-block-widget — cache the query DATA (view +
