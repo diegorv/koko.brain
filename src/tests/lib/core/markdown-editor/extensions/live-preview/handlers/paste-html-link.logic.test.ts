@@ -69,4 +69,53 @@ describe('htmlLinksToMarkdown', () => {
 		const html = '<a href="">label</a>';
 		expect(htmlLinksToMarkdown(html, 'label')).toBeNull();
 	});
+
+	it('converts <br> line breaks to newlines', () => {
+		const html = 'first line<br>second line<br><a href="https://x.test/a">label</a>';
+		const plain = 'first line\nsecond line\nlabel';
+		expect(htmlLinksToMarkdown(html, plain)).toBe('first line\nsecond line\n[label](https://x.test/a)');
+	});
+
+	it('preserves blank lines from consecutive <br>', () => {
+		const html = 'header<br><br><a href="https://x.test/a">label</a>';
+		expect(htmlLinksToMarkdown(html, '')).toBe('header\n\n[label](https://x.test/a)');
+	});
+
+	it('separates block elements with newlines', () => {
+		const html = '<p>intro</p><div><a href="https://x.test/b">doc</a></div><p>outro</p>';
+		const plain = 'intro\ndoc\noutro';
+		expect(htmlLinksToMarkdown(html, plain)).toBe('intro\n[doc](https://x.test/b)\noutro');
+	});
+
+	it('does not double newlines for nested blocks', () => {
+		const html = '<div><p>a</p></div><div><p><a href="https://x.test/c">c</a></p></div>';
+		expect(htmlLinksToMarkdown(html, 'a\nc')).toBe('a\n[c](https://x.test/c)');
+	});
+
+	it('trims leading and trailing newlines from the result', () => {
+		const html = '<p><a href="https://x.test/d">only</a></p>';
+		expect(htmlLinksToMarkdown(html, 'only')).toBe('[only](https://x.test/d)');
+	});
+
+	it('keeps each line of a multi-line Slack message on its own line', () => {
+		const html =
+			'<p>Ana Dornelas [3:00 PM]</p>' +
+			'<p><a href="https://docs.google.com/presentation/d/123/edit#slide=1">Bre-b Product Review</a></p>' +
+			'<p>Plan to win de U18:</p>' +
+			'<p><a href="https://a.test/1">Primeiro checkpoint</a></p>' +
+			'<p><a href="https://a.test/2">Segundo Checkpoint</a></p>';
+		const plain = 'Ana Dornelas [3:00 PM]\nBre-b Product Review\nPlan to win de U18:\nPrimeiro checkpoint\nSegundo Checkpoint';
+		expect(htmlLinksToMarkdown(html, plain)).toBe(
+			'Ana Dornelas [3:00 PM]\n' +
+			'[Bre-b Product Review](https://docs.google.com/presentation/d/123/edit#slide=1)\n' +
+			'Plan to win de U18:\n' +
+			'[Primeiro checkpoint](https://a.test/1)\n' +
+			'[Segundo Checkpoint](https://a.test/2)'
+		);
+	});
+
+	it('collapses whitespace runs inside anchor labels', () => {
+		const html = '<a href="https://x.test/e">multi\n  word   label</a>';
+		expect(htmlLinksToMarkdown(html, '')).toBe('[multi word label](https://x.test/e)');
+	});
 });
