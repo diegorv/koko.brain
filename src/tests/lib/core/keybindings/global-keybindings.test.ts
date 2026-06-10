@@ -96,10 +96,10 @@ describe('registerGlobalKeybindings', () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
-	it('registers all 20 global keybindings', () => {
+	it('registers all 21 global keybindings', () => {
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(20);
+		expect(registerKeybinding).toHaveBeenCalledTimes(21);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -327,6 +327,18 @@ describe('registerGlobalKeybindings', () => {
 			handler();
 
 			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
+			expect(saveSettings).toHaveBeenCalledWith('/vault');
+		});
+
+		it('Cmd+Shift+E handler cycles the sidebar view and reveals a hidden sidebar', () => {
+			settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: false });
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'e', meta: true, shift: true });
+
+			handler();
+
+			expect(settingsStore.layout.sidebarMode).toBe('types');
+			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 			expect(saveSettings).toHaveBeenCalledWith('/vault');
 		});
 

@@ -29,6 +29,7 @@ import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
+import { cycleSidebarMode } from '$lib/core/layout/layout.service';
 
 export function getBuiltInCommands(): AppCommand[] {
 	return [
@@ -163,6 +164,13 @@ export function getBuiltInCommands(): AppCommand[] {
 				settingsStore.updateLayout({ leftSidebarVisible: !current });
 				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
+		},
+		{
+			id: 'layout:cycle-sidebar-view',
+			label: 'Cycle Sidebar View',
+			category: 'Layout',
+			shortcut: { meta: true, shift: true, key: 'e' },
+			action: () => cycleSidebarMode(),
 		},
 		{
 			id: 'layout:toggle-right-sidebar',

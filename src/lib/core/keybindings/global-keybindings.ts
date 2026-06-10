@@ -19,6 +19,7 @@ import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.ser
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
+import { cycleSidebarMode } from '$lib/core/layout/layout.service';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
 import { error } from '$lib/utils/debug';
 
@@ -134,6 +135,12 @@ export function registerGlobalKeybindings(): () => void {
 			key: 'k',
 			meta: true,
 			handler: () => toggleSourceMode(),
+		}),
+		registerKeybinding({
+			key: 'e',
+			meta: true,
+			shift: true,
+			handler: () => cycleSidebarMode(),
 		}),
 	];
 

@@ -85,10 +85,25 @@ describe('getBuiltInCommands', () => {
 		settingsPanelStore._reset();
 	});
 
-	it('returns 25 built-in commands', () => {
+	it('returns 26 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(25);
+		expect(commands).toHaveLength(26);
+	});
+
+	it('includes a cycle-sidebar-view command that advances the mode and reveals the sidebar', () => {
+		settingsStore.updateLayout({ sidebarMode: 'types', leftSidebarVisible: false });
+		const commands = getBuiltInCommands();
+		const cycle = commands.find((c) => c.id === 'layout:cycle-sidebar-view');
+
+		expect(cycle).toBeDefined();
+		expect(cycle!.label).toBe('Cycle Sidebar View');
+		expect(cycle!.shortcut).toEqual({ meta: true, shift: true, key: 'e' });
+
+		cycle!.action();
+
+		expect(settingsStore.layout.sidebarMode).toBe('calendar');
+		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 	});
 
 	it('every command has required fields', () => {
