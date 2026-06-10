@@ -13,9 +13,9 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	openOrCreatePeriodicNoteForDate: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.logic', () => ({
-	detectPeriodicNoteType: vi.fn(() => null),
-}));
+// periodic-notes.logic is pure logic (CLAUDE.md: never mock .logic) — the real
+// detectPeriodicNoteType returns null for these non-periodic targets, so the
+// "not a periodic note" branch is exercised with the real implementation.
 
 import { openWikilinkTarget } from '$lib/core/markdown-editor/extensions/live-preview/wikilink-navigation';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
