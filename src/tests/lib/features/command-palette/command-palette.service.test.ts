@@ -59,14 +59,6 @@ vi.mock('$lib/features/file-history/file-history.service', () => ({
 	openFileHistory: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/settings-panel.store.svelte', () => ({
-	settingsPanelStore: {
-		toggle: vi.fn(),
-		open: vi.fn(),
-		close: vi.fn(),
-	},
-}));
-
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn() },
 }));
@@ -90,7 +82,7 @@ describe('getBuiltInCommands', () => {
 		settingsStore.reset();
 		fsStore.reset();
 		searchStore.reset();
-		vi.mocked(settingsPanelStore.toggle).mockClear();
+		settingsPanelStore._reset();
 	});
 
 	it('returns 25 built-in commands', () => {
@@ -273,8 +265,9 @@ describe('getBuiltInCommands', () => {
 		const commands = getBuiltInCommands();
 		const settings = commands.find((c) => c.id === 'settings:open');
 
+		expect(settingsPanelStore.isOpen).toBe(false);
 		settings!.action();
-		expect(settingsPanelStore.toggle).toHaveBeenCalledTimes(1);
+		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 
 });
