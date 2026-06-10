@@ -4,6 +4,7 @@ import {
 	extractTypeMetadata,
 	buildTypeMetadataMap,
 	getTypeMetadataFallback,
+	validateTypeName,
 } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -137,5 +138,40 @@ describe('getTypeMetadataFallback', () => {
 		expect(meta.name).toBe('Widget');
 		expect(meta.sidebarLabel).toBe('Widgets');
 		expect(meta.path).toBeNull();
+	});
+});
+
+describe('validateTypeName', () => {
+	const existing = ['Project', 'Task'];
+
+	it('returns null for a valid, non-colliding name', () => {
+		expect(validateTypeName('Sprint', existing)).toBeNull();
+	});
+
+	it('rejects empty and whitespace-only names', () => {
+		expect(validateTypeName('', existing)).toBe('Type name is required');
+		expect(validateTypeName('   ', existing)).toBe('Type name is required');
+	});
+
+	it('rejects names that are not legal file names', () => {
+		expect(validateTypeName('a/b', existing)).toBe('Invalid type name');
+		expect(validateTypeName('.hidden', existing)).toBe('Invalid type name');
+	});
+
+	it('rejects collisions with existing type names', () => {
+		expect(validateTypeName('Project', existing)).toBe('A type with this name already exists');
+	});
+
+	it('rejects collisions case-insensitively', () => {
+		expect(validateTypeName('project', existing)).toBe('A type with this name already exists');
+	});
+
+	it('trims surrounding whitespace before validating', () => {
+		expect(validateTypeName('  Sprint  ', existing)).toBeNull();
+		expect(validateTypeName('  Project  ', existing)).toBe('A type with this name already exists');
+	});
+
+	it('accepts any name when no types exist yet', () => {
+		expect(validateTypeName('Sprint', [])).toBeNull();
 	});
 });

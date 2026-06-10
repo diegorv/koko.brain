@@ -177,6 +177,31 @@ describe('createTypeDefinition', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
+
+	it('selects the new type in the sidebar instead of opening it when select is set', async () => {
+		vaultStore.open('/vault');
+		typeDefinitionsStore.reset();
+		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
+
+		await createTypeDefinition('Sprint', { select: true });
+
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/Sprint.md',
+			'---\n_type: Type\n_visible: true\n---\n\n# Sprint\n',
+		);
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Sprint' });
+	});
+
+	it('does not change the selection when createFile fails and select is set', async () => {
+		vaultStore.open('/vault');
+		typeDefinitionsStore.reset();
+		vi.mocked(createFile).mockResolvedValue(null);
+
+		await createTypeDefinition('Sprint', { select: true });
+
+		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+	});
 });
 
 describe('toggleFavoriteForPath', () => {

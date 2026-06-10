@@ -1,4 +1,5 @@
 import type { NoteEntryV2, FrontmatterValue } from '$lib/types/vault-v2.types';
+import { isValidFileName } from '$lib/core/filesystem/fs.logic';
 
 /** Display metadata for a type definition. */
 export interface TypeMetadata {
@@ -116,6 +117,24 @@ export function buildTypeMetadataMap(entries: NoteEntryV2[]): Map<string, TypeMe
 		}
 	}
 	return map;
+}
+
+/**
+ * Validates a candidate type name for creation/rename dialogs. Returns an
+ * error message, or `null` when the name is acceptable. A type's name is its
+ * definition note's file name (without extension), so the name must be a
+ * legal file name; collisions are checked case-insensitively because the
+ * default macOS file system is case-insensitive.
+ */
+export function validateTypeName(name: string, existingTypeNames: string[]): string | null {
+	const trimmed = name.trim();
+	if (!trimmed) return 'Type name is required';
+	if (!isValidFileName(trimmed)) return 'Invalid type name';
+	const lower = trimmed.toLowerCase();
+	if (existingTypeNames.some((t) => t.toLowerCase() === lower)) {
+		return 'A type with this name already exists';
+	}
+	return null;
 }
 
 /** Returns metadata for a type name, falling back to builtins then defaults. */

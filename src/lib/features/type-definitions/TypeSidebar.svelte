@@ -23,6 +23,7 @@
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
+	import { validateTypeName } from './type-definitions.logic';
 	import { buildTypeSections, countNavItems, collectViewFiles, sortViewFiles, getViewLabel, excludeSystemFolder, type TypeSection, type NavItemId, type TypeSidebarSelection, type ViewFileEntry } from './type-sidebar.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
@@ -31,6 +32,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
+	import TypeNameDialog from './TypeNameDialog.svelte';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 
 	let sections = $state<TypeSection[]>([]);
@@ -42,6 +44,14 @@
 	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
+	let newTypeDialogOpen = $state(false);
+	/** All known type names — defined types plus member-derived sections — for collision validation. */
+	let existingTypeNames = $derived([
+		...new Set([
+			...typeDefinitionsStore.typeMetadataMap.keys(),
+			...sections.map((s) => s.metadata.name),
+		]),
+	]);
 	let selection = $derived(typeDefinitionsStore.selectedTypeOrNav);
 	let iconPickerRef = $derived(
 		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
@@ -237,8 +247,15 @@
 					{/if}
 					<div class="mx-2 my-2 h-px bg-file-explorer-fg/8"></div>
 
-					<div class="mx-2 mb-1.5">
+					<div class="mx-2 mb-1.5 flex items-center">
 						<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Types</span>
+						<button
+							class="ml-auto shrink-0 rounded p-0.5 hover:bg-file-explorer-primary/10 cursor-default"
+							title="New type"
+							onclick={() => { newTypeDialogOpen = true; }}
+						>
+							<Plus class="size-3.5 text-file-explorer-muted-fg" />
+						</button>
 					</div>
 
 					{#each sections as section (section.metadata.name)}
@@ -369,6 +386,14 @@
 	</ContextMenu.Root>
 </div>
 </Tooltip.Provider>
+
+<TypeNameDialog
+	bind:open={newTypeDialogOpen}
+	title="New type"
+	confirmLabel="Create"
+	validate={(name) => validateTypeName(name, existingTypeNames)}
+	onConfirm={(name) => createTypeDefinition(name, { select: true })}
+/>
 
 {#if iconPickerPath}
 	<IconPicker

@@ -9,7 +9,7 @@ Task order respects dependencies: F2 reuses the dialog built in F3.
 ## Tasks
 
 - [x] F1: Inline rename for notes in the type note list (no jump to File Explorer)
-- [ ] F3: "New type" creation via a dialog, from the sidebar empty-area menu
+- [x] F3: "New type" creation via a dialog, from a "+" button on the TYPES header (approach changed by user from the empty-area context menu)
 - [ ] F2: Rename a type - true rename + `_type:` member propagation - via a dialog
 - [ ] F4: `@today` / `@tomorrow` / `@yesterday` date autocomplete in the editor
 - [ ] F5: Cycle-sidebar-view keyboard shortcut (Cmd+Shift+E) + command-palette command
@@ -38,21 +38,23 @@ as the trigger.
 **Verify:** `pnpm check` + `pnpm vitest run` (rename commit + cancel/escape). Manual: F2 / context-menu Rename
 in the note list edits in place, no jump to File Explorer; wikilinks to the renamed note still resolve.
 
-## F3 - "New type" via dialog, from the empty-area menu
+## F3 - "New type" via dialog, from a "+" button on the TYPES header
 
-**Want (user):** the type-sidebar empty-area right-click should offer **"New type"** to create a new type.
+**Want (user, revised mid-plan):** a small **"+" button next to the TYPES header**, mirroring the existing
+VIEWS "+" button - NOT an empty-area context-menu item (the empty-area right-click keeps showing nothing).
 
 **Approach:**
 - Build a small **reusable type-name dialog** from the existing `dialog` + `input` primitives
   (`components/ui/dialog`, `components/ui/input`) - shared with F2. Text input + confirm; inline validation.
-- Add a **"New type"** item to the empty-area branch of the `TypeSidebar` context menu (the branch reachable
-  after B2 resets the target to null). On confirm -> `createTypeDefinition(name)` (`service.ts:42`).
-- **After creation: select the new (empty) type in the sidebar** (like `createView` selects its view,
-  `service.ts:64`). Do **not** auto-open the raw definition `.md`.
-- **Validation:** non-empty, legal filename, and **block on collision** with an existing type (inline error).
+- Add a **"+" button** to the TYPES header in `TypeSidebar` (same idiom as the VIEWS header button) that
+  opens the dialog. On confirm -> `createTypeDefinition(name, { select: true })`.
+- **After creation: select the new (empty) type in the sidebar** (like `createView` selects its view).
+  Do **not** auto-open the raw definition `.md`.
+- **Validation:** non-empty, legal filename, and **block on collision** with an existing type (inline error,
+  case-insensitive - `validateTypeName` in `type-definitions.logic.ts`).
 
 **Verify:** `pnpm check` + `pnpm vitest run` (creation, collision-blocked, empty-name-blocked). Manual:
-right-click empty area -> New type -> dialog -> new type appears selected and empty.
+click "+" next to TYPES -> dialog -> new type appears selected and empty.
 
 ## F2 - rename a type (true rename + member propagation)
 

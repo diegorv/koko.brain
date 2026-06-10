@@ -38,14 +38,23 @@ export async function createNoteOfType(typeName: string): Promise<void> {
 	await openOrCreateNote({ filePath, templatePath, inlineTemplate, title });
 }
 
-/** Creates a type definition note with default frontmatter and opens it. */
-export async function createTypeDefinition(typeName: string): Promise<void> {
+/**
+ * Creates a type definition note with default frontmatter. By default the
+ * new definition opens in the editor; with `select: true` it is instead
+ * selected in the type sidebar (used by the "New type" dialog, where the
+ * user wants the empty type, not the raw definition .md).
+ */
+export async function createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<void> {
 	if (!vaultStore.path) return;
 	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
 	const filePath = await createFile(vaultStore.path, `${typeName}.md`);
 	if (!filePath) return;
 	await writeTextFile(filePath, content);
-	openFileInEditor(filePath);
+	if (opts.select) {
+		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
+	} else {
+		openFileInEditor(filePath);
+	}
 }
 
 /**
