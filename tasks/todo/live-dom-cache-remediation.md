@@ -23,7 +23,7 @@ performance rule 9); its `!isConnected` guard stays as partial mitigation.
 - [x] Task 2: mermaid-widget — cache the sanitized SVG markup (after id strip)
       instead of the container; cache hits fill a fresh container synchronously;
       tests with a mocked mermaid module (jsdom cannot run real mermaid)
-- [ ] Task 3: collection-block-widget — cache the query DATA (view +
+- [x] Task 3: collection-block-widget — cache the query DATA (view +
       QueryResult) instead of the container and rebuild the DOM on every
       toDOM(); row/pill/bar click listeners must stay live, so HTML-string
       caching is not applicable here; widget-level tests with the real
