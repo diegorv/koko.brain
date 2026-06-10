@@ -8,6 +8,11 @@ export default defineConfig({
 		alias: {
 			$lib: path.resolve('./src/lib'),
 		},
+		// Resolve `svelte` to its client runtime so component tests can use
+		// `mount()`/`flushSync()` — without this the server runtime is picked
+		// and mount() throws lifecycle_function_unavailable. Recipe from the
+		// official Svelte testing docs.
+		conditions: ['browser'],
 	},
 	test: {
 		include: ['src/tests/**/*.test.ts'],

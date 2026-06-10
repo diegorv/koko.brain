@@ -181,6 +181,19 @@ export async function resolveContent(action: { content?: string; clipboard?: boo
 }
 
 /**
+ * Refreshes the file tree in the background after a deep-link write, so the
+ * callback returns fast. The write itself already succeeded — a refresh
+ * failure must not block, but it must not be silent either (the new note
+ * would be missing from the explorer), so it logs AND surfaces a toast.
+ */
+function refreshTreeInBackground(): void {
+	refreshTree().catch((err) => {
+		error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err);
+		toast.error('Note was written, but the file tree failed to refresh.');
+	});
+}
+
+/**
  * Handles the `new` action — creates a note with optional append, prepend,
  * overwrite, clipboard, and silent modes.
  */
@@ -239,7 +252,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		syncExternalContentToEditor(fullPath, content);
 		notifyAfterSave(fullPath, content);
 		// File may be new — refresh in background so callback returns fast.
-		refreshTree().catch((err) => error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err));
+		refreshTreeInBackground();
 		if (!action.silent) {
 			await openFileInEditor(fullPath);
 		}
@@ -253,7 +266,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
 		notifyAfterSave(fullPath, content);
-		refreshTree().catch((err) => error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err));
+		refreshTreeInBackground();
 	} else {
 		await openOrCreateNote({
 			filePath: fullPath,
@@ -412,7 +425,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	notifyAfterSave(targetPath, fileContent);
 	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
-	refreshTree().catch((err) => error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err));
+	refreshTreeInBackground();
 }
 
 /**
