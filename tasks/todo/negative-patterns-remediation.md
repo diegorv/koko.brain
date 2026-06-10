@@ -64,7 +64,7 @@ per task, run the relevant tests before each commit (Quick Reference rule 6).
           fails to appear is not silent.
       Tests: add error-path tests for each (invoke rejects, vault switch mid-build).
 
-- [ ] Task 6: Test-suite remediation — remove store/logic mocks, add state assertions
+- [x] Task 6: Test-suite remediation — remove store/logic mocks, add state assertions
       Largest/most invasive task; split into sub-commits per file if needed.
       6a. Remove store mocks, use real stores + assert real state:
           `global-keybindings.test.ts` (7 stores), `tauri-listeners.service.test.ts`
