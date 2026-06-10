@@ -30,7 +30,7 @@ per task, run the relevant tests before each commit (Quick Reference rule 6).
       File: `src/lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.ts:84-89`.
       Tests: add a widget test with two identical blocks asserting both render content.
 
-- [ ] Task 3: Cache InlineMathWidget renders (parity with BlockMathWidget)
+- [x] Task 3: Cache InlineMathWidget renders (parity with BlockMathWidget)
       `inline-math-widget.ts` calls `katex.renderToString` in every `toDOM()` with
       no cache, re-rendering identical formulas on viewport re-entry. Add a
       module-level cache keyed by formula (same approach as `BlockMathWidget`'s
