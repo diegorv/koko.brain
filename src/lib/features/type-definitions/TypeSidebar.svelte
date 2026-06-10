@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FileText from '@lucide/svelte/icons/file-text';
+	import Pencil from '@lucide/svelte/icons/pencil';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Palette from '@lucide/svelte/icons/palette';
@@ -14,7 +15,7 @@
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
-	import { createNoteOfType, createTypeDefinition, createView, updateViewIcon, removeViewIcon } from './type-definitions.service';
+	import { createNoteOfType, createTypeDefinition, createView, renameType, updateViewIcon, removeViewIcon } from './type-definitions.service';
 	import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
@@ -45,6 +46,9 @@
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
 	let newTypeDialogOpen = $state(false);
+	/** Target of the rename-type dialog: the type's name, definition path, and member count. */
+	let renameTypeTarget = $state<{ name: string; path: string; count: number } | null>(null);
+	let renameTypeDialogOpen = $state(false);
 	/** All known type names — defined types plus member-derived sections — for collision validation. */
 	let existingTypeNames = $derived([
 		...new Set([
@@ -140,6 +144,13 @@
 	function handleSectionChangeIcon(path: string) {
 		iconPickerPath = path;
 		iconPickerOpen = true;
+	}
+
+	/** Opens the rename dialog for a type, capturing its current member count for the description line. */
+	function handleRenameType(name: string, path: string) {
+		const count = sections.find((s) => s.metadata.name === name)?.notes.length ?? 0;
+		renameTypeTarget = { name, path, count };
+		renameTypeDialogOpen = true;
 	}
 
 	async function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
@@ -306,6 +317,12 @@
 				</ContextMenu.Item>
 				<ContextMenu.Separator />
 
+				<ContextMenu.Item onclick={() => handleRenameType(typeName, path)}>
+					<Pencil class="size-4" />
+					<span>Rename</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+
 				<ContextMenu.Item onclick={() => openFileInEditor(path)}>
 					<ExternalLink class="size-4" />
 					<span>Open type definition</span>
@@ -394,6 +411,19 @@
 	validate={(name) => validateTypeName(name, existingTypeNames)}
 	onConfirm={(name) => createTypeDefinition(name, { select: true })}
 />
+
+{#if renameTypeTarget}
+	{@const target = renameTypeTarget}
+	<TypeNameDialog
+		bind:open={renameTypeDialogOpen}
+		title="Rename type"
+		confirmLabel="Rename"
+		initialValue={target.name}
+		description={`This will update ${target.count} ${target.count === 1 ? 'note' : 'notes'}`}
+		validate={(name) => validateTypeName(name, existingTypeNames.filter((n) => n !== target.name))}
+		onConfirm={(name) => renameType(target.name, name, target.path)}
+	/>
+{/if}
 
 {#if iconPickerPath}
 	<IconPicker

@@ -77,6 +77,89 @@ pub fn strip_frontmatter(content: &str) -> &str {
 	}
 }
 
+/// First letter uppercase, rest preserved. The casing rule applied to
+/// `_type` values when deriving `NoteEntry.is_a` (see
+/// `entry.rs::extract_is_a`); `rewrite_type_in_frontmatter` below uses the
+/// same rule so the rename rewrite matches exactly the notes the index
+/// groups under a type.
+pub fn normalize_type_casing(s: &str) -> String {
+	let mut chars = s.chars();
+	match chars.next() {
+		None => String::new(),
+		Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+	}
+}
+
+/// Rewrites the value of a top-level `_type:` / `type:` frontmatter key when
+/// its (unquoted, casing-normalized) value equals `old_type`. Preserves the
+/// key spelling, quote style, and line endings; touches nothing outside the
+/// frontmatter block. Returns `None` when the content has no frontmatter or
+/// no matching key/value — callers skip the disk write in that case.
+pub fn rewrite_type_in_frontmatter(content: &str, old_type: &str, new_type: &str) -> Option<String> {
+	let (_, block_end) = frontmatter_range(content)?;
+	let block = &content[..block_end];
+	let old_normalized = normalize_type_casing(old_type);
+
+	let mut rebuilt = String::with_capacity(content.len() + 16);
+	let mut changed = false;
+	for line in block.split_inclusive('\n') {
+		match rewrite_type_line(line, &old_normalized, new_type) {
+			Some(new_line) => {
+				rebuilt.push_str(&new_line);
+				changed = true;
+			}
+			None => rebuilt.push_str(line),
+		}
+	}
+	if !changed {
+		return None;
+	}
+	rebuilt.push_str(&content[block_end..]);
+	Some(rebuilt)
+}
+
+/// Rewrites one frontmatter line if it is a top-level `_type:`/`type:` key
+/// whose value matches `old_normalized`. Returns the replacement line
+/// (original ending preserved) or `None` to keep the line as-is.
+fn rewrite_type_line(line: &str, old_normalized: &str, new_type: &str) -> Option<String> {
+	let ending_len = if line.ends_with("\r\n") {
+		2
+	} else if line.ends_with('\n') {
+		1
+	} else {
+		0
+	};
+	let (body, ending) = line.split_at(line.len() - ending_len);
+	let key = if body.starts_with("_type:") {
+		"_type"
+	} else if body.starts_with("type:") {
+		"type"
+	} else {
+		return None;
+	};
+	let raw_value = body[key.len() + 1..].trim();
+	let (unquoted, quote) = strip_matching_quotes(raw_value);
+	if normalize_type_casing(unquoted) != old_normalized {
+		return None;
+	}
+	let new_value = match quote {
+		Some(q) => format!("{q}{new_type}{q}"),
+		None => new_type.to_string(),
+	};
+	Some(format!("{key}: {new_value}{ending}"))
+}
+
+/// Strips one matching pair of surrounding quotes, returning the inner value
+/// and the quote char used (so the rewrite can preserve the style).
+fn strip_matching_quotes(value: &str) -> (&str, Option<char>) {
+	for quote in ['"', '\''] {
+		if value.len() >= 2 && value.starts_with(quote) && value.ends_with(quote) {
+			return (&value[1..value.len() - 1], Some(quote));
+		}
+	}
+	(value, None)
+}
+
 /// Strips fenced code blocks (` ``` ... ``` `) by removing each non-greedy
 /// pair. Unclosed fences keep their content (matches the JS regex
 /// `/```[\s\S]*?```/g`, which simply produces no match for an unterminated
@@ -3007,5 +3090,66 @@ mod tests {
 		let content = "views:\n  - type: table\n    name: All\n_icon: star\n";
 		let fm = parse_frontmatter_raw_yaml(content);
 		assert_eq!(fm.get("_icon").and_then(|v| v.as_str()), Some("star"));
+	}
+}
+
+#[cfg(test)]
+mod type_rewrite_tests {
+	use super::*;
+
+	#[test]
+	fn rewrites_bare_type_value_only_inside_frontmatter() {
+		let content = "---\n_type: Project\ntitle: x\n---\n\n# Body\n_type: Project\n";
+		let out = rewrite_type_in_frontmatter(content, "Project", "Initiative").unwrap();
+		assert_eq!(out, "---\n_type: Initiative\ntitle: x\n---\n\n# Body\n_type: Project\n");
+	}
+
+	#[test]
+	fn rewrites_bare_type_alias_key() {
+		let content = "---\ntype: Project\n---\nbody\n";
+		let out = rewrite_type_in_frontmatter(content, "Project", "Initiative").unwrap();
+		assert_eq!(out, "---\ntype: Initiative\n---\nbody\n");
+	}
+
+	#[test]
+	fn preserves_quote_style() {
+		let double = "---\n_type: \"Project\"\n---\n";
+		let out = rewrite_type_in_frontmatter(double, "Project", "Initiative").unwrap();
+		assert_eq!(out, "---\n_type: \"Initiative\"\n---\n");
+
+		let single = "---\n_type: 'Project'\n---\n";
+		let out = rewrite_type_in_frontmatter(single, "Project", "Initiative").unwrap();
+		assert_eq!(out, "---\n_type: 'Initiative'\n---\n");
+	}
+
+	#[test]
+	fn matches_value_with_is_a_casing_rule() {
+		// `_type: project` indexes as is_a "Project" — the rewrite must catch it.
+		let content = "---\n_type: project\n---\n";
+		let out = rewrite_type_in_frontmatter(content, "Project", "Initiative").unwrap();
+		assert_eq!(out, "---\n_type: Initiative\n---\n");
+	}
+
+	#[test]
+	fn returns_none_without_frontmatter() {
+		assert!(rewrite_type_in_frontmatter("# body\n_type: Project\n", "Project", "X").is_none());
+	}
+
+	#[test]
+	fn returns_none_when_value_differs() {
+		assert!(rewrite_type_in_frontmatter("---\n_type: Task\n---\n", "Project", "X").is_none());
+	}
+
+	#[test]
+	fn ignores_indented_nested_keys() {
+		let content = "---\nmeta:\n  type: Project\n---\n";
+		assert!(rewrite_type_in_frontmatter(content, "Project", "X").is_none());
+	}
+
+	#[test]
+	fn preserves_crlf_line_endings() {
+		let content = "---\r\n_type: Project\r\n---\r\nbody";
+		let out = rewrite_type_in_frontmatter(content, "Project", "Initiative").unwrap();
+		assert_eq!(out, "---\r\n_type: Initiative\r\n---\r\nbody");
 	}
 }

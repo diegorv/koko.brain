@@ -24,6 +24,7 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
+	renameItem: vi.fn(),
 }));
 
 vi.mock('$lib/utils/log.service', () => ({
@@ -38,15 +39,20 @@ vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
 	refreshViewDefinition: vi.fn(),
 }));
 
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn() },
+}));
+
 import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'svelte-sonner';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { createFile } from '$lib/core/filesystem/fs.service';
+import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { createNoteOfType, createTypeDefinition, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
+import { createNoteOfType, createTypeDefinition, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
@@ -429,5 +435,129 @@ describe('updateViewQuery', () => {
 		await updateViewQuery('/vault/test.view', updates);
 
 		expect(updateCollectionYaml).toHaveBeenCalledWith('y\n', updates);
+	});
+});
+
+describe('renameType', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		typeDefinitionsStore.reset();
+		editorStore.reset();
+	});
+
+	afterEach(() => {
+		vaultStore._reset();
+		clearLocalStorage();
+	});
+
+	it('renames the definition and propagates _type to member notes', async () => {
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(renameItem).toHaveBeenCalledWith('/vault/Project.md', 'Initiative.md');
+		expect(invoke).toHaveBeenCalledWith('propagate_type_rename', {
+			oldType: 'Project',
+			newType: 'Initiative',
+		});
+	});
+
+	it('moves the sidebar selection to the new name when the renamed type was selected', async () => {
+		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Initiative' });
+	});
+
+	it('keeps an unrelated selection untouched', async () => {
+		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Task' });
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Task' });
+	});
+
+	it('is a no-op when the name is unchanged', async () => {
+		await renameType('Project', 'Project', '/vault/Project.md');
+
+		expect(renameItem).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
+	});
+
+	it('does not propagate or move the selection when the definition rename fails', async () => {
+		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
+		vi.mocked(renameItem).mockResolvedValue(null);
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Project' });
+	});
+
+	it('rewrites open member tabs in memory before the Rust propagation', async () => {
+		// A dirty open tab holds the old _type plus unsaved edits; the Rust
+		// command only rewrites DISK state, so without the tab sync the next
+		// auto-save would clobber the propagated rewrite with the stale _type.
+		editorStore.reset();
+		editorStore.addTab({
+			path: '/vault/m1.md',
+			name: 'm1.md',
+			content: '---\n_type: Project\n---\n\nunsaved edits',
+			savedContent: '---\n_type: Project\n---\n\nold body',
+		});
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/m1.md',
+			'---\n_type: Initiative\n---\n\nunsaved edits',
+		);
+		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
+			'/vault/m1.md',
+			'---\n_type: Initiative\n---\n\nunsaved edits',
+			true,
+		);
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+			path: '/vault/m1.md',
+			content: '---\n_type: Initiative\n---\n\nunsaved edits',
+		});
+		expect(invoke).toHaveBeenCalledWith('propagate_type_rename', {
+			oldType: 'Project',
+			newType: 'Initiative',
+		});
+	});
+
+	it('leaves open tabs of other types untouched', async () => {
+		editorStore.reset();
+		editorStore.addTab({
+			path: '/vault/other.md',
+			name: 'other.md',
+			content: '---\n_type: Task\n---\n\nbody',
+			savedContent: '---\n_type: Task\n---\n\nbody',
+		});
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(syncExternalContentToEditor).not.toHaveBeenCalled();
+	});
+
+	it('shows a toast and keeps the selection when propagation fails', async () => {
+		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+		vi.mocked(invoke).mockRejectedValue(new Error('lock poisoned'));
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(toast.error).toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Project' });
 	});
 });

@@ -11,8 +11,8 @@
 
 use crate::utils::fs::is_view_filename;
 use crate::vault::parsing::{
-	extract_outgoing_links, extract_tags_strict, extract_tasks, parse_frontmatter,
-	parse_frontmatter_raw_yaml, strip_frontmatter,
+	extract_outgoing_links, extract_tags_strict, extract_tasks, normalize_type_casing,
+	parse_frontmatter, parse_frontmatter_raw_yaml, strip_frontmatter,
 };
 use crate::vault::task::Task;
 use serde::{Deserialize, Serialize};
@@ -340,15 +340,6 @@ fn extract_is_a(frontmatter: &BTreeMap<String, JsonValue>) -> Option<String> {
 		return None;
 	}
 	Some(normalize_type_casing(s))
-}
-
-/// First letter uppercase, rest preserved.
-fn normalize_type_casing(s: &str) -> String {
-	let mut chars = s.chars();
-	match chars.next() {
-		None => String::new(),
-		Some(c) => c.to_uppercase().to_string() + chars.as_str(),
-	}
 }
 
 /// Extracts a boolean flag from frontmatter. Returns `false` when absent

@@ -5,6 +5,7 @@ import {
 	buildTypeMetadataMap,
 	getTypeMetadataFallback,
 	validateTypeName,
+	rewriteTypeInFrontmatter,
 } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -173,5 +174,53 @@ describe('validateTypeName', () => {
 
 	it('accepts any name when no types exist yet', () => {
 		expect(validateTypeName('Sprint', [])).toBeNull();
+	});
+});
+
+describe('rewriteTypeInFrontmatter', () => {
+	it('rewrites a bare _type value only inside the frontmatter', () => {
+		const content = '---\n_type: Project\ntitle: x\n---\n\n# Body\n_type: Project\n';
+		expect(rewriteTypeInFrontmatter(content, 'Project', 'Initiative')).toBe(
+			'---\n_type: Initiative\ntitle: x\n---\n\n# Body\n_type: Project\n',
+		);
+	});
+
+	it('rewrites the bare type alias key', () => {
+		expect(rewriteTypeInFrontmatter('---\ntype: Project\n---\nbody\n', 'Project', 'Initiative')).toBe(
+			'---\ntype: Initiative\n---\nbody\n',
+		);
+	});
+
+	it('preserves quote style', () => {
+		expect(rewriteTypeInFrontmatter('---\n_type: "Project"\n---\n', 'Project', 'Initiative')).toBe(
+			'---\n_type: "Initiative"\n---\n',
+		);
+		expect(rewriteTypeInFrontmatter("---\n_type: 'Project'\n---\n", 'Project', 'Initiative')).toBe(
+			"---\n_type: 'Initiative'\n---\n",
+		);
+	});
+
+	it('matches values with the is_a casing rule (first letter uppercased)', () => {
+		expect(rewriteTypeInFrontmatter('---\n_type: project\n---\n', 'Project', 'Initiative')).toBe(
+			'---\n_type: Initiative\n---\n',
+		);
+	});
+
+	it('returns null without frontmatter', () => {
+		expect(rewriteTypeInFrontmatter('# body\n_type: Project\n', 'Project', 'X')).toBeNull();
+	});
+
+	it('returns null when the value differs', () => {
+		expect(rewriteTypeInFrontmatter('---\n_type: Task\n---\n', 'Project', 'X')).toBeNull();
+	});
+
+	it('ignores indented nested keys', () => {
+		expect(rewriteTypeInFrontmatter('---\nmeta:\n  type: Project\n---\n', 'Project', 'X')).toBeNull();
+	});
+
+	it('preserves CRLF line endings', () => {
+		expect(rewriteTypeInFrontmatter('---\r\n_type: Project\r\n---\r\nbody', 'Project', 'Initiative')).toBe(
+			'---\r\n_type: Initiative\r\n---\r\nbody',
+		);
 	});
 });

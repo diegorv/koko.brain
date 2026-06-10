@@ -5,11 +5,13 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { createFile } from '$lib/core/filesystem/fs.service';
+import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
 import { parseFrontmatterProperties, extractBody, rebuildContent } from '$lib/features/properties/properties.logic';
 import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
-import { buildTypeMetadataMap } from './type-definitions.logic';
+import { toast } from 'svelte-sonner';
+import { error } from '$lib/utils/debug';
+import { buildTypeMetadataMap, rewriteTypeInFrontmatter } from './type-definitions.logic';
 import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, type CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
@@ -59,6 +61,47 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
 	} else {
 		openFileInEditor(filePath);
+	}
+}
+
+/**
+ * True rename of a type. Renames the definition note via renameItem - which
+ * already rewrites inbound [[wikilinks]] and updates open tabs - then
+ * propagates `_type: oldName` -> `_type: newName` across every member note
+ * via the Rust propagate_type_rename command (one disk pass + reindex;
+ * emits vault-index-updated so the sidebar refreshes). Keeps the sidebar
+ * selection on the renamed type. No-ops on an unchanged name; aborts before
+ * propagation when the definition rename fails (e.g. target file exists).
+ *
+ * Open editor tabs are rewritten TS-side FIRST (link-updater idiom: write +
+ * syncExternalContentToEditor + reindex): the Rust pass only sees disk, and
+ * a dirty tab's pending auto-save would otherwise clobber the propagated
+ * rewrite with its stale in-memory `_type`. The Rust pass then skips those
+ * files naturally (their `_type` already matches the new name).
+ */
+export async function renameType(oldName: string, newName: string, definitionPath: string): Promise<void> {
+	if (oldName === newName) return;
+	const newPath = await renameItem(definitionPath, `${newName}.md`);
+	if (!newPath) return;
+	try {
+		for (const tab of editorStore.tabs) {
+			const updated = rewriteTypeInFrontmatter(tab.content, oldName, newName);
+			if (updated === null) continue;
+			await writeTextFile(tab.path, updated);
+			syncExternalContentToEditor(tab.path, updated, true);
+			invoke('update_note_in_index', { path: tab.path, content: updated }).catch((err) =>
+				error('TYPE-RENAME', 'update_note_in_index after tab rewrite failed:', err),
+			);
+		}
+		await invoke('propagate_type_rename', { oldType: oldName, newType: newName });
+	} catch (err) {
+		error('TYPE-RENAME', 'propagating type rename failed:', err);
+		toast.error(`Type renamed, but updating member notes failed. Some notes may still reference "${oldName}".`);
+		return;
+	}
+	const selection = typeDefinitionsStore.selectedTypeOrNav;
+	if (selection?.kind === 'type' && selection.name === oldName) {
+		typeDefinitionsStore.setSelection({ kind: 'type', name: newName });
 	}
 }
 

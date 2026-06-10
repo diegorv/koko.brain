@@ -137,6 +137,56 @@ export function validateTypeName(name: string, existingTypeNames: string[]): str
 	return null;
 }
 
+/** First letter uppercase, rest preserved — the casing rule Rust applies to `_type` values when deriving `is_a` (entry.rs::extract_is_a). */
+function normalizeTypeCasing(s: string): string {
+	return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+/**
+ * TS mirror of Rust's `rewrite_type_in_frontmatter` (parsing.rs): rewrites
+ * the value of a top-level `_type:` / `type:` frontmatter key when its
+ * (unquoted, casing-normalized) value equals `oldType`. Preserves key
+ * spelling, quote style, and line endings; touches nothing outside the
+ * frontmatter block. Returns `null` when nothing matched.
+ *
+ * Used by renameType to rewrite the in-memory content of OPEN editor tabs
+ * before the Rust command rewrites the rest of the vault on disk —
+ * otherwise a dirty tab's pending auto-save would clobber the propagated
+ * rewrite with the stale `_type`.
+ */
+export function rewriteTypeInFrontmatter(content: string, oldType: string, newType: string): string | null {
+	const fmMatch = /^---\r?\n[\s\S]*?\r?\n---/.exec(content);
+	if (!fmMatch) return null;
+	const block = fmMatch[0];
+	const oldNormalized = normalizeTypeCasing(oldType);
+
+	let changed = false;
+	const rebuilt = block
+		.split(/(?<=\n)/)
+		.map((line) => {
+			const body = line.replace(/\r?\n$/, '');
+			const ending = line.slice(body.length);
+			const keyMatch = /^(_?type):([\s\S]*)$/.exec(body);
+			if (!keyMatch) return line;
+			const raw = keyMatch[2].trim();
+			let value = raw;
+			let quote = '';
+			if (
+				raw.length >= 2 &&
+				((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'")))
+			) {
+				quote = raw[0];
+				value = raw.slice(1, -1);
+			}
+			if (normalizeTypeCasing(value) !== oldNormalized) return line;
+			changed = true;
+			return `${keyMatch[1]}: ${quote}${newType}${quote}${ending}`;
+		})
+		.join('');
+	if (!changed) return null;
+	return rebuilt + content.slice(block.length);
+}
+
 /** Returns metadata for a type name, falling back to builtins then defaults. */
 export function getTypeMetadataFallback(name: string, map: Map<string, TypeMetadata>): TypeMetadata {
 	const existing = map.get(name);

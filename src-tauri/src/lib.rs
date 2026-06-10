@@ -296,6 +296,7 @@ pub fn run() {
             commands::vault::get_all_vault_entries_v2,
             commands::vault::get_unlinked_mentions_v2,
             commands::vault::update_note_in_index,
+            commands::vault::propagate_type_rename,
             commands::vault::get_all_tags_v2,
             commands::vault::get_notes_with_tag_v2,
             commands::vault::get_all_tasks_v2,

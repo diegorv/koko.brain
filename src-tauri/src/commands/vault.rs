@@ -2,7 +2,7 @@ use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
-use crate::vault::parsing::{extract_tasks_from_section, toggle_task_in_content};
+use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
@@ -301,6 +301,93 @@ pub fn update_note_in_index(
 		}
 	}
 	Ok(result)
+}
+
+/// Inner half of `propagate_type_rename`: rewrites `_type: old` ->
+/// `_type: new` in every member note (entries whose `is_a == old_type`)
+/// and updates the index entry in lock-step with each disk write. Member
+/// notes are matched via the index's `is_a` (already casing-normalized);
+/// the on-disk rewrite applies the same normalization rule, so lowercase
+/// or alias-keyed (`type:`) frontmatter is caught too. Per-file I/O
+/// failures are logged and skipped — the rename proceeds for the
+/// remaining members. Returns the updated count and the last
+/// `UpdateResult` (whose `version` reflects all updates) for the caller
+/// to emit.
+pub fn propagate_type_rename_inner(
+	idx: &mut VaultIndex,
+	old_type: &str,
+	new_type: &str,
+) -> (usize, Option<UpdateResult>) {
+	let member_paths: Vec<String> = idx
+		.entries()
+		.values()
+		.filter(|e| e.is_a.as_deref() == Some(old_type))
+		.map(|e| e.path.clone())
+		.collect();
+
+	let mut updated = 0usize;
+	let mut last_result = None;
+	for path in member_paths {
+		let content = match std::fs::read_to_string(&path) {
+			Ok(c) => c,
+			Err(e) => {
+				debug_log(
+					"VAULT-V2",
+					format!("propagate_type_rename: read failed for {}: {}", path, e),
+				);
+				continue;
+			}
+		};
+		let Some(new_content) = rewrite_type_in_frontmatter(&content, old_type, new_type) else {
+			continue;
+		};
+		if let Err(e) = std::fs::write(&path, &new_content) {
+			debug_log(
+				"VAULT-V2",
+				format!("propagate_type_rename: write failed for {}: {}", path, e),
+			);
+			continue;
+		}
+		let mtime = read_file_mtime_secs(&path).unwrap_or(0);
+		last_result = Some(update_note_in_index_inner(idx, path, &new_content, mtime));
+		updated += 1;
+	}
+	(updated, last_result)
+}
+
+/// Tauri command: propagates a type rename to all member notes —
+/// rewrites their `_type:` frontmatter from `old_type` to `new_type` in
+/// one pass and reindexes each file. The definition note itself is NOT
+/// touched (its `_type` is `Type`); the caller renames it via the
+/// regular file-rename flow first. Emits `vault-index-updated` once at
+/// the end (lock dropped first, mirroring `update_note_in_index`).
+/// Returns the number of member notes updated.
+#[tauri::command]
+pub fn propagate_type_rename(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	old_type: String,
+	new_type: String,
+) -> Result<usize, String> {
+	let _trace = CmdTrace::new("propagate_type_rename");
+	let (updated, last_result) = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		propagate_type_rename_inner(&mut idx, &old_type, &new_type)
+	};
+	if let Some(result) = last_result {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result) {
+			debug_log(
+				"VAULT-V2",
+				format!(
+					"propagate_type_rename: vault-index-updated emit failed: {}",
+					emit_err,
+				),
+			);
+		}
+	}
+	Ok(updated)
 }
 
 /// Returns every `NoteEntry` whose outgoing links resolve to `path`,
