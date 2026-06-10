@@ -38,7 +38,7 @@ per task, run the relevant tests before each commit (Quick Reference rule 6).
       File: `src/lib/core/markdown-editor/extensions/live-preview/widgets/inline-math-widget.ts`.
       Tests: assert a second `toDOM()` for the same formula reuses the cached render.
 
-- [ ] Task 4: Add `vaultIndexVersion` `$effect` to BacklinksPanel and OutgoingLinksPanel
+- [x] Task 4: Add `vaultIndexVersion` `$effect` to BacklinksPanel and OutgoingLinksPanel
       Both panels only fetch on expand click and reset on path change; neither
       re-fetches when `vaultStore.vaultIndexVersion` bumps (watcher / other-tab
       edits). CLAUDE.md § "Reactive consumer pattern" names both as panels that
