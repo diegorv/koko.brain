@@ -300,7 +300,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 					return;
 				}
 				debug('LIFECYCLE', `Semantic model available: ${searchStore.modelAvailable}`);
-				buildSemanticIndex();
+				// Fire-and-forget: buildSemanticIndex self-handles its errors (logs
+				// + clears the indexing flag, never rejects). Deliberately NOT chained
+				// into the init `.catch` below — a transient build failure must not
+				// disable semantic search and show an "init failed" toast.
+				void buildSemanticIndex();
 			}).catch(async (err) => {
 				if (initVersion !== version) return;
 				error('LIFECYCLE', 'Semantic search init failed:', err);
