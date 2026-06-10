@@ -19,8 +19,21 @@ import {
 	getColorForValue,
 } from '$lib/features/collection/linear-calendar.logic';
 
-/** Live-DOM cache: cacheKey -> rendered container. Survives widget destruction across viewport cycles. */
-const collectionCache = new Map<string, HTMLElement>();
+/** Cached query data for one collection block. */
+interface CollectionCacheEntry {
+	/** View definition (with defaults applied) captured at query time. */
+	view: CollectionViewDef;
+	/** Query result the cached renders are built from. */
+	result: QueryResult;
+}
+
+/** Query cache: cacheKey -> view + result DATA. The DOM is rebuilt on every
+ *  toDOM(): rows/pills/bars carry click listeners, so HTML strings cannot be
+ *  cached, and live elements must never be shared between widgets — CodeMirror
+ *  builds new lines detached, and a shared node would be moved to the last
+ *  widget, blanking the earlier occurrences. The expensive part (executeQuery
+ *  over the whole property index) still runs once per key. */
+const collectionCache = new Map<string, CollectionCacheEntry>();
 
 /** Drops all cached renders. Called during vault teardown. */
 export function clearCollectionCache(): void {
@@ -41,11 +54,14 @@ export class CollectionBlockWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const cached = collectionCache.get(this.cacheKey);
-		if (cached && !cached.isConnected) return cached;
-
 		const container = document.createElement('div');
 		container.className = 'cm-lp-collection-block';
+
+		const cached = collectionCache.get(this.cacheKey);
+		if (cached) {
+			this.renderView(container, cached.view, cached.result);
+			return container;
+		}
 
 		const parseResult = parseCollectionYaml(this.yamlContent);
 		if (!parseResult.success) {
@@ -73,7 +89,16 @@ export class CollectionBlockWidget extends WidgetType {
 
 		const viewWithDefaults: CollectionViewDef = { ...view };
 		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex);
+		collectionCache.set(this.cacheKey, { view: viewWithDefaults, result });
 
+		this.renderView(container, viewWithDefaults, result);
+		return container;
+	}
+
+	/** Renders the header + view body (calendar / linear-calendar / empty /
+	 *  table) from a query result. Runs on every toDOM(), including cache hits,
+	 *  so each widget owns its DOM and click handlers stay live. */
+	private renderView(container: HTMLElement, view: CollectionViewDef, result: QueryResult): void {
 		// View name header
 		const header = document.createElement('div');
 		header.className = 'cm-lp-collection-header';
@@ -82,14 +107,12 @@ export class CollectionBlockWidget extends WidgetType {
 
 		if (view.type === 'calendar') {
 			this.buildCalendar(container, view, result.records);
-			collectionCache.set(this.cacheKey, container);
-			return container;
+			return;
 		}
 
 		if (view.type === 'linear-calendar') {
 			this.buildLinearCalendar(container, view, result.records);
-			collectionCache.set(this.cacheKey, container);
-			return container;
+			return;
 		}
 
 		if (result.records.length === 0) {
@@ -97,15 +120,11 @@ export class CollectionBlockWidget extends WidgetType {
 			empty.className = 'cm-lp-collection-empty';
 			empty.textContent = 'No results match the current filters';
 			container.appendChild(empty);
-			collectionCache.set(this.cacheKey, container);
-			return container;
+			return;
 		}
 
 		// Build table
 		container.appendChild(buildCollectionTable(result));
-
-		collectionCache.set(this.cacheKey, container);
-		return container;
 	}
 
 	/** Renders a compact calendar grid for the live-preview widget */

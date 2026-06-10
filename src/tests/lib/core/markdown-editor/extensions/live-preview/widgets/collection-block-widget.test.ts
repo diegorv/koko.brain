@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { DisplayHTML } from '$lib/features/collection/expression/expression.types';
 import type { QueryResult } from '$lib/features/collection/collection.types';
 
@@ -11,7 +11,13 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-import { buildCollectionTable } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
+import {
+	buildCollectionTable,
+	CollectionBlockWidget,
+	clearCollectionCache,
+} from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { openFileInEditor } from '$lib/core/editor/editor.service';
 
 /** Builds a minimal NoteRecord carrying the given properties. */
 function record(properties: Map<string, unknown>) {
@@ -104,5 +110,95 @@ describe('buildCollectionTable', () => {
 
 		const headers = buildCollectionTable(result).querySelectorAll('th');
 		expect([...headers].map((h) => h.textContent)).toEqual(['Name', 'Status']);
+	});
+});
+
+describe('CollectionBlockWidget — query data cache', () => {
+	const YAML = 'views:\n  - type: table\n    name: "All"\n    order:\n      - file.name\n';
+
+	/** Builds a minimal NoteRecord living at the given path. */
+	function recordAt(path: string, name: string) {
+		return {
+			path,
+			name,
+			basename: name.replace(/\.md$/, ''),
+			folder: '/vault',
+			ext: '.md',
+			mtime: 0,
+			ctime: 0,
+			size: 1,
+			properties: new Map<string, unknown>(),
+		};
+	}
+
+	beforeEach(() => {
+		// Real collectionStore + real yaml-parser/executeQuery (CLAUDE.md: never
+		// mock stores or .logic). Only openFileInEditor stays mocked (top of file).
+		clearCollectionCache();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/a.md', recordAt('/vault/a.md', 'a.md')],
+				['/vault/b.md', recordAt('/vault/b.md', 'b.md')],
+			]),
+		);
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		collectionStore.reset();
+		clearCollectionCache();
+	});
+
+	it('renders the header and one row per index record', () => {
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (2)');
+		expect(dom.querySelectorAll('tbody tr').length).toBe(2);
+	});
+
+	it('never hands the same DOM node to two widgets with the same block', () => {
+		// Regression: CodeMirror builds new lines detached, so two widgets for a
+		// duplicated collection block can both call toDOM() while nothing is
+		// connected. Sharing the cached node moves it to the last widget and
+		// blanks the first occurrence.
+		const first = new CollectionBlockWidget(YAML).toDOM();
+		expect(first.isConnected).toBe(false);
+
+		const second = new CollectionBlockWidget(YAML).toDOM();
+
+		expect(second).not.toBe(first);
+		expect(first.querySelector('table')).not.toBeNull();
+		expect(second.querySelector('table')).not.toBeNull();
+	});
+
+	it('keeps row clicks working on a cache-hit render', () => {
+		new CollectionBlockWidget(YAML).toDOM();
+		const second = new CollectionBlockWidget(YAML).toDOM();
+
+		const row = second.querySelector('tbody tr') as HTMLElement;
+		row.click();
+
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/a.md');
+	});
+
+	it('reuses the cached query result while yaml and index size are unchanged', () => {
+		const first = new CollectionBlockWidget(YAML).toDOM();
+		expect(first.querySelectorAll('tbody tr').length).toBe(2);
+
+		// Same index SIZE, different content: the cache key (yaml|indexSize) is
+		// unchanged, so the cached query result must be served without re-querying.
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/x.md', recordAt('/vault/x.md', 'x.md')],
+				['/vault/y.md', recordAt('/vault/y.md', 'y.md')],
+			]),
+		);
+
+		const second = new CollectionBlockWidget(YAML).toDOM();
+		const names = [...second.querySelectorAll('tbody tr td:first-child')].map(
+			(td) => td.textContent,
+		);
+		expect(names).toEqual(['a.md', 'b.md']);
 	});
 });

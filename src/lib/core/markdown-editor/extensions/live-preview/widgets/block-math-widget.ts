@@ -2,8 +2,12 @@ import { WidgetType } from '@codemirror/view';
 import katex from 'katex';
 import DOMPurify from 'dompurify';
 
-/** Live-DOM cache: formula text -> rendered container. Survives widget destruction across viewport cycles. */
-const mathCache = new Map<string, HTMLElement>();
+/** Render cache: formula text -> sanitized KaTeX HTML. Skips the expensive
+ *  katex.renderToString + DOMPurify pass across viewport cycles. Stores HTML
+ *  strings (never live elements) so two widgets for a duplicated formula can
+ *  never share a DOM node — CodeMirror builds new lines detached, and a shared
+ *  node would be moved to the last widget, blanking the earlier occurrences. */
+const mathCache = new Map<string, string>();
 
 /** Drops all cached renders. Called during vault teardown. */
 export function clearMathCache(): void {
@@ -17,9 +21,6 @@ export class BlockMathWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const cached = mathCache.get(this.formula);
-		if (cached && !cached.isConnected) return cached;
-
 		const container = document.createElement('div');
 		container.className = 'cm-lp-math-block';
 
@@ -29,13 +30,20 @@ export class BlockMathWidget extends WidgetType {
 			return container;
 		}
 
+		const cached = mathCache.get(this.formula);
+		if (cached !== undefined) {
+			container.innerHTML = cached;
+			return container;
+		}
+
 		try {
 			const raw = katex.renderToString(this.formula, {
 				throwOnError: false,
 				displayMode: true,
 			});
-			container.innerHTML = DOMPurify.sanitize(raw);
-			mathCache.set(this.formula, container);
+			const html = DOMPurify.sanitize(raw);
+			container.innerHTML = html;
+			mathCache.set(this.formula, html);
 		} catch {
 			container.className = 'cm-lp-math-error';
 			container.textContent = this.formula;
