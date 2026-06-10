@@ -21,7 +21,7 @@ per task, run the relevant tests before each commit (Quick Reference rule 6).
       Leave `debug-composition.ts` (intentional dev tool) and `utils/log.service.ts`/`utils/debug.ts` (logger infra) untouched.
       Tests: update/extend the existing service tests to assert the logger is used.
 
-- [ ] Task 2: Add `isConnected` guard to QueryJS widget cache re-attach
+- [x] Task 2: Add `isConnected` guard to QueryJS widget cache re-attach
       `queryjs-block-widget.ts:85` does `if (cached) { container.appendChild(cached) }`
       with no `isConnected` check. Two identical visible queryjs blocks make the
       second steal the first's DOM via `appendChild`. Mirror the
