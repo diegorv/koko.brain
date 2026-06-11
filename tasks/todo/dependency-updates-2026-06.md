@@ -56,11 +56,11 @@ pnpm vitest run: <N> passed
 
 ## Tasks — cargo
 
-- [ ] chrono 0.4.44 → 0.4.45
-- [ ] regex 1.12.3 → 1.12.4
-- [ ] rusqlite 0.40.0 → 0.40.1
-- [ ] sysinfo 0.39.2 → 0.39.3
-- [ ] uuid 1.23.1 → 1.23.3
+- [x] chrono 0.4.44 → 0.4.45 (6e08300)
+- [x] regex 1.12.3 → 1.12.4 (11dad0a)
+- [x] rusqlite 0.40.0 → 0.40.1 (9a9ee76)
+- [x] sysinfo 0.39.2 → 0.39.3 (fa175af)
+- [x] uuid 1.23.1 → 1.23.3 (b0f56f6)
 
 ## Final verification (after all updates land)
 
