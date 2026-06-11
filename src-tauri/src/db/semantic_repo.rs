@@ -53,11 +53,18 @@ pub fn get_stored_mtimes(conn: &Connection) -> Result<HashMap<String, i64>, Stri
 			Ok((key, val))
 		})
 		.map_err(|e| e.to_string())?;
-	for row in rows.flatten() {
-		if let Ok(ts) = row.1.parse::<i64>() {
-			// Strip "mtime:" prefix to get the relative path
-			let path = row.0.strip_prefix("mtime:").unwrap_or(&row.0);
-			map.insert(path.to_string(), ts);
+	for row in rows {
+		match row {
+			Ok((key, val)) => {
+				if let Ok(ts) = val.parse::<i64>() {
+					// Strip "mtime:" prefix to get the relative path
+					let path = key.strip_prefix("mtime:").unwrap_or(&key);
+					map.insert(path.to_string(), ts);
+				}
+			}
+			Err(e) => {
+				debug_log("SEMANTIC", format!("Warning: skipped corrupt row in get_stored_mtimes: {e}"));
+			}
 		}
 	}
 	Ok(map)
@@ -139,7 +146,13 @@ pub fn get_chunk_hashes_for_path(conn: &Connection, source_path: &str) -> Result
 			Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
 		})
 		.map_err(|e| e.to_string())?
-		.filter_map(|r| r.ok())
+		.filter_map(|r| match r {
+			Ok(v) => Some(v),
+			Err(e) => {
+				debug_log("SEMANTIC", format!("Warning: skipped corrupt row in get_chunk_hashes_for_path: {e}"));
+				None
+			}
+		})
 		.collect();
 	Ok(map)
 }
@@ -233,7 +246,13 @@ pub fn delete_orphaned_mtimes(
 	let keys: Vec<String> = stmt
 		.query_map([], |row| row.get(0))
 		.map_err(|e| e.to_string())?
-		.filter_map(|r| r.ok())
+		.filter_map(|r| match r {
+			Ok(v) => Some(v),
+			Err(e) => {
+				debug_log("SEMANTIC", format!("Warning: skipped corrupt row in delete_orphaned_mtimes: {e}"));
+				None
+			}
+		})
 		.collect();
 
 	let mut deleted = 0u32;
@@ -711,5 +730,43 @@ mod tests {
 		let _first = iter.next().unwrap();
 		assert!(iter.next().is_none(), "no second chunk");
 		assert_eq!(iter.remainder(), &[0xFF], "remainder is available but no caller consults it");
+	}
+
+	// --- corrupt-row skip behavior (pinning for the logged-skip pattern) ---
+
+	#[test]
+	fn get_chunk_hashes_for_path_skips_corrupt_rows_and_keeps_valid_ones() {
+		let conn = setup();
+		insert_chunk(
+			&conn, "good", "a.md", "text", None, &[], 1, 2, "hash-good", &[0u8; 4], 1,
+		)
+		.unwrap();
+		// Stage a corrupt row: a BLOB in the TEXT content_hash column (SQLite
+		// TEXT affinity stores BLOBs verbatim) triggers a type mismatch on read.
+		conn.execute(
+			"INSERT INTO chunks (key, source_path, content, parent_headings, line_start, line_end, content_hash, embedding, embedded_at)
+			 VALUES ('bad', 'a.md', 'text', '[]', 1, 2, X'00FF', X'00000000', 1)",
+			[],
+		)
+		.unwrap();
+
+		let map = get_chunk_hashes_for_path(&conn, "a.md").unwrap();
+		assert_eq!(map.len(), 1, "corrupt row skipped, valid row kept");
+		assert_eq!(map.get("good").map(String::as_str), Some("hash-good"));
+	}
+
+	#[test]
+	fn get_stored_mtimes_skips_corrupt_values_and_keeps_valid_ones() {
+		let conn = setup();
+		upsert_mtimes(&conn, &[("a.md".to_string(), 111)]).unwrap();
+		conn.execute(
+			"INSERT OR REPLACE INTO semantic_meta (key, value) VALUES ('mtime:bad.md', X'00FF')",
+			[],
+		)
+		.unwrap();
+
+		let map = get_stored_mtimes(&conn).unwrap();
+		assert_eq!(map.len(), 1, "corrupt value skipped, valid entry kept");
+		assert_eq!(map.get("a.md"), Some(&111));
 	}
 }
