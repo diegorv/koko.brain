@@ -1,7 +1,35 @@
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Maximum recursion depth for directory traversal.
 const MAX_DEPTH: usize = 64;
+
+/// Per-process sequence for unique `write_atomic` temp-file names, so two
+/// concurrent writes to the same target never share a temp file.
+static WRITE_ATOMIC_SEQ: AtomicU64 = AtomicU64::new(0);
+
+/// Writes `content` to `path` atomically: the bytes go to a temp file in the
+/// same directory (same filesystem, so the rename is atomic), then the temp
+/// file is renamed over the target. A crash mid-write leaves either the old
+/// content or a stray `.tmp-*` file — never a truncated/empty note, which is
+/// what a plain `std::fs::write` (O_TRUNC + write_all) risks.
+pub fn write_atomic(path: &str, content: &str) -> Result<(), String> {
+	// Preserve plain-write semantics for write-protected targets: on Unix a
+	// rename silently replaces a read-only file (directory permissions govern
+	// renames), which must stay an error rather than become a bypass.
+	if let Ok(meta) = std::fs::metadata(path) {
+		if meta.permissions().readonly() {
+			return Err(format!("write failed for {}: target is read-only", path));
+		}
+	}
+	let seq = WRITE_ATOMIC_SEQ.fetch_add(1, Ordering::Relaxed);
+	let tmp = format!("{}.tmp-{}-{}", path, std::process::id(), seq);
+	std::fs::write(&tmp, content).map_err(|e| format!("write failed for {}: {}", tmp, e))?;
+	std::fs::rename(&tmp, path).map_err(|e| {
+		let _ = std::fs::remove_file(&tmp);
+		format!("rename failed for {}: {}", path, e)
+	})
+}
 
 /// Validates and canonicalizes a vault path.
 ///

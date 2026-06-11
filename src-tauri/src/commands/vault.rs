@@ -341,7 +341,7 @@ pub fn propagate_type_rename_inner(
 		let Some(new_content) = rewrite_type_in_frontmatter(&content, old_type, new_type) else {
 			continue;
 		};
-		if let Err(e) = std::fs::write(&path, &new_content) {
+		if let Err(e) = vault_fs::write_atomic(&path, &new_content) {
 			debug_log(
 				"VAULT-V2",
 				format!("propagate_type_rename: write failed for {}: {}", path, e),
@@ -679,8 +679,7 @@ pub fn toggle_task_status_inner(
 			},
 		});
 	}
-	std::fs::write(path, &updated)
-		.map_err(|e| format!("write failed for {}: {}", path, e))?;
+	vault_fs::write_atomic(path, &updated)?;
 	let mtime = read_file_mtime_secs(path).unwrap_or(0);
 	let result = update_note_in_index_inner(idx, path.to_string(), &updated, mtime);
 	Ok(ToggleTaskResult {
@@ -894,7 +893,7 @@ pub fn create_note(
 	if Path::new(&path).exists() {
 		return Err(format!("File already exists: {}", path));
 	}
-	std::fs::write(&path, &content).map_err(|e| format!("write failed for {}: {}", path, e))?;
+	vault_fs::write_atomic(&path, &content)?;
 	let mtime = read_file_mtime_secs(&path).unwrap_or(0);
 	let result = {
 		let mut idx = state

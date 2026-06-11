@@ -1,6 +1,6 @@
 use kokobrain_lib::utils::fs::{
 	collect_markdown_paths, collect_markdown_paths_with_metadata,
-	collect_markdown_paths_with_mtime, is_markdown_filename, validate_vault_path,
+	collect_markdown_paths_with_mtime, is_markdown_filename, validate_vault_path, write_atomic,
 };
 use std::fs;
 use tempfile::TempDir;
@@ -466,4 +466,58 @@ fn with_metadata_non_existent_vault_returns_error() {
 		&[],
 	);
 	assert!(result.is_err());
+}
+
+// --- write_atomic ---
+
+#[test]
+fn write_atomic_creates_new_file_with_content() {
+	let tmp = setup();
+	let path = tmp.path().join("note.md");
+	write_atomic(path.to_str().unwrap(), "hello").unwrap();
+	assert_eq!(fs::read_to_string(&path).unwrap(), "hello");
+}
+
+#[test]
+fn write_atomic_replaces_existing_content() {
+	let tmp = setup();
+	let path = tmp.path().join("note.md");
+	fs::write(&path, "old").unwrap();
+	write_atomic(path.to_str().unwrap(), "new").unwrap();
+	assert_eq!(fs::read_to_string(&path).unwrap(), "new");
+}
+
+#[test]
+fn write_atomic_leaves_no_temp_file_behind() {
+	let tmp = setup();
+	let path = tmp.path().join("note.md");
+	write_atomic(path.to_str().unwrap(), "content").unwrap();
+	let entries: Vec<_> = fs::read_dir(tmp.path())
+		.unwrap()
+		.map(|e| e.unwrap().file_name().to_string_lossy().to_string())
+		.collect();
+	assert_eq!(entries, vec!["note.md"], "only the target file must remain: {entries:?}");
+}
+
+#[test]
+fn write_atomic_errors_when_parent_dir_missing() {
+	let tmp = setup();
+	let path = tmp.path().join("missing-dir/note.md");
+	let result = write_atomic(path.to_str().unwrap(), "content");
+	assert!(result.is_err());
+}
+
+#[test]
+fn write_atomic_errors_on_read_only_target_instead_of_replacing_it() {
+	let tmp = setup();
+	let path = tmp.path().join("locked.md");
+	fs::write(&path, "protected").unwrap();
+	let mut perms = fs::metadata(&path).unwrap().permissions();
+	perms.set_readonly(true);
+	fs::set_permissions(&path, perms).unwrap();
+
+	let result = write_atomic(path.to_str().unwrap(), "overwrite");
+
+	assert!(result.is_err(), "read-only target must stay an error");
+	assert_eq!(fs::read_to_string(&path).unwrap(), "protected");
 }
