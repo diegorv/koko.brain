@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ask } from '@tauri-apps/plugin-dialog';
+	import { VList } from 'virtua/svelte';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Copy from '@lucide/svelte/icons/copy';
@@ -463,9 +464,12 @@
 				{#snippet child({ props })}
 					<div
 						{...props}
-						class="flex-1 overflow-y-auto px-1 py-1"
+						class="flex-1 overflow-hidden"
 						oncontextmenu={(e) => {
-							if (e.target === e.currentTarget) {
+							// VList wraps every row in positioning divs, so "blank area" can
+							// no longer be detected via target === currentTarget; anything
+							// outside a note row counts as blank and suppresses the menu.
+							if (!(e.target instanceof Element) || !e.target.closest('[data-note-row]')) {
 								contextTarget = null;
 								e.preventDefault();
 								return;
@@ -473,7 +477,13 @@
 							if (typeof props.oncontextmenu === 'function') props.oncontextmenu(e);
 						}}
 					>
-						{#each notes as note, i (note.path)}
+						{#if notes.length === 0}
+							<div class="flex items-center justify-center py-8 text-muted-foreground text-sm">
+								No notes
+							</div>
+						{:else}
+						<VList data={notes} getKey={(note) => note.path} class="px-1 py-1">
+						{#snippet children(note, i)}
 							{@const resolved = resolveNoteIcon(note.path)}
 							{@const isActive = note.path === activePath}
 							{#if i > 0}
@@ -500,6 +510,7 @@
 								</div>
 							{:else}
 							<button
+								data-note-row
 								class="flex w-full flex-col rounded px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
 								onclick={() => openFileInEditor(note.path)}
 								oncontextmenu={() => { contextTarget = note; }}
@@ -554,12 +565,8 @@
 								{/if}
 							</button>
 							{/if}
-						{/each}
-
-						{#if notes.length === 0}
-							<div class="flex items-center justify-center py-8 text-muted-foreground text-sm">
-								No notes
-							</div>
+						{/snippet}
+						</VList>
 						{/if}
 					</div>
 				{/snippet}

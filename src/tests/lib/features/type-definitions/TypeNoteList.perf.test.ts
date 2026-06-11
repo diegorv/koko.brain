@@ -1,16 +1,50 @@
 // @vitest-environment jsdom
 // Perf regression guard for the type-click path at real vault scale.
 //
-// With 7846 entries and 300 notes of the clicked type, per-note icon
-// resolution must not scan the reactive entries array (the O(notes x entries)
-// scan regression made this click flush take ~5.8s; the O(1)-lookup path runs
-// it in ~200ms). The 1500ms ceiling leaves ~7x headroom for slow CI machines
-// while sitting ~4x below the regressed cost, so it only trips on a real
-// complexity regression, not on noise.
+// With 7846 entries and 300 notes of the clicked type, two properties must
+// hold on click:
+// 1. Per-note icon resolution must not scan the reactive entries array (the
+//    O(notes x entries) scan regression made this click flush take ~5.8s; the
+//    O(1)-lookup path runs it in ~200ms). The 1500ms ceiling leaves headroom
+//    for slow CI machines while sitting far below the regressed cost.
+// 2. The list is virtualized (virtua VList): only the rows near the viewport
+//    mount in the DOM, even though the full dataset flows through (the Open
+//    sub-filter tab still counts all 300).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
+
+// virtua only mounts rows after ResizeObserver reports the scroller size, and
+// it skips entries whose target has no offsetParent. jsdom implements neither
+// layout API, so this stub fires synchronously on observe() with synthetic
+// sizes (the VList scroller is recognizable by its inline overflow-y style)
+// and offsetParent is exposed as parentElement.
+const VIEWPORT_HEIGHT = 600;
+const ROW_HEIGHT = 60;
+class ResizeObserverStub {
+	private cb: ResizeObserverCallback;
+	constructor(cb: ResizeObserverCallback) {
+		this.cb = cb;
+	}
+	observe(el: Element) {
+		const isViewport = (el as HTMLElement).style?.overflowY === 'auto';
+		const height = isViewport ? VIEWPORT_HEIGHT : ROW_HEIGHT;
+		this.cb(
+			[{ target: el, contentRect: { height, width: 240 } } as unknown as ResizeObserverEntry],
+			this as unknown as ResizeObserver,
+		);
+	}
+	unobserve() {}
+	disconnect() {}
+}
+globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
+	get() {
+		return this.parentElement;
+	},
+	configurable: true,
+});
 
 vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 	getIconSync: vi.fn(),
@@ -42,7 +76,7 @@ vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
 }));
 vi.mock('$lib/utils/log.service', () => ({ appendLog: vi.fn() }));
 
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, tick } from 'svelte';
 import TypeNoteList from '$lib/features/type-definitions/TypeNoteList.svelte';
 import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
@@ -129,21 +163,32 @@ describe('TypeNoteList click flush at vault scale', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('renders 300 notes with type-inherited icons without scanning entries per note', () => {
+	it('virtualizes 300 notes with type-inherited icons without scanning entries per note', async () => {
 		component = mount(TypeNoteList, { target });
 		flushSync();
 
 		const t0 = performance.now();
 		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Newsletter' });
 		flushSync();
+		// virtua attaches its ResizeObserver in a tick().then(...) after mount;
+		// settle a few microtask+flush rounds so measurement → range → row
+		// rendering completes deterministically.
+		for (let round = 0; round < 3; round++) {
+			await tick();
+			flushSync();
+		}
 		const elapsed = performance.now() - t0;
 
-		// All 300 notes rendered with their titles (real content, not just containers).
+		// The first rows render real content (title sort puts note-0 first).
 		expect(target.textContent).toContain('note-0');
-		const rows = target.querySelectorAll('button');
-		expect(rows.length).toBeGreaterThanOrEqual(TYPED);
-		// Type-inherited icon resolved for the rows (mocked lucide target icon).
-		expect(target.querySelectorAll('svg').length).toBeGreaterThanOrEqual(TYPED);
+		// The full dataset flowed through: the Open sub-filter tab counts all 300.
+		expect(target.textContent).toContain(String(TYPED));
+		// Virtualization: only rows near the viewport mount, not all 300.
+		const rows = target.querySelectorAll('[data-note-row]');
+		expect(rows.length).toBeGreaterThanOrEqual(1);
+		expect(rows.length).toBeLessThan(TYPED / 2);
+		// Type-inherited icon resolved for every mounted row (mocked lucide icon).
+		expect(target.querySelectorAll('[data-note-row] svg').length).toBe(rows.length);
 
 		expect(elapsed).toBeLessThan(CEILING_MS);
 	}, 30000);
