@@ -779,14 +779,12 @@ describe('semantic progress listener (throttle)', () => {
 		}
 	});
 
-	it('handles the downloading-reranker phase emitted by Rust (not in the TS union)', async () => {
+	it('handles the downloading-reranker phase emitted by Rust', async () => {
 		// Rust's download_reranker_model (semantic.rs:282) emits phase
-		// "downloading-reranker" on the same semantic-index-progress channel,
-		// but the SemanticProgress TS union (search.types.ts:75) only declares
-		// 'downloading' | 'chunking' | 'embedding'. The listener compares the
-		// phase as an opaque string, so the extra phase must flow through the
-		// phase-transition fast path and the same-phase throttle unchanged.
-		const rerankerPhase = 'downloading-reranker' as SemanticProgress['phase'];
+		// "downloading-reranker" on the same semantic-index-progress channel.
+		// It must flow through the phase-transition fast path and the
+		// same-phase throttle unchanged.
+		const rerankerPhase: SemanticProgress['phase'] = 'downloading-reranker';
 		vi.useFakeTimers();
 		try {
 			await startSemanticProgressListener();
@@ -825,7 +823,7 @@ describe('semantic progress listener (throttle)', () => {
 	});
 
 	it('transitions out of downloading-reranker back to embedding immediately', async () => {
-		const rerankerPhase = 'downloading-reranker' as SemanticProgress['phase'];
+		const rerankerPhase: SemanticProgress['phase'] = 'downloading-reranker';
 		vi.useFakeTimers();
 		try {
 			await startSemanticProgressListener();

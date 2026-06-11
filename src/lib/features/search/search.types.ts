@@ -72,7 +72,7 @@ export interface SemanticStats {
 
 /** Progress event from Rust semantic indexing */
 export interface SemanticProgress {
-	phase: 'downloading' | 'chunking' | 'embedding';
+	phase: 'downloading' | 'downloading-reranker' | 'chunking' | 'embedding';
 	current: number;
 	total: number;
 	message: string;
