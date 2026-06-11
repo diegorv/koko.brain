@@ -195,13 +195,13 @@ impl Embedder {
 			if let Ok(view) = outputs[0].try_extract_array::<f32>() {
 				let shape = view.shape();
 				debug_log("EMBEDDER", format!("Output: f32, shape={:?}", shape));
-				let hidden_dim = if shape.len() == 3 { shape[2] } else { expected };
+				let hidden_dim = hidden_dim_from_shape(shape)?;
 				validate_dimensions(expected, hidden_dim)?;
 				(mean_pool_f32(&view, &attention_mask_for_pooling, batch_len, max_len, hidden_dim), hidden_dim)
 			} else if let Ok(view) = outputs[0].try_extract_array::<f16>() {
 				let shape = view.shape();
 				debug_log("EMBEDDER", format!("Output: f16, shape={:?} — converting to f32", shape));
-				let hidden_dim = if shape.len() == 3 { shape[2] } else { expected };
+				let hidden_dim = hidden_dim_from_shape(shape)?;
 				validate_dimensions(expected, hidden_dim)?;
 				(mean_pool_f16(&view, &attention_mask_for_pooling, batch_len, max_len, hidden_dim), hidden_dim)
 			} else {
@@ -212,6 +212,21 @@ impl Embedder {
 
 		Ok(f32_embeddings)
 	}
+}
+
+/// Returns the hidden dimension of a 3D `[batch, seq, hidden]` model output.
+/// Any other rank is an error: mean pooling indexes two axes deep
+/// (`index_axis` per batch row, then per token), so a 2D pooled-output model
+/// would panic at `token[k]` instead of failing the batch cleanly.
+pub(crate) fn hidden_dim_from_shape(shape: &[usize]) -> Result<usize, String> {
+	if shape.len() != 3 {
+		return Err(format!(
+			"Unexpected embedding output rank {} (shape {shape:?}); expected 3D [batch, seq, hidden]. \
+Aborting batch — this model's output layout is incompatible with mean pooling.",
+			shape.len()
+		));
+	}
+	Ok(shape[2])
 }
 
 /// Returns `Ok(())` when `actual` matches the embedder's pinned `expected`
@@ -330,6 +345,26 @@ mod tests {
 		// Must not be silently accepted even if `expected` were also zero,
 		// but the construction-time guard rejects `expected=0` upstream.
 		assert!(validate_dimensions(1024, 0).is_err());
+	}
+
+	#[test]
+	fn hidden_dim_from_shape_returns_hidden_for_3d_output() {
+		assert_eq!(hidden_dim_from_shape(&[2, 128, 1024]), Ok(1024));
+	}
+
+	#[test]
+	fn hidden_dim_from_shape_rejects_2d_output() {
+		// A 2D [batch, hidden] output (e.g. a pooled-output model) used to fall
+		// back to `expected`, pass validate_dimensions vacuously, and then
+		// panic inside mean pooling (token[k] indexes two axes deep).
+		let err = hidden_dim_from_shape(&[2, 1024]).expect_err("2D must be rejected");
+		assert!(err.contains("rank 2"), "err must name the rank: {err}");
+	}
+
+	#[test]
+	fn hidden_dim_from_shape_rejects_1d_and_4d_output() {
+		assert!(hidden_dim_from_shape(&[1024]).is_err());
+		assert!(hidden_dim_from_shape(&[1, 2, 128, 1024]).is_err());
 	}
 
 	#[test]
