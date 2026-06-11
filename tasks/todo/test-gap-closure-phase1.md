@@ -82,7 +82,7 @@
   - `src-tauri/src/db/mod.rs` — is_open(): no test for poisoned lock behavior. No test distinguishing 'database closed' vs 'lock poisoned' case.
   - `src-tauri/src/search/text_search.rs` — No integration tests in src-tauri/tests/ for full text search across vault files; unit tests exist in-file but integration coverage is missing
   - Verificar: `cargo test --manifest-path src-tauri/Cargo.toml` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote R3 - rust semantic (chunker, model, reranker)**
+- [x] **Lote R3 - rust semantic (chunker, model, reranker)**
   - `src-tauri/src/semantic/chunker.rs` — No explicit tests for unwrap() safety on line 292 merge_short_sections; guard condition !merged.is_empty() prevents panic but no dedicated test
   - `src-tauri/src/semantic/model.rs` — No tests for ManagedModel with zero downloads; division by zero on lines 124, 130 not tested
   - `src-tauri/src/semantic/reranker.rs` — No inline tests and no integration test references for load/rerank/with_batch_size. Only semantic/ module with zero coverage.
