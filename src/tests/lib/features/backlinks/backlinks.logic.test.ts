@@ -65,6 +65,33 @@ describe('parseWikilinks', () => {
 		const result = parseWikilinks('See [[ My Note ]]');
 		expect(result[0].target).toBe('My Note');
 	});
+
+	it('trims target but preserves alias whitespace around the pipe', () => {
+		const result = parseWikilinks('See [[note | alias ]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('note');
+		// Alias is the raw substring after the pipe — whitespace is preserved
+		// for consumers to trim as needed.
+		expect(result[0].alias).toBe(' alias ');
+		expect(result[0].heading).toBeNull();
+	});
+
+	it('trims target but preserves heading whitespace after the hash', () => {
+		const result = parseWikilinks('See [[note# heading ]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('note');
+		// Heading is the raw substring after the hash — whitespace preserved.
+		expect(result[0].heading).toBe(' heading ');
+		expect(result[0].alias).toBeNull();
+	});
+
+	it('handles spaces around both hash and pipe in the same link', () => {
+		const result = parseWikilinks('[[ note # heading | alias ]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('note');
+		expect(result[0].heading).toBe(' heading ');
+		expect(result[0].alias).toBe(' alias ');
+	});
 });
 
 describe('getNoteName', () => {

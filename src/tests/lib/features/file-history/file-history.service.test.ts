@@ -199,6 +199,21 @@ describe('restoreSnapshot', () => {
 
 		expect(saveCurrentFile).not.toHaveBeenCalled();
 	});
+
+	it('propagates errors and keeps dialog state when get_snapshot_content fails', async () => {
+		fileHistoryStore.setFilePath('/vault/file.md');
+		fileHistoryStore.setOpen(true);
+		vi.mocked(invoke).mockRejectedValue(new Error('DB error'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(restoreSnapshot(7)).rejects.toThrow('DB error');
+
+		// No save and no reset — the dialog stays open so the user can retry.
+		expect(saveCurrentFile).not.toHaveBeenCalled();
+		expect(fileHistoryStore.isOpen).toBe(true);
+		expect(fileHistoryStore.filePath).toBe('/vault/file.md');
+		consoleSpy.mockRestore();
+	});
 });
 
 describe('saveSnapshotForFile', () => {

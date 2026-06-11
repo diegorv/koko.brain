@@ -43,8 +43,11 @@ import {
 	fetchTaskById,
 	loadSentTasks,
 	saveSentTasks,
+	loadProjects,
+	loadSections,
 	sendTaskToTodoist,
 	initTodoist,
+	syncTodoistTasks,
 } from '$lib/features/tasks/todoist.service';
 
 describe('fetchProjects', () => {
@@ -241,6 +244,155 @@ describe('saveSentTasks', () => {
 	});
 });
 
+describe('loadProjects', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		settingsStore.reset();
+		settingsStore.updateTodoist({ apiToken: 'test-token' });
+		todoistStore.reset();
+	});
+
+	it('rejects when no API token is configured', async () => {
+		settingsStore.updateTodoist({ apiToken: '' });
+
+		await expect(loadProjects()).rejects.toThrow('Todoist API token not configured');
+		expect(mockGetProjects).not.toHaveBeenCalled();
+		expect(todoistStore.isLoadingProjects).toBe(false);
+	});
+
+	it('fetches projects and caches them in the store', async () => {
+		mockGetProjects.mockResolvedValue({
+			results: [
+				{ id: '1', name: 'Inbox', color: 'charcoal', isFavorite: false, childOrder: 0 },
+			],
+			nextCursor: null,
+		});
+
+		await loadProjects();
+
+		expect(todoistStore.projects).toEqual([
+			{ id: '1', name: 'Inbox', color: 'charcoal', is_favorite: false, child_order: 0 },
+		]);
+		expect(todoistStore.isLoadingProjects).toBe(false);
+	});
+
+	it('uses the cached projects without refetching', async () => {
+		todoistStore.setProjects([
+			{ id: 'cached', name: 'Cached', color: 'red', is_favorite: false, child_order: 0 },
+		]);
+
+		await loadProjects();
+
+		expect(mockGetProjects).not.toHaveBeenCalled();
+		expect(todoistStore.projects).toHaveLength(1);
+		expect(todoistStore.projects[0].id).toBe('cached');
+	});
+
+	it('refetches and replaces the cache when forceRefresh is true', async () => {
+		todoistStore.setProjects([
+			{ id: 'cached', name: 'Cached', color: 'red', is_favorite: false, child_order: 0 },
+		]);
+		mockGetProjects.mockResolvedValue({
+			results: [
+				{ id: 'fresh', name: 'Fresh', color: 'blue', isFavorite: true, childOrder: 1 },
+			],
+			nextCursor: null,
+		});
+
+		await loadProjects(true);
+
+		expect(mockGetProjects).toHaveBeenCalledTimes(1);
+		expect(todoistStore.projects).toEqual([
+			{ id: 'fresh', name: 'Fresh', color: 'blue', is_favorite: true, child_order: 1 },
+		]);
+	});
+
+	it('sets isLoadingProjects during the fetch and clears it after', async () => {
+		let resolveFetch!: (v: unknown) => void;
+		mockGetProjects.mockReturnValue(new Promise((r) => { resolveFetch = r; }));
+
+		const pending = loadProjects();
+		expect(todoistStore.isLoadingProjects).toBe(true);
+
+		resolveFetch({ results: [], nextCursor: null });
+		await pending;
+
+		expect(todoistStore.isLoadingProjects).toBe(false);
+	});
+
+	it('clears the loading flag and leaves the store empty on fetch failure', async () => {
+		mockGetProjects.mockRejectedValue(new Error('Unauthorized'));
+
+		await expect(loadProjects()).rejects.toThrow('Unauthorized');
+
+		expect(todoistStore.projects).toEqual([]);
+		expect(todoistStore.isLoadingProjects).toBe(false);
+	});
+});
+
+describe('loadSections', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		settingsStore.reset();
+		settingsStore.updateTodoist({ apiToken: 'test-token' });
+		todoistStore.reset();
+	});
+
+	it('rejects when no API token is configured', async () => {
+		settingsStore.updateTodoist({ apiToken: '' });
+
+		await expect(loadSections('p1')).rejects.toThrow('Todoist API token not configured');
+		expect(mockGetSections).not.toHaveBeenCalled();
+		expect(todoistStore.isLoadingSections).toBe(false);
+	});
+
+	it('fetches sections for the project and caches them in the store', async () => {
+		mockGetSections.mockResolvedValue({
+			results: [
+				{ id: 's1', projectId: 'p1', name: 'Backlog', sectionOrder: 0 },
+			],
+			nextCursor: null,
+		});
+
+		await loadSections('p1');
+
+		expect(mockGetSections).toHaveBeenCalledWith({ projectId: 'p1' });
+		expect(todoistStore.sections).toEqual([
+			{ id: 's1', project_id: 'p1', name: 'Backlog', section_order: 0 },
+		]);
+		expect(todoistStore.isLoadingSections).toBe(false);
+	});
+
+	it('sets isLoadingSections during the fetch and clears it after', async () => {
+		let resolveFetch!: (v: unknown) => void;
+		mockGetSections.mockReturnValue(new Promise((r) => { resolveFetch = r; }));
+
+		const pending = loadSections('p1');
+		expect(todoistStore.isLoadingSections).toBe(true);
+
+		resolveFetch({ results: [], nextCursor: null });
+		await pending;
+
+		expect(todoistStore.isLoadingSections).toBe(false);
+	});
+
+	it('clears the loading flag and keeps prior sections on fetch failure', async () => {
+		todoistStore.setSections([
+			{ id: 'old', project_id: 'p0', name: 'Old', section_order: 0 },
+		]);
+		mockGetSections.mockRejectedValue(new Error('Not Found'));
+
+		await expect(loadSections('bad-id')).rejects.toThrow('Not Found');
+
+		expect(todoistStore.sections).toEqual([
+			{ id: 'old', project_id: 'p0', name: 'Old', section_order: 0 },
+		]);
+		expect(todoistStore.isLoadingSections).toBe(false);
+	});
+});
+
 describe('sendTaskToTodoist', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -415,5 +567,118 @@ describe('initTodoist', () => {
 
 		expect(todoistStore.sentTasks).toEqual(entries);
 		expect(todoistStore.isSent('/a.md', 'Task A')).toBe(true);
+	});
+});
+
+describe('syncTodoistTasks', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/test-vault');
+		settingsStore.reset();
+		settingsStore.updateTodoist({ apiToken: 'test-token' });
+		todoistStore.reset();
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	});
+
+	it('rejects when no API token is configured', async () => {
+		settingsStore.updateTodoist({ apiToken: '' });
+		todoistStore.setSentTasks([
+			{ filePath: '/a.md', text: 'Task A', todoistTaskId: 't1', todoistUrl: '', sentAt: 1 },
+		]);
+
+		await expect(syncTodoistTasks()).rejects.toThrow('Todoist API token not configured');
+		expect(mockGetTask).not.toHaveBeenCalled();
+		expect(todoistStore.isSyncing).toBe(false);
+	});
+
+	it('is a no-op when there are no sent tasks', async () => {
+		await syncTodoistTasks();
+
+		expect(mockGetTask).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(todoistStore.isSyncing).toBe(false);
+	});
+
+	it('updates completion status from the API and persists to disk', async () => {
+		todoistStore.setSentTasks([
+			{ filePath: '/a.md', text: 'Task A', todoistTaskId: 't1', todoistUrl: '', sentAt: 1 },
+			{ filePath: '/b.md', text: 'Task B', todoistTaskId: 't2', todoistUrl: '', sentAt: 2 },
+		]);
+		mockGetTask
+			.mockResolvedValueOnce({ id: 't1', checked: true })
+			.mockResolvedValueOnce({ id: 't2', checked: false });
+
+		await syncTodoistTasks();
+
+		expect(todoistStore.isCompletedInTodoist('/a.md', 'Task A')).toBe(true);
+		expect(todoistStore.isCompletedInTodoist('/b.md', 'Task B')).toBe(false);
+		expect(todoistStore.sentTasks[0].syncedAt).toEqual(expect.any(Number));
+		expect(todoistStore.sentTasks[1].syncedAt).toEqual(expect.any(Number));
+		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(todoistStore.isSyncing).toBe(false);
+	});
+
+	it('marks deleted tasks (404) as not completed', async () => {
+		todoistStore.setSentTasks([
+			{ filePath: '/a.md', text: 'Task A', todoistTaskId: 't1', todoistUrl: '', sentAt: 1 },
+		]);
+		mockGetTask.mockRejectedValue(new Error('Request failed with status 404'));
+
+		await syncTodoistTasks();
+
+		expect(todoistStore.sentTasks[0].todoistCompleted).toBe(false);
+		expect(todoistStore.sentTasks[0].syncedAt).toEqual(expect.any(Number));
+		expect(todoistStore.isSyncing).toBe(false);
+	});
+
+	it('skips entries whose fetch fails (non-404) but still updates the rest', async () => {
+		todoistStore.setSentTasks([
+			{ filePath: '/a.md', text: 'Task A', todoistTaskId: 't1', todoistUrl: '', sentAt: 1 },
+			{ filePath: '/b.md', text: 'Task B', todoistTaskId: 't2', todoistUrl: '', sentAt: 2 },
+		]);
+		mockGetTask
+			.mockRejectedValueOnce(new Error('Server Error 500'))
+			.mockResolvedValueOnce({ id: 't2', checked: true });
+
+		await syncTodoistTasks();
+
+		// Failed entry untouched — no syncedAt, no completion flag.
+		expect(todoistStore.sentTasks[0].syncedAt).toBeUndefined();
+		expect(todoistStore.sentTasks[0].todoistCompleted).toBeUndefined();
+		// Successful entry updated.
+		expect(todoistStore.isCompletedInTodoist('/b.md', 'Task B')).toBe(true);
+		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(todoistStore.isSyncing).toBe(false);
+	});
+
+	it('sets isSyncing during the sync and clears it after', async () => {
+		todoistStore.setSentTasks([
+			{ filePath: '/a.md', text: 'Task A', todoistTaskId: 't1', todoistUrl: '', sentAt: 1 },
+		]);
+		let resolveFetch!: (v: unknown) => void;
+		mockGetTask.mockReturnValue(new Promise((r) => { resolveFetch = r; }));
+
+		const pending = syncTodoistTasks();
+		expect(todoistStore.isSyncing).toBe(true);
+
+		resolveFetch({ id: 't1', checked: true });
+		await pending;
+
+		expect(todoistStore.isSyncing).toBe(false);
+	});
+
+	it('clears isSyncing even when persistence fails', async () => {
+		todoistStore.setSentTasks([
+			{ filePath: '/a.md', text: 'Task A', todoistTaskId: 't1', todoistUrl: '', sentAt: 1 },
+		]);
+		mockGetTask.mockResolvedValue({ id: 't1', checked: true });
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+
+		await expect(syncTodoistTasks()).rejects.toThrow('disk full');
+
+		expect(todoistStore.isSyncing).toBe(false);
 	});
 });

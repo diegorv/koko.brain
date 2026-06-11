@@ -144,6 +144,14 @@ describe('auto-move.service', () => {
 
 			await expect(saveAutoMoveConfig('/vault')).rejects.toThrow('Permission denied');
 		});
+
+		it('throws when mkdir fails and does not write the config file', async () => {
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(mkdir).mockRejectedValue(new Error('EACCES: permission denied'));
+
+			await expect(saveAutoMoveConfig('/vault')).rejects.toThrow('EACCES: permission denied');
+			expect(writeTextFile).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('registerAutoMoveHook', () => {

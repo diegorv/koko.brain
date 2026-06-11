@@ -47,7 +47,7 @@
   - `src/lib/features/type-definitions/type-definitions.store.svelte.ts` — Store getter getTypeMetadata (lines 17-19) is tested on line 43-53 of the test file. No gaps detected. | Store getter sortedTypes (lines 22-24) is tested on lines 55-75 of the test file. No gaps detected.
   - `src/tests/lib/features/search/search.service.test.ts` — No test feeds a 'downloading-reranker' phase through the semantic-index-progress listener; the throttle/phase-transition logic is only exercised with the three phases the TS union declares.
   - Verificar: `pnpm check && pnpm vitest run` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote F3 - features B (auto-move, backlinks, bookmarks, canvas, file-history, file-icons, quick-switcher, todoist)**
+- [x] **Lote F3 - features B (auto-move, backlinks, bookmarks, canvas, file-history, file-icons, quick-switcher, todoist)**
   - `src/lib/features/auto-move/auto-move.service.ts` — mkdir failure case not tested; implementation has try/catch but saveAutoMoveConfig test doesn't verify mkdir rejection handling
   - `src/lib/features/backlinks/backlinks.logic.ts` — parseWikilinks: missing test cases for wikilinks with spaces around pipe/hash (e.g. '[[note | alias ]]', '[[note# heading ]]')
   - `src/lib/features/bookmarks/bookmarks.service.ts` — mkdir failure case not tested in loadBookmarks/saveBookmarks; toggleBookmarkForPath and updateBookmarkPathsAfterMove error paths (silent swallow) not tested
