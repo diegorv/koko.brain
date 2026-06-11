@@ -26,7 +26,7 @@ Closes the remaining HIGH findings from `.scratch/audit-2026-06-10/findings.md` 
   - Step 4: note the carve-out in `perf-persistent-vault-index.md` (Notes section) and `performance-architecture-refactor.md` (Notes): "IPC-thread blocking fixed 2026-06-11 in audit-round2 Task 1".
   - Step 5: commit `fix(vault): run scan_vault_v2/scan_vault_v2_cached on a blocking worker thread` (full format).
 
-- [ ] **Task 2: Coalesce the `vault-index-updated` listener.**
+- [x] **Task 2: Coalesce the `vault-index-updated` listener.**
   - Files: Modify `src/lib/core/layout/tauri-listeners.service.ts:85-114`. Test: `src/tests/lib/core/layout/tauri-listeners.service.test.ts`.
   - Step 1 (red): fake-timer tests — N events in <300 ms → exactly 1 `get_all_vault_entries_v2` invoke and 1 `bumpVaultIndexVersion` (with the LAST payload version); cleanup cancels a pending debounce (no invoke after unsubscribe); a stale response (older fetch resolving after a newer one) does not overwrite store state (latest-wins token).
   - Step 2 (green): wrap the handler body in `debounce(fn, 300)` from `$lib/utils/debounce` (pattern + rationale comment mirroring `tags.service.ts::scheduleTagIndexRebuild`). Keep `latestVersion` from the most recent payload; bump + fetch inside the debounced fn; guard responses with an incrementing `fetchSeq` token; returned cleanup calls `.cancel()` before `unlisten()`.

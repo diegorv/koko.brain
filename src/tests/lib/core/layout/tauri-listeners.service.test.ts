@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // --- Mocks ---
 
@@ -301,23 +301,42 @@ describe('registerVaultIndexUpdatedListener', () => {
 		expect(listen).toHaveBeenCalledWith('vault-index-updated', expect.any(Function));
 	});
 
-	it('bumps vaultIndexVersion from the payload when the event fires', async () => {
-		registerVaultIndexUpdatedListener();
-		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+	it('bumps vaultIndexVersion only after the 300ms debounce window', async () => {
+		vi.useFakeTimers();
+		try {
+			registerVaultIndexUpdatedListener();
+			expect(capturedEventHandler).toBeDefined();
 
-		expect(vaultStore.vaultIndexVersion).toBe(0);
-		capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 3 } });
-		expect(vaultStore.vaultIndexVersion).toBe(3);
+			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 3 } });
+			// No synchronous bump — the handler coalesces bursts behind a debounce.
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+
+			await vi.advanceTimersByTimeAsync(300);
+			expect(vaultStore.vaultIndexVersion).toBe(3);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
-	it('overwrites prior version on subsequent events', async () => {
-		registerVaultIndexUpdatedListener();
-		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+	it('coalesces a burst of events into a single bump carrying the last version', async () => {
+		vi.useFakeTimers();
+		try {
+			registerVaultIndexUpdatedListener();
+			expect(capturedEventHandler).toBeDefined();
 
-		capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
-		capturedEventHandler!({ payload: { changed: false, affected: [], version: 2 } });
-		capturedEventHandler!({ payload: { changed: true, affected: ['/x'], version: 5 } });
-		expect(vaultStore.vaultIndexVersion).toBe(5);
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+			await vi.advanceTimersByTimeAsync(100);
+			capturedEventHandler!({ payload: { changed: false, affected: [], version: 2 } });
+			await vi.advanceTimersByTimeAsync(100);
+			capturedEventHandler!({ payload: { changed: true, affected: ['/x'], version: 5 } });
+
+			// Each event re-arms the trailing debounce; nothing fired yet.
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+			await vi.advanceTimersByTimeAsync(300);
+			expect(vaultStore.vaultIndexVersion).toBe(5);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('returns a cleanup function that unsubscribes', async () => {
@@ -345,10 +364,14 @@ describe('registerVaultIndexUpdatedListener', () => {
 });
 
 describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
-	/** Flushes the invoke `.then` fan-out microtasks queued by the handler. */
-	const flushFanOut = () => new Promise((r) => setTimeout(r, 0));
+	/** Runs the 300ms trailing debounce and settles the invoke `.then` chain. */
+	const settleFanOut = async () => {
+		await vi.advanceTimersByTimeAsync(300);
+		await vi.advanceTimersByTimeAsync(0);
+	};
 
 	beforeEach(() => {
+		vi.useFakeTimers();
 		vi.clearAllMocks();
 		capturedEventHandler = undefined;
 		vaultStore._reset();
@@ -358,8 +381,13 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		vi.mocked(invoke).mockResolvedValue([]);
 	});
 
-	async function fireEvent(version: number) {
-		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function fireEvent(version: number) {
+		// The listen mock captures the handler synchronously at registration.
+		expect(capturedEventHandler).toBeDefined();
 		capturedEventHandler!({ payload: { changed: true, affected: [], version } });
 	}
 
@@ -372,8 +400,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		vi.mocked(invoke).mockResolvedValue(entries);
 
 		registerVaultIndexUpdatedListener();
-		await fireEvent(1);
-		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+		fireEvent(1);
+		await settleFanOut();
+		expect(typeDefinitionsStore.entriesVersion).toBe(1);
 
 		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
 		// refreshArchivedPaths → real lifecycleFilterStore
@@ -397,8 +426,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		]);
 
 		registerVaultIndexUpdatedListener();
-		await fireEvent(1);
-		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+		fireEvent(1);
+		await settleFanOut();
+		expect(typeDefinitionsStore.entriesVersion).toBe(1);
 
 		// Order map went from empty to one entry → tree reload with vault path.
 		expect(fsStore.contentOrder.get('/vault/pinned.md')).toBe(1);
@@ -414,8 +444,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		]);
 
 		registerVaultIndexUpdatedListener();
-		await fireEvent(1);
-		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+		fireEvent(1);
+		await settleFanOut();
+		expect(typeDefinitionsStore.entriesVersion).toBe(1);
 
 		expect(fsStore.contentOrder.get('/vault/pinned.md')).toBe(1);
 		expect(loadDirectoryTree).not.toHaveBeenCalled();
@@ -428,8 +459,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		]);
 
 		registerVaultIndexUpdatedListener();
-		await fireEvent(1);
-		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+		fireEvent(1);
+		await settleFanOut();
+		expect(typeDefinitionsStore.entriesVersion).toBe(1);
 
 		expect(fsStore.contentOrder.get('/vault/pinned.md')).toBe(3);
 		expect(loadDirectoryTree).not.toHaveBeenCalled();
@@ -440,14 +472,14 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveInvoke = r; }));
 
 		const cleanup = registerVaultIndexUpdatedListener();
-		await fireEvent(7);
-
-		// Version bump is synchronous — it happens before the fetch settles.
+		fireEvent(7);
+		// Debounce fires: bump applied, fetch starts (still pending).
+		await vi.advanceTimersByTimeAsync(300);
 		expect(vaultStore.vaultIndexVersion).toBe(7);
 
 		cleanup();
 		resolveInvoke([entryV2('/vault/late.md', { archived: true })]);
-		await flushFanOut();
+		await vi.advanceTimersByTimeAsync(0);
 
 		// cancelled flag dropped the late snapshot — no store writes.
 		expect(typeDefinitionsStore.entriesVersion).toBe(0);
@@ -456,31 +488,61 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		expect(fsStore.contentOrder.size).toBe(0);
 	});
 
-	it('re-fetches per event in a burst and the last snapshot wins', async () => {
-		const first = [entryV2('/vault/a.md')];
-		const second = [entryV2('/vault/a.md'), entryV2('/vault/b.md')];
-		const third = [entryV2('/vault/c.md', { archived: true })];
-		vi.mocked(invoke)
-			.mockResolvedValueOnce(first)
-			.mockResolvedValueOnce(second)
-			.mockResolvedValueOnce(third);
+	it('cleanup cancels a pending debounced refresh', async () => {
+		const cleanup = registerVaultIndexUpdatedListener();
+		fireEvent(9);
+
+		cleanup(); // before the 300ms window elapses
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(vaultStore.vaultIndexVersion).toBe(0);
+	});
+
+	it('coalesces a burst into one snapshot fetch carrying the final version', async () => {
+		const snapshot = [entryV2('/vault/c.md', { archived: true })];
+		vi.mocked(invoke).mockResolvedValue(snapshot);
 
 		registerVaultIndexUpdatedListener();
-		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
 
-		// Rapid burst: three events before any fan-out settles.
-		capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
-		capturedEventHandler!({ payload: { changed: true, affected: [], version: 2 } });
-		capturedEventHandler!({ payload: { changed: true, affected: [], version: 3 } });
+		// Rapid burst: three events inside one debounce window (watcher
+		// incremental loop emits one event per changed file).
+		fireEvent(1);
+		fireEvent(2);
+		fireEvent(3);
 
-		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(3));
+		await settleFanOut();
 
-		// One fetch per event — no dedup/coalescing in the listener.
-		expect(invoke).toHaveBeenCalledTimes(3);
+		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(vaultStore.vaultIndexVersion).toBe(3);
-		// Resolutions apply in order, so the final snapshot is the third one.
-		expect(typeDefinitionsStore.entries).toEqual(third);
+		expect(typeDefinitionsStore.entries).toEqual(snapshot);
 		expect(lifecycleFilterStore.isArchived('/vault/c.md')).toBe(true);
+	});
+
+	it('drops a stale in-flight response that resolves after a newer one', async () => {
+		const older = [entryV2('/vault/old.md')];
+		const newer = [entryV2('/vault/new.md')];
+		let resolveFirst!: (v: unknown) => void;
+		let resolveSecond!: (v: unknown) => void;
+		vi.mocked(invoke)
+			.mockReturnValueOnce(new Promise((r) => { resolveFirst = r; }))
+			.mockReturnValueOnce(new Promise((r) => { resolveSecond = r; }));
+
+		registerVaultIndexUpdatedListener();
+		fireEvent(1);
+		await vi.advanceTimersByTimeAsync(300); // fetch 1 in flight
+		fireEvent(2);
+		await vi.advanceTimersByTimeAsync(300); // fetch 2 in flight
+
+		resolveSecond(newer);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(typeDefinitionsStore.entries).toEqual(newer);
+
+		resolveFirst(older);
+		await vi.advanceTimersByTimeAsync(0);
+
+		// Latest-wins guard: the stale snapshot must not overwrite the newer one.
+		expect(typeDefinitionsStore.entries).toEqual(newer);
 	});
 
 	it('logs and leaves stores untouched when the entries fetch fails', async () => {
@@ -488,14 +550,13 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		vi.mocked(invoke).mockRejectedValue(new Error('ipc down'));
 
 		registerVaultIndexUpdatedListener();
-		await fireEvent(4);
+		fireEvent(4);
+		await settleFanOut();
 
-		await vi.waitFor(() =>
-			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('LISTENERS'),
-				'get_all_vault_entries_v2 failed:',
-				expect.any(Error),
-			),
+		expect(consoleErrorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('LISTENERS'),
+			'get_all_vault_entries_v2 failed:',
+			expect.any(Error),
 		);
 
 		// Version bump still applied; the fan-out stores are untouched.

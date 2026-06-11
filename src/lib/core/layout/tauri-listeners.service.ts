@@ -12,6 +12,7 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
+import { debounce } from '$lib/utils/debounce';
 import { error } from '$lib/utils/debug';
 import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
 
@@ -77,18 +78,33 @@ export function registerCloseHandler(): () => void {
  * via `$effect` on the version getter instead of polling.
  *
  * Phase 3.2 of the perf refactor (`tasks/todo/performance-architecture-refactor.md`).
- * Until per-feature consumers migrate (Phase 3.4 onwards), the bump is a
- * harmless reactive signal — nothing reads `vaultIndexVersion` yet.
  *
- * Returns a cleanup function to unsubscribe.
+ * The handler is debounced (300 ms trailing) because the event fires in
+ * bursts: the watcher incremental loop emits ONE event PER FILE
+ * (`watcher-handler.service.ts`), plus one per content-changed save and
+ * per 1 s typing pause. Each firing used to refetch the ENTIRE vault
+ * snapshot (`get_all_vault_entries_v2` — clone + sort + multi-MB JSON
+ * IPC) and re-run 4-5 O(N) rebuilds, so a 10-file burst meant 10
+ * full-snapshot fetches on the main thread (audit 2026-06-10, HIGH
+ * finding 3). Debouncing the bump itself also collapses the burst for
+ * every `vaultIndexVersion` consumer (TasksView, GraphView, panels) —
+ * same rationale and window as `tags.service.ts::scheduleTagIndexRebuild`.
+ * `fetchSeq` is a latest-wins guard: a slow older fetch resolving after
+ * a newer one must not overwrite the stores with a stale snapshot.
+ *
+ * Returns a cleanup function to unsubscribe (cancels any pending refresh).
  */
 export function registerVaultIndexUpdatedListener(): () => void {
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
-	listen<UpdateResultV2>('vault-index-updated', (event) => {
-		vaultStore.bumpVaultIndexVersion(event.payload.version);
+	let latestVersion = 0;
+	let fetchSeq = 0;
+
+	const refresh = () => {
+		vaultStore.bumpVaultIndexVersion(latestVersion);
+		const seq = ++fetchSeq;
 		invoke<NoteEntryV2[]>('get_all_vault_entries_v2').then((entries) => {
-			if (cancelled) return;
+			if (cancelled || seq !== fetchSeq) return;
 			refreshArchivedPaths(entries);
 			refreshTypeDefinitions(entries);
 			typeDefinitionsStore.setEntries(entries);
@@ -101,6 +117,12 @@ export function registerVaultIndexUpdatedListener(): () => void {
 				loadDirectoryTree(vaultStore.path);
 			}
 		}).catch((err) => { error('LISTENERS', 'get_all_vault_entries_v2 failed:', err); });
+	};
+	const debouncedRefresh = debounce(refresh, 300);
+
+	listen<UpdateResultV2>('vault-index-updated', (event) => {
+		latestVersion = event.payload.version;
+		debouncedRefresh();
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
@@ -109,6 +131,7 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	});
 	return () => {
 		cancelled = true;
+		debouncedRefresh.cancel();
 		unlisten?.();
 	};
 }

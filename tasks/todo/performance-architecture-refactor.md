@@ -158,6 +158,7 @@ Replaces the abandoned PoC archived at `tasks/done/performance-architecture-refa
 ## Notes
 
 - **2026-06-11 (audit round 2, Task 1):** `scan_vault_v2`/`scan_vault_v2_cached` moved off the IPC thread via async + `spawn_blocking` (HIGH audit finding 1; fixed in `tasks/todo/audit-round2-high-fixes.md`).
+- **2026-06-11 (audit round 2, Task 2):** the Phase 3.2 `vault-index-updated` listener now coalesces bursts (300 ms trailing debounce on bump + snapshot fetch, latest-wins fetch guard) — HIGH audit finding 3. Debouncing the bump also collapses bursts for every `vaultIndexVersion` consumer (TasksView/GraphView, audit mediums 22/26). Still unowned follow-up: `GraphView.svelte` restarts the d3 simulation and resets layout on every single legit index bump (medium 26's UX half).
 - **Branch**: `claude/perf-refactor` (from `origin/main`).
 - **Commit policy**: One commit per task, full Context/Problem/Solution/Behavior/Files format (see `docs/COMMITS.md`). Run relevant tests before each commit. No batching.
 - **Ordering**: 1→2→3 strict. 4 parallel with 2-3. 5 standalone after 0. 6, 7, 8 any order. 9 requires 2-8 live. 10 and 11 must not be combined; 11.5 ships only after **2 days** of stable 11.1-11.4 - `legacyTsIndexers` flag retained for first release.
