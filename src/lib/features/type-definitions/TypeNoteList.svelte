@@ -277,9 +277,7 @@
 		const noteResolved = resolveIconForPath(notePath);
 		if (noteResolved?.icon) return noteResolved;
 		if (selection?.kind === 'type') {
-			const defPath = typeDefinitionsStore.entries.find(
-				(e) => e.isA === 'Type' && e.title === selection.name,
-			)?.path;
+			const defPath = typeDefinitionsStore.getTypeDefinitionPath(selection.name);
 			if (defPath) {
 				const typeResolved = resolveIconForPath(defPath);
 				if (typeResolved?.icon) return typeResolved;

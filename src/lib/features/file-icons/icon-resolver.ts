@@ -48,31 +48,19 @@ export function resolveIconForPath(path: string): ResolvedIcon | undefined {
 export function resolveIconForType(typeName: string): ResolvedIcon | undefined {
 	void fileIconsStore.packVersion;
 
-	const entries = typeDefinitionsStore.entries;
-	for (const entry of entries) {
-		if (entry.isA === 'Type' && entry.title === typeName) {
-			const fmRef = fileIconsStore.getFrontmatterIcon(entry.path);
-			if (fmRef) {
-				const icon = getIconSync(fmRef.iconPack, fmRef.iconName);
-				if (icon) return { icon, color: fmRef.color, titleColor: fmRef.titleColor };
-			}
-			break;
-		}
+	const defPath = typeDefinitionsStore.getTypeDefinitionPath(typeName);
+	if (!defPath) return undefined;
+	const fmRef = fileIconsStore.getFrontmatterIcon(defPath);
+	if (fmRef) {
+		const icon = getIconSync(fmRef.iconPack, fmRef.iconName);
+		if (icon) return { icon, color: fmRef.color, titleColor: fmRef.titleColor };
 	}
 	return undefined;
 }
 
 /** Finds the file's type via isA, then resolves the type definition's icon */
 function resolveTypeIconForPath(path: string): ResolvedIcon | undefined {
-	const entries = typeDefinitionsStore.entries;
-
-	let typeName: string | null = null;
-	for (const entry of entries) {
-		if (entry.path === path) {
-			typeName = entry.isA;
-			break;
-		}
-	}
+	const typeName = typeDefinitionsStore.getEntryByPath(path)?.isA;
 	if (!typeName || typeName === 'Type') return undefined;
 
 	return resolveIconForType(typeName);
