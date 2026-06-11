@@ -268,6 +268,29 @@ describe('settingsStore', () => {
 			expect(settingsStore.updates.channel).toBe('stable');
 		});
 
+		it('keybindings default the cycle-sidebar shortcut to Cmd+Shift+E', () => {
+			expect(settingsStore.keybindings.cycleSidebarView).toEqual({
+				key: 'e',
+				meta: true,
+				shift: true,
+				alt: false,
+				ctrl: false,
+			});
+		});
+
+		it('updateKeybindings replaces the cycle-sidebar shortcut', () => {
+			settingsStore.updateKeybindings({
+				cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false },
+			});
+			expect(settingsStore.keybindings.cycleSidebarView).toEqual({
+				key: 'l',
+				meta: true,
+				shift: false,
+				alt: true,
+				ctrl: false,
+			});
+		});
+
 	});
 
 	describe('reset', () => {

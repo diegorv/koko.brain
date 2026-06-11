@@ -442,6 +442,57 @@ describe('loadSettings', () => {
 		});
 	});
 
+	describe('keybindings', () => {
+		it('defaults the cycle-sidebar shortcut when the file omits keybindings', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.keybindings.cycleSidebarView).toEqual(
+				DEFAULT_SETTINGS.keybindings.cycleSidebarView,
+			);
+		});
+
+		it('respects a fully-specified custom cycle-sidebar shortcut', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ keybindings: { cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false } } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.keybindings.cycleSidebarView).toEqual({
+				key: 'l',
+				meta: true,
+				shift: false,
+				alt: true,
+				ctrl: false,
+			});
+		});
+
+		it('merges a partial saved shortcut with the default modifiers', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ keybindings: { cycleSidebarView: { key: 'j' } } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			// key overridden, modifiers fall back to the default Cmd+Shift.
+			expect(settingsStore.settings.keybindings.cycleSidebarView).toEqual({
+				key: 'j',
+				meta: true,
+				shift: true,
+				alt: false,
+				ctrl: false,
+			});
+		});
+	});
+
 	it('normalizes appearance settings on load', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

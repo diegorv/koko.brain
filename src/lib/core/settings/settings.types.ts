@@ -260,8 +260,32 @@ export interface UpdateSettings {
 	lastCheckedAt: number | null;
 }
 
+/**
+ * A serializable keyboard shortcut (modifiers + a single key, no handler).
+ * Backs user-customizable global shortcuts persisted in settings. The `key`
+ * is matched case-insensitively against `KeyboardEvent.key`.
+ */
+export interface KeybindingConfig {
+	/** Primary key, matched case-insensitively against `KeyboardEvent.key` (e.g. "e") */
+	key: string;
+	/** Requires the Cmd/Meta key */
+	meta: boolean;
+	/** Requires the Shift key */
+	shift: boolean;
+	/** Requires the Alt/Option key */
+	alt: boolean;
+	/** Requires the Ctrl key */
+	ctrl: boolean;
+}
+
+/** User-customizable global keyboard shortcuts persisted in settings */
+export interface KeybindingsSettings {
+	/** Shortcut that cycles the left sidebar view (Files -> Types -> Calendar) */
+	cycleSidebarView: KeybindingConfig;
+}
+
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -271,6 +295,8 @@ export interface AppSettings {
 	layout: LayoutSettings;
 	folderNotes: FolderNotesSettings;
 	editor: EditorSettings;
+	/** User-customizable global keyboard shortcuts */
+	keybindings: KeybindingsSettings;
 	templates: TemplatesSettings;
 	appearance: import('./theme.types').AppearanceSettings;
 	/** File history feature configuration */

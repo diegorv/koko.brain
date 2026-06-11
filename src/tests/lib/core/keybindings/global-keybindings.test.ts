@@ -96,10 +96,13 @@ describe('registerGlobalKeybindings', () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
-	it('registers all 21 global keybindings', () => {
+	it('registers all 20 fixed global keybindings via registerKeybinding', () => {
+		// The customizable Cycle Sidebar View shortcut is registered as a
+		// separate dynamic listener (not through registerKeybinding), so the
+		// fixed-binding count is 20.
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(21);
+		expect(registerKeybinding).toHaveBeenCalledTimes(20);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -330,16 +333,52 @@ describe('registerGlobalKeybindings', () => {
 			expect(saveSettings).toHaveBeenCalledWith('/vault');
 		});
 
-		it('Cmd+Shift+E handler cycles the sidebar view and reveals a hidden sidebar', () => {
+		it('cycle-sidebar dynamic listener cycles the view and reveals a hidden sidebar (default Cmd+Shift+E)', () => {
+			const addSpy = vi.spyOn(document, 'addEventListener');
 			settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: false });
-			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'e', meta: true, shift: true });
+			const cleanup = registerGlobalKeybindings();
+			// registerKeybinding is mocked (no real listeners), so the only
+			// keydown listener added is the dynamic cycle-sidebar one.
+			const keydownCall = addSpy.mock.calls.find(([type]) => type === 'keydown');
+			expect(keydownCall).toBeDefined();
+			const listener = keydownCall![1] as (e: KeyboardEvent) => void;
 
-			handler();
+			listener({
+				key: 'e',
+				metaKey: true,
+				shiftKey: true,
+				altKey: false,
+				ctrlKey: false,
+				preventDefault: vi.fn(),
+			} as unknown as KeyboardEvent);
 
 			expect(settingsStore.layout.sidebarMode).toBe('types');
 			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 			expect(saveSettings).toHaveBeenCalledWith('/vault');
+
+			cleanup();
+			addSpy.mockRestore();
+		});
+
+		it('cycle-sidebar dynamic listener respects a customized binding', () => {
+			const addSpy = vi.spyOn(document, 'addEventListener');
+			settingsStore.updateLayout({ sidebarMode: 'files' });
+			settingsStore.updateKeybindings({
+				cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false },
+			});
+			const cleanup = registerGlobalKeybindings();
+			const listener = addSpy.mock.calls.find(([type]) => type === 'keydown')![1] as (e: KeyboardEvent) => void;
+
+			// Old default combo no longer cycles.
+			listener({ key: 'e', metaKey: true, shiftKey: true, altKey: false, ctrlKey: false, preventDefault: vi.fn() } as unknown as KeyboardEvent);
+			expect(settingsStore.layout.sidebarMode).toBe('files');
+
+			// New combo (Cmd+Alt+L) cycles.
+			listener({ key: 'l', metaKey: true, shiftKey: false, altKey: true, ctrlKey: false, preventDefault: vi.fn() } as unknown as KeyboardEvent);
+			expect(settingsStore.layout.sidebarMode).toBe('types');
+
+			cleanup();
+			addSpy.mockRestore();
 		});
 
 		it('Cmd+Shift+B handler toggles layout but does not save when vault path is null', () => {

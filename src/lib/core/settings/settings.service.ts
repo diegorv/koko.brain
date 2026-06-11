@@ -83,6 +83,12 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.folderNotes,
 				...parsed.folderNotes,
 			},
+			keybindings: {
+				cycleSidebarView: {
+					...DEFAULT_SETTINGS.keybindings.cycleSidebarView,
+					...parsed.keybindings?.cycleSidebarView,
+				},
+			},
 			editor: {
 				...DEFAULT_SETTINGS.editor,
 				...parsed.editor,

@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -64,6 +64,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	folderNotes: {
 		enabled: true,
+	},
+	keybindings: {
+		cycleSidebarView: { key: 'e', meta: true, shift: true, alt: false, ctrl: false },
 	},
 	editor: {
 		fontFamily: 'iA Writer Duo S',
@@ -133,6 +136,7 @@ export const settingsStore = {
 	get oneOnOne() { return settings.oneOnOne; },
 	get layout() { return settings.layout; },
 	get folderNotes() { return settings.folderNotes; },
+	get keybindings() { return settings.keybindings; },
 	get editor() { return settings.editor; },
 	get templates() { return settings.templates; },
 	get appearance() { return settings.appearance; },
@@ -214,6 +218,17 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			folderNotes: { ...settings.folderNotes, ...value },
+		};
+	},
+
+	/**
+	 * Partially updates customizable keyboard shortcuts, merging with existing
+	 * values. Each shortcut is replaced wholesale (a full KeybindingConfig).
+	 */
+	updateKeybindings(value: Partial<KeybindingsSettings>) {
+		settings = {
+			...settings,
+			keybindings: { ...settings.keybindings, ...value },
 		};
 	},
 

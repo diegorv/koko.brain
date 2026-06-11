@@ -11,6 +11,7 @@
 	import AppearanceSection from '$lib/core/settings/sections/AppearanceSection.svelte';
 	import GeneralSection from '$lib/core/settings/sections/GeneralSection.svelte';
 	import EditorSection from '$lib/core/settings/sections/EditorSection.svelte';
+	import KeybindingsSection from '$lib/core/settings/sections/KeybindingsSection.svelte';
 	import PeriodicNotesSection from '$lib/core/settings/sections/PeriodicNotesSection.svelte';
 	import QuickCaptureSection from '$lib/core/settings/sections/QuickCaptureSection.svelte';
 	import OneOnOneSection from '$lib/core/settings/sections/OneOnOneSection.svelte';
@@ -27,6 +28,7 @@
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
+	import KeyboardIcon from '@lucide/svelte/icons/keyboard';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ZapIcon from '@lucide/svelte/icons/zap';
 	import UsersIcon from '@lucide/svelte/icons/users';
@@ -48,6 +50,7 @@
 		appearance: PaletteIcon,
 		sidebar: PanelLeftIcon,
 		editor: PencilLineIcon,
+		keybindings: KeyboardIcon,
 		'periodic-notes': CalendarDaysIcon,
 		'quick-capture': ZapIcon,
 		'one-on-one': UsersIcon,
@@ -130,6 +133,8 @@
 					<GeneralSection onchange={debouncedSave} />
 				{:else if settingsPanelStore.activeSection === 'editor'}
 					<EditorSection onchange={debouncedSave} />
+				{:else if settingsPanelStore.activeSection === 'keybindings'}
+					<KeybindingsSection onchange={debouncedSave} />
 				{:else if settingsPanelStore.activeSection === 'periodic-notes'}
 					<PeriodicNotesSection onchange={debouncedSave} />
 				{:else if settingsPanelStore.activeSection === 'quick-capture'}

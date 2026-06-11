@@ -20,8 +20,27 @@ import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 import { cycleSidebarMode } from '$lib/core/layout/layout.service';
+import { matchesKeybinding } from '$lib/core/keybindings/keybindings.logic';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
 import { error } from '$lib/utils/debug';
+
+/**
+ * Registers the customizable "cycle sidebar view" shortcut as a dedicated
+ * listener that reads its binding from settings on every keypress. This makes
+ * edits in the Keybindings settings section take effect immediately, without
+ * re-registering the binding or restarting the app.
+ * Returns a cleanup function that removes the listener.
+ */
+function registerCycleSidebarKeybinding(): () => void {
+	function onKeyDown(e: KeyboardEvent) {
+		if (matchesKeybinding(e, settingsStore.keybindings.cycleSidebarView)) {
+			e.preventDefault();
+			cycleSidebarMode();
+		}
+	}
+	document.addEventListener('keydown', onKeyDown);
+	return () => document.removeEventListener('keydown', onKeyDown);
+}
 
 /**
  * Registers all app-wide keyboard shortcuts.
@@ -136,12 +155,9 @@ export function registerGlobalKeybindings(): () => void {
 			meta: true,
 			handler: () => toggleSourceMode(),
 		}),
-		registerKeybinding({
-			key: 'e',
-			meta: true,
-			shift: true,
-			handler: () => cycleSidebarMode(),
-		}),
+		// Cycle Sidebar View — user-customizable, registered as a dynamic
+		// listener so settings changes apply live (default: Cmd+Shift+E).
+		registerCycleSidebarKeybinding(),
 	];
 
 	return () => cleanups.forEach((cleanup) => cleanup());
