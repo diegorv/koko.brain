@@ -162,7 +162,7 @@ function matchesSelection(entry: NoteEntryV2, selection: TypeSidebarSelection): 
 		case 'type':
 			return entry.isA === selection.name;
 		case 'untyped':
-			return !entry.isA && entry.isA !== 'Type';
+			return !entry.isA;
 		case 'nav':
 			return entry.isA !== 'Type';
 		case 'view':
@@ -188,7 +188,7 @@ export function getNotesForSelection(
 			break;
 		}
 		case 'untyped':
-			filtered = entries.filter((e) => !e.isA && e.isA !== 'Type' && matchesSubFilter(e, subFilter));
+			filtered = entries.filter((e) => !e.isA && matchesSubFilter(e, subFilter));
 			break;
 		case 'nav':
 			filtered = filterByNavItem(entries, selection.id, subFilter);

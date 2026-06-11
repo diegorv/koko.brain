@@ -394,6 +394,18 @@ describe('getNotesForSelection', () => {
 		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
 	});
 
+	it('excludes every typed note from untyped selection, including isA "Type" and empty string', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: '' }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Type' }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project' }),
+			entryV2('/v/d.md', { title: 'D', isA: null }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
+		// '' is falsy -> untyped; 'Type' and 'Project' are typed.
+		expect(notes.map((n) => n.title)).toEqual(['A', 'D']);
+	});
+
 	it('returns empty when no notes match type', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),
@@ -563,6 +575,20 @@ describe('countSubFilters', () => {
 		const counts = countSubFilters(entries, { kind: 'nav', id: 'all' });
 		expect(counts.open).toBe(1);
 		expect(counts.archived).toBe(1);
+	});
+
+	it('buckets only typeless notes for untyped selection (every isA value excluded)', () => {
+		const entries = [
+			entryV2('/v/a.md', { isA: null, archived: false, favorite: true }),
+			entryV2('/v/b.md', { isA: '', archived: false }),
+			entryV2('/v/c.md', { isA: null, archived: true }),
+			entryV2('/v/d.md', { isA: 'Type', archived: false }),
+			entryV2('/v/e.md', { isA: 'Project', archived: false }),
+		];
+		const counts = countSubFilters(entries, { kind: 'untyped' });
+		expect(counts.open).toBe(2);
+		expect(counts.archived).toBe(1);
+		expect(counts.favorites).toBe(1);
 	});
 });
 
