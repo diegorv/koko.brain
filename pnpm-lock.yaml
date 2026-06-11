@@ -132,8 +132,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       dayjs:
-        specifier: ^1.11.20
-        version: 1.11.20
+        specifier: ^1.11.21
+        version: 1.11.21
       dompurify:
         specifier: ^3.4.5
         version: 3.4.5
@@ -1528,8 +1528,8 @@ packages:
     resolution: {integrity: sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
-  dayjs@1.11.20:
-    resolution: {integrity: sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ==}
+  dayjs@1.11.21:
+    resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
 
   decimal.js@10.6.0:
     resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
@@ -3692,7 +3692,7 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  dayjs@1.11.20: {}
+  dayjs@1.11.21: {}
 
   decimal.js@10.6.0: {}
 
@@ -4011,7 +4011,7 @@ snapshots:
       d3: 7.9.0
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
-      dayjs: 1.11.20
+      dayjs: 1.11.21
       dompurify: 3.4.5
       es-toolkit: 1.46.1
       katex: 0.16.47
