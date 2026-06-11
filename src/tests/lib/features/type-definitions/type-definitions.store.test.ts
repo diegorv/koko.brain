@@ -92,6 +92,59 @@ describe('typeDefinitionsStore', () => {
 		});
 	});
 
+	describe('getEntryByPath', () => {
+		it('returns the entry for a known path', () => {
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/a.md', title: 'a', isA: null },
+				{ path: '/vault/b.md', title: 'b', isA: 'Project' },
+			] as any);
+
+			expect(typeDefinitionsStore.getEntryByPath('/vault/b.md')?.title).toBe('b');
+		});
+
+		it('returns undefined for an unknown path', () => {
+			typeDefinitionsStore.setEntries([{ path: '/vault/a.md', title: 'a', isA: null }] as any);
+
+			expect(typeDefinitionsStore.getEntryByPath('/vault/missing.md')).toBeUndefined();
+		});
+
+		it('reflects the latest setEntries call (old paths drop out)', () => {
+			typeDefinitionsStore.setEntries([{ path: '/vault/old.md', title: 'old', isA: null }] as any);
+			typeDefinitionsStore.setEntries([{ path: '/vault/new.md', title: 'new', isA: null }] as any);
+
+			expect(typeDefinitionsStore.getEntryByPath('/vault/old.md')).toBeUndefined();
+			expect(typeDefinitionsStore.getEntryByPath('/vault/new.md')?.title).toBe('new');
+		});
+	});
+
+	describe('getTypeDefinitionPath', () => {
+		it('returns the definition path for a Type entry keyed by title', () => {
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/note.md', title: 'note', isA: 'Newsletter' },
+				{ path: '/vault/Newsletter.md', title: 'Newsletter', isA: 'Type' },
+			] as any);
+
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Newsletter')).toBe('/vault/Newsletter.md');
+		});
+
+		it('returns undefined for a type without a definition entry', () => {
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/note.md', title: 'note', isA: 'Newsletter' },
+			] as any);
+
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Newsletter')).toBeUndefined();
+		});
+
+		it('keeps the first definition when titles collide (matches scan order)', () => {
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/first/Project.md', title: 'Project', isA: 'Type' },
+				{ path: '/vault/second/Project.md', title: 'Project', isA: 'Type' },
+			] as any);
+
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Project')).toBe('/vault/first/Project.md');
+		});
+	});
+
 	describe('selectedTypeOrNav', () => {
 		it('starts null', () => {
 			expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
@@ -124,7 +177,9 @@ describe('typeDefinitionsStore', () => {
 			typeDefinitionsStore.setTypeMetadataMap(
 				new Map([['X', makeMeta({ name: 'X', order: 1 })]])
 			);
-			typeDefinitionsStore.setEntries([{} as any]);
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/X.md', title: 'X', isA: 'Type' } as any,
+			]);
 			typeDefinitionsStore.setSelection({ kind: 'type', name: 'X' });
 
 			typeDefinitionsStore.reset();
@@ -134,6 +189,8 @@ describe('typeDefinitionsStore', () => {
 			expect(typeDefinitionsStore.entriesVersion).toBe(0);
 			expect(typeDefinitionsStore.sortedTypes).toEqual([]);
 			expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+			expect(typeDefinitionsStore.getEntryByPath('/vault/X.md')).toBeUndefined();
+			expect(typeDefinitionsStore.getTypeDefinitionPath('X')).toBeUndefined();
 		});
 	});
 });
