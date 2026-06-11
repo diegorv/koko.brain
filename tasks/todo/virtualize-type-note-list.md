@@ -11,7 +11,7 @@ bottleneck.
 
 - [x] Task 1: Add `virtua` dependency (latest quarantine-compliant 0.49.x), verify install + `pnpm check` + `pnpm vitest run` green
 - [x] Task 2: Refactor TypeNoteList to render rows through `VList` (children snippet, per-row divider, empty state outside, `getKey` by path, fill-height styling inside the ContextMenu trigger container); update `TypeNoteList.perf.test.ts` to the virtualization contract (bounded rendered-row count, content assertions, timing ceiling, ResizeObserver stub for jsdom if needed)
-- [ ] Task 3: Run full gates + E2E suite (`bash scripts/e2e.sh`), fix fallout, move this plan to tasks/done/
+- [x] Task 3: Run full gates + E2E suite (`bash scripts/e2e.sh`), fix fallout, move this plan to tasks/done/
 
 ## Notes
 
