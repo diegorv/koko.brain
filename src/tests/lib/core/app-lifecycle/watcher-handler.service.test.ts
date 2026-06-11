@@ -247,6 +247,38 @@ describe('rebuildAllIndexes — incremental path', () => {
 		});
 	});
 
+	it('skips FTS/semantic updates for paths outside the vault prefix instead of leaking absolute keys', async () => {
+		// A canonicalized watcher path (e.g. /private/var/... for a /var/...
+		// symlinked vault) does not share the vaultPath prefix. Deriving a
+		// "relative" key from it would corrupt the vault-relative-keyed FTS
+		// and semantic tables, so those updates must be skipped entirely.
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/private/vault-real/notes/external.md', content: '# edit' },
+		]);
+
+		await rebuildAllIndexes(['/private/vault-real/notes/external.md']);
+
+		// Absolute-keyed updaters still run (VaultIndex uses absolute paths).
+		expect(updateNoteInIndex).toHaveBeenCalledWith('/private/vault-real/notes/external.md', '# edit');
+		// Vault-relative-keyed updates must NOT receive the absolute path.
+		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
+		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
+	});
+
+	it('skips FTS removal for deleted paths outside the vault prefix', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/private/vault-real/notes/gone.md', content: null },
+		]);
+
+		await rebuildAllIndexes(['/private/vault-real/notes/gone.md']);
+
+		// Rust-side absolute-keyed removal still runs.
+		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', {
+			path: '/private/vault-real/notes/gone.md',
+		});
+		expect(invoke).not.toHaveBeenCalledWith('remove_from_search_index', expect.anything());
+	});
+
 	it('falls back to full rebuild when incremental fails', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('read failed'));
 
