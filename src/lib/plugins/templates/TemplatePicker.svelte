@@ -32,10 +32,13 @@
 
 	async function confirmCreate() {
 		if (!fileName.trim() || !selectedTemplatePath) return;
+		// Capture both values BEFORE reset() — it clears fileName and
+		// selectedTemplatePath, so reading them afterwards would pass ''.
 		const path = selectedTemplatePath;
+		const name = fileName.trim();
 		reset();
 		try {
-			await createFileFromTemplate(path, fileName.trim());
+			await createFileFromTemplate(path, name);
 		} catch (err) {
 			console.error('Failed to create file from template:', err);
 			toast.error('Failed to create file from template.');

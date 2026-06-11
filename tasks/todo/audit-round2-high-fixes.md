@@ -34,7 +34,7 @@ Closes the remaining HIGH findings from `.scratch/audit-2026-06-10/findings.md` 
   - Step 4: note in `performance-architecture-refactor.md` Notes: central coalescing landed here; GraphView per-update layout reset (medium 26) remains follow-up.
   - Step 5: commit `fix(layout): debounce vault-index-updated fan-out with latest-wins fetch guard`.
 
-- [ ] **Task 3: TemplatePicker creates a nameless `.md` file.**
+- [x] **Task 3: TemplatePicker creates a nameless `.md` file.**
   - Files: Modify `src/lib/plugins/templates/TemplatePicker.svelte:33-43`. Test: create `src/tests/lib/plugins/templates/TemplatePicker.test.ts` (component test via `mount()` — pattern from `src/tests/lib/features/backlinks/BacklinksPanel.test.ts`: jsdom pragma, real stores, mock only `templates.service`).
   - Step 1 (red): mount picker with `templatesStore.open()` + `setTemplates([{name:'Daily', path:'/vault/_templates/Daily.md'}])`; click the template `Command.Item`; set the filename input value + dispatch `input`; keydown Enter; assert `createFileFromTemplate` called with `('/vault/_templates/Daily.md', 'My Note')`. Currently fails: called with `''` (`reset()` at `:36` clears `fileName` before the `:38` read). Fallback if bits-ui `Command.Dialog` won't render in jsdom: test via the service seam (assert `createFileFromTemplate` rejects empty `fileName` + add that guard) and document why.
   - Step 2 (green): capture `const name = fileName.trim();` BEFORE `reset()`; pass `name`.
