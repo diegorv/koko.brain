@@ -182,6 +182,12 @@ describe('settingsStore', () => {
 		it('updateTodoist merges with existing', () => {
 			settingsStore.updateTodoist({ apiToken: 'abc123' });
 			expect(settingsStore.todoist.apiToken).toBe('abc123');
+			expect(settingsStore.todoist.defaultLabel).toBe(DEFAULT_SETTINGS.todoist.defaultLabel);
+
+			// Partial update of one field preserves the other
+			settingsStore.updateTodoist({ defaultLabel: 'inbox' });
+			expect(settingsStore.todoist.defaultLabel).toBe('inbox');
+			expect(settingsStore.todoist.apiToken).toBe('abc123');
 		});
 
 		it('updateDebugMode sets the flag', () => {

@@ -7,7 +7,7 @@ import { todoistStore } from './todoist.store.svelte';
 import { createTodoistClient } from './todoist-client';
 import type { TodoistProject, TodoistSection, SentTaskEntry } from './todoist.types';
 import type { TaskMetadata } from './task-metadata.types';
-import { buildTodoistArgs } from './todoist-bridge.logic';
+import { buildTodoistArgs, mergeLabel } from './todoist-bridge.logic';
 
 const SENT_TASKS_FILE = '.kokobrain/todoist-sent.json';
 
@@ -203,6 +203,12 @@ export async function sendTaskToTodoist(
 			...(sectionId && { sectionId }),
 			...(priority !== undefined && { priority }),
 		} as AddTaskArgs;
+
+		// Apply the configured default label to every created task (deduped vs tag labels)
+		const defaultLabel = settingsStore.todoist.defaultLabel;
+		if (defaultLabel?.trim()) {
+			args.labels = mergeLabel(args.labels, defaultLabel);
+		}
 
 		const result = await createTodoistTask(token, args);
 

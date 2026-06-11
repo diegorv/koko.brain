@@ -194,6 +194,8 @@ export interface SearchSettings {
 export interface TodoistSettings {
 	/** Todoist personal API token (from Settings → Integrations → Developer) */
 	apiToken: string;
+	/** Label name applied to every task created by the app (empty = none) */
+	defaultLabel: string;
 }
 
 /** Configuration for tag color assignments */

@@ -9,6 +9,11 @@
 		settingsStore.updateTodoist({ apiToken: value });
 		onchange();
 	}
+
+	function handleDefaultLabelChange(value: string) {
+		settingsStore.updateTodoist({ defaultLabel: value });
+		onchange();
+	}
 </script>
 
 <div class="flex flex-col gap-2">
@@ -36,4 +41,17 @@
 			todoist.com/prefs/integrations
 		</button>
 	</p>
+
+	<SettingItem
+		label="Default label"
+		description="Added to every task created from the app. Todoist creates the label automatically if it doesn't exist. Leave empty for none."
+	>
+		<input
+			type="text"
+			value={settingsStore.todoist.defaultLabel}
+			oninput={(e) => handleDefaultLabelChange(e.currentTarget.value)}
+			placeholder="e.g. inbox"
+			class="h-8 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+		/>
+	</SettingItem>
 </div>

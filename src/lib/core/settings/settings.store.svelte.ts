@@ -102,6 +102,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	todoist: {
 		apiToken: '',
+		defaultLabel: '',
 	},
 	debugMode: false,
 	debugModeTauri: false,

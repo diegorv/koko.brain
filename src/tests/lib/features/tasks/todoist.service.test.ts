@@ -536,6 +536,84 @@ describe('sendTaskToTodoist', () => {
 		);
 	});
 
+	it('applies the configured default label to a task without metadata', async () => {
+		settingsStore.updateTodoist({ defaultLabel: 'inbox' });
+		mockAddTask.mockResolvedValue({
+			id: 'td-70',
+			content: 'Plain task',
+			url: 'https://todoist.com/task/70',
+			checked: false,
+		});
+
+		await sendTaskToTodoist('/vault/todo.md', 'Plain task');
+
+		expect(mockAddTask).toHaveBeenCalledWith({
+			content: 'Plain task',
+			labels: ['inbox'],
+		});
+	});
+
+	it('appends the default label alongside tag-derived labels', async () => {
+		settingsStore.updateTodoist({ defaultLabel: 'inbox' });
+		mockAddTask.mockResolvedValue({
+			id: 'td-71',
+			content: 'Tagged task',
+			url: 'https://todoist.com/task/71',
+			checked: false,
+		});
+
+		await sendTaskToTodoist(
+			'/vault/todo.md',
+			'Tagged task',
+			undefined,
+			undefined,
+			undefined,
+			{ description: 'Tagged task', tags: ['work'] },
+		);
+
+		expect(mockAddTask).toHaveBeenCalledWith(
+			expect.objectContaining({ labels: ['work', 'inbox'] }),
+		);
+	});
+
+	it('does not duplicate the default label when a tag already matches', async () => {
+		settingsStore.updateTodoist({ defaultLabel: 'work' });
+		mockAddTask.mockResolvedValue({
+			id: 'td-72',
+			content: 'Work task',
+			url: 'https://todoist.com/task/72',
+			checked: false,
+		});
+
+		await sendTaskToTodoist(
+			'/vault/todo.md',
+			'Work task',
+			undefined,
+			undefined,
+			undefined,
+			{ description: 'Work task', tags: ['work'] },
+		);
+
+		expect(mockAddTask).toHaveBeenCalledWith(
+			expect.objectContaining({ labels: ['work'] }),
+		);
+	});
+
+	it('adds no labels field when the default label is blank', async () => {
+		settingsStore.updateTodoist({ defaultLabel: '   ' });
+		mockAddTask.mockResolvedValue({
+			id: 'td-73',
+			content: 'No label task',
+			url: 'https://todoist.com/task/73',
+			checked: false,
+		});
+
+		await sendTaskToTodoist('/vault/todo.md', 'No label task');
+
+		expect(mockAddTask).toHaveBeenCalledWith({ content: 'No label task' });
+		expect(mockAddTask.mock.calls[0][0]).not.toHaveProperty('labels');
+	});
+
 	it('clears sending flag even on error', async () => {
 		mockAddTask.mockRejectedValue(new Error('Server Error'));
 
