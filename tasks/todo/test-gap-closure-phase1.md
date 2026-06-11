@@ -77,7 +77,7 @@
   - `src-tauri/src/lib.rs` — App wiring / Tauri command registration, no tests. Low value (verified only at compile time).
   - `src-tauri/tests/commands/vault_test.rs` — Dead-but-registered commands (get_notes_with_tag_v2, get_tasks_in_path_v2, query_notes_by_property, get_property_values, get_note_properties, get_search_index_stats) have Rust-side tests but no TS consumer or contract te
   - Verificar: `cargo test --manifest-path src-tauri/Cargo.toml` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote R2 - rust db + search (fts_repo, db/mod, text_search)**
+- [x] **Lote R2 - rust db + search (fts_repo, db/mod, text_search)**
   - `src-tauri/src/db/fts_repo.rs` — No direct tests for insert_entry/delete_entry/search_match/expand_vocab_terms; only indirect coverage via search_index::search_fts calls in search_fts_test.rs.
   - `src-tauri/src/db/mod.rs` — is_open(): no test for poisoned lock behavior. No test distinguishing 'database closed' vs 'lock poisoned' case.
   - `src-tauri/src/search/text_search.rs` — No integration tests in src-tauri/tests/ for full text search across vault files; unit tests exist in-file but integration coverage is missing
