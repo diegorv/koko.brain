@@ -1284,6 +1284,28 @@ fn remove_entry_rebuilds_backlinks_for_promoted_surviving_sibling() {
 	);
 }
 
+#[test]
+fn remove_entry_reports_promoted_path_in_affected_set() {
+	// Contract (index.rs, UpdateResult::affected): every path whose backlinks
+	// set was modified must be reported. The promotion block rebuilds
+	// `backlinks[surviving]`, so the surviving sibling must appear in
+	// `affected` alongside the targets that lost the removed source.
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/linker.md", &["foo"]),
+		entry_with_tags("/v/foo.md", &[]),
+		entry_with_tags("/v/subdir/foo.md", &[]),
+	]);
+
+	let result = idx.remove_entry("/v/foo.md");
+
+	assert!(
+		result.affected.contains(&"/v/subdir/foo.md".to_string()),
+		"promoted sibling gained backlinks and must be reported in affected, got {:?}",
+		result.affected
+	);
+}
+
 // ============================================================================
 // Phase 8 — properties_index + property lookups
 // ============================================================================

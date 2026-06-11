@@ -1079,6 +1079,10 @@ impl VaultIndex {
 						for src in retro_sources {
 							set.insert(src);
 						}
+						// Contract: `affected` lists every path whose backlinks
+						// set was modified — the promoted entry just gained its
+						// retroactive backlinks.
+						affected.insert(surviving_path);
 					}
 				}
 			}
