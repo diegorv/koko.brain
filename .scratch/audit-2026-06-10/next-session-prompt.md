@@ -1,0 +1,26 @@
+# Prompt for next session (audit follow-up, round 2)
+
+Context: the 2026-06-10 full-codebase audit is done and phase 1 (test-gap closure + 13 TDD fixes, B1-B13) is complete and committed. See `.scratch/audit-2026-06-10/findings.md` (the "Resolução" section maps what is already fixed; `raw-result.json` has full reasoning per finding). This session tackles what remains, in this exact order. Follow the repo's mandatory plan workflow (CLAUDE.md): save a plan to `tasks/todo/`, one task = one commit, run the right suites before every commit (rule 6), full commit format per `docs/COMMITS.md`, test-first per `docs/TESTING.md`.
+
+## Item 1 - Performance/architecture HIGH findings (reconcile with existing plans, do not duplicate)
+
+Two HIGH audit findings are claimed to be covered by existing plans. Verify that coverage line-by-line before doing anything, then either execute the relevant plan tasks or carve out a minimal scoped fix and note it in the plan:
+
+1. **Sync full-vault scans block the IPC thread**: `scan_vault_v2` and `scan_vault_v2_cached` are synchronous `pub fn` commands (`src-tauri/src/commands/vault.rs:980-1232`). Cache misses parse the whole vault; even cache hits stat-walk and clone every entry. The repo's own precedent is `search_index.rs:21-24` (FTS build moved to `spawn_blocking` for exactly this reason, ~3s measured on 1800 notes). Triggered on every vault open and every watcher full rebuild (e.g. git checkout). Check coverage in `tasks/todo/performance-architecture-refactor.md` and `tasks/todo/perf-persistent-vault-index.md`.
+2. **`vault-index-updated` listener has no coalescing**: `src/lib/core/layout/tauri-listeners.service.ts:85-114` re-fetches the ENTIRE vault snapshot (`get_all_vault_entries_v2`) and runs 4-5 O(N) rebuilds per event; the watcher incremental loop emits one event PER FILE (10 files = 10 full-snapshot fetches), plus one per save and per 1s typing pause. Related medium findings: `TasksView.svelte:71-76` and `GraphView.svelte:391-396` (the GraphView effect restarts the d3 simulation and resets layout per bump). Check whether the perf plans cover coalescing/debouncing; if not, this is unowned and needs a task.
+
+## Item 2 - Functional HIGH bugs, unowned, fix now (TDD, red first, one commit each)
+
+These are user-visible breakages no plan covers. Audit reasoning for each is in `raw-result.json` (search by title):
+
+1. **TemplatePicker creates a nameless `.md` file - template creation is broken today.** `src/lib/plugins/templates/TemplatePicker.svelte:33-43`: `confirmCreate()` passes the guard, then calls `reset()` (which sets `fileName=''`) BEFORE reading the value, so `createFileFromTemplate(path, '')` always runs; `templates.service.ts:54-66` then builds `${vaultPath}/.md`. No component test exists; decide whether to test via extracted logic or the existing service-test seam.
+2. **QueryJS widget stuck on "Building index..." at startup.** `src/lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.ts:61-72` snapshots `isIndexReady` at construction and reads the stale value in `toDOM()`; `app-lifecycle.service.ts:246-252` defers `buildPropertyIndex()` via `setTimeout(0)` so the auto-opened note renders before the index is ready, and `queryjs-block-field.ts:73` early-returns on every update without docChanged/selectionSet, so there is no recovery path (heals only on edit). The correct pattern is in `collection-block-widget.ts:75`, which reads `collectionStore.isIndexReady` live.
+3. **CollectionView's `selfUpdate` guard is self-defeating and wipes in-progress state.** `src/lib/features/collection/CollectionView.svelte:40, 90-111, 169-189`: the effect writes `selfUpdate=false` to a `$state` it also reads, dirtying its own dependency and re-running into the reset branch. Consequences verified empirically (Svelte 5.55.8): in-progress formula rows (editing:true, excluded by `persistState` at 171-173) are wiped on any other persist, and `FilterRow.svelte:167` persists per keystroke while `filter.logic.ts` regenerates row uids, breaking the keyed each in FilterPanel (focus loss). Reproduce with a compiled-runes test harness before fixing.
+
+## Item 3 - Conscious backlog (each needs a user decision BEFORE implementing - ask first, one question at a time)
+
+1. **TOCTOU in `toggle_task_status_inner` and `create_note`** (`src-tauri/src/commands/vault.rs`; the toggle TOCTOU is documented in-code, and `src-tauri/tests/` has 2 `#[ignore]` audit tests for it). Requires choosing a locking strategy (e.g. per-path mutex map in Rust vs serializing at the TS call site). Present options with trade-offs and ask.
+2. **`saveDirtyTabs` unbounded retry** (`src/lib/core/editor/editor.service.ts:160-171`): on persistent save failure it retries forever and toasts every 5s. Is bounded-retry-then-surface the intended behavior? Ask, then implement.
+3. **11 dead IPC commands registered in `src-tauri/src/lib.rs`** but never invoked from `src/` (list in the audit's low findings; several still have Rust-side tests). Ask whether to delete, keep documented as public surface, or keep until phase 2/3 tests decide.
+
+Do NOT start phase 2 (CodeMirror extension test gaps) or phase 3 (Svelte component tests, blocked on a component-test infra decision) in this session unless explicitly asked.
