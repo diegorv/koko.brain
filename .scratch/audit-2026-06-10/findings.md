@@ -6,6 +6,28 @@ Auditoria investigativa de `src/` e `src-tauri/` (sem bug reportado; fase de des
 
 > Escopo: apenas listagem de achados — nenhum plano de correção.
 
+## Resolução (fase 1, 2026-06-11)
+
+Plano executado: `tasks/done/test-gap-closure-phase1.md`. Lotes de teste F1-F4/R1-R4 (commits c830837, bb6245e, f19df33, 19cae4f, b870600, 85ee586, 9c5b6fd, 5e84e23) e correções B1-B13:
+
+| Achado | Fix |
+|--------|-----|
+| upsertProperty/updateProperty literal key matching (+2 gaps de teste) | B1 89d7f42 |
+| resetEditor cancela só um dos dois timers | B2 840a1bd |
+| shutdown_semantic nunca invocado (HIGH) | B3 29946fc |
+| Cláusula morta em matchesSelection (:165/:191) | B4 afb60dd |
+| TOCTOU prepend/append do deep-link + registerDeepLinkListener sem teste | B5 e0884c1 |
+| Fallback de path relativo vaza path absoluto (watcher-handler) | B6 473146f |
+| Erros silenciados em semantic_repo (get_chunk_hashes/delete_orphaned/get_stored_mtimes) | B7 6566944 |
+| remove_entry sem path promovido no affected set | B8 d0c6ed4 |
+| Panic do mean pooling com saída não-3D (embedder) | B9 168dfa6 |
+| Writes não-atômicos em create_note/propagate_type_rename/toggle_task | B10 60b1a7c |
+| Embedding bytes malformados truncados silenciosamente (finding #12) | B11 fbf2f21 |
+| moveItem deleta card com lane inexistente + toIndex negativo (achado novo, lote F4) | B12 f70c63b |
+| SemanticProgress.phase sem 'downloading-reranker' (achado novo, lote F2) | B13 4ef3d45 |
+
+Permanecem no backlog (decisão pendente): TOCTOU de toggle_task_status/create_note (locking), saveDirtyTabs retry ilimitado, superfície IPC morta em lib.rs, achados de perf/arquitetura (cobertos por `tasks/todo/performance-architecture-refactor.md` e `tasks/todo/perf-persistent-vault-index.md`), Fase 2 (extensões CodeMirror) e Fase 3 (componentes Svelte).
+
 
 ## High (6)
 

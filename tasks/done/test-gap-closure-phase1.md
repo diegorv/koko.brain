@@ -118,10 +118,17 @@
 
 ## Tasks — Encerramento
 
-- [ ] Atualizar `.scratch/audit-2026-06-10/findings.md` marcando os achados resolvidos por B1-B11 (nota "fixed em <commit>")
-- [ ] Mover este plano para `tasks/done/` com nota de resultado (arquivos cobertos, exclusões ONNX documentadas)
+- [x] Atualizar `.scratch/audit-2026-06-10/findings.md` marcando os achados resolvidos por B1-B13 (seção Resolução com tabela achado -> commit)
+- [x] Mover este plano para `tasks/done/` com nota de resultado (arquivos cobertos, exclusões ONNX documentadas)
 
 ## Notes
 
 - Adiados conscientemente (decisão de design pendente, ficam no backlog da auditoria): TOCTOU de toggle_task_status e create_note (estratégia de locking), saveDirtyTabs retry ilimitado (questão de comportamento pretendido), superfície IPC morta em lib.rs (questão de limpeza), perf/arquitetura (planos existentes).
 - Fase 2 (extensões CodeMirror, 126 gaps) e Fase 3 (componentes Svelte, 168 gaps + decisão de infra) terão planos próprios com gate do usuário.
+
+## Resultado (2026-06-11)
+
+- 8 lotes paralelos concluídos: 66 entradas do manifest processadas; 13 arquivos de teste novos + 37 estendidos (~2.900 linhas, ~190 testes novos); 26 gaps verificados como já cobertos e pulados com evidência.
+- B1-B13 concluídas em TDD (red observado antes de cada fix), um commit cada.
+- Suites finais: pnpm check 0 erros; vitest 6518 passed (282 arquivos); cargo test 1034 passed. Flake de estado global em debug_test corrigido (a5bd221).
+- Exclusões documentadas nos headers dos arquivos de teste: inferência ONNX real (embedder/search_semantic e2e), comandos que exigem AppHandle<Wry> (start_vault_watcher, quick_capture wrappers, check_for_update_on_channel runtime), lib.rs wiring.
