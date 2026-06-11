@@ -397,6 +397,7 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
  */
 export function resetEditor() {
 	debouncedSave.cancel();
+	debouncedSaveFrontmatter.cancel();
 	editorStore.reset();
 	clearAllTabViewStates();
 }
