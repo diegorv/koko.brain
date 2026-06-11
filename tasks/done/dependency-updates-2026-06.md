@@ -64,8 +64,9 @@ pnpm vitest run: <N> passed
 
 ## Final verification (after all updates land)
 
-- [ ] `bash scripts/e2e.sh` (single smoke run; E2E was not run per-lib in prior dep commits, so this is a one-time gate at the end)
-- [ ] `mv tasks/todo/dependency-updates-2026-06.md tasks/done/`
+- [x] `bash scripts/e2e.sh` — 180 passed (1.4m)
+- [x] post-update verification: `pnpm outdated` clean, `pnpm audit` no vulns, `cargo outdated` up to date, `cargo audit` 0 vulns (18 pre-existing transitive unmaintained warnings, not actionable)
+- [x] `mv tasks/todo/dependency-updates-2026-06.md tasks/done/`
 
 ## Notes
 
