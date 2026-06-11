@@ -174,6 +174,102 @@ fn watcher_stops_when_handle_dropped() {
 	);
 }
 
+// --- watcher replacement semantics -------------------------------------------
+//
+// `start_vault_watcher` (the Tauri command) drops the old watcher inside
+// the state lock BEFORE building the new one (Audit Tier 2 #7). The command
+// itself takes an `AppHandle<Wry>` and cannot run in a test process, so
+// these tests exercise the same drop-old-then-start-new sequence at the
+// `start_watcher_inner` boundary: the old watcher must go silent and the
+// new one must observe subsequent changes.
+
+#[test]
+fn replacing_watcher_old_goes_silent_new_emits() {
+	let tmp = tempdir().expect("tmpdir");
+	let vault = vault_path(&tmp);
+
+	let (old_tx, old_rx) = mpsc::channel::<Vec<String>>();
+	let old_watcher = start_watcher_inner(&vault, move |paths| {
+		let _ = old_tx.send(paths);
+	})
+	.expect("start old watcher");
+	std::thread::sleep(Duration::from_millis(100));
+
+	// Mirror the command's replace sequence: drop old FIRST, then start new.
+	drop(old_watcher);
+	// Wait out the old bridge thread's final flush, then drain any stray
+	// warm-up events so the silence assertion below is about the new write.
+	std::thread::sleep(Duration::from_millis(700));
+	while old_rx.try_recv().is_ok() {}
+
+	let (new_tx, new_rx) = mpsc::channel::<Vec<String>>();
+	let _new_watcher = start_watcher_inner(&vault, move |paths| {
+		let _ = new_tx.send(paths);
+	})
+	.expect("start new watcher");
+	std::thread::sleep(Duration::from_millis(100));
+
+	fs::write(tmp.path().join("after-replace.md"), "x").expect("write");
+
+	let emitted = recv_emit(&new_rx, Duration::from_secs(3))
+		.expect("new watcher should emit after replacement");
+	let expected = child_path(&tmp, "after-replace.md");
+	assert!(
+		emitted.iter().any(|p| p == &expected),
+		"new watcher missed the write: {:?}",
+		emitted
+	);
+	assert!(
+		old_rx.try_recv().is_err(),
+		"old watcher must stay silent after being dropped"
+	);
+}
+
+#[test]
+fn rapid_start_stop_cycles_leave_only_final_watcher_emitting() {
+	// Approximates the start/stop race the command's Mutex serializes:
+	// several short-lived watchers come and go, then a final one is
+	// installed. Only the final watcher may observe the final write.
+	let tmp = tempdir().expect("tmpdir");
+	let vault = vault_path(&tmp);
+
+	let (dead_tx, dead_rx) = mpsc::channel::<Vec<String>>();
+	for _ in 0..3 {
+		let tx = dead_tx.clone();
+		let watcher = start_watcher_inner(&vault, move |paths| {
+			let _ = tx.send(paths);
+		})
+		.expect("start short-lived watcher");
+		// Drop immediately — equivalent to start closely followed by stop.
+		drop(watcher);
+	}
+
+	let (final_tx, final_rx) = mpsc::channel::<Vec<String>>();
+	let _final_watcher = start_watcher_inner(&vault, move |paths| {
+		let _ = final_tx.send(paths);
+	})
+	.expect("start final watcher");
+	std::thread::sleep(Duration::from_millis(150));
+
+	// Drain anything the short-lived watchers flushed during warm-up.
+	while dead_rx.try_recv().is_ok() {}
+
+	fs::write(tmp.path().join("final.md"), "x").expect("write");
+
+	let emitted = recv_emit(&final_rx, Duration::from_secs(3))
+		.expect("final watcher should emit");
+	let expected = child_path(&tmp, "final.md");
+	assert!(
+		emitted.iter().any(|p| p == &expected),
+		"final watcher missed the write: {:?}",
+		emitted
+	);
+	assert!(
+		dead_rx.recv_timeout(Duration::from_millis(300)).is_err(),
+		"dropped watchers must not emit the post-replacement write"
+	);
+}
+
 #[test]
 fn watcher_emits_after_modification() {
 	let tmp = tempdir().expect("tmpdir");

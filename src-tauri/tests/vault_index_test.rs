@@ -1062,6 +1062,11 @@ fn lookup_notes_with_tag_strips_hash_prefix() {
 	let without_hash = idx.lookup_notes_with_tag("work");
 	assert_eq!(with_hash.len(), 1);
 	assert_eq!(without_hash.len(), 1);
+	// Both spellings must resolve to the SAME entry, not merely the same
+	// count — otherwise the hash-strip could be matching a different note.
+	assert_eq!(with_hash[0].path, "/v/a.md");
+	assert_eq!(with_hash[0].path, without_hash[0].path);
+	assert_eq!(with_hash[0].title, without_hash[0].title);
 }
 
 #[test]

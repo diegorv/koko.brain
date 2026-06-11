@@ -6,6 +6,7 @@
 
 use kokobrain_lib::commands::vault::toggle_task_status_inner;
 use kokobrain_lib::vault::index::VaultIndex;
+use kokobrain_lib::vault::task::{Task, TaskMetadata, TaskPriority, TaskStatus};
 use std::sync::{Arc, Barrier};
 use std::thread;
 
@@ -103,4 +104,151 @@ fn audit_finding_9_toggle_task_no_concurrent_writer_preserves_state() {
 	let final_content = std::fs::read_to_string(&path).unwrap();
 	assert_eq!(final_content, "- [x] Buy milk\n- [ ] Write tests\n");
 	assert_eq!(result.updated_content, final_content);
+}
+
+// --- Task / TaskStatus / TaskPriority IPC serde contract ----------------------
+//
+// `Task` and its enums mirror the TS string-literal unions in
+// `tasks.types.ts` / `task-metadata.types.ts`. Field names must serialize
+// camelCase and enum variants kebab-case, and every variant must round-trip
+// (Deserialize is used when payloads come back over IPC). Behavioral tests
+// for parsing (indent levels, 1-based line numbers, status chars, priority
+// emojis) live inline in `src/vault/parsing.rs`; this section pins the wire
+// contract of the structs themselves.
+
+#[test]
+fn task_status_all_variants_round_trip_kebab_case() {
+	let cases = [
+		(TaskStatus::Todo, "\"todo\""),
+		(TaskStatus::Done, "\"done\""),
+		(TaskStatus::Cancelled, "\"cancelled\""),
+		(TaskStatus::InProgress, "\"in-progress\""),
+		(TaskStatus::Question, "\"question\""),
+		(TaskStatus::Forwarded, "\"forwarded\""),
+		(TaskStatus::Important, "\"important\""),
+	];
+	for (status, json) in cases {
+		assert_eq!(serde_json::to_string(&status).unwrap(), json);
+		let back: TaskStatus = serde_json::from_str(json).unwrap();
+		assert_eq!(back, status, "round-trip failed for {json}");
+	}
+}
+
+#[test]
+fn task_priority_all_variants_round_trip_kebab_case() {
+	let cases = [
+		(TaskPriority::Highest, "\"highest\""),
+		(TaskPriority::High, "\"high\""),
+		(TaskPriority::Medium, "\"medium\""),
+		(TaskPriority::None, "\"none\""),
+		(TaskPriority::Low, "\"low\""),
+		(TaskPriority::Lowest, "\"lowest\""),
+	];
+	for (priority, json) in cases {
+		assert_eq!(serde_json::to_string(&priority).unwrap(), json);
+		let back: TaskPriority = serde_json::from_str(json).unwrap();
+		assert_eq!(back, priority, "round-trip failed for {json}");
+	}
+}
+
+#[test]
+fn task_default_is_unchecked_todo_with_empty_metadata() {
+	let t = Task::default();
+	assert!(!t.checked);
+	assert_eq!(t.indent, 0);
+	assert_eq!(t.line_number, 0);
+	assert_eq!(t.status, TaskStatus::Todo);
+	assert_eq!(t.text, "");
+	assert_eq!(t.metadata, TaskMetadata::default());
+	assert!(t.metadata.tags.is_empty());
+	assert!(t.metadata.priority.is_none());
+}
+
+#[test]
+fn task_serializes_camel_case_field_names() {
+	let task = Task {
+		text: "Buy milk".to_string(),
+		checked: true,
+		indent: 2,
+		line_number: 7,
+		status: TaskStatus::Done,
+		metadata: TaskMetadata::default(),
+	};
+	let json = serde_json::to_value(&task).unwrap();
+	assert_eq!(json["lineNumber"], 7, "line_number must serialize as lineNumber");
+	assert!(
+		json.get("line_number").is_none(),
+		"snake_case field name must not leak over IPC"
+	);
+	assert_eq!(json["checked"], true);
+	assert_eq!(json["indent"], 2);
+	assert_eq!(json["status"], "done");
+
+	let back: Task = serde_json::from_value(json).unwrap();
+	assert_eq!(back, task);
+}
+
+#[test]
+fn task_with_max_line_number_round_trips_losslessly() {
+	let task = Task {
+		text: "edge".to_string(),
+		line_number: usize::MAX,
+		..Default::default()
+	};
+	let json = serde_json::to_string(&task).unwrap();
+	let back: Task = serde_json::from_str(&json).unwrap();
+	assert_eq!(back.line_number, usize::MAX);
+	assert_eq!(back, task);
+}
+
+#[test]
+fn task_metadata_minimal_json_deserializes_with_defaulted_options() {
+	// IPC payloads may omit every optional signifier field — `default`
+	// attributes must fill them with None instead of failing.
+	let m: TaskMetadata =
+		serde_json::from_str(r#"{"description":"plain task","tags":[]}"#).unwrap();
+	assert_eq!(m.description, "plain task");
+	assert!(m.tags.is_empty());
+	assert!(m.due_date.is_none());
+	assert!(m.scheduled_date.is_none());
+	assert!(m.start_date.is_none());
+	assert!(m.created_date.is_none());
+	assert!(m.done_date.is_none());
+	assert!(m.cancelled_date.is_none());
+	assert!(m.priority.is_none());
+	assert!(m.recurrence.is_none());
+	assert!(m.id.is_none());
+	assert!(m.depends_on.is_none());
+	assert!(m.on_completion.is_none());
+}
+
+#[test]
+fn task_metadata_with_all_fields_round_trips_camel_case() {
+	let m = TaskMetadata {
+		description: "full task".to_string(),
+		due_date: Some("2026-06-11".to_string()),
+		scheduled_date: Some("2026-06-12".to_string()),
+		start_date: Some("2026-06-10".to_string()),
+		created_date: Some("2026-06-01".to_string()),
+		done_date: Some("2026-06-13".to_string()),
+		cancelled_date: None,
+		priority: Some(TaskPriority::High),
+		recurrence: Some(kokobrain_lib::vault::task::RecurrenceRule {
+			text: "every week".to_string(),
+		}),
+		id: Some("abc123".to_string()),
+		depends_on: Some(vec!["xyz".to_string()]),
+		on_completion: Some("delete".to_string()),
+		tags: vec!["#work".to_string()],
+	};
+	let json = serde_json::to_value(&m).unwrap();
+	assert_eq!(json["dueDate"], "2026-06-11");
+	assert_eq!(json["priority"], "high");
+	assert_eq!(json["dependsOn"][0], "xyz");
+	assert_eq!(json["onCompletion"], "delete");
+	// cancelled_date is None -> omitted entirely
+	assert!(json.get("cancelledDate").is_none());
+
+	let back: TaskMetadata = serde_json::from_value(json).unwrap();
+	assert_eq!(back, m);
 }

@@ -87,7 +87,7 @@
   - `src-tauri/src/semantic/model.rs` — No tests for ManagedModel with zero downloads; division by zero on lines 124, 130 not tested
   - `src-tauri/src/semantic/reranker.rs` — No inline tests and no integration test references for load/rerank/with_batch_size. Only semantic/ module with zero coverage.
   - Verificar: `cargo test --manifest-path src-tauri/Cargo.toml` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote R4 - rust vault/utils/quick_capture (watcher, aliases, task, fs, logger, main)**
+- [x] **Lote R4 - rust vault/utils/quick_capture (watcher, aliases, task, fs, logger, main)**
   - `src-tauri/src/main.rs` — Binary entry point, no tests. Low value.
   - `src-tauri/src/quick_capture/commands.rs` — No integration tests in src-tauri/tests/ covering the full capture_clipboard_now or submit_composer_capture Tauri command paths with actual app state
   - `src-tauri/src/utils/fs.rs` — `validate_vault_path()` function has no test coverage. Missing: error cases (non-existent path, non-directory path, permission denied) | `collect_markdown_paths_with_metadata()` function has no test coverage. The `_with_

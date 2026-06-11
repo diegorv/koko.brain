@@ -369,6 +369,74 @@ fn expand_fuzzy_terms_returns_only_original_for_short_terms() {
 }
 
 #[test]
+fn expand_fuzzy_terms_empty_input_returns_only_empty_original() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	db::with_db(|conn| {
+		// auto_distance("") is 0 -> no expansion; the (empty) original is
+		// returned as-is without consulting the vocabulary.
+		let terms = fuzzy::expand_fuzzy_terms(conn, "")?;
+		assert_eq!(terms, vec![String::new()], "empty term must not expand");
+		Ok(())
+	})
+	.unwrap();
+
+	teardown();
+}
+
+#[test]
+fn expand_fuzzy_terms_long_term_does_not_match_distant_vocab() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	db::with_db(|conn| {
+		// 20-char term sharing the "j" prefix with "javascript" in the
+		// vocabulary. Max distance caps at 2 regardless of length, and the
+		// distance to "javascript" is 10 -> only the original survives.
+		let terms = fuzzy::expand_fuzzy_terms(conn, "javascriptframeworks")?;
+		assert_eq!(
+			terms,
+			vec!["javascriptframeworks".to_string()],
+			"vocab terms beyond the distance threshold must be excluded"
+		);
+		Ok(())
+	})
+	.unwrap();
+
+	teardown();
+}
+
+#[test]
+fn expand_fuzzy_terms_lowercases_original_and_still_matches() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	db::with_db(|conn| {
+		let terms = fuzzy::expand_fuzzy_terms(conn, "JavScript")?;
+		assert_eq!(
+			terms[0], "javscript",
+			"original term must come back lowercased and first"
+		);
+		assert!(
+			terms.contains(&"javascript".to_string()),
+			"case-insensitive fuzzy match missing: {:?}",
+			terms
+		);
+		Ok(())
+	})
+	.unwrap();
+
+	teardown();
+}
+
+#[test]
 fn search_fts_with_fuzzy_finds_typo_tolerant_matches() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();

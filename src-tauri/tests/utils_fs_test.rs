@@ -1,5 +1,6 @@
 use kokobrain_lib::utils::fs::{
-	collect_markdown_paths, collect_markdown_paths_with_mtime, is_markdown_filename,
+	collect_markdown_paths, collect_markdown_paths_with_metadata,
+	collect_markdown_paths_with_mtime, is_markdown_filename, validate_vault_path,
 };
 use std::fs;
 use tempfile::TempDir;
@@ -328,4 +329,141 @@ fn collects_mixed_case_md_files() {
 
 	let entries = collect_markdown_paths(tmp.path(), &[]).unwrap();
 	assert_eq!(entries.len(), 3);
+}
+
+// --- validate_vault_path ---
+
+#[test]
+fn validate_vault_path_returns_canonical_dir() {
+	let tmp = setup();
+	let expected = tmp.path().canonicalize().unwrap();
+
+	let result = validate_vault_path(tmp.path().to_str().unwrap()).unwrap();
+	assert_eq!(result, expected, "must return the canonicalized path");
+	assert!(result.is_dir());
+	assert!(result.is_absolute());
+}
+
+#[cfg(unix)]
+#[test]
+fn validate_vault_path_resolves_symlink_to_target() {
+	// Callers must receive the resolved target so subsequent filesystem
+	// operations cannot be redirected through the symlink (TOCTOU guard).
+	let tmp = setup();
+	let real = tmp.path().join("real_vault");
+	fs::create_dir_all(&real).unwrap();
+	let link = tmp.path().join("vault_link");
+	std::os::unix::fs::symlink(&real, &link).unwrap();
+
+	let result = validate_vault_path(link.to_str().unwrap()).unwrap();
+	assert_eq!(result, real.canonicalize().unwrap());
+}
+
+#[test]
+fn validate_vault_path_rejects_non_existent_path() {
+	let err = validate_vault_path("/tmp/koko_does_not_exist_9999").unwrap_err();
+	assert!(
+		err.contains("Failed to resolve vault path"),
+		"unexpected error message: {err}"
+	);
+}
+
+#[test]
+fn validate_vault_path_rejects_file_path() {
+	let tmp = setup();
+	let file = tmp.path().join("note.md");
+	fs::write(&file, "# not a directory").unwrap();
+
+	let err = validate_vault_path(file.to_str().unwrap()).unwrap_err();
+	assert!(
+		err.contains("not a directory"),
+		"unexpected error message: {err}"
+	);
+}
+
+#[test]
+fn validate_vault_path_rejects_empty_string() {
+	let err = validate_vault_path("").unwrap_err();
+	assert!(
+		err.contains("Failed to resolve vault path"),
+		"empty path must fail canonicalization: {err}"
+	);
+}
+
+// --- collect_markdown_paths_with_metadata ---
+
+#[test]
+fn with_metadata_returns_mtime_ctime_and_exact_size() {
+	let tmp = setup();
+	let content = "# Hello metadata\n\nSome body text.";
+	fs::write(tmp.path().join("note.md"), content).unwrap();
+
+	let entries = collect_markdown_paths_with_metadata(tmp.path(), &[]).unwrap();
+	assert_eq!(entries.len(), 1);
+	let (rel, abs, mtime, ctime, size) = &entries[0];
+	assert_eq!(rel, "note.md");
+	assert!(abs.is_absolute());
+	assert!(abs.ends_with("note.md"));
+	assert!(*mtime > 0, "mtime should be a positive unix timestamp");
+	// ctime is documented as 0 on filesystems without creation time.
+	assert!(*ctime >= 0);
+	#[cfg(target_os = "macos")]
+	assert!(*ctime > 0, "APFS exposes creation time");
+	assert_eq!(*size, content.len() as u64, "size must match bytes on disk");
+}
+
+#[test]
+fn with_metadata_returns_same_files_as_base_walk() {
+	let tmp = setup();
+	let sub = tmp.path().join("sub");
+	fs::create_dir_all(&sub).unwrap();
+	fs::write(tmp.path().join("a.md"), "a").unwrap();
+	fs::write(sub.join("b.md"), "b").unwrap();
+	fs::write(tmp.path().join("skip.txt"), "not md").unwrap();
+
+	let without = collect_markdown_paths(tmp.path(), &[]).unwrap();
+	let with_metadata = collect_markdown_paths_with_metadata(tmp.path(), &[]).unwrap();
+
+	let mut paths_without: Vec<&str> = without.iter().map(|(p, _)| p.as_str()).collect();
+	let mut paths_with: Vec<&str> =
+		with_metadata.iter().map(|(p, _, _, _, _)| p.as_str()).collect();
+	paths_without.sort();
+	paths_with.sort();
+
+	assert_eq!(
+		paths_without, paths_with,
+		"both walk variants must return the same file set"
+	);
+}
+
+#[test]
+fn with_metadata_skips_hidden_and_excluded_folders() {
+	let tmp = setup();
+	let hidden = tmp.path().join(".kokobrain");
+	fs::create_dir_all(&hidden).unwrap();
+	fs::write(hidden.join("internal.md"), "hidden").unwrap();
+	let excluded = tmp.path().join("_templates");
+	fs::create_dir_all(&excluded).unwrap();
+	fs::write(excluded.join("tmpl.md"), "excluded").unwrap();
+	fs::write(tmp.path().join("visible.md"), "ok").unwrap();
+
+	let entries = collect_markdown_paths_with_metadata(tmp.path(), &["_templates"]).unwrap();
+	assert_eq!(entries.len(), 1);
+	assert_eq!(entries[0].0, "visible.md");
+}
+
+#[test]
+fn with_metadata_empty_vault_returns_empty() {
+	let tmp = setup();
+	let entries = collect_markdown_paths_with_metadata(tmp.path(), &[]).unwrap();
+	assert!(entries.is_empty());
+}
+
+#[test]
+fn with_metadata_non_existent_vault_returns_error() {
+	let result = collect_markdown_paths_with_metadata(
+		std::path::Path::new("/tmp/does_not_exist_9999"),
+		&[],
+	);
+	assert!(result.is_err());
 }
