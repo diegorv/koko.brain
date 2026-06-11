@@ -75,7 +75,7 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@internationalized/date": "^3.12.1",
+    "@internationalized/date": "^3.12.2",
     "@lezer/common": "^1.5.2",
     "@lucide/svelte": "^1.16.0",
     "@playwright/test": "^1.60.0",
