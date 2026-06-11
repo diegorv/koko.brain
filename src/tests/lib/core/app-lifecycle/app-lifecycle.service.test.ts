@@ -537,6 +537,35 @@ describe('teardownVault', () => {
 		// Reset invoke to default so it doesn't leak to subsequent tests
 		vi.mocked(invoke).mockImplementation(() => Promise.resolve() as Promise<any>);
 	});
+
+	it('shuts down the semantic engine (releases model, clears cross-vault search cache)', () => {
+		// Without this, the process-static SEARCH_CACHE in Rust survives a vault
+		// switch and search_semantic serves the PREVIOUS vault's chunks.
+		teardownVault();
+
+		expect(invoke).toHaveBeenCalledWith('shutdown_semantic');
+	});
+
+	it('logs error when shutdown_semantic fails and still completes teardown', async () => {
+		const semErr = new Error('semantic busy');
+		vi.mocked(invoke).mockImplementation((cmd: string) => {
+			if (cmd === 'shutdown_semantic') return Promise.reject(semErr);
+			return Promise.resolve();
+		});
+
+		teardownVault();
+
+		// Teardown must not abort: stores are still reset.
+		expect(resetEditor).toHaveBeenCalled();
+		await vi.waitFor(() => {
+			expect(debugError).toHaveBeenCalledWith(
+				'LIFECYCLE',
+				'Failed to shut down semantic engine:',
+				semErr,
+			);
+		});
+		vi.mocked(invoke).mockImplementation(() => Promise.resolve() as Promise<any>);
+	});
 });
 
 describe('initializeVault — semantic search startup', () => {

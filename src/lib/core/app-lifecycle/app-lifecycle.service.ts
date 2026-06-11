@@ -394,6 +394,12 @@ export function teardownVault(): void {
 	}
 
 	// ── Close database + async cleanup ───────────────────────────────
+	// Release the embedder/reranker and invalidate the process-static
+	// SEARCH_CACHE: without this, switching to an already-indexed vault
+	// serves the previous vault's chunks (Rust checks the cache before the DB).
+	invoke('shutdown_semantic').catch((err: unknown) => {
+		error('LIFECYCLE', 'Failed to shut down semantic engine:', err);
+	});
 	debug('LIFECYCLE', 'Closing vault database...');
 	invoke('close_vault_db').catch((err: unknown) => {
 		error('LIFECYCLE', 'Failed to close vault database:', err);
