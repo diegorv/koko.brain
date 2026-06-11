@@ -38,6 +38,20 @@ describe('kanbanStore', () => {
 		expect(kanbanStore.settings).toEqual({});
 	});
 
+	it('lanes/archive/settings getters return stable references across consecutive calls', () => {
+		// Components and $derived consumers rely on getter reference stability:
+		// a fresh array/object per read would defeat memoization and equality checks.
+		kanbanStore.setBoard(makeBoard());
+
+		expect(kanbanStore.lanes).toBe(kanbanStore.lanes);
+		expect(kanbanStore.archive).toBe(kanbanStore.archive);
+		expect(kanbanStore.settings).toBe(kanbanStore.settings);
+		// Getters delegate to the same underlying board object
+		expect(kanbanStore.lanes).toBe(kanbanStore.board!.lanes);
+		expect(kanbanStore.archive).toBe(kanbanStore.board!.archive);
+		expect(kanbanStore.settings).toBe(kanbanStore.board!.settings);
+	});
+
 	it('setBoard updates board and derived getters', () => {
 		const board = makeBoard();
 		kanbanStore.setBoard(board);

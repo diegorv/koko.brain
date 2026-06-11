@@ -57,7 +57,7 @@
   - `src/lib/features/quick-switcher/quick-switcher.service.ts` — No test file. Exports resetQuickSwitcher (minimal function). | No test file. resetQuickSwitcher() is only tested indirectly via store tests; a dedicated service test is missing. | No test file; mocked out in app-lifecycl
   - `src/lib/features/tasks/todoist.service.ts` — loadProjects: Missing tests for success path, error handling, cache behavior (forceRefresh flag), loading state transitions | loadSections: Missing tests for success path, error handling, loading state transitions, proje
   - Verificar: `pnpm check && pnpm vitest run` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote F4 - plugins (calendar, kanban, one-on-one, quick-capture)**
+- [x] **Lote F4 - plugins (calendar, kanban, one-on-one, quick-capture)**
   - `src/lib/plugins/calendar/calendar.service.ts` — openCalendarFile(filePath: string) is exported but not tested. Should verify it correctly delegates to openFileInEditor and handles errors appropriately.
   - `src/lib/plugins/kanban/kanban.logic.ts` — No tests for negative edge cases in moveItem: toIndex clamping near 0 (e.g., toIndex=-1 should clamp to 0); interaction with empty source lane; or target lane not found | No tests for parseCardSegments with consecutive m
   - `src/lib/plugins/kanban/kanban.service.ts` — loadLinkedFileContent race condition not tested: no test for out-of-order Promise resolution where rapid card edits cause stale data to overwrite fresh data. | Function `createKanbanFile` is tested but does not verify th

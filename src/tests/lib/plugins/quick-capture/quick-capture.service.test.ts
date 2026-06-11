@@ -23,12 +23,22 @@ vi.mock('$lib/features/deep-link/deep-link.service', () => ({
 	executeAction: executeActionMock,
 }));
 
+import { listen } from '@tauri-apps/api/event';
 import {
+	registerQuickCaptureListener,
 	handleDetectedCapture,
 	buildCaptureAction,
+	QC_CAPTURE_DETECTED_EVENT,
+	type QuickCaptureDetectedPayload,
 } from '$lib/plugins/quick-capture/quick-capture.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { error } from '$lib/utils/debug';
 import { toast } from 'svelte-sonner';
+
+/** Flushes pending microtasks and timer-0 macrotasks. */
+function flush(): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 describe('quick-capture service', () => {
 	beforeEach(() => {
@@ -199,6 +209,152 @@ describe('quick-capture service', () => {
 			expect(action.sourceApp).toBe('com.google.Chrome');
 			expect(action.sourceTitle).toBe('Example - Chrome');
 			expect(action.sourceUrl).toBe('https://example.com');
+		});
+	});
+
+	describe('registerQuickCaptureListener', () => {
+		/** Event handler captured from the listen() mock */
+		let capturedHandler: ((event: { payload: QuickCaptureDetectedPayload }) => void) | undefined;
+
+		beforeEach(() => {
+			capturedHandler = undefined;
+			(error as ReturnType<typeof vi.fn>).mockClear();
+			vi.mocked(listen).mockReset();
+		});
+
+		/** Installs a listen() mock that records the handler and resolves with unlistenFn. */
+		function mockListenCapture(unlistenFn: () => void): void {
+			vi.mocked(listen).mockImplementation((_event, handler) => {
+				capturedHandler = handler as (event: { payload: QuickCaptureDetectedPayload }) => void;
+				return Promise.resolve(unlistenFn);
+			});
+		}
+
+		function clipPayload(text: string): { payload: QuickCaptureDetectedPayload } {
+			return { payload: { type: 'capture', kind: 'clip', text } };
+		}
+
+		it('registers for the capture event and dispatches payloads through executeAction', async () => {
+			vaultStore.open('/vault');
+			mockListenCapture(vi.fn());
+
+			const cleanup = registerQuickCaptureListener();
+			await flush();
+
+			expect(listen).toHaveBeenCalledWith(QC_CAPTURE_DETECTED_EVENT, expect.any(Function));
+			expect(capturedHandler).toBeDefined();
+
+			capturedHandler!(clipPayload('thought'));
+			await flush();
+
+			expect(executeActionMock).toHaveBeenCalledTimes(1);
+			const [action, vaultPath] = executeActionMock.mock.calls[0] as [
+				{ kind: string; text: string; vault: string },
+				string,
+			];
+			expect(vaultPath).toBe('/vault');
+			expect(action).toMatchObject({ kind: 'clip', text: 'thought', vault: vaultStore.name });
+
+			cleanup();
+		});
+
+		it('serializes concurrent capture events (second waits for the first)', async () => {
+			vaultStore.open('/vault');
+			mockListenCapture(vi.fn());
+
+			let resolveFirst: () => void = () => {};
+			executeActionMock.mockImplementationOnce(
+				() => new Promise<void>((r) => { resolveFirst = r; }),
+			);
+
+			const cleanup = registerQuickCaptureListener();
+			await flush();
+
+			// Two events arrive back-to-back (multi-file clipboard capture)
+			capturedHandler!(clipPayload('first'));
+			capturedHandler!(clipPayload('second'));
+			await flush();
+
+			// Second capture must NOT start while the first is still in flight
+			expect(executeActionMock).toHaveBeenCalledTimes(1);
+
+			resolveFirst();
+			await flush();
+
+			expect(executeActionMock).toHaveBeenCalledTimes(2);
+			const texts = executeActionMock.mock.calls.map(
+				(call) => (call[0] as { text: string }).text,
+			);
+			expect(texts).toEqual(['first', 'second']);
+
+			cleanup();
+		});
+
+		it('keeps the queue alive after a failed capture', async () => {
+			vaultStore.open('/vault');
+			mockListenCapture(vi.fn());
+			executeActionMock.mockRejectedValueOnce(new Error('write failed'));
+
+			const cleanup = registerQuickCaptureListener();
+			await flush();
+
+			capturedHandler!(clipPayload('doomed'));
+			capturedHandler!(clipPayload('survivor'));
+			await flush();
+
+			// Both captures were attempted; the failure was logged, not rethrown
+			expect(executeActionMock).toHaveBeenCalledTimes(2);
+			expect((executeActionMock.mock.calls[1][0] as { text: string }).text).toBe('survivor');
+			expect(error).toHaveBeenCalledWith(
+				'QUICK_CAPTURE',
+				'Capture handler failed:',
+				expect.any(Error),
+			);
+
+			cleanup();
+		});
+
+		it('cleanup unsubscribes the Tauri listener', async () => {
+			const unlistenFn = vi.fn();
+			mockListenCapture(unlistenFn);
+
+			const cleanup = registerQuickCaptureListener();
+			await flush();
+			expect(unlistenFn).not.toHaveBeenCalled();
+
+			cleanup();
+
+			expect(unlistenFn).toHaveBeenCalledTimes(1);
+		});
+
+		it('cleanup before listen resolves still unsubscribes once registration settles', async () => {
+			const unlistenFn = vi.fn();
+			let resolveListen: (fn: () => void) => void = () => {};
+			vi.mocked(listen).mockImplementation(
+				() => new Promise((r) => { resolveListen = r; }),
+			);
+
+			const cleanup = registerQuickCaptureListener();
+			cleanup(); // unmount races ahead of the registration promise
+
+			resolveListen(unlistenFn);
+			await flush();
+
+			expect(unlistenFn).toHaveBeenCalledTimes(1);
+		});
+
+		it('logs and does not throw when listener registration fails', async () => {
+			vi.mocked(listen).mockRejectedValue(new Error('no tauri runtime'));
+
+			const cleanup = registerQuickCaptureListener();
+			await flush();
+
+			expect(error).toHaveBeenCalledWith(
+				'QUICK_CAPTURE',
+				'Failed to register listener:',
+				expect.any(Error),
+			);
+			expect(() => cleanup()).not.toThrow();
 		});
 	});
 

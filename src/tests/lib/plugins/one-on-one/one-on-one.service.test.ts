@@ -117,6 +117,19 @@ describe('loadPeople', () => {
 		expect(oneOnOneStore.people).toEqual([]);
 	});
 
+	it('clears stale people when readDir rejects after exists succeeds', async () => {
+		// Seed the store so the test proves the error path actively resets it
+		oneOnOneStore.setPeople([
+			{ name: 'Stale', path: '/vault/_people/Stale.md', context: 'personal' },
+		]);
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readDir).mockRejectedValue(new Error('permission denied'));
+
+		await loadPeople();
+
+		expect(oneOnOneStore.people).toEqual([]);
+	});
+
 	it('returns early when vaultPath is null', async () => {
 		vaultStore.close();
 
@@ -212,6 +225,15 @@ describe('createOneOnOneNote', () => {
 		vi.mocked(openOrCreateNote).mockRejectedValueOnce(new Error('write failed'));
 
 		await expect(createOneOnOneNote('Alice')).rejects.toThrow('write failed');
+	});
+
+	it('preserves the exact error instance (message and stack) from openOrCreateNote', async () => {
+		// No try/catch in the service: the original Error object must surface
+		// unchanged so callers keep the full stack trace.
+		const failure = new Error('write failed');
+		vi.mocked(openOrCreateNote).mockRejectedValueOnce(failure);
+
+		await expect(createOneOnOneNote('Alice')).rejects.toBe(failure);
 	});
 });
 

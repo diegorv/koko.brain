@@ -453,6 +453,18 @@ describe('moveItem', () => {
 		const result = moveItem(board, 'lane-1', 'nonexistent', 'lane-2', 0);
 		expect(result).toBe(board);
 	});
+
+	it('returns original board when the source lane is empty', () => {
+		const board = makeBoard({
+			lanes: [
+				{ id: 'empty-lane', title: 'Empty', items: [] },
+				{ id: 'lane-2', title: 'Done', items: [{ id: 'item-3', text: 'Task C', checked: false }] },
+			],
+		});
+		const result = moveItem(board, 'empty-lane', 'item-1', 'lane-2', 0);
+		expect(result).toBe(board);
+	});
+
 });
 
 // ── addLane ─────────────────────────────────────────────────────────
@@ -1219,6 +1231,10 @@ describe('stripCardMetadata', () => {
 	it('handles date and color in any order', () => {
 		expect(stripCardMetadata('{color:blue} Task {2025-06-01}')).toBe('Task');
 	});
+
+	it('strips consecutive metadata tokens with no space between them', () => {
+		expect(stripCardMetadata('Task {2025-01-01}{color:blue}')).toBe('Task');
+	});
 });
 
 // ── Tag colors ────────────────────────────────────────────────
@@ -1385,6 +1401,41 @@ describe('parseCardSegments', () => {
 
 	it('returns empty array for empty string', () => {
 		expect(parseCardSegments('')).toEqual([]);
+	});
+
+	it('parses consecutive wikilinks with no text between them', () => {
+		const segs = parseCardSegments('[[A]][[B]]');
+		expect(segs).toEqual([
+			{ type: 'wikilink', target: 'A', heading: undefined, display: 'A' },
+			{ type: 'wikilink', target: 'B', heading: undefined, display: 'B' },
+		]);
+	});
+
+	it('parses consecutive tags separated by a single space', () => {
+		const segs = parseCardSegments('#a #b');
+		expect(segs).toEqual([
+			{ type: 'tag', value: 'a' },
+			{ type: 'text', value: ' ' },
+			{ type: 'tag', value: 'b' },
+		]);
+	});
+
+	it('does not treat a hash glued to a wikilink as a tag', () => {
+		// Tag matching requires start-of-line or whitespace before '#'
+		const segs = parseCardSegments('[[A]]#tag');
+		expect(segs).toEqual([
+			{ type: 'wikilink', target: 'A', heading: undefined, display: 'A' },
+			{ type: 'text', value: '#tag' },
+		]);
+	});
+
+	it('treats leftover metadata tokens as plain text (must be stripped beforehand)', () => {
+		// Date/color tokens are not recognized by the segment parser; callers
+		// strip them via stripCardMetadata before rendering.
+		const segs = parseCardSegments('Task {2025-01-01} {color:blue}');
+		expect(segs).toEqual([
+			{ type: 'text', value: 'Task {2025-01-01} {color:blue}' },
+		]);
 	});
 });
 

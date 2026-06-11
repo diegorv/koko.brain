@@ -62,6 +62,18 @@ describe('createKanbanFile', () => {
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to create kanban file:', expect.any(Error));
 		consoleSpy.mockRestore();
 	});
+
+	it('returns null when writeTextFile rejects after the file was created', async () => {
+		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.kanban');
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const result = await createKanbanFile('/vault');
+
+		expect(result).toBeNull();
+		expect(consoleSpy).toHaveBeenCalledWith('Failed to create kanban file:', expect.any(Error));
+		consoleSpy.mockRestore();
+	});
 });
 
 describe('resetKanban', () => {
@@ -136,6 +148,46 @@ describe('loadLinkedFileContent', () => {
 
 		// readTextFile should only be called once due to caching
 		expect(readTextFile).toHaveBeenCalledTimes(1);
+	});
+
+	it('keeps per-card cache entries correct when reads resolve out of order', async () => {
+		// Two cards link to two different notes. The read for card A starts
+		// first but resolves LAST — the late resolution must not overwrite or
+		// contaminate card B's cache entry (rapid card edits scenario).
+		fsStore.setFileTree([
+			{
+				name: 'notes',
+				path: '/vault/notes',
+				isDirectory: true,
+				children: [
+					{ name: 'Note A.md', path: '/vault/notes/Note A.md', isDirectory: false },
+					{ name: 'Note B.md', path: '/vault/notes/Note B.md', isDirectory: false },
+				],
+			},
+		]);
+
+		let resolveA: (content: string) => void = () => {};
+		vi.mocked(readTextFile).mockImplementation((path) => {
+			if (String(path).endsWith('Note A.md')) {
+				return new Promise<string>((r) => { resolveA = r; });
+			}
+			return Promise.resolve('content B');
+		});
+
+		const pendingA = loadLinkedFileContent('Edit [[Note A]]');
+		const pendingB = loadLinkedFileContent('Edit [[Note B]]');
+
+		// B resolves first even though A was requested first
+		expect(await pendingB).toBe('content B');
+
+		resolveA('content A');
+		expect(await pendingA).toBe('content A');
+
+		// Each card text now serves its own cached content, no cross-talk
+		vi.mocked(readTextFile).mockClear();
+		expect(await loadLinkedFileContent('Edit [[Note A]]')).toBe('content A');
+		expect(await loadLinkedFileContent('Edit [[Note B]]')).toBe('content B');
+		expect(readTextFile).not.toHaveBeenCalled();
 	});
 
 	it('re-reads file after cache is cleared (e.g. linked file was edited)', async () => {

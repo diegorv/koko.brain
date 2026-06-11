@@ -17,6 +17,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
 import {
@@ -24,6 +25,7 @@ import {
 	updateCalendarForFile,
 	openOrCreateDailyNoteForDate,
 	openOrCreatePeriodicNoteForDate,
+	openCalendarFile,
 	resetCalendar,
 } from '$lib/plugins/calendar/calendar.service';
 
@@ -351,6 +353,36 @@ describe('openOrCreateDailyNoteForDate', () => {
 				customVariables: expect.objectContaining({ year: '2026', month: '03' }),
 			}),
 		);
+	});
+});
+
+describe('openCalendarFile', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+	});
+
+	// Thin orchestrator: the only effect is delegating to the (mocked)
+	// side-effect service, so verifying the forwarded argument is the contract.
+	it('delegates to openFileInEditor with the file path', async () => {
+		await openCalendarFile('/vault/notes/2026-03-15.md');
+
+		expect(openFileInEditor).toHaveBeenCalledTimes(1);
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/notes/2026-03-15.md');
+	});
+
+	it('forwards an empty path unchanged (no validation layer)', async () => {
+		await openCalendarFile('');
+
+		expect(openFileInEditor).toHaveBeenCalledWith('');
+	});
+
+	it('propagates the exact rejection from openFileInEditor', async () => {
+		const failure = new Error('file not found');
+		vi.mocked(openFileInEditor).mockRejectedValueOnce(failure);
+
+		await expect(openCalendarFile('/vault/missing.md')).rejects.toBe(failure);
 	});
 });
 

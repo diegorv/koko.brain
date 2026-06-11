@@ -116,6 +116,37 @@ describe('buildOneOnOneVariables', () => {
 		const vars = buildOneOnOneVariables(fixedDate, 'John', settings);
 		expect(vars.dailyNoteDisplay).toBe('11-02-2026');
 	});
+
+	it('does not throw when daily.format is empty (dayjs falls back to ISO output)', () => {
+		// An empty format string is falsy, so dayjs.format('') uses its
+		// default ISO-8601 output instead of producing an empty filename.
+		const emptyFormat: PeriodicNotesSettings = {
+			...settings,
+			daily: { format: '', template: '' },
+		};
+
+		const vars = buildOneOnOneVariables(fixedDate, 'John', emptyFormat);
+
+		expect(vars.dailyNotePath.startsWith('_notes/2026-02-11T14:30:45')).toBe(true);
+	});
+
+	it('builds a bare ISO dailyNotePath when both folder and daily.format are empty', () => {
+		const bare: PeriodicNotesSettings = {
+			...settings,
+			folder: '',
+			daily: { format: '', template: '' },
+		};
+
+		const vars = buildOneOnOneVariables(fixedDate, 'John', bare);
+
+		// No folder prefix and no slash separator leaks in
+		expect(vars.dailyNotePath.startsWith('2026-02-11T14:30:45')).toBe(true);
+		expect(vars.dailyNotePath.startsWith('/')).toBe(false);
+		// Remaining variables are unaffected by the empty daily format
+		expect(vars.person).toBe('John');
+		expect(vars.year).toBe('2026');
+		expect(vars.dailyNoteDisplay).toBe('11-02-2026');
+	});
 });
 
 describe('loadPeopleFromEntries', () => {
