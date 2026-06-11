@@ -8,9 +8,17 @@
 
 use kokobrain_lib::commands::debug::set_tauri_debug_mode;
 use kokobrain_lib::utils::logger;
+use std::sync::Mutex;
+
+/// The logger flag is process-global; tests in this binary run in parallel
+/// threads, so every test that toggles it must hold this lock (same pattern
+/// as db_test.rs's TEST_LOCK).
+static DEBUG_FLAG_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn set_tauri_debug_mode_toggles_real_logger_state() {
+	let _guard = DEBUG_FLAG_LOCK.lock().unwrap();
+
 	// Enable -> logger reports enabled.
 	set_tauri_debug_mode(true).unwrap();
 	assert!(
@@ -28,6 +36,8 @@ fn set_tauri_debug_mode_toggles_real_logger_state() {
 
 #[test]
 fn set_tauri_debug_mode_is_idempotent() {
+	let _guard = DEBUG_FLAG_LOCK.lock().unwrap();
+
 	set_tauri_debug_mode(false).unwrap();
 	set_tauri_debug_mode(false).unwrap();
 	assert!(!logger::is_debug_enabled(), "double-disable stays disabled");
