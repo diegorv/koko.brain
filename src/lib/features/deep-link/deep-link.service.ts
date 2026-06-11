@@ -26,6 +26,24 @@ import { processTemplate } from '$lib/utils/template';
 import { debug, error } from '$lib/utils/debug';
 
 /**
+ * Serializes deep-link dispatch: actions like append/prepend do a
+ * read-modify-write on note files, so two URLs handled concurrently would
+ * read the same baseline and the last write would drop the other's content.
+ * Same policy as the quick-capture listener queue.
+ */
+let dispatchQueue: Promise<void> = Promise.resolve();
+
+function enqueueDeepLinkUrl(url: string): Promise<void> {
+	dispatchQueue = dispatchQueue
+		.then(() => handleDeepLinkUrl(url))
+		.catch((err) => {
+			// Keep the queue alive: one failed dispatch must not block the next.
+			error('DEEP_LINK', 'Deep link dispatch failed:', err);
+		});
+	return dispatchQueue;
+}
+
+/**
  * Registers a listener for deep-link URL events from the Tauri deep-link plugin.
  * Also checks for a cold-start URL (app launched via URI before listener was ready).
  *
@@ -39,7 +57,7 @@ export function registerDeepLinkListener(): () => void {
 	// Listen for URLs while app is running
 	onOpenUrl((urls) => {
 		for (const url of urls) {
-			handleDeepLinkUrl(url);
+			enqueueDeepLinkUrl(url);
 		}
 	}).then((fn) => {
 		if (cancelled) fn();
@@ -52,7 +70,7 @@ export function registerDeepLinkListener(): () => void {
 	getCurrent().then((urls) => {
 		if (cancelled || !urls) return;
 		for (const url of urls) {
-			handleDeepLinkUrl(url);
+			enqueueDeepLinkUrl(url);
 		}
 	}).catch((err) => {
 		error('DEEP_LINK', 'Failed to get current deep-link URLs:', err);

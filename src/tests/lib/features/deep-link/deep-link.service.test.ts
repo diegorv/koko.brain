@@ -80,7 +80,9 @@ import {
 	resolveContent,
 	executePendingAction,
 	resetDeepLink,
+	registerDeepLinkListener,
 } from '$lib/features/deep-link/deep-link.service';
+import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import type { DeepLinkAction } from '$lib/features/deep-link/deep-link.types';
 
 describe('deep-link.service', () => {
@@ -1280,6 +1282,77 @@ describe('deep-link.service', () => {
 			deepLinkStore.setPendingAction({ type: 'daily', vault: 'V' });
 			resetDeepLink();
 			expect(deepLinkStore.hasPending).toBe(false);
+		});
+	});
+
+	// ── registerDeepLinkListener ────────────────────────────────────
+
+	describe('registerDeepLinkListener', () => {
+		it('registers the listener and cleanup unsubscribes it', async () => {
+			const unlisten = vi.fn();
+			vi.mocked(onOpenUrl).mockResolvedValue(unlisten);
+			vi.mocked(getCurrent).mockResolvedValue(null);
+
+			const cleanup = registerDeepLinkListener();
+			await vi.waitFor(() => expect(onOpenUrl).toHaveBeenCalled());
+			// Let the registration promise settle so `unlisten` is stored.
+			await Promise.resolve();
+			cleanup();
+
+			expect(unlisten).toHaveBeenCalled();
+		});
+
+		it('unsubscribes a registration that resolves after cleanup ran', async () => {
+			const unlisten = vi.fn();
+			let resolveRegistration: ((fn: () => void) => void) | undefined;
+			vi.mocked(onOpenUrl).mockImplementation(
+				() => new Promise((resolve) => { resolveRegistration = resolve; }),
+			);
+			vi.mocked(getCurrent).mockResolvedValue(null);
+
+			const cleanup = registerDeepLinkListener();
+			cleanup();
+			resolveRegistration!(unlisten);
+
+			await vi.waitFor(() => expect(unlisten).toHaveBeenCalled());
+		});
+
+		it('serializes concurrent append actions to the same file (no lost update)', async () => {
+			vaultStore.open('/Users/me/MyVault');
+			let urlCallback: ((urls: string[]) => void) | undefined;
+			vi.mocked(onOpenUrl).mockImplementation(async (cb) => {
+				urlCallback = cb as (urls: string[]) => void;
+				return vi.fn() as () => void;
+			});
+			vi.mocked(getCurrent).mockResolvedValue(null);
+
+			registerDeepLinkListener();
+			await vi.waitFor(() => expect(urlCallback).toBeDefined());
+
+			// Simulated disk: a read snapshots the content at call time and
+			// delivers it a macrotask later (a real read issued before a
+			// concurrent write completes returns the pre-write content).
+			// Unserialized dispatch issues both reads against 'base' before
+			// either write lands, so the second write drops the first append.
+			let disk = 'base';
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockImplementation(async () => {
+				const snapshot = disk;
+				await new Promise((resolve) => setTimeout(resolve, 5));
+				return snapshot;
+			});
+			vi.mocked(writeTextFile).mockImplementation(async (_path, content) => {
+				disk = String(content);
+			});
+
+			urlCallback!([
+				'kokobrain://new?vault=MyVault&name=inbox&append=true&content=first&silent=true',
+				'kokobrain://new?vault=MyVault&name=inbox&append=true&content=second&silent=true',
+			]);
+
+			await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalledTimes(2));
+			expect(disk).toContain('first');
+			expect(disk).toContain('second');
 		});
 	});
 });
