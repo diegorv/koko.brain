@@ -168,6 +168,22 @@ describe('editorStore', () => {
 			expect(editorStore.activeTabPath).toBeNull();
 			expect(editorStore.activeTabContent).toBeNull();
 		});
+
+		it('stays valid when the active last tab is removed (index clamps to new last)', () => {
+			// Removing the active tab at the end is the closest reachable
+			// scenario to an out-of-bounds activeIndex — the getter's bounds
+			// guard must keep returning a real tab, never undefined.
+			editorStore.addTab(makeTab({ path: '/a.md', content: 'first' }));
+			editorStore.addTab(makeTab({ path: '/b.md', content: 'second' }));
+			editorStore.addTab(makeTab({ path: '/c.md', content: 'third' }));
+			// active is index 2 (last added)
+			editorStore.removeTab(2);
+
+			expect(editorStore.activeIndex).toBe(1);
+			expect(editorStore.activeTab).toEqual(expect.objectContaining({ path: '/b.md' }));
+			expect(editorStore.activeTabPath).toBe('/b.md');
+			expect(editorStore.activeTabContent).toBe('second');
+		});
 	});
 
 	describe('updateContent', () => {
@@ -393,6 +409,31 @@ describe('editorStore', () => {
 			expect(editorStore.activeIndex).toBe(-1);
 			expect(editorStore.isLivePreview).toBe(true);
 			expect(editorStore.pendingScrollPosition).toBeNull();
+			expect(editorStore.editorView).toBeNull();
+			expect(editorStore.externalContentSignal).toBe(0);
+		});
+
+		it('clears full vault-switch state (tabs, scroll, view, signal) in one call', () => {
+			// Vault switch scenario: every piece of state is non-default
+			// before reset, so each assertion below proves reset actually
+			// touches that field (not just that it was already default).
+			editorStore.addTab(makeTab({ path: '/old-vault/a.md' }));
+			editorStore.addTab(makeTab({ path: '/old-vault/b.md' }));
+			editorStore.setActiveIndex(0);
+			editorStore.setPendingScrollPosition(120);
+			editorStore.setLivePreview(false);
+			editorStore.setEditorView({ state: {} } as never);
+			editorStore.bumpExternalContentSignal();
+
+			editorStore.reset();
+
+			expect(editorStore.tabs).toEqual([]);
+			expect(editorStore.activeIndex).toBe(-1);
+			expect(editorStore.activeTab).toBeNull();
+			expect(editorStore.activeTabPath).toBeNull();
+			expect(editorStore.activeTabContent).toBeNull();
+			expect(editorStore.pendingScrollPosition).toBeNull();
+			expect(editorStore.isLivePreview).toBe(true);
 			expect(editorStore.editorView).toBeNull();
 			expect(editorStore.externalContentSignal).toBe(0);
 		});

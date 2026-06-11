@@ -18,7 +18,7 @@
 
 ## Tasks — Lotes paralelos (só testes)
 
-- [ ] **Lote F1 - core (settings, layout, wikilink logic, trash, vault, zoom, editor store)**
+- [x] **Lote F1 - core (settings, layout, wikilink logic, trash, vault, zoom, editor store)**
   - `src/lib/core/editor/editor.store.svelte.ts` — Getter `activeTab` edge case when activeIndex is out of bounds (should return null, covered via tests but no specific edge case test). Store reset behavior during vault switch not explicitly tested.
   - `src/lib/core/layout/tauri-listeners.service.ts` — registerVaultIndexUpdatedListener fan-out (full entries fetch + refreshTypeDefinitions + conditional loadDirectoryTree) has no test for event bursts or for the cancelled-flag race between unlisten and the in-flight invok
   - `src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts` — matchFilesForWikilink has test coverage (line 110-151 in completion.logic.test.ts), but error handling for null files array not tested. Empty/null edge cases partially covered.

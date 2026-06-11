@@ -148,6 +148,23 @@ describe('matchFilesForWikilink', () => {
 		const result = matchFilesForWikilink('Da', files);
 		expect(result[0].name).toBe('Daily Notes.md');
 	});
+
+	it('returns empty array for empty files list with empty query', () => {
+		expect(matchFilesForWikilink('', [])).toEqual([]);
+	});
+
+	it('returns empty array for empty files list with a query', () => {
+		expect(matchFilesForWikilink('daily', [])).toEqual([]);
+	});
+
+	it('does not mutate the input array when sorting the empty-query result', () => {
+		const input = [...files];
+		const originalOrder = input.map((f) => f.name);
+
+		matchFilesForWikilink('', input);
+
+		expect(input.map((f) => f.name)).toEqual(originalOrder);
+	});
 });
 
 describe('extractHeadingsFromContent', () => {
@@ -163,6 +180,10 @@ describe('extractHeadingsFromContent', () => {
 
 	it('returns empty array for content with no headings', () => {
 		expect(extractHeadingsFromContent('Just some text\nwith no headings')).toEqual([]);
+	});
+
+	it('returns empty array for empty content', () => {
+		expect(extractHeadingsFromContent('')).toEqual([]);
 	});
 
 	it('handles headings with extra spaces', () => {
@@ -186,6 +207,10 @@ describe('extractBlockIdsFromContent', () => {
 
 	it('returns empty array when no block IDs exist', () => {
 		expect(extractBlockIdsFromContent('Just text\nNo block IDs')).toEqual([]);
+	});
+
+	it('returns empty array for empty content', () => {
+		expect(extractBlockIdsFromContent('')).toEqual([]);
 	});
 
 	it('handles block IDs with trailing spaces', () => {
@@ -227,5 +252,9 @@ describe('extractAliasesFromContent', () => {
 	it('handles empty aliases list', () => {
 		const content = '---\naliases: []\n---\n# Content';
 		expect(extractAliasesFromContent(content)).toEqual([]);
+	});
+
+	it('returns empty array for empty content', () => {
+		expect(extractAliasesFromContent('')).toEqual([]);
 	});
 });

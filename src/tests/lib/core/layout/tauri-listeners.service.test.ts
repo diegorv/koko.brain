@@ -43,8 +43,20 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 	ask: vi.fn(),
 }));
 
+// Default resolves to an empty entries snapshot so the fan-out inside
+// registerVaultIndexUpdatedListener never chains `.then` off undefined.
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('$lib/core/editor/editor.service', () => ({
 	saveAllDirtyTabs: vi.fn(),
+}));
+
+// loadDirectoryTree is a side-effect service (scan_vault IPC + fsStore tree
+// write) — mocked per docs/TESTING.md allowlist.
+vi.mock('$lib/core/filesystem/fs.service', () => ({
+	loadDirectoryTree: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
@@ -69,12 +81,18 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 // --- Imports (after mocks) ---
 
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
+import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 // --- Tests ---
 
@@ -273,6 +291,7 @@ describe('registerVaultIndexUpdatedListener', () => {
 		vi.clearAllMocks();
 		capturedEventHandler = undefined;
 		vaultStore._reset();
+		vi.mocked(invoke).mockResolvedValue([]);
 	});
 
 	it('listens for the vault-index-updated event', async () => {
@@ -322,6 +341,172 @@ describe('registerVaultIndexUpdatedListener', () => {
 		resolveListen!(unlistenFn);
 
 		return vi.waitFor(() => expect(unlistenFn).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
+	/** Flushes the invoke `.then` fan-out microtasks queued by the handler. */
+	const flushFanOut = () => new Promise((r) => setTimeout(r, 0));
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedEventHandler = undefined;
+		vaultStore._reset();
+		fsStore.reset();
+		typeDefinitionsStore.reset();
+		lifecycleFilterStore.reset();
+		vi.mocked(invoke).mockResolvedValue([]);
+	});
+
+	async function fireEvent(version: number) {
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+		capturedEventHandler!({ payload: { changed: true, affected: [], version } });
+	}
+
+	it('fetches the full entries snapshot and fans out to the real stores', async () => {
+		const entries = [
+			entryV2('/vault/archived.md', { archived: true }),
+			entryV2('/vault/Project.md', { isA: 'Type', frontmatter: { _icon: 'rocket' } }),
+			entryV2('/vault/notes/notes.md', { frontmatter: { _order: 2 } }),
+		];
+		vi.mocked(invoke).mockResolvedValue(entries);
+
+		registerVaultIndexUpdatedListener();
+		await fireEvent(1);
+		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
+		// refreshArchivedPaths → real lifecycleFilterStore
+		expect(lifecycleFilterStore.isArchived('/vault/archived.md')).toBe(true);
+		expect(lifecycleFilterStore.isArchived('/vault/Project.md')).toBe(false);
+		expect(lifecycleFilterStore.archivedCount).toBe(1);
+		// refreshTypeDefinitions → real typeDefinitionsStore metadata map
+		expect(typeDefinitionsStore.getTypeMetadata('Project')?.icon).toBe('rocket');
+		expect(typeDefinitionsStore.sortedTypes.map((t) => t.name)).toEqual(['Project']);
+		// setEntries → snapshot stored for sidebar consumption
+		expect(typeDefinitionsStore.entries).toEqual(entries);
+		// buildContentOrderMap → fsStore.contentOrder (folder note indexed under dir too)
+		expect(fsStore.contentOrder.get('/vault/notes/notes.md')).toBe(2);
+		expect(fsStore.contentOrder.get('/vault/notes')).toBe(2);
+	});
+
+	it('reloads the directory tree when the content order changed and a vault is open', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2('/vault/pinned.md', { frontmatter: { _order: 1 } }),
+		]);
+
+		registerVaultIndexUpdatedListener();
+		await fireEvent(1);
+		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+
+		// Order map went from empty to one entry → tree reload with vault path.
+		expect(fsStore.contentOrder.get('/vault/pinned.md')).toBe(1);
+		expect(loadDirectoryTree).toHaveBeenCalledWith('/vault');
+	});
+
+	it('does not reload the tree when the content order is unchanged', async () => {
+		vaultStore.open('/vault');
+		// Pre-seed the store with the exact map the entries produce.
+		fsStore.setContentOrder(new Map([['/vault/pinned.md', 1]]));
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2('/vault/pinned.md', { frontmatter: { _order: 1 } }),
+		]);
+
+		registerVaultIndexUpdatedListener();
+		await fireEvent(1);
+		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+
+		expect(fsStore.contentOrder.get('/vault/pinned.md')).toBe(1);
+		expect(loadDirectoryTree).not.toHaveBeenCalled();
+	});
+
+	it('does not reload the tree when no vault is open, but still updates the order map', async () => {
+		// vaultStore._reset() left path null.
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2('/vault/pinned.md', { frontmatter: { _order: 3 } }),
+		]);
+
+		registerVaultIndexUpdatedListener();
+		await fireEvent(1);
+		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(1));
+
+		expect(fsStore.contentOrder.get('/vault/pinned.md')).toBe(3);
+		expect(loadDirectoryTree).not.toHaveBeenCalled();
+	});
+
+	it('skips the fan-out when cleanup runs before the in-flight fetch resolves', async () => {
+		let resolveInvoke!: (v: unknown) => void;
+		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveInvoke = r; }));
+
+		const cleanup = registerVaultIndexUpdatedListener();
+		await fireEvent(7);
+
+		// Version bump is synchronous — it happens before the fetch settles.
+		expect(vaultStore.vaultIndexVersion).toBe(7);
+
+		cleanup();
+		resolveInvoke([entryV2('/vault/late.md', { archived: true })]);
+		await flushFanOut();
+
+		// cancelled flag dropped the late snapshot — no store writes.
+		expect(typeDefinitionsStore.entriesVersion).toBe(0);
+		expect(typeDefinitionsStore.entries).toEqual([]);
+		expect(lifecycleFilterStore.archivedCount).toBe(0);
+		expect(fsStore.contentOrder.size).toBe(0);
+	});
+
+	it('re-fetches per event in a burst and the last snapshot wins', async () => {
+		const first = [entryV2('/vault/a.md')];
+		const second = [entryV2('/vault/a.md'), entryV2('/vault/b.md')];
+		const third = [entryV2('/vault/c.md', { archived: true })];
+		vi.mocked(invoke)
+			.mockResolvedValueOnce(first)
+			.mockResolvedValueOnce(second)
+			.mockResolvedValueOnce(third);
+
+		registerVaultIndexUpdatedListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		// Rapid burst: three events before any fan-out settles.
+		capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+		capturedEventHandler!({ payload: { changed: true, affected: [], version: 2 } });
+		capturedEventHandler!({ payload: { changed: true, affected: [], version: 3 } });
+
+		await vi.waitFor(() => expect(typeDefinitionsStore.entriesVersion).toBe(3));
+
+		// One fetch per event — no dedup/coalescing in the listener.
+		expect(invoke).toHaveBeenCalledTimes(3);
+		expect(vaultStore.vaultIndexVersion).toBe(3);
+		// Resolutions apply in order, so the final snapshot is the third one.
+		expect(typeDefinitionsStore.entries).toEqual(third);
+		expect(lifecycleFilterStore.isArchived('/vault/c.md')).toBe(true);
+	});
+
+	it('logs and leaves stores untouched when the entries fetch fails', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(invoke).mockRejectedValue(new Error('ipc down'));
+
+		registerVaultIndexUpdatedListener();
+		await fireEvent(4);
+
+		await vi.waitFor(() =>
+			expect(consoleErrorSpy).toHaveBeenCalledWith(
+				expect.stringContaining('LISTENERS'),
+				'get_all_vault_entries_v2 failed:',
+				expect.any(Error),
+			),
+		);
+
+		// Version bump still applied; the fan-out stores are untouched.
+		expect(vaultStore.vaultIndexVersion).toBe(4);
+		expect(typeDefinitionsStore.entriesVersion).toBe(0);
+		expect(typeDefinitionsStore.entries).toEqual([]);
+		expect(lifecycleFilterStore.archivedCount).toBe(0);
+		expect(fsStore.contentOrder.size).toBe(0);
+		expect(loadDirectoryTree).not.toHaveBeenCalled();
+
+		consoleErrorSpy.mockRestore();
 	});
 });
 

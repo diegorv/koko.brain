@@ -1,3 +1,6 @@
+// @vitest-environment jsdom
+// jsdom needed so applyHeadingTypography can write CSS variables onto
+// document.documentElement (the function no-ops without a document).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
@@ -14,8 +17,9 @@ vi.mock('$lib/core/settings/theme.service', () => ({
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { applyActiveTheme } from '$lib/core/settings/theme.service';
 import { settingsStore, DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
-import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { loadSettings, saveSettings, resetSettings, applyHeadingTypography } from '$lib/core/settings/settings.service';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME } from '$lib/core/settings/theme.logic';
+import { FONT_WEIGHT_MAP } from '$lib/core/settings/heading-typography.logic';
 
 describe('loadSettings', () => {
 	beforeEach(() => {
@@ -526,6 +530,90 @@ describe('saveSettings', () => {
 
 		expect(consoleSpy).toHaveBeenCalled();
 		expect(writeTextFile).not.toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+});
+
+describe('applyHeadingTypography', () => {
+	const HEADING_LEVELS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
+
+	/** Removes every heading CSS var set on the document root. */
+	function clearHeadingVars() {
+		const el = document.documentElement;
+		for (const level of HEADING_LEVELS) {
+			el.style.removeProperty(`--heading-${level}-font-size`);
+			el.style.removeProperty(`--heading-${level}-line-height`);
+			el.style.removeProperty(`--heading-${level}-font-weight`);
+			el.style.removeProperty(`--heading-${level}-letter-spacing`);
+		}
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		settingsStore.reset();
+		clearHeadingVars();
+	});
+
+	afterEach(() => {
+		clearHeadingVars();
+	});
+
+	it('applies the default heading typography as CSS variables on the document root', () => {
+		applyHeadingTypography();
+
+		const style = document.documentElement.style;
+		for (const level of HEADING_LEVELS) {
+			const defaults = DEFAULT_SETTINGS.editor.headingTypography[level];
+			expect(style.getPropertyValue(`--heading-${level}-font-size`)).toBe(`${defaults.fontSize}em`);
+			expect(style.getPropertyValue(`--heading-${level}-line-height`)).toBe(`${defaults.lineHeight}`);
+			expect(style.getPropertyValue(`--heading-${level}-font-weight`)).toBe(FONT_WEIGHT_MAP[defaults.fontWeight]);
+			expect(style.getPropertyValue(`--heading-${level}-letter-spacing`)).toBe(`${defaults.letterSpacing}em`);
+		}
+	});
+
+	it('reflects custom typography from the store', () => {
+		const typography = structuredClone(DEFAULT_SETTINGS.editor.headingTypography);
+		typography.h1 = { fontSize: 3.0, lineHeight: 1.2, fontWeight: 'semibold', letterSpacing: -0.05 };
+		settingsStore.updateEditor({ headingTypography: typography });
+
+		applyHeadingTypography();
+
+		const style = document.documentElement.style;
+		expect(style.getPropertyValue('--heading-h1-font-size')).toBe('3em');
+		expect(style.getPropertyValue('--heading-h1-line-height')).toBe('1.2');
+		expect(style.getPropertyValue('--heading-h1-font-weight')).toBe('600');
+		expect(style.getPropertyValue('--heading-h1-letter-spacing')).toBe('-0.05em');
+		// Untouched levels keep their defaults.
+		const h2 = DEFAULT_SETTINGS.editor.headingTypography.h2;
+		expect(style.getPropertyValue('--heading-h2-font-size')).toBe(`${h2.fontSize}em`);
+	});
+
+	it('loadSettings applies the loaded heading typography to the document root', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ editor: { headingTypography: { h1: { fontSize: 2.5 } } } }),
+		);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		const style = document.documentElement.style;
+		expect(style.getPropertyValue('--heading-h1-font-size')).toBe('2.5em');
+		// Merged defaults applied for the rest of h1.
+		const h1 = DEFAULT_SETTINGS.editor.headingTypography.h1;
+		expect(style.getPropertyValue('--heading-h1-line-height')).toBe(`${h1.lineHeight}`);
+	});
+
+	it('loadSettings applies default typography vars on the fallback (read error) path', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await loadSettings('/vault');
+
+		const h1 = DEFAULT_SETTINGS.editor.headingTypography.h1;
+		expect(document.documentElement.style.getPropertyValue('--heading-h1-font-size')).toBe(`${h1.fontSize}em`);
 		consoleSpy.mockRestore();
 	});
 });
