@@ -36,8 +36,18 @@
 	let localSort = $state<SortDef[]>([]);
 	let initialized = $state(false);
 
-	/** Flag to skip re-initialization when we triggered the YAML change ourselves */
-	let selfUpdate = $state(false);
+	/**
+	 * Flag to skip re-initialization when we triggered the YAML change ourselves.
+	 *
+	 * Deliberately a plain variable, NOT `$state`: the reset effect below both
+	 * reads and writes it. As `$state`, the `selfUpdate = false` write inside
+	 * the guard branch dirties the effect's own tracked dependency, re-running
+	 * it straight into the reset branch — every self-persist then re-seeds the
+	 * local toolbar state (wiping in-progress formula rows and regenerating
+	 * filter row uids, which breaks the keyed each and drops input focus per
+	 * keystroke). The flag is never rendered, so it needs no reactivity.
+	 */
+	let selfUpdate = false;
 
 	/** Index of the currently displayed view within definition.views */
 	let activeViewIndex = $state(0);
