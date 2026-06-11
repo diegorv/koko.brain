@@ -659,6 +659,77 @@ describe('canonical form snapshot (serializeProperties)', () => {
 	});
 });
 
+describe('serialize — backslash and quote sequences (yaml-quoting integration)', () => {
+	// Mid-string backslashes and double quotes do NOT trigger quoting in
+	// yaml@2.9.0 mapping-value context — they are emitted bare and re-parse
+	// to the same scalar. Leading quote characters DO force quoting.
+	it('emits a mid-string double quote bare', () => {
+		expect(
+			serializePropertyValue({ key: 'desc', value: 'say "hello"', type: 'text' }),
+		).toBe('say "hello"');
+	});
+
+	it('emits a mid-string backslash bare', () => {
+		expect(
+			serializePropertyValue({ key: 'path', value: 'back\\slash', type: 'text' }),
+		).toBe('back\\slash');
+	});
+
+	it('emits a backslash+quote sequence bare', () => {
+		expect(
+			serializePropertyValue({ key: 'desc', value: 'a\\"b', type: 'text' }),
+		).toBe('a\\"b');
+	});
+
+	it('emits Windows-style double-backslash paths bare', () => {
+		expect(
+			serializeProperties([{ key: 'path', value: 'C:\\\\path\\\\to', type: 'text' }]),
+		).toBe('path: C:\\\\path\\\\to');
+	});
+
+	it('quotes a value starting with a double quote (single-quote emission)', () => {
+		expect(
+			serializePropertyValue({ key: 'desc', value: '"quoted at start', type: 'text' }),
+		).toBe("'\"quoted at start'");
+	});
+
+	it('quotes a value starting with a single quote (double-quote emission)', () => {
+		expect(
+			serializePropertyValue({ key: 'desc', value: "'single at start", type: 'text' }),
+		).toBe('"\'single at start"');
+	});
+
+	it('round-trips backslash+quote sequences through serialize → parse', () => {
+		const values = [
+			'say "hello"',
+			'back\\slash',
+			'a\\"b',
+			'\\"',
+			'C:\\\\path\\\\to',
+			'\\\\server\\\\share',
+			"it's quoted",
+			'both \' and "',
+			'"leading quote',
+			"'leading single",
+		];
+		for (const value of values) {
+			const props = [{ key: 'v', value, type: 'text' as const }];
+			const content = rebuildContent(props, 'Body');
+			const reparsed = parseFrontmatterProperties(content);
+			expect(reparsed).toHaveLength(1);
+			expect(reparsed[0].value).toBe(value);
+		}
+	});
+
+	it('round-trips list items containing backslashes and quotes', () => {
+		const value = ['say "hello"', 'back\\slash', 'a,\\"b'];
+		const props = [{ key: 'items', value, type: 'list' as const }];
+		const content = rebuildContent(props, 'Body');
+		const reparsed = parseFrontmatterProperties(content);
+		expect(reparsed[0]).toEqual({ key: 'items', value, type: 'list' });
+	});
+});
+
 describe('rebuildContent', () => {
 	it('builds content with frontmatter and body', () => {
 		const props = [{ key: 'title', value: 'Hello', type: 'text' as const }];

@@ -33,7 +33,7 @@
   - `src/lib/core/zoom/zoom.service.ts` — Complete coverage exists. zoomIn, zoomOut, and resetZoom all have test cases covering boundaries and state transitions.
   - `src/tests/lib/core/settings/update-check.service.test.ts` — maybeAutoCheckForUpdates não testado (função async pública)
   - Verificar: `pnpm check && pnpm vitest run` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote F2 - features A (collection, properties logic/services, search, tags, type-definitions)**
+- [x] **Lote F2 - features A (collection, properties logic/services, search, tags, type-definitions)**
   - `src/lib/features/collection/collection.logic.ts` — Tests exist but do not verify all exported functions. Functions like `buildPropertyIndex`, `formatCellValue`, `getPropertyValue`, `evaluateFilter`, and `executeQuery` are tested, but check that all getters/computed prope
   - `src/lib/features/collection/collection.store.svelte.ts` — Store has getters for propertyIndex and isIndexReady, but no test verifies these getters are reactive or recompute correctly.
   - `src/lib/features/collection/expression/methods.logic.ts` — Test file exists (methods.test.ts) but need to verify all exported methods are tested. File is 300+ lines with many method registries for string, number, date, array operations that should each have tests.

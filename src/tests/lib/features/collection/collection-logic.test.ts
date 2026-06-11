@@ -74,6 +74,37 @@ describe('buildNoteRecord', () => {
 		const record = buildNoteRecord('/vault/test.md', 'Just text');
 		expect(record.properties.size).toBe(0);
 	});
+
+	it('merges inline #tags from the body into the tags property', () => {
+		const content = '---\ntags: [frontmatter-tag]\n---\nBody with #inline-tag here';
+		const record = buildNoteRecord('/vault/test.md', content);
+		expect(record.properties.get('tags')).toEqual(['frontmatter-tag', 'inline-tag']);
+	});
+
+	it('sets tags from inline #tags alone when frontmatter has none', () => {
+		const record = buildNoteRecord('/vault/test.md', 'Only body #solo');
+		expect(record.properties.get('tags')).toEqual(['solo']);
+	});
+
+	it('deduplicates frontmatter and inline tags case-insensitively', () => {
+		const content = '---\ntags: [Work]\n---\nBody #work again';
+		const record = buildNoteRecord('/vault/test.md', content);
+		expect(record.properties.get('tags')).toEqual(['Work']);
+	});
+
+	it('builds a record from empty content', () => {
+		const record = buildNoteRecord('/vault/test.md', '');
+		expect(record.properties.size).toBe(0);
+		expect(record.name).toBe('test.md');
+		expect(record.basename).toBe('test');
+	});
+
+	it('keeps file metadata arguments', () => {
+		const record = buildNoteRecord('/vault/test.md', '', 111, 222, 333);
+		expect(record.mtime).toBe(111);
+		expect(record.ctime).toBe(222);
+		expect(record.size).toBe(333);
+	});
 });
 
 describe('executeQuery', () => {
@@ -335,6 +366,49 @@ describe('evaluateFilter', () => {
 		const ctx = { record, formulas: {} };
 		expect(evaluateFilter('invalid @@@', ctx)).toBe(false);
 	});
+
+	it('evaluates an and filter object (all must match)', () => {
+		const record = makeRecord('/vault/test.md', { status: 'active', priority: 5 });
+		const ctx = { record, formulas: {} };
+		expect(evaluateFilter({ and: ["status == 'active'", 'priority > 3'] }, ctx)).toBe(true);
+		expect(evaluateFilter({ and: ["status == 'active'", 'priority > 9'] }, ctx)).toBe(false);
+	});
+
+	it('evaluates an or filter object (any may match)', () => {
+		const record = makeRecord('/vault/test.md', { status: 'active' });
+		const ctx = { record, formulas: {} };
+		expect(evaluateFilter({ or: ["status == 'done'", "status == 'active'"] }, ctx)).toBe(true);
+		expect(evaluateFilter({ or: ["status == 'done'", "status == 'archived'"] }, ctx)).toBe(false);
+	});
+
+	it('evaluates a not filter object (none may match)', () => {
+		const record = makeRecord('/vault/test.md', { status: 'active' });
+		const ctx = { record, formulas: {} };
+		expect(evaluateFilter({ not: ["status == 'done'"] }, ctx)).toBe(true);
+		expect(evaluateFilter({ not: ["status == 'active'"] }, ctx)).toBe(false);
+	});
+
+	it('evaluates nested and/or/not combinations', () => {
+		const record = makeRecord('/vault/test.md', { status: 'active', priority: 5 });
+		const ctx = { record, formulas: {} };
+		expect(
+			evaluateFilter(
+				{
+					and: [
+						{ or: ["status == 'active'", "status == 'done'"] },
+						{ not: ['priority < 3'] },
+					],
+				},
+				ctx,
+			),
+		).toBe(true);
+	});
+
+	it('returns true for an empty filter object', () => {
+		const record = makeRecord('/vault/test.md');
+		const ctx = { record, formulas: {} };
+		expect(evaluateFilter({}, ctx)).toBe(true);
+	});
 });
 
 describe('formatCellValue', () => {
@@ -517,5 +591,36 @@ describe('formatCellValue edge cases', () => {
 
 	it('formats empty array as empty string', () => {
 		expect(formatCellValue([])).toBe('');
+	});
+
+	it('falls back to href when a display link has no display text', () => {
+		const link = { __display: 'link' as const, href: 'https://example.com', display: '' };
+		expect(formatCellValue(link)).toBe('https://example.com');
+	});
+
+	it('falls back to src when a display image has no alt text', () => {
+		const img = { __display: 'image' as const, src: 'pic.png', alt: '' };
+		expect(formatCellValue(img)).toBe('pic.png');
+	});
+});
+
+describe('executeQuery — formula error handling', () => {
+	it('sets null for a formula whose expression fails to parse', () => {
+		const index = makeIndex([makeRecord('/vault/a.md', { priority: 5 })]);
+		const def = baseDef({ formulas: { broken: '@@@ not parseable' } });
+
+		const result = executeQuery(def, baseView(), index);
+
+		expect(result.records[0].properties.get('formula.broken')).toBeNull();
+	});
+
+	it('computes valid formulas even when a sibling formula is broken', () => {
+		const index = makeIndex([makeRecord('/vault/a.md', { priority: 5 })]);
+		const def = baseDef({ formulas: { broken: '@@@', doubled: 'priority * 2' } });
+
+		const result = executeQuery(def, baseView(), index);
+
+		expect(result.records[0].properties.get('formula.broken')).toBeNull();
+		expect(result.records[0].properties.get('formula.doubled')).toBe(10);
 	});
 });

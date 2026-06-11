@@ -52,8 +52,9 @@ import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { createNoteOfType, createTypeDefinition, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
+import { createNoteOfType, createTypeDefinition, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
 	return {
@@ -71,6 +72,82 @@ function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMeta
 		...overrides,
 	};
 }
+
+describe('refreshTypeDefinitions', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		typeDefinitionsStore.reset();
+	});
+
+	afterEach(() => {
+		typeDefinitionsStore.reset();
+	});
+
+	it('builds the type metadata map from provided entries without an IPC call', async () => {
+		const entries = [
+			entryV2('/vault/Project.md', {
+				isA: 'Type',
+				frontmatter: { _icon: 'briefcase', _order: 7 },
+			}),
+			entryV2('/vault/regular-note.md'),
+		];
+
+		await refreshTypeDefinitions(entries);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.typeMetadataMap.size).toBe(1);
+		expect(typeDefinitionsStore.getTypeMetadata('Project')).toMatchObject({
+			name: 'Project',
+			path: '/vault/Project.md',
+			icon: 'briefcase',
+			order: 7,
+		});
+		// Computed getter reflects the refreshed map.
+		expect(typeDefinitionsStore.sortedTypes.map((t) => t.name)).toEqual(['Project']);
+	});
+
+	it('fetches entries via get_all_vault_entries_v2 when none are provided', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			entryV2('/vault/Person.md', { isA: 'Type' }),
+			entryV2('/vault/Task.md', { isA: 'Type', frontmatter: { _order: 1 } }),
+		]);
+
+		await refreshTypeDefinitions();
+
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
+		expect(typeDefinitionsStore.typeMetadataMap.size).toBe(2);
+		// sortedTypes orders by _order (Task=1 beats Person's builtin 2).
+		expect(typeDefinitionsStore.sortedTypes.map((t) => t.name)).toEqual(['Task', 'Person']);
+	});
+
+	it('replaces a previously populated map when no type definitions remain', async () => {
+		await refreshTypeDefinitions([entryV2('/vault/Project.md', { isA: 'Type' })]);
+		expect(typeDefinitionsStore.typeMetadataMap.size).toBe(1);
+
+		await refreshTypeDefinitions([entryV2('/vault/plain.md')]);
+
+		expect(typeDefinitionsStore.typeMetadataMap.size).toBe(0);
+		expect(typeDefinitionsStore.sortedTypes).toEqual([]);
+	});
+
+	it('handles an empty entries array', async () => {
+		await refreshTypeDefinitions([]);
+
+		expect(typeDefinitionsStore.typeMetadataMap.size).toBe(0);
+	});
+
+	it('propagates IPC errors and leaves the store untouched', async () => {
+		await refreshTypeDefinitions([entryV2('/vault/Project.md', { isA: 'Type' })]);
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('IPC failure'));
+
+		await expect(refreshTypeDefinitions()).rejects.toThrow('IPC failure');
+
+		// Prior map preserved — no partial update on error.
+		expect(typeDefinitionsStore.typeMetadataMap.size).toBe(1);
+		expect(typeDefinitionsStore.getTypeMetadata('Project')).toBeDefined();
+	});
+});
 
 describe('createNoteOfType', () => {
 	beforeEach(() => {

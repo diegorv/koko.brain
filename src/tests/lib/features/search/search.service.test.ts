@@ -359,6 +359,48 @@ describe('performSearch', () => {
 		expect(searchStore.ftsResults[0].path).toBe('daily/2024.md');
 	});
 
+	it('completes a tag-filtered FTS query without crashing when no vault is open', async () => {
+		// vaultPath is null → the service substitutes '' and builds tag-map
+		// lookup keys as `/${r.path}` (search.service.ts:220). Entry paths in
+		// the tag map are absolute vault paths, so no key can match and every
+		// FTS hit is filtered out. This documents the current null-vault
+		// behavior: graceful empty result, no exception.
+		vaultStore._reset();
+		const ftsResults = [
+			{ path: 'a.md', title: 'A', score: -2.0, snippet: '<mark>fix</mark>', tags: '' },
+		];
+		mockSearchIPCs({
+			ftsResult: ftsResults,
+			entries: [entryV2('/vault/a.md', { tags: ['javascript'] })],
+		});
+		searchStore.setQuery('tag:javascript fix');
+		searchStore.setMode('text');
+
+		await expect(performSearch()).resolves.toBeUndefined();
+
+		expect(searchStore.ftsResults).toEqual([]);
+		expect(searchStore.isSearching).toBe(false);
+	});
+
+	it('completes the FTS in-memory fallback without crashing when no vault is open', async () => {
+		vaultStore._reset();
+		mockSearchIPCs({
+			ftsResult: new Error('No DB'),
+			entries: [entryV2('/vault/match.md')],
+			contents: { '/vault/match.md': 'This file contains hello' },
+		});
+		searchStore.setQuery('hello');
+		searchStore.setMode('text');
+
+		await expect(performSearch()).resolves.toBeUndefined();
+
+		// Fallback ran over the freshly loaded content map; the absolute
+		// entry paths still resolve matches regardless of the empty vaultPath.
+		expect(searchStore.results).toHaveLength(1);
+		expect(searchStore.results[0].filePath).toBe('/vault/match.md');
+		expect(searchStore.isSearching).toBe(false);
+	});
+
 	it('passes fuzzy flag from store', async () => {
 		mockInvoke.mockResolvedValueOnce([]);
 		searchStore.setQuery('test');
@@ -732,6 +774,81 @@ describe('semantic progress listener (throttle)', () => {
 
 			// State also reflects the last phase (sanity check — not the sole assertion)
 			expect(searchStore.semanticProgress?.phase).toBe('chunking');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('handles the downloading-reranker phase emitted by Rust (not in the TS union)', async () => {
+		// Rust's download_reranker_model (semantic.rs:282) emits phase
+		// "downloading-reranker" on the same semantic-index-progress channel,
+		// but the SemanticProgress TS union (search.types.ts:75) only declares
+		// 'downloading' | 'chunking' | 'embedding'. The listener compares the
+		// phase as an opaque string, so the extra phase must flow through the
+		// phase-transition fast path and the same-phase throttle unchanged.
+		const rerankerPhase = 'downloading-reranker' as SemanticProgress['phase'];
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+
+			// Embedding phase propagates immediately (transition from null).
+			capturedHandler!({
+				payload: { phase: 'embedding', current: 4, total: 1000, message: '4/1000' },
+			});
+			expect(searchStore.semanticProgress?.phase).toBe('embedding');
+
+			// Transition to downloading-reranker bypasses the throttle.
+			capturedHandler!({
+				payload: { phase: rerankerPhase, current: 10, total: 100, message: 'Downloading reranker... 10%' },
+			});
+			expect(searchStore.semanticProgress?.phase).toBe(rerankerPhase);
+			expect(searchStore.semanticProgress?.current).toBe(10);
+
+			// Same-phase reranker progress is throttled like any other phase.
+			capturedHandler!({
+				payload: { phase: rerankerPhase, current: 40, total: 100, message: 'Downloading reranker... 40%' },
+			});
+			capturedHandler!({
+				payload: { phase: rerankerPhase, current: 70, total: 100, message: 'Downloading reranker... 70%' },
+			});
+			expect(searchStore.semanticProgress?.current).toBe(10);
+
+			vi.advanceTimersByTime(500);
+
+			// Trailing flush carries the LAST coalesced reranker payload.
+			expect(searchStore.semanticProgress?.phase).toBe(rerankerPhase);
+			expect(searchStore.semanticProgress?.current).toBe(70);
+			expect(searchStore.semanticProgress?.message).toBe('Downloading reranker... 70%');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('transitions out of downloading-reranker back to embedding immediately', async () => {
+		const rerankerPhase = 'downloading-reranker' as SemanticProgress['phase'];
+		vi.useFakeTimers();
+		try {
+			await startSemanticProgressListener();
+
+			capturedHandler!({
+				payload: { phase: rerankerPhase, current: 99, total: 100, message: '99%' },
+			});
+			// Same-phase update arms the throttle timer.
+			capturedHandler!({
+				payload: { phase: rerankerPhase, current: 100, total: 100, message: '100%' },
+			});
+
+			// Phase change lands before the throttle fires — propagates now.
+			capturedHandler!({
+				payload: { phase: 'embedding', current: 1, total: 50, message: '1/50' },
+			});
+			expect(searchStore.semanticProgress?.phase).toBe('embedding');
+			expect(searchStore.semanticProgress?.current).toBe(1);
+
+			// The armed reranker timer must not resurrect the stale payload.
+			vi.advanceTimersByTime(1000);
+			expect(searchStore.semanticProgress?.phase).toBe('embedding');
+			expect(searchStore.semanticProgress?.current).toBe(1);
 		} finally {
 			vi.useRealTimers();
 		}

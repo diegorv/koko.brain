@@ -31,6 +31,34 @@ describe('collectionStore', () => {
 
 			expect(collectionStore.propertyIndex.get('/vault/a.md')).toBe(record);
 		});
+
+		it('replaces the Map instance so reactive consumers recompute', () => {
+			// The store reassigns a new Map on every mutation — that reference
+			// change is what drives $state reactivity for getter consumers.
+			const before = collectionStore.propertyIndex;
+			collectionStore.updateRecord('/vault/a.md', { path: '/vault/a.md' } as any);
+			const after = collectionStore.propertyIndex;
+
+			expect(after).not.toBe(before);
+			expect(after.has('/vault/a.md')).toBe(true);
+			// Pre-mutation snapshot is untouched.
+			expect(before.has('/vault/a.md')).toBe(false);
+		});
+
+		it('overwrites an existing record for the same path', () => {
+			collectionStore.updateRecord('/vault/a.md', { path: '/vault/a.md', size: 1 } as any);
+			collectionStore.updateRecord('/vault/a.md', { path: '/vault/a.md', size: 2 } as any);
+
+			expect(collectionStore.propertyIndex.size).toBe(1);
+			expect((collectionStore.propertyIndex.get('/vault/a.md') as any).size).toBe(2);
+		});
+
+		it('does not mark the index as ready', () => {
+			collectionStore.updateRecord('/vault/a.md', {} as any);
+
+			// Only setPropertyIndex (the full build) flips isIndexReady.
+			expect(collectionStore.isIndexReady).toBe(false);
+		});
 	});
 
 	describe('removeRecord', () => {
@@ -39,6 +67,38 @@ describe('collectionStore', () => {
 			collectionStore.removeRecord('/vault/a.md');
 
 			expect(collectionStore.propertyIndex.has('/vault/a.md')).toBe(false);
+		});
+
+		it('replaces the Map instance so reactive consumers recompute', () => {
+			collectionStore.updateRecord('/vault/a.md', {} as any);
+			const before = collectionStore.propertyIndex;
+
+			collectionStore.removeRecord('/vault/a.md');
+
+			expect(collectionStore.propertyIndex).not.toBe(before);
+		});
+
+		it('preserves the ready flag and other records', () => {
+			collectionStore.setPropertyIndex(
+				new Map([
+					['/vault/a.md', {} as any],
+					['/vault/b.md', {} as any],
+				]),
+			);
+
+			collectionStore.removeRecord('/vault/a.md');
+
+			expect(collectionStore.isIndexReady).toBe(true);
+			expect(collectionStore.propertyIndex.has('/vault/b.md')).toBe(true);
+			expect(collectionStore.propertyIndex.size).toBe(1);
+		});
+
+		it('is a no-op for an unknown path', () => {
+			collectionStore.setPropertyIndex(new Map([['/vault/a.md', {} as any]]));
+
+			collectionStore.removeRecord('/vault/missing.md');
+
+			expect(collectionStore.propertyIndex.size).toBe(1);
 		});
 	});
 

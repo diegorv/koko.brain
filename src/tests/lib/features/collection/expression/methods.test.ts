@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
+import { dispatchMethod, dispatchField } from '$lib/features/collection/expression/methods.logic';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import { isDisplayValue } from '$lib/features/collection/expression/expression.types';
 import type { DisplayLink, DisplayImage, DisplayIcon, DisplayHTML } from '$lib/features/collection/expression/expression.types';
@@ -259,6 +260,81 @@ describe('date methods', () => {
 	it('time() returns HH:mm:ss string', () => {
 		const ctx = makeCtx({}, {}, { mtime: new Date(2024, 5, 15, 14, 30, 45).getTime() });
 		expect(evaluateExpression('file.mtime.time()', ctx)).toBe('14:30:45');
+	});
+
+	it('time() zero-pads single-digit components', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2024, 5, 15, 4, 5, 6).getTime() });
+		expect(evaluateExpression('file.mtime.time()', ctx)).toBe('04:05:06');
+	});
+
+	it('format() supports MMM short month token', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2024, 5, 15).getTime() });
+		expect(evaluateExpression('file.mtime.format("MMM DD")', ctx)).toBe('Jun 15');
+	});
+
+	it('format() supports ddd short day token', () => {
+		// June 15 2024 was a Saturday.
+		const ctx = makeCtx({}, {}, { mtime: new Date(2024, 5, 15).getTime() });
+		expect(evaluateExpression('file.mtime.format("ddd")', ctx)).toBe('Sat');
+	});
+
+	it('format() combines YYYY, MMM, and ddd tokens', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2024, 5, 15).getTime() });
+		expect(evaluateExpression('file.mtime.format("YYYY MMM ddd")', ctx)).toBe('2024 Jun Sat');
+	});
+
+	it('format() falls back to YYYY-MM-DD when no format string is given', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2024, 5, 15).getTime() });
+		expect(evaluateExpression('file.mtime.format()', ctx)).toBe('2024-06-15');
+	});
+});
+
+describe('date relative() — unit labels (frozen clock)', () => {
+	const NOW = new Date(2026, 5, 15, 12, 0, 0).getTime();
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function relativeFor(offsetMs: number): string {
+		vi.useFakeTimers();
+		vi.setSystemTime(NOW);
+		const ctx = makeCtx({}, {}, { mtime: NOW + offsetMs });
+		return evaluateExpression('file.mtime.relative()', ctx) as string;
+	}
+
+	it('formats seconds ago with singular/plural', () => {
+		expect(relativeFor(-30_000)).toBe('30 seconds ago');
+		expect(relativeFor(-1_000)).toBe('1 second ago');
+	});
+
+	it('formats minutes ago', () => {
+		expect(relativeFor(-5 * 60_000)).toBe('5 minutes ago');
+	});
+
+	it('formats hours ago', () => {
+		expect(relativeFor(-3 * 3_600_000)).toBe('3 hours ago');
+	});
+
+	it('formats days ago', () => {
+		expect(relativeFor(-2 * 86_400_000)).toBe('2 days ago');
+	});
+
+	it('formats weeks ago', () => {
+		expect(relativeFor(-14 * 86_400_000)).toBe('2 weeks ago');
+	});
+
+	it('formats months ago', () => {
+		expect(relativeFor(-60 * 86_400_000)).toBe('2 months ago');
+	});
+
+	it('formats years ago', () => {
+		expect(relativeFor(-730 * 86_400_000)).toBe('2 years ago');
+	});
+
+	it('formats future dates with the "in" prefix', () => {
+		expect(relativeFor(3 * 3_600_000)).toBe('in 3 hours');
+		expect(relativeFor(2 * 86_400_000)).toBe('in 2 days');
 	});
 });
 
@@ -574,6 +650,85 @@ describe('display functions — Task 7', () => {
 	it('color() falls back to gray for unknown color name', () => {
 		const result = evaluateExpression('color("text", "neon")', makeCtx()) as DisplayHTML;
 		expect(result.html).toContain('rgb(160,160,160)');
+	});
+});
+
+describe('dispatchMethod — registry resolution', () => {
+	it('throws for an unknown method', () => {
+		expect(() => dispatchMethod('value', 'nonexistent', [])).toThrow('Unknown method: nonexistent');
+	});
+
+	it('does not leak Object.prototype members as methods', () => {
+		// hasOwn guard: 'hasOwnProperty' exists on Object.prototype but is
+		// not a registered method — it must throw, not dispatch.
+		expect(() => dispatchMethod('value', 'hasOwnProperty', [])).toThrow(
+			'Unknown method: hasOwnProperty',
+		);
+		expect(() => dispatchMethod([], 'constructor', [])).toThrow('Unknown method: constructor');
+	});
+
+	it('routes null values through the any registry', () => {
+		expect(dispatchMethod(null, 'isEmpty', [])).toBe(true);
+		expect(dispatchMethod(undefined, 'isTruthy', [])).toBe(false);
+		expect(dispatchMethod(null, 'toString', [])).toBe('');
+	});
+
+	it('prefers the type-specific registry over any (list contains vs string contains)', () => {
+		// list.contains does exact case-insensitive element match;
+		// any.contains does substring match. ['ab'] contains 'a' must be
+		// false (element match), proving the list registry won.
+		expect(dispatchMethod(['ab'], 'contains', ['a'])).toBe(false);
+		expect(dispatchMethod('ab', 'contains', ['a'])).toBe(true);
+	});
+
+	it('falls back to the any registry for types without the method', () => {
+		// Numbers have no startsWith — resolved via any (string coercion).
+		expect(dispatchMethod(42, 'startsWith', ['4'])).toBe(true);
+	});
+
+	it('toString() on a Date returns the ISO string', () => {
+		const d = new Date(Date.UTC(2024, 5, 15, 12, 0, 0));
+		expect(dispatchMethod(d, 'toString', [])).toBe('2024-06-15T12:00:00.000Z');
+	});
+
+	it('isEmpty() treats an empty list as empty', () => {
+		expect(dispatchMethod([], 'isEmpty', [])).toBe(true);
+		expect(dispatchMethod(['x'], 'isEmpty', [])).toBe(false);
+	});
+
+	it('isType() classifies dates and null', () => {
+		expect(dispatchMethod(new Date(), 'isType', ['date'])).toBe(true);
+		expect(dispatchMethod(null, 'isType', ['null'])).toBe(true);
+		expect(dispatchMethod({}, 'isType', ['object'])).toBe(true);
+	});
+});
+
+describe('dispatchField — registry resolution', () => {
+	it('returns undefined when the type has no such field', () => {
+		expect(dispatchField('abc', 'year')).toBeUndefined();
+		expect(dispatchField(5, 'length')).toBeUndefined();
+		expect(dispatchField(null, 'length')).toBeUndefined();
+		expect(dispatchField(new Date(), 'length')).toBeUndefined();
+	});
+
+	it('does not leak Object.prototype members as fields', () => {
+		expect(dispatchField('abc', 'constructor')).toBeUndefined();
+	});
+
+	it('resolves string length and list length', () => {
+		expect(dispatchField('hello', 'length')).toBe(5);
+		expect(dispatchField(['a', 'b'], 'length')).toBe(2);
+	});
+
+	it('resolves date component fields', () => {
+		const d = new Date(2024, 5, 15, 14, 30, 45, 123);
+		expect(dispatchField(d, 'year')).toBe(2024);
+		expect(dispatchField(d, 'month')).toBe(6);
+		expect(dispatchField(d, 'day')).toBe(15);
+		expect(dispatchField(d, 'hour')).toBe(14);
+		expect(dispatchField(d, 'minute')).toBe(30);
+		expect(dispatchField(d, 'second')).toBe(45);
+		expect(dispatchField(d, 'millisecond')).toBe(123);
 	});
 });
 

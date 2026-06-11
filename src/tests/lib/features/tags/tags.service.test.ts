@@ -6,12 +6,17 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { tagsStore } from '$lib/features/tags/tags.store.svelte';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { TAGS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import {
 	buildTagIndex,
 	updateTagSort,
 	resetTags,
 	scheduleTagIndexRebuild,
 	flushScheduledTagIndexRebuild,
+	openTagsTab,
+	closeTagsTab,
+	toggleTagsTab,
 } from '$lib/features/tags/tags.service';
 import type { TagAggregateV2 } from '$lib/types/vault-v2.types';
 
@@ -114,6 +119,114 @@ describe('resetTags', () => {
 		expect(tagsStore.tagTree).toEqual([]);
 		expect(tagsStore.totalTagCount).toBe(0);
 		expect(tagsStore.sortMode).toBe('count');
+	});
+});
+
+describe('openTagsTab', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('creates the Tags virtual tab and makes it active', () => {
+		openTagsTab();
+
+		expect(editorStore.tabs).toHaveLength(1);
+		expect(editorStore.activeTab).toMatchObject({
+			path: TAGS_VIRTUAL_PATH,
+			name: 'Tags',
+			fileType: 'tags',
+		});
+	});
+
+	it('focuses the existing Tags tab instead of duplicating it', () => {
+		openTagsTab();
+		// Open another file — Tags tab loses focus.
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
+		expect(editorStore.activeTabPath).toBe('/vault/a.md');
+
+		openTagsTab();
+
+		expect(editorStore.tabs).toHaveLength(2);
+		expect(editorStore.activeTabPath).toBe(TAGS_VIRTUAL_PATH);
+	});
+});
+
+describe('closeTagsTab', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('removes the Tags tab when it exists', () => {
+		openTagsTab();
+		expect(editorStore.tabs).toHaveLength(1);
+
+		closeTagsTab();
+
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(editorStore.activeTab).toBeNull();
+	});
+
+	it('is a no-op when no Tags tab is open', () => {
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
+
+		closeTagsTab();
+
+		expect(editorStore.tabs).toHaveLength(1);
+		expect(editorStore.activeTabPath).toBe('/vault/a.md');
+	});
+});
+
+describe('toggleTagsTab', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('opens the Tags tab when closed', () => {
+		toggleTagsTab();
+
+		expect(editorStore.tabs).toHaveLength(1);
+		expect(editorStore.activeTabPath).toBe(TAGS_VIRTUAL_PATH);
+	});
+
+	it('closes the Tags tab when it is the active tab', () => {
+		toggleTagsTab();
+		expect(editorStore.activeTabPath).toBe(TAGS_VIRTUAL_PATH);
+
+		toggleTagsTab();
+
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(editorStore.activeTab).toBeNull();
+	});
+
+	it('focuses the Tags tab when open but not active', () => {
+		toggleTagsTab();
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
+		expect(editorStore.activeTabPath).toBe('/vault/a.md');
+
+		toggleTagsTab();
+
+		// Tab focused, not closed and not duplicated.
+		expect(editorStore.tabs).toHaveLength(2);
+		expect(editorStore.activeTabPath).toBe(TAGS_VIRTUAL_PATH);
+	});
+});
+
+describe('resetTags — Tags tab cleanup', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('closes the Tags tab on reset', () => {
+		openTagsTab();
+		expect(editorStore.tabs).toHaveLength(1);
+
+		resetTags();
+
+		expect(editorStore.tabs).toHaveLength(0);
 	});
 });
 
