@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::{Instant, UNIX_EPOCH};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 /// Maximum recursion depth for directory traversal (prevents symlink loops / extreme nesting).
 const MAX_DEPTH: usize = 64;
@@ -975,14 +975,41 @@ pub fn remove_note_from_index(
 /// `update_note_in_index` mutations (Phase 2.6). The lock is dropped
 /// BEFORE emitting so reactive consumers can immediately re-read the
 /// fresh index without contending with the write guard.
+///
+/// The command is `async` so the CPU + I/O work (full vault walk +
+/// per-file parse, ~1.8 s on a 5,755-note vault) is offloaded to a
+/// blocking worker thread via `spawn_blocking`. A synchronous `fn`
+/// command would run on the main Tauri IPC thread and block every other
+/// `invoke()` / `listen()` call for the duration of the scan — same
+/// rationale as `build_search_index` (commands/search_index.rs).
 #[tauri::command]
-pub fn scan_vault_v2(
+pub async fn scan_vault_v2(
 	app: tauri::AppHandle,
 	path: String,
-	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<NoteEntry>, String> {
-	let _trace = CmdTrace::new("scan_vault_v2");
-	let notes = collect_v2_entries(&path)?;
+	tokio::task::spawn_blocking(move || {
+		let _trace = CmdTrace::new("scan_vault_v2");
+		let state = app.state::<VaultIndexState>();
+		let (notes, new_version) = scan_vault_v2_inner(&path, &state)?;
+		emit_index_updated(&app, new_version);
+		Ok(notes)
+	})
+	.await
+	.map_err(|e| format!("scan_vault_v2 task join error: {e}"))?
+}
+
+/// Synchronous implementation of `scan_vault_v2`: collects every
+/// markdown entry and rebuilds the managed `VaultIndex`. Returns the
+/// entries plus the post-build index version — the caller is
+/// responsible for emitting `vault-index-updated` with that version.
+/// Exposed for state-free tests (takes a plain `RwLock<VaultIndex>`
+/// instead of `tauri::State`); production goes through the async
+/// command above.
+pub fn scan_vault_v2_inner(
+	path: &str,
+	state: &VaultIndexState,
+) -> Result<(Vec<NoteEntry>, u64), String> {
+	let notes = collect_v2_entries(path)?;
 	let build_start = std::time::Instant::now();
 	let new_version = {
 		let mut idx = state
@@ -1000,21 +1027,7 @@ pub fn scan_vault_v2(
 		);
 		idx.version()
 	};
-	let payload = UpdateResult {
-		changed: true,
-		affected: Vec::new(),
-		version: new_version,
-	};
-	if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
-		debug_log(
-			"VAULT-V2",
-			format!(
-				"scan_vault_v2: vault-index-updated emit failed: {}",
-				emit_err,
-			),
-		);
-	}
-	Ok(notes)
+	Ok((notes, new_version))
 }
 
 /// Result payload for `scan_vault_v2_cached`, reporting how the index
@@ -1036,19 +1049,41 @@ pub struct CachedScanResult {
 /// loading from cache, performs an mtime reconciliation: walks the vault
 /// for current file metadata, re-reads only files whose mtime changed,
 /// adds new files, and drops deleted entries.
+///
+/// `async` + `spawn_blocking` for the same reason as `scan_vault_v2`:
+/// even a pure cache hit stat-walks the whole vault and clones every
+/// entry, and a cache miss runs the full parse — none of that may run
+/// on the IPC thread.
 #[tauri::command]
-pub fn scan_vault_v2_cached(
+pub async fn scan_vault_v2_cached(
 	app: tauri::AppHandle,
 	path: String,
-	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<CachedScanResult, String> {
+	tokio::task::spawn_blocking(move || {
+		let _trace = CmdTrace::new("scan_vault_v2_cached");
+		let state = app.state::<VaultIndexState>();
+		let (result, new_version) = scan_vault_v2_cached_inner(&path, &state)?;
+		emit_index_updated(&app, new_version);
+		Ok(result)
+	})
+	.await
+	.map_err(|e| format!("scan_vault_v2_cached task join error: {e}"))?
+}
+
+/// Synchronous implementation of `scan_vault_v2_cached`. Returns the
+/// scan telemetry plus the post-build index version — the caller emits
+/// `vault-index-updated`. Exposed for state-free tests; production goes
+/// through the async command above.
+pub fn scan_vault_v2_cached_inner(
+	path: &str,
+	state: &VaultIndexState,
+) -> Result<(CachedScanResult, u64), String> {
 	use crate::vault::index_cache;
 
-	let _trace = CmdTrace::new("scan_vault_v2_cached");
 	let start = Instant::now();
 
 	// Try loading the cache
-	let snapshot = match index_cache::read_snapshot(&path) {
+	let snapshot = match index_cache::read_snapshot(path) {
 		Ok(Some(snap)) => {
 			if snap.schema_version != index_cache::INDEX_SCHEMA_VERSION {
 				debug_log(
@@ -1099,17 +1134,19 @@ pub fn scan_vault_v2_cached(
 				build_start.elapsed().as_millis(),
 			),
 		);
-		emit_index_updated(&app, new_version);
 		// Write cache for next boot
-		if let Err(e) = index_cache::write_snapshot(&path, &notes) {
+		if let Err(e) = index_cache::write_snapshot(path, &notes) {
 			debug_log("VAULT-CACHE", format!("cache write failed: {e}"));
 		}
-		return Ok(CachedScanResult {
-			source: "full_scan".to_string(),
-			entry_count,
-			load_ms: start.elapsed().as_millis() as u64,
-			files_reread: entry_count,
-		});
+		return Ok((
+			CachedScanResult {
+				source: "full_scan".to_string(),
+				entry_count,
+				load_ms: start.elapsed().as_millis() as u64,
+				files_reread: entry_count,
+			},
+			new_version,
+		));
 	};
 
 	// Cache hit -> mtime reconciliation
@@ -1207,11 +1244,9 @@ pub fn scan_vault_v2_cached(
 		),
 	);
 
-	emit_index_updated(&app, new_version);
-
 	// Update cache if anything changed
 	if files_reread > 0 || deleted_count > 0 {
-		if let Err(e) = index_cache::write_snapshot(&path, &final_entries) {
+		if let Err(e) = index_cache::write_snapshot(path, &final_entries) {
 			debug_log("VAULT-CACHE", format!("cache write failed: {e}"));
 		}
 	}
@@ -1222,12 +1257,15 @@ pub fn scan_vault_v2_cached(
 		"cache_reconciled"
 	};
 
-	Ok(CachedScanResult {
-		source: source.to_string(),
-		entry_count,
-		load_ms: start.elapsed().as_millis() as u64,
-		files_reread,
-	})
+	Ok((
+		CachedScanResult {
+			source: source.to_string(),
+			entry_count,
+			load_ms: start.elapsed().as_millis() as u64,
+			files_reread,
+		},
+		new_version,
+	))
 }
 
 /// Emits the `vault-index-updated` event with the given version.

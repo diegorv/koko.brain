@@ -1,11 +1,13 @@
 use kokobrain_lib::commands::search_index::IndexStats;
 use kokobrain_lib::commands::vault::{
 	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault,
-	toggle_task_status_inner, update_note_in_index_inner, CachedScanResult,
+	scan_vault_v2_cached_inner, scan_vault_v2_inner, toggle_task_status_inner,
+	update_note_in_index_inner, CachedScanResult,
 };
 use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink};
 use kokobrain_lib::vault::index::VaultIndex;
-use kokobrain_lib::vault::VAULT_INDEX_UPDATED_EVENT;
+use kokobrain_lib::vault::index_cache::{cache_file_path, read_snapshot, write_snapshot};
+use kokobrain_lib::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -703,4 +705,121 @@ fn index_stats_wire_shape_matches_ts_interface() {
         value.get("total_documents").is_none(),
         "snake_case must not leak"
     );
+}
+
+// ---------------------------------------------------------------------------
+// scan_vault_v2_inner / scan_vault_v2_cached_inner (audit round 2, Task 1)
+// ---------------------------------------------------------------------------
+// The Tauri commands are async wrappers that offload to spawn_blocking so
+// full-vault scans never run on the IPC thread (same rationale as
+// build_search_index in commands/search_index.rs). These tests cover the
+// synchronous inner functions against a plain RwLock<VaultIndex>, so no
+// tauri::State construction is needed.
+
+#[test]
+fn scan_v2_inner_returns_entries_and_builds_index() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha links [[b]]").unwrap();
+    fs::write(dir.path().join("b.md"), "Beta").unwrap();
+
+    let state = VaultIndexState::default();
+    let (notes, version) =
+        scan_vault_v2_inner(&dir.path().to_string_lossy(), &state).unwrap();
+
+    assert_eq!(notes.len(), 2);
+    assert!(version > 0);
+
+    let idx = state.read().unwrap();
+    assert_eq!(idx.version(), version);
+    let b_path = notes.iter().find(|n| n.title == "b").unwrap().path.clone();
+    let backlinks = idx.lookup_backlinks(&b_path);
+    assert_eq!(backlinks.len(), 1);
+    assert_eq!(backlinks[0].title, "a");
+}
+
+#[test]
+fn cached_inner_full_scan_on_missing_cache_writes_cache() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha").unwrap();
+    fs::write(dir.path().join("b.md"), "Beta").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+
+    let state = VaultIndexState::default();
+    let (result, version) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+
+    assert_eq!(result.source, "full_scan");
+    assert_eq!(result.entry_count, 2);
+    assert!(version > 0);
+    assert!(
+        cache_file_path(&vault).exists(),
+        "full scan must write the cache for the next boot"
+    );
+}
+
+#[test]
+fn cached_inner_pure_cache_hit_skips_rereads() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+
+    let state = VaultIndexState::default();
+    scan_vault_v2_cached_inner(&vault, &state).unwrap(); // full scan, seeds cache
+
+    let (result, version) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, "cache");
+    assert_eq!(result.files_reread, 0);
+    assert_eq!(result.entry_count, 1);
+    assert_eq!(state.read().unwrap().version(), version);
+}
+
+#[test]
+fn cached_inner_rereads_entries_with_stale_mtime() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha").unwrap();
+    fs::write(dir.path().join("b.md"), "Beta").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+
+    let state = VaultIndexState::default();
+    let (notes, _) = scan_vault_v2_inner(&vault, &state).unwrap();
+
+    // Rewrite the cache with a corrupted mtime + title for a.md so the
+    // reconcile pass detects the mismatch and re-reads it from disk.
+    let mut stale = notes.clone();
+    for e in &mut stale {
+        if e.title == "a" {
+            e.modified_at = 1;
+            e.title = "stale".to_string();
+        }
+    }
+    write_snapshot(&vault, &stale).unwrap();
+
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, "cache_reconciled");
+    assert_eq!(result.files_reread, 1);
+    assert_eq!(result.entry_count, 2);
+
+    // The refreshed cache must reflect disk content, not the stale entry.
+    let snap = read_snapshot(&vault).unwrap().unwrap();
+    let a = snap
+        .entries
+        .iter()
+        .find(|e| e.path.ends_with("/a.md"))
+        .unwrap();
+    assert_eq!(a.title, "a");
+}
+
+#[test]
+fn cached_inner_drops_deleted_files() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "Alpha").unwrap();
+    fs::write(dir.path().join("b.md"), "Beta").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+
+    let state = VaultIndexState::default();
+    scan_vault_v2_cached_inner(&vault, &state).unwrap(); // seeds cache with both
+    fs::remove_file(dir.path().join("b.md")).unwrap();
+
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, "cache_reconciled");
+    assert_eq!(result.entry_count, 1);
 }

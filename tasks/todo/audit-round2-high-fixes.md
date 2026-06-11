@@ -16,9 +16,9 @@ Closes the remaining HIGH findings from `.scratch/audit-2026-06-10/findings.md` 
 
 ## Tasks
 
-- [ ] **Task 0: Commit this plan file.** `git add tasks/todo/audit-round2-high-fixes.md` → commit `chore(tasks): plan round-2 audit HIGH fixes`.
+- [x] **Task 0: Commit this plan file.** `git add tasks/todo/audit-round2-high-fixes.md` → commit `chore(tasks): plan round-2 audit HIGH fixes`.
 
-- [ ] **Task 1: Move `scan_vault_v2` + `scan_vault_v2_cached` off the IPC thread.**
+- [x] **Task 1: Move `scan_vault_v2` + `scan_vault_v2_cached` off the IPC thread.**
   - Files: Modify `src-tauri/src/commands/vault.rs` (`:978-1018`, `:1039-1231`). Tests: `src-tauri/tests/commands/vault_cache_test.rs` (or sibling — confirm where cached-scan tests live).
   - Step 1 (red): extract-and-test — write Rust tests against not-yet-existing inner fns: `scan_vault_v2_inner(path: &str, state: &VaultIndexState) -> Result<(Vec<NoteEntry>, u64), String>` and `scan_vault_v2_cached_inner(path: &str, state: &VaultIndexState) -> Result<(CachedScanResult, u64), String>` (`VaultIndexState = RwLock<VaultIndex>` constructible in tests without `tauri::State`). Tests: tempdir vault → inner returns entries + bumped version + populated index; cached_inner full-scan path on missing cache; cached_inner reconcile path reuses cache + rereads changed mtime. Compile failure = red.
   - Step 2 (green): extract the bodies into the inner fns (emit moves OUT of inner — wrapper emits via the returned version through the existing `emit_index_updated`). Wrappers become `pub async fn` taking `app: tauri::AppHandle, path: String` (drop the `State` param), body: `tokio::task::spawn_blocking(move || { let state = app.state::<VaultIndexState>(); let r = ..._inner(&path, &state)?; emit; Ok(...) }).await.map_err(...)?`. Copy the doc-comment style from `build_search_index` (`search_index.rs:20-24`) explaining WHY async.

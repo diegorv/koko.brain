@@ -110,6 +110,7 @@ Out: changing the `NoteEntry` shape, persisting any TS-side index, persisting FT
 
 ## Notes
 
+- **2026-06-11 (audit round 2, Task 1):** the IPC-thread blocking left open by this plan (Task 6 made reconciliation synchronous inside `scan_vault_v2_cached`) was fixed in `tasks/todo/audit-round2-high-fixes.md` — both `scan_vault_v2` and `scan_vault_v2_cached` are now `async` commands that offload to `spawn_blocking`, with state-free `*_inner` functions covered by tests in `src-tauri/tests/commands/vault_test.rs`.
 - Branch name (when picked up): `perf/persistent-vault-index`.
 - Reverse indexes (`by_path`, `backlinks`, `tags_index`, `properties_index`, `version`) are NOT persisted because `VaultIndex::build_from_entries` reconstructs them in ~30 ms from the entries Vec. This keeps the snapshot format simple and lets us bump the index-derivation logic without bumping `INDEX_SCHEMA_VERSION`.
 - `NoteEntry` already has `Serialize + Deserialize` (`entry.rs:123`). No type-level work needed there.
