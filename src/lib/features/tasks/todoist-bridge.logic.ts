@@ -84,3 +84,19 @@ export function buildTodoistArgs(metadata: TaskMetadata): Partial<AddTaskArgs> {
 
 	return args;
 }
+
+/**
+ * Appends a label to an existing label list, deduplicated.
+ *
+ * - The label is trimmed; an empty/whitespace-only label leaves the list unchanged.
+ * - A label already present (exact match) is not added again.
+ * - When `labels` is undefined, returns a new single-element list.
+ */
+export function mergeLabel(labels: string[] | undefined, label: string): string[] {
+	const trimmed = label.trim();
+	const existing = labels ?? [];
+	if (!trimmed || existing.includes(trimmed)) {
+		return existing;
+	}
+	return [...existing, trimmed];
+}

@@ -3,6 +3,7 @@ import {
 	mapPriorityToTodoist,
 	mapPriorityFromTodoist,
 	buildTodoistArgs,
+	mergeLabel,
 } from '$lib/features/tasks/todoist-bridge.logic';
 import type { TaskMetadata } from '$lib/features/tasks/task-metadata.types';
 
@@ -194,5 +195,41 @@ describe('buildTodoistArgs', () => {
 		expect(args.priority).toBeUndefined();
 		expect(args.dueDate).toBeUndefined();
 		expect(args.labels).toBeUndefined();
+	});
+});
+
+// ── mergeLabel ─────────────────────────────────────────────────────
+
+describe('mergeLabel', () => {
+	it('returns a single-element list when labels is undefined', () => {
+		expect(mergeLabel(undefined, 'inbox')).toEqual(['inbox']);
+	});
+
+	it('appends the label to an existing list', () => {
+		expect(mergeLabel(['work'], 'inbox')).toEqual(['work', 'inbox']);
+	});
+
+	it('does not add a duplicate label', () => {
+		expect(mergeLabel(['work', 'inbox'], 'inbox')).toEqual(['work', 'inbox']);
+	});
+
+	it('trims the label before merging', () => {
+		expect(mergeLabel(['work'], '  inbox  ')).toEqual(['work', 'inbox']);
+	});
+
+	it('treats a trimmed label as a duplicate', () => {
+		expect(mergeLabel(['inbox'], '  inbox  ')).toEqual(['inbox']);
+	});
+
+	it('leaves the list unchanged for an empty label', () => {
+		expect(mergeLabel(['work'], '')).toEqual(['work']);
+	});
+
+	it('leaves the list unchanged for a whitespace-only label', () => {
+		expect(mergeLabel(['work'], '   ')).toEqual(['work']);
+	});
+
+	it('returns an empty list when labels is undefined and label is empty', () => {
+		expect(mergeLabel(undefined, '')).toEqual([]);
 	});
 });
