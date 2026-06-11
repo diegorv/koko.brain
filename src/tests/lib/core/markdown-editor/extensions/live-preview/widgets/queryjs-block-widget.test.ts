@@ -87,3 +87,38 @@ describe('QueryjsBlockWidget.toDOM — cache re-attach guard', () => {
 		expect(dom.querySelector('.cm-lp-qjs-loading')?.textContent).toBe('Building index...');
 	});
 });
+
+describe('QueryjsBlockWidget.toDOM — index readiness is read live', () => {
+	beforeEach(() => {
+		queryjsSessionStore.reset();
+		editorStore.reset();
+		collectionStore.reset();
+		document.body.replaceChildren();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'manual' });
+	});
+
+	it('renders content when the index became ready AFTER construction', () => {
+		// Startup race (audit HIGH finding 4): the auto-opened note renders
+		// before the deferred buildPropertyIndex() completes, so widgets are
+		// constructed while isIndexReady is still false.
+		const widget = new QueryjsBlockWidget(JS);
+		collectionStore.setPropertyIndex(new Map()); // index becomes ready
+
+		const dom = widget.toDOM();
+
+		// toDOM must read the LIVE store value, not the construction snapshot
+		// — otherwise the block shows "Building index..." forever (scroll
+		// re-entry re-calls toDOM on the same stale widget instance).
+		expect(dom.textContent).not.toContain('Building index...');
+		expect(dom.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+	});
+
+	it('still shows the placeholder while the index is genuinely not ready', () => {
+		const widget = new QueryjsBlockWidget(JS);
+
+		const dom = widget.toDOM();
+
+		expect(dom.querySelector('.cm-lp-qjs-loading')?.textContent).toBe('Building index...');
+	});
+});

@@ -5,6 +5,7 @@ import { findQueryjsBlock } from '../parsers/queryjs-block';
 import { QueryjsBlockWidget } from '../widgets/queryjs-block-widget';
 import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
+import { forceDecorationRebuild } from '../core/effects';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
 import { profileStart, profileEnd } from '../core/profiling';
@@ -67,10 +68,17 @@ export const queryjsBlockField = ViewPlugin.fromClass(
 		update(update: ViewUpdate) {
 			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
 
-			// For forceDecorationRebuild (scroll debounce): skip entirely.
-			// Queryjs blocks don't change during scroll — their output is static
-			// until the user edits the block content.
-			if (!update.docChanged && !update.selectionSet) return;
+			// Skip pure scroll updates (queryjs output is static during scroll)
+			// — but forceDecorationRebuild must pass through: it is how the
+			// editor signals "the property index became ready", and the rebuild
+			// creates fresh widgets whose eq() snapshot differs, replacing any
+			// "Building index..." placeholder. Scroll-debounce force rebuilds
+			// also land here; they recompute the (cheap) line scan and eq()
+			// keeps the existing DOM, so no script re-executes.
+			const hasForceRebuild = update.transactions.some((t) =>
+				t.effects.some((e) => e.is(forceDecorationRebuild)),
+			);
+			if (!update.docChanged && !update.selectionSet && !hasForceRebuild) return;
 
 			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
 				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;

@@ -14,6 +14,7 @@
 	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
 	import { livePreviewCompartment, livePreviewExtensions, forceDecorationRebuild } from './extensions/live-preview';
 	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
+	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
@@ -418,6 +419,22 @@
 	// Rebuild frontmatter widget when tag colors change
 	$effect(() => {
 		settingsStore.tagColors.colors;
+
+		untrack(() => {
+			if (!view) return;
+			view.dispatch({ effects: forceDecorationRebuild.of(null) });
+		});
+	});
+
+	// Rebuild decorations when the property index becomes ready. Widgets
+	// constructed before the deferred buildPropertyIndex() finishes
+	// (app-lifecycle Step 5b, setTimeout(0)) snapshot isIndexReady=false and
+	// render "Building index..." with no recovery path until an edit. The
+	// rebuild creates fresh widgets whose eq() snapshot reflects the flip,
+	// so queryjs/collection placeholders are replaced with real content.
+	// Audit 2026-06-10 HIGH finding 4.
+	$effect(() => {
+		collectionStore.isIndexReady;
 
 		untrack(() => {
 			if (!view) return;

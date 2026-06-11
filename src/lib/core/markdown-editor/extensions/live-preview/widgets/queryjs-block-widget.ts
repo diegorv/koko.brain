@@ -69,7 +69,15 @@ export class QueryjsBlockWidget extends WidgetType {
 		const container = document.createElement('div');
 		container.className = 'cm-lp-qjs-block';
 
-		if (!this.isIndexReady || editorStore.activeTabPath === null) {
+		// Read readiness LIVE from the store, never from the construction
+		// snapshot: widgets built before the deferred buildPropertyIndex()
+		// completes (app-lifecycle Step 5b runs via setTimeout(0), after the
+		// auto-opened note renders) would otherwise show "Building index..."
+		// forever — scroll re-entry re-calls toDOM() on the same stale
+		// instance. The snapshot (`this.isIndexReady`) still feeds eq() so a
+		// forceDecorationRebuild after the flip replaces the placeholder DOM.
+		// Mirrors collection-block-widget.ts.
+		if (!collectionStore.isIndexReady || editorStore.activeTabPath === null) {
 			const loading = document.createElement('div');
 			loading.className = 'cm-lp-qjs-loading';
 			loading.textContent = 'Building index...';
