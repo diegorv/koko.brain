@@ -234,6 +234,9 @@ export function moveItem(
 	if (!sourceLane) return board;
 	const sourceItem = sourceLane.items.find((i) => i.id === itemId);
 	if (!sourceItem) return board;
+	// Guard the target lane too: the cross-lane branch removes the item from
+	// the source lane unconditionally, so a missing target would delete the card.
+	if (fromLaneId !== toLaneId && !board.lanes.some((l) => l.id === toLaneId)) return board;
 
 	// Apply autoCheck if moving between lanes
 	const item = autoCheck && fromLaneId !== toLaneId
@@ -243,7 +246,7 @@ export function moveItem(
 	if (fromLaneId === toLaneId) {
 		// Reorder within the same lane
 		const items = sourceLane.items.filter((i) => i.id !== itemId);
-		const clampedIndex = Math.min(toIndex, items.length);
+		const clampedIndex = Math.max(0, Math.min(toIndex, items.length));
 		items.splice(clampedIndex, 0, item);
 		return {
 			...board,
@@ -262,7 +265,7 @@ export function moveItem(
 			}
 			if (lane.id === toLaneId) {
 				const items = [...lane.items];
-				const clampedIndex = Math.min(toIndex, items.length);
+				const clampedIndex = Math.max(0, Math.min(toIndex, items.length));
 				items.splice(clampedIndex, 0, item);
 				return { ...lane, items };
 			}

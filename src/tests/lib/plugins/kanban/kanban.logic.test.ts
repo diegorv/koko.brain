@@ -448,6 +448,56 @@ describe('moveItem', () => {
 		expect(result).toBe(board);
 	});
 
+	it('returns original board for nonexistent target lane instead of deleting the card', () => {
+		const board = makeBoard();
+		const result = moveItem(board, 'lane-1', 'item-1', 'nonexistent', 0);
+		// The cross-lane branch removes from the source lane unconditionally;
+		// without a target-lane guard the card vanished from the board.
+		expect(result).toBe(board);
+		expect(result.lanes[0].items.some((i) => i.id === 'item-1')).toBe(true);
+	});
+
+	it('clamps a negative toIndex to 0 within the same lane', () => {
+		// 3 items: after removing item-c, 2 remain — splice(-1) would insert
+		// before the LAST element (index 1) instead of at the head (index 0).
+		const board = makeBoard({
+			lanes: [{
+				id: 'lane-1',
+				title: 'To Do',
+				items: [
+					{ id: 'item-a', text: 'A', checked: false },
+					{ id: 'item-b', text: 'B', checked: false },
+					{ id: 'item-c', text: 'C', checked: false },
+				],
+			}],
+		});
+		const result = moveItem(board, 'lane-1', 'item-c', 'lane-1', -1);
+		expect(result.lanes[0].items.map((i) => i.id)).toEqual(['item-c', 'item-a', 'item-b']);
+	});
+
+	it('clamps a negative toIndex to 0 across lanes', () => {
+		// Target lane with 2 items: splice(-1) would land at index 1, not 0.
+		const board = makeBoard({
+			lanes: [
+				{
+					id: 'lane-1',
+					title: 'To Do',
+					items: [{ id: 'item-1', text: 'Task A', checked: false }],
+				},
+				{
+					id: 'lane-2',
+					title: 'Done',
+					items: [
+						{ id: 'item-x', text: 'X', checked: false },
+						{ id: 'item-y', text: 'Y', checked: false },
+					],
+				},
+			],
+		});
+		const result = moveItem(board, 'lane-1', 'item-1', 'lane-2', -1);
+		expect(result.lanes[1].items.map((i) => i.id)).toEqual(['item-1', 'item-x', 'item-y']);
+	});
+
 	it('returns original board for nonexistent item', () => {
 		const board = makeBoard();
 		const result = moveItem(board, 'lane-1', 'nonexistent', 'lane-2', 0);
