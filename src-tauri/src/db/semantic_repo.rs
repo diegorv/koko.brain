@@ -682,11 +682,11 @@ mod tests {
 
 	// --- Audit finding #12 -- silent truncation of malformed embeddings -----------
 	//
-	// `commands/semantic.rs::get_or_load_cache` deserializes embedding bytes via
-	// `chunks_exact(4)`. If `embedding_bytes.len() % 4 != 0`, the trailing
-	// orphan bytes are silently discarded with no error. The DB layer accepts
-	// any byte length on insert. Together this produces a vector of unexpected
-	// length in cosine similarity with no signal to the caller.
+	// FIXED (task B11): `commands/semantic.rs::get_or_load_cache` now goes
+	// through `deserialize_embedding`, which rejects blobs whose length is
+	// not a multiple of 4 (skip + log) instead of silently truncating via
+	// `chunks_exact(4)`. The DB layer still accepts any byte length on insert
+	// (first test below documents that), which is fine: the read side guards.
 	//
 	// Audit plan: ~/.claude/plans/atue-como-um-auditor-witty-minsky.md (Appendix A.1).
 
@@ -710,26 +710,21 @@ mod tests {
 	}
 
 	#[test]
-	fn audit_finding_12_chunks_exact_drops_trailing_byte_without_error() {
-		// Mirrors the deserialization at commands/semantic.rs:69-73. Reproduced
-		// here because the real function is private inside a command module
-		// and cannot be called directly from the integration test crate.
+	fn audit_finding_12_malformed_blob_is_rejected_by_deserializer() {
+		// The fixed read path: a blob with a trailing orphan byte is rejected
+		// outright instead of being truncated to a shorter vector.
 		let bad_emb: Vec<u8> = vec![0x00, 0x00, 0x80, 0x3F, 0xFF];
-		let deserialized: Vec<f32> = bad_emb
-			.chunks_exact(4)
-			.map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-			.collect();
+		assert!(
+			crate::commands::semantic::deserialize_embedding(&bad_emb).is_none(),
+			"len % 4 != 0 must be rejected"
+		);
 
-		// Expected (if the bug were fixed): explicit error or panic.
-		// Current: 1-element vector, the trailing 0xFF byte silently dropped.
-		assert_eq!(deserialized.len(), 1, "trailing 0xFF byte silently dropped");
+		// And a well-formed blob still round-trips.
+		let good_emb: Vec<u8> = vec![0x00, 0x00, 0x80, 0x3F];
+		let deserialized = crate::commands::semantic::deserialize_embedding(&good_emb)
+			.expect("well-formed blob deserializes");
+		assert_eq!(deserialized.len(), 1);
 		assert!((deserialized[0] - 1.0_f32).abs() < f32::EPSILON);
-
-		// Demonstrates that `chunks_exact` discards the remainder without signalling:
-		let mut iter = bad_emb.chunks_exact(4);
-		let _first = iter.next().unwrap();
-		assert!(iter.next().is_none(), "no second chunk");
-		assert_eq!(iter.remainder(), &[0xFF], "remainder is available but no caller consults it");
 	}
 
 	// --- corrupt-row skip behavior (pinning for the logged-skip pattern) ---

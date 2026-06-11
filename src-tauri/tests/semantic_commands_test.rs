@@ -1,6 +1,6 @@
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
-	compute_model_hash, get_semantic_file_status, get_semantic_stats,
+	compute_model_hash, deserialize_embedding, get_semantic_file_status, get_semantic_stats,
 	is_reranker_model_available, is_semantic_model_available, search_hybrid, search_semantic,
 	shutdown_semantic, update_semantic_file,
 };
@@ -734,4 +734,37 @@ async fn update_semantic_file_errors_when_file_missing_on_disk() {
 	);
 
 	db::close_database().unwrap();
+}
+
+// --- deserialize_embedding (audit finding #12: malformed blob handling) ---
+
+#[test]
+fn deserialize_embedding_accepts_well_formed_blob() {
+	// Two f32 values, little-endian: 1.0 and -2.0.
+	let mut bytes = Vec::new();
+	bytes.extend_from_slice(&1.0_f32.to_le_bytes());
+	bytes.extend_from_slice(&(-2.0_f32).to_le_bytes());
+
+	let emb = deserialize_embedding(&bytes).expect("well-formed blob must deserialize");
+
+	assert_eq!(emb.len(), 2);
+	assert!((emb[0] - 1.0).abs() < f32::EPSILON);
+	assert!((emb[1] + 2.0).abs() < f32::EPSILON);
+}
+
+#[test]
+fn deserialize_embedding_rejects_blob_with_trailing_bytes() {
+	// 4 valid bytes + 1 orphan byte: previously chunks_exact(4) silently
+	// dropped the remainder (audit finding #12); now the blob is rejected.
+	let bad: &[u8] = &[0x00, 0x00, 0x80, 0x3F, 0xFF];
+
+	assert!(
+		deserialize_embedding(bad).is_none(),
+		"blob with len % 4 != 0 must be rejected, not truncated"
+	);
+}
+
+#[test]
+fn deserialize_embedding_rejects_short_fragment() {
+	assert!(deserialize_embedding(&[0x01, 0x02]).is_none());
 }

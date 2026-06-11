@@ -77,6 +77,23 @@ fn invalidate_search_cache() {
 	}
 }
 
+/// Deserializes an embedding blob (little-endian f32s) or returns `None` for
+/// a malformed blob whose length is not a multiple of 4. The embedder always
+/// emits dim*4 bytes, so a remainder means DB corruption; truncating it
+/// silently (the old `chunks_exact` behavior, audit finding #12) produced a
+/// vector that never matched anything with no diagnostic signal.
+pub fn deserialize_embedding(bytes: &[u8]) -> Option<Vec<f32>> {
+	if bytes.len() % 4 != 0 {
+		return None;
+	}
+	Some(
+		bytes
+			.chunks_exact(4)
+			.map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+			.collect(),
+	)
+}
+
 /// Loads embeddings from DB into cache, or returns the existing cache.
 fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 	let mut cache = SEARCH_CACHE.lock().map_err(|e| format!("Lock error: {e}"))?;
@@ -90,13 +107,19 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 		let rows = db::semantic_repo::load_all_embeddings(conn)?;
 		let chunks: Vec<CachedChunk> = rows
 			.into_iter()
-			.map(|row| {
-				let embedding: Vec<f32> = row
-					.embedding_bytes
-					.chunks_exact(4)
-					.map(|bytes| f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
-					.collect();
-				CachedChunk {
+			.filter_map(|row| {
+				let Some(embedding) = deserialize_embedding(&row.embedding_bytes) else {
+					debug_log(
+						"SEMANTIC",
+						format!(
+							"Warning: skipping chunk {} — malformed embedding blob ({} bytes, not a multiple of 4)",
+							row.key,
+							row.embedding_bytes.len()
+						),
+					);
+					return None;
+				};
+				Some(CachedChunk {
 					key: row.key,
 					source_path: row.source_path,
 					content: row.content,
@@ -104,7 +127,7 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 					line_start: row.line_start as usize,
 					line_end: row.line_end as usize,
 					embedding,
-				}
+				})
 			})
 			.collect();
 		Ok(chunks)
