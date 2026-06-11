@@ -97,7 +97,7 @@
     "paneforge": "^1.0.2",
     "semver": "^7.8.2",
     "svelte": "^5.55.8",
-    "svelte-check": "^4.4.8",
+    "svelte-check": "^4.6.0",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.3",
     "vite": "^8.0.13",
