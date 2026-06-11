@@ -49,13 +49,24 @@ function commitChanges(updated: Property[]): void {
 	}
 }
 
+/**
+ * Finds the stored property matching `key` canonically (alias-aware).
+ * `color` matches a stored `_color`, mirroring renameProperty/addNewProperty.
+ */
+function findCanonicalTwin(key: string): Property | undefined {
+	const canonical = canonicalizeKey(key);
+	return propertiesStore.properties.find((p) => canonicalizeKey(p.key) === canonical);
+}
+
 /** Updates a property's value (and optionally its type) in the active note */
 export function updateProperty(
 	key: string,
 	value: string | number | boolean | string[],
 	type?: PropertyType,
 ): void {
-	const updated = updatePropertyValue(propertiesStore.properties, key, value, type);
+	// Resolve aliases to the stored key so the update lands on the canonical twin.
+	const targetKey = findCanonicalTwin(key)?.key ?? key;
+	const updated = updatePropertyValue(propertiesStore.properties, targetKey, value, type);
 	commitChanges(updated);
 }
 
@@ -65,9 +76,11 @@ export function upsertProperty(
 	value: string | number | boolean | string[],
 	type?: PropertyType,
 ): void {
-	const existing = propertiesStore.properties.find((p) => p.key === key);
+	// Compare canonically: appending `color` when `_color` exists would create
+	// a duplicate that dedupeCanonicalKeys silently drops on the next parse.
+	const existing = findCanonicalTwin(key);
 	if (existing) {
-		const updated = updatePropertyValue(propertiesStore.properties, key, value, type);
+		const updated = updatePropertyValue(propertiesStore.properties, existing.key, value, type);
 		commitChanges(updated);
 	} else {
 		const t = type ?? (Array.isArray(value) ? 'list' : 'text');

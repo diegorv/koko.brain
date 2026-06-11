@@ -59,6 +59,19 @@ describe('updateProperty', () => {
 		// Second call should return false (consumed)
 		expect(consumeSkipNextParse()).toBe(false);
 	});
+
+	it('updates the canonical twin when called with an alias key', () => {
+		openTabWithContent('---\n_color: red\n---\nBody');
+		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }]);
+
+		// `color` canonicalizes to `_color`; the update must land on the stored key.
+		updateProperty('color', 'blue');
+
+		expect(propertiesStore.properties).toHaveLength(1);
+		expect(propertiesStore.properties[0].key).toBe('_color');
+		expect(propertiesStore.properties[0].value).toBe('blue');
+		expect(editorStore.activeTab?.content).toContain('_color: blue');
+	});
 });
 
 describe('upsertProperty', () => {
@@ -108,6 +121,20 @@ describe('upsertProperty', () => {
 		upsertProperty('new_key', 'value');
 
 		expect(consumeSkipNextParse()).toBe(true);
+	});
+
+	it('updates the canonical twin instead of appending a duplicate when called with an alias key', () => {
+		openTabWithContent('---\n_color: red\n---\nBody');
+		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }]);
+
+		// `color` canonicalizes to `_color`, which exists: this must be an update,
+		// not an append (a duplicate would be silently dropped on serialize).
+		upsertProperty('color', 'blue');
+
+		expect(propertiesStore.properties).toHaveLength(1);
+		expect(propertiesStore.properties[0].key).toBe('_color');
+		expect(propertiesStore.properties[0].value).toBe('blue');
+		expect(editorStore.activeTab?.content).toContain('_color: blue');
 	});
 });
 
