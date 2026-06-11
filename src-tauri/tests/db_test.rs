@@ -1,4 +1,4 @@
-use kokobrain_lib::commands::db::open_vault_db;
+use kokobrain_lib::commands::db::{close_vault_db, open_vault_db};
 use kokobrain_lib::db;
 use std::fs;
 use std::sync::Mutex;
@@ -190,6 +190,80 @@ fn open_vault_db_rejects_file_as_vault() {
 	let result = open_vault_db(file_path.to_string_lossy().to_string());
 	assert!(result.is_err());
 	assert!(result.unwrap_err().contains("not a directory"));
+}
+
+// --- open_vault_db / close_vault_db command wrappers ---
+//
+// `open_vault_db` error paths are covered above; these exercise the happy
+// path and the `close_vault_db` wrapper (previously only `db::close_database`
+// was tested directly, leaving the Tauri command surface unreferenced).
+
+#[test]
+fn open_vault_db_happy_path_opens_database_and_creates_file() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	let tmp = TempDir::new().unwrap();
+	open_vault_db(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	assert!(db::is_open(), "database should be open after open_vault_db");
+	assert!(
+		tmp.path().join(".kokobrain").join("kokobrain.db").exists(),
+		"kokobrain.db should be created under .kokobrain"
+	);
+
+	db::close_database().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn open_vault_db_canonicalizes_symlinked_vault_path() {
+	use std::os::unix::fs::symlink;
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	let real_dir = TempDir::new().unwrap();
+	let link_dir = TempDir::new().unwrap();
+	let link_path = link_dir.path().join("vault-link");
+	symlink(real_dir.path(), &link_path).unwrap();
+
+	open_vault_db(link_path.to_string_lossy().to_string()).unwrap();
+
+	// The db file lands in the REAL directory (validate_vault_path canonicalizes).
+	assert!(
+		real_dir.path().join(".kokobrain").join("kokobrain.db").exists(),
+		"db file should be created under the canonicalized vault root"
+	);
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn close_vault_db_closes_open_database() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	let tmp = TempDir::new().unwrap();
+	open_vault_db(tmp.path().to_string_lossy().to_string()).unwrap();
+	assert!(db::is_open());
+
+	close_vault_db().unwrap();
+
+	assert!(!db::is_open(), "database should be closed after close_vault_db");
+	let result = db::with_db(|_conn| Ok(()));
+	assert!(result.is_err(), "with_db must fail after close_vault_db");
+	assert_eq!(result.unwrap_err(), "Database not open");
+}
+
+#[test]
+fn close_vault_db_is_noop_when_nothing_open() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	// Closing with no open database must not error (vault teardown can
+	// run before any vault was ever opened).
+	close_vault_db().unwrap();
+	assert!(!db::is_open());
 }
 
 #[test]

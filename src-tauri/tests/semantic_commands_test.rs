@@ -1,9 +1,12 @@
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
-	compute_model_hash, get_semantic_stats, shutdown_semantic,
+	compute_model_hash, get_semantic_file_status, get_semantic_stats,
+	is_reranker_model_available, is_semantic_model_available, search_hybrid, search_semantic,
+	shutdown_semantic, update_semantic_file,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::db::semantic_repo;
+use kokobrain_lib::semantic::chunker::{chunk_markdown, ChunkOptions};
 use std::collections::HashSet;
 use std::sync::Mutex;
 use tempfile::TempDir;
@@ -425,6 +428,310 @@ fn clear_changed_files_without_chunks_noop_when_all_produced_chunks() {
 
 	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
 	assert_eq!(count, 1, "existing chunks must be left untouched");
+
+	db::close_database().unwrap();
+}
+
+// ============================================================================
+// Boundary tests (no ONNX model)
+//
+// EXCLUSION NOTE: `update_semantic_file`'s embed branch, `search_semantic`'s
+// cosine/rerank ranking, and `search_hybrid`'s fused pipeline all require a
+// real ONNX embedder session (`EMBEDDER` loaded from a multi-GB model on
+// disk). Per the test-gap plan rule for semantic paths, those are exercised
+// only up to the boundary: chunking, hash dedup, transaction management,
+// mtime persistence, query guards, and per-file status — everything that
+// runs BEFORE the first inference call. The inference paths themselves are
+// covered by manual smoke testing with a downloaded model.
+// ============================================================================
+
+// --- search_semantic / search_hybrid query guards (pre-model early returns) ---
+
+#[tokio::test]
+async fn search_semantic_empty_query_returns_empty_without_model() {
+	let results = search_semantic(String::new(), None, None).await.unwrap();
+	assert!(results.is_empty(), "empty query must short-circuit to empty");
+}
+
+#[tokio::test]
+async fn search_semantic_short_query_returns_empty_without_model() {
+	let results = search_semantic("ab".to_string(), Some(10), Some(0.1))
+		.await
+		.unwrap();
+	assert!(results.is_empty(), "queries under 3 chars must short-circuit");
+}
+
+#[tokio::test]
+async fn search_semantic_whitespace_only_query_returns_empty() {
+	let results = search_semantic("   \t  ".to_string(), None, None)
+		.await
+		.unwrap();
+	assert!(results.is_empty(), "whitespace trims to empty -> short-circuit");
+}
+
+#[tokio::test]
+async fn search_hybrid_short_query_returns_empty_without_model() {
+	let results = search_hybrid("ab".to_string(), None).await.unwrap();
+	assert!(results.is_empty(), "queries under 3 chars must short-circuit");
+}
+
+// --- is_semantic_model_available / is_reranker_model_available ---
+
+#[test]
+fn model_availability_commands_report_false_for_vault_without_models() {
+	let tmp = TempDir::new().unwrap();
+	let vault = tmp.path().to_string_lossy().to_string();
+	assert!(!is_semantic_model_available(vault.clone()).unwrap());
+	assert!(!is_reranker_model_available(vault).unwrap());
+}
+
+// --- get_semantic_file_status ---
+
+#[test]
+fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	let status = get_semantic_file_status("never-indexed.md".to_string()).unwrap();
+	assert_eq!(status.chunk_count, 0);
+	assert!(status.last_embedded_at.is_none());
+	assert!(!status.model_loaded, "no model was ever initialized in tests");
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "k1", "note.md", "text1", None, &[], 1, 5, "h1", b"e1", 1000)?;
+		semantic_repo::insert_chunk(conn, "k2", "note.md", "text2", None, &[], 6, 10, "h2", b"e2", 2000)?;
+		semantic_repo::insert_chunk(conn, "k3", "other.md", "text3", None, &[], 1, 5, "h3", b"e3", 3000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	let status = get_semantic_file_status("note.md".to_string()).unwrap();
+	assert_eq!(status.chunk_count, 2, "only the requested path's chunks count");
+	assert_eq!(
+		status.last_embedded_at,
+		Some(2000),
+		"lastEmbeddedAt is MAX(embedded_at) for the path"
+	);
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn get_semantic_file_status_errors_when_database_closed() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	let result = get_semantic_file_status("any.md".to_string());
+	assert!(result.is_err(), "must propagate the closed-database error");
+}
+
+// --- update_semantic_file: zero-chunk / dedup / delete-only / error paths ---
+
+#[tokio::test]
+async fn update_semantic_file_empty_content_deletes_stale_chunks_and_persists_mtime() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	// The file exists on disk but was emptied — zero chunks after re-chunking.
+	std::fs::write(tmp.path().join("note.md"), "").unwrap();
+
+	// Stale chunks from a previous index run.
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "stale1", "note.md", "old body", None, &[], 1, 5, "h1", b"e1", 1000)?;
+		semantic_repo::insert_chunk(conn, "other", "other.md", "keep me", None, &[], 1, 5, "h2", b"e2", 1000)?;
+		Ok(())
+	})
+	.unwrap();
+
+	update_semantic_file("note.md".to_string(), String::new(), vault)
+		.await
+		.unwrap();
+
+	// Stale chunks gone; unrelated file untouched.
+	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	assert_eq!(sources, vec!["other.md".to_string()]);
+
+	// mtime persisted so build_semantic_index won't re-read this file.
+	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	assert!(
+		mtimes.get("note.md").copied().unwrap_or(-1) > 0,
+		"mtime must be recorded for the emptied file"
+	);
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn update_semantic_file_unchanged_hashes_skip_embedding_entirely() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	let content = "# Heading\n\nA body paragraph that is comfortably longer than the fifty character minimum chunk size.\n";
+	std::fs::write(tmp.path().join("note.md"), content).unwrap();
+
+	// Pre-insert exactly the chunks the chunker derives from `content`
+	// (same keys + content hashes), simulating a prior successful index.
+	let chunks = chunk_markdown("note.md", content, &ChunkOptions::default());
+	assert!(!chunks.is_empty(), "fixture content must produce chunks");
+	db::with_db(|conn| {
+		for c in &chunks {
+			semantic_repo::insert_chunk(
+				conn,
+				&c.key,
+				&c.source_path,
+				&c.content,
+				c.heading.as_deref(),
+				&c.parent_headings,
+				c.line_start as i64,
+				c.line_end as i64,
+				&c.content_hash,
+				b"prior-embedding",
+				1000,
+			)?;
+		}
+		Ok(())
+	})
+	.unwrap();
+
+	// No embedder is loaded and no vault path was ever stored for lazy
+	// reload — if the hash dedup failed and the command tried to embed,
+	// this call would Err. Ok proves the skip path ran.
+	update_semantic_file("note.md".to_string(), content.to_string(), vault)
+		.await
+		.unwrap();
+
+	// Chunks are untouched (same count, same keys, same embeddings).
+	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	assert_eq!(all.len(), chunks.len(), "no chunk may be added or deleted");
+	for row in &all {
+		assert_eq!(
+			row.embedding_bytes, b"prior-embedding",
+			"stored embeddings must not be overwritten on the skip path"
+		);
+	}
+
+	// mtime persisted even on the skip path.
+	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	assert!(mtimes.contains_key("note.md"));
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn update_semantic_file_deletes_removed_chunks_without_needing_embedder() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	let content = "# Heading\n\nA body paragraph that is comfortably longer than the fifty character minimum chunk size.\n";
+	std::fs::write(tmp.path().join("note.md"), content).unwrap();
+
+	// All current chunks already indexed (hashes match) + one stale chunk
+	// whose key the new content no longer produces.
+	let chunks = chunk_markdown("note.md", content, &ChunkOptions::default());
+	db::with_db(|conn| {
+		for c in &chunks {
+			semantic_repo::insert_chunk(
+				conn,
+				&c.key,
+				&c.source_path,
+				&c.content,
+				c.heading.as_deref(),
+				&c.parent_headings,
+				c.line_start as i64,
+				c.line_end as i64,
+				&c.content_hash,
+				b"prior-embedding",
+				1000,
+			)?;
+		}
+		semantic_repo::insert_chunk(
+			conn,
+			"note.md#deleted-section-99",
+			"note.md",
+			"section that was removed",
+			None,
+			&[],
+			90,
+			99,
+			"stalehash",
+			b"stale-embedding",
+			1000,
+		)?;
+		Ok(())
+	})
+	.unwrap();
+
+	// chunks_to_embed is empty (all hashes match) but keys_to_delete is not:
+	// the transaction must run WITHOUT the embedder and drop only the stale key.
+	update_semantic_file("note.md".to_string(), content.to_string(), vault)
+		.await
+		.unwrap();
+
+	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	assert_eq!(all.len(), chunks.len(), "exactly the stale chunk must be deleted");
+	assert!(
+		all.iter().all(|r| r.key != "note.md#deleted-section-99"),
+		"the removed section's chunk must be gone"
+	);
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn update_semantic_file_rejects_path_traversal_outside_vault() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _ = db::close_database();
+
+	// Vault is a subdirectory; the target file exists OUTSIDE it, so the
+	// canonicalize succeeds and the starts_with guard must fire.
+	let outer = TempDir::new().unwrap();
+	let vault_dir = outer.path().join("vault");
+	std::fs::create_dir_all(&vault_dir).unwrap();
+	std::fs::write(outer.path().join("outside.md"), "escape").unwrap();
+	db::open_database(&vault_dir).unwrap();
+
+	let result = update_semantic_file(
+		"../outside.md".to_string(),
+		String::new(),
+		vault_dir.to_string_lossy().to_string(),
+	)
+	.await;
+
+	assert!(result.is_err(), "escaping relative path must be rejected");
+	assert!(
+		result.unwrap_err().contains("Path traversal detected"),
+		"error must name the traversal guard"
+	);
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn update_semantic_file_errors_when_file_missing_on_disk() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	// Zero-chunk content reaches the mtime persistence step, which cannot
+	// resolve a file that does not exist — the error must propagate.
+	let result = update_semantic_file("ghost.md".to_string(), String::new(), vault).await;
+
+	assert!(result.is_err(), "missing file must surface an error");
+	assert!(
+		result.unwrap_err().contains("Cannot resolve path"),
+		"error must come from the path resolution step"
+	);
 
 	db::close_database().unwrap();
 }

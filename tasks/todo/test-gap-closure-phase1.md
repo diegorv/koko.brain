@@ -66,7 +66,7 @@
   - `src/lib/plugins/one-on-one/one-on-one.service.ts` — No tests for createOneOnOneNote error propagation when openOrCreateNote rejects; line 214 tests rejection but does not verify the exact error message or stack is preserved | No tests for loadPeople behavior when readDir 
   - `src/lib/plugins/quick-capture/quick-capture.service.ts` — registerQuickCaptureListener function is not tested; no test coverage for event listener registration, queue serialization, or cleanup behavior
   - Verificar: `pnpm check && pnpm vitest run` verde + revisão do diff. Commit único do lote (formato COMMITS.md, scope `tests`).
-- [ ] **Lote R1 - rust/commands (db, debug, fonts, search, semantic, update_channel, vault *_v2, lib.rs)**
+- [x] **Lote R1 - rust/commands (db, debug, fonts, search, semantic, update_channel, vault *_v2, lib.rs)**
   - `src-tauri/src/commands/db.rs` — Minimal coverage. Only 584B file but `open_vault_db` command is tested in vault_test.rs. No dedicated db_test coverage for the thin wrapper itself. | close_vault_db has 0 test references (open_vault_db is integration-tes
   - `src-tauri/src/commands/debug.rs` — No test file found. This command module has 1.3K - likely small but should have integration tests for any debug/tracing commands
   - `src-tauri/src/commands/fonts.rs` — No test file found. Font handling command with 3.0K of code - should verify font discovery and path handling

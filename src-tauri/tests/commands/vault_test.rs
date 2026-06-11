@@ -1,6 +1,9 @@
+use kokobrain_lib::commands::search_index::IndexStats;
 use kokobrain_lib::commands::vault::{
-	collect_v2_entries, ensure_safe_write_path, scan_vault, update_note_in_index_inner,
+	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault,
+	toggle_task_status_inner, update_note_in_index_inner, CachedScanResult,
 };
+use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::VAULT_INDEX_UPDATED_EVENT;
 use std::fs;
@@ -555,4 +558,149 @@ fn ensure_safe_write_path_allows_literal_dots_in_filename() {
     // `a..b.md` is a single `Normal` component, not a `..` segment — allowed.
     assert!(ensure_safe_write_path("/vault/a..b.md").is_ok());
     assert!(ensure_safe_write_path("/vault/..hidden.md").is_ok());
+}
+
+// --- IPC wire-shape contract tests -------------------------------------------
+//
+// Several registered *_v2 commands have no TS-side consumer test, so a silent
+// serde rename would drift the wire shape without any Rust OR TS test failing
+// (the audit's "dead-but-registered commands" finding). These tests lock the
+// JSON key casing for the return types that lacked a serialization contract
+// elsewhere. Already locked elsewhere: NoteEntry + WikiLink (entry.rs inline),
+// UpdateResult / OutgoingLink / OutgoingUnlinkedMention / TagAggregate
+// (vault_index_test.rs), TaskStatus / TaskPriority / TaskMetadata (task.rs
+// inline).
+
+#[test]
+fn task_wire_shape_uses_camel_case_line_number() {
+    // Realistic Task: parsed from note content through the same path the
+    // *_v2 commands use, then serialized as it would cross the IPC boundary.
+    let mut idx = VaultIndex::default();
+    update_note_in_index_inner(
+        &mut idx,
+        "/v/tasks.md".to_string(),
+        "# T\n\n- [ ] Buy milk #home\n",
+        0,
+    );
+    let task = &idx.entries().get("/v/tasks.md").unwrap().tasks[0];
+
+    let value = serde_json::to_value(task).unwrap();
+    assert!(value["text"].as_str().unwrap().contains("Buy milk"));
+    assert_eq!(value["checked"], false);
+    assert_eq!(value["indent"], 0);
+    assert_eq!(value["lineNumber"], 3, "1-based line of the checkbox");
+    assert_eq!(value["status"], "todo");
+    assert!(value["metadata"].is_object());
+    assert!(value.get("line_number").is_none(), "snake_case must not leak");
+}
+
+#[test]
+fn file_task_group_wire_shape_matches_ts_interface() {
+    // get_all_tasks_v2 returns Vec<FileTaskGroup> built by lookup_all_tasks.
+    let mut idx = VaultIndex::default();
+    update_note_in_index_inner(
+        &mut idx,
+        "/v/todo.md".to_string(),
+        "- [ ] One thing\n",
+        1714305600,
+    );
+    let groups = idx.lookup_all_tasks();
+    assert_eq!(groups.len(), 1);
+
+    let value = serde_json::to_value(&groups[0]).unwrap();
+    assert_eq!(value["filePath"], "/v/todo.md");
+    assert_eq!(value["fileName"], "todo");
+    assert_eq!(value["modifiedAt"], 1714305600);
+    assert!(value["tasks"].is_array());
+    assert_eq!(value["tasks"].as_array().unwrap().len(), 1);
+    assert!(value.get("file_path").is_none(), "snake_case must not leak");
+}
+
+#[test]
+fn toggle_task_result_wire_shape_matches_ts_interface() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join("t.md");
+    fs::write(&path, "- [ ] Flip me\n").unwrap();
+    let path_str = path.to_string_lossy().to_string();
+
+    let mut idx = VaultIndex::default();
+    let result = toggle_task_status_inner(&mut idx, &path_str, 1).unwrap();
+
+    let value = serde_json::to_value(&result).unwrap();
+    assert_eq!(value["updatedContent"], "- [x] Flip me\n");
+    let update = &value["updateResult"];
+    assert_eq!(update["changed"], true);
+    assert!(update["affected"].is_array());
+    assert!(update["version"].is_u64());
+    assert!(
+        value.get("updated_content").is_none(),
+        "snake_case must not leak"
+    );
+}
+
+#[test]
+fn note_record_wire_shape_matches_collection_service_contract() {
+    // get_all_property_records returns Vec<NoteRecord> via project_note_record.
+    let mut entry = NoteEntry::default();
+    entry.path = "/v/sub/rec.md".to_string();
+    entry.modified_at = 10;
+    entry.created_at = 5;
+    entry.size = 42;
+    let rec = project_note_record(&entry);
+
+    let value = serde_json::to_value(&rec).unwrap();
+    for key in [
+        "path", "name", "basename", "folder", "ext", "mtime", "ctime", "size", "properties",
+    ] {
+        assert!(
+            value.get(key).is_some(),
+            "NoteRecord must expose `{key}` over IPC"
+        );
+    }
+    assert_eq!(value["basename"], "rec");
+    assert_eq!(value["ext"], ".md");
+    assert_eq!(value["folder"], "/v/sub");
+}
+
+#[test]
+fn relationship_backlink_wire_shape_matches_ts_interface() {
+    let bl = RelationshipBacklink {
+        source_path: "/v/a.md".to_string(),
+        source_name: "a".to_string(),
+        relationship_type: "belongs_to".to_string(),
+    };
+
+    let value = serde_json::to_value(&bl).unwrap();
+    assert_eq!(value["sourcePath"], "/v/a.md");
+    assert_eq!(value["sourceName"], "a");
+    assert_eq!(value["relationshipType"], "belongs_to");
+    assert!(value.get("source_path").is_none(), "snake_case must not leak");
+}
+
+#[test]
+fn cached_scan_result_wire_shape_matches_ts_interface() {
+    let res = CachedScanResult {
+        source: "cache_reconciled".to_string(),
+        entry_count: 12,
+        load_ms: 34,
+        files_reread: 2,
+    };
+
+    let value = serde_json::to_value(&res).unwrap();
+    assert_eq!(value["source"], "cache_reconciled");
+    assert_eq!(value["entryCount"], 12);
+    assert_eq!(value["loadMs"], 34);
+    assert_eq!(value["filesReread"], 2);
+    assert!(value.get("entry_count").is_none(), "snake_case must not leak");
+}
+
+#[test]
+fn index_stats_wire_shape_matches_ts_interface() {
+    let stats = IndexStats { total_documents: 3 };
+    let value = serde_json::to_value(&stats).unwrap();
+    assert_eq!(value["totalDocuments"], 3);
+    assert!(
+        value.get("total_documents").is_none(),
+        "snake_case must not leak"
+    );
 }
