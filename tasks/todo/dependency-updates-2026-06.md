@@ -41,18 +41,18 @@ pnpm vitest run: <N> passed
 
 ## Tasks — pnpm (low-risk data/icons first, runtime next, katex last)
 
-- [ ] @doist/todoist-sdk 10.2.0 → 10.3.0
-- [ ] @lucide/svelte 1.16.0 → 1.17.0 (dev)
-- [ ] lucide-static 1.16.0 → 1.17.0
-- [ ] simple-icons 16.20.0 → 16.22.0
-- [ ] @primer/octicons 19.26.0 → 19.28.1  *(quarantine clears ~15:52Z 2026-06-11; skip if pnpm refuses)*
-- [ ] @codemirror/autocomplete 6.20.2 → 6.20.3
-- [ ] @lezer/markdown 1.6.3 → 1.6.4
-- [ ] dayjs 1.11.20 → 1.11.21
-- [ ] dompurify 3.4.5 → 3.4.8
-- [ ] marked 18.0.4 → 18.0.5  *(quarantine clears ~14:17Z 2026-06-11; skip if pnpm refuses)*
-- [ ] @xyflow/svelte 1.5.2 → 1.6.0
-- [ ] katex 0.16.47 → 0.17.0  *(MINOR bump, outside `^0.16.47` — `--latest` edits package.json range; verify math rendering in tests)*
+- [x] @doist/todoist-sdk 10.2.0 → 10.3.0 (47d3e7c)
+- [x] @lucide/svelte 1.16.0 → 1.17.0 (dev) (a38c79c)
+- [x] lucide-static 1.16.0 → 1.17.0 (1373575)
+- [x] simple-icons 16.20.0 → 16.22.0 (466330d)
+- [x] @primer/octicons 19.26.0 → 19.28.1 (9be08ed)  *(quarantine cleared)*
+- [x] @codemirror/autocomplete 6.20.2 → 6.20.3 (fe43f77)
+- [x] @lezer/markdown 1.6.3 → 1.6.4 (71df1b2)
+- [x] dayjs 1.11.20 → 1.11.21 (367cfc8)
+- [x] dompurify 3.4.5 → 3.4.8 (f472f3f)
+- [x] marked 18.0.4 → 18.0.5 (87ee991)  *(quarantine cleared)*
+- [x] @xyflow/svelte 1.5.2 → 1.6.0 (3981926)
+- [x] katex 0.16.47 → 0.17.0 (de849f1)  *(MINOR bump; package.json range bumped to ^0.17.0; mermaid keeps transitive 0.16.47)*
 
 ## Tasks — cargo
 
