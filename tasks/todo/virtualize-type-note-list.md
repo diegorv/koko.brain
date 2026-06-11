@@ -18,6 +18,9 @@ bottleneck.
 - `virtua` 0.49.1 released 2026-04-12, passes the 7-day `minimumReleaseAge`
   quarantine (ADR 0014). TanStack svelte-virtual rejected: open Svelte 5
   compatibility issues (TanStack/virtual #866).
+- User decision 2026-06-11: keep virtua, re-evaluate TanStack when #866
+  closes — tracked in
+  `.scratch/virtualize-type-note-list/issues/01-reevaluate-tanstack-virtual.md`.
 - Preserve exactly: context menu per row, F2/inline rename flow, pill rendering
   + wikilink clicks, empty state, row divider visuals, default scroll
   behavior (no new scroll-reset behavior added).
