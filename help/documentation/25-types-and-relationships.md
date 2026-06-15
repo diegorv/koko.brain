@@ -142,7 +142,7 @@ Notes without a type appear in an "Untyped" section at the bottom of the left si
 
 ### Note Order
 
-Notes within a type section are sorted alphabetically by title by default. You can override this by adding `_order` (or `order`) to a note's frontmatter:
+The type note list (the Open and Archived tabs in the middle panel, including the Untyped section) always sorts by most recently modified first -- the note you just edited jumps to the top. You can pin notes above that order by adding `_order` (or `order`) to a note's frontmatter:
 
 ```yaml
 ---
@@ -151,14 +151,14 @@ _order: 1
 ---
 ```
 
-Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` appear after, sorted by `_sort` mode (see below). Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` follow, sorted by most recently modified. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
 
 > [!TIP]
 > `_order` also controls sort position in the [file explorer](02-file-explorer.md#custom-ordering-with-_order). A note with `_order: 1` appears first in both the type sidebar and the file tree.
 
 ### Sort Mode
 
-The `_sort` field on a type definition controls how notes without `_order` are sorted within that type section:
+The Open and Archived tabs of the type note list always sort by most recently modified first (with `_order` pins on top), so the `_sort` field does not change that list. `_sort` still controls how the **Favorites** tab is ordered within a type:
 
 | Value | Behavior |
 |-------|----------|
@@ -175,7 +175,7 @@ _sort: modified
 ---
 ```
 
-Notes with `_order` always appear first regardless of `_sort`. The sort mode only affects notes without an explicit `_order` value. In the Favorites tab, `_favorite_index` is used instead of `_sort`.
+Notes with `_order` always appear first regardless of the tab. `.view` files keep their own sort (configured via the inline Sort toolbar), independent of this behavior.
 
 ### Filters
 
@@ -183,8 +183,8 @@ The middle panel has three sub-filter tabs, shown whenever the active selection 
 
 | Tab | Shows | Sort |
 |-----|-------|------|
-| Open | Non-archived notes | `_order`, then `_sort` mode |
-| Archived | Archived notes only | `_order`, then `_sort` mode |
+| Open | Non-archived notes | `_order`, then most recently modified |
+| Archived | Archived notes only | `_order`, then most recently modified |
 | Favorites | Favorited notes (excluding archived) | `_order`, then `_sort` mode |
 
 The tabs are hidden for the Inbox and Archive nav items, since those selections already imply a specific lifecycle filter. For `.view` selections, the counts next to each tab reflect the view's matching set, not the whole vault.

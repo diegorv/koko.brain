@@ -170,7 +170,12 @@ function matchesSelection(entry: NoteEntryV2, selection: TypeSidebarSelection): 
 	}
 }
 
-/** Returns notes matching the current sidebar selection, sorted by the type's sort setting. */
+/**
+ * Returns notes matching the current sidebar selection. Type and Untyped
+ * sections always sort most-recently-modified first (the Favorites tab keeps
+ * the type's configured `_sort`); nav items sort by modified. `_order` pins
+ * always float to the top.
+ */
 export function getNotesForSelection(
 	entries: NoteEntryV2[],
 	selection: TypeSidebarSelection,
@@ -183,12 +188,20 @@ export function getNotesForSelection(
 	switch (selection.kind) {
 		case 'type': {
 			filtered = entries.filter((e) => e.isA === selection.name && matchesSubFilter(e, subFilter));
-			const meta = getTypeMetadataFallback(selection.name, typeMetadataMap);
-			sort = meta.sort;
+			// The type note list always shows the most recently modified notes
+			// first, regardless of the type's `_sort`. `_order` pins still float
+			// to the top (handled in sortNotes). The Favorites tab keeps the
+			// type's configured ordering.
+			sort = subFilter === 'favorites'
+				? getTypeMetadataFallback(selection.name, typeMetadataMap).sort
+				: 'modified';
 			break;
 		}
 		case 'untyped':
 			filtered = entries.filter((e) => !e.isA && matchesSubFilter(e, subFilter));
+			// Same rule as type sections: most-recently-modified first, except
+			// the Favorites tab (which keeps the default title ordering).
+			if (subFilter !== 'favorites') sort = 'modified';
 			break;
 		case 'nav':
 			filtered = filterByNavItem(entries, selection.id, subFilter);

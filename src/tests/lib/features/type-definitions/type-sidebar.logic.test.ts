@@ -374,14 +374,38 @@ describe('getNotesForSelection', () => {
 		expect(notes[0].title).toBe('A');
 	});
 
-	it('uses type sort setting', () => {
+	it('always sorts a type by most-recently-modified, ignoring the type _sort', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
 			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
 		];
-		const map = new Map([['Project', meta('Project', { sort: 'modified' })]]);
+		// Type asks for alphabetical, but the note list forces modified-desc.
+		const map = new Map([['Project', meta('Project', { sort: 'title' })]]);
 		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, map);
-		expect(notes.map((n) => n.title)).toEqual(['B', 'A']);
+		expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
+	});
+
+	it('keeps _order pins above the modified-desc order for a type', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
+			// Oldest, but pinned with _order -> floats to the top.
+			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 50, frontmatter: { _order: 1 } }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		expect(notes.map((n) => n.title)).toEqual(['C', 'B', 'A']);
+	});
+
+	it('leaves the Favorites tab on the type configured sort, not modified', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: true, modifiedAt: 300 }),
+		];
+		// _sort: title -> alphabetical, and modified-desc must NOT override it here.
+		const map = new Map([['Project', meta('Project', { sort: 'title' })]]);
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, map, 'favorites');
+		expect(notes.map((n) => n.title)).toEqual(['A', 'B']);
 	});
 
 	it('returns untyped notes for untyped selection', () => {
@@ -393,6 +417,16 @@ describe('getNotesForSelection', () => {
 		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
 		expect(notes.length).toBe(2);
 		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
+	});
+
+	it('sorts untyped notes by most-recently-modified', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: null, modifiedAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', isA: null, modifiedAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', isA: null, modifiedAt: 200 }),
+		];
+		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
+		expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
 	});
 
 	it('excludes every typed note from untyped selection, including isA "Type" and empty string', () => {
