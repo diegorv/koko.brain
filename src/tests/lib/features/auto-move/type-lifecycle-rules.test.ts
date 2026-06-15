@@ -11,6 +11,7 @@ function makeTypeMetadata(overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 		order: overrides.order ?? 1,
 		sidebarLabel: overrides.sidebarLabel ?? 'Projects',
 		template: overrides.template ?? null,
+		folder: overrides.folder ?? null,
 		sort: overrides.sort ?? 'title',
 		view: overrides.view ?? 'all',
 		visible: overrides.visible ?? true,

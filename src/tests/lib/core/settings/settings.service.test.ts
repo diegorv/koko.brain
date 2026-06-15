@@ -98,6 +98,26 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.dockBadgeInboxCount).toBe(false);
 	});
 
+	it('defaults typesBaseFolder to an empty string when absent from the saved file', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.typesBaseFolder).toBe('');
+	});
+
+	it('respects a saved typesBaseFolder', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ typesBaseFolder: 'Notes' }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.typesBaseFolder).toBe('Notes');
+	});
+
 	it('merges templates settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

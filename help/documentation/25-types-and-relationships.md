@@ -67,6 +67,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 | `_view` | Default view mode | `all` |
 | `_visible` | Whether to show in sidebar | `true` |
 | `_template` | Vault-relative path to template file for new notes | none |
+| `_folder` | Vault-relative subfolder where new notes of this type are created (see [Creating Notes from Types](#creating-notes-from-types)) | none (vault root) |
 | `_list_properties_display` | Properties to show in list views | none |
 | `_archive_to` | Destination template when `_archived` is set to true (e.g. `{folder}/_archive`). See [Auto Move](22-auto-move.md#type-driven-lifecycle-rules) | none |
 
@@ -75,6 +76,26 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 ## Creating Notes from Types
 
 Right-click a type section header in the sidebar and select **New [TypeName]** to create a note of that type. The new file is named "Untitled [TypeName].md" (auto-deduplicated if it already exists).
+
+### Where the note is created
+
+The note's folder is built from two optional parts:
+
+```
+<vault> / <base folder> / <type folder> / Untitled [TypeName].md
+```
+
+- **Base folder** is the global setting in **Settings → Types & Lifecycle → Base folder** (`typesBaseFolder`). It is prepended to every typed note.
+- **Type folder** is the `_folder` field on the type definition.
+
+Each part is optional; missing parts are skipped. With both empty the note is created at the vault root. Missing folders are created automatically.
+
+| Base folder | Type `_folder` | New note path |
+|-------------|----------------|---------------|
+| (empty) | (empty) | `<vault>/Untitled Project.md` |
+| (empty) | `Projects` | `<vault>/Projects/Untitled Project.md` |
+| `Notes` | (empty) | `<vault>/Notes/Untitled Project.md` |
+| `Notes` | `Projects` | `<vault>/Notes/Projects/Untitled Project.md` |
 
 If the type definition has a `_template` field, the template file is read and its content (including `<% %>` expressions) is used as the initial content. If no template is set, the note starts with minimal frontmatter:
 
@@ -340,7 +361,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `visible` | `_visible` | Show/hide type section in sidebar |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note cards in middle panel |
 
-You can use either form in your frontmatter. The app normalizes them internally. The auto-move destination field `_archive_to` has no short alias -- write it with the leading underscore.
+You can use either form in your frontmatter. The app normalizes them internally. The type-folder field `_folder` and the auto-move destination field `_archive_to` have no short alias -- write them with the leading underscore.
 
 > [!IMPORTANT]
 > The `type` alias for the canonical `_type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.collection` / `.view` / inline `collection` blocks). The other system-flag aliases (`organized`, `archived`, `favorite`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name (`_organized`, `_archived`, `_favorite`). The `type` / `_type` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. The legacy `is_a` / `is a` spellings are no longer recognised. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.

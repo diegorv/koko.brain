@@ -124,6 +124,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	explicitOrganization: false,
 	showUntypedNotes: false,
+	typesBaseFolder: '',
 	dockBadgeInboxCount: true,
 };
 
@@ -157,6 +158,7 @@ export const settingsStore = {
 	get updates() { return settings.updates; },
 	get explicitOrganization() { return settings.explicitOrganization; },
 	get showUntypedNotes() { return settings.showUntypedNotes; },
+	get typesBaseFolder() { return settings.typesBaseFolder; },
 	get dockBadgeInboxCount() { return settings.dockBadgeInboxCount; },
 
 	/** Replaces the entire settings object (used on load) */

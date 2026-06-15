@@ -50,6 +50,7 @@ import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { createNoteOfType, createTypeDefinition, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
@@ -64,6 +65,7 @@ function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMeta
 		order: 50,
 		sidebarLabel: overrides.name + 's',
 		template: null,
+		folder: null,
 		sort: 'title',
 		view: 'all',
 		visible: true,
@@ -155,10 +157,12 @@ describe('createNoteOfType', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		typeDefinitionsStore.reset();
+		settingsStore.reset();
 	});
 
 	afterEach(() => {
 		vaultStore._reset();
+		settingsStore.reset();
 		clearLocalStorage();
 	});
 
@@ -214,6 +218,96 @@ describe('createNoteOfType', () => {
 			expect.objectContaining({
 				filePath: '/vault/Untitled Project 1.md',
 				title: 'Untitled Project 1',
+			}),
+		);
+	});
+
+	it('creates the note inside the type folder when _folder is set', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		const map = new Map([
+			['Person', makeMeta({ name: 'Person', folder: 'People' })],
+		]);
+		typeDefinitionsStore.setTypeMetadataMap(map);
+
+		await createNoteOfType('Person');
+
+		// Siblings are read from the type folder, not the vault root.
+		expect(readDir).toHaveBeenCalledWith('/vault/People');
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: '/vault/People/Untitled Person.md',
+				title: 'Untitled Person',
+			}),
+		);
+	});
+
+	it('strips surrounding slashes from _folder and supports nesting', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		const map = new Map([
+			['Person', makeMeta({ name: 'Person', folder: '/People/Contacts/' })],
+		]);
+		typeDefinitionsStore.setTypeMetadataMap(map);
+
+		await createNoteOfType('Person');
+
+		expect(readDir).toHaveBeenCalledWith('/vault/People/Contacts');
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: '/vault/People/Contacts/Untitled Person.md',
+			}),
+		);
+	});
+
+	it('still creates the note when the type folder does not exist yet', async () => {
+		vaultStore.open('/vault');
+		// readDir throws on a missing folder — no siblings to dedup against.
+		vi.mocked(readDir).mockRejectedValue(new Error('ENOENT'));
+		const map = new Map([
+			['Person', makeMeta({ name: 'Person', folder: 'People' })],
+		]);
+		typeDefinitionsStore.setTypeMetadataMap(map);
+
+		await createNoteOfType('Person');
+
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: '/vault/People/Untitled Person.md',
+			}),
+		);
+	});
+
+	it('nests the type folder under the global base folder setting', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		settingsStore.setSettings({ ...settingsStore.settings, typesBaseFolder: 'Notes' });
+		const map = new Map([
+			['Person', makeMeta({ name: 'Person', folder: 'People' })],
+		]);
+		typeDefinitionsStore.setTypeMetadataMap(map);
+
+		await createNoteOfType('Person');
+
+		expect(readDir).toHaveBeenCalledWith('/vault/Notes/People');
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: '/vault/Notes/People/Untitled Person.md',
+			}),
+		);
+	});
+
+	it('uses the base folder alone when the type has no _folder', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		settingsStore.setSettings({ ...settingsStore.settings, typesBaseFolder: 'Notes' });
+
+		await createNoteOfType('Project');
+
+		expect(readDir).toHaveBeenCalledWith('/vault/Notes');
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: '/vault/Notes/Untitled Project.md',
 			}),
 		);
 	});

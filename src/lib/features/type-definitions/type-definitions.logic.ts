@@ -17,6 +17,8 @@ export interface TypeMetadata {
 	sidebarLabel: string;
 	/** Template path or content for new notes of this type. */
 	template: string | null;
+	/** Vault-relative base folder where new notes of this type are created (null = vault root). */
+	folder: string | null;
 	/** Default sort field for notes of this type. */
 	sort: string;
 	/** Default view mode. */
@@ -48,6 +50,7 @@ const DEFAULTS: TypeMetadata = {
 	order: 50,
 	sidebarLabel: '',
 	template: null,
+	folder: null,
 	sort: 'title',
 	view: 'all',
 	visible: true,
@@ -99,6 +102,7 @@ export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 		order: fmNumber(fm, '_order') ?? builtin.order ?? DEFAULTS.order,
 		sidebarLabel: fmString(fm, '_sidebar_label') ?? `${name}s`,
 		template: fmString(fm, '_template'),
+		folder: fmString(fm, '_folder'),
 		sort: fmString(fm, '_sort') ?? DEFAULTS.sort,
 		view: fmString(fm, '_view') ?? DEFAULTS.view,
 		visible: fmBool(fm, '_visible') ?? DEFAULTS.visible,
@@ -185,6 +189,27 @@ export function rewriteTypeInFrontmatter(content: string, oldType: string, newTy
 		.join('');
 	if (!changed) return null;
 	return rebuilt + content.slice(block.length);
+}
+
+/**
+ * Builds the absolute directory a new typed note is created in:
+ * `vaultPath / baseFolder / typeFolder`, where `baseFolder` is the global
+ * setting and `typeFolder` is the type's own `_folder`. Empty/whitespace-only
+ * segments are skipped, and leading/trailing slashes are stripped, so an
+ * empty base + empty type folder yields the vault root (current default).
+ */
+export function buildTypeNoteDir(
+	vaultPath: string,
+	baseFolder: string | null,
+	typeFolder: string | null,
+): string {
+	const clean = (s: string | null): string => (s ?? '').trim().replace(/^\/+|\/+$/g, '');
+	const parts = [vaultPath];
+	const base = clean(baseFolder);
+	const type = clean(typeFolder);
+	if (base) parts.push(base);
+	if (type) parts.push(type);
+	return parts.join('/');
 }
 
 /** Returns metadata for a type name, falling back to builtins then defaults. */

@@ -3,6 +3,7 @@ import {
 	isTypeDefinition,
 	extractTypeMetadata,
 	buildTypeMetadataMap,
+	buildTypeNoteDir,
 	getTypeMetadataFallback,
 	validateTypeName,
 	rewriteTypeInFrontmatter,
@@ -40,6 +41,7 @@ describe('extractTypeMetadata', () => {
 			_order: 1,
 			_sidebar_label: 'Projects',
 			_template: 'templates/project.md',
+			_folder: 'Projects',
 			_sort: 'status',
 			_view: 'board',
 			_visible: true,
@@ -53,6 +55,7 @@ describe('extractTypeMetadata', () => {
 		expect(meta.order).toBe(1);
 		expect(meta.sidebarLabel).toBe('Projects');
 		expect(meta.template).toBe('templates/project.md');
+		expect(meta.folder).toBe('Projects');
 		expect(meta.sort).toBe('status');
 		expect(meta.view).toBe('board');
 		expect(meta.visible).toBe(true);
@@ -94,6 +97,16 @@ describe('extractTypeMetadata', () => {
 		expect(meta.icon).toBe('star');
 		expect(meta.order).toBe(99);
 	});
+
+	it('defaults folder to null when _folder is absent', () => {
+		const meta = extractTypeMetadata(typeDefEntry('Project', {}));
+		expect(meta.folder).toBeNull();
+	});
+
+	it('reads _folder as the type base folder', () => {
+		const meta = extractTypeMetadata(typeDefEntry('Person', { _folder: 'People/Contacts' }));
+		expect(meta.folder).toBe('People/Contacts');
+	});
 });
 
 describe('buildTypeMetadataMap', () => {
@@ -115,6 +128,31 @@ describe('buildTypeMetadataMap', () => {
 			entryV2('/v/b.md'),
 		];
 		expect(buildTypeMetadataMap(entries).size).toBe(0);
+	});
+});
+
+describe('buildTypeNoteDir', () => {
+	it('returns the vault root when both folders are empty', () => {
+		expect(buildTypeNoteDir('/vault', '', null)).toBe('/vault');
+		expect(buildTypeNoteDir('/vault', null, '')).toBe('/vault');
+	});
+
+	it('appends only the type folder when no base folder is set', () => {
+		expect(buildTypeNoteDir('/vault', '', 'Project')).toBe('/vault/Project');
+	});
+
+	it('appends only the base folder when the type has no folder', () => {
+		expect(buildTypeNoteDir('/vault', 'Notes', null)).toBe('/vault/Notes');
+	});
+
+	it('nests type folder under base folder', () => {
+		expect(buildTypeNoteDir('/vault', 'Notes', 'Project')).toBe('/vault/Notes/Project');
+	});
+
+	it('strips surrounding slashes and whitespace from both segments', () => {
+		expect(buildTypeNoteDir('/vault', ' /Notes/ ', '/People/Contacts/')).toBe(
+			'/vault/Notes/People/Contacts',
+		);
 	});
 });
 

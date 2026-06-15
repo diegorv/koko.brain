@@ -9,6 +9,7 @@ function makeMeta(overrides: Partial<TypeMetadata> & { name: string; order: numb
 		color: 'blue',
 		sidebarLabel: overrides.name + 's',
 		template: null,
+		folder: null,
 		sort: 'title',
 		view: 'list',
 		visible: true,

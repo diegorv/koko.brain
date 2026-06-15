@@ -13,6 +13,7 @@ function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata
 		order: 50,
 		sidebarLabel: `${name}s`,
 		template: null,
+		folder: null,
 		sort: 'title',
 		view: 'all',
 		visible: true,

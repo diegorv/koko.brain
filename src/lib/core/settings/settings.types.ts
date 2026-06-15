@@ -338,6 +338,8 @@ export interface AppSettings {
 	explicitOrganization: boolean;
 	/** Whether to show notes without a type in the type sidebar */
 	showUntypedNotes: boolean;
+	/** Vault-relative base folder prepended to a type's own `_folder` when creating typed notes (empty = vault root) */
+	typesBaseFolder: string;
 	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
 	dockBadgeInboxCount: boolean;
 }

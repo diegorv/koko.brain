@@ -144,6 +144,7 @@ See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 |---------|-------------|---------|
 | **Explicit Organization** | New notes start unorganized and appear in the Inbox | Disabled |
 | **Show Untyped Notes** | Show notes without a type in an "Untyped" section at the bottom of the type sidebar | Disabled |
+| **Base folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `base folder / type folder / note`. Empty = vault root. | Empty (vault root) |
 
 See [Types & Relationships](25-types-and-relationships.md) for details.
 

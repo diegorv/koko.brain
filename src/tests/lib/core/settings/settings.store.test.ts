@@ -22,6 +22,17 @@ describe('settingsStore', () => {
 		});
 	});
 
+	describe('typesBaseFolder', () => {
+		it('defaults to an empty string (vault root)', () => {
+			expect(settingsStore.typesBaseFolder).toBe('');
+		});
+
+		it('getter reflects setSettings', () => {
+			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), typesBaseFolder: 'Notes' });
+			expect(settingsStore.typesBaseFolder).toBe('Notes');
+		});
+	});
+
 	describe('setSettings', () => {
 		it('replaces entire settings object', () => {
 			const custom = { ...structuredClone(DEFAULT_SETTINGS), periodicNotes: { ...DEFAULT_SETTINGS.periodicNotes, folder: '_custom' } };

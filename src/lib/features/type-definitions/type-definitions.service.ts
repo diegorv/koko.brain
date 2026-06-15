@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -11,7 +12,7 @@ import { parseFrontmatterProperties, extractBody, rebuildContent } from '$lib/fe
 import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
 import { toast } from 'svelte-sonner';
 import { error } from '$lib/utils/debug';
-import { buildTypeMetadataMap, rewriteTypeInFrontmatter } from './type-definitions.logic';
+import { buildTypeMetadataMap, buildTypeNoteDir, rewriteTypeInFrontmatter } from './type-definitions.logic';
 import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, type CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
@@ -27,12 +28,27 @@ export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<v
 /** Creates a new note of a given type, applying the type's template if configured. */
 export async function createNoteOfType(typeName: string): Promise<void> {
 	if (!vaultStore.path) return;
-	const entries = await readDir(vaultStore.path);
-	const siblingNames = entries.map((e) => e.name);
-	const uniqueName = generateUniqueName(`Untitled ${typeName}.md`, false, siblingNames);
-	const filePath = `${vaultStore.path}/${uniqueName}`;
-	const title = uniqueName.replace(/\.md$/, '');
 	const metadata = typeDefinitionsStore.typeMetadataMap.get(typeName);
+	// Target dir = vault / global base folder / type's own _folder (each
+	// optional; both empty = vault root, the prior default behavior).
+	const targetDir = buildTypeNoteDir(
+		vaultStore.path,
+		settingsStore.typesBaseFolder,
+		metadata?.folder ?? null,
+	);
+	// Dedup against the target folder's existing notes. The folder may not
+	// exist yet — readDir throws, so there are simply no siblings to dedup
+	// against; openOrCreateNote creates it (recursive create_folder) on write.
+	let siblingNames: string[] = [];
+	try {
+		const entries = await readDir(targetDir);
+		siblingNames = entries.map((e) => e.name);
+	} catch {
+		siblingNames = [];
+	}
+	const uniqueName = generateUniqueName(`Untitled ${typeName}.md`, false, siblingNames);
+	const filePath = `${targetDir}/${uniqueName}`;
+	const title = uniqueName.replace(/\.md$/, '');
 	const templatePath = metadata?.template
 		? `${vaultStore.path}/${metadata.template}`
 		: undefined;
