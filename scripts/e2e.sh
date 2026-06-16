@@ -11,7 +11,7 @@
 #   2. Starts `PLAYWRIGHT=true pnpm dev` in the background, captures logs to
 #      $E2E_LOG so they don't pollute stdout
 #   3. Waits up to MAX_WAIT seconds for the server to respond on /
-#   4. Forwards every argument to `npx playwright test`
+#   4. Forwards every argument to `pnpm exec playwright test`
 #   5. Cleans up the server (and any leaked port-1421 processes) on exit
 
 set -euo pipefail
@@ -65,7 +65,7 @@ done
 # ─── Run tests ────────────────────────────────────────────────────────
 echo ""
 set +e
-npx playwright test --config e2e/playwright.config.ts -x "$@"
+pnpm exec playwright test --config e2e/playwright.config.ts -x "$@"
 TEST_EXIT=$?
 set -e
 exit $TEST_EXIT
