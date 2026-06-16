@@ -47,6 +47,7 @@ export async function openOrCreatePeriodicNoteForDate(
 		inlineTemplate,
 		title: fileTitle,
 		customVariables,
+		contextDate: date,
 	});
 }
 

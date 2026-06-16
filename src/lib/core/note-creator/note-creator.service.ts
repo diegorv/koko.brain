@@ -1,3 +1,4 @@
+import type { Dayjs } from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
@@ -20,6 +21,13 @@ export interface NoteCreationOptions {
 	title: string;
 	/** Extra variable mappings for template expansion (e.g. `{ yesterdayPath: "..." }`) */
 	customVariables?: Record<string, string>;
+	/**
+	 * Target date that `tp.date.now()` resolves to when a template omits an explicit
+	 * reference date. Set by periodic notes so a note created for a specific day (e.g.
+	 * a future daily note) renders that day's date instead of today's. When omitted,
+	 * `tp.date.now()` falls back to the actual current date.
+	 */
+	contextDate?: Dayjs;
 }
 
 /**
@@ -35,7 +43,7 @@ export interface NoteCreationOptions {
  * 7. Open in editor
  */
 export async function openOrCreateNote(options: NoteCreationOptions): Promise<void> {
-	const { filePath, templatePath, inlineTemplate, title, customVariables } = options;
+	const { filePath, templatePath, inlineTemplate, title, customVariables, contextDate } = options;
 
 	// [FE-STARTUP-PROBE]
 	const probeStart = performance.now();
@@ -68,7 +76,7 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 				content = inlineTemplate ?? '';
 			}
 
-			content = processTemplate(content, title, customVariables);
+			content = processTemplate(content, title, customVariables, contextDate);
 
 			await invoke('create_note', { path: filePath, content });
 			// Mark the path as a self-save so the watcher's batch-rebuild

@@ -81,6 +81,7 @@ describe('openOrCreateDailyNote', () => {
 			inlineTemplate: '',
 			title: expectedTitle,
 			customVariables: expectedVars,
+			contextDate: expect.anything(),
 		});
 	});
 
@@ -277,7 +278,18 @@ describe('openOrCreatePeriodicNoteForDate', () => {
 			inlineTemplate: '# daily',
 			title: expectedTitle,
 			customVariables: expectedVars,
+			contextDate: date,
 		});
+	});
+
+	it('passes the target date as contextDate so tp.date.now() resolves to it', async () => {
+		const date = dayjs('2026-02-14');
+
+		await openOrCreatePeriodicNoteForDate('daily', date);
+
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({ contextDate: date }),
+		);
 	});
 
 	it('calls openOrCreateNote for weekly notes without inline template', async () => {

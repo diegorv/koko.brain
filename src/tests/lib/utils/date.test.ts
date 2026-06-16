@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { today, formatNow, formatDate, parseDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
+import dayjs from 'dayjs';
+import { today, formatNow, formatNowOnDate, formatDate, parseDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
 
 describe('today', () => {
 	it('returns a string in default YYYY-MM-DD format', () => {
@@ -102,6 +103,35 @@ describe('formatNow', () => {
 		const today = formatNow('YYYY-MM-DD', 0);
 		const yesterday = formatNow('YYYY-MM-DD', -1);
 		expect(today).not.toBe(yesterday);
+	});
+});
+
+describe('formatNowOnDate', () => {
+	it('uses the given calendar date instead of today', () => {
+		const result = formatNowOnDate(dayjs('2026-12-25'), 'YYYY-MM-DD');
+		expect(result).toBe('2026-12-25');
+	});
+
+	it('applies a positive day offset to the given date', () => {
+		const result = formatNowOnDate(dayjs('2026-12-25'), 'YYYY-MM-DD', 1);
+		expect(result).toBe('2026-12-26');
+	});
+
+	it('applies a negative day offset to the given date', () => {
+		const result = formatNowOnDate(dayjs('2026-12-25'), 'YYYY-MM-DD', -1);
+		expect(result).toBe('2026-12-24');
+	});
+
+	it('preserves the current time-of-day on the given date', () => {
+		const now = dayjs();
+		const result = formatNowOnDate(dayjs('2026-12-25'), 'YYYY-MM-DDTHH:mm');
+		expect(result).toBe(`2026-12-25T${now.format('HH:mm')}`);
+	});
+
+	it('does not mutate the passed-in date', () => {
+		const ctx = dayjs('2026-12-25');
+		formatNowOnDate(ctx, 'YYYY-MM-DD', 5);
+		expect(ctx.format('YYYY-MM-DD')).toBe('2026-12-25');
 	});
 });
 

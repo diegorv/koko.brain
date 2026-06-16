@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import dayjs from 'dayjs';
 import { processTemplate, evaluateExpression } from '$lib/utils/template';
 
 // Mock today() to return a fixed date but use real dayjs formatting
@@ -163,5 +164,43 @@ Yesterday: [[<% yesterdayPath %>]]`;
 		const noOffset = processTemplate('<% tp.date.now("YYYY-MM-DD") %>', 'ignored');
 		const withOffset = processTemplate('<% tp.date.now("YYYY-MM-DD", 1) %>', 'ignored');
 		expect(noOffset).not.toBe(withOffset);
+	});
+});
+
+describe('processTemplate with contextDate', () => {
+	it('tp.date.now without reference resolves to the context date, not today', () => {
+		const ctx = dayjs('2026-12-25');
+		const result = processTemplate('<% tp.date.now("YYYY-MM-DD") %>', '25-12-2026', undefined, ctx);
+		expect(result).toBe('2026-12-25');
+	});
+
+	it('tp.date.now without reference applies offset to the context date', () => {
+		const ctx = dayjs('2026-12-25');
+		const result = processTemplate('<% tp.date.now("YYYY-MM-DD", 1) %>', '25-12-2026', undefined, ctx);
+		expect(result).toBe('2026-12-26');
+	});
+
+	it('tp.date.now with context date preserves the current time-of-day', () => {
+		const ctx = dayjs('2026-12-25');
+		const now = dayjs();
+		const result = processTemplate('<% tp.date.now("YYYY-MM-DDTHH") %>', '25-12-2026', undefined, ctx);
+		expect(result).toBe(`2026-12-25T${now.format('HH')}`);
+	});
+
+	it('tp.date.now with an explicit reference still wins over the context date', () => {
+		const ctx = dayjs('2026-12-25');
+		const result = processTemplate(
+			'<% tp.date.now("YYYY-MM-DD", 0, tp.file.title, "DD-MM-YYYY") %>',
+			'09-02-2026',
+			undefined,
+			ctx,
+		);
+		expect(result).toBe('2026-02-09');
+	});
+
+	it('non-date expressions are unaffected by the context date', () => {
+		const ctx = dayjs('2026-12-25');
+		const result = processTemplate('# <% tp.file.title %>', 'My Note', undefined, ctx);
+		expect(result).toBe('# My Note');
 	});
 });

@@ -21,6 +21,28 @@ export function formatNow(outputFormat: string, offsetDays: number = 0): string 
 	return dayjs().add(offsetDays, 'day').format(outputFormat);
 }
 
+/**
+ * Like `formatNow`, but anchored to a specific calendar date instead of today.
+ * Keeps the current time-of-day (hour/minute/second/millisecond) and applies a
+ * day offset. Used when a template's `tp.date.now()` (without an explicit
+ * reference) should resolve to a note's target date — e.g. a daily note created
+ * for a future date — rather than the actual current date.
+ */
+export function formatNowOnDate(
+	contextDate: dayjs.Dayjs,
+	outputFormat: string,
+	offsetDays: number = 0,
+): string {
+	const now = dayjs();
+	return contextDate
+		.hour(now.hour())
+		.minute(now.minute())
+		.second(now.second())
+		.millisecond(now.millisecond())
+		.add(offsetDays, 'day')
+		.format(outputFormat);
+}
+
 /** Formats a date value (string, Date, dayjs, etc.) into the given format string. */
 export function formatDate(date: dayjs.ConfigType, format: string): string {
 	return dayjs(date).format(format);

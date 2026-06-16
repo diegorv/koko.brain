@@ -1,4 +1,5 @@
-import { formatDateWithOffset, formatNow } from '$lib/utils/date';
+import type { Dayjs } from 'dayjs';
+import { formatDateWithOffset, formatNow, formatNowOnDate } from '$lib/utils/date';
 
 /**
  * Processes a Templater-compatible template string.
@@ -14,14 +15,18 @@ import { formatDateWithOffset, formatNow } from '$lib/utils/date';
  * @param template - The template string containing `<% ... %>` placeholders
  * @param fileTitle - The note's title used for `tp.file.title` and date reference
  * @param customVariables - Optional key-value pairs for extra variables (e.g. `yesterdayPath`)
+ * @param contextDate - Optional target date that `tp.date.now()` resolves to when no
+ *   explicit reference date is given (e.g. a periodic note for a specific day). When omitted,
+ *   `tp.date.now()` without a reference falls back to the actual current date.
  */
 export function processTemplate(
 	template: string,
 	fileTitle: string,
 	customVariables?: Record<string, string>,
+	contextDate?: Dayjs,
 ): string {
 	return template.replace(/<%\s*([\s\S]*?)\s*%>/g, (_, expr: string) => {
-		return evaluateExpression(expr.trim(), fileTitle, customVariables);
+		return evaluateExpression(expr.trim(), fileTitle, customVariables, contextDate);
 	});
 }
 
@@ -34,16 +39,17 @@ export function evaluateExpression(
 	expr: string,
 	fileTitle: string,
 	customVariables?: Record<string, string>,
+	contextDate?: Dayjs,
 ): string {
 	const parts = splitOnPlus(expr);
-	return parts.map((part) => evaluatePart(part.trim(), fileTitle, customVariables)).join('');
+	return parts.map((part) => evaluatePart(part.trim(), fileTitle, customVariables, contextDate)).join('');
 }
 
 /**
  * Evaluates a tp.date.now() call expression.
  * Parses: tp.date.now("outputFormat", offset, tp.file.title, "inputFormat")
  */
-function evaluateDateNow(argsStr: string, fileTitle: string): string {
+function evaluateDateNow(argsStr: string, fileTitle: string, contextDate?: Dayjs): string {
 	const args: string[] = [];
 	let current = '';
 	let inString = false;
@@ -101,8 +107,12 @@ function evaluateDateNow(argsStr: string, fileTitle: string): string {
 	const hasReference = args.length >= 3 && args[2] !== undefined;
 
 	if (!hasReference) {
-		// No reference date — use current datetime directly
-		return formatNow(outputFormat, offset);
+		// No explicit reference date. When a context date is provided (e.g. a
+		// periodic note created for a specific day), anchor to it while keeping
+		// the current time-of-day; otherwise fall back to the current datetime.
+		return contextDate
+			? formatNowOnDate(contextDate, outputFormat, offset)
+			: formatNow(outputFormat, offset);
 	}
 
 	const inputFormat = stripQuotes(args[3] ?? 'YYYY-MM-DD');
@@ -179,6 +189,7 @@ function evaluatePart(
 	part: string,
 	fileTitle: string,
 	customVariables?: Record<string, string>,
+	contextDate?: Dayjs,
 ): string {
 	// Custom variable lookup (e.g. <% yesterdayPath %> or <% "prefix" + yesterdayPath %>)
 	if (customVariables && part in customVariables) {
@@ -191,7 +202,7 @@ function evaluatePart(
 
 	if (part.startsWith('tp.date.now(') && part.endsWith(')')) {
 		const argsStr = part.slice('tp.date.now('.length, -1);
-		return evaluateDateNow(argsStr, fileTitle);
+		return evaluateDateNow(argsStr, fileTitle, contextDate);
 	}
 
 	// String literal

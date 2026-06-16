@@ -34,6 +34,7 @@ vi.mock('$lib/features/collection/collection.service', () => ({
 	updateNoteInIndex: vi.fn(),
 }));
 
+import dayjs from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
@@ -157,6 +158,37 @@ describe('openOrCreateNote', () => {
 		});
 
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '/vault/yesterday.md' });
+	});
+
+	it('resolves tp.date.now() to contextDate when no explicit reference is given', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+
+		await openOrCreateNote({
+			filePath: '/vault/note.md',
+			title: '25-12-2026',
+			inlineTemplate: 'created: <% tp.date.now("YYYY-MM-DD") %>',
+			contextDate: dayjs('2026-12-25'),
+		});
+
+		expect(invoke).toHaveBeenCalledWith('create_note', {
+			path: '/vault/note.md',
+			content: 'created: 2026-12-25',
+		});
+	});
+
+	it('falls back to the current date for tp.date.now() when no contextDate is given', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+
+		await openOrCreateNote({
+			filePath: '/vault/note.md',
+			title: 'note',
+			inlineTemplate: 'created: <% tp.date.now("YYYY-MM-DD") %>',
+		});
+
+		expect(invoke).toHaveBeenCalledWith('create_note', {
+			path: '/vault/note.md',
+			content: `created: ${dayjs().format('YYYY-MM-DD')}`,
+		});
 	});
 
 	it('throws and logs error when exists() fails', async () => {
