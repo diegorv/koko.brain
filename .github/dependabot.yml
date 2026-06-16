@@ -6,6 +6,11 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 14
+      # Mirror pnpm-workspace.yaml `minimumReleaseAgeExclude`: Tauri JS
+      # plugins must stay in lockstep with their Rust crates, so they are
+      # exempt from the cooldown quarantine (installable on day 0).
+      exclude:
+        - "@tauri-apps/*"
 
   - package-ecosystem: "cargo"
     directory: "/src-tauri"
