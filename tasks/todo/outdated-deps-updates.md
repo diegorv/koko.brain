@@ -30,7 +30,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 - [x] T14: @sveltejs/kit 2.63.0 -> 2.66.0 (dev) [+ build OK] (2.68.0 held back by quarantine)
 - [x] T15: lucide-static 1.17.0 -> 1.21.0 (1.22.0 held back by quarantine)
 - [x] T16: simple-icons 16.22.0 -> 16.24.0 (16.24.1 held back by quarantine)
-- [ ] T17: @types/node 25.9.1 -> 26.0.0 (dev, MAJOR)
+- [x] T17: @types/node 25.9.1 -> 26.0.0 (dev, MAJOR) (26.0.1 held back by quarantine)
 
 ## Rust (cargo) tasks
 
