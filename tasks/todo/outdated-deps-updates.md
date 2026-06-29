@@ -24,7 +24,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 - [~] T8: svelte 5.56.1 -> HELD at 5.56.1. svelte 5.56.2+ tightened the parser and rejects `@xyflow/svelte@1.6.1`'s KeyHandler.svelte (`function isKeyObject(key?)` TS optional-param syntax in a non-`lang="ts"` script) -> RolldownError parse failure in 4 test files (canvas.logic, canvas.service, CollectionView, TypeNoteList.perf). 5.56.2 and 5.56.3 both break; 5.56.4 (potential fix) is still in the 7-day quarantine (published 2026-06-23). Re-evaluate 5.56.4 after 2026-06-30.
 - [x] T9: tailwindcss 4.3.0 -> 4.3.1 (dev) (4.3.2 held back by quarantine)
 - [x] T10: vitest 4.1.8 -> 4.1.9 (dev)
-- [ ] T11: @doist/todoist-sdk 10.3.0 -> 10.5.0
+- [x] T11: @doist/todoist-sdk 10.3.0 -> 10.5.0 (form-data override still resolves 4.0.6)
 - [ ] T12: @lucide/svelte 1.17.0 -> 1.21.0 (dev)
 - [ ] T13: @playwright/test 1.60.0 -> 1.61.0 (dev) [+ e2e]
 - [ ] T14: @sveltejs/kit 2.63.0 -> 2.66.0 (dev)
