@@ -10,7 +10,7 @@ commit only if green, then move on. Work happens directly on `main`.
 - [x] Task 1: Update `undici` to >=7.28.0 (jsdom `^7.25.0` + todoist-sdk `^7.16.0` already allow it) via `pnpm update undici -r`
 - [x] Task 2: Update `dompurify` to >=3.4.11 (direct `^3.4.8` + mermaid `^3.3.1` allow it) via `pnpm update dompurify -r`
 - [x] Task 3: Force `esbuild` >=0.28.1 via override. vite 8's esbuild peer is OPTIONAL (rolldown-based), so the override drops esbuild from the tree entirely. Confirmed `pnpm build` works via rolldown.
-- [ ] Task 4: Force `form-data` >=4.0.6 via `overrides` in `pnpm-workspace.yaml` (todoist-sdk pins exact `4.0.5`)
+- [x] Task 4: Force `form-data` >=4.0.6 via `overrides` in `pnpm-workspace.yaml` (todoist-sdk pins exact `4.0.5`)
 - [ ] Task 5: Re-run `pnpm audit`, confirm clean, move this file to tasks/done/
 
 ## Notes

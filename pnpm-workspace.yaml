@@ -57,6 +57,10 @@ overrides:
   # can't be bumped by `pnpm update`, so force the patched line.
   # GHSA-g7r4-m6w7-qqqr (dev-server request smuggling). Patched: >=0.28.1.
   esbuild: '>=0.28.1'
+  # @doist/todoist-sdk pins form-data to an exact 4.0.5, below the patch,
+  # so `pnpm update` can't reach it. GHSA-hmw2-7cc7-3qxx (CRLF injection
+  # via unescaped multipart field/file names). Patched: >=4.0.6.
+  form-data: '>=4.0.6'
 
 # Dependencies allowed to run install/build scripts. pnpm 11 (see
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`

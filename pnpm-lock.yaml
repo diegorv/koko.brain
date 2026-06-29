@@ -7,6 +7,7 @@ settings:
 overrides:
   cookie: '>=0.7.0'
   esbuild: '>=0.28.1'
+  form-data: '>=4.0.6'
 
 importers:
 
@@ -1474,8 +1475,8 @@ packages:
   feather-icons@4.29.2:
     resolution: {integrity: sha512-0TaCFTnBTVCz6U+baY2UJNKne5ifGh7sMG4ZC2LoBWCZdIyPa+y6UiR4lEYGws1JOFWdee8KAsAIvu0VcXqiqA==}
 
-  form-data@4.0.5:
-    resolution: {integrity: sha512-8RipRLol37bNs2bhoV67fiTEvdTrbMUYcFTiy3+wuuOnUog2QBHCZWXDRijWQfAkhBj2Uf5UnVaiWwA5vdd82w==}
+  form-data@4.0.6:
+    resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
     engines: {node: '>= 6'}
 
   fsevents@2.3.2:
@@ -2470,7 +2471,7 @@ snapshots:
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
-      form-data: 4.0.5
+      form-data: 4.0.6
       ts-custom-error: 3.3.1
       type-fest: 4.41.0
       undici: 7.28.0
@@ -3537,7 +3538,7 @@ snapshots:
       classnames: 2.5.1
       core-js: 3.49.0
 
-  form-data@4.0.5:
+  form-data@4.0.6:
     dependencies:
       asynckit: 0.4.0
       combined-stream: 1.0.8
