@@ -36,7 +36,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 
 - [x] T18: sysinfo 0.39.3 -> 0.39.5
 - [x] T19+T20: tauri 2.11.2 -> 2.11.3 (atomic with the tauri-* family: tauri-build 2.6.3, tauri-codegen/macros 2.6.3, tauri-runtime/-wry 2.11.3, tauri-utils 2.9.3, tray-icon 0.24.1). Forced via `--precise 2.11.3` since plain update is conservative about cascading siblings.
-- [ ] T21: uuid 1.23.3 -> 1.23.4
+- [x] T21: uuid 1.23.3 -> 1.23.4
 
 ## Wrap-up
 
