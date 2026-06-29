@@ -41,7 +41,10 @@ very latest version. If so, resolve to the newest allowed version and note it.
 
 ## Wrap-up
 
-- [ ] T22: Re-run both `pnpm outdated` and `cargo outdated`, document any deps held back by quarantine, move this file to tasks/done/
+- [x] T22: Re-ran both. cargo: all up to date. pnpm: only `svelte` remains behind (held at 5.56.1, see T8). Deps whose newest version is still inside the 7-day quarantine were taken to the newest allowed version, not the absolute latest:
+  - svelte 5.56.4 (also a possible @xyflow parse fix) - quarantined, published 2026-06-23
+  - @codemirror/view 6.43.4, @tailwindcss/vite 4.3.2, tailwindcss 4.3.2, @lucide/svelte 1.22.0, lucide-static 1.22.0, simple-icons 16.24.1, @playwright/test 1.61.1, @sveltejs/kit 2.68.0, @types/node 26.0.1 - all quarantined
+  These will install on a later pass once they age past 7 days.
 
 ## Notes
 
