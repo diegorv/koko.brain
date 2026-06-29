@@ -27,7 +27,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 - [x] T11: @doist/todoist-sdk 10.3.0 -> 10.5.0 (form-data override still resolves 4.0.6)
 - [x] T12: @lucide/svelte 1.17.0 -> 1.21.0 (dev) (1.22.0 held back by quarantine)
 - [x] T13: @playwright/test 1.60.0 -> 1.61.0 (dev) [+ e2e: 180 passed] (1.61.1 held back by quarantine)
-- [ ] T14: @sveltejs/kit 2.63.0 -> 2.66.0 (dev)
+- [x] T14: @sveltejs/kit 2.63.0 -> 2.66.0 (dev) [+ build OK] (2.68.0 held back by quarantine)
 - [ ] T15: lucide-static 1.17.0 -> 1.21.0
 - [ ] T16: simple-icons 16.22.0 -> 16.24.0
 - [ ] T17: @types/node 25.9.1 -> 26.0.0 (dev, MAJOR)
