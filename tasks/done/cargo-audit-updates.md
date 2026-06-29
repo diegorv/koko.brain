@@ -8,7 +8,7 @@ src-tauri/Cargo.toml`), commit only if green. Work happens directly on `main`.
 
 - [x] Task 1: Update `quinn-proto` to >=0.11.15 (RUSTSEC-2026-0185, high, remote memory exhaustion) via `cargo update -p quinn-proto`. Transitive via reqwest (tauri-plugin-http), semver-compatible 0.11.x bump.
 - [x] Task 2: Update `anyhow` to 1.0.103 (RUSTSEC-2026-0190, unsoundness in `Error::downcast_mut()`) via `cargo update -p anyhow`. Transitive via tauri, semver-compatible bump.
-- [ ] Task 3: Re-run `cargo audit`, confirm only the unfixable gtk-rs/glib warnings remain, move this file to tasks/done/
+- [x] Task 3: Re-run `cargo audit`, confirmed 0 vulnerabilities (no `error:`). 18 remaining warnings are all unfixable unmaintained/unsound notices in transitive deps (gtk-rs GTK3 via tauri/wry, paste, proc-macro-error, unic-*, glib unsound). Moved this file to tasks/done/.
 
 ## Notes
 
