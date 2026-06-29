@@ -25,7 +25,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 - [x] T9: tailwindcss 4.3.0 -> 4.3.1 (dev) (4.3.2 held back by quarantine)
 - [x] T10: vitest 4.1.8 -> 4.1.9 (dev)
 - [x] T11: @doist/todoist-sdk 10.3.0 -> 10.5.0 (form-data override still resolves 4.0.6)
-- [ ] T12: @lucide/svelte 1.17.0 -> 1.21.0 (dev)
+- [x] T12: @lucide/svelte 1.17.0 -> 1.21.0 (dev) (1.22.0 held back by quarantine)
 - [ ] T13: @playwright/test 1.60.0 -> 1.61.0 (dev) [+ e2e]
 - [ ] T14: @sveltejs/kit 2.63.0 -> 2.66.0 (dev)
 - [ ] T15: lucide-static 1.17.0 -> 1.21.0
