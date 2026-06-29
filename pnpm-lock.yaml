@@ -107,8 +107,8 @@ importers:
         specifier: ^2.10.1
         version: 2.10.1
       '@xyflow/svelte':
-        specifier: ^1.6.0
-        version: 1.6.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))
+        specifier: ^1.6.1
+        version: 1.6.1(svelte@5.56.1(@typescript-eslint/types@8.58.0))
       bits-ui:
         specifier: ^2.18.1
         version: 2.18.1(@internationalized/date@3.12.2)(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.1.2(svelte@5.56.1(@typescript-eslint/types@8.58.0))(vite@8.0.16(@types/node@25.9.1)(jiti@2.7.0)(yaml@2.9.0)))(svelte@5.56.1(@typescript-eslint/types@8.58.0))(typescript@6.0.3)(vite@8.0.16(@types/node@25.9.1)(jiti@2.7.0)(yaml@2.9.0)))(svelte@5.56.1(@typescript-eslint/types@8.58.0))
@@ -696,8 +696,8 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@svelte-put/shortcut@4.1.0':
-    resolution: {integrity: sha512-wImNEIkbxAIWFqlfuhcbC+jRPDeRa/uJGIXHMEVVD+jqL9xCwWNnkGQJ6Qb2XVszuRLHlb8SGZDL3Io/h3vs8w==}
+  '@svelte-put/shortcut@4.2.0':
+    resolution: {integrity: sha512-hqNLo4yEc++SLgAkZUvuwMxIAsii9qjQtTuzfcYVf3xRxa+0HFcfaWFK7LdU3l+15s9SYVNbPB0qQj9CHFqSuw==}
     peerDependencies:
       svelte: ^5.1.0
 
@@ -1111,13 +1111,13 @@ packages:
   '@vitest/utils@4.1.8':
     resolution: {integrity: sha512-uOJamYALNhfJ6iolExyQM40yIQwDqYnkKtQ5VCiSe17E33H0aQ/u+1GlRuz4LZBk6Mm3sg90G9hEbmEt37C1Zg==}
 
-  '@xyflow/svelte@1.6.0':
-    resolution: {integrity: sha512-msCT95OqTThh7gWhdFJ03Qzhc0Q8QYfA8K03M4I+KTtHdvatoTuRo9ofkFHJDbMfS243y+fOs5TCvU9T1kEUUA==}
+  '@xyflow/svelte@1.6.1':
+    resolution: {integrity: sha512-o84RpjWMAs5tXjYPj6PUjMccBgeF4TFA8DllBqMSbnhJD3ZxLhttp4NmdHZAIM1T5bK5NAzCat+M37uT/9+rTw==}
     peerDependencies:
       svelte: ^5.25.0
 
-  '@xyflow/system@0.0.77':
-    resolution: {integrity: sha512-qCDCMCQAAgUu8yHnhloHG9F5mwPX5E+Wl8McpYIOPSSXfzFJJoZcwOcsDiAjitVKIg2de1WmJbCHfpcvxprsgg==}
+  '@xyflow/system@0.0.78':
+    resolution: {integrity: sha512-lY0z2qP33fUhTva9Vaxrk0lqZta2pkbxB1trHAx1omnJqRtPvDlAQYV2r5fhS6AdpkulYmbNW0svy+A4/t4B/g==}
 
   acorn@8.16.0:
     resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
@@ -2760,7 +2760,7 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@svelte-put/shortcut@4.1.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))':
+  '@svelte-put/shortcut@4.2.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))':
     dependencies:
       svelte: 5.56.1(@typescript-eslint/types@8.58.0)
 
@@ -3162,13 +3162,13 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
-  '@xyflow/svelte@1.6.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))':
+  '@xyflow/svelte@1.6.1(svelte@5.56.1(@typescript-eslint/types@8.58.0))':
     dependencies:
-      '@svelte-put/shortcut': 4.1.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))
-      '@xyflow/system': 0.0.77
+      '@svelte-put/shortcut': 4.2.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))
+      '@xyflow/system': 0.0.78
       svelte: 5.56.1(@typescript-eslint/types@8.58.0)
 
-  '@xyflow/system@0.0.77':
+  '@xyflow/system@0.0.78':
     dependencies:
       '@types/d3-drag': 3.0.7
       '@types/d3-interpolate': 3.0.4
