@@ -28,6 +28,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 - [x] T12: @lucide/svelte 1.17.0 -> 1.21.0 (dev) (1.22.0 held back by quarantine)
 - [x] T13: @playwright/test 1.60.0 -> 1.61.0 (dev) [+ e2e: 180 passed] (1.61.1 held back by quarantine)
 - [x] T14: @sveltejs/kit 2.63.0 -> 2.66.0 (dev) [+ build OK] (2.68.0 held back by quarantine)
+- [x] T14b: @sveltejs/kit 2.66.0 -> 2.67.0 (dev) [+ build OK] (2.67.0 cleared quarantine during the session; 2.68.0 still held)
 - [x] T15: lucide-static 1.17.0 -> 1.21.0 (1.22.0 held back by quarantine)
 - [x] T16: simple-icons 16.22.0 -> 16.24.0 (16.24.1 held back by quarantine)
 - [x] T17: @types/node 25.9.1 -> 26.0.0 (dev, MAJOR) (26.0.1 held back by quarantine)
