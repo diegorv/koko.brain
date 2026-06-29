@@ -52,6 +52,11 @@ trustPolicyExclude:
 
 overrides:
   cookie: '>=0.7.0'
+  # esbuild reaches us only as vite's auto-installed peer
+  # (`^0.27.0 || ^0.28.0`); no package pins it below the patch, but a peer
+  # can't be bumped by `pnpm update`, so force the patched line.
+  # GHSA-g7r4-m6w7-qqqr (dev-server request smuggling). Patched: >=0.28.1.
+  esbuild: '>=0.28.1'
 
 # Dependencies allowed to run install/build scripts. pnpm 11 (see
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`
