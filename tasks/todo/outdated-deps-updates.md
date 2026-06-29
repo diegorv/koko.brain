@@ -34,7 +34,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 
 ## Rust (cargo) tasks
 
-- [ ] T18: sysinfo 0.39.3 -> 0.39.5
+- [x] T18: sysinfo 0.39.3 -> 0.39.5
 - [ ] T19: tauri 2.11.2 -> 2.11.3
 - [ ] T20: tauri-build 2.6.2 -> 2.6.3
 - [ ] T21: uuid 1.23.3 -> 1.23.4
