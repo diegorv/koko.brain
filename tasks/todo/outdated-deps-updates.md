@@ -16,7 +16,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 
 - [x] T1: @codemirror/search 6.7.0 -> 6.7.1
 - [x] T2: @codemirror/view 6.43.0 -> 6.43.1 (6.43.4 held back by quarantine)
-- [ ] T3: @tailwindcss/vite 4.3.0 -> 4.3.1 (dev)
+- [x] T3: @tailwindcss/vite 4.3.0 -> 4.3.1 (dev) (4.3.2 held back by quarantine)
 - [ ] T4: @tauri-apps/api 2.11.0 -> 2.11.1
 - [ ] T5: @tauri-apps/cli 2.11.2 -> 2.11.4 (dev)
 - [ ] T6: @xyflow/svelte 1.6.0 -> 1.6.1
