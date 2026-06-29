@@ -20,7 +20,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 - [x] T4: @tauri-apps/api 2.11.0 -> 2.11.1
 - [x] T5: @tauri-apps/cli 2.11.2 -> 2.11.4 (dev)
 - [x] T6: @xyflow/svelte 1.6.0 -> 1.6.1
-- [ ] T7: semver 7.8.2 -> 7.8.5 (dev)
+- [x] T7: semver 7.8.2 -> 7.8.5 (dev)
 - [ ] T8: svelte 5.56.1 -> 5.56.3 (dev)
 - [ ] T9: tailwindcss 4.3.0 -> 4.3.1 (dev)
 - [ ] T10: vitest 4.1.8 -> 4.1.9 (dev)
