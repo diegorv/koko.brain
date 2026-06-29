@@ -61,6 +61,11 @@ overrides:
   # so `pnpm update` can't reach it. GHSA-hmw2-7cc7-3qxx (CRLF injection
   # via unescaped multipart field/file names). Patched: >=4.0.6.
   form-data: '>=4.0.6'
+  # @doist/todoist-sdk@10.5.0 pins undici to an exact 7.24.8, which
+  # reintroduces the undici advisories (GHSA-vmh5-mc38-953g and others)
+  # and breaks the dedup with jsdom's 7.28.0. Force the patched line.
+  # Patched: >=7.28.0.
+  undici: '>=7.28.0'
 
 # Dependencies allowed to run install/build scripts. pnpm 11 (see
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`

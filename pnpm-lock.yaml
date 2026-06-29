@@ -8,6 +8,7 @@ overrides:
   cookie: '>=0.7.0'
   esbuild: '>=0.28.1'
   form-data: '>=4.0.6'
+  undici: '>=7.28.0'
 
 importers:
 
@@ -1991,10 +1992,6 @@ packages:
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
 
-  undici@7.24.8:
-    resolution: {integrity: sha512-6KQ/+QxK49Z/p3HO6E5ZCZWNnCasyZLa5ExaVYyvPxUwKtbCPMKELJOqh7EqOle0t9cH/7d2TaaTRRa6Nhs4YQ==}
-    engines: {node: '>=20.18.1'}
-
   undici@7.28.0:
     resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
@@ -2478,7 +2475,7 @@ snapshots:
       form-data: 4.0.6
       ts-custom-error: 3.3.1
       type-fest: 4.41.0
-      undici: 7.24.8
+      undici: 7.28.0
       uuid: 11.1.1
       zod: 4.3.6
 
@@ -4033,8 +4030,6 @@ snapshots:
   typescript@6.0.3: {}
 
   undici-types@8.3.0: {}
-
-  undici@7.24.8: {}
 
   undici@7.28.0: {}
 
