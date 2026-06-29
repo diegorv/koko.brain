@@ -158,8 +158,8 @@ importers:
         specifier: ^11.15.0
         version: 11.15.0
       simple-icons:
-        specifier: ^16.22.0
-        version: 16.22.0
+        specifier: ^16.24.0
+        version: 16.24.0
       svelte-sonner:
         specifier: ^1.1.1
         version: 1.1.1(svelte@5.56.1(@typescript-eslint/types@8.58.0))
@@ -1852,8 +1852,8 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  simple-icons@16.22.0:
-    resolution: {integrity: sha512-/raPcEWh89R2O2IMmHum6W2dF99NNX3yWikVXKUalkDIWz3Rw/S2S+oDPTgJcIGsRh+25m0y8vj4aBaV/KPz3Q==}
+  simple-icons@16.24.0:
+    resolution: {integrity: sha512-lAPW1rqgwPQ4tdIY15TtcKSgSelvJexz8q/B+a7Igg1dJoXR0LPjScLkLMI8UbLSkS41/fLVZWIhsH7HPUwAgQ==}
     engines: {node: '>=0.12.18'}
 
   sirv@3.0.2:
@@ -3902,7 +3902,7 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  simple-icons@16.22.0: {}
+  simple-icons@16.24.0: {}
 
   sirv@3.0.2:
     dependencies:
