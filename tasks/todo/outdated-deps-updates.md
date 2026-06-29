@@ -15,7 +15,7 @@ very latest version. If so, resolve to the newest allowed version and note it.
 ## Frontend (pnpm) tasks
 
 - [x] T1: @codemirror/search 6.7.0 -> 6.7.1
-- [ ] T2: @codemirror/view 6.43.0 -> 6.43.1
+- [x] T2: @codemirror/view 6.43.0 -> 6.43.1 (6.43.4 held back by quarantine)
 - [ ] T3: @tailwindcss/vite 4.3.0 -> 4.3.1 (dev)
 - [ ] T4: @tauri-apps/api 2.11.0 -> 2.11.1
 - [ ] T5: @tauri-apps/cli 2.11.2 -> 2.11.4 (dev)
