@@ -160,7 +160,7 @@ jobs:
         # publishing a malicious "v0.6.x" could exfiltrate every secret
         # in the env block below. Dependabot still bumps this entry
         # because of the trailing `# v0.6.2` tag comment.
-        uses: tauri-apps/tauri-action@1ddc7b49b13c3038297360482fcb3e058764d7c9 # v0.6.2
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: "--max-old-space-size=4096"
