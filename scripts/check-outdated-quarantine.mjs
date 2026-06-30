@@ -164,7 +164,7 @@ async function main() {
 	}
 
 	if (heldRows.length) {
-		console.log('Held in quarantine (no installable upgrade yet):');
+		console.log('No upgrade available yet (current is the newest out of quarantine; newer releases still held):');
 		for (const r of heldRows.sort((a, b) => a.name.localeCompare(b.name))) {
 			const list = r.held.map((h) => `${h.version} (${fmtDate(h.clearsAt)})`).join(', ');
 			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, wCur)}  ${list}`);
@@ -178,9 +178,13 @@ async function main() {
 		console.log('');
 	}
 
+	const heldVersions = rows.reduce((n, r) => n + (r.held ? r.held.length : 0), 0);
+	const pkgsWithHeld = rows.filter((r) => r.held && r.held.length).length;
+	const errorNote = errorRows.length ? ` ${errorRows.length} errored.` : '';
 	console.log(
-		`Summary: ${installableRows.length} installable now, ${heldRows.length} held in quarantine, ` +
-			`${errorRows.length} errored, of ${names.length} outdated.`,
+		`Summary of ${names.length} outdated: ${installableRows.length} can upgrade now, ` +
+			`${heldRows.length} fully blocked (newest release still in quarantine).${errorNote} ` +
+			`${heldVersions} newer version(s) still in quarantine across ${pkgsWithHeld} package(s).`,
 	);
 }
 
