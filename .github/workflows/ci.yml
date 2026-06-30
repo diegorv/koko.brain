@@ -50,7 +50,7 @@ jobs:
       frontend: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.frontend }}
       rust: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.rust }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       # Pinned by commit SHA, not tag, so a compromised maintainer
       # account can't move the version tag to malicious code and have
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup environment
         uses: ./.github/actions/setup
@@ -142,7 +142,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       # Tauri 2 pulls in `glib-sys`, `gtk-sys`, `webkit2gtk-sys`, etc. via
       # the `tauri` crate's Linux backend. Even `cargo test` (which never
@@ -202,7 +202,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup environment
         uses: ./.github/actions/setup
