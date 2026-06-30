@@ -118,12 +118,13 @@ async function main() {
 			const cleared = isExcluded ? newer : newer.filter(([, t]) => new Date(t).getTime() <= cutoff);
 			const installable = cleared.length ? highest(cleared) : null;
 
-			// If the absolute latest is newer than what we can install, it's still quarantined.
-			let quarantined = null;
-			if (!installable || semver.gt(latest, installable)) {
-				const publishedAt = new Date(times[latest]).getTime();
-				quarantined = { version: latest, clearsAt: new Date(publishedAt + ageMinutes * 60 * 1000) };
-			}
+			// Every version newer than what we can install today that is still
+			// inside the quarantine window, each with the moment it clears. There
+			// can be more than one (e.g. 6.43.3 and 6.43.4 both held above 6.43.2).
+			const held = newer
+				.filter(([v, t]) => (!installable || semver.gt(v, installable)) && new Date(t).getTime() > cutoff)
+				.sort(([a], [b]) => semver.compare(a, b))
+				.map(([v, t]) => ({ version: v, clearsAt: new Date(new Date(t).getTime() + ageMinutes * 60 * 1000) }));
 
 			return {
 				name,
@@ -133,14 +134,14 @@ async function main() {
 				isExcluded,
 				deprecated: info.isDeprecated === true,
 				type: info.dependencyType,
-				quarantined,
+				held,
 			};
 		}),
 	);
 
 	// Render.
 	const installableRows = rows.filter((r) => r.installable);
-	const heldRows = rows.filter((r) => !r.installable && r.quarantined);
+	const heldRows = rows.filter((r) => !r.installable && r.held && r.held.length);
 	const errorRows = rows.filter((r) => r.error);
 
 	const pad = (s, n) => String(s).padEnd(n);
@@ -154,7 +155,9 @@ async function main() {
 			const notes = [];
 			if (r.isExcluded) notes.push('exclude bypass');
 			if (r.deprecated) notes.push('DEPRECATED');
-			if (r.quarantined) notes.push(`${r.quarantined.version} held until ${fmtDate(r.quarantined.clearsAt)}`);
+			if (r.held.length) {
+				notes.push(`held: ${r.held.map((h) => `${h.version} (${fmtDate(h.clearsAt)})`).join(', ')}`);
+			}
 			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, wCur)}  -> ${pad(r.installable, 12)}  ${notes.join('; ')}`);
 		}
 		console.log('');
@@ -163,7 +166,8 @@ async function main() {
 	if (heldRows.length) {
 		console.log('Held in quarantine (no installable upgrade yet):');
 		for (const r of heldRows.sort((a, b) => a.name.localeCompare(b.name))) {
-			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, wCur)}  latest ${r.quarantined.version} clears ${fmtDate(r.quarantined.clearsAt)}`);
+			const list = r.held.map((h) => `${h.version} (${fmtDate(h.clearsAt)})`).join(', ');
+			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, wCur)}  ${list}`);
 		}
 		console.log('');
 	}
