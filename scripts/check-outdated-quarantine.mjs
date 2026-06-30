@@ -70,6 +70,11 @@ function highest(pairs) {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/** Compact UTC date, e.g. "Jun 14". */
+function shortDate(d) {
+	return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
 /** Human-friendly "when does this unlock", e.g. "Jun 30, 18:48 UTC (in 3h)". */
 function unlockStr(d, now) {
 	const mins = Math.round((d.getTime() - now) / 60000);
@@ -125,6 +130,11 @@ async function main() {
 			// Versions that have cleared quarantine (or all of them, if excluded).
 			const cleared = isExcluded ? newer : newer.filter(([, t]) => new Date(t).getTime() <= cutoff);
 			const installable = cleared.length ? highest(cleared) : null;
+			// When the installable version itself left quarantine (publish + window).
+			const installableTime = installable ? cleared.find(([v]) => v === installable)[1] : null;
+			const installableClearedAt = installableTime
+				? new Date(new Date(installableTime).getTime() + ageMinutes * 60 * 1000)
+				: null;
 
 			// Every version newer than what we can install today that is still
 			// inside the quarantine window, each with the moment it clears. There
@@ -138,6 +148,7 @@ async function main() {
 				name,
 				current,
 				installable,
+				installableClearedAt,
 				latest,
 				isExcluded,
 				deprecated: info.isDeprecated === true,
@@ -164,8 +175,11 @@ async function main() {
 			const tags = [];
 			if (r.isExcluded) tags.push('day-0 ok');
 			if (r.deprecated) tags.push('DEPRECATED');
-			const tag = tags.length ? `   [${tags.join(', ')}]` : '';
-			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}${tag}`.trimEnd());
+			const tag = tags.length ? `  [${tags.join(', ')}]` : '';
+			// Show when the installable version left quarantine (not meaningful
+			// for exclude-bypassed packages, which never waited).
+			const since = r.isExcluded ? '' : `  (since ${shortDate(r.installableClearedAt)})`;
+			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}${since}${tag}`.trimEnd());
 		}
 	} else {
 		console.log('UPDATE NOW: nothing — every newer release is still in quarantine.');
