@@ -47,7 +47,7 @@ runs:
     # installs — v6 supports pnpm v11 internally but happily installs
     # v10 when packageManager pins it.
     - name: Setup pnpm
-      uses: pnpm/action-setup@ab5d408e9d066b8ffe7503f789d50fd7e35c0c92 # v6.0.7
+      uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
     - name: Setup Node.js
       uses: actions/setup-node@v6
