@@ -68,9 +68,19 @@ function highest(pairs) {
 	return best;
 }
 
-function fmtDate(d) {
-	// e.g. 2026-06-23 18:48 UTC
-	return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Human-friendly "when does this unlock", e.g. "Jun 30, 18:48 UTC (in 3h)". */
+function unlockStr(d, now) {
+	const mins = Math.round((d.getTime() - now) / 60000);
+	let rel;
+	if (mins <= 0) rel = 'now';
+	else if (mins < 60) rel = `in ${mins}m`;
+	else if (mins < 60 * 36) rel = `in ${Math.round(mins / 60)}h`;
+	else rel = `in ${Math.round(mins / 1440)}d`;
+	const hh = String(d.getUTCHours()).padStart(2, '0');
+	const mm = String(d.getUTCMinutes()).padStart(2, '0');
+	return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${hh}:${mm} UTC (${rel})`;
 }
 
 async function main() {
@@ -81,16 +91,14 @@ async function main() {
 	const outdated = JSON.parse((await run('pnpm', ['outdated', '--format', 'json'])).trim() || '{}');
 	const names = Object.keys(outdated);
 
-	console.log(
-		`Quarantine policy: minimumReleaseAge=${ageMinutes} min (${(ageMinutes / 1440).toFixed(1)} days)` +
-			`${excludes.length ? `, ${excludes.length} exclude pattern(s)` : ''}`,
-	);
-	console.log(`Cutoff: versions published on/before ${fmtDate(new Date(cutoff))} are installable.\n`);
+	const days = Math.round(ageMinutes / 1440);
+	console.log(`Quarantine: a release must be ${days}+ days old before pnpm will install it.`);
 
 	if (names.length === 0) {
-		console.log('Everything is up to date. Nothing to check.');
+		console.log('\nEverything is up to date.');
 		return;
 	}
+	console.log(`Checked ${names.length} outdated ${names.length === 1 ? 'dependency' : 'dependencies'}.\n`);
 
 	// Fetch publish times for every outdated package in parallel.
 	const rows = await Promise.all(
@@ -139,53 +147,44 @@ async function main() {
 		}),
 	);
 
-	// Render.
-	const installableRows = rows.filter((r) => r.installable);
-	const heldRows = rows.filter((r) => !r.installable && r.held && r.held.length);
+	// Render. Two plain sections: what you can bump today, and what is still
+	// waiting out the quarantine window (soonest-to-unlock first).
+	const upgradable = rows.filter((r) => r.installable).sort((a, b) => a.name.localeCompare(b.name));
 	const errorRows = rows.filter((r) => r.error);
+	const locked = rows
+		.flatMap((r) => (r.held || []).map((h) => ({ name: r.name, ...h })))
+		.sort((a, b) => a.clearsAt - b.clearsAt);
 
-	const pad = (s, n) => String(s).padEnd(n);
 	const wName = Math.max(7, ...rows.map((r) => r.name.length));
-	const wCur = Math.max(7, ...rows.map((r) => String(r.current).length));
+	const pad = (s, n) => String(s).padEnd(n);
 
-	if (installableRows.length) {
-		console.log('Installable now (out of quarantine):');
-		console.log(`  ${pad('Package', wName)}  ${pad('Current', wCur)}  -> Installable   Notes`);
-		for (const r of installableRows.sort((a, b) => a.name.localeCompare(b.name))) {
-			const notes = [];
-			if (r.isExcluded) notes.push('exclude bypass');
-			if (r.deprecated) notes.push('DEPRECATED');
-			if (r.held.length) {
-				notes.push(`held: ${r.held.map((h) => `${h.version} (${fmtDate(h.clearsAt)})`).join(', ')}`);
-			}
-			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, wCur)}  -> ${pad(r.installable, 12)}  ${notes.join('; ')}`);
+	if (upgradable.length) {
+		console.log(`UPDATE NOW (${upgradable.length}):`);
+		for (const r of upgradable) {
+			const tags = [];
+			if (r.isExcluded) tags.push('day-0 ok');
+			if (r.deprecated) tags.push('DEPRECATED');
+			const tag = tags.length ? `   [${tags.join(', ')}]` : '';
+			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}${tag}`.trimEnd());
 		}
-		console.log('');
+	} else {
+		console.log('UPDATE NOW: nothing — every newer release is still in quarantine.');
 	}
+	console.log('');
 
-	if (heldRows.length) {
-		console.log('No upgrade available yet (current is the newest out of quarantine; newer releases still held):');
-		for (const r of heldRows.sort((a, b) => a.name.localeCompare(b.name))) {
-			const list = r.held.map((h) => `${h.version} (${fmtDate(h.clearsAt)})`).join(', ');
-			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, wCur)}  ${list}`);
+	if (locked.length) {
+		console.log(`STILL LOCKED (${locked.length}, soonest first):`);
+		for (const l of locked) {
+			console.log(`  ${pad(l.name, wName)}  ${pad(l.version, 8)}  unlocks ${unlockStr(l.clearsAt, now)}`);
 		}
 		console.log('');
 	}
 
 	if (errorRows.length) {
-		console.log('Could not check (registry error):');
+		console.log('COULD NOT CHECK (registry error):');
 		for (const r of errorRows) console.log(`  ${r.name}: ${r.error}`);
 		console.log('');
 	}
-
-	const heldVersions = rows.reduce((n, r) => n + (r.held ? r.held.length : 0), 0);
-	const pkgsWithHeld = rows.filter((r) => r.held && r.held.length).length;
-	const errorNote = errorRows.length ? ` ${errorRows.length} errored.` : '';
-	console.log(
-		`Summary of ${names.length} outdated: ${installableRows.length} can upgrade now, ` +
-			`${heldRows.length} fully blocked (newest release still in quarantine).${errorNote} ` +
-			`${heldVersions} newer version(s) still in quarantine across ${pkgsWithHeld} package(s).`,
-	);
 }
 
 main().catch((err) => {
