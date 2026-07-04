@@ -174,4 +174,16 @@ mod tests {
 		let (_init, resp) = tokio::join!(handshake_initiator(a, &psk_a), handshake_responder(b, &psk_b));
 		assert!(resp.is_err());
 	}
+
+	#[tokio::test]
+	async fn oversized_message_is_rejected_before_send() {
+		let psk = parse_pairing_key(&generate_pairing_key().unwrap()).unwrap();
+		let (a, b) = tokio::io::duplex(65_536);
+		let (init, resp) = tokio::join!(handshake_initiator(a, &psk), handshake_responder(b, &psk));
+		let mut init = init.unwrap();
+		let _resp = resp.unwrap();
+		let big = Msg::FileChunk { data: vec![0u8; MAX_PLAINTEXT_LEN + 1] };
+		let err = init.send(&big).await.unwrap_err();
+		assert!(err.contains("too large"), "got: {err}");
+	}
 }
