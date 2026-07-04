@@ -7,3 +7,4 @@
 pub mod protocol;
 pub mod noise;
 pub mod state;
+pub mod manifest;
