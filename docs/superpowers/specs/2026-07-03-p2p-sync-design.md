@@ -68,6 +68,7 @@ All messages after the handshake are encrypted. Paths on the wire are **vault-re
 ```
 
 - `protocol_version` mismatch (major) → both sides close with a clear error.
+- A sync session only pulls folders in the intersection of the local subscriptions and the peer's current `Shares` list. A subscription whose folder is no longer exposed is skipped and reported in the summary; it is not deleted locally.
 - Manifests cover every file under the exposed folder, any type (markdown, images, attachments), excluding dot-directories.
 - Hashing is SHA-256 (`sha2` is already a dependency).
 
@@ -79,7 +80,7 @@ Pure function in Rust, unit-tested exhaustively. Persisted state per (peer, rel_
 |---|---|---|
 | 1 | No local file | Download. `synced = seen_remote = remote`. |
 | 2 | `local == remote` | Update state only. |
-| 3 | `local == synced` and `remote != synced` (only remote changed) | Download remote. |
+| 3 | `local == synced` and `remote != synced` (only remote changed) | Download remote. `synced = seen_remote = remote`. |
 | 4 | `local != synced` and `remote == synced` (only local changed) | Keep local. Peer receives it when it pulls. |
 | 5 | Both changed (`local != synced`, `remote != synced`) | **Local wins.** Write the remote version as a conflict copy — only if `remote != seen_remote`, so repeated syncs do not duplicate the copy. Then `seen_remote = remote`. |
 
