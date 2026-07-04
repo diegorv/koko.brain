@@ -5,3 +5,4 @@
 //! docs/superpowers/specs/2026-07-03-p2p-sync-design.md.
 
 pub mod protocol;
+pub mod noise;
