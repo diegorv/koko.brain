@@ -138,6 +138,38 @@ mod tests {
 		assert!(files.is_empty());
 	}
 
+	#[cfg(unix)]
+	#[test]
+	fn build_manifest_skips_symlinked_directories() {
+		let dir = tempfile::tempdir().unwrap();
+		let root = dir.path();
+		std::fs::create_dir_all(root.join("Notes")).unwrap();
+		std::fs::create_dir_all(root.join("outside")).unwrap();
+		std::fs::write(root.join("outside/secret.md"), "secret").unwrap();
+		std::os::unix::fs::symlink(root.join("outside"), root.join("Notes/linkdir")).unwrap();
+		let files = build_manifest(root, "Notes").unwrap();
+		assert!(files.is_empty());
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn build_manifest_skips_non_utf8_names() {
+		use std::ffi::OsStr;
+		use std::os::unix::ffi::OsStrExt;
+		let dir = tempfile::tempdir().unwrap();
+		let root = dir.path();
+		std::fs::create_dir_all(root.join("Notes")).unwrap();
+		std::fs::write(root.join("Notes/ok.md"), "ok").unwrap();
+		let bad = root.join("Notes").join(OsStr::from_bytes(b"bad\xFF.md"));
+		// APFS (macOS) refuses to create non-UTF-8 names; the skip path is
+		// only reachable on filesystems that allow them (e.g. ext4 on CI).
+		if std::fs::write(&bad, "x").is_ok() {
+			let files = build_manifest(root, "Notes").unwrap();
+			assert_eq!(files.len(), 1);
+			assert_eq!(files[0].rel_path, "Notes/ok.md");
+		}
+	}
+
 	#[test]
 	fn build_manifest_missing_folder_errors() {
 		let dir = tempfile::tempdir().unwrap();
