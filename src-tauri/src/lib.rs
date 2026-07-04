@@ -4,6 +4,7 @@ pub mod error_monitoring;
 pub mod quick_capture;
 pub mod search;
 pub mod semantic;
+pub mod sync;
 pub mod utils;
 pub mod vault;
 
