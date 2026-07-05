@@ -284,6 +284,24 @@ export interface KeybindingsSettings {
 	cycleSidebarView: KeybindingConfig;
 }
 
+/** Peer-to-peer vault sync configuration. */
+export interface SyncSettings {
+	/** Listen for incoming peer connections while the app is running */
+	exposeEnabled: boolean;
+	/** TCP port for the listener; 0 picks a random port on next start (then persisted) */
+	listenPort: number;
+	/** Name this machine reports to the peer */
+	deviceName: string;
+	/** Shared pairing key (64 hex chars) — same value on both machines */
+	pairingKey: string;
+	/** Peer address as ip:port */
+	peerAddress: string;
+	/** Vault-relative folders exposed to the peer */
+	exposedFolders: string[];
+	/** Vault-relative folders subscribed from the peer */
+	subscriptions: string[];
+}
+
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
@@ -340,4 +358,6 @@ export interface AppSettings {
 	typesBaseFolder: string;
 	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
 	dockBadgeInboxCount: boolean;
+	/** Peer-to-peer vault sync configuration */
+	sync: SyncSettings;
 }

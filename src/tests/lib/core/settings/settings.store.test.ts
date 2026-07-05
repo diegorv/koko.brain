@@ -310,6 +310,28 @@ describe('settingsStore', () => {
 
 	});
 
+	describe('sync settings', () => {
+		it('defaults to disabled with empty config', () => {
+			expect(settingsStore.sync).toEqual({
+				exposeEnabled: false,
+				listenPort: 0,
+				deviceName: '',
+				pairingKey: '',
+				peerAddress: '',
+				exposedFolders: [],
+				subscriptions: [],
+			});
+		});
+
+		it('updateSync merges partial values and preserves the rest', () => {
+			settingsStore.updateSync({ peerAddress: '192.168.0.10:38712' });
+			settingsStore.updateSync({ exposedFolders: ['Notes'] });
+			expect(settingsStore.sync.peerAddress).toBe('192.168.0.10:38712');
+			expect(settingsStore.sync.exposedFolders).toEqual(['Notes']);
+			expect(settingsStore.sync.exposeEnabled).toBe(false);
+		});
+	});
+
 	describe('reset', () => {
 		it('restores all settings to defaults', () => {
 			settingsStore.updateLayout({ rightSidebarVisible: true });

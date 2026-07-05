@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings, SyncSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -125,6 +125,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	showUntypedNotes: false,
 	typesBaseFolder: '',
 	dockBadgeInboxCount: true,
+	sync: {
+		exposeEnabled: false,
+		listenPort: 0,
+		deviceName: '',
+		pairingKey: '',
+		peerAddress: '',
+		exposedFolders: [],
+		subscriptions: [],
+	},
 };
 
 let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
@@ -159,6 +168,7 @@ export const settingsStore = {
 	get showUntypedNotes() { return settings.showUntypedNotes; },
 	get typesBaseFolder() { return settings.typesBaseFolder; },
 	get dockBadgeInboxCount() { return settings.dockBadgeInboxCount; },
+	get sync() { return settings.sync; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -288,6 +298,11 @@ export const settingsStore = {
 			...settings,
 			todoist: { ...settings.todoist, ...value },
 		};
+	},
+
+	/** Merge partial sync settings (P2P vault sync). */
+	updateSync(value: Partial<SyncSettings>) {
+		settings = { ...settings, sync: { ...settings.sync, ...value } };
 	},
 
 	/** Updates the debug mode flag */
