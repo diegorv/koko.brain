@@ -120,10 +120,10 @@ pub async fn run_sync(
 			summary.skipped_folders.push(folder.clone());
 			continue;
 		}
-		if let Err(e) =
-			sync_folder(&mut chan, &vault_root, folder, &peer_name, &today, peer_state, &mut summary).await
-		{
-			summary.errors.push(format!("{folder}: {e}"));
+		if !sync_folder(&mut chan, &vault_root, folder, &peer_name, &today, peer_state, &mut summary).await {
+			// The channel is desynchronized; stop rather than risk
+			// misattributing a stale reply to a later request.
+			break;
 		}
 	}
 	let _ = chan.send(&Msg::Bye).await;
@@ -141,6 +141,10 @@ pub async fn run_sync(
 	Ok(summary)
 }
 
+/// Drive one folder's manifest + file pulls. Returns `true` when the Noise
+/// channel is still usable and the session should continue to the next
+/// folder, `false` when it must stop (the channel is desynchronized and a
+/// stale reply could be misattributed to a later request).
 async fn sync_folder(
 	chan: &mut NoiseChannel<TcpStream>,
 	vault_root: &Path,
@@ -149,28 +153,45 @@ async fn sync_folder(
 	today: &str,
 	peer_state: &mut HashMap<String, FileSyncState>,
 	summary: &mut SyncSummary,
-) -> Result<(), String> {
-	chan.send(&Msg::GetManifest { folder: folder.to_string() }).await?;
+) -> bool {
+	if let Err(e) = chan.send(&Msg::GetManifest { folder: folder.to_string() }).await {
+		summary.errors.push(format!("{folder}: {e}"));
+		return false;
+	}
 	let mut remote_files: Vec<FileMeta> = Vec::new();
 	loop {
-		match recv(chan).await? {
-			Msg::ManifestPage { files, done } => {
+		match recv(chan).await {
+			Ok(Msg::ManifestPage { files, done }) => {
 				remote_files.extend(files);
 				if done {
 					break;
 				}
 			}
-			Msg::Error { message } => return Err(message),
-			other => return Err(format!("unexpected reply to GetManifest: {other:?}")),
+			Ok(Msg::Error { message }) => {
+				// Peer refused this folder cleanly; the channel is aligned.
+				summary.errors.push(format!("{folder}: {message}"));
+				return true;
+			}
+			Ok(other) => {
+				summary.errors.push(format!("{folder}: unexpected reply to GetManifest: {other:?}"));
+				return false;
+			}
+			Err(e) => {
+				summary.errors.push(format!("{folder}: {e}"));
+				return false;
+			}
 		}
 	}
 
 	// Local hashes for the same folder; empty when it doesn't exist yet.
 	let local: HashMap<String, String> = if vault_root.join(folder).is_dir() {
-		build_manifest(vault_root, folder)?
-			.into_iter()
-			.map(|f| (f.rel_path, f.sha256))
-			.collect()
+		match build_manifest(vault_root, folder) {
+			Ok(files) => files.into_iter().map(|f| (f.rel_path, f.sha256)).collect(),
+			Err(e) => {
+				summary.errors.push(format!("{folder}: {e}"));
+				return true;
+			}
+		}
 	} else {
 		HashMap::new()
 	};
@@ -194,7 +215,13 @@ async fn sync_folder(
 					);
 					summary.downloaded += 1;
 				}
-				Err(e) => summary.errors.push(format!("{}: {e}", meta.rel_path)),
+				Err(DownloadError::Recoverable(e)) => {
+					summary.errors.push(format!("{}: {e}", meta.rel_path));
+				}
+				Err(DownloadError::Fatal(e)) => {
+					summary.errors.push(format!("{}: {e}", meta.rel_path));
+					return false;
+				}
 			},
 			Action::UpToDate => {
 				peer_state.insert(
@@ -214,17 +241,41 @@ async fn sync_folder(
 				if write_copy {
 					let copy_rel = conflict_copy_rel_path(&meta.rel_path, peer_name, today);
 					match download_file(chan, vault_root, &meta.rel_path, &copy_rel).await {
-						Ok(_) => summary.conflicts += 1,
-						Err(e) => summary.errors.push(format!("{}: {e}", meta.rel_path)),
+						Ok(_) => {
+							summary.conflicts += 1;
+							// Only mark the remote hash seen once the copy
+							// actually materialized; otherwise a failed
+							// attempt would permanently suppress the retry.
+							peer_state.entry(meta.rel_path.clone()).or_default().seen_remote =
+								Some(meta.sha256.clone());
+						}
+						Err(DownloadError::Recoverable(e)) => {
+							summary.errors.push(format!("{}: {e}", meta.rel_path));
+						}
+						Err(DownloadError::Fatal(e)) => {
+							summary.errors.push(format!("{}: {e}", meta.rel_path));
+							return false;
+						}
 					}
 				} else {
 					summary.skipped += 1;
+					peer_state.entry(meta.rel_path.clone()).or_default().seen_remote = Some(meta.sha256.clone());
 				}
-				peer_state.entry(meta.rel_path.clone()).or_default().seen_remote = Some(meta.sha256.clone());
 			}
 		}
 	}
-	Ok(())
+	true
+}
+
+/// A transfer failure classified by whether the Noise channel is still usable.
+enum DownloadError {
+	/// A complete reply was consumed (or a local write failed): the channel is
+	/// still aligned, so the session may continue with the next file.
+	Recoverable(String),
+	/// The channel state is unknown after a partial read, timeout, or
+	/// unexpected message: the session must abort so a stale reply cannot be
+	/// misattributed to a later request.
+	Fatal(String),
 }
 
 /// Request `src_rel` from the peer and write it to `dest_rel` (same path for
@@ -236,26 +287,26 @@ async fn download_file(
 	vault_root: &Path,
 	src_rel: &str,
 	dest_rel: &str,
-) -> Result<String, String> {
-	chan.send(&Msg::GetFile { rel_path: src_rel.to_string() }).await?;
+) -> Result<String, DownloadError> {
+	chan.send(&Msg::GetFile { rel_path: src_rel.to_string() }).await.map_err(DownloadError::Fatal)?;
 	let mut bytes: Vec<u8> = Vec::new();
 	loop {
-		match recv(chan).await? {
+		match recv(chan).await.map_err(DownloadError::Fatal)? {
 			Msg::FileChunk { data } => {
 				if bytes.len() + data.len() > MAX_FILE_LEN {
-					return Err("file exceeds size limit".to_string());
+					return Err(DownloadError::Fatal("file exceeds size limit".to_string()));
 				}
 				bytes.extend_from_slice(&data);
 			}
 			Msg::FileEnd { sha256 } => {
 				if hash_bytes(&bytes) != sha256 {
-					return Err("hash mismatch after transfer".to_string());
+					return Err(DownloadError::Recoverable("hash mismatch after transfer".to_string()));
 				}
-				write_atomic(vault_root, dest_rel, &bytes)?;
+				write_atomic(vault_root, dest_rel, &bytes).map_err(DownloadError::Recoverable)?;
 				return Ok(sha256);
 			}
-			Msg::Error { message } => return Err(message),
-			other => return Err(format!("unexpected reply to GetFile: {other:?}")),
+			Msg::Error { message } => return Err(DownloadError::Recoverable(message)),
+			other => return Err(DownloadError::Fatal(format!("unexpected reply to GetFile: {other:?}"))),
 		}
 	}
 }

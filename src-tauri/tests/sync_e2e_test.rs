@@ -196,6 +196,83 @@ async fn corrupted_transfer_writes_nothing() {
 }
 
 #[tokio::test]
+async fn malicious_manifest_path_is_rejected_and_session_survives() {
+	use kokobrain_lib::sync::noise::handshake_responder;
+	use kokobrain_lib::sync::protocol::{FileMeta, Msg, PROTOCOL_VERSION};
+	use tokio::net::TcpListener;
+
+	let key = generate_pairing_key().unwrap();
+	let psk = parse_pairing_key(&key).unwrap();
+	let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+	let port = listener.local_addr().unwrap().port();
+
+	// Fake peer that advertises a manifest containing both a normal file and
+	// a path-traversal entry, serves the normal file, and replies with a
+	// clean per-file Msg::Error for anything else. The engine must reject
+	// the traversal path before ever requesting it, and the recoverable
+	// Msg::Error reply must not abort the session.
+	tokio::spawn(async move {
+		let (stream, _) = listener.accept().await.unwrap();
+		let mut chan = handshake_responder(stream, &psk).await.unwrap();
+		assert!(matches!(chan.recv().await.unwrap(), Msg::Hello { .. }));
+		chan.send(&Msg::HelloAck { device_name: "Evil".into(), protocol_version: PROTOCOL_VERSION })
+			.await
+			.unwrap();
+		assert!(matches!(chan.recv().await.unwrap(), Msg::ListShares));
+		chan.send(&Msg::Shares { folders: vec!["Notes".into()] }).await.unwrap();
+		assert!(matches!(chan.recv().await.unwrap(), Msg::GetManifest { .. }));
+		chan.send(&Msg::ManifestPage {
+			files: vec![
+				FileMeta { rel_path: "Notes/a.md".into(), size: 5, sha256: "unused".into() },
+				FileMeta { rel_path: "Notes/../evil.md".into(), size: 4, sha256: "unused".into() },
+			],
+			done: true,
+		})
+		.await
+		.unwrap();
+		loop {
+			match chan.recv().await {
+				Ok(Msg::GetFile { rel_path }) if rel_path == "Notes/a.md" => {
+					chan.send(&Msg::FileChunk { data: b"alpha".to_vec() }).await.unwrap();
+					let sha256 = kokobrain_lib::sync::manifest::hash_bytes(b"alpha");
+					chan.send(&Msg::FileEnd { sha256 }).await.unwrap();
+				}
+				Ok(Msg::GetFile { .. }) => {
+					chan.send(&Msg::Error { message: "no such file".into() }).await.unwrap();
+				}
+				_ => break,
+			}
+		}
+	});
+
+	let vault = tempfile::tempdir().unwrap();
+	let target = PeerTarget {
+		address: format!("127.0.0.1:{port}"),
+		pairing_key: key,
+		local_device_name: "Laptop".to_string(),
+	};
+	let s = run_sync(vault.path().to_str().unwrap(), &target, &["Notes".to_string()]).await.unwrap();
+
+	assert_eq!(s.downloaded, 1);
+	assert_eq!(read(&vault, "Notes/a.md").as_deref(), Some("alpha"));
+	assert!(
+		s.errors.iter().any(|e| e.contains("rejected remote path") && e.contains("Notes/../evil.md")),
+		"got: {:?}",
+		s.errors
+	);
+	// The traversal entry must never reach a GetFile request, so nothing is
+	// written for it anywhere: neither at the resolved escape target...
+	assert!(!vault.path().join("evil.md").exists());
+	// ...nor inside the exposed folder itself. "Notes/" must contain only the
+	// legitimately downloaded file.
+	let notes_entries: Vec<String> = std::fs::read_dir(vault.path().join("Notes"))
+		.unwrap()
+		.map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+		.collect();
+	assert_eq!(notes_entries, vec!["a.md".to_string()]);
+}
+
+#[tokio::test]
 async fn wrong_pairing_key_fails_with_handshake_error() {
 	let pair = setup(vec!["Notes"]).await;
 	let bad = PeerTarget {
