@@ -170,3 +170,71 @@ async fn stop_unblocks_while_a_session_is_stalled() {
 	tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 	assert!(TcpStream::connect(("127.0.0.1", port)).await.is_err());
 }
+
+// spawn_test_server()/TestPeer hardcode their vault layout (no Private/
+// folder or symlink), so this test builds its own vault + server rather
+// than reusing them.
+#[cfg(unix)]
+#[tokio::test]
+async fn symlink_within_exposed_folder_is_refused() {
+	use std::os::unix::fs::symlink;
+
+	let vault = tempfile::tempdir().unwrap();
+	let root = vault.path();
+	std::fs::create_dir_all(root.join("Notes")).unwrap();
+	std::fs::create_dir_all(root.join("Private")).unwrap();
+	std::fs::write(root.join("Notes/a.md"), "alpha").unwrap();
+	std::fs::write(root.join("Private/secret.md"), "top secret").unwrap();
+	// Notes/leak.md resolves inside the vault but escapes the exposed
+	// "Notes" folder into "Private" — the scenario from the security finding.
+	symlink(root.join("Private/secret.md"), root.join("Notes/leak.md")).unwrap();
+
+	let psk = parse_pairing_key(&generate_pairing_key().unwrap()).unwrap();
+	let config = ServerConfig {
+		vault_path: root.to_str().unwrap().to_string(),
+		device_name: "Studio".to_string(),
+		psk,
+		exposed_folders: vec!["Notes".to_string()],
+	};
+	let server = start_server(config, 0).await.unwrap();
+	let port = server.port;
+
+	let stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+	let mut chan = handshake_initiator(stream, &psk).await.unwrap();
+	chan.send(&Msg::Hello { device_name: "Laptop".into(), protocol_version: PROTOCOL_VERSION })
+		.await
+		.unwrap();
+	match chan.recv().await.unwrap() {
+		Msg::HelloAck { device_name, protocol_version } => {
+			assert_eq!(device_name, "Studio");
+			assert_eq!(protocol_version, PROTOCOL_VERSION);
+		}
+		other => panic!("expected HelloAck, got {other:?}"),
+	}
+
+	// The symlink must be refused — not a FileChunk/FileEnd carrying the
+	// secret's bytes.
+	chan.send(&Msg::GetFile { rel_path: "Notes/leak.md".into() }).await.unwrap();
+	match chan.recv().await.unwrap() {
+		Msg::Error { .. } => {}
+		other => panic!("expected Error for symlink escape, got {other:?}"),
+	}
+
+	// Sanity: a real file inside the exposed folder still serves normally,
+	// proving the tighter check didn't break normal serving.
+	chan.send(&Msg::GetFile { rel_path: "Notes/a.md".into() }).await.unwrap();
+	let mut bytes = Vec::new();
+	loop {
+		match chan.recv().await.unwrap() {
+			Msg::FileChunk { data } => bytes.extend_from_slice(&data),
+			Msg::FileEnd { sha256 } => {
+				assert_eq!(sha256, hash_bytes(&bytes));
+				break;
+			}
+			other => panic!("expected chunk/end, got {other:?}"),
+		}
+	}
+	assert_eq!(bytes, b"alpha");
+
+	server.stop();
+}
