@@ -156,9 +156,9 @@ async fn serve_connection(stream: TcpStream, config: &ServerConfig) -> Result<()
 	}
 }
 
-/// True when `rel_path` is inside one of the exposed folders.
-fn is_exposed(exposed: &[String], rel_path: &str) -> bool {
-	exposed.iter().any(|f| rel_path.starts_with(&format!("{f}/")))
+/// Returns the exposed folder that `rel_path` sits inside, if any.
+fn matched_exposed_folder<'a>(exposed: &'a [String], rel_path: &str) -> Option<&'a String> {
+	exposed.iter().find(|f| rel_path.starts_with(&format!("{f}/")))
 }
 
 async fn serve_file(
@@ -167,22 +167,35 @@ async fn serve_file(
 	exposed: &[String],
 	rel_path: &str,
 ) -> Result<(), String> {
-	if validate_rel_path(rel_path).is_err() || !is_exposed(exposed, rel_path) {
-		return chan.send(&Msg::Error { message: format!("file not shared: {rel_path}") }).await;
+	// One generic denial for every failure mode below, so an authenticated
+	// peer cannot distinguish "not shared" from "exists but unreadable" or
+	// "resolves outside the exposed folder" while probing, and no OS error
+	// text leaks.
+	if validate_rel_path(rel_path).is_err() {
+		return chan.send(&Msg::Error { message: format!("file not available: {rel_path}") }).await;
 	}
-	// Defense in depth: the resolved file must stay under the vault root
-	// (validate_rel_path already blocks `..`; this also blocks symlink games).
+	let Some(folder) = matched_exposed_folder(exposed, rel_path) else {
+		return chan.send(&Msg::Error { message: format!("file not available: {rel_path}") }).await;
+	};
+	// The resolved file must stay inside the *matched exposed folder*, not
+	// merely inside the vault. Canonicalizing both and comparing rejects a
+	// symlink within an exposed folder that points elsewhere in the vault
+	// (e.g. Notes/leak.md -> ../Private/secret.md): validate_rel_path cannot
+	// catch it because the traversal happens on disk, not in the path string.
+	let folder_root = match vault_root.join(folder).canonicalize() {
+		Ok(p) => p,
+		Err(_) => return chan.send(&Msg::Error { message: format!("file not available: {rel_path}") }).await,
+	};
 	let resolved = match vault_root.join(rel_path).canonicalize() {
 		Ok(p) => p,
-		Err(e) => return chan.send(&Msg::Error { message: format!("file not readable: {e}") }).await,
+		Err(_) => return chan.send(&Msg::Error { message: format!("file not available: {rel_path}") }).await,
 	};
-	let root = vault_root.canonicalize().map_err(|e| format!("vault root missing: {e}"))?;
-	if !resolved.starts_with(&root) {
-		return chan.send(&Msg::Error { message: format!("file not shared: {rel_path}") }).await;
+	if !resolved.starts_with(&folder_root) {
+		return chan.send(&Msg::Error { message: format!("file not available: {rel_path}") }).await;
 	}
 	let bytes = match std::fs::read(&resolved) {
 		Ok(b) => b,
-		Err(e) => return chan.send(&Msg::Error { message: format!("read failed: {e}") }).await,
+		Err(_) => return chan.send(&Msg::Error { message: format!("file not available: {rel_path}") }).await,
 	};
 	let sha256 = hash_bytes(&bytes);
 	for chunk in bytes.chunks(FILE_CHUNK_LEN) {
