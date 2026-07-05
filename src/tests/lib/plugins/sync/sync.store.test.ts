@@ -37,7 +37,10 @@ describe('syncStore', () => {
 		syncStore.reset();
 		expect(syncStore.status.listening).toBe(false);
 		expect(syncStore.remoteShares).toBeNull();
+		expect(syncStore.lastSummary).toBeNull();
+		expect(syncStore.lastSyncAt).toBeNull();
 		expect(syncStore.syncing).toBe(false);
+		expect(syncStore.busy).toBe(false);
 	});
 
 	it('lastSyncClean is false before any sync, true on clean summary, false on errors', () => {
