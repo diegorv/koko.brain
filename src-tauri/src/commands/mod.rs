@@ -6,5 +6,6 @@ pub mod history;
 pub mod search_index;
 pub mod semantic;
 pub mod sentry;
+pub mod sync;
 pub mod update_channel;
 pub mod vault;
