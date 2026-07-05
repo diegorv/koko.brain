@@ -157,3 +157,16 @@ async fn stop_closes_the_listener() {
 	tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 	assert!(TcpStream::connect(("127.0.0.1", port)).await.is_err());
 }
+
+#[tokio::test]
+async fn stop_unblocks_while_a_session_is_stalled() {
+	let peer = spawn_test_server().await;
+	let port = peer.port;
+	// A raw TCP connection that never sends bytes stalls in the handshake.
+	// stop() must still take effect via the shutdown race in the accept loop.
+	let _stalled = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+	tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+	peer.server.stop();
+	tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+	assert!(TcpStream::connect(("127.0.0.1", port)).await.is_err());
+}

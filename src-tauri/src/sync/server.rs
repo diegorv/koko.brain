@@ -7,12 +7,18 @@ use std::sync::Mutex;
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::watch;
+use tokio::time::{timeout, Duration};
 
 use crate::utils::logger::debug_log;
 
 use super::manifest::{build_manifest, hash_bytes, validate_rel_path};
 use super::noise::{handshake_responder, NoiseChannel};
 use super::protocol::{Msg, FILE_CHUNK_LEN, MANIFEST_PAGE_LEN, PROTOCOL_VERSION};
+
+/// Max time for the Noise handshake before an unauthenticated connection is dropped.
+const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
+/// Max idle time waiting for the next request before the session is dropped.
+const RECV_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Config snapshot the listener serves from. Rebuilt on every start; the
 /// frontend restarts the listener to apply exposure changes.
@@ -62,10 +68,16 @@ pub async fn start_server(config: ServerConfig, port: u16) -> Result<RunningServ
 				accepted = listener.accept() => {
 					let Ok((stream, addr)) = accepted else { continue };
 					debug_log("SYNC", format!("peer connected from {addr}"));
-					// One session at a time: serve inline so a second
-					// connection waits in the OS backlog until this ends.
-					if let Err(e) = serve_connection(stream, &config).await {
-						debug_log("SYNC", format!("session ended with error: {e}"));
+					// One session at a time, but shutdown must stay
+					// responsive: race the session against the shutdown
+					// signal. Dropping the session future closes the socket.
+					tokio::select! {
+						_ = rx.changed() => break,
+						result = serve_connection(stream, &config) => {
+							if let Err(e) = result {
+								debug_log("SYNC", format!("session ended with error: {e}"));
+							}
+						}
 					}
 				}
 			}
@@ -76,8 +88,11 @@ pub async fn start_server(config: ServerConfig, port: u16) -> Result<RunningServ
 }
 
 async fn serve_connection(stream: TcpStream, config: &ServerConfig) -> Result<(), String> {
-	let mut chan = handshake_responder(stream, &config.psk).await?;
-	let Msg::Hello { protocol_version, device_name } = chan.recv().await? else {
+	let mut chan = timeout(HANDSHAKE_TIMEOUT, handshake_responder(stream, &config.psk))
+		.await
+		.map_err(|_| "handshake timed out".to_string())??;
+	let hello = timeout(RECV_TIMEOUT, chan.recv()).await.map_err(|_| "peer timed out".to_string())??;
+	let Msg::Hello { protocol_version, device_name } = hello else {
 		return Err("expected Hello".to_string());
 	};
 	if protocol_version != PROTOCOL_VERSION {
@@ -97,8 +112,9 @@ async fn serve_connection(stream: TcpStream, config: &ServerConfig) -> Result<()
 
 	let vault_root = PathBuf::from(&config.vault_path);
 	loop {
-		// A recv error here just means the peer hung up — normal end.
-		let Ok(msg) = chan.recv().await else { return Ok(()) };
+		// A recv error or timeout here just means the peer hung up (or went
+		// silent) — normal end.
+		let Ok(Ok(msg)) = timeout(RECV_TIMEOUT, chan.recv()).await else { return Ok(()) };
 		match msg {
 			Msg::ListShares => {
 				let folders: Vec<String> = config
