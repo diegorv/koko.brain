@@ -139,6 +139,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				enabled: parsed.sentry?.enabled === true,
 				dsn: typeof parsed.sentry?.dsn === 'string' ? parsed.sentry.dsn : DEFAULT_SETTINGS.sentry.dsn,
 			},
+			sync: { ...DEFAULT_SETTINGS.sync, ...parsed.sync },
 			debugMode: parsed.debugMode ?? DEFAULT_SETTINGS.debugMode,
 			debugModeTauri: parsed.debugModeTauri ?? DEFAULT_SETTINGS.debugModeTauri,
 			debugLogToFile: parsed.debugLogToFile ?? DEFAULT_SETTINGS.debugLogToFile,
