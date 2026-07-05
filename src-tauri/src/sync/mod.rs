@@ -9,3 +9,4 @@ pub mod noise;
 pub mod state;
 pub mod manifest;
 pub mod decision;
+pub mod server;
