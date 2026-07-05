@@ -69,6 +69,8 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
 import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
+import { startListener as startSyncListener, stopListener as stopSyncListener } from '$lib/plugins/sync/sync.service';
+import { syncStore } from '$lib/plugins/sync/sync.store.svelte';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
 import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
@@ -390,6 +392,14 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		debug('LIFECYCLE', 'Auto-move disabled — skipping hook registration');
 	}
 
+	// P2P sync listener: expose-on-startup mirrors the auto-move pattern.
+	if (settingsStore.sync.exposeEnabled) {
+		debug('LIFECYCLE', 'Sync expose enabled — starting listener');
+		startSyncListener(vaultPath).catch((err) => {
+			error('LIFECYCLE', 'Sync listener failed to start:', err);
+		});
+	}
+
 	// Semantic search: if enabled but model is missing, disable and notify.
 	// Model download only happens from the Settings toggle, never on startup.
 	// DEFERRED by SEMANTIC_INIT_DEFER_MS — the ONNX model load blocks the
@@ -521,6 +531,7 @@ export function teardownVault(): void {
 	// is fire-and-forget; the write target is the path captured at start.
 	void stopSettingsPersistence();
 	stopWatching();
+	stopSyncListener().catch(() => {});
 	stopSemanticProgressListener();
 	stopTauriDebugListener();
 	teardownLogSession();
@@ -588,6 +599,7 @@ export function teardownVault(): void {
 	resetPeriodicNotes();
 	resetTrash();
 	todoistStore.reset();
+	syncStore.reset();
 	lifecycleFilterStore.reset();
 	typeDefinitionsStore.reset();
 }

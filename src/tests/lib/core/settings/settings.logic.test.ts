@@ -161,7 +161,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'keybindings', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'keybindings', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sync', 'troubleshooting', 'update']);
 	});
 
 	it('has labels for every section', () => {
@@ -170,6 +170,11 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 				expect(section.label).toBeTruthy();
 			}
 		}
+	});
+
+	it('registers the sync section under Integrations', () => {
+		const integrations = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Integrations');
+		expect(integrations?.sections).toContainEqual({ id: 'sync', label: 'Sync' });
 	});
 });
 

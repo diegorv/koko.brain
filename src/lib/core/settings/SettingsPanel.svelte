@@ -16,6 +16,7 @@
 	import UpdateSection from '$lib/core/settings/sections/UpdateSection.svelte';
 	import QueryjsSection from '$lib/core/settings/sections/QueryjsSection.svelte';
 	import TypesSection from '$lib/core/settings/sections/TypesSection.svelte';
+	import SyncSection from '$lib/core/settings/sections/SyncSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -33,6 +34,7 @@
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right';
 	import type { SettingsSection } from '$lib/core/settings/settings.types';
 	import type { Component } from 'svelte';
 
@@ -55,6 +57,7 @@
 		update: DownloadIcon,
 		queryjs: Code2Icon,
 		types: LayoutGridIcon,
+		sync: ArrowLeftRightIcon,
 	};
 
 	/**
@@ -80,6 +83,7 @@
 		update: UpdateSection,
 		queryjs: QueryjsSection,
 		types: TypesSection,
+		sync: SyncSection,
 	};
 </script>
 

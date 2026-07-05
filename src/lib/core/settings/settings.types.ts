@@ -303,7 +303,7 @@ export interface SyncSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update' | 'sync';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
