@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
@@ -59,7 +60,14 @@
 	}
 
 	async function handleCopyKey() {
-		await writeText(settingsStore.sync.pairingKey);
+		const key = settingsStore.sync.pairingKey;
+		if (!key) return;
+		try {
+			await writeText(key);
+			toast.success('Pairing key copied to clipboard');
+		} catch (err) {
+			toast.error(`Failed to copy pairing key: ${err}`);
+		}
 	}
 
 	function handleAddExposedFolder() {
