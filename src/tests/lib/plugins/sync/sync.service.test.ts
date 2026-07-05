@@ -131,4 +131,36 @@ describe('sync.service', () => {
 		expect(syncStore.syncing).toBe(false);
 		expect(syncStore.lastSummary).toBeNull();
 	});
+
+	it('startListener rethrows on failure and does not persist settings', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce('bind failed');
+		await expect(startListener('/vault')).rejects.toBe('bind failed');
+		expect(saveSettings).not.toHaveBeenCalled();
+	});
+
+	it('stopListener rethrows on failure', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce('stop failed');
+		await expect(stopListener()).rejects.toBe('stop failed');
+	});
+
+	it('refreshStatus rethrows on failure and does not corrupt status', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce('status failed');
+		await expect(refreshStatus()).rejects.toBe('status failed');
+		expect(syncStore.status).toEqual({ listening: false, port: null, localIp: null });
+	});
+
+	it('syncNow shows warning toast when errors are present', async () => {
+		settingsStore.updateSync({ peerAddress: '192.168.0.10:38712', subscriptions: ['Notes'] });
+		vi.mocked(invoke).mockResolvedValueOnce({
+			downloaded: 1,
+			conflicts: 0,
+			skipped: 0,
+			skippedFolders: [],
+			errors: ['Notes/a.md: hash mismatch'],
+		});
+		await syncNow('/vault');
+		expect(syncStore.lastSummary?.errors).toHaveLength(1);
+		expect(syncStore.lastSyncClean).toBe(false);
+		expect(syncStore.syncing).toBe(false);
+	});
 });
