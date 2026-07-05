@@ -128,6 +128,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		sections: [
 			{ id: 'todoist', label: 'Todoist' },
 			{ id: 'sentry', label: 'Sentry' },
+			{ id: 'sync', label: 'Sync' },
 		],
 	},
 	{
