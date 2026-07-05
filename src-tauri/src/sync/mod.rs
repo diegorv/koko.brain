@@ -10,3 +10,4 @@ pub mod state;
 pub mod manifest;
 pub mod decision;
 pub mod server;
+pub mod engine;
