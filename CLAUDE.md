@@ -67,7 +67,7 @@ src/lib/
                       #   file-icons, folder-notes, outgoing-links, properties, quick-switcher,
                       #   search, tags, tasks, type-definitions
   plugins/            # Optional modules: calendar, graph-view, kanban, one-on-one, periodic-notes,
-                      #   queryjs, quick-capture, table-of-contents, templates, word-count
+                      #   queryjs, quick-capture, sync, table-of-contents, templates, word-count
   utils/              # Pure shared utilities (no state, no side effects)
 ```
 
