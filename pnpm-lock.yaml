@@ -108,8 +108,8 @@ importers:
         specifier: ^2.10.1
         version: 2.10.1
       '@xyflow/svelte':
-        specifier: ^1.6.1
-        version: 1.6.1(svelte@5.56.1(@typescript-eslint/types@8.58.0))
+        specifier: ^1.6.2
+        version: 1.6.2(svelte@5.56.1(@typescript-eslint/types@8.58.0))
       bits-ui:
         specifier: ^2.18.1
         version: 2.18.1(@internationalized/date@3.12.2)(@sveltejs/kit@2.69.1(@sveltejs/vite-plugin-svelte@7.2.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))(vite@8.0.16(@types/node@26.1.0)(jiti@2.7.0)(yaml@2.9.0)))(svelte@5.56.1(@typescript-eslint/types@8.58.0))(typescript@6.0.3)(vite@8.0.16(@types/node@26.1.0)(jiti@2.7.0)(yaml@2.9.0)))(svelte@5.56.1(@typescript-eslint/types@8.58.0))
@@ -1107,13 +1107,13 @@ packages:
   '@vitest/utils@4.1.9':
     resolution: {integrity: sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA==}
 
-  '@xyflow/svelte@1.6.1':
-    resolution: {integrity: sha512-o84RpjWMAs5tXjYPj6PUjMccBgeF4TFA8DllBqMSbnhJD3ZxLhttp4NmdHZAIM1T5bK5NAzCat+M37uT/9+rTw==}
+  '@xyflow/svelte@1.6.2':
+    resolution: {integrity: sha512-wImcz0c4mCa2SYxo5p1YSBqdTBqI4Ky2CYO6XZfNqMIxVr6mB2cdVaduJqHuqTETQuUKv4Gr0eh3Ev3iU8k8fg==}
     peerDependencies:
       svelte: ^5.25.0
 
-  '@xyflow/system@0.0.78':
-    resolution: {integrity: sha512-lY0z2qP33fUhTva9Vaxrk0lqZta2pkbxB1trHAx1omnJqRtPvDlAQYV2r5fhS6AdpkulYmbNW0svy+A4/t4B/g==}
+  '@xyflow/system@0.0.79':
+    resolution: {integrity: sha512-czLyOh91NF0hIzbNzwi8I6GlqG23BHh2435OddfI6uiaLH3xdrdygO93gqgH1Bv9mhy8XPFQJOBn1FTq4LvEWA==}
 
   acorn@8.17.0:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
@@ -3148,13 +3148,13 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
-  '@xyflow/svelte@1.6.1(svelte@5.56.1(@typescript-eslint/types@8.58.0))':
+  '@xyflow/svelte@1.6.2(svelte@5.56.1(@typescript-eslint/types@8.58.0))':
     dependencies:
       '@svelte-put/shortcut': 4.2.0(svelte@5.56.1(@typescript-eslint/types@8.58.0))
-      '@xyflow/system': 0.0.78
+      '@xyflow/system': 0.0.79
       svelte: 5.56.1(@typescript-eslint/types@8.58.0)
 
-  '@xyflow/system@0.0.78':
+  '@xyflow/system@0.0.79':
     dependencies:
       '@types/d3-drag': 3.0.7
       '@types/d3-interpolate': 3.0.4
