@@ -171,8 +171,8 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(tailwind-merge@3.6.0)(tailwindcss@4.3.2)
       virtua:
-        specifier: ^0.49.1
-        version: 0.49.1(svelte@5.56.4(@typescript-eslint/types@8.58.0))
+        specifier: ^0.49.2
+        version: 0.49.2(svelte@5.56.4(@typescript-eslint/types@8.58.0))
       yaml:
         specifier: 2.9.0
         version: 2.9.0
@@ -1996,8 +1996,8 @@ packages:
     resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
     hasBin: true
 
-  virtua@0.49.1:
-    resolution: {integrity: sha512-6f79msqg3jzNFdqJiS0FSzhRN1EHlDhR7EvW7emp6z5qQ22VdsReiDHflkpMEMhoAyUuYr69nwT0aagiM7NrUg==}
+  virtua@0.49.2:
+    resolution: {integrity: sha512-aEp3+6cmIRjHUlQnWdgGXYMYtrIG26QnN9jJDZEE5LRhvo1Z9HzoJwLDgyVULUPWcSdCnZAroQm7raXJyTG0AA==}
     peerDependencies:
       react: '>=16.14.0'
       react-dom: '>=16.14.0'
@@ -4021,7 +4021,7 @@ snapshots:
 
   uuid@14.0.0: {}
 
-  virtua@0.49.1(svelte@5.56.4(@typescript-eslint/types@8.58.0)):
+  virtua@0.49.2(svelte@5.56.4(@typescript-eslint/types@8.58.0)):
     optionalDependencies:
       svelte: 5.56.4(@typescript-eslint/types@8.58.0)
 
