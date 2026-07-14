@@ -91,7 +91,7 @@
     "@types/feather-icons": "^4.29.4",
     "@types/hast": "^3.0.4",
     "@types/katex": "^0.16.8",
-    "@types/node": "^26.0.0",
+    "@types/node": "^26.1.0",
     "@types/primer__octicons": "^19.21.0",
     "jsdom": "^29.1.1",
     "paneforge": "^1.0.2",
