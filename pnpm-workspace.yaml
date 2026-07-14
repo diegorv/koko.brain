@@ -52,11 +52,6 @@ trustPolicyExclude:
 
 overrides:
   cookie: '>=0.7.0'
-  # esbuild reaches us only as vite's auto-installed peer
-  # (`^0.27.0 || ^0.28.0`); no package pins it below the patch, but a peer
-  # can't be bumped by `pnpm update`, so force the patched line.
-  # GHSA-g7r4-m6w7-qqqr (dev-server request smuggling). Patched: >=0.28.1.
-  esbuild: '>=0.28.1'
   # @doist/todoist-sdk pins form-data to an exact 4.0.5, below the patch,
   # so `pnpm update` can't reach it. GHSA-hmw2-7cc7-3qxx (CRLF injection
   # via unescaped multipart field/file names). Patched: >=4.0.6.
@@ -71,9 +66,7 @@ overrides:
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`
 # list with the `allowBuilds` map and made the gate strict by default:
 # any dependency declaring an install/build script that is NOT listed
-# here aborts `pnpm install` with ERR_PNPM_IGNORED_BUILDS in CI. esbuild
-# (pulled by vite) links its platform binary; core-js (pulled by
-# feather-icons) runs a donation-notice postinstall.
+# here aborts `pnpm install` with ERR_PNPM_IGNORED_BUILDS in CI. core-js
+# (pulled by feather-icons) runs a donation-notice postinstall.
 allowBuilds:
-  esbuild: true
   core-js: true
