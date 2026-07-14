@@ -1,0 +1,147 @@
+name: PR
+
+# Single pre-merge gate for pull requests against main. Fans out the
+# same validation set a release runs — CI (frontend typecheck + unit
+# tests + bundle build, Rust cargo test), E2E (Playwright), and Security
+# (npm + cargo audit + supply-chain quarantine) — as reusable workflows
+# and collapses them into one aggregate status check, `PR success`.
+# Branch protection requires only that check, so a PR cannot merge unless
+# every gate that applies to its changes passed.
+#
+# This workflow OWNS the pull_request trigger. ci.yml, e2e.yml and
+# security.yml no longer fire on pull_request directly (they would
+# double-run); they keep their `workflow_call` entry point — used here
+# and by release.yml / nightly.yml / run-all.yml — plus their own
+# push / cron / dispatch triggers.
+#
+# E2E and Security are change-gated: the `changes` job detects whether
+# frontend or dependency files were touched and skips the irrelevant
+# reusable workflow. The aggregate treats a skipped gate as a pass, so a
+# Rust-only PR isn't blocked waiting on an E2E run it never needed — the
+# same pattern ci.yml's `ci-success` uses for its own frontend/rust jobs.
+# CI is always invoked because ci.yml self-gates internally (its own
+# paths-filter decides whether frontend and/or rust run).
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+      security: ${{ steps.filter.outputs.security }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      # Pinned by commit SHA, not tag (same supply-chain reasoning as the
+      # copy in ci.yml). Dependabot updates it via the trailing tag comment.
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            # Mirrors e2e.yml's former pull_request paths — the frontend
+            # app surface Playwright exercises — plus CI infra, since a
+            # workflow/composite-action change can break the E2E pipeline
+            # and should be validated in the same PR.
+            e2e:
+              - "src/**"
+              - "static/**"
+              - "e2e/**"
+              - "pnpm-lock.yaml"
+              - "package.json"
+              - "tsconfig.json"
+              - "svelte.config.*"
+              - "vite.config.*"
+              - "tailwind.config.*"
+              - "postcss.config.*"
+              - "components.json"
+              - "scripts/e2e.sh"
+              - ".github/actions/**"
+              - ".github/workflows/**"
+            # Dependency / supply-chain surface the audits care about, plus
+            # CI infra (a security-workflow or setup-action change must be
+            # revalidated in the same PR).
+            security:
+              - "pnpm-lock.yaml"
+              - "package.json"
+              - "pnpm-workspace.yaml"
+              - "src-tauri/Cargo.toml"
+              - "src-tauri/Cargo.lock"
+              - "scripts/quarantine-aware-audit.mjs"
+              - ".github/actions/**"
+              - ".github/workflows/**"
+
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  e2e:
+    name: E2E
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    uses: ./.github/workflows/e2e.yml
+
+  security:
+    name: Security
+    needs: changes
+    if: needs.changes.outputs.security == 'true'
+    # Job-level permissions REPLACE workflow-level, so redeclare the
+    # contents: read baseline alongside the checks: write that
+    # security.yml's cargo-audit job needs (mirrors run-all.yml).
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/security.yml
+
+  # Aggregate gate — the single required status check for branch
+  # protection. e2e / security are skipped when their paths filter says
+  # nothing relevant changed, which makes them unusable as required
+  # checks directly (a required-but-skipped check blocks a PR forever).
+  # This sentinel passes when ci succeeded and every change-gated gate
+  # either succeeded or was deliberately skipped, and fails on any real
+  # failure or cancellation.
+  pr-success:
+    name: PR success
+    needs: [changes, ci, e2e, security]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Aggregate gate results
+        run: |
+          set -euo pipefail
+          changes="${{ needs.changes.result }}"
+          ci="${{ needs.ci.result }}"
+          e2e="${{ needs.e2e.result }}"
+          security="${{ needs.security.result }}"
+          echo "changes=$changes ci=$ci e2e=$e2e security=$security"
+          if [ "$changes" != "success" ]; then
+            echo "::error::changes job did not succeed (result=$changes)"
+            exit 1
+          fi
+          if [ "$ci" != "success" ]; then
+            echo "::error::ci did not pass (result=$ci)"
+            exit 1
+          fi
+          for pair in "e2e:$e2e" "security:$security"; do
+            name="${pair%%:*}"
+            result="${pair#*:}"
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              echo "::error::$name job did not pass (result=$result)"
+              exit 1
+            fi
+          done
+          echo "All PR gates passed."
