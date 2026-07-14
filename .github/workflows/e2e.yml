@@ -3,12 +3,13 @@ name: E2E
 # Playwright end-to-end suite, in its own workflow rather than as a CI job.
 #
 # Scope:
-#   - pull_request against `main`: gate before merge. This is the only
-#     pre-merge E2E run; main is protected by the PR check, so a commit
-#     never reaches main without E2E having passed.
-#   - workflow_call: invoked by release.yml on tag push as a hard gate
-#     for the macOS build (release builds never publish without E2E
-#     passing), and by run-all.yml for manual full-sweep runs.
+#   - workflow_call: the pull_request gate lives in pr.yml now — it calls
+#     this workflow (change-gated on the frontend paths that used to be
+#     this file's pull_request filter) and folds it into the aggregate
+#     `PR success` check. Also invoked by release.yml on tag push as a
+#     hard gate for the macOS build (release builds never publish without
+#     E2E passing), and by run-all.yml for manual full-sweep runs.
+#   - workflow_dispatch: manual run.
 #
 # Intentionally NOT triggered on push:main. Every commit to main has
 # already passed E2E in its PR; re-running on the merge SHA would
@@ -21,24 +22,10 @@ permissions:
   contents: read
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "static/**"
-      - "e2e/**"
-      - "pnpm-lock.yaml"
-      - "package.json"
-      - "tsconfig.json"
-      - "svelte.config.*"
-      - "vite.config.*"
-      - "tailwind.config.*"
-      - "postcss.config.*"
-      - "components.json"
-      - "scripts/e2e.sh"
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/release.yml` (as a gate
-  # before build-macos) and `.github/workflows/run-all.yml`.
+  # Reusable: invoked by `.github/workflows/pr.yml` (the pull_request
+  # gate, change-gated on frontend paths), `.github/workflows/release.yml`
+  # (as a gate before build-macos), and `.github/workflows/run-all.yml`.
   workflow_call:
 
 concurrency:

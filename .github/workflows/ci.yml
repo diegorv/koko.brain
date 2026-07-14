@@ -4,11 +4,16 @@ permissions:
   contents: read
 
 # Triggers:
-#   - pull_request: gate every PR against main before merge.
 #   - workflow_dispatch: manual revalidation lever.
-#   - workflow_call: invoked by nightly.yml (every push to main),
-#     release.yml (tag push, with force_all:true), and run-all.yml
-#     (manual full sweep).
+#   - workflow_call: invoked by pr.yml (the pull_request gate — the PR
+#     entry point lives there now, aggregating this workflow with e2e +
+#     security into one required `PR success` check), nightly.yml (every
+#     push to main), release.yml (tag push, with force_all:true), and
+#     run-all.yml (manual full sweep).
+#
+# `pull_request` is intentionally NOT a trigger here anymore. pr.yml owns
+# the PR event and calls this workflow via workflow_call; a direct
+# pull_request trigger would double-run CI on every PR.
 #
 # `push: main` is intentionally NOT a trigger here. Every accepted
 # commit to main is already validated through nightly.yml, which calls
@@ -21,10 +26,6 @@ permissions:
 # like flakes but are just self-collisions. Tag pushes are unaffected
 # because release.yml owns the tag path end-to-end.
 on:
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
   workflow_dispatch:
   workflow_call:
     inputs:

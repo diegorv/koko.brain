@@ -4,14 +4,13 @@ permissions:
   contents: read
 
 on:
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
   push:
     # Solo project: commits land directly on main, so the full security
     # suite runs on every push (Actions is free on this public repo). This
-    # is the primary trigger; PR / dispatch / cron are secondary.
+    # is the primary trigger; dispatch / cron are secondary. The
+    # pull_request path is owned by pr.yml, which calls this workflow via
+    # workflow_call (change-gated on dependency files) so a direct
+    # pull_request trigger here would double-run the audits on every PR.
     branches: [main]
     paths-ignore:
       - "**/*.md"
@@ -20,7 +19,8 @@ on:
     # for unchanged dependencies on days with no push.
     - cron: "30 12 * * *"
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/release.yml` and
+  # Reusable: invoked by `.github/workflows/pr.yml` (the pull_request
+  # gate), `.github/workflows/release.yml`, and
   # `.github/workflows/run-all.yml`.
   workflow_call:
 
