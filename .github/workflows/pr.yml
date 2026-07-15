@@ -98,12 +98,20 @@ jobs:
     name: Security
     needs: changes
     if: needs.changes.outputs.security == 'true'
-    # Job-level permissions REPLACE workflow-level, so redeclare the
-    # contents: read baseline alongside the checks: write that
-    # security.yml's cargo-audit job needs (mirrors run-all.yml).
+    # Job-level permissions REPLACE workflow-level, so this must grant the
+    # UNION of every permission the nested security.yml jobs request —
+    # GitHub validates a called workflow's permissions statically, at load
+    # time, BEFORE any job's `if` is evaluated. cargo-audit needs
+    # checks: write; osv-scanner requests actions: read + security-events:
+    # write. osv-scanner is gated off under workflow_call by its
+    # `github.workflow == 'Security'` guard and never actually runs here,
+    # but its request is still validated up front, so the grant is
+    # required regardless or the whole workflow fails to start.
     permissions:
       contents: read
       checks: write
+      actions: read
+      security-events: write
     uses: ./.github/workflows/security.yml
 
   # Aggregate gate — the single required status check for branch
