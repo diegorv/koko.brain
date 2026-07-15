@@ -75,6 +75,15 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: src-tauri
+          # Accepted advisories (see src-tauri/.cargo/audit.toml for the
+          # full rationale, which also covers local `cargo audit` runs —
+          # this action does NOT read that config file, so the list is
+          # mirrored here). RUSTSEC-2026-0194 / -0195: quick-xml 0.39.4 DoS,
+          # pulled ONLY by wayland-scanner (arboard's Linux Wayland
+          # clipboard backend, a build-time proc-macro over trusted
+          # protocol XML), pinned at ^0.39 upstream so unreachable from
+          # 0.41; not built on macOS. Drop when wayland-scanner bumps it.
+          ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
 
   supply-chain-quarantine:
     name: Supply Chain Quarantine
