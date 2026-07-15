@@ -175,6 +175,16 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
+          # Without this, tauri-action defaults target_commitish to the
+          # tagged commit (context.sha). If anything lands on main while
+          # this job builds (~10 min), that commit is no longer the head
+          # and GitHub rejects the create-release call from GITHUB_TOKEN
+          # with "Resource not accessible by integration" (403) — a
+          # contents:write Actions token can only cut releases at the
+          # current head. `main` resolves to the head at creation time,
+          # and is ignored entirely when the tag already exists (the
+          # normal case here, since the tag push triggered this run).
+          releaseCommitish: main
           args: '--target aarch64-apple-darwin'
           releaseBody: |
             ## What's Changed
