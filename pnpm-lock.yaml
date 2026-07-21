@@ -38,8 +38,8 @@ importers:
         specifier: ^6.43.6
         version: 6.43.6
       '@doist/todoist-sdk':
-        specifier: ^10.5.1
-        version: 10.5.1(type-fest@4.41.0)
+        specifier: ^11.0.0
+        version: 11.0.0(type-fest@4.41.0)
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.3.0
         version: 7.3.0
@@ -414,8 +414,8 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@doist/todoist-sdk@10.5.1':
-    resolution: {integrity: sha512-SEuIYhxwVh++SZoqGwZORpvmQEgV+yvNyNQ9IYjGtts2Y/XIOGH5nff9wrdsuD+jH0GyJmtbbcKkoRLWU/cKXQ==}
+  '@doist/todoist-sdk@11.0.0':
+    resolution: {integrity: sha512-ZVwYtWEBaBfyh3Hzp8zCFkAkyNOk9Tb55vBygdq2iZzNtp3c10LJww/wB6FHPK78Av8TQN37mXjLeeaWf53T6w==}
     engines: {node: '>=20.18.1'}
     peerDependencies:
       type-fest: ^4.12.0 || ^5.5.0
@@ -1991,6 +1991,10 @@ packages:
     resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
 
+  undici@8.7.0:
+    resolution: {integrity: sha512-N7iQtfyLhIMOFgQubvmLV26svHpO0bqKnAiWotTQCVKCmWrcGbBotPuW1x+xwYZ2VHdSTVUfPQQnlEt1/LouTQ==}
+    engines: {node: '>=22.19.0'}
+
   uuid@11.1.1:
     resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
@@ -2463,14 +2467,14 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@doist/todoist-sdk@10.5.1(type-fest@4.41.0)':
+  '@doist/todoist-sdk@11.0.0(type-fest@4.41.0)':
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
       form-data: 4.0.6
       ts-custom-error: 3.3.1
       type-fest: 4.41.0
-      undici: 7.28.0
+      undici: 8.7.0
       uuid: 11.1.1
       zod: 4.3.6
 
@@ -4025,6 +4029,8 @@ snapshots:
   undici-types@8.3.0: {}
 
   undici@7.28.0: {}
+
+  undici@8.7.0: {}
 
   uuid@11.1.1: {}
 
