@@ -51,7 +51,11 @@ trustPolicyExclude:
   - 'chokidar@4.0.3'
 
 overrides:
-  cookie: '>=0.7.0'
+  # cookie@2 is a breaking major: `parse`/`serialize` renamed to
+  # `parseCookie`/`stringifyCookie`, which crashes @sveltejs/kit's SSR
+  # (`import { serialize } from 'cookie'`). Keep the >=0.7.0 security
+  # floor but cap below 2 until SvelteKit supports it.
+  cookie: '>=0.7.0 <2'
   # @doist/todoist-sdk pins form-data to an exact 4.0.5, below the patch,
   # so `pnpm update` can't reach it. GHSA-hmw2-7cc7-3qxx (CRLF injection
   # via unescaped multipart field/file names). Patched: >=4.0.6.
