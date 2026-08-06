@@ -44,7 +44,7 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       security: ${{ steps.filter.outputs.security }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       # Pinned by commit SHA, not tag (same supply-chain reasoning as the
       # copy in ci.yml). Dependabot updates it via the trailing tag comment.
