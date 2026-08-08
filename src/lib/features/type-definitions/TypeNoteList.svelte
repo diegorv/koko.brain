@@ -482,8 +482,8 @@
 								No notes
 							</div>
 						{:else}
-						<VList data={notes} getKey={(note) => note.path} class="px-1 py-1">
-						{#snippet children(note, i)}
+						<VList data={notes} getKey={(note: TypeSidebarNote) => note.path} class="px-1 py-1">
+						{#snippet children(note: TypeSidebarNote, i: number)}
 							{@const resolved = resolveNoteIcon(note.path)}
 							{@const isActive = note.path === activePath}
 							{#if i > 0}
