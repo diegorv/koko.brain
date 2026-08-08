@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// @ts-nocheck - build-time CLI script, not part of the app's type-checked
+// surface. The unit test imports it, which would otherwise pull it into the
+// svelte-check program with no @types for its node/semver usage.
 // Quarantine-aware npm audit.
 //
 // Why this exists:
@@ -23,12 +26,28 @@
 //                  doing its job. Emit a `::warning::` annotation and
 //                  exit 0.
 //
+//   major-bump   -> the only installable patches are outside the semver
+//                   range the installed version can be lifted to (i.e. a
+//                   different major). A lockfile refresh cannot reach
+//                   them; the dependent package has to update first, or a
+//                   hand-written `overrides` entry has to force a major
+//                   bump that will likely break the dependent. Warn and
+//                   exit 0 — this is not something CI can fix.
+//
+// Patch candidates are always intersected with `^installedVersion` before
+// being graded. Without that intersection an advisory like nanoid's
+// (`patched: >=3.3.17`) matches nanoid@4.0.0 from 2022, and the script
+// reports "install 4.0.0 or newer" for a package whose only dependent
+// (postcss) declares `nanoid: ^3.3.16` and would break on the ESM-only v4.
+//
 // The script also fails on the usual hard errors: malformed audit output,
 // unreachable registry, missing publish times, etc. Those are surfaced
 // loudly because they would otherwise silently hide a real vulnerability.
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import semver from 'semver';
 
 const WORKSPACE_FILE = 'pnpm-workspace.yaml';
@@ -80,13 +99,44 @@ function fetchPublishTimes(pkg) {
 	return out;
 }
 
-function classifyAdvisory(adv, minAgeMs, now) {
+/**
+ * Versions currently installed for the advisory's package, taken from the
+ * audit `findings`. An advisory can list several (the same package resolved
+ * at two majors in different branches of the tree).
+ */
+export function installedVersionsOf(adv) {
+	const findings = Array.isArray(adv?.findings) ? adv.findings : [];
+	const versions = findings
+		.map((f) => f?.version)
+		.filter((v) => typeof v === 'string' && semver.valid(v, { loose: false }));
+	return [...new Set(versions)];
+}
+
+/**
+ * Keep only the patched versions a lockfile refresh could actually reach:
+ * those inside `^installed` for at least one installed version. A caret
+ * range is the widest bump a dependent's own declared range is likely to
+ * permit. With no installed version known (malformed findings), every
+ * patched version stays a candidate — better to over-report than to hide.
+ */
+export function compatiblePatches(patchedVersions, installedVersions) {
+	if (installedVersions.length === 0) return [...patchedVersions];
+	return patchedVersions.filter((v) =>
+		installedVersions.some((installed) => semver.satisfies(v, `^${installed}`, { includePrerelease: false }))
+	);
+}
+
+/**
+ * Grade one advisory. Pure: `times` is the registry's `{version: isoDate}`
+ * map (already stripped of `created`/`modified`), injected by the caller so
+ * this can be unit-tested without hitting the network.
+ */
+export function classifyAdvisory(adv, times, minAgeMs, now) {
 	const pkg = adv.module_name;
 	const range = adv.patched_versions;
 	if (!pkg || !range) {
 		return { kind: 'malformed', adv };
 	}
-	const times = fetchPublishTimes(pkg);
 	const allVersions = Object.keys(times)
 		.filter((v) => semver.valid(v, { loose: false, includePrerelease: false }));
 	const patchedVersions = allVersions.filter((v) => {
@@ -99,16 +149,40 @@ function classifyAdvisory(adv, minAgeMs, now) {
 	if (patchedVersions.length === 0) {
 		return { kind: 'no-patch', pkg, range, adv };
 	}
-	const installablePatches = patchedVersions.filter((v) => {
+
+	const isInstallable = (v) => {
 		const t = Date.parse(times[v]);
 		return Number.isFinite(t) && now - t >= minAgeMs;
-	});
-	const youngestPatch = patchedVersions.sort(semver.rcompare)[0];
+	};
+
+	const installedVersions = installedVersionsOf(adv);
+	const candidates = compatiblePatches(patchedVersions, installedVersions);
+	const youngestPatch = [...patchedVersions].sort(semver.rcompare)[0];
+
+	if (candidates.length === 0) {
+		// Every patch sits outside `^installed`. Only reachable through a
+		// major bump of the transitive dep, which CI cannot do on its own.
+		const oldestInstallable = patchedVersions.filter(isInstallable).sort(semver.compare)[0];
+		if (!oldestInstallable) {
+			return { kind: 'quarantined', pkg, range, youngestPatch, adv };
+		}
+		return { kind: 'major-bump', pkg, range, installedVersions, oldestInstallable, youngestPatch, adv };
+	}
+
+	const installablePatches = candidates.filter(isInstallable);
+	const youngestCompatiblePatch = [...candidates].sort(semver.rcompare)[0];
 	if (installablePatches.length === 0) {
-		return { kind: 'quarantined', pkg, range, youngestPatch, adv };
+		return { kind: 'quarantined', pkg, range, youngestPatch: youngestCompatiblePatch, adv };
 	}
 	const oldestInstallable = installablePatches.sort(semver.compare)[0];
-	return { kind: 'actionable', pkg, range, oldestInstallable, youngestPatch, adv };
+	return {
+		kind: 'actionable',
+		pkg,
+		range,
+		oldestInstallable,
+		youngestPatch: youngestCompatiblePatch,
+		adv,
+	};
 }
 
 function main() {
@@ -129,13 +203,16 @@ function main() {
 
 	const actionable = [];
 	const quarantined = [];
+	const majorBump = [];
 	const noPatch = [];
 	const malformed = [];
 
 	for (const adv of advisories) {
-		const result = classifyAdvisory(adv, minAgeMs, now);
+		const times = adv.module_name ? fetchPublishTimes(adv.module_name) : {};
+		const result = classifyAdvisory(adv, times, minAgeMs, now);
 		if (result.kind === 'actionable') actionable.push(result);
 		else if (result.kind === 'quarantined') quarantined.push(result);
+		else if (result.kind === 'major-bump') majorBump.push(result);
 		else if (result.kind === 'no-patch') noPatch.push(result);
 		else malformed.push(result);
 	}
@@ -149,6 +226,22 @@ function main() {
 				`  advisory: ${r.adv.url}`;
 			console.log(`::warning::${r.pkg}@${r.youngestPatch} patch quarantined by minimumReleaseAge policy`);
 			console.log(line);
+		}
+	}
+
+	if (majorBump.length > 0) {
+		console.log('\n--- Patch exists only outside the installed major (dependent must update) ---');
+		for (const r of majorBump) {
+			const installed = r.installedVersions.join(', ') || 'unknown';
+			console.log(
+				`::warning::${r.pkg}: patch requires a major bump (installed ${installed}, patched range ${r.range})`
+			);
+			console.log(
+				`${r.pkg} (${r.adv.severity}): ${r.adv.title}\n` +
+					`  installed: ${installed} | oldest installable patch: ${r.oldestInstallable} (different major)\n` +
+					`  a lockfile refresh cannot reach it; the dependent package has to widen its range first\n` +
+					`  advisory: ${r.adv.url}`
+			);
 		}
 	}
 
@@ -194,16 +287,21 @@ function main() {
 
 	console.log(
 		`\nAll ${advisories.length} advisor${advisories.length === 1 ? 'y is' : 'ies are'} ` +
-			'either still inside the supply-chain quarantine window or have no patched version published yet. ' +
-			'Quarantine is doing its job; CI will pass.'
+			'either still inside the supply-chain quarantine window, blocked behind a major bump of the ' +
+			'dependent, or have no patched version published yet. Nothing CI can install; CI will pass.'
 	);
 	return 0;
 }
 
-try {
-	process.exit(main());
-} catch (err) {
-	console.error(`::error::Quarantine-aware audit script crashed: ${err.message}`);
-	console.error(err.stack);
-	process.exit(2);
+// Only hit the registry when run as a CLI. The pure helpers above are
+// imported by src/tests/scripts/quarantine-aware-audit.test.ts.
+const runAsCli = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (runAsCli) {
+	try {
+		process.exit(main());
+	} catch (err) {
+		console.error(`::error::Quarantine-aware audit script crashed: ${err.message}`);
+		console.error(err.stack);
+		process.exit(2);
+	}
 }
