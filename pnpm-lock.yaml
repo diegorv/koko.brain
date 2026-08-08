@@ -38,8 +38,8 @@ importers:
         specifier: ^6.43.7
         version: 6.43.7
       '@doist/todoist-sdk':
-        specifier: ^11.0.0
-        version: 11.0.0(type-fest@4.41.0)
+        specifier: ^13.0.0
+        version: 13.0.0(type-fest@4.41.0)
       '@fortawesome/fontawesome-svg-core':
         specifier: ^7.3.1
         version: 7.3.1
@@ -407,9 +407,9 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@doist/todoist-sdk@11.0.0':
-    resolution: {integrity: sha512-ZVwYtWEBaBfyh3Hzp8zCFkAkyNOk9Tb55vBygdq2iZzNtp3c10LJww/wB6FHPK78Av8TQN37mXjLeeaWf53T6w==}
-    engines: {node: '>=20.18.1'}
+  '@doist/todoist-sdk@13.0.0':
+    resolution: {integrity: sha512-TDkyev8fCKxQpv/TuAMEQVT2ztRYuvOpGrKb1EGSPP2aboUTRHR9m5A55CS/WOVd5HCyvQHeX6J3xAHvLs13Kw==}
+    engines: {node: '>=24', npm: '>=11'}
     peerDependencies:
       type-fest: ^4.12.0 || ^5.5.0
 
@@ -2062,10 +2062,6 @@ packages:
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
 
-  undici@8.7.0:
-    resolution: {integrity: sha512-N7iQtfyLhIMOFgQubvmLV26svHpO0bqKnAiWotTQCVKCmWrcGbBotPuW1x+xwYZ2VHdSTVUfPQQnlEt1/LouTQ==}
-    engines: {node: '>=22.19.0'}
-
   undici@8.9.0:
     resolution: {integrity: sha512-aWZpUj7XoGonMClx4gdDRfgBjqeA+F473aDmROQQbM9n6PRfK/u1q/a0X4wMTgcHfT8H6fpbt98PFuDUwFg2YA==}
     engines: {node: '>=22.19.0'}
@@ -2547,14 +2543,14 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@doist/todoist-sdk@11.0.0(type-fest@4.41.0)':
+  '@doist/todoist-sdk@13.0.0(type-fest@4.41.0)':
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
       form-data: 4.0.6
       ts-custom-error: 3.3.1
       type-fest: 4.41.0
-      undici: 8.7.0
+      undici: 8.9.0
       uuid: 11.1.1
       zod: 4.3.6
 
@@ -4159,8 +4155,6 @@ snapshots:
   typescript@6.0.3: {}
 
   undici-types@8.3.0: {}
-
-  undici@8.7.0: {}
 
   undici@8.9.0: {}
 
