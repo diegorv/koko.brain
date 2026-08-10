@@ -22,4 +22,15 @@ ignore = [
     # wayland-scanner bumps quick-xml.
     "RUSTSEC-2026-0194",
     "RUSTSEC-2026-0195",
+    # glib 0.18.5 unsoundness (informational, not a CVE):
+    # `VariantStrIter::impl_get` passed `&p` where the C callee writes the
+    # out-pointer in place, so optimized builds discard the write and
+    # `CStr::from_ptr` dereferences NULL. Reachable only through the GTK
+    # stack — tauri 2.11.5 -> gtk 0.18.2 -> atk 0.18.2 -> glib 0.18.5 (and
+    # tauri-runtime-wry -> tao -> gtk) — which is Linux-only and never
+    # compiled for the shipped macOS target. The fix landed in glib 0.19,
+    # and the whole gtk-rs 0.18 line pins glib at ^0.18, so it is
+    # unreachable until tauri moves off gtk-rs 0.18. Drop this when that
+    # upstream bump ships.
+    "RUSTSEC-2024-0429",
 ]
