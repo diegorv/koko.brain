@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyUpgrades, stableVersionsUpToLatest } from '../../../scripts/check-outdated-quarantine.mjs';
+import {
+	classifyUpgrades,
+	publishTimesFromView,
+	stableVersionsUpToLatest,
+} from '../../../scripts/check-outdated-quarantine.mjs';
 
 /** Build a registry-shaped `time` object from [version, isoDate] pairs. */
 function timeObj(pairs: Array<[string, string]>): Record<string, string> {
@@ -71,6 +75,42 @@ describe('stableVersionsUpToLatest', () => {
 
 	it('returns an empty map for missing input', () => {
 		expect(stableVersionsUpToLatest(undefined, '1.0.0').size).toBe(0);
+	});
+});
+
+describe('publishTimesFromView', () => {
+	it('maps a well-formed payload to publish times', () => {
+		const times = publishTimesFromView({
+			time: timeObj([
+				['1.0.0', '2026-01-01T00:00:00.000Z'],
+				['1.1.0', '2026-02-01T00:00:00.000Z'],
+			]),
+			'dist-tags': { latest: '1.1.0' },
+		});
+
+		expect([...(times?.keys() ?? [])]).toEqual(['1.0.0', '1.1.0']);
+	});
+
+	it('returns null for a registry error payload', () => {
+		// The bug this guards: `pnpm view @typescript/native` 404s but still prints
+		// a JSON error body, so JSON.parse succeeds and the lookup used to look
+		// like a package with zero known versions — absent from UPDATE NOW, STILL
+		// LOCKED and COULD NOT CHECK alike, hiding any TypeScript 7 patch.
+		expect(
+			publishTimesFromView({
+				error: { code: 'ERR_PNPM_FETCH_404', message: 'GET https://registry.npmjs.org/… Not Found - 404' },
+			}),
+		).toBeNull();
+	});
+
+	it('returns null when the payload has no time field', () => {
+		expect(publishTimesFromView({ 'dist-tags': { latest: '1.0.0' } })).toBeNull();
+	});
+
+	it('returns null for empty or non-object payloads', () => {
+		expect(publishTimesFromView(null)).toBeNull();
+		expect(publishTimesFromView(undefined)).toBeNull();
+		expect(publishTimesFromView('')).toBeNull();
 	});
 });
 

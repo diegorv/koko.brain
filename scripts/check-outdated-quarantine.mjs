@@ -180,6 +180,26 @@ export function classifyUpgrades(times, current, cutoff, excluded) {
 	};
 }
 
+/**
+ * Turn a `pnpm view <pkg> time dist-tags --json` payload into a version ->
+ * publish Date map, or null when the payload carries no usable timing.
+ *
+ * The null case is not hypothetical. `pnpm view` on an unknown package exits
+ * non-zero but still prints a JSON body — `{"error":{"code":"ERR_PNPM_FETCH_404",…}}`
+ * — which `run()` forwards as stdout. `JSON.parse` then succeeds, so the caller's
+ * try/catch never fires and the failure looks like a successful lookup that
+ * happens to know zero versions. A package in that state is silently absent from
+ * every section of the report, which is the exact blind spot this script exists
+ * to close. Detect it here and let the caller list the package as unchecked.
+ *
+ * @param {unknown} raw Parsed `pnpm view` output.
+ * @returns {Map<string, Date> | null}
+ */
+export function publishTimesFromView(raw) {
+	if (!raw || typeof raw !== 'object' || raw.error || !raw.time) return null;
+	return stableVersionsUpToLatest(raw.time, raw['dist-tags']?.latest);
+}
+
 /** Fetch publish times for a package. Null if the registry call fails. */
 async function fetchPublishTimes(name) {
 	let raw;
@@ -188,7 +208,7 @@ async function fetchPublishTimes(name) {
 	} catch {
 		return null;
 	}
-	return stableVersionsUpToLatest(raw.time, raw['dist-tags']?.latest);
+	return publishTimesFromView(raw);
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
