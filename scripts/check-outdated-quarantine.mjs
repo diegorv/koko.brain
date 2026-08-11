@@ -85,17 +85,44 @@ function readQuarantinePolicy() {
 	return { ageMinutes, excludes };
 }
 
-/** Installed direct dependencies as a Map of name -> version, from the real tree (not package.json ranges). */
-async function readInstalledDirectDeps() {
-	const parsed = JSON.parse((await run('pnpm', ['ls', '--depth', '0', '--json'])).trim() || '[]');
+/**
+ * Build the installed direct-dependency map from a `pnpm ls --depth 0 --json`
+ * payload, reading the real tree rather than package.json ranges.
+ *
+ * The Map key is the name as declared in package.json — the string you edit to
+ * bump the dependency, and the right thing to print. `registryName` is the name
+ * to look the package up under, and the two differ for npm aliases: this repo
+ * declares `"@typescript/native": "npm:typescript@^7.0.2"` to run TypeScript 7
+ * alongside the TypeScript 6 that svelte-check requires (see 012ed00), and no
+ * package named `@typescript/native` exists on the registry. pnpm already
+ * resolves this: every entry carries the real name in its `from` field, so the
+ * alias spec never has to be parsed.
+ *
+ * @param {unknown} parsed Parsed `pnpm ls` output (array or bare object).
+ * @returns {Map<string, {version: string, dev: boolean, registryName: string}>}
+ */
+export function parseInstalledDeps(parsed) {
 	const pkg = Array.isArray(parsed) ? parsed[0] : parsed;
 	const installed = new Map();
 	for (const group of ['dependencies', 'devDependencies']) {
 		for (const [name, info] of Object.entries(pkg?.[group] ?? {})) {
-			if (info?.version) installed.set(name, { version: info.version, dev: group === 'devDependencies' });
+			if (info?.version) {
+				installed.set(name, {
+					version: info.version,
+					dev: group === 'devDependencies',
+					registryName: info.from || name,
+				});
+			}
 		}
 	}
 	return installed;
+}
+
+/** Installed direct dependencies, from the real tree (not package.json ranges). */
+async function readInstalledDirectDeps() {
+	return parseInstalledDeps(
+		JSON.parse((await run('pnpm', ['ls', '--depth', '0', '--json'])).trim() || '[]'),
+	);
 }
 
 /** Advisories from `pnpm audit`, grouped by module name. Includes transitive packages. */
@@ -242,14 +269,17 @@ async function main() {
 	const installed = await readInstalledDirectDeps();
 	const audit = await readAudit();
 
-	// Every package we need registry timing for: all direct deps, plus any
-	// vulnerable transitive package so its patch release can be dated too.
-	const names = new Set(installed.keys());
+	// Every package we need registry timing for: all direct deps under their
+	// real registry name, plus any vulnerable transitive package so its patch
+	// release can be dated too. Aliases collapse onto the aliased package here,
+	// so `typescript` is fetched once and shared by both entries that use it.
+	const directRegistryNames = new Set([...installed.values()].map((i) => i.registryName));
+	const names = new Set(directRegistryNames);
 	if (audit) for (const name of audit.keys()) names.add(name);
 
 	const days = Math.round(ageMinutes / 1440);
 	console.log(`Quarantine: a release must be ${days}+ days old before pnpm will install it.`);
-	console.log(`Checking ${names.size} packages (${installed.size} direct, registry lookup each).\n`);
+	console.log(`Checking ${names.size} registry packages (${installed.size} direct deps, one lookup each).\n`);
 
 	const timesByName = new Map();
 	const failed = [];
@@ -262,8 +292,8 @@ async function main() {
 	// ---- Upgrade view: direct deps with a newer stable release. ----
 	const upgradable = [];
 	const locked = [];
-	for (const [name, { version: current, dev }] of installed) {
-		const times = timesByName.get(name);
+	for (const [name, { version: current, dev, registryName }] of installed) {
+		const times = timesByName.get(registryName);
 		if (!times) continue;
 
 		const excluded = isExcluded(name);
@@ -271,6 +301,7 @@ async function main() {
 		if (installable) {
 			upgradable.push({
 				name,
+				registryName,
 				current,
 				installable,
 				dev,
@@ -282,6 +313,7 @@ async function main() {
 		for (const h of held) {
 			locked.push({
 				name,
+				registryName,
 				version: h.version,
 				clearsAt: new Date(h.publishedAt.getTime() + ageMinutes * 60 * 1000),
 			});
@@ -307,7 +339,9 @@ async function main() {
 			count: advisories.length,
 			title: worst.title,
 			installedVersions: [...new Set(advisories.flatMap((a) => a.installedVersions))],
-			direct: installed.has(name),
+			// Audit reports registry names, so an aliased direct dep must be
+			// matched on its registry name to not be mislabelled as transitive.
+			direct: directRegistryNames.has(name),
 		});
 	}
 	security.sort(
@@ -325,7 +359,10 @@ async function main() {
 	};
 
 	// ---- Render. ----
-	const allNames = [...names];
+	// Column width follows the names actually printed: declared names for direct
+	// deps (an alias prints as the alias, since that is what package.json holds)
+	// plus registry names for advisories on transitive packages.
+	const allNames = [...installed.keys(), ...(audit?.keys() ?? [])];
 	const wName = Math.max(7, ...allNames.map((n) => n.length));
 	const pad = (s, n) => String(s).padEnd(n);
 
@@ -362,7 +399,7 @@ async function main() {
 			const tag = tags.length ? `  [${tags.join(', ')}]` : '';
 			// Not meaningful for exclude-bypassed packages, which never waited.
 			const since = r.excluded ? '' : `  (since ${shortDate(r.clearedAt)})`;
-			const sec = securityTag(r.name, r.installable);
+			const sec = securityTag(r.registryName, r.installable);
 			console.log(
 				`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}${since}${tag}${sec}`.trimEnd(),
 			);
@@ -375,7 +412,7 @@ async function main() {
 	if (locked.length) {
 		console.log(`STILL LOCKED (${locked.length}, soonest first):`);
 		for (const l of locked) {
-			const sec = securityTag(l.name, l.version);
+			const sec = securityTag(l.registryName, l.version);
 			console.log(
 				`  ${pad(l.name, wName)}  ${pad(l.version, 8)}  unlocks ${unlockStr(l.clearsAt, now)}${sec}`,
 			);

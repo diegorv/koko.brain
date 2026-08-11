@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	classifyUpgrades,
+	parseInstalledDeps,
 	publishTimesFromView,
 	stableVersionsUpToLatest,
 } from '../../../scripts/check-outdated-quarantine.mjs';
@@ -75,6 +76,67 @@ describe('stableVersionsUpToLatest', () => {
 
 	it('returns an empty map for missing input', () => {
 		expect(stableVersionsUpToLatest(undefined, '1.0.0').size).toBe(0);
+	});
+});
+
+describe('parseInstalledDeps', () => {
+	it('reads both dependency groups and flags dev deps', () => {
+		const installed = parseInstalledDeps([
+			{
+				dependencies: { marked: { from: 'marked', version: '18.0.9' } },
+				devDependencies: { vitest: { from: 'vitest', version: '4.1.10' } },
+			},
+		]);
+
+		expect(installed.get('marked')).toEqual({
+			version: '18.0.9',
+			dev: false,
+			registryName: 'marked',
+		});
+		expect(installed.get('vitest')?.dev).toBe(true);
+	});
+
+	it('resolves an npm alias to the aliased registry name', () => {
+		// The bug this guards: `"@typescript/native": "npm:typescript@^7.0.2"` was
+		// looked up under the alias, which 404s, so TypeScript 7 releases never
+		// reached the report. pnpm reports the real name in `from`.
+		const installed = parseInstalledDeps([
+			{
+				devDependencies: {
+					'@typescript/native': { from: 'typescript', version: '7.0.2' },
+					typescript: { from: 'typescript', version: '6.0.3' },
+				},
+			},
+		]);
+
+		expect(installed.get('@typescript/native')).toEqual({
+			version: '7.0.2',
+			dev: true,
+			registryName: 'typescript',
+		});
+		// The alias keeps its declared name as the key, so both coexist.
+		expect(installed.get('typescript')?.version).toBe('6.0.3');
+	});
+
+	it('falls back to the declared name when `from` is absent', () => {
+		const installed = parseInstalledDeps([{ dependencies: { yaml: { version: '2.9.0' } } }]);
+
+		expect(installed.get('yaml')?.registryName).toBe('yaml');
+	});
+
+	it('skips entries without a resolved version', () => {
+		const installed = parseInstalledDeps([
+			{ dependencies: { broken: { from: 'broken' }, ok: { from: 'ok', version: '1.0.0' } } },
+		]);
+
+		expect(installed.has('broken')).toBe(false);
+		expect(installed.has('ok')).toBe(true);
+	});
+
+	it('accepts a bare object payload and returns empty for missing input', () => {
+		expect(parseInstalledDeps({ dependencies: { yaml: { version: '2.9.0' } } }).size).toBe(1);
+		expect(parseInstalledDeps([]).size).toBe(0);
+		expect(parseInstalledDeps(undefined).size).toBe(0);
 	});
 });
 
