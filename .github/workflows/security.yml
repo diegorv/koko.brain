@@ -78,17 +78,13 @@ jobs:
           # Accepted advisories (see src-tauri/.cargo/audit.toml for the
           # full rationale, which also covers local `cargo audit` runs —
           # this action does NOT read that config file, so the list is
-          # mirrored here). RUSTSEC-2026-0194 / -0195: quick-xml 0.39.4 DoS,
-          # pulled ONLY by wayland-scanner (arboard's Linux Wayland
-          # clipboard backend, a build-time proc-macro over trusted
-          # protocol XML), pinned at ^0.39 upstream so unreachable from
-          # 0.41; not built on macOS. Drop when wayland-scanner bumps it.
+          # mirrored here).
           # RUSTSEC-2024-0429: glib 0.18.5 `VariantStrIter` unsoundness
           # (NULL deref in optimized builds), reachable only through the
           # Linux-only GTK stack (tauri -> gtk 0.18 -> atk -> glib), never
           # compiled for the shipped macOS target; fixed in glib 0.19,
           # which gtk-rs 0.18 pins out. Drop when tauri moves off gtk 0.18.
-          ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195,RUSTSEC-2024-0429
+          ignore: RUSTSEC-2024-0429
 
   supply-chain-quarantine:
     name: Supply Chain Quarantine
