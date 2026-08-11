@@ -194,8 +194,13 @@ Before declaring any task complete, ALL of the following must pass — **in this
 
 1. **Run the relevant tests** based on what changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
-   - **Frontend only** (`src/`, styles, config): `pnpm check` (ZERO type errors) + `pnpm vitest run` (ALL pass)
-   - **Both**: all three commands
+   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` (ZERO type errors) + `pnpm vitest run` (ALL pass) + `pnpm build` (completes)
+   - **Both**: all four commands
+
+   `pnpm build` is in the gate because vitest never runs the production bundler.
+   Dependency bumps that move `rolldown` / `vite` / `es-module-lexer`, circular
+   imports, and adapter-static prerender failures all pass `check` and `vitest`
+   while breaking `pnpm build`. ~17s.
 3. Service tests use REAL stores (not mocked) unless testing an orchestrator
 4. New tests include at least one edge case (empty input, error, or null)
 5. Every new computed getter in a store has a corresponding test

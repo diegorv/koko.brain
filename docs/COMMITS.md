@@ -28,8 +28,8 @@ After finishing each task in a plan, execute this exact sequence BEFORE starting
 2. **Verify test coverage** for every source file you changed — see [docs/TESTING.md](TESTING.md) § Task Completion Gate, Step 0.
 3. **Run the relevant tests** based on what changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
-   - **Frontend only** (`src/`, styles, config): `pnpm check` + `pnpm vitest run`
-   - **Both**: all three commands
+   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run` + `pnpm build`
+   - **Both**: all four commands
 5. **Stage only files related to this task** (see Staging Discipline above).
 6. **Commit** using the full detailed format (Context, Problem, Solution, Behavior, Files with line ranges) — see Commit Message Format below.
 7. **Only then** proceed to the next task.

@@ -18,8 +18,13 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 5. **Use tabs, not spaces** — all code files use tabs for indentation
 6. **Run the right tests before EVERY commit** — match the tests to what you changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
-   - **Frontend only** (`src/`, styles, config): `pnpm check` + `pnpm vitest run`
-   - **Both**: all three commands. No exceptions.
+   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run` + `pnpm build`
+   - **Both**: all four commands. No exceptions.
+
+   `pnpm build` is part of the gate because vitest does not exercise the
+   production bundler. A dependency bump that moves `rolldown`, `vite` or
+   `es-module-lexer`, a circular import, or an adapter-static prerender failure
+   passes `check` and `vitest` and still breaks `pnpm build`. It costs ~17s.
 7. **Services return errors via try/catch** — propagate to caller, never silently swallow
 8. **Assert on rendered content** in E2E tests, not just container existence
 9. **Verify staging area before every commit** — run `git diff --cached --stat` to ensure only intended files are staged. See [docs/COMMITS.md](docs/COMMITS.md)
@@ -302,8 +307,8 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
    2. **Verify test coverage** for every source file you changed — see [docs/TESTING.md](docs/TESTING.md) § Task Completion Gate, Step 0.
    3. **Run the relevant tests** (see Quick Reference rule 6):
       - Rust only → `cargo test --manifest-path src-tauri/Cargo.toml`
-      - Frontend only → `pnpm check` + `pnpm vitest run`
-      - Both → all three
+      - Frontend only → `pnpm check` + `pnpm vitest run` + `pnpm build`
+      - Both → all four
    4. Stage only files related to this task (`git add <specific files>`).
    5. Run `git diff --cached --stat` to verify staging area.
    6. **Commit immediately** — one commit per task, using the full detailed format (Context, Problem, Solution, Behavior, Files with line ranges). See [docs/COMMITS.md](docs/COMMITS.md).
