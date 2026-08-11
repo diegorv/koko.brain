@@ -23,6 +23,11 @@
  * few days. This script reads the installed tree and the registry directly, so
  * a package with only quarantined upgrades still shows up as locked.
  *
+ * Because it reads the tree rather than package.json, it also finds versions the
+ * declared range does not reach. Those are reported under OUT OF RANGE instead
+ * of UPDATE NOW: still visible (a waiting major is worth knowing about), but not
+ * presented as something `pnpm update` can do for you.
+ *
  * Usage: node scripts/check-outdated-quarantine.mjs
  *
  * Exit code: 0 always, unless an unexpected error occurs (then 2).
@@ -123,6 +128,61 @@ async function readInstalledDirectDeps() {
 	return parseInstalledDeps(
 		JSON.parse((await run('pnpm', ['ls', '--depth', '0', '--json'])).trim() || '[]'),
 	);
+}
+
+/**
+ * Declared dependency ranges from package.json, keyed by declared name.
+ *
+ * Alias specs (`npm:typescript@^7.0.2`) are reduced to the range alone so it can
+ * be compared against registry versions. A spec that is not a semver range at
+ * all — `workspace:*`, `catalog:`, a git URL, a bare `npm:pkg` with no version —
+ * is stored as-is and treated as "no opinion" downstream.
+ *
+ * @param {unknown} pkgJson Parsed package.json.
+ * @returns {Map<string, string>}
+ */
+export function parseDeclaredRanges(pkgJson) {
+	const ranges = new Map();
+	for (const group of ['dependencies', 'devDependencies']) {
+		for (const [name, spec] of Object.entries(pkgJson?.[group] ?? {})) {
+			if (typeof spec !== 'string') continue;
+			if (!spec.startsWith('npm:')) {
+				ranges.set(name, spec);
+				continue;
+			}
+			// `npm:<name>@<range>`; the name may itself be scoped and carry an `@`.
+			const rest = spec.slice(4);
+			const at = rest.lastIndexOf('@');
+			ranges.set(name, at > 0 ? rest.slice(at + 1) : rest);
+		}
+	}
+	return ranges;
+}
+
+/**
+ * Whether `pnpm update` can actually reach a version, i.e. whether it satisfies
+ * the range declared in package.json.
+ *
+ * Why this matters: this script reads the installed tree and the registry, so it
+ * finds the newest release regardless of the declared range. That is the point —
+ * a package pinned below latest still needs its quarantine status reported. But
+ * presenting an out-of-range version under "UPDATE NOW" is a lie: `pnpm update`
+ * will not move to it, and the bump needs a deliberate package.json edit. This
+ * repo has a standing case — `typescript` is pinned `~6.0.3` on purpose because
+ * svelte-check refuses TypeScript 7 as the `typescript` package (see 012ed00),
+ * so 7.0.2 was reported as installable on every run while actually breaking
+ * `pnpm check`.
+ *
+ * An unparseable range returns true, keeping the pre-existing behaviour rather
+ * than inventing a manual step for a dependency we cannot reason about.
+ *
+ * @param {string} version Candidate upgrade.
+ * @param {string | undefined} range Declared range.
+ * @returns {boolean}
+ */
+export function isWithinDeclaredRange(version, range) {
+	if (!range || !semver.validRange(range)) return true;
+	return semver.satisfies(version, range);
 }
 
 /** Advisories from `pnpm audit`, grouped by module name. Includes transitive packages. */
@@ -267,6 +327,9 @@ async function main() {
 	const isExcluded = (name) => excludes.some((re) => re.test(name));
 
 	const installed = await readInstalledDirectDeps();
+	const declaredRanges = parseDeclaredRanges(
+		JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8')),
+	);
 	const audit = await readAudit();
 
 	// Every package we need registry timing for: all direct deps under their
@@ -290,7 +353,10 @@ async function main() {
 	});
 
 	// ---- Upgrade view: direct deps with a newer stable release. ----
+	// Split by whether the declared range reaches the version: `upgradable` is
+	// what `pnpm update` picks up, `outOfRange` needs a package.json edit first.
 	const upgradable = [];
+	const outOfRange = [];
 	const locked = [];
 	for (const [name, { version: current, dev, registryName }] of installed) {
 		const times = timesByName.get(registryName);
@@ -299,16 +365,19 @@ async function main() {
 		const excluded = isExcluded(name);
 		const { installable, installableAt, locked: held } = classifyUpgrades(times, current, cutoff, excluded);
 		if (installable) {
-			upgradable.push({
+			const range = declaredRanges.get(name);
+			const row = {
 				name,
 				registryName,
 				current,
 				installable,
 				dev,
 				excluded,
+				range,
 				// When this version left quarantine (publish time + window).
 				clearedAt: new Date(installableAt.getTime() + ageMinutes * 60 * 1000),
-			});
+			};
+			(isWithinDeclaredRange(installable, range) ? upgradable : outOfRange).push(row);
 		}
 		for (const h of held) {
 			locked.push({
@@ -320,6 +389,7 @@ async function main() {
 		}
 	}
 	upgradable.sort((a, b) => a.name.localeCompare(b.name));
+	outOfRange.sort((a, b) => a.name.localeCompare(b.name));
 	locked.sort((a, b) => a.clearsAt - b.clearsAt);
 
 	// ---- Security view: which packages carry advisories, one row per package. ----
@@ -405,9 +475,26 @@ async function main() {
 			);
 		}
 	} else {
-		console.log('UPDATE NOW: nothing — every newer release is still in quarantine.');
+		// Only blame quarantine when quarantine is actually what is holding
+		// something back; otherwise there is simply nothing newer in range.
+		const reason = locked.length ? ' — every newer release is still in quarantine.' : '.';
+		console.log(`UPDATE NOW: nothing${reason}`);
 	}
 	console.log('');
+
+	if (outOfRange.length) {
+		console.log(`OUT OF RANGE (${outOfRange.length}) — released, but \`pnpm update\` will not reach them:`);
+		for (const r of outOfRange) {
+			const tag = r.dev ? '  [dev]' : '';
+			const sec = securityTag(r.registryName, r.installable);
+			console.log(
+				`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}  (declared ${r.range})${tag}${sec}`.trimEnd(),
+			);
+		}
+		console.log('\n  Each needs a deliberate package.json range edit, so check why the');
+		console.log('  range is capped before widening it — some caps are load-bearing.');
+		console.log('');
+	}
 
 	if (locked.length) {
 		console.log(`STILL LOCKED (${locked.length}, soonest first):`);

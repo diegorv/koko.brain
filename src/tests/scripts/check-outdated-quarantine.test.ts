@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	classifyUpgrades,
+	isWithinDeclaredRange,
+	parseDeclaredRanges,
 	parseInstalledDeps,
 	publishTimesFromView,
 	stableVersionsUpToLatest,
@@ -137,6 +139,66 @@ describe('parseInstalledDeps', () => {
 		expect(parseInstalledDeps({ dependencies: { yaml: { version: '2.9.0' } } }).size).toBe(1);
 		expect(parseInstalledDeps([]).size).toBe(0);
 		expect(parseInstalledDeps(undefined).size).toBe(0);
+	});
+});
+
+describe('parseDeclaredRanges', () => {
+	it('reads ranges from both dependency groups', () => {
+		const ranges = parseDeclaredRanges({
+			dependencies: { marked: '^18.0.9' },
+			devDependencies: { typescript: '~6.0.3' },
+		});
+
+		expect(ranges.get('marked')).toBe('^18.0.9');
+		expect(ranges.get('typescript')).toBe('~6.0.3');
+	});
+
+	it('reduces an alias spec to the range alone', () => {
+		const ranges = parseDeclaredRanges({
+			devDependencies: { '@typescript/native': 'npm:typescript@^7.0.2' },
+		});
+
+		expect(ranges.get('@typescript/native')).toBe('^7.0.2');
+	});
+
+	it('reduces an alias spec pointing at a scoped package', () => {
+		const ranges = parseDeclaredRanges({ dependencies: { alias: 'npm:@scope/pkg@^1.2.3' } });
+
+		expect(ranges.get('alias')).toBe('^1.2.3');
+	});
+
+	it('keeps a versionless alias spec as-is so it reads as no opinion', () => {
+		const ranges = parseDeclaredRanges({ dependencies: { alias: 'npm:some-pkg' } });
+
+		expect(ranges.get('alias')).toBe('some-pkg');
+		expect(isWithinDeclaredRange('1.0.0', ranges.get('alias'))).toBe(true);
+	});
+
+	it('ignores non-string specs and returns empty for missing input', () => {
+		expect(parseDeclaredRanges({ dependencies: { weird: { version: '1.0.0' } } }).size).toBe(0);
+		expect(parseDeclaredRanges(undefined).size).toBe(0);
+	});
+});
+
+describe('isWithinDeclaredRange', () => {
+	it('accepts a version the declared range reaches', () => {
+		expect(isWithinDeclaredRange('18.0.9', '^18.0.7')).toBe(true);
+	});
+
+	it('rejects a version above the declared range', () => {
+		// The bug this guards: typescript is pinned ~6.0.3 on purpose because
+		// svelte-check refuses TypeScript 7 as the `typescript` package, yet 7.0.2
+		// was reported under UPDATE NOW on every run.
+		expect(isWithinDeclaredRange('7.0.2', '~6.0.3')).toBe(false);
+	});
+
+	it('rejects a major above a caret range', () => {
+		expect(isWithinDeclaredRange('9.0.0', '^8.2.0')).toBe(false);
+	});
+
+	it('treats an unparseable or missing range as no opinion', () => {
+		expect(isWithinDeclaredRange('1.0.0', 'workspace:*')).toBe(true);
+		expect(isWithinDeclaredRange('1.0.0', undefined)).toBe(true);
 	});
 });
 
