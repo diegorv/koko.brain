@@ -5,7 +5,9 @@ import {
 	isWithinDeclaredRange,
 	parseDeclaredRanges,
 	parseInstalledDeps,
+	parseLockfilePackages,
 	publishTimesFromView,
+	reachableTransitiveUpgrade,
 	stableVersionsUpToLatest,
 } from '../../../scripts/check-outdated-quarantine.mjs';
 
@@ -139,6 +141,128 @@ describe('parseInstalledDeps', () => {
 		expect(parseInstalledDeps({ dependencies: { yaml: { version: '2.9.0' } } }).size).toBe(1);
 		expect(parseInstalledDeps([]).size).toBe(0);
 		expect(parseInstalledDeps(undefined).size).toBe(0);
+	});
+});
+
+describe('parseLockfilePackages', () => {
+	const lock = [
+		"lockfileVersion: '9.0'",
+		'importers:',
+		'  .:',
+		'    dependencies:',
+		'      marked:',
+		'        version: 18.0.9',
+		'packages:',
+		"  '@antfu/install-pkg@1.1.0':",
+		'    resolution: {integrity: sha512-aaa}',
+		'  marked@18.0.9:',
+		'    resolution: {integrity: sha512-bbb}',
+		'  picomatch@4.0.4:',
+		'  picomatch@4.0.5:',
+		"  'bits-ui@2.18.1(svelte@5.56.8)':",
+		'  not-a-version@workspace:',
+		'snapshots:',
+		'  marked@18.0.9: {}',
+		'  should-not-appear@9.9.9: {}',
+	].join('\n');
+
+	it('collects every resolved package from the packages section', () => {
+		const packages = parseLockfilePackages(lock);
+
+		expect(packages.get('marked')).toEqual(new Set(['18.0.9']));
+		expect(packages.get('@antfu/install-pkg')).toEqual(new Set(['1.1.0']));
+	});
+
+	it('keeps every version when a package is resolved more than once', () => {
+		expect(parseLockfilePackages(lock).get('picomatch')).toEqual(new Set(['4.0.4', '4.0.5']));
+	});
+
+	it('strips the peer-dependency suffix from the version', () => {
+		expect(parseLockfilePackages(lock).get('bits-ui')).toEqual(new Set(['2.18.1']));
+	});
+
+	it('stops at the snapshots section so entries are not double counted', () => {
+		// snapshots: repeats the same keys with dependency edges; reading it would
+		// only duplicate work and could pull in keys the packages list omits.
+		expect(parseLockfilePackages(lock).has('should-not-appear')).toBe(false);
+	});
+
+	it('skips keys whose version is not valid semver', () => {
+		expect(parseLockfilePackages(lock).has('not-a-version')).toBe(false);
+	});
+
+	it('returns empty for a lockfile with no packages section', () => {
+		expect(parseLockfilePackages("lockfileVersion: '9.0'\nimporters:\n  .: {}\n").size).toBe(0);
+	});
+});
+
+describe('reachableTransitiveUpgrade', () => {
+	const cutoff = new Date('2026-08-01T00:00:00.000Z').getTime();
+
+	it('picks the newest cleared version inside ^installed', () => {
+		const move = reachableTransitiveUpgrade(
+			timesMap([
+				['1.2.0', '2026-06-01T00:00:00.000Z'],
+				['1.3.0', '2026-07-01T00:00:00.000Z'],
+				['1.4.0', '2026-07-20T00:00:00.000Z'],
+			]),
+			new Set(['1.2.0']),
+			cutoff,
+		);
+
+		expect(move).toEqual({ from: '1.2.0', to: '1.4.0' });
+	});
+
+	it('ignores versions outside ^installed', () => {
+		// A dependent's range is unknown, so a caret is the widest plausible bump;
+		// a new major is not something a lockfile refresh would take.
+		const move = reachableTransitiveUpgrade(
+			timesMap([
+				['1.2.0', '2026-06-01T00:00:00.000Z'],
+				['2.0.0', '2026-06-15T00:00:00.000Z'],
+			]),
+			new Set(['1.2.0']),
+			cutoff,
+		);
+
+		expect(move).toBeNull();
+	});
+
+	it('ignores versions still inside the quarantine window', () => {
+		const move = reachableTransitiveUpgrade(
+			timesMap([
+				['1.2.0', '2026-06-01T00:00:00.000Z'],
+				['1.5.0', '2026-08-09T00:00:00.000Z'],
+			]),
+			new Set(['1.2.0']),
+			cutoff,
+		);
+
+		expect(move).toBeNull();
+	});
+
+	it('considers every installed copy when a package is resolved twice', () => {
+		const move = reachableTransitiveUpgrade(
+			timesMap([
+				['1.2.0', '2026-06-01T00:00:00.000Z'],
+				['2.0.0', '2026-06-02T00:00:00.000Z'],
+				['2.1.0', '2026-07-01T00:00:00.000Z'],
+			]),
+			new Set(['1.2.0', '2.0.0']),
+			cutoff,
+		);
+
+		expect(move).toEqual({ from: '2.0.0', to: '2.1.0' });
+	});
+
+	it('returns null when nothing newer exists', () => {
+		const move = reachableTransitiveUpgrade(
+			timesMap([['1.2.0', '2026-06-01T00:00:00.000Z']]),
+			new Set(['1.2.0']),
+			cutoff,
+		);
+
+		expect(move).toBeNull();
 	});
 });
 

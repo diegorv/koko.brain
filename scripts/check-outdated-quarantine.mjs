@@ -28,6 +28,13 @@
  * of UPDATE NOW: still visible (a waiting major is worth knowing about), but not
  * presented as something `pnpm update` can do for you.
  *
+ * The sweep covers the whole lockfile, not just direct dependencies. Transitive
+ * packages move under `pnpm update --depth Infinity` without any package.json
+ * edit, so a direct-only report can read "nothing to do" while a batch of
+ * in-range transitive bumps waits. They get their own TRANSITIVE section, capped
+ * to `^installed` since their real bound is the dependents' ranges, which this
+ * script does not resolve.
+ *
  * Usage: node scripts/check-outdated-quarantine.mjs
  *
  * Exit code: 0 always, unless an unexpected error occurs (then 2).
@@ -128,6 +135,77 @@ async function readInstalledDirectDeps() {
 	return parseInstalledDeps(
 		JSON.parse((await run('pnpm', ['ls', '--depth', '0', '--json'])).trim() || '[]'),
 	);
+}
+
+/**
+ * Every package resolved in pnpm-lock.yaml, as name -> set of versions.
+ *
+ * Reads the keys of the `packages:` section, which is the flat set of every
+ * resolution in the tree — direct and transitive alike. Stops at `snapshots:`,
+ * which repeats the same keys with dependency edges attached and would only
+ * duplicate work. Entries can carry a peer-suffix (`foo@1.0.0(bar@2.0.0)`), so
+ * the version is cut at the first `(`.
+ *
+ * A package may legitimately appear at several versions when different branches
+ * of the tree pin different majors, hence a Set rather than a single version.
+ *
+ * @param {string} lockYaml Raw pnpm-lock.yaml contents.
+ * @returns {Map<string, Set<string>>}
+ */
+export function parseLockfilePackages(lockYaml) {
+	const packages = new Map();
+	let inPackages = false;
+	for (const line of lockYaml.split('\n')) {
+		if (line === 'packages:') {
+			inPackages = true;
+			continue;
+		}
+		if (!inPackages) continue;
+		// Any other top-level key (`snapshots:`) ends the section.
+		if (/^[^\s]/.test(line)) break;
+		const match = line.match(/^ {2}'?((?:@[^/@\s]+\/)?[^@\s'(]+)@([^\s'(]+)'?(?:\([^)]*\))*'?:/);
+		if (!match) continue;
+		const [, name, version] = match;
+		if (!semver.valid(version)) continue;
+		const versions = packages.get(name) ?? new Set();
+		versions.add(version);
+		packages.set(name, versions);
+	}
+	return packages;
+}
+
+/**
+ * Newest version a lockfile refresh could plausibly pull for a transitive
+ * package, or null when there is nothing newer within reach.
+ *
+ * Transitive packages have no range in package.json — what bounds them is the
+ * range their dependents declared, which is not knowable without resolving the
+ * whole graph. `^installed` is used as the proxy, the same heuristic and for the
+ * same reason as `compatiblePatches` in quarantine-aware-audit.mjs: a caret is
+ * the widest bump a dependent's own range is likely to permit, so it keeps the
+ * report to versions a plain `pnpm update --depth Infinity` might actually take
+ * instead of every major sitting on the registry.
+ *
+ * The result is a candidate, not a promise — a dependent pinning `~1.2.0` will
+ * not move to 1.3.0 no matter what this reports. Callers must present it as
+ * such.
+ *
+ * @param {Map<string, Date>} times Stable version -> publish Date.
+ * @param {Set<string>} installedVersions Versions currently in the lockfile.
+ * @param {number} cutoff Epoch ms; published at or before this has cleared quarantine.
+ * @returns {{from: string, to: string} | null}
+ */
+export function reachableTransitiveUpgrade(times, installedVersions, cutoff) {
+	let best = null;
+	for (const installed of installedVersions) {
+		for (const [version, publishedAt] of times) {
+			if (!semver.gt(version, installed)) continue;
+			if (!semver.satisfies(version, `^${installed}`)) continue;
+			if (publishedAt.getTime() > cutoff) continue;
+			if (!best || semver.gt(version, best.to)) best = { from: installed, to: version };
+		}
+	}
+	return best;
 }
 
 /**
@@ -340,9 +418,20 @@ async function main() {
 	const names = new Set(directRegistryNames);
 	if (audit) for (const name of audit.keys()) names.add(name);
 
+	// Transitive packages are swept too. `pnpm update --depth Infinity` moves
+	// them without touching package.json, so a report limited to direct deps
+	// shows "nothing to do" while a batch of in-range transitive bumps is
+	// sitting there — which is exactly what happened before this was added.
+	const lockPackages = parseLockfilePackages(readFileSync(resolve(repoRoot, 'pnpm-lock.yaml'), 'utf8'));
+	const transitiveNames = [...lockPackages.keys()].filter((n) => !directRegistryNames.has(n));
+	for (const name of transitiveNames) names.add(name);
+
 	const days = Math.round(ageMinutes / 1440);
 	console.log(`Quarantine: a release must be ${days}+ days old before pnpm will install it.`);
-	console.log(`Checking ${names.size} registry packages (${installed.size} direct deps, one lookup each).\n`);
+	console.log(
+		`Checking ${names.size} registry packages (${installed.size} direct, ${transitiveNames.length} transitive), one lookup each.`,
+	);
+	console.log('This sweeps the whole lockfile, so it takes a minute.\n');
 
 	const timesByName = new Map();
 	const failed = [];
@@ -392,6 +481,16 @@ async function main() {
 	outOfRange.sort((a, b) => a.name.localeCompare(b.name));
 	locked.sort((a, b) => a.clearsAt - b.clearsAt);
 
+	// ---- Transitive view: lockfile-only bumps a refresh could pick up. ----
+	const transitive = [];
+	for (const name of transitiveNames) {
+		const times = timesByName.get(name);
+		if (!times) continue;
+		const move = reachableTransitiveUpgrade(times, lockPackages.get(name), cutoff);
+		if (move) transitive.push({ name, ...move });
+	}
+	transitive.sort((a, b) => a.name.localeCompare(b.name));
+
 	// ---- Security view: which packages carry advisories, one row per package. ----
 	// Deliberately NOT a re-implementation of advisory classification: whether an
 	// advisory is actionable or merely quarantined is decided by
@@ -432,7 +531,9 @@ async function main() {
 	// Column width follows the names actually printed: declared names for direct
 	// deps (an alias prints as the alias, since that is what package.json holds)
 	// plus registry names for advisories on transitive packages.
-	const allNames = [...installed.keys(), ...(audit?.keys() ?? [])];
+	// Only names that actually get printed — widening to every transitive in the
+	// lockfile would pad every row for entries the report never shows.
+	const allNames = [...installed.keys(), ...(audit?.keys() ?? []), ...transitive.map((t) => t.name)];
 	const wName = Math.max(7, ...allNames.map((n) => n.length));
 	const pad = (s, n) => String(s).padEnd(n);
 
@@ -493,6 +594,18 @@ async function main() {
 		}
 		console.log('\n  Each needs a deliberate package.json range edit, so check why the');
 		console.log('  range is capped before widening it — some caps are load-bearing.');
+		console.log('');
+	}
+
+	if (transitive.length) {
+		console.log(`TRANSITIVE (${transitive.length}) — candidates for \`pnpm update --depth Infinity\`:`);
+		for (const t of transitive) {
+			const sec = securityTag(t.name, t.to);
+			console.log(`  ${pad(t.name, wName)}  ${pad(t.from, 8)} ->  ${pad(t.to, 8)}${sec}`.trimEnd());
+		}
+		console.log('\n  Candidates, not promises: these cleared quarantine and sit inside');
+		console.log('  `^installed`, but a dependent pinning a narrower range still wins.');
+		console.log('  Run the update and diff the lockfile to see what actually moved.');
 		console.log('');
 	}
 
