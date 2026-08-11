@@ -134,3 +134,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0027](0027-frontmatter-system-metadata-underscore-prefix.md) | Underscore prefix convention for system metadata with Rust-side alias resolution      | active |
 | [0028](0028-quick-capture-merge-into-kokobrain.md) | Merge quick-capture surface into kokobrain — composer popover + clipboard shortcut    | active |
 | [0029](0029-frontmatter-yaml-canonical-form.md) | Canonical YAML form for frontmatter on the write path                                | active |
+| [0030](0030-pnpm-build-in-precommit-gate.md) | pnpm build joins the pre-commit gate for frontend changes                            | active |
