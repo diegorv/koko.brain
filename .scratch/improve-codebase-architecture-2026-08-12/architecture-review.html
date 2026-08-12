@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — kokobrain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .hatch {
+        background-image: repeating-linear-gradient(45deg, #e7e5e4 0 6px, #f5f5f4 6px 12px);
+      }
+      .lbl { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+      .mermaid { font-size: 13px; }
+      article { scroll-margin-top: 1.5rem; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 antialiased">
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-14">
+
+      <!-- ═══════════════ HEADER ═══════════════ -->
+      <header class="border-b border-stone-300 pb-8">
+        <div class="flex items-baseline justify-between flex-wrap gap-3">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review</h1>
+          <p class="font-mono text-xs text-slate-500">kokobrain 2.14.14 · main @ 50c3e87 · 2026-08-12</p>
+        </div>
+
+        <p class="mt-4 text-sm text-slate-600 max-w-3xl">
+          Eight explorers walked the hot spots from non-dependency commit history. They produced 22 candidates;
+          an adversarial pass re-opened every citation and re-ran the deletion test on each. 16 survived, 6 were refuted.
+          Strength badges below are the <em>post-verification</em> ratings, not the explorers' own.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-x-8 gap-y-3 items-center text-xs text-slate-600">
+          <span class="lbl text-slate-400">Legend</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-8 h-4 border border-slate-400 bg-white"></span> module</span>
+          <span class="flex items-center gap-2"><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="#64748b" stroke-width="1.5" class="seam"/></svg> seam</span>
+          <span class="flex items-center gap-2"><svg width="34" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#dc2626" stroke-width="2"/><path d="M28 1 L34 4 L28 7Z" fill="#dc2626"/></svg> leakage</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-8 h-4 deep"></span> deep module</span>
+        </div>
+
+        <nav class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-1.5 text-sm">
+          <a href="#c1" class="text-slate-700 hover:text-emerald-700 hover:underline">1 · One owner for “a note changed”</a>
+          <a href="#c2" class="text-slate-700 hover:text-emerald-700 hover:underline">2 · Collapse 11 block-decorator bodies</a>
+          <a href="#c3" class="text-slate-700 hover:text-emerald-700 hover:underline">3 · Persistence inside the settings module</a>
+          <a href="#c4" class="text-slate-700 hover:text-emerald-700 hover:underline">4 · One producer for the property index</a>
+          <a href="#c5" class="text-slate-700 hover:text-emerald-700 hover:underline">5 · Collapse the <span class="font-mono text-xs">.view</span> query pipeline</a>
+          <a href="#c6" class="text-slate-700 hover:text-emerald-700 hover:underline">6 · One snapshot reader for the VaultIndex</a>
+          <a href="#c7" class="text-slate-700 hover:text-emerald-700 hover:underline">7 · <span class="font-mono text-xs">initializeVault</span> owns its own tail</a>
+        </nav>
+      </header>
+
+      <section id="candidates" class="space-y-16">
+
+      <!-- ═══════════════════════════════════════════════════════════════ C1 -->
+      <article id="c1" class="rounded-xl border-2 border-slate-900 bg-white shadow-sm overflow-hidden">
+        <div class="bg-slate-900 text-stone-50 px-7 py-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">1 · Give “a note changed” one owning module</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-emerald-500 text-emerald-950 text-xs font-semibold">Strong</span>
+              <span class="px-2.5 py-1 rounded-full bg-slate-700 text-slate-200 text-xs font-mono">in-process</span>
+            </div>
+          </div>
+          <p class="mt-2 text-sm text-slate-300">
+            Three explorers reached this independently — from the Rust seam, from lifecycle orchestration, and from filesystem operations.
+            It is the same missing module seen from three sides.
+          </p>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed">Mutating a note has no module. The caller must know a five-step ordered protocol
+              — <span class="font-mono text-xs">markRecentSave</span> → write bytes → <span class="font-mono text-xs">update_note_in_index</span> →
+              <span class="font-mono text-xs">syncExternalContentToEditor</span> → <span class="font-mono text-xs">clearIndexedEntry</span> for path changes —
+              and the 15+ call sites each implement a different subset.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">One module owning “a note changed on disk”:
+              <span class="font-mono text-xs">writeNote(path, content)</span> and <span class="font-mono text-xs">forgetNote(path)</span>,
+              with the per-source policy (save / edit / watcher) as its implementation rather than as four hand-rolled fan-out lists.</p>
+            </div>
+          </div>
+
+          <!-- BEFORE: the drift matrix -->
+          <div>
+            <p class="lbl text-slate-400 mb-2">Before — 15+ writers, five subsets of one protocol</p>
+            <div class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
+              <table class="w-full text-xs border-collapse min-w-[760px]">
+                <thead>
+                  <tr class="bg-stone-100">
+                    <th class="text-left font-mono font-normal px-3 py-2 text-slate-600 border-b border-slate-200">write site</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">markRecentSave</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">write bytes</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">notify Rust</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">sync tab</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">clearIndexed</th>
+                  </tr>
+                </thead>
+                <tbody class="font-mono text-[11px]">
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">deep-link.service.ts:234</td>
+                    <td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">editor.service.ts:144</td>
+                    <td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">n/a</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">link-updater.service.ts:38</td>
+                    <td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">type-definitions.service.ts:106</td>
+                    <td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">type-definitions.service.ts:70</td>
+                    <td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">note-creator.service.ts:94</td>
+                    <td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-amber-500 font-bold">◐</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">frontmatter-icon.service.ts:46/58/75</td>
+                    <td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">file-icons.service.ts:97</td>
+                    <td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5 text-slate-700">kanban.service.ts:20 · collection.service.ts:24</td>
+                    <td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-stone-300">—</td></tr>
+                  <tr class="border-b border-stone-100 bg-stone-50"><td class="px-3 py-1.5 text-slate-700">fs.service.ts:184 &nbsp;<span class="text-stone-400">deleteItem</span></td>
+                    <td class="text-center text-stone-300">—</td><td class="text-center text-stone-300">—</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">—</td><td class="text-center text-emerald-600">●</td></tr>
+                  <tr class="border-b border-stone-100 bg-stone-50"><td class="px-3 py-1.5 text-slate-700">fs.service.ts:229 &nbsp;<span class="text-stone-400">renameItem</span></td>
+                    <td class="text-center text-stone-300">—</td><td class="text-center text-stone-300">—</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">—</td><td class="text-center text-red-500 font-bold">✕</td></tr>
+                  <tr class="bg-stone-50"><td class="px-3 py-1.5 text-slate-700">fs.service.ts:269 &nbsp;<span class="text-stone-400">moveItem</span></td>
+                    <td class="text-center text-stone-300">—</td><td class="text-center text-stone-300">—</td><td class="text-center text-emerald-600">●</td><td class="text-center text-stone-300">—</td><td class="text-center text-red-500 font-bold">✕</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              The last two rows are an uncontested violation of an active ADR:
+              <span class="font-mono">ADR-0009:63</span> — “Any function that mutates vault state (delete, rename, move) must call
+              <span class="font-mono">clearIndexedEntry(path)</span>.”
+            </p>
+          </div>
+
+          <!-- AFTER: the deep module -->
+          <div>
+            <p class="lbl text-slate-400 mb-2">After — one interface, the protocol becomes implementation</p>
+            <div class="rounded-lg border border-slate-200 bg-white p-6">
+              <div class="flex items-stretch gap-5 flex-wrap md:flex-nowrap">
+                <div class="shrink-0 space-y-1.5 text-[11px] font-mono text-slate-600 self-center">
+                  <div class="px-2.5 py-1 border border-slate-300 rounded bg-stone-50">deep-link</div>
+                  <div class="px-2.5 py-1 border border-slate-300 rounded bg-stone-50">link-updater</div>
+                  <div class="px-2.5 py-1 border border-slate-300 rounded bg-stone-50">type-definitions</div>
+                  <div class="px-2.5 py-1 border border-slate-300 rounded bg-stone-50">frontmatter-icon</div>
+                  <div class="px-2.5 py-1 border border-slate-300 rounded bg-stone-50">kanban · collection</div>
+                  <div class="px-2.5 py-1 border border-slate-300 rounded bg-stone-50">fs.service ×3</div>
+                </div>
+
+                <svg width="70" height="200" class="shrink-0 self-center" viewBox="0 0 70 200">
+                  <path d="M0 20 C35 20 35 100 62 100" stroke="#64748b" fill="none" stroke-width="1.2"/>
+                  <path d="M0 52 C35 52 35 100 62 100" stroke="#64748b" fill="none" stroke-width="1.2"/>
+                  <path d="M0 84 C35 84 35 100 62 100" stroke="#64748b" fill="none" stroke-width="1.2"/>
+                  <path d="M0 116 C35 116 35 100 62 100" stroke="#64748b" fill="none" stroke-width="1.2"/>
+                  <path d="M0 148 C35 148 35 100 62 100" stroke="#64748b" fill="none" stroke-width="1.2"/>
+                  <path d="M0 180 C35 180 35 100 62 100" stroke="#64748b" fill="none" stroke-width="1.2"/>
+                  <path d="M56 96 L66 100 L56 104Z" fill="#64748b"/>
+                  <line x1="62" y1="6" x2="62" y2="194" stroke="#0f172a" stroke-width="1.5" class="seam"/>
+                </svg>
+
+                <div class="deep rounded-lg flex-1 min-w-[260px] p-5 text-stone-200">
+                  <p class="font-mono text-sm text-emerald-300">writeNote(path, content)</p>
+                  <p class="font-mono text-sm text-emerald-300">forgetNote(path)</p>
+                  <div class="mt-4 pt-4 border-t border-slate-700 space-y-1 text-[11px] font-mono text-slate-500">
+                    <p>markRecentSave &nbsp;<span class="text-slate-600">// before the write, always</span></p>
+                    <p>writeTextFile / invoke('create_note')</p>
+                    <p>invoke('update_note_in_index')</p>
+                    <p>syncExternalContentToEditor &nbsp;<span class="text-slate-600">// no-op if closed</span></p>
+                    <p>clearIndexedEntry + remove_note_from_index</p>
+                    <p>per-source policy: save | edit | watcher</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>One interface for every vault mutation</li>
+                <li>Locality: index invalidation in one place</li>
+                <li>Rename and move stop violating ADR-0009</li>
+                <li>Ordering invariant enforced, not commented</li>
+                <li>Tests assert one seam, not fifteen</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Deletion test</p>
+              <p class="text-sm leading-relaxed">Delete the module and the five-step protocol reappears at 15+ sites in five
+              distinct subsets — which is exactly today's state. Complexity concentrates.
+              The sibling shape already exists: <span class="font-mono text-xs">notifyAfterSave</span> is this module for
+              “content changed at P”, and nothing downstream re-assembles it.</p>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3">
+            <p class="text-xs font-semibold text-red-800 lbl mb-1.5">Live divergence found during verification</p>
+            <p class="text-sm text-red-900 leading-relaxed">
+              Commit <span class="font-mono text-xs">473146f</span> fixed “absolute path used as an FTS/semantic key” in
+              <span class="font-mono text-xs">watcher-handler.service.ts:117</span>. The identical derivation in
+              <span class="font-mono text-xs">search.service.ts:316-318</span> still falls back to the absolute path — doing exactly what
+              the other copy's comment forbids. One copy was fixed; its twin was not, and no task file tracks it.
+              Separately, <span class="font-mono text-xs">collection.service.ts:108 removeNoteFromIndex</span> has zero production
+              callers, so deleted notes linger as phantom pages (tracked as M08).
+            </p>
+          </div>
+
+          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+            <p class="text-xs font-semibold text-amber-900 lbl mb-1.5">What the merge must not flatten</p>
+            <ul class="text-sm text-amber-900 space-y-1 list-disc list-inside">
+              <li>The typing path's omission of <span class="font-mono text-xs">invalidateQueryjsCache</span> and the FTS/semantic IPCs is deliberate — running ONNX inference on a 1 s typing pause is a regression. Keep it as explicit per-source policy.</li>
+              <li>The bare-write sites currently rely on the Rust watcher picking them up. Adding <span class="font-mono text-xs">markRecentSave</span> suppresses the watcher, making the explicit notify load-bearing — a behaviour change needing the trace-before-remove ritual.</li>
+              <li><span class="font-mono text-xs">closeTabsForDeletedPath</span> must stay <em>before</em> the disk op (commit <span class="font-mono text-xs">7070e56</span>), so the path side needs a before/after pair, not one trailing call.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Files</p>
+            <p class="font-mono text-xs text-slate-600 leading-relaxed">
+              src/lib/core/editor/editor.hooks.ts · src/lib/core/app-lifecycle/index-updater.service.ts ·
+              src/lib/core/app-lifecycle/watcher-handler.service.ts · src/lib/core/filesystem/fs.service.ts ·
+              src/lib/core/filesystem/link-updater.service.ts · src/lib/core/note-creator/note-creator.service.ts ·
+              src/lib/features/file-icons/frontmatter-icon.service.ts · src/lib/features/type-definitions/type-definitions.service.ts ·
+              src/lib/features/deep-link/deep-link.service.ts · src/lib/features/search/search.service.ts ·
+              src/lib/features/collection/collection.service.ts · src/lib/utils/index-dedupe.ts
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Test impact</p>
+            <p class="text-sm leading-relaxed">Each copy has its own suite that can only see its own copy —
+            <span class="font-mono text-xs">watcher-handler.service.test.ts</span> (321 lines),
+            <span class="font-mono text-xs">editor.hooks.test.ts</span>, <span class="font-mono text-xs">index-updater.service.test.ts</span> (141 lines) —
+            and nothing compares them, which is why the two relative-path copies disagree.
+            “Deleting a note removes it from the collection property index” is unassertable today because the only function that
+            would do it is never called. After: one suite parameterised over source, asserting real store state for
+            create / update / delete across all entry points.</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══════════════════════════════════════════════════════════════ C2 -->
+      <article id="c2" class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div class="px-7 py-5 border-b border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">2 · Collapse the eleven copied block-decorator bodies</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-semibold">Strong</span>
+              <span class="px-2.5 py-1 rounded-full bg-stone-200 text-slate-700 text-xs font-mono">in-process</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed">Eleven block decorators hand-copy the same twelve-line update discipline verbatim,
+              so it has already drifted and is exercised in exactly one of sixteen plugin test files.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">One <span class="font-mono text-xs">defineBlockDecorator({ name, compute })</span> module
+              holding the single copy of the discipline, plus one registry array that
+              <span class="font-mono text-xs">live-preview.ts</span> and the settings toggle list both read.</p>
+            </div>
+          </div>
+
+          <!-- Mass diagram -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-3">Before — interface ≈ implementation</p>
+              <div class="space-y-[3px]">
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600 flex items-center justify-center text-[9px] text-white font-mono">compute</div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-slate-700 flex items-center pl-2 text-[9px] text-slate-300 font-mono">copied ViewPlugin discipline</div></div>
+                <div class="flex gap-[3px] h-6"><div class="w-[22%] bg-emerald-600"></div><div class="flex-1 bg-red-800 flex items-center pl-2 text-[9px] text-red-100 font-mono">queryjs — already drifted</div></div>
+              </div>
+              <p class="mt-3 text-[11px] text-slate-500 font-mono">audio · video · mermaid · collection · meta-bind · comment · math · code · table · callout · queryjs</p>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-3">After — eleven slivers over one deep module</p>
+              <div class="space-y-[3px]">
+                <div class="h-6 w-[22%] bg-emerald-600 flex items-center justify-center text-[9px] text-white font-mono">compute</div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+                <div class="h-6 w-[22%] bg-emerald-600"></div>
+              </div>
+              <svg width="100%" height="22" class="my-2"><line x1="0" y1="11" x2="100%" y2="11" stroke="#0f172a" stroke-width="1.5" class="seam"/></svg>
+              <div class="deep rounded p-4 text-stone-300">
+                <p class="font-mono text-xs text-emerald-300">defineBlockDecorator({ name, compute })</p>
+                <p class="mt-2 text-[10px] font-mono text-slate-500 leading-relaxed">drag skip · same-line cursor no-op · force-rebuild pass-through · profiling label from name · one registry array</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>One update discipline, not eleven copies</li>
+                <li>Interface shrinks to name plus compute</li>
+                <li>Registry ends three-way name drift</li>
+                <li>Locality: perf rules become verifiable</li>
+                <li>Deletes eleven provably dead guards</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Deletion test</p>
+              <p class="text-sm leading-relaxed">Delete the module and the twelve-line body reappears verbatim in eleven files.
+              The shape is already proven in-repo: <span class="font-mono text-xs">makeInlineFormattingPlugin</span>
+              (<span class="font-mono text-xs">inline-formatting-plugin.ts:142-177</span>) is exactly this factory for the inline track.</p>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+            <p class="text-xs font-semibold text-amber-900 lbl mb-1.5">Contradicts ADR-0008 — worth an amendment, not a reopening</p>
+            <p class="text-sm text-amber-900 leading-relaxed">
+              ADR-0008 §Performance rule 3 and CLAUDE.md live-preview rule 4 both mandate the <span class="font-mono text-xs">viewportChanged</span>
+              guard “as the first line of update() in any plugin that scans the full document”. That guard is provably dead:
+              <span class="font-mono text-xs">check-update-action.ts:21</span> already returns <span class="font-mono text-xs">'none'</span> for
+              viewport-only updates, and the four inline plugins already omit it with identical behaviour.
+              ADR-0008 also states “Adding a block construct = adding a file + a registration line” — which this changes.
+              Both texts need amending; ADR-0008 already models the inline track as exactly this shape.
+            </p>
+          </div>
+
+          <div class="rounded-md bg-stone-100 border border-stone-300 px-4 py-3">
+            <p class="text-xs font-semibold text-slate-700 lbl mb-1.5">Correction from verification</p>
+            <p class="text-sm text-slate-700 leading-relaxed">
+              A <span class="font-mono text-xs">rebuildOn</span> parameter has only <strong>one</strong> real adapter (callout's
+              <span class="font-mono text-xs">toggleCalloutFold</span>) — a hypothetical seam. queryjs's variation is a <em>narrower gate</em>
+              (<span class="font-mono text-xs">queryjs-block-field.ts:78-81</span> suppresses reconfigure and drag-end rebuilds), not an extra trigger.
+              The parameter set must be re-derived from those two genuinely different variations.
+              Also: the settings toggle list needs a names-only export, or it drags katex, mermaid and DOMPurify into its import graph.
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Test impact</p>
+            <p class="text-sm leading-relaxed">
+              <span class="font-mono text-xs">grep -c 'new EditorView'</span> over the sixteen plugin test files returns 1 —
+              only <span class="font-mono text-xs">queryjs-block-field.test.ts</span>. The other fifteen import the pure
+              <span class="font-mono text-xs">compute*</span> and never execute the ViewPlugin body, so the discipline is exercised once
+              in the entire block track and is untestable per plugin without duplicating ~25 lines of jsdom scaffolding fifteen times.
+              After: one <span class="font-mono text-xs">block-decorator.test.ts</span> asserts all four gates against a counting stub,
+              and a registry test — impossible today — asserts every registered decorator name appears in the settings toggle list.
+              It would currently fail on 6 inert names and 9 missing ones.
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Files</p>
+            <p class="font-mono text-xs text-slate-600 leading-relaxed">
+              src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts ·
+              …/plugins/{audio,video,mermaid,collection-block,meta-bind-button,block-comment,block-math,code-block,table,callout,queryjs-block}-*.ts ·
+              …/core/check-update-action.ts · …/inline/inline-formatting-plugin.ts ·
+              src/lib/core/settings/sections/TroubleshootingSection.svelte
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══════════════════════════════════════════════════════════════ C3 -->
+      <article id="c3" class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div class="px-7 py-5 border-b border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">3 · Make persistence a property of the settings module</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-semibold">Strong</span>
+              <span class="px-2.5 py-1 rounded-full bg-stone-200 text-slate-700 text-xs font-mono">in-process</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed">Changing a setting is a two-step contract every caller must remember — mutate the store,
+              then separately trigger a save — repeated across 58 <span class="font-mono text-xs">onchange()</span> calls in 17 files plus
+              14 external <span class="font-mono text-xs">saveSettings</span> sites in 9 modules, with nothing checking step two happened.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">One persistence owner: a single <span class="font-mono text-xs">$effect</span> reading
+              <span class="font-mono text-xs">settingsStore.settings</span> and calling one debounced save under
+              <span class="font-mono text-xs">untrack()</span>, so mutating the store <em>is</em> persisting it.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-4">Before — two arrows per site, four debounce policies</p>
+              <svg viewBox="0 0 340 250" class="w-full" style="max-height:250px">
+                <rect x="4" y="10" width="118" height="26" fill="#fff" stroke="#94a3b8"/>
+                <text x="63" y="27" text-anchor="middle" font-size="9" font-family="monospace" fill="#334155">16 panel sections</text>
+                <rect x="4" y="46" width="118" height="26" fill="#fff" stroke="#94a3b8"/>
+                <text x="63" y="63" text-anchor="middle" font-size="9" font-family="monospace" fill="#334155">9 external modules</text>
+                <rect x="4" y="82" width="118" height="26" fill="#fef2f2" stroke="#dc2626"/>
+                <text x="63" y="94" text-anchor="middle" font-size="8" font-family="monospace" fill="#991b1b">AppShell:102 / :109</text>
+                <text x="63" y="104" text-anchor="middle" font-size="8" font-family="monospace" fill="#991b1b">forgot step two</text>
+
+                <rect x="196" y="34" width="118" height="30" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
+                <text x="255" y="53" text-anchor="middle" font-size="9" font-family="monospace" fill="#0f172a">settingsStore</text>
+
+                <rect x="196" y="150" width="118" height="30" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
+                <text x="255" y="169" text-anchor="middle" font-size="9" font-family="monospace" fill="#0f172a">saveSettings</text>
+
+                <line x1="122" y1="23" x2="192" y2="45" stroke="#64748b" stroke-width="1.2"/>
+                <line x1="122" y1="59" x2="192" y2="52" stroke="#64748b" stroke-width="1.2"/>
+                <line x1="122" y1="95" x2="192" y2="58" stroke="#64748b" stroke-width="1.2"/>
+                <path d="M186 46 L194 50 L186 54Z" fill="#64748b"/>
+
+                <path d="M122 30 C160 120 160 150 192 160" stroke="#dc2626" fill="none" stroke-width="1.5"/>
+                <path d="M122 66 C160 130 160 155 192 163" stroke="#dc2626" fill="none" stroke-width="1.5"/>
+                <path d="M186 158 L194 162 L186 166Z" fill="#dc2626"/>
+                <text x="128" y="118" font-size="8" font-family="monospace" fill="#dc2626">second, separate duty</text>
+
+                <rect x="196" y="200" width="26" height="18" fill="#f1f5f9" stroke="#94a3b8"/><text x="209" y="212" text-anchor="middle" font-size="7" font-family="monospace" fill="#475569">500</text>
+                <rect x="226" y="200" width="26" height="18" fill="#f1f5f9" stroke="#94a3b8"/><text x="239" y="212" text-anchor="middle" font-size="7" font-family="monospace" fill="#475569">300</text>
+                <rect x="256" y="200" width="26" height="18" fill="#f1f5f9" stroke="#94a3b8"/><text x="269" y="212" text-anchor="middle" font-size="7" font-family="monospace" fill="#475569">300</text>
+                <rect x="286" y="200" width="26" height="18" fill="#f1f5f9" stroke="#94a3b8"/><text x="299" y="212" text-anchor="middle" font-size="7" font-family="monospace" fill="#475569">300</text>
+                <line x1="255" y1="180" x2="255" y2="198" stroke="#64748b" stroke-width="1.2"/>
+                <text x="255" y="238" text-anchor="middle" font-size="8" font-family="monospace" fill="#64748b">four debounce policies, one file</text>
+              </svg>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-4">After — one arrow per site, one policy</p>
+              <svg viewBox="0 0 340 250" class="w-full" style="max-height:250px">
+                <rect x="4" y="10" width="118" height="26" fill="#fff" stroke="#94a3b8"/>
+                <text x="63" y="27" text-anchor="middle" font-size="9" font-family="monospace" fill="#334155">16 panel sections</text>
+                <rect x="4" y="46" width="118" height="26" fill="#fff" stroke="#94a3b8"/>
+                <text x="63" y="63" text-anchor="middle" font-size="9" font-family="monospace" fill="#334155">9 external modules</text>
+                <rect x="4" y="82" width="118" height="26" fill="#fff" stroke="#94a3b8"/>
+                <text x="63" y="99" text-anchor="middle" font-size="9" font-family="monospace" fill="#334155">sidebar toggles</text>
+                <text x="63" y="126" text-anchor="middle" font-size="8" font-family="monospace" fill="#059669">zero props, one call each</text>
+
+                <line x1="122" y1="23" x2="192" y2="45" stroke="#64748b" stroke-width="1.2"/>
+                <line x1="122" y1="59" x2="192" y2="52" stroke="#64748b" stroke-width="1.2"/>
+                <line x1="122" y1="95" x2="192" y2="58" stroke="#64748b" stroke-width="1.2"/>
+                <path d="M186 46 L194 50 L186 54Z" fill="#64748b"/>
+
+                <rect x="196" y="34" width="118" height="30" fill="#0f172a"/>
+                <text x="255" y="53" text-anchor="middle" font-size="9" font-family="monospace" fill="#6ee7b7">settingsStore</text>
+
+                <line x1="255" y1="64" x2="255" y2="96" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M251 90 L255 100 L259 90Z" fill="#0f172a"/>
+                <line x1="150" y1="118" x2="330" y2="118" stroke="#0f172a" stroke-width="1.5" class="seam"/>
+                <text x="146" y="115" text-anchor="end" font-size="8" font-family="monospace" fill="#0f172a">seam</text>
+
+                <rect x="182" y="126" width="146" height="34" fill="#0f172a"/>
+                <text x="255" y="140" text-anchor="middle" font-size="9" font-family="monospace" fill="#6ee7b7">$effect + untrack()</text>
+                <text x="255" y="152" text-anchor="middle" font-size="7.5" font-family="monospace" fill="#64748b">one debounce · hydration gate</text>
+
+                <line x1="255" y1="160" x2="255" y2="186" stroke="#64748b" stroke-width="1.2"/>
+                <path d="M251 180 L255 190 L259 180Z" fill="#64748b"/>
+                <rect x="196" y="192" width="118" height="30" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
+                <text x="255" y="211" text-anchor="middle" font-size="9" font-family="monospace" fill="#0f172a">writeTextFile</text>
+              </svg>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>Interface shrinks: sections take zero props</li>
+                <li>One seam owns persistence</li>
+                <li>72 call sites lose a duty</li>
+                <li>Locality: one debounce policy, not four</li>
+                <li>Tests hit one interface, not seventeen</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Deletion test</p>
+              <p class="text-sm leading-relaxed">Delete the <span class="font-mono text-xs">onchange</span> prop and the 13 non-panel
+              <span class="font-mono text-xs">saveSettings</span> imports: every site reduces to a bare
+              <span class="font-mono text-xs">settingsStore.updateX(...)</span>. Nothing is pushed back onto callers.
+              The store's <em>setters</em> fail the same test in the opposite direction — deleting those spreads spread-merge logic
+              across 92 sites — so they earn their keep.</p>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3">
+            <p class="text-xs font-semibold text-red-800 lbl mb-1.5">The two-step contract has already been forgotten, on main</p>
+            <p class="text-sm text-red-900 leading-relaxed">
+              <span class="font-mono text-xs">AppShell.svelte:102</span> and <span class="font-mono text-xs">:109</span> call
+              <span class="font-mono text-xs">updateLayout({leftSidebarVisible: …})</span> with no save, while the identical toggles at
+              <span class="font-mono text-xs">global-keybindings.ts:109-120</span> and
+              <span class="font-mono text-xs">command-palette.service.ts:163-183</span> do persist.
+              Toggling a sidebar with the button is forgotten across restarts; toggling it with ⌘B is not.
+              That is exactly the silent regression the two-step contract predicts.
+            </p>
+          </div>
+
+          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+            <p class="text-xs font-semibold text-amber-900 lbl mb-1.5">Under-costed by the proposal</p>
+            <p class="text-sm text-amber-900 leading-relaxed">
+              Three suppressions are needed, all internal to the settings module, so the depth win holds:
+              (a) <span class="font-mono text-xs">resetSettings()</span> during teardown (<span class="font-mono text-xs">app-lifecycle.service.ts:421</span>)
+              would otherwise schedule a write of <span class="font-mono text-xs">DEFAULT_SETTINGS</span>;
+              (b) the effect's first run happens over un-hydrated defaults and needs a hydration gate or it clobbers
+              <span class="font-mono text-xs">settings.json</span>;
+              (c) two <span class="font-mono text-xs">await saveSettings(...)</span>-before-toast sites become fire-and-forget.
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Test impact</p>
+            <p class="text-sm leading-relaxed">Nothing in <span class="font-mono text-xs">src/tests/lib/core/settings/</span> asserts that a
+            mutation reaches disk — the store suite checks spread merges, the service suite calls save/load directly, and no
+            <span class="font-mono text-xs">sections/*.svelte</span> test exists. Verifying today's shape honestly would need ~17 component
+            files asserting 58 handlers each remembered a second call — tests at the wrong granularity.
+            After: one test (mutate, advance timers, assert the written value) covers all 72 sites.</p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Files</p>
+            <p class="font-mono text-xs text-slate-600 leading-relaxed">
+              src/lib/core/settings/settings.store.svelte.ts · settings.service.ts · SettingsPanel.svelte · sections/*.svelte ·
+              src/lib/features/auto-move/AutoMoveSection.svelte · src/lib/core/layout/AppShell.svelte · layout.service.ts ·
+              src/lib/core/keybindings/global-keybindings.ts · src/lib/features/command-palette/command-palette.service.ts ·
+              src/lib/features/tags/{TagsPanel,TagsView}.svelte · src/lib/features/type-definitions/SidebarModeToggle.svelte
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══════════════════════════════════════════════════════════════ C4 -->
+      <article id="c4" class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div class="px-7 py-5 border-b border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">4 · Give the property index one producer and one version</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-amber-500 text-amber-950 text-xs font-semibold">Worth exploring</span>
+              <span class="px-2.5 py-1 rounded-full bg-stone-200 text-slate-700 text-xs font-mono">ports &amp; adapters</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed"><span class="font-mono text-xs">collectionStore</span>'s interface is a bare Map plus an
+              <span class="font-mono text-xs">isReady</span> flag, so a caller cannot tell which of two divergent projections produced a
+              record nor whether it is stale — and the two projections genuinely disagree.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">Feed the store only from the Rust <span class="font-mono text-xs">NoteRecord</span> projection
+              — returned by the <span class="font-mono text-xs">update_note_in_index</span> call these paths already make — and expose a
+              monotonic version, so provenance and freshness live in the interface.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-2">Before</p>
+              <pre class="mermaid">
+flowchart TD
+  R[(Rust VaultIndex)] --> P1["project_note_record<br/>vault.rs:761"]
+  P1 --> B["buildPropertyIndex<br/>2 call sites"]
+  B --> M[["collectionStore<br/>propertyIndex : Map"]]
+  R -.-> T["buildNoteRecord (TS)<br/>collection.logic.ts:21"]
+  T ==> M
+  M --> V[CollectionView]
+  M --> W1[CollectionBlockWidget]
+  M --> W2[QueryjsBlockWidget]
+  X["removeNoteFromIndex<br/>zero callers"] -.->|never fires| M
+  classDef leak stroke:#dc2626,stroke-width:2.5px,color:#991b1b;
+  classDef dead stroke:#dc2626,stroke-dasharray:4 4,color:#991b1b;
+  class T leak
+  class X dead
+              </pre>
+              <p class="mt-2 text-[11px] text-slate-500">Rust emits bare <span class="font-mono">organized</span>; TS emits <span class="font-mono">_organized</span>. The evaluator resolves only the bare form.</p>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-2">After</p>
+              <pre class="mermaid">
+flowchart TD
+  R[(Rust VaultIndex)] --> P1["project_note_record<br/>one projection"]
+  P1 --> A1["get_all_property_records<br/>bulk load"]
+  P1 --> A2["update_note_in_index<br/>returns the record"]
+  A1 --> M[["collectionStore<br/>{ records, version, isReady }"]]
+  A2 --> M
+  M --> V[CollectionView]
+  M --> W1["CollectionBlockWidget<br/>keyed on (content, version)"]
+  M --> W2["QueryjsBlockWidget<br/>keyed on (content, version)"]
+  classDef deep fill:#0f172a,color:#6ee7b7,stroke:#0f172a,stroke-width:2px;
+  class M deep
+              </pre>
+              <p class="mt-2 text-[11px] text-slate-500">Two ad-hoc staleness proxies and the cache-clearing shim disappear.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>One projection: alias, lifecycle, relationship rules</li>
+                <li>Freshness becomes part of the interface</li>
+                <li>Deletes two ad-hoc staleness proxies</li>
+                <li>KBAPI consumes one snapshot, not two</li>
+                <li>Subsumes tracked bugs M08 and M12</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Deletion test</p>
+              <p class="text-sm leading-relaxed">Delete the TS producer's write. Complexity concentrates: alias canonicalization,
+              lifecycle-flag insertion, relationship-target extraction, tag merge and seconds→ms conversion currently exist twice
+              (<span class="font-mono text-xs">vault.rs:757-787</span> and <span class="font-mono text-xs">collection.logic.ts:34-47</span>)
+              and would exist once. All four TS call sites already have a Rust round trip in flight, so none of them grows.</p>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3">
+            <p class="text-xs font-semibold text-red-800 lbl mb-1.5">Divergence reproduced end-to-end</p>
+            <p class="text-sm text-red-900 leading-relaxed">
+              <span class="font-mono text-xs">vault.rs:761-763</span> always inserts bare
+              <span class="font-mono text-xs">organized</span>/<span class="font-mono text-xs">archived</span>/<span class="font-mono text-xs">favorite</span>.
+              The TS producer never does — <span class="font-mono text-xs">parseFrontmatterProperties</span> canonicalizes them to the
+              underscore form (<span class="font-mono text-xs">properties.logic.ts:146</span>), and the evaluator aliases only
+              <span class="font-mono text-xs">type</span>. So the filter exercised by <span class="font-mono text-xs">portent-filters.test.ts:41-46</span>
+              stops matching the moment any of the four TS call sites replaces a record. Same story for relationship targets.
+            </p>
+          </div>
+
+          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+            <p class="text-xs font-semibold text-amber-900 lbl mb-1.5">The unaddressed cost</p>
+            <p class="text-sm text-amber-900 leading-relaxed">
+              The TS producer is <em>synchronous by design</em> — <span class="font-mono text-xs">note-creator.service.ts:83-93</span> documents
+              that <span class="font-mono text-xs">kb.current()</span> returns null for auto-run queryjs blocks without it. Feeding the store from
+              an IPC reply changes those semantics. Aligns with rather than contradicts ADR-0025, whose stated end state is
+              “zero TS metadata indexers”.
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Files</p>
+            <p class="font-mono text-xs text-slate-600 leading-relaxed">
+              src/lib/features/collection/{collection.store.svelte.ts, collection.service.ts, collection.logic.ts} ·
+              src/lib/core/markdown-editor/extensions/live-preview/widgets/{collection-block,queryjs-block}-widget.ts ·
+              src/lib/plugins/queryjs/kb-api.ts · src-tauri/src/commands/vault.rs (project_note_record)
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══════════════════════════════════════════════════════════════ C5 -->
+      <article id="c5" class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div class="px-7 py-5 border-b border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">5 · Collapse the <span class="font-mono text-lg">.view</span> query pipeline into one module</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-amber-500 text-amber-950 text-xs font-semibold">Worth exploring</span>
+              <span class="px-2.5 py-1 rounded-full bg-stone-200 text-slate-700 text-xs font-mono">mock</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed">The “read <span class="font-mono text-xs">.view</span> YAML → parse → seed toolbar → apply
+              overrides → execute → persist → re-query” pipeline lives inside two components as private copies, and the copies already disagree
+              on disk reads, readiness and cache invalidation.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">One view-query module (store + service) with the interface
+              <span class="font-mono text-xs">selectView / setFilters / getResultPaths / getCount / isReady</span>, and the two components read from it.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-3">Before — two private copies of one pipeline</p>
+              <div class="space-y-3">
+                <div class="border border-slate-300 rounded p-2.5">
+                  <p class="font-mono text-[10px] text-slate-500 mb-1.5">TypeSidebar.svelte:95</p>
+                  <div class="flex gap-[2px] text-[8px] font-mono text-white">
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">debounce 1000</div>
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">generation</div>
+                    <div class="bg-red-700 px-1 py-1 rounded-sm">refresh (always disk)</div>
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">executeQuery</div>
+                    <div class="bg-red-700 px-1 py-1 rounded-sm">→ Map nobody reads</div>
+                  </div>
+                </div>
+                <div class="border border-slate-300 rounded p-2.5">
+                  <p class="font-mono text-[10px] text-slate-500 mb-1.5">TypeNoteList.svelte:174</p>
+                  <div class="flex gap-[2px] text-[8px] font-mono text-white flex-wrap">
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">generation</div>
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">selfUpdate</div>
+                    <div class="bg-red-700 px-1 py-1 rounded-sm">cached (never disk)</div>
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">seed + override</div>
+                    <div class="bg-slate-600 px-1 py-1 rounded-sm">executeQuery</div>
+                    <div class="bg-red-700 px-1 py-1 rounded-sm">no isReady guard</div>
+                  </div>
+                </div>
+                <div class="border border-dashed border-stone-300 rounded p-2.5 hatch">
+                  <p class="font-mono text-[10px] text-slate-500">view-parse-cache.ts — module-level Map, never invalidated</p>
+                  <p class="font-mono text-[9px] text-red-700 mt-1">clearViewParseCache · clearAllViewParseCache · getViewQueryResult — zero production callers</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-3">After — one module, two thin readers</p>
+              <div class="space-y-2.5">
+                <div class="flex gap-2.5">
+                  <div class="flex-1 border border-slate-300 rounded p-2.5 bg-stone-50">
+                    <p class="font-mono text-[10px] text-slate-600">TypeSidebar</p>
+                    <p class="font-mono text-[9px] text-emerald-700 mt-1">getCount(path)</p>
+                  </div>
+                  <div class="flex-1 border border-slate-300 rounded p-2.5 bg-stone-50">
+                    <p class="font-mono text-[10px] text-slate-600">TypeNoteList</p>
+                    <p class="font-mono text-[9px] text-emerald-700 mt-1">getResultPaths(path)</p>
+                  </div>
+                </div>
+                <svg width="100%" height="26"><line x1="0" y1="13" x2="100%" y2="13" stroke="#0f172a" stroke-width="1.5" class="seam"/></svg>
+                <div class="deep rounded p-4">
+                  <p class="font-mono text-xs text-emerald-300">selectView · setFilters · setSort</p>
+                  <p class="font-mono text-xs text-emerald-300">getResultPaths · getCount · isReady</p>
+                  <p class="mt-3 text-[10px] font-mono text-slate-500 leading-relaxed">
+                    one debounce · one generation guard · one selfUpdate latch · one readiness gate ·
+                    one parse cache with real invalidation · read / parse / seed / override / execute / persist
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>One interface for every <span class="font-mono text-xs">.view</span> query</li>
+                <li>Readiness guard fixed in one place</li>
+                <li>Interface shrinks: callers stop picking a cache function</li>
+                <li>Locality: debounce, generation, selfUpdate live once</li>
+                <li>Tests hit one interface, not two components</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Deletion test</p>
+              <p class="text-sm leading-relaxed">The two callers are genuinely coupled through module state:
+              <span class="font-mono text-xs">TypeSidebar</span> writes a query-result Map that has zero readers, while
+              <span class="font-mono text-xs">TypeNoteList</span> independently re-runs <span class="font-mono text-xs">executeQuery</span> over the
+              whole property index for the same view — and its only route to fresh YAML is the sidebar's 1 s debounce.</p>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3">
+            <p class="text-xs font-semibold text-red-800 lbl mb-1.5">Reactivity hole confirmed</p>
+            <p class="text-sm text-red-900 leading-relaxed">
+              The <span class="font-mono text-xs">$effect</span> at <span class="font-mono text-xs">TypeNoteList.svelte:146-172</span> never reads
+              <span class="font-mono text-xs">collectionStore.propertyIndex</span>, and <span class="font-mono text-xs">loadViewNotes</span> reads it
+              only <em>after</em> its await. A <span class="font-mono text-xs">.view</span> selected before
+              <span class="font-mono text-xs">buildPropertyIndex</span> resolves shows nothing until the next version bump.
+              <span class="font-mono text-xs">CollectionView</span> is the only site that guards on <span class="font-mono text-xs">isIndexReady</span>.
+            </p>
+          </div>
+
+          <div class="rounded-md bg-stone-100 border border-stone-300 px-4 py-3">
+            <p class="text-xs font-semibold text-slate-700 lbl mb-1.5">Scoped down by verification</p>
+            <p class="text-sm text-slate-700 leading-relaxed">
+              This is a <strong>two-caller</strong> merge, not three. <span class="font-mono text-xs">CollectionView</span> drives the same
+              pipeline from editor YAML rather than from a selected <span class="font-mono text-xs">.view</span> file; folding it in would
+              force mode flags into the interface. Leave it out.
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Files</p>
+            <p class="font-mono text-xs text-slate-600 leading-relaxed">
+              src/lib/features/type-definitions/{TypeSidebar.svelte, TypeNoteList.svelte, view-parse-cache.ts, type-note-list.logic.ts, type-definitions.service.ts}
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══════════════════════════════════════════════════════════════ C6 -->
+      <article id="c6" class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div class="px-7 py-5 border-b border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">6 · Give the VaultIndex snapshot one reader</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-amber-500 text-amber-950 text-xs font-semibold">Worth exploring</span>
+              <span class="px-2.5 py-1 rounded-full bg-stone-200 text-slate-700 text-xs font-mono">in-process</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed">Ten call sites each invoke <span class="font-mono text-xs">get_all_vault_entries_v2</span>
+              and keep their own copy of the result; <span class="font-mono text-xs">vault.rs:478</span> clones and sorts every
+              <span class="font-mono text-xs">NoteEntry</span> per call. Three of them then hand-roll a different version-gate spelling on top.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">One version-keyed snapshot memo behind an <span class="font-mono text-xs">entries()</span>
+              interface. Scope it to the snapshot only — <em>not</em> to a general subscribe protocol.</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Before — six spellings of one refresh protocol</p>
+            <div class="rounded-lg border border-slate-200 bg-white overflow-x-auto">
+              <table class="w-full text-xs border-collapse min-w-[700px]">
+                <thead>
+                  <tr class="bg-stone-100">
+                    <th class="text-left font-mono font-normal px-3 py-2 text-slate-600 border-b border-slate-200">consumer</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">version gate</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">in-flight collapse</th>
+                    <th class="px-2 py-2 font-normal lbl text-slate-500 border-b border-slate-200">latest-wins</th>
+                    <th class="text-left px-3 py-2 font-normal lbl text-slate-500 border-b border-slate-200">keyed on</th>
+                  </tr>
+                </thead>
+                <tbody class="font-mono text-[11px]">
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5">backlinks.service.ts:36</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="px-3 text-slate-500">two Maps on version</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5">outgoing-links.service.ts:22</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="px-3 text-slate-500">version : contentLen : path</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5">tags.service.ts:56</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="text-center text-red-500 font-bold">✕</td><td class="px-3 text-slate-500">isBuilding / pendingRebuild</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5">completion.ts:28</td><td class="text-center text-emerald-600">●</td><td class="text-center text-emerald-600">●</td><td class="text-center text-red-500 font-bold">✕</td><td class="px-3 text-slate-500">cachedVersion / pendingFetch</td></tr>
+                  <tr class="border-b border-stone-100"><td class="px-3 py-1.5">tauri-listeners.service.ts:97</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-emerald-600">●</td><td class="px-3 text-slate-500">debounce 300 + fetchSeq</td></tr>
+                  <tr><td class="px-3 py-1.5">tasks.service.ts:53</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-red-500 font-bold">✕</td><td class="text-center text-red-500 font-bold">✕</td><td class="px-3 text-slate-500">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              Five test suites test the same three describe-blocks against five different implementations.
+              <span class="font-mono">tags.service.ts:103</span> exports <span class="font-mono">flushScheduledTagIndexRebuild</span>, marked
+              “test-only”, purely so a test can observe private module state — a test reaching past the interface.
+            </p>
+          </div>
+
+          <div class="rounded-md bg-stone-100 border border-stone-300 px-4 py-3">
+            <p class="text-xs font-semibold text-slate-700 lbl mb-1.5">Half of this candidate was refuted — read before acting</p>
+            <p class="text-sm text-slate-700 leading-relaxed">
+              The tempting framing (“one reader owning version gate + in-flight + latest-wins for everyone”) is a category error.
+              The version-gate owners read <em>targeted</em> commands (<span class="font-mono text-xs">get_backlinks_v2</span>,
+              <span class="font-mono text-xs">get_outgoing_links_v2</span>, <span class="font-mono text-xs">get_all_tags_v2</span>) and never touch the
+              snapshot; the snapshot readers own no version gate. Only two consumers are in both sets.
+              Burst collapse is <em>already</em> centralized — <span class="font-mono text-xs">tauri-listeners.service.ts:104</span> bumps the version
+              inside a 300 ms debounce, so the missing guards in <span class="font-mono text-xs">tasks.service.ts</span> and GraphView are covered.
+              And <span class="font-mono text-xs">subscribe(fetch, apply)</span> cannot express the real variation, so it would ship a shallow module.
+              <strong>What survives is the narrow, real win:</strong> a version-keyed memo for the ten snapshot call sites.
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>Snapshot fetched once per version, not ten times</li>
+                <li>Drops a per-render full-vault fetch in queryjs</li>
+                <li>Removes the “pass entries down if you have them” hack</li>
+                <li>Leverage: one interface, ten call sites</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Files</p>
+              <p class="font-mono text-xs text-slate-600 leading-relaxed">
+                src/lib/core/vault/vault.store.svelte.ts · src/lib/core/layout/tauri-listeners.service.ts ·
+                graph-view.service.ts · file-icons.service.ts · search.service.ts · type-definitions.service.ts ·
+                lifecycle-filter.service.ts · wikilink/completion.ts · queryjs-block-widget.ts · src-tauri/src/commands/vault.rs:478
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ═══════════════════════════════════════════════════════════════ C7 -->
+      <article id="c7" class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div class="px-7 py-5 border-b border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">7 · Make <span class="font-mono text-lg">initializeVault</span> own its own tail</h2>
+            <div class="flex gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full bg-amber-500 text-amber-950 text-xs font-semibold">Worth exploring</span>
+              <span class="px-2.5 py-1 rounded-full bg-stone-200 text-slate-700 text-xs font-mono">mock</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-7 py-7 space-y-7">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Problem</p>
+              <p class="text-sm leading-relaxed">The ordered vault-open sequence is split between
+              <span class="font-mono text-xs">initializeVault</span>'s implementation and a <span class="font-mono text-xs">+layout.svelte</span>
+              effect that appends two more ordered steps plus the teardown branch — so no module states the whole sequence and no test can reach half of it.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1.5">Solution</p>
+              <p class="text-sm leading-relaxed">Move the post-init tail and the save-then-teardown rule into
+              <span class="font-mono text-xs">openVault</span> / <span class="font-mono text-xs">closeVault</span>, leaving
+              <span class="font-mono text-xs">+layout.svelte</span> with one effect mirroring <span class="font-mono text-xs">vaultStore.isOpen</span>.</p>
+            </div>
+          </div>
+
+          <!-- cross-section -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-3">Before — the tail lives above the module</p>
+              <div class="space-y-1">
+                <div class="h-11 border-l-4 border-red-500 bg-red-50 pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-red-900">+layout.svelte — .then(…)</p>
+                  <p class="font-mono text-[9px] text-red-700">setTimeout(autoOpenDailyNote) · maybeAutoCheckForUpdates</p>
+                </div>
+                <div class="h-11 border-l-4 border-red-500 bg-red-50 pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-red-900">+layout.svelte — else branch</p>
+                  <p class="font-mono text-[9px] text-red-700">teardownVault() bare — no saveAllDirtyTabs</p>
+                </div>
+                <div class="h-16 border-l-4 border-slate-700 bg-stone-100 pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-slate-700">app-lifecycle.service.ts — initializeVault</p>
+                  <p class="font-mono text-[9px] text-slate-500">steps 1–8, six early returns that still resolve</p>
+                </div>
+                <div class="h-11 border-l-4 border-stone-400 bg-white pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-slate-600">~30 feature / plugin services</p>
+                </div>
+              </div>
+              <p class="mt-3 text-[11px] text-slate-500">Two mutually-referencing comment blocks carry the contract instead of code.</p>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-400 mb-3">After — one band absorbs the tail</p>
+              <div class="space-y-1">
+                <div class="h-11 border-l-4 border-emerald-600 bg-emerald-50 pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-emerald-900">+layout.svelte</p>
+                  <p class="font-mono text-[9px] text-emerald-700">isOpen ? openVault(path) : closeVault()</p>
+                </div>
+                <div class="h-[104px] border-l-4 border-slate-900 deep pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-emerald-300">app-lifecycle.service.ts</p>
+                  <p class="font-mono text-[9px] text-slate-400 mt-1">openVault: steps 1–8 + daily note + update check</p>
+                  <p class="font-mono text-[9px] text-slate-400">closeVault: saveAllDirtyTabs → teardown</p>
+                  <p class="font-mono text-[9px] text-slate-500 mt-1">early returns skip the tail automatically</p>
+                </div>
+                <div class="h-11 border-l-4 border-stone-400 bg-white pl-3 flex flex-col justify-center">
+                  <p class="font-mono text-[10px] text-slate-600">~30 feature / plugin services</p>
+                </div>
+              </div>
+              <p class="mt-3 text-[11px] text-slate-500">The three reactive data effects stay in the component — they were deliberately inlined there.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <p class="lbl text-slate-400 mb-2">Wins</p>
+              <ul class="text-sm space-y-1.5 list-disc list-inside marker:text-emerald-600">
+                <li>Whole open sequence behind one interface</li>
+                <li>Deferred tail becomes verifiable</li>
+                <li>Ordering stops living in paired comments</li>
+                <li>Locality: vault ordering changes touch one module</li>
+              </ul>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-2">Deletion test</p>
+              <p class="text-sm leading-relaxed"><span class="font-mono text-xs">initializeVault</span> has exactly one production caller,
+              and that caller shrinks from a 38-line then/catch/else block to two calls. Merging in this direction concentrates;
+              merging in the other spreads eight ordered steps into a component.</p>
+            </div>
+          </div>
+
+          <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3">
+            <p class="text-xs font-semibold text-red-800 lbl mb-1.5">Defect found during verification, not claimed by the explorer</p>
+            <p class="text-sm text-red-900 leading-relaxed">
+              <span class="font-mono text-xs">initializeVault</span> early-returns — and therefore <em>resolves</em> — at six points
+              (<span class="font-mono text-xs">:133, :160, :163, :192, :207, :224</span>). The
+              <span class="font-mono text-xs">+layout</span> <span class="font-mono text-xs">.then</span> tail fires
+              <span class="font-mono text-xs">autoOpenDailyNote</span> and <span class="font-mono text-xs">maybeAutoCheckForUpdates</span> anyway —
+              including when <span class="font-mono text-xs">open_vault_db</span> failed or a rapid vault switch invalidated the init.
+              Moving the tail inside makes that guard automatic.
+            </p>
+          </div>
+
+          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+            <p class="text-xs font-semibold text-amber-900 lbl mb-1.5">Scope it down</p>
+            <p class="text-sm text-amber-900 leading-relaxed">
+              Do <strong>not</strong> move the listener registrations. They are app-mount scope, not vault scope:
+              <span class="font-mono text-xs">registerDeepLinkListener</span> must be live <em>before</em> any vault is open —
+              <span class="font-mono text-xs">deep-link.service.ts:130-139</span> stores a pending action and calls
+              <span class="font-mono text-xs">vaultStore.open()</span> precisely because the listener caught a URL with no vault open.
+              Same for the close handler, the menu listener and quick-capture.
+            </p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Test impact</p>
+            <p class="text-sm leading-relaxed">No test directory covers <span class="font-mono text-xs">src/routes</span> at all.
+            Nothing anywhere asserts that opening a vault opens the daily note, that the update check runs after settings load, or that a
+            vault switch saves dirty tabs before teardown. The existing suite even asserts the daily-note step is
+            <em>not</em> part of the interface. After the merge, those three become plain assertions in the existing suite with the same
+            Tauri-only mock set.</p>
+          </div>
+
+          <div>
+            <p class="lbl text-slate-400 mb-2">Files</p>
+            <p class="font-mono text-xs text-slate-600 leading-relaxed">
+              src/lib/core/app-lifecycle/app-lifecycle.service.ts · src/routes/(app)/+layout.svelte · src/lib/core/vault/vault.service.ts
+            </p>
+          </div>
+        </div>
+      </article>
+
+      </section>
+
+      <!-- ═══════════════ REFUTED ═══════════════ -->
+      <section class="rounded-xl border border-stone-300 bg-stone-100 px-7 py-6">
+        <h2 class="font-serif text-xl mb-1">Checked and rejected</h2>
+        <p class="text-sm text-slate-600 mb-4">Six candidates did not survive verification. Recorded so they are not re-proposed.</p>
+        <ul class="space-y-2.5 text-sm">
+          <li><span class="font-semibold">Merge the two note-creation modules.</span>
+            <span class="text-slate-600">Their contracts differ (“collision-free name in folder F” vs “open path P, create from template”). Merging yields an options bag with mutually-exclusive mode flags — a shallow module. The real defect is narrower: <span class="font-mono text-xs">createFile</span> hardcodes empty content, so five callers write real content afterwards while <span class="font-mono text-xs">markRecentSave</span> has already suppressed the watcher.</span></li>
+          <li><span class="font-semibold">One hub for the external-note-write protocol.</span>
+            <span class="text-slate-600">The writer inventory was wrong in both directions; two of the eight claimed writers do not write. Superseded by candidate 1.</span></li>
+          <li><span class="font-semibold">Resolve a sidebar selection in one module.</span>
+            <span class="text-slate-600">The eight switch sites dispatch on genuinely different concerns; collapsing them moves complexity rather than concentrating it.</span></li>
+          <li><span class="font-semibold">One registered discipline for the five widget render caches.</span>
+            <span class="text-slate-600">The caches store different things on purpose (live DOM, sanitized HTML string, SVG markup, query data) — CLAUDE.md documents why. One adapter each, no real seam.</span></li>
+          <li><span class="font-semibold">Collapse the <span class="font-mono text-xs">.collection</span> YAML write paths · make the filter-row mapping one table.</span>
+            <span class="text-slate-600">Both are local tidy-ups, not depth changes. The two query languages are also genuinely justified — merging them would need a JS-chain→AST translator and would grow complexity.</span></li>
+        </ul>
+      </section>
+
+      <!-- ═══════════════ TOP RECOMMENDATION ═══════════════ -->
+      <section id="top-recommendation" class="rounded-xl deep text-stone-200 px-8 py-8">
+        <p class="lbl text-emerald-400 mb-3">Top recommendation</p>
+        <h2 class="font-serif text-3xl text-stone-50 mb-4">
+          <a href="#c1" class="hover:text-emerald-300 underline decoration-slate-600 underline-offset-4">Give “a note changed” one owning module</a>
+        </h2>
+        <p class="text-sm leading-relaxed max-w-3xl text-slate-300">
+          Three explorers reached it independently from three different subsystems, which is the strongest structural signal in this review.
+          It is the only candidate whose absence is already producing shipped defects rather than predicted ones: an active ADR-0009 violation
+          in <span class="font-mono text-xs text-slate-200">renameItem</span> and <span class="font-mono text-xs text-slate-200">moveItem</span>,
+          a bug fixed in one copy of the vault-relative path rule and left standing in its twin, and a removal function with zero callers
+          leaving phantom pages behind. Every other candidate improves code that currently works.
+        </p>
+        <p class="text-sm leading-relaxed max-w-3xl text-slate-300 mt-4">
+          It is also the largest, so start with the <span class="font-mono text-xs text-slate-200">forgetNote</span> half — three call sites,
+          two of them already wrong, and an ADR that already specifies the correct behaviour. That lands the seam and the test surface before
+          the fifteen-writer side needs touching.
+        </p>
+        <p class="text-xs text-slate-500 mt-6">
+          Runner-up: <a href="#c2" class="underline decoration-slate-700 hover:text-emerald-300">candidate 2</a> — the cheapest
+          Strong result here. Eleven verbatim copies, a factory shape already proven in this repo for the inline track, and no behaviour change
+          beyond deleting eleven provably dead guards.
+        </p>
+      </section>
+
+      <footer class="pt-4 pb-8 text-xs text-slate-400 border-t border-stone-200">
+        Vocabulary per <span class="font-mono">/codebase-design</span>: module · interface · implementation · depth · seam · adapter · leverage · locality.
+        No <span class="font-mono">CONTEXT.md</span> exists at the repo root; domain terms taken from <span class="font-mono">CLAUDE.md</span> and <span class="font-mono">docs/adr/</span>.
+      </footer>
+    </main>
+  </body>
+</html>
