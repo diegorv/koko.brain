@@ -1,5 +1,17 @@
-import { test, expect } from '../fixtures/test-vault';
+import type { Page } from '@playwright/test';
+import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { openTreeItem, pressShortcut } from '../fixtures/helpers';
+
+/** Reads the persisted visibility flag for one sidebar from settings.json on the mock FS. */
+function readPersistedVisibility(page: Page, key: 'leftSidebarVisible' | 'rightSidebarVisible') {
+	return page.evaluate(
+		({ vaultPath, key }) => {
+			const raw = window.__e2e.fs.readFile(`${vaultPath}/.kokobrain/settings.json`);
+			return JSON.parse(raw).layout[key] as boolean | undefined;
+		},
+		{ vaultPath: TEST_VAULT_PATH, key },
+	);
+}
 
 test.describe('Right sidebar panels', () => {
 	test('backlinks panel populates for a note with incoming links', async ({ vaultPage: page }) => {
@@ -33,5 +45,23 @@ test.describe('Right sidebar panels', () => {
 		// After toggle, visibility should have flipped
 		const nowVisible = await sidebarHeader.isVisible().catch(() => false);
 		expect(nowVisible).not.toBe(wasVisible);
+	});
+});
+
+test.describe('Sidebar toggle buttons persist layout', () => {
+	// Regression: the AppShell toggle buttons used to flip the pane without
+	// writing settings.json, while the equivalent keybindings persisted it.
+	// Hiding a sidebar can leak to disk indirectly (the surviving panes fire
+	// onResize -> debouncedSave, which serializes the whole store), so a
+	// single click is not a valid probe. Hiding BOTH sidebars removes every
+	// pane with an onResize handler: the second flag only reaches disk if the
+	// button itself saves.
+
+	test('hiding both sidebars via the buttons persists both flags', async ({ vaultPage: page }) => {
+		await page.locator('button[title="Hide right sidebar"]').click();
+		await expect.poll(() => readPersistedVisibility(page, 'rightSidebarVisible')).toBe(false);
+
+		await page.locator('button[title="Hide left sidebar"]').click();
+		await expect.poll(() => readPersistedVisibility(page, 'leftSidebarVisible')).toBe(false);
 	});
 });
