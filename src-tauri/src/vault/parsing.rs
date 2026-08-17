@@ -932,13 +932,13 @@ pub fn strip_non_body_content(content: &str) -> String {
 	let mut search_from = 0;
 	while search_from + 3 <= bytes.len() {
 		// Find the next opening ```
-		let open_idx = match find_triple_backtick(bytes, search_from) {
+		let open_idx = match content[search_from..].find("```").map(|i| i + search_from) {
 			Some(i) => i,
 			None => break,
 		};
 		// Find the closing ``` after the opener
 		let after_open = open_idx + 3;
-		let close_idx = match find_triple_backtick(bytes, after_open) {
+		let close_idx = match content[after_open..].find("```").map(|i| i + after_open) {
 			Some(i) => i,
 			None => break, // Unclosed fence — TS regex doesn't match, leave as-is
 		};
@@ -952,23 +952,6 @@ pub fn strip_non_body_content(content: &str) -> String {
 	// SAFETY: every modified byte is ASCII space; unmodified bytes were
 	// from a valid UTF-8 input. Result is therefore valid UTF-8.
 	unsafe { String::from_utf8_unchecked(out) }
-}
-
-/// Finds the byte offset of the next `\`\`\`` (three consecutive backticks)
-/// at or after `start`. Returns the offset of the FIRST backtick of the
-/// triple, or `None` when no such sequence exists in `bytes[start..]`.
-fn find_triple_backtick(bytes: &[u8], start: usize) -> Option<usize> {
-	if bytes.len() < 3 {
-		return None;
-	}
-	let mut i = start;
-	while i + 2 < bytes.len() {
-		if bytes[i] == b'`' && bytes[i + 1] == b'`' && bytes[i + 2] == b'`' {
-			return Some(i);
-		}
-		i += 1;
-	}
-	None
 }
 
 /// Returns byte offsets where `search_term` appears as a plain-text
