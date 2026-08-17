@@ -10,6 +10,7 @@ import {
 	getRelativePath,
 	getFileName,
 	performSearchOverFiles,
+	lineStartToOffset,
 } from '$lib/features/search/search.logic';
 
 describe('parseSearchQuery', () => {
@@ -382,5 +383,33 @@ describe('sanitizeSnippetHtml', () => {
 	it('escapes ampersands and quotes', () => {
 		const html = 'A &amp; B "quoted" <mark>match</mark>';
 		expect(sanitizeSnippetHtml(html)).toBe('A &amp;amp; B &quot;quoted&quot; <mark>match</mark>');
+	});
+});
+
+describe('lineStartToOffset', () => {
+	// "aa\nbbb\ncccc" line starts: line 1 → 0, line 2 → 3, line 3 → 7
+	const content = 'aa\nbbb\ncccc';
+
+	it('returns the character offset where the 1-indexed line starts', () => {
+		expect(lineStartToOffset(content, 1)).toBe(0);
+		expect(lineStartToOffset(content, 2)).toBe(3);
+		expect(lineStartToOffset(content, 3)).toBe(7);
+	});
+
+	it('clamps a line number past the last line to the last line start', () => {
+		expect(lineStartToOffset(content, 99)).toBe(7);
+	});
+
+	it('clamps line numbers below 1 to offset 0', () => {
+		expect(lineStartToOffset(content, 0)).toBe(0);
+		expect(lineStartToOffset(content, -5)).toBe(0);
+	});
+
+	it('returns 0 for empty content', () => {
+		expect(lineStartToOffset('', 3)).toBe(0);
+	});
+
+	it('lands after a trailing newline when targeting the final empty line', () => {
+		expect(lineStartToOffset('aa\n', 2)).toBe(3);
 	});
 });

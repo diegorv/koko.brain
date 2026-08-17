@@ -3,7 +3,7 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { getRelativePath, sanitizeSnippetHtml } from './search.logic';
+	import { getRelativePath, sanitizeSnippetHtml, lineStartToOffset } from './search.logic';
 	import type {
 		SearchResult,
 		FtsSearchResult,
@@ -92,22 +92,33 @@
 
 	let badgeSource = $derived(hybridResult?.source ?? null);
 
-	function handleClick() {
+	/**
+	 * Converts a 1-indexed lineStart into the character offset expected by
+	 * `pendingScrollPosition`, reading the freshly opened tab's content.
+	 * Mirrors the wikilink anchor jump in MarkdownEditor.svelte (await the
+	 * open, then compute the offset from `tab.content`). Skips the scroll
+	 * when the open failed (active tab is not the requested file).
+	 */
+	function scrollToLine(absolutePath: string, lineStart: number) {
+		const tab = editorStore.activeTab;
+		if (!tab || tab.path !== absolutePath) return;
+		editorStore.setPendingScrollPosition(lineStartToOffset(tab.content, lineStart));
+	}
+
+	async function handleClick() {
 		if (ftsResult) {
 			openFileInEditor(toAbsolutePath(ftsResult.path));
 		} else if (semanticResult) {
-			openFileInEditor(toAbsolutePath(semanticResult.sourcePath));
+			const path = toAbsolutePath(semanticResult.sourcePath);
+			await openFileInEditor(path);
 			if (semanticResult.lineStart > 0) {
-				requestAnimationFrame(() => {
-					editorStore.setPendingScrollPosition(semanticResult!.lineStart);
-				});
+				scrollToLine(path, semanticResult.lineStart);
 			}
 		} else if (hybridResult) {
-			openFileInEditor(toAbsolutePath(hybridResult.path));
+			const path = toAbsolutePath(hybridResult.path);
+			await openFileInEditor(path);
 			if (hybridResult.lineStart !== undefined && hybridResult.lineStart > 0) {
-				requestAnimationFrame(() => {
-					editorStore.setPendingScrollPosition(hybridResult!.lineStart!);
-				});
+				scrollToLine(path, hybridResult.lineStart);
 			}
 		} else if (legacyResult) {
 			openFileInEditor(legacyResult.filePath);
