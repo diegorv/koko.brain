@@ -9,15 +9,10 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	writeTextFile: vi.fn(),
-}));
-
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { serializeCanvas, createEmptyCanvas } from '$lib/features/canvas/canvas.logic';
 import { createCanvasFile } from '$lib/features/canvas/canvas.service';
@@ -27,14 +22,15 @@ describe('createCanvasFile', () => {
 		vi.clearAllMocks();
 	});
 
-	it('creates file and writes empty canvas', async () => {
+	it('creates the file with the empty canvas JSON as initial content', async () => {
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.canvas');
 		const expectedJson = serializeCanvas(createEmptyCanvas());
 
 		const result = await createCanvasFile('/vault');
 
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.canvas');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/Untitled.canvas', expectedJson);
+		// Content goes through createFile (one step) so the Rust create_note
+		// indexes the real canvas body, not an empty file.
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.canvas', expectedJson);
 		expect(result).toBe('/vault/Untitled.canvas');
 		// Verify real logic output structure
 		expect(JSON.parse(expectedJson)).toEqual({ nodes: [], edges: [] });
@@ -46,7 +42,6 @@ describe('createCanvasFile', () => {
 		const result = await createCanvasFile('/vault');
 
 		expect(result).toBeNull();
-		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
 	it('returns null and logs error on failure', async () => {

@@ -8,7 +8,6 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
-	writeTextFile: vi.fn(),
 	readTextFile: vi.fn(),
 }));
 
@@ -16,7 +15,7 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard } from '$lib/plugins/kanban/kanban.logic';
 import { createKanbanFile, resetKanban, loadLinkedFileContent, clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
@@ -28,14 +27,15 @@ describe('createKanbanFile', () => {
 		vi.clearAllMocks();
 	});
 
-	it('creates file and writes empty board markdown', async () => {
+	it('creates the file with the empty board markdown as initial content', async () => {
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.kanban');
 		const expectedMd = serializeKanbanBoard(createEmptyKanbanBoard());
 
 		const result = await createKanbanFile('/vault');
 
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.kanban');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/Untitled.kanban', expectedMd);
+		// Content goes through createFile (one step) so the Rust create_note
+		// indexes the real board body, not an empty file.
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.kanban', expectedMd);
 		expect(result).toBe('/vault/Untitled.kanban');
 		// Verify the written content has the default lanes
 		expect(expectedMd).toContain('## To Do');
@@ -49,23 +49,10 @@ describe('createKanbanFile', () => {
 		const result = await createKanbanFile('/vault');
 
 		expect(result).toBeNull();
-		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
 	it('returns null and logs error on failure', async () => {
 		vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-		const result = await createKanbanFile('/vault');
-
-		expect(result).toBeNull();
-		expect(consoleSpy).toHaveBeenCalledWith('Failed to create kanban file:', expect.any(Error));
-		consoleSpy.mockRestore();
-	});
-
-	it('returns null when writeTextFile rejects after the file was created', async () => {
-		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.kanban');
-		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		const result = await createKanbanFile('/vault');

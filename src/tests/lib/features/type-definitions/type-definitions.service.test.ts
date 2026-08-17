@@ -331,27 +331,29 @@ describe('createTypeDefinition', () => {
 		expect(createFile).not.toHaveBeenCalled();
 	});
 
-	it('creates type definition file with frontmatter and opens it', async () => {
+	it('creates the definition file with its frontmatter as initial content and opens it', async () => {
 		vaultStore.open('/vault');
 		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
 
 		await createTypeDefinition('Sprint');
 
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Sprint.md');
-		expect(writeTextFile).toHaveBeenCalledWith(
-			'/vault/Sprint.md',
+		// Content goes through createFile (one step) so the Rust create_note
+		// indexes the real frontmatter — no separate write or re-index needed.
+		expect(createFile).toHaveBeenCalledWith(
+			'/vault',
+			'Sprint.md',
 			'---\n_type: Type\n_visible: true\n---\n\n# Sprint\n',
 		);
+		expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Sprint.md');
 	});
 
-	it('does not write or open when createFile returns null', async () => {
+	it('does not open when createFile returns null', async () => {
 		vaultStore.open('/vault');
 		vi.mocked(createFile).mockResolvedValue(null);
 
 		await createTypeDefinition('Sprint');
 
-		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 
@@ -362,30 +364,12 @@ describe('createTypeDefinition', () => {
 
 		await createTypeDefinition('Sprint', { select: true });
 
-		expect(writeTextFile).toHaveBeenCalledWith(
-			'/vault/Sprint.md',
+		expect(createFile).toHaveBeenCalledWith(
+			'/vault',
+			'Sprint.md',
 			'---\n_type: Type\n_visible: true\n---\n\n# Sprint\n',
 		);
 		expect(openFileInEditor).not.toHaveBeenCalled();
-		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Sprint' });
-	});
-
-	it('re-indexes the definition after writing its frontmatter so the sidebar updates without a reload', async () => {
-		vaultStore.open('/vault');
-		typeDefinitionsStore.reset();
-		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
-
-		await createTypeDefinition('Sprint', { select: true });
-
-		// createFile's Rust create_note indexes an EMPTY file (content is written
-		// afterwards via writeTextFile, with the watcher suppressed by the
-		// recent-save guard) — without this explicit re-index the new type only
-		// appears after a full vault rescan. The Rust command REQUIRES content;
-		// passing only path rejects with "missing required key content".
-		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
-			path: '/vault/Sprint.md',
-			content: '---\n_type: Type\n_visible: true\n---\n\n# Sprint\n',
-		});
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Sprint' });
 	});
 
@@ -512,31 +496,47 @@ describe('createView', () => {
 		vaultStore._reset();
 		await createView();
 		expect(createFile).not.toHaveBeenCalled();
-		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 	});
 
 	it('aborts when createFile returns null', async () => {
 		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
 		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockResolvedValue(null);
 
 		await createView();
 
-		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 	});
 
-	it('writes a minimal .view body and selects the new view in the sidebar', async () => {
+	it('aborts without creating anything when the vault root cannot be read', async () => {
 		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
 		vaultStore.open('/vault');
+		// A silent fallback here would create "Untitled 1.view" with a body
+		// that still says "Untitled" — abort instead.
+		vi.mocked(readDir).mockRejectedValue(new Error('permission denied'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await createView();
+
+		expect(createFile).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+		consoleSpy.mockRestore();
+	});
+
+	it('creates a minimal .view body as initial content and selects the new view in the sidebar', async () => {
+		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.view');
 
 		await createView();
 
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.view');
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/Untitled.view', expect.stringContaining('_sidebar_label: Untitled'));
-		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		// Content goes through createFile (one step) so the Rust create_note
+		// indexes the real view body, not an empty file.
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.view', expect.stringContaining('_sidebar_label: Untitled'));
+		const written = vi.mocked(createFile).mock.calls[0][2] as string;
 		expect(written).toContain('views:');
 		expect(written).toContain('  - type: table');
 		expect(written).toContain('    name: Untitled');
@@ -544,16 +544,23 @@ describe('createView', () => {
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Untitled.view' });
 	});
 
-	it('uses the deduplicated filename returned by createFile as the title', async () => {
+	it('embeds the deduplicated filename as the title when Untitled.view already exists', async () => {
 		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
 		vaultStore.open('/vault');
+		// Dedup runs BEFORE createFile so the body can embed the final title.
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'Untitled.view', isDirectory: false, isFile: true, isSymlink: false },
+			{ name: 'Untitled 1.view', isDirectory: false, isFile: true, isSymlink: false },
+		] as any);
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled 2.view');
 
 		await createView();
 
-		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled 2.view', expect.any(String));
+		const written = vi.mocked(createFile).mock.calls[0][2] as string;
 		expect(written).toContain('_sidebar_label: Untitled 2');
 		expect(written).toContain('name: Untitled 2');
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Untitled 2.view' });
 	});
 });
 

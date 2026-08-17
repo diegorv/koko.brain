@@ -4,10 +4,6 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
-	writeTextFile: vi.fn(),
-}));
-
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
@@ -21,7 +17,6 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import {
@@ -182,17 +177,19 @@ describe('createCollectionFile', () => {
 		vi.clearAllMocks();
 	});
 
-	it('creates the file and writes the minimal valid template', async () => {
+	it('creates the file with the minimal valid template as initial content', async () => {
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.collection');
 
 		const result = await createCollectionFile('/vault');
 
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.collection');
-		expect(writeTextFile).toHaveBeenCalledWith(
-			'/vault/Untitled.collection',
+		// Content goes through createFile (one step) so the Rust create_note
+		// indexes the real template body, not an empty file.
+		expect(createFile).toHaveBeenCalledWith(
+			'/vault',
+			'Untitled.collection',
 			expect.stringContaining('views:'),
 		);
-		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		const written = vi.mocked(createFile).mock.calls[0][2] as string;
 		expect(written).toContain('  - type: table');
 		expect(written).toContain('    name: All');
 		expect(result).toBe('/vault/Untitled.collection');
@@ -204,7 +201,6 @@ describe('createCollectionFile', () => {
 		const result = await createCollectionFile('/vault');
 
 		expect(result).toBeNull();
-		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
 	it('returns null and logs on failure', async () => {

@@ -429,6 +429,18 @@ describe('createFile', () => {
 		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
+
+	it('passes initial content through to create_note so the index captures it', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+
+		const result = await createFile('/vault', 'new.canvas', '{"nodes":[],"edges":[]}');
+
+		expect(invoke).toHaveBeenCalledWith('create_note', {
+			path: '/vault/new.canvas',
+			content: '{"nodes":[],"edges":[]}',
+		});
+		expect(result).toBe('/vault/new.canvas');
+	});
 });
 
 describe('createFolder', () => {

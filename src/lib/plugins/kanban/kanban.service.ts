@@ -1,4 +1,4 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';
@@ -14,11 +14,7 @@ import { error } from '$lib/utils/debug';
  */
 export async function createKanbanFile(parentPath: string): Promise<string | null> {
 	try {
-		const filePath = await createFile(parentPath, 'Untitled.kanban');
-		if (!filePath) return null;
-		const board = createEmptyKanbanBoard();
-		await writeTextFile(filePath, serializeKanbanBoard(board));
-		return filePath;
+		return await createFile(parentPath, 'Untitled.kanban', serializeKanbanBoard(createEmptyKanbanBoard()));
 	} catch (err) {
 		error('KANBAN', 'Failed to create kanban file:', err);
 		return null;

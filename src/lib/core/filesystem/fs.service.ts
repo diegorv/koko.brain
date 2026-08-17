@@ -115,8 +115,13 @@ export async function refreshTree(expectedSortVersion?: number) {
 	}
 }
 
-/** Creates an empty file on disk and refreshes the tree. Returns the new path or null on failure. */
-export async function createFile(parentPath: string, fileName: string): Promise<string | null> {
+/**
+ * Creates a file on disk with the given initial content (empty by default)
+ * and refreshes the tree. Returns the new path or null on failure. Content
+ * must be passed here — not written afterwards — so the Rust `create_note`
+ * indexes the real content instead of an empty document.
+ */
+export async function createFile(parentPath: string, fileName: string, content: string = ''): Promise<string | null> {
 	try {
 		const entries = await readDir(parentPath);
 		const siblingNames = entries.map((e) => e.name);
@@ -126,7 +131,7 @@ export async function createFile(parentPath: string, fileName: string): Promise<
 		// the `VaultIndex`, and emits `vault-index-updated`. The TS
 		// `markRecentSave` still flips the watcher self-save guard so
 		// the subsequent fs event doesn't trigger a redundant rebuild.
-		await invoke('create_note', { path: filePath, content: '' });
+		await invoke('create_note', { path: filePath, content });
 		markRecentSave(filePath);
 		await refreshTree();
 		debug('FS', 'created file:', filePath);

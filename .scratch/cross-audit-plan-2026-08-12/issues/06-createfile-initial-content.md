@@ -24,3 +24,25 @@ New kanban, canvas, collection and typed notes are created empty and then overwr
 - One commit for this fix, using the repo's full commit format (Context, Problem, Solution, Behavior, Files with line ranges). Test collateral lands in the same commit as the source change.
 
 ## Comments
+
+**2026-08-17 — resolved.**
+
+- Red-green: new fs.service regression test ("passes initial content through to create_note")
+  written first and run against the broken code — failed with `create_note` receiving
+  `content: ''` (the bug), passes after the fix.
+- Fix: `createFile(parentPath, fileName, content = '')` forwards content to Rust `create_note`,
+  which writes atomically AND indexes the real content (`update_note_in_index_inner`) and emits
+  `vault-index-updated` (`src-tauri/src/commands/vault.rs:885-911`). Callers collapsed to one step:
+  canvas, kanban, collection, type-definitions (`createTypeDefinition` also dropped its explicit
+  `update_note_in_index` workaround — the Rust path is a strict superset; `createView` now dedups
+  the filename BEFORE createFile so the body can embed the final title, aborting if the vault root
+  can't be read).
+- Discovery: note-creator (listed in ## How as the 5th caller) needed NO change — it already
+  passes content to `create_note` in one step (`note-creator.service.ts:81`), fixed earlier in
+  Phase 8.7. command-palette / wikilink-navigation / explorer callers intentionally create empty
+  `.md` files; default param preserves them.
+- Adversarial review (Fable 5, refute stance): could not refute the core fix. One MINOR
+  (createView title/filename divergence when the pre-dedup readDir fails) — fixed by aborting on
+  readDir failure, delta re-reviewed: could not refute. Pre-existing NIT (create_note indexes
+  non-md files that full rescans drop) filed as issue 49.
+- Gate: `pnpm check` 0 errors, `pnpm vitest run` 6699 passed, `pnpm build` succeeded.

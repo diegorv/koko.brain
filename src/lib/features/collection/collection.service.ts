@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { collectionStore } from './collection.store.svelte';
@@ -19,10 +18,7 @@ const DEFAULT_COLLECTION_TEMPLATE = `views:
  */
 export async function createCollectionFile(parentPath: string): Promise<string | null> {
 	try {
-		const filePath = await createFile(parentPath, 'Untitled.collection');
-		if (!filePath) return null;
-		await writeTextFile(filePath, DEFAULT_COLLECTION_TEMPLATE);
-		return filePath;
+		return await createFile(parentPath, 'Untitled.collection', DEFAULT_COLLECTION_TEMPLATE);
 	} catch (err) {
 		errorLog('COLLECTION', 'Failed to create collection file:', err);
 		return null;

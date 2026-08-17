@@ -65,14 +65,8 @@ export async function createNoteOfType(typeName: string): Promise<void> {
 export async function createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<void> {
 	if (!vaultStore.path) return;
 	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
-	const filePath = await createFile(vaultStore.path, `${typeName}.md`);
+	const filePath = await createFile(vaultStore.path, `${typeName}.md`, content);
 	if (!filePath) return;
-	await writeTextFile(filePath, content);
-	// createFile's Rust create_note indexed the file EMPTY (the content is
-	// written just above, with the watcher suppressed by the recent-save
-	// guard) — re-index explicitly or the new type only shows after a full
-	// vault rescan. Same idiom as toggleFavoriteForPath below.
-	await invoke('update_note_in_index', { path: filePath, content });
 	if (opts.select) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
 	} else {
@@ -129,11 +123,28 @@ export async function renameType(oldName: string, newName: string, definitionPat
  */
 export async function createView(): Promise<void> {
 	if (!vaultStore.path) return;
-	const filePath = await createFile(vaultStore.path, 'Untitled.view');
-	if (!filePath) return;
-	const title = (filePath.split('/').pop() ?? 'Untitled').replace(/\.view$/i, '');
+	// The body embeds the deduplicated title, so dedup must run BEFORE
+	// createFile (which would otherwise dedup after the content is fixed).
+	// createFile re-runs the same dedup on the pre-deduplicated name, which
+	// leaves it unchanged unless a same-named file appears between the two
+	// readDirs (accepted: same-instant race, cosmetic label mismatch only).
+	// Abort on readDir failure — a silent fallback to
+	// no siblings would let createFile dedup to a filename the embedded
+	// title no longer matches (and createFile's own readDir would fail the
+	// same way anyway).
+	let siblingNames: string[];
+	try {
+		const entries = await readDir(vaultStore.path);
+		siblingNames = entries.map((e) => e.name);
+	} catch (err) {
+		error('TYPE-DEF', 'createView: failed to read vault root:', err);
+		return;
+	}
+	const uniqueName = generateUniqueName('Untitled.view', false, siblingNames);
+	const title = uniqueName.replace(/\.view$/i, '');
 	const content = `_sidebar_label: ${title}\n_sort: title\nviews:\n  - type: table\n    name: ${title}\n`;
-	await writeTextFile(filePath, content);
+	const filePath = await createFile(vaultStore.path, uniqueName, content);
+	if (!filePath) return;
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 }
 
