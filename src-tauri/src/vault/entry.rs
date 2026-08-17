@@ -404,31 +404,11 @@ fn extract_all_relationships(frontmatter: &BTreeMap<String, JsonValue>) -> BTree
 
 /// Extracts wikilink targets (`[[target]]`) from a string value.
 fn extract_wikilinks_from_str(s: &str) -> Vec<String> {
-	let mut targets = Vec::new();
-	let bytes = s.as_bytes();
-	let mut i = 0;
-	while i + 1 < bytes.len() {
-		if bytes[i] == b'[' && bytes[i + 1] == b'[' {
-			i += 2;
-			let start = i;
-			while i + 1 < bytes.len() && !(bytes[i] == b']' && bytes[i + 1] == b']') {
-				i += 1;
-			}
-			if i + 1 < bytes.len() {
-				let raw = &s[start..i];
-				let target = raw.split('|').next().unwrap_or(raw);
-				let target = target.split('#').next().unwrap_or(target);
-				let trimmed = target.trim();
-				if !trimmed.is_empty() {
-					targets.push(trimmed.to_string());
-				}
-				i += 2;
-			}
-		} else {
-			i += 1;
-		}
-	}
-	targets
+	extract_outgoing_links(s)
+		.into_iter()
+		.map(|l| l.target)
+		.filter(|t| !t.is_empty())
+		.collect()
 }
 
 #[cfg(test)]
@@ -967,6 +947,17 @@ mod tests {
 		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
 		assert_eq!(entry.belongs_to, vec!["project"]);
 		assert_eq!(entry.related_to, vec!["note"]);
+	}
+
+	#[test]
+	fn from_content_empty_wikilink_targets_are_dropped() {
+		// `[[ ]]` trims to an empty target and `[[#section]]` strips to one;
+		// the empty-drop in extract_wikilinks_from_str must reject both so
+		// belongs_to/relationships never carry "" targets.
+		let content = "---\n_belongs_to: \"[[ ]]\"\nmentor: \"[[#section]]\"\n---\n";
+		let entry = NoteEntry::from_content("/n.md".into(), content, 0);
+		assert!(entry.belongs_to.is_empty());
+		assert!(entry.relationships.is_empty());
 	}
 
 	#[test]
