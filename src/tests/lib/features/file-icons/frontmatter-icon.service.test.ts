@@ -6,10 +6,12 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { setFrontmatterIcon, removeFrontmatterIcon } from '$lib/features/file-icons/frontmatter-icon.service';
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	editorStore.reset();
 	vi.mocked(writeTextFile).mockResolvedValue(undefined);
 });
 
@@ -87,6 +89,54 @@ describe('setFrontmatterIcon', () => {
 		expect(written).toContain('_icon: tabler:rocket');
 		expect(written).toContain('_color: "#ff0000"');
 		expect(written).toContain('_title_color: "#00ff00"');
+	});
+});
+
+describe('editor tab sync (issue 03)', () => {
+	it('setFrontmatterIcon syncs an open tab with the written content, marked saved', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'stale', savedContent: 'stale' });
+		const signalBefore = editorStore.externalContentSignal;
+
+		await setFrontmatterIcon('/vault/a.md', 'lucide', 'star');
+
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		const tab = editorStore.tabs[0];
+		expect(tab.content).toBe(written);
+		expect(tab.savedContent).toBe(written);
+		expect(editorStore.externalContentSignal).toBe(signalBefore + 1);
+	});
+
+	it('removeFrontmatterIcon syncs an open tab with the written content, marked saved', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n_icon: lucide:star\ntitle: Test\n---\nBody');
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'stale', savedContent: 'stale' });
+
+		await removeFrontmatterIcon('/vault/a.md');
+
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		const tab = editorStore.tabs[0];
+		expect(tab.content).toBe(written);
+		expect(tab.savedContent).toBe(written);
+	});
+
+	it('does nothing to the editor when the note is not open in any tab', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
+
+		await setFrontmatterIcon('/vault/a.md', 'lucide', 'star');
+
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(editorStore.externalContentSignal).toBe(0);
+	});
+
+	it('leaves the tab untouched when the disk write fails', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'stale', savedContent: 'stale' });
+
+		await expect(setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).rejects.toThrow('disk full');
+
+		expect(editorStore.tabs[0].content).toBe('stale');
+		expect(editorStore.tabs[0].savedContent).toBe('stale');
 	});
 });
 

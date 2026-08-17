@@ -1,4 +1,5 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import {
 	parseFrontmatterProperties,
 	extractBody,
@@ -44,6 +45,7 @@ export async function setFrontmatterIcon(
 
 	const newContent = rebuildContent(properties, body);
 	await writeTextFile(filePath, newContent);
+	syncExternalContentToEditor(filePath, newContent, true);
 }
 
 /** Removes _icon, _color, and _title_color from a markdown file's frontmatter. */
@@ -61,4 +63,5 @@ export async function removeFrontmatterIcon(filePath: string): Promise<void> {
 
 	const newContent = rebuildContent(properties, body);
 	await writeTextFile(filePath, newContent);
+	syncExternalContentToEditor(filePath, newContent, true);
 }

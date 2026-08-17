@@ -160,10 +160,7 @@ describe('regression: icon survives the next save of an open tab (issue 03)', ()
 		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
-	// `it.fails` documents the live bug: setIconForPath writes _icon to disk
-	// but the open dirty tab keeps the pre-write content, so the next save
-	// clobbers it. The fix commit flips this to a plain `it`.
-	it.fails('keeps _icon on disk when a dirty open tab saves after setIconForPath', async () => {
+	it('keeps _icon on disk when a dirty open tab saves after setIconForPath', async () => {
 		const diskContent = '---\ntitle: Test\n---\nBody';
 		editorStore.addTab({
 			path: '/vault/a.md',
