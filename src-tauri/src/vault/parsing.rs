@@ -596,7 +596,11 @@ fn parse_yaml_lines(lines: &[&str]) -> BTreeMap<String, JsonValue> {
 			continue;
 		}
 
-		let Some((key, raw_value)) = split_key_value(line) else {
+		let Some((key, raw_value)) = line
+			.split_once(':')
+			.filter(|(k, _)| !k.trim().is_empty())
+			.map(|(k, v)| (k.trim(), v))
+		else {
 			// Malformed line at top level (no colon, or empty key). Skip.
 			i += 1;
 			continue;
@@ -650,17 +654,6 @@ fn parse_yaml_lines(lines: &[&str]) -> BTreeMap<String, JsonValue> {
 	}
 
 	result
-}
-
-/// Splits a `key: value` line on the FIRST colon. Returns `None` when no
-/// colon is present or the trimmed key is empty.
-fn split_key_value(line: &str) -> Option<(&str, &str)> {
-	let colon = line.find(':')?;
-	let key = line[..colon].trim();
-	if key.is_empty() {
-		return None;
-	}
-	Some((key, &line[colon + 1..]))
 }
 
 /// Parses an inline-array value like `[a, "b", 'c', 1, true]`. The leading
