@@ -27,8 +27,6 @@ export interface IconPackMeta {
 	id: IconPackId;
 	/** Human-readable label */
 	label: string;
-	/** Total number of icons in the pack */
-	iconCount: number;
 }
 
 /** A normalized icon ready for rendering */

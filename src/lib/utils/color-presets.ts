@@ -28,6 +28,3 @@ export const COLOR_PRESET_BG: Record<string, string> = Object.fromEntries(
 export const COLOR_PRESET_TEXT: Record<string, string> = Object.fromEntries(
 	Object.entries(PALETTE).map(([name, val]) => [name, rgb(val)])
 );
-
-/** Available color preset names */
-export type ColorPresetName = keyof typeof PALETTE;

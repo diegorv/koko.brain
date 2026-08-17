@@ -51,27 +51,6 @@ export function sanitizeSvgContent(svgInner: string): string {
 }
 
 /**
- * Sanitizes KaTeX/math HTML output. Allows the specific subset of HTML that
- * KaTeX generates (spans with class attributes, MathML-like structure).
- */
-export function sanitizeMathHtml(html: string): string {
-	return DOMPurify.sanitize(html, {
-		ALLOWED_TAGS: [
-			'span', 'div',
-			'math', 'mi', 'mo', 'mn', 'ms', 'mtext', 'mspace',
-			'msub', 'msup', 'msubsup', 'munder', 'mover', 'munderover',
-			'mrow', 'mfrac', 'msqrt', 'mroot', 'mfenced', 'mpadded',
-			'mtable', 'mtr', 'mtd', 'mlabeledtr',
-			'mstyle', 'merror', 'mphantom', 'maction',
-			'annotation', 'semantics',
-			'svg', 'path', 'rect', 'line', 'circle', 'ellipse', 'polygon',
-		],
-		ALLOWED_ATTR: ['class', 'style', 'aria-hidden', 'viewBox', 'd', 'xmlns', 'width', 'height'],
-		ALLOW_DATA_ATTR: false,
-	});
-}
-
-/**
  * Sanitizes an FTS5 snippet string that may contain <mark> tags.
  * All other HTML is escaped. This is a strict whitelist: only <mark> is preserved.
  */

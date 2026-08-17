@@ -14,18 +14,18 @@ export function setOnPacksLoaded(cb: () => void): void {
 /** Returns metadata about all available icon packs */
 export function getAllIconPacks(): IconPackMeta[] {
 	return [
-		{ id: 'lucide', label: 'Lucide', iconCount: 0 },
-		{ id: 'feather', label: 'Feather', iconCount: 0 },
-		{ id: 'fa-solid', label: 'FA Solid', iconCount: 0 },
-		{ id: 'fa-regular', label: 'FA Regular', iconCount: 0 },
-		{ id: 'fa-brands', label: 'FA Brands', iconCount: 0 },
-		{ id: 'octicons', label: 'Octicons', iconCount: 0 },
-		{ id: 'boxicons', label: 'Boxicons', iconCount: 0 },
-		{ id: 'coolicons', label: 'Coolicons', iconCount: 0 },
-		{ id: 'simple-icons', label: 'Simple Icons', iconCount: 0 },
-		{ id: 'tabler', label: 'Tabler Icons', iconCount: 0 },
-		{ id: 'remix', label: 'Remix Icons', iconCount: 0 },
-		{ id: 'emoji', label: 'Emoji', iconCount: 0 },
+		{ id: 'lucide', label: 'Lucide' },
+		{ id: 'feather', label: 'Feather' },
+		{ id: 'fa-solid', label: 'FA Solid' },
+		{ id: 'fa-regular', label: 'FA Regular' },
+		{ id: 'fa-brands', label: 'FA Brands' },
+		{ id: 'octicons', label: 'Octicons' },
+		{ id: 'boxicons', label: 'Boxicons' },
+		{ id: 'coolicons', label: 'Coolicons' },
+		{ id: 'simple-icons', label: 'Simple Icons' },
+		{ id: 'tabler', label: 'Tabler Icons' },
+		{ id: 'remix', label: 'Remix Icons' },
+		{ id: 'emoji', label: 'Emoji' },
 	];
 }
 
