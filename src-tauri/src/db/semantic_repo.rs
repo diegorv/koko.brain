@@ -25,13 +25,6 @@ fn parse_parent_headings(raw: &str) -> Vec<String> {
 	serde_json::from_str::<Vec<String>>(raw).unwrap_or_default()
 }
 
-/// Minimal chunk info for diagnostics.
-pub struct ChunkSample {
-	pub source_path: String,
-	pub heading: Option<String>,
-	pub embedding_bytes_len: i64,
-}
-
 /// Deletes all chunks from the index. Used on model change.
 pub fn clear_all_chunks(conn: &Connection) -> Result<(), String> {
 	conn.execute("DELETE FROM chunks", [])
@@ -303,31 +296,6 @@ pub fn get_file_index_info(
 	.map_err(|e| format!("Failed to query file index info for {}: {e}", source_path))
 }
 
-/// Gets a sample of chunks for diagnostics.
-pub fn get_sample_chunks(conn: &Connection, limit: usize) -> Result<Vec<ChunkSample>, String> {
-	let mut stmt = conn
-		.prepare("SELECT source_path, heading, length(embedding) FROM chunks LIMIT ?1")
-		.map_err(|e| format!("Query failed: {e}"))?;
-	let rows: Vec<ChunkSample> = stmt
-		.query_map([limit as i64], |row| {
-			Ok(ChunkSample {
-				source_path: row.get(0)?,
-				heading: row.get(1)?,
-				embedding_bytes_len: row.get(2)?,
-			})
-		})
-		.map_err(|e| e.to_string())?
-		.filter_map(|r| match r {
-			Ok(v) => Some(v),
-			Err(e) => {
-				debug_log("SEMANTIC", format!("Warning: skipped corrupt row in get_sample_chunks: {e}"));
-				None
-			}
-		})
-		.collect();
-	Ok(rows)
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -543,34 +511,6 @@ mod tests {
 
 		assert_eq!(count_chunks(&conn).unwrap(), 3);
 		assert_eq!(count_sources(&conn).unwrap(), 2);
-	}
-
-	// --- get_sample_chunks ---
-
-	#[test]
-	fn get_sample_chunks_returns_limited_results() {
-		let conn = setup();
-		insert_chunk(
-			&conn, "k1", "a.md", "t1", Some("H1"), &[], 1, 5, "h1", b"embed", 1000,
-		)
-		.unwrap();
-		insert_chunk(&conn, "k2", "b.md", "t2", None, &[], 1, 5, "h2", b"embed", 1000)
-			.unwrap();
-		insert_chunk(&conn, "k3", "c.md", "t3", None, &[], 1, 5, "h3", b"embed", 1000)
-			.unwrap();
-
-		let samples = get_sample_chunks(&conn, 2).unwrap();
-		assert_eq!(samples.len(), 2);
-		assert_eq!(samples[0].source_path, "a.md");
-		assert_eq!(samples[0].heading.as_deref(), Some("H1"));
-		assert_eq!(samples[0].embedding_bytes_len, 5); // b"embed" = 5 bytes
-	}
-
-	#[test]
-	fn get_sample_chunks_empty() {
-		let conn = setup();
-		let samples = get_sample_chunks(&conn, 10).unwrap();
-		assert!(samples.is_empty());
 	}
 
 	// --- delete_orphaned_mtimes ---

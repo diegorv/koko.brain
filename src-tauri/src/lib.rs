@@ -329,7 +329,6 @@ pub fn run() {
             commands::semantic::download_semantic_model,
             commands::semantic::is_reranker_model_available,
             commands::semantic::download_reranker_model,
-            commands::semantic::debug_semantic_embeddings,
             commands::semantic::shutdown_semantic,
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
