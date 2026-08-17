@@ -19,6 +19,9 @@ vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
+import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { saveFileByPath } from '$lib/core/editor/editor.service';
+import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 import {
 	loadRecentIcons,
@@ -144,6 +147,39 @@ describe('setIconForPath', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')).toBeDefined();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects/Projects.md')).toBeDefined();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')?.iconName).toBe('folder');
+	});
+});
+
+describe('regression: icon survives the next save of an open tab (issue 03)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		fileIconsStore.reset();
+		editorStore.reset();
+		resetHooks();
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+	});
+
+	// `it.fails` documents the live bug: setIconForPath writes _icon to disk
+	// but the open dirty tab keeps the pre-write content, so the next save
+	// clobbers it. The fix commit flips this to a plain `it`.
+	it.fails('keeps _icon on disk when a dirty open tab saves after setIconForPath', async () => {
+		const diskContent = '---\ntitle: Test\n---\nBody';
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: `${diskContent} edited`,
+			savedContent: diskContent,
+		});
+		vi.mocked(readTextFile).mockResolvedValue(diskContent);
+
+		await setIconForPath('/vault', '/vault/a.md', 'lucide', 'star');
+		await saveFileByPath('/vault/a.md');
+
+		const writes = vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === '/vault/a.md');
+		expect(writes.length).toBeGreaterThan(0);
+		const finalDisk = writes[writes.length - 1][1] as string;
+		expect(finalDisk).toContain('_icon: lucide:star');
 	});
 });
 
