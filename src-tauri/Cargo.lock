@@ -2679,7 +2679,6 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-foundation",
  "ort",
- "percent-encoding",
  "regex",
  "reqwest 0.13.4",
  "rmp-serde",
