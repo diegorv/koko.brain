@@ -37,3 +37,12 @@ completion still suggests notes from the previous vault. Replace both with one v
   commit format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+2026-08-17 (from issue 04 adversarial review) — additional consumer for the invalidation scope:
+`registerVaultIndexUpdatedListener`'s debounced `refresh()` (`tauri-listeners.service.ts:106-118`)
+survives vault switches and, on a stale post-teardown event, fetches the snapshot directly and
+writes it into `typeDefinitionsStore` / `refreshArchivedPaths` / `fsStore.contentOrder` — the old
+vault's data lands in those stores until the new vault's first index event overwrites it. When the
+version-keyed memo ships, route this fetch through it so the open/close invalidation covers these
+writes too. (The indexReady suppression from issue 04 gates only the readiness flag, not these
+snapshot writes.)
