@@ -5,6 +5,7 @@ import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting } from '@codemirror/language';
 import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
 import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
 const SAMPLE = '**bold** *italic* ~~strike~~ `code` ==hi==';
 const HEADINGS = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n';
@@ -97,5 +98,33 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 		expect(classes.has('cm-lp-blockquote')).toBe(true);
 		expect(classes.has('cm-lp-blockquote-2')).toBe(true);
 		expect(classes.has('cm-lp-blockquote-3')).toBe(true);
+	});
+
+	describe('disabledDecorators wiring through the real settings store', () => {
+		afterEach(() => {
+			settingsStore.toggleDecorator('heading', false);
+			settingsStore.toggleDecorator('markdownStyle', false);
+		});
+
+		it('toggling heading off removes cm-lp-h* from a view mounted via livePreviewExtensions()', () => {
+			settingsStore.toggleDecorator('heading', true);
+			const { view, root } = mountView(HEADINGS);
+			cleanup = () => view.destroy();
+			const classes = classesIn(root);
+			for (const level of [1, 2, 3, 4, 5, 6]) {
+				expect(classes.has(`cm-lp-h${level}`)).toBe(false);
+			}
+		});
+
+		it('toggling markdownStyle off drops content styling but keeps the formatting plugin alive', () => {
+			settingsStore.toggleDecorator('markdownStyle', true);
+			const { view, root } = mountView(SAMPLE);
+			cleanup = () => view.destroy();
+			const classes = classesIn(root);
+			expect(classes.has('cm-lp-bold')).toBe(false);
+			expect(classes.has('cm-lp-highlight')).toBe(false);
+			// The formatting plugin must survive the drop: `**` marks still decorated
+			expect(classes.has('cm-formatting-inline')).toBe(true);
+		});
 	});
 });

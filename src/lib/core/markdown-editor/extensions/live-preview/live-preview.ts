@@ -61,7 +61,7 @@ export function livePreviewExtensions(): Extension[] {
 	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
 
 	// Unified inline pipeline (ex-Phases 3–10) + always-on inline plugins
-	exts.push(...inlineExtensions());
+	exts.push(...inlineExtensions(settingsStore.disabledDecorators));
 	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
 	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
 

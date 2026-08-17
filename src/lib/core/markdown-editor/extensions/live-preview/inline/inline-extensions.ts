@@ -2,6 +2,7 @@ import type { Extension } from '@codemirror/state';
 import { inlineHighlightExtension } from './markdown-highlight-style';
 import {
 	makeInlineFormattingPlugin,
+	type InlineFormattingHandlers,
 	type NodeHandler,
 	type LineHandler,
 } from './inline-formatting-plugin';
@@ -47,17 +48,53 @@ export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 ];
 
 /**
+ * Troubleshooting kill-switch table — toggleable decorator name → the
+ * handlers disabled with it. Names match `DECORATOR_NAMES` in
+ * `TroubleshootingSection.svelte` and keep the legacy per-plugin toggle
+ * scope (e.g. `link` covered markdown links, autolinks and wikilinks).
+ * Handlers absent from the table (inline comments, block references)
+ * are always on, as in the legacy pipeline.
+ */
+const TOGGLEABLE_HANDLERS: Record<string, readonly (NodeHandler | LineHandler)[]> = {
+	heading: headingHandlers,
+	blockquote: [blockquoteHandler],
+	simpleWidget: simpleWidgetHandlers,
+	link: [linkHandler, linkReferenceHandler, autolinkHandler, extendedAutolinkHandler, wikilinkHandler],
+	inlineMarks: [...markHandlers, escapeHandler],
+	markdownStyle: [highlightHandler],
+};
+
+/**
+ * Applies the Troubleshooting `disabledDecorators` kill-switches to the
+ * production registries. Exposed so tests can assert the filtering without
+ * mounting an EditorView.
+ */
+export function productionHandlers(
+	disabledDecorators: Record<string, boolean> = {},
+): InlineFormattingHandlers {
+	const disabled = new Set(
+		Object.entries(TOGGLEABLE_HANDLERS)
+			.filter(([name]) => disabledDecorators[name])
+			.flatMap(([, handlers]) => handlers),
+	);
+	return {
+		nodeHandlers: PRODUCTION_NODE_HANDLERS.filter((h) => !disabled.has(h)),
+		lineHandlers: PRODUCTION_LINE_HANDLERS.filter((h) => !disabled.has(h)),
+	};
+}
+
+/**
  * Returns the full extension array for the inline pipeline:
  * `HighlightStyle` (tag-based marks/styles) + `inlineFormattingPlugin`
  * (everything that needs cursor reveal, regex parsing, or block-context
- * suppression).
+ * suppression). `disabledDecorators` (Troubleshooting settings) filters
+ * out the handlers of any disabled name; `markdownStyle` additionally
+ * drops the `HighlightStyle` wrapper, mirroring the legacy
+ * `markdownStylePlugin` scope (bold/italic/strikethrough/monospace).
  */
-export function inlineExtensions(): Extension[] {
-	return [
-		inlineHighlightExtension(),
-		makeInlineFormattingPlugin({
-			nodeHandlers: PRODUCTION_NODE_HANDLERS,
-			lineHandlers: PRODUCTION_LINE_HANDLERS,
-		}),
-	];
+export function inlineExtensions(disabledDecorators: Record<string, boolean> = {}): Extension[] {
+	const exts: Extension[] = [];
+	if (!disabledDecorators.markdownStyle) exts.push(inlineHighlightExtension());
+	exts.push(makeInlineFormattingPlugin(productionHandlers(disabledDecorators)));
+	return exts;
 }

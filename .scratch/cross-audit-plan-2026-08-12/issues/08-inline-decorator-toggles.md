@@ -25,3 +25,10 @@ Six Troubleshooting decorator kill-switches are dead UI: toggling them disables 
 - One commit, using the repo's full commit format (Context, Problem, Solution, Behavior, Files with line ranges). Test collateral lands in the same commit as the source change.
 
 ## Comments
+
+2026-08-17 (agent): Done.
+
+- Red-green: new tests written first against the unmodified code — 11 failed for the right reasons (`productionHandlers` not a function, i.e. the plumbing did not exist, and `inlineExtensions({ markdownStyle: true })` returned 2 entries, i.e. the argument was ignored — the exact bug). Green after the fix.
+- Mapping verified against the legacy per-plugin toggles deleted in 4696d4c (not just the commit message — the legacy plugin sources): `heading`→headingHandlers (8 node types), `blockquote`→blockquoteHandler, `simpleWidget`→simpleWidgetHandlers, `link`→linkHandler+linkReferenceHandler+autolinkHandler+extendedAutolinkHandler+wikilinkHandler (legacy linkPlugin covered markdown links, autolinks, extended autolinks, wikilinks), `inlineMarks`→markHandlers+escapeHandler, `markdownStyle`→highlightHandler + dropping inlineHighlightExtension (legacy markdownStylePlugin = content styles + highlight background). inlineComment/blockReference handlers stay always-on, as in legacy.
+- Adversarial review (presumed-flawed stance): could not refute correctness or parity; verified set-identity filtering, no other `inlineExtensions()` call sites, name/type parity with `DECORATOR_NAMES`, and that stale persisted keys are no-ops. Two findings, both remediated: (MEDIUM) the wiring line in live-preview.ts was untestable-by-revert → added 2 DOM tests in pipeline-dom.test.ts going real settingsStore → livePreviewExtensions() → class assertions, proven red with the wiring line temporarily reverted (mutation check: exactly those 2 fail); (LOW) count-only markdownStyle test → the `cm-formatting-inline` pin proves the surviving extension is the formatting plugin. Delta re-review: could not refute, no objection to commit.
+- Gate: `pnpm check` 0 errors, `pnpm vitest run` 6716 passed, `pnpm build` OK.
