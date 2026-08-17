@@ -39,3 +39,15 @@ manifest.
   format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+**2026-08-17 — resolved in 7 commits, all adversarially reviewed (could not refute, 7/7).**
+
+- #4 `codemirror` — 6a6f957. All 8 imported `@codemirror/*` subpackages are direct deps; `@codemirror/lint` (the only meta-only transitive) is imported nowhere. Lock diff surgical.
+- #5 `@fortawesome/fontawesome-svg-core` — aa6a0fa. Icon packs read raw definition tuples via a local FaDef type; no pack declares svg-core as peer. common-types survives transitively.
+- #6 `@types/katex` — 41673e0. Reviewer discovery: under moduleResolution "bundler" the DT package was NEVER resolved (katex's exports-declared types always won; tsc --traceResolution shows "@types/katex never visited"), so this was strictly dead weight, not a typings switch.
+- #68 `percent-encoding` — 455531d. `# File History` comment + `similar` kept (live at commands/history.rs:4). [[package]] entry survives for url/form_urlencoded.
+- #69 `objc2-core-foundation` — 7d54cf2, own commit. Real `cargo build --release` green (4m51s) against the feature-flipped set (crate loses block2/libc it only had via kokobrain's default-features); all four macOS fonts tests pass. Reviewer confirmed via `cargo tree --locked` that the staged lock is exactly what cargo resolves, and that no CI path unifies features differently.
+- #53 + #11 — 580f044. buildTime one-liner verified byte-identical to the old formatter across 8 timezones (half-hour offsets, UTC+14, year boundary, DST instants); settings-watcher.py had zero references repo-wide.
+- #22 #30 #66 #70 — 4d1aa01. Pure deletions; sanitizeMathHtml NOT wired anywhere (per issue: adoption would be a regression). #70 required stripping `iconCount: 0` from the 12 pack literals in icon-data.ts in addition to the 2-line types.ts delete (excess-property checks).
+
+No test collateral existed for any item (verified before each commit). Gates: frontend gate ran per npm/TS commit (check 0 errors, 6716 vitest passed, build green each time); cargo gate per Rust commit. Pre-existing stale-doc note from #69 review: docs/adr/0013 cites Cargo.toml:67-68 crates (security-framework, objc2-local-authentication) that exist neither at HEAD nor before this change — pre-existing, out of scope, not filed by this issue.
