@@ -1025,7 +1025,7 @@ pub fn find_plain_text_mention_positions(
 
 		// Validate that idx is a char boundary in content before using it.
 		// This prevents panics when stripped_lower and content have different byte lengths due to emojis.
-		if idx > content.len() || !is_char_boundary(content, idx) {
+		if !content.is_char_boundary(idx) {
 			search_from = idx + term_byte_len;
 			continue;
 		}
@@ -1036,7 +1036,7 @@ pub fn find_plain_text_mention_positions(
 		let after_byte_pos = idx + term_byte_len;
 		// after_byte_pos may also not be a valid boundary; clamp to content length
 		let after_byte_pos_clamped = after_byte_pos.min(content.len());
-		let after_char = if after_byte_pos_clamped < content.len() && is_char_boundary(content, after_byte_pos_clamped) {
+		let after_char = if after_byte_pos_clamped < content.len() && content.is_char_boundary(after_byte_pos_clamped) {
 			char_at_byte(content, after_byte_pos_clamped).unwrap_or(' ')
 		} else {
 			' '
@@ -1051,11 +1051,6 @@ pub fn find_plain_text_mention_positions(
 	}
 
 	positions
-}
-
-/// Check if `byte_pos` is a valid char boundary in `s`.
-fn is_char_boundary(s: &str, byte_pos: usize) -> bool {
-	byte_pos == 0 || byte_pos == s.len() || s.is_char_boundary(byte_pos)
 }
 
 /// Returns the char that ends at byte offset `byte_pos` in `s`, or `None`
