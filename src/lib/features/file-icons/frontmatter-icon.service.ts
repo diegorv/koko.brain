@@ -46,18 +46,6 @@ export async function setFrontmatterIcon(
 	await writeTextFile(filePath, newContent);
 }
 
-/** Updates only _color in a markdown file's frontmatter (without touching _icon). */
-export async function setFrontmatterIconColor(filePath: string, color: string): Promise<void> {
-	const content = await readTextFile(filePath);
-	let properties = parseFrontmatterProperties(content);
-	const body = extractBody(content);
-
-	properties = upsertProperty(properties, '_color', color);
-
-	const newContent = rebuildContent(properties, body);
-	await writeTextFile(filePath, newContent);
-}
-
 /** Removes _icon, _color, and _title_color from a markdown file's frontmatter. */
 export async function removeFrontmatterIcon(filePath: string): Promise<void> {
 	const content = await readTextFile(filePath);
