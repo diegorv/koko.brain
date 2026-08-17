@@ -5,7 +5,7 @@ import {
 	ViewPlugin,
 	type ViewUpdate,
 } from '@codemirror/view';
-import type { EditorState, Range } from '@codemirror/state';
+import type { EditorState, Range, Text } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
@@ -58,8 +58,7 @@ export function buildMetaBindInputDecorations(
 	ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
 	const decorations: Range<Decoration>[] = [];
-	const docText = state.doc.toString();
-	const fmProperties = parseFrontmatterProperties(docText);
+	const fmProperties = parseFrontmatterProperties(frontmatterSlice(state.doc));
 
 	for (const { from, to } of ranges) {
 		const startLine = state.doc.lineAt(from).number;
@@ -89,6 +88,24 @@ export function buildMetaBindInputDecorations(
 	}
 
 	return Decoration.set(decorations, true);
+}
+
+/**
+ * Materializes only the frontmatter prefix of the document for property
+ * parsing, instead of `doc.toString()` (a full-document string copy per
+ * rebuild — typing lag in large notes). Parity contract: the parser's
+ * `FRONTMATTER_REGEX` (`/^---\r?\n[\s\S]*?\r?\n---/`) can only match when
+ * line 1 is exactly `---`, and its non-greedy body ends at the first line
+ * >= 3 whose text starts with `---`. Returning '' when no fence can match
+ * yields [] from the parser, exactly as the full text would.
+ */
+function frontmatterSlice(doc: Text): string {
+	if (doc.lines < 3 || doc.line(1).text !== '---') return '';
+	for (let i = 3; i <= doc.lines; i++) {
+		const line = doc.line(i);
+		if (line.text.startsWith('---')) return doc.sliceString(0, line.to);
+	}
+	return '';
 }
 
 /**

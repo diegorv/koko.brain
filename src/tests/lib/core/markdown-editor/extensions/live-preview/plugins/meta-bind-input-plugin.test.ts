@@ -68,3 +68,75 @@ describe('metaBindInputPlugin — buildMetaBindInputDecorations', () => {
 		expect(decos).toHaveLength(2);
 	});
 });
+
+/** Reads the widget instances off a decoration set (spec.widget). */
+function collectWidgets(decoSet: ReturnType<typeof buildMetaBindInputDecorations>) {
+	const widgets: { currentValue: string | null }[] = [];
+	const iter = decoSet.iter();
+	while (iter.value) {
+		widgets.push((iter.value.spec as { widget: { currentValue: string | null } }).widget);
+		iter.next();
+	}
+	return widgets;
+}
+
+describe('metaBindInputPlugin — frontmatter parse does not materialize the full document', () => {
+	const INPUT_LINE = '`INPUT[inlineSelect(option(1, one), option(2, two)):rating]`';
+
+	it('never slices beyond the closing frontmatter fence during a rebuild', () => {
+		const fm = '---\nrating: 2\n---';
+		const doc = `${fm}\n${INPUT_LINE}\n${'lorem ipsum dolor sit amet\n'.repeat(500)}`;
+		const state = createMarkdownState(doc);
+
+		// Spy on sliceString: it is the single materialization primitive —
+		// Text.toString() delegates to sliceString(0) — so bounding every
+		// recorded span bounds every string allocation from the doc.
+		const spans: { from: number; to: number }[] = [];
+		const origSlice = state.doc.sliceString.bind(state.doc);
+		state.doc.sliceString = (from: number, to?: number, lineSep?: string) => {
+			spans.push({ from, to: to ?? state.doc.length });
+			return origSlice(from, to, lineSep);
+		};
+
+		const decos = collectDecos(
+			buildMetaBindInputDecorations(state, [{ from: 0, to: state.doc.length }]),
+		);
+
+		// The fix must still parse frontmatter (widget produced), just without
+		// copying the whole document.
+		expect(decos).toHaveLength(1);
+		for (const span of spans) {
+			expect(span.to).toBeLessThanOrEqual(fm.length);
+		}
+	});
+
+	it('feeds the frontmatter value to the widget', () => {
+		const doc = `---\nrating: 2\n---\n${INPUT_LINE}`;
+		const state = createMarkdownState(doc);
+		const widgets = collectWidgets(
+			buildMetaBindInputDecorations(state, [{ from: 0, to: state.doc.length }]),
+		);
+		expect(widgets).toHaveLength(1);
+		expect(widgets[0].currentValue).toBe('2');
+	});
+
+	it('yields null current value when the document has no frontmatter', () => {
+		const doc = `text first\n${INPUT_LINE}`;
+		const state = createMarkdownState(doc);
+		const widgets = collectWidgets(
+			buildMetaBindInputDecorations(state, [{ from: 0, to: state.doc.length }]),
+		);
+		expect(widgets).toHaveLength(1);
+		expect(widgets[0].currentValue).toBeNull();
+	});
+
+	it('yields null current value when the frontmatter fence never closes', () => {
+		const doc = `---\nrating: 2\n${INPUT_LINE}`;
+		const state = createMarkdownState(doc);
+		const widgets = collectWidgets(
+			buildMetaBindInputDecorations(state, [{ from: 0, to: state.doc.length }]),
+		);
+		expect(widgets).toHaveLength(1);
+		expect(widgets[0].currentValue).toBeNull();
+	});
+});
