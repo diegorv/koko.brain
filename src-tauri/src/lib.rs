@@ -318,7 +318,6 @@ pub fn run() {
             commands::search_index::search_fts,
             commands::search_index::update_search_index_file,
             commands::search_index::remove_from_search_index,
-            commands::search_index::get_search_index_stats,
             commands::semantic::init_semantic_search,
             commands::semantic::is_semantic_model_available,
             commands::semantic::build_semantic_index,

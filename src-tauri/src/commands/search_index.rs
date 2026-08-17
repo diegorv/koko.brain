@@ -195,17 +195,6 @@ pub fn remove_from_search_index_inner(file_path: String) -> Result<(), String> {
 	db::with_fts_db(|conn| db::fts_repo::delete_entry(conn, &file_path))
 }
 
-/// Returns statistics about the FTS5 search index.
-#[tauri::command]
-pub fn get_search_index_stats() -> Result<IndexStats, String> {
-	db::with_fts_db(|conn| {
-		let count = db::fts_repo::count_entries(conn)?;
-		Ok(IndexStats {
-			total_documents: count,
-		})
-	})
-}
-
 // --- Private helpers ---
 
 /// Builds an FTS5 MATCH query string from user input.

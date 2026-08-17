@@ -229,22 +229,6 @@ fn remove_from_search_index_removes_file() {
 }
 
 #[test]
-fn get_search_index_stats_returns_correct_count() {
-	let _guard = TEST_LOCK.lock().unwrap();
-	teardown();
-	let tmp = setup_vault();
-	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
-
-	let stats = search_index::get_search_index_stats().unwrap();
-	assert_eq!(
-		stats.total_documents, 4,
-		"should report 4 indexed documents"
-	);
-
-	teardown();
-}
-
-#[test]
 fn search_fts_handles_special_characters() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
