@@ -19,12 +19,7 @@ try { gitHash = execSync("git rev-parse --short HEAD").toString().trim(); } catc
 let commitCount = "0";
 try { commitCount = execSync("git rev-list --count HEAD").toString().trim(); } catch {}
 
-const now = new Date();
-const pad = (n) => String(n).padStart(2, "0");
-const buildTime = [
-  `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
-  `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
-].join("");
+const buildTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 19);
 
 const channel = parseReleaseChannel(process.env.KOKO_RELEASE_CHANNEL);
 const buildInfo = formatBuildInfo({ pkgVersion: pkg.version, gitHash, commitCount, buildTime, channel });
