@@ -176,4 +176,57 @@ describe('vaultStore', () => {
 			expect(vaultStore.vaultIndexVersion).toBe(5);
 		});
 	});
+
+	describe('indexReady', () => {
+		it('starts false', () => {
+			expect(vaultStore.indexReady).toBe(false);
+		});
+
+		it('becomes true on bumpVaultIndexVersion', () => {
+			vaultStore.bumpVaultIndexVersion(7);
+			expect(vaultStore.indexReady).toBe(true);
+		});
+
+		it('resetIndexReady clears readiness without touching the version counter', () => {
+			vaultStore.bumpVaultIndexVersion(7);
+			vaultStore.resetIndexReady();
+			expect(vaultStore.indexReady).toBe(false);
+			expect(vaultStore.vaultIndexVersion).toBe(7);
+		});
+
+		it('stays false on bumps after resetIndexReady (stale event from the torn-down vault)', () => {
+			vaultStore.bumpVaultIndexVersion(7);
+			vaultStore.resetIndexReady();
+			// The debounced vault-index-updated listener survives teardown; a
+			// tail event from the old vault must not clear the placeholder.
+			vaultStore.bumpVaultIndexVersion(8);
+			expect(vaultStore.indexReady).toBe(false);
+		});
+
+		it('markIndexReady restores readiness after resetIndexReady (second vault built)', () => {
+			vaultStore.bumpVaultIndexVersion(7);
+			vaultStore.resetIndexReady();
+			vaultStore.markIndexReady();
+			expect(vaultStore.indexReady).toBe(true);
+		});
+
+		it('markIndexReady lifts suppression so later bumps keep setting readiness', () => {
+			vaultStore.resetIndexReady();
+			vaultStore.markIndexReady();
+			vaultStore.resetIndexReady();
+			expect(vaultStore.indexReady).toBe(false);
+			vaultStore.markIndexReady();
+			vaultStore.bumpVaultIndexVersion(9);
+			expect(vaultStore.indexReady).toBe(true);
+		});
+
+		it('_reset clears readiness and suppression (initial state restored)', () => {
+			vaultStore.bumpVaultIndexVersion(7);
+			vaultStore.resetIndexReady();
+			vaultStore._reset();
+			expect(vaultStore.indexReady).toBe(false);
+			vaultStore.bumpVaultIndexVersion(1);
+			expect(vaultStore.indexReady).toBe(true);
+		});
+	});
 });

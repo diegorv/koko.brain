@@ -112,6 +112,11 @@ let pendingWatcherPaths: string[] = [];
  * Uses a version counter to discard results if a newer initialization starts.
  */
 export async function initializeVault(vaultPath: string): Promise<void> {
+	// Unconditional: a rapid double-switch (A→B, then B→C before B's init
+	// reaches step 7) skips the teardown below because unsubscribeFileChange
+	// is still null — readiness from B's init must not leak into C's.
+	vaultStore.resetIndexReady();
+
 	// If a vault is already initialized, save dirty tabs and tear down
 	// watchers, database connections, hooks, and stores from the old vault
 	if (unsubscribeFileChange) {
@@ -205,6 +210,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	}
 	perfEnd('LIFECYCLE', 'Step 4: buildIndex+loadDirectoryTree(parallel)', t4);
 	if (initVersion !== version) return;
+	// Index built for THIS vault — lift the post-teardown readiness
+	// suppression. Event-driven bumps can't do this: the debounced
+	// vault-index-updated listener survives vault switches, so a tail event
+	// from the old vault could otherwise clear "Indexing vault..." early.
+	// The initVersion check above keeps a torn-down init from marking ready.
+	vaultStore.markIndexReady();
 
 	// ── Step 4b: Apply _order frontmatter to file tree ──────────────
 	// Index is now ready, fetch entries once to build contentOrder map.
@@ -407,6 +418,13 @@ export function teardownVault(): void {
 	closeFileHistory();
 
 	// ── Reset hooks + stores ────────────────────────────────────────
+	// Clear index readiness (NOT the version counter — completion.ts caches
+	// by version and depends on its monotonicity) so the next vault shows
+	// "Indexing vault..." until its own index is built. Redundant with the
+	// reset at initializeVault entry on the normal switch path — but ONLY the
+	// entry reset covers the double-switch window where this teardown is
+	// skipped, so keep that one if deduplicating.
+	vaultStore.resetIndexReady();
 	resetHooks();
 	queryjsSessionStore.reset();
 	clearMermaidCache();

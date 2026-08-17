@@ -101,4 +101,30 @@ describe('BacklinksPanel — vaultIndexVersion refetch', () => {
 
 		expect(fetchBacklinksV2).toHaveBeenCalledTimes(1);
 	});
+
+	it('shows the indexing placeholder while the index is not ready, even at a non-zero version (second vault)', () => {
+		// Second-vault condition: the process-global counter is already
+		// non-zero, but this vault's index has not been built yet.
+		vaultStore.bumpVaultIndexVersion(5);
+		vaultStore.resetIndexReady();
+
+		mountPanel();
+		clickTrigger();
+
+		expect(target.textContent).toContain('Indexing vault...');
+	});
+
+	it('replaces the indexing placeholder once the index build completes', () => {
+		vaultStore.bumpVaultIndexVersion(5);
+		vaultStore.resetIndexReady();
+		mountPanel();
+		clickTrigger();
+		expect(target.textContent).toContain('Indexing vault...');
+
+		vaultStore.markIndexReady();
+		flushSync();
+
+		expect(target.textContent).not.toContain('Indexing vault...');
+		expect(target.textContent).toContain('No backlinks found');
+	});
 });

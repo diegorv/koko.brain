@@ -18,6 +18,21 @@ let recentVaults = $state<RecentVault[]>(loadRecentVaults());
  * event has been received yet.
  */
 let vaultIndexVersion = $state(0);
+/**
+ * Whether the Rust `VaultIndex` has been built for the CURRENT vault.
+ * Unlike `vaultIndexVersion` (process-global, monotonic, never rewound —
+ * `completion.ts` caches by it), this flag is cleared on vault teardown so
+ * a second vault opened in the same session shows the indexing state again.
+ */
+let indexReady = $state(false);
+/**
+ * True between vault teardown and the next completed index build. The
+ * `vault-index-updated` listener is debounced (300 ms) and never torn down,
+ * so the OLD vault's tail events (dirty-tab saves, watcher bursts) can land
+ * after teardown — while suppressed, those bumps must not flip readiness.
+ * Cleared by `markIndexReady()` when `initializeVault` finishes the build.
+ */
+let indexReadySuppressed = false;
 /** Reads the recent vaults list from localStorage (returns [] on failure) */
 function loadRecentVaults(): RecentVault[] {
 	try {
@@ -46,6 +61,12 @@ export const vaultStore = {
 	 * to invalidate cached views (backlinks, outgoing, tags, etc.).
 	 */
 	get vaultIndexVersion() { return vaultIndexVersion; },
+	/**
+	 * Whether the current vault's index has emitted at least one
+	 * `vault-index-updated` since it was opened. Guards the
+	 * "Indexing vault..." placeholder state in panels.
+	 */
+	get indexReady() { return indexReady; },
 
 	/** Opens a vault by path — updates state and persists to recent vaults */
 	open(path: string) {
@@ -73,10 +94,36 @@ export const vaultStore = {
 	 * Sets the cached `vaultIndexVersion` to the latest value seen from the
 	 * Rust `vault-index-updated` event. Always assigns (does not min/max)
 	 * because the Rust side is the sole source of truth for the counter and
-	 * always emits a strictly-greater value than the prior one.
+	 * always emits a strictly-greater value than the prior one. Also marks
+	 * the index ready — unless suppressed post-teardown (the event may
+	 * originate from the torn-down vault's tail writes).
 	 */
 	bumpVaultIndexVersion(version: number) {
 		vaultIndexVersion = version;
+		if (!indexReadySuppressed) indexReady = true;
+	},
+
+	/**
+	 * Marks the current vault's index as built and lifts the post-teardown
+	 * suppression window. Called by `initializeVault` after `buildIndex`
+	 * completes — the only signal that is scoped to the NEW vault (event
+	 * bumps can still originate from the old vault's tail writes).
+	 */
+	markIndexReady() {
+		indexReadySuppressed = false;
+		indexReady = true;
+	},
+
+	/**
+	 * Clears index readiness on vault teardown so the next vault shows the
+	 * "Indexing vault..." state until its own index is built. Suppresses
+	 * bump-driven readiness until `markIndexReady()` (stale events from the
+	 * torn-down vault must not clear the placeholder). Deliberately leaves
+	 * `vaultIndexVersion` untouched (monotonicity contract).
+	 */
+	resetIndexReady() {
+		indexReady = false;
+		indexReadySuppressed = true;
 	},
 
 	/** @internal Resets all state to initial values (for testing only) */
@@ -85,5 +132,7 @@ export const vaultStore = {
 		vaultName = null;
 		recentVaults = [];
 		vaultIndexVersion = 0;
+		indexReady = false;
+		indexReadySuppressed = false;
 	},
 };

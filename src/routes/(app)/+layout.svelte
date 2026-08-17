@@ -104,9 +104,9 @@
 	// `unlinkedDirty` watcher — so this effect only needs to fan
 	// fetchBacklinksV2 + markUnlinkedDirty for the immediate tab-switch
 	// path. Cold-start guard: if the vault is open but the Rust index hasn't
-	// emitted its first `vault-index-updated` yet (vaultIndexVersion === 0),
-	// skip the fetch — calling it would just write an empty array and
-	// briefly flash the panel.
+	// emitted its first `vault-index-updated` yet (!indexReady — per-vault,
+	// unlike the process-global vaultIndexVersion counter), skip the fetch —
+	// calling it would just write an empty array and briefly flash the panel.
 	$effect(() => {
 		const path = editorStore.activeTabPath;
 		const t0 = perfStart();
@@ -119,7 +119,7 @@
 					perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0);
 					return;
 				}
-				if (path && vaultStore.isOpen && vaultStore.vaultIndexVersion === 0) {
+				if (path && vaultStore.isOpen && !vaultStore.indexReady) {
 					perfEnd('LAYOUT', 'activeTabLinks:effect→callback(150ms debounce+work)', t0);
 					return;
 				}

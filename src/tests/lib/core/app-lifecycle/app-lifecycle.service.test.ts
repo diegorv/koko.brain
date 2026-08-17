@@ -197,6 +197,7 @@ import {
 import { toast } from 'svelte-sonner';
 import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 
@@ -461,6 +462,47 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(resetTrash).toHaveBeenCalled();
+	});
+
+	it('clears index readiness so the next vault shows the indexing state', async () => {
+		// Simulate the first vault's index having been built.
+		vaultStore._reset();
+		vaultStore.bumpVaultIndexVersion(7);
+		expect(vaultStore.indexReady).toBe(true);
+
+		teardownVault();
+
+		// Readiness resets, but the counter itself is never rewound —
+		// wikilink completion.ts caches by version and depends on monotonicity.
+		expect(vaultStore.indexReady).toBe(false);
+		expect(vaultStore.vaultIndexVersion).toBe(7);
+
+		// A stale vault-index-updated from the torn-down vault (the debounced
+		// listener survives teardown) must NOT clear the placeholder early.
+		vaultStore.bumpVaultIndexVersion(8);
+		expect(vaultStore.indexReady).toBe(false);
+
+		// Readiness returns only when the NEXT vault's index build completes.
+		await initializeVault('/vault-b');
+		expect(vaultStore.indexReady).toBe(true);
+	});
+
+	it('initializeVault clears readiness at entry even when the internal teardown is skipped', () => {
+		// Double-switch window: unsubscribeFileChange is null (teardown already
+		// ran), so initializeVault skips its internal teardown — readiness from
+		// the previous init must still be cleared before the new vault loads.
+		teardownVault();
+		vaultStore.markIndexReady();
+		expect(vaultStore.indexReady).toBe(true);
+
+		// Hold init at step 1 so only the synchronous entry code runs.
+		vi.mocked(loadSettings).mockImplementationOnce(() => new Promise(() => {}));
+		void initializeVault('/vault-c');
+
+		expect(vaultStore.indexReady).toBe(false);
+
+		// Abandon the hanging init so it can never complete in later tests.
+		teardownVault();
 	});
 
 	it('resets todoist store to prevent cross-vault data leakage', () => {

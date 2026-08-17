@@ -63,7 +63,7 @@
 			<div class="max-h-[50vh] overflow-y-auto p-2">
 				{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
 					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">Not available</p>
-				{:else if vaultStore.isOpen && vaultStore.vaultIndexVersion === 0}
+				{:else if vaultStore.isOpen && !vaultStore.indexReady}
 					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">Indexing vault...</p>
 				{:else if backlinksStore.linkedMentions.length === 0}
 					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No backlinks found</p>
