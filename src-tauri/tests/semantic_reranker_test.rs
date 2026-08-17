@@ -1,8 +1,8 @@
 //! Boundary tests for `Reranker` (`src/semantic/reranker.rs`).
 //!
-//! EXCLUDED: `rerank()` scoring (including the empty-documents fast path) and
-//! `with_batch_size()` chaining require a constructed `Reranker`, which needs
-//! the real BGE-reranker-v2-m3 ONNX model (~571MB download) plus live ORT
+//! EXCLUDED: `rerank()` scoring (including the empty-documents fast path)
+//! requires a constructed `Reranker`, which needs the real
+//! BGE-reranker-v2-m3 ONNX model (~571MB download) plus live ORT
 //! inference — out of scope for unit/integration tests per the project's
 //! semantic-test policy. These tests cover the load-time validation boundary
 //! (missing files, invalid model bytes) and the public constants that gate

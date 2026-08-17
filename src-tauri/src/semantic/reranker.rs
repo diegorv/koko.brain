@@ -87,12 +87,6 @@ impl Reranker {
 		})
 	}
 
-	/// Override the inference batch size.
-	pub fn with_batch_size(mut self, batch_size: usize) -> Self {
-		self.batch_size = batch_size.max(1);
-		self
-	}
-
 	/// Returns a logit per `(query, doc)` pair. Higher = more relevant.
 	///
 	/// Order of the returned scores matches the order of `documents`.
