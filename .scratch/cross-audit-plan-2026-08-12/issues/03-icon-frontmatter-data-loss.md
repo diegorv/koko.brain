@@ -27,3 +27,13 @@ No ADR-0017 edit in this series (arch 2.0 needs no ADR edit; the single ADR-0017
 - One commit per step (a, b, c, d) using the repo's full commit format (Context, Problem, Solution, Behavior, Files with line ranges). Test collateral lands in the same commit as its source change.
 
 ## Comments
+
+**2026-08-17 (agent):** Fixed, four-commit series as prescribed: (a) 0635bfd deleted `setFrontmatterIconColor` (whole-repo grep confirmed zero callers, zero test refs, zero dynamic-import destructurings); (b) 61ef67f regression test — real editorStore + real `saveFileByPath`, dirty tab + `setIconForPath`, asserts the LAST `writeTextFile` payload keeps `_icon`; run red-first against broken code (final write was the dirty tab content without `_icon` — the exact clobber), then landed as `it.fails` so the per-commit gate stayed green; (c) 75ff4a7 the fix — `syncExternalContentToEditor(filePath, newContent, true)` after the two `writeTextFile`s inside `frontmatter-icon.service.ts` (also flips the regression test to plain `it`; sync collateral added to `frontmatter-icon.service.test.ts`); (d) 7bdf3c1 flipped `type-definitions.service.ts:149` `markSaved` to `true`, landed once. No ADR edit.
+
+Findings recorded for posterity:
+
+1. **Accepted tradeoff surfaced by review (b):** the prescribed fix rebuilds from DISK and marks the tab saved, so unsaved body edits present at the moment the icon is picked are replaced by the disk-rebuilt content. Bounded by the 500ms/2s autosave debounce and visible in the editor, versus the silent permanent icon loss it removes. Documented in 75ff4a7's Behavior section per reviewer advisory.
+2. **Latent, out of scope (review d):** `toggleFavoriteForPath` syncs only when the note is the ACTIVE tab; a dirty background tab can still clobber `_favorite` on save-all. Pre-existing; `syncExternalContentToEditor` itself already handles any open tab, so the `activeTabPath` guard is stricter than the helper requires.
+3. After (c), every disk-write-then-sync site uses `markSaved=true`; the two remaining `false` callers (`properties.service.ts:48`, `lifecycle.service.ts:18`) rebuild from in-memory tab content without writing disk, so `false` remains correct there.
+
+Adversarial reviews (fable): four passes, one per commit; all four verdicts "could not refute". Working tree audited clean after each pass.
