@@ -448,7 +448,7 @@ describe('toggleFavoriteForPath', () => {
 		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
 			'/vault/note.md',
 			expect.stringContaining('_favorite: true'),
-			false,
+			true,
 		);
 	});
 

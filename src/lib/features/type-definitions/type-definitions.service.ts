@@ -146,7 +146,7 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 	const newContent = rebuildContent(updated, body);
 	await writeTextFile(filePath, newContent);
 	if (editorStore.activeTabPath === filePath) {
-		syncExternalContentToEditor(filePath, newContent, false);
+		syncExternalContentToEditor(filePath, newContent, true);
 	}
 	await invoke('update_note_in_index', { path: filePath, content: newContent });
 }
