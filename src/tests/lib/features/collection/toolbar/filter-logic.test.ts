@@ -10,7 +10,7 @@ import {
 	createEmptyFilterRow,
 } from '$lib/features/collection/toolbar/filter.logic';
 import type { CollectionFilter, NoteRecord } from '$lib/features/collection/collection.types';
-import type { FilterRow } from '$lib/features/collection/toolbar/toolbar.types';
+import type { FilterOperator, FilterRow } from '$lib/features/collection/toolbar/toolbar.types';
 
 function makeRecord(
 	path: string,
@@ -333,6 +333,60 @@ describe('filterRowToExpression', () => {
 		expect(parsed.property).toBe('status');
 		expect(parsed.operator).toBe('is');
 		expect(parsed.value).toBe('100');
+	});
+
+	it('quotes non-numeric relational values so they stay literals', () => {
+		expect(filterRowToExpression({ id: '1', property: 'status', operator: 'gte', value: 'b' }))
+			.toBe("status >= 'b'");
+		expect(filterRowToExpression({ id: '1', property: 'status', operator: 'lt', value: 'in progress' }))
+			.toBe("status < 'in progress'");
+	});
+
+	it('round-trips non-numeric relational filter: parse → serialize → parse', () => {
+		const original = "status >= 'b'";
+		const row1 = parseExpressionToRow(original);
+		expect(row1.raw).toBeUndefined();
+		expect(row1.operator).toBe('gte');
+		const serialized = filterRowToExpression(row1);
+		const row2 = parseExpressionToRow(serialized);
+		expect(row2.raw).toBeUndefined();
+		expect(row2.property).toBe('status');
+		expect(row2.operator).toBe('gte');
+		expect(row2.value).toBe('b');
+	});
+
+	it('round-trips every operator: serialize → parse preserves the row', () => {
+		// Record<FilterOperator, ...> so adding an operator without a case here fails to compile
+		const values: Record<FilterOperator, string> = {
+			is: 'active',
+			is_not: 'done',
+			contains: 'meeting',
+			does_not_contain: 'draft',
+			starts_with: 'intro',
+			ends_with: '.md',
+			eq: '5',
+			neq: '3',
+			gt: 'b',
+			lt: 'in progress',
+			gte: '2.5',
+			lte: 'z',
+			before: '2024-01-01',
+			after: '2024-06-15',
+			on_or_before: '2024-12-31',
+			on_or_after: '2024-01-01',
+			is_true: '',
+			is_false: '',
+			is_empty: '',
+			is_not_empty: '',
+		};
+		for (const [operator, value] of Object.entries(values) as [FilterOperator, string][]) {
+			const row: FilterRow = { id: '1', property: 'prop', operator, value };
+			const parsed = parseExpressionToRow(filterRowToExpression(row));
+			expect(parsed.raw, `operator ${operator} fell back to raw`).toBeUndefined();
+			expect(parsed.property).toBe('prop');
+			expect(parsed.operator, `operator ${operator} did not survive round-trip`).toBe(operator);
+			expect(parsed.value, `value for ${operator} did not survive round-trip`).toBe(value);
+		}
 	});
 });
 

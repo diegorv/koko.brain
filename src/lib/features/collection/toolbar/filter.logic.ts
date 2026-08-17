@@ -58,13 +58,13 @@ export function filterRowToExpression(row: FilterRow): string {
 		case 'neq':
 			return `${prop} != ${val}`;
 		case 'gt':
-			return `${prop} > ${val}`;
+			return `${prop} > ${quoteUnlessNumber(val)}`;
 		case 'lt':
-			return `${prop} < ${val}`;
+			return `${prop} < ${quoteUnlessNumber(val)}`;
 		case 'gte':
-			return `${prop} >= ${val}`;
+			return `${prop} >= ${quoteUnlessNumber(val)}`;
 		case 'lte':
-			return `${prop} <= ${val}`;
+			return `${prop} <= ${quoteUnlessNumber(val)}`;
 		case 'before':
 			return `${prop} < date('${val}')`;
 		case 'after':
@@ -454,6 +454,14 @@ function mapDateBinaryOp(op: string): FilterOperator | null {
 		case '>=': return 'on_or_after';
 		default: return null;
 	}
+}
+
+/**
+ * Emits numeric literals bare; quotes anything else so the value re-parses as a
+ * literal instead of an identifier (which would corrupt saved .collection/.view files).
+ */
+function quoteUnlessNumber(val: string): string {
+	return /^-?\d+(\.\d+)?$/.test(val) ? val : quoteString(val);
 }
 
 /** Always wraps a value in single quotes with proper escaping */
