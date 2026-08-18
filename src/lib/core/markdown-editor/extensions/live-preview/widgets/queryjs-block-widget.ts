@@ -92,7 +92,9 @@ export class QueryjsBlockWidget extends WidgetType {
 		// cached node is DETACHED — if it is still connected, an identical block
 		// elsewhere on screen owns it and `appendChild` would steal that live DOM
 		// (blanking the other block). Fall through to a fresh execution instead.
-		// Mirrors the `!isConnected` guard in mermaid/collection/block-math widgets.
+		// This guard exists only here: mermaid and block/inline math cache markup
+		// STRINGS and collection caches the query DATA, so those widgets build
+		// fresh DOM on every toDOM() and have no live node to steal.
 		const cached = queryjsSessionStore.getResult(this.jsContent);
 		if (cached && !cached.isConnected) {
 			appendLog('QJS-PROFILE', `toDOM() cache HIT — reattach: ${this.jsContent.substring(0, 50)}`);
