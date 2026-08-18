@@ -33,8 +33,3 @@ export async function openRecentVault(path: string): Promise<boolean> {
 	vaultStore.open(path);
 	return true;
 }
-
-/** Closes the current vault and returns to the vault picker screen */
-export function closeVault() {
-	vaultStore.close();
-}

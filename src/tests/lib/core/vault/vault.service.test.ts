@@ -34,7 +34,7 @@ import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { error as debugError } from '$lib/utils/debug';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { openVaultDialog, openRecentVault, closeVault } from '$lib/core/vault/vault.service';
+import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
 
 describe('openVaultDialog', () => {
 	beforeEach(() => {
@@ -135,34 +135,5 @@ describe('openRecentVault', () => {
 		expect(result).toBe(true);
 		expect(vaultStore.isOpen).toBe(true);
 		expect(debugError).toHaveBeenCalledWith('VAULT', 'Failed to check vault path:', expect.any(Error));
-	});
-});
-
-describe('closeVault', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		localStorageMock.clear();
-		vaultStore._reset();
-	});
-
-	it('closes the vault and clears state', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		await openRecentVault('/vault');
-		expect(vaultStore.isOpen).toBe(true);
-
-		closeVault();
-
-		expect(vaultStore.isOpen).toBe(false);
-		expect(vaultStore.path).toBeNull();
-		expect(vaultStore.name).toBeNull();
-	});
-
-	it('preserves recent vaults after closing', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		await openRecentVault('/vault');
-		closeVault();
-
-		expect(vaultStore.recentVaults).toHaveLength(1);
-		expect(vaultStore.recentVaults[0].path).toBe('/vault');
 	});
 });
