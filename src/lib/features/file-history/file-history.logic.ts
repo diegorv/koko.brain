@@ -1,3 +1,4 @@
+import { formatDate } from '$lib/utils/date';
 import type { SnapshotInfo, SnapshotGroup } from './file-history.types';
 
 /**
@@ -173,8 +174,5 @@ export function findBackupTimestamp(
 
 /** Converts a Date to a "YYYY-MM-DD" string for grouping */
 function toDateKey(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, '0');
-	const d = String(date.getDate()).padStart(2, '0');
-	return `${y}-${m}-${d}`;
+	return formatDate(date, 'YYYY-MM-DD');
 }

@@ -1,3 +1,4 @@
+import { formatDate } from '$lib/utils/date';
 import type { NoteRecord } from './collection.types';
 import { getPropertyValue } from './collection.logic';
 
@@ -172,8 +173,5 @@ export function getWeekDayLabels(weekStartDay = 1): string[] {
  * Formats a Date as a YYYY-MM-DD string for use as a map key.
  */
 export function formatDateKey(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, '0');
-	const d = String(date.getDate()).padStart(2, '0');
-	return `${y}-${m}-${d}`;
+	return formatDate(date, 'YYYY-MM-DD');
 }

@@ -167,6 +167,17 @@ describe('groupSnapshotsByDay', () => {
 		expect(groups[0].label).toBe('Today');
 	});
 
+	it('labels older days with the calendar date rebuilt from the day key', () => {
+		// Pins the internal "YYYY-MM-DD" day-key shape: the label branch splits the
+		// key on "-" and rebuilds a Date from it, so any format drift yields "Invalid Date".
+		const older = new Date(2020, 2, 5, 12, 0, 0);
+		const groups = groupSnapshotsByDay([makeSnapshot(1, older.getTime())]);
+		expect(groups).toHaveLength(1);
+		expect(groups[0].label).toBe(
+			older.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+		);
+	});
+
 	it('sorts snapshots within each group newest first', () => {
 		const now = Date.now();
 		const groups = groupSnapshotsByDay([
