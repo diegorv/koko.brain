@@ -10,12 +10,6 @@ import {
 	createLinkNode,
 	createGroupNode,
 	createImageNode,
-	addNode,
-	removeNode,
-	updateNode,
-	createEdge,
-	addEdge,
-	removeEdge,
 	duplicateNode,
 	canvasNodeToFlowNode,
 	canvasEdgeToFlowEdge,
@@ -172,77 +166,6 @@ describe('createGroupNode', () => {
 		expect(node.width).toBe(400);
 		expect(node.height).toBe(300);
 		expect((node as any).label).toBe('My Group');
-	});
-});
-
-describe('addNode', () => {
-	it('adds a node to the canvas immutably', () => {
-		const canvas = createEmptyCanvas();
-		const node = createTextNode(0, 0, 'test');
-		const updated = addNode(canvas, node);
-		expect(updated.nodes).toHaveLength(1);
-		expect(canvas.nodes).toHaveLength(0); // original unchanged
-	});
-});
-
-describe('removeNode', () => {
-	it('removes a node by ID', () => {
-		const node = createTextNode(0, 0, 'test');
-		const canvas: CanvasData = { nodes: [node], edges: [] };
-		const updated = removeNode(canvas, node.id);
-		expect(updated.nodes).toHaveLength(0);
-	});
-
-	it('also removes connected edges', () => {
-		const n1 = createTextNode(0, 0, 'a');
-		const n2 = createTextNode(100, 0, 'b');
-		const n3 = createTextNode(200, 0, 'c');
-		const e1 = createEdge(n1.id, n2.id);
-		const e2 = createEdge(n2.id, n3.id);
-		const e3 = createEdge(n1.id, n3.id);
-		const canvas: CanvasData = { nodes: [n1, n2, n3], edges: [e1, e2, e3] };
-
-		const updated = removeNode(canvas, n2.id);
-		expect(updated.nodes).toHaveLength(2);
-		expect(updated.edges).toHaveLength(1);
-		expect(updated.edges[0].id).toBe(e3.id);
-	});
-
-	it('does not modify original canvas', () => {
-		const node = createTextNode(0, 0, 'test');
-		const canvas: CanvasData = { nodes: [node], edges: [] };
-		removeNode(canvas, node.id);
-		expect(canvas.nodes).toHaveLength(1);
-	});
-});
-
-describe('updateNode', () => {
-	it('updates specific properties of a node', () => {
-		const node = createTextNode(0, 0, 'test');
-		const canvas: CanvasData = { nodes: [node], edges: [] };
-		const updated = updateNode(canvas, node.id, { x: 50, y: 100 });
-		expect(updated.nodes[0].x).toBe(50);
-		expect(updated.nodes[0].y).toBe(100);
-		expect((updated.nodes[0] as CanvasTextNode).text).toBe('test'); // preserved
-	});
-});
-
-describe('addEdge', () => {
-	it('adds an edge immutably', () => {
-		const canvas = createEmptyCanvas();
-		const edge = createEdge('n1', 'n2');
-		const updated = addEdge(canvas, edge);
-		expect(updated.edges).toHaveLength(1);
-		expect(canvas.edges).toHaveLength(0);
-	});
-});
-
-describe('removeEdge', () => {
-	it('removes an edge by ID', () => {
-		const edge = createEdge('n1', 'n2');
-		const canvas: CanvasData = { nodes: [], edges: [edge] };
-		const updated = removeEdge(canvas, edge.id);
-		expect(updated.edges).toHaveLength(0);
 	});
 });
 

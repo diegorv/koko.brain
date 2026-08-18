@@ -371,42 +371,6 @@ export function createImageNode(x: number, y: number, file: string): CanvasNode 
 	return { id: generateId(), type: 'image', x, y, width: 300, height: 200, file };
 }
 
-/** Adds a node to the canvas (immutable) */
-export function addNode(canvas: CanvasData, node: CanvasNode): CanvasData {
-	return { ...canvas, nodes: [...canvas.nodes, node] };
-}
-
-/** Removes a node and all its connected edges (immutable) */
-export function removeNode(canvas: CanvasData, nodeId: string): CanvasData {
-	return {
-		nodes: canvas.nodes.filter((n) => n.id !== nodeId),
-		edges: canvas.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId),
-	};
-}
-
-/** Updates a node's properties (immutable) */
-export function updateNode(canvas: CanvasData, nodeId: string, updates: Partial<CanvasNode>): CanvasData {
-	return {
-		...canvas,
-		nodes: canvas.nodes.map((n) => (n.id === nodeId ? ({ ...n, ...updates } as CanvasNode) : n)),
-	};
-}
-
-/** Creates a new edge between two nodes */
-export function createEdge(fromNode: string, toNode: string): CanvasEdge {
-	return { id: generateId(), fromNode, toNode };
-}
-
-/** Adds an edge to the canvas (immutable) */
-export function addEdge(canvas: CanvasData, edge: CanvasEdge): CanvasData {
-	return { ...canvas, edges: [...canvas.edges, edge] };
-}
-
-/** Removes an edge by ID (immutable) */
-export function removeEdge(canvas: CanvasData, edgeId: string): CanvasData {
-	return { ...canvas, edges: canvas.edges.filter((e) => e.id !== edgeId) };
-}
-
 /** Duplicates a node with a new ID and offset position */
 export function duplicateNode(node: CanvasNode, offsetX = 20, offsetY = 20): CanvasNode {
 	return { ...node, id: generateId(), x: node.x + offsetX, y: node.y + offsetY };
