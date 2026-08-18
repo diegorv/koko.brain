@@ -88,7 +88,7 @@ describe('DataArray', () => {
 			expect(new DataArray([]).whereTag('anything').length).toBe(0);
 		});
 
-		it('is not intercepted by Proxy (in KNOWN_PROPS)', () => {
+		it('is not intercepted by Proxy (real prototype member)', () => {
 			const arr = new DataArray([{ whereTag: 'some value' }]);
 			expect(typeof arr.whereTag).toBe('function');
 		});
@@ -145,7 +145,7 @@ describe('DataArray', () => {
 			expect((result.first() as any).name).toBe('b');
 		});
 
-		it('is not intercepted by Proxy (in KNOWN_PROPS)', () => {
+		it('is not intercepted by Proxy (real prototype member)', () => {
 			const arr = new DataArray([{ whereDate: 'trap' }]);
 			expect(typeof arr.whereDate).toBe('function');
 		});
@@ -202,7 +202,7 @@ describe('DataArray', () => {
 			expect(result[0]!.name).toBe('valid');
 		});
 
-		it('is not intercepted by Proxy (in KNOWN_PROPS)', () => {
+		it('is not intercepted by Proxy (real prototype member)', () => {
 			const arr = new DataArray([{ byDate: 'trap' }]);
 			expect(typeof arr.byDate).toBe('function');
 		});
@@ -676,8 +676,8 @@ describe('DataArray', () => {
 		});
 	});
 
-	describe('KNOWN_PROPS completeness', () => {
-		it('all prototype methods/properties are registered in KNOWN_PROPS and not intercepted by Proxy', () => {
+	describe('real-member coverage', () => {
+		it('every prototype method/property resolves to the real member, not a Proxy mapping', () => {
 			// Collect all own property names from the DataArray prototype
 			// (excluding constructor and Symbol.iterator)
 			const protoProps = Object.getOwnPropertyNames(DataArray.prototype).filter(
@@ -685,7 +685,7 @@ describe('DataArray', () => {
 			);
 
 			// For each prototype method/property, create a DataArray whose items
-			// have that as a key. If KNOWN_PROPS is incomplete, the Proxy would
+			// have that as a key. If the member lookup missed it, the Proxy would
 			// intercept it and return a mapped DataArray instead of the real method.
 			for (const prop of protoProps) {
 				const items = [{ [prop]: 'trap-value' }];
@@ -697,9 +697,15 @@ describe('DataArray', () => {
 				const isGetter = typeof val === 'number' || Array.isArray(val); // length, values
 				expect(
 					isMethod || isGetter,
-					`"${prop}" is not in KNOWN_PROPS — Proxy intercepted it as a property mapping`,
+					`"${prop}" did not resolve to a real member — Proxy intercepted it as a property mapping`,
 				).toBe(true);
 			}
+		});
+
+		it('"then" stays undefined so a DataArray is never mistaken for a thenable', async () => {
+			const arr = new DataArray([{ then: 'trap-value' }]);
+			expect((arr as any).then).toBeUndefined();
+			await expect(Promise.resolve(arr)).resolves.toBe(arr);
 		});
 	});
 });

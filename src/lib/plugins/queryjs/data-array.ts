@@ -9,52 +9,6 @@ export class DataArray<T> {
 	/** @internal */
 	readonly _values: T[];
 
-	/** Known own properties that the Proxy should NOT intercept */
-	private static readonly KNOWN_PROPS = new Set([
-		'_values',
-		'where',
-		'filter',
-		'whereTag',
-		'whereDate',
-		'byDate',
-		'map',
-		'flatMap',
-		'sort',
-		'sortBy',
-		'groupBy',
-		'distinct',
-		'limit',
-		'slice',
-		'concat',
-		'mutate',
-		'find',
-		'findIndex',
-		'indexOf',
-		'includes',
-		'some',
-		'every',
-		'none',
-		'first',
-		'last',
-		'to',
-		'into',
-		'array',
-		'values',
-		'length',
-		'forEach',
-		'join',
-		'toString',
-		'constructor',
-		'then', // Prevent Promise-like detection
-		'sum',
-		'avg',
-		'min',
-		'max',
-		'stats',
-		'countBy',
-		'reduce',
-	]);
-
 	constructor(values: T[]) {
 		this._values = values;
 		return new Proxy(this, {
@@ -63,8 +17,9 @@ export class DataArray<T> {
 				if (typeof prop === 'symbol') {
 					return Reflect.get(target, prop, receiver);
 				}
-				// Known DataArray methods/properties → delegate
-				if (DataArray.KNOWN_PROPS.has(prop)) {
+				// Real DataArray members (own + prototype), plus `then` so a
+				// DataArray is never mistaken for a thenable → delegate
+				if (prop === 'then' || Reflect.has(target, prop)) {
 					return Reflect.get(target, prop, receiver);
 				}
 				// Numeric index access
