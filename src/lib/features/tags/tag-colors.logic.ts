@@ -24,19 +24,6 @@ export function getTagColor(
 }
 
 /**
- * Returns a contrasting text color (white or dark) for the given hex background.
- * Uses perceived brightness formula: (R*299 + G*587 + B*114) / 1000.
- */
-export function getContrastTextColor(hex: string): string {
-	const h = hex.replace('#', '');
-	const r = parseInt(h.substring(0, 2), 16);
-	const g = parseInt(h.substring(2, 4), 16);
-	const b = parseInt(h.substring(4, 6), 16);
-	const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-	return brightness > 150 ? '#1e1e2e' : '#ffffff';
-}
-
-/**
  * Returns an updated color map with the given tag color set or removed.
  * If `color` is undefined, removes the entry. Otherwise, sets it.
  * Returns a new object (does not mutate the input).

@@ -3,7 +3,6 @@ import {
 	TAG_COLOR_PRESETS,
 	TAG_COLOR_PRESET_ENTRIES,
 	getTagColor,
-	getContrastTextColor,
 	setTagColor,
 } from '$lib/features/tags/tag-colors.logic';
 
@@ -53,42 +52,6 @@ describe('getTagColor', () => {
 
 	it('returns undefined for empty tag path', () => {
 		expect(getTagColor('', colorMap)).toBeUndefined();
-	});
-});
-
-describe('getContrastTextColor', () => {
-	it('returns dark text for a light background (brightness > 150)', () => {
-		// yellow preset: (224*299 + 222*587 + 113*114) / 1000 ≈ 210
-		expect(getContrastTextColor('#e0de71')).toBe('#1e1e2e');
-	});
-
-	it('returns white text for a dark background (brightness <= 150)', () => {
-		// red preset: (251*299 + 70*587 + 76*114) / 1000 ≈ 125
-		expect(getContrastTextColor('#fb464c')).toBe('#ffffff');
-	});
-
-	it('returns white text for pure black', () => {
-		expect(getContrastTextColor('#000000')).toBe('#ffffff');
-	});
-
-	it('returns dark text for pure white', () => {
-		expect(getContrastTextColor('#ffffff')).toBe('#1e1e2e');
-	});
-
-	it('accepts hex strings without the # prefix', () => {
-		expect(getContrastTextColor('000000')).toBe('#ffffff');
-		expect(getContrastTextColor('ffffff')).toBe('#1e1e2e');
-	});
-
-	it('treats brightness exactly 150 as dark (white text)', () => {
-		// #969696 → (150*299 + 150*587 + 150*114) / 1000 = 150 → not > 150
-		expect(getContrastTextColor('#969696')).toBe('#ffffff');
-	});
-
-	it('picks a readable text color for every preset', () => {
-		for (const hex of Object.values(TAG_COLOR_PRESETS)) {
-			expect(['#1e1e2e', '#ffffff']).toContain(getContrastTextColor(hex));
-		}
 	});
 });
 
