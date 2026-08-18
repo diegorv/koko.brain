@@ -9,7 +9,7 @@
 	import type { KanbanItem } from './kanban.types';
 	import { extractCardDate, setCardDate, removeCardDate, getDateProximity, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, type DateProximity } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
-	import { today } from '$lib/utils/date';
+	import { formatNow } from '$lib/utils/date';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
 	import KanbanDatePicker from './KanbanDatePicker.svelte';
 	import KanbanCardText from './KanbanCardText.svelte';
@@ -109,7 +109,7 @@
 	let cardDate = $derived(extractCardDate(item.text));
 	let cardColor = $derived(extractCardColor(item.text));
 	let displayText = $derived(stripCardMetadata(item.text));
-	let dateProximity = $derived(getDateProximity(cardDate, today()));
+	let dateProximity = $derived(getDateProximity(cardDate, formatNow('YYYY-MM-DD')));
 
 	const COLOR_NAMES = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'] as const;
 

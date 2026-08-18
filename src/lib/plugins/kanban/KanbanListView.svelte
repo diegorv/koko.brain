@@ -2,7 +2,7 @@
 	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard, KanbanItem } from './kanban.types';
 	import { stripCardMetadata, extractCardDate, extractCardColor, getDateProximity } from './kanban.logic';
-	import { today } from '$lib/utils/date';
+	import { formatNow } from '$lib/utils/date';
 	import { COLOR_PRESET_BG } from '$lib/utils/color-presets';
 	import KanbanCardText from './KanbanCardText.svelte';
 
@@ -27,7 +27,7 @@
 					{@const cardDate = extractCardDate(item.text)}
 					{@const cardColor = extractCardColor(item.text)}
 					{@const displayText = stripCardMetadata(item.text)}
-					{@const proximity = getDateProximity(cardDate, today())}
+					{@const proximity = getDateProximity(cardDate, formatNow('YYYY-MM-DD'))}
 					<div
 						class="flex items-center gap-2 px-3 py-2 text-sm"
 						style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}

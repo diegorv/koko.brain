@@ -1,18 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
-import { today, formatNow, formatNowOnDate, formatDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
-
-describe('today', () => {
-	it('returns a string in default YYYY-MM-DD format', () => {
-		const result = today();
-		expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-	});
-
-	it('returns a string in custom format', () => {
-		const result = today('DD/MM/YYYY');
-		expect(result).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
-	});
-});
+import { formatNow, formatNowOnDate, formatDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
 
 describe('formatDate', () => {
 	it('formats a Date object', () => {

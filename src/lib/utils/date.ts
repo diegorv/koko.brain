@@ -11,11 +11,6 @@ dayjs.extend(isoWeek);
 dayjs.extend(quarterOfYear);
 dayjs.extend(advancedFormat);
 
-/** Returns today's date formatted with the given format (default: 'YYYY-MM-DD'). */
-export function today(format: string = 'YYYY-MM-DD'): string {
-	return dayjs().format(format);
-}
-
 /** Returns the current datetime formatted, with an optional day offset. */
 export function formatNow(outputFormat: string, offsetDays: number = 0): string {
 	return dayjs().add(offsetDays, 'day').format(outputFormat);
