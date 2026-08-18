@@ -1,12 +1,10 @@
-import type { EditorState } from '@codemirror/state';
-import type { LineInfo } from './types';
+import type { EditorState, Line } from '@codemirror/state';
 
-/** Builds a LineInfo array from the full document in an EditorState */
-export function getAllLines(state: EditorState): LineInfo[] {
-	const lines: LineInfo[] = [];
+/** Builds an array with every line of the document in an EditorState */
+export function getAllLines(state: EditorState): Line[] {
+	const lines: Line[] = [];
 	for (let i = 1; i <= state.doc.lines; i++) {
-		const line = state.doc.line(i);
-		lines.push({ text: line.text, from: line.from, to: line.to, number: line.number });
+		lines.push(state.doc.line(i));
 	}
 	return lines;
 }
