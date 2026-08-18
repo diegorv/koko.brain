@@ -31,3 +31,17 @@ Both surfaces are touched, so all four commands: `cargo test --manifest-path src
 Behavior, Files with line ranges).
 
 ## Comments
+
+**2026-08-18 — resolved.** Pure deletion, so no red-green cycle; the deadness proof replaced it:
+`search_vault` (commands/search.rs:16) was registered only at lib.rs:316 with zero
+`invoke('search_vault')` sites in `src/`; `text_search` members (search_in_content,
+build_lower_to_orig_map, SearchMatch) had no users outside the two deleted source files and the
+306-line test file; `VaultSearchMatch` (fs.types.ts:40) was exported but imported nowhere (all 19
+fs.types import sites take other types; no barrel exists). Deleted commands/search.rs,
+search/text_search.rs, tests/commands/search_test.rs, the four declaration/registration lines,
+the ADR-0011:41 enumeration entry, and the TS mirror. E2E mocks left untouched per scope
+(virtual-fs.ts's VaultSearchMatch is a file-local declaration; nothing in e2e/ imports fs.types.ts).
+Gate: cargo test green, pnpm check 0 errors, vitest 6716 passed (290 files), pnpm build green.
+Adversarial review (Fable 5, read-only): could not refute — confirmed capabilities JSONs clean, no
+dynamic command-name construction, no lost coverage (validate_vault_path / is_markdown_filename have
+dedicated tests in utils_fs_test.rs:272-386), diff scope exact.

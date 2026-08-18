@@ -3,7 +3,6 @@ pub mod debug;
 pub mod files;
 pub mod fonts;
 pub mod history;
-pub mod search;
 pub mod search_index;
 pub mod semantic;
 pub mod update_channel;

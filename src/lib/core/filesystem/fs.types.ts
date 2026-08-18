@@ -35,19 +35,3 @@ export interface FileReadResult {
 	/** Error message (null if the read succeeded) */
 	error: string | null;
 }
-
-/** A single search match from the Rust search_vault command */
-export interface VaultSearchMatch {
-	/** Absolute path of the matching file */
-	filePath: string;
-	/** Display name of the file (without extension) */
-	fileName: string;
-	/** 1-based line number of the match */
-	lineNumber: number;
-	/** Full content of the line containing the match */
-	lineContent: string;
-	/** Start index of the match within the line */
-	matchStart: number;
-	/** End index of the match within the line */
-	matchEnd: number;
-}

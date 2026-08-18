@@ -313,7 +313,6 @@ pub fn run() {
             vault::watcher::start_vault_watcher,
             vault::watcher::stop_vault_watcher,
             commands::files::read_files_batch,
-            commands::search::search_vault,
             commands::search_index::build_search_index,
             commands::search_index::search_fts,
             commands::search_index::update_search_index_file,

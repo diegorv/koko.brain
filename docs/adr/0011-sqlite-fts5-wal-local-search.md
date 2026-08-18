@@ -38,7 +38,7 @@ Repository layers (`src-tauri/src/db/`):
 - `history_repo.rs` — snapshot insert + queries; writes use `INSERT ... WHERE NOT EXISTS (dedup by hash)`.
 - `semantic_repo.rs` — chunk CRUD, content-hash lookup, model metadata.
 
-Commands (`src-tauri/src/commands/`): `search.rs`, `search_index.rs`, `history.rs`, `semantic.rs`, `db.rs` wrap each repo behind `#[tauri::command]` handlers the TypeScript side calls via `invoke`.
+Commands (`src-tauri/src/commands/`): `search_index.rs`, `history.rs`, `semantic.rs`, `db.rs` wrap each repo behind `#[tauri::command]` handlers the TypeScript side calls via `invoke`.
 
 ## Alternatives considered
 
