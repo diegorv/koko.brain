@@ -23,7 +23,6 @@
 	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '$lib/features/file-icons/file-icons.service';
 	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
-	import { untrack } from 'svelte';
 	import { appendLog } from '$lib/utils/log.service';
 	import { createNoteOfType, toggleFavoriteForPath, updateViewQuery } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';

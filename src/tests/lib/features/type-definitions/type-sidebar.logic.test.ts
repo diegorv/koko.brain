@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, isInsideSystemFolder, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -665,31 +665,6 @@ describe('formatRelativeTime', () => {
 	});
 });
 
-describe('formatDatePair', () => {
-	it('returns empty for both zero', () => {
-		expect(formatDatePair(0, 0)).toBe('');
-	});
-
-	it('returns only modified when no created', () => {
-		const result = formatDatePair(Math.floor(Date.now() / 1000), 0);
-		expect(result).toBe('just now');
-	});
-
-	it('returns only created when no modified', () => {
-		const epoch = Math.floor(new Date(2020, 5, 10).getTime() / 1000);
-		expect(formatDatePair(0, epoch)).toBe('created Jun 10, 2020');
-	});
-
-	it('combines modified and created', () => {
-		const now = Math.floor(Date.now() / 1000);
-		const created = Math.floor(new Date(2020, 5, 10).getTime() / 1000);
-		const result = formatDatePair(now, created);
-		expect(result).toContain('just now');
-		expect(result).toContain('created Jun 10, 2020');
-		expect(result).toContain('·');
-	});
-});
-
 describe('formatPropertyValue', () => {
 	it('returns empty for null', () => {
 		expect(formatPropertyValue(null)).toBe('');
@@ -1055,38 +1030,6 @@ describe('sortViewFiles', () => {
 	});
 });
 
-describe('isInsideSystemFolder', () => {
-	it('returns true for paths inside the configured folder', () => {
-		expect(isInsideSystemFolder('/vault/_system/templates/x.md', '/vault', '_system')).toBe(true);
-		expect(isInsideSystemFolder('/vault/_system/types/Task.md', '/vault', '_system')).toBe(true);
-	});
-
-	it('returns false for paths outside the configured folder', () => {
-		expect(isInsideSystemFolder('/vault/notes/a.md', '/vault', '_system')).toBe(false);
-		expect(isInsideSystemFolder('/vault/_system.md', '/vault', '_system')).toBe(false);
-	});
-
-	it('returns false when systemFolder is empty', () => {
-		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault', '')).toBe(false);
-		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault', '   ')).toBe(false);
-	});
-
-	it('returns false when vaultPath is null or empty', () => {
-		expect(isInsideSystemFolder('/vault/_system/x.md', null, '_system')).toBe(false);
-		expect(isInsideSystemFolder('/vault/_system/x.md', '', '_system')).toBe(false);
-	});
-
-	it('tolerates trailing slash on vaultPath and leading/trailing slashes on folder', () => {
-		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault/', '/_system/')).toBe(true);
-		expect(isInsideSystemFolder('/vault/_system/x.md', '/vault/', '_system')).toBe(true);
-	});
-
-	it('supports nested folder paths', () => {
-		expect(isInsideSystemFolder('/v/foo/bar/x.md', '/v', 'foo/bar')).toBe(true);
-		expect(isInsideSystemFolder('/v/foo/baz/x.md', '/v', 'foo/bar')).toBe(false);
-	});
-});
-
 describe('excludeSystemFolder', () => {
 	it('removes entries inside the system folder', () => {
 		const entries = [
@@ -1099,22 +1042,40 @@ describe('excludeSystemFolder', () => {
 		expect(result[0].path).toBe('/vault/notes/a.md');
 	});
 
-	it('returns the input when systemFolder is empty', () => {
+	it('returns the input when systemFolder is empty or whitespace-only', () => {
 		const entries = [
 			entryV2('/vault/notes/a.md'),
 			entryV2('/vault/_system/x.md'),
 		];
-		const result = excludeSystemFolder(entries, '/vault', '');
-		expect(result.length).toBe(2);
+		// Exclusion is disabled, so the input array is handed back untouched.
+		expect(excludeSystemFolder(entries, '/vault', '')).toBe(entries);
+		expect(excludeSystemFolder(entries, '/vault', '   ')).toBe(entries);
 	});
 
-	it('returns the input when vaultPath is null', () => {
+	it('returns the input when vaultPath is null or empty', () => {
 		const entries = [
 			entryV2('/vault/notes/a.md'),
 			entryV2('/vault/_system/x.md'),
 		];
-		const result = excludeSystemFolder(entries, null, '_system');
-		expect(result.length).toBe(2);
+		expect(excludeSystemFolder(entries, null, '_system')).toBe(entries);
+		expect(excludeSystemFolder(entries, '', '_system')).toBe(entries);
+	});
+
+	it('tolerates a trailing slash on vaultPath and leading/trailing slashes on folder', () => {
+		const entries = [
+			entryV2('/vault/notes/a.md'),
+			entryV2('/vault/_system/x.md'),
+		];
+		expect(excludeSystemFolder(entries, '/vault/', '/_system/').map((e) => e.path)).toEqual(['/vault/notes/a.md']);
+		expect(excludeSystemFolder(entries, '/vault/', '_system').map((e) => e.path)).toEqual(['/vault/notes/a.md']);
+	});
+
+	it('supports nested folder paths', () => {
+		const entries = [
+			entryV2('/v/foo/bar/x.md'),
+			entryV2('/v/foo/baz/x.md'),
+		];
+		expect(excludeSystemFolder(entries, '/v', 'foo/bar').map((e) => e.path)).toEqual(['/v/foo/baz/x.md']);
 	});
 
 	it('returns empty when all entries are inside the system folder', () => {

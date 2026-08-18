@@ -40,3 +40,36 @@ inside the filter loop at 4 call sites and forfeit the same-array early return a
   same series. Full commit format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+### 2026-08-18 - closed, resolved by the two-commit series
+
+| Step | Resolving SHA | Fix rounds |
+|---|---|---|
+| #26 - `getInboxCount` becomes the sole inbox predicate (inbox trio + `countInbox` deleted, ADR-0026:41 amended) | `4c259ba3` | 1 |
+| #20 + ARCH 6.2 - `formatDatePair` and `isInsideSystemFolder` deleted, edge cases ported, `untrack` import dropped | this commit | 0 |
+
+**Per-step result**
+
+- **#26** - Gate green (`pnpm check` + `pnpm vitest run` + `pnpm build`). Adversarial review: Fable 5 reviewer, `could_not_refute` after 1 fix round.
+- **#20 + ARCH 6.2** - Gate green: `pnpm check` 190 files / 0 errors, `pnpm vitest run` 291 files / 6658 tests passed (exit 0), `pnpm build` exit 0. Adversarial review: Fable 5 reviewer, `could_not_refute`, 0 fix rounds.
+
+**Evidence**
+
+- *Caller trace, #26:* every deleted symbol (`isInboxEnabled`, `shouldNewNoteBeUnorganized`, `getInboxEntries`, `countInbox`) had zero production references, grep-verified over `src/` and `docs/` before and after the cut. `getInboxCount` survives as the dock badge's import (`dock-badge.logic.ts:16`) and its coverage at `inbox-workflow.logic.test.ts:41-49` is preserved, so the soft `dock-inbox-badge.md` Task 7 gate is satisfied.
+- *Caller trace, #20:* pre-cut, the only reference to `isInsideSystemFolder` was its own definition at `type-sidebar.logic.ts:57` and its test describe; same for `formatDatePair` at `:384`. Post-cut, `grep -rn` over `src/` and `docs/` returns zero hits for both, and `untrack` has zero remaining uses in `TypeNoteList.svelte`.
+- *Red-green:* both steps are pure deletions, so there is no reproducing regression test. The equivalent proof is the zero-caller grep above plus the ported edge cases, which now run against the surviving `excludeSystemFolder` rather than the deleted helper.
+- *Mutation proof that C05 stays enforced:* the ported "empty/whitespace `systemFolder`" and "null/empty `vaultPath`" tests were strengthened from a length check to an identity assertion (`toBe(entries)`). ARCH 6.2's rejected dedup would replace the same-array early return at `type-sidebar.logic.ts:81` with an unconditional `entries.filter(...)`, which always allocates a new array - so reapplying the dedup now fails the suite instead of passing it silently.
+
+**Discrepancies between issue and plan**
+
+None. The issue's `## How` and plan §C05 agree on every point, and both line citations in §C05 (`type-sidebar.logic.ts:57` for the definition, `:81` for the early return) verified exact against the pre-change file.
+
+**Notes**
+
+- The issue enumerates 3 unique edge-case tests to port (`:1078`, `:1083`, `:1097-1098`); a 4th unique case, the trailing/leading-slash tolerance pair at old `:1087-1090`, was carried over as well rather than dropped with the function. The surviving `excludeSystemFolder` describe now covers empty and whitespace-only `systemFolder`, null and empty `vaultPath`, slash tolerance on both arguments, and nested folder paths.
+- `countNavItems` was left untouched as instructed - its single-pass inline counter still computes the inbox tally alongside four other categories.
+- ADR-0026:41 was amended in `4c259ba3` (step #26), so this final commit carries no ADR change.
+
+**Minor findings worth follow-up**
+
+None.

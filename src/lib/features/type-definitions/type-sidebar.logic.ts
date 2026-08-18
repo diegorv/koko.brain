@@ -50,27 +50,10 @@ export interface NavItemCounts {
 }
 
 /**
- * Returns true when the given absolute note path lives inside the configured
- * vault-relative system folder. Empty `systemFolder` or missing `vaultPath`
- * disables exclusion (returns false for every input).
- */
-export function isInsideSystemFolder(
-	notePath: string,
-	vaultPath: string | null | undefined,
-	systemFolder: string,
-): boolean {
-	if (!vaultPath) return false;
-	const folder = systemFolder.trim().replace(/^\/+|\/+$/g, '');
-	if (!folder) return false;
-	const base = vaultPath.replace(/\/+$/, '');
-	const prefix = `${base}/${folder}/`;
-	return notePath.startsWith(prefix);
-}
-
-/**
  * Returns a new array containing only entries whose `path` is outside the
  * configured system folder. Use this as an upstream filter before any sidebar
- * logic call (counts, lists, sections).
+ * logic call (counts, lists, sections). A blank `systemFolder` or a missing
+ * `vaultPath` disables exclusion and returns the input array unchanged.
  */
 export function excludeSystemFolder(
 	entries: NoteEntryV2[],
@@ -378,16 +361,6 @@ export function formatRelativeTime(epochSeconds: number, nowMs?: number): string
 	const days = Math.floor(hours / 24);
 	if (days < 30) return `${days}d ago`;
 	return formatNoteDate(epochSeconds);
-}
-
-/** Formats modified + created timestamps as a single display string. */
-export function formatDatePair(modifiedAt: number, createdAt: number): string {
-	if (!modifiedAt && !createdAt) return '';
-	const mod = formatRelativeTime(modifiedAt);
-	const cre = formatNoteDate(createdAt);
-	if (mod && cre) return `${mod} · created ${cre}`;
-	if (mod) return mod;
-	return `created ${cre}`;
 }
 
 /** Formats a frontmatter value for display. */
