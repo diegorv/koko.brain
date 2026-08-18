@@ -1,16 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 
-/** Range positions for an inline `$formula$` match */
-export interface InlineMathRange {
-	/** Start of the opening `$` delimiter */
-	from: number;
-	/** End of the closing `$` delimiter */
-	to: number;
-	/** The LaTeX formula between the delimiters */
-	formula: string;
-}
-
 /** Information about a `$$...$$` block math expression */
 export interface BlockMathInfo {
 	/** Start of the opening `$$` line */
@@ -23,32 +13,6 @@ export interface BlockMathInfo {
 	closeTo: number;
 	/** The LaTeX formula between the delimiters */
 	formula: string;
-}
-
-/**
- * Finds all inline `$formula$` ranges in the given line range.
- * Uses the Lezer syntax tree (`InlineMath` nodes from the MathExtension).
- */
-export function findInlineMathRanges(state: EditorState, from: number, to: number): InlineMathRange[] {
-	const ranges: InlineMathRange[] = [];
-
-	syntaxTree(state).iterate({
-		from,
-		to,
-		enter(node) {
-			if (node.name !== 'InlineMath') return;
-
-			// Extract formula between the $ delimiters
-			const formula = state.doc.sliceString(node.from + 1, node.to - 1);
-			ranges.push({
-				from: node.from,
-				to: node.to,
-				formula,
-			});
-		},
-	});
-
-	return ranges;
 }
 
 /**
