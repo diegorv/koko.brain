@@ -9,7 +9,6 @@ import {
 	validateFormulaExpression,
 	validateFormulaName,
 	setFormulaEditing,
-	finishAllEditing,
 } from '$lib/features/collection/toolbar/formula.logic';
 import type { FormulaEntry } from '$lib/features/collection/toolbar/toolbar.types';
 
@@ -296,16 +295,5 @@ describe('setFormulaEditing', () => {
 		const result = setFormulaEditing(entries, '2');
 		expect(result[0].editing).toBe(false);
 		expect(result[1].editing).toBe(true);
-	});
-});
-
-describe('finishAllEditing', () => {
-	it('sets all entries to editing: false', () => {
-		const entries: FormulaEntry[] = [
-			{ id: '1', name: 'a', expression: 'x', editing: true },
-			{ id: '2', name: 'b', expression: 'y', editing: true },
-		];
-		const result = finishAllEditing(entries);
-		expect(result.every((e) => e.editing === false)).toBe(true);
 	});
 });

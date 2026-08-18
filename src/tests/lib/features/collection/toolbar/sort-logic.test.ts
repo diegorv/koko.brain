@@ -1,39 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-	addSort,
 	removeSort,
 	toggleSortDirection,
 	reorderSorts,
 	getSortDirectionLabel,
 } from '$lib/features/collection/toolbar/sort.logic';
 import type { SortDef } from '$lib/features/collection/collection.types';
-
-describe('addSort', () => {
-	it('adds a sort with ASC direction to an empty list', () => {
-		const result = addSort([], 'status');
-		expect(result).toEqual([{ column: 'status', direction: 'ASC' }]);
-	});
-
-	it('appends to existing sorts', () => {
-		const existing: SortDef[] = [{ column: 'priority', direction: 'DESC' }];
-		const result = addSort(existing, 'status');
-		expect(result).toHaveLength(2);
-		expect(result[1]).toEqual({ column: 'status', direction: 'ASC' });
-	});
-
-	it('ignores duplicate column', () => {
-		const existing: SortDef[] = [{ column: 'status', direction: 'ASC' }];
-		const result = addSort(existing, 'status');
-		expect(result).toEqual(existing);
-	});
-
-	it('does not mutate the original array', () => {
-		const original: SortDef[] = [{ column: 'a', direction: 'ASC' }];
-		const result = addSort(original, 'b');
-		expect(original).toHaveLength(1);
-		expect(result).toHaveLength(2);
-	});
-});
 
 describe('removeSort', () => {
 	it('removes a sort by column name', () => {

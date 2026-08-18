@@ -69,12 +69,3 @@ export function parseDuration(input: string): Duration | null {
 	if (!matched) return null;
 	return { milliseconds: total, source: trimmed };
 }
-
-/**
- * Checks if a value looks like a duration string.
- * A quick heuristic: starts with a digit and contains a unit-like suffix.
- */
-export function isDurationString(value: unknown): boolean {
-	if (typeof value !== 'string') return false;
-	return parseDuration(value) !== null;
-}

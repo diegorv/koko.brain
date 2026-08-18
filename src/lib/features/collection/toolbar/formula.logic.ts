@@ -142,10 +142,3 @@ export function setFormulaEditing(
 		editing: e.id === id,
 	}));
 }
-
-/**
- * Finishes editing on all entries (sets editing to false).
- */
-export function finishAllEditing(entries: FormulaEntry[]): FormulaEntry[] {
-	return entries.map((e) => ({ ...e, editing: false }));
-}

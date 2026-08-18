@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDuration, isDurationString } from '$lib/features/collection/expression/duration.logic';
+import { parseDuration } from '$lib/features/collection/expression/duration.logic';
 import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 
@@ -63,20 +63,6 @@ describe('parseDuration', () => {
 		expect(parseDuration('1 hour')?.milliseconds).toBe(3600000);
 		expect(parseDuration('1w')?.milliseconds).toBe(604800000);
 		expect(parseDuration('1y')?.milliseconds).toBe(31536000000);
-	});
-});
-
-describe('isDurationString', () => {
-	it('returns true for valid duration strings', () => {
-		expect(isDurationString('1d')).toBe(true);
-		expect(isDurationString('2 weeks')).toBe(true);
-		expect(isDurationString('1h 30m')).toBe(true);
-	});
-
-	it('returns false for non-duration values', () => {
-		expect(isDurationString('hello')).toBe(false);
-		expect(isDurationString(42)).toBe(false);
-		expect(isDurationString(null)).toBe(false);
 	});
 });
 

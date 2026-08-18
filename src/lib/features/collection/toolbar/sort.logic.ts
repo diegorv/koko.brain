@@ -2,14 +2,6 @@ import type { SortDef } from '../collection.types';
 import type { PropertyType } from '$lib/features/properties/properties.types';
 
 /**
- * Adds a sort with ASC direction. Ignores if the column already has a sort.
- */
-export function addSort(sorts: SortDef[], column: string): SortDef[] {
-	if (sorts.some((s) => s.column === column)) return sorts;
-	return [...sorts, { column, direction: 'ASC' }];
-}
-
-/**
  * Removes the sort for a given column.
  */
 export function removeSort(sorts: SortDef[], column: string): SortDef[] {
