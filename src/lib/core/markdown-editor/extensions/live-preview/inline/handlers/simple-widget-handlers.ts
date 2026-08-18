@@ -1,6 +1,6 @@
 import { Decoration } from '@codemirror/view';
 import { TaskCheckboxWidget, OrderedListMarkerWidget, UnorderedListMarkerWidget } from '../../widgets';
-import { InlineMathWidget } from '../../widgets/inline-math-widget';
+import { MathWidget } from '../../widgets/math-widget';
 import type { NodeHandler } from '../inline-formatting-plugin';
 
 /**
@@ -9,7 +9,7 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  * task / ordered / unordered), HardBreak, InlineMath.
  *
  * All five reuse the existing widget classes (`TaskCheckboxWidget`,
- * `OrderedListMarkerWidget`, `InlineMathWidget`) so the rendered DOM is
+ * `OrderedListMarkerWidget`, `MathWidget`) so the rendered DOM is
  * identical to the legacy path. The `inlineFormattingPlugin` gives us
  * block-context skip + per-node dedup for free; cursor reveal short-circuits
  * via `isTouched` to render raw markdown when the cursor is on the line.
@@ -117,7 +117,7 @@ export const inlineMathHandler: NodeHandler = {
 		if (isTouched(node.from, node.to)) return;
 		const formula = state.doc.sliceString(node.from + 1, node.to - 1);
 		decorations.push(
-			Decoration.replace({ widget: new InlineMathWidget(formula) }).range(node.from, node.to),
+			Decoration.replace({ widget: new MathWidget(formula, false) }).range(node.from, node.to),
 		);
 	},
 };

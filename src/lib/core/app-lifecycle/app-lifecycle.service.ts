@@ -72,8 +72,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
-import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/block-math-widget';
-import { clearInlineMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/inline-math-widget';
+import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/math-widget';
 import { clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 
 /**
@@ -431,7 +430,6 @@ export function teardownVault(): void {
 	clearMermaidCache();
 	clearCollectionCache();
 	clearMathCache();
-	clearInlineMathCache();
 	clearAllViewParseCache();
 	resetEditor();
 	resetFileSystem();

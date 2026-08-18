@@ -5,7 +5,7 @@ import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/liv
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { createMarkdownState } from '../../../../test-helpers';
 
-interface DecoSpec { from: number; to: number; class: string; kind?: string }
+interface DecoSpec { from: number; to: number; class: string; kind?: string; displayMode?: boolean }
 
 function build(doc: string, cursor?: number): DecoSpec[] {
 	const state = createMarkdownState(doc).update({
@@ -19,12 +19,16 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 	const result: DecoSpec[] = [];
 	const iter = set.iter();
 	while (iter.value) {
-		const spec = iter.value.spec as { class?: string; widget?: { constructor: { name: string } } };
+		const spec = iter.value.spec as {
+			class?: string;
+			widget?: { constructor: { name: string }; displayMode?: boolean };
+		};
 		result.push({
 			from: iter.from,
 			to: iter.to,
 			class: spec.class ?? '',
 			kind: spec.widget?.constructor.name,
+			displayMode: spec.widget?.displayMode,
 		});
 		iter.next();
 	}
@@ -125,11 +129,13 @@ describe('simpleWidgetHandlers', () => {
 	});
 
 	describe('InlineMath', () => {
-		it('replaces $x^2$ with InlineMathWidget when cursor away', () => {
+		it('replaces $x^2$ with an inline MathWidget when cursor away', () => {
 			const doc = 'paragraph $x^2$ more\n\nplain';
 			const decos = build(doc, doc.length);
-			const widget = decos.find((d) => d.kind === 'InlineMathWidget');
+			const widget = decos.find((d) => d.kind === 'MathWidget');
 			expect(widget).toBeDefined();
+			// Inline sites must construct the widget in inline mode (span + inline KaTeX).
+			expect(widget?.displayMode).toBe(false);
 		});
 	});
 

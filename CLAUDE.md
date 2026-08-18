@@ -228,7 +228,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache the expensive RESULT, but never hand a cached live element to more than one widget: CodeMirror builds new lines detached, so an `!isConnected` guard cannot tell "same widget re-entering the viewport" from "second widget for a duplicated block", and a shared node gets moved to the last widget, blanking the earlier occurrences. Cache by widget content:
    - `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts`: the ONLY live-DOM cache — required so `<canvas>` / `<video>` / `<iframe>` state survives re-mount; the `!isConnected` guard is a partial mitigation there.
-   - `block-math-widget.ts` / `inline-math-widget.ts`: cache the sanitized KaTeX HTML string; every `toDOM()` builds a fresh element.
+   - `math-widget.ts`: caches the sanitized KaTeX HTML string; every `toDOM()` builds a fresh element. One widget serves both `$$...$$` blocks (a `<div>`, `displayMode: true`) and inline `$...$` (a `<span>`), so the cache key MUST carry `displayMode` — KaTeX emits different markup per mode and a formula-only key would serve block markup to an inline site.
    - `mermaid-widget.ts`: cache the sanitized SVG markup string (post id-strip).
    - `collection-block-widget.ts`: cache the query DATA (view + QueryResult) and rebuild the DOM per `toDOM()` — rows/pills/bars carry click listeners, so markup strings don't work there.
 

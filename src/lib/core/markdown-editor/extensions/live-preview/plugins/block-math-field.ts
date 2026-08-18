@@ -2,7 +2,7 @@ import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { findAllBlockMath } from '../parsers/math';
-import { BlockMathWidget } from '../widgets/block-math-widget';
+import { MathWidget } from '../widgets/math-widget';
 import { hiddenLineDeco } from '../styles';
 import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
@@ -17,9 +17,9 @@ export function computeBlockMath(state: EditorState): DecorationSet {
 		// When cursor is inside, show raw source
 		if (shouldShowSource(state, block.openFrom, block.closeTo)) continue;
 
-		const widget = new BlockMathWidget(block.formula);
+		const widget = new MathWidget(block.formula, true);
 
-		// Opening $$ line: replace with BlockMathWidget
+		// Opening $$ line: replace with MathWidget
 		builder.add(
 			block.openFrom,
 			block.openTo,
