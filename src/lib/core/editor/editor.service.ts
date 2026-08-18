@@ -188,12 +188,6 @@ export function onContentChange(content: string, frontmatterChanged = false) {
 	}
 }
 
-/** Immediately saves all dirty tabs that have a pending auto-save */
-export function flushPendingSaves(): void {
-	debouncedSaveFrontmatter.flush();
-	debouncedSave.flush();
-}
-
 /**
  * Saves all dirty tabs immediately, awaiting completion.
  * Used before app close or vault switch.

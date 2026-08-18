@@ -67,7 +67,6 @@ import {
 	pinTabByPath,
 	unpinTabByPath,
 	closeTabsForDeletedPath,
-	flushPendingSaves,
 	saveAllDirtyTabs,
 	reloadExternallyChangedTabs,
 	toggleSourceMode,
@@ -397,29 +396,6 @@ describe('onContentChange', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].savedContent).toBe('same');
 		expect(editorStore.tabs[1].savedContent).toBe('original');
-	});
-});
-
-describe('flushPendingSaves', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		editorStore.reset();
-	});
-
-	it('triggers immediate save of all dirty tabs', async () => {
-		addTab('/vault/a.md', 'original-a');
-		editorStore.setActiveIndex(0);
-		editorStore.updateContent('modified-a');
-		addTab('/vault/b.md', 'original-b');
-		editorStore.updateContent('modified-b');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-		flushPendingSaves();
-
-		await vi.waitFor(() => {
-			expect(writeTextFile).toHaveBeenCalledWith('/vault/a.md', 'modified-a');
-			expect(writeTextFile).toHaveBeenCalledWith('/vault/b.md', 'modified-b');
-		});
 	});
 });
 
