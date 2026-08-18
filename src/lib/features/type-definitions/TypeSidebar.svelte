@@ -29,7 +29,7 @@
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 	import { debounce } from '$lib/utils/debounce';
-	import { refreshViewDefinition, setViewQueryResult } from './view-parse-cache';
+	import { refreshViewDefinition } from './view-parse-cache';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
 	import SidebarModeToggle from './SidebarModeToggle.svelte';
@@ -102,7 +102,6 @@
 				const view = parsed.definition.views[0];
 				const result = executeQuery(parsed.definition, view, propertyIndex);
 				const matchingPaths = new Set(result.records.map((r) => r.path));
-				setViewQueryResult(v.path, matchingPaths);
 				counts.set(v.path, matchingPaths.size);
 			} catch { /* skip */ }
 		}));

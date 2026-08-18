@@ -74,6 +74,7 @@ import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-pre
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
 import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/block-math-widget';
 import { clearInlineMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/inline-math-widget';
+import { clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 
 /**
  * Delay (ms) before the deferred semantic-search init kicks in.
@@ -431,6 +432,7 @@ export function teardownVault(): void {
 	clearCollectionCache();
 	clearMathCache();
 	clearInlineMathCache();
+	clearAllViewParseCache();
 	resetEditor();
 	resetFileSystem();
 	resetBacklinks();

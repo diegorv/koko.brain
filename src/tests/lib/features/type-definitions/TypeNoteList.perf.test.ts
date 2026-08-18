@@ -72,7 +72,6 @@ vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
 vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
 	getCachedViewDefinition: vi.fn(),
 	refreshViewDefinition: vi.fn(),
-	setViewQueryResult: vi.fn(),
 }));
 vi.mock('$lib/utils/log.service', () => ({ appendLog: vi.fn() }));
 

@@ -156,7 +156,12 @@ vi.mock('$lib/features/auto-move/auto-move.service', () => ({
 	resetAutoMove: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	readTextFile: vi.fn(),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error as debugError } from '$lib/utils/debug';
 import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
@@ -195,6 +200,7 @@ import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import { refreshViewDefinition, getCachedViewDefinition } from '$lib/features/type-definitions/view-parse-cache';
 
 describe('initializeVault', () => {
 	beforeEach(() => {
@@ -457,6 +463,21 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(resetTrash).toHaveBeenCalled();
+	});
+
+	it('clears the view parse cache to prevent cross-vault definition leakage', async () => {
+		const VIEW_PATH = '/vault-a/Task.view';
+		vi.mocked(readTextFile).mockResolvedValue('source: notes\nviews:\n  - name: all\n');
+
+		await refreshViewDefinition(VIEW_PATH);
+		expect(readTextFile).toHaveBeenCalledTimes(1);
+
+		teardownVault();
+
+		// The next vault must re-read from disk, not serve the previous
+		// vault's parsed definition for a same-named path.
+		await getCachedViewDefinition(VIEW_PATH);
+		expect(readTextFile).toHaveBeenCalledTimes(2);
 	});
 
 	it('clears index readiness so the next vault shows the indexing state', async () => {

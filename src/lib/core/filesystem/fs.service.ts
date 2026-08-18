@@ -8,6 +8,7 @@ import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updat
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
+import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
@@ -187,6 +188,9 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 		// content doesn't get silently skipped by the post-Phase-11.5 index-
 		// updater (Rust still gets the new content via the watcher).
 		clearIndexedEntry(itemPath);
+		// Drop the parsed `.view` definition so a re-created view at the same
+		// path is re-read from disk instead of served from the stale cache.
+		clearViewParseCache(itemPath);
 		// Drop the entry from the Rust `VaultIndex` (entries + tags_index +
 		// backlinks + properties_index + by_path); the command emits
 		// `vault-index-updated` so panels reactively refetch.

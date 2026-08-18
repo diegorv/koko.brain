@@ -9,7 +9,6 @@ interface ParseCacheEntry {
 }
 
 const parseCache = new Map<string, ParseCacheEntry>();
-const queryResultCache = new Map<string, Set<string>>();
 
 function simpleHash(str: string): string {
 	let h = 0;
@@ -35,33 +34,12 @@ export async function getCachedViewDefinition(path: string): Promise<ReturnType<
 	return refreshViewDefinition(path);
 }
 
-/**
- * Returns the raw YAML text most recently read for this view.
- * Returns undefined if the view has not been refreshed in this session.
- * Used by callers that need to perform round-trip edits via updateCollectionYaml.
- */
-export function getCachedViewYaml(path: string): string | undefined {
-	return parseCache.get(path)?.yaml;
-}
-
-/** Stores query result paths for a view (set by TypeSidebar counts effect). */
-export function setViewQueryResult(viewPath: string, matchingPaths: Set<string>): void {
-	queryResultCache.set(viewPath, matchingPaths);
-}
-
-/** Returns cached query result paths. Undefined if not yet computed. */
-export function getViewQueryResult(viewPath: string): Set<string> | undefined {
-	return queryResultCache.get(viewPath);
-}
-
 /** Clears a single entry (e.g. on file deletion). */
 export function clearViewParseCache(path: string): void {
 	parseCache.delete(path);
-	queryResultCache.delete(path);
 }
 
 /** Clears all entries. */
 export function clearAllViewParseCache(): void {
 	parseCache.clear();
-	queryResultCache.clear();
 }

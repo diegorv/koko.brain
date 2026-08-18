@@ -79,6 +79,7 @@ import {
 	duplicateItem,
 	revealInSystemExplorer,
 } from '$lib/core/filesystem/fs.service';
+import { refreshViewDefinition, getCachedViewDefinition, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
 
 /**
@@ -498,6 +499,7 @@ describe('deleteItem', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		setupDefaultMocks();
+		clearAllViewParseCache();
 		vi.mocked(moveToTrash).mockResolvedValue(true);
 	});
 
@@ -540,6 +542,29 @@ describe('deleteItem', () => {
 		const result = await deleteItem('/vault/note.md');
 
 		expect(result).toBe(false);
+	});
+
+	it('drops the deleted .view file from the view parse cache', async () => {
+		const VIEW_PATH = '/vault/Task.view';
+		const VIEW_YAML = 'source: notes\nviews:\n  - name: all\n';
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			const path = String(p);
+			if (path.endsWith('.kokobrain/folder-order.json')) return '{}';
+			if (path === VIEW_PATH) return VIEW_YAML;
+			throw new Error(`Unmocked readTextFile: ${path}`);
+		});
+		const viewReads = () =>
+			vi.mocked(readTextFile).mock.calls.filter(([p]) => String(p) === VIEW_PATH).length;
+
+		await refreshViewDefinition(VIEW_PATH);
+		expect(viewReads()).toBe(1);
+
+		await deleteItem(VIEW_PATH);
+
+		// Cache must be empty for the deleted path, so the next lookup
+		// re-reads from disk instead of serving the stale definition.
+		await getCachedViewDefinition(VIEW_PATH);
+		expect(viewReads()).toBe(2);
 	});
 });
 

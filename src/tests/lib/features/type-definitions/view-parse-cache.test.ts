@@ -10,7 +10,7 @@ vi.mock('$lib/features/collection/yaml-parser', () => ({
 	parseCollectionYaml: vi.fn(),
 }));
 
-import { refreshViewDefinition, getCachedViewDefinition, getCachedViewYaml, setViewQueryResult, getViewQueryResult, clearViewParseCache, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
+import { refreshViewDefinition, getCachedViewDefinition, clearViewParseCache, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 
 const mockReadTextFile = vi.mocked(readTextFile);
 const mockParseCollectionYaml = vi.mocked(parseCollectionYaml);
@@ -89,55 +89,6 @@ describe('getCachedViewDefinition', () => {
 	});
 });
 
-describe('getCachedViewYaml', () => {
-	it('returns the raw YAML text after a refresh', async () => {
-		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
-		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
-
-		await refreshViewDefinition('/v/test.view');
-
-		expect(getCachedViewYaml('/v/test.view')).toBe(YAML_CONTENT);
-	});
-
-	it('returns the updated YAML after content changes', async () => {
-		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
-		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
-		await refreshViewDefinition('/v/test.view');
-
-		const newContent = 'source: notes\nviews:\n  - name: updated';
-		mockReadTextFile.mockResolvedValue(newContent);
-		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
-		await refreshViewDefinition('/v/test.view');
-
-		expect(getCachedViewYaml('/v/test.view')).toBe(newContent);
-	});
-
-	it('returns undefined for uncached paths', () => {
-		expect(getCachedViewYaml('/v/missing.view')).toBeUndefined();
-	});
-
-	it('returns undefined after clearViewParseCache', async () => {
-		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
-		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
-		await refreshViewDefinition('/v/test.view');
-		clearViewParseCache('/v/test.view');
-
-		expect(getCachedViewYaml('/v/test.view')).toBeUndefined();
-	});
-});
-
-describe('query result cache', () => {
-	it('stores and retrieves query results', () => {
-		const paths = new Set(['/v/a.md', '/v/b.md']);
-		setViewQueryResult('/v/test.view', paths);
-		expect(getViewQueryResult('/v/test.view')).toBe(paths);
-	});
-
-	it('returns undefined for uncached paths', () => {
-		expect(getViewQueryResult('/v/missing.view')).toBeUndefined();
-	});
-});
-
 describe('clearViewParseCache', () => {
 	it('forces re-read and re-parse after clear', async () => {
 		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
@@ -151,24 +102,30 @@ describe('clearViewParseCache', () => {
 		expect(mockParseCollectionYaml).toHaveBeenCalledTimes(2);
 	});
 
-	it('clears query result cache too', () => {
-		setViewQueryResult('/v/test.view', new Set(['/v/a.md']));
-		clearViewParseCache('/v/test.view');
-		expect(getViewQueryResult('/v/test.view')).toBeUndefined();
-	});
-});
-
-describe('clearAllViewParseCache', () => {
-	it('clears all parse and query caches', async () => {
+	it('leaves other cached paths untouched', async () => {
 		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
 		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
 
 		await refreshViewDefinition('/v/a.view');
-		setViewQueryResult('/v/a.view', new Set(['/v/x.md']));
+		await refreshViewDefinition('/v/b.view');
+		clearViewParseCache('/v/a.view');
+
+		await getCachedViewDefinition('/v/b.view');
+		expect(mockReadTextFile).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('clearAllViewParseCache', () => {
+	it('clears every cached parse entry', async () => {
+		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
+		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
+
+		await refreshViewDefinition('/v/a.view');
+		await refreshViewDefinition('/v/b.view');
 		clearAllViewParseCache();
 
-		expect(getViewQueryResult('/v/a.view')).toBeUndefined();
 		await getCachedViewDefinition('/v/a.view');
-		expect(mockReadTextFile).toHaveBeenCalledTimes(2);
+		await getCachedViewDefinition('/v/b.view');
+		expect(mockReadTextFile).toHaveBeenCalledTimes(4);
 	});
 });
