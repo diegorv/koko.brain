@@ -1,4 +1,3 @@
-import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { isMarkdownFile } from '$lib/core/filesystem/fs.logic';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
@@ -115,21 +114,6 @@ export function updateCalendarForFile(filePath: string, content: string): void {
  */
 export async function openOrCreatePeriodicNoteForDate(periodType: PeriodType, dateKey: string): Promise<void> {
 	await openPeriodicNote(periodType, dayjs(dateKey, 'YYYY-MM-DD'));
-}
-
-/**
- * Opens or creates a daily note for an arbitrary date.
- * Convenience wrapper around `openOrCreatePeriodicNoteForDate('daily', dateKey)`.
- */
-export async function openOrCreateDailyNoteForDate(dateKey: string): Promise<void> {
-	await openOrCreatePeriodicNoteForDate('daily', dateKey);
-}
-
-/**
- * Opens a file in the editor by its full path.
- */
-export async function openCalendarFile(filePath: string): Promise<void> {
-	await openFileInEditor(filePath);
 }
 
 /** Resets the calendar store and clears all file date key caches */

@@ -7,10 +7,11 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
 	import { calendarStore } from './calendar.store.svelte';
-	import { openOrCreateDailyNoteForDate, openOrCreatePeriodicNoteForDate, openCalendarFile } from './calendar.service';
+	import { openOrCreatePeriodicNoteForDate } from './calendar.service';
 	import { buildMonthGrid, formatDateLabel, extractDisplayName } from './calendar.logic';
 	import CalendarGrid from './CalendarGrid.svelte';
 
@@ -119,7 +120,7 @@
 			<!-- Daily note button -->
 			<button
 				class="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 mb-1.5 text-[13px] text-file-explorer-fg/70 rounded-md bg-divider hover:bg-divider/80 transition-colors cursor-pointer"
-				onclick={() => openOrCreateDailyNoteForDate(calendarStore.selectedDateKey!)}
+				onclick={() => openOrCreatePeriodicNoteForDate('daily', calendarStore.selectedDateKey!)}
 				title="Open or create daily note"
 			>
 				<CalendarPlus class="size-3.5 shrink-0" />
@@ -132,7 +133,7 @@
 					{#each calendarStore.selectedDateFiles as filePath}
 						<button
 							class="flex items-center gap-1.5 w-full px-2 py-1 text-file-explorer-fg rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer text-left"
-							onclick={() => openCalendarFile(filePath)}
+							onclick={() => openFileInEditor(filePath)}
 							title={filePath}
 						>
 							<FileText class="size-3 shrink-0" />
