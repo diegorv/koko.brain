@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
-import { today, formatNow, formatNowOnDate, formatDate, parseDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
+import { today, formatNow, formatNowOnDate, formatDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
 
 describe('today', () => {
 	it('returns a string in default YYYY-MM-DD format', () => {
@@ -23,15 +23,6 @@ describe('formatDate', () => {
 	it('formats with custom format', () => {
 		const result = formatDate(new Date(2026, 11, 25), 'DD/MM/YYYY');
 		expect(result).toBe('25/12/2026');
-	});
-});
-
-describe('parseDate', () => {
-	it('parses a date string with given format', () => {
-		const result = parseDate('09-02-2026', 'DD-MM-YYYY');
-		expect(result.year()).toBe(2026);
-		expect(result.month()).toBe(1); // 0-indexed
-		expect(result.date()).toBe(9);
 	});
 });
 

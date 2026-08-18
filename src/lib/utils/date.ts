@@ -48,11 +48,6 @@ export function formatDate(date: dayjs.ConfigType, format: string): string {
 	return dayjs(date).format(format);
 }
 
-/** Parses a date string using the given input format and returns a dayjs instance. */
-export function parseDate(dateStr: string, inputFormat: string): dayjs.Dayjs {
-	return dayjs(dateStr, inputFormat);
-}
-
 /**
  * Converts a dayjs format string into a regex that matches formatted dates.
  * Handles common tokens (YYYY, MM, DD, etc.) and dayjs literal escapes (`[text]`).
