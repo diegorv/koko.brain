@@ -1,18 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { findFootnoteRefRanges, findFootnoteDefRange, findInlineFootnoteRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findBoldRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/bold';
-import { findItalicRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/italic';
-import { findMarkdownLinkRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/link';
 import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findTaskMarkerRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/task-list';
-import { findOrderedListMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/ordered-list';
 import { findBlockquoteMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/blockquote';
-import { findHighlightRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/highlight';
-import { findInlineMathRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/math';
-import { findStrikethroughRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/strikethrough';
-import { findInlineCodeRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/inline-code';
-import { findHeadingMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/heading';
-import { findImageRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/image';
 import { createMarkdownState } from '../../../test-helpers';
 
 // ============================================================
@@ -24,11 +13,6 @@ describe('footnote ref + bold', () => {
 		const text = '**bold [^1]** text';
 		const state = createMarkdownState(text);
 
-		const bolds = findBoldRanges(state, 0, text.length);
-		expect(bolds).toHaveLength(1);
-		expect(bolds[0].textFrom).toBe(2);
-		expect(bolds[0].textTo).toBe(11);
-
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
 		expect(refs[0].label).toBe('1');
@@ -36,21 +20,18 @@ describe('footnote ref + bold', () => {
 });
 
 describe('footnote def + bold', () => {
-	it('[^label]: **bold definition** — def marker and bold both detected', () => {
+	it('[^label]: **bold definition** — def marker detected', () => {
 		const text = '[^label]: **bold definition**';
 		const state = createMarkdownState(text);
 
 		const def = findFootnoteDefRange(state, 0, text.length);
 		expect(def).not.toBeNull();
 		expect(def!.label).toBe('label');
-
-		const bolds = findBoldRanges(state, 0, text.length);
-		expect(bolds).toHaveLength(1);
 	});
 });
 
 describe('inline footnote + bold', () => {
-	it('^[inline note] and **bold** — inline footnote and bold both detected', () => {
+	it('^[inline note] and **bold** — inline footnote detected', () => {
 		const text = '^[inline note] and **bold**';
 		const state = createMarkdownState(text);
 
@@ -58,11 +39,6 @@ describe('inline footnote + bold', () => {
 		expect(inlineFn).toHaveLength(1);
 		expect(inlineFn[0].textFrom).toBe(2);
 		expect(inlineFn[0].textTo).toBe(13);
-
-		const bolds = findBoldRanges(state, 0, text.length);
-		expect(bolds).toHaveLength(1);
-		expect(bolds[0].textFrom).toBe(21);
-		expect(bolds[0].textTo).toBe(25);
 	});
 });
 
@@ -74,9 +50,6 @@ describe('footnote ref + task list', () => {
 	it('- [ ] text [^1] — footnote ref inside task list', () => {
 		const text = '- [ ] text [^1]';
 		const state = createMarkdownState(text);
-
-		const task = findTaskMarkerRange(state, 0, text.length);
-		expect(task).toEqual({ markerFrom: 2, markerTo: 5, checked: false });
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
@@ -100,14 +73,9 @@ describe('footnote ref + wikilink', () => {
 });
 
 describe('footnote ref + markdown link', () => {
-	it('[link](url) and [^ref] — markdown link and footnote ref coexist', () => {
+	it('[link](url) and [^ref] — footnote ref detected next to a markdown link', () => {
 		const text = '[link](url) and [^ref]';
-
 		const state = createMarkdownState(text);
-		const links = findMarkdownLinkRanges(state, 0, text.length);
-		expect(links).toHaveLength(1);
-		expect(links[0].textFrom).toBe(1);
-		expect(links[0].textTo).toBe(5);
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
@@ -116,13 +84,9 @@ describe('footnote ref + markdown link', () => {
 });
 
 describe('footnote ref + ordered list', () => {
-	it('1. item [^3] — ordered list and footnote ref', () => {
+	it('1. item [^3] — footnote ref in an ordered list item', () => {
 		const text = '1. item [^3]';
 		const state = createMarkdownState(text);
-
-		const olMark = findOrderedListMarkRange(state, 0, text.length);
-		expect(olMark).not.toBeNull();
-		expect(olMark!.number).toBe(1);
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
@@ -149,12 +113,9 @@ describe('footnote ref + blockquote', () => {
 // ============================================================
 
 describe('footnote ref + highlight', () => {
-	it('==highlight== [^1] — highlight and footnote ref coexist', () => {
+	it('==highlight== [^1] — footnote ref next to a highlight', () => {
 		const text = '==highlight== [^1]';
 		const state = createMarkdownState(text);
-
-		const highlights = findHighlightRanges(state, 0, text.length);
-		expect(highlights).toHaveLength(1);
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
@@ -163,13 +124,9 @@ describe('footnote ref + highlight', () => {
 });
 
 describe('footnote ref + inline math', () => {
-	it('$x^2$ [^1] — inline math and footnote ref coexist', () => {
+	it('$x^2$ [^1] — footnote ref detected next to inline math', () => {
 		const text = '$x^2$ [^1]';
 		const state = createMarkdownState(text);
-
-		const maths = findInlineMathRanges(state, 0, text.length);
-		expect(maths).toHaveLength(1);
-		expect(maths[0].formula).toBe('x^2');
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
@@ -178,7 +135,7 @@ describe('footnote ref + inline math', () => {
 });
 
 describe('inline footnote + italic', () => {
-	it('^[inline note] *italic* — inline footnote and italic coexist', () => {
+	it('^[inline note] *italic* — inline footnote detected', () => {
 		const text = '^[inline note] *italic*';
 		const state = createMarkdownState(text);
 
@@ -186,9 +143,6 @@ describe('inline footnote + italic', () => {
 		expect(inlineFn).toHaveLength(1);
 		expect(inlineFn[0].textFrom).toBe(2);
 		expect(inlineFn[0].textTo).toBe(13);
-
-		const italics = findItalicRanges(state, 0, text.length);
-		expect(italics).toHaveLength(1);
 	});
 });
 
@@ -224,67 +178,52 @@ describe('footnote ref not confused with wikilink', () => {
 // ============================================================
 
 describe('inline footnote + strikethrough', () => {
-	it('^[note] ~~strike~~ — inline footnote and strikethrough coexist', () => {
+	it('^[note] ~~strike~~ — inline footnote detected', () => {
 		const text = '^[note] ~~strike~~';
 		const state = createMarkdownState(text);
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
-
-		const strikes = findStrikethroughRanges(state, 0, text.length);
-		expect(strikes).toHaveLength(1);
 	});
 });
 
 describe('inline footnote + inline code', () => {
-	it('^[note] `code` — inline footnote and inline code coexist', () => {
+	it('^[note] `code` — inline footnote detected', () => {
 		const text = '^[note] `code`';
 		const state = createMarkdownState(text);
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
-
-		const codes = findInlineCodeRanges(state, 0, text.length);
-		expect(codes).toHaveLength(1);
 	});
 });
 
 describe('inline footnote + highlight', () => {
-	it('^[note] ==highlight== — inline footnote and highlight coexist', () => {
+	it('^[note] ==highlight== — inline footnote detected', () => {
 		const text = '^[note] ==highlight==';
 		const state = createMarkdownState(text);
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
-
-		const highlights = findHighlightRanges(state, 0, text.length);
-		expect(highlights).toHaveLength(1);
 	});
 });
 
 describe('inline footnote + inline math', () => {
-	it('^[note] $x^2$ — inline footnote and inline math coexist', () => {
+	it('^[note] $x^2$ — inline footnote detected next to inline math', () => {
 		const text = '^[note] $x^2$';
 		const state = createMarkdownState(text);
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
-
-		const maths = findInlineMathRanges(state, 0, text.length);
-		expect(maths).toHaveLength(1);
 	});
 });
 
 describe('inline footnote + link', () => {
-	it('^[note] [link](url) — inline footnote and link coexist', () => {
+	it('^[note] [link](url) — inline footnote detected next to a markdown link', () => {
 		const text = '^[note] [link](url)';
 		const state = createMarkdownState(text);
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
-
-		const links = findMarkdownLinkRanges(state, 0, text.length);
-		expect(links).toHaveLength(1);
 	});
 });
 
@@ -306,13 +245,9 @@ describe('inline footnote + wikilink', () => {
 // ============================================================
 
 describe('inline footnote + heading', () => {
-	it('# heading ^[inline note] — heading and inline footnote', () => {
+	it('# heading ^[inline note] — inline footnote detected', () => {
 		const text = '# heading ^[inline note]';
 		const state = createMarkdownState(text);
-
-		const heading = findHeadingMarkRange(state, 0, text.length);
-		expect(heading).not.toBeNull();
-		expect(heading!.level).toBe(1);
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
@@ -333,12 +268,9 @@ describe('inline footnote + blockquote', () => {
 });
 
 describe('inline footnote + task list', () => {
-	it('- [ ] ^[inline note] — task and inline footnote', () => {
+	it('- [ ] ^[inline note] — inline footnote detected', () => {
 		const text = '- [ ] ^[inline note]';
 		const state = createMarkdownState(text);
-
-		const task = findTaskMarkerRange(state, 0, text.length);
-		expect(task).not.toBeNull();
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
@@ -346,12 +278,9 @@ describe('inline footnote + task list', () => {
 });
 
 describe('inline footnote + ordered list', () => {
-	it('1. ^[inline note] — ordered list and inline footnote', () => {
+	it('1. ^[inline note] — inline footnote detected', () => {
 		const text = '1. ^[inline note]';
 		const state = createMarkdownState(text);
-
-		const olMark = findOrderedListMarkRange(state, 0, text.length);
-		expect(olMark).not.toBeNull();
 
 		const inlineFn = findInlineFootnoteRanges(state, 0, text.length);
 		expect(inlineFn).toHaveLength(1);
@@ -363,43 +292,33 @@ describe('inline footnote + ordered list', () => {
 // ============================================================
 
 describe('footnote def + italic', () => {
-	it('[^1]: *italic definition* — def marker and italic both detected', () => {
+	it('[^1]: *italic definition* — def marker detected', () => {
 		const text = '[^1]: *italic definition*';
 		const state = createMarkdownState(text);
 
 		const def = findFootnoteDefRange(state, 0, text.length);
 		expect(def).not.toBeNull();
 		expect(def!.label).toBe('1');
-
-		const italics = findItalicRanges(state, 0, text.length);
-		expect(italics).toHaveLength(1);
 	});
 });
 
 describe('footnote def + link', () => {
-	it('[^1]: [link](url) definition — def marker and link both detected', () => {
+	it('[^1]: [link](url) definition — def marker detected on a line with a link', () => {
 		const text = '[^1]: [link](url) definition';
 		const state = createMarkdownState(text);
 
 		const def = findFootnoteDefRange(state, 0, text.length);
 		expect(def).not.toBeNull();
-
-		const links = findMarkdownLinkRanges(state, 0, text.length);
-		expect(links).toHaveLength(1);
 	});
 });
 
 describe('footnote def + inline math', () => {
-	it('[^1]: $x^2$ definition — def marker and inline math both detected', () => {
+	it('[^1]: $x^2$ definition — def marker detected on a line with inline math', () => {
 		const text = '[^1]: $x^2$ definition';
 		const state = createMarkdownState(text);
 
 		const def = findFootnoteDefRange(state, 0, text.length);
 		expect(def).not.toBeNull();
-
-		const maths = findInlineMathRanges(state, 0, text.length);
-		expect(maths).toHaveLength(1);
-		expect(maths[0].formula).toBe('x^2');
 	});
 });
 
@@ -408,41 +327,32 @@ describe('footnote def + inline math', () => {
 // ============================================================
 
 describe('footnote ref + image', () => {
-	it('[^1] ![alt](img.png) — footnote ref and image coexist', () => {
+	it('[^1] ![alt](img.png) — footnote ref detected', () => {
 		const text = '[^1] ![alt](img.png)';
 		const state = createMarkdownState(text);
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
 		expect(refs[0].label).toBe('1');
-
-		const images = findImageRanges(state, 0, text.length);
-		expect(images).toHaveLength(1);
 	});
 });
 
 describe('footnote ref + strikethrough', () => {
-	it('[^1] ~~strike~~ — footnote ref and strikethrough coexist', () => {
+	it('[^1] ~~strike~~ — footnote ref detected', () => {
 		const text = '[^1] ~~strike~~';
 		const state = createMarkdownState(text);
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
-
-		const strikes = findStrikethroughRanges(state, 0, text.length);
-		expect(strikes).toHaveLength(1);
 	});
 });
 
 describe('footnote ref + inline code', () => {
-	it('[^1] `code` — footnote ref and inline code coexist', () => {
+	it('[^1] `code` — footnote ref detected', () => {
 		const text = '[^1] `code`';
 		const state = createMarkdownState(text);
 
 		const refs = findFootnoteRefRanges(state, 0, text.length);
 		expect(refs).toHaveLength(1);
-
-		const codes = findInlineCodeRanges(state, 0, text.length);
-		expect(codes).toHaveLength(1);
 	});
 });

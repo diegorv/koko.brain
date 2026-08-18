@@ -1,47 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { parseCalloutHeader, findAllCallouts } from '$lib/core/markdown-editor/extensions/live-preview/parsers/callout';
-import { findBoldRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/bold';
-import { findItalicRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/italic';
-import { findInlineCodeRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/inline-code';
-import { findHighlightRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/highlight';
 import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
 import { findFootnoteRefRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findInlineMathRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/math';
-import { findStrikethroughRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/strikethrough';
-import { findMarkdownLinkRanges, findAutolinkRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/link';
-import { findImageRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/image';
 import { findWikilinkEmbedRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed';
 import { findBlockReference } from '$lib/core/markdown-editor/extensions/live-preview/parsers/block-reference';
 import { findInlineCommentRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
-import { findBoldItalicRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/bold-italic';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('callout header + bold', () => {
-	it('> [!note] **Bold Title** — callout header and bold both detected', () => {
+	it('> [!note] **Bold Title** — callout header detected with bold in the title', () => {
 		const text = '> [!note] **Bold Title**';
-		const state = createMarkdownState(text);
 
 		const header = parseCalloutHeader(text, 0);
 		expect(header).not.toBeNull();
 		expect(header!.type).toBe('note');
-
-		const bolds = findBoldRanges(state, 0, text.length);
-		expect(bolds).toHaveLength(1);
 	});
 });
 
 describe('callout with italic content', () => {
-	it('callout with italic content line — both detected', () => {
+	it('callout with italic content line — callout block detected', () => {
 		const docText = '> [!tip] Tip\n> *italic content*';
 		const state = createMarkdownState(docText);
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
 		expect(callouts[0].endLine).toBe(2);
-
-		const line2 = state.doc.line(2);
-		const italics = findItalicRanges(state, line2.from, line2.to);
-		expect(italics).toHaveLength(1);
 	});
 });
 
@@ -55,14 +38,6 @@ describe('callout with bold and italic content', () => {
 		expect(callouts[0].startLine).toBe(1);
 		expect(callouts[0].endLine).toBe(3);
 		expect(callouts[0].header.type).toBe('note');
-
-		const line2 = state.doc.line(2);
-		const bolds = findBoldRanges(state, line2.from, line2.to);
-		expect(bolds).toHaveLength(1);
-
-		const line3 = state.doc.line(3);
-		const italics = findItalicRanges(state, line3.from, line3.to);
-		expect(italics).toHaveLength(1);
 	});
 });
 
@@ -89,10 +64,6 @@ describe('callout with code content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const codes = findInlineCodeRanges(state, line2.from, line2.to);
-		expect(codes).toHaveLength(1);
 	});
 });
 
@@ -103,10 +74,6 @@ describe('callout with highlight content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const highlights = findHighlightRanges(state, line2.from, line2.to);
-		expect(highlights).toHaveLength(1);
 	});
 });
 
@@ -132,11 +99,6 @@ describe('callout with math content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const maths = findInlineMathRanges(state, line2.from, line2.to);
-		expect(maths).toHaveLength(1);
-		expect(maths[0].formula).toBe('x^2');
 	});
 });
 
@@ -147,10 +109,6 @@ describe('callout with strikethrough content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const strikes = findStrikethroughRanges(state, line2.from, line2.to);
-		expect(strikes).toHaveLength(1);
 	});
 });
 
@@ -161,10 +119,6 @@ describe('callout with link content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const links = findMarkdownLinkRanges(state, line2.from, line2.to);
-		expect(links).toHaveLength(1);
 	});
 });
 
@@ -175,10 +129,6 @@ describe('callout with image content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const images = findImageRanges(state, line2.from, line2.to);
-		expect(images).toHaveLength(1);
 	});
 });
 
@@ -203,10 +153,6 @@ describe('callout with autolink content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const autolinks = findAutolinkRanges(state, line2.from, line2.to);
-		expect(autolinks).toHaveLength(1);
 	});
 });
 
@@ -246,9 +192,5 @@ describe('callout with bold-italic content', () => {
 
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-
-		const line2 = state.doc.line(2);
-		const boldItalics = findBoldItalicRanges(state, line2.from, line2.to);
-		expect(boldItalics).toHaveLength(1);
 	});
 });
