@@ -469,11 +469,6 @@ export function removeCardDate(text: string): string {
 	return text.replace(DATE_IN_BRACES_RE, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-/** Returns the card text with the date portion stripped (for display) */
-export function stripCardDate(text: string): string {
-	return text.replace(DATE_IN_BRACES_RE, '').replace(/\s{2,}/g, ' ').trim();
-}
-
 /** Date proximity relative to today */
 export type DateProximity = 'overdue' | 'today' | 'tomorrow' | 'upcoming' | 'future' | 'none';
 
@@ -509,11 +504,6 @@ export function setCardColor(text: string, color: string): string {
 
 /** Removes the color from card text */
 export function removeCardColor(text: string): string {
-	return text.replace(COLOR_IN_BRACES_RE, '').replace(/\s{2,}/g, ' ').trim();
-}
-
-/** Returns the card text with the color portion stripped (for display) */
-export function stripCardColor(text: string): string {
 	return text.replace(COLOR_IN_BRACES_RE, '').replace(/\s{2,}/g, ' ').trim();
 }
 

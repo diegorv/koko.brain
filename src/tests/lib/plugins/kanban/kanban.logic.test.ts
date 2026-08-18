@@ -30,12 +30,10 @@ import {
 	extractCardDate,
 	setCardDate,
 	removeCardDate,
-	stripCardDate,
 	getDateProximity,
 	extractCardColor,
 	setCardColor,
 	removeCardColor,
-	stripCardColor,
 	stripCardMetadata,
 	extractCardTags,
 	setTagColor,
@@ -1135,22 +1133,6 @@ describe('removeCardDate', () => {
 	});
 });
 
-// ── stripCardDate ──────────────────────────────────────────────────
-
-describe('stripCardDate', () => {
-	it('strips date from display text', () => {
-		expect(stripCardDate('Task {2025-03-15}')).toBe('Task');
-	});
-
-	it('returns same text when no date', () => {
-		expect(stripCardDate('Task without date')).toBe('Task without date');
-	});
-
-	it('strips date and collapses spaces', () => {
-		expect(stripCardDate('Fix {2025-01-01} ASAP')).toBe('Fix ASAP');
-	});
-});
-
 // ── getDateProximity ───────────────────────────────────────────────
 
 describe('getDateProximity', () => {
@@ -1244,20 +1226,6 @@ describe('removeCardColor', () => {
 
 	it('removes color and collapses extra spaces', () => {
 		expect(removeCardColor('Fix {color:red} ASAP')).toBe('Fix ASAP');
-	});
-});
-
-describe('stripCardColor', () => {
-	it('strips color from display text', () => {
-		expect(stripCardColor('Task {color:blue}')).toBe('Task');
-	});
-
-	it('returns same text when no color', () => {
-		expect(stripCardColor('Task without color')).toBe('Task without color');
-	});
-
-	it('strips color and collapses spaces', () => {
-		expect(stripCardColor('Fix {color:red} ASAP')).toBe('Fix ASAP');
 	});
 });
 
