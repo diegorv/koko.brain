@@ -36,15 +36,6 @@ export function clampHeadingLetterSpacing(spacing: number): number {
 	return Math.max(-0.1, Math.min(0.1, spacing));
 }
 
-/** Validates that a folder name is a reasonable vault-relative path */
-export function isValidFolderName(name: string): boolean {
-	if (!name.trim()) return false;
-	if (name.startsWith('/')) return false;
-	// Block path traversal (../ or /.. or standalone ..) but allow names like "my..folder"
-	if (/(?:^|\/)\.\.(?:\/|$)/.test(name)) return false;
-	return true;
-}
-
 /** A single navigation item in the settings sidebar */
 export interface SettingsSectionItem {
 	id: SettingsSection;

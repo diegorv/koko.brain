@@ -7,7 +7,6 @@ import {
 	clampHeadingFontSize,
 	clampHeadingLineHeight,
 	clampHeadingLetterSpacing,
-	isValidFolderName,
 	SETTINGS_SECTION_GROUPS,
 } from '$lib/core/settings/settings.logic';
 
@@ -148,49 +147,6 @@ describe('clampHeadingLetterSpacing', () => {
 	it('clamps boundary values', () => {
 		expect(clampHeadingLetterSpacing(-0.1)).toBe(-0.1);
 		expect(clampHeadingLetterSpacing(0.1)).toBe(0.1);
-	});
-});
-
-describe('isValidFolderName', () => {
-	it('rejects empty strings', () => {
-		expect(isValidFolderName('')).toBe(false);
-	});
-
-	it('rejects whitespace-only strings', () => {
-		expect(isValidFolderName('   ')).toBe(false);
-	});
-
-	it('rejects absolute paths', () => {
-		expect(isValidFolderName('/foo')).toBe(false);
-	});
-
-	it('rejects parent traversal', () => {
-		expect(isValidFolderName('../foo')).toBe(false);
-	});
-
-	it('rejects mid-path traversal', () => {
-		expect(isValidFolderName('foo/../bar')).toBe(false);
-	});
-
-	it('rejects trailing parent traversal', () => {
-		expect(isValidFolderName('foo/..')).toBe(false);
-	});
-
-	it('rejects standalone double dots', () => {
-		expect(isValidFolderName('..')).toBe(false);
-	});
-
-	it('accepts names containing double dots (not traversal)', () => {
-		expect(isValidFolderName('my..folder')).toBe(true);
-		expect(isValidFolderName('notes...archive')).toBe(true);
-	});
-
-	it('accepts simple folder names', () => {
-		expect(isValidFolderName('_templates')).toBe(true);
-	});
-
-	it('accepts nested paths', () => {
-		expect(isValidFolderName('notes/templates')).toBe(true);
 	});
 });
 
