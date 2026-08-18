@@ -18,34 +18,10 @@ export interface UpdateMetadata {
 }
 
 /**
- * Decide whether the auto-check should run right now.
- *
- * Currently this is a thin wrapper over the `autoCheck` flag — no
- * launch throttle. The previous implementation used a 24h throttle
- * keyed on `lastCheckedAt`, but for a Nightly user whose channel
- * publishes multiple builds per day that broke the feature's promise
- * (the toggle is literally labelled "Auto-check on launch"). A single
- * HTTP request to a GitHub release-asset CDN per app open is
- * negligible traffic, and `maybeAutoCheckForUpdates` is gated by the
- * vault-init effect so it fires at most once per vault open anyway.
- *
- * Kept as a named function so the rest of the service can pass the
- * boolean intent through one chokepoint and the unit tests can cover
- * the trivial cases without spinning up the Tauri IPC layer.
- *
- * `lastCheckedAt` is still tracked for the "Last checked" UI row but
- * no longer participates in the should-run decision.
- */
-export function shouldAutoCheckNow(autoCheck: boolean): boolean {
-	return autoCheck;
-}
-
-/**
  * Trigger a non-interactive update check on app launch if the user has
- * `updates.autoCheck` enabled and the last check is older than the
- * throttle window. Updates `lastCheckedAt` on success regardless of
- * whether an update was found — the field tracks "when did we last
- * ask GitHub", not "when did we last find something".
+ * `updates.autoCheck` enabled. Updates `lastCheckedAt` on success
+ * regardless of whether an update was found — the field tracks "when
+ * did we last ask GitHub", not "when did we last find something".
  *
  * On finding an update: shows a one-time toast prompting the user to
  * open Settings → Update. Does NOT download or install — that requires
@@ -56,13 +32,13 @@ export function shouldAutoCheckNow(autoCheck: boolean): boolean {
  */
 export async function maybeAutoCheckForUpdates(): Promise<void> {
 	const { autoCheck, channel } = settingsStore.updates;
-	if (!shouldAutoCheckNow(autoCheck)) return;
+	if (!autoCheck) return;
 
 	try {
 		const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', { channel });
 		settingsStore.updateUpdates({ lastCheckedAt: Date.now() });
-		// Persist the timestamp so a relaunch within the throttle window
-		// does not duplicate the check.
+		// Persist the timestamp so the "Last checked" row survives a
+		// relaunch.
 		if (vaultStore.path) {
 			await saveSettings(vaultStore.path).catch((err) => {
 				error('AUTO-UPDATE', 'Failed to persist lastCheckedAt:', err);

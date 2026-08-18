@@ -279,7 +279,7 @@
 
 	<SettingItem
 		label="Auto-check on launch"
-		description="Silently check for an update when the app opens. Throttled to once per 24h."
+		description="Silently check for an update when the app opens. Fires once per vault open, with no throttle."
 	>
 		<Switch
 			checked={settingsStore.updates.autoCheck}

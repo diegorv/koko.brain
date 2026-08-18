@@ -32,20 +32,9 @@ import { saveSettings } from '$lib/core/settings/settings.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import {
-	shouldAutoCheckNow,
 	maybeAutoCheckForUpdates,
 	type UpdateMetadata,
 } from '$lib/core/settings/update-check.service';
-
-describe('shouldAutoCheckNow', () => {
-	it('returns true when auto-check is enabled', () => {
-		expect(shouldAutoCheckNow(true)).toBe(true);
-	});
-
-	it('returns false when auto-check is disabled', () => {
-		expect(shouldAutoCheckNow(false)).toBe(false);
-	});
-});
 
 describe('maybeAutoCheckForUpdates', () => {
 	const updateAvailable: UpdateMetadata = {

@@ -254,7 +254,7 @@ You set colors interactively from the Tags panel by clicking the dot next to a t
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Release channel** | Choose between `Stable` and `Nightly` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. | `Stable` |
-| **Auto-check on launch** | Silently check for an update when the app opens. Throttled to once per 24h. | Disabled |
+| **Auto-check on launch** | Silently check for an update when the app opens. Fires once per vault open, with no throttle. | Disabled |
 | **Last checked** | When the app most recently asked GitHub for a newer version. Shows `Never`, `Just now`, or a coarse "X min/h/d ago". | — |
 | **Check for updates** | Button to manually check the selected channel for a newer version | — |
 
