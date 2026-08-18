@@ -26,19 +26,6 @@ export function extractBody(content: string): string {
 }
 
 /**
- * Detects the property type from a raw YAML value string.
- */
-export function detectPropertyType(raw: string): PropertyType {
-	const trimmed = raw.trim();
-
-	if (trimmed === 'true' || trimmed === 'false') return 'boolean';
-	if (trimmed !== '' && !isNaN(Number(trimmed)) && isFinite(Number(trimmed))) return 'number';
-	if (ISO_DATE_REGEX.test(trimmed)) return 'date';
-
-	return 'text';
-}
-
-/**
  * Converts a parsed YAML value into a Property object with the appropriate type.
  * Handles arrays, booleans, numbers, dates, null, and text.
  */
@@ -183,25 +170,6 @@ export function parseFrontmatterProperties(content: string): Property[] {
 	const raw = extractRawFrontmatter(content);
 	if (!raw) return [];
 	return cachedParse(raw);
-}
-
-/**
- * Serializes a Property value to a YAML-compatible string.
- * Uses the `yaml` library for proper quoting, escaping, and formatting.
- */
-export function serializePropertyValue(property: Property): string {
-	const doc = new Document({});
-
-	if (property.type === 'list') {
-		const seq = doc.createNode(property.value as string[]);
-		(seq as YAMLSeq).flow = true;
-		doc.set('_', seq);
-	} else {
-		doc.set('_', property.value);
-	}
-
-	const str = doc.toString({ lineWidth: 0, flowCollectionPadding: false }).trimEnd();
-	return str.startsWith('_: ') ? str.slice(3) : str.slice(str.indexOf(': ') + 2);
 }
 
 /** True when a property value carries no data (empty string, null, or empty list). */
@@ -422,9 +390,4 @@ export function computeRemoveRelationshipValue(
 		return { value: filtered, shouldDelete: filtered.length === 0 };
 	}
 	return { value: [], shouldDelete: true };
-}
-
-/** Converts a snake_case key to Title Case label */
-export function formatRelationshipLabel(key: string): string {
-	return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }

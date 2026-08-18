@@ -8,9 +8,7 @@ import { appendLog } from '$lib/utils/log.service';
 import {
 	extractRawFrontmatter,
 	extractBody,
-	detectPropertyType,
 	parseFrontmatterProperties,
-	serializePropertyValue,
 	serializeProperties,
 	setPropertyByBindTarget,
 	rebuildContent,
@@ -22,7 +20,6 @@ import {
 	resolveRelationshipLinks,
 	computeAddRelationshipValue,
 	computeRemoveRelationshipValue,
-	formatRelationshipLabel,
 	_resetParseFrontmatterCache,
 } from '$lib/features/properties/properties.logic';
 
@@ -69,59 +66,6 @@ describe('extractBody', () => {
 	it('handles body with multiple paragraphs', () => {
 		const content = '---\ntitle: Hello\n---\nParagraph 1\n\nParagraph 2';
 		expect(extractBody(content)).toBe('Paragraph 1\n\nParagraph 2');
-	});
-});
-
-describe('detectPropertyType', () => {
-	it('detects boolean true', () => {
-		expect(detectPropertyType('true')).toBe('boolean');
-	});
-
-	it('detects boolean false', () => {
-		expect(detectPropertyType('false')).toBe('boolean');
-	});
-
-	it('detects integers', () => {
-		expect(detectPropertyType('42')).toBe('number');
-	});
-
-	it('detects negative numbers', () => {
-		expect(detectPropertyType('-7')).toBe('number');
-	});
-
-	it('detects floating point numbers', () => {
-		expect(detectPropertyType('3.14')).toBe('number');
-	});
-
-	it('detects ISO dates', () => {
-		expect(detectPropertyType('2024-01-15')).toBe('date');
-	});
-
-	it('detects ISO datetime', () => {
-		expect(detectPropertyType('2024-01-15T10:30')).toBe('date');
-	});
-
-	it('detects ISO datetime with seconds', () => {
-		expect(detectPropertyType('2024-01-15T10:30:00')).toBe('date');
-	});
-
-	it('returns text for plain strings', () => {
-		expect(detectPropertyType('hello world')).toBe('text');
-	});
-
-	it('returns text for empty string', () => {
-		expect(detectPropertyType('')).toBe('text');
-	});
-
-	it('handles whitespace around values', () => {
-		expect(detectPropertyType('  42  ')).toBe('number');
-		expect(detectPropertyType('  true  ')).toBe('boolean');
-	});
-
-	it('rejects Infinity and NaN as numbers (invalid YAML)', () => {
-		expect(detectPropertyType('Infinity')).toBe('text');
-		expect(detectPropertyType('-Infinity')).toBe('text');
-		expect(detectPropertyType('NaN')).toBe('text');
 	});
 });
 
@@ -325,88 +269,6 @@ describe('parseFrontmatterProperties', () => {
 		const props = parseFrontmatterProperties(content);
 		expect(props).toHaveLength(1);
 		expect(props[0].value).toBe('second');
-	});
-});
-
-describe('serializePropertyValue', () => {
-	it('serializes text values', () => {
-		expect(serializePropertyValue({ key: 'title', value: 'Hello', type: 'text' })).toBe('Hello');
-	});
-
-	it('serializes number values', () => {
-		expect(serializePropertyValue({ key: 'count', value: 42, type: 'number' })).toBe('42');
-	});
-
-	it('serializes boolean values', () => {
-		expect(serializePropertyValue({ key: 'ok', value: true, type: 'boolean' })).toBe('true');
-		expect(serializePropertyValue({ key: 'ok', value: false, type: 'boolean' })).toBe('false');
-	});
-
-	it('serializes list values', () => {
-		expect(serializePropertyValue({ key: 'tags', value: ['a', 'b'], type: 'list' })).toBe(
-			'[a, b]'
-		);
-	});
-
-	it('serializes empty list', () => {
-		expect(serializePropertyValue({ key: 'tags', value: [], type: 'list' })).toBe('[]');
-	});
-
-	it('serializes date values as strings', () => {
-		expect(
-			serializePropertyValue({ key: 'created', value: '2024-01-15', type: 'date' })
-		).toBe('2024-01-15');
-	});
-
-	it('quotes list items containing commas', () => {
-		const result = serializePropertyValue({ key: 'items', value: ['hello, world', 'foo'], type: 'list' });
-		expect(result).toBe('["hello, world", foo]');
-	});
-
-	it('quotes list items containing brackets', () => {
-		const result = serializePropertyValue({ key: 'items', value: ['[tag]', 'plain'], type: 'list' });
-		expect(result).toBe('["[tag]", plain]');
-	});
-
-	it('quotes list items containing colons', () => {
-		const result = serializePropertyValue({ key: 'items', value: ['key: value', 'simple'], type: 'list' });
-		expect(result).toBe('["key: value", simple]');
-	});
-
-	it('quotes empty string list items', () => {
-		expect(
-			serializePropertyValue({ key: 'items', value: ['', 'a'], type: 'list' })
-		).toBe('["", a]');
-	});
-
-	it('quotes text values containing curly braces (YAML flow mapping)', () => {
-		expect(
-			serializePropertyValue({ key: 'desc', value: '{special}', type: 'text' })
-		).toBe('"{special}"');
-	});
-
-	it('quotes text values containing square brackets', () => {
-		expect(
-			serializePropertyValue({ key: 'desc', value: '[link text]', type: 'text' })
-		).toBe('"[link text]"');
-	});
-
-	it('quotes text values containing hash symbol', () => {
-		expect(
-			serializePropertyValue({ key: 'desc', value: 'before #comment', type: 'text' })
-		).toBe('"before #comment"');
-	});
-
-	it('quotes text values containing colons', () => {
-		expect(
-			serializePropertyValue({ key: 'desc', value: 'key: value', type: 'text' })
-		).toBe('"key: value"');
-	});
-
-	it('quotes text values with leading/trailing whitespace', () => {
-		expect(
-			serializePropertyValue({ key: 'desc', value: '  padded  ', type: 'text' })
-		).toBe('"  padded  "');
 	});
 });
 
@@ -665,20 +527,20 @@ describe('serialize — backslash and quote sequences (yaml-quoting integration)
 	// to the same scalar. Leading quote characters DO force quoting.
 	it('emits a mid-string double quote bare', () => {
 		expect(
-			serializePropertyValue({ key: 'desc', value: 'say "hello"', type: 'text' }),
-		).toBe('say "hello"');
+			serializeProperties([{ key: 'desc', value: 'say "hello"', type: 'text' }]),
+		).toBe('desc: say "hello"');
 	});
 
 	it('emits a mid-string backslash bare', () => {
 		expect(
-			serializePropertyValue({ key: 'path', value: 'back\\slash', type: 'text' }),
-		).toBe('back\\slash');
+			serializeProperties([{ key: 'path', value: 'back\\slash', type: 'text' }]),
+		).toBe('path: back\\slash');
 	});
 
 	it('emits a backslash+quote sequence bare', () => {
 		expect(
-			serializePropertyValue({ key: 'desc', value: 'a\\"b', type: 'text' }),
-		).toBe('a\\"b');
+			serializeProperties([{ key: 'desc', value: 'a\\"b', type: 'text' }]),
+		).toBe('desc: a\\"b');
 	});
 
 	it('emits Windows-style double-backslash paths bare', () => {
@@ -689,14 +551,14 @@ describe('serialize — backslash and quote sequences (yaml-quoting integration)
 
 	it('quotes a value starting with a double quote (single-quote emission)', () => {
 		expect(
-			serializePropertyValue({ key: 'desc', value: '"quoted at start', type: 'text' }),
-		).toBe("'\"quoted at start'");
+			serializeProperties([{ key: 'desc', value: '"quoted at start', type: 'text' }]),
+		).toBe("desc: '\"quoted at start'");
 	});
 
 	it('quotes a value starting with a single quote (double-quote emission)', () => {
 		expect(
-			serializePropertyValue({ key: 'desc', value: "'single at start", type: 'text' }),
-		).toBe('"\'single at start"');
+			serializeProperties([{ key: 'desc', value: "'single at start", type: 'text' }]),
+		).toBe('desc: "\'single at start"');
 	});
 
 	it('round-trips backslash+quote sequences through serialize → parse', () => {
@@ -1069,20 +931,5 @@ describe('computeRemoveRelationshipValue', () => {
 	it('marks for deletion on undefined', () => {
 		const result = computeRemoveRelationshipValue(undefined, 'A');
 		expect(result).toEqual({ value: [], shouldDelete: true });
-	});
-});
-
-describe('formatRelationshipLabel', () => {
-	it('converts snake_case to Title Case', () => {
-		expect(formatRelationshipLabel('belongs_to')).toBe('Belongs To');
-		expect(formatRelationshipLabel('has_many')).toBe('Has Many');
-	});
-
-	it('handles single word', () => {
-		expect(formatRelationshipLabel('mentor')).toBe('Mentor');
-	});
-
-	it('handles triple underscore segments', () => {
-		expect(formatRelationshipLabel('related_to_also')).toBe('Related To Also');
 	});
 });
