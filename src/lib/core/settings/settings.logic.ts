@@ -102,7 +102,3 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		],
 	},
 ] as const;
-
-/** Flat list of all settings sections (for lookups and iteration) */
-export const SETTINGS_SECTIONS: readonly SettingsSectionItem[] =
-	SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections);

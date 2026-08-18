@@ -8,7 +8,6 @@ import {
 	clampHeadingLineHeight,
 	clampHeadingLetterSpacing,
 	isValidFolderName,
-	SETTINGS_SECTIONS,
 	SETTINGS_SECTION_GROUPS,
 } from '$lib/core/settings/settings.logic';
 
@@ -212,13 +211,5 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 				expect(section.label).toBeTruthy();
 			}
 		}
-	});
-});
-
-describe('SETTINGS_SECTIONS', () => {
-	it('is a flat list derived from groups', () => {
-		const ids = SETTINGS_SECTIONS.map((s) => s.id);
-		const groupIds = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(groupIds);
 	});
 });
