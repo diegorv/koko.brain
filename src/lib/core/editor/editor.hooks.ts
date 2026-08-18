@@ -82,17 +82,6 @@ export function areAllRecentSaves(paths: string[]): boolean {
 	return paths.length > 0 && paths.every((p) => recentSaves.has(p));
 }
 
-/** Clears recent save markers for the given paths (after the watcher consumed them). */
-export function clearRecentSaves(paths: string[]): void {
-	for (const p of paths) {
-		const timer = recentSaves.get(p);
-		if (timer) {
-			clearTimeout(timer);
-			recentSaves.delete(p);
-		}
-	}
-}
-
 /** Registers a file read transform. Only one can be active at a time. */
 export function setFileReadTransform(transform: FileReadTransform | null): void {
 	debug('HOOKS', transform ? 'Read transform registered' : 'Read transform cleared');

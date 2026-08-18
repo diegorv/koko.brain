@@ -17,7 +17,6 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 	setFileWriteTransform: vi.fn(),
 	notifyAfterSave: vi.fn(),
 	areAllRecentSaves: vi.fn(() => false),
-	clearRecentSaves: vi.fn(),
 	applyReadTransform: vi.fn(() => Promise.resolve(null)),
 	applyWriteTransform: vi.fn(() => Promise.resolve(false)),
 }));

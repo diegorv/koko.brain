@@ -24,7 +24,6 @@ import {
 	resetHooks,
 	markRecentSave,
 	areAllRecentSaves,
-	clearRecentSaves,
 } from '$lib/core/editor/editor.hooks';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import type { EditorTab } from '$lib/core/editor/editor.types';
@@ -328,14 +327,6 @@ describe('self-save detection', () => {
 		notifyAfterSave('/vault/b.md', 'content b');
 
 		expect(areAllRecentSaves(['/vault/a.md', '/vault/b.md'])).toBe(true);
-	});
-
-	it('clearRecentSaves removes the markers', () => {
-		notifyAfterSave('/vault/note.md', 'content');
-		expect(areAllRecentSaves(['/vault/note.md'])).toBe(true);
-
-		clearRecentSaves(['/vault/note.md']);
-		expect(areAllRecentSaves(['/vault/note.md'])).toBe(false);
 	});
 
 	it('auto-clears after safety timeout (15s)', () => {
