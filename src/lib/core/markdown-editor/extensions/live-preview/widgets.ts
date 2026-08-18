@@ -14,14 +14,6 @@ import {
 import { isSafeUrl } from '$lib/utils/sanitize-url';
 import { openWikilinkTarget } from './wikilink-navigation';
 
-export class HorizontalRuleWidget extends WidgetType {
-	toDOM() {
-		const hr = document.createElement('hr');
-		hr.className = 'cm-lp-hr';
-		return hr;
-	}
-}
-
 export class TaskCheckboxWidget extends WidgetType {
 	constructor(
 		readonly checked: boolean,

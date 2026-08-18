@@ -97,7 +97,6 @@ Listed for reference only — these are emitted by `frontmatter-field`, `code-bl
 - `cm-lp-qjs-*` (queryjs block, error, loading, link, list, table, tasklist)
 - `cm-lp-task-checkbox` (interactive checkbox widget — Phase 8 reuses the existing `TaskCheckboxWidget`)
 - `cm-lp-ol-marker`, `cm-lp-ul-marker`, `cm-lp-hard-break` (widget-rendered list/break decorations distinct from the `cm-formatting-*` mark classes above)
-- `cm-lp-hr` (deprecated wrapper class — `cm-lp-hr-line` is the live one)
 
 ## Verification
 

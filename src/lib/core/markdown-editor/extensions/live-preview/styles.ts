@@ -159,11 +159,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-italic': {
 		fontStyle: 'italic',
 	},
-	'.cm-lp-hr': {
-		border: 'none',
-		borderTop: '1px solid var(--lp-hr-border)',
-		margin: '0.5em 0',
-	},
 	'.cm-lp-blockquote': {
 		borderLeft: '3px solid var(--lp-blockquote-border)',
 		paddingLeft: '8px',
