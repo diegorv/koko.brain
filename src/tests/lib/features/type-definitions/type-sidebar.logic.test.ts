@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countInbox, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, isInsideSystemFolder, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatDatePair, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, isInsideSystemFolder, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -297,18 +297,6 @@ describe('buildTypeSections', () => {
 		]);
 		const { sections } = buildTypeSections(entries, map, 'all');
 		expect(sections.length).toBe(0);
-	});
-});
-
-describe('countInbox', () => {
-	it('counts non-organized non-archived non-Type entries', () => {
-		const entries = [
-			entryV2('/v/a.md', { organized: false, archived: false, isA: null }),
-			entryV2('/v/b.md', { organized: true, archived: false, isA: null }),
-			entryV2('/v/c.md', { organized: false, archived: true, isA: null }),
-			entryV2('/v/d.md', { organized: false, archived: false, isA: 'Type' }),
-		];
-		expect(countInbox(entries)).toBe(1);
 	});
 });
 
@@ -1155,8 +1143,7 @@ describe('excludeSystemFolder', () => {
 			entryV2('/vault/_system/templates/types/Task.md', { isA: 'Task', organized: false, archived: false }),
 		];
 		const filtered = excludeSystemFolder(entries, '/vault', '_system');
-		// countInbox/countNavItems are pure — they don't know about systemFolder, the upstream filter must.
-		expect(countInbox(filtered)).toBe(1);
+		// countNavItems is pure — it doesn't know about systemFolder, the upstream filter must.
 		expect(countNavItems(filtered).inbox).toBe(1);
 		const list = getNotesForSelection(filtered, { kind: 'type', name: 'Task' }, new Map(), 'open');
 		expect(list.length).toBe(1);

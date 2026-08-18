@@ -357,15 +357,6 @@ function applyFilter(entries: NoteEntryV2[], filter: SidebarFilter): NoteEntryV2
 	}
 }
 
-/** Returns the inbox count (not organized, not archived). */
-export function countInbox(entries: NoteEntryV2[]): number {
-	let count = 0;
-	for (const e of entries) {
-		if (!e.organized && !e.archived && e.isA !== 'Type') count++;
-	}
-	return count;
-}
-
 /** Formats an epoch-seconds timestamp as a short date. Omits year if same as current. */
 export function formatNoteDate(epochSeconds: number): string {
 	if (epochSeconds === 0) return '';

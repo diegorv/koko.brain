@@ -38,7 +38,7 @@ The Portent knowledge base spec provided a clean model for document types, seman
 - `_archived: true` -- note is hidden from default views.
 - `_favorite: true` -- note is pinned.
 - Lifecycle actions (organize, archive, favorite) are available in the properties panel (`src/lib/features/properties/`).
-- The TypeSidebar supports an inbox workflow: when `explicitOrganization` is enabled in settings, notes without `_organized: true` appear in an Inbox section (`src/lib/features/type-definitions/inbox-workflow.logic.ts`).
+- The TypeSidebar has an Inbox nav item counting notes that are not `_organized`, not `_archived` and not Type definitions (`countNavItems`, `src/lib/features/type-definitions/type-sidebar.logic.ts`). The macOS dock badge counts the same notion via `getInboxCount` (`src/lib/features/type-definitions/inbox-workflow.logic.ts`), the sole inbox predicate. The `explicitOrganization` setting is persisted and exposed in Settings -> Types, but no code path reads it -- the Inbox is always shown.
 
 ### Parsing
 
