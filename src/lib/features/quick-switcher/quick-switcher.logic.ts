@@ -1,8 +1,6 @@
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import { fuzzyMatch } from '$lib/utils/fuzzy-match';
 
-export { fuzzyMatch, type FuzzyMatchResult } from '$lib/utils/fuzzy-match';
-
 export interface FileEntry {
 	name: string;
 	nameWithoutExt: string;

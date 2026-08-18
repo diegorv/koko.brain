@@ -1,5 +1,5 @@
 import type { FileEntry } from '$lib/features/quick-switcher/quick-switcher.logic';
-import { fuzzyMatch } from '$lib/features/quick-switcher/quick-switcher.logic';
+import { fuzzyMatch } from '$lib/utils/fuzzy-match';
 import { HEADING_RE, BLOCK_ID_RE } from './navigation.logic';
 
 /** Completion mode: what kind of suggestions to show */
