@@ -4,7 +4,6 @@ import {
 	matchFilesForWikilink,
 	extractHeadingsFromContent,
 	extractBlockIdsFromContent,
-	extractAliasesFromContent,
 } from '$lib/core/markdown-editor/extensions/wikilink/completion.logic';
 import type { FileEntry } from '$lib/features/quick-switcher/quick-switcher.logic';
 
@@ -221,40 +220,5 @@ describe('extractBlockIdsFromContent', () => {
 	it('handles block ID with hyphen and underscore', () => {
 		const content = 'Line ^block-id_v2';
 		expect(extractBlockIdsFromContent(content)).toEqual(['block-id_v2']);
-	});
-});
-
-describe('extractAliasesFromContent', () => {
-	it('extracts aliases from inline list in frontmatter', () => {
-		const content = '---\naliases: [Alias One, Alias Two]\n---\n# Content';
-		expect(extractAliasesFromContent(content)).toEqual(['Alias One', 'Alias Two']);
-	});
-
-	it('extracts aliases from block list in frontmatter', () => {
-		const content = '---\naliases:\n  - First Alias\n  - Second Alias\n---\n# Content';
-		expect(extractAliasesFromContent(content)).toEqual(['First Alias', 'Second Alias']);
-	});
-
-	it('returns empty array when no frontmatter exists', () => {
-		expect(extractAliasesFromContent('# No frontmatter')).toEqual([]);
-	});
-
-	it('returns empty array when frontmatter has no aliases', () => {
-		const content = '---\ntitle: My Note\n---\n# Content';
-		expect(extractAliasesFromContent(content)).toEqual([]);
-	});
-
-	it('handles single alias as scalar string', () => {
-		const content = '---\naliases: Single Alias\n---\n# Content';
-		expect(extractAliasesFromContent(content)).toEqual(['Single Alias']);
-	});
-
-	it('handles empty aliases list', () => {
-		const content = '---\naliases: []\n---\n# Content';
-		expect(extractAliasesFromContent(content)).toEqual([]);
-	});
-
-	it('returns empty array for empty content', () => {
-		expect(extractAliasesFromContent('')).toEqual([]);
 	});
 });

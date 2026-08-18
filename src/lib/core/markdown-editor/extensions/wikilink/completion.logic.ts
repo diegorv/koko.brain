@@ -1,7 +1,6 @@
 import type { FileEntry } from '$lib/features/quick-switcher/quick-switcher.logic';
 import { fuzzyMatch } from '$lib/features/quick-switcher/quick-switcher.logic';
 import { HEADING_RE, BLOCK_ID_RE } from './navigation.logic';
-import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 
 /** Completion mode: what kind of suggestions to show */
 export type WikilinkMode = 'file' | 'heading' | 'blockId';
@@ -112,19 +111,4 @@ export function extractBlockIdsFromContent(content: string): string[] {
 		}
 	}
 	return blockIds;
-}
-
-/** Extracts the `aliases` property from YAML frontmatter as a string array */
-export function extractAliasesFromContent(content: string): string[] {
-	const properties = parseFrontmatterProperties(content);
-	const aliasesProp = properties.find((p) => p.key === 'aliases');
-	if (!aliasesProp) return [];
-
-	if (Array.isArray(aliasesProp.value)) {
-		return aliasesProp.value.map(String);
-	}
-	if (typeof aliasesProp.value === 'string' && aliasesProp.value.length > 0) {
-		return [aliasesProp.value];
-	}
-	return [];
 }
