@@ -1,13 +1,12 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findVideoBlock } from '../parsers/video';
 import { VideoWidget } from '../widgets';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
+import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
-import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes video block decorations */
 export function computeVideoBlocks(state: EditorState): DecorationSet {
@@ -52,23 +51,8 @@ export function computeVideoBlocks(state: EditorState): DecorationSet {
  * Replaces `<video>` HTML blocks with rendered video players when cursor is outside.
  * Shows raw source when cursor is inside the block.
  */
-export const videoPlugin = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeVideoBlocks(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart('video');
-				this.decorations = computeVideoBlocks(update.state);
-				profileEnd('video', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const videoPlugin = blockDecorator({
+	settingsKey: 'video',
+	profileLabel: 'video',
+	compute: computeVideoBlocks,
+});

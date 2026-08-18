@@ -1,13 +1,12 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { findAllFencedCodeBlocks } from '../parsers/fenced-code-block';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
+import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
 import { CodeBlockWidget } from '../widgets/code-block-widget';
-import { profileStart, profileEnd } from '../core/profiling';
 
 /** Languages handled by specialized block decorators, not the generic code block decorator */
 const SPECIAL_LANGUAGES = new Set(['collection', 'queryjs', 'meta-bind-button', 'mermaid']);
@@ -107,23 +106,8 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
  * Hides fence lines and styles content lines when cursor is outside the block.
  * Skips specialized blocks (collection, meta-bind-button, mermaid) handled by other plugins.
  */
-export const codeBlockField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeCodeBlocks(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart('code-block');
-				this.decorations = computeCodeBlocks(update.state);
-				profileEnd('code-block', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const codeBlockField = blockDecorator({
+	settingsKey: 'codeBlock',
+	profileLabel: 'code-block',
+	compute: computeCodeBlocks,
+});

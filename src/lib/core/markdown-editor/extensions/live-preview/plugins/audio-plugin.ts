@@ -1,13 +1,12 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAudioBlock } from '../parsers/audio';
 import { AudioWidget } from '../widgets';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
+import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
-import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes audio block decorations */
 export function computeAudioBlocks(state: EditorState): DecorationSet {
@@ -52,23 +51,8 @@ export function computeAudioBlocks(state: EditorState): DecorationSet {
  * Replaces `<audio>` HTML blocks with rendered audio players when cursor is outside.
  * Shows raw source when cursor is inside the block.
  */
-export const audioPlugin = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeAudioBlocks(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart('audio');
-				this.decorations = computeAudioBlocks(update.state);
-				profileEnd('audio', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const audioPlugin = blockDecorator({
+	settingsKey: 'audio',
+	profileLabel: 'audio',
+	compute: computeAudioBlocks,
+});

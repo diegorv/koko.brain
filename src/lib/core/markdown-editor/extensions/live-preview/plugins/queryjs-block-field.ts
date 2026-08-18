@@ -1,14 +1,13 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findQueryjsBlock } from '../parsers/queryjs-block';
 import { QueryjsBlockWidget } from '../widgets/queryjs-block-widget';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
+import { blockDecorator } from '../core/block-decorator';
 import { forceDecorationRebuild } from '../core/effects';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
-import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes queryjs block decorations */
 export function computeQueryjsBlocks(state: EditorState): DecorationSet {
@@ -52,45 +51,23 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
  * ViewPlugin that manages queryjs block decorations independently.
  * Replaces ```queryjs code blocks with QueryjsBlockWidget when cursor is outside.
  * Shows raw JavaScript when cursor is inside the block.
+ *
+ * The `gate` is narrower than every other block decorator's: queryjs widgets
+ * are the expensive ones, so anything that is not a document edit, a selection
+ * change or a `forceDecorationRebuild` is dropped before `checkUpdateAction`
+ * (which would rebuild on, say, the end of a mouse drag). `forceDecorationRebuild`
+ * must pass through: it is how the editor signals "the property index became
+ * ready", and the rebuild creates fresh widgets whose `eq()` snapshot differs,
+ * replacing any "Building index..." placeholder. Scroll-debounce force rebuilds
+ * also land here; they recompute the (cheap) line scan and `eq()` keeps the
+ * existing DOM, so no script re-executes.
  */
-export const queryjsBlockField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		/** Cached doc content hash to skip redundant rebuilds */
-		lastDocContent: string = '';
-		lastCursorInBlock: boolean = false;
-		constructor(view: EditorView) {
-			this.decorations = computeQueryjsBlocks(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-			this.lastDocContent = view.state.doc.toString();
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-
-			// Skip pure scroll updates (queryjs output is static during scroll)
-			// — but forceDecorationRebuild must pass through: it is how the
-			// editor signals "the property index became ready", and the rebuild
-			// creates fresh widgets whose eq() snapshot differs, replacing any
-			// "Building index..." placeholder. Scroll-debounce force rebuilds
-			// also land here; they recompute the (cheap) line scan and eq()
-			// keeps the existing DOM, so no script re-executes.
-			const hasForceRebuild = update.transactions.some((t) =>
-				t.effects.some((e) => e.is(forceDecorationRebuild)),
-			);
-			if (!update.docChanged && !update.selectionSet && !hasForceRebuild) return;
-
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-
-				// Only recompute if document actually changed (not just cursor move
-				// between lines, which can toggle shouldShowSource for the block).
-				// For cursor moves, we still need to rebuild to show/hide source.
-				const _t = profileStart('queryjs-block');
-				this.decorations = computeQueryjsBlocks(update.state);
-				profileEnd('queryjs-block', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const queryjsBlockField = blockDecorator({
+	settingsKey: 'queryjs',
+	profileLabel: 'queryjs-block',
+	compute: computeQueryjsBlocks,
+	gate: (update) =>
+		update.docChanged ||
+		update.selectionSet ||
+		update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))),
+});

@@ -1,12 +1,11 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findBlockComment } from '../parsers/comment';
-import { checkUpdateAction } from '../core/check-update-action';
+import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
 import { getAllLines } from '../core/get-all-lines';
 import { hiddenLineDeco } from '../styles';
-import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes block comment decorations */
 export function computeBlockComments(state: EditorState): DecorationSet {
@@ -40,23 +39,8 @@ export function computeBlockComments(state: EditorState): DecorationSet {
  * ViewPlugin that manages block comment (`%%\n...\n%%`) decorations independently.
  * Hides the entire block when cursor is outside. Shows raw text when cursor is inside.
  */
-export const blockCommentField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeBlockComments(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart('block-comment');
-				this.decorations = computeBlockComments(update.state);
-				profileEnd('block-comment', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const blockCommentField = blockDecorator({
+	settingsKey: 'blockComment',
+	profileLabel: 'block-comment',
+	compute: computeBlockComments,
+});

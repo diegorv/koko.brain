@@ -1,12 +1,11 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllBlockMath } from '../parsers/math';
 import { MathWidget } from '../widgets/math-widget';
 import { hiddenLineDeco } from '../styles';
-import { checkUpdateAction } from '../core/check-update-action';
+import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
-import { profileStart, profileEnd } from '../core/profiling';
 
 /** Computes block math decorations using the Lezer syntax tree */
 export function computeBlockMath(state: EditorState): DecorationSet {
@@ -45,23 +44,8 @@ export function computeBlockMath(state: EditorState): DecorationSet {
  * Replaces block math with rendered KaTeX display when cursor is outside.
  * Shows raw LaTeX source when cursor is inside the block.
  */
-export const blockMathField = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		lastCursorLine: number;
-		constructor(view: EditorView) {
-			this.decorations = computeBlockMath(view.state);
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-		}
-		update(update: ViewUpdate) {
-			if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
-			if (checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-				const _t = profileStart('block-math');
-				this.decorations = computeBlockMath(update.state);
-				profileEnd('block-math', _t);
-			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+export const blockMathField = blockDecorator({
+	settingsKey: 'blockMath',
+	profileLabel: 'block-math',
+	compute: computeBlockMath,
+});
