@@ -85,7 +85,7 @@ const debouncedTrigger = debounce(() => {
  * settles. Use this from any reactive consumer of `vaultIndexVersion`.
  *
  * Background: 2026-05-11 log analysis at vault size 4527 notes / 3948
- * tags showed `TagsPanel.svelte`'s `$effect` calling `buildTagIndex`
+ * tags showed the tags panel's `$effect` calling `buildTagIndex`
  * directly with no debounce. A burst of 5 saves produced 4 concurrent
  * rebuilds completing in the same second (705 / 975 / 1241 ms wall) —
  * each scanned all 3948 tags. This wrapper collapses the burst into a

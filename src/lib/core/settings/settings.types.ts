@@ -59,8 +59,6 @@ export interface LayoutSettings {
 	backlinksVisible: boolean;
 	/** Whether the outgoing links panel is shown in the right sidebar */
 	outgoingLinksVisible: boolean;
-	/** Whether the tags panel is shown in the right sidebar */
-	tagsVisible: boolean;
 	/** Whether the table of contents panel is shown in the right sidebar */
 	tableOfContentsVisible: boolean;
 	/** Saved width percentage of the left sidebar pane (file explorer / search) */

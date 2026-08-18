@@ -48,7 +48,6 @@ const DEFAULT_SETTINGS = {
 		propertiesVisible: true,
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
-		tagsVisible: true,
 		tableOfContentsVisible: true,
 	},
 	folderNotes: { enabled: true },

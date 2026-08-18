@@ -35,7 +35,6 @@ const SETTINGS = {
 		propertiesVisible: false,
 		backlinksVisible: false,
 		outgoingLinksVisible: false,
-		tagsVisible: false,
 	},
 	folderNotes: { enabled: false },
 	editor: { fontFamily: 'monospace', fontSize: 14, lineHeight: 1.6 },

@@ -22,7 +22,7 @@ const yieldToEventLoop = (): Promise<void> => new Promise((r) => setTimeout(r, 0
  *   Phase 1 (immediate): Rust `update_note_in_index` — fire-and-forget IPC
  *     (~1-5 ms). Updates VaultIndex.entries / by_path / backlinks /
  *     tags_index / properties_index and emits `vault-index-updated`. All
- *     panels (`BacklinksPanel`, `OutgoingLinksPanel`, `TagsPanel`,
+ *     panels (`BacklinksPanel`, `OutgoingLinksPanel`, `TagsView`,
  *     `TasksView`, `GraphView`) reactively refetch via the version bump.
  *
  *   Phase 2 (after yield): TS-side updaters that are not yet covered by

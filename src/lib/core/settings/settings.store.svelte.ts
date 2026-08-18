@@ -56,7 +56,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		propertiesVisible: true,
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
-		tagsVisible: true,
 		tableOfContentsVisible: true,
 		leftPaneSize: 25,
 		middlePanelSize: 20,

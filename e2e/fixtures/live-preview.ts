@@ -9,7 +9,6 @@ const DEFAULT_SETTINGS = {
 		propertiesVisible: false,
 		backlinksVisible: false,
 		outgoingLinksVisible: false,
-		tagsVisible: false,
 		tableOfContentsVisible: false,
 	},
 	editor: {
