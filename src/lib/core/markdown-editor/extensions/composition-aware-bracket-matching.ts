@@ -59,12 +59,11 @@
 //
 // DIAGNOSIS PROCESS
 // -----------------
-// This was diagnosed using a custom debug extension (see `debug-composition.ts`
-// in this same directory) that:
+// This was diagnosed using a throwaway debug extension (since deleted) that:
 //   - Logged composition DOM events (compositionstart/update/end)
 //   - Logged every CodeMirror transaction during composition
 //   - Observed DOM mutations via MutationObserver during composition
-//   - Exposed window.dbg.* toggle functions to disable extensions at runtime
+//   - Exposed runtime toggles to disable extensions one at a time
 //
 // The MutationObserver logs revealed the smoking gun: during compositionstart,
 // a `characterData` mutation showed the text node content changing from
@@ -72,8 +71,8 @@
 // into a new `<span class="cm-matchingBracket">` node, destroying the text
 // node the browser was using for composition.
 //
-// Disabling `bracketMatching()` via `dbg.bracketMatching()` immediately fixed
-// the bug. Re-enabling it brought the bug back. No other extension contributed.
+// Disabling `bracketMatching()` at runtime immediately fixed the bug.
+// Re-enabling it brought the bug back. No other extension contributed.
 //
 // FAILED APPROACH
 // ---------------

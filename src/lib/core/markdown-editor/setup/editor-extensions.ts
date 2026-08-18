@@ -25,9 +25,6 @@ import { markdownHighlight, markdownLanguage } from '../highlight-styles';
 import { copyBlockLinkToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
 import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
-// Debug extension for composition issues (dead-key accents on WebKit).
-// Uncomment to enable: logs composition events, DOM mutations, and exposes window.dbg.* toggles.
-// import { compositionDebugExtension } from '../extensions/debug-composition';
 
 /** Options for building the CodeMirror extension array */
 export interface CreateExtensionsOptions {
@@ -105,7 +102,6 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		),
 		opts.highlightStyleCompartment.of(syntaxHighlighting(markdownHighlight)),
 		EditorView.lineWrapping,
-		// compositionDebugExtension(),
 		EditorView.updateListener.of((update) => {
 			if (update.docChanged && !opts.isTabSwitching()) {
 				const doc = update.startState.doc;
