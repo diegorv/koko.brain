@@ -2,8 +2,11 @@
 type: ADR
 id: "0017"
 title: "File watcher: incremental subtree rescans, hidden-dir filtering, debounce + version counter"
-status: active
+status: superseded
 date: 2026-04-22
+superseded_by: "0031"
+superseded-date: 2026-08-18
+superseded-reason: "The JS watcher this ADR describes no longer exists. Phase 9 of ADR 0025 moved detection, the hidden-dir filter and the debounce into a native Rust `notify` watcher (`src-tauri/src/vault/watcher.rs`); `fs.watcher.ts` became a thin consumer of the `vault-files-changed` event. ADR 0031 records the landed design and carries Decision item 5 forward verbatim."
 ---
 
 ## Context

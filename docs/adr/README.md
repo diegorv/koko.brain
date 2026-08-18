@@ -121,7 +121,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0014](0014-supply-chain-pnpm-quarantine.md) | Supply-chain defense: pnpm quarantine + pre-commit hook + CI guardrail               | active |
 | [0015](0015-dual-logging-frontend-rust.md) | Dual logging: appendLog (frontend → file) and debug_log (Rust → stderr + event)      | active |
 | [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: tasks/todo → tasks/done with one commit per task                 | active |
-| [0017](0017-file-watcher-incremental-hidden-filter.md) | File watcher: incremental subtree rescans, hidden-dir filtering, debounce + version counter | active |
+| [0017](0017-file-watcher-incremental-hidden-filter.md) | File watcher: incremental subtree rescans, hidden-dir filtering, debounce + version counter | superseded |
 | [0018](0018-batch-ipc-pattern.md) | Batch IPC: scan_vault and read_files_batch over per-file invokes                     | active |
 | [0019](0019-kokobrain-in-vault-data-dir.md) | App data lives inside the vault at .kokobrain/                                       | active |
 | [0020](0020-path-security-absolute-canonicalize.md) | Path security: absolute-path indexes + Rust canonicalize + starts_with traversal guard | active |
@@ -135,3 +135,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0028](0028-quick-capture-merge-into-kokobrain.md) | Merge quick-capture surface into kokobrain — composer popover + clipboard shortcut    | active |
 | [0029](0029-frontmatter-yaml-canonical-form.md) | Canonical YAML form for frontmatter on the write path                                | active |
 | [0030](0030-pnpm-build-in-precommit-gate.md) | pnpm build joins the pre-commit gate for frontend changes                            | active |
+| [0031](0031-native-rust-vault-watcher.md) | Native Rust vault watcher: Rust-side filter + debounce, one vault-files-changed event, no JS watch API | active |

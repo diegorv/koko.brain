@@ -32,20 +32,9 @@ export async function readDir(path: string): Promise<Array<{ name: string; isDir
 	return virtualFS.readDir(path);
 }
 
-export async function watch(
-	_path: string,
-	_callback: (event: unknown) => void,
-	_opts?: { recursive?: boolean; delayMs?: number },
-): Promise<() => void> {
-	// No-op watcher in E2E tests
-	return () => {};
-}
-
 export async function readFile(path: string): Promise<Uint8Array> {
 	const text = virtualFS.readFile(path);
 	return new TextEncoder().encode(text);
 }
 
-export type UnwatchFn = () => void;
-export type WatchEvent = { type: unknown; paths: string[] };
 export const BaseDirectory = {};

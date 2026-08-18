@@ -221,26 +221,6 @@
       ]
     },
     {
-      "identifier": "fs:allow-watch",
-      "allow": [
-        {
-          "path": "$DOCUMENT/kokobrain-vaults/**"
-        },
-        {
-          "path": "$DOCUMENT/kokobrain-vaults/**/.kokobrain/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vaults/**"
-        },
-        {
-          "path": "$HOME/kokobrain-vaults/**/.kokobrain/**"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-unwatch"
-    },
-    {
       "identifier": "http:allow-fetch",
       "allow": [
         {
