@@ -821,37 +821,6 @@ export function isNumericString(text: string): boolean {
 	return Number.isFinite(n);
 }
 
-/**
- * Widget for `INPUT[number():prop]` — text input with inline numeric
- * validation. Pre-existing malformed frontmatter (e.g. `count: not a number`)
- * is flagged with `cm-lp-meta-bind-input-invalid` on first render. Commit on
- * blur/Enter; revert on Escape.
- */
-export class MetaBindNumberWidget extends WidgetType {
-	constructor(
-		readonly bindTarget: string,
-		readonly currentValue: string | null,
-	) {
-		super();
-	}
-
-	toDOM(view: EditorView) {
-		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, {
-			type: 'number',
-			validate: isNumericString,
-			invalidMessage: 'Not a number',
-		});
-	}
-
-	eq(other: MetaBindNumberWidget) {
-		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
-	}
-
-	ignoreEvent() {
-		return false;
-	}
-}
-
 /** Pure validator: empty string OR a `YYYY-MM-DD` date that round-trips through Date. */
 export function isDateString(text: string): boolean {
 	if (text.trim() === '') return true;
@@ -861,12 +830,28 @@ export function isDateString(text: string): boolean {
 }
 
 /**
- * Widget for `INPUT[date():prop]` — `<input type="date">` with inline
- * validation (browser provides the date picker; manual paste is validated
- * via `isDateString` for the YYYY-MM-DD shape).
+ * Per-type options for `MetaBindTextInputWidget`. The input type is the single
+ * source of truth — validator and invalid message are looked up from it — so
+ * `eq()` comparing the type compares the whole opts triple.
  */
-export class MetaBindDateWidget extends WidgetType {
+const META_BIND_TEXT_INPUTS = {
+	number: { validate: isNumericString, invalidMessage: 'Not a number' },
+	date: { validate: isDateString, invalidMessage: 'Use YYYY-MM-DD' },
+} as const;
+
+/** Meta-bind INPUT types rendered as a validated text input. */
+export type MetaBindTextInputType = keyof typeof META_BIND_TEXT_INPUTS;
+
+/**
+ * Widget for `INPUT[number():prop]` and `INPUT[date():prop]` — a text input
+ * with inline validation. Pre-existing malformed frontmatter (e.g.
+ * `count: not a number`) is flagged with `cm-lp-meta-bind-input-invalid` on
+ * first render. Commit on blur/Enter; revert on Escape. `date` additionally
+ * gets the browser's native date picker via `<input type="date">`.
+ */
+export class MetaBindTextInputWidget extends WidgetType {
 	constructor(
+		readonly inputType: MetaBindTextInputType,
 		readonly bindTarget: string,
 		readonly currentValue: string | null,
 	) {
@@ -874,15 +859,21 @@ export class MetaBindDateWidget extends WidgetType {
 	}
 
 	toDOM(view: EditorView) {
-		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, {
-			type: 'date',
-			validate: isDateString,
-			invalidMessage: 'Use YYYY-MM-DD',
-		});
+		return buildMetaBindTextInput(view, this.bindTarget, this.currentValue, this.inputType);
 	}
 
-	eq(other: MetaBindDateWidget) {
-		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
+	eq(other: MetaBindTextInputWidget) {
+		// `inputType` MUST be compared. Before number/date were merged into this
+		// one class, class identity was the ONLY thing stopping CodeMirror from
+		// reusing a `<input type="number">` (with `isNumericString` and the wrong
+		// invalid message still wired up) for a `date()` field at the same
+		// position with the same value — reachable via watcher-driven reload of
+		// the open tab, undo/redo, or replace-all, i.e. any doc change the cursor
+		// is not sitting on. Opts are derived from `inputType` through
+		// `META_BIND_TEXT_INPUTS`, so comparing the type compares the opts.
+		return this.inputType === other.inputType
+			&& this.bindTarget === other.bindTarget
+			&& this.currentValue === other.currentValue;
 	}
 
 	ignoreEvent() {
@@ -934,13 +925,14 @@ function buildMetaBindTextInput(
 	view: EditorView,
 	bindTarget: string,
 	currentValue: string | null,
-	opts: { type: 'number' | 'date'; validate: (text: string) => boolean; invalidMessage: string },
+	inputType: MetaBindTextInputType,
 ): HTMLElement {
+	const { validate, invalidMessage } = META_BIND_TEXT_INPUTS[inputType];
 	const wrap = document.createElement('span');
 	wrap.className = 'cm-lp-meta-bind-input-wrap';
 
 	const input = document.createElement('input');
-	input.type = opts.type;
+	input.type = inputType;
 	input.className = 'cm-lp-meta-bind-input';
 	const initial = currentValue ?? '';
 	input.value = initial;
@@ -949,20 +941,20 @@ function buildMetaBindTextInput(
 	error.className = 'cm-lp-meta-bind-input-error';
 	error.textContent = '';
 
-	const isInvalid = !opts.validate(initial);
+	const isInvalid = !validate(initial);
 	if (isInvalid) {
 		wrap.classList.add('cm-lp-meta-bind-input-invalid');
-		error.textContent = opts.invalidMessage;
+		error.textContent = invalidMessage;
 	}
 
 	const validateNow = () => {
-		const ok = opts.validate(input.value);
+		const ok = validate(input.value);
 		if (ok) {
 			wrap.classList.remove('cm-lp-meta-bind-input-invalid');
 			error.textContent = '';
 		} else {
 			wrap.classList.add('cm-lp-meta-bind-input-invalid');
-			error.textContent = opts.invalidMessage;
+			error.textContent = invalidMessage;
 		}
 		return ok;
 	};

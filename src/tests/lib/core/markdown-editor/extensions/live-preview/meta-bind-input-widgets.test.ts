@@ -3,8 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import {
-	MetaBindNumberWidget,
-	MetaBindDateWidget,
+	MetaBindTextInputWidget,
 	MetaBindToggleWidget,
 	isNumericString,
 	isDateString,
@@ -22,9 +21,8 @@ function mount(widget: ReturnType<typeof makeWidget>) {
 }
 
 function makeWidget(kind: 'number' | 'date' | 'toggle', target: string, value: string | null) {
-	if (kind === 'number') return new MetaBindNumberWidget(target, value);
-	if (kind === 'date') return new MetaBindDateWidget(target, value);
-	return new MetaBindToggleWidget(target, value);
+	if (kind === 'toggle') return new MetaBindToggleWidget(target, value);
+	return new MetaBindTextInputWidget(kind, target, value);
 }
 
 describe('isNumericString', () => {
@@ -68,23 +66,23 @@ describe('isDateString', () => {
 	});
 });
 
-describe('MetaBindNumberWidget', () => {
+describe("MetaBindTextInputWidget — 'number'", () => {
 	it('renders an input[type=number] with the current value', () => {
-		const { dom } = mount(new MetaBindNumberWidget('count', '5'));
+		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', '5'));
 		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input');
 		expect(input?.type).toBe('number');
 		expect(input?.value).toBe('5');
 	});
 
 	it('flags pre-existing malformed frontmatter as invalid on first render', () => {
-		const { dom } = mount(new MetaBindNumberWidget('count', 'not a number'));
+		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', 'not a number'));
 		expect(dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(true);
 		const errorMsg = dom.querySelector('.cm-lp-meta-bind-input-error');
 		expect(errorMsg?.textContent).toBe('Not a number');
 	});
 
 	it('clears invalid state when user types a valid number', () => {
-		const { dom } = mount(new MetaBindNumberWidget('count', 'bad'));
+		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', 'bad'));
 		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
 		input.value = '7';
 		input.dispatchEvent(new Event('input'));
@@ -92,7 +90,7 @@ describe('MetaBindNumberWidget', () => {
 	});
 
 	it('Escape reverts the input back to the original value', () => {
-		const { dom } = mount(new MetaBindNumberWidget('count', '5'));
+		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', '5'));
 		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
 		input.value = '99';
 		input.dispatchEvent(new Event('input'));
@@ -102,11 +100,17 @@ describe('MetaBindNumberWidget', () => {
 	});
 });
 
-describe('MetaBindDateWidget', () => {
+describe("MetaBindTextInputWidget — 'date'", () => {
 	it('renders an input[type=date]', () => {
-		const { dom } = mount(new MetaBindDateWidget('deadline', '2026-04-28'));
+		const { dom } = mount(new MetaBindTextInputWidget('date', 'deadline', '2026-04-28'));
 		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input');
 		expect(input?.type).toBe('date');
+	});
+
+	it('uses the date validator + message, not the number ones', () => {
+		const { dom } = mount(new MetaBindTextInputWidget('date', 'deadline', '28/04/2026'));
+		expect(dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(true);
+		expect(dom.querySelector('.cm-lp-meta-bind-input-error')?.textContent).toBe('Use YYYY-MM-DD');
 	});
 });
 
@@ -135,12 +139,38 @@ describe('MetaBindToggleWidget', () => {
 	});
 });
 
-describe('eq() — content-only widgets stay equal', () => {
-	it('NumberWidget eq() compares bindTarget + currentValue', () => {
-		const a = new MetaBindNumberWidget('count', '5');
-		const b = new MetaBindNumberWidget('count', '5');
-		expect(a.eq(b)).toBe(true);
-		expect(a.eq(new MetaBindNumberWidget('count', '6'))).toBe(false);
-		expect(a.eq(new MetaBindNumberWidget('other', '5'))).toBe(false);
+describe('MetaBindTextInputWidget.eq()', () => {
+	it('compares bindTarget + currentValue', () => {
+		const a = new MetaBindTextInputWidget('number', 'count', '5');
+		expect(a.eq(new MetaBindTextInputWidget('number', 'count', '5'))).toBe(true);
+		expect(a.eq(new MetaBindTextInputWidget('number', 'count', '6'))).toBe(false);
+		expect(a.eq(new MetaBindTextInputWidget('number', 'other', '5'))).toBe(false);
+	});
+
+	// Number and date used to be two classes; class identity was the only thing
+	// keeping CodeMirror from reusing one's DOM for the other. Now that they
+	// share a class, eq() must carry that barrier itself — an eq() comparing
+	// only bindTarget + currentValue returns true here and CM keeps the stale
+	// `<input type="number">` with the number validator wired up.
+	it('is NOT equal across input types at the same bindTarget + value', () => {
+		const num = new MetaBindTextInputWidget('number', 'count', '5');
+		const date = new MetaBindTextInputWidget('date', 'count', '5');
+		expect(num.eq(date)).toBe(false);
+		expect(date.eq(num)).toBe(false);
+	});
+
+	// What eq() protects: the opts (element type, validator, invalid message)
+	// really do differ per input type, so a false positive ships the wrong ones.
+	it('input type selects a different element type, validator and message', () => {
+		const num = mount(new MetaBindTextInputWidget('number', 'count', '2026-04-28'));
+		const date = mount(new MetaBindTextInputWidget('date', 'count', '2026-04-28'));
+
+		expect(num.dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')?.type).toBe('number');
+		expect(date.dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')?.type).toBe('date');
+
+		// `2026-04-28` is a valid date and an invalid number: the validators diverge.
+		expect(num.dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(true);
+		expect(num.dom.querySelector('.cm-lp-meta-bind-input-error')?.textContent).toBe('Not a number');
+		expect(date.dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(false);
 	});
 });

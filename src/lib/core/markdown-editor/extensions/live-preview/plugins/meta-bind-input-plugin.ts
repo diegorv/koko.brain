@@ -12,7 +12,7 @@ import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
-import { MetaBindSelectWidget, MetaBindNumberWidget, MetaBindDateWidget, MetaBindToggleWidget } from '../widgets';
+import { MetaBindSelectWidget, MetaBindTextInputWidget, MetaBindToggleWidget } from '../widgets';
 import type { WidgetType } from '@codemirror/view';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import { profileStart, profileEnd } from '../core/profiling';
@@ -122,9 +122,8 @@ function pickWidget(
 ): WidgetType | null {
 	switch (inputType) {
 		case 'number':
-			return new MetaBindNumberWidget(bindTarget, currentValue);
 		case 'date':
-			return new MetaBindDateWidget(bindTarget, currentValue);
+			return new MetaBindTextInputWidget(inputType, bindTarget, currentValue);
 		case 'toggle':
 		case 'boolean':
 			return new MetaBindToggleWidget(bindTarget, currentValue);
