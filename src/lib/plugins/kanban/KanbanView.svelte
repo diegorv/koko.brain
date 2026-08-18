@@ -77,9 +77,15 @@
 	/** Apply a board mutation: update local state + serialize + persist */
 	function applyChange(newBoard: KanbanBoard) {
 		if (newBoard === board) return; // no-op guard
+		const newMarkdown = serializeKanbanBoard(newBoard);
 		board = newBoard;
+		// Same pre-guard as CollectionView's commitStructural: a mutation that
+		// serializes back to the current content must not arm the latch. The
+		// parent prop would never change, so the parse effect above never runs
+		// and selfUpdate would stay true, swallowing the NEXT external reload.
+		if (newMarkdown === markdownContent) return;
 		selfUpdate = true;
-		onContentChange(serializeKanbanBoard(newBoard));
+		onContentChange(newMarkdown);
 	}
 
 	// ── Card operations ─────────────────────────────────────────

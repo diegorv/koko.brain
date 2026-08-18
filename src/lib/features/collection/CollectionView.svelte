@@ -192,10 +192,7 @@
 			viewOrder: localColumns,
 			viewIndex: activeViewIndex,
 		});
-		if (newYaml !== yamlContent) {
-			selfUpdate = true;
-			onYamlChange(newYaml);
-		}
+		commitStructural(newYaml);
 	}
 
 	/** Handles formula changes from PropertiesPanel and persists when no entries are being edited */
@@ -261,13 +258,10 @@
 	function persistCalendarConfig(fields: { viewDateProperty?: string; viewEndDateProperty?: string | undefined; viewWeekStartDay?: number; viewColorProperty?: string | undefined }) {
 		if (!onYamlChange) return;
 		const newYaml = updateCollectionYaml(yamlContent, { ...fields, viewIndex: activeViewIndex });
-		if (newYaml !== yamlContent) {
-			selfUpdate = true;
-			onYamlChange(newYaml);
-		}
+		commitStructural(newYaml);
 	}
 
-	/** Writes a structural YAML mutation back to disk (used for tab add/remove/rename/type). */
+	/** Writes a self-triggered YAML mutation back to disk, arming the selfUpdate latch. */
 	function commitStructural(newYaml: string) {
 		if (!onYamlChange) return;
 		if (newYaml === yamlContent) return;
