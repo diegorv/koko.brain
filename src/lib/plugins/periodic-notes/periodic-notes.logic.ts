@@ -22,31 +22,10 @@ export function buildPeriodicNotePath(
 }
 
 /**
- * Extracts the file title (the formatted date portion) from a periodic note's format.
- */
-export function getPeriodicNoteTitle(format: string, date: dayjs.Dayjs): string {
-	return date.format(format);
-}
-
-/**
  * Returns the format string for a given period type from settings.
  */
 export function getFormatForPeriod(settings: PeriodicNotesSettings, periodType: PeriodType): string {
 	return settings[periodType].format;
-}
-
-/**
- * Returns the template path for a given period type from settings.
- */
-export function getTemplatePathForPeriod(settings: PeriodicNotesSettings, periodType: PeriodType): string | undefined {
-	return settings[periodType].templatePath;
-}
-
-/**
- * Returns the inline template for daily notes (only daily has an inline template fallback).
- */
-export function getDailyInlineTemplate(settings: PeriodicNotesSettings): string {
-	return settings.daily.template;
 }
 
 /**

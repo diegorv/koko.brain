@@ -8,9 +8,6 @@ import type { PeriodType } from '$lib/core/settings/settings.types';
 import {
 	buildPeriodicNotePath,
 	getFormatForPeriod,
-	getTemplatePathForPeriod,
-	getDailyInlineTemplate,
-	getPeriodicNoteTitle,
 	buildPeriodicVariables,
 	shouldRefreshDailyNote,
 } from './periodic-notes.logic';
@@ -36,9 +33,9 @@ export async function openOrCreatePeriodicNoteForDate(
 	const settings = settingsStore.periodicNotes;
 	const format = getFormatForPeriod(settings, periodType);
 	const filePath = buildPeriodicNotePath(vaultPath, settings.folder, format, date);
-	const fileTitle = getPeriodicNoteTitle(format, date);
-	const templatePath = getTemplatePathForPeriod(settings, periodType);
-	const inlineTemplate = periodType === 'daily' ? getDailyInlineTemplate(settings) : undefined;
+	const fileTitle = date.format(format);
+	const templatePath = settings[periodType].templatePath;
+	const inlineTemplate = periodType === 'daily' ? settings.daily.template : undefined;
 	const customVariables = buildPeriodicVariables(periodType, date, settings);
 
 	await openOrCreateNote({

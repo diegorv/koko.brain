@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
 import {
 	buildPeriodicNotePath,
-	getPeriodicNoteTitle,
 	getFormatForPeriod,
-	getTemplatePathForPeriod,
-	getDailyInlineTemplate,
 	buildWikilinkPath,
 	buildPeriodicVariables,
 	buildDailyLinksTable,
@@ -52,17 +49,6 @@ describe('buildPeriodicNotePath', () => {
 	});
 });
 
-describe('getPeriodicNoteTitle', () => {
-	it('returns formatted title for a date', () => {
-		expect(getPeriodicNoteTitle('DD-MM-YYYY', fixedDate)).toBe('09-02-2026');
-	});
-
-	it('returns formatted title with nested format', () => {
-		expect(getPeriodicNoteTitle('YYYY/MM-MMM/[_journal-day-]DD-MM-YYYY', fixedDate))
-			.toBe('2026/02-Feb/_journal-day-09-02-2026');
-	});
-});
-
 describe('getFormatForPeriod', () => {
 	const settings: PeriodicNotesSettings = {
 		folder: '',
@@ -87,41 +73,6 @@ describe('getFormatForPeriod', () => {
 
 	it('returns quarterly format', () => {
 		expect(getFormatForPeriod(settings, 'quarterly')).toBe('YYYY/[Q]Q');
-	});
-});
-
-describe('getTemplatePathForPeriod', () => {
-	const settings: PeriodicNotesSettings = {
-		folder: '',
-		daily: { format: 'DD-MM-YYYY', template: '', templatePath: '_templates/Daily.md' },
-		weekly: { format: 'WW', templatePath: '_templates/Weekly.md' },
-		monthly: { format: 'MM' },
-		quarterly: { format: 'Q' },
-		yearly: { format: 'YYYY/YYYY' },
-	};
-
-	it('returns template path when set', () => {
-		expect(getTemplatePathForPeriod(settings, 'daily')).toBe('_templates/Daily.md');
-		expect(getTemplatePathForPeriod(settings, 'weekly')).toBe('_templates/Weekly.md');
-	});
-
-	it('returns undefined when not set', () => {
-		expect(getTemplatePathForPeriod(settings, 'monthly')).toBeUndefined();
-		expect(getTemplatePathForPeriod(settings, 'quarterly')).toBeUndefined();
-	});
-});
-
-describe('getDailyInlineTemplate', () => {
-	it('returns the daily inline template', () => {
-		const settings: PeriodicNotesSettings = {
-			folder: '',
-			daily: { format: 'DD-MM-YYYY', template: '# Hello' },
-			weekly: { format: 'WW' },
-			monthly: { format: 'MM' },
-			quarterly: { format: 'Q' },
-			yearly: { format: 'YYYY/YYYY' },
-		};
-		expect(getDailyInlineTemplate(settings)).toBe('# Hello');
 	});
 });
 

@@ -22,9 +22,6 @@ import {
 	buildPeriodicNotePath,
 	buildPeriodicVariables,
 	getFormatForPeriod,
-	getTemplatePathForPeriod,
-	getDailyInlineTemplate,
-	getPeriodicNoteTitle,
 } from '$lib/plugins/periodic-notes/periodic-notes.logic';
 import {
 	openOrCreateDailyNote,
@@ -72,7 +69,7 @@ describe('openOrCreateDailyNote', () => {
 		const format = getFormatForPeriod(settings, 'daily');
 		const now = dayjs();
 		const expectedPath = buildPeriodicNotePath('/vault', '', format, now);
-		const expectedTitle = getPeriodicNoteTitle(format, now);
+		const expectedTitle = now.format(format);
 		const expectedVars = buildPeriodicVariables('daily', now, settings);
 
 		expect(openOrCreateNote).toHaveBeenCalledWith({
@@ -267,7 +264,7 @@ describe('openOrCreatePeriodicNoteForDate', () => {
 		const settings = settingsStore.periodicNotes;
 		const format = getFormatForPeriod(settings, 'daily');
 		const expectedPath = buildPeriodicNotePath('/vault', '_notes', format, date);
-		const expectedTitle = getPeriodicNoteTitle(format, date);
+		const expectedTitle = date.format(format);
 		const expectedVars = buildPeriodicVariables('daily', date, settings);
 
 		await openOrCreatePeriodicNoteForDate('daily', date);
