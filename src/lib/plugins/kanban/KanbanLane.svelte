@@ -13,6 +13,7 @@
 	import KanbanCard from './KanbanCard.svelte';
 	import KanbanWikilinkSuggestions from './KanbanWikilinkSuggestions.svelte';
 	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import { clamp } from '$lib/utils/clamp';
 
 	interface Props {
 		lane: KanbanLane;
@@ -200,7 +201,7 @@
 	function handleResizeMove(e: PointerEvent) {
 		if (!isResizing) return;
 		const delta = e.clientX - resizeStartX;
-		currentWidth = Math.max(MIN_LANE_WIDTH, Math.min(MAX_LANE_WIDTH, resizeStartWidth + delta));
+		currentWidth = clamp(resizeStartWidth + delta, MIN_LANE_WIDTH, MAX_LANE_WIDTH);
 	}
 
 	function handleResizeEnd(_e: PointerEvent) {

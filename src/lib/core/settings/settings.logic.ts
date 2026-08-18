@@ -1,39 +1,40 @@
+import { clamp } from '$lib/utils/clamp';
 import type { SettingsSection } from './settings.types';
 
 /** Clamps a font size to the valid range (8–32 px) */
 export function clampFontSize(size: number): number {
-	return Math.max(8, Math.min(32, size));
+	return clamp(size, 8, 32);
 }
 
 /** Clamps a line height to the valid range (1.0–3.0) */
 export function clampLineHeight(height: number): number {
-	return Math.max(1.0, Math.min(3.0, height));
+	return clamp(height, 1.0, 3.0);
 }
 
 /** Clamps a content width to the valid range (0 = no limit, or 400–2000 px) */
 export function clampContentWidth(width: number): number {
 	if (width <= 0) return 0;
-	return Math.max(400, Math.min(2000, width));
+	return clamp(width, 400, 2000);
 }
 
 /** Clamps a paragraph spacing to the valid range (0–2.0 em) */
 export function clampParagraphSpacing(spacing: number): number {
-	return Math.max(0, Math.min(2.0, spacing));
+	return clamp(spacing, 0, 2.0);
 }
 
 /** Clamps a heading font size to the valid range (0.5–5.0 em) */
 export function clampHeadingFontSize(size: number): number {
-	return Math.max(0.5, Math.min(5.0, size));
+	return clamp(size, 0.5, 5.0);
 }
 
 /** Clamps a heading line height to the valid range (1.0–3.0) */
 export function clampHeadingLineHeight(height: number): number {
-	return Math.max(1.0, Math.min(3.0, height));
+	return clamp(height, 1.0, 3.0);
 }
 
 /** Clamps a heading letter spacing to the valid range (-0.1 to 0.1 em) */
 export function clampHeadingLetterSpacing(spacing: number): number {
-	return Math.max(-0.1, Math.min(0.1, spacing));
+	return clamp(spacing, -0.1, 0.1);
 }
 
 /** A single navigation item in the settings sidebar */

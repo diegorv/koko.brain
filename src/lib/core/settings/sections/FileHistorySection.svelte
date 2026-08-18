@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
+	import { clamp } from '$lib/utils/clamp';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	let { onchange }: { onchange: () => void } = $props();
 
 	function clampRetentionDays(value: number): number {
-		return Math.max(1, Math.min(365, Math.round(value)));
+		return clamp(Math.round(value), 1, 365);
 	}
 </script>
 

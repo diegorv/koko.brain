@@ -1,3 +1,4 @@
+import { clamp } from '$lib/utils/clamp';
 import type { KanbanBoard, KanbanItem, KanbanLane, KanbanSettings, KanbanSortMode, KanbanViewMode } from './kanban.types';
 
 const HEADING_RE = /^##\s+(.+)$/;
@@ -246,7 +247,7 @@ export function moveItem(
 	if (fromLaneId === toLaneId) {
 		// Reorder within the same lane
 		const items = sourceLane.items.filter((i) => i.id !== itemId);
-		const clampedIndex = Math.max(0, Math.min(toIndex, items.length));
+		const clampedIndex = clamp(toIndex, 0, items.length);
 		items.splice(clampedIndex, 0, item);
 		return {
 			...board,
@@ -265,7 +266,7 @@ export function moveItem(
 			}
 			if (lane.id === toLaneId) {
 				const items = [...lane.items];
-				const clampedIndex = Math.max(0, Math.min(toIndex, items.length));
+				const clampedIndex = clamp(toIndex, 0, items.length);
 				items.splice(clampedIndex, 0, item);
 				return { ...lane, items };
 			}

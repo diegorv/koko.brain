@@ -7,6 +7,7 @@ import { KBUI } from './kb-ui';
 import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './queryjs.logic';
 import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { clamp } from '$lib/utils/clamp';
 
 /**
  * QueryJS API object.
@@ -179,7 +180,7 @@ export class KBAPI {
 	 * Distinct from kb.ui.progressBar() which renders DOM elements.
 	 */
 	progressBar(value: number, max: number): string {
-		const clamped = Math.max(0, Math.min(max, Math.round(value)));
+		const clamped = clamp(Math.round(value), 0, max);
 		return '\u2588'.repeat(clamped) + '\u2591'.repeat(max - clamped);
 	}
 
@@ -221,7 +222,7 @@ export class KBAPI {
 
 	/** Renders a header (h1-h6). Accepts strings or KBLink objects. */
 	header(level: number, content: unknown): HTMLElement {
-		const tag = `h${Math.min(Math.max(level, 1), 6)}` as keyof HTMLElementTagNameMap;
+		const tag = `h${clamp(level, 1, 6)}` as keyof HTMLElementTagNameMap;
 		if (typeof content === 'string') {
 			return this.el(tag, content);
 		}

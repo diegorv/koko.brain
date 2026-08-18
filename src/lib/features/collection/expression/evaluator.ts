@@ -4,6 +4,7 @@ import type { NoteRecord } from '../collection.types';
 import { dispatchMethod, dispatchField } from './methods.logic';
 import { parseDuration } from './duration.logic';
 import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
+import { clamp } from '$lib/utils/clamp';
 
 /** Context provided to the evaluator for resolving properties and formulas */
 export interface EvalContext {
@@ -386,7 +387,7 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 			const max = args[1] ? Number(evaluate(args[1], ctx, depth)) : 100;
 			const colorName = args[2] ? String(evaluate(args[2], ctx, depth)) : 'green';
 			const bar = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.green;
-			const pct = Math.min(100, Math.max(0, (value / (max || 1)) * 100));
+			const pct = clamp((value / (max || 1)) * 100, 0, 100);
 			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="width:80px;height:6px;border-radius:9999px;background:rgba(160,160,160,0.2);overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:9999px;background:${bar}"></div></div><span style="font-size:12px;color:rgb(160,160,160)">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
 		}
 		case 'color': {

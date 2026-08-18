@@ -14,6 +14,7 @@
 	import { generateRuleId } from './auto-move.logic';
 	import type { AutoMoveRule } from './auto-move.types';
 	import { error } from '$lib/utils/debug';
+	import { clamp } from '$lib/utils/clamp';
 
 	let { onchange }: { onchange: () => void } = $props();
 
@@ -28,7 +29,7 @@
 	});
 
 	function clampDebounce(value: number): number {
-		return Math.max(500, Math.min(30000, Math.round(value)));
+		return clamp(Math.round(value), 500, 30000);
 	}
 
 	function saveConfig() {

@@ -20,6 +20,7 @@ import type {
 } from './kb-ui.types';
 import { DataArray } from './data-array';
 import { COLOR_PRESET_BG } from '$lib/utils/color-presets';
+import { clamp } from '$lib/utils/clamp';
 
 /** Default color scale for heatmaps: gray -> red -> yellow -> green (6 steps, 0-5) */
 const DEFAULT_HEATMAP_COLORS = [
@@ -123,7 +124,7 @@ export class KBUI {
 		const emptyChar = options?.emptyChar ?? '\u2591';
 		const width = Math.max(0, Math.round(options?.width ?? max));
 
-		const clamped = Math.max(0, Math.min(value, max));
+		const clamped = clamp(value, 0, max);
 		const filled = Math.round((clamped / max) * width);
 		const empty = width - filled;
 
@@ -728,7 +729,7 @@ export class KBUI {
 			if (mappedEntries[day]) {
 				const entry = mappedEntries[day];
 				const colorArr = colors[entry.color ?? ''] ?? colors[firstColorKey];
-				const bg = colorArr[Math.max(0, Math.min(entry.intensity - 1, colorArr.length - 1))];
+				const bg = colorArr[clamp(entry.intensity - 1, 0, colorArr.length - 1)];
 				boxes.push({ bg, date: entry.date, content: entry.content, isToday, hasData: true, monthClass });
 			} else {
 				boxes.push({ bg: emptyColor, isToday, hasData: false, monthClass });
@@ -904,7 +905,7 @@ export class KBUI {
 				let bg = emptyColor;
 				if (entry) {
 					const colorArr = colors[entry.color ?? ''] ?? colors[firstColorKey];
-					bg = colorArr[Math.max(0, Math.min(entry.intensity - 1, colorArr.length - 1))];
+					bg = colorArr[clamp(entry.intensity - 1, 0, colorArr.length - 1)];
 				}
 
 				box.style.cssText = `grid-column: ${month}; border-radius: 25%; background-color: ${bg};`;
@@ -984,7 +985,7 @@ export class KBUI {
 		outMax: number,
 	): number {
 		const mapped = ((current - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
-		return Math.max(outMin, Math.min(mapped, outMax));
+		return clamp(mapped, outMin, outMax);
 	}
 
 	/** Expands a simplified KBChartDataset into a full Chart.js dataset config */
