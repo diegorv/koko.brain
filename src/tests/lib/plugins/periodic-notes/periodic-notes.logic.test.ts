@@ -1,15 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
 import {
 	buildPeriodicNotePath,
-	buildPeriodicNotePathForToday,
-	buildAdjacentPeriodPath,
 	getPeriodicNoteTitle,
-	getTodayPeriodicNoteTitle,
 	getFormatForPeriod,
 	getTemplatePathForPeriod,
 	getDailyInlineTemplate,
-	buildPeriodicNotePathForDate,
 	buildWikilinkPath,
 	buildPeriodicVariables,
 	buildDailyLinksTable,
@@ -56,41 +52,6 @@ describe('buildPeriodicNotePath', () => {
 	});
 });
 
-describe('buildPeriodicNotePathForToday', () => {
-	it('builds path for today using current date', () => {
-		const result = buildPeriodicNotePathForToday('/vault', '', 'DD-MM-YYYY');
-		// dayjs() returns current date, so we just verify structure
-		expect(result).toMatch(/^\/vault\/\d{2}-\d{2}-\d{4}\.md$/);
-	});
-});
-
-describe('buildAdjacentPeriodPath', () => {
-	it('builds previous day path', () => {
-		const result = buildAdjacentPeriodPath('/vault', '_notes', 'DD-MM-YYYY', fixedDate, -1, 'daily');
-		expect(result).toBe('/vault/_notes/08-02-2026.md');
-	});
-
-	it('builds next day path', () => {
-		const result = buildAdjacentPeriodPath('/vault', '_notes', 'DD-MM-YYYY', fixedDate, 1, 'daily');
-		expect(result).toBe('/vault/_notes/10-02-2026.md');
-	});
-
-	it('builds previous week path', () => {
-		const result = buildAdjacentPeriodPath('/vault', '_notes', 'YYYY/MM-MMM/[__journal-week-]WW[-]YYYY', fixedDate, -1, 'weekly');
-		expect(result).toBe('/vault/_notes/2026/02-Feb/__journal-week-06-2026.md');
-	});
-
-	it('builds next month path', () => {
-		const result = buildAdjacentPeriodPath('/vault', '_notes', 'YYYY/MM-MMM/MM-MMM', fixedDate, 1, 'monthly');
-		expect(result).toBe('/vault/_notes/2026/03-Mar/03-Mar.md');
-	});
-
-	it('builds next quarter path', () => {
-		const result = buildAdjacentPeriodPath('/vault', '_notes', 'YYYY/[_journal-quarter-]YYYY[-Q]Q', fixedDate, 1, 'quarterly');
-		expect(result).toBe('/vault/_notes/2026/_journal-quarter-2026-Q2.md');
-	});
-});
-
 describe('getPeriodicNoteTitle', () => {
 	it('returns formatted title for a date', () => {
 		expect(getPeriodicNoteTitle('DD-MM-YYYY', fixedDate)).toBe('09-02-2026');
@@ -99,15 +60,6 @@ describe('getPeriodicNoteTitle', () => {
 	it('returns formatted title with nested format', () => {
 		expect(getPeriodicNoteTitle('YYYY/MM-MMM/[_journal-day-]DD-MM-YYYY', fixedDate))
 			.toBe('2026/02-Feb/_journal-day-09-02-2026');
-	});
-});
-
-describe('getTodayPeriodicNoteTitle', () => {
-	it('returns today title using mocked date', () => {
-		vi.useFakeTimers();
-		vi.setSystemTime(new Date(2026, 1, 9));
-		expect(getTodayPeriodicNoteTitle('DD-MM-YYYY')).toBe('09-02-2026');
-		vi.useRealTimers();
 	});
 });
 
@@ -170,23 +122,6 @@ describe('getDailyInlineTemplate', () => {
 			yearly: { format: 'YYYY/YYYY' },
 		};
 		expect(getDailyInlineTemplate(settings)).toBe('# Hello');
-	});
-});
-
-describe('buildPeriodicNotePathForDate', () => {
-	it('builds path from a dateKey string', () => {
-		const result = buildPeriodicNotePathForDate('/vault', '_notes', 'DD-MM-YYYY', '2026-02-09');
-		expect(result).toBe('/vault/_notes/09-02-2026.md');
-	});
-
-	it('builds path at vault root when folder is empty', () => {
-		const result = buildPeriodicNotePathForDate('/vault', '', 'YYYY-MM-DD', '2026-03-15');
-		expect(result).toBe('/vault/2026-03-15.md');
-	});
-
-	it('builds path with nested format', () => {
-		const result = buildPeriodicNotePathForDate('/vault', '_notes', 'YYYY/MM-MMM/[_journal-day-]DD-MM-YYYY', '2026-02-09');
-		expect(result).toBe('/vault/_notes/2026/02-Feb/_journal-day-09-02-2026.md');
 	});
 });
 

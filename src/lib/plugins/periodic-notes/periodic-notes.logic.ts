@@ -1,31 +1,6 @@
 import dayjs from 'dayjs';
-import { today, formatToCapturingRegex } from '$lib/utils/date';
+import { formatToCapturingRegex } from '$lib/utils/date';
 import type { PeriodType, PeriodicNotesSettings } from '$lib/core/settings/settings.types';
-
-// Re-export template engine from utils for backward compatibility
-export { processTemplate, evaluateExpression } from '$lib/utils/template';
-
-/**
- * Maps a dayjs manipulation unit to each period type.
- * Used by buildAdjacentPeriodPath for offset calculations.
- * Note: 'quarter' requires the quarterOfYear plugin (loaded in utils/date).
- */
-const PERIOD_UNIT: Record<PeriodType, dayjs.ManipulateType> = {
-	daily: 'day',
-	weekly: 'week',
-	monthly: 'month',
-	quarterly: 'month',
-	yearly: 'year',
-};
-
-/** Number of base units per period type (quarterly = 3 months) */
-const PERIOD_MULTIPLIER: Record<PeriodType, number> = {
-	daily: 1,
-	weekly: 1,
-	monthly: 1,
-	quarterly: 3,
-	yearly: 1,
-};
 
 /**
  * Builds the full absolute path for a periodic note given a specific date.
@@ -47,47 +22,10 @@ export function buildPeriodicNotePath(
 }
 
 /**
- * Builds the full absolute path for today's periodic note of a given type.
- */
-export function buildPeriodicNotePathForToday(
-	vaultPath: string,
-	folder: string,
-	format: string,
-): string {
-	return buildPeriodicNotePath(vaultPath, folder, format, dayjs());
-}
-
-/**
- * Builds the path for an adjacent period (previous/next) from a reference date.
- * @param offset - Number of periods to offset (e.g. -1 for previous, +1 for next)
- * @param periodType - Which period unit to offset by
- */
-export function buildAdjacentPeriodPath(
-	vaultPath: string,
-	folder: string,
-	format: string,
-	date: dayjs.Dayjs,
-	offset: number,
-	periodType: PeriodType,
-): string {
-	const unit = PERIOD_UNIT[periodType];
-	const multiplier = PERIOD_MULTIPLIER[periodType];
-	const offsetDate = date.add(offset * multiplier, unit);
-	return buildPeriodicNotePath(vaultPath, folder, format, offsetDate);
-}
-
-/**
  * Extracts the file title (the formatted date portion) from a periodic note's format.
  */
 export function getPeriodicNoteTitle(format: string, date: dayjs.Dayjs): string {
 	return date.format(format);
-}
-
-/**
- * Returns the file title for today's periodic note.
- */
-export function getTodayPeriodicNoteTitle(format: string): string {
-	return today(format);
 }
 
 /**
@@ -109,20 +47,6 @@ export function getTemplatePathForPeriod(settings: PeriodicNotesSettings, period
  */
 export function getDailyInlineTemplate(settings: PeriodicNotesSettings): string {
 	return settings.daily.template;
-}
-
-/**
- * Builds path for a periodic note from a dateKey string ("YYYY-MM-DD").
- * Used by the calendar service for arbitrary dates.
- */
-export function buildPeriodicNotePathForDate(
-	vaultPath: string,
-	folder: string,
-	format: string,
-	dateKey: string,
-): string {
-	const date = dayjs(dateKey, 'YYYY-MM-DD');
-	return buildPeriodicNotePath(vaultPath, folder, format, date);
 }
 
 /**
