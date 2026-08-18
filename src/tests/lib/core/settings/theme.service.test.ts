@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { KOKOBRAIN_DEFAULT_THEME } from '$lib/core/settings/theme.logic';
-import { applyTheme, applyActiveTheme, removeThemeOverrides } from '$lib/core/settings/theme.service';
+import { applyTheme, applyActiveTheme } from '$lib/core/settings/theme.service';
 import type { Theme, ThemeColors } from '$lib/core/settings/theme.types';
 
 describe('applyTheme', () => {
@@ -128,26 +128,5 @@ describe('applyTheme — edge cases', () => {
 		// No CSS vars set
 		expect(document.documentElement.style.getPropertyValue('--background')).toBe('');
 		expect(document.documentElement.style.getPropertyValue('--card')).toBe('');
-	});
-});
-
-describe('removeThemeOverrides', () => {
-	beforeEach(() => {
-		settingsStore.reset();
-		document.documentElement.style.cssText = '';
-	});
-
-	it('removes all CSS custom properties from document root', () => {
-		// First apply a theme
-		applyTheme(KOKOBRAIN_DEFAULT_THEME);
-		expect(document.documentElement.style.getPropertyValue('--background')).toBe('#21222e');
-		expect(document.documentElement.style.getPropertyValue('--card')).toBe('#2a2e3d');
-
-		// Then remove overrides
-		removeThemeOverrides(KOKOBRAIN_DEFAULT_THEME);
-
-		expect(document.documentElement.style.getPropertyValue('--background')).toBe('');
-		expect(document.documentElement.style.getPropertyValue('--card')).toBe('');
-		expect(document.documentElement.style.getPropertyValue('--syntax-heading1')).toBe('');
 	});
 });

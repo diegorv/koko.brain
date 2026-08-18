@@ -24,16 +24,3 @@ export function applyActiveTheme(): void {
 	const theme = findThemeByName(themes, activeTheme);
 	applyTheme(theme);
 }
-
-/**
- * Removes all inline theme overrides from the document root,
- * allowing CSS `.dark` fallback values to take effect.
- */
-export function removeThemeOverrides(theme: Theme): void {
-	const el = document.documentElement;
-	const vars = themeColorsToCssVars(theme.colors);
-
-	for (const name of Object.keys(vars)) {
-		el.style.removeProperty(name);
-	}
-}
