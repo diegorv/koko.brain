@@ -1,14 +1,9 @@
 import { Decoration, EditorView, GutterMarker } from '@codemirror/view';
 
 export const linkTextDeco = Decoration.mark({ class: 'cm-lp-link' });
-export const boldTextDeco = Decoration.mark({ class: 'cm-lp-bold' });
-export const italicTextDeco = Decoration.mark({ class: 'cm-lp-italic' });
 export const blockquoteLineDeco = Decoration.line({ class: 'cm-lp-blockquote' });
-export const strikethroughTextDeco = Decoration.mark({ class: 'cm-lp-strikethrough' });
-export const inlineCodeTextDeco = Decoration.mark({ class: 'cm-lp-code' });
 export const wikilinkTextDeco = Decoration.mark({ class: 'cm-lp-wikilink' });
 export const highlightTextDeco = Decoration.mark({ class: 'cm-lp-highlight' });
-export const codeBlockLineDeco = Decoration.line({ class: 'cm-lp-codeblock-line' });
 export const footnoteRefDeco = Decoration.mark({ class: 'cm-lp-footnote-ref' });
 export const footnoteDefMarkerDeco = Decoration.mark({ class: 'cm-lp-footnote-def-marker' });
 export const hiddenLineDeco = Decoration.line({ class: 'cm-lp-hidden-line' });
@@ -240,11 +235,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 		marginRight: '6px',
 		fontSize: '0.95em',
 	},
-	'.cm-lp-hard-break': {
-		color: 'var(--lp-hard-break, var(--syntax-comment, #6c7086))',
-		opacity: '0.5',
-		fontSize: '0.85em',
-	},
 	'.cm-lp-code': {
 		fontFamily: 'MonoLisa, monospace',
 		backgroundColor: 'var(--lp-code-bg)',
@@ -280,10 +270,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-activeLine:has(.cm-lp-video-wrapper)': {
 		backgroundColor: 'transparent !important',
-	},
-	'.cm-lp-codeblock-line': {
-		backgroundColor: 'var(--lp-codeblock-bg)',
-		fontFamily: 'MonoLisa, monospace',
 	},
 	'.cm-lp-codeblock': {
 		display: 'block',

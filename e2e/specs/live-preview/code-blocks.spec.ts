@@ -53,7 +53,7 @@ test.describe('Live Preview - Code Blocks', () => {
 		await page.locator('.cm-lp-codeblock').first().click();
 		await page.waitForTimeout(200);
 
-		// Source lines should now be visible (code block lines with cm-lp-codeblock-line)
+		// Source lines should now be visible
 		await expect(page.locator('.cm-line').filter({ hasText: 'const x = 42' })).toBeVisible();
 	});
 

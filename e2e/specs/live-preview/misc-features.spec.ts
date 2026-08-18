@@ -30,8 +30,7 @@ test.describe('Live Preview - Hard Breaks', () => {
 		await openMarkdownFile(page, 'hard-break.md', CONTENT);
 		await clickOnLine(page, 'Plain text here');
 		// Production class is `.cm-formatting-hard-break` (emitted by the
-		// inline simple-widget handler); `.cm-lp-hard-break` is only a CSS
-		// rule colorizing the marker but isn't applied as a span class.
+		// inline simple-widget handler); the ↵ marker is drawn by its ::after.
 		await expect(page.locator('.cm-formatting-hard-break').first()).toBeAttached();
 	});
 });
