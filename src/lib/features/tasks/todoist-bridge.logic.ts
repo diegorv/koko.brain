@@ -29,29 +29,6 @@ export function mapPriorityToTodoist(priority?: TaskPriority): number {
 }
 
 /**
- * Maps Todoist's 4-level priority back to our TaskPriority.
- *
- * | Todoist priority | TaskPriority |
- * |---------|-------------|
- * | 4       | highest     |
- * | 3       | high        |
- * | 2       | medium      |
- * | 1       | none        |
- */
-export function mapPriorityFromTodoist(priority: number): TaskPriority {
-	switch (priority) {
-		case 4:
-			return 'highest';
-		case 3:
-			return 'high';
-		case 2:
-			return 'medium';
-		default:
-			return 'none';
-	}
-}
-
-/**
  * Builds Todoist AddTaskArgs from parsed task metadata.
  * Only includes fields that have values, letting Todoist use its defaults for the rest.
  *

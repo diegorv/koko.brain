@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
 	mapPriorityToTodoist,
-	mapPriorityFromTodoist,
 	buildTodoistArgs,
 	mergeLabel,
 } from '$lib/features/tasks/todoist-bridge.logic';
@@ -36,38 +35,6 @@ describe('mapPriorityToTodoist', () => {
 
 	it('maps undefined to 1', () => {
 		expect(mapPriorityToTodoist(undefined)).toBe(1);
-	});
-});
-
-// ── mapPriorityFromTodoist ─────────────────────────────────────────
-
-describe('mapPriorityFromTodoist', () => {
-	it('maps 4 to highest', () => {
-		expect(mapPriorityFromTodoist(4)).toBe('highest');
-	});
-
-	it('maps 3 to high', () => {
-		expect(mapPriorityFromTodoist(3)).toBe('high');
-	});
-
-	it('maps 2 to medium', () => {
-		expect(mapPriorityFromTodoist(2)).toBe('medium');
-	});
-
-	it('maps 1 to none', () => {
-		expect(mapPriorityFromTodoist(1)).toBe('none');
-	});
-
-	it('maps 0 to none', () => {
-		expect(mapPriorityFromTodoist(0)).toBe('none');
-	});
-
-	it('maps negative number to none', () => {
-		expect(mapPriorityFromTodoist(-1)).toBe('none');
-	});
-
-	it('maps out-of-range number to none', () => {
-		expect(mapPriorityFromTodoist(99)).toBe('none');
 	});
 });
 
