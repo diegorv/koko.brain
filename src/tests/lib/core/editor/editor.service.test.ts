@@ -50,7 +50,7 @@ import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { setFileReadTransform, setFileWriteTransform, addAfterSaveObserver, resetHooks } from '$lib/core/editor/editor.hooks';
+import { addAfterSaveObserver, resetHooks } from '$lib/core/editor/editor.hooks';
 import {
 	openFileInEditor,
 	saveCurrentFile,
@@ -972,57 +972,6 @@ describe('editor hooks integration', () => {
 		resetHooks();
 	});
 
-	it('openFileInEditor uses transformed content when read hook applies', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('raw-blob');
-		setFileReadTransform(async (_path, raw) => {
-			if (raw === 'raw-blob') {
-				return { content: 'transformed content', tabProps: { pinned: true } };
-			}
-			return null;
-		});
-
-		await openFileInEditor('/vault/secret.md');
-
-		expect(editorStore.activeTab?.content).toBe('transformed content');
-		expect(editorStore.activeTab?.savedContent).toBe('transformed content');
-		expect(editorStore.activeTab?.pinned).toBe(true);
-	});
-
-	it('openFileInEditor uses raw content when read hook returns null', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('plain content');
-		setFileReadTransform(async () => null);
-
-		await openFileInEditor('/vault/note.md');
-
-		expect(editorStore.activeTab?.content).toBe('plain content');
-		expect(editorStore.activeTab?.pinned).toBeUndefined();
-	});
-
-	it('saveCurrentFile uses write hook when it returns true', async () => {
-		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
-		setFileWriteTransform(async () => true);
-
-		await saveCurrentFile();
-
-		// writeTextFile should NOT be called — hook handled it
-		expect(writeTextFile).not.toHaveBeenCalled();
-		// But savedContent should still be updated
-		expect(editorStore.activeTab?.savedContent).toBe('modified');
-	});
-
-	it('saveCurrentFile falls back to writeTextFile when hook returns false', async () => {
-		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		setFileWriteTransform(async () => false);
-
-		await saveCurrentFile();
-
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', 'modified');
-		expect(editorStore.activeTab?.savedContent).toBe('modified');
-	});
-
 	it('saveCurrentFile calls notifyAfterSave after successful save', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
@@ -1035,29 +984,6 @@ describe('editor hooks integration', () => {
 
 		expect(observer).toHaveBeenCalledWith('/vault/note.md', 'modified');
 		expect(editorStore.activeTab?.savedContent).toBe('modified');
-	});
-
-	it('saveFileByPath uses write hook when it returns true', async () => {
-		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
-		setFileWriteTransform(async () => true);
-
-		await saveFileByPath('/vault/note.md');
-
-		expect(writeTextFile).not.toHaveBeenCalled();
-		expect(editorStore.tabs[0].savedContent).toBe('modified');
-	});
-
-	it('saveFileByPath falls back to writeTextFile when hook returns false', async () => {
-		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		setFileWriteTransform(async () => false);
-
-		await saveFileByPath('/vault/note.md');
-
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/note.md', 'modified');
-		expect(editorStore.tabs[0].savedContent).toBe('modified');
 	});
 
 	it('saveFileByPath calls notifyAfterSave after successful save', async () => {
@@ -1218,17 +1144,6 @@ describe('reloadExternallyChangedTabs', () => {
 
 		// Tab should remain unchanged
 		expect(editorStore.tabs[0].content).toBe('original');
-	});
-
-	it('applies read transform when reloading', async () => {
-		setFileReadTransform(async (_path, raw) => ({ content: `transformed:${raw}` }));
-		addTab('/vault/secret.md', 'transformed:original', { savedContent: 'transformed:original' });
-		vi.mocked(readTextFile).mockResolvedValueOnce('new-raw');
-
-		await reloadExternallyChangedTabs(['/vault/secret.md']);
-
-		expect(editorStore.tabs[0].content).toBe('transformed:new-raw');
-		expect(editorStore.tabs[0].savedContent).toBe('transformed:new-raw');
 	});
 
 	it('reloads multiple tabs in a single call', async () => {

@@ -5,7 +5,7 @@ import { editorStore } from './editor.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
 import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '$lib/core/filesystem/fs.logic';
-import { applyReadTransform, applyWriteTransform, notifyAfterSave } from './editor.hooks';
+import { notifyAfterSave } from './editor.hooks';
 import { debounce } from '$lib/utils/debounce';
 import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
 import { debug, error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
@@ -82,17 +82,8 @@ export async function openFileInEditor(filePath: string) {
 
 	try {
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: before readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms`);
-		const rawContent = await readTextFile(filePath);
-		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms (${rawContent.length} chars)`);
-
-		const transformed = await applyReadTransform(filePath, rawContent);
-		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after applyReadTransform @ ${(performance.now() - probeStart).toFixed(1)}ms`);
-
-		const content = transformed?.content ?? rawContent;
-
-		if (transformed) {
-			debug('EDITOR', 'Read transform applied:', filePath, transformed.tabProps ? JSON.stringify(transformed.tabProps) : '');
-		}
+		const content = await readTextFile(filePath);
+		appendLog('FE-STARTUP-PROBE', `openFileInEditor: after readTextFile @ ${(performance.now() - probeStart).toFixed(1)}ms (${content.length} chars)`);
 
 		// Re-check after async gap — another call may have added the tab
 		const raceIndex = findTabIndex(editorStore.tabs, filePath);
@@ -108,7 +99,7 @@ export async function openFileInEditor(filePath: string) {
 			: isCanvasFile(name) ? 'canvas' as const
 			: isKanbanFile(name) ? 'kanban' as const
 			: undefined;
-		editorStore.addTab({ path: filePath, name, content, savedContent: content, fileType, ...transformed?.tabProps });
+		editorStore.addTab({ path: filePath, name, content, savedContent: content, fileType });
 		fsStore.setSelectedFilePath(filePath);
 		debug('EDITOR', 'opened file:', filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
@@ -137,12 +128,7 @@ export async function saveFileByPath(path: string): Promise<boolean> {
 	const content = tab.content;
 
 	try {
-		const handled = await applyWriteTransform(path, content, tab);
-		if (handled) {
-			debug('EDITOR', 'Write transform handled save for:', path);
-		} else {
-			await writeTextFile(path, content);
-		}
+		await writeTextFile(path, content);
 		editorStore.markSavedByPath(path, content);
 		notifyAfterSave(path, content);
 		debug('EDITOR', 'saved file (by path):', path);
@@ -360,11 +346,7 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 
 	// Read all files in parallel
 	const results = await Promise.allSettled(
-		eligible.map(async (filePath) => {
-			const rawContent = await readTextFile(filePath);
-			const transformed = await applyReadTransform(filePath, rawContent);
-			return { filePath, diskContent: transformed?.content ?? rawContent };
-		}),
+		eligible.map(async (filePath) => ({ filePath, diskContent: await readTextFile(filePath) })),
 	);
 
 	// Apply updates synchronously after all reads complete

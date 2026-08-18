@@ -15,87 +15,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import {
-	setFileReadTransform,
-	setFileWriteTransform,
 	addAfterSaveObserver,
-	applyReadTransform,
-	applyWriteTransform,
 	notifyAfterSave,
 	resetHooks,
 	markRecentSave,
 	areAllRecentSaves,
 } from '$lib/core/editor/editor.hooks';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
-import type { EditorTab } from '$lib/core/editor/editor.types';
-
-const makeTab = (overrides: Partial<EditorTab> = {}): EditorTab => ({
-	path: '/vault/note.md',
-	name: 'note.md',
-	content: 'hello',
-	savedContent: 'hello',
-	...overrides,
-});
-
-describe('applyReadTransform', () => {
-	beforeEach(() => {
-		resetHooks();
-	});
-
-	it('returns null when no transform registered', async () => {
-		const result = await applyReadTransform('/vault/note.md', 'raw content');
-		expect(result).toBeNull();
-	});
-
-	it('returns transformed content when transform applies', async () => {
-		setFileReadTransform(async (_path, raw) => ({
-			content: raw.toUpperCase(),
-			tabProps: { pinned: true },
-		}));
-
-		const result = await applyReadTransform('/vault/note.md', 'hello');
-		expect(result).toEqual({ content: 'HELLO', tabProps: { pinned: true } });
-	});
-
-	it('returns null when transform returns null (does not apply)', async () => {
-		setFileReadTransform(async () => null);
-
-		const result = await applyReadTransform('/vault/note.md', 'raw');
-		expect(result).toBeNull();
-	});
-
-	it('propagates thrown errors for abort scenarios', async () => {
-		setFileReadTransform(async () => {
-			throw new Error('aborted by transform');
-		});
-
-		await expect(applyReadTransform('/vault/note.md', 'raw')).rejects.toThrow('aborted by transform');
-	});
-});
-
-describe('applyWriteTransform', () => {
-	beforeEach(() => {
-		resetHooks();
-	});
-
-	it('returns false when no transform registered', async () => {
-		const result = await applyWriteTransform('/vault/note.md', 'content', makeTab());
-		expect(result).toBe(false);
-	});
-
-	it('returns true when transform handles write', async () => {
-		setFileWriteTransform(async () => true);
-
-		const result = await applyWriteTransform('/vault/note.md', 'content', makeTab({ pinned: true }));
-		expect(result).toBe(true);
-	});
-
-	it('returns false when transform returns false', async () => {
-		setFileWriteTransform(async () => false);
-
-		const result = await applyWriteTransform('/vault/note.md', 'content', makeTab());
-		expect(result).toBe(false);
-	});
-});
 
 describe('notifyAfterSave', () => {
 	beforeEach(() => {
@@ -251,44 +177,6 @@ describe('addAfterSaveObserver', () => {
 
 		notifyAfterSave('/vault/note.md', 'content');
 		expect(observer).toHaveBeenCalledTimes(1); // Not called again
-	});
-});
-
-describe('setFileReadTransform(null)', () => {
-	beforeEach(() => {
-		resetHooks();
-	});
-
-	it('clears the transform', async () => {
-		setFileReadTransform(async (_path, raw) => ({ content: raw.toUpperCase() }));
-
-		// Transform is active
-		const result1 = await applyReadTransform('/vault/note.md', 'hello');
-		expect(result1?.content).toBe('HELLO');
-
-		// Clear it
-		setFileReadTransform(null);
-
-		const result2 = await applyReadTransform('/vault/note.md', 'hello');
-		expect(result2).toBeNull();
-	});
-});
-
-describe('setFileWriteTransform(null)', () => {
-	beforeEach(() => {
-		resetHooks();
-	});
-
-	it('clears the transform', async () => {
-		setFileWriteTransform(async () => true);
-
-		const result1 = await applyWriteTransform('/vault/note.md', 'content', makeTab());
-		expect(result1).toBe(true);
-
-		setFileWriteTransform(null);
-
-		const result2 = await applyWriteTransform('/vault/note.md', 'content', makeTab());
-		expect(result2).toBe(false);
 	});
 });
 

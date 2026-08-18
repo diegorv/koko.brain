@@ -13,12 +13,8 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 vi.mock('$lib/core/editor/editor.hooks', () => ({
 	resetHooks: vi.fn(),
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
-	setFileReadTransform: vi.fn(),
-	setFileWriteTransform: vi.fn(),
 	notifyAfterSave: vi.fn(),
 	areAllRecentSaves: vi.fn(() => false),
-	applyReadTransform: vi.fn(() => Promise.resolve(null)),
-	applyWriteTransform: vi.fn(() => Promise.resolve(false)),
 }));
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({

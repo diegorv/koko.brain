@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { EditorTab } from './editor.types';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
@@ -10,38 +9,11 @@ import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index
 import { debug, error } from '$lib/utils/debug';
 
 /**
- * Called when reading a file before opening in a tab.
- * Return null if this hook doesn't apply (use raw content).
- * Throw to abort the file open entirely.
- */
-export type FileReadTransform = (
-	filePath: string,
-	rawContent: string,
-) => Promise<{ content: string; tabProps?: Partial<EditorTab> } | null>;
-
-/**
- * Called when writing file content to disk.
- * Return true if this hook handled the write (replaces writeTextFile).
- * Return false to fall through to the default writeTextFile.
- */
-export type FileWriteTransform = (
-	filePath: string,
-	content: string,
-	tab: EditorTab,
-) => Promise<boolean>;
-
-/**
  * Called after a file is successfully saved to disk.
  * Fire-and-forget — errors are caught and logged, never propagated.
  * Receives the plaintext content (not the on-disk representation).
  */
 export type AfterSaveObserver = (filePath: string, content: string) => void;
-
-/** The active read transform, or null for default behavior */
-let readTransform: FileReadTransform | null = null;
-
-/** The active write transform, or null for default behavior */
-let writeTransform: FileWriteTransform | null = null;
 
 /** Registered after-save observers */
 const afterSaveObservers: AfterSaveObserver[] = [];
@@ -82,18 +54,6 @@ export function areAllRecentSaves(paths: string[]): boolean {
 	return paths.length > 0 && paths.every((p) => recentSaves.has(p));
 }
 
-/** Registers a file read transform. Only one can be active at a time. */
-export function setFileReadTransform(transform: FileReadTransform | null): void {
-	debug('HOOKS', transform ? 'Read transform registered' : 'Read transform cleared');
-	readTransform = transform;
-}
-
-/** Registers a file write transform. Only one can be active at a time. */
-export function setFileWriteTransform(transform: FileWriteTransform | null): void {
-	debug('HOOKS', transform ? 'Write transform registered' : 'Write transform cleared');
-	writeTransform = transform;
-}
-
 /** Adds an after-save observer. Returns an unsubscribe function. */
 export function addAfterSaveObserver(observer: AfterSaveObserver): () => void {
 	afterSaveObservers.push(observer);
@@ -103,37 +63,6 @@ export function addAfterSaveObserver(observer: AfterSaveObserver): () => void {
 		if (idx >= 0) afterSaveObservers.splice(idx, 1);
 		debug('HOOKS', `After-save observer removed (total: ${afterSaveObservers.length})`);
 	};
-}
-
-/**
- * Runs the registered read transform on raw file content.
- * Returns null if no transform is registered or if the transform doesn't apply.
- */
-export async function applyReadTransform(
-	filePath: string,
-	rawContent: string,
-): Promise<{ content: string; tabProps?: Partial<EditorTab> } | null> {
-	if (!readTransform) return null;
-	debug('HOOKS', 'Applying read transform for:', filePath);
-	const result = await readTransform(filePath, rawContent);
-	debug('HOOKS', 'Read transform result:', result ? 'transformed' : 'skipped (returned null)');
-	return result;
-}
-
-/**
- * Runs the registered write transform.
- * Returns false if no transform is registered or doesn't apply.
- */
-export async function applyWriteTransform(
-	filePath: string,
-	content: string,
-	tab: EditorTab,
-): Promise<boolean> {
-	if (!writeTransform) return false;
-	debug('HOOKS', 'Applying write transform for:', filePath);
-	const handled = await writeTransform(filePath, content, tab);
-	debug('HOOKS', 'Write transform result:', handled ? 'handled' : 'not handled (fallback to default)');
-	return handled;
 }
 
 /** Notifies all after-save observers. Errors are caught and logged.
@@ -194,8 +123,6 @@ export function notifyAfterSave(filePath: string, content: string): void {
 /** Removes all hooks and observers. Used in tests and teardown. */
 export function resetHooks(): void {
 	debug('HOOKS', 'Resetting all hooks and observers');
-	readTransform = null;
-	writeTransform = null;
 	afterSaveObservers.length = 0;
 	for (const timer of recentSaves.values()) clearTimeout(timer);
 	recentSaves.clear();

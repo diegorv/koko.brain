@@ -20,7 +20,7 @@ log file.
 |---|---|
 | `openFileInEditor:cached` | File already open; just refocuses tab |
 | `openFileInEditor:raceCached` | Concurrent open of the same path; race lost |
-| `openFileInEditor:fresh` | Cold open: read disk + apply transform + add tab |
+| `openFileInEditor:fresh` | Cold open: read disk + add tab |
 | `switchTab:sync` | Synchronous part of `switchTab` (store update + fs sync) |
 | `closeTab` | Successful close path (after any dirty-confirm dialog) |
 | `updateIndexesForFile` | Full 3-phase indexer (debounced 1 s after a keystroke) |
