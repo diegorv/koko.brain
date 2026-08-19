@@ -1283,10 +1283,14 @@ static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ID_EMOJI))).expect("id regex")
 });
 
-/// DependsOn regex: ⛔ + optional space + comma-separated non-whitespace IDs.
+/// DependsOn regex: ⛔ + optional space + comma-separated IDs. The ID atom is
+/// `[^,\s]+` (comma- and whitespace-free) rather than `\S+`: a greedy `\S+`
+/// swallows the `,` separator, so on `⛔ id1, id2` it captures `id1,`, the
+/// optional repeat group has no comma left to anchor on, and every ID after
+/// the first is silently dropped.
 static DEPENDS_ON_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&format!(
-		r"{}\s*(\S+(?:\s*,\s*\S+)*)",
+		r"{}\s*([^,\s]+(?:\s*,\s*[^,\s]+)*)",
 		emoji_pattern(DEPENDS_ON_EMOJI)
 	))
 	.expect("depends_on regex")
@@ -2919,6 +2923,21 @@ mod tests {
 	fn parse_task_metadata_depends_on_single_id() {
 		let m = parse_task_metadata("blocked \u{26D4} abc123");
 		assert_eq!(m.depends_on, Some(vec!["abc123".to_string()]));
+	}
+
+	#[test]
+	fn parse_task_metadata_depends_on_csv_with_spaces() {
+		let m = parse_task_metadata("task \u{26D4} id1, id2, id3 \u{1F4C5} 2026-01-01");
+		assert_eq!(
+			m.depends_on,
+			Some(vec![
+				"id1".to_string(),
+				"id2".to_string(),
+				"id3".to_string()
+			])
+		);
+		assert_eq!(m.description, "task");
+		assert_eq!(m.due_date.as_deref(), Some("2026-01-01"));
 	}
 
 	#[test]

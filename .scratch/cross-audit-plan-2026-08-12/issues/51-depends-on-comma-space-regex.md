@@ -99,3 +99,98 @@ uses a comma followed by a space.
 - One commit, full commit format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+2026-08-19 - implemented. Fixed with the comma-free ID atom that `## How` specifies; no
+deviation from the issue's scope contract.
+
+**Red-green evidence.** New unit test `parse_task_metadata_depends_on_csv_with_spaces` in
+`parsing.rs`'s test module, sitting next to the two pre-existing depends_on tests, input
+`task ⛔ id1, id2, id3 📅 2026-01-01`. Red against the unmodified `\S+` atom
+(`cargo test --manifest-path src-tauri/Cargo.toml --lib depends_on`):
+
+```
+running 3 tests
+test vault::parsing::tests::parse_task_metadata_depends_on_single_id ... ok
+test vault::parsing::tests::parse_task_metadata_depends_on_csv_no_spaces ... ok
+test vault::parsing::tests::parse_task_metadata_depends_on_csv_with_spaces ... FAILED
+
+---- vault::parsing::tests::parse_task_metadata_depends_on_csv_with_spaces stdout ----
+thread 'vault::parsing::tests::parse_task_metadata_depends_on_csv_with_spaces' panicked at
+src/vault/parsing.rs:2931:9:
+assertion `left == right` failed
+  left: Some(["id1"])
+ right: Some(["id1", "id2", "id3"])
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 569 filtered out
+```
+
+`left: Some(["id1"])` is the reported bug verbatim: the greedy `\S+` captured `id1,`, the
+optional repeat group had no comma left to anchor on, and `id2` / `id3` were dropped without a
+diagnostic. Green after the fix: same three tests, `3 passed; 0 failed`. Full Rust gate green
+too - `cargo test --manifest-path src-tauri/Cargo.toml`, every target `0 failed`, the lib suite
+that owns `parsing.rs` at 572 passed.
+
+The red run was produced by reverting ONLY the atom (`[^,\s]+` back to `\S+`) on the otherwise
+final tree, so the test is anchored on the regex change itself and cannot be satisfied through a
+side channel. The file was then restored from a byte-identical copy (`diff` clean) and the green
+run re-executed on the restored bytes.
+
+One honest gap in the printed evidence: the red run panics on the FIRST assertion, so the
+`assert_eq!(m.description, "task")` line never got to print its own failure. That second symptom
+is still covered by the test (it is red-relevant, since with the old atom `text.replacen(&w, "",
+1)` removes only `⛔ id1,` and leaves ` id2, id3` in `text`, which `parsing.rs:1594` then assigns
+to `metadata.description`), it just is not separately visible in the captured output.
+
+**What discovery re-derived.** Every claim in `## What` was re-checked against the current tree
+by symbol, since the issue's own line numbers are stale:
+
+- `DEPENDS_ON_RE` is the single definition of the pattern and has exactly one consumer, the
+  `// DependsOn` block in `parse_task_metadata`. That consumer still splits on `,`, trims and
+  filters empties, which is why the old capture `id1,` collapsed to `["id1"]` instead of
+  surfacing an empty element.
+- Extraction order inside `parse_task_metadata` is Dates -> Priority -> Recurrence -> ID ->
+  DependsOn -> OnCompletion -> Tags, then `metadata.description = text.trim()`. This matters for
+  the review findings below: only OnCompletion and Tags run after DependsOn and can therefore be
+  affected by what the depends-on match consumes.
+- The impact path the issue cites is intact: `TaskMetadata.depends_on` ->
+  `src/lib/features/tasks/tasks.service.ts:40` -> `TaskItem.metadata.dependsOn`
+  (`src/lib/types/vault-v2.types.ts:274`). `metadata.description` additionally feeds
+  `src/lib/features/tasks/todoist-bridge.logic.ts:43` as the Todoist task content, so symptom 2
+  leaks the dependency IDs into synced Todoist titles, not just the local task list.
+- The TS mirror `task-metadata.logic.ts` the issue mentions is already gone (issue 40 landed).
+  Rust is the only live parser, so no second fix site.
+- The `## How` fix table was re-verified end to end: the two broken rows now produce the expected
+  IDs, and the three already-working rows (`id1,id2,id3`, `id1 , id2`, single `abc123`) are
+  unchanged - the two pre-existing tests cover the latter and were kept, not replaced.
+
+**Adversarial review verdict: findings (2, both minor, both accepted as-is).** The reviewer could
+not refute the fix on the issue's 5-row contract; both findings are about malformed input outside
+that contract, where the new regex differs from the old one.
+
+1. *Malformed comma placement regresses versus the old regex.* `task ⛔ id1,` now yields deps
+   `["id1"]` with description `task ,` (the stray comma reaches `metadata.description` and, via
+   `todoist-bridge.logic.ts`, Todoist titles); the old regex produced description `task`.
+   `task ⛔ ,id1` now fails to match at all, so deps is `None` and the whole `⛔ ,id1` stays in
+   the description; the old regex returned `["id1"]`. Both confirmed empirically in the
+   reviewer's probe. Trailing-comma is the stronger of the two because the old behaviour there
+   was fully correct.
+2. *A dangling comma makes the repeat group absorb the following token.* `task ⛔ id1, id2, 🏁
+   delete` captures the flag emoji as a third dependency ID and loses `on_completion`. The
+   reviewer surfaced an undisclosed same-mechanism variant that is a more plausible human typo:
+   `task ⛔ id1, #work` now yields deps `["id1", "#work"]` and tags `[]`, where the old regex gave
+   deps `["id1"]` and tags `["work"]` - a tag silently dropped from the tag index plus a bogus
+   dependency injected. Only OnCompletion and Tags are exposed (see the extraction order above);
+   dates, priority, recurrence and id all extract before DependsOn and are unaffected.
+
+No code change was made for either. Both are garbage-in shapes, neither was covered by a test
+before or is named by this issue, and the reviewer's own recommendation is that guarding them
+belongs in a separate issue with its own red tests.
+
+**Out of scope, worth its own issue if anyone wants it.** A follow-up guarding malformed
+comma placement would need to decide three things together, which is exactly why it is not a
+rider on this commit: (a) an optional non-captured trailing separator cleans the trailing-comma
+leak without touching the capture, but does nothing for the leading-comma or absorption cases;
+(b) excluding `#` and the signifier emoji codepoints from the repeat atom's first character
+fixes the absorption cases, but IDs may legitimately contain `#`, so that is a deliberate format
+decision, not a regex tweak; (c) any of it needs its own red tests, since no existing test
+exercises malformed depends-on input at all.
