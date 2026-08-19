@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// openFileInEditor hits Tauri fs IPC — legitimately mocked. The store and
+// openFileInEditor hits Tauri fs IPC - legitimately mocked. The store and
 // editor.logic stay real (CLAUDE.md rule 1).
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),

@@ -245,7 +245,7 @@
 				seededViewHash = contentHash;
 			}
 
-			// Without the index every query matches nothing. Skip the work and wait —
+			// Without the index every query matches nothing. Skip the work and wait -
 			// the effect re-runs when buildPropertyIndex publishes the index.
 			if (!isIndexReady) {
 				notes = [];

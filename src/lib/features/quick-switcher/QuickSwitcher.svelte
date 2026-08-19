@@ -6,8 +6,8 @@
 	import { toast } from 'svelte-sonner';
 	import { createFile } from '$lib/core/filesystem/fs.service';
 	import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
-	import { quickSwitcherStore } from './quick-switcher.store.svelte';
 	import { relativePath } from '$lib/utils/path';
+	import { quickSwitcherStore } from './quick-switcher.store.svelte';
 	import { flattenFileTree, filterAndRank } from './quick-switcher.logic';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Archive from '@lucide/svelte/icons/archive';

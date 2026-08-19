@@ -3,7 +3,7 @@ import type { Text } from '@codemirror/state';
 /**
  * Materializes only the frontmatter prefix of the document for property
  * parsing, instead of `doc.toString()` (a full-document string copy per
- * rebuild — typing lag in large notes). Parity contract: the parser's
+ * rebuild - typing lag in large notes). Parity contract: the parser's
  * `FRONTMATTER_REGEX` (`/^---\r?\n[\s\S]*?\r?\n---/`) can only match when
  * line 1 is exactly `---`, and its non-greedy body ends at the first line
  * >= 3 whose text starts with `---`. Returning '' when no fence can match

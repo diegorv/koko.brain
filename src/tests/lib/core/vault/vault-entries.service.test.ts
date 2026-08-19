@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 setupLocalStorage();
 
-// Only the Tauri IPC boundary is mocked — the vault store is the real one.
+// Only the Tauri IPC boundary is mocked - the vault store is the real one.
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve([])),
 }));
@@ -84,7 +84,7 @@ describe('getVaultEntries', () => {
 
 		await expect(getVaultEntries()).rejects.toThrow('ipc down');
 
-		// A failed read is never cached — the next call retries at the same version.
+		// A failed read is never cached - the next call retries at the same version.
 		await expect(getVaultEntries()).resolves.toEqual(VAULT_A);
 		expect(invoke).toHaveBeenCalledTimes(2);
 	});

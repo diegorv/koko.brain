@@ -7,7 +7,7 @@ import { editorStore } from './editor.store.svelte';
  * Where inside a note to place the caret. The discriminant is the unit: a
  * `line` is 1-indexed (matching search results and CodeMirror's `doc.line(n)`),
  * an `offset` is a character offset into the note's content. Mixing the two up
- * is the search-jump bug of issue 02 — as a discriminated union it is a type
+ * is the search-jump bug of issue 02 - as a discriminated union it is a type
  * error instead of a silent misplacement.
  */
 export type NoteTarget =

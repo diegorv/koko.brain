@@ -8,7 +8,7 @@
 //    "No notes" until an unrelated entries bump happens to re-fire the effect.
 // B. The local toolbar state must be re-seeded when the `.view` content hash
 //    changes. buildOverriddenQuery REPLACES the parsed filters with the local
-//    state, so a stale seed does not merely fail to update — it wipes the
+//    state, so a stale seed does not merely fail to update - it wipes the
 //    freshly parsed filter and the list shows everything.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
@@ -20,7 +20,7 @@ setupLocalStorage();
 // layout API, so this stub fires synchronously on observe() with synthetic
 // sizes (the VList scroller is recognizable by its inline overflow-y style)
 // and offsetParent is exposed as parentElement. Same shim as
-// TypeNoteList.perf.test.ts — without it zero rows mount and every row
+// TypeNoteList.perf.test.ts - without it zero rows mount and every row
 // assertion passes or fails for the wrong reason.
 const VIEWPORT_HEIGHT = 600;
 const ROW_HEIGHT = 60;
@@ -249,7 +249,7 @@ describe('TypeNoteList view pipeline', () => {
 		expect(rowTitles(target)).toHaveLength(0);
 
 		// The ONLY change is the deferred index build landing. No setEntries, no
-		// selection change, no sub-filter click — each of those is a side channel
+		// selection change, no sub-filter click - each of those is a side channel
 		// that would re-fire the effect and hide a missing subscription.
 		collectionStore.setPropertyIndex(buildIndex());
 		await settle();

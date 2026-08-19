@@ -300,12 +300,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	// ── Step 5: Post-index setup ─────────────────────────────────────
 	// Templates folder stays here (cheap, avoids racing loadDirectoryTree).
-	// autoOpenDailyNote is deliberately NOT called here — it runs in Step 9,
+	// autoOpenDailyNote is deliberately NOT called here - it runs in Step 9,
 	// one macrotask later, so the daily-note `exists() → readTextFile` chain
 	// doesn't compete for the main thread with the synchronous index builds
 	// below and with Svelte's initial UI mount. Profiling showed that calling
 	// it here delayed the open of the daily note by ~2 seconds even though the
-	// Rust side responded in <10 ms — the JS microtask was starved.
+	// Rust side responded in <10 ms - the JS microtask was starved.
 	const t5a = perfStart();
 	await ensureTemplatesFolder();
 	perfEnd('LIFECYCLE', 'Step 5a: ensureTemplatesFolder', t5a);
@@ -418,7 +418,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// resolves in +layout.svelte: initializeVault RESOLVES on every superseded
 	// or aborted path (every staleness check and the db-open failure return
 	// bare), so a rapid A → B switch used to open the daily note and fire the
-	// update check twice — once for the dead vault A init.
+	// update check twice - once for the dead vault A init.
 	setTimeout(() => {
 		if (initVersion !== version) return;
 		autoOpenDailyNote().catch((err) => {
@@ -508,7 +508,7 @@ export function teardownVault(): void {
 	closeFileHistory();
 
 	// ── Reset hooks + stores ────────────────────────────────────────
-	// Clear index readiness (NOT the version counter — the vault-entries memo
+	// Clear index readiness (NOT the version counter - the vault-entries memo
 	// keys by version and depends on its monotonicity) so the next vault shows
 	// "Indexing vault..." until its own index is built. Redundant with the
 	// reset at initializeVault entry on the normal switch path — but ONLY the

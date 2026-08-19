@@ -19,7 +19,7 @@ export const typeDefinitionsStore = {
 	/**
 	 * O(1) path → entry index over the latest snapshot, for callers that need the
 	 * whole map (a comparator resolving many paths) rather than a single lookup.
-	 * Always rebuilt together with `entries` in setEntries/reset — a writer that
+	 * Always rebuilt together with `entries` in setEntries/reset - a writer that
 	 * updates one without the other would silently stale every consumer.
 	 */
 	get entriesByPath() { return entriesByPath; },

@@ -106,22 +106,22 @@ function iterDecos(decoSet: DecorationSet) {
 	return result;
 }
 
-describe('tableField — frontmatter parse does not materialize the full document', () => {
+describe('tableField - frontmatter parse does not materialize the full document', () => {
 	const FM = '---\nrating: 2\n---';
 	const TABLE = '| A | B |\n| --- | --- |\n| 1 | 2 |';
 
 	it('never copies the whole document during a rebuild, and still feeds the widget frontmatter properties', () => {
 		// The blank line after the table is mandatory: without it GFM swallows the
 		// lorem lines into the Table node, the cursor lands inside the table and
-		// computeTables emits zero decorations — which would make the parity half
+		// computeTables emits zero decorations - which would make the parity half
 		// of this test pass vacuously.
 		const doc = `${FM}\n${TABLE}\n\n${'lorem ipsum dolor sit amet\n'.repeat(500)}`;
 		// createState runs ensureSyntaxTree, so the Lezer parse's own reads happen
 		// before the spy is installed and cannot pollute the recorded spans.
 		const state = createState(doc, 0); // cursor in the frontmatter, outside the table
 
-		// sliceString is the single materialization primitive — Text.toString()
-		// delegates to sliceString(0) — so recording every call bounds every
+		// sliceString is the single materialization primitive - Text.toString()
+		// delegates to sliceString(0) - so recording every call bounds every
 		// string allocation taken from the document.
 		const spans: { from: number; to: number }[] = [];
 		const origSlice = state.doc.sliceString.bind(state.doc);
@@ -139,7 +139,7 @@ describe('tableField — frontmatter parse does not materialize the full documen
 			if (span.from === 0) expect(span.to).toBeLessThanOrEqual(FM.length);
 		}
 
-		// (b) The parse must still happen — deleting it would make (a) pass.
+		// (b) The parse must still happen - deleting it would make (a) pass.
 		expect(decos).toHaveLength(5);
 		const properties = decos.find((d) => d.widget)?.widget?.properties;
 		expect(properties).toBeDefined();

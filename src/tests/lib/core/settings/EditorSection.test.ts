@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// `onMount` asks Rust for the installed font list — the only Tauri call in this
+// `onMount` asks Rust for the installed font list - the only Tauri call in this
 // tree, legitimately mocked. The settings store stays real (CLAUDE.md rule 1):
 // every assertion reads the real store back after a real DOM event.
 vi.mock('@tauri-apps/api/core', () => ({
@@ -12,7 +12,7 @@ import { mount, unmount, flushSync } from 'svelte';
 import EditorSection from '$lib/core/settings/sections/EditorSection.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 
-describe('EditorSection — clamp on commit', () => {
+describe('EditorSection - clamp on commit', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 

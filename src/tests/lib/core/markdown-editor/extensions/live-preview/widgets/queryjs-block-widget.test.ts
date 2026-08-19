@@ -130,7 +130,7 @@ describe('QueryjsBlockWidget.toDOM — index readiness is read live', () => {
 	});
 });
 
-describe('QueryjsBlockWidget.execute — vault entries snapshot', () => {
+describe('QueryjsBlockWidget.execute - vault entries snapshot', () => {
 	/** Number of `get_all_vault_entries_v2` IPCs fired so far. */
 	const entriesCalls = () =>
 		vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'get_all_vault_entries_v2').length;
@@ -144,7 +144,7 @@ describe('QueryjsBlockWidget.execute — vault entries snapshot', () => {
 		document.body.replaceChildren();
 		collectionStore.setPropertyIndex(new Map());
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
-		// 'always' so every cache miss executes — the path that fetches entries.
+		// 'always' so every cache miss executes - the path that fetches entries.
 		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
 		// Module-level memo: without this the previous test's snapshot leaks in.
 		invalidateVaultEntries();

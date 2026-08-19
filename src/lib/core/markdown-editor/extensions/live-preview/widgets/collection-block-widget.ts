@@ -32,7 +32,7 @@ interface CollectionCacheEntry {
 /** Query cache: yamlContent -> view + result DATA queried at a given store
  *  version. The DOM is rebuilt on every toDOM(): rows/pills/bars carry click
  *  listeners, so HTML strings cannot be cached, and live elements must never be
- *  shared between widgets — CodeMirror builds new lines detached, and a shared
+ *  shared between widgets - CodeMirror builds new lines detached, and a shared
  *  node would be moved to the last widget, blanking the earlier occurrences.
  *  The expensive part (executeQuery over the whole property index) still runs
  *  once per (block, version). Keyed by block content alone, with the version

@@ -242,7 +242,7 @@ describe('dedupeInflight', () => {
 });
 
 describe('versionGated', () => {
-	it('fetches once per version — repeat gets at the same version reuse the Promise', async () => {
+	it('fetches once per version - repeat gets at the same version reuse the Promise', async () => {
 		let version = 1;
 		const fn = vi.fn(async () => `snapshot@${version}`);
 		const memo = versionGated(fn, () => version);
@@ -254,7 +254,7 @@ describe('versionGated', () => {
 		expect(first).toBe(second);
 		await expect(first).resolves.toBe('snapshot@1');
 
-		// Settled entries are still reused — this is a cache, not just an
+		// Settled entries are still reused - this is a cache, not just an
 		// in-flight dedupe.
 		await expect(memo.get()).resolves.toBe('snapshot@1');
 		expect(fn).toHaveBeenCalledTimes(1);
@@ -289,7 +289,7 @@ describe('versionGated', () => {
 		expect(fn).toHaveBeenCalledTimes(2);
 	});
 
-	it('does not cache a rejection — the next get() retries at the same version', async () => {
+	it('does not cache a rejection - the next get() retries at the same version', async () => {
 		let attempt = 0;
 		const fn = vi.fn(async () => {
 			attempt += 1;
@@ -333,7 +333,7 @@ describe('versionGated', () => {
 		stale.reject(new Error('stale failure'));
 		await expect(first).rejects.toThrow('stale failure');
 
-		// Version 2's entry survived — no third invocation.
+		// Version 2's entry survived - no third invocation.
 		expect(memo.get()).toBe(second);
 		expect(fn).toHaveBeenCalledTimes(2);
 

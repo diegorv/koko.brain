@@ -85,7 +85,7 @@ async function buildFileCompletions(
 		},
 	}));
 
-	// Build options from aliases (Rust pre-parsed frontmatter — no per-file YAML re-parsing).
+	// Build options from aliases (Rust pre-parsed frontmatter - no per-file YAML re-parsing).
 	// The snapshot comes from the shared version-keyed memo: this module no
 	// longer holds a private cache, so a vault switch invalidates it too.
 	const aliasOptions: Completion[] = [];

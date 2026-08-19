@@ -305,23 +305,24 @@ describe('initializeVault', () => {
 			expect(autoOpenDailyNote).not.toHaveBeenCalled();
 			expect(maybeAutoCheckForUpdates).not.toHaveBeenCalled();
 
-			// Vault B opens for real — one daily-note open, one update check.
+			// Vault B opens for real - one daily-note open, one update check.
 			await initializeVault('/vault-b');
 			await vi.advanceTimersByTimeAsync(100);
 
 			expect(autoOpenDailyNote).toHaveBeenCalledTimes(1);
 			expect(maybeAutoCheckForUpdates).toHaveBeenCalledTimes(1);
 		} finally {
-			// Restore even on failure — a leaked fake clock hangs every later
+			// Restore even on failure - a leaked fake clock hangs every later
 			// test in this file that awaits a real setTimeout.
 			vi.useRealTimers();
 		}
 	});
 
 	it('still rejects when settings fail to load, and skips the post-open side effects', async () => {
-		// loadSettings is the only awaited call without a try/catch, so it is
-		// what the layout's `.catch` + error toast hangs on. Absorbing the init
-		// tail must not swallow that rejection.
+		// loadSettings is awaited without a try/catch (so are saveAllDirtyTabs
+		// and ensureTemplatesFolder), so its rejection is what the layout's
+		// `.catch` + error toast hangs on. Absorbing the init tail must not
+		// swallow that rejection.
 		teardownVault();
 		vi.clearAllMocks();
 		vi.mocked(loadSettings).mockRejectedValueOnce(new Error('settings corrupt'));

@@ -1,6 +1,5 @@
 import { WidgetType } from '@codemirror/view';
 import { appendLog } from '$lib/utils/log.service';
-import { profileStart, profileEnd } from '../core/profiling';
 import { KBAPI } from '$lib/plugins/queryjs/kb-api';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -9,6 +8,7 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
+import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * Module-level shim for the legacy `invalidateQueryjsCache()` API. The Phase

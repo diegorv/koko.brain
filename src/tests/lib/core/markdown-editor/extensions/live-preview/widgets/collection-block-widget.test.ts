@@ -220,11 +220,15 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(names).toEqual(['a.md', 'b.md']);
 	});
 
-	it('eq() is false for a widget built after an index change', () => {
+	it('eq() is false for a widget built after an in-place index change', () => {
 		const before = new CollectionBlockWidget(YAML);
-		collectionStore.updateRecord('/vault/c.md', recordAt('/vault/c.md', 'c.md'));
+		// Overwriting an EXISTING key leaves propertyIndex.size at 2, so the
+		// superseded indexSize-based eq() would report the two widgets equal.
+		// Only the store version bump discriminates.
+		collectionStore.updateRecord('/vault/a.md', recordAt('/vault/a.md', 'a-renamed.md'));
 		const after = new CollectionBlockWidget(YAML);
 
+		expect(collectionStore.propertyIndex.size).toBe(2);
 		expect(before.eq(after)).toBe(false);
 		expect(after.eq(new CollectionBlockWidget(YAML))).toBe(true);
 	});
