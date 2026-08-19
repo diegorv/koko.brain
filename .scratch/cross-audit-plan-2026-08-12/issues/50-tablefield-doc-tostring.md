@@ -34,3 +34,6 @@ plan item mentions `table-field`. The `widgets.ts:763/815` and `meta-bind-button
 - One commit, full commit format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+- 2026-08-19: not attempted in this run - the issue 40 step in the shared `issue-40-50` worktree
+  failed before this one started. Status left untouched; still `needs-triage` (UNVERIFIED report).
