@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
 	flattenFileTree,
 	filterAndRank,
-	getRelativePath,
 	MAX_RESULTS,
 } from '$lib/features/quick-switcher/quick-switcher.logic';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
@@ -156,23 +155,5 @@ describe('filterAndRank', () => {
 			const result = filterAndRank('file', many, []);
 			expect(result).toHaveLength(MAX_RESULTS);
 		});
-	});
-});
-
-describe('getRelativePath', () => {
-	it('strips vault path prefix', () => {
-		expect(getRelativePath('/vault/notes/hello.md', '/vault')).toBe('notes/hello.md');
-	});
-
-	it('strips vault path with trailing content', () => {
-		expect(getRelativePath('/vault/hello.md', '/vault')).toBe('hello.md');
-	});
-
-	it('returns original path if vault path does not match', () => {
-		expect(getRelativePath('/other/hello.md', '/vault')).toBe('/other/hello.md');
-	});
-
-	it('handles vault path without leading slash in result', () => {
-		expect(getRelativePath('/my/vault/sub/file.md', '/my/vault')).toBe('sub/file.md');
 	});
 });

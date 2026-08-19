@@ -629,6 +629,14 @@ describe('getRelativePath', () => {
 	it('handles file directly in vault root', () => {
 		expect(getRelativePath('/vault', '/vault/file.md')).toBe('file.md');
 	});
+
+	it('returns the original path for a sibling directory sharing the vault prefix', () => {
+		expect(getRelativePath('/vault', '/vaulted/note.md')).toBe('/vaulted/note.md');
+	});
+
+	it('returns the path unchanged when it equals the vault path', () => {
+		expect(getRelativePath('/vault', '/vault')).toBe('/vault');
+	});
 });
 
 describe('applyFolderOrder', () => {

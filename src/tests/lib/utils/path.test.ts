@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePath, resolveFilePath } from '$lib/utils/path';
+import { basename, normalizePath, relativePath, resolveFilePath, stem } from '$lib/utils/path';
 
 describe('normalizePath', () => {
 	it('resolves . segments', () => {
@@ -98,5 +98,71 @@ describe('resolveFilePath', () => {
 
 	it('handles folderPath + fileName combination safely', () => {
 		expect(resolveFilePath('/vault', 'subfolder/note')).toBe('/vault/subfolder/note.md');
+	});
+});
+
+describe('basename', () => {
+	it('extracts the last segment with its extension', () => {
+		expect(basename('/vault/notes/hello.md')).toBe('hello.md');
+	});
+
+	it('returns the input when there is no separator', () => {
+		expect(basename('file.md')).toBe('file.md');
+	});
+
+	it('returns an empty string for a trailing slash', () => {
+		expect(basename('/')).toBe('');
+	});
+
+	it('returns an empty string for an empty path', () => {
+		expect(basename('')).toBe('');
+	});
+});
+
+describe('stem', () => {
+	it('drops the extension', () => {
+		expect(stem('/vault/My Note.md')).toBe('My Note');
+	});
+
+	it('drops a multi-character extension', () => {
+		expect(stem('/vault/Note.markdown')).toBe('Note');
+	});
+
+	it('keeps a name that has no extension', () => {
+		expect(stem('/vault/README')).toBe('README');
+	});
+
+	it('keeps a dotfile name intact', () => {
+		expect(stem('/vault/.gitignore')).toBe('.gitignore');
+	});
+
+	it('returns an empty string for a trailing slash', () => {
+		expect(stem('/vault/folder/')).toBe('');
+	});
+});
+
+describe('relativePath', () => {
+	it('strips the vault prefix from a nested file', () => {
+		expect(relativePath('/vault', '/vault/notes/hello.md')).toBe('notes/hello.md');
+	});
+
+	it('strips the vault prefix from a file in the vault root', () => {
+		expect(relativePath('/vault', '/vault/file.md')).toBe('file.md');
+	});
+
+	it('handles a multi-segment vault path', () => {
+		expect(relativePath('/my/vault', '/my/vault/sub/file.md')).toBe('sub/file.md');
+	});
+
+	it('returns the original path when it is outside the vault', () => {
+		expect(relativePath('/vault', '/other/file.md')).toBe('/other/file.md');
+	});
+
+	it('returns the original path for a sibling directory sharing the vault prefix', () => {
+		expect(relativePath('/vault', '/vaulted/note.md')).toBe('/vaulted/note.md');
+	});
+
+	it('returns the path unchanged when it equals the vault path', () => {
+		expect(relativePath('/vault', '/vault')).toBe('/vault');
 	});
 });

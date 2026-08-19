@@ -1,5 +1,6 @@
 import type { SearchQuery, SearchMatch, SearchContextSnippet, SearchResult } from './search.types';
 import { extractFrontmatterTags } from '$lib/features/tags/tags.logic';
+import { relativePath, stem } from '$lib/utils/path';
 
 const TAG_OPERATOR_REGEX = /tag:(\S+)/g;
 const PATH_OPERATOR_REGEX = /path:(\S+)/g;
@@ -143,18 +144,8 @@ export function matchesPathFilter(filePath: string, pathFilter: string): boolean
 	return filePath.toLowerCase().includes(pathFilter.toLowerCase());
 }
 
-export function getRelativePath(filePath: string, vaultPath: string): string {
-	if (filePath.startsWith(vaultPath)) {
-		const relative = filePath.substring(vaultPath.length);
-		return relative.startsWith('/') ? relative.substring(1) : relative;
-	}
-	return filePath;
-}
-
 export function getFileName(filePath: string): string {
-	const name = filePath.split('/').pop() ?? filePath;
-	const dotIndex = name.lastIndexOf('.');
-	return dotIndex > 0 ? name.substring(0, dotIndex) : name;
+	return stem(filePath);
 }
 
 export function performSearchOverFiles(
@@ -168,8 +159,8 @@ export function performSearchOverFiles(
 	for (const [filePath, content] of noteContents) {
 		// Apply path filter
 		if (query.paths.length > 0) {
-			const relativePath = getRelativePath(filePath, vaultPath);
-			const pathMatches = query.paths.some((p) => matchesPathFilter(relativePath, p));
+			const relative = relativePath(vaultPath, filePath);
+			const pathMatches = query.paths.some((p) => matchesPathFilter(relative, p));
 			if (!pathMatches) continue;
 		}
 

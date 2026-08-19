@@ -1,6 +1,8 @@
 import { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 
+import { basename, relativePath } from '$lib/utils/path';
+
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 
 /** Recursively searches the tree for a node matching the given path */
@@ -24,7 +26,7 @@ export function getParentPath(filePath: string): string {
 
 /** Extracts the file name from a full path (e.g. "/vault/note.md" → "note.md") */
 export function getFileName(filePath: string): string {
-	return filePath.split('/').pop() ?? filePath;
+	return basename(filePath);
 }
 
 /** Returns the file extension including the dot (e.g. "note.md" → ".md") */
@@ -216,10 +218,7 @@ export function generateUniqueName(
 
 /** Strips the vault root prefix from an absolute path to produce a vault-relative path */
 export function getRelativePath(vaultPath: string, filePath: string): string {
-	if (filePath.startsWith(vaultPath + '/')) {
-		return filePath.substring(vaultPath.length + 1);
-	}
-	return filePath;
+	return relativePath(vaultPath, filePath);
 }
 
 /**

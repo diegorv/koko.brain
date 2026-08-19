@@ -1,3 +1,5 @@
+import { stem } from '$lib/utils/path';
+
 /**
  * Regex pattern matching all wikilink variations (without global flag).
  * [[target]], [[target#heading]], [[target#^block]], [[target|alias]], [[target#heading|alias]]
@@ -10,9 +12,7 @@ const WIKILINK_RE = /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]/;
  * Example: "/vault/folder/My Note.md" → "My Note"
  */
 export function extractNoteName(filePath: string): string {
-	const fileName = filePath.split('/').pop() ?? filePath;
-	const dotIndex = fileName.lastIndexOf('.');
-	return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+	return stem(filePath);
 }
 
 /**

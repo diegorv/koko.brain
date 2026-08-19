@@ -7,7 +7,8 @@
 	import { createFile } from '$lib/core/filesystem/fs.service';
 	import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 	import { quickSwitcherStore } from './quick-switcher.store.svelte';
-	import { flattenFileTree, filterAndRank, getRelativePath } from './quick-switcher.logic';
+	import { relativePath } from '$lib/utils/path';
+	import { flattenFileTree, filterAndRank } from './quick-switcher.logic';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Archive from '@lucide/svelte/icons/archive';
 	import FilePlus from '@lucide/svelte/icons/file-plus';
@@ -79,7 +80,7 @@
 							<span class={isArchived ? 'opacity-50' : ''}>{file.nameWithoutExt}</span>
 							{#if vaultStore.path}
 								<span class="text-xs text-muted-foreground">
-									{getRelativePath(file.path, vaultStore.path)}
+									{relativePath(vaultStore.path, file.path)}
 								</span>
 							{/if}
 						</div>

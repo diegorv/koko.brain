@@ -1,3 +1,5 @@
+import { basename } from '$lib/utils/path';
+
 import type { EditorTab } from './editor.types';
 
 /** Virtual path used for the singleton Tasks tab */
@@ -16,7 +18,7 @@ export function isVirtualTab(tab: Pick<EditorTab, 'path'>): boolean {
 
 /** Extracts the file name from a full path (e.g. "/docs/note.md" → "note.md") */
 export function getFileName(path: string): string {
-	return path.split('/').pop() ?? path;
+	return basename(path);
 }
 
 /** Returns the index of an already-open tab by its file path, or -1 if not found */

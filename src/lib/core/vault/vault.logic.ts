@@ -1,3 +1,5 @@
+import { basename } from '$lib/utils/path';
+
 /** Entry in the "recent vaults" list persisted to localStorage */
 export interface RecentVault {
 	/** Absolute directory path */
@@ -12,7 +14,7 @@ const MAX_RECENT_VAULTS = 3;
 
 /** Extracts the vault name from its path (e.g. "/Users/me/notes" → "notes") */
 export function extractVaultName(path: string): string {
-	return path.split('/').pop() ?? path;
+	return basename(path);
 }
 
 /**

@@ -75,11 +75,3 @@ export function filterAndRank(
 
 	return scored.slice(0, MAX_RESULTS).map((entry) => entry.file);
 }
-
-export function getRelativePath(filePath: string, vaultPath: string): string {
-	if (filePath.startsWith(vaultPath)) {
-		const relative = filePath.substring(vaultPath.length);
-		return relative.startsWith('/') ? relative.substring(1) : relative;
-	}
-	return filePath;
-}

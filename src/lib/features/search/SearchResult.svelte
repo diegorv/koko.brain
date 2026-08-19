@@ -3,7 +3,8 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { getRelativePath, sanitizeSnippetHtml, lineStartToOffset } from './search.logic';
+	import { relativePath } from '$lib/utils/path';
+	import { sanitizeSnippetHtml, lineStartToOffset } from './search.logic';
 	import type {
 		SearchResult,
 		FtsSearchResult,
@@ -61,7 +62,7 @@
 						? `§ ${hybridResult.heading}`
 						: hybridResult.path
 					: legacyResult
-						? getRelativePath(legacyResult.filePath, vaultStore.path ?? '')
+						? relativePath(vaultStore.path ?? '', legacyResult.filePath)
 						: '',
 	);
 

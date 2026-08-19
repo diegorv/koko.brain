@@ -51,3 +51,53 @@ export function resolveFilePath(vaultPath: string, file: string): string {
 
 	return normalized;
 }
+
+/**
+ * Extracts the last segment of a path, extension included.
+ *
+ * @param path - Any path (absolute or relative)
+ * @returns The last segment, or the input when it contains no separator
+ *
+ * @example basename('/vault/notes/hello.md') → 'hello.md'
+ * @example basename('/') → ''
+ */
+export function basename(path: string): string {
+	return path.split('/').pop() ?? path;
+}
+
+/**
+ * Extracts the last segment of a path without its extension.
+ * A leading dot is not treated as an extension separator, so dotfiles keep their name.
+ *
+ * @param path - Any path (absolute or relative)
+ * @returns The last segment minus its extension
+ *
+ * @example stem('/vault/notes/hello.md') → 'hello'
+ * @example stem('/vault/README') → 'README'
+ * @example stem('/vault/.gitignore') → '.gitignore'
+ */
+export function stem(path: string): string {
+	const name = basename(path);
+	const dotIndex = name.lastIndexOf('.');
+	return dotIndex > 0 ? name.substring(0, dotIndex) : name;
+}
+
+/**
+ * Strips the vault root prefix from an absolute path to produce a vault-relative path.
+ * The prefix test is strict (`vaultPath + '/'`), so a sibling directory that merely
+ * shares the prefix, and the vault path itself, are returned unchanged.
+ *
+ * @param vaultPath - Absolute vault root, without a trailing slash
+ * @param filePath - Absolute path to strip
+ * @returns The vault-relative path, or `filePath` unchanged when it is not inside the vault
+ *
+ * @example relativePath('/vault', '/vault/notes/hello.md') → 'notes/hello.md'
+ * @example relativePath('/vault', '/vaulted/note.md') → '/vaulted/note.md'
+ * @example relativePath('/vault', '/vault') → '/vault'
+ */
+export function relativePath(vaultPath: string, filePath: string): string {
+	if (filePath.startsWith(vaultPath + '/')) {
+		return filePath.substring(vaultPath.length + 1);
+	}
+	return filePath;
+}

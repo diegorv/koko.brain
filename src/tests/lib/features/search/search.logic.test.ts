@@ -7,7 +7,6 @@ import {
 	sanitizeSnippetHtml,
 	matchesTagFilter,
 	matchesPathFilter,
-	getRelativePath,
 	getFileName,
 	performSearchOverFiles,
 	lineStartToOffset,
@@ -250,20 +249,6 @@ describe('matchesPathFilter', () => {
 
 	it('returns false for non-matching path', () => {
 		expect(matchesPathFilter('/vault/notes/file.md', 'daily/')).toBe(false);
-	});
-});
-
-describe('getRelativePath', () => {
-	it('strips vault prefix', () => {
-		expect(getRelativePath('/vault/notes/file.md', '/vault')).toBe('notes/file.md');
-	});
-
-	it('handles vault path with trailing slash', () => {
-		expect(getRelativePath('/vault/file.md', '/vault')).toBe('file.md');
-	});
-
-	it('returns original path if not under vault', () => {
-		expect(getRelativePath('/other/file.md', '/vault')).toBe('/other/file.md');
 	});
 });
 

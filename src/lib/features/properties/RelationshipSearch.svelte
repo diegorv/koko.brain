@@ -4,7 +4,8 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { flattenFileTree, filterAndRank, getRelativePath } from '$lib/features/quick-switcher/quick-switcher.logic';
+	import { flattenFileTree, filterAndRank } from '$lib/features/quick-switcher/quick-switcher.logic';
+	import { relativePath } from '$lib/utils/path';
 	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
 	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
 
@@ -76,7 +77,7 @@
 								<span class="text-[13px] truncate">{file.nameWithoutExt}</span>
 								{#if vaultStore.path}
 									<span class="text-[11px] text-muted-foreground truncate">
-										{getRelativePath(file.path, vaultStore.path)}
+										{relativePath(vaultStore.path, file.path)}
 									</span>
 								{/if}
 							</div>
