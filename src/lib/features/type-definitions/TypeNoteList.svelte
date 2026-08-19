@@ -84,8 +84,12 @@
 	let seededViewPath = $state<string | null>(null);
 	/** Content hash of the YAML that seeded the local state. Triggers re-seed when it changes. */
 	let seededViewHash = $state<string | undefined>(undefined);
-	/** Suppresses the next re-seed when the YAML change came from our own write. */
-	let selfUpdate = $state(false);
+	/**
+	 * Path of the view whose YAML our own persistViewState is writing. Suppresses the
+	 * next re-seed for THAT view only: a selection switch racing the write must not
+	 * let the incoming view adopt a latch it did not set.
+	 */
+	let selfUpdatePath = $state<string | null>(null);
 	/** Popover open states. */
 	let filterOpen = $state(false);
 	let sortOpen = $state(false);
@@ -221,13 +225,17 @@
 			// Seed local toolbar state when switching to a different view, or when the
 			// YAML changed on disk (a new content hash). Re-seed in place so
 			// viewToolbarReady never flickers false and unmounts an open popover.
-			// Skip the seed when our own persistViewState wrote the file — the local
-			// state already IS what was written; just adopt the hash it produced.
-			if (selfUpdate) {
-				selfUpdate = false;
+			// Skip the seed when our own persistViewState wrote THIS view: the local
+			// state already IS what was written; just adopt the hash it produced. A latch
+			// left over from another view (its write raced a selection switch and its own
+			// run bailed) is dropped here instead of consumed, so it cannot suppress this
+			// seed nor survive to suppress that view's next one.
+			if (selfUpdatePath === viewPath) {
+				selfUpdatePath = null;
 				seededViewPath = viewPath;
 				seededViewHash = contentHash;
 			} else if (seededViewPath !== viewPath || seededViewHash !== contentHash) {
+				selfUpdatePath = null;
 				const seed = seedToolbarStateFromDefinition(parsed.definition, view);
 				localGlobalFilters = seed.globalFilters;
 				localViewFilters = seed.viewFilters;
@@ -277,7 +285,7 @@
 		const sel = typeDefinitionsStore.selectedTypeOrNav;
 		if (sel?.kind !== 'view') return;
 		const viewPath = sel.path;
-		selfUpdate = true;
+		selfUpdatePath = viewPath;
 		try {
 			await updateViewQuery(viewPath, buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort));
 			// Re-run the query so the panel updates immediately. Bump the generation
@@ -292,7 +300,7 @@
 				collectionStore.isIndexReady,
 			);
 		} catch {
-			selfUpdate = false;
+			selfUpdatePath = null;
 		}
 	}
 

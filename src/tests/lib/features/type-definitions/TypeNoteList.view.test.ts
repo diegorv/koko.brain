@@ -85,6 +85,7 @@ import TypeNoteList from '$lib/features/type-definitions/TypeNoteList.svelte';
 import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import { updateViewQuery } from '$lib/features/type-definitions/type-definitions.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -143,6 +144,29 @@ const records: NoteRecord[] = [
 	makeRecord('/vault/notes/gamma.md', 'done'),
 ];
 
+const VIEW_A = '/vault/a.view';
+const VIEW_B = '/vault/b.view';
+
+/** Same notes as `entries`, with both `.view` files of the two-view probe. */
+const twoViewEntries: NoteEntryV2[] = [
+	makeEntry({ path: '/vault/notes/alpha.md', title: 'Alpha' }),
+	makeEntry({ path: '/vault/notes/beta.md', title: 'Beta' }),
+	makeEntry({ path: '/vault/notes/gamma.md', title: 'Gamma' }),
+	makeEntry({ path: VIEW_A, title: 'a' }),
+	makeEntry({ path: VIEW_B, title: 'b' }),
+];
+
+/** View A: a definition-level filter, so FilterPanel renders an editable value input. */
+const DEF_A_OPEN = {
+	success: true,
+	definition: { filters: "status == 'open'", views: [{ type: 'table', name: 'a' }] },
+};
+/** View B: a view-level filter selecting the other note. */
+const DEF_B_DONE = {
+	success: true,
+	definition: { views: [{ type: 'table', name: 'b', filters: "status == 'done'" }] },
+};
+
 const DEF_NO_FILTER = {
 	success: true,
 	definition: { views: [{ type: 'table', name: 'v' }] },
@@ -198,6 +222,7 @@ describe('TypeNoteList view pipeline', () => {
 		collectionStore.reset();
 		cacheMocks.getCachedViewDefinition.mockReset();
 		cacheMocks.getViewContentHash.mockReset();
+		vi.mocked(updateViewQuery).mockReset();
 		target = document.body.appendChild(document.createElement('div'));
 	});
 
@@ -369,5 +394,75 @@ describe('TypeNoteList view pipeline', () => {
 
 		expect(target.textContent).toContain('No notes');
 		expect(rowTitles(target)).toHaveLength(0);
+	});
+
+	/** Opens the Filter popover via its toolbar trigger (the ListFilter icon button). */
+	function openFilterPanel(): void {
+		const trigger = document.querySelector('svg.lucide-list-filter')?.closest('button');
+		if (!trigger) throw new Error('filter toolbar button not found');
+		trigger.click();
+		flushSync();
+	}
+
+	/** The structured filter row's value input (renders in the popover portal). */
+	function valueInput(): HTMLInputElement {
+		const input = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]');
+		if (!input) throw new Error('filter value input not found: the popover row did not render');
+		return input;
+	}
+
+	// persistViewState latches "the next parse is our own write, do not re-seed".
+	// The latch must belong to the view that set it: buildOverriddenQuery REPLACES
+	// the parsed filters with the local toolbar state, so a view that consumes
+	// another view's latch renders the wrong filter and stays stuck there (its own
+	// path and hash are recorded as seeded, so nothing re-seeds afterwards).
+	it('does not let a view switch consume the previous view self-update latch', async () => {
+		cacheMocks.getCachedViewDefinition.mockImplementation(async (path: string) =>
+			path === VIEW_A ? DEF_A_OPEN : DEF_B_DONE,
+		);
+		cacheMocks.getViewContentHash.mockImplementation((path: string) => (path === VIEW_A ? 'ha' : 'hb'));
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries(twoViewEntries);
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_A });
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['Alpha', 'Beta']);
+
+		// Park the write so the latch is still set when the selection moves. A write
+		// that resolves immediately lets A's own re-run consume it and proves nothing.
+		let releaseWrite: () => void = () => {};
+		vi.mocked(updateViewQuery).mockImplementation(
+			() => new Promise<void>((resolve) => { releaseWrite = () => resolve(); }),
+		);
+
+		// One keystroke in the filter value input: the only path that sets the latch.
+		openFilterPanel();
+		const input = valueInput();
+		expect(input.value).toBe('open');
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		// Precondition, not the verdict: without the write the latch was never set.
+		expect(vi.mocked(updateViewQuery)).toHaveBeenCalledWith(VIEW_A, expect.anything());
+
+		// View to view, never through a non-view selection: that detour would let the
+		// reset effect heal the latch and hide the leak.
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_B });
+		await settle();
+		releaseWrite();
+		await settle();
+		typeDefinitionsStore.setEntries([...twoViewEntries]);
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['Gamma']);
+
+		// Back to A: the latch A set must not outlive B's seed either, or A returns
+		// wearing B's filter.
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_A });
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['Alpha', 'Beta']);
 	});
 });
