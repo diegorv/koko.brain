@@ -72,10 +72,8 @@ Playwright end-to-end suite, separated from CI so it can evolve independently (d
 
 **Triggers**
 
-- `pull_request` against `main`, filtered to paths that could affect the rendered frontend (`src/**`, `static/**`, `e2e/**`, lockfile, configs, `scripts/e2e.sh`).
-- `push` to `main` with the same path filter. Covers the "commit straight to main without a tag" flow — without this trigger, a direct commit that breaks Playwright stays invisible until someone tags a release (the PR run never happened, and the release-time re-run lives in the future).
+- `workflow_call` only — this workflow owns no event of its own. Callers: `pr.yml` (the `pull_request` gate, change-gated on the frontend paths), `release.yml` (hard gate on the tagged SHA), `nightly.yml` (post-merge signal, gates nothing), and `run-all.yml`.
 - `workflow_dispatch` (manual rerun without a new commit).
-- `workflow_call` (invoked by `release.yml` as a release gate on the tagged SHA, and by `run-all.yml`).
 
 **Jobs**
 
@@ -222,7 +220,7 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 
 **Triggers**
 
-- `push` to `main`, except when the diff only touches `**/*.md`, `docs/**`, `tasks/**`, or `.github/CODEOWNERS`.
+- `push` to `main`, except when the diff only touches `**/*.md`, `LICENSE`, `.github/ISSUE_TEMPLATE/**`, `docs/agents/**`, `docs/adr/**`, `tasks/**`, `.scratch/**`, or `help/**`.
 - `workflow_dispatch` (manual rebuild, e.g. after a transient notarization failure).
 - No cron — the cadence is one nightly per accepted commit.
 
