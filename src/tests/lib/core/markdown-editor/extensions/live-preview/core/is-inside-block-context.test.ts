@@ -1,15 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { EditorState } from '@codemirror/state';
+import type { EditorState } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { isInsideBlockContext } from '$lib/core/markdown-editor/extensions/live-preview/core/is-inside-block-context';
+import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string): EditorState {
-	return EditorState.create({
-		doc,
-		extensions: [markdown({ extensions: [GFM] })],
-	});
+	return createMarkdownState(doc, { extensions: [markdown({ extensions: [GFM] })] });
 }
 
 /** Finds a node with the given name in the syntax tree */

@@ -1,22 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { EditorState, EditorSelection } from '@codemirror/state';
+import type { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
-import { ensureSyntaxTree } from '@codemirror/language';
 import { computeCallouts } from '$lib/core/markdown-editor/extensions/live-preview/plugins/callout-field';
 import { calloutFoldState, toggleCalloutFold } from '$lib/core/markdown-editor/extensions/live-preview/core/effects';
+import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
-	const state = EditorState.create({
-		doc,
-		extensions: [markdown(), calloutFoldState],
-		selection: cursor !== undefined ? EditorSelection.single(cursor) : undefined,
-	});
-	ensureSyntaxTree(state, state.doc.length, 5000);
-	// ensureSyntaxTree finishes the parse on the mutable ParseContext but never
-	// refreshes the Language state field's tree snapshot, and syntaxTree() reads that
-	// snapshot. Without the empty transaction, a parse that blew the 20 ms Work.Apply
-	// budget of EditorState.create stays truncated for every consumer.
-	return state.update({}).state;
+	return createMarkdownState(doc, { extensions: [markdown(), calloutFoldState], cursor });
 }
 
 function collectDecos(state: EditorState): { from: number; to: number }[] {
