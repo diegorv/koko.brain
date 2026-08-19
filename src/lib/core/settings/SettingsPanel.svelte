@@ -90,6 +90,9 @@
 	import { SETTINGS_SECTION_GROUPS } from '$lib/core/settings/settings.logic';
 	import XIcon from '@lucide/svelte/icons/x';
 
+	/** Active section component, derived so it re-renders when the store section changes. */
+	const SectionContent = $derived(sectionComponents[settingsPanelStore.activeSection]);
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && settingsPanelStore.isOpen) {
 			settingsPanelStore.close();
@@ -139,7 +142,6 @@
 
 		<!-- Content -->
 		<ScrollArea class="flex-1">
-			{@const SectionContent = sectionComponents[settingsPanelStore.activeSection]}
 			<div class="max-w-3xl px-10 py-8">
 				<SectionContent />
 			</div>
