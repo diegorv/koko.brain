@@ -850,7 +850,7 @@ impl VaultIndex {
 
 	/// Returns every entry's tasks grouped by file, sorted by
 	/// `modified_at` descending. Empty groups (files with zero tasks) are
-	/// filtered out. Mirrors `tasks.logic.ts::buildGroupsFromIndex`.
+	/// filtered out.
 	pub fn lookup_all_tasks(&self) -> Vec<FileTaskGroup> {
 		let mut out: Vec<FileTaskGroup> = self
 			.entries

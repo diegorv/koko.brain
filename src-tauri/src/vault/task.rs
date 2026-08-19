@@ -154,8 +154,9 @@ pub struct FileTaskGroup {
 
 /// Returns the display name for a file path: the basename with the
 /// trailing extension dropped (e.g. `/vault/foo.md` -> `foo`,
-/// `/vault/.hidden` -> `.hidden`). Hidden-file behaviour matches the TS
-/// `getDisplayName` in `tasks.logic.ts:256-260`.
+/// `/vault/.hidden` -> `.hidden`). A leading dot is not an extension
+/// separator, so an extensionless dotfile keeps its full name, but a dotfile
+/// that has one still loses it (`/vault/.env.local` -> `.env`).
 pub fn display_name(path: &str) -> String {
 	let basename = path.rsplit('/').next().unwrap_or(path);
 	match basename.rfind('.') {

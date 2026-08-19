@@ -1141,36 +1141,42 @@ fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
 // ============================================================================
 // Phase 7 — Task / Tag parsing
 //
-// Mirrors:
-//   - `src/lib/features/tasks/tasks.logic.ts::extractTasks`
-//   - `src/lib/features/tasks/tasks.logic.ts::extractTasksFromSection`
-//   - `src/lib/features/tasks/tasks.logic.ts::toggleTaskInContent`
+// Rust is the sole implementation of task extraction, section scoping,
+// signifier parsing and checkbox mapping. The task-specific commands are
+// `get_all_tasks_v2` / `get_tasks_in_section_v2` / `toggle_task_status`
+// (`commands/vault.rs`); parsed tasks additionally ride on every `NoteEntry`
+// returned by the entry-level commands (`scan_vault_v2`,
+// `get_all_vault_entries_v2`, `get_backlinks_v2`, `get_unlinked_mentions_v2`)
+// through `NoteEntry::tasks` (`vault/entry.rs`). The shape they must produce
+// is the `TaskMetadata` contract in
+// `src/lib/features/tasks/task-metadata.types.ts`.
 //
-// Signifier parsing and checkbox mapping have no TS counterpart: Rust is the
-// sole implementation. The shape they must produce is the `TaskMetadata`
-// contract in `src/lib/features/tasks/task-metadata.types.ts`.
-//
-// Regex parity with TS: the same patterns are used here. The recurrence
-// regex's lookahead-stop list (next signifier OR `#\w`) is mirrored exactly.
+// The recurrence stop list (next signifier OR an ASCII `#[A-Za-z0-9_]`) is
+// matched but not consumed, so the stop signifier stays in the text for the
+// later extractors (see `RECURRENCE_RE`).
 // Tag extraction inside task metadata uses `#([A-Za-z0-9_][A-Za-z0-9_-]*)` —
 // distinct from `extract_tags_strict`'s Unicode rules — so a hyphen-bearing
 // tag inside a task description (e.g. `#in-progress`) is captured.
 // ============================================================================
 
-/// Regex for an unordered task line. Mirrors
-/// `tasks.logic.ts::TASK_RE = /^(\s*[-*+]\s)\[([xX \-/?!>])\]\s(.*)$/`.
+/// Regex for an unordered task line: a `-`/`*`/`+` marker, a one-char status
+/// box, then the text. Group 1 spans the leading whitespace plus the marker,
+/// group 2 is the status char (fed to `map_checkbox_char`), group 3 the raw
+/// text.
 static TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(r"^(\s*[-*+]\s)\[([xX \-/?!>])\]\s(.*)$").expect("TASK_RE")
 });
 
-/// Regex for an ordered (numbered) task line. Mirrors
-/// `tasks.logic.ts::ORDERED_TASK_RE = /^(\s*)\d+\.\s\[([xX \-/?!>])\]\s(.*)$/`.
+/// Regex for an ordered (numbered) task line. Group 1 is the leading
+/// whitespace (fed to `calculate_indent`), group 2 the status char, group 3
+/// the raw text.
 static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(r"^(\s*)\d+\.\s\[([xX \-/?!>])\]\s(.*)$").expect("ORDERED_TASK_RE")
 });
 
-/// Regex for a markdown heading line. Mirrors
-/// `tasks.logic.ts::HEADING_RE = /^(#{1,6})\s+(.*)$/`.
+/// Regex for a markdown heading line. Group 1 is the `#` run (its length is
+/// the heading level), group 2 the heading text. Used by
+/// `extract_tasks_from_section` to find section boundaries.
 static HEADING_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
 
@@ -1332,8 +1338,7 @@ pub fn map_checkbox_char(c: char) -> TaskStatus {
 }
 
 /// Calculates the indent level from a leading-whitespace string. Tabs count
-/// as 1 indent level; every 2 spaces count as 1 indent level. Mirrors
-/// `tasks.logic.ts::calculateIndent`.
+/// as 1 indent level; every 2 spaces count as 1 indent level.
 fn calculate_indent(ws: &str) -> usize {
 	let mut tabs = 0usize;
 	let mut spaces = 0usize;
@@ -1348,8 +1353,7 @@ fn calculate_indent(ws: &str) -> usize {
 }
 
 /// Parses a single line as a task item. Returns `None` for non-task lines
-/// or tasks whose text is empty / whitespace-only. Mirrors
-/// `tasks.logic.ts::parseTaskLine`.
+/// or tasks whose text is empty / whitespace-only.
 fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 	if let Some(caps) = TASK_RE.captures(line) {
 		let check_str = caps.get(2)?.as_str();
@@ -1393,7 +1397,7 @@ fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 
 /// Detects a fenced-code-block opener / closer at the start of `line`.
 /// Returns the fence string (`"```"` or `"~~~"`) when matched, else `None`.
-/// Mirrors `tasks.logic.ts::CODE_FENCE_RE = /^(\s*)(```|~~~)/`.
+/// Only spaces and tabs may precede the fence.
 fn detect_code_fence(line: &str) -> Option<&str> {
 	let trimmed = line.trim_start_matches([' ', '\t']);
 	if trimmed.starts_with("```") {
@@ -1406,8 +1410,7 @@ fn detect_code_fence(line: &str) -> Option<&str> {
 }
 
 /// Extracts every task list item from `content` in document order. Skips
-/// lines inside fenced code blocks. Line numbers are 1-based. Mirrors
-/// `tasks.logic.ts::extractTasks`.
+/// lines inside fenced code blocks. Line numbers are 1-based.
 pub fn extract_tasks(content: &str) -> Vec<Task> {
 	let mut out: Vec<Task> = Vec::new();
 	let mut in_code_block = false;
@@ -1436,7 +1439,7 @@ pub fn extract_tasks(content: &str) -> Vec<Task> {
 /// Extracts tasks only from sections whose heading text contains
 /// `section_tag`. A "section" spans from a heading line until the next
 /// heading of equal-or-higher level. Empty `section_tag` falls through to
-/// `extract_tasks`. Mirrors `tasks.logic.ts::extractTasksFromSection`.
+/// `extract_tasks`.
 pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task> {
 	if section_tag.trim().is_empty() {
 		return extract_tasks(content);
@@ -1597,11 +1600,13 @@ pub fn parse_task_metadata(raw_text: &str) -> TaskMetadata {
 }
 
 /// Toggles a task's checkbox at `line_number` (1-based) inside `content`.
-/// Mirrors `tasks.logic.ts::toggleTaskInContent`:
-///   - `[ ]` -> `[x]` (first occurrence)
-///   - else if `[xX-/?!>]` style box present -> first occurrence -> `[ ]`
-///   - else: unchanged.
-/// Out-of-bounds line numbers return the original content untouched.
+/// The box flipped is the one in the task marker (`TASK_RE` /
+/// `ORDERED_TASK_RE` group 2), never a stray `[ ]` elsewhere on the line:
+///   - `[ ]` -> `[x]`
+///   - any other status char (`xX-/?!>`) -> `[ ]`
+///   - line with no task marker: unchanged.
+/// Out-of-bounds line numbers (0 or past the end) return the original content
+/// untouched.
 pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
 	if line_number == 0 {
 		return content.to_string();
