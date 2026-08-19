@@ -1,6 +1,7 @@
 # Issue 22: O guard de contenção de pasta no cliente não tem teste
 
 Status: ready-for-agent
+Severity: test-gap
 Source: COMPARISON.md (kimi Task 2 / Task 8, confirmado e sobreviveu à refutação)
 
 ## What

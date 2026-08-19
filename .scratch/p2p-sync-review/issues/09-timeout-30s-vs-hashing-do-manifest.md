@@ -1,6 +1,7 @@
 # Issue 09: Timeout de 30 s medido contra hashing síncrono da pasta inteira
 
 Status: ready-for-human
+Severity: correção (borda)
 Source: Concorrência, lifecycle e DoS - REPORT.md
 
 ## What

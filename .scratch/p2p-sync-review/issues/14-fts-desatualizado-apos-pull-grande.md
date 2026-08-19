@@ -1,6 +1,7 @@
 # Issue 14: Pull grande deixa FTS5 e semantic desatualizados
 
 Status: ready-for-agent
+Severity: menor (pré-existente, fora do diff do PR)
 Source: Integração com o app - REPORT.md
 
 ## What

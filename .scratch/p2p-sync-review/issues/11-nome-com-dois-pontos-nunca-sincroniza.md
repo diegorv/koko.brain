@@ -1,6 +1,7 @@
 # Issue 11: Arquivo com `:` no nome é anunciado e depois recusado para sempre
 
 Status: ready-for-human
+Severity: correção
 Source: Traversal e vazamento - REPORT.md
 
 ## What

@@ -1,6 +1,7 @@
 # Issue 13: ManifestPage paginado por contagem e não por bytes
 
 Status: ready-for-agent
+Severity: menor
 Source: Cripto e protocolo - REPORT.md
 
 ## What

@@ -1,6 +1,7 @@
 # Issue 08: Arquivo grande consome memória sem limite e aborta o resto do sync
 
 Status: ready-for-agent
+Severity: trava
 Source: Concorrência, lifecycle e DoS - REPORT.md
 
 ## What

@@ -1,6 +1,7 @@
 # Issue 07: Nenhum timeout de escrita no servidor, com accept loop serial
 
 Status: ready-for-human
+Severity: trava (probabilidade baixa)
 Source: Concorrência, lifecycle e DoS - REPORT.md
 
 ## What

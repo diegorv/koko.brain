@@ -1,6 +1,7 @@
 # Issue 27: Pasta exposta é campo de texto livre, não o folder picker que o spec pede
 
 Status: ready-for-agent
+Severity: menor (conformidade com o spec)
 Source: COMPARISON.md (kimi Task 2 matriz de conformidade, confirmado e estreitado na refutação)
 
 ## What

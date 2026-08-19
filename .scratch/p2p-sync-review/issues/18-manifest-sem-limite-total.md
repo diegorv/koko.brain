@@ -1,6 +1,7 @@
 # Issue 18: Manifest sem limite total de entradas derruba o cliente
 
 Status: ready-for-agent
+Severity: trava
 Source: COMPARISON.md (kimi Task 5 H1, confirmado e sobreviveu à refutação)
 
 ## What

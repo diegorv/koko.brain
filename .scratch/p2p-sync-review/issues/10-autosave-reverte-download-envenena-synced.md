@@ -1,6 +1,7 @@
 # Issue 10: Autosave reverte o download e o estado fica preso em KeepLocal
 
 Status: ready-for-human
+Severity: correção
 Source: Integração com o app - REPORT.md
 
 ## What

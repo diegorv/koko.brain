@@ -1,6 +1,7 @@
 # Issue 15: Recheck pós-await não olha isTabDirty e descarta teclas digitadas
 
 Status: ready-for-agent
+Severity: menor (pré-existente, fora do diff do PR)
 Source: Integração com o app - REPORT.md
 
 ## What

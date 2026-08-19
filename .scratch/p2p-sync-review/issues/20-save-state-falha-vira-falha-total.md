@@ -1,6 +1,7 @@
 # Issue 20: Falha de save_state vira falha total do sync depois do vault já estar gravado
 
 Status: ready-for-agent
+Severity: correção
 Source: COMPARISON.md (kimi Task 5 H6, confirmado e sobreviveu à refutação)
 
 ## What

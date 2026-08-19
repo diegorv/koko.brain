@@ -1,6 +1,7 @@
 # Issue 24: "Same LAN only" não é imposto: o listener escuta em 0.0.0.0
 
 Status: ready-for-human
+Severity: menor (conformidade com o spec)
 Source: COMPARISON.md (kimi Task 4 / Task 2, confirmado como defeito de spec, estreitado na refutação)
 
 ## What

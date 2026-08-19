@@ -1,6 +1,7 @@
 # Issue 25: IP do Google hardcoded passa por baixo do privacy scan
 
 Status: ready-for-agent
+Severity: menor (CI)
 Source: COMPARISON.md (kimi Task 9, confirmado e estreitado na refutação)
 
 ## What

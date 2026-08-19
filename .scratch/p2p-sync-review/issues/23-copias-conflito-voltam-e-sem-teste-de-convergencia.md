@@ -1,6 +1,7 @@
 # Issue 23: Cópias de conflito voltam pelo sync e não há teste de convergência A para B
 
 Status: ready-for-agent
+Severity: menor (test-gap mais documentação)
 Source: COMPARISON.md (kimi Task 6 H3 + Task 8, confirmado e estreitado na refutação)
 
 ## What

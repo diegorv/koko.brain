@@ -1,6 +1,7 @@
 # Issue 04: Snapshot de hashes locais fica velho e engole escrita concorrente
 
 Status: ready-for-human
+Severity: destrói dado (probabilidade baixa)
 Source: Perda de dados / Qualidade dos testes - REPORT.md
 
 ## What

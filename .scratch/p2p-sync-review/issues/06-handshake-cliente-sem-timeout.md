@@ -1,6 +1,7 @@
 # Issue 06: Handshake Noise do cliente sem timeout trava o botão Sync now
 
 Status: ready-for-agent
+Severity: trava
 Source: Cripto e protocolo / Traversal e vazamento / Concorrência, lifecycle e DoS - REPORT.md
 
 ## What

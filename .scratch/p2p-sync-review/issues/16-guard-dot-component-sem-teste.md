@@ -1,6 +1,7 @@
 # Issue 16: O guard de componente dot no serve path não tem teste
 
 Status: ready-for-agent
+Severity: test-gap
 Source: Qualidade dos testes - REPORT.md
 
 ## What

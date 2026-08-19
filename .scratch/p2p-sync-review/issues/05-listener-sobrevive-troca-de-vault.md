@@ -1,6 +1,7 @@
 # Issue 05: Listener sobe para um vault já fechado e continua servindo na LAN
 
 Status: ready-for-agent
+Severity: vaza dado (janela limitada)
 Source: Concorrência, lifecycle e DoS / Integração com o app - REPORT.md
 
 ## What

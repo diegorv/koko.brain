@@ -1,6 +1,7 @@
 # Issue 26: Comentários de sync.types.ts contradizem a semântica real
 
 Status: ready-for-agent
+Severity: menor (só documentação)
 Source: COMPARISON.md (kimi Task 10, confirmado e estreitado na refutação)
 
 ## What

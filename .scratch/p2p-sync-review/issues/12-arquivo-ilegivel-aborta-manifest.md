@@ -1,6 +1,7 @@
 # Issue 12: Um arquivo ilegível aborta o manifest da pasta e vaza o path absoluto
 
 Status: ready-for-agent
+Severity: correção
 Source: Traversal e vazamento - REPORT.md
 
 ## What

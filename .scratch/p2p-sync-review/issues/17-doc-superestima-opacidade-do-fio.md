@@ -1,6 +1,7 @@
 # Issue 17: A documentação promete mais opacidade do que o fio entrega
 
 Status: ready-for-agent
+Severity: menor (só documentação)
 Source: Cripto e protocolo - REPORT.md
 
 ## What

@@ -1,6 +1,7 @@
 # Issue 01: Colisão de caixa ou normalização sobrescreve a nota local
 
 Status: ready-for-human
+Severity: destrói dado
 Source: Perda de dados / Traversal e vazamento / Qualidade dos testes - REPORT.md
 
 ## What

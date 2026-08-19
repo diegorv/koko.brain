@@ -1,6 +1,7 @@
 # Issue 03: Segunda cópia de conflito no mesmo dia sobrescreve a primeira
 
 Status: ready-for-agent
+Severity: destrói dado
 Source: Perda de dados / Traversal e vazamento / Integração com o app / Qualidade dos testes - REPORT.md
 
 ## What

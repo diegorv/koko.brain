@@ -1,6 +1,7 @@
 # Issue 21: Restart do listener na porta persistida corre com o accept loop antigo
 
 Status: ready-for-agent
+Severity: correção
 Source: COMPARISON.md (kimi Task 7 H1, confirmado e sobreviveu à refutação)
 
 ## What

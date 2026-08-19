@@ -1,6 +1,7 @@
 # Issue 19: Estado de sync chaveado pelo device name que o peer controla
 
 Status: ready-for-agent
+Severity: correção
 Source: COMPARISON.md (kimi Task 5 H5 b+c, confirmado e sobreviveu à refutação)
 
 ## What

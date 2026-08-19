@@ -1,6 +1,7 @@
 # Issue 02: write_atomic atravessa diretório symlinkado e escreve fora do vault
 
 Status: ready-for-agent
+Severity: destrói dado (probabilidade baixa)
 Source: Perda de dados / Traversal e vazamento - REPORT.md
 
 ## What
