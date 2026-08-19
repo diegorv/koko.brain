@@ -1,10 +1,10 @@
 <script lang="ts">
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
+	import { openNoteAt } from '$lib/core/editor/open-note-at.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { relativePath } from '$lib/utils/path';
-	import { sanitizeSnippetHtml, lineStartToOffset } from './search.logic';
+	import { sanitizeSnippetHtml } from './search.logic';
 	import type {
 		SearchResult,
 		FtsSearchResult,
@@ -93,40 +93,29 @@
 
 	let badgeSource = $derived(hybridResult?.source ?? null);
 
-	/**
-	 * Converts a 1-indexed lineStart into the character offset expected by
-	 * `pendingScrollPosition`, reading the freshly opened tab's content.
-	 * Mirrors the wikilink anchor jump in MarkdownEditor.svelte (await the
-	 * open, then compute the offset from `tab.content`). Skips the scroll
-	 * when the open failed (active tab is not the requested file).
-	 */
-	function scrollToLine(absolutePath: string, lineStart: number) {
-		const tab = editorStore.activeTab;
-		if (!tab || tab.path !== absolutePath) return;
-		editorStore.setPendingScrollPosition(lineStartToOffset(tab.content, lineStart));
-	}
-
 	async function handleClick() {
 		if (ftsResult) {
 			openFileInEditor(toAbsolutePath(ftsResult.path));
 		} else if (semanticResult) {
 			const path = toAbsolutePath(semanticResult.sourcePath);
-			await openFileInEditor(path);
 			if (semanticResult.lineStart > 0) {
-				scrollToLine(path, semanticResult.lineStart);
+				await openNoteAt(path, { kind: 'line', line: semanticResult.lineStart });
+			} else {
+				await openFileInEditor(path);
 			}
 		} else if (hybridResult) {
 			const path = toAbsolutePath(hybridResult.path);
-			await openFileInEditor(path);
 			if (hybridResult.lineStart !== undefined && hybridResult.lineStart > 0) {
-				scrollToLine(path, hybridResult.lineStart);
+				await openNoteAt(path, { kind: 'line', line: hybridResult.lineStart });
+			} else {
+				await openFileInEditor(path);
 			}
 		} else if (legacyResult) {
-			openFileInEditor(legacyResult.filePath);
-			if (legacyResult.matches[0]?.position !== undefined) {
-				requestAnimationFrame(() => {
-					editorStore.setPendingScrollPosition(legacyResult!.matches[0].position);
-				});
+			const position = legacyResult.matches[0]?.position;
+			if (position !== undefined) {
+				await openNoteAt(legacyResult.filePath, { kind: 'offset', offset: position });
+			} else {
+				openFileInEditor(legacyResult.filePath);
 			}
 		}
 	}

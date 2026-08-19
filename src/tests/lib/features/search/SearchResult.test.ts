@@ -41,8 +41,10 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		editorStore.reset();
-		// Synchronous rAF so the legacy branch (which schedules its store write
-		// inside requestAnimationFrame) runs deterministically in jsdom.
+		// Synchronous rAF: the pre-fix legacy branch scheduled its store write
+		// inside requestAnimationFrame, so collapsing the frame delay lets the
+		// race probe below assert in a deterministic window instead of racing a
+		// real frame. Removing it makes that probe pass against the broken code.
 		vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
 			cb(0);
 			return 0;
@@ -170,5 +172,43 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 
 		expect(openFileInEditor).toHaveBeenCalledWith(NOTE_PATH);
 		expect(editorStore.pendingScrollPosition).toBeNull();
+	});
+
+	it('legacy result: writes no scroll target until the note is actually open', async () => {
+		const DECOY_PATH = '/vault/notes/other.md';
+		editorStore.addTab({ path: DECOY_PATH, name: 'other.md', content: 'decoy', savedContent: 'decoy' });
+		// Simulate the real readTextFile IPC gap: the tab only appears after a macrotask.
+		vi.mocked(openFileInEditor).mockImplementation(async (path: string) => {
+			await new Promise((r) => setTimeout(r, 0));
+			editorStore.addTab({ path, name: 'target.md', content: NOTE_CONTENT, savedContent: NOTE_CONTENT });
+		});
+
+		mountResult({
+			legacyResult: {
+				filePath: NOTE_PATH,
+				fileName: 'target.md',
+				matches: [{ position: 12, lineNumber: 2 }],
+				snippets: [],
+			},
+		});
+
+		const button = target.querySelector('button');
+		if (!button) throw new Error('result button not found');
+		button.click();
+		flushSync();
+
+		// Synchronously after the click the decoy note is still active. Writing a
+		// scroll target now moves the cursor in the WRONG document, because
+		// MarkdownEditor.svelte consumes pendingScrollPosition against whatever
+		// view is currently mounted.
+		expect(editorStore.activeTabPath).toBe(DECOY_PATH);
+		expect(editorStore.pendingScrollPosition).toBeNull();
+
+		await new Promise((r) => setTimeout(r, 0));
+		await new Promise((r) => setTimeout(r, 0));
+
+		// ...and once the note is really open the offset still lands on it.
+		expect(editorStore.activeTabPath).toBe(NOTE_PATH);
+		expect(editorStore.pendingScrollPosition).toBe(12);
 	});
 });

@@ -106,3 +106,20 @@ export function getPositionAfterFrontmatter(content: string): number {
 	}
 	return 0;
 }
+
+/**
+ * Converts a 1-indexed line number to the character offset where that line
+ * starts. Semantic/hybrid search results carry a 1-indexed `lineStart`, while
+ * the editor's `pendingScrollPosition` is a character offset (consumed via
+ * `EditorSelection.cursor`). Clamps: values below 1 map to 0, values past the
+ * last line map to the start of the last line.
+ */
+export function lineStartToOffset(content: string, lineStart: number): number {
+	let offset = 0;
+	for (let line = 1; line < lineStart; line++) {
+		const nl = content.indexOf('\n', offset);
+		if (nl === -1) return offset;
+		offset = nl + 1;
+	}
+	return offset;
+}

@@ -4,8 +4,9 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
+	import { openNoteAt } from '$lib/core/editor/open-note-at.service';
 	import { tocStore } from './toc.store.svelte';
-	import { rebuildToc, scrollToHeading } from './toc.service';
+	import { rebuildToc } from './toc.service';
 
 	let expanded = $state(false);
 	let lastBuiltPath = $state<string | null>(null);
@@ -63,7 +64,7 @@
 								class="relative flex w-full items-center gap-1 rounded-md py-[5px] pr-2 text-left text-[15px] hover:bg-right-sidebar-primary/10 hover:text-right-sidebar-primary cursor-pointer select-none {depth > 0 ? 'toc-indent-lines' : ''}"
 								style="padding-left: {depth * 16 + 8}px; --toc-indent-depth: {depth};"
 								title={heading.text}
-								onclick={() => scrollToHeading(heading.pos)}
+								onclick={() => openNoteAt(editorStore.activeTabPath, { kind: 'offset', offset: heading.pos })}
 							>
 								<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
 								<span class="truncate">{heading.text}</span>

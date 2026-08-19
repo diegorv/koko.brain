@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, getPositionAfterFrontmatter } from '$lib/core/editor/editor.logic';
+import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '$lib/core/editor/editor.logic';
 import type { EditorTab } from '$lib/core/editor/editor.types';
 
 describe('getFileName', () => {
@@ -230,5 +230,33 @@ describe('getPositionAfterFrontmatter', () => {
 		const closingIdx = content.indexOf('---\nContent');
 		const expected = closingIdx + 4; // position after "---\n"
 		expect(getPositionAfterFrontmatter(content)).toBe(expected);
+	});
+});
+
+describe('lineStartToOffset', () => {
+	// "aa\nbbb\ncccc" line starts: line 1 → 0, line 2 → 3, line 3 → 7
+	const content = 'aa\nbbb\ncccc';
+
+	it('returns the character offset where the 1-indexed line starts', () => {
+		expect(lineStartToOffset(content, 1)).toBe(0);
+		expect(lineStartToOffset(content, 2)).toBe(3);
+		expect(lineStartToOffset(content, 3)).toBe(7);
+	});
+
+	it('clamps a line number past the last line to the last line start', () => {
+		expect(lineStartToOffset(content, 99)).toBe(7);
+	});
+
+	it('clamps line numbers below 1 to offset 0', () => {
+		expect(lineStartToOffset(content, 0)).toBe(0);
+		expect(lineStartToOffset(content, -5)).toBe(0);
+	});
+
+	it('returns 0 for empty content', () => {
+		expect(lineStartToOffset('', 3)).toBe(0);
+	});
+
+	it('lands after a trailing newline when targeting the final empty line', () => {
+		expect(lineStartToOffset('aa\n', 2)).toBe(3);
 	});
 });
