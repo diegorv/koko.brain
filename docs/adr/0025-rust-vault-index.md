@@ -172,6 +172,32 @@ Components (target state):
 - **`legacyTsIndexers` flag retained for first release** post-Phase 11.5
   as an escape hatch. Removed in a separate commit after a stable
   release window.
+- **Amendment 2026-08-19 (issue 36): the entries snapshot is a CACHE, not a
+  mirror.** `src/lib/core/vault/vault-entries.service.ts` memoizes
+  `get_all_vault_entries_v2` keyed on `vaultStore.vaultIndexVersion`, and the
+  three repeat readers (wikilink completion, the queryjs block widget, the
+  `vault-index-updated` fan-out) all go through it — one IPC per index
+  version instead of one per keystroke burst, per widget render and per
+  event. This does not reintroduce the TS-side mirror the decision above
+  rules out: nothing derives from the snapshot, no store holds it, and the
+  Rust `VaultIndex` remains the source of truth. The consequence to accept is
+  bounded staleness — between a Rust index mutation and the 300 ms-debounced
+  `vaultIndexVersion` bump in `tauri-listeners.service.ts`, a reader is
+  served the previous snapshot instead of refetching. That window is the
+  price of collapsing the fan-out; a reader that cannot tolerate it must not
+  use the memo. That is why the one-shot builders that run BEFORE the bump
+  (`initializeVault` step 4b, `buildFrontmatterIconIndex`) keep their direct
+  `invoke`, and why the search content/tag maps keep theirs for a different
+  reason: they run at query time, so they want freshness beyond the last
+  debounced bump, and they pair the entries fetch with a `read_files_batch`
+  the memo cannot amortize anyway.
+  The version counter is process-global and never rewound (see
+  `vault.store.svelte.ts::resetIndexReady`), so it cannot scope the cache to
+  a vault by itself. `invalidateVaultEntries()` does that, and
+  `app-lifecycle.service.ts` calls it at three points: `initializeVault`
+  entry, immediately after `markIndexReady()`, and in `teardownVault`'s
+  cache-clear block. Dropping any of them reopens the ~300 ms window in which
+  a freshly opened vault B is offered vault A's notes.
 - **Re-evaluation triggers**: a phase's parity verification fails the
   delta gate; the `notify` crate ABI breaks compatibility with our tokio
   version; vault sizes grow to a point where the in-memory `VaultIndex`

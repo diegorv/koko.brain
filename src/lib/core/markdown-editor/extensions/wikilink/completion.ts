@@ -1,9 +1,8 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
 import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { resolveWikilink, getNoteName } from '$lib/features/backlinks/backlinks.logic';
 import { fuzzyMatch } from '$lib/utils/fuzzy-match';
 import { error } from '$lib/utils/debug';
@@ -14,37 +13,6 @@ import {
 	extractHeadingsFromContent,
 	extractBlockIdsFromContent,
 } from './completion.logic';
-
-/**
- * Module-level cache of `NoteEntryV2[]` keyed by
- * `vaultStore.vaultIndexVersion`. The completion source is invoked on
- * every keystroke; without this cache each invocation would refetch the
- * full vault snapshot via IPC. Refresh happens lazily — when the version
- * differs from the last successful fetch.
- *
- * `pendingFetch` deduplicates concurrent calls (e.g. fast keystrokes
- * during the IPC roundtrip).
- */
-let cachedEntries: NoteEntryV2[] = [];
-let cachedVersion = -1;
-let pendingFetch: Promise<NoteEntryV2[]> | null = null;
-
-async function ensureEntriesCached(): Promise<NoteEntryV2[]> {
-	const current = vaultStore.vaultIndexVersion;
-	if (current === cachedVersion) return cachedEntries;
-	if (pendingFetch) return pendingFetch;
-	pendingFetch = (async () => {
-		try {
-			const fresh = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
-			cachedEntries = fresh;
-			cachedVersion = current;
-			return fresh;
-		} finally {
-			pendingFetch = null;
-		}
-	})();
-	return pendingFetch;
-}
 
 /** Reads the resolved target's content from disk. Returns null on read failure or when the target doesn't resolve. */
 async function resolveTargetContent(target: string): Promise<string | null> {
@@ -117,10 +85,12 @@ async function buildFileCompletions(
 		},
 	}));
 
-	// Build options from aliases (Rust pre-parsed frontmatter — no per-file YAML re-parsing)
+	// Build options from aliases (Rust pre-parsed frontmatter — no per-file YAML re-parsing).
+	// The snapshot comes from the shared version-keyed memo: this module no
+	// longer holds a private cache, so a vault switch invalidates it too.
 	const aliasOptions: Completion[] = [];
 	if (match.query.length > 0) {
-		const entries = await ensureEntriesCached();
+		const entries = await getVaultEntries();
 		for (const entry of entries) {
 			const aliases = getAliasesFromEntry(entry);
 			if (aliases.length === 0) continue;

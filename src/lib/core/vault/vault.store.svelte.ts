@@ -21,8 +21,9 @@ let vaultIndexVersion = $state(0);
 /**
  * Whether the Rust `VaultIndex` has been built for the CURRENT vault.
  * Unlike `vaultIndexVersion` (process-global, monotonic, never rewound —
- * `completion.ts` caches by it), this flag is cleared on vault teardown so
- * a second vault opened in the same session shows the indexing state again.
+ * `vault-entries.service.ts` keys its memo by it), this flag is cleared on
+ * vault teardown so a second vault opened in the same session shows the
+ * indexing state again.
  */
 let indexReady = $state(false);
 /**

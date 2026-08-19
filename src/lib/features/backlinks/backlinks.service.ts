@@ -1,27 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
-import { dedupeInflight } from '$lib/utils/inflight';
+import { dedupeInflight, isStillCurrentPath } from '$lib/utils/inflight';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
 import type { NoteEntryV2, RelationshipBacklinkV2 } from '$lib/types/vault-v2.types';
-
-/**
- * Returns true when the IPC result for `fetchedPath` is still relevant
- * to the current UI: either no tab is active (e.g. headless tests) or
- * the active tab still matches the path the IPC was fired for.
- *
- * Used by the panel-fetch services as a stale-result guard: when the
- * user switches tabs while a fetch is in flight, the in-flight call's
- * result is discarded instead of briefly overwriting the new tab's
- * panel data — the "pisca o backlink" race observed during the
- * 2026-04-29 dogfood after the wikilink cmd-click flow.
- */
-function isStillCurrentPath(fetchedPath: string): boolean {
-	const current = editorStore.activeTabPath;
-	return current == null || current === fetchedPath;
-}
 
 let vaultPath: string | null = null;
 let isBuilding = false;
@@ -156,7 +140,7 @@ async function fetchBacklinksV2Inner(path: string): Promise<void> {
 		// IPC was in flight. Writing the stale result would briefly
 		// flash the previous tab's backlinks before the new tab's fetch
 		// overwrites it.
-		if (!isStillCurrentPath(path)) {
+		if (!isStillCurrentPath(path, editorStore.activeTabPath)) {
 			perfEnd('BACKLINKS', 'fetchBacklinksV2(stale, dropped)', t0);
 			return;
 		}
@@ -178,7 +162,7 @@ export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: str
 async function fetchRelationshipBacklinksInner(path: string): Promise<void> {
 	try {
 		const entries = await invoke<RelationshipBacklinkV2[]>('get_relationship_backlinks_v2', { path });
-		if (!isStillCurrentPath(path)) return;
+		if (!isStillCurrentPath(path, editorStore.activeTabPath)) return;
 		backlinksStore.setRelationshipBacklinks(entries);
 	} catch (err) {
 		errorLog('BACKLINKS', 'fetchRelationshipBacklinks failed:', err);
@@ -214,7 +198,7 @@ async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<vo
 		// Same active-path guard as `fetchBacklinksV2Inner` — the
 		// 400 ms unlinked-mentions disk scan is the LONGEST window
 		// where a tab switch could land mid-flight.
-		if (!isStillCurrentPath(filePath)) {
+		if (!isStillCurrentPath(filePath, editorStore.activeTabPath)) {
 			perfEnd('BACKLINKS', 'computeUnlinkedMentionsForFile(stale, dropped)', t0);
 			return;
 		}

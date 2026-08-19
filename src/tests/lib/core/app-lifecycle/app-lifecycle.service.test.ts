@@ -225,6 +225,9 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { refreshViewDefinition, getCachedViewDefinition } from '$lib/features/type-definitions/view-parse-cache';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { wikilinkCompletionSource } from '$lib/core/markdown-editor/extensions/wikilink/completion';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import type { CompletionContext } from '@codemirror/autocomplete';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 
 describe('initializeVault', () => {
@@ -628,6 +631,54 @@ describe('teardownVault', () => {
 		// vault's parsed definition for a same-named path.
 		await getCachedViewDefinition(VIEW_PATH);
 		expect(readTextFile).toHaveBeenCalledTimes(2);
+	});
+
+	it('drops the wikilink entries snapshot so the next vault never suggests the old vault aliases', async () => {
+		// Cross-vault completion leak: the entries snapshot is keyed on
+		// `vaultStore.vaultIndexVersion`, which teardown deliberately never
+		// rewinds (monotonicity contract). Without an explicit invalidation
+		// the next vault's completion serves the PREVIOUS vault's aliases
+		// until its own first `vault-index-updated` lands (~300 ms).
+		const restoreInvoke = () => {
+			vi.mocked(invoke).mockImplementation((() => Promise.resolve()) as unknown as typeof invoke);
+		};
+		/** Routes `get_all_vault_entries_v2` to `entries`, everything else to undefined. */
+		const routeEntries = (entries: unknown[]) => {
+			vi.mocked(invoke).mockImplementation(((command: string) =>
+				command === 'get_all_vault_entries_v2'
+					? Promise.resolve(entries)
+					: Promise.resolve()) as unknown as typeof invoke);
+		};
+		/** Minimal CompletionContext: the source only reads doc text, pos and explicit. */
+		const contextFor = (doc: string) => ({
+			state: { doc: { toString: () => doc, length: doc.length, sliceString: () => '' } },
+			pos: doc.length,
+			explicit: true,
+		} as unknown as CompletionContext);
+
+		try {
+			vaultStore._reset();
+			// A real, already-built index for vault A. Deliberately NOT reset
+			// between the two completion calls: rewinding the version would bust
+			// the snapshot for the wrong reason and fake a pass.
+			vaultStore.bumpVaultIndexVersion(5);
+			routeEntries([entryV2('/vault-a/Alpha Note.md', { frontmatter: { aliases: ['Alphaxyz'] } })]);
+
+			const inVaultA = await wikilinkCompletionSource(contextFor('[[Alphax'));
+			expect(inVaultA?.options.map((o) => o.displayLabel)).toContain('Alphaxyz');
+
+			// Vault B's snapshot is what the IPC would return from here on.
+			routeEntries([entryV2('/vault-b/Other.md', { frontmatter: { aliases: ['Zetaqqq'] } })]);
+
+			teardownVault();
+
+			const inVaultB = await wikilinkCompletionSource(contextFor('[[Zetaq'));
+			const labels = (inVaultB?.options ?? []).map((o) => o.displayLabel);
+			expect(labels).toContain('Zetaqqq');
+			expect(labels).not.toContain('Alphaxyz');
+		} finally {
+			restoreInvoke();
+		}
 	});
 
 	it('clears index readiness so the next vault shows the indexing state', async () => {

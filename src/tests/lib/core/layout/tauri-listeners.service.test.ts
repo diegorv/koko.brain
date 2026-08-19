@@ -97,6 +97,7 @@ import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
@@ -464,6 +465,11 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		typeDefinitionsStore.reset();
 		lifecycleFilterStore.reset();
 		collectionStore.reset();
+		// The entries snapshot is memoized at module scope, keyed on the vault
+		// index version. Every case here resets the version to 0 and fires
+		// version 1, so without this drop case N+1 would read case N's cached
+		// snapshot instead of firing its own IPC.
+		invalidateVaultEntries();
 		mockInvokeByCommand([]);
 	});
 

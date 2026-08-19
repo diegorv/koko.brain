@@ -73,6 +73,7 @@ import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.lo
 import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
 import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
@@ -131,6 +132,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// reaches step 7) skips the teardown below because unsubscribeFileChange
 	// is still null — readiness from B's init must not leak into C's.
 	vaultStore.resetIndexReady();
+	// Same reason, and the same window: `vaultIndexVersion` is never rewound,
+	// so the entries memo would keep serving the previous vault's snapshot
+	// under an unchanged key.
+	invalidateVaultEntries();
 	// Unconditional for the same reason: a session left running by the skipped
 	// teardown still holds the PREVIOUS vault's path, and the `loadSettings`
 	// below would hand it the NEW vault's settings to write there. Stopping
@@ -251,6 +256,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// from the old vault could otherwise clear "Indexing vault..." early.
 	// The initVersion check above keeps a torn-down init from marking ready.
 	vaultStore.markIndexReady();
+	// Second drop, and the one that actually closes the wrong-vault window:
+	// between the invalidation at init entry and this point a still-debounced
+	// vault-index-updated from the OLD vault can land, refill the memo at the
+	// unchanged version key and hand the old vault's notes to completion.
+	invalidateVaultEntries();
 	// The Rust index now holds THIS vault, so record the cache-save key here
 	// (not at function entry) so an init that aborts before this point leaves
 	// the previous vault's path in place, which is still the correct key.
@@ -483,13 +493,15 @@ export function teardownVault(): void {
 	closeFileHistory();
 
 	// ── Reset hooks + stores ────────────────────────────────────────
-	// Clear index readiness (NOT the version counter — completion.ts caches
-	// by version and depends on its monotonicity) so the next vault shows
+	// Clear index readiness (NOT the version counter — the vault-entries memo
+	// keys by version and depends on its monotonicity) so the next vault shows
 	// "Indexing vault..." until its own index is built. Redundant with the
 	// reset at initializeVault entry on the normal switch path — but ONLY the
 	// entry reset covers the double-switch window where this teardown is
-	// skipped, so keep that one if deduplicating.
+	// skipped, so keep that one if deduplicating. The memo is dropped
+	// explicitly right below: the version key alone cannot tell vaults apart.
 	vaultStore.resetIndexReady();
+	invalidateVaultEntries();
 	resetHooks();
 	queryjsSessionStore.reset();
 	clearMermaidCache();

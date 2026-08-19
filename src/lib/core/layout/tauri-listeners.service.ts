@@ -1,5 +1,4 @@
 import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
@@ -7,6 +6,7 @@ import { flushSettingsPersistence } from '$lib/core/settings/settings-persistenc
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.service';
 import { refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
@@ -16,7 +16,7 @@ import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.lo
 import { buildPropertyIndex } from '$lib/features/collection/collection.service';
 import { debounce } from '$lib/utils/debounce';
 import { error } from '$lib/utils/debug';
-import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
+import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
 
 /**
  * Registers a listener for the native macOS menu "Settings" event.
@@ -97,6 +97,10 @@ export function registerCloseHandler(): () => void {
  * same rationale and window as `tags.service.ts::scheduleTagIndexRebuild`.
  * `fetchSeq` is a latest-wins guard: a slow older fetch resolving after
  * a newer one must not overwrite the stores with a stale snapshot.
+ * The snapshot read goes through the shared version-keyed memo
+ * (`vault-entries.service.ts`), so this fan-out, wikilink completion and the
+ * queryjs widget share ONE IPC per index version, and the memo's vault
+ * open/close invalidation covers these store writes too.
  *
  * The refresh is also the PRODUCER for `collectionStore` (plan C11 option 2):
  * `buildPropertyIndex` otherwise only runs on vault open and on the watcher's
@@ -118,7 +122,7 @@ export function registerVaultIndexUpdatedListener(): () => void {
 		vaultStore.bumpVaultIndexVersion(latestVersion);
 		buildPropertyIndex();
 		const seq = ++fetchSeq;
-		invoke<NoteEntryV2[]>('get_all_vault_entries_v2').then((entries) => {
+		getVaultEntries().then((entries) => {
 			if (cancelled || seq !== fetchSeq) return;
 			refreshArchivedPaths(entries);
 			refreshTypeDefinitions(entries);

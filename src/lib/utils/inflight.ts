@@ -45,3 +45,76 @@ export function dedupeInflight<TArgs extends unknown[], TResult>(
 		return promise;
 	};
 }
+
+/** A memoized async read whose cache entry is keyed on a caller-supplied version. */
+export interface VersionGated<T> {
+	/** Returns the cached Promise for the current version, fetching once per version. */
+	get(): Promise<T>;
+	/** Drops the cached Promise so the next `get()` fetches again at the same version. */
+	invalidate(): void;
+}
+
+/**
+ * Memoizes a single-value async read, keyed on a monotonic version the
+ * caller supplies. While the version is unchanged every `get()` shares the
+ * SAME Promise: in-flight callers dedupe and settled callers get the cached
+ * snapshot without a second round trip. A version change makes the next
+ * `get()` fetch fresh.
+ *
+ * A rejection is never cached: the failed entry is dropped (under the same
+ * identity guard `dedupeInflight` uses, so a settle handler from a
+ * superseded version cannot clear the current entry) and the next `get()`
+ * retries.
+ *
+ * The version counter alone is not enough to scope the cache when the
+ * counter is process-global and never rewound, so `invalidate()` exists for
+ * the lifecycle events that change what the version MEANS (in this repo:
+ * a vault open or close).
+ *
+ * `versionOf` is a callback rather than a store read so this module stays
+ * side-effect free per the `utils/` layer rule.
+ */
+export function versionGated<T>(fn: () => Promise<T>, versionOf: () => number): VersionGated<T> {
+	let cached: Promise<T> | null = null;
+	let cachedVersion = -1;
+
+	const invalidate = () => {
+		cached = null;
+		cachedVersion = -1;
+	};
+
+	return {
+		get() {
+			const version = versionOf();
+			if (cached !== null && cachedVersion === version) return cached;
+			const promise = fn();
+			cached = promise;
+			cachedVersion = version;
+			promise.catch(() => {
+				// Identity guard: a rejection from a superseded version must
+				// not evict the entry a newer `get()` already installed.
+				if (cached === promise) invalidate();
+			});
+			return promise;
+		},
+		invalidate,
+	};
+}
+
+/**
+ * Returns true when the IPC result fetched for `fetchedPath` is still
+ * relevant to `currentPath` (the active tab): either no tab is active
+ * (e.g. headless tests) or the active tab still matches.
+ *
+ * Used by the panel-fetch services as a stale-result guard: when the user
+ * switches tabs while a fetch is in flight, the in-flight call's result is
+ * discarded instead of briefly overwriting the new tab's panel data, the
+ * "pisca o backlink" race observed during the 2026-04-29 dogfood after the
+ * wikilink cmd-click flow.
+ *
+ * The active path is a parameter, not a store read, so this module stays
+ * side-effect free per the `utils/` layer rule.
+ */
+export function isStillCurrentPath(fetchedPath: string, currentPath: string | null): boolean {
+	return currentPath == null || currentPath === fetchedPath;
+}

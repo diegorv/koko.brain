@@ -1,17 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import { error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
-import { dedupeInflight } from '$lib/utils/inflight';
+import { dedupeInflight, isStillCurrentPath } from '$lib/utils/inflight';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { outgoingLinksStore } from './outgoing-links.store.svelte';
 import type { OutgoingLink, OutgoingUnlinkedMention } from './outgoing-links.types';
 import type { OutgoingLinkV2, OutgoingUnlinkedMentionV2 } from '$lib/types/vault-v2.types';
-
-/** Same stale-tab guard as `backlinks.service.ts::isStillCurrentPath`. */
-function isStillCurrentPath(fetchedPath: string): boolean {
-	const current = editorStore.activeTabPath;
-	return current == null || current === fetchedPath;
-}
 
 /**
  * Composite cache key — outgoing links depend on `(path, content)`
@@ -82,7 +76,7 @@ async function fetchOutgoingLinksV2Inner(path: string, content: string): Promise
 		]);
 		// Active-path guard: discard the result if the user already
 		// switched tabs while the IPCs were in flight.
-		if (!isStillCurrentPath(path)) {
+		if (!isStillCurrentPath(path, editorStore.activeTabPath)) {
 			perfEnd('OUTGOING', 'fetchOutgoingLinksV2(stale, dropped)', t0);
 			return;
 		}

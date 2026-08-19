@@ -1,5 +1,4 @@
 import { WidgetType } from '@codemirror/view';
-import { invoke } from '@tauri-apps/api/core';
 import { appendLog } from '$lib/utils/log.service';
 import { profileStart, profileEnd } from '../core/profiling';
 import { KBAPI } from '$lib/plugins/queryjs/kb-api';
@@ -7,9 +6,9 @@ import { collectionStore } from '$lib/features/collection/collection.store.svelt
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 /**
  * Module-level shim for the legacy `invalidateQueryjsCache()` API. The Phase
@@ -180,10 +179,11 @@ export class QueryjsBlockWidget extends WidgetType {
 		container.appendChild(loading);
 
 		try {
-			// Fetch the Rust VaultIndex snapshot once per widget render. The
+			// Rust VaultIndex snapshot, shared through the version-keyed memo:
+			// one IPC per index version however many blocks render. The
 			// snapshot covers tags / tasks / outgoing links — KBAPI uses it
 			// instead of iterating noteIndexStore (gone in Phase 11.5k).
-			const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+			const entries = await getVaultEntries();
 			const api = new KBAPI({
 				container,
 				propertyIndex: collectionStore.propertyIndex,
