@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
+import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, isMarkdownFile, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
@@ -71,24 +71,18 @@ export async function loadFolderOrder(vaultPath: string): Promise<FolderOrderMap
 	}
 }
 
-/**
- * Builds the full file tree for a vault and updates the store.
- * When called with an expectedSortVersion, skips the store write if a newer sort was triggered.
- */
-export async function loadDirectoryTree(vaultPath: string, expectedSortVersion?: number) {
+/** Builds the full file tree for a vault and updates the store. */
+export async function loadDirectoryTree(vaultPath: string) {
 	fsStore.startLoading();
 	try {
 		await timeAsync('FS', 'loadDirectoryTree', async () => {
 			const [tree, order] = await Promise.all([
 				invoke<FileTreeNode[]>('scan_vault', {
 					path: vaultPath,
-					sortBy: fsStore.sortBy,
+					sortBy: 'name',
 				}),
 				loadFolderOrder(vaultPath),
 			]);
-
-			// If a newer sort change started while we were loading, discard this stale result
-			if (expectedSortVersion !== undefined && sortVersion !== expectedSortVersion) return;
 
 			debug('FS', 'loadDirectoryTree:', vaultPath);
 			const co = fsStore.contentOrder;
@@ -109,10 +103,10 @@ export async function loadDirectoryTree(vaultPath: string, expectedSortVersion?:
 }
 
 /** Re-reads the current vault's file tree (lazy-imports vaultStore to avoid circular deps) */
-export async function refreshTree(expectedSortVersion?: number) {
+export async function refreshTree() {
 	const { path } = await import('$lib/core/vault/vault.store.svelte').then(m => ({ path: m.vaultStore.path }));
 	if (path) {
-		await loadDirectoryTree(path, expectedSortVersion);
+		await loadDirectoryTree(path);
 	}
 }
 
@@ -339,18 +333,7 @@ export async function revealInSystemExplorer(itemPath: string): Promise<void> {
 	}
 }
 
-/** Version counter for sort changes — ensures only the latest refresh wins */
-let sortVersion = 0;
-
-/** Updates the sort strategy and rebuilds the tree */
-export async function changeSortOption(option: SortOption) {
-	fsStore.setSortBy(option);
-	const version = ++sortVersion;
-	await refreshTree(version);
-}
-
 /** Resets all file system state (e.g. when switching vaults) */
 export function resetFileSystem() {
-	sortVersion = 0;
 	fsStore.reset();
 }

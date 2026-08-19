@@ -11,7 +11,6 @@ describe('fsStore', () => {
 		expect(fsStore.selectedFilePath).toBeNull();
 		expect(fsStore.isLoading).toBe(false);
 		expect(fsStore.expandedDirs.size).toBe(0);
-		expect(fsStore.sortBy).toBe('name');
 		expect(fsStore.renamingPath).toBeNull();
 		expect(fsStore.pendingCreationPath).toBeNull();
 		expect(fsStore.folderOrder).toEqual({});
@@ -27,11 +26,6 @@ describe('fsStore', () => {
 		it('setSelectedFilePath updates selected path', () => {
 			fsStore.setSelectedFilePath('/vault/note.md');
 			expect(fsStore.selectedFilePath).toBe('/vault/note.md');
-		});
-
-		it('setSortBy updates sort option', () => {
-			fsStore.setSortBy('modified');
-			expect(fsStore.sortBy).toBe('modified');
 		});
 
 		it('setRenamingPath updates renaming path', () => {
@@ -115,7 +109,6 @@ describe('fsStore', () => {
 			fsStore.setSelectedFilePath('/a');
 			fsStore.startLoading();
 			fsStore.expandDir('/vault');
-			fsStore.setSortBy('modified');
 			fsStore.setRenamingPath('/a');
 			fsStore.setPendingCreationPath('/b');
 			fsStore.setFolderOrder({ '.': ['A', 'B'] });
@@ -126,7 +119,6 @@ describe('fsStore', () => {
 			expect(fsStore.selectedFilePath).toBeNull();
 			expect(fsStore.isLoading).toBe(false);
 			expect(fsStore.expandedDirs.size).toBe(0);
-			expect(fsStore.sortBy).toBe('name');
 			expect(fsStore.renamingPath).toBeNull();
 			expect(fsStore.pendingCreationPath).toBeNull();
 			expect(fsStore.folderOrder).toEqual({});

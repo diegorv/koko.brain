@@ -1,28 +1,7 @@
 import { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 
-import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
-
-/**
- * Recursively sorts the file tree.
- * Directories always come before files, then sorted by the chosen strategy.
- */
-export function sortTree(nodes: FileTreeNode[], sortBy: SortOption): FileTreeNode[] {
-	const sorted = [...nodes].sort((a, b) => {
-		if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-
-		if (sortBy === 'name') {
-			return a.name.localeCompare(b.name);
-		}
-		return (b.modifiedAt ?? 0) - (a.modifiedAt ?? 0);
-	});
-
-	return sorted.map((node) =>
-		node.isDirectory && node.children
-			? { ...node, children: sortTree(node.children, sortBy) }
-			: node
-	);
-}
+import type { FileTreeNode, FolderOrderMap } from './fs.types';
 
 /** Recursively searches the tree for a node matching the given path */
 export function findNodeByPath(nodes: FileTreeNode[], path: string): FileTreeNode | null {
@@ -282,7 +261,7 @@ export function collectAllDirPaths(nodes: FileTreeNode[]): Set<string> {
  * Priority for folders:
  *   1. folder-order.json (explicit list wins outright)
  *   2. _order from folder note frontmatter (numeric sort)
- *   3. Original sort order (name or modified)
+ *   3. Original name order from scan_vault
  *
  * Priority for files:
  *   1. _order from frontmatter (numeric sort, lower first)

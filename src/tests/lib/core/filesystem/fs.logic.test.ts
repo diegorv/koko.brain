@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-	sortTree,
 	findNodeByPath,
 	getParentPath,
 	getFileName,
@@ -24,80 +23,9 @@ import {
 } from '$lib/core/filesystem/fs.logic';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 
-function makeNode(name: string, isDirectory: boolean, children?: FileTreeNode[], modifiedAt?: number): FileTreeNode {
-	return { name, path: `/vault/${name}`, isDirectory, children, modifiedAt };
+function makeNode(name: string, isDirectory: boolean, children?: FileTreeNode[]): FileTreeNode {
+	return { name, path: `/vault/${name}`, isDirectory, children };
 }
-
-describe('sortTree', () => {
-	it('sorts directories before files', () => {
-		const nodes: FileTreeNode[] = [
-			makeNode('b.md', false),
-			makeNode('a-folder', true, []),
-			makeNode('a.md', false),
-		];
-		const sorted = sortTree(nodes, 'name');
-		expect(sorted[0].name).toBe('a-folder');
-		expect(sorted[1].name).toBe('a.md');
-		expect(sorted[2].name).toBe('b.md');
-	});
-
-	it('sorts alphabetically by name', () => {
-		const nodes: FileTreeNode[] = [
-			makeNode('c.md', false),
-			makeNode('a.md', false),
-			makeNode('b.md', false),
-		];
-		const sorted = sortTree(nodes, 'name');
-		expect(sorted.map(n => n.name)).toEqual(['a.md', 'b.md', 'c.md']);
-	});
-
-	it('sorts by modified date (newest first)', () => {
-		const nodes: FileTreeNode[] = [
-			makeNode('old.md', false, undefined, 1000),
-			makeNode('new.md', false, undefined, 3000),
-			makeNode('mid.md', false, undefined, 2000),
-		];
-		const sorted = sortTree(nodes, 'modified');
-		expect(sorted.map(n => n.name)).toEqual(['new.md', 'mid.md', 'old.md']);
-	});
-
-	it('recursively sorts children', () => {
-		const nodes: FileTreeNode[] = [
-			makeNode('folder', true, [
-				makeNode('z.md', false),
-				makeNode('a.md', false),
-			]),
-		];
-		const sorted = sortTree(nodes, 'name');
-		expect(sorted[0].children![0].name).toBe('a.md');
-		expect(sorted[0].children![1].name).toBe('z.md');
-	});
-
-	it('does not mutate the original array', () => {
-		const nodes: FileTreeNode[] = [
-			makeNode('b.md', false),
-			makeNode('a.md', false),
-		];
-		sortTree(nodes, 'name');
-		expect(nodes[0].name).toBe('b.md');
-	});
-
-	it('returns empty array for empty input', () => {
-		expect(sortTree([], 'name')).toEqual([]);
-		expect(sortTree([], 'modified')).toEqual([]);
-	});
-
-	it('handles mixed defined and undefined modifiedAt when sorting by modified', () => {
-		const nodes: FileTreeNode[] = [
-			makeNode('no-date.md', false),
-			makeNode('old.md', false, undefined, 1000),
-			makeNode('new.md', false, undefined, 3000),
-		];
-		const sorted = sortTree(nodes, 'modified');
-		// new (3000) first, old (1000) second, no-date (undefined → 0) last
-		expect(sorted.map(n => n.name)).toEqual(['new.md', 'old.md', 'no-date.md']);
-	});
-});
 
 describe('findNodeByPath', () => {
 	const tree: FileTreeNode[] = [

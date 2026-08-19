@@ -16,9 +16,6 @@ export interface FileTreeNode {
 	fileCount?: number;
 }
 
-/** Available file tree sort strategies */
-export type SortOption = 'name' | 'modified';
-
 /**
  * Maps relative directory paths to ordered arrays of folder names.
  * `.` represents the vault root. Other keys are relative paths (e.g. `"Projects"`).

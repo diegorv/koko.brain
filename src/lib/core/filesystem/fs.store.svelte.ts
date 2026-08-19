@@ -1,4 +1,4 @@
-import type { FileTreeNode, FolderOrderMap, SortOption } from './fs.types';
+import type { FileTreeNode, FolderOrderMap } from './fs.types';
 
 // --- Reactive state ---
 
@@ -14,8 +14,6 @@ let contentOrder = $state<Map<string, number>>(new Map());
 let loadingCount = $state(0);
 /** Set of directory paths that are visually expanded in the tree — must be replaced (not mutated) to trigger reactivity */
 let expandedDirs = $state<Set<string>>(new Set());
-/** Current sort strategy for the file tree */
-let sortBy = $state<SortOption>('name');
 /** Path of the item currently being renamed inline (null when not renaming) */
 let renamingPath = $state<string | null>(null);
 /** Path of a newly created item pending rename — opened in editor after rename completes */
@@ -30,7 +28,6 @@ export const fsStore = {
 	get selectedFilePath() { return selectedFilePath; },
 	get isLoading() { return loadingCount > 0; },
 	get expandedDirs() { return expandedDirs; },
-	get sortBy() { return sortBy; },
 	get renamingPath() { return renamingPath; },
 	get pendingCreationPath() { return pendingCreationPath; },
 	get folderOrder() { return folderOrder; },
@@ -43,7 +40,6 @@ export const fsStore = {
 	/** Increments or decrements the loading counter. isLoading is true while counter > 0. */
 	startLoading() { loadingCount++; },
 	stopLoading() { loadingCount = Math.max(0, loadingCount - 1); },
-	setSortBy(option: SortOption) { sortBy = option; },
 	setRenamingPath(path: string | null) { renamingPath = path; },
 	setPendingCreationPath(path: string | null) { pendingCreationPath = path; },
 
@@ -82,6 +78,5 @@ export const fsStore = {
 		pendingCreationPath = null;
 		folderOrder = {};
 		contentOrder = new Map();
-		sortBy = 'name';
 	},
 };

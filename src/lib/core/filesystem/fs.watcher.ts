@@ -172,7 +172,7 @@ async function handleChangedPaths(changedPaths: string[]) {
 		try {
 			let subtree = await invoke<FileTreeNode[]>('scan_vault', {
 				path: parentDir,
-				sortBy: fsStore.sortBy,
+				sortBy: 'name',
 			});
 			if (watchVersion !== version) return;
 			const co = fsStore.contentOrder;

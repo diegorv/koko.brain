@@ -74,7 +74,6 @@ import {
 	deleteItem,
 	renameItem,
 	moveItem,
-	changeSortOption,
 	resetFileSystem,
 	duplicateItem,
 	revealInSystemExplorer,
@@ -242,7 +241,7 @@ describe('loadDirectoryTree', () => {
 		expect(fsStore.isLoading).toBe(false);
 	});
 
-	it('passes current sortBy to scan_vault', async () => {
+	it('invokes scan_vault with the name sort argument', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 
 		await loadDirectoryTree('/vault');
@@ -309,79 +308,6 @@ describe('refreshTree', () => {
 
 		expect(invoke).not.toHaveBeenCalled();
 		expect(fsStore.fileTree).toEqual([]);
-	});
-
-	it('passes expectedSortVersion through to loadDirectoryTree', async () => {
-		vaultStore.open('/vault');
-		// First bump sortVersion by calling changeSortOption (sortVersion → 1)
-		vi.mocked(invoke).mockResolvedValueOnce([]);
-		await changeSortOption('modified');
-
-		// Now call refreshTree with a stale version (0) — result should be discarded
-		const staleTree = [makeFileNode({ name: 'stale.md', path: '/vault/stale.md' })];
-		vi.mocked(invoke).mockResolvedValueOnce(staleTree);
-
-		await refreshTree(0);
-
-		// Tree should NOT have the stale result (version mismatch)
-		expect(fsStore.fileTree).not.toEqual(staleTree);
-	});
-});
-
-describe('loadDirectoryTree — stale version discard', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		clearLocalStorage();
-		resetFileSystem();
-		vaultStore._reset();
-		vaultStore.open('/vault');
-		setupDefaultMocks();
-	});
-
-	it('discards result when expectedSortVersion does not match current sortVersion', async () => {
-		// Populate initial tree
-		const initialTree = [makeFileNode({ name: 'initial.md', path: '/vault/initial.md' })];
-		vi.mocked(invoke).mockResolvedValueOnce(initialTree);
-		await loadDirectoryTree('/vault');
-		expect(fsStore.fileTree).toEqual(initialTree);
-
-		// Bump sortVersion to 1 via changeSortOption
-		vi.mocked(invoke).mockResolvedValueOnce(initialTree);
-		await changeSortOption('modified');
-
-		// Call loadDirectoryTree with stale version (0) — should discard
-		const staleTree = [makeFileNode({ name: 'stale.md', path: '/vault/stale.md' })];
-		vi.mocked(invoke).mockResolvedValueOnce(staleTree);
-		await loadDirectoryTree('/vault', 0);
-
-		// Tree should still have the result from changeSortOption, not the stale one
-		expect(fsStore.fileTree).toEqual(initialTree);
-	});
-
-	it('applies result when expectedSortVersion matches current sortVersion', async () => {
-		// Bump sortVersion to 1
-		vi.mocked(invoke).mockResolvedValueOnce([]);
-		await changeSortOption('modified');
-
-		// Call with matching version — should apply
-		const newTree = [makeFileNode({ name: 'fresh.md', path: '/vault/fresh.md' })];
-		vi.mocked(invoke).mockResolvedValueOnce(newTree);
-		await loadDirectoryTree('/vault', 1);
-
-		expect(fsStore.fileTree).toEqual(newTree);
-	});
-
-	it('applies result when expectedSortVersion is undefined (no version check)', async () => {
-		// Bump sortVersion
-		vi.mocked(invoke).mockResolvedValueOnce([]);
-		await changeSortOption('modified');
-
-		// Call without expectedSortVersion — should always apply
-		const newTree = [makeFileNode({ name: 'fresh.md', path: '/vault/fresh.md' })];
-		vi.mocked(invoke).mockResolvedValueOnce(newTree);
-		await loadDirectoryTree('/vault');
-
-		expect(fsStore.fileTree).toEqual(newTree);
 	});
 });
 
@@ -760,23 +686,6 @@ describe('moveItem', () => {
 	});
 });
 
-describe('changeSortOption', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		clearLocalStorage();
-		fsStore.reset();
-		vaultStore._reset();
-		vaultStore.open('/vault');
-		setupDefaultMocks();
-	});
-
-	it('updates sort option in store', async () => {
-		await changeSortOption('modified');
-
-		expect(fsStore.sortBy).toBe('modified');
-	});
-});
-
 describe('resetFileSystem', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -788,7 +697,6 @@ describe('resetFileSystem', () => {
 		// Pre-populate store with data
 		fsStore.setFileTree([makeFileNode()]);
 		fsStore.setSelectedFilePath('/vault/note.md');
-		fsStore.setSortBy('modified');
 		fsStore.expandDir('/vault/folder');
 
 		resetFileSystem();
@@ -796,7 +704,6 @@ describe('resetFileSystem', () => {
 		expect(fsStore.fileTree).toEqual([]);
 		expect(fsStore.selectedFilePath).toBeNull();
 		expect(fsStore.isLoading).toBe(false);
-		expect(fsStore.sortBy).toBe('name');
 		expect(fsStore.expandedDirs.size).toBe(0);
 	});
 });
@@ -909,37 +816,6 @@ describe('state transitions', () => {
 		expect(fsStore.selectedFilePath).toBe('/vault/note.md');
 	});
 
-	it('changeSortOption updates sortBy and triggers tree reload', async () => {
-		expect(fsStore.sortBy).toBe('name');
-
-		const tree = [makeFileNode({ name: 'a.md', path: '/vault/a.md' })];
-		vi.mocked(invoke).mockResolvedValueOnce(tree);
-
-		await changeSortOption('modified');
-
-		expect(fsStore.sortBy).toBe('modified');
-		expect(invoke).toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'modified' });
-	});
-
-	it('resetFileSystem resets sortVersion so stale sort results are not discarded', async () => {
-		// Increment sortVersion via changeSortOption
-		const tree = [makeFileNode({ name: 'a.md', path: '/vault/a.md' })];
-		vi.mocked(invoke).mockResolvedValue(tree);
-		await changeSortOption('modified');
-		vi.clearAllMocks();
-
-		// Reset — sortVersion should go back to 0
-		resetFileSystem();
-
-		// After reset, a new changeSortOption should work normally
-		// (if sortVersion wasn't reset, the internal counter would be stale)
-		vi.mocked(invoke).mockResolvedValue(tree);
-		await changeSortOption('name');
-
-		expect(fsStore.sortBy).toBe('name');
-		expect(fsStore.fileTree).toHaveLength(1);
-	});
-
 	it('resetFileSystem clears pre-existing state', async () => {
 		// Build up state
 		const tree = [makeFileNode({ name: 'note.md', path: '/vault/note.md' })];
@@ -955,6 +831,5 @@ describe('state transitions', () => {
 
 		expect(fsStore.fileTree).toEqual([]);
 		expect(fsStore.expandedDirs.size).toBe(0);
-		expect(fsStore.sortBy).toBe('name');
 	});
 });
