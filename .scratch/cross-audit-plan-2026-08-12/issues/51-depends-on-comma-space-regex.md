@@ -11,6 +11,10 @@ Note on the re-file instruction: issue 40 and `plan-2026-08-12.md:153` both say 
 against `src-tauri/src/vault/parsing.rs:1310-1316`. That range is `map_checkbox_char` and has
 nothing to do with depends-on. The real anchors are the ones cited below.
 
+Note on line numbers: every `parsing.rs` cite below is as of `4c697f99`, before issue 40's comment
+rewrites land. Issue 40 shifts them by +3 (`DEPENDS_ON_RE`) to +5 (the consumer, the description
+line, and the two unit tests), so anchor by symbol rather than by number.
+
 ## What
 
 `DEPENDS_ON_RE` (`src-tauri/src/vault/parsing.rs:1281-1287`) is built as:

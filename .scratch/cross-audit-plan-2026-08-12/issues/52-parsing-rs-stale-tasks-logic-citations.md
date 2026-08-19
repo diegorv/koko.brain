@@ -7,6 +7,10 @@ citations; out of that issue's `## How` scope, filed rather than folded into its
 
 Blocked by: none
 
+Note on line numbers: every `parsing.rs` cite below is as of `4c697f99`, before issue 40's comment
+rewrites land. Issue 40 shifts the table rows by 0 (1145-1147), +2 (1159-1171), +4 (1325-1428) and
++5 (1588), so anchor by symbol rather than by number.
+
 ## What
 
 `src-tauri/src/vault/parsing.rs` carries 12 `Mirrors ... tasks.logic.ts::<symbol>` comments whose
