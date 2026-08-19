@@ -133,7 +133,7 @@ You can narrow text searches with two operators, typed anywhere in the query:
 
 Operators can be combined with regular search terms, for example `meeting tag:work path:projects`.
 
-Clicking a tag in the Tags panel (right sidebar) automatically sets the search query to `tag:tagname`, which is the same as typing the operator yourself.
+Clicking a tag in the Tags tab automatically sets the search query to `tag:tagname`, which is the same as typing the operator yourself.
 
 ---
 

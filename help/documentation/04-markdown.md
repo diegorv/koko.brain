@@ -686,7 +686,7 @@ Your note content starts here.
 | Field      | Purpose                                           | Example                     |
 |------------|---------------------------------------------------|-----------------------------|
 | `title`    | Display name for the note                         | `title: Meeting Notes`      |
-| `tags`     | Categorize notes (also feeds the Tags panel)      | `tags: [work, meeting]`     |
+| `tags`     | Categorize notes (also feeds the Tags tab)        | `tags: [work, meeting]`     |
 | `date`     | Date associated with the note                     | `date: 2026-02-17`          |
 | `aliases`  | Alternative names for wikilink resolution         | `aliases: [MN, meetings]`   |
 | `cssclass` | Apply a custom CSS class to the note              | `cssclass: wide-page`       |

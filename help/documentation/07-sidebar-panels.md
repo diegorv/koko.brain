@@ -1,6 +1,6 @@
 # Sidebar Panels
 
-Learn about the right sidebar panels: Backlinks, Outgoing Links, Tags, Properties, and Calendar.
+Learn about the right sidebar panels: Backlinks, Outgoing Links, Properties, and Calendar.
 
 The right sidebar provides contextual information about the note you are currently editing. Each panel surfaces a different perspective on your content — from metadata and tags to links pointing in and out of the note.
 
@@ -113,7 +113,18 @@ Like Backlinks, the Outgoing Links panel is **collapsed by default** and fetches
 
 ## Tags
 
-The Tags panel shows all `#tags` used across your entire vault, organized in a hierarchical tree. Nested tags create a tree structure: `#work/meetings` shows as **work** > **meetings**.
+The Tags view is a **virtual tab**, not a right sidebar panel. Open it from the Command Palette:
+`Cmd+P` then **Toggle Tags View**. It fills the main editor area, and it is the only place the tags
+browser is shown.
+
+It lists the tags used across your vault, organized in a hierarchical tree. Nested tags create a
+tree structure: `#work/meetings` shows as **work** > **meetings**. Both inline `#tags` in the note
+body and the values of a frontmatter `tags:` property are counted, so a tag that is never written
+with a `#` still appears in the tree.
+
+The **Hide rare tags** filter is **on by default**, so tags used fewer than 10 times are hidden
+until you toggle the filter icon off. The tag count in the header is the unfiltered total, so it
+does not change when the filter does.
 
 ![Tags panel with hierarchical tree](screenshots/tags.png)
 
@@ -126,20 +137,21 @@ The Tags panel shows all `#tags` used across your entire vault, organized in a h
 
 Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
 
-You can also open Tags as a **dedicated virtual tab** via the Command Palette: `Cmd+P` → "Toggle Tags View". This opens a full-height Tags browser in the main editor area (the tags UI is only ever shown here, not docked in a sidebar). It offers the same controls described above - the **Sort** toggle (A-Z vs. by count) and the **Hide rare tags** filter (hides tags with fewer than 10 uses) - and clicking a tag still opens Search filtered to `tag:tagname`.
-
 ### Tag colors
 
-A small colored dot sits to the left of each tag name. Click the dot to open the **Tag Color Picker** popover.
+A dot sits to the left of each tag name: a colored circle once a color is assigned, and a `#` icon
+while none is. Click it to open the **Tag Color Picker** popover.
 
-- Pick one of the preset colors to tint the tag.
+- Pick one of the preset colors to tint the tag's dot.
 - Pick the **custom color** swatch to open a native color picker for any hex value.
 - Pick the **No color** option (the `×` swatch) to clear the assignment.
 
-Tag colors are stored under `tagColors.colors` in your settings and apply everywhere the tag is rendered: the Tags panel, inline `#tags` in notes, and editor decorations.
+Tag colors are stored under `tagColors.colors` in your settings and reach two places: the dot in the
+Tags tab, and the small tag icon next to each entry of a `tags` list property in the Properties
+panel. The `#tags` written in a note body are not tinted.
 
 > [!TIP]
-> Use nested tags for organization: `#project/alpha`, `#project/beta`. The Tags panel groups them into a collapsible tree, keeping your tag list tidy even as it grows.
+> Use nested tags for organization: `#project/alpha`, `#project/beta`. The Tags tab groups them into a collapsible tree, keeping your tag list tidy even as it grows.
 
 ---
 

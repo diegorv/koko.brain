@@ -64,7 +64,6 @@ Different file types open with different editors:
 | `.kanban` | Kanban board | Drag-and-drop board (see [Kanban](21-kanban.md)) |
 | Tasks (virtual) | Tasks view | Aggregated tasks from all notes (see [Tasks](10-tasks-and-todoist.md)) |
 | Graph (virtual) | Graph view | Knowledge graph visualization (see [Graph View](14-graph-view.md)) |
-
 | Tags (virtual) | Tags view | All tags across your vault with counts |
 
 "Virtual" tabs don't correspond to a file on disk — they are generated views.

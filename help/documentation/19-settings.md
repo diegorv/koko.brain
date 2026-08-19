@@ -215,7 +215,7 @@ See [QueryJS → Execution policy](13-queryjs.md#execution-policy) for the full 
 
 ## Tag Colors
 
-The per-tag color assignments shown in the Tags sidebar (and inline `#tags` in notes) are stored under `tagColors.colors` as a map of `lowercase/tag/path → #hex`:
+The per-tag color assignments shown in the Tags tab (and on the tag icon of a `tags` list property in the Properties panel) are stored under `tagColors.colors` as a map of `lowercase/tag/path → #hex`:
 
 ```json
 {
@@ -228,7 +228,7 @@ The per-tag color assignments shown in the Tags sidebar (and inline `#tags` in n
 }
 ```
 
-You set colors interactively from the Tags panel by clicking the dot next to a tag (see [Sidebar Panels → Tag colors](07-sidebar-panels.md#tag-colors)). There is no dedicated section in the Settings dialog for these assignments — they live in `settings.json` only.
+You set colors interactively from the Tags tab by clicking the dot next to a tag (see [Sidebar Panels → Tag colors](07-sidebar-panels.md#tag-colors)). There is no dedicated section in the Settings dialog for these assignments — they live in `settings.json` only.
 
 ## Troubleshooting
 

@@ -226,3 +226,60 @@ The out-of-scope inventory gained `core/settings/sections/GeneralSection.svelte`
 Backlinks, Tags)"`. That is the same `bf55080c` placement staleness this issue documents for the
 help docs, but on a `src/` surface the How forbids touching. Recorded so a reader of the closed
 issue does not conclude the staleness was docs-only. The docs fix itself is unchanged.
+
+### 2026-08-19 - closing entry
+
+Docs-only fix applied across five files. No file under `src/` or `src-tauri/` was touched, so root
+CLAUDE.md rule 6 triggered no test command; the gate was the grep contract in `## How` plus a
+rendered read of the whole `## Tags` section.
+
+Verified against current source before writing each replacement sentence:
+
+- `TagsView.svelte` still has exactly one importer, `core/markdown-editor/EditorView.svelte`
+  (`grep -rn "TagsView" src/lib` returns the import at line 15 and the `<TagsView />` mount at
+  line 52, nothing else). No right-sidebar mount exists, so the placement rewrite holds.
+- `getTagColor` still has exactly two importers, `features/tags/TagItem.svelte` and
+  `features/properties/PropertyField.svelte`. In `PropertyField.svelte` the call is guarded by
+  `property.key === 'tags'` and its result is bound to the `style` of a lucide `Tag` icon per list
+  item, which is why the new prose names "the tag icon next to each entry of a `tags` list
+  property" rather than the whole Properties panel.
+- `TagColorDot.svelte` renders a filled circle only under `{#if color}` and a lucide `Hash` icon
+  otherwise, which is the `#` fallback the corrected sentence describes.
+- `tags.store.svelte.ts` initialises `hideRareTags = $state(true)` and `TagsView.svelte` sets
+  `MIN_COUNT_THRESHOLD = 10`, so the "on by default, fewer than 10 uses hidden" clause is exact.
+  The header count is `tagsStore.totalTagCount`, set by `tags.service.ts` to `entries.length` from
+  the raw `get_all_tags_v2` aggregate, hence "unfiltered total".
+- `command-palette.service.ts` still registers id `tags:toggle` with label `Toggle Tags View`.
+
+Rewritten:
+
+- `07-sidebar-panels.md`: `Tags` dropped from the intro list of right sidebar panels; `## Tags`
+  now opens by stating it is a virtual tab reached from the Command Palette; the "shows all
+  `#tags`" opening now says frontmatter `tags:` values are counted too and that the rare-tag
+  filter is on by default; `### Tag colors` now names the two real surfaces, the `#` fallback and
+  that the dot is what gets tinted. The old self-contradicting "You can also open Tags as a
+  dedicated virtual tab" paragraph was deleted rather than kept alongside the new opening, as the
+  How required.
+- `06-search-and-navigation.md`: `(right sidebar)` dropped, "Tags tab" named instead.
+- `19-settings.md` `## Tag Colors`: "Tags sidebar" to "Tags tab"; "(and inline `#tags` in notes)"
+  replaced with the Properties-panel tag icon. The `07-sidebar-panels.md#tag-colors` cross-link
+  still resolves because the section did not move.
+- `03-editor.md`: stray blank line above the `| Tags (virtual) |` row removed so it rejoins its
+  table.
+- `04-markdown.md`: "also feeds the Tags panel" to "Tags tab".
+
+Adversarial review: could not refute. No findings.
+
+Deliberately left out of scope, as the How required:
+
+- `help/documentation/README.md` row 07 is unchanged because step 1 kept `## Tags` in
+  `07-sidebar-panels.md` instead of moving it to a new file.
+- The `![Tags panel with hierarchical tree](screenshots/tags.png)` alt text still reads "Tags
+  panel". It is one of the 30 broken `screenshots/` references the issue forbids touching.
+- The `## Calendar` mis-filing in the intro list, the `### Controls at the top` bullets, the
+  `tag:tagname` search description and the colour picker description: all verified accurate or
+  explicitly frozen by the How.
+- `core/markdown-editor/MarkdownEditor.svelte`'s dead `$effect` on `settingsStore.tagColors.colors`
+  and `core/settings/sections/GeneralSection.svelte`'s "Show the right sidebar (Properties,
+  Backlinks, Tags)" description both survive. They are `src/` surfaces carrying the full frontend
+  gate; file them separately.
