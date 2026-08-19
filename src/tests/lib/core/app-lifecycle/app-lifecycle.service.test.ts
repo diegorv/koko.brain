@@ -394,6 +394,30 @@ describe('initializeVault', () => {
 		expect(invoke).not.toHaveBeenCalledWith('get_all_vault_entries_v2');
 	});
 
+	it('still marks the index ready when the file tree load fails before the scan settles', async () => {
+		// `Promise.all` rejects the instant `loadDirectoryTree` rejects, while the
+		// cold-cache scan is still in flight. The gate must read the scan's real
+		// outcome, not whatever the flag happened to hold at that moment.
+		vaultStore._reset();
+		vi.mocked(loadDirectoryTree).mockRejectedValueOnce(new Error('tree walk failed'));
+		vi.mocked(buildIndex).mockImplementationOnce(
+			() => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 0)),
+		);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await initializeVault('/vault');
+		consoleSpy.mockRestore();
+
+		// The catch really was entered, so the rejection ordering is the one under test.
+		expect(toast.error).toHaveBeenCalledWith(
+			'Failed to load vault contents. The file explorer or search may not work.',
+		);
+		// All three gated statements must still run: the scan succeeded.
+		expect(vaultStore.indexReady).toBe(true);
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
+		expect(toast.error).not.toHaveBeenCalledWith('Failed to index the vault. Reopen it to try again.');
+	});
+
 	it('marks the index ready when the vault scan succeeds', async () => {
 		// Positive control for the case above: without it, a fix that simply
 		// never marks readiness would pass.
@@ -1107,6 +1131,32 @@ describe('state transitions: teardown → reinitialize', () => {
 
 		expect(invoke).toHaveBeenCalledWith('save_vault_cache', { path: '/vault-a' });
 		expect(invoke).not.toHaveBeenCalledWith('save_vault_cache', { path: '/vault-b' });
+	});
+
+	it('leaves the previous vault as the cache-save key when the new vault scan fails', async () => {
+		// The `indexedVaultPath` half of the same gate as the readiness one: a
+		// failed scan must not claim the new vault as the cache-save key.
+		vaultStore._reset();
+		vaultStore.open('/vault-a');
+		await initializeVault('/vault-a');
+
+		vi.clearAllMocks();
+
+		vaultStore.open('/vault-b');
+		vi.mocked(buildIndex).mockResolvedValueOnce(false);
+		await initializeVault('/vault-b');
+
+		// The teardown inside the switch still keys on A, the success path.
+		expect(invoke).toHaveBeenCalledWith('save_vault_cache', { path: '/vault-a' });
+
+		vi.clearAllMocks();
+		teardownVault();
+
+		// B never indexed, so it never became the key and this teardown has
+		// nothing to save. Ungated, it would write whatever the Rust index holds
+		// into B's cache file.
+		expect(invoke).not.toHaveBeenCalledWith('save_vault_cache', { path: '/vault-b' });
+		expect(invoke).not.toHaveBeenCalledWith('save_vault_cache', expect.anything());
 	});
 
 	it('does not tear down when no vault was previously initialized', async () => {

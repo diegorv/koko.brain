@@ -256,21 +256,21 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	const t4 = perfStart();
 	// `buildIndex` swallows its IPC failures rather than rejecting (its promise
 	// is shared with any queued caller), so the outcome arrives as a resolved
-	// boolean. Reading it through `.then` inside the SAME `Promise.all` keeps
-	// the existing failure behaviour: a `loadDirectoryTree` rejection still
-	// enters the catch below and still does not abort init.
-	let indexBuilt = false;
+	// boolean. The promise is hoisted and awaited SEPARATELY below, because
+	// `Promise.all` rejects the instant `loadDirectoryTree` rejects: reading the
+	// outcome at that moment would see a scan that is still in flight and
+	// withhold readiness from a vault whose Rust `VaultIndex` was in fact built.
+	// The extra await cannot throw (`buildIndex` never rejects), so a
+	// `loadDirectoryTree` rejection still enters the catch below and still does
+	// not abort init.
+	const indexBuild = buildIndex(vaultPath);
 	try {
-		await Promise.all([
-			buildIndex(vaultPath).then((ok) => {
-				indexBuilt = ok;
-			}),
-			loadDirectoryTree(vaultPath),
-		]);
+		await Promise.all([indexBuild, loadDirectoryTree(vaultPath)]);
 	} catch (err) {
 		error('LIFECYCLE', 'Failed to build indexes or load file tree:', err);
 		toast.error('Failed to load vault contents. The file explorer or search may not work.');
 	}
+	const indexBuilt = await indexBuild;
 	perfEnd('LIFECYCLE', 'Step 4: buildIndex+loadDirectoryTree(parallel)', t4);
 	if (initVersion !== version) return;
 	if (indexBuilt) {
@@ -281,9 +281,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// The initVersion check above keeps a torn-down init from marking ready.
 		vaultStore.markIndexReady();
 	} else {
-		// A failed scan leaves the Rust `VaultIndex` holding the PREVIOUS vault's
-		// entries, so readiness stays suppressed for the rest of this vault
-		// session: the placeholder is honest and the user recovers by reopening.
+		// The scan for THIS vault did not complete, so nothing here may assert
+		// that the Rust `VaultIndex` holds it. Readiness stays suppressed for the
+		// rest of this vault session: the placeholder is honest and the user
+		// recovers by reopening.
 		toast.error('Failed to index the vault. Reopen it to try again.');
 	}
 	// Second drop, and the one that actually closes the wrong-vault window:
