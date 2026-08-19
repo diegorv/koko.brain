@@ -16,8 +16,6 @@
 	import { error } from '$lib/utils/debug';
 	import { clamp } from '$lib/utils/clamp';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	/** Folder input for adding excluded folders */
 	let newExcludedFolder = $state('');
 
@@ -117,7 +115,6 @@
 			onCheckedChange={(enabled) => {
 				settingsStore.updateAutoMove({ enabled });
 				toggleAutoMoveHook(enabled);
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -137,7 +134,6 @@
 				const seconds = Number((e.currentTarget as HTMLInputElement).value);
 				const ms = clampDebounce(Math.round(seconds * 1000));
 				settingsStore.updateAutoMove({ debounceMs: ms });
-				onchange();
 			}}
 		/>
 	</SettingItem>

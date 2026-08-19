@@ -26,8 +26,13 @@ vi.mock('$lib/features/tasks/tasks.service', () => ({
 	toggleTasksTab: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/settings.service', () => ({
-	saveSettings: vi.fn(() => Promise.resolve()),
+// Only the disk boundary is mocked: the persistence assertions below read the
+// JSON the settings persistence owner hands to `writeTextFile`.
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	readTextFile: vi.fn(),
+	writeTextFile: vi.fn(() => Promise.resolve()),
+	mkdir: vi.fn(() => Promise.resolve()),
+	exists: vi.fn(() => Promise.resolve(true)),
 }));
 
 vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
@@ -58,13 +63,39 @@ import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { saveSettings } from '$lib/core/settings/settings.service';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+import {
+	startSettingsPersistence,
+	stopSettingsPersistence,
+} from '$lib/core/settings/settings-persistence.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
+
+/**
+ * Runs `action` with the settings persistence owner live for `/vault` and
+ * returns the settings JSON it wrote once the debounce window elapsed.
+ */
+async function persistedAfter(action: () => void): Promise<{ layout: Record<string, unknown> }> {
+	vi.useFakeTimers();
+	startSettingsPersistence('/vault');
+	try {
+		action();
+		await vi.advanceTimersByTimeAsync(0);
+		await vi.advanceTimersByTimeAsync(500);
+	} finally {
+		await stopSettingsPersistence();
+		vi.useRealTimers();
+	}
+	const calls = vi.mocked(writeTextFile).mock.calls;
+	expect(calls.length).toBeGreaterThan(0);
+	const [path, content] = calls[calls.length - 1];
+	expect(path).toBe('/vault/.kokobrain/settings.json');
+	return JSON.parse(content as string);
+}
 
 /** Finds the handler registered with a specific key combo. */
 function findHandler(match: Partial<{ key: string; code: string; meta: boolean; shift: boolean }>): () => void {
@@ -321,19 +352,19 @@ describe('registerGlobalKeybindings', () => {
 			expect(toggleTasksTab).toHaveBeenCalledTimes(1);
 		});
 
-		it('Cmd+Shift+B handler toggles left sidebar and saves settings', () => {
+		it('Cmd+Shift+B handler toggles left sidebar and persists it', async () => {
 			// Real default: leftSidebarVisible = true.
 			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });
 
-			handler();
+			const written = await persistedAfter(handler);
 
 			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
-			expect(saveSettings).toHaveBeenCalledWith('/vault');
+			expect(written.layout.leftSidebarVisible).toBe(false);
 		});
 
-		it('cycle-sidebar dynamic listener cycles the view and reveals a hidden sidebar (default Cmd+Shift+E)', () => {
+		it('cycle-sidebar dynamic listener cycles the view and reveals a hidden sidebar (default Cmd+Shift+E)', async () => {
 			const addSpy = vi.spyOn(document, 'addEventListener');
 			settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: false });
 			const cleanup = registerGlobalKeybindings();
@@ -343,18 +374,18 @@ describe('registerGlobalKeybindings', () => {
 			expect(keydownCall).toBeDefined();
 			const listener = keydownCall![1] as (e: KeyboardEvent) => void;
 
-			listener({
+			const written = await persistedAfter(() => listener({
 				key: 'e',
 				metaKey: true,
 				shiftKey: true,
 				altKey: false,
 				ctrlKey: false,
 				preventDefault: vi.fn(),
-			} as unknown as KeyboardEvent);
+			} as unknown as KeyboardEvent));
 
 			expect(settingsStore.layout.sidebarMode).toBe('types');
 			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-			expect(saveSettings).toHaveBeenCalledWith('/vault');
+			expect(written.layout.sidebarMode).toBe('types');
 
 			cleanup();
 			addSpy.mockRestore();
@@ -381,38 +412,38 @@ describe('registerGlobalKeybindings', () => {
 			addSpy.mockRestore();
 		});
 
-		it('Cmd+Shift+B handler toggles layout but does not save when vault path is null', () => {
-			vaultStore._reset(); // path -> null
+		it('Cmd+Shift+B handler toggles layout but persists nothing when no vault is open', () => {
+			vaultStore._reset(); // path -> null, so persistence was never started
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });
 
 			handler();
 
 			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
-			expect(saveSettings).not.toHaveBeenCalled();
+			expect(writeTextFile).not.toHaveBeenCalled();
 		});
 
-		it('Cmd+B handler toggles right sidebar and saves settings', () => {
+		it('Cmd+B handler toggles right sidebar and persists it', async () => {
 			// Real default: rightSidebarVisible = false -> handler flips it to true.
 			expect(settingsStore.layout.rightSidebarVisible).toBe(false);
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: false });
 
-			handler();
+			const written = await persistedAfter(handler);
 
 			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
-			expect(saveSettings).toHaveBeenCalledWith('/vault');
+			expect(written.layout.rightSidebarVisible).toBe(true);
 		});
 
-		it('Cmd+B handler toggles layout but does not save when vault path is null', () => {
-			vaultStore._reset(); // path -> null
+		it('Cmd+B handler toggles layout but persists nothing when no vault is open', () => {
+			vaultStore._reset(); // path -> null, so persistence was never started
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: false });
 
 			handler();
 
 			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
-			expect(saveSettings).not.toHaveBeenCalled();
+			expect(writeTextFile).not.toHaveBeenCalled();
 		});
 
 		it('Cmd+N handler calls createNoteComposer', () => {

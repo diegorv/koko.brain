@@ -20,8 +20,6 @@
 	 */
 	const STABLE_DOWNLOAD_URL = 'https://github.com/diegorv/koko.brain/releases/latest';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	type Status = 'idle' | 'checking' | 'downloading' | 'ready' | 'up-to-date' | 'error';
 
 	/**
@@ -71,7 +69,6 @@
 
 	function handleChannelChange(value: string) {
 		settingsStore.updateUpdates({ channel: value as ReleaseChannel });
-		onchange();
 		// Reset any pending download state — the previous "Restart to update"
 		// pointed at an Update from the other channel and is no longer valid.
 		status = 'idle';
@@ -83,7 +80,6 @@
 
 	function handleAutoCheckChange(value: boolean) {
 		settingsStore.updateUpdates({ autoCheck: value });
-		onchange();
 	}
 
 	/**
@@ -165,7 +161,6 @@
 			// auto-check throttle and the "Last checked" line both reflect
 			// the latest user action.
 			settingsStore.updateUpdates({ lastCheckedAt: Date.now() });
-			onchange();
 			if (update) {
 				pendingUpdate = update;
 				status = 'downloading';

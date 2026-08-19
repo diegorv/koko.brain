@@ -89,7 +89,6 @@ vi.mock('$lib/features/search/search.service', () => ({
 
 vi.mock('$lib/core/settings/settings.service', () => ({
 	loadSettings: vi.fn(() => Promise.resolve()),
-	saveSettings: vi.fn(() => Promise.resolve()),
 	resetSettings: vi.fn(),
 }));
 
@@ -193,7 +192,7 @@ import { buildPropertyIndex, resetCollection } from '$lib/features/collection/co
 import { resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
 import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
 import { resetSearch, buildSearchIndex } from '$lib/features/search/search.service';
-import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { loadSettings, resetSettings } from '$lib/core/settings/settings.service';
 import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
@@ -831,7 +830,9 @@ describe('initializeVault — semantic search startup', () => {
 		vi.useRealTimers();
 
 		expect(settingsStore.search.semanticSearchEnabled).toBe(false);
-		expect(saveSettings).toHaveBeenCalledWith('/vault');
+		// No explicit save here any more: the persistence owner started for this
+		// vault picks the mutation up, so the flag reaches /vault/settings.json.
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
 		expect(stopSemanticProgressListener).toHaveBeenCalled();
 		expect(toast.warning).toHaveBeenCalledWith(
 			'Semantic search model not found. Re-enable in Settings to download.'

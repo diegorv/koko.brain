@@ -5,8 +5,6 @@
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	function clampRetentionDays(value: number): number {
 		return clamp(Math.round(value), 1, 365);
 	}
@@ -23,7 +21,6 @@
 			checked={settingsStore.history.enabled}
 			onCheckedChange={(enabled) => {
 				settingsStore.updateHistory({ enabled });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -41,7 +38,6 @@
 			oninput={(e) => {
 				const val = clampRetentionDays(Number((e.currentTarget as HTMLInputElement).value));
 				settingsStore.updateHistory({ retentionDays: val });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -54,7 +50,6 @@
 			checked={settingsStore.history.snapshotBackupEnabled}
 			onCheckedChange={(snapshotBackupEnabled) => {
 				settingsStore.updateHistory({ snapshotBackupEnabled });
-				onchange();
 			}}
 		/>
 	</SettingItem>

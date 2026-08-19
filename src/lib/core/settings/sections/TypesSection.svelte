@@ -3,8 +3,6 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
-
-	let { onchange }: { onchange: () => void } = $props();
 </script>
 
 <div class="flex flex-col gap-2">
@@ -18,7 +16,6 @@
 			checked={settingsStore.explicitOrganization}
 			onCheckedChange={(v) => {
 				settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -33,7 +30,6 @@
 			checked={settingsStore.showUntypedNotes}
 			onCheckedChange={(v) => {
 				settingsStore.setSettings({ ...settingsStore.settings, showUntypedNotes: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -51,7 +47,6 @@
 					...settingsStore.settings,
 					typesBaseFolder: (e.currentTarget as HTMLInputElement).value,
 				});
-				onchange();
 			}}
 		/>
 	</SettingItem>

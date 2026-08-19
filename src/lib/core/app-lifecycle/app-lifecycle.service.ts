@@ -32,7 +32,7 @@ import {
 	stopSemanticProgressListener,
 } from '$lib/features/search/search.service';
 import { searchStore } from '$lib/features/search/search.store.svelte';
-import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { loadSettings, resetSettings } from '$lib/core/settings/settings.service';
 import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -343,7 +343,6 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 				if (!searchStore.modelAvailable) {
 					debug('LIFECYCLE', 'Model not found — disabling semantic search');
 					settingsStore.updateSearch({ semanticSearchEnabled: false });
-					await saveSettings(vaultPath);
 					stopSemanticProgressListener();
 					toast.warning('Semantic search model not found. Re-enable in Settings to download.');
 					return;
@@ -358,7 +357,6 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 				if (initVersion !== version) return;
 				error('LIFECYCLE', 'Semantic search init failed:', err);
 				settingsStore.updateSearch({ semanticSearchEnabled: false });
-				await saveSettings(vaultPath);
 				stopSemanticProgressListener();
 				toast.error('Semantic search initialization failed. Re-enable in Settings to retry.');
 			});

@@ -3,16 +3,12 @@
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	function handleTokenChange(value: string) {
 		settingsStore.updateTodoist({ apiToken: value });
-		onchange();
 	}
 
 	function handleDefaultLabelChange(value: string) {
 		settingsStore.updateTodoist({ defaultLabel: value });
-		onchange();
 	}
 </script>
 

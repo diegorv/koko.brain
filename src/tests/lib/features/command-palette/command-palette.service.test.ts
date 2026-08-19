@@ -26,10 +26,6 @@ vi.mock('$lib/features/tasks/tasks.service', () => ({
 	toggleTasksTab: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/settings.service', () => ({
-	saveSettings: vi.fn(() => Promise.resolve()),
-}));
-
 vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	openOrCreateDailyNote: vi.fn(),
 }));

@@ -3,8 +3,6 @@
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	function inputValue(e: Event): string {
 		return (e.currentTarget as HTMLInputElement).value;
 	}
@@ -21,7 +19,6 @@
 			value={settingsStore.oneOnOne.workPeopleFolder}
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ workPeopleFolder: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -34,7 +31,6 @@
 			value={settingsStore.oneOnOne.peopleFolder}
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ peopleFolder: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -47,7 +43,6 @@
 			value={settingsStore.oneOnOne.folderFormat}
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ folderFormat: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -60,7 +55,6 @@
 			value={settingsStore.oneOnOne.filenameFormat}
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ filenameFormat: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -73,7 +67,6 @@
 			value={settingsStore.oneOnOne.templatePath ?? ''}
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ templatePath: inputValue(e) || undefined });
-				onchange();
 			}}
 		/>
 	</SettingItem>

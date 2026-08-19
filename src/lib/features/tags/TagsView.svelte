@@ -8,22 +8,11 @@
 	import { filterTagTree } from './tags.logic';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { saveSettings } from '$lib/core/settings/settings.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { debounce } from '$lib/utils/debounce';
 	import { setTagColor } from './tag-colors.logic';
-	import { error } from '$lib/utils/debug';
 	import TagItem from './TagItem.svelte';
 
 	const MIN_COUNT_THRESHOLD = 10;
-
-	const debouncedSave = debounce(() => {
-		if (vaultStore.path) {
-			saveSettings(vaultStore.path).catch((err) =>
-				error('TAGS', 'Failed to save tag colors:', err)
-			);
-		}
-	}, 300);
 
 	function handleTagClick(tag: string) {
 		searchStore.setQuery(`tag:${tag}`);
@@ -33,7 +22,6 @@
 	function handleColorChange(tag: string, color: string | undefined) {
 		const updated = setTagColor(settingsStore.tagColors.colors, tag, color);
 		settingsStore.updateTagColors({ colors: updated });
-		debouncedSave();
 	}
 
 	function toggleSort() {

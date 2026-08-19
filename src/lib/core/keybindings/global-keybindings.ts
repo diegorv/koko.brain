@@ -13,8 +13,6 @@ import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
 import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { saveSettings } from '$lib/core/settings/settings.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -108,7 +106,6 @@ export function registerGlobalKeybindings(): () => void {
 			handler: () => {
 				const current = settingsStore.layout.leftSidebarVisible;
 				settingsStore.updateLayout({ leftSidebarVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch(err => error('SETTINGS', 'Failed to save settings:', err));
 			},
 		}),
 		registerKeybinding({
@@ -117,7 +114,6 @@ export function registerGlobalKeybindings(): () => void {
 			handler: () => {
 				const current = settingsStore.layout.rightSidebarVisible;
 				settingsStore.updateLayout({ rightSidebarVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch(err => error('SETTINGS', 'Failed to save settings:', err));
 			},
 		}),
 		registerKeybinding({

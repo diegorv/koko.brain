@@ -2,8 +2,6 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
-
-	let { onchange }: { onchange: () => void } = $props();
 </script>
 
 <div class="flex flex-col gap-2">
@@ -17,7 +15,6 @@
 			checked={settingsStore.layout.rightSidebarVisible}
 			onCheckedChange={(v) => {
 				settingsStore.updateLayout({ rightSidebarVisible: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -29,7 +26,6 @@
 			checked={settingsStore.layout.propertiesVisible}
 			onCheckedChange={(v) => {
 				settingsStore.updateLayout({ propertiesVisible: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -39,7 +35,6 @@
 			checked={settingsStore.layout.backlinksVisible}
 			onCheckedChange={(v) => {
 				settingsStore.updateLayout({ backlinksVisible: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -49,7 +44,6 @@
 			checked={settingsStore.layout.outgoingLinksVisible}
 			onCheckedChange={(v) => {
 				settingsStore.updateLayout({ outgoingLinksVisible: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -59,7 +53,6 @@
 			checked={settingsStore.layout.tableOfContentsVisible}
 			onCheckedChange={(v) => {
 				settingsStore.updateLayout({ tableOfContentsVisible: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -74,7 +67,6 @@
 			checked={settingsStore.folderNotes.enabled}
 			onCheckedChange={(v) => {
 				settingsStore.updateFolderNotes({ enabled: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>

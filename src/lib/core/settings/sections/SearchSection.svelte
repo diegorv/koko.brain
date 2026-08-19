@@ -15,8 +15,6 @@
 	import { debug } from '$lib/utils/debug';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	let isDownloading = $state(false);
 	let downloadError = $state('');
 	let isDownloadingReranker = $state(false);
@@ -57,7 +55,6 @@
 	async function handleToggle(enabled: boolean) {
 		debug('SEARCH', `Semantic search toggle: ${enabled}`);
 		settingsStore.updateSearch({ semanticSearchEnabled: enabled });
-		onchange();
 
 		if (enabled) {
 			// Check if model exists, if not download it
@@ -87,7 +84,6 @@
 				debug('SEARCH', 'Semantic search setup failed:', err);
 				downloadError = String(err);
 				settingsStore.updateSearch({ semanticSearchEnabled: false });
-				onchange();
 			} finally {
 				isDownloading = false;
 			}

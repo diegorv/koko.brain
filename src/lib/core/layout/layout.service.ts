@@ -1,7 +1,4 @@
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { saveSettings } from '$lib/core/settings/settings.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { error } from '$lib/utils/debug';
 import { nextSidebarMode } from './layout.logic';
 
 /**
@@ -12,9 +9,6 @@ import { nextSidebarMode } from './layout.logic';
 export function cycleSidebarMode(): void {
 	const next = nextSidebarMode(settingsStore.layout.sidebarMode);
 	settingsStore.updateLayout({ sidebarMode: next, leftSidebarVisible: true });
-	if (vaultStore.path) {
-		saveSettings(vaultStore.path).catch((err) => error('LAYOUT', 'saveSettings failed:', err));
-	}
 }
 
 /**
@@ -24,9 +18,6 @@ export function cycleSidebarMode(): void {
 export function toggleLeftSidebar(): void {
 	const current = settingsStore.layout.leftSidebarVisible;
 	settingsStore.updateLayout({ leftSidebarVisible: !current });
-	if (vaultStore.path) {
-		saveSettings(vaultStore.path).catch((err) => error('LAYOUT', 'saveSettings failed:', err));
-	}
 }
 
 /**
@@ -36,7 +27,4 @@ export function toggleLeftSidebar(): void {
 export function toggleRightSidebar(): void {
 	const current = settingsStore.layout.rightSidebarVisible;
 	settingsStore.updateLayout({ rightSidebarVisible: !current });
-	if (vaultStore.path) {
-		saveSettings(vaultStore.path).catch((err) => error('LAYOUT', 'saveSettings failed:', err));
-	}
 }

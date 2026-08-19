@@ -4,8 +4,6 @@
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	function inputValue(e: Event): string {
 		return (e.currentTarget as HTMLInputElement).value;
 	}
@@ -15,7 +13,6 @@
 		settingsStore.updatePeriodicNotes({
 			[period]: { [field]: value },
 		});
-		onchange();
 	}
 </script>
 
@@ -30,7 +27,6 @@
 			value={settingsStore.periodicNotes.folder}
 			oninput={(e) => {
 				settingsStore.updatePeriodicNotes({ folder: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>

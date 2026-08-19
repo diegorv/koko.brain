@@ -5,13 +5,10 @@
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { saveSettings } from '$lib/core/settings/settings.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import type { SidebarMode } from '$lib/core/settings/settings.types';
 
 	function switchTo(target: SidebarMode) {
 		settingsStore.updateLayout({ sidebarMode: target });
-		if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => { console.error('saveSettings failed:', err); });
 	}
 
 	let mode = $derived(settingsStore.layout.sidebarMode);

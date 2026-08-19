@@ -9,8 +9,6 @@
 	import type { HeadingTypography, HeadingFontWeight } from '../settings.types';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	const LEVELS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
 	const LEVEL_LABELS: Record<string, string> = {
 		h1: 'Heading 1',
@@ -33,7 +31,6 @@
 				[level]: { ...current[level], [prop]: value },
 			},
 		});
-		onchange();
 	}
 </script>
 

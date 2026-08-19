@@ -1,5 +1,4 @@
 import { toast } from 'svelte-sonner';
-import { error } from '$lib/utils/debug';
 import type { AppCommand } from './command-palette.types';
 import { commandPaletteStore } from './command-palette.store.svelte';
 import {
@@ -18,7 +17,6 @@ import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
 import { createCanvasFile } from '$lib/features/canvas/canvas.service';
 import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { saveSettings } from '$lib/core/settings/settings.service';
 import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { openTemplatePicker } from '$lib/plugins/templates/templates.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -162,7 +160,6 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => {
 				const current = settingsStore.layout.leftSidebarVisible;
 				settingsStore.updateLayout({ leftSidebarVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
 		},
 		{
@@ -180,7 +177,6 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => {
 				const current = settingsStore.layout.rightSidebarVisible;
 				settingsStore.updateLayout({ rightSidebarVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
 		},
 		{
@@ -190,7 +186,6 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => {
 				const current = settingsStore.layout.tableOfContentsVisible;
 				settingsStore.updateLayout({ tableOfContentsVisible: !current });
-				if (vaultStore.path) saveSettings(vaultStore.path).catch((err) => error('CMD-PALETTE', 'saveSettings failed:', err));
 			},
 		},
 		{

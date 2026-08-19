@@ -1,8 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from './settings.store.svelte';
-import { saveSettings } from './settings.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { error } from '$lib/utils/debug';
 
 /**
@@ -36,14 +34,9 @@ export async function maybeAutoCheckForUpdates(): Promise<void> {
 
 	try {
 		const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', { channel });
+		// Mutating the store IS persisting: the settings persistence owner
+		// writes the timestamp, so the "Last checked" row survives a relaunch.
 		settingsStore.updateUpdates({ lastCheckedAt: Date.now() });
-		// Persist the timestamp so the "Last checked" row survives a
-		// relaunch.
-		if (vaultStore.path) {
-			await saveSettings(vaultStore.path).catch((err) => {
-				error('AUTO-UPDATE', 'Failed to persist lastCheckedAt:', err);
-			});
-		}
 		if (update) {
 			toast.info(`Update available: ${update.version}`, {
 				description: 'Open Settings → Update to install.',

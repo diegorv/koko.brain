@@ -4,8 +4,6 @@
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	function inputValue(e: Event): string {
 		return (e.currentTarget as HTMLInputElement).value;
 	}
@@ -46,7 +44,6 @@
 			value={settingsStore.quickCapture.folderFormat}
 			oninput={(e) => {
 				settingsStore.updateQuickCapture({ folderFormat: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -59,7 +56,6 @@
 			value={settingsStore.quickCapture.filenameFormat}
 			oninput={(e) => {
 				settingsStore.updateQuickCapture({ filenameFormat: inputValue(e) });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -77,7 +73,6 @@
 					settingsStore.updateQuickCapture({
 						templates: { ...settingsStore.quickCapture.templates, [k]: inputValue(e) },
 					});
-					onchange();
 				}}
 			/>
 		</SettingItem>
@@ -95,7 +90,6 @@
 			checked={settingsStore.dockBadgeInboxCount}
 			onCheckedChange={(v) => {
 				settingsStore.setSettings({ ...settingsStore.settings, dockBadgeInboxCount: v });
-				onchange();
 			}}
 		/>
 	</SettingItem>

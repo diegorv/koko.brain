@@ -27,12 +27,9 @@
 	import SearchStatus from '$lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '$lib/core/status-bar/SemanticIndexStatus.svelte';
-	import { saveSettings } from '$lib/core/settings/settings.service';
 	import { toggleLeftSidebar, toggleRightSidebar } from './layout.service';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
-	import { debounce } from '$lib/utils/debounce';
-	import { error } from '$lib/utils/debug';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -65,27 +62,16 @@
 		});
 	});
 
-	const debouncedSave = debounce(() => {
-		if (vaultStore.path) {
-			saveSettings(vaultStore.path).catch((err) =>
-				error('LAYOUT', 'Failed to save pane sizes:', err)
-			);
-		}
-	}, 300);
-
 	function handleLeftPaneResize(size: number) {
 		settingsStore.updateLayout({ leftPaneSize: size });
-		debouncedSave();
 	}
 
 	function handleMiddlePanelResize(size: number) {
 		settingsStore.updateLayout({ middlePanelSize: size });
-		debouncedSave();
 	}
 
 	function handleRightSidebarResize(size: number) {
 		settingsStore.updateLayout({ rightSidebarSize: size });
-		debouncedSave();
 	}
 
 	let showMiddlePanel = $derived(

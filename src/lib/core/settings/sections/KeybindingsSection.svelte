@@ -11,8 +11,6 @@
 	} from '$lib/core/keybindings/keybindings.logic';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	/** Factory default for the cycle-sidebar shortcut (used to detect/reset). */
 	const defaultBinding = DEFAULT_SETTINGS.keybindings.cycleSidebarView;
 
@@ -52,7 +50,6 @@
 			hint = null;
 			settingsStore.updateKeybindings({ cycleSidebarView: captured });
 			recording = false;
-			onchange();
 		}
 
 		document.addEventListener('keydown', onCapture, true);
@@ -72,7 +69,6 @@
 		conflictLabel = null;
 		hint = null;
 		recording = false;
-		onchange();
 	}
 </script>
 

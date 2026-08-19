@@ -10,8 +10,6 @@
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	let editorOpen = $state(false);
 	let editingTheme = $state.raw<Theme | null>(null);
 	let isNewTheme = $state(false);
@@ -19,7 +17,6 @@
 	function selectTheme(name: string) {
 		settingsStore.updateAppearance({ activeTheme: name });
 		applyActiveTheme();
-		onchange();
 	}
 
 	function deleteTheme(name: string, event: MouseEvent) {
@@ -33,7 +30,6 @@
 
 		settingsStore.updateAppearance({ themes, activeTheme });
 		applyActiveTheme();
-		onchange();
 	}
 
 	function handleCreateNew() {
@@ -67,7 +63,6 @@
 		}
 		settingsStore.updateAppearance({ activeTheme: savedTheme.name });
 		applyActiveTheme();
-		onchange();
 		editorOpen = false;
 		editingTheme = null;
 	}

@@ -5,8 +5,6 @@
 	import type { AutoRunQueriesPolicy } from '../settings.types';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	const POLICY_OPTIONS: { value: AutoRunQueriesPolicy; label: string; description: string }[] = [
 		{
 			value: 'first-open',
@@ -35,7 +33,6 @@
 
 	function handlePolicyChange(value: string) {
 		settingsStore.updateQueryjs({ autoRunQueries: value as AutoRunQueriesPolicy });
-		onchange();
 	}
 
 	function clearCache() {

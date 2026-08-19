@@ -11,8 +11,6 @@
 	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	function isDecoratorDisabled(name: string): boolean {
 		return settingsStore.disabledDecorators[name] ?? false;
 	}
@@ -37,7 +35,6 @@
 			checked={settingsStore.debugMode}
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugMode(v);
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -57,7 +54,6 @@
 				} else if (!settingsStore.debugTauriLogToFile) {
 					teardownLogSession();
 				}
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -75,7 +71,6 @@
 				} else if (!v) {
 					stopHeartbeat();
 				}
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -99,7 +94,6 @@
 			checked={settingsStore.livePreviewProfiling}
 			onCheckedChange={(v) => {
 				settingsStore.updateLivePreviewProfiling(v);
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -117,7 +111,6 @@
 				checked={!isDecoratorDisabled(name)}
 				onCheckedChange={(v) => {
 					settingsStore.toggleDecorator(name, !v);
-					onchange();
 				}}
 			/>
 		</SettingItem>
@@ -134,7 +127,6 @@
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugModeTauri(v);
 				setTauriDebugMode(v);
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -154,7 +146,6 @@
 				} else if (!settingsStore.debugLogToFile) {
 					teardownLogSession();
 				}
-				onchange();
 			}}
 		/>
 	</SettingItem>

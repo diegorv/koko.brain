@@ -9,8 +9,6 @@
 	import SettingItem from './SettingItem.svelte';
 	import HeadingTypographyEditor from './HeadingTypographyEditor.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	let fontPickerOpen = $state(false);
 	let systemFonts = $state<string[]>([]);
 	let fontSearch = $state('');
@@ -29,7 +27,6 @@
 
 	function selectFont(font: string) {
 		settingsStore.updateEditor({ fontFamily: font });
-		onchange();
 		fontPickerOpen = false;
 		fontSearch = '';
 	}
@@ -47,7 +44,6 @@
 				value={settingsStore.editor.fontFamily}
 				oninput={(e) => {
 					settingsStore.updateEditor({ fontFamily: inputValue(e) });
-					onchange();
 				}}
 			/>
 			{#if systemFonts.length > 0}
@@ -98,12 +94,10 @@
 			value={String(settingsStore.editor.fontSize)}
 			oninput={(e) => {
 				settingsStore.updateEditor({ fontSize: Number(inputValue(e)) });
-				onchange();
 			}}
 			onblur={(e) => {
 				const val = clampFontSize(Number(inputValue(e)));
 				settingsStore.updateEditor({ fontSize: val });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -121,12 +115,10 @@
 			value={String(settingsStore.editor.lineHeight)}
 			oninput={(e) => {
 				settingsStore.updateEditor({ lineHeight: Number(inputValue(e)) });
-				onchange();
 			}}
 			onblur={(e) => {
 				const val = clampLineHeight(Number(inputValue(e)));
 				settingsStore.updateEditor({ lineHeight: val });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -144,12 +136,10 @@
 			value={String(settingsStore.editor.contentWidth)}
 			oninput={(e) => {
 				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
-				onchange();
 			}}
 			onblur={(e) => {
 				const val = clampContentWidth(Number(inputValue(e)));
 				settingsStore.updateEditor({ contentWidth: val });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -167,15 +157,13 @@
 			value={String(settingsStore.editor.paragraphSpacing)}
 			oninput={(e) => {
 				settingsStore.updateEditor({ paragraphSpacing: Number(inputValue(e)) });
-				onchange();
 			}}
 			onblur={(e) => {
 				const val = clampParagraphSpacing(Number(inputValue(e)));
 				settingsStore.updateEditor({ paragraphSpacing: val });
-				onchange();
 			}}
 		/>
 	</SettingItem>
 
-	<HeadingTypographyEditor {onchange} />
+	<HeadingTypographyEditor />
 </div>

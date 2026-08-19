@@ -1,12 +1,7 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { saveSettings } from '$lib/core/settings/settings.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { settingsPanelStore } from './settings-panel.store.svelte';
-	import { debounce } from '$lib/utils/debounce';
-	import { error } from '$lib/utils/debug';
 	import { SETTINGS_SECTION_GROUPS } from '$lib/core/settings/settings.logic';
 	import AppearanceSection from '$lib/core/settings/sections/AppearanceSection.svelte';
 	import GeneralSection from '$lib/core/settings/sections/GeneralSection.svelte';
@@ -66,17 +61,6 @@
 		types: LayoutGridIcon,
 	};
 
-	const debouncedSave = debounce(() => {
-		const path = vaultStore.path;
-		if (path) {
-			saveSettings(path).catch(err => error('SETTINGS', 'Failed to save settings:', err));
-		}
-	}, 500);
-
-	onDestroy(() => {
-		debouncedSave.flush();
-	});
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && settingsPanelStore.isOpen) {
 			settingsPanelStore.close();
@@ -128,39 +112,39 @@
 		<ScrollArea class="flex-1">
 			<div class="max-w-3xl px-10 py-8">
 				{#if settingsPanelStore.activeSection === 'appearance'}
-					<AppearanceSection onchange={debouncedSave} />
+					<AppearanceSection />
 				{:else if settingsPanelStore.activeSection === 'sidebar'}
-					<GeneralSection onchange={debouncedSave} />
+					<GeneralSection />
 				{:else if settingsPanelStore.activeSection === 'editor'}
-					<EditorSection onchange={debouncedSave} />
+					<EditorSection />
 				{:else if settingsPanelStore.activeSection === 'keybindings'}
-					<KeybindingsSection onchange={debouncedSave} />
+					<KeybindingsSection />
 				{:else if settingsPanelStore.activeSection === 'periodic-notes'}
-					<PeriodicNotesSection onchange={debouncedSave} />
+					<PeriodicNotesSection />
 				{:else if settingsPanelStore.activeSection === 'quick-capture'}
-					<QuickCaptureSection onchange={debouncedSave} />
+					<QuickCaptureSection />
 				{:else if settingsPanelStore.activeSection === 'one-on-one'}
-					<OneOnOneSection onchange={debouncedSave} />
+					<OneOnOneSection />
 				{:else if settingsPanelStore.activeSection === 'templates'}
-					<TemplatesSection onchange={debouncedSave} />
+					<TemplatesSection />
 				{:else if settingsPanelStore.activeSection === 'search'}
-					<SearchSection onchange={debouncedSave} />
+					<SearchSection />
 				{:else if settingsPanelStore.activeSection === 'file-history'}
-					<FileHistorySection onchange={debouncedSave} />
+					<FileHistorySection />
 				{:else if settingsPanelStore.activeSection === 'auto-move'}
-					<AutoMoveSection onchange={debouncedSave} />
+					<AutoMoveSection />
 				{:else if settingsPanelStore.activeSection === 'trash'}
 					<TrashSection />
 				{:else if settingsPanelStore.activeSection === 'todoist'}
-					<TodoistSection onchange={debouncedSave} />
+					<TodoistSection />
 				{:else if settingsPanelStore.activeSection === 'types'}
-					<TypesSection onchange={debouncedSave} />
+					<TypesSection />
 				{:else if settingsPanelStore.activeSection === 'troubleshooting'}
-					<TroubleshootingSection onchange={debouncedSave} />
+					<TroubleshootingSection />
 				{:else if settingsPanelStore.activeSection === 'update'}
-					<UpdateSection onchange={debouncedSave} />
+					<UpdateSection />
 				{:else if settingsPanelStore.activeSection === 'queryjs'}
-					<QueryjsSection onchange={debouncedSave} />
+					<QueryjsSection />
 				{/if}
 			</div>
 		</ScrollArea>
