@@ -1,8 +1,4 @@
-<script lang="ts">
-	import { fly } from 'svelte/transition';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { settingsPanelStore } from './settings-panel.store.svelte';
-	import { SETTINGS_SECTION_GROUPS } from '$lib/core/settings/settings.logic';
+<script module lang="ts">
 	import AppearanceSection from '$lib/core/settings/sections/AppearanceSection.svelte';
 	import GeneralSection from '$lib/core/settings/sections/GeneralSection.svelte';
 	import EditorSection from '$lib/core/settings/sections/EditorSection.svelte';
@@ -37,10 +33,10 @@
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
-	import XIcon from '@lucide/svelte/icons/x';
 	import type { SettingsSection } from '$lib/core/settings/settings.types';
 	import type { Component } from 'svelte';
 
+	/** Sidebar icon for each settings section */
 	const sectionIcons: Record<SettingsSection, Component> = {
 		appearance: PaletteIcon,
 		sidebar: PanelLeftIcon,
@@ -60,6 +56,39 @@
 		queryjs: Code2Icon,
 		types: LayoutGridIcon,
 	};
+
+	/**
+	 * Content component rendered for each settings section. Exported so tests can
+	 * assert exhaustiveness against `SETTINGS_SECTION_GROUPS`; the `Record` key type
+	 * makes a missing section a compile error.
+	 */
+	export const sectionComponents: Record<SettingsSection, Component> = {
+		appearance: AppearanceSection,
+		sidebar: GeneralSection,
+		editor: EditorSection,
+		keybindings: KeybindingsSection,
+		'periodic-notes': PeriodicNotesSection,
+		'quick-capture': QuickCaptureSection,
+		'one-on-one': OneOnOneSection,
+		templates: TemplatesSection,
+		search: SearchSection,
+		'file-history': FileHistorySection,
+		'auto-move': AutoMoveSection,
+		trash: TrashSection,
+		todoist: TodoistSection,
+		troubleshooting: TroubleshootingSection,
+		update: UpdateSection,
+		queryjs: QueryjsSection,
+		types: TypesSection,
+	};
+</script>
+
+<script lang="ts">
+	import { fly } from 'svelte/transition';
+	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { settingsPanelStore } from './settings-panel.store.svelte';
+	import { SETTINGS_SECTION_GROUPS } from '$lib/core/settings/settings.logic';
+	import XIcon from '@lucide/svelte/icons/x';
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && settingsPanelStore.isOpen) {
@@ -110,42 +139,9 @@
 
 		<!-- Content -->
 		<ScrollArea class="flex-1">
+			{@const SectionContent = sectionComponents[settingsPanelStore.activeSection]}
 			<div class="max-w-3xl px-10 py-8">
-				{#if settingsPanelStore.activeSection === 'appearance'}
-					<AppearanceSection />
-				{:else if settingsPanelStore.activeSection === 'sidebar'}
-					<GeneralSection />
-				{:else if settingsPanelStore.activeSection === 'editor'}
-					<EditorSection />
-				{:else if settingsPanelStore.activeSection === 'keybindings'}
-					<KeybindingsSection />
-				{:else if settingsPanelStore.activeSection === 'periodic-notes'}
-					<PeriodicNotesSection />
-				{:else if settingsPanelStore.activeSection === 'quick-capture'}
-					<QuickCaptureSection />
-				{:else if settingsPanelStore.activeSection === 'one-on-one'}
-					<OneOnOneSection />
-				{:else if settingsPanelStore.activeSection === 'templates'}
-					<TemplatesSection />
-				{:else if settingsPanelStore.activeSection === 'search'}
-					<SearchSection />
-				{:else if settingsPanelStore.activeSection === 'file-history'}
-					<FileHistorySection />
-				{:else if settingsPanelStore.activeSection === 'auto-move'}
-					<AutoMoveSection />
-				{:else if settingsPanelStore.activeSection === 'trash'}
-					<TrashSection />
-				{:else if settingsPanelStore.activeSection === 'todoist'}
-					<TodoistSection />
-				{:else if settingsPanelStore.activeSection === 'types'}
-					<TypesSection />
-				{:else if settingsPanelStore.activeSection === 'troubleshooting'}
-					<TroubleshootingSection />
-				{:else if settingsPanelStore.activeSection === 'update'}
-					<UpdateSection />
-				{:else if settingsPanelStore.activeSection === 'queryjs'}
-					<QueryjsSection />
-				{/if}
+				<SectionContent />
 			</div>
 		</ScrollArea>
 	</div>
