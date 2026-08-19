@@ -242,7 +242,7 @@ You set colors interactively from the Tags panel by clicking the dot next to a t
 | **Live preview profiling** (`livePreviewProfiling`) | Emit `LP-PROFILE` timing entries to the log so you can measure per-plugin decoration cost | Disabled |
 | **Debug heartbeat** | Emits "[HB] alive" ticks every 250ms for diagnosing UI freezes | Disabled |
 | **Build info** | Shows release channel, version, commit hash, and build time | — |
-| **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations. Available decorators: `table`, `metaBindInput`, `queryjs`, `codeBlock`, `frontmatter`, `callout`, `link`, `inlineMarks`, `simpleWidget`, `heading`, `blockquote`, `markdownStyle`. | `{}` |
+| **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations. Block decorators: `frontmatter`, `codeBlock`, `blockComment`, `table`, `callout`, `collectionBlock`, `queryjs`, `metaBindButton`, `mermaid`, `blockMath`, `audio`, `video`. Inline plugins: `image`, `footnote`, `wikilinkEmbed`, `metaBindInput`. Inline pipeline: `heading`, `blockquote`, `simpleWidget`, `link`, `inlineMarks`, `markdownStyle`. | `{}` |
 
 > [!NOTE]
 > These settings are only useful when diagnosing bugs. Enable them before reproducing an issue, then share the log files when reporting a bug.

@@ -52,7 +52,7 @@ Each block field is a `ViewPlugin` whose `update()` short-circuits viewport-only
 
 1. **`Decoration.mark()` + CSS over `Decoration.replace()` + widget** for simple visuals.
 2. **Cache expensive widget output at module level.** QueryJS uses a per-session live-DOM cache (ADR 0010) — element references survive viewport re-entry without re-execution.
-3. **Block plugins must skip viewport-only scroll:** `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` as the first line of `update()`.
+3. **Block plugins must skip viewport-only scroll:** `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` as the first line of `update()`. The eleven factory-built block decorators inherit it from `core/block-decorator.ts`; `frontmatterField` is a `StateField`, which never sees a pure scroll (no transaction is dispatched) and so needs no guard. `inlineFormattingPlugin` is the only plugin that still writes the guard by hand — the four inline ViewPlugins get the same skip from `checkUpdateAction`, which returns `'none'` on `viewportChanged`.
 4. **`checkUpdateAction` with `lastCursorLine`** — plugins skip rebuilds when the cursor stays on the same line.
 5. **`scrollDebouncePlugin`** defers `forceDecorationRebuild` by 150 ms after scroll stops; `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond the viewport.
 6. **QueryJS uses `_pendingViews` for unawaited `kb.view()`** instead of an auto-await regex (ADR 0010).
@@ -71,7 +71,7 @@ Animation discipline: use `Decoration.mark({ class })` with CSS animation classe
 
 ## Consequences
 
-- Each block field is ~100–400 lines and owns one markdown construct. Adding a block construct = adding a file + a registration line in `live-preview.ts`.
+- Each block field is ~100–400 lines and owns one markdown construct. Adding a block construct = adding a file whose export is a `blockDecorator({ settingsKey, profileLabel, compute })` spec, a name in `BLOCK_DECORATOR_NAMES` (`core/decorator-names.ts`) and the matching entry in `BLOCK_EXTENSIONS` (`live-preview.ts`). The registries are total `Record`s over those name lists, so a half-finished registration fails `pnpm check` and every name renders a working kill-switch in Troubleshooting.
 - Each inline construct is a single handler in `inline/handlers/`. Adding one = writing a `NodeHandler` or `LineHandler` and pushing it into `PRODUCTION_NODE_HANDLERS` / `PRODUCTION_LINE_HANDLERS` in `inline-extensions.ts`.
 - All `cm-lp-*` CSS classes are preserved verbatim across the refactor — themes targeting those classes keep working.
 - The list of performance rules is non-obvious and easy to violate on a new handler; CLAUDE.md §Performance Guidelines is the reference contributors are expected to consult. Violations manifest as scroll jank rather than outright bugs.

@@ -24,7 +24,7 @@ const DOC = 'line one\nline two\nline three';
 function mount(spec: Omit<BlockDecoratorSpec, 'settingsKey' | 'profileLabel' | 'compute'>) {
 	const counter = { scans: 0 };
 	const plugin = blockDecorator({
-		settingsKey: 'testDecorator',
+		settingsKey: 'table',
 		profileLabel: 'test-decorator',
 		compute: (state): DecorationSet => {
 			counter.scans++;

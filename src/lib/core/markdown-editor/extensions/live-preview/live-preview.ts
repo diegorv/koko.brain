@@ -20,6 +20,13 @@ import { metaBindInputPlugin } from './plugins/meta-bind-input-plugin';
 import { audioPlugin } from './plugins/audio-plugin';
 import { videoPlugin } from './plugins/video-plugin';
 import { scrollDebouncePlugin } from './core/scroll-debounce-plugin';
+import {
+	BLOCK_DECORATOR_NAMES,
+	INLINE_PLUGIN_NAMES,
+	type BlockDecoratorName,
+	type DecoratorName,
+	type InlinePluginName,
+} from './core/decorator-names';
 import { inlineExtensions } from './inline/inline-extensions';
 import { pasteHtmlLinkHandler } from './handlers/paste-html-link-handler';
 import { pasteTsvHandler } from './handlers/paste-tsv-handler';
@@ -31,17 +38,47 @@ import { calloutFoldState } from './core/effects';
 export const livePreviewCompartment = new Compartment();
 
 /** Checks if a decorator is disabled via settings. Returns false (enabled) by default. */
-function isDisabled(name: string): boolean {
+function isDisabled(name: DecoratorName): boolean {
 	return settingsStore.disabledDecorators[name] ?? false;
 }
 
 /**
+ * Kill-switch name -> the extensions it installs, for the block decorators that
+ * run before the inline pipeline. Total `Record`s, so a name added to
+ * `decorator-names.ts` without an extension here fails `pnpm check` — that is
+ * what keeps every switch in Troubleshooting connected to something.
+ */
+const BLOCK_EXTENSIONS: Record<BlockDecoratorName, Extension> = {
+	frontmatter: [frontmatterField, frontmatterGutter],
+	codeBlock: codeBlockField,
+	blockComment: blockCommentField,
+	table: tableField,
+	callout: calloutField,
+	collectionBlock: collectionBlockField,
+	queryjs: queryjsBlockField,
+	metaBindButton: metaBindButtonField,
+	mermaid: mermaidField,
+	blockMath: blockMathField,
+	audio: audioPlugin,
+	video: videoPlugin,
+};
+
+/** Same, for the inline ViewPlugins installed after the inline pipeline. */
+const INLINE_PLUGIN_EXTENSIONS: Record<InlinePluginName, Extension> = {
+	image: imagePlugin,
+	footnote: footnotePlugin,
+	wikilinkEmbed: wikilinkEmbedPlugin,
+	metaBindInput: metaBindInputPlugin,
+};
+
+/**
  * Returns the live-preview extension array. The inline pipeline is the
- * unified `HighlightStyle` + `inlineFormattingPlugin` set from `new/`;
- * block fields and always-on inline plugins (image, footnote, wikilink-embed,
- * metaBindInput) are kept side-by-side. Source mode is handled at the
- * compartment level by `livePreview(enabled)` — when off, the entire array
- * is replaced with `[]` so line numbers + gutter come back.
+ * unified `HighlightStyle` + `inlineFormattingPlugin` set from `inline/`;
+ * block fields and the inline plugins (image, footnote, wikilink-embed,
+ * metaBindInput) are kept side-by-side. Every decorator goes through the same
+ * `disabledDecorators` gate. Source mode is handled at the compartment level
+ * by `livePreview(enabled)` — when off, the entire array is replaced with `[]`
+ * so line numbers + gutter come back.
  */
 export function livePreviewExtensions(): Extension[] {
 	const exts: Extension[] = [
@@ -51,19 +88,15 @@ export function livePreviewExtensions(): Extension[] {
 	];
 
 	// Block plugins
-	if (!isDisabled('frontmatter')) { exts.push(frontmatterField, frontmatterGutter); }
-	if (!isDisabled('codeBlock')) { exts.push(codeBlockField); }
-	exts.push(blockCommentField);
-	if (!isDisabled('table')) { exts.push(tableField); }
-	if (!isDisabled('callout')) { exts.push(calloutField); }
-	exts.push(collectionBlockField);
-	if (!isDisabled('queryjs')) { exts.push(queryjsBlockField); }
-	exts.push(metaBindButtonField, mermaidField, blockMathField, audioPlugin, videoPlugin);
+	for (const name of BLOCK_DECORATOR_NAMES) {
+		if (!isDisabled(name)) { exts.push(BLOCK_EXTENSIONS[name]); }
+	}
 
-	// Unified inline pipeline (ex-Phases 3–10) + always-on inline plugins
+	// Unified inline pipeline (ex-Phases 3–10) + the inline plugins
 	exts.push(...inlineExtensions(settingsStore.disabledDecorators));
-	exts.push(imagePlugin, footnotePlugin, wikilinkEmbedPlugin);
-	if (!isDisabled('metaBindInput')) { exts.push(metaBindInputPlugin); }
+	for (const name of INLINE_PLUGIN_NAMES) {
+		if (!isDisabled(name)) { exts.push(INLINE_PLUGIN_EXTENSIONS[name]); }
+	}
 
 	// Scroll debounce + shared
 	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);

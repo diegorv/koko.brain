@@ -16,6 +16,7 @@ import { linkHandler, linkReferenceHandler } from './handlers/markdown-link-hand
 import { autolinkHandler, extendedAutolinkHandler } from './handlers/autolink-handlers';
 import { wikilinkHandler } from './handlers/wikilink-handler';
 import { markHandlers, escapeHandler } from './handlers/mark-handlers';
+import type { InlineHandlerName } from '../core/decorator-names';
 
 /**
  * Production node handlers — every NodeHandler the inline pipeline dispatches
@@ -49,13 +50,14 @@ export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 
 /**
  * Troubleshooting kill-switch table — toggleable decorator name → the
- * handlers disabled with it. Names match `DECORATOR_NAMES` in
- * `TroubleshootingSection.svelte` and keep the legacy per-plugin toggle
- * scope (e.g. `link` covered markdown links, autolinks and wikilinks).
- * Handlers absent from the table (inline comments, block references)
- * are always on, as in the legacy pipeline.
+ * handlers disabled with it. Keyed by `INLINE_HANDLER_NAMES` from
+ * `core/decorator-names.ts`, so the table and the switches in Troubleshooting
+ * cannot drift apart. Keeps the legacy per-plugin toggle scope (e.g. `link`
+ * covered markdown links, autolinks and wikilinks). Handlers absent from the
+ * table (inline comments, block references) are always on, as in the legacy
+ * pipeline.
  */
-const TOGGLEABLE_HANDLERS: Record<string, readonly (NodeHandler | LineHandler)[]> = {
+const TOGGLEABLE_HANDLERS: Record<InlineHandlerName, readonly (NodeHandler | LineHandler)[]> = {
 	heading: headingHandlers,
 	blockquote: [blockquoteHandler],
 	simpleWidget: simpleWidgetHandlers,

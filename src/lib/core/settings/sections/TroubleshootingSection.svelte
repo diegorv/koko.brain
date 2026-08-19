@@ -3,18 +3,15 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { setTauriDebugMode } from '$lib/utils/debug';
 	import { initLogSession, teardownLogSession, openLogDir, startHeartbeat, stopHeartbeat, isLogSessionActive } from '$lib/utils/log.service';
+	// Deep import on purpose: `decorator-names` is a names-only module with no
+	// imports of its own, so the settings chunk stays free of katex, mermaid
+	// and DOMPurify. Never import the registry in `live-preview.ts` here.
+	import { DECORATOR_NAMES } from '$lib/core/markdown-editor/extensions/live-preview/core/decorator-names';
 	import { settingsStore } from '../settings.store.svelte';
 	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	let { onchange }: { onchange: () => void } = $props();
-
-	/** All live preview decorator names that can be toggled */
-	const DECORATOR_NAMES = [
-		'table', 'metaBindInput', 'queryjs', 'codeBlock', 'frontmatter',
-		'callout', 'link', 'inlineMarks', 'simpleWidget', 'heading',
-		'blockquote', 'markdownStyle',
-	] as const;
 
 	function isDecoratorDisabled(name: string): boolean {
 		return settingsStore.disabledDecorators[name] ?? false;

@@ -7,6 +7,7 @@ import {
 	type ViewUpdate,
 } from '@codemirror/view';
 import { checkUpdateAction } from './check-update-action';
+import type { BlockDecoratorName } from './decorator-names';
 import { profileStart, profileEnd } from './profiling';
 
 /** Runtime value every block decorator ViewPlugin exposes. */
@@ -20,12 +21,14 @@ export interface BlockDecoratorValue extends PluginValue {
 /** Describes one block decorator: its identity, its scan, and its update gates. */
 export interface BlockDecoratorSpec {
 	/**
-	 * Troubleshooting kill-switch name. Persisted user data (`settings.json`
-	 * `disabledDecorators`) — renaming one orphans everyone's saved toggle.
+	 * Troubleshooting kill-switch name, gating this decorator in
+	 * `livePreviewExtensions()`. Persisted user data (`settings.json`
+	 * `disabledDecorators`) — renaming one orphans everyone's saved toggle,
+	 * which is why the type is the closed `BlockDecoratorName` union.
 	 * Deliberately separate from `profileLabel`, which the two diverge from
 	 * (`queryjs` vs `queryjs-block`, `codeBlock` vs `code-block`).
 	 */
-	settingsKey: string;
+	settingsKey: BlockDecoratorName;
 	/** `LP-PROFILE` / `LP-TRACE` label for this decorator's rebuilds */
 	profileLabel: string;
 	/** Full-document decoration scan */
