@@ -33,6 +33,34 @@ const DEFAULT_HEATMAP_COLORS = [
 ];
 
 
+/** One calendar entry after year filtering, with its intensity resolved to a 1-based palette level */
+interface CalendarEntry {
+	/** ISO date string (YYYY-MM-DD) as supplied by the caller */
+	date: string;
+	/** 1-based palette level, already mapped through the intensity scale */
+	intensity: number;
+	/** Color key referencing a palette in `colors` */
+	color?: string;
+	/** Text or emoji content to display inside the cell */
+	content?: string;
+}
+
+/** Shared setup both calendar renderers derive from their options and entries */
+interface CalendarPreamble {
+	/** Year being displayed */
+	year: number;
+	/** Color palettes keyed by name */
+	colors: Record<string, string[]>;
+	/** Name of the first palette, used as the fallback when an entry names no color */
+	firstColorKey: string;
+	/** Whether today's cell gets a border */
+	showCurrentDayBorder: boolean;
+	/** Background color for days without an entry */
+	emptyColor: string;
+	/** Entries of the displayed year, in caller order, with palette levels resolved */
+	entries: CalendarEntry[];
+}
+
 /** Lazy-loaded Chart.js module (bundled, no CDN) */
 let ChartModule: typeof import('chart.js/auto') | null = null;
 
@@ -648,54 +676,17 @@ export class KBUI {
 		entries: KBHeatmapCalendarEntry[],
 		options?: KBHeatmapCalendarOptions,
 	): HTMLElement {
-		const year = options?.year ?? new Date().getFullYear();
-		const colors: Record<string, string[]> = options?.colors ?? {
-			default: ['#c6e48b', '#7bc96f', '#49af5d', '#2e8840', '#196127'],
-		};
-		const showCurrentDayBorder = options?.showCurrentDayBorder ?? true;
-		const defaultEntryIntensity = options?.defaultEntryIntensity ?? 4;
+		const { year, colors, firstColorKey, showCurrentDayBorder, emptyColor, entries: calEntries } =
+			KBUI.calendarPreamble(entries, options);
 		const weekStartDay = options?.weekStartDay ?? 1;
 
-		// Filter entries to displayed year
-		const calEntries = entries.filter(
-			(e) => new Date(e.date + 'T00:00').getFullYear() === year,
-		);
-
-		// Determine intensity scale from data
-		const intensities = calEntries.filter((e) => e.intensity != null).map((e) => e.intensity!);
-		const minIntensity = intensities.length ? Math.min(...intensities) : 1;
-		const maxIntensity = intensities.length ? Math.max(...intensities) : 5;
-		const scaleStart = options?.intensityScaleStart ?? minIntensity;
-		const scaleEnd = options?.intensityScaleEnd ?? maxIntensity;
-
-		// Map entries to day-of-year index with resolved intensity
-		const firstColorKey = Object.keys(colors)[0];
-		const mappedEntries: Record<number, { date: string; intensity: number; color?: string; content?: string }> = {};
-
+		// Index entries by day-of-year (last entry wins for a repeated date)
+		const mappedEntries: Record<number, CalendarEntry> = {};
 		for (const e of calEntries) {
-			const intensity = e.intensity ?? defaultEntryIntensity;
-			const colorArr = colors[e.color ?? ''] ?? colors[firstColorKey];
-			const numLevels = colorArr.length;
-
-			let mapped: number;
-			if (minIntensity === maxIntensity && scaleStart === scaleEnd) {
-				mapped = numLevels;
-			} else {
-				mapped = Math.round(KBUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
-			}
-
-			const dayOfYear = KBUI.getDayOfYear(new Date(e.date + 'T00:00'));
-			mappedEntries[dayOfYear] = {
-				date: e.date,
-				intensity: mapped,
-				color: e.color,
-				content: e.content,
-			};
+			mappedEntries[KBUI.getDayOfYear(new Date(e.date + 'T00:00'))] = e;
 		}
 
 		// Build box data for the year
-		const isDark = document.documentElement.classList.contains('dark');
-		const emptyColor = isDark ? '#333' : '#ebedf0';
 		const firstDay = new Date(Date.UTC(year, 0, 1));
 		const emptyBefore = (firstDay.getUTCDay() + 7 - weekStartDay) % 7;
 		const lastDay = new Date(Date.UTC(year, 11, 31));
@@ -815,48 +806,16 @@ export class KBUI {
 		entries: KBHeatmapCalendarEntry[],
 		options?: KBYearlyCalendarOptions,
 	): HTMLElement {
-		const year = options?.year ?? new Date().getFullYear();
-		const colors: Record<string, string[]> = options?.colors ?? {
-			default: ['#c6e48b', '#7bc96f', '#49af5d', '#2e8840', '#196127'],
-		};
-		const showCurrentDayBorder = options?.showCurrentDayBorder ?? true;
-		const defaultEntryIntensity = options?.defaultEntryIntensity ?? 4;
+		const { year, colors, firstColorKey, showCurrentDayBorder, emptyColor, entries: calEntries } =
+			KBUI.calendarPreamble(entries, options);
 
-		// Filter entries to displayed year
-		const calEntries = entries.filter(
-			(e) => new Date(e.date + 'T00:00').getFullYear() === year,
-		);
-
-		// Determine intensity scale
-		const intensities = calEntries.filter((e) => e.intensity != null).map((e) => e.intensity!);
-		const minIntensity = intensities.length ? Math.min(...intensities) : 1;
-		const maxIntensity = intensities.length ? Math.max(...intensities) : 5;
-		const scaleStart = options?.intensityScaleStart ?? minIntensity;
-		const scaleEnd = options?.intensityScaleEnd ?? maxIntensity;
-
-		// Index entries by "month-day" key for fast lookup
-		const firstColorKey = Object.keys(colors)[0];
-		const entryMap: Record<string, { intensity: number; color?: string; content?: string; date: string }> = {};
-
+		// Index entries by "month-day" key for fast lookup (last entry wins for a repeated date)
+		const entryMap: Record<string, CalendarEntry> = {};
 		for (const e of calEntries) {
 			const d = new Date(e.date + 'T00:00');
-			const key = `${d.getMonth() + 1}-${d.getDate()}`;
-			const intensity = e.intensity ?? defaultEntryIntensity;
-			const colorArr = colors[e.color ?? ''] ?? colors[firstColorKey];
-			const numLevels = colorArr.length;
-
-			let mapped: number;
-			if (minIntensity === maxIntensity && scaleStart === scaleEnd) {
-				mapped = numLevels;
-			} else {
-				mapped = Math.round(KBUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
-			}
-
-			entryMap[key] = { intensity: mapped, color: e.color, content: e.content, date: e.date };
+			entryMap[`${d.getMonth() + 1}-${d.getDate()}`] = e;
 		}
 
-		const isDark = document.documentElement.classList.contains('dark');
-		const emptyColor = isDark ? '#333' : '#ebedf0';
 		const today = new Date();
 		const todayMonth = today.getMonth() + 1;
 		const todayDay = today.getDate();
@@ -974,6 +933,72 @@ export class KBUI {
 				Date.UTC(date.getFullYear(), 0, 0)) /
 			86_400_000
 		);
+	}
+
+	/**
+	 * Resolves the options and entries both calendar renderers share: defaults, the
+	 * year filter, the intensity scale and the per-entry palette level.
+	 * Entries are returned as a list in caller order so each renderer can key them
+	 * into its own index space (day-of-year vs "month-day") with last-write-wins.
+	 */
+	private static calendarPreamble(
+		entries: KBHeatmapCalendarEntry[],
+		options?: {
+			year?: number;
+			colors?: Record<string, string[]>;
+			showCurrentDayBorder?: boolean;
+			defaultEntryIntensity?: number;
+			intensityScaleStart?: number;
+			intensityScaleEnd?: number;
+		},
+	): CalendarPreamble {
+		const year = options?.year ?? new Date().getFullYear();
+		const colors: Record<string, string[]> = options?.colors ?? {
+			default: ['#c6e48b', '#7bc96f', '#49af5d', '#2e8840', '#196127'],
+		};
+		const showCurrentDayBorder = options?.showCurrentDayBorder ?? true;
+		const defaultEntryIntensity = options?.defaultEntryIntensity ?? 4;
+
+		// Filter entries to displayed year
+		const calEntries = entries.filter(
+			(e) => new Date(e.date + 'T00:00').getFullYear() === year,
+		);
+
+		// Determine intensity scale from data
+		const intensities = calEntries.filter((e) => e.intensity != null).map((e) => e.intensity!);
+		const minIntensity = intensities.length ? Math.min(...intensities) : 1;
+		const maxIntensity = intensities.length ? Math.max(...intensities) : 5;
+		const scaleStart = options?.intensityScaleStart ?? minIntensity;
+		const scaleEnd = options?.intensityScaleEnd ?? maxIntensity;
+
+		// Resolve each entry's intensity to a 1-based palette level
+		const firstColorKey = Object.keys(colors)[0];
+		const mappedEntries: CalendarEntry[] = [];
+
+		for (const e of calEntries) {
+			const intensity = e.intensity ?? defaultEntryIntensity;
+			const colorArr = colors[e.color ?? ''] ?? colors[firstColorKey];
+			const numLevels = colorArr.length;
+
+			let mapped: number;
+			if (minIntensity === maxIntensity && scaleStart === scaleEnd) {
+				mapped = numLevels;
+			} else {
+				mapped = Math.round(KBUI.mapRange(intensity, scaleStart, scaleEnd, 1, numLevels));
+			}
+
+			mappedEntries.push({
+				date: e.date,
+				intensity: mapped,
+				color: e.color,
+				content: e.content,
+			});
+		}
+
+		const isDark = document.documentElement.classList.contains('dark');
+		const emptyColor = isDark ? '#333' : '#ebedf0';
+
+		return { year, colors, firstColorKey, showCurrentDayBorder, emptyColor, entries: mappedEntries };
 	}
 
 	/** Linear interpolation with clamping from [inMin,inMax] to [outMin,outMax] */

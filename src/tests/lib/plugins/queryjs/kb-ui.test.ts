@@ -1142,6 +1142,23 @@ describe('KBUI', () => {
 			expect(entry.style.backgroundColor).toBe('rgb(221, 221, 221)');
 		});
 
+		it('keeps the last entry when two entries share the same date', () => {
+			ui.heatmapCalendar(
+				[
+					{ date: '2025-03-15', intensity: 1, content: 'A' },
+					{ date: '2025-03-15', intensity: 5, content: 'B' },
+				],
+				{ year: 2025, intensityScaleStart: 1, intensityScaleEnd: 5 },
+			);
+
+			const boxes = container.querySelector('.heatmap-calendar-graph')!.children[3];
+			const withData = Array.from(boxes.children).filter(
+				(li) => (li as HTMLElement).dataset.date === '2025-03-15',
+			) as HTMLElement[];
+			expect(withData.length).toBe(1);
+			expect(withData[0].querySelector('span')!.textContent).toBe('B');
+		});
+
 		it('returns the graph element', () => {
 			const result = ui.heatmapCalendar([]);
 			expect(result).toBe(container.firstElementChild);
@@ -1300,6 +1317,23 @@ describe('KBUI', () => {
 				(el) => (el as HTMLElement).dataset.date === todayStr,
 			) as HTMLElement;
 			expect(todayBox.style.border).toBe('');
+		});
+
+		it('keeps the last entry when two entries share the same date', () => {
+			ui.yearlyCalendar(
+				[
+					{ date: '2025-03-15', intensity: 1, content: 'A' },
+					{ date: '2025-03-15', intensity: 5, content: 'B' },
+				],
+				{ year: 2025, intensityScaleStart: 1, intensityScaleEnd: 5 },
+			);
+
+			const boxes = container.querySelector('.yearly-calendar-boxes')!;
+			const withData = Array.from(boxes.children).filter(
+				(el) => (el as HTMLElement).dataset.date === '2025-03-15',
+			) as HTMLElement[];
+			expect(withData.length).toBe(1);
+			expect(withData[0].textContent).toBe('B');
 		});
 
 		it('returns the centered wrapper element', () => {
