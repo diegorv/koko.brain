@@ -59,13 +59,41 @@ describe('buildIndex', () => {
 		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault' });
 	});
 
-	it('swallows scan_vault_v2_cached IPC failures (logs but does not throw)', async () => {
+	it('swallows scan_vault_v2_cached IPC failures (logs, does not throw, resolves false)', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('Rust panic'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		await expect(buildIndex('/vault')).resolves.toBeUndefined();
+		await expect(buildIndex('/vault')).resolves.toBe(false);
 
 		consoleSpy.mockRestore();
+	});
+
+	it('resolves true when the scan succeeds', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce(CACHED_SCAN_RESULT);
+
+		// Positive control for the test above: without it, `toBe(false)` would
+		// also be satisfied by a regression that never reports success.
+		await expect(buildIndex('/vault')).resolves.toBe(true);
+	});
+
+	it('resolves the queued call true when the rerun succeeds after a failed first scan', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom')).mockResolvedValue(CACHED_SCAN_RESULT);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		// The rejection settles on a microtask, so the call below still sees
+		// isBuilding === true and takes the queue branch.
+		const first = buildIndex('/vault-b');
+		const second = buildIndex('/vault-c');
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		// The queued caller must get ITS OWN vault's result. A replay awaited
+		// inside `finally` discards the rerun's value and hands back the failed
+		// first scan's `false`.
+		await expect(second).resolves.toBe(true);
+		await first;
+		consoleSpy.mockRestore();
+
+		expect(vi.mocked(invoke).mock.calls[1]).toEqual(['scan_vault_v2_cached', { path: '/vault-c' }]);
 	});
 
 	it('queues a pending rebuild when called concurrently', async () => {

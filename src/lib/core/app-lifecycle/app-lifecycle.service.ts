@@ -254,9 +254,17 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// ── Step 4: Build indexes + file tree ────────────────────────────
 	// Must complete before starting the watcher to avoid concurrent builds
 	const t4 = perfStart();
+	// `buildIndex` swallows its IPC failures rather than rejecting (its promise
+	// is shared with any queued caller), so the outcome arrives as a resolved
+	// boolean. Reading it through `.then` inside the SAME `Promise.all` keeps
+	// the existing failure behaviour: a `loadDirectoryTree` rejection still
+	// enters the catch below and still does not abort init.
+	let indexBuilt = false;
 	try {
 		await Promise.all([
-			buildIndex(vaultPath),
+			buildIndex(vaultPath).then((ok) => {
+				indexBuilt = ok;
+			}),
 			loadDirectoryTree(vaultPath),
 		]);
 	} catch (err) {
@@ -265,36 +273,48 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	}
 	perfEnd('LIFECYCLE', 'Step 4: buildIndex+loadDirectoryTree(parallel)', t4);
 	if (initVersion !== version) return;
-	// Index built for THIS vault — lift the post-teardown readiness
-	// suppression. Event-driven bumps can't do this: the debounced
-	// vault-index-updated listener survives vault switches, so a tail event
-	// from the old vault could otherwise clear "Indexing vault..." early.
-	// The initVersion check above keeps a torn-down init from marking ready.
-	vaultStore.markIndexReady();
+	if (indexBuilt) {
+		// Index built for THIS vault — lift the post-teardown readiness
+		// suppression. Event-driven bumps can't do this: the debounced
+		// vault-index-updated listener survives vault switches, so a tail event
+		// from the old vault could otherwise clear "Indexing vault..." early.
+		// The initVersion check above keeps a torn-down init from marking ready.
+		vaultStore.markIndexReady();
+	} else {
+		// A failed scan leaves the Rust `VaultIndex` holding the PREVIOUS vault's
+		// entries, so readiness stays suppressed for the rest of this vault
+		// session: the placeholder is honest and the user recovers by reopening.
+		toast.error('Failed to index the vault. Reopen it to try again.');
+	}
 	// Second drop, and the one that actually closes the wrong-vault window:
 	// between the invalidation at init entry and this point a still-debounced
 	// vault-index-updated from the OLD vault can land, refill the memo at the
 	// unchanged version key and hand the old vault's notes to completion.
+	// Unconditional: dropping the memo is correct whether or not the scan
+	// succeeded.
 	invalidateVaultEntries();
-	// The Rust index now holds THIS vault, so record the cache-save key here
-	// (not at function entry) so an init that aborts before this point leaves
-	// the previous vault's path in place, which is still the correct key.
-	indexedVaultPath = vaultPath;
+	if (indexBuilt) {
+		// The Rust index now holds THIS vault, so record the cache-save key here
+		// (not at function entry) so an init that aborts before this point leaves
+		// the previous vault's path in place, which is still the correct key.
+		indexedVaultPath = vaultPath;
 
-	// ── Step 4b: Apply _order frontmatter to file tree ──────────────
-	// Index is now ready, fetch entries once to build contentOrder map.
-	// The watcher handles subsequent updates via fsStore.contentOrder.
-	try {
-		const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
-		const contentOrder = buildContentOrderMap(entries);
-		fsStore.setContentOrder(contentOrder);
-		if (contentOrder.size > 0 && fsStore.fileTree.length > 0) {
-			const sorted = applyFolderOrder(fsStore.fileTree, fsStore.folderOrder, vaultPath, vaultPath, contentOrder);
-			attachFileCounts(sorted);
-			fsStore.setFileTree(sorted);
+		// ── Step 4b: Apply _order frontmatter to file tree ──────────────
+		// Index is now ready, fetch entries once to build contentOrder map.
+		// The watcher handles subsequent updates via fsStore.contentOrder.
+		// Skipped on a failed scan: the entries would be the previous vault's.
+		try {
+			const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+			const contentOrder = buildContentOrderMap(entries);
+			fsStore.setContentOrder(contentOrder);
+			if (contentOrder.size > 0 && fsStore.fileTree.length > 0) {
+				const sorted = applyFolderOrder(fsStore.fileTree, fsStore.folderOrder, vaultPath, vaultPath, contentOrder);
+				attachFileCounts(sorted);
+				fsStore.setFileTree(sorted);
+			}
+		} catch (err) {
+			error('LIFECYCLE', 'Failed to build content order:', err);
 		}
-	} catch (err) {
-		error('LIFECYCLE', 'Failed to build content order:', err);
 	}
 	if (initVersion !== version) return;
 

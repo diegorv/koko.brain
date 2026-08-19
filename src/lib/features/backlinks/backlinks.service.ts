@@ -35,7 +35,7 @@ interface CachedScanResult {
  * hand out a settled promise from a previous vault. Deliberately not cleared
  * by `resetBacklinks` for the same reason.
  */
-let inflightBuild: Promise<void> | null = null;
+let inflightBuild: Promise<boolean> | null = null;
 
 /**
  * Bootstraps the Rust `VaultIndex` for the given vault path. Uses the
@@ -49,16 +49,18 @@ let inflightBuild: Promise<void> | null = null;
  * `rebuildIndex()` replay), and the queued caller receives the in-flight
  * build's promise. So `await buildIndex(p)` always means "the Rust
  * `VaultIndex` has been built for `p`", never "a build for some other vault
- * was already running". IPC failures are logged and swallowed, so a resolved
- * promise does not by itself prove the scan succeeded.
+ * was already running". IPC failures are still logged and swallowed rather
+ * than rethrown (the in-flight promise is shared with the queued caller), so
+ * the resolved value carries the outcome instead: `true` only when the scan
+ * for the LATEST requested path completed, `false` when it failed.
  */
-export function buildIndex(path: string): Promise<void> {
+export function buildIndex(path: string): Promise<boolean> {
 	// Before the early return: a build queued during an in-flight scan must
 	// rerun against the LATEST path, not the one the running scan started with.
 	vaultPath = path;
 	if (isBuilding) {
 		pendingRebuild = true;
-		return inflightBuild ?? Promise.resolve();
+		return inflightBuild ?? Promise.resolve(false);
 	}
 	isBuilding = true;
 	inflightBuild = runBuildIndex(path);
@@ -66,18 +68,27 @@ export function buildIndex(path: string): Promise<void> {
 }
 
 /**
- * Runs one `scan_vault_v2_cached` round trip and, in its `finally`, replays
- * any build queued while it was running. Awaiting the rerun is what makes the
- * queued caller's promise settle only once the latest vault is indexed.
+ * Runs one `scan_vault_v2_cached` round trip and then replays any build queued
+ * while it was running. Returning the rerun is what makes the queued caller's
+ * promise settle only once the latest vault is indexed, AND carry that vault's
+ * own outcome: the replay must stay OUTSIDE the `finally`, because a value
+ * awaited inside `finally` is discarded and the queued caller would receive
+ * the failed first scan's `false`.
  *
- * `isBuilding` is reset BEFORE the rerun on purpose: the rerun re-enters
- * through `buildIndex`, which must take the build branch, not the await
- * branch. Moving the reset below the rerun self-deadlocks.
+ * `isBuilding` is reset in the `finally`, i.e. BEFORE the rerun on purpose:
+ * the rerun re-enters through `buildIndex`, which must take the build branch,
+ * not the await branch. Moving the reset below the rerun self-deadlocks.
+ *
+ * Resolves `true` only once a scan actually completed. IPC failures are logged
+ * and swallowed (never rethrown: `inflightBuild` is shared with the queued
+ * caller) and reported as `false`.
  */
-async function runBuildIndex(path: string): Promise<void> {
+async function runBuildIndex(path: string): Promise<boolean> {
 	const t0 = perfStart();
+	let ok = false;
 	try {
 		const result = await invoke<CachedScanResult>('scan_vault_v2_cached', { path });
+		ok = true;
 		perfEnd('BACKLINKS', `buildIndex:${result.source}`, t0);
 		debug(
 			'BACKLINKS',
@@ -87,11 +98,12 @@ async function runBuildIndex(path: string): Promise<void> {
 		errorLog('BACKLINKS', 'scan_vault_v2_cached failed:', err);
 	} finally {
 		isBuilding = false;
-		if (pendingRebuild && vaultPath) {
-			pendingRebuild = false;
-			await buildIndex(vaultPath);
-		}
 	}
+	if (pendingRebuild && vaultPath) {
+		pendingRebuild = false;
+		return buildIndex(vaultPath);
+	}
+	return ok;
 }
 
 export async function rebuildIndex() {

@@ -216,3 +216,84 @@ Two findings applied. Verdict unchanged: confirmed, medium, ready-for-agent.
   gate would otherwise turn red, mirroring issue 54's collateral list.
 - Added the reciprocal worktree-overlap note with issue 56: same `runBuildIndex` body, same
   `backlinks.service.test.ts`, share a worktree or sequence them.
+
+### 2026-08-19 - resolved
+
+Red-green evidence. The two source files were stashed (`git stash push --` on
+`backlinks.service.ts` + `app-lifecycle.service.ts`) and both suites re-run against the
+pre-fix code, so the red below is a real run, not a recollection:
+
+```
+FAIL src/tests/lib/core/app-lifecycle/app-lifecycle.service.test.ts > initializeVault >
+     leaves the index unready and warns when the vault scan fails
+AssertionError: expected true to be false   (vaultStore.indexReady)
+
+FAIL src/tests/lib/features/backlinks/backlinks.service.test.ts > buildIndex >
+     swallows scan_vault_v2_cached IPC failures (logs, does not throw, resolves false)
+AssertionError: expected undefined to be false
+
+FAIL src/tests/lib/features/backlinks/backlinks.service.test.ts > buildIndex >
+     resolves true when the scan succeeds
+AssertionError: expected undefined to be true
+
+FAIL src/tests/lib/features/backlinks/backlinks.service.test.ts > buildIndex >
+     resolves the queued call true when the rerun succeeds after a failed first scan
+AssertionError: expected undefined to be true
+
+Test Files  2 failed (2)     Tests  4 failed | 86 passed (90)
+```
+
+Green after the fix, same two files: `Test Files 2 passed (2)`, `Tests 90 passed (90)`.
+
+Full gate, all real runs in this worktree:
+
+- `pnpm check` - 191 files, 0 errors, 0 warnings.
+- `pnpm vitest run` - 292 files passed, 6480 passed + 1 todo (baseline 6476 + 1 todo; the
+  delta is exactly the 4 tests added here). No false reds: the three known-unstable files
+  passed in the full run.
+- `pnpm build` - exit 0.
+
+What discovery re-derived:
+
+- `buildIndex` has exactly two call sites, `app-lifecycle.service.ts::initializeVault`
+  (step 4) and `backlinks.service.ts::rebuildIndex`. The latter awaits and discards the
+  value, so widening the return type to `Promise<boolean>` needs no change there and none
+  was made.
+- `indexReady` still has exactly the two consumers the issue names, `BacklinksPanel.svelte`
+  and the active-tab `$effect` in `src/routes/(app)/+layout.svelte`. Nothing else reads it,
+  so the gate's blast radius is the placeholder plus the deferred `fetchBacklinksV2`.
+- The queued-replay trap is real and the third backlinks test is the only thing that catches
+  it: with the replay left inside `finally` the first two backlinks tests still pass.
+
+Collateral tests updated:
+
+- `app-lifecycle.service.test.ts` block mock changed from `buildIndex: vi.fn(() =>
+  Promise.resolve())` to `Promise.resolve(true)`. Without it every `initializeVault` case in
+  the file would have behaved as a failed scan. The two tests the issue enumerated
+  (`'clears index readiness so the next vault shows the indexing state'` and `'saves the
+  index cache under the torn-down vault path, not the newly opened one'`) pass unchanged
+  under the new base mock; neither assertion was weakened.
+- The red case opts out with `mockResolvedValueOnce(false)` and calls `vaultStore._reset()`
+  first, since the suite's `beforeEach` does not. It is paired with a positive control in the
+  same file.
+- Deviation from the issue's suggested test shape: the coalescing case uses
+  `mockRejectedValueOnce(...).mockResolvedValue(CACHED_SCAN_RESULT)` rather than the existing
+  `mockSlowFirstScan` helper, because that helper resolves the first scan and therefore cannot
+  express "failed first scan, succeeding rerun". The rejection settles on a microtask, so the
+  queued call still observes `isBuilding === true` and takes the queue branch, which the test
+  pins with `expect(invoke).toHaveBeenCalledTimes(1)`.
+
+Adversarial review: returned an empty finding list, nothing to fix. This agent independently
+re-derived the red evidence above rather than trusting the report.
+
+Found and deliberately left out of scope:
+
+- The Rust `VaultIndex` keeps the previous vault's entries when `scan_vault_v2_cached_inner`
+  returns `Err` before `idx.build(...)`, and `teardownVault` never clears it. This fix only
+  stops the app from asserting that stale snapshot is valid. Clearing it is a separate defect.
+- Auto-recovery. Readiness stays suppressed for the rest of the vault session after a failed
+  build, so a later successful watcher rebuild will not lift the placeholder; the user recovers
+  by reopening the vault. Lifting suppression from a later `buildIndex` would move readiness
+  ownership out of `initializeVault` and lose the `initVersion !== version` guard.
+- Toast dedupe. When both `buildIndex` and `loadDirectoryTree` fail the user sees two toasts.
+  Accepted, as the issue specified.

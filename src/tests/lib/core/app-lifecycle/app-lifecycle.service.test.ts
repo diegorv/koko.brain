@@ -54,7 +54,7 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 vi.mock('$lib/features/backlinks/backlinks.service', () => ({
-	buildIndex: vi.fn(() => Promise.resolve()),
+	buildIndex: vi.fn(() => Promise.resolve(true)),
 	rebuildIndex: vi.fn(() => Promise.resolve()),
 	resetBacklinks: vi.fn(),
 }));
@@ -376,6 +376,33 @@ describe('initializeVault', () => {
 		await initializeVault('/vault');
 
 		expect(buildIndex).toHaveBeenCalledWith('/vault');
+	});
+
+	it('leaves the index unready and warns when the vault scan fails', async () => {
+		// The suite's beforeEach does not reset the vault store, so a previous
+		// case's readiness would otherwise decide this assertion.
+		vaultStore._reset();
+		// loadDirectoryTree stays resolving, so step 4's own catch (and its own
+		// toast) cannot be mistaken for the one asserted below.
+		vi.mocked(buildIndex).mockResolvedValueOnce(false);
+
+		await initializeVault('/vault');
+
+		expect(vaultStore.indexReady).toBe(false);
+		expect(toast.error).toHaveBeenCalledWith('Failed to index the vault. Reopen it to try again.');
+		// Step 4b must not feed the previous vault's entries into the tree order.
+		expect(invoke).not.toHaveBeenCalledWith('get_all_vault_entries_v2');
+	});
+
+	it('marks the index ready when the vault scan succeeds', async () => {
+		// Positive control for the case above: without it, a fix that simply
+		// never marks readiness would pass.
+		vaultStore._reset();
+
+		await initializeVault('/vault');
+
+		expect(vaultStore.indexReady).toBe(true);
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
 	});
 
 	it('continues initialization when index build or file tree loading fails', async () => {
