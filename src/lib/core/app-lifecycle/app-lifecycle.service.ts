@@ -141,6 +141,21 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// below would hand it the NEW vault's settings to write there. Stopping
 	// now flushes while the store still matches the captured path.
 	void stopSettingsPersistence();
+	// Same window again, and the only handles the skipped teardown would have
+	// released. Overwriting them below without unregistering first strands the
+	// previous init's consumers in the note-change registry and its after-save
+	// hooks in the editor's observer list for the rest of the session, so every
+	// later note change fans out to duplicates.
+	for (const unregister of unregisterNoteChangeConsumers) unregister();
+	unregisterNoteChangeConsumers = [];
+	if (unsubscribeFileHistory) {
+		unsubscribeFileHistory();
+		unsubscribeFileHistory = null;
+	}
+	if (unsubscribeSearchIndex) {
+		unsubscribeSearchIndex();
+		unsubscribeSearchIndex = null;
+	}
 
 	// If a vault is already initialized, save dirty tabs and tear down
 	// watchers, database connections, hooks, and stores from the old vault

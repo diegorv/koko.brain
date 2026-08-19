@@ -184,7 +184,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error as debugError } from '$lib/utils/debug';
 import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
-import { resetHooks } from '$lib/core/editor/editor.hooks';
+import { resetHooks, addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { startWatching, stopWatching, onFileChange } from '$lib/core/filesystem/fs.watcher';
 import { buildIndex, rebuildIndex, resetBacklinks } from '$lib/features/backlinks/backlinks.service';
@@ -533,6 +533,54 @@ describe('note-change consumer wiring', () => {
 		seed('/vault/note.md');
 		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/note.md' });
 		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
+	});
+
+	it('unregisters the superseded init hooks when a second initializeVault overwrites the handles', async () => {
+		// Baseline: the registry must already be empty, otherwise a leak from an
+		// earlier test would keep this red even against the fixed code.
+		seed('/vault/note.md');
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/note.md' });
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
+
+		// Stall vault A inside Step 3, which is AFTER it registers its consumers
+		// and its file-history hook and long before Step 7 assigns
+		// `unsubscribeFileChange` - the exact window where the entry teardown is
+		// skipped because that handle is still null.
+		let releaseA: () => void = () => {};
+		vi.mocked(loadBookmarks).mockImplementation((vaultPath: string) =>
+			vaultPath === '/vault-a'
+				? new Promise<void>((resolve) => { releaseA = resolve; })
+				: Promise.resolve(),
+		);
+		let unsubscribeFileHistoryA: unknown;
+		try {
+			const initA = initializeVault('/vault-a');
+			await new Promise((r) => setTimeout(r, 0));
+			// Precondition: A really is parked mid-init, past registration.
+			expect(loadBookmarks).toHaveBeenCalledWith('/vault-a');
+			expect(startWatching).not.toHaveBeenCalled();
+			unsubscribeFileHistoryA = vi.mocked(addAfterSaveObserver).mock.results[0]?.value;
+			expect(unsubscribeFileHistoryA).toBeTypeOf('function');
+
+			await initializeVault('/vault-b');
+			releaseA();
+			await initA;
+		} finally {
+			// The deferred implementation outlives `vi.clearAllMocks()`, which
+			// only drops recorded calls - leaving it in place hangs every later
+			// initializeVault('/vault-a').
+			vi.mocked(loadBookmarks).mockReset();
+		}
+
+		teardownVault();
+
+		// Teardown drained B's handles. A's must have been drained by B's entry,
+		// or its consumers stay in the module-level registry for the session and
+		// every note change fans out twice.
+		seed('/vault/note.md');
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/note.md' });
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
+		expect(unsubscribeFileHistoryA).toHaveBeenCalled();
 	});
 });
 
