@@ -1,10 +1,16 @@
 name: Nightly
 
 # Nightly build, published as a single fixed pre-release at tag
-# `nightly`. Assets rotate in place — `tauri-action` recreates the
-# release each run after the explicit delete step below, and the
-# `gh release upload --clobber` line at the end overwrites any
-# checksum file the action did not replace.
+# `nightly`. The release entry is never deleted: `tauri-action` reuses
+# it, overwriting the assets whose filename repeats (`latest.json`),
+# and the prune step near the end removes the previous run's
+# version-stamped leftovers once the build has succeeded. The
+# `nightly` tag is moved to the built commit as the last step, so a
+# build that fails inside `tauri-action` leaves both the tag and the
+# assets on the last good build. A failure in the publish steps AFTER
+# the build (checksums, prune, smoke check) still swaps the assets and
+# leaves the tag one commit behind; the assets are what the updater
+# reads, so that is the harmless side of the trade.
 #
 # Triggers:
 #   - `push: main`: every accepted commit on main produces a nightly.
@@ -267,18 +273,38 @@ jobs:
             echo "NIGHTLY_BODY_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Delete previous nightly release
-        # Removing the prior release lets `tauri-action` recreate the
-        # `nightly` tag cleanly without colliding with stale assets. If
-        # there is no existing nightly release (first run, manual reset),
-        # the `|| true` swallows the "not found" error so the workflow
-        # still proceeds. `--cleanup-tag` removes both the GitHub
-        # release entry AND the underlying git tag.
+      - name: Snapshot current nightly assets
+        # The previous nightly release is deliberately NOT deleted here.
+        # `tauri-action` runs `buildProject()` before it touches the
+        # release API at all (src/index.ts), so a failing build leaves
+        # the published release untouched — but only if we haven't
+        # already removed it ourselves. Deleting up front meant any
+        # build/notarization failure left `releases/download/nightly/
+        # latest.json` returning 404 until the next green run, breaking
+        # the updater for every nightly user in the meantime.
+        #
+        # Instead we record the asset ids that exist right now and prune
+        # them after a successful build. Two filenames repeat across
+        # runs: `latest.json` (deleted and re-uploaded by tauri-action)
+        # and `checksums-sha256.txt` (replaced by `gh release upload
+        # --clobber`). Both get a NEW id, so the recorded id 404s on
+        # delete and is skipped. Every other asset carries the version
+        # string (`<version>_aarch64.dmg`, `.app.tar.gz`, `.sig`), so
+        # its name changes each run and the recorded id is the genuinely
+        # stale file we want gone.
+        #
+        # The un-draft line restores what delete+recreate gave us for
+        # free: `getOrCreateRelease` only reuses NON-draft releases, so
+        # a nightly release left in draft state would make every future
+        # run try to create a release at an existing tag and fail until
+        # someone intervened by hand.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
-          echo "Previous nightly release removed (if any)."
+          set -euo pipefail
+          gh release view nightly --json assets --jq '.assets[].id' > stale-asset-ids.txt 2>/dev/null || true
+          echo "Recorded $(wc -l < stale-asset-ids.txt | tr -d ' ') existing asset(s)."
+          gh release edit nightly --draft=false 2>/dev/null || true
 
       - name: Build Tauri app
         id: tauri
@@ -331,6 +357,29 @@ jobs:
             src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
             --clobber
 
+      - name: Prune stale assets and re-assert the pre-release flag
+        # Runs only on a successful build (default `if: success()`), and
+        # after the checksum upload, so at no point does the release
+        # advertise a file it no longer has. A 404 on delete means
+        # tauri-action or `--clobber` already replaced that asset with a
+        # new id. The `--prerelease` edit re-asserts the flag the reuse
+        # path cannot set: `getOrCreateRelease` passes `prerelease` only
+        # when it CREATES the release, so without this a release that
+        # got un-flagged would stay un-flagged forever.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          while read -r asset_id; do
+            [ -n "$asset_id" ] || continue
+            if gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$asset_id" >/dev/null 2>&1; then
+              echo "Deleted stale asset $asset_id"
+            else
+              echo "Asset $asset_id already replaced or gone; skipping"
+            fi
+          done < stale-asset-ids.txt
+          gh release edit nightly --prerelease
+
       - name: Verify nightly latest.json is reachable and well-formed
         # Post-publish smoke check. GitHub's CDN can lag by ~30 seconds
         # after a release upload completes, so we poll with a short
@@ -339,31 +388,38 @@ jobs:
         # the top-level `version` field plus the per-platform `url` and
         # `signature` for `darwin-aarch64`. A 200 with garbage JSON is
         # worse than a 404 — the updater would silently fail later.
+        #
+        # The version check lives INSIDE the retry loop on purpose.
+        # Since the release is no longer deleted before the build, a
+        # lagging read returns the previous run's latest.json with a
+        # perfectly valid 200 instead of a 404. Retrying only on
+        # transport failure would hard-fail on attempt 1 during exactly
+        # the propagation window this loop exists to absorb.
         run: |
           set -euo pipefail
           URL="https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json"
           EXPECTED_VERSION="${{ steps.ver.outputs.nightly_version }}"
           RAW=""
           for attempt in 1 2 3 4 5; do
-            if RAW=$(curl --fail --silent --show-error --location "$URL"); then
-              echo "Fetched latest.json on attempt $attempt"
-              break
+            if FETCHED=$(curl --fail --silent --show-error --location "$URL"); then
+              GOT_VERSION=$(printf '%s' "$FETCHED" | jq -r '.version')
+              if [ "$GOT_VERSION" = "$EXPECTED_VERSION" ]; then
+                RAW="$FETCHED"
+                echo "Fetched latest.json for $EXPECTED_VERSION on attempt $attempt"
+                break
+              fi
+              echo "Attempt $attempt served version '$GOT_VERSION', want '$EXPECTED_VERSION'; backing off 6s..."
+            else
+              echo "Attempt $attempt failed to fetch; backing off 6s..."
             fi
-            echo "Attempt $attempt failed; backing off 6s..."
             sleep 6
           done
           if [ -z "$RAW" ]; then
-            echo "::error::latest.json was not reachable after 5 attempts: $URL"
+            echo "::error::latest.json never advertised '$EXPECTED_VERSION' after 5 attempts: $URL"
             exit 1
           fi
           echo "--- latest.json ---"
           printf '%s\n' "$RAW" | jq .
-
-          GOT_VERSION=$(printf '%s' "$RAW" | jq -r '.version')
-          if [ "$GOT_VERSION" != "$EXPECTED_VERSION" ]; then
-            echo "::error::Version mismatch in latest.json: expected '$EXPECTED_VERSION', got '$GOT_VERSION'"
-            exit 1
-          fi
 
           BUNDLE_URL=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].url')
           SIGNATURE=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].signature')
@@ -376,3 +432,25 @@ jobs:
             exit 1
           fi
           echo "Smoke check passed: version=$GOT_VERSION, bundle=$BUNDLE_URL, signature length=${#SIGNATURE}"
+
+      - name: Point the nightly tag at this commit
+        # LAST step on purpose. `tauri-action` only sets a tag when it
+        # CREATES the release; on the reuse path updateRelease cannot
+        # move it, and the old flow moved it implicitly via
+        # `gh release delete --cleanup-tag` + recreate. Doing it here
+        # means a run that dies in the build — the common failure, since
+        # `tauri-action` builds before it touches the release API —
+        # leaves the tag on the commit whose assets are published.
+        # Moving it up front desynced the tag on EVERY failure, and
+        # GitHub generates the "Source code" archives from the tag at
+        # download time, so the sources would no longer match the DMG.
+        # A failure in the post-build publish steps still leaves the tag
+        # one commit behind the assets; that residual case is not worth
+        # a rollback dance.
+        #
+        # No workflow triggers on this tag (release.yml matches `*.*.*`
+        # and `*.*.*-*`, which both require two literal dots), and
+        # GITHUB_TOKEN pushes do not trigger workflows anyway.
+        run: |
+          set -euo pipefail
+          git push --force origin "HEAD:refs/tags/nightly"

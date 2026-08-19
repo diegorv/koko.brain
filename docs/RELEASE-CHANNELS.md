@@ -57,10 +57,10 @@ Nightly is built and signed by the same workflow infrastructure as Stable, so th
 
 Both workflows invoke `ci.yml` via `workflow_call`. Release sets `force_all: true` so the paths-filter cannot short-circuit a tagged build; nightly leaves it default so a workflow- or docs-only commit can skip the unaffected jobs. Both workflows also invoke `e2e.yml`, but only `release.yml` treats it (and `ci.yml`) as a gate: in `nightly.yml` `build-macos` needs nothing but `guard`, so the checks run alongside the build instead of before it. The build steps differ in:
 
-- `nightly.yml` patches `package.json#version` and `src-tauri/tauri.conf.json#version` in-place with the nightly version string before running `tauri-action`. The patch is job-scoped and never committed.
+- `nightly.yml` patches `src-tauri/tauri.conf.json#version` in-place with the nightly version string before running `tauri-action`. The patch is job-scoped and never committed. `package.json` stays at the base version on purpose — `build-info.js` appends the nightly suffix itself.
 - `nightly.yml` exports `KOKO_RELEASE_CHANNEL=nightly` so Vite injects `__APP_CHANNEL__='nightly'` and the channel pill in the UI reads "NIGHTLY".
-- `nightly.yml` deletes the prior `nightly` release with `gh release delete --cleanup-tag` before each run so `tauri-action` can recreate it cleanly.
-- `nightly.yml` publishes with `prerelease: true` so the release entry is labelled "Pre-release" on the Releases page.
+- `nightly.yml` keeps the `nightly` release in place across runs: `tauri-action` reuses it, overwrites the same-named assets, and the previous version's leftovers are pruned by id only after the build succeeds. A broken build therefore leaves the last good nightly downloadable instead of a 404.
+- `nightly.yml` publishes with `prerelease: true` so the release entry is labelled "Pre-release" on the Releases page, and re-asserts that flag after each run (the reuse path only updates name and body).
 
 When `chore: bump version` lands on `main` before a stable tag push, `nightly.yml` short-circuits in its `guard` job to avoid duplicating the work `release.yml` is about to do for the same SHA.
 
