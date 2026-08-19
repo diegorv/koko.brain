@@ -91,6 +91,15 @@ const SEMANTIC_INIT_DEFER_MS = 3000;
  * to discard results from obsolete initializations (e.g. rapid vault switch).
  */
 let initVersion = 0;
+/**
+ * Path of the vault whose entries the Rust `VaultIndex` currently holds.
+ * Assigned only once the index has been built for that vault, and read by
+ * `teardownVault` to key the cache save. `vaultStore.path` cannot be used
+ * there: on an A -> B switch the store is already B by the time the teardown
+ * inside `initializeVault(B)` runs, so the save would persist A's still
+ * in-memory entries under B's cache key.
+ */
+let indexedVaultPath: string | null = null;
 /** Timer handle for the deferred semantic-search init, set during initializeVault */
 let semanticInitTimer: ReturnType<typeof setTimeout> | null = null;
 /** Timer handle for the deferred secondary builders, set during initializeVault */
@@ -216,6 +225,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// from the old vault could otherwise clear "Indexing vault..." early.
 	// The initVersion check above keeps a torn-down init from marking ready.
 	vaultStore.markIndexReady();
+	// The Rust index now holds THIS vault, so record the cache-save key here
+	// (not at function entry) so an init that aborts before this point leaves
+	// the previous vault's path in place, which is still the correct key.
+	indexedVaultPath = vaultPath;
 
 	// ── Step 4b: Apply _order frontmatter to file tree ──────────────
 	// Index is now ready, fetch entries once to build contentOrder map.
@@ -398,10 +411,14 @@ export function teardownVault(): void {
 	teardownLogSession();
 
 	// ── Save index cache before teardown ─────────────────────────────
-	if (vaultStore.path) {
-		invoke('save_vault_cache', { path: vaultStore.path }).catch((err: unknown) => {
+	// Keyed on the vault the Rust index actually holds, NOT on
+	// `vaultStore.path`: the store already points at the new vault when this
+	// teardown runs from inside `initializeVault`.
+	if (indexedVaultPath) {
+		invoke('save_vault_cache', { path: indexedVaultPath }).catch((err: unknown) => {
 			error('LIFECYCLE', 'Failed to save vault cache:', err);
 		});
+		indexedVaultPath = null;
 	}
 
 	// ── Close database + async cleanup ───────────────────────────────

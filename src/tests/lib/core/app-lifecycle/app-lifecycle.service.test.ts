@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+setupLocalStorage();
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
@@ -811,6 +813,23 @@ describe('state transitions: teardown → reinitialize', () => {
 		expect(loadSettings).toHaveBeenCalledWith('/vault-b');
 		expect(buildIndex).toHaveBeenCalledWith('/vault-b');
 		expect(startWatching).toHaveBeenCalledWith('/vault-b');
+	});
+
+	it('saves the index cache under the torn-down vault path, not the newly opened one', async () => {
+		// Real switch ordering: vaultStore.open(B) mutates the store first, and
+		// only then does the layout $effect call initializeVault(B), whose
+		// internal teardown runs while the Rust index still holds vault A.
+		vaultStore._reset();
+		vaultStore.open('/vault-a');
+		await initializeVault('/vault-a');
+
+		vi.clearAllMocks();
+
+		vaultStore.open('/vault-b');
+		await initializeVault('/vault-b');
+
+		expect(invoke).toHaveBeenCalledWith('save_vault_cache', { path: '/vault-a' });
+		expect(invoke).not.toHaveBeenCalledWith('save_vault_cache', { path: '/vault-b' });
 	});
 
 	it('does not tear down when no vault was previously initialized', async () => {
