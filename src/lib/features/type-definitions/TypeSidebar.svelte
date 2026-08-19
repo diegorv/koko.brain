@@ -40,7 +40,7 @@
 	let untypedCount = $state(0);
 	let navCounts = $state({ inbox: 0, all: 0, archive: 0, favorites: 0 });
 	let viewFiles = $derived(collectViewFiles(fsStore.fileTree));
-	let sortedViewFiles = $derived(sortViewFiles(viewFiles, typeDefinitionsStore.entries));
+	let sortedViewFiles = $derived(sortViewFiles(viewFiles, typeDefinitionsStore.entriesByPath));
 	let sectionContextPath = $state<string | null>(null);
 	let sectionContextName = $state<string | null>(null);
 	let iconPickerPath = $state<string | null>(null);
@@ -230,7 +230,7 @@
 
 					{#if sortedViewFiles.length > 0}
 						{#each sortedViewFiles as view (view.path)}
-							{@const viewEntry = typeDefinitionsStore.entries.find((e) => e.path === view.path)}
+							{@const viewEntry = typeDefinitionsStore.getEntryByPath(view.path)}
 							{@const viewLabel = getViewLabel(viewEntry, view.name)}
 							{@const viewResolved = resolveIconForPath(view.path)}
 							{@const viewIcon = viewResolved?.icon}

@@ -16,6 +16,13 @@ export const typeDefinitionsStore = {
 	get entries() { return entries; },
 	get entriesVersion() { return entriesVersion; },
 	get selectedTypeOrNav() { return selectedTypeOrNav; },
+	/**
+	 * O(1) path → entry index over the latest snapshot, for callers that need the
+	 * whole map (a comparator resolving many paths) rather than a single lookup.
+	 * Always rebuilt together with `entries` in setEntries/reset — a writer that
+	 * updates one without the other would silently stale every consumer.
+	 */
+	get entriesByPath() { return entriesByPath; },
 
 	/** Returns metadata for a type name, or undefined if not defined. */
 	getTypeMetadata(typeName: string): TypeMetadata | undefined {

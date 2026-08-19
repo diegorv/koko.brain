@@ -118,6 +118,54 @@ describe('typeDefinitionsStore', () => {
 		});
 	});
 
+	describe('entriesByPath', () => {
+		it('exposes the O(1) index of the latest snapshot', () => {
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/a.md', title: 'a', isA: null },
+				{ path: '/vault/b.md', title: 'b', isA: 'Project' },
+			] as any);
+
+			const index = typeDefinitionsStore.entriesByPath;
+
+			expect(index.size).toBe(2);
+			expect(index.get('/vault/b.md')?.title).toBe('b');
+		});
+
+		it('yields undefined for an unknown path', () => {
+			typeDefinitionsStore.setEntries([{ path: '/vault/a.md', title: 'a', isA: null }] as any);
+
+			expect(typeDefinitionsStore.entriesByPath.get('/vault/missing.md')).toBeUndefined();
+		});
+
+		it('is replaced (not merged) on each setEntries', () => {
+			typeDefinitionsStore.setEntries([{ path: '/vault/old.md', title: 'old', isA: null }] as any);
+			typeDefinitionsStore.setEntries([{ path: '/vault/new.md', title: 'new', isA: null }] as any);
+
+			const index = typeDefinitionsStore.entriesByPath;
+
+			expect(index.size).toBe(1);
+			expect(index.has('/vault/old.md')).toBe(false);
+			expect(index.get('/vault/new.md')?.title).toBe('new');
+		});
+
+		it('is empty after reset', () => {
+			typeDefinitionsStore.setEntries([{ path: '/vault/a.md', title: 'a', isA: null }] as any);
+			typeDefinitionsStore.reset();
+
+			expect(typeDefinitionsStore.entriesByPath.size).toBe(0);
+		});
+
+		it('agrees with getEntryByPath', () => {
+			typeDefinitionsStore.setEntries([
+				{ path: '/vault/a.md', title: 'a', isA: null },
+			] as any);
+
+			expect(typeDefinitionsStore.entriesByPath.get('/vault/a.md')).toBe(
+				typeDefinitionsStore.getEntryByPath('/vault/a.md')
+			);
+		});
+	});
+
 	describe('getTypeDefinitionPath', () => {
 		it('returns the definition path for a Type entry keyed by title', () => {
 			typeDefinitionsStore.setEntries([

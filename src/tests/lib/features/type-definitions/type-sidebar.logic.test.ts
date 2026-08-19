@@ -1002,17 +1002,21 @@ describe('getViewListProperties', () => {
 });
 
 describe('sortViewFiles', () => {
+	function byPath(...entries: NoteEntryV2[]): Map<string, NoteEntryV2> {
+		return new Map(entries.map((e) => [e.path, e]));
+	}
+
 	it('sorts by _order then alphabetically', () => {
 		const views = [
 			{ path: '/v/b.view', name: 'b' },
 			{ path: '/v/a.view', name: 'a' },
 			{ path: '/v/c.view', name: 'c' },
 		];
-		const entries = [
+		const entries = byPath(
 			entryV2('/v/b.view', { frontmatter: { _order: 10 } }),
 			entryV2('/v/a.view', { frontmatter: { _order: 5 } }),
 			entryV2('/v/c.view', { frontmatter: { _order: 10 } }),
-		];
+		);
 		const result = sortViewFiles(views, entries);
 		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
 	});
@@ -1022,11 +1026,43 @@ describe('sortViewFiles', () => {
 			{ path: '/v/high.view', name: 'high' },
 			{ path: '/v/low.view', name: 'low' },
 		];
-		const entries = [
-			entryV2('/v/low.view', { frontmatter: { _order: 1 } }),
-		];
+		const entries = byPath(entryV2('/v/low.view', { frontmatter: { _order: 1 } }));
 		const result = sortViewFiles(views, entries);
 		expect(result.map((v) => v.name)).toEqual(['low', 'high']);
+	});
+
+	it('falls back to alphabetical order for an empty map', () => {
+		const views = [
+			{ path: '/v/c.view', name: 'c' },
+			{ path: '/v/a.view', name: 'a' },
+			{ path: '/v/b.view', name: 'b' },
+		];
+		const result = sortViewFiles(views, new Map());
+		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
+	});
+
+	it('orders equal _order values alphabetically', () => {
+		const views = [
+			{ path: '/v/c.view', name: 'c' },
+			{ path: '/v/b.view', name: 'b' },
+			{ path: '/v/a.view', name: 'a' },
+		];
+		const entries = byPath(
+			entryV2('/v/a.view', { frontmatter: { _order: 7 } }),
+			entryV2('/v/b.view', { frontmatter: { _order: 7 } }),
+			entryV2('/v/c.view', { frontmatter: { _order: 7 } }),
+		);
+		const result = sortViewFiles(views, entries);
+		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
+	});
+
+	it('does not mutate the input array', () => {
+		const views = [
+			{ path: '/v/b.view', name: 'b' },
+			{ path: '/v/a.view', name: 'a' },
+		];
+		sortViewFiles(views, new Map());
+		expect(views.map((v) => v.name)).toEqual(['b', 'a']);
 	});
 });
 

@@ -171,6 +171,18 @@ function rowTitles(target: HTMLElement): string[] {
 	);
 }
 
+/** Text of the panel header label (the toolbar's leading span). */
+function headerText(target: HTMLElement): string {
+	return target.querySelector('span.text-sm.font-medium')?.textContent?.trim() ?? '';
+}
+
+/** Property pill texts per mounted note row, in render order. */
+function rowPills(target: HTMLElement): string[][] {
+	return [...target.querySelectorAll('[data-note-row]')].map((row) =>
+		[...row.querySelectorAll('.flex-wrap span')].map((el) => el.textContent?.trim() ?? ''),
+	);
+}
+
 describe('TypeNoteList view pipeline', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
@@ -279,6 +291,69 @@ describe('TypeNoteList view pipeline', () => {
 
 		expect(target.textContent).toContain('No notes');
 		expect(rowTitles(target)).toHaveLength(0);
+	});
+
+	// The header label and the row property pills both resolve the selected
+	// `.view` entry out of the entries snapshot. These two assert the resolved
+	// entry's frontmatter actually reaches the DOM, so a lookup that silently
+	// returns undefined shows up as the filename fallback / missing pills.
+	it('labels the header from the .view entry _sidebar_label', async () => {
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_NO_FILTER);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries([
+			...entries.filter((e) => e.path !== VIEW_PATH),
+			makeEntry({ path: VIEW_PATH, title: 'v', frontmatter: { _sidebar_label: 'Open Work' } }),
+		]);
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+
+		expect(headerText(target)).toBe('Open Work');
+	});
+
+	it('falls back to the filename when the .view entry has no _sidebar_label', async () => {
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_NO_FILTER);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries(entries);
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+
+		expect(headerText(target)).toBe('v');
+	});
+
+	it('renders a pill per _list_properties_display value on each row', async () => {
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_DONE_FILTER);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries([
+			makeEntry({ path: '/vault/notes/alpha.md', title: 'Alpha' }),
+			makeEntry({ path: '/vault/notes/beta.md', title: 'Beta' }),
+			makeEntry({
+				path: '/vault/notes/gamma.md',
+				title: 'Gamma',
+				frontmatter: { status: 'done', owner: 'ada' },
+			}),
+			makeEntry({
+				path: VIEW_PATH,
+				title: 'v',
+				frontmatter: { _list_properties_display: ['status', 'owner'] },
+			}),
+		]);
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['Gamma']);
+		expect(rowPills(target)).toEqual([['done', 'ada']]);
 	});
 
 	it('renders no notes when the parse cache read rejects', async () => {

@@ -117,7 +117,7 @@
 					case 'favorites': return 'Favorites';
 				}
 			case 'view': {
-				const entry = typeDefinitionsStore.entries.find((e) => e.path === selection.path);
+				const entry = typeDefinitionsStore.getEntryByPath(selection.path);
 				return getViewLabel(entry, getFileName(selection.path).replace(/\.view$/i, ''));
 			}
 		}
@@ -131,7 +131,7 @@
 			return meta?.listPropertiesDisplay ?? [];
 		}
 		if (selection?.kind === 'view') {
-			const entry = typeDefinitionsStore.entries.find((e) => e.path === selection.path);
+			const entry = typeDefinitionsStore.getEntryByPath(selection.path);
 			return getViewListProperties(entry);
 		}
 		return [];

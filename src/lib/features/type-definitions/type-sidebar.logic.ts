@@ -455,13 +455,15 @@ export function getViewListProperties(entry: NoteEntryV2 | undefined): string[] 
 	return raw.filter((v): v is string => typeof v === 'string');
 }
 
-/** Sorts view files by _order from entries, then alphabetically. */
-export function sortViewFiles(views: ViewFileEntry[], entries: NoteEntryV2[]): ViewFileEntry[] {
+/**
+ * Sorts view files by _order from the entries index, then alphabetically.
+ * Takes the path → entry Map so the comparator resolves in O(1) instead of
+ * scanning the entries array once per comparison.
+ */
+export function sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string, NoteEntryV2>): ViewFileEntry[] {
 	return [...views].sort((a, b) => {
-		const ea = entries.find((e) => e.path === a.path);
-		const eb = entries.find((e) => e.path === b.path);
-		const oa = getViewOrder(ea);
-		const ob = getViewOrder(eb);
+		const oa = getViewOrder(entriesByPath.get(a.path));
+		const ob = getViewOrder(entriesByPath.get(b.path));
 		if (oa !== ob) return oa - ob;
 		return a.name.localeCompare(b.name);
 	});
