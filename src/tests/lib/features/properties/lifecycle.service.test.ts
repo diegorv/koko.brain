@@ -49,6 +49,7 @@ describe('setOrganized', () => {
 			'/vault/note.md',
 			'---\ntitle: Note\n_organized: true\n---\nBody text',
 			false,
+			'frontmatter',
 		);
 	});
 
@@ -110,6 +111,7 @@ describe('setArchived', () => {
 			'/vault/note.md',
 			'---\n_organized: true\n_archived: true\n---\nBody',
 			false,
+			'frontmatter',
 		);
 	});
 
@@ -140,6 +142,7 @@ describe('setArchived', () => {
 			'/vault/note.md',
 			'---\n_archived: true\n---\nBody without frontmatter',
 			false,
+			'frontmatter',
 		);
 	});
 });
@@ -162,6 +165,7 @@ describe('setFavorite', () => {
 			'/vault/note.md',
 			'---\ntitle: Note\n_favorite: true\n---\nBody',
 			false,
+			'frontmatter',
 		);
 	});
 

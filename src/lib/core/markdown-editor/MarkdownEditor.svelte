@@ -33,6 +33,8 @@
 	let lastTabPath: string | undefined;
 	/** Whether a tab switch is in progress (suppresses onContentChange from the doc replace) */
 	let isTabSwitching = false;
+	/** Whether an external-content doc replace is in progress (suppresses onContentChange from it) */
+	let isExternalEdit = false;
 	/**
 	 * AbortController for the rAF chain queued at the end of the tab-switch
 	 * effect. When the user switches tabs faster than the rAF can fire, the
@@ -193,6 +195,7 @@
 				highlightStyleCompartment,
 				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
 				isTabSwitching: () => isTabSwitching,
+				isExternalEdit: () => isExternalEdit,
 			}),
 			selection: EditorSelection.cursor(cursorPos),
 		});
@@ -389,11 +392,18 @@
 
 			const tBaseline = perfStart();
 			const cursorPos = Math.min(view.state.selection.main.head, content.length);
+			// Suppress onContentChange during the doc replace — this is an
+			// external write, not a user edit. The writer already picked its
+			// auto-save schedule when it called `syncExternalContentToEditor`;
+			// letting the dispatch re-enter the keystroke pipeline would arm a
+			// second timer inferred from the previous doc's frontmatter.
+			isExternalEdit = true;
 			view.dispatch({
 				changes: { from: 0, to: view.state.doc.length, insert: content },
 				selection: EditorSelection.cursor(cursorPos),
 				annotations: Transaction.addToHistory.of(false),
 			});
+			isExternalEdit = false;
 			perfBaseline('contentSyncEffect:dispatched', tBaseline);
 		});
 	});

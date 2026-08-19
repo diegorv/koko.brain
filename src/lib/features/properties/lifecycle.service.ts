@@ -15,7 +15,9 @@ function commitLifecycleChange(updated: Property[]): void {
 	const newContent = rebuildContent(updated, body);
 	const activePath = editorStore.activeTabPath;
 	if (activePath) {
-		syncExternalContentToEditor(activePath, newContent, false);
+		// Dirty-aware write of the frontmatter block only: `'frontmatter'`
+		// takes the 500 ms timer so the lifecycle flag lands on disk fast.
+		syncExternalContentToEditor(activePath, newContent, false, 'frontmatter');
 	}
 }
 

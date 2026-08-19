@@ -1170,7 +1170,7 @@ describe('syncExternalContentToEditor (Phase 5)', () => {
 		addTab('/vault/a.md', 'old');
 		const before = editorStore.externalContentSignal;
 
-		syncExternalContentToEditor('/vault/a.md', 'new', true);
+		syncExternalContentToEditor('/vault/a.md', 'new', true, 'none');
 
 		expect(editorStore.tabs[0].content).toBe('new');
 		expect(editorStore.tabs[0].savedContent).toBe('new');
@@ -1183,7 +1183,7 @@ describe('syncExternalContentToEditor (Phase 5)', () => {
 		expect(tab.savedContent).toBe('old');
 		const before = editorStore.externalContentSignal;
 
-		syncExternalContentToEditor('/vault/a.md', 'edited', false);
+		syncExternalContentToEditor('/vault/a.md', 'edited', false, 'none');
 
 		expect(editorStore.tabs[0].content).toBe('edited');
 		expect(editorStore.tabs[0].savedContent).toBe('old');
@@ -1196,7 +1196,7 @@ describe('syncExternalContentToEditor (Phase 5)', () => {
 		// b.md is now active (last added)
 		const before = editorStore.externalContentSignal;
 
-		syncExternalContentToEditor('/vault/a.md', 'a updated', true);
+		syncExternalContentToEditor('/vault/a.md', 'a updated', true, 'none');
 
 		// Signal NOT bumped — a.md is in the background
 		expect(editorStore.externalContentSignal).toBe(before);
@@ -1209,7 +1209,7 @@ describe('syncExternalContentToEditor (Phase 5)', () => {
 		addTab('/vault/a.md', 'a content');
 		const before = editorStore.externalContentSignal;
 
-		syncExternalContentToEditor('/vault/missing.md', 'whatever', true);
+		syncExternalContentToEditor('/vault/missing.md', 'whatever', true, 'none');
 
 		expect(editorStore.externalContentSignal).toBe(before);
 		expect(editorStore.tabs[0].content).toBe('a content');
@@ -1219,9 +1219,9 @@ describe('syncExternalContentToEditor (Phase 5)', () => {
 		addTab('/vault/a.md', 'v0');
 		const start = editorStore.externalContentSignal;
 
-		syncExternalContentToEditor('/vault/a.md', 'v1', true);
-		syncExternalContentToEditor('/vault/a.md', 'v2', true);
-		syncExternalContentToEditor('/vault/a.md', 'v3', false);
+		syncExternalContentToEditor('/vault/a.md', 'v1', true, 'none');
+		syncExternalContentToEditor('/vault/a.md', 'v2', true, 'none');
+		syncExternalContentToEditor('/vault/a.md', 'v3', false, 'none');
 
 		expect(editorStore.externalContentSignal).toBe(start + 3);
 		expect(editorStore.tabs[0].content).toBe('v3');

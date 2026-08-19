@@ -44,8 +44,10 @@ function commitChanges(updated: Property[]): void {
 	const activePath = editorStore.activeTabPath;
 	if (activePath) {
 		// Dirty-aware: only `content` is updated (preserves savedContent so the
-		// dirty flag stays true until the user saves).
-		syncExternalContentToEditor(activePath, newContent, false);
+		// dirty flag stays true until the user saves). `'frontmatter'`: this
+		// rewrites the frontmatter block only, so it takes the 500 ms timer
+		// even when the note had no frontmatter before.
+		syncExternalContentToEditor(activePath, newContent, false, 'frontmatter');
 	}
 }
 

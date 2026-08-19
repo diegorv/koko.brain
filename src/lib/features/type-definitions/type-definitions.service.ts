@@ -98,7 +98,8 @@ export async function renameType(oldName: string, newName: string, definitionPat
 			const updated = rewriteTypeInFrontmatter(tab.content, oldName, newName);
 			if (updated === null) continue;
 			await writeTextFile(tab.path, updated);
-			syncExternalContentToEditor(tab.path, updated, true);
+			// `'none'`: the rewritten `_type` was just written to disk above.
+			syncExternalContentToEditor(tab.path, updated, true, 'none');
 			invoke('update_note_in_index', { path: tab.path, content: updated }).catch((err) =>
 				error('TYPE-RENAME', 'update_note_in_index after tab rewrite failed:', err),
 			);
@@ -157,7 +158,8 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 	const newContent = rebuildContent(updated, body);
 	await writeTextFile(filePath, newContent);
 	if (editorStore.activeTabPath === filePath) {
-		syncExternalContentToEditor(filePath, newContent, true);
+		// `'none'`: the toggled `_favorite` was just written to disk above.
+		syncExternalContentToEditor(filePath, newContent, true, 'none');
 	}
 	await invoke('update_note_in_index', { path: filePath, content: newContent });
 }

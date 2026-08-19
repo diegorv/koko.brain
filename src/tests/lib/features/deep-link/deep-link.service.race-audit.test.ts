@@ -153,6 +153,8 @@ describe('AUDIT: deep-link data integrity (P0 bugs)', () => {
 			expect(syncExternalContentToEditor).toHaveBeenCalledWith(
 				'/vault/note.md',
 				expect.stringContaining('appended text'),
+				true,
+				'none',
 			);
 		});
 	});

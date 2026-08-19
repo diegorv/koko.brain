@@ -433,6 +433,7 @@ describe('toggleFavoriteForPath', () => {
 			'/vault/note.md',
 			expect.stringContaining('_favorite: true'),
 			true,
+			'none',
 		);
 	});
 
@@ -701,6 +702,7 @@ describe('renameType', () => {
 			'/vault/m1.md',
 			'---\n_type: Initiative\n---\n\nunsaved edits',
 			true,
+			'none',
 		);
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
 			path: '/vault/m1.md',

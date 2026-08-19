@@ -233,7 +233,8 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 			const newContent = content + '\n' + existing;
 			markRecentSave(fullPath);
 			await writeTextFile(fullPath, newContent);
-			syncExternalContentToEditor(fullPath, newContent);
+			// `'none'`: the merged content was just written to disk above.
+			syncExternalContentToEditor(fullPath, newContent, true, 'none');
 			notifyAfterSave(fullPath, newContent);
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
@@ -251,7 +252,8 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 			const newContent = existing + '\n' + content;
 			markRecentSave(fullPath);
 			await writeTextFile(fullPath, newContent);
-			syncExternalContentToEditor(fullPath, newContent);
+			// `'none'`: the merged content was just written to disk above.
+			syncExternalContentToEditor(fullPath, newContent, true, 'none');
 			notifyAfterSave(fullPath, newContent);
 			if (!action.silent) {
 				await openFileInEditor(fullPath);
@@ -267,7 +269,8 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		await mkdir(parentDir, { recursive: true });
 		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
-		syncExternalContentToEditor(fullPath, content);
+		// `'none'`: the overwritten content was just written to disk above.
+		syncExternalContentToEditor(fullPath, content, true, 'none');
 		notifyAfterSave(fullPath, content);
 		// File may be new — refresh in background so callback returns fast.
 		refreshTreeInBackground();
@@ -329,7 +332,8 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 
 	markRecentSave(filePath);
 	await writeTextFile(filePath, newContent);
-	syncExternalContentToEditor(filePath, newContent);
+	// `'none'`: the daily note was just written to disk above.
+	syncExternalContentToEditor(filePath, newContent, true, 'none');
 	notifyAfterSave(filePath, newContent);
 }
 

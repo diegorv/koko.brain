@@ -24,15 +24,22 @@ import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.
  * on the signal bump, eliminating the per-keystroke `view.state.doc.toString()`
  * round-trip on the hot path.
  *
- * @param markSaved - when `true` (default) the write is treated as
- *   disk-synced (sets both `content` and `savedContent`). When `false`,
- *   only `content` is updated and dirty state is preserved (used by the
- *   Properties panel's in-memory edits).
+ * @param markSaved - when `true` the write is treated as disk-synced (sets
+ *   both `content` and `savedContent`). When `false`, only `content` is
+ *   updated and dirty state is preserved (used by the Properties panel's
+ *   in-memory edits).
+ * @param schedule - which auto-save timer this write arms: `'frontmatter'`
+ *   (500 ms), `'body'` (2000 ms), or `'none'` when the content is already on
+ *   disk. Explicit because `MarkdownEditor.svelte` flags the resulting doc
+ *   replace as an external edit, so the schedule can no longer be inferred
+ *   from the CodeMirror transaction — and background tabs never reach
+ *   CodeMirror at all.
  */
 export function syncExternalContentToEditor(
 	path: string,
 	content: string,
-	markSaved: boolean = true,
+	markSaved: boolean,
+	schedule: AutoSaveSchedule,
 ): void {
 	const tab = editorStore.tabs.find((t) => t.path === path);
 	if (!tab) return;
@@ -48,6 +55,7 @@ export function syncExternalContentToEditor(
 	if (editorStore.activeTabPath === path) {
 		editorStore.bumpExternalContentSignal();
 	}
+	scheduleAutoSave(schedule);
 }
 
 /**
@@ -162,16 +170,31 @@ const debouncedSave = debounce(saveDirtyTabs, 2000);
 /** Faster auto-save for frontmatter edits (500ms) */
 const debouncedSaveFrontmatter = debounce(saveDirtyTabs, 500);
 
-/** Called on every editor keystroke — updates store content and schedules an auto-save */
-export function onContentChange(content: string, frontmatterChanged = false) {
-	editorStore.updateContent(content);
-	if (frontmatterChanged) {
+/**
+ * Which auto-save timer a content write arms: the 500 ms frontmatter timer,
+ * the 2000 ms body timer, or none at all (content already written to disk).
+ */
+export type AutoSaveSchedule = 'frontmatter' | 'body' | 'none';
+
+/**
+ * Arms the timer matching `schedule`. The two timers are mutually exclusive,
+ * so arming one cancels the other. `'none'` arms nothing and cancels nothing —
+ * a save another edit already scheduled must still fire.
+ */
+function scheduleAutoSave(schedule: AutoSaveSchedule): void {
+	if (schedule === 'frontmatter') {
 		debouncedSave.cancel();
 		debouncedSaveFrontmatter();
-	} else {
+	} else if (schedule === 'body') {
 		debouncedSaveFrontmatter.cancel();
 		debouncedSave();
 	}
+}
+
+/** Called on every editor keystroke — updates store content and schedules an auto-save */
+export function onContentChange(content: string, frontmatterChanged = false) {
+	editorStore.updateContent(content);
+	scheduleAutoSave(frontmatterChanged ? 'frontmatter' : 'body');
 }
 
 /**
@@ -359,8 +382,9 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 		// Re-check tab state — it may have changed during parallel reads
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
 		if (!tab || diskContent === tab.savedContent) continue;
-		// Disk-synced: content + savedContent both reflect the new disk state.
-		syncExternalContentToEditor(filePath, diskContent, true);
+		// Disk-synced: content + savedContent both reflect the new disk state,
+		// so the tab is clean and there is nothing to auto-save.
+		syncExternalContentToEditor(filePath, diskContent, true, 'none');
 		debug('EDITOR', 'Reloaded externally changed file:', filePath);
 	}
 }

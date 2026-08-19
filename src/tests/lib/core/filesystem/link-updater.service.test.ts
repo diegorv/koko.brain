@@ -175,7 +175,7 @@ describe('updateLinksAfterRename', () => {
 			'/vault/other.md',
 			'unsaved edit with [[new-name]]',
 		);
-		// `syncExternalContentToEditor(path, content, true)` updates both
+		// `syncExternalContentToEditor(path, content, true, 'none')` updates both
 		// content and savedContent so the dirty flag clears.
 		const tab = editorStore.tabs.find((t) => t.path === '/vault/other.md');
 		expect(tab).toBeDefined();

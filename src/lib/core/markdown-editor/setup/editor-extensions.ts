@@ -52,6 +52,13 @@ export interface CreateExtensionsOptions {
 	onDocChanged: (content: string, frontmatterChanged: boolean) => void;
 	/** Returns whether a tab switch is in progress (suppresses onDocChanged) */
 	isTabSwitching: () => boolean;
+	/**
+	 * Returns whether an external-content doc replace is in progress
+	 * (suppresses onDocChanged). External writers pick their auto-save
+	 * schedule explicitly via `syncExternalContentToEditor`, so their doc
+	 * replace must not re-enter the keystroke pipeline.
+	 */
+	isExternalEdit: () => boolean;
 }
 
 /** Builds the full CodeMirror extension array for the markdown editor */
@@ -103,7 +110,7 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		opts.highlightStyleCompartment.of(syntaxHighlighting(markdownHighlight)),
 		EditorView.lineWrapping,
 		EditorView.updateListener.of((update) => {
-			if (update.docChanged && !opts.isTabSwitching()) {
+			if (update.docChanged && !opts.isTabSwitching() && !opts.isExternalEdit()) {
 				const doc = update.startState.doc;
 				let fmChanged = false;
 				if (doc.lines >= 2 && FRONTMATTER_FENCE_RE.test(doc.line(1).text)) {

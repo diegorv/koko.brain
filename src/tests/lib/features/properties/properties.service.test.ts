@@ -1,5 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	readTextFile: vi.fn(),
+	writeTextFile: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { resetEditor } from '$lib/core/editor/editor.service';
 import { propertiesStore } from '$lib/features/properties/properties.store.svelte';
 import {
 	updateProperty,
@@ -21,6 +33,55 @@ function openTabWithContent(content: string) {
 		savedContent: content,
 	});
 }
+
+// Every property edit arms a real auto-save timer (see the schedule suite
+// below). `editorStore.reset()` does NOT cancel it, so without fake timers +
+// `resetEditor()` a timer armed here would fire later against whichever tab a
+// following test has open. Fake timers keep the clock still, `resetEditor()`
+// cancels what the previous test armed.
+beforeEach(() => {
+	vi.useFakeTimers();
+	resetEditor();
+	vi.mocked(writeTextFile).mockClear();
+});
+
+afterEach(() => {
+	resetEditor();
+	vi.useRealTimers();
+});
+
+/**
+ * The auto-save schedule `commitChanges` passes to
+ * `syncExternalContentToEditor` (ARCH 2.1). Real debounce + fake timers, like
+ * `editor.service.autosave-schedule.test.ts`: only elapsed time tells the
+ * 500 ms frontmatter timer apart from the 2000 ms body timer, and the
+ * Properties panel (meta-bind, the panel itself) is why the 500 ms timer
+ * exists. Every other test here asserts on store/content state, which is
+ * identical for all three schedules — so this is the only test that fails if
+ * the schedule is changed to `'body'` or `'none'`.
+ */
+describe('commitChanges auto-save schedule', () => {
+	beforeEach(() => {
+		propertiesStore.reset();
+		resetProperties();
+	});
+
+	it('arms the 500 ms frontmatter timer, not the 2000 ms body timer', async () => {
+		openTabWithContent('---\ntitle: Old\n---\nBody');
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+
+		updateProperty('title', 'New');
+
+		await vi.advanceTimersByTimeAsync(499);
+		expect(writeTextFile).not.toHaveBeenCalled();
+
+		await vi.advanceTimersByTimeAsync(2);
+		expect(writeTextFile).toHaveBeenCalledWith(
+			'/vault/test.md',
+			expect.stringContaining('title: New'),
+		);
+	});
+});
 
 describe('updateProperty', () => {
 	beforeEach(() => {

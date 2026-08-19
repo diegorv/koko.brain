@@ -41,7 +41,9 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 				// must reflect the on-disk state to keep the dirty flag accurate.
 				// `syncExternalContentToEditor` also bumps `externalContentSignal`
 				// so an open editor for this path gets a fresh doc replace.
-				syncExternalContentToEditor(filePath, updatedContent, true);
+				// `'none'`: the rewritten content was just written to disk above,
+				// so the tab is clean and needs no auto-save.
+				syncExternalContentToEditor(filePath, updatedContent, true, 'none');
 				// Update the Rust `VaultIndex` so the next `get_backlinks_v2`
 				// reflects the new outgoing-link target without waiting on the
 				// 500 ms watcher debounce. Fire-and-forget; errors logged.

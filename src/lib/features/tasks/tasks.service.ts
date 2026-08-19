@@ -106,7 +106,8 @@ export async function toggleTask(filePath: string, lineNumber: number): Promise<
 		// Sync the open tab (if any) with the new content + bump the external
 		// signal so MarkdownEditor.svelte dispatches the doc replace when this
 		// path matches the active tab.
-		syncExternalContentToEditor(filePath, updatedContent, true);
+		// `'none'`: Rust already wrote the toggled line to disk.
+		syncExternalContentToEditor(filePath, updatedContent, true, 'none');
 	} catch (err) {
 		error('TASKS', 'Failed to toggle task:', err);
 		toast.error('Failed to save task change.');

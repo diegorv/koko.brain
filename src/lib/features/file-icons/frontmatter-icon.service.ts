@@ -45,7 +45,8 @@ export async function setFrontmatterIcon(
 
 	const newContent = rebuildContent(properties, body);
 	await writeTextFile(filePath, newContent);
-	syncExternalContentToEditor(filePath, newContent, true);
+	// `'none'`: the frontmatter was just written to disk above.
+	syncExternalContentToEditor(filePath, newContent, true, 'none');
 }
 
 /** Removes _icon, _color, and _title_color from a markdown file's frontmatter. */
@@ -63,5 +64,6 @@ export async function removeFrontmatterIcon(filePath: string): Promise<void> {
 
 	const newContent = rebuildContent(properties, body);
 	await writeTextFile(filePath, newContent);
-	syncExternalContentToEditor(filePath, newContent, true);
+	// `'none'`: the frontmatter was just written to disk above.
+	syncExternalContentToEditor(filePath, newContent, true, 'none');
 }
