@@ -474,4 +474,68 @@ describe('KBDateTime', () => {
 			expect(dt.toFormat('dd MMM yyyy HH:mm')).toBe('15 Apr 2024 09:05');
 		});
 	});
+
+	describe('calendar-math edges (dayjs delegation)', () => {
+		// Absolute expected values for the units delegated to dayjs in issue 41
+		// (startOf, endOf, weekNumber, quarter, hasSame, toISODate). Hard-coded on
+		// purpose: comparing against a dayjs call here would be tautological.
+
+		it('startOf week crosses a year boundary backwards', () => {
+			// 2023-12-31 is a Sunday, so its ISO week starts in the previous year.
+			expect(new KBDateTime('2023-12-31').startOf('week').toISODate()).toBe('2023-12-25');
+		});
+
+		it('endOf week crosses a year boundary forwards', () => {
+			// 2024-12-30 is a Monday, so its ISO week ends in the next year.
+			expect(new KBDateTime('2024-12-30').endOf('week').toISODate()).toBe('2025-01-05');
+		});
+
+		it('startOf month from the last day of the month', () => {
+			expect(new KBDateTime('2024-01-31').startOf('month').toISODate()).toBe('2024-01-01');
+		});
+
+		it('startOf quarter from the last day of the year', () => {
+			expect(new KBDateTime('2024-12-31').startOf('quarter').toISODate()).toBe('2024-10-01');
+		});
+
+		it('endOf quarter from the first day of the year', () => {
+			expect(new KBDateTime('2024-01-01').endOf('quarter').toISODate()).toBe('2024-03-31');
+		});
+
+		it('endOf month lands on 23:59:59.999 of the last day', () => {
+			const end = new KBDateTime('2024-02-10').endOf('month');
+			expect(end.toISODate()).toBe('2024-02-29');
+			expect(end.hour).toBe(23);
+			expect(end.minute).toBe(59);
+			expect(end.toJSDate().getSeconds()).toBe(59);
+			expect(end.toJSDate().getMilliseconds()).toBe(999);
+		});
+
+		it('weekNumber handles a 53-week ISO year', () => {
+			expect(new KBDateTime('2020-12-31').weekNumber).toBe(53);
+			expect(new KBDateTime('2021-01-01').weekNumber).toBe(53);
+			expect(new KBDateTime('2021-01-04').weekNumber).toBe(1);
+		});
+
+		it('hasSame is false across years for every granularity', () => {
+			const a = new KBDateTime('2024-06-15');
+			const b = new KBDateTime('2023-06-15');
+			expect(a.hasSame(b, 'day')).toBe(false);
+			expect(a.hasSame(b, 'month')).toBe(false);
+			expect(a.hasSame(b, 'year')).toBe(false);
+		});
+
+		it('toISODate pads years below 1000 to four digits', () => {
+			const d = new Date(2024, 5, 15, 0, 0, 0);
+			d.setFullYear(45);
+			expect(new KBDateTime(d).toISODate()).toBe('0045-06-15');
+		});
+
+		it('toISODate on an unparseable date reports Invalid Date', () => {
+			// Not reachable through tryParse (it rejects first), only via a direct
+			// kb.date('garbage') from a user script. Pinned so the string stays
+			// deliberate rather than being a leftover of the old NaN padding.
+			expect(new KBDateTime('garbage').toISODate()).toBe('Invalid Date');
+		});
+	});
 });

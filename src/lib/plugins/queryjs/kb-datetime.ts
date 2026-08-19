@@ -1,3 +1,9 @@
+import dayjs from 'dayjs';
+// Side-effect import: registers the dayjs plugins the delegated methods need
+// (isoWeek for Monday-based week boundaries, quarterOfYear for quarter units).
+// Registration lives in utils/date so there is a single source of truth.
+import '$lib/utils/date';
+
 /**
  * Lightweight Luxon-compatible date wrapper.
  * Wraps native Date, providing .year, .month, .day, .ts, .plus(), .startOf(), etc.
@@ -110,19 +116,13 @@ export class KBDateTime {
 
 	/** Quarter number (1-4) */
 	get quarter(): number {
-		return Math.floor(this._date.getMonth() / 3) + 1;
+		return dayjs(this._date).quarter();
 	}
 
 	/** ISO 8601 week number (1-53). Weeks start Monday; week 1 of a year is the
 	 *  first week with at least 4 days in that year. */
 	get weekNumber(): number {
-		const d = new Date(Date.UTC(this.year, this.month - 1, this.day));
-		// In ISO, Monday = 1, Sunday = 7
-		const dayNum = d.getUTCDay() || 7;
-		// Shift to the Thursday of the current ISO week (used for year disambiguation).
-		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-		return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+		return dayjs(this._date).isoWeek();
 	}
 
 	/** Returns a new KBDateTime advanced by the given duration */
@@ -157,12 +157,10 @@ export class KBDateTime {
 		return this.plus(neg);
 	}
 
-	/** Returns ISO date string (YYYY-MM-DD) */
+	/** Returns ISO date string (YYYY-MM-DD), or 'Invalid Date' when the wrapped
+	 *  Date is unparseable. */
 	toISODate(): string {
-		const y = String(this.year).padStart(4, '0');
-		const m = String(this.month).padStart(2, '0');
-		const d = String(this.day).padStart(2, '0');
-		return `${y}-${m}-${d}`;
+		return dayjs(this._date).format('YYYY-MM-DD');
 	}
 
 	/** Simple format tokens (all occurrences replaced): yyyy, MMMM (full month
@@ -191,65 +189,28 @@ export class KBDateTime {
 
 	/** Comparison: is this date the same as another on a given unit? */
 	hasSame(other: KBDateTime, unit: 'day' | 'month' | 'year'): boolean {
-		if (unit === 'year') return this.year === other.year;
-		if (unit === 'month') return this.year === other.year && this.month === other.month;
-		return this.year === other.year && this.month === other.month && this.day === other.day;
+		return dayjs(this._date).isSame(other._date, unit);
 	}
 
 	/** Returns a new KBDateTime at the start of the given unit.
 	 *  Week boundaries are Monday-based (ISO convention). Quarters are calendar
 	 *  quarters: Q1 starts Jan 1, Q2 Apr 1, Q3 Jul 1, Q4 Oct 1. */
 	startOf(unit: 'day' | 'week' | 'month' | 'quarter' | 'year'): KBDateTime {
-		const d = new Date(this._date.getTime());
-		d.setHours(0, 0, 0, 0);
-		if (unit === 'day') return new KBDateTime(d);
-		if (unit === 'week') {
-			const dayOfWeek = d.getDay(); // 0=Sun
-			const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday-based
-			d.setDate(d.getDate() - diff);
-			return new KBDateTime(d);
-		}
-		if (unit === 'month') {
-			d.setDate(1);
-			return new KBDateTime(d);
-		}
-		if (unit === 'quarter') {
-			const currentQuarter = Math.floor(d.getMonth() / 3);
-			d.setMonth(currentQuarter * 3, 1);
-			return new KBDateTime(d);
-		}
-		// year
-		d.setMonth(0, 1);
-		return new KBDateTime(d);
+		// 'isoWeek' (not 'week') keeps weeks Monday-based; plain 'week' is locale-driven.
+		// Branching instead of mapping the unit inline: no single dayjs overload
+		// accepts both 'isoWeek' and 'quarter'.
+		const d = dayjs(this._date);
+		const start = unit === 'week' ? d.startOf('isoWeek') : d.startOf(unit);
+		return new KBDateTime(start.toDate());
 	}
 
 	/** Returns a new KBDateTime at the end of the given unit (23:59:59.999 on
 	 *  the last day). Week/quarter boundaries match `startOf`. */
 	endOf(unit: 'day' | 'week' | 'month' | 'quarter' | 'year'): KBDateTime {
-		const d = new Date(this._date.getTime());
-		d.setHours(23, 59, 59, 999);
-		if (unit === 'day') return new KBDateTime(d);
-		if (unit === 'week') {
-			// Sunday is the last day of a Monday-started week.
-			const dayOfWeek = d.getDay();
-			const diff = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-			d.setDate(d.getDate() + diff);
-			return new KBDateTime(d);
-		}
-		if (unit === 'month') {
-			// Day 0 of next month = last day of current month.
-			d.setMonth(d.getMonth() + 1, 0);
-			return new KBDateTime(d);
-		}
-		if (unit === 'quarter') {
-			const currentQuarter = Math.floor(d.getMonth() / 3);
-			// Day 0 of the first month after the quarter = last day of the quarter.
-			d.setMonth((currentQuarter + 1) * 3, 0);
-			return new KBDateTime(d);
-		}
-		// year
-		d.setMonth(11, 31);
-		return new KBDateTime(d);
+		// 'isoWeek' (not 'week') keeps weeks Monday-based; plain 'week' is locale-driven.
+		const d = dayjs(this._date);
+		const end = unit === 'week' ? d.endOf('isoWeek') : d.endOf(unit);
+		return new KBDateTime(end.toDate());
 	}
 
 	/** Returns timestamp for relational comparison operators (< > <= >=). Note: === compares object references, not valueOf() */
