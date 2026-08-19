@@ -102,6 +102,45 @@ describe('collectionStore', () => {
 		});
 	});
 
+	describe('version', () => {
+		it('advances on setPropertyIndex', () => {
+			const before = collectionStore.version;
+
+			collectionStore.setPropertyIndex(new Map([['/vault/a.md', {} as any]]));
+
+			expect(collectionStore.version).toBeGreaterThan(before);
+		});
+
+		it('advances on updateRecord', () => {
+			const before = collectionStore.version;
+
+			collectionStore.updateRecord('/vault/a.md', {} as any);
+
+			expect(collectionStore.version).toBeGreaterThan(before);
+		});
+
+		it('advances on removeRecord', () => {
+			collectionStore.updateRecord('/vault/a.md', {} as any);
+			const before = collectionStore.version;
+
+			collectionStore.removeRecord('/vault/a.md');
+
+			expect(collectionStore.version).toBeGreaterThan(before);
+		});
+
+		it('is monotonic across reset', () => {
+			// Same rationale as vaultStore.vaultIndexVersion (app-lifecycle
+			// teardown): snapshot consumers cache by version, so rewinding it
+			// to 0 on a vault switch would serve a stale cache as a fresh hit.
+			collectionStore.updateRecord('/vault/a.md', {} as any);
+			const before = collectionStore.version;
+
+			collectionStore.reset();
+
+			expect(collectionStore.version).toBe(before);
+		});
+	});
+
 	describe('reset', () => {
 		it('clears index and resets ready flag', () => {
 			collectionStore.setPropertyIndex(new Map([['/a', {} as any]]));

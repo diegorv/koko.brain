@@ -21,18 +21,24 @@ import {
 
 /** Cached query data for one collection block. */
 interface CollectionCacheEntry {
+	/** `collectionStore.version` the result was queried at. */
+	version: number;
 	/** View definition (with defaults applied) captured at query time. */
 	view: CollectionViewDef;
 	/** Query result the cached renders are built from. */
 	result: QueryResult;
 }
 
-/** Query cache: cacheKey -> view + result DATA. The DOM is rebuilt on every
- *  toDOM(): rows/pills/bars carry click listeners, so HTML strings cannot be
- *  cached, and live elements must never be shared between widgets — CodeMirror
- *  builds new lines detached, and a shared node would be moved to the last
- *  widget, blanking the earlier occurrences. The expensive part (executeQuery
- *  over the whole property index) still runs once per key. */
+/** Query cache: yamlContent -> view + result DATA queried at a given store
+ *  version. The DOM is rebuilt on every toDOM(): rows/pills/bars carry click
+ *  listeners, so HTML strings cannot be cached, and live elements must never be
+ *  shared between widgets — CodeMirror builds new lines detached, and a shared
+ *  node would be moved to the last widget, blanking the earlier occurrences.
+ *  The expensive part (executeQuery over the whole property index) still runs
+ *  once per (block, version). Keyed by block content alone, with the version
+ *  INSIDE the entry: folding the monotonic counter into the key would grow the
+ *  map without bound (one dead QueryResult per block per save, for the whole
+ *  session; it is only cleared at vault teardown). */
 const collectionCache = new Map<string, CollectionCacheEntry>();
 
 /** Drops all cached renders. Called during vault teardown. */
@@ -43,22 +49,20 @@ export function clearCollectionCache(): void {
 /** Widget that renders a ```collection code block as an inline table */
 export class CollectionBlockWidget extends WidgetType {
 	private readonly isIndexReady: boolean;
-	private readonly indexSize: number;
-	private readonly cacheKey: string;
+	private readonly version: number;
 
 	constructor(readonly yamlContent: string) {
 		super();
 		this.isIndexReady = collectionStore.isIndexReady;
-		this.indexSize = collectionStore.propertyIndex.size;
-		this.cacheKey = `${yamlContent}|${this.indexSize}`;
+		this.version = collectionStore.version;
 	}
 
 	toDOM() {
 		const container = document.createElement('div');
 		container.className = 'cm-lp-collection-block';
 
-		const cached = collectionCache.get(this.cacheKey);
-		if (cached) {
+		const cached = collectionCache.get(this.yamlContent);
+		if (cached && cached.version === this.version) {
 			this.renderView(container, cached.view, cached.result);
 			return container;
 		}
@@ -89,7 +93,7 @@ export class CollectionBlockWidget extends WidgetType {
 
 		const viewWithDefaults: CollectionViewDef = { ...view };
 		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex);
-		collectionCache.set(this.cacheKey, { view: viewWithDefaults, result });
+		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result });
 
 		this.renderView(container, viewWithDefaults, result);
 		return container;
@@ -331,7 +335,7 @@ export class CollectionBlockWidget extends WidgetType {
 		return (
 			this.yamlContent === other.yamlContent &&
 			this.isIndexReady === other.isIndexReady &&
-			this.indexSize === other.indexSize
+			this.version === other.version
 		);
 	}
 

@@ -13,6 +13,7 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
+import { buildPropertyIndex } from '$lib/features/collection/collection.service';
 import { debounce } from '$lib/utils/debounce';
 import { error } from '$lib/utils/debug';
 import type { NoteEntryV2, UpdateResultV2 } from '$lib/types/vault-v2.types';
@@ -97,6 +98,14 @@ export function registerCloseHandler(): () => void {
  * `fetchSeq` is a latest-wins guard: a slow older fetch resolving after
  * a newer one must not overwrite the stores with a stale snapshot.
  *
+ * The refresh is also the PRODUCER for `collectionStore` (plan C11 option 2):
+ * `buildPropertyIndex` otherwise only runs on vault open and on the watcher's
+ * FULL rebuild, so an external edit or an incremental (<= 10 file) watcher
+ * batch refreshed the Rust index without ever reprojecting the TS snapshot
+ * that embedded collection blocks query. It keeps its own try/catch and needs no
+ * `fetchSeq` guard: it publishes a whole snapshot, self-heals on the next
+ * event, and the 300 ms debounce makes an out-of-order landing rare.
+ *
  * Returns a cleanup function to unsubscribe (cancels any pending refresh).
  */
 export function registerVaultIndexUpdatedListener(): () => void {
@@ -107,6 +116,7 @@ export function registerVaultIndexUpdatedListener(): () => void {
 
 	const refresh = () => {
 		vaultStore.bumpVaultIndexVersion(latestVersion);
+		buildPropertyIndex();
 		const seq = ++fetchSeq;
 		invoke<NoteEntryV2[]>('get_all_vault_entries_v2').then((entries) => {
 			if (cancelled || seq !== fetchSeq) return;

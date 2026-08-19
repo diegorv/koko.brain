@@ -57,6 +57,9 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 // write) — mocked per docs/TESTING.md allowlist.
 vi.mock('$lib/core/filesystem/fs.service', () => ({
 	loadDirectoryTree: vi.fn().mockResolvedValue(undefined),
+	// collection.service (buildPropertyIndex producer) imports createFile from
+	// the same module; the mock must expose it or the import fails to link.
+	createFile: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
@@ -101,6 +104,8 @@ import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.
 import { writeSettingsFile } from '$lib/core/settings/settings.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import type { NoteRecordV2 } from '$lib/types/vault-v2.types';
 import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -421,6 +426,35 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		await vi.advanceTimersByTimeAsync(0);
 	};
 
+	/**
+	 * Routes the invoke mock per command: the refresh fires BOTH
+	 * `get_all_vault_entries_v2` and `get_all_property_records`, so a blanket
+	 * `mockResolvedValue(entries)` would hand `NoteEntryV2` objects to
+	 * `buildPropertyIndex` (which expects `NoteRecordV2`).
+	 */
+	const mockInvokeByCommand = (
+		entries: unknown,
+		records: NoteRecordV2[] = [],
+	) => {
+		vi.mocked(invoke).mockImplementation(((command: string) =>
+			command === 'get_all_property_records'
+				? Promise.resolve(records)
+				: Promise.resolve(entries)) as unknown as typeof invoke);
+	};
+
+	/** Builds a minimal NoteRecordV2 as returned by `get_all_property_records`. */
+	const recordV2 = (path: string, properties: Record<string, unknown>): NoteRecordV2 => ({
+		path,
+		name: path.split('/').pop() ?? path,
+		basename: (path.split('/').pop() ?? path).replace(/\.md$/, ''),
+		folder: path.slice(0, path.lastIndexOf('/')),
+		ext: '.md',
+		mtime: 0,
+		ctime: 0,
+		size: 0,
+		properties: properties as NoteRecordV2['properties'],
+	});
+
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
@@ -429,7 +463,8 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		fsStore.reset();
 		typeDefinitionsStore.reset();
 		lifecycleFilterStore.reset();
-		vi.mocked(invoke).mockResolvedValue([]);
+		collectionStore.reset();
+		mockInvokeByCommand([]);
 	});
 
 	afterEach(() => {
@@ -448,7 +483,7 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 			entryV2('/vault/Project.md', { isA: 'Type', frontmatter: { _icon: 'rocket' } }),
 			entryV2('/vault/notes/notes.md', { frontmatter: { _order: 2 } }),
 		];
-		vi.mocked(invoke).mockResolvedValue(entries);
+		mockInvokeByCommand(entries);
 
 		registerVaultIndexUpdatedListener();
 		fireEvent(1);
@@ -472,9 +507,7 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 	it('reloads the directory tree when the content order changed and a vault is open', async () => {
 		vaultStore.open('/vault');
-		vi.mocked(invoke).mockResolvedValue([
-			entryV2('/vault/pinned.md', { frontmatter: { _order: 1 } }),
-		]);
+		mockInvokeByCommand([entryV2('/vault/pinned.md', { frontmatter: { _order: 1 } })]);
 
 		registerVaultIndexUpdatedListener();
 		fireEvent(1);
@@ -490,9 +523,7 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		vaultStore.open('/vault');
 		// Pre-seed the store with the exact map the entries produce.
 		fsStore.setContentOrder(new Map([['/vault/pinned.md', 1]]));
-		vi.mocked(invoke).mockResolvedValue([
-			entryV2('/vault/pinned.md', { frontmatter: { _order: 1 } }),
-		]);
+		mockInvokeByCommand([entryV2('/vault/pinned.md', { frontmatter: { _order: 1 } })]);
 
 		registerVaultIndexUpdatedListener();
 		fireEvent(1);
@@ -505,9 +536,7 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 	it('does not reload the tree when no vault is open, but still updates the order map', async () => {
 		// vaultStore._reset() left path null.
-		vi.mocked(invoke).mockResolvedValue([
-			entryV2('/vault/pinned.md', { frontmatter: { _order: 3 } }),
-		]);
+		mockInvokeByCommand([entryV2('/vault/pinned.md', { frontmatter: { _order: 3 } })]);
 
 		registerVaultIndexUpdatedListener();
 		fireEvent(1);
@@ -520,7 +549,11 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 	it('skips the fan-out when cleanup runs before the in-flight fetch resolves', async () => {
 		let resolveInvoke!: (v: unknown) => void;
-		vi.mocked(invoke).mockReturnValue(new Promise((r) => { resolveInvoke = r; }));
+		const pending = new Promise((r) => { resolveInvoke = r; });
+		vi.mocked(invoke).mockImplementation(((command: string) =>
+			command === 'get_all_property_records'
+				? Promise.resolve([])
+				: pending) as unknown as typeof invoke);
 
 		const cleanup = registerVaultIndexUpdatedListener();
 		fireEvent(7);
@@ -552,7 +585,7 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 	it('coalesces a burst into one snapshot fetch carrying the final version', async () => {
 		const snapshot = [entryV2('/vault/c.md', { archived: true })];
-		vi.mocked(invoke).mockResolvedValue(snapshot);
+		mockInvokeByCommand(snapshot);
 
 		registerVaultIndexUpdatedListener();
 
@@ -564,7 +597,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 		await settleFanOut();
 
-		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(
+			vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'get_all_vault_entries_v2'),
+		).toHaveLength(1);
 		expect(vaultStore.vaultIndexVersion).toBe(3);
 		expect(typeDefinitionsStore.entries).toEqual(snapshot);
 		expect(lifecycleFilterStore.isArchived('/vault/c.md')).toBe(true);
@@ -575,9 +610,14 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		const newer = [entryV2('/vault/new.md')];
 		let resolveFirst!: (v: unknown) => void;
 		let resolveSecond!: (v: unknown) => void;
-		vi.mocked(invoke)
-			.mockReturnValueOnce(new Promise((r) => { resolveFirst = r; }))
-			.mockReturnValueOnce(new Promise((r) => { resolveSecond = r; }));
+		const entriesQueue = [
+			new Promise((r) => { resolveFirst = r; }),
+			new Promise((r) => { resolveSecond = r; }),
+		];
+		vi.mocked(invoke).mockImplementation(((command: string) =>
+			command === 'get_all_vault_entries_v2'
+				? entriesQueue.shift()
+				: Promise.resolve([])) as unknown as typeof invoke);
 
 		registerVaultIndexUpdatedListener();
 		fireEvent(1);
@@ -594,6 +634,21 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 		// Latest-wins guard: the stale snapshot must not overwrite the newer one.
 		expect(typeDefinitionsStore.entries).toEqual(newer);
+	});
+
+	it('rebuilds the collection property index from the same refresh', async () => {
+		// Producer for collectionStore: the incremental watcher leg never calls
+		// buildPropertyIndex, so without this the projected snapshot goes stale
+		// after an external edit (M12).
+		mockInvokeByCommand([], [recordV2('/vault/p.md', { status: 'done' })]);
+
+		registerVaultIndexUpdatedListener();
+		fireEvent(1);
+		await settleFanOut();
+
+		expect(invoke).toHaveBeenCalledWith('get_all_property_records');
+		expect(collectionStore.isIndexReady).toBe(true);
+		expect(collectionStore.propertyIndex.get('/vault/p.md')?.properties.get('status')).toBe('done');
 	});
 
 	it('logs and leaves stores untouched when the entries fetch fails', async () => {

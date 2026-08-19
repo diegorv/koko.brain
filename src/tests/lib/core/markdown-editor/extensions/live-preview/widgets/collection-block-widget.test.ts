@@ -182,12 +182,14 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/a.md');
 	});
 
-	it('reuses the cached query result while yaml and index size are unchanged', () => {
+	it('re-queries when the index changed without changing size', () => {
 		const first = new CollectionBlockWidget(YAML).toDOM();
 		expect(first.querySelectorAll('tbody tr').length).toBe(2);
 
-		// Same index SIZE, different content: the cache key (yaml|indexSize) is
-		// unchanged, so the cached query result must be served without re-querying.
+		// Both maps hold exactly TWO records on purpose: the old cache key
+		// (yaml|indexSize) is byte-identical across the swap, so only the store
+		// version can invalidate it. A different size would flip the old key too
+		// and let this probe pass against the stale-cache bug.
 		collectionStore.setPropertyIndex(
 			new Map([
 				['/vault/x.md', recordAt('/vault/x.md', 'x.md')],
@@ -199,6 +201,31 @@ describe('CollectionBlockWidget — query data cache', () => {
 		const names = [...second.querySelectorAll('tbody tr td:first-child')].map(
 			(td) => td.textContent,
 		);
+		expect(names).toEqual(['x.md', 'y.md']);
+	});
+
+	it('serves the cached query result while the store version is unchanged', () => {
+		const first = new CollectionBlockWidget(YAML).toDOM();
+		expect(first.querySelectorAll('tbody tr').length).toBe(2);
+
+		// Mutating the live Map bypasses every store method, so no version bump
+		// happens and the cache must still hit. Guards against "fix" attempts
+		// that simply delete the cache.
+		collectionStore.propertyIndex.set('/vault/z.md', recordAt('/vault/z.md', 'z.md'));
+
+		const second = new CollectionBlockWidget(YAML).toDOM();
+		const names = [...second.querySelectorAll('tbody tr td:first-child')].map(
+			(td) => td.textContent,
+		);
 		expect(names).toEqual(['a.md', 'b.md']);
+	});
+
+	it('eq() is false for a widget built after an index change', () => {
+		const before = new CollectionBlockWidget(YAML);
+		collectionStore.updateRecord('/vault/c.md', recordAt('/vault/c.md', 'c.md'));
+		const after = new CollectionBlockWidget(YAML);
+
+		expect(before.eq(after)).toBe(false);
+		expect(after.eq(new CollectionBlockWidget(YAML))).toBe(true);
 	});
 });

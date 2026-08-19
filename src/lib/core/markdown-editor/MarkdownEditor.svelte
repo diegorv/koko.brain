@@ -436,15 +436,20 @@
 		});
 	});
 
-	// Rebuild decorations when the property index becomes ready. Widgets
-	// constructed before the deferred buildPropertyIndex() finishes
+	// Rebuild decorations when the property index becomes ready or changes.
+	// Widgets constructed before the deferred buildPropertyIndex() finishes
 	// (app-lifecycle Step 5b, setTimeout(0)) snapshot isIndexReady=false and
 	// render "Building index..." with no recovery path until an edit. The
 	// rebuild creates fresh widgets whose eq() snapshot reflects the flip,
 	// so queryjs/collection placeholders are replaced with real content.
 	// Audit 2026-06-10 HIGH finding 4.
+	// The version read covers the same problem for a READY index: a collection
+	// block on screen keeps rendering its cached rows unless a rebuild
+	// constructs a widget carrying the new version, and nothing else dispatches
+	// one when the change happened in another note (audit 2026-08-12, M12).
 	$effect(() => {
 		collectionStore.isIndexReady;
+		collectionStore.version;
 
 		untrack(() => {
 			if (!view) return;
