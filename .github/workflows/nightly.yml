@@ -302,7 +302,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh release view nightly --json assets --jq '.assets[].id' > stale-asset-ids.txt 2>/dev/null || true
+          # Must come from the REST API, not `gh release view`: the view
+          # command's `.assets[].id` is the GraphQL node ID (`RA_kwDO...`),
+          # which the REST DELETE endpoint rejects with a 404 — every prune
+          # would silently skip and stale DMGs would accumulate forever
+          # (observed 2026-08-19: 6 generations of assets on the release).
+          gh api repos/${{ github.repository }}/releases/tags/nightly --jq '.assets[].id' > stale-asset-ids.txt 2>/dev/null || true
           echo "Recorded $(wc -l < stale-asset-ids.txt | tr -d ' ') existing asset(s)."
           gh release edit nightly --draft=false 2>/dev/null || true
 
