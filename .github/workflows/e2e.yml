@@ -11,11 +11,11 @@ name: E2E
 #     E2E passing), and by run-all.yml for manual full-sweep runs.
 #   - workflow_dispatch: manual run.
 #
-# Intentionally NOT triggered on push:main. Every commit to main has
-# already passed E2E in its PR; re-running on the merge SHA would
-# duplicate work without adding signal. Nightly.yml does not include
-# E2E either (by design — see its top-of-file comment); the only
-# post-merge E2E gate is at release time, where it blocks the build
+# Intentionally NOT triggered on push:main. nightly.yml makes the
+# post-merge invocation via workflow_call (for the commits it builds
+# at all — it skips docs-only and version-bump SHAs), where this suite
+# runs for signal only and does not gate the nightly build. The only
+# post-merge E2E *gate* is at release time, where it blocks the build
 # alongside frontend+rust.
 
 permissions:
@@ -25,7 +25,8 @@ on:
   workflow_dispatch:
   # Reusable: invoked by `.github/workflows/pr.yml` (the pull_request
   # gate, change-gated on frontend paths), `.github/workflows/release.yml`
-  # (as a gate before build-macos), and `.github/workflows/run-all.yml`.
+  # (as a gate before build-macos), `.github/workflows/nightly.yml`
+  # (signal only, gates nothing), and `.github/workflows/run-all.yml`.
   workflow_call:
 
 concurrency:

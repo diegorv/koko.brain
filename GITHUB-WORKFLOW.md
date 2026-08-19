@@ -57,7 +57,7 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
 
 **What CI does NOT test**
 
-- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml) and only runs on PRs and tag pushes.
+- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml), which runs on PRs, tag pushes, and nightly (non-blocking there).
 - Tauri build / packaging / signing (that is what `release.yml` does on tag).
 - macOS-specific Tauri APIs that the mock layer stubs (system fonts, history database via Rust, FTS5 / semantic search, native window events). The frontend exercises these via the mock layer under E2E; native paths are only validated by `cargo test`.
 - Plugin features that the E2E mock layer treats as no-ops (semantic search, file history, system fonts).
@@ -232,7 +232,8 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 |---|---|---|
 | `guard` | ubuntu-latest | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
 | `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. Gated on `needs.guard.outputs.should_build == 'true'`. |
-| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. Only starts after `ci` passes. E2E is intentionally NOT a nightly gate (see below). |
+| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Full Playwright suite on the merge SHA, no paths-filter. Gated on `needs.guard.outputs.should_build == 'true'`. |
+| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. `needs: [guard]` only — `ci` and `e2e` run alongside it, not before it, so neither blocks the nightly artifact. |
 
 `build-macos` pipeline:
 
@@ -246,11 +247,12 @@ Concurrency is `group: nightly, cancel-in-progress: true`: rapid back-to-back pu
 
 **What Nightly tests**
 
-- CI matrix (frontend + rust, gated by paths-filter so a CI-yaml-only commit can skip both) on the exact build SHA, then a full macOS build/sign/notarize/publish cycle.
+- CI matrix (frontend + rust, gated by paths-filter so a CI-yaml-only commit can skip both) and the Playwright E2E suite on the exact build SHA, in parallel with a full macOS build/sign/notarize/publish cycle. Neither check gates the build — they report status, `release.yml` is where they block.
 
 **What Nightly does NOT test**
 
-- **Playwright E2E**. Playwright is the slowest CI job (~5 min) and re-running it on every accepted commit doubles per-nightly wall-clock with no extra safety: a regression that breaks E2E is caught on the PR's E2E run before merge, and `release.yml` re-runs E2E against the exact tagged SHA as a hard gate when the stable release goes out. The nightly channel is opt-in and labelled pre-release, so the marginal E2E coverage isn't worth the runner minutes.
+- **Nothing as a gate.** `ci` and `e2e` both run, but `build-macos` does not depend on them, so a nightly DMG publishes even when they fail. `release.yml` is where both are hard gates. Corollary: because `build-macos` deletes the previous nightly release before building, a commit that fails the build leaves the `nightly` tag absent (404 on `latest.json`) until the next successful run.
+- **Security audits.** `security.yml` covers this SHA through its own `push: main` trigger, not through `nightly.yml`.
 - Same gaps as Release (no `.app` smoke test, no post-publish auto-update verification).
 - The `chore: bump version` skip: there's no positive assertion that the skipped run "would have produced the same bundle as `release.yml`". The two pipelines are equivalent by construction; if they diverge, both flows break at the same time.
 

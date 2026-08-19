@@ -132,26 +132,34 @@ jobs:
   # bypass: a docs-only or workflow-only commit that lands on main
   # should not re-run the frontend + rust suites on the nightly path.
   # If the commit actually changed source, the paths-filter still
-  # gates the relevant job.
+  # gates the relevant job. `e2e` has no such filter of its own, so it
+  # runs in full for every nightly-eligible commit.
   #
-  # E2E is intentionally NOT a gate on the nightly path. Playwright is
-  # the slowest job in CI (~5 minutes) and re-running it on every
-  # accepted commit doubles the wall-clock for every nightly with no
-  # additional safety: a regression that breaks E2E will be caught by
-  # the PR's E2E run before the merge, and the next stable release.yml
-  # tag-push re-runs E2E against the exact tagged SHA as a hard gate.
-  # The nightly channel is opt-in and labelled as pre-release, so the
-  # marginal E2E coverage isn't worth the extra runner minutes per
-  # accepted commit.
+  # Nothing gates the nightly build: `ci` and `e2e` run alongside
+  # `build-macos`, not before it. The nightly channel is opt-in and
+  # labelled pre-release, so a red check is signal for the maintainer
+  # rather than a reason to withhold the artifact — and the stable
+  # release.yml keeps both as hard gates on the tagged SHA.
+  #
+  # security.yml is deliberately absent: it already triggers on
+  # `push: main` for this same SHA. Calling it here too would put two
+  # runs in the `security-refs/heads/main` concurrency group and
+  # cancel-in-progress would kill one mid-run.
   ci:
     name: CI
     needs: guard
     if: needs.guard.outputs.should_build == 'true'
     uses: ./.github/workflows/ci.yml
 
+  e2e:
+    name: E2E
+    needs: guard
+    if: needs.guard.outputs.should_build == 'true'
+    uses: ./.github/workflows/e2e.yml
+
   build-macos:
     name: Build macOS nightly
-    needs: [guard, ci]
+    needs: [guard]
     if: needs.guard.outputs.should_build == 'true'
     runs-on: macos-latest
     timeout-minutes: 45

@@ -49,13 +49,13 @@ Why this design: the alternative — letting the updater downgrade on channel sw
 ## Picking a channel
 
 - **Use Stable** for everyday note-taking. Tagged builds, the full CI matrix (frontend + rust forced via `force_all: true`) plus Playwright E2E as hard gates, slower cadence, fewer regressions.
-- **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every accepted commit on `main` ships. Nightly runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) but intentionally skips E2E to keep the per-commit wall-clock down. Regressions that break E2E will still be caught on the PR's E2E run before merge, and the next stable tag-push re-runs E2E against the exact release SHA.
+- **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every accepted commit on `main` ships. Nightly runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) plus the full E2E suite, but neither gates the build: a red check is signal for the maintainer, and the nightly DMG still publishes. The next stable tag-push re-runs both against the exact release SHA, there as hard gates.
 
-Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface and gate coverage — Nightly ships before the change has accumulated days of real-world use, and without an E2E re-run on the post-merge SHA.
+Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface and gate coverage — Nightly ships before the change has accumulated days of real-world use, and publishes even when CI or E2E goes red on the post-merge SHA.
 
 ## What gets built on which channel
 
-Both workflows invoke `ci.yml` via `workflow_call`. Release sets `force_all: true` so the paths-filter cannot short-circuit a tagged build; nightly leaves it default so a workflow- or docs-only commit can skip the unaffected jobs. E2E is a `release.yml`-only gate. The build steps differ in:
+Both workflows invoke `ci.yml` via `workflow_call`. Release sets `force_all: true` so the paths-filter cannot short-circuit a tagged build; nightly leaves it default so a workflow- or docs-only commit can skip the unaffected jobs. Both workflows also invoke `e2e.yml`, but only `release.yml` treats it (and `ci.yml`) as a gate: in `nightly.yml` `build-macos` needs nothing but `guard`, so the checks run alongside the build instead of before it. The build steps differ in:
 
 - `nightly.yml` patches `package.json#version` and `src-tauri/tauri.conf.json#version` in-place with the nightly version string before running `tauri-action`. The patch is job-scoped and never committed.
 - `nightly.yml` exports `KOKO_RELEASE_CHANNEL=nightly` so Vite injects `__APP_CHANNEL__='nightly'` and the channel pill in the UI reads "NIGHTLY".
