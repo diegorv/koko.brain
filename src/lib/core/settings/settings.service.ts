@@ -2,6 +2,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';
+import { normalizeSettings } from './settings.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '$lib/utils/debug';
 import { getBuildChannel } from '$lib/utils/app-channel';
@@ -162,7 +163,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			typesBaseFolder: parsed.typesBaseFolder ?? DEFAULT_SETTINGS.typesBaseFolder,
 			dockBadgeInboxCount: parsed.dockBadgeInboxCount ?? DEFAULT_SETTINGS.dockBadgeInboxCount,
 		};
-		settingsStore.setSettings(merged);
+		settingsStore.setSettings(normalizeSettings(merged));
 		await saveSettings(vaultPath);
 		applyActiveTheme();
 		applyHeadingTypography();
@@ -200,10 +201,14 @@ export async function writeSettingsFile(vaultPath: string, content: string): Pro
 	}
 }
 
-/** Persists the current settings to disk, creating the `.kokobrain` dir if needed */
+/**
+ * Persists the current settings to disk, creating the `.kokobrain` dir if needed.
+ * Normalized on the way out so no store-to-disk path can carry an out-of-range value.
+ */
 export async function saveSettings(vaultPath: string): Promise<void> {
 	debug('SETTINGS', `saveSettings() called at ${Date.now()}`);
-	await writeSettingsFile(vaultPath, JSON.stringify(settingsStore.settings, null, 2));
+	const content = JSON.stringify(normalizeSettings(settingsStore.settings), null, 2);
+	await writeSettingsFile(vaultPath, content);
 }
 
 /** Applies heading typography CSS variables to the document root */

@@ -1,5 +1,5 @@
 import { clamp } from '$lib/utils/clamp';
-import type { SettingsSection } from './settings.types';
+import type { AppSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
 
 /** Clamps a font size to the valid range (8–32 px) */
 export function clampFontSize(size: number): number {
@@ -35,6 +35,49 @@ export function clampHeadingLineHeight(height: number): number {
 /** Clamps a heading letter spacing to the valid range (-0.1 to 0.1 em) */
 export function clampHeadingLetterSpacing(spacing: number): number {
 	return clamp(spacing, -0.1, 0.1);
+}
+
+/** Clamps the three numeric fields of one heading level, keeping the rest as-is */
+function normalizeHeadingLevel(level: HeadingLevelSettings): HeadingLevelSettings {
+	return {
+		...level,
+		fontSize: clampHeadingFontSize(level.fontSize),
+		lineHeight: clampHeadingLineHeight(level.lineHeight),
+		letterSpacing: clampHeadingLetterSpacing(level.letterSpacing),
+	};
+}
+
+/**
+ * Returns a copy of `settings` with every clamped numeric field forced back
+ * into its valid range. Applied when settings are read from disk and again
+ * before they are written, so a hand-edited file and a value still sitting
+ * uncommitted in an input both end up sane on disk.
+ *
+ * Only the clamped fields are rewritten: every other branch is carried through
+ * by spread, so unrelated user data (themes, tag colors, disabled decorators)
+ * keeps its identity and its key order.
+ */
+export function normalizeSettings(settings: AppSettings): AppSettings {
+	const { editor } = settings;
+	const headings = editor.headingTypography;
+	return {
+		...settings,
+		editor: {
+			...editor,
+			fontSize: clampFontSize(editor.fontSize),
+			lineHeight: clampLineHeight(editor.lineHeight),
+			contentWidth: clampContentWidth(editor.contentWidth),
+			paragraphSpacing: clampParagraphSpacing(editor.paragraphSpacing),
+			headingTypography: {
+				h1: normalizeHeadingLevel(headings.h1),
+				h2: normalizeHeadingLevel(headings.h2),
+				h3: normalizeHeadingLevel(headings.h3),
+				h4: normalizeHeadingLevel(headings.h4),
+				h5: normalizeHeadingLevel(headings.h5),
+				h6: normalizeHeadingLevel(headings.h6),
+			},
+		},
+	};
 }
 
 /** A single navigation item in the settings sidebar */

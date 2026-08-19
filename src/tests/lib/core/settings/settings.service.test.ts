@@ -78,6 +78,30 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.editor.lineHeight).toBe(DEFAULT_SETTINGS.editor.lineHeight);
 	});
 
+	it('clamps out-of-range values coming from a hand-edited settings.json', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({
+				editor: {
+					fontSize: 999,
+					contentWidth: 50,
+					headingTypography: { h1: { fontSize: 99 } },
+				},
+			}),
+		);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.editor.fontSize).toBe(32);
+		expect(settingsStore.settings.editor.contentWidth).toBe(400);
+		expect(settingsStore.settings.editor.headingTypography.h1.fontSize).toBe(5);
+		// The write-back that follows the merge repairs the file on disk too.
+		const written = JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1] as string);
+		expect(written.editor.fontSize).toBe(32);
+		expect(written.editor.contentWidth).toBe(400);
+	});
+
 	it('defaults dockBadgeInboxCount to true when absent from the saved file', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));

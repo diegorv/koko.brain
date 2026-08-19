@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import type { AppSettings } from '$lib/core/settings/settings.types';
+import { DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
 import {
 	clampFontSize,
 	clampLineHeight,
@@ -7,6 +9,7 @@ import {
 	clampHeadingFontSize,
 	clampHeadingLineHeight,
 	clampHeadingLetterSpacing,
+	normalizeSettings,
 	SETTINGS_SECTION_GROUPS,
 } from '$lib/core/settings/settings.logic';
 
@@ -167,5 +170,81 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 				expect(section.label).toBeTruthy();
 			}
 		}
+	});
+});
+
+describe('normalizeSettings', () => {
+	/** A fresh, fully in-range AppSettings for a case to push out of range */
+	function fixture(): AppSettings {
+		return structuredClone(DEFAULT_SETTINGS);
+	}
+
+	it('clamps every out-of-range editor value', () => {
+		const settings = fixture();
+		settings.editor.fontSize = 999;
+		settings.editor.lineHeight = 9;
+		settings.editor.contentWidth = 50;
+		settings.editor.paragraphSpacing = 9;
+
+		const normalized = normalizeSettings(settings);
+
+		expect(normalized.editor.fontSize).toBe(32);
+		expect(normalized.editor.lineHeight).toBe(3);
+		expect(normalized.editor.contentWidth).toBe(400);
+		expect(normalized.editor.paragraphSpacing).toBe(2);
+	});
+
+	it('keeps a content width of 0 as the "no limit" sentinel', () => {
+		const settings = fixture();
+		settings.editor.contentWidth = 0;
+
+		expect(normalizeSettings(settings).editor.contentWidth).toBe(0);
+	});
+
+	it('clamps out-of-range heading typography on any level', () => {
+		const settings = fixture();
+		settings.editor.headingTypography.h1.fontSize = 99;
+		settings.editor.headingTypography.h3.letterSpacing = 5;
+		settings.editor.headingTypography.h6.lineHeight = 0.1;
+
+		const normalized = normalizeSettings(settings);
+
+		expect(normalized.editor.headingTypography.h1.fontSize).toBe(5);
+		expect(normalized.editor.headingTypography.h3.letterSpacing).toBe(0.1);
+		expect(normalized.editor.headingTypography.h6.lineHeight).toBe(1);
+	});
+
+	it('leaves non-numeric heading fields alone', () => {
+		const settings = fixture();
+		settings.editor.headingTypography.h2.fontWeight = 'normal';
+
+		expect(normalizeSettings(settings).editor.headingTypography.h2.fontWeight).toBe('normal');
+	});
+
+	it('returns in-range settings unchanged, down to the serialized bytes', () => {
+		const settings = fixture();
+
+		expect(JSON.stringify(normalizeSettings(settings), null, 2)).toBe(
+			JSON.stringify(settings, null, 2),
+		);
+	});
+
+	it('carries unrelated branches through by reference instead of rebuilding them', () => {
+		const settings = fixture();
+
+		const normalized = normalizeSettings(settings);
+
+		expect(normalized.appearance).toBe(settings.appearance);
+		expect(normalized.tagColors).toBe(settings.tagColors);
+		expect(normalized.disabledDecorators).toBe(settings.disabledDecorators);
+	});
+
+	it('does not mutate its input', () => {
+		const settings = fixture();
+		settings.editor.fontSize = 999;
+
+		normalizeSettings(settings);
+
+		expect(settings.editor.fontSize).toBe(999);
 	});
 });

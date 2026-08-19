@@ -1,5 +1,6 @@
 import { settingsStore } from './settings.store.svelte';
 import { writeSettingsFile } from './settings.service';
+import { normalizeSettings } from './settings.logic';
 import { error } from '$lib/utils/debug';
 
 /**
@@ -20,9 +21,16 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 /** Last content handed to disk, used to skip writes that would change nothing */
 let lastWritten = '';
 
-/** Serializes the settings store exactly as the file on disk stores them */
+/**
+ * Serializes the settings store exactly as the file on disk stores them.
+ *
+ * Normalizing here is what keeps an out-of-range value off disk: the numeric
+ * settings inputs write the raw typed value into the store on every keystroke
+ * and only clamp it when the edit is committed, so the value this effect sees
+ * can still be out of range.
+ */
 function serialize(): string {
-	return JSON.stringify(settingsStore.settings, null, 2);
+	return JSON.stringify(normalizeSettings(settingsStore.settings), null, 2);
 }
 
 /**

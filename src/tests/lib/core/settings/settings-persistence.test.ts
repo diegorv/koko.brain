@@ -63,6 +63,20 @@ describe('settings persistence', () => {
 		expect(writtenSettings().layout.leftSidebarVisible).toBe(false);
 	});
 
+	it('clamps an out-of-range value on its way to disk', async () => {
+		startSettingsPersistence('/vault-a');
+
+		// What an uncommitted keystroke leaves in the store: the input handler
+		// writes the raw value, and nothing clamps it until the change event.
+		settingsStore.updateEditor({ fontSize: 999 });
+		await settle();
+
+		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(writtenSettings().editor.fontSize).toBe(32);
+		// Only the file is repaired; the store keeps the raw value it was given.
+		expect(settingsStore.editor.fontSize).toBe(999);
+	});
+
 	it('writes nothing before the debounce window elapses', async () => {
 		startSettingsPersistence('/vault-a');
 
