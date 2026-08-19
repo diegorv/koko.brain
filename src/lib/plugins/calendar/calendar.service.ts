@@ -109,6 +109,23 @@ export function updateCalendarForFile(filePath: string, content: string): void {
 }
 
 /**
+ * Removes a single file from the calendar index.
+ * Drops the tracked date keys so a re-created file at the same path
+ * is indexed again from scratch.
+ */
+export function removeCalendarForFile(filePath: string): void {
+	const oldEffective = fileDateKeys.get(filePath) ?? null;
+
+	fileDateKeys.delete(filePath);
+	fileFrontmatterKeys.delete(filePath);
+	fileFilesystemKeys.delete(filePath);
+
+	if (oldEffective) {
+		calendarStore.updateFileDate(filePath, oldEffective, null);
+	}
+}
+
+/**
  * Opens or creates a periodic note of any type for an arbitrary date.
  * Parses the dateKey and delegates to the periodic-notes service.
  */

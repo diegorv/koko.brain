@@ -38,3 +38,32 @@ files for this step, verify with `git diff --cached --stat`, and commit using th
 format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+### Step 1 review, deferred follow-ups
+
+Two minor findings from the step 1 review were deliberately NOT applied here (they add a
+test or change behaviour, both outside this additive step's scope):
+
+1. `removeCalendarForFile`'s `fileFilesystemKeys.delete(filePath)` is unpinned by any test.
+   The suite only seeds via `updateCalendarForFile`, which writes `fileFrontmatterKeys` and
+   `fileDateKeys` but never `fileFilesystemKeys` (only `scanFilesForCalendar` writes that map,
+   from `node.createdAt`), so a mutant dropping that line still passes. Real consequence of the
+   mutant: a scan records the fs `createdAt` for a path, the file is deleted (entry survives),
+   the path is re-created with a `created:` frontmatter date, the user later removes that
+   property, and `updateCalendarForFile` falls back to the stale pre-deletion filesystem key and
+   files the note under the wrong day. Fix: seed `fileFilesystemKeys` through the real scan path
+   (an `fsStore` tree node with `createdAt` plus `scanFilesForCalendar`), remove, then re-add and
+   remove a `created` property and assert the file does not reappear under the old day. Land it in
+   step 2 alongside the delete-branch wiring.
+
+2. `removeFrontmatterIconForFile`'s early return `if (!fileIconsStore.getFrontmatterIcon(filePath)) return;`
+   checks only the file key, so a stale folder-note parent-directory key survives when the file key
+   was already cleared. Sequence: a folder icon is indexed for `X/X.md` (both `X/X.md` and `X` keys
+   set), the user clears it via `removeIconForPath` on the `.md` file, which clears only the file
+   key; the later `updateFrontmatterIconForFile` hits its own `if (!newRef && !oldRef) return` and
+   never cleans `X` either. When step 2 wires deletion, `removeFrontmatterIconForFile` then early
+   returns and the folder keeps a phantom icon until the next full `buildFrontmatterIconIndex`.
+   This is a pre-existing gap that the new function mirrors rather than introduces (the step spec
+   asked for parity with `updateFrontmatterIconForFile`). Root-cause fix belongs in
+   `removeIconForPath`'s isMarkdown branch (clear the parent key there too); own issue, not a
+   widening of this step.

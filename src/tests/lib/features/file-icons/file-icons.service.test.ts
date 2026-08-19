@@ -30,6 +30,7 @@ import {
 	removeIconForPath,
 	buildFrontmatterIconIndex,
 	updateFrontmatterIconForFile,
+	removeFrontmatterIconForFile,
 	resetFileIcons,
 } from '$lib/features/file-icons/file-icons.service';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -308,6 +309,55 @@ describe('updateFrontmatterIconForFile', () => {
 
 		expect(preloadPacks).not.toHaveBeenCalled();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+	});
+});
+
+describe('removeFrontmatterIconForFile', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		fileIconsStore.reset();
+	});
+
+	it('drops the icon entry for a plain note', () => {
+		updateFrontmatterIconForFile('/vault/a.md', '---\n_icon: lucide:star\n---\n');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeDefined();
+
+		removeFrontmatterIconForFile('/vault/a.md');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+		expect(fileIconsStore.frontmatterIcons.size).toBe(0);
+	});
+
+	it('drops the folder-note parent directory key too', () => {
+		updateFrontmatterIconForFile('/vault/Proj/Proj.md', '---\n_icon: lucide:star\n---\n');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj/Proj.md')).toBeDefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj')).toBeDefined();
+
+		removeFrontmatterIconForFile('/vault/Proj/Proj.md');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj/Proj.md')).toBeUndefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj')).toBeUndefined();
+		expect(fileIconsStore.frontmatterIcons.size).toBe(0);
+	});
+
+	it('leaves sibling entries untouched', () => {
+		updateFrontmatterIconForFile('/vault/Proj/Proj.md', '---\n_icon: lucide:star\n---\n');
+		updateFrontmatterIconForFile('/vault/Proj/other.md', '---\n_icon: feather:heart\n---\n');
+
+		removeFrontmatterIconForFile('/vault/Proj/other.md');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj/other.md')).toBeUndefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj/Proj.md')).toEqual({ iconPack: 'lucide', iconName: 'star' });
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Proj')).toEqual({ iconPack: 'lucide', iconName: 'star' });
+	});
+
+	it('is a no-op for a path that was never indexed', () => {
+		updateFrontmatterIconForFile('/vault/a.md', '---\n_icon: lucide:star\n---\n');
+
+		removeFrontmatterIconForFile('/vault/missing.md');
+
+		expect(fileIconsStore.frontmatterIcons.size).toBe(1);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ iconPack: 'lucide', iconName: 'star' });
 	});
 });
 

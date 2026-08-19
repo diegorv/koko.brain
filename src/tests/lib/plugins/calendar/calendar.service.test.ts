@@ -22,6 +22,7 @@ import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
 import {
 	scanFilesForCalendar,
 	updateCalendarForFile,
+	removeCalendarForFile,
 	openOrCreatePeriodicNoteForDate,
 	resetCalendar,
 } from '$lib/plugins/calendar/calendar.service';
@@ -222,6 +223,61 @@ describe('updateCalendarForFile', () => {
 		// And be removed from the old frontmatter key
 		const oldPaths = calendarStore.dayPaths.get('2025-12-25') ?? [];
 		expect(oldPaths).not.toContain('/vault/both.md');
+	});
+});
+
+describe('removeCalendarForFile', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		resetCalendar();
+		fsStore.reset();
+		collectionStore.reset();
+	});
+
+	it('drops the file from dayPaths and the computed getters', () => {
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
+		calendarStore.setSelectedDateKey('2026-01-02');
+		expect(calendarStore.dayPaths.get('2026-01-02')).toContain('/vault/a.md');
+		expect(calendarStore.dayFileCounts.get('2026-01-02')).toBe(1);
+		expect(calendarStore.selectedDateFiles).toContain('/vault/a.md');
+
+		removeCalendarForFile('/vault/a.md');
+
+		expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
+		expect(calendarStore.dayFileCounts.get('2026-01-02')).toBeUndefined();
+		expect(calendarStore.selectedDateFiles).toEqual([]);
+	});
+
+	it('clears the tracked keys so the same path can be re-indexed', () => {
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
+
+		removeCalendarForFile('/vault/a.md');
+		// A re-created file with the same `created` date must land in the calendar again.
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
+
+		expect(calendarStore.dayPaths.get('2026-01-02')).toContain('/vault/a.md');
+	});
+
+	it('leaves other files on the same day untouched', () => {
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
+		updateCalendarForFile('/vault/b.md', '---\ncreated: 2026-01-02\n---\n');
+
+		removeCalendarForFile('/vault/a.md');
+
+		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/b.md']);
+		expect(calendarStore.dayFileCounts.get('2026-01-02')).toBe(1);
+	});
+
+	it('is a no-op for a path that was never indexed', () => {
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
+		const before = calendarStore.dayPaths;
+
+		removeCalendarForFile('/vault/missing.md');
+
+		expect(calendarStore.dayPaths).toBe(before);
+		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/a.md']);
 	});
 });
 

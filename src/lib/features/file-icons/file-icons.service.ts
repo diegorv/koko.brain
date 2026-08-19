@@ -237,6 +237,26 @@ export function updateFrontmatterIconForFile(filePath: string, content: string):
 	}
 }
 
+/**
+ * Removes the frontmatter icon entry for a single file.
+ * Mirrors `updateFrontmatterIconForFile`, including the folder-note
+ * parent-directory key that `X/X.md` also indexes under.
+ */
+export function removeFrontmatterIconForFile(filePath: string): void {
+	if (!fileIconsStore.getFrontmatterIcon(filePath)) return;
+
+	fileIconsStore.updateFrontmatterIcon(filePath, null);
+
+	// Folder notes: the parent directory path carries the same icon
+	const parts = filePath.split('/');
+	const fileName = parts[parts.length - 1];
+	const parentDir = parts.slice(0, -1).join('/');
+	const parentName = parts[parts.length - 2];
+	if (parentName && fileName === `${parentName}.md`) {
+		fileIconsStore.updateFrontmatterIcon(parentDir, null);
+	}
+}
+
 /** Clears file icon state (e.g. when switching vaults) */
 export function resetFileIcons(): void {
 	fileIconsStore.reset();
