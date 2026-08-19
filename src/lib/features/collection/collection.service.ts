@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
 import { createFile } from '$lib/core/filesystem/fs.service';
 import { collectionStore } from './collection.store.svelte';
@@ -103,6 +104,18 @@ export function updateNoteInIndex(path: string, content: string) {
  */
 export function removeNoteFromIndex(path: string) {
 	collectionStore.removeRecord(path);
+}
+
+/**
+ * Registers the property index as a note-change consumer, so `applyNoteChange`
+ * keeps it in sync on every write and eviction. Returns an unregister function.
+ */
+export function registerCollectionNoteChangeConsumer(): () => void {
+	return registerNoteChangeConsumer({
+		name: 'collection',
+		upsert: updateNoteInIndex,
+		remove: removeNoteFromIndex,
+	});
 }
 
 /** Resets the collection store to its initial state. Used during vault teardown. */

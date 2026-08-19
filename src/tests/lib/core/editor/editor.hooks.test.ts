@@ -21,6 +21,8 @@ import {
 	markRecentSave,
 	areAllRecentSaves,
 } from '$lib/core/editor/editor.hooks';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 
 describe('notifyAfterSave', () => {
@@ -66,6 +68,47 @@ describe('notifyAfterSave', () => {
 		// only skips the index updaters, not the observer fan-out).
 		expect(obs).toHaveBeenCalledWith('/vault/note.md', 'abc');
 		expect(isAlreadyIndexed('/vault/note.md', 'abc')).toBe(true);
+	});
+
+	it('refreshes the registered per-file consumers synchronously', () => {
+		// ADR-0009: the consumer fan-out has to finish BEFORE notifyAfterSave
+		// invalidates the queryjs cache, or a widget re-rendering right after
+		// the invalidation reads a stale index. An owner that awaited before
+		// its consumers would break this while every other test stayed green.
+		clearAllIndexed();
+		collectionStore.reset();
+		const unregister = registerCollectionNoteChangeConsumer();
+		try {
+			notifyAfterSave('/vault/note.md', '---\nstatus: done\n---\n');
+
+			const record = collectionStore.propertyIndex.get('/vault/note.md');
+			expect(record?.properties.get('status')).toBe('done');
+		} finally {
+			unregister();
+			collectionStore.reset();
+		}
+	});
+
+	it('skips the consumers but still fires Rust when the signature is already indexed', () => {
+		// The dedupe map has two independent axes: it gates the TS consumers
+		// but never the Rust IPC. Collapsing them into one boolean would
+		// silently drop the save-side VaultIndex refresh.
+		clearAllIndexed();
+		collectionStore.reset();
+		markIndexed('/vault/note.md', 'body');
+		const unregister = registerCollectionNoteChangeConsumer();
+		try {
+			notifyAfterSave('/vault/note.md', 'body');
+
+			expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(false);
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+				path: '/vault/note.md',
+				content: 'body',
+			});
+		} finally {
+			unregister();
+			collectionStore.reset();
+		}
 	});
 
 	it('resetHooks clears the dedup map so a reopened vault re-indexes', () => {
@@ -153,7 +196,7 @@ describe('notifyAfterSave', () => {
 			// Wait a microtask for the .catch to run
 			await new Promise((r) => setTimeout(r, 0));
 			expect(consoleSpy).toHaveBeenCalledWith(
-				'update_note_in_index after save failed:',
+				'update_note_in_index failed:',
 				expect.any(Error),
 			);
 			consoleSpy.mockRestore();

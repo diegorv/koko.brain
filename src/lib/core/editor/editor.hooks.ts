@@ -1,11 +1,8 @@
-import { invoke } from '@tauri-apps/api/core';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
-import { updateNoteInIndex } from '$lib/features/collection/collection.service';
-import { updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
-import { updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
-import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
+import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -73,40 +70,17 @@ export function notifyAfterSave(filePath: string, content: string): void {
 	markRecentSave(filePath);
 	backlinksStore.markUnlinkedDirty();
 
-	// Synchronously refresh the per-file indexes before invalidating the
-	// queryjs cache. The +layout.svelte content-effect also runs these, but
-	// with a 1 s debounce — if the user switches tabs within that window the
-	// pending setTimeout is cleared and the just-saved file never gets
-	// indexed (the watcher also skips it, because areAllRecentSaves sees
-	// the markRecentSave above). Without this block, kb.pages() queries on
-	// the next active tab would miss notes the user just created.
-	// Skipped when the shared dedupe map reports that this exact
-	// (path, content) has already been indexed (typically by the
-	// content-effect firing 1 s before the 2 s autosave).
-	// Each updater is wrapped individually so one failure doesn't block
-	// the rest (mirrors the pattern in index-updater.service.ts).
-	if (!isAlreadyIndexed(filePath, content)) {
-		markIndexed(filePath, content);
-		try { updateNoteInIndex(filePath, content); } catch (err) { error('HOOKS', 'updateNoteInIndex after save failed:', err); }
-		try { updateFrontmatterIconForFile(filePath, content); } catch (err) { error('HOOKS', 'updateFrontmatterIconForFile after save failed:', err); }
-		try { updateCalendarForFile(filePath, content); } catch (err) { error('HOOKS', 'updateCalendarForFile after save failed:', err); }
-	}
-
-	// Update the Rust `VaultIndex` so save-driven `vault-index-updated`
-	// events bump `vaultStore.vaultIndexVersion` and `BacklinksPanel.svelte`'s
-	// consumer effect re-fetches via `get_backlinks_v2`. Fire-and-forget —
-	// errors are logged but never propagated.
+	// The note-change owner refreshes every per-file index SYNCHRONOUSLY for
+	// the 'save' source (its policy row has no yield), which is what lets the
+	// queryjs cache invalidation below see fresh indexes. The +layout.svelte
+	// content-effect also runs these, but with a 1 s debounce - if the user
+	// switches tabs within that window the pending setTimeout is cleared and
+	// the just-saved file never gets indexed (the watcher also skips it,
+	// because areAllRecentSaves sees the markRecentSave above).
 	//
-	// IMPORTANT: this call sits OUTSIDE the `!isAlreadyIndexed` guard. The
-	// TS dedup map tracks whether the *TS* indexers were called for an exact
-	// (path, content); the content-effect in `updateIndexesForFile` marks
-	// indexed and *also* calls Rust, so a typing-pause-then-save sequence
-	// (content-effect at 1 s → autosave at 2 s) still updates Rust on the
-	// save side. Calling on every save is cheap (~1-5 ms IPC) and Rust has
-	// its own internal change detection via `UpdateResult.changed`.
-	invoke('update_note_in_index', { path: filePath, content }).catch((err) => {
-		error('HOOKS', 'update_note_in_index after save failed:', err);
-	});
+	// The 'save' policy row deliberately fires the Rust IPC even on a dedupe
+	// hit while skipping the TS consumers - see SOURCE_POLICY.
+	void applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content });
 
 	invalidateQueryjsCache();
 	clearLinkedContentCache();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { basename, normalizePath, relativePath, resolveFilePath, stem } from '$lib/utils/path';
+import { basename, normalizePath, relativePath, resolveFilePath, stem, vaultRelativeKey } from '$lib/utils/path';
 
 describe('normalizePath', () => {
 	it('resolves . segments', () => {
@@ -164,5 +164,29 @@ describe('relativePath', () => {
 
 	it('returns the path unchanged when it equals the vault path', () => {
 		expect(relativePath('/vault', '/vault')).toBe('/vault');
+	});
+});
+
+describe('vaultRelativeKey', () => {
+	it('strips the vault prefix from a nested file', () => {
+		expect(vaultRelativeKey('/vault', '/vault/notes/a.md')).toBe('notes/a.md');
+	});
+
+	it('strips the vault prefix from a file in the vault root', () => {
+		expect(vaultRelativeKey('/vault', '/vault/a.md')).toBe('a.md');
+	});
+
+	it('returns null for a path outside the vault', () => {
+		expect(vaultRelativeKey('/vault', '/other/a.md')).toBeNull();
+	});
+
+	it('returns null for a sibling directory sharing the vault prefix', () => {
+		// Falling back to the absolute path here would corrupt the
+		// vault-relative-keyed FTS5 and semantic tables.
+		expect(vaultRelativeKey('/vault', '/vaulted/a.md')).toBeNull();
+	});
+
+	it('returns null for the vault path itself', () => {
+		expect(vaultRelativeKey('/vault', '/vault')).toBeNull();
 	});
 });

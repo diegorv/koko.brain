@@ -1,12 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
-import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
-import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
+import { buildPropertyIndex } from '$lib/features/collection/collection.service';
+import { buildFrontmatterIconIndex } from '$lib/features/file-icons/file-icons.service';
+import { scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { clearIndexedEntry, markIndexed } from '$lib/utils/index-dedupe';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
 import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
 import { debug, error, logProcessMemory } from '$lib/utils/debug';
@@ -101,72 +101,20 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 	});
 
 	for (const result of readResults) {
-		// Use absolute paths directly — buildIndex stores absolute paths as
-		// map keys, and all other systems (file tree, editor tabs,
+		// Absolute paths go straight through - buildIndex stores absolute paths
+		// as map keys, and all other systems (file tree, editor tabs,
 		// modifiedAtMap) use absolute paths. Path traversal protection is
 		// handled by Rust's read_files_batch (canonicalize + starts_with).
 		//
-		// FTS5 + semantic indexes are the exception: their tables key on
-		// vault-relative paths (same convention `build_fts_index` and
-		// `build_semantic_index` use). Derive that here so external
-		// edits stay queryable without waiting for the next full rebuild.
-		// A path that does not share the vaultPath prefix (e.g. canonicalized
-		// through a symlinked vault) cannot be made relative here — feeding
-		// the absolute path in would corrupt the FTS/semantic keys, so those
-		// updates are skipped (null) and freshness waits for the full rebuild.
-		const relativePath = result.path.startsWith(vaultPath)
-			? result.path.substring(vaultPath.length).replace(/^\//, '')
-			: null;
-		if (relativePath === null) {
-			debug('WATCHER-HANDLER', `Path outside vault prefix — skipping FTS/semantic update: ${result.path}`);
-		}
-
-		if (result.content !== null) {
-			// File exists — update Rust `VaultIndex` so backlinks/tags/tasks/
-			// properties reflect the external change. The Rust call emits
-			// `vault-index-updated`; panel `$effect`s re-fetch via that event.
-			try { updateNoteInIndex(result.path, result.content); } catch (err) { error('WATCHER', 'updateNoteInIndex failed:', err); }
-			try { updateFrontmatterIconForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateFrontmatterIconForFile failed:', err); }
-			try { updateCalendarForFile(result.path, result.content); } catch (err) { error('WATCHER', 'updateCalendarForFile failed:', err); }
-			markIndexed(result.path, result.content);
-			invoke('update_note_in_index', { path: result.path, content: result.content }).catch((err) => {
-				error('WATCHER', 'update_note_in_index failed:', err);
-			});
-			if (relativePath !== null) {
-				// FTS5 — keeps text search fresh on external edits. Without this,
-				// `search_fts` returns stale content until the user opens + saves
-				// the file (or an FTS_SCHEMA_VERSION bump forces a full rebuild).
-				invoke('update_search_index_file', { filePath: relativePath, content: result.content }).catch((err) => {
-					error('WATCHER', 'update_search_index_file failed:', err);
-				});
-				// Semantic — keeps embeddings fresh on external edits. The Rust
-				// side compares content hashes first, so unchanged chunks skip
-				// ONNX inference. Skipped silently if the embedder isn't loaded
-				// (the user hasn't downloaded the model yet).
-				invoke('update_semantic_file', { filePath: relativePath, content: result.content, vaultPath }).catch((err) => {
-					debug('WATCHER-HANDLER', `Semantic incremental update skipped: ${err}`);
-				});
-			}
-		} else {
-			// File doesn't exist (deleted) — drop the dedup signature so a
-			// later re-creation with identical bytes still re-indexes, then
-			// drop the Rust entry (entries + tags_index + backlinks +
-			// properties_index + by_path) which emits `vault-index-updated`.
-			clearIndexedEntry(result.path);
-			invoke('remove_note_from_index', { path: result.path }).catch((err) => {
-				error('WATCHER', 'remove_note_from_index failed:', err);
-			});
-			if (relativePath !== null) {
-				// Drop the FTS5 row so deleted files stop appearing in text
-				// search results. Semantic chunks for deleted paths are cleaned
-				// up by the orphan-cleanup pass at the end of the next
-				// `build_semantic_index` run; leaving them between full rebuilds
-				// is harmless because the file path no longer resolves on click.
-				invoke('remove_from_search_index', { filePath: relativePath }).catch((err) => {
-					error('WATCHER', 'remove_from_search_index failed:', err);
-				});
-			}
-		}
+		// `vaultPath` is passed so the owner also refreshes the FTS5 / semantic
+		// tables, whose keys are vault-relative. The watcher is the only source
+		// that supplies it: on the save side those tables are owned by the
+		// search after-save observer instead.
+		await applyNoteChange(
+			result.content !== null
+				? { kind: 'upsert', source: 'watcher', path: result.path, content: result.content, vaultPath }
+				: { kind: 'delete', source: 'watcher', path: result.path, vaultPath },
+		);
 	}
 
 	// `BacklinksPanel` AND `OutgoingLinksPanel` auto-refresh via their

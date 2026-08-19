@@ -59,7 +59,11 @@ vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	resetBacklinks: vi.fn(),
 }));
 
-vi.mock('$lib/features/collection/collection.service', () => ({
+// The register function is kept REAL: the wiring probe below asserts that
+// initializeVault actually connects the collection index to the note-change
+// owner, and that teardownVault disconnects it again.
+vi.mock('$lib/features/collection/collection.service', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/features/collection/collection.service')>()),
 	buildPropertyIndex: vi.fn(),
 	resetCollection: vi.fn(),
 }));
@@ -121,10 +125,12 @@ vi.mock('$lib/features/file-icons/file-icons.service', () => ({
 	// Mock with a resolved promise so the `.catch()` chain in the
 	// app-lifecycle caller doesn't blow up.
 	buildFrontmatterIconIndex: vi.fn().mockResolvedValue(undefined),
+	registerFileIconsNoteChangeConsumer: vi.fn(() => vi.fn()),
 	resetFileIcons: vi.fn(),
 }));
 
 vi.mock('$lib/plugins/calendar/calendar.service', () => ({
+	registerCalendarNoteChangeConsumer: vi.fn(() => vi.fn()),
 	resetCalendar: vi.fn(),
 	scanFilesForCalendar: vi.fn(),
 }));
@@ -208,6 +214,9 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { refreshViewDefinition, getCachedViewDefinition } from '$lib/features/type-definitions/view-parse-cache';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import type { NoteRecord } from '$lib/features/collection/collection.types';
 
 describe('initializeVault', () => {
 	beforeEach(() => {
@@ -448,6 +457,43 @@ describe('initializeVault — file change listener', () => {
 		// after the watcher's incremental update_note_in_index calls — no
 		// explicit call here. Verify the TS-side rebuilders that still run.
 		expect(buildTagIndex).toHaveBeenCalled();
+	});
+});
+
+describe('note-change consumer wiring', () => {
+	/** Seeds the real property index with a bare record for `path`. */
+	function seed(path: string): void {
+		const record: NoteRecord = {
+			path, name: 'note.md', basename: 'note', folder: '/vault',
+			ext: 'md', mtime: 0, ctime: 0, size: 0, properties: new Map(),
+		};
+		collectionStore.setPropertyIndex(new Map([[path, record]]));
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		collectionStore.reset();
+		teardownVault();
+	});
+
+	it('registers the collection consumer during initializeVault and unregisters it on teardown', async () => {
+		// Without this wiring every consumer is a silent no-op in production
+		// even though the service-level tests, which register by hand, stay green.
+		await initializeVault('/vault');
+
+		seed('/vault/note.md');
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/note.md' });
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(false);
+
+		teardownVault();
+
+		seed('/vault/note.md');
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/note.md' });
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
 	});
 });
 

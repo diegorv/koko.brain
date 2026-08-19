@@ -101,3 +101,23 @@ export function relativePath(vaultPath: string, filePath: string): string {
 	}
 	return filePath;
 }
+
+/**
+ * Derives the vault-relative key that the FTS5 and semantic tables index on.
+ *
+ * Unlike `relativePath`, a path outside the vault yields `null` instead of the
+ * absolute path: feeding an absolute path into those tables would corrupt their
+ * keys, so callers must skip the update rather than fall back.
+ *
+ * @param vaultPath - Absolute vault root, without a trailing slash
+ * @param filePath - Absolute path to key
+ * @returns The vault-relative key, or `null` when `filePath` is not inside the vault
+ *
+ * @example vaultRelativeKey('/vault', '/vault/notes/hello.md') → 'notes/hello.md'
+ * @example vaultRelativeKey('/vault', '/vaulted/note.md') → null
+ * @example vaultRelativeKey('/vault', '/vault') → null
+ */
+export function vaultRelativeKey(vaultPath: string, filePath: string): string | null {
+	const relative = relativePath(vaultPath, filePath);
+	return relative === filePath ? null : relative;
+}

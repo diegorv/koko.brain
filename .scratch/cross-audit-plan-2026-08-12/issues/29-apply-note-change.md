@@ -67,3 +67,50 @@ test or change behaviour, both outside this additive step's scope):
    asked for parity with `updateFrontmatterIconForFile`). Root-cause fix belongs in
    `removeIconForPath`'s isMarkdown branch (clear the parent key there too); own issue, not a
    widening of this step.
+
+### Step 2 notes: plan discrepancies
+
+- "Wire all eight call sites" does not resolve to eight. The real surface is 5 upsert sites
+  (`editor.hooks.ts::notifyAfterSave`, `index-updater.service.ts::updateIndexesForFile`,
+  `watcher-handler.service.ts::incrementalUpdateFiles`, `note-creator.service.ts::openOrCreateNote`,
+  `fs.service.ts::createFile`) plus 2 delete locations (`fs.service.ts::forgetNote`, which already
+  collapses `deleteItem` / `renameItem` / `moveItem`, and the watcher's `content === null` branch).
+  Wired on the enumerated surface, not on the number.
+- The C03 line cites `fs.service.ts:188/:229/:269` for the collection eviction. Those line numbers
+  pre-date issue 28; the wiring belongs inside `forgetNote` (one place), which is where it landed.
+- "Route the six external writers ... kanban, collection" overcounts by two. Neither
+  `kanban.service.ts` nor `collection.service.ts` writes to disk: `KanbanView.svelte::applyChange`
+  and `CollectionView.svelte::commitStructural` both go through `EditorView.svelte` into the editor
+  save path, so both are routed transitively as of this step. Step 3 only has to touch
+  `frontmatter-icon.service.ts`, `file-icons.service.ts::ensureFolderNote`, `link-updater.service.ts`
+  and `type-definitions.service.ts`.
+- The issue mandates amending ADR-0009 and ADR-0003 only, but `CLAUDE.md` Indexing rules 6 and 8
+  described the exact mechanics this step relocates. Amended them in the same commit rather than
+  shipping known-stale docs.
+- Step 1 comment 1 (`fileFilesystemKeys` unpinned) is CLOSED: the regression test landed in this
+  step, in `calendar.service.test.ts`. Step 1 comment 2 (`removeFrontmatterIconForFile` folder-note
+  parent key) is still open and still belongs in `removeIconForPath`.
+
+### Step 2 review, deferred follow-ups
+
+1. Non-markdown index leak WIDENS, deliberately (option A: strict parity with the three
+   pre-existing sources). Routing `fs.service.ts::createFile` through the upsert branch means
+   creating a `.kanban` / `.canvas` / `.collection` file now inserts a `NoteRecord` (empty
+   properties) into `collectionStore.propertyIndex` that `kb.pages()` and `CollectionView` see until
+   the next `buildPropertyIndex`. The leak class pre-exists (`notifyAfterSave` re-adds those records
+   on every save, and Rust stopped indexing them in b077fe35), so this step only adds two more entry
+   points. Root-cause fix, deferred to its own issue because it is a behaviour change nobody asked
+   for here: an `isMarkdownFile(name) || isViewFile(name)` guard at the top of the owner's upsert
+   branch, which would close it for all five sources at once. Needs its own verification that no
+   consumer relies on `.collection` records.
+2. A rapid double vault switch (B's `initializeVault` starting after A registered its consumers but
+   before A reached the `onFileChange` subscription) overwrites `unregisterNoteChangeConsumers`
+   without unwinding A's three, leaving duplicates in the owner's registry for the session.
+   Consequence is benign (all three consumers are idempotent over the same store singletons) and it
+   is exact parity with the pre-existing `unsubscribeFileHistory` / `unsubscribeSearchIndex` leak, so
+   it is not fixed here. If that hook-leak pattern is ever fixed, include the consumer array in the
+   same fix.
+3. `search.service.ts::registerSearchIndexHook` still derives the FTS key inline and falls back to
+   the absolute path on a prefix miss, which is the corruption `vaultRelativeKey` exists to prevent.
+   It cannot be folded in here: the issue mandates that `applyNoteChange` never fires
+   `afterSaveObservers`, and search's FTS update is one. Own bug issue.

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 setupLocalStorage();
 
@@ -10,24 +10,22 @@ vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 	rebuildIndex: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/features/collection/collection.service', () => ({
+// Only the BULK builders are mocked - the per-file updaters now reach the
+// watcher through the note-change owner's consumer registry, and the tests
+// assert their real store output instead.
+vi.mock('$lib/features/collection/collection.service', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/features/collection/collection.service')>()),
 	buildPropertyIndex: vi.fn(),
-	updateNoteInIndex: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
+vi.mock('$lib/features/file-icons/file-icons.service', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/features/file-icons/file-icons.service')>()),
 	buildFrontmatterIconIndex: vi.fn().mockResolvedValue(undefined),
-	updateFrontmatterIconForFile: vi.fn(),
 }));
 
-vi.mock('$lib/utils/index-dedupe', () => ({
-	clearIndexedEntry: vi.fn(),
-	markIndexed: vi.fn(),
-}));
-
-vi.mock('$lib/plugins/calendar/calendar.service', () => ({
+vi.mock('$lib/plugins/calendar/calendar.service', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/plugins/calendar/calendar.service')>()),
 	scanFilesForCalendar: vi.fn(),
-	updateCalendarForFile: vi.fn(),
 }));
 
 vi.mock('$lib/core/editor/editor.hooks', () => ({
@@ -42,15 +40,20 @@ vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	logProcessMemory: vi.fn(),
+	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
+	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '$lib/utils/debug';
 import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex, updateNoteInIndex } from '$lib/features/collection/collection.service';
-import { buildFrontmatterIconIndex, updateFrontmatterIconForFile } from '$lib/features/file-icons/file-icons.service';
-import { scanFilesForCalendar, updateCalendarForFile } from '$lib/plugins/calendar/calendar.service';
-import { clearIndexedEntry } from '$lib/utils/index-dedupe';
+import { buildPropertyIndex, registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { buildFrontmatterIconIndex, registerFileIconsNoteChangeConsumer } from '$lib/features/file-icons/file-icons.service';
+import { scanFilesForCalendar, registerCalendarNoteChangeConsumer, resetCalendar } from '$lib/plugins/calendar/calendar.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
+import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -181,21 +184,41 @@ describe('rebuildAllIndexes — error isolation', () => {
 });
 
 describe('rebuildAllIndexes — incremental path', () => {
+	let unregister: (() => void)[] = [];
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		editorStore.reset();
 		clearLocalStorage();
 		vaultStore._reset();
 		vaultStore.open('/vault');
+		clearAllIndexed();
+		collectionStore.reset();
+		fileIconsStore.reset();
+		resetCalendar();
+		unregister = [
+			registerCollectionNoteChangeConsumer(),
+			registerFileIconsNoteChangeConsumer(),
+			registerCalendarNoteChangeConsumer(),
+		];
 		// Default mock for invoke calls not explicitly configured by individual
 		// tests (e.g. update_note_in_index, scan_vault_v2). The
 		// mockResolvedValueOnce values below take precedence in call order.
 		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
+	afterEach(() => {
+		for (const u of unregister) u();
+		unregister = [];
+		collectionStore.reset();
+		fileIconsStore.reset();
+		resetCalendar();
+	});
+
 	it('uses incremental update for a small number of markdown files', async () => {
+		const CONTENT = '---\n_icon: lucide:star\ncreated: 2026-01-02\nstatus: done\n---\n';
 		vi.mocked(invoke).mockResolvedValueOnce([
-			{ path: '/vault/note.md', content: 'updated content' },
+			{ path: '/vault/note.md', content: CONTENT },
 		]);
 
 		await rebuildAllIndexes(['/vault/note.md']);
@@ -209,10 +232,27 @@ describe('rebuildAllIndexes — incremental path', () => {
 			vaultPath: '/vault',
 			paths: ['/vault/note.md'],
 		});
-		// TS-side updaters receive absolute paths (matching VaultIndex behavior)
-		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/note.md', 'updated content');
-		expect(updateFrontmatterIconForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
-		expect(updateCalendarForFile).toHaveBeenCalledWith('/vault/note.md', 'updated content');
+		// Every registered consumer keys on the ABSOLUTE path (matching VaultIndex).
+		expect(collectionStore.propertyIndex.get('/vault/note.md')?.properties.get('status')).toBe('done');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/note.md')).toEqual({
+			iconPack: 'lucide', iconName: 'star', color: undefined, titleColor: undefined,
+		});
+		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/note.md']);
+		// The watcher marks the signature so the content-effect does not re-parse.
+		expect(isAlreadyIndexed('/vault/note.md', CONTENT)).toBe(true);
+	});
+
+	it('runs the consumers even when the signature was already indexed', async () => {
+		// The watcher source is `consumers: 'always'` - an external edit that
+		// happens to match a stale dedupe signature must still land.
+		markIndexed('/vault/note.md', 'external body');
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/note.md', content: 'external body' },
+		]);
+
+		await rebuildAllIndexes(['/vault/note.md']);
+
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
 	});
 
 	it('updates FTS5 and semantic indexes for externally changed markdown files', async () => {
@@ -258,8 +298,8 @@ describe('rebuildAllIndexes — incremental path', () => {
 
 		await rebuildAllIndexes(['/private/vault-real/notes/external.md']);
 
-		// Absolute-keyed updaters still run (VaultIndex uses absolute paths).
-		expect(updateNoteInIndex).toHaveBeenCalledWith('/private/vault-real/notes/external.md', '# edit');
+		// Absolute-keyed consumers still run (VaultIndex uses absolute paths).
+		expect(collectionStore.propertyIndex.has('/private/vault-real/notes/external.md')).toBe(true);
 		// Vault-relative-keyed updates must NOT receive the absolute path.
 		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
 		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
@@ -305,6 +345,14 @@ describe('rebuildAllIndexes — incremental path', () => {
 	});
 
 	it('handles deleted files in incremental path', async () => {
+		const CONTENT = '---\n_icon: lucide:star\ncreated: 2026-01-02\n---\n';
+		// Seed every consumer through the real upsert path first.
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/deleted.md', content: CONTENT },
+		]);
+		await rebuildAllIndexes(['/vault/deleted.md']);
+		expect(collectionStore.propertyIndex.has('/vault/deleted.md')).toBe(true);
+
 		vi.mocked(invoke).mockResolvedValueOnce([
 			{ path: '/vault/deleted.md', content: null },
 		]);
@@ -312,9 +360,11 @@ describe('rebuildAllIndexes — incremental path', () => {
 		await rebuildAllIndexes(['/vault/deleted.md']);
 
 		// Drop the dedup signature so a re-creation re-indexes.
-		expect(clearIndexedEntry).toHaveBeenCalledWith('/vault/deleted.md');
-		// TS-side update_note_in_index path is NOT taken for deletions.
-		expect(updateNoteInIndex).not.toHaveBeenCalled();
+		expect(isAlreadyIndexed('/vault/deleted.md', CONTENT)).toBe(false);
+		// Every registered per-file index is evicted.
+		expect(collectionStore.propertyIndex.has('/vault/deleted.md')).toBe(false);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/deleted.md')).toBeUndefined();
+		expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
 		// Deletion fans out to remove_note_from_index in Rust.
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/deleted.md' });
 	});

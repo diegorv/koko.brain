@@ -1,4 +1,5 @@
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import { isMarkdownFile } from '$lib/core/filesystem/fs.logic';
 import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
 import type { PeriodType } from '$lib/core/settings/settings.types';
@@ -123,6 +124,19 @@ export function removeCalendarForFile(filePath: string): void {
 	if (oldEffective) {
 		calendarStore.updateFileDate(filePath, oldEffective, null);
 	}
+}
+
+/**
+ * Registers the calendar day index as a note-change consumer, so
+ * `applyNoteChange` keeps it in sync on every write and eviction. Returns an
+ * unregister function.
+ */
+export function registerCalendarNoteChangeConsumer(): () => void {
+	return registerNoteChangeConsumer({
+		name: 'calendar',
+		upsert: updateCalendarForFile,
+		remove: removeCalendarForFile,
+	});
 }
 
 /**

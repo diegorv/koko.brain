@@ -279,6 +279,34 @@ describe('removeCalendarForFile', () => {
 		expect(calendarStore.dayPaths).toBe(before);
 		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/a.md']);
 	});
+
+	it('forgets the filesystem-sourced key so a re-created file is not filed under the old day', () => {
+		// `scanFilesForCalendar` is the only writer of `fileFilesystemKeys`, so
+		// this is the only seeding path that exercises the third delete. Without
+		// it, a file deleted and re-created with a `created:` property that the
+		// user later removes falls back to the stale pre-deletion filesystem key.
+		const ts = 1705276800000;
+		const fsKey = dayjs(ts).format('YYYY-MM-DD');
+		fsStore.setFileTree([
+			{ name: 'a.md', path: '/vault/a.md', isDirectory: false, createdAt: ts, children: [] },
+		]);
+		scanFilesForCalendar();
+		expect(calendarStore.dayPaths.get(fsKey)).toEqual(['/vault/a.md']);
+
+		removeCalendarForFile('/vault/a.md');
+		expect(calendarStore.dayPaths.get(fsKey)).toBeUndefined();
+
+		// Re-created at the same path with an explicit date, then the property
+		// is removed again. The stale filesystem key must not resurrect.
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
+		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/a.md']);
+
+		updateCalendarForFile('/vault/a.md', '# no frontmatter\n');
+
+		expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
+		expect(calendarStore.dayPaths.get(fsKey)).toBeUndefined();
+		expect(calendarStore.dayFileCounts.get(fsKey)).toBeUndefined();
+	});
 });
 
 describe('openOrCreatePeriodicNoteForDate', () => {

@@ -1,5 +1,6 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
@@ -255,6 +256,19 @@ export function removeFrontmatterIconForFile(filePath: string): void {
 	if (parentName && fileName === `${parentName}.md`) {
 		fileIconsStore.updateFrontmatterIcon(parentDir, null);
 	}
+}
+
+/**
+ * Registers the frontmatter icon index as a note-change consumer, so
+ * `applyNoteChange` keeps it in sync on every write and eviction. Returns an
+ * unregister function.
+ */
+export function registerFileIconsNoteChangeConsumer(): () => void {
+	return registerNoteChangeConsumer({
+		name: 'file-icons',
+		upsert: updateFrontmatterIconForFile,
+		remove: removeFrontmatterIconForFile,
+	});
 }
 
 /** Clears file icon state (e.g. when switching vaults) */

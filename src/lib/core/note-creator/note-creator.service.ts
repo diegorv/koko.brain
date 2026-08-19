@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { updateNoteInIndex } from '$lib/features/collection/collection.service';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { processTemplate } from '$lib/utils/template';
 import { error } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
@@ -83,15 +83,14 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			// guard (`areAllRecentSaves`) doesn't trigger a full vault
 			// rescan when it sees the write event we just made.
 			markRecentSave(filePath);
-			// Populate the FE-side `collectionStore.propertyIndex` for the
-			// new file synchronously. Without this, `kb.current()` returns
-			// null for queryjs blocks that auto-run before the layout
-			// content-effect's 1 s debounce flushes `updateIndexesForFile`
-			// — the cached error then sticks because `first-open` auto-run
-			// only fires once per session. The Rust side has already
-			// updated `VaultIndex`; this just keeps the TS mirror in sync
-			// for the immediate `openFileInEditor` that follows.
-			try { updateNoteInIndex(filePath, content); } catch (err) { error('NOTE_CREATOR', 'updateNoteInIndex after create_note failed:', err); }
+			// Populate the per-file TS indexes for the new file synchronously.
+			// Without this, `kb.current()` returns null for queryjs blocks that
+			// auto-run before the layout content-effect's 1 s debounce flushes
+			// `updateIndexesForFile` - the cached error then sticks because
+			// `first-open` auto-run only fires once per session. The 'create'
+			// policy row skips the Rust IPC: `create_note` above already
+			// updated `VaultIndex` and emitted `vault-index-updated`.
+			void applyNoteChange({ kind: 'upsert', source: 'create', path: filePath, content });
 			try {
 				await refreshTree();
 			} catch (refreshErr) {

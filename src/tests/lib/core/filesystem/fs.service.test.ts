@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -54,6 +54,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import type { NoteRecord } from '$lib/features/collection/collection.types';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
@@ -95,6 +98,15 @@ function setupDefaultMocks() {
 	vi.mocked(invoke).mockResolvedValue([]);
 	vi.mocked(writeTextFile).mockResolvedValue(undefined);
 	vi.mocked(mkdir).mockResolvedValue(undefined);
+}
+
+/** Seeds the collection property index with a bare record for `path`. */
+function seedCollectionRecord(path: string): void {
+	const record: NoteRecord = {
+		path, name: path.split('/').pop() ?? '', basename: 'note', folder: '/vault',
+		ext: 'md', mtime: 0, ctime: 0, size: 0, properties: new Map(),
+	};
+	collectionStore.setPropertyIndex(new Map([[path, record]]));
 }
 
 describe('loadFolderOrder', () => {
@@ -308,13 +320,35 @@ describe('refreshTree', () => {
 });
 
 describe('createFile', () => {
+	let unregister: () => void;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearAllIndexed();
 		clearLocalStorage();
 		fsStore.reset();
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		setupDefaultMocks();
+		collectionStore.reset();
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister();
+		collectionStore.reset();
+	});
+
+	it('feeds the new file to the registered note-change consumers', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+
+		await createFile('/vault', 'new.md', '---\nstatus: draft\n---\n');
+
+		expect(collectionStore.propertyIndex.get('/vault/new.md')?.properties.get('status')).toBe('draft');
+		// The 'fs' policy row leaves the Rust index to `create_note` and
+		// deliberately does NOT mark the dedupe signature.
+		expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+		expect(isAlreadyIndexed('/vault/new.md', '---\nstatus: draft\n---\n')).toBe(false);
 	});
 
 	it('creates file with requested name when no conflicts', async () => {
@@ -414,9 +448,13 @@ describe('createFolder', () => {
 });
 
 describe('deleteItem', () => {
+	let unregister: () => void;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearAllIndexed();
+		collectionStore.reset();
+		unregister = registerCollectionNoteChangeConsumer();
 		clearLocalStorage();
 		fsStore.reset();
 		vaultStore._reset();
@@ -424,6 +462,11 @@ describe('deleteItem', () => {
 		setupDefaultMocks();
 		clearAllViewParseCache();
 		vi.mocked(moveToTrash).mockResolvedValue(true);
+	});
+
+	afterEach(() => {
+		unregister();
+		collectionStore.reset();
 	});
 
 	it('moves item to trash and returns true', async () => {
@@ -491,9 +534,19 @@ describe('deleteItem', () => {
 		await getCachedViewDefinition(VIEW_PATH);
 		expect(viewReads()).toBe(2);
 	});
+
+	it('evicts the deleted note from the collection property index', async () => {
+		seedCollectionRecord('/vault/note.md');
+
+		await deleteItem('/vault/note.md');
+
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(false);
+	});
 });
 
 describe('renameItem', () => {
+	let unregister: () => void;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearAllIndexed();
@@ -502,6 +555,24 @@ describe('renameItem', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		setupDefaultMocks();
+		collectionStore.reset();
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister();
+		collectionStore.reset();
+	});
+
+	it('evicts the OLD path from the collection property index', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedCollectionRecord('/vault/old.md');
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		// The destination is re-indexed by the watcher; the source must not linger.
+		expect(collectionStore.propertyIndex.has('/vault/old.md')).toBe(false);
 	});
 
 	it('renames item if target does not exist', async () => {
@@ -616,6 +687,8 @@ describe('renameItem', () => {
 });
 
 describe('moveItem', () => {
+	let unregister: () => void;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearAllIndexed();
@@ -624,6 +697,23 @@ describe('moveItem', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		setupDefaultMocks();
+		collectionStore.reset();
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister();
+		collectionStore.reset();
+	});
+
+	it('evicts the OLD path from the collection property index', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedCollectionRecord('/vault/note.md');
+
+		await moveItem('/vault/note.md', '/vault/folder');
+
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(false);
 	});
 
 	it('moves file to target directory and expands it', async () => {

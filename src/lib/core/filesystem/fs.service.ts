@@ -5,11 +5,11 @@ import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, isMarkdownFile, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
+import { applyNoteChange } from './note-change.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
-import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
@@ -129,6 +129,9 @@ export async function createFile(parentPath: string, fileName: string, content: 
 		// the subsequent fs event doesn't trigger a redundant rebuild.
 		await invoke('create_note', { path: filePath, content });
 		markRecentSave(filePath);
+		// Refresh the per-file TS indexes for the new file. The 'fs' policy row
+		// skips the Rust IPC - `create_note` above already indexed it.
+		void applyNoteChange({ kind: 'upsert', source: 'fs', path: filePath, content });
 		await refreshTree();
 		debug('FS', 'created file:', filePath);
 		return filePath;
@@ -160,23 +163,21 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 
 /**
  * Drops every trace of a note that stops existing at `path`: the index-dedupe
- * signature, so a later re-creation with identical bytes is not silently
- * skipped by the per-file index updaters, and the Rust `VaultIndex` entry
+ * signature (so a later re-creation with identical bytes is not silently
+ * skipped), every registered per-file index, and the Rust `VaultIndex` entry
  * (entries + tags_index + backlinks + properties_index + by_path). The Rust
  * command emits `vault-index-updated` so panels reactively refetch.
  *
- * Slice 1 of the single note-change owner that issue 29 absorbs. Do not grow a
- * second, competing owner alongside it.
+ * A thin adapter over the note-change owner's delete branch. No vault root is
+ * passed: the FTS5 row is dropped by the watcher event that follows the disk
+ * operation, which is the only source that carries one.
  *
  * Fire-and-forget: the Rust removal is not awaited, its failure is logged.
  *
  * @param path Absolute path the note is vanishing from (delete, rename, move).
  */
 export function forgetNote(path: string): void {
-	clearIndexedEntry(path);
-	invoke('remove_note_from_index', { path }).catch((err) =>
-		error('FS', 'remove_note_from_index failed:', err)
-	);
+	void applyNoteChange({ kind: 'delete', source: 'fs', path });
 }
 
 /** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree */

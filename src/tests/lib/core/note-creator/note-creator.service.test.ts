@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
@@ -30,22 +30,32 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	refreshTree: vi.fn(),
 }));
 
-vi.mock('$lib/features/collection/collection.service', () => ({
-	updateNoteInIndex: vi.fn(),
-}));
-
 import dayjs from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { updateNoteInIndex } from '$lib/features/collection/collection.service';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
+import { clearAllIndexed, isAlreadyIndexed } from '$lib/utils/index-dedupe';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 
 describe('openOrCreateNote', () => {
+	let unregister: (() => void)[] = [];
+
 	beforeEach(() => {
 		vi.resetAllMocks();
+		clearAllIndexed();
+		collectionStore.reset();
+		unregister = [registerCollectionNoteChangeConsumer()];
+	});
+
+	afterEach(() => {
+		for (const u of unregister) u();
+		unregister = [];
+		collectionStore.reset();
 	});
 
 	it('opens the file directly when it already exists', async () => {
@@ -66,24 +76,32 @@ describe('openOrCreateNote', () => {
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/sub' });
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/sub/note.md', content: '' });
 		expect(markRecentSave).toHaveBeenCalledWith('/vault/sub/note.md');
-		expect(updateNoteInIndex).toHaveBeenCalledWith('/vault/sub/note.md', '');
+		expect(collectionStore.propertyIndex.has('/vault/sub/note.md')).toBe(true);
+		// The 'create' policy row leaves the Rust index to `create_note` and
+		// deliberately does NOT mark the dedupe signature.
+		expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+		expect(isAlreadyIndexed('/vault/sub/note.md', '')).toBe(false);
 		expect(refreshTree).toHaveBeenCalled();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/sub/note.md');
 	});
 
-	it('still opens the file when updateNoteInIndex throws', async () => {
+	it('still opens the file when a note-change consumer throws', async () => {
 		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(updateNoteInIndex).mockImplementation(() => {
-			throw new Error('index update failed');
-		});
+		unregister.push(registerNoteChangeConsumer({
+			name: 'exploding',
+			upsert: () => { throw new Error('index update failed'); },
+			remove: () => {},
+		}));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
 
 		expect(consoleSpy).toHaveBeenCalledWith(
-			'updateNoteInIndex after create_note failed:',
+			'exploding upsert failed:',
 			expect.any(Error),
 		);
+		// The surviving consumer still indexed the new note.
+		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
 		consoleSpy.mockRestore();
 	});

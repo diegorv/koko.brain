@@ -16,7 +16,7 @@ import {
 	buildIndex,
 	resetBacklinks,
 } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex, resetCollection } from '$lib/features/collection/collection.service';
+import { buildPropertyIndex, registerCollectionNoteChangeConsumer, resetCollection } from '$lib/features/collection/collection.service';
 import {
 	resetOutgoingLinks,
 } from '$lib/features/outgoing-links/outgoing-links.service';
@@ -49,9 +49,11 @@ import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import {
 	loadRecentIcons,
 	buildFrontmatterIconIndex,
+	registerFileIconsNoteChangeConsumer,
 	resetFileIcons,
 } from '$lib/features/file-icons/file-icons.service';
 import {
+	registerCalendarNoteChangeConsumer,
 	resetCalendar,
 	scanFilesForCalendar,
 } from '$lib/plugins/calendar/calendar.service';
@@ -111,6 +113,8 @@ let unsubscribeFileChange: (() => void) | null = null;
 let unsubscribeFileHistory: (() => void) | null = null;
 /** Cleanup function for the search index after-save hook */
 let unsubscribeSearchIndex: (() => void) | null = null;
+/** Cleanup functions for the per-file note-change consumers */
+let unregisterNoteChangeConsumers: (() => void)[] = [];
 /** Debounced handler for file change events, stored for cancellation on teardown */
 let debouncedFileChangeHandler: ReturnType<typeof debounce> | null = null;
 /** Accumulated changed paths from the watcher, consumed by the debounced handler */
@@ -176,6 +180,16 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	}
 	perfEnd('LIFECYCLE', 'Step 2: open_vault_db', t2);
 	if (initVersion !== version) return;
+
+	// Register the per-file index consumers BEFORE anything can write a note:
+	// `applyNoteChange` is a silent no-op for whatever is not registered yet,
+	// so a late registration leaves the collection / icon / calendar panels
+	// stale until the next full rebuild.
+	unregisterNoteChangeConsumers = [
+		registerCollectionNoteChangeConsumer(),
+		registerFileIconsNoteChangeConsumer(),
+		registerCalendarNoteChangeConsumer(),
+	];
 
 	if (settingsStore.history.enabled) {
 		debug('LIFECYCLE', 'File history enabled — registering after-save hook');
@@ -422,6 +436,8 @@ export function teardownVault(): void {
 		unsubscribeSearchIndex();
 		unsubscribeSearchIndex = null;
 	}
+	for (const unregister of unregisterNoteChangeConsumers) unregister();
+	unregisterNoteChangeConsumers = [];
 	// ── Stop background processes ────────────────────────────────────
 	stopWatching();
 	stopSemanticProgressListener();
