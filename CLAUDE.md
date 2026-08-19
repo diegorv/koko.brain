@@ -298,6 +298,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) | Machine prerequisites for the test gates: sccache, rustc floor, Tauri Linux libs, ONNX Runtime download workaround for proxied containers |
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
+| [docs/SYNC.md](docs/SYNC.md) | P2P vault sync: pull-only model, Noise transport, protocol, decision table, security, settings |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
 | [docs/architecture/archify/](docs/architecture/archify/) | Five generated interactive maps: runtime architecture, `initializeVault` lifecycle, markdown editor wiring, live-preview decoration pipeline, search retrieval pipeline. Each is an HTML viewer plus the `.json` source it was rendered from; regenerate with the `archify` skill |
 
