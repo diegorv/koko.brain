@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -33,6 +33,9 @@ import {
 	removeFrontmatterIconForFile,
 	resetFileIcons,
 } from '$lib/features/file-icons/file-icons.service';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
@@ -115,6 +118,8 @@ describe('setIconForPath', () => {
 		fileIconsStore.reset();
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		// The frontmatter write now routes through `applyNoteChange`, which calls `invoke`.
+		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
 	it('routes .md files to frontmatter write', async () => {
@@ -187,6 +192,8 @@ describe('removeIconForPath', () => {
 		fileIconsStore.reset();
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		// The frontmatter write now routes through `applyNoteChange`, which calls `invoke`.
+		vi.mocked(invoke).mockResolvedValue(undefined);
 	});
 
 	it('routes .md files to frontmatter remove', async () => {
@@ -375,5 +382,43 @@ describe('resetFileIcons', () => {
 
 		expect(fileIconsStore.recentIcons).toEqual([]);
 		expect(fileIconsStore.frontmatterIcons.size).toBe(0);
+	});
+});
+
+describe('ensureFolderNote note-change indexing (issue 29)', () => {
+	let unregister: (() => void) | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearAllIndexed();
+		fileIconsStore.reset();
+		collectionStore.reset();
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+		collectionStore.reset();
+		fileIconsStore.reset();
+	});
+
+	it('indexes the auto-created folder note placeholder as well as the icon write', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(readTextFile).mockResolvedValue('---\n---\n');
+
+		await setIconForPath('/vault', '/vault/Projects', 'lucide', 'folder', undefined, undefined, true);
+
+		// The placeholder write goes through the owner, so the new note is a
+		// vault-index member before the icon write rather than 500 ms later.
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+			path: '/vault/Projects/Projects.md',
+			content: '---\n---\n',
+		});
+		// ... and the icon write lands in the real collection index.
+		expect(collectionStore.propertyIndex.get('/vault/Projects/Projects.md')?.properties.get('_icon'))
+			.toBe('lucide:folder');
 	});
 });

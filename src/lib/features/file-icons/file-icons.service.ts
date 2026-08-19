@@ -1,6 +1,6 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
+import { applyNoteChange, registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
@@ -95,7 +95,12 @@ async function ensureFolderNote(dirPath: string): Promise<string> {
 	const notePath = getFolderNotePath(dirPath);
 	const noteExists = await exists(notePath);
 	if (!noteExists) {
-		await writeTextFile(notePath, '---\n---\n');
+		const placeholder = '---\n---\n';
+		await writeTextFile(notePath, placeholder);
+		// The placeholder is a brand new note nothing else knows about; route it
+		// through the owner so a later failure of the icon write cannot leave it
+		// invisible to the indexes until the watcher debounce.
+		void applyNoteChange({ kind: 'upsert', source: 'save', path: notePath, content: placeholder });
 	}
 	return notePath;
 }

@@ -55,6 +55,9 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { createNoteOfType, createTypeDefinition, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
@@ -389,6 +392,8 @@ describe('toggleFavoriteForPath', () => {
 		vi.resetAllMocks();
 		clearLocalStorage();
 		vaultStore._reset();
+		// The write now routes through `applyNoteChange`, which calls `invoke`.
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
 	});
 
 	afterEach(() => {
@@ -739,5 +744,72 @@ describe('renameType', () => {
 
 		expect(toast.error).toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Project' });
+	});
+});
+
+describe('note-change indexing (issue 29)', () => {
+	let unregister: (() => void) | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		editorStore.reset();
+		typeDefinitionsStore.reset();
+		clearAllIndexed();
+		collectionStore.reset();
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+		collectionStore.reset();
+		vaultStore._reset();
+		clearLocalStorage();
+	});
+
+	it('toggleFavoriteForPath indexes the written bytes into the real property index', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
+
+		await toggleFavoriteForPath('/vault/note.md', true);
+
+		expect(collectionStore.propertyIndex.get('/vault/note.md')?.properties.get('_favorite')).toBe(true);
+	});
+
+	it('renameType indexes each rewritten open tab into the real property index', async () => {
+		editorStore.addTab({
+			path: '/vault/m1.md',
+			name: 'm1.md',
+			content: '---\n_type: Project\n---\n\nbody',
+			savedContent: '---\n_type: Project\n---\n\nbody',
+		});
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(collectionStore.propertyIndex.get('/vault/m1.md')?.properties.get('_type')).toBe('Initiative');
+	});
+
+	it('leaves .view writes out of the property index', async () => {
+		// A `.view` body is bare YAML with no `---` fences, so `buildNoteRecord`
+		// would parse zero properties and replace the Rust-projected record
+		// (organized / archived / favorite / tags) with an empty one. The three
+		// registered consumers can read nothing from a fenceless file, so the
+		// `.view` writers deliberately stay off the note-change owner.
+		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
+		collectionStore.updateRecord('/vault/test.view', {
+			path: '/vault/test.view', name: 'test.view', basename: 'test', folder: '/vault',
+			ext: '.view', mtime: 0, ctime: 0, size: 0,
+			properties: new Map<string, unknown>([['archived', false], ['tags', []]]),
+		});
+		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
+		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
+
+		await updateViewQuery('/vault/test.view', { filters: "status == 'active'" });
+
+		expect(collectionStore.propertyIndex.get('/vault/test.view')?.properties.get('archived')).toBe(false);
 	});
 });

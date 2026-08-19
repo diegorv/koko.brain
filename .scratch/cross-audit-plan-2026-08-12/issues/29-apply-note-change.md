@@ -114,3 +114,84 @@ test or change behaviour, both outside this additive step's scope):
    the absolute path on a prefix miss, which is the corruption `vaultRelativeKey` exists to prevent.
    It cannot be folded in here: the issue mandates that `applyNoteChange` never fires
    `afterSaveObservers`, and search's FTS update is one. Own bug issue.
+
+### Step 3 (2026-08-19): external writers routed, issue closed
+
+Red-green evidence, four probes written before the fix and run against unfixed code:
+
+- `frontmatter-icon.service.test.ts` - `setFrontmatterIcon indexes the written bytes into the real
+  per-file indexes` failed with `expected undefined to be 'lucide:star'`
+  (`collectionStore.propertyIndex.get('/vault/a.md')?.properties.get('_icon')`);
+  `removeFrontmatterIcon re-indexes the stripped bytes` failed with `expected true to be false`
+  (the `_icon` key survived in the real record).
+- `file-icons.service.test.ts` - `indexes the auto-created folder note placeholder as well as the
+  icon write` failed with `expected "vi.fn()" to be called with arguments: [ 'update_note_in_index',
+  ... ] / Number of calls: 0`.
+- `link-updater.service.test.ts` - `rebuilds the rewritten source note in the real property index`
+  failed with `expected 'stale' to be 'fresh'`.
+- `type-definitions.service.test.ts` - `toggleFavoriteForPath indexes the written bytes into the
+  real property index` failed with `expected undefined to be true`; `renameType indexes each
+  rewritten open tab into the real property index` failed with
+  `expected undefined to be 'Initiative'`.
+
+After the fix: those four files run 105 passed / 0 failed. Full gate green - `pnpm check`
+0 errors 0 warnings, `pnpm vitest run` 285 files / 6402 passed + 1 todo, `pnpm build` built in 4.55s.
+
+What discovery found:
+
+- All four writers use `syncExternalContentToEditor(..., 'none')`, which arms no auto-save, so
+  `notifyAfterSave` never fires for them. Nothing indexed their bytes until the watcher's 500 ms
+  debounce, and `link-updater` / `type-definitions` only told Rust, never the TS per-file indexes.
+- Source `save` is the right policy row for all of them: `consumers: 'deduped'` (a repeated identical
+  write skips the fan-out), `rust: 'always'` (Rust has not seen the bytes and has its own
+  `UpdateResult.changed` short-circuit), `mark: true` (so the layout's 1 s content-effect does not
+  re-parse the same file). No sixth source was added.
+- `toggleFavoriteForPath` swapped `await invoke('update_note_in_index', ...)` for
+  `await applyNoteChange(...)`, so a Rust index failure is now logged instead of rejecting. Its only
+  caller is `TypeNoteList.svelte:610`, a fire-and-forget `onclick` that never caught the rejection -
+  strictly better.
+- `link-updater.service.ts` and `type-definitions.service.ts` both keep their `invoke` import
+  (`get_backlinks_v2`, `get_all_vault_entries_v2`, `propagate_type_rename`) and their `error` import.
+- Test collateral: three describes reset `invoke` to a bare `vi.fn()` returning `undefined`, which
+  made the owner's `invoke(...).catch(...)` throw once these paths started calling it. Fixed by
+  giving those describes a `mockResolvedValue(undefined)`, not by hardening the owner against a
+  non-promise `invoke`.
+
+Plan discrepancies surfaced:
+
+- The `.view` writers `updateViewIcon` (`:175`) and `updateViewQuery` (`:193`) were in the step's
+  scope list but are deliberately NOT routed, exactly the fallback the discovery brief authorised
+  ("if it degrades the record, scope step 3 to the `.md` writers only and say so"). Measurement: a
+  `.view` body is bare YAML with no `---` fences, so `parseFrontmatterProperties` returns `[]` and
+  `extractAllTags` returns `[]`, meaning `buildNoteRecord` yields an EMPTY property map. That would
+  overwrite the Rust-projected record, which `project_note_record` (`src-tauri/src/commands/vault.rs:744-757`)
+  always stamps with `organized` / `archived` / `favorite` / `tags`. The icon consumer
+  (`extractIconFromFrontmatter`, fence-gated) and the calendar consumer (`created:` frontmatter) can
+  read nothing from a fenceless file either. Zero upside, one measurable downgrade, so the two call
+  sites stay as they are. Pinned by `leaves .view writes out of the property index` in
+  `type-definitions.service.test.ts` and recorded in ADR-0009's Consequences so a later reader does
+  not "fix" it.
+- `ensureFolderNote` IS routed even though its only caller (`setIconForPath`'s directory branch)
+  immediately supersedes the `---\n---\n` placeholder with the real icon write. Kept because it is
+  explicitly in scope and it closes the window where a failing icon write leaves a brand new note
+  invisible to every index. Cost is one extra fire-and-forget IPC on a rare action.
+- Confirmed again from the step 2 comment: kanban and collection needed no edit. `KanbanView.svelte::applyChange`
+  and `CollectionView.svelte::commitStructural` both reach `EditorView.svelte` and the editor save
+  path, so they were already routed the moment step 2 landed. The "six external writers" line in the
+  issue resolves to four.
+
+Minor findings worth their own follow-up issue (not fixed here):
+
+1. `updateViewIcon` writes a `.view` file and then does nothing - no `refreshViewDefinition(path)`,
+   unlike `updateViewQuery` (`:194`). The view parse cache therefore serves the pre-icon YAML until
+   something else refreshes it. Out of scope here (this step only moves indexing calls), but it looks
+   like a real staleness bug in the `.view` icon picker.
+2. Still open from step 1: `removeFrontmatterIconForFile`'s early return only checks the file key, so
+   a stale folder-note parent-directory key can survive. Root-cause fix belongs in
+   `removeIconForPath`'s isMarkdown branch.
+3. Still open from step 2: `search.service.ts::registerSearchIndexHook` derives the FTS key inline
+   and falls back to the absolute path on a prefix miss - the corruption `vaultRelativeKey` exists to
+   prevent. Cannot be folded in while `applyNoteChange` is forbidden from firing `afterSaveObservers`.
+4. Still open from step 2: routing `fs.service.ts::createFile` through the upsert branch widened the
+   non-markdown index leak (`.kanban` / `.canvas` / `.collection` get an empty `NoteRecord`). Root
+   cause is a missing extension guard at the top of the owner's upsert branch.

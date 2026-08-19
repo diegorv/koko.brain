@@ -1,18 +1,30 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { setFrontmatterIcon, removeFrontmatterIcon } from '$lib/features/file-icons/frontmatter-icon.service';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { registerFileIconsNoteChangeConsumer } from '$lib/features/file-icons/file-icons.service';
+import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+import { clearAllIndexed } from '$lib/utils/index-dedupe';
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	editorStore.reset();
 	vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	// The write now routes through `applyNoteChange`, which calls `invoke`.
+	vi.mocked(invoke).mockResolvedValue(undefined);
 });
 
 describe('setFrontmatterIcon', () => {
@@ -170,5 +182,66 @@ describe('removeFrontmatterIcon', () => {
 		expect(written).toContain('title: Test');
 		expect(written).toContain('tags:');
 		expect(written).not.toContain('_icon');
+	});
+});
+
+describe('note-change indexing (issue 29)', () => {
+	let unregister: (() => void)[] = [];
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		clearAllIndexed();
+		collectionStore.reset();
+		fileIconsStore.reset();
+		editorStore.reset();
+		unregister = [registerCollectionNoteChangeConsumer(), registerFileIconsNoteChangeConsumer()];
+	});
+
+	afterEach(() => {
+		for (const u of unregister) u();
+		unregister = [];
+		collectionStore.reset();
+		fileIconsStore.reset();
+	});
+
+	it('setFrontmatterIcon indexes the written bytes into the real per-file indexes', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
+
+		await setFrontmatterIcon('/vault/a.md', 'lucide', 'star');
+
+		expect(collectionStore.propertyIndex.get('/vault/a.md')?.properties.get('_icon')).toBe('lucide:star');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({
+			iconPack: 'lucide', iconName: 'star', color: undefined, titleColor: undefined,
+		});
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
+			path: '/vault/a.md',
+			content: vi.mocked(writeTextFile).mock.calls[0][1],
+		});
+	});
+
+	it('removeFrontmatterIcon re-indexes the stripped bytes', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n_icon: lucide:star\n---\nBody');
+		fileIconsStore.updateFrontmatterIcon('/vault/a.md', { iconPack: 'lucide', iconName: 'star' });
+		collectionStore.updateRecord('/vault/a.md', {
+			path: '/vault/a.md', name: 'a.md', basename: 'a', folder: '/vault', ext: '.md',
+			mtime: 0, ctime: 0, size: 0, properties: new Map([['_icon', 'lucide:star']]),
+		});
+
+		await removeFrontmatterIcon('/vault/a.md');
+
+		expect(collectionStore.propertyIndex.get('/vault/a.md')?.properties.has('_icon')).toBe(false);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+	});
+
+	it('does not index when there is nothing to strip and no write happens', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
+
+		await removeFrontmatterIcon('/vault/a.md');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(collectionStore.propertyIndex.has('/vault/a.md')).toBe(false);
+		expect(invoke).not.toHaveBeenCalled();
 	});
 });

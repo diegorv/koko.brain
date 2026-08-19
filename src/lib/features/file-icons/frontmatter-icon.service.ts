@@ -1,5 +1,6 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import {
 	parseFrontmatterProperties,
 	extractBody,
@@ -47,6 +48,9 @@ export async function setFrontmatterIcon(
 	await writeTextFile(filePath, newContent);
 	// `'none'`: the frontmatter was just written to disk above.
 	syncExternalContentToEditor(filePath, newContent, true, 'none');
+	// The write bypasses the editor save path (no auto-save is armed), so the
+	// owner is the only thing that indexes these bytes before the watcher.
+	void applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content: newContent });
 }
 
 /** Removes _icon, _color, and _title_color from a markdown file's frontmatter. */
@@ -66,4 +70,6 @@ export async function removeFrontmatterIcon(filePath: string): Promise<void> {
 	await writeTextFile(filePath, newContent);
 	// `'none'`: the frontmatter was just written to disk above.
 	syncExternalContentToEditor(filePath, newContent, true, 'none');
+	// Same as `setFrontmatterIcon`: nothing else sees the stripped bytes.
+	void applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content: newContent });
 }

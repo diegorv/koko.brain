@@ -4,6 +4,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { isTabDirty } from '$lib/core/editor/editor.logic';
 import { extractNoteName, replaceWikilinks } from './link-updater.logic';
+import { applyNoteChange } from './note-change.service';
 import { error } from '$lib/utils/debug';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
@@ -13,9 +14,10 @@ import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
  * Finds affected files via the Rust `VaultIndex.backlinks` reverse index
  * (`get_backlinks_v2`), replaces wikilink targets in each one, writes the
  * updated content to disk, and syncs open editor tabs. Each affected file
- * is also re-indexed via `update_note_in_index` so the Rust panels see
- * the new outgoing links immediately, ahead of the watcher's 500 ms
- * debounce. Skips when the note name didn't change (pure folder move).
+ * is also re-indexed via `applyNoteChange` so the Rust panels and every
+ * registered per-file index see the new outgoing links immediately, ahead
+ * of the watcher's 500 ms debounce. Skips when the note name didn't change
+ * (pure folder move).
  */
 export async function updateLinksAfterRename(oldPath: string, newPath: string): Promise<void> {
 	const oldName = extractNoteName(oldPath);
@@ -44,12 +46,11 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 				// `'none'`: the rewritten content was just written to disk above,
 				// so the tab is clean and needs no auto-save.
 				syncExternalContentToEditor(filePath, updatedContent, true, 'none');
-				// Update the Rust `VaultIndex` so the next `get_backlinks_v2`
-				// reflects the new outgoing-link target without waiting on the
-				// 500 ms watcher debounce. Fire-and-forget; errors logged.
-				invoke('update_note_in_index', { path: filePath, content: updatedContent }).catch(
-					(err) => error('LINK_UPDATER', 'update_note_in_index after rename failed:', err),
-				);
+				// Index the rewritten bytes: the Rust `VaultIndex` (so the next
+				// `get_backlinks_v2` reflects the new outgoing-link target) plus
+				// every registered per-file index, without waiting on the 500 ms
+				// watcher debounce. Fire-and-forget; the owner logs its own errors.
+				void applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content: updatedContent });
 			}
 		}),
 	);

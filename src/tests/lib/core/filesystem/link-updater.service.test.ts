@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -10,7 +10,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 vi.mock('$lib/utils/debug', () => ({
+	debug: vi.fn(),
 	error: vi.fn(),
+	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
+	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
 }));
 
 // No mocks for stores or logic files — use real implementations per CLAUDE.md.
@@ -19,6 +22,9 @@ import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
+import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
+import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 
 /** Builds a minimal `NoteEntryV2` for `get_backlinks_v2` mocks. */
@@ -308,5 +314,52 @@ describe('updateTabAfterRenameOrMove', () => {
 		updateTabAfterRenameOrMove('/vault/empty-folder', '/vault/moved-folder');
 
 		expect(editorStore.tabs[0].path).toBe('/vault/unrelated.md');
+	});
+});
+
+describe('updateLinksAfterRename note-change indexing (issue 29)', () => {
+	let unregister: (() => void) | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		clearAllIndexed();
+		collectionStore.reset();
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+		collectionStore.reset();
+	});
+
+	it('rebuilds the rewritten source note in the real property index', async () => {
+		mockBacklinksV2([entry('/vault/other.md')]);
+		// The property index still holds what the last full build projected.
+		collectionStore.updateRecord('/vault/other.md', {
+			path: '/vault/other.md', name: 'other.md', basename: 'other', folder: '/vault',
+			ext: '.md', mtime: 11, ctime: 22, size: 33,
+			properties: new Map<string, unknown>([['status', 'stale']]),
+		});
+		vi.mocked(readTextFile).mockResolvedValue('---\nstatus: fresh\n---\nlink to [[old-name]]');
+
+		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
+
+		const record = collectionStore.propertyIndex.get('/vault/other.md');
+		expect(record?.properties.get('status')).toBe('fresh');
+		// File metadata from the previous build survives the rebuild.
+		expect(record?.mtime).toBe(11);
+		expect(record?.ctime).toBe(22);
+		expect(record?.size).toBe(33);
+	});
+
+	it('leaves the property index alone when no link was rewritten', async () => {
+		mockBacklinksV2([entry('/vault/other.md')]);
+		vi.mocked(readTextFile).mockResolvedValue('---\nstatus: fresh\n---\nno links here');
+
+		await updateLinksAfterRename('/vault/old-name.md', '/vault/new-name.md');
+
+		expect(collectionStore.propertyIndex.has('/vault/other.md')).toBe(false);
 	});
 });

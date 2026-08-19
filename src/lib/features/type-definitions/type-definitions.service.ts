@@ -7,6 +7,7 @@ import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
 import { parseFrontmatterProperties, extractBody, rebuildContent } from '$lib/features/properties/properties.logic';
 import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
@@ -100,9 +101,10 @@ export async function renameType(oldName: string, newName: string, definitionPat
 			await writeTextFile(tab.path, updated);
 			// `'none'`: the rewritten `_type` was just written to disk above.
 			syncExternalContentToEditor(tab.path, updated, true, 'none');
-			invoke('update_note_in_index', { path: tab.path, content: updated }).catch((err) =>
-				error('TYPE-RENAME', 'update_note_in_index after tab rewrite failed:', err),
-			);
+			// Route the rewritten bytes through the note-change owner so the Rust
+			// `VaultIndex` and every registered per-file index pick up the new
+			// `_type` immediately. Fire-and-forget; the owner logs its own errors.
+			void applyNoteChange({ kind: 'upsert', source: 'save', path: tab.path, content: updated });
 		}
 		await invoke('propagate_type_rename', { oldType: oldName, newType: newName });
 	} catch (err) {
@@ -161,7 +163,9 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 		// `'none'`: the toggled `_favorite` was just written to disk above.
 		syncExternalContentToEditor(filePath, newContent, true, 'none');
 	}
-	await invoke('update_note_in_index', { path: filePath, content: newContent });
+	// The write bypasses the editor save path, so the owner is the only thing
+	// that indexes the toggled `_favorite` before the watcher debounce.
+	await applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content: newContent });
 }
 
 /** Updates _icon, _color, and _title_color in a .view YAML file. */
