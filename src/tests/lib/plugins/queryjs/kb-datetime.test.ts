@@ -217,6 +217,35 @@ describe('KBDateTime', () => {
 		});
 	});
 
+	describe('plus/minus do not clamp month/year overflow', () => {
+		// Behavior contract for the dayjs delegation (issue 41): plus/minus stay
+		// hand-rolled. Native setMonth/setFullYear OVERFLOW into the following month
+		// (Jan 31 + 1 month = Mar 2), while dayjs add/subtract CLAMP to the last valid
+		// day (Feb 29). Every assertion below flips if these two methods are delegated.
+
+		it('plus months overflows past the shorter month instead of clamping', () => {
+			expect(new KBDateTime('2024-01-31').plus({ months: 1 }).toISODate()).toBe('2024-03-02');
+		});
+
+		it('minus months overflows past the shorter month instead of clamping', () => {
+			expect(new KBDateTime('2024-03-31').minus({ months: 1 }).toISODate()).toBe('2024-03-02');
+		});
+
+		it('plus years overflows off a leap day instead of clamping', () => {
+			expect(new KBDateTime('2024-02-29').plus({ years: 1 }).toISODate()).toBe('2025-03-01');
+		});
+
+		it('applies years then months sequentially, compounding the overflow', () => {
+			expect(new KBDateTime('2024-01-31').plus({ years: 1, months: 1 }).toISODate()).toBe(
+				'2025-03-03'
+			);
+		});
+
+		it('plus months overflows past a 30-day month', () => {
+			expect(new KBDateTime('2023-05-31').plus({ months: 1 }).toISODate()).toBe('2023-07-01');
+		});
+	});
+
 	describe('startOf', () => {
 		it('startOf day sets time to midnight', () => {
 			const dt = new KBDateTime('2024-06-15T14:30:45');
