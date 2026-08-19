@@ -56,7 +56,7 @@
 						step={0.05}
 						value={String(settings.fontSize)}
 						oninput={(e) => updateLevel(level, 'fontSize', Number(inputValue(e)))}
-						onblur={(e) => updateLevel(level, 'fontSize', clampHeadingFontSize(Number(inputValue(e))))}
+						onchange={(e) => updateLevel(level, 'fontSize', clampHeadingFontSize(Number(inputValue(e))))}
 					/>
 				</SettingItem>
 
@@ -69,7 +69,7 @@
 						step={0.1}
 						value={String(settings.lineHeight)}
 						oninput={(e) => updateLevel(level, 'lineHeight', Number(inputValue(e)))}
-						onblur={(e) => updateLevel(level, 'lineHeight', clampHeadingLineHeight(Number(inputValue(e))))}
+						onchange={(e) => updateLevel(level, 'lineHeight', clampHeadingLineHeight(Number(inputValue(e))))}
 					/>
 				</SettingItem>
 
@@ -94,7 +94,7 @@
 						step={0.005}
 						value={String(settings.letterSpacing)}
 						oninput={(e) => updateLevel(level, 'letterSpacing', Number(inputValue(e)))}
-						onblur={(e) => updateLevel(level, 'letterSpacing', clampHeadingLetterSpacing(Number(inputValue(e))))}
+						onchange={(e) => updateLevel(level, 'letterSpacing', clampHeadingLetterSpacing(Number(inputValue(e))))}
 					/>
 				</SettingItem>
 			</div>

@@ -95,7 +95,7 @@
 			oninput={(e) => {
 				settingsStore.updateEditor({ fontSize: Number(inputValue(e)) });
 			}}
-			onblur={(e) => {
+			onchange={(e) => {
 				const val = clampFontSize(Number(inputValue(e)));
 				settingsStore.updateEditor({ fontSize: val });
 			}}
@@ -116,7 +116,7 @@
 			oninput={(e) => {
 				settingsStore.updateEditor({ lineHeight: Number(inputValue(e)) });
 			}}
-			onblur={(e) => {
+			onchange={(e) => {
 				const val = clampLineHeight(Number(inputValue(e)));
 				settingsStore.updateEditor({ lineHeight: val });
 			}}
@@ -137,7 +137,7 @@
 			oninput={(e) => {
 				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
 			}}
-			onblur={(e) => {
+			onchange={(e) => {
 				const val = clampContentWidth(Number(inputValue(e)));
 				settingsStore.updateEditor({ contentWidth: val });
 			}}
@@ -158,7 +158,7 @@
 			oninput={(e) => {
 				settingsStore.updateEditor({ paragraphSpacing: Number(inputValue(e)) });
 			}}
-			onblur={(e) => {
+			onchange={(e) => {
 				const val = clampParagraphSpacing(Number(inputValue(e)));
 				settingsStore.updateEditor({ paragraphSpacing: val });
 			}}
