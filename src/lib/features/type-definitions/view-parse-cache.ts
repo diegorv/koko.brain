@@ -34,6 +34,15 @@ export async function getCachedViewDefinition(path: string): Promise<ReturnType<
 	return refreshViewDefinition(path);
 }
 
+/**
+ * Returns the content hash of the cached parse for a path, or `undefined` when the
+ * path is not cached. Consumers compare it across reloads to detect that the `.view`
+ * YAML changed on disk without re-reading the file.
+ */
+export function getViewContentHash(path: string): string | undefined {
+	return parseCache.get(path)?.contentHash;
+}
+
 /** Clears a single entry (e.g. on file deletion). */
 export function clearViewParseCache(path: string): void {
 	parseCache.delete(path);

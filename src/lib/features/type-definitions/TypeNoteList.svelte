@@ -31,7 +31,7 @@
 	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
 	import { executeQuery } from '$lib/features/collection/collection.logic';
 	import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-	import type { SortDef } from '$lib/features/collection/collection.types';
+	import type { NoteRecord, SortDef } from '$lib/features/collection/collection.types';
 	import type { FilterGroup } from '$lib/features/collection/toolbar/toolbar.types';
 	import FilterPanel from '$lib/features/collection/toolbar/FilterPanel.svelte';
 	import SortPanel from '$lib/features/collection/toolbar/SortPanel.svelte';
@@ -39,7 +39,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
-	import { getCachedViewDefinition } from './view-parse-cache';
+	import { getCachedViewDefinition, getViewContentHash } from './view-parse-cache';
 	import {
 		seedToolbarStateFromDefinition,
 		buildOverriddenQuery,
@@ -73,12 +73,17 @@
 	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
 	let viewLoadGeneration = 0;
 
-	/** Local filter/sort state for the active view selection. Seeded once per view. */
+	/**
+	 * Local filter/sort state for the active view selection. Seeded from the .view
+	 * YAML on selection and re-seeded in place whenever its content hash changes.
+	 */
 	let localGlobalFilters = $state<FilterGroup[]>([]);
 	let localViewFilters = $state<FilterGroup[]>([]);
 	let localSort = $state<SortDef[]>([]);
 	/** Path of the view whose YAML seeded the local state. Triggers re-seed when it changes. */
 	let seededViewPath = $state<string | null>(null);
+	/** Content hash of the YAML that seeded the local state. Triggers re-seed when it changes. */
+	let seededViewHash = $state<string | undefined>(undefined);
 	/** Suppresses the next re-seed when the YAML change came from our own write. */
 	let selfUpdate = $state(false);
 	/** Popover open states. */
@@ -159,7 +164,19 @@
 		}
 
 		if (sel.kind === 'view') {
-			loadViewNotes(sel.path, entries, subFilter, ++viewLoadGeneration);
+			// Read the property index HERE, not inside loadViewNotes: dependencies are
+			// only collected during this synchronous run, so a read placed after the
+			// await would leave the effect unsubscribed and a view selected before
+			// buildPropertyIndex lands would stay empty. Reading it inside this branch
+			// keeps non-view selections unsubscribed from per-note index churn.
+			loadViewNotes(
+				sel.path,
+				entries,
+				subFilter,
+				++viewLoadGeneration,
+				collectionStore.propertyIndex,
+				collectionStore.isIndexReady,
+			);
 			return;
 		}
 
@@ -170,10 +187,23 @@
 		}
 	});
 
-	async function loadViewNotes(viewPath: string, entries: typeof typeDefinitionsStore.entries, sf: NoteListSubFilter, generation: number) {
+	/**
+	 * Resolves the notes matched by a .view file. `propertyIndex` / `isIndexReady` are
+	 * passed in rather than read from the store because every caller runs in a reactive
+	 * context that must subscribe to them synchronously.
+	 */
+	async function loadViewNotes(
+		viewPath: string,
+		entries: typeof typeDefinitionsStore.entries,
+		sf: NoteListSubFilter,
+		generation: number,
+		propertyIndex: Map<string, NoteRecord>,
+		isIndexReady: boolean,
+	) {
 		const t0 = performance.now();
 		try {
 			const parsed = await getCachedViewDefinition(viewPath);
+			const contentHash = getViewContentHash(viewPath);
 			if (generation !== viewLoadGeneration) return;
 			const sel = typeDefinitionsStore.selectedTypeOrNav;
 			if (sel?.kind !== 'view' || sel.path !== viewPath) return;
@@ -183,22 +213,36 @@
 				notes = [];
 				subCounts = { open: 0, archived: 0, favorites: 0 };
 				seededViewPath = viewPath;
+				seededViewHash = contentHash;
 				return;
 			}
 			const view = parsed.definition.views[0];
 
-			// Seed local toolbar state when switching to a different view, or after a
-			// remote/external YAML change. Skip re-seeding when our own persistState
-			// caused the reload (selfUpdate flag).
+			// Seed local toolbar state when switching to a different view, or when the
+			// YAML changed on disk (a new content hash). Re-seed in place so
+			// viewToolbarReady never flickers false and unmounts an open popover.
+			// Skip the seed when our own persistViewState wrote the file — the local
+			// state already IS what was written; just adopt the hash it produced.
 			if (selfUpdate) {
 				selfUpdate = false;
-			} else if (seededViewPath !== viewPath) {
+				seededViewPath = viewPath;
+				seededViewHash = contentHash;
+			} else if (seededViewPath !== viewPath || seededViewHash !== contentHash) {
 				const seed = seedToolbarStateFromDefinition(parsed.definition, view);
 				localGlobalFilters = seed.globalFilters;
 				localViewFilters = seed.viewFilters;
 				localSort = seed.sort;
 				viewFormulas = seed.formulas;
 				seededViewPath = viewPath;
+				seededViewHash = contentHash;
+			}
+
+			// Without the index every query matches nothing. Skip the work and wait —
+			// the effect re-runs when buildPropertyIndex publishes the index.
+			if (!isIndexReady) {
+				notes = [];
+				subCounts = { open: 0, archived: 0, favorites: 0 };
+				return;
 			}
 
 			const overridden = buildOverriddenQuery(
@@ -217,7 +261,7 @@
 				vaultStore.path,
 				settingsStore.templates.systemFolder,
 			);
-			const result = executeQuery(overridden.definition, overridden.view, collectionStore.propertyIndex);
+			const result = executeQuery(overridden.definition, overridden.view, propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
 			const viewEntry = freshEntries.find((e) => e.path === viewPath);
 			notes = getNotesForViewPaths(freshEntries, matchingPaths, getViewSort(viewEntry), sf);
@@ -239,7 +283,14 @@
 			// Re-run the query so the panel updates immediately. Bump the generation
 			// so the in-flight effect re-trigger (from entriesVersion bump) does not
 			// race with this manual call.
-			loadViewNotes(viewPath, typeDefinitionsStore.entries, subFilter, ++viewLoadGeneration);
+			loadViewNotes(
+				viewPath,
+				typeDefinitionsStore.entries,
+				subFilter,
+				++viewLoadGeneration,
+				collectionStore.propertyIndex,
+				collectionStore.isIndexReady,
+			);
 		} catch {
 			selfUpdate = false;
 		}
@@ -264,6 +315,7 @@
 	$effect(() => {
 		if (selection?.kind !== 'view') {
 			seededViewPath = null;
+			seededViewHash = undefined;
 			localGlobalFilters = [];
 			localViewFilters = [];
 			localSort = [];
