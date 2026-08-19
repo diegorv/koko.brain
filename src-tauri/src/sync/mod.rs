@@ -2,7 +2,7 @@
 //!
 //! Pull-only model: "Sync now" on machine A connects to machine B and writes
 //! only to A's disk. The listener side is strictly read-only. See
-//! docs/superpowers/specs/2026-07-03-p2p-sync-design.md.
+//! docs/SYNC.md.
 
 pub mod protocol;
 pub mod noise;

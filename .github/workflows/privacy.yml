@@ -140,5 +140,5 @@ jobs:
             # P2P vault sync opens a direct TCP connection to a peer whose
             # ip:port the user enters in Sync settings — no hardcoded address
             # and no external server. The read-only listener side stays on the
-            # LAN. See docs/superpowers/specs/2026-07-03-p2p-sync-design.md.
+            # LAN. See docs/SYNC.md.
             sync/engine\.rs:.*TcpStream::connect
