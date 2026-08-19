@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
+import { flushSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -58,6 +59,10 @@ export function registerCloseHandler(): () => void {
 			);
 			if (!discard) return;
 		}
+		// The settings effect debounces its write by 500 ms; without this the
+		// last change before quitting dies with the window. After the discard
+		// prompt so a cancelled close does not flush.
+		await flushSettingsPersistence();
 		getCurrentWindow().destroy();
 	}).then((fn) => {
 		if (cancelled) fn();

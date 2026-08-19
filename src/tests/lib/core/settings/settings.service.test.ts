@@ -17,7 +17,7 @@ vi.mock('$lib/core/settings/theme.service', () => ({
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { applyActiveTheme } from '$lib/core/settings/theme.service';
 import { settingsStore, DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
-import { loadSettings, saveSettings, resetSettings, applyHeadingTypography } from '$lib/core/settings/settings.service';
+import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '$lib/core/settings/settings.service';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME } from '$lib/core/settings/theme.logic';
 import { FONT_WEIGHT_MAP } from '$lib/core/settings/heading-typography.logic';
 
@@ -601,6 +601,33 @@ describe('saveSettings', () => {
 
 		expect(consoleSpy).toHaveBeenCalled();
 		expect(writeTextFile).not.toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+});
+
+describe('writeSettingsFile', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		settingsStore.reset();
+	});
+
+	it('writes the content it is given verbatim, not a re-serialized store', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await writeSettingsFile('/vault', '{"handed":"in"}');
+
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/.kokobrain/settings.json', '{"handed":"in"}');
+	});
+
+	it('logs and re-throws on write error, so the caller can react', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(writeSettingsFile('/vault', '{}')).rejects.toThrow('write error');
+
+		expect(consoleSpy).toHaveBeenCalled();
 		consoleSpy.mockRestore();
 	});
 });

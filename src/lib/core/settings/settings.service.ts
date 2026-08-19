@@ -181,9 +181,11 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 	}
 }
 
-/** Persists the current settings to disk, creating the `.kokobrain` dir if needed */
-export async function saveSettings(vaultPath: string): Promise<void> {
-	debug('SETTINGS', `saveSettings() called at ${Date.now()}`);
+/**
+ * Writes already-serialized settings JSON to the vault, creating the
+ * `.kokobrain` dir if needed. The single write site for settings.
+ */
+export async function writeSettingsFile(vaultPath: string, content: string): Promise<void> {
 	const dirPath = getDirPath(vaultPath);
 	const filePath = getSettingsPath(vaultPath);
 	try {
@@ -191,12 +193,17 @@ export async function saveSettings(vaultPath: string): Promise<void> {
 		if (!dirExists) {
 			await mkdir(dirPath);
 		}
-		const content = JSON.stringify(settingsStore.settings, null, 2);
 		await writeTextFile(filePath, content);
 	} catch (err) {
 		error('SETTINGS', 'Failed to save settings:', err);
 		throw err;
 	}
+}
+
+/** Persists the current settings to disk, creating the `.kokobrain` dir if needed */
+export async function saveSettings(vaultPath: string): Promise<void> {
+	debug('SETTINGS', `saveSettings() called at ${Date.now()}`);
+	await writeSettingsFile(vaultPath, JSON.stringify(settingsStore.settings, null, 2));
 }
 
 /** Applies heading typography CSS variables to the document root */

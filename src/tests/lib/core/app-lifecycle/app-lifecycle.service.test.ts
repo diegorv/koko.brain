@@ -93,6 +93,15 @@ vi.mock('$lib/core/settings/settings.service', () => ({
 	resetSettings: vi.fn(),
 }));
 
+// The persistence owner runs a Svelte `$effect.root`; its real behaviour is
+// covered in settings-persistence.test.ts (jsdom). Here only the lifecycle
+// wiring matters, so the module is a spy.
+vi.mock('$lib/core/settings/settings-persistence.svelte', () => ({
+	startSettingsPersistence: vi.fn(),
+	stopSettingsPersistence: vi.fn(() => Promise.resolve()),
+	flushSettingsPersistence: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: {
 		warning: vi.fn(),
@@ -185,6 +194,7 @@ import { resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.
 import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
 import { resetSearch, buildSearchIndex } from '$lib/features/search/search.service';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
 import { resetTemplates, ensureTemplatesFolder } from '$lib/plugins/templates/templates.service';
@@ -231,6 +241,33 @@ describe('initializeVault', () => {
 		await initializeVault('/vault');
 
 		expect(loadSettings).toHaveBeenCalledWith('/vault');
+	});
+
+	it('starts settings persistence for the opened vault, after its settings are loaded', async () => {
+		await initializeVault('/vault');
+
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
+		// Starting before the load would serialize DEFAULT_SETTINGS over the
+		// vault's own settings.json on the effect's first run.
+		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(startSettingsPersistence).mock.invocationCallOrder[0]);
+	});
+
+	it('stops any running persistence session before loading the next vault settings', async () => {
+		// Leading teardown clears the watcher handle, so the init below takes
+		// the branch that SKIPS teardownVault: the rapid double-switch window
+		// the comment at the top of initializeVault describes.
+		teardownVault();
+		vi.clearAllMocks();
+
+		await initializeVault('/vault-c');
+
+		// Without this, the previous vault's session is still live when
+		// loadSettings puts the new vault's settings in the store, and the
+		// restart flush writes them into the previous vault's settings.json.
+		expect(stopSettingsPersistence).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(stopSettingsPersistence).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
 	});
 
 	it('prepares templates after settings are ready, then runs the post-open side effects', async () => {
@@ -530,6 +567,18 @@ describe('teardownVault', () => {
 		expect(resetEditor).toHaveBeenCalled();
 		expect(resetFileSystem).toHaveBeenCalled();
 		expect(resetSettings).toHaveBeenCalled();
+	});
+
+	it('stops settings persistence BEFORE resetting the settings store', () => {
+		teardownVault();
+
+		// Order is load-bearing: resetSettings() puts DEFAULT_SETTINGS in the
+		// store, and a persistence effect still alive at that point serializes
+		// those defaults over the settings of the vault being left.
+		expect(stopSettingsPersistence).toHaveBeenCalledTimes(1);
+		expect(resetSettings).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(stopSettingsPersistence).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(resetSettings).mock.invocationCallOrder[0]);
 	});
 
 	it('resets all feature modules to initial state', () => {

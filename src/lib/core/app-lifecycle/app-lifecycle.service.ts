@@ -33,6 +33,7 @@ import {
 } from '$lib/features/search/search.service';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { resetProperties } from '$lib/features/properties/properties.service';
@@ -130,6 +131,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// reaches step 7) skips the teardown below because unsubscribeFileChange
 	// is still null — readiness from B's init must not leak into C's.
 	vaultStore.resetIndexReady();
+	// Unconditional for the same reason: a session left running by the skipped
+	// teardown still holds the PREVIOUS vault's path, and the `loadSettings`
+	// below would hand it the NEW vault's settings to write there. Stopping
+	// now flushes while the store still matches the captured path.
+	void stopSettingsPersistence();
 
 	// If a vault is already initialized, save dirty tabs and tear down
 	// watchers, database connections, hooks, and stores from the old vault
@@ -150,6 +156,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	await loadSettings(vaultPath);
 	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
+
+	// Persisting is a property of the settings module from here on: every
+	// mutation of the store is written back to THIS vault. Started after the
+	// load so the effect's first run cannot overwrite the file it just read.
+	startSettingsPersistence(vaultPath);
 
 	if (settingsStore.debugModeTauri) {
 		debug('LIFECYCLE', 'Tauri debug mode enabled — activating');
@@ -439,6 +450,11 @@ export function teardownVault(): void {
 	for (const unregister of unregisterNoteChangeConsumers) unregister();
 	unregisterNoteChangeConsumers = [];
 	// ── Stop background processes ────────────────────────────────────
+	// Settings persistence first, and well before `resetSettings()` below:
+	// that call puts DEFAULT_SETTINGS in the store, and a live effect would
+	// serialize them over the settings of the vault being torn down. Flushing
+	// is fire-and-forget; the write target is the path captured at start.
+	void stopSettingsPersistence();
 	stopWatching();
 	stopSemanticProgressListener();
 	stopTauriDebugListener();

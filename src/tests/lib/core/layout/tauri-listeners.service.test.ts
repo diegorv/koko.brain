@@ -63,6 +63,13 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Pulled in transitively by the settings persistence owner (the close handler
+// flushes it before quitting). Mocked at the write boundary so the flush is
+// observable without touching the real Tauri filesystem plugin.
+vi.mock('$lib/core/settings/settings.service', () => ({
+	writeSettingsFile: vi.fn(() => Promise.resolve()),
+}));
+
 // settingsPanelStore is a real store per CLAUDE.md — not mocked. Tests reset it
 // via _reset() and assert real isOpen state.
 
@@ -91,6 +98,9 @@ import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svel
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
+import { writeSettingsFile } from '$lib/core/settings/settings.service';
+import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -170,6 +180,12 @@ describe('registerCloseHandler', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		capturedCloseHandler = undefined;
+		settingsStore.reset();
+	});
+
+	afterEach(async () => {
+		// A persistence session left running would keep writing during later tests.
+		await stopSettingsPersistence();
 	});
 
 	it('registers an onCloseRequested handler', async () => {
@@ -242,6 +258,41 @@ describe('registerCloseHandler', () => {
 
 		await capturedCloseHandler!({ preventDefault: vi.fn() });
 
+		expect(mockDestroy).not.toHaveBeenCalled();
+	});
+
+	it('flushes the pending settings write before destroying the window', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		registerCloseHandler();
+		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
+
+		startSettingsPersistence('/vault');
+		// Still inside the 500 ms debounce window; without an explicit flush
+		// this change dies with the window.
+		settingsStore.updateLayout({ leftSidebarVisible: false });
+
+		await capturedCloseHandler!({ preventDefault: vi.fn() });
+
+		expect(writeSettingsFile).toHaveBeenCalledTimes(1);
+		const [path, content] = vi.mocked(writeSettingsFile).mock.calls[0];
+		expect(path).toBe('/vault');
+		expect(JSON.parse(content).layout.leftSidebarVisible).toBe(false);
+		expect(vi.mocked(writeSettingsFile).mock.invocationCallOrder[0])
+			.toBeLessThan(mockDestroy.mock.invocationCallOrder[0]);
+	});
+
+	it('does not flush settings when the user cancels the close', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue(['/vault/note.md']);
+		vi.mocked(ask).mockResolvedValue(false);
+		registerCloseHandler();
+		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
+
+		startSettingsPersistence('/vault');
+		settingsStore.updateLayout({ leftSidebarVisible: false });
+
+		await capturedCloseHandler!({ preventDefault: vi.fn() });
+
+		expect(writeSettingsFile).not.toHaveBeenCalled();
 		expect(mockDestroy).not.toHaveBeenCalled();
 	});
 
