@@ -296,11 +296,11 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 ## Plan Mode Workflow
 
-**Every plan created in plan-mode MUST be saved to `tasks/todo/` as a task file.** This is non-negotiable.
+**Every plan created in plan-mode MUST be saved under `.scratch/<feature-slug>/` as a task file** (see [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)). This is non-negotiable.
 
 ### Lifecycle
 
-1. **Create the plan file:** Save to `tasks/todo/<name>.md` (e.g., `feature-search-improvements.md`).
+1. **Create the plan file:** Save to `.scratch/<feature-slug>/plan-<YYYY-MM-DD>.md` (e.g., `.scratch/search-improvements/plan-2026-08-19.md`), creating the directory if needed.
 2. **Work through tasks sequentially:** One at a time, in order.
 3. **After EACH task, execute this exact sequence (NO EXCEPTIONS):**
    1. Mark the task `[x]` in the plan file.
@@ -313,7 +313,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
    5. Run `git diff --cached --stat` to verify staging area.
    6. **Commit immediately** — one commit per task, using the full detailed format (Context, Problem, Solution, Behavior, Files with line ranges). See [docs/COMMITS.md](docs/COMMITS.md).
    7. **Only then** proceed to the next task.
-4. **Move to done when finished:** `mv tasks/todo/<name>.md tasks/done/`.
+4. **Close out when finished:** delete the plan file in its own closing commit (done is recorded in the commit message), matching the `.scratch` issue flow. If the plan produced follow-up issues, they stay as `.scratch/<feature-slug>/issues/<NN>-<slug>.md` until each is closed the same way.
 
 ### Task File Format
 
@@ -337,8 +337,8 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 - **One task at a time.** Do not skip ahead or work on multiple tasks in parallel.
 - **COMMIT after EVERY task.** This is NON-NEGOTIABLE. Each completed task MUST be committed immediately — run the relevant tests (rule 6) → `git add <files>` → `git commit` with the full detailed format (Context, Problem, Solution, Behavior, Files with line ranges). NEVER batch multiple tasks into one commit. NEVER proceed to the next task without committing first. If you finish task 3 and realize you haven't committed tasks 1–2, STOP — you are violating this rule.
-- **Update immediately.** The file in `tasks/todo/` must always reflect the current progress.
-- **Never leave stale files.** If a plan is abandoned, delete it or move it to `tasks/done/` with a note.
+- **Update immediately.** The plan file under `.scratch/<feature-slug>/` must always reflect the current progress.
+- **Never leave stale files.** If a plan is abandoned, delete it with a note in the closing commit message.
 - **Task granularity matters.** Each task should be a concrete, completable unit of work — not a vague goal.
 
 ## Agent skills
