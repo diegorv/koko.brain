@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { parseAlignments, findAllTables } from '$lib/core/markdown-editor/extensions/live-preview/parsers/table';
 import { createMarkdownState } from '../../../test-helpers';
 
@@ -75,6 +75,27 @@ describe('findAllTables', () => {
 		expect(tables).toHaveLength(2);
 		expect(tables[0].headers).toEqual(['a', 'b']);
 		expect(tables[1].headers).toEqual(['x', 'y']);
+	});
+
+	it('finds multiple tables when the initial parse budget expires', () => {
+		// CodeMirror gives the parse started by EditorState.create a 20 ms wall-clock
+		// budget (Work.Apply in LanguageState.init) and snapshots whatever tree that
+		// produced. A clock that steps 25 ms per reading forces that budget to expire
+		// at the first block boundary, which is what a scheduler stall does on a loaded
+		// machine. createMarkdownState must still hand back the complete tree.
+		let clock = 0;
+		const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => (clock += 25));
+		try {
+			const state = createMarkdownState(
+				'| a | b |\n| --- | --- |\n| 1 | 2 |\n\n| x | y |\n| --- | --- |\n| 3 | 4 |',
+			);
+			const tables = findAllTables(state);
+			expect(tables).toHaveLength(2);
+			expect(tables[0].headers).toEqual(['a', 'b']);
+			expect(tables[1].headers).toEqual(['x', 'y']);
+		} finally {
+			nowSpy.mockRestore();
+		}
 	});
 
 	it('returns empty for non-table content', () => {

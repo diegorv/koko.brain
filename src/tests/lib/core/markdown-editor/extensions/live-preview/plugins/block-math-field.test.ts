@@ -13,7 +13,11 @@ function createState(doc: string, cursor?: number): EditorState {
 		selection: cursor !== undefined ? EditorSelection.single(cursor) : undefined,
 	});
 	ensureSyntaxTree(state, state.doc.length, 5000);
-	return state;
+	// ensureSyntaxTree finishes the parse on the mutable ParseContext but never
+	// refreshes the Language state field's tree snapshot, and syntaxTree() reads that
+	// snapshot. Without the empty transaction, a parse that blew the 20 ms Work.Apply
+	// budget of EditorState.create stays truncated for every consumer.
+	return state.update({}).state;
 }
 
 function collectDecos(state: EditorState): { from: number; to: number }[] {
