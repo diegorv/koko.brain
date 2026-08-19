@@ -168,3 +168,69 @@ gate is the staging discipline plus the commit format.
   `pnpm check` + `pnpm vitest run` + `pnpm build`, before committing.
 
 ## Comments
+
+### Resolution 2026-08-19
+
+Docs-only rewrite of `docs/LIVE-PREVIEW.md`. Every claim was re-derived by opening the source
+symbol, not by paraphrasing root `CLAUDE.md` or ADR-0008 (the side channel the issue warned about).
+
+**Verified against the code, by symbol:**
+
+- `core/block-decorator.ts::blockDecorator` - viewport guard, `lastCursorLine` field, the
+  `checkUpdateAction(update, this.lastCursorLine)` call and the `profileStart` / `profileEnd`
+  bracket all live in the factory. Optional `rebuildOn` (used by `plugins/callout-field.ts` with
+  `[toggleCalloutFold]`) and `gate` (used by `plugins/queryjs-block-field.ts`).
+- `core/decorator-names.ts::BLOCK_DECORATOR_NAMES` / `INLINE_PLUGIN_NAMES` / `INLINE_HANDLER_NAMES`
+  and `live-preview.ts::BLOCK_EXTENSIONS` / `INLINE_PLUGIN_EXTENSIONS`, both total `Record`s, and
+  `livePreviewExtensions()` installing by iterating the name lists through `isDisabled()`.
+- `plugins/frontmatter-field.ts::frontmatterField` - `StateField.define<DecorationSet>`, rebuilds on
+  `tr.docChanged` or `forceDecorationRebuild`, hand-rolled profiling, never calls
+  `checkUpdateAction`. The one exception among the twelve block decorator names.
+- `core/check-update-action.ts::checkUpdateAction(update, lastCursorLine?)`, and
+  `core/is-inside-block-context.ts::BLOCK_CONTEXT_TYPES` (which does include `BlockMath` and
+  `Frontmatter`).
+- `inline/inline-formatting-plugin.ts`, `inline/inline-extensions.ts::PRODUCTION_NODE_HANDLERS` /
+  `PRODUCTION_LINE_HANDLERS` / `TOGGLEABLE_HANDLERS`, `inline/markdown-highlight-style.ts::inlineHighlightExtension`.
+- The four widget caches: `queryjs-block-widget.ts` (live element via `queryjsSessionStore`,
+  `!isConnected` guard), `mermaid-widget.ts::mermaidCache` (SVG string), `math-widget.ts::mathCache`
+  (KaTeX HTML string, key carries the mode), `collection-block-widget.ts::collectionCache` (query
+  DATA plus a `version` field). All four clears are wired at
+  `app-lifecycle.service.ts::teardownVault`.
+
+**Rewritten:** File Structure (added `inline/`, `inline/handlers/`, `handlers/`); Two Plugin Types
+replaced by Three Decorator Tracks; Core Utilities signatures; the hand-written
+`ViewPlugin.fromClass` block template replaced by the `blockDecorator()` shape plus the
+`StateField` exception; a new inline handler template; Styling vs. Visibility rewritten off the real
+symbols (the dead `inlineMarksPlugin` / `markdownStylePlugin` names are gone); Widget Caching turned
+into a four-row table stating that live-DOM caching is queryjs-only; Adding a New Plugin split into
+block and inline paths with the three-place registration contract. A pointer to ADR-0008 was added
+near the top.
+
+**Adversarial review verdict: findings, six, all minor, no blocker.** Four were prose claims that
+did not survive a re-read of the code and are fixed in this commit:
+
+1. the intro overstated the inline pipeline as covering *every* inline construct, ignoring the four
+   residual ViewPlugins in `INLINE_PLUGIN_EXTENSIONS`;
+2. "the factory makes this call for every block decorator" was false for `frontmatterField`;
+3. collection's "only `executeQuery` is skipped" was checkably wrong, since `toDOM()` returns before
+   `parseCollectionYaml` on a hit;
+4. queryjs "falls through to a fresh execution" holds only under `autoRunQueries: 'always'`; the
+   fall-through goes to the policy branch, which renders the Run placeholder under `'manual'`.
+
+Finding 5 was scope: the diff changed one word inside § Critical Rule ("block plugins" to "block
+decorators") which the scope contract said to leave as it stands. Accepted deliberately as
+terminology alignment, since "block plugins" appears nowhere else in the rewritten file. Nothing
+else in that section moved.
+
+**Found and left out of scope (follow-up material, not fixed here):** root `CLAUDE.md` Performance
+Guidelines preamble still describes block widgets as "per-feature `StateField`s", and
+`docs/adr/0008-codemirror-live-preview-architecture.md` § Context carries the same stale wording.
+Only `frontmatterField` is a `StateField`; the other eleven are `ViewPlugin.fromClass` products of
+`blockDecorator`. Rule 4 in that same `CLAUDE.md` section already states it correctly, so the file
+contradicts itself. Both files are explicitly excluded by this issue's "What must NOT change", so
+they stay untouched.
+
+**Gate:** docs-only, no file under `src/` or `src-tauri/` touched, so root `CLAUDE.md` rule 6
+triggers no automated test command. Smoke check
+`grep -n "inlineMarksPlugin\|markdownStylePlugin\|view.visibleRanges" docs/LIVE-PREVIEW.md` returns
+zero hits.
