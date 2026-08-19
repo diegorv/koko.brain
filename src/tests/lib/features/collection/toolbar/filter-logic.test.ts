@@ -355,6 +355,25 @@ describe('filterRowToExpression', () => {
 		expect(row2.value).toBe('b');
 	});
 
+	it('quotes non-numeric eq/neq values so they stay literals', () => {
+		expect(filterRowToExpression({ id: '1', property: 'status', operator: 'eq', value: 'b' }))
+			.toBe("status == 'b'");
+		expect(filterRowToExpression({ id: '1', property: 'status', operator: 'neq', value: 'in progress' }))
+			.toBe("status != 'in progress'");
+	});
+
+	it('round-trips non-numeric eq: stays a visual row and keeps the value', () => {
+		const serialized = filterRowToExpression({ id: '1', property: 'status', operator: 'eq', value: 'b' });
+		const parsed = parseExpressionToRow(serialized);
+		expect(parsed.raw).toBeUndefined();
+		expect(parsed.property).toBe('status');
+		expect(parsed.value).toBe('b');
+		// A quoted `==` is indistinguishable from an `is` row: same expression, so the
+		// operator re-parses as 'is'. Semantics are identical and the file is a fixed point.
+		expect(parsed.operator).toBe('is');
+		expect(filterRowToExpression(parsed)).toBe(serialized);
+	});
+
 	it('round-trips every operator: serialize → parse preserves the row', () => {
 		// Record<FilterOperator, ...> so adding an operator without a case here fails to compile
 		const values: Record<FilterOperator, string> = {

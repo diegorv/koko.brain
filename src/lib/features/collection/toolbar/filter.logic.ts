@@ -53,10 +53,12 @@ export function filterRowToExpression(row: FilterRow): string {
 			return `startsWith(${prop}, ${quoteString(val)})`;
 		case 'ends_with':
 			return `endsWith(${prop}, ${quoteString(val)})`;
+		// A quoted value re-parses as `is`/`is_not`, not `eq`/`neq`: the expression is
+		// byte-identical to what those operators emit, so the round-trip is a fixed point.
 		case 'eq':
-			return `${prop} == ${val}`;
+			return `${prop} == ${quoteUnlessNumber(val)}`;
 		case 'neq':
-			return `${prop} != ${val}`;
+			return `${prop} != ${quoteUnlessNumber(val)}`;
 		case 'gt':
 			return `${prop} > ${quoteUnlessNumber(val)}`;
 		case 'lt':
