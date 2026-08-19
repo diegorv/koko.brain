@@ -6,13 +6,14 @@ import { TableWidget } from '../widgets';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
+import { frontmatterSlice } from '../core/frontmatter-slice';
 import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
 import type { Property } from '$lib/features/properties/properties.types';
 
 /** Computes table decorations using the Lezer syntax tree */
 export function computeTables(state: EditorState): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
-	const fmProperties: Property[] = parseFrontmatterProperties(state.doc.toString());
+	const fmProperties: Property[] = parseFrontmatterProperties(frontmatterSlice(state.doc));
 	const tables = findAllTables(state);
 
 	for (const table of tables) {
