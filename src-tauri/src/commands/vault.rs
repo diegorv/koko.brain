@@ -3,12 +3,10 @@ use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
-use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task, ToggleTaskResult};
+use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, ToggleTaskResult};
 use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use serde::Serialize;
-use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::{Instant, UNIX_EPOCH};
@@ -560,20 +558,6 @@ pub fn get_all_tags_v2(
 	Ok(idx.lookup_all_tags())
 }
 
-/// Returns every `NoteEntry` whose tags contain `tag` (case-insensitively;
-/// any leading `#` on the input is stripped). Phase 7.3.
-#[tauri::command]
-pub fn get_notes_with_tag_v2(
-	tag: String,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<Vec<NoteEntry>, String> {
-	let _trace = CmdTrace::new("get_notes_with_tag_v2");
-	let idx = state
-		.read()
-		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-	Ok(idx.lookup_notes_with_tag(&tag))
-}
-
 /// Returns every file's tasks grouped by file, sorted by `modifiedAt`
 /// descending. Files with zero tasks are filtered out. Phase 7.3 —
 /// replaces `tasks.service.ts::buildTaskIndex`'s JS-side aggregation.
@@ -586,20 +570,6 @@ pub fn get_all_tasks_v2(
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	Ok(idx.lookup_all_tasks())
-}
-
-/// Returns the parsed task list for the entry at `path`. Empty when
-/// `path` is unknown to the index or has no tasks. Phase 7.3.
-#[tauri::command]
-pub fn get_tasks_in_path_v2(
-	path: String,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<Vec<Task>, String> {
-	let _trace = CmdTrace::new("get_tasks_in_path_v2");
-	let idx = state
-		.read()
-		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-	Ok(idx.lookup_tasks_in_path(&path))
 }
 
 /// Returns tasks across the vault filtered by section heading: only tasks
@@ -785,49 +755,6 @@ pub fn project_note_record(entry: &NoteEntry) -> NoteRecord {
 		size: entry.size,
 		properties,
 	}
-}
-
-/// Returns every `NoteEntry` whose `frontmatter[key]` equals `value`
-/// (canonical-JSON equality). Phase 8.3.
-#[tauri::command]
-pub fn query_notes_by_property(
-	key: String,
-	value: JsonValue,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<Vec<NoteEntry>, String> {
-	let _trace = CmdTrace::new("query_notes_by_property");
-	let idx = state
-		.read()
-		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-	Ok(idx.lookup_notes_by_property(&key, &value))
-}
-
-/// Returns every distinct value the index has seen for `key`. Used by
-/// the Properties Panel's value autocomplete. Phase 8.3.
-#[tauri::command]
-pub fn get_property_values(
-	key: String,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<Vec<JsonValue>, String> {
-	let _trace = CmdTrace::new("get_property_values");
-	let idx = state
-		.read()
-		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-	Ok(idx.lookup_property_values(&key))
-}
-
-/// Returns the entry's frontmatter map at `path`, or empty when the
-/// path is unknown to the index. Phase 8.3.
-#[tauri::command]
-pub fn get_note_properties(
-	path: String,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<BTreeMap<String, JsonValue>, String> {
-	let _trace = CmdTrace::new("get_note_properties");
-	let idx = state
-		.read()
-		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-	Ok(idx.lookup_note_properties(&path))
 }
 
 /// Returns every entry projected as a `NoteRecord` — the shape the TS

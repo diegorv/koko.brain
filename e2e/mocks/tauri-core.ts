@@ -81,10 +81,6 @@ function handleGetAllTagsV2(): unknown {
 	return vaultIndex.getAllTags();
 }
 
-function handleGetNotesWithTagV2(args: Args): unknown {
-	return vaultIndex.getNotesWithTag(get<string>(args, 'tag'));
-}
-
 function handleGetAllTasksV2(): unknown {
 	return vaultIndex.getAllTasks();
 }
@@ -262,7 +258,6 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	get_outgoing_unlinked_mentions_v2: handleGetOutgoingUnlinkedMentionsV2,
 	get_unlinked_mentions_v2: handleGetUnlinkedMentionsV2,
 	get_all_tags_v2: handleGetAllTagsV2,
-	get_notes_with_tag_v2: handleGetNotesWithTagV2,
 	get_all_tasks_v2: handleGetAllTasksV2,
 	get_tasks_in_section_v2: handleGetTasksInSectionV2,
 	toggle_task_status: handleToggleTaskStatus,

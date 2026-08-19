@@ -133,7 +133,7 @@ pub struct RelationshipBacklink {
 /// Constructed by Phase 1.5's `scan_vault_v2` and Phase 2's
 /// `update_note_in_index`. The field set is fixed across the migration:
 /// every consumer command (`get_backlinks_v2`, `get_outgoing_links_v2`,
-/// `get_notes_with_tag`, etc.) returns slices or projections of this type.
+/// etc.) returns slices or projections of this type.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteEntry {

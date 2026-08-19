@@ -1049,48 +1049,6 @@ fn update_entry_no_op_does_not_touch_tags_index() {
 }
 
 #[test]
-fn lookup_notes_with_tag_returns_empty_for_unknown() {
-	let idx = VaultIndex::default();
-	assert!(idx.lookup_notes_with_tag("nope").is_empty());
-}
-
-#[test]
-fn lookup_notes_with_tag_strips_hash_prefix() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
-	let with_hash = idx.lookup_notes_with_tag("#work");
-	let without_hash = idx.lookup_notes_with_tag("work");
-	assert_eq!(with_hash.len(), 1);
-	assert_eq!(without_hash.len(), 1);
-	// Both spellings must resolve to the SAME entry, not merely the same
-	// count — otherwise the hash-strip could be matching a different note.
-	assert_eq!(with_hash[0].path, "/v/a.md");
-	assert_eq!(with_hash[0].path, without_hash[0].path);
-	assert_eq!(with_hash[0].title, without_hash[0].title);
-}
-
-#[test]
-fn lookup_notes_with_tag_is_case_insensitive() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![entry_with_tags("/v/a.md", &["JavaScript"])]);
-	assert_eq!(idx.lookup_notes_with_tag("javascript").len(), 1);
-	assert_eq!(idx.lookup_notes_with_tag("JAVASCRIPT").len(), 1);
-}
-
-#[test]
-fn lookup_notes_with_tag_sorts_by_title_case_insensitive() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![
-		entry_with_tags("/v/zeta.md", &["work"]),
-		entry_with_tags("/v/alpha.md", &["work"]),
-		entry_with_tags("/v/Mu.md", &["work"]),
-	]);
-	let result = idx.lookup_notes_with_tag("work");
-	let titles: Vec<&str> = result.iter().map(|e| e.title.as_str()).collect();
-	assert_eq!(titles, vec!["alpha", "Mu", "zeta"]);
-}
-
-#[test]
 fn lookup_all_tags_returns_alphabetical_with_counts() {
 	let mut idx = VaultIndex::default();
 	idx.build(vec![
@@ -1128,20 +1086,6 @@ fn lookup_all_tasks_filters_empty_and_sorts_by_mtime_desc() {
 	assert_eq!(groups.len(), 3, "b.md (no tasks) should be filtered");
 	let order: Vec<i64> = groups.iter().map(|g| g.modified_at).collect();
 	assert_eq!(order, vec![300, 200, 100]); // descending
-}
-
-#[test]
-fn lookup_tasks_in_path_returns_entry_tasks() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![entry_with_tasks("/v/a.md", 0, 3)]);
-	let tasks = idx.lookup_tasks_in_path("/v/a.md");
-	assert_eq!(tasks.len(), 3);
-}
-
-#[test]
-fn lookup_tasks_in_path_returns_empty_for_unknown() {
-	let idx = VaultIndex::default();
-	assert!(idx.lookup_tasks_in_path("/v/nope.md").is_empty());
 }
 
 // ---------- remove_entry ----------
@@ -1401,71 +1345,6 @@ fn update_entry_keeps_value_set_when_other_path_still_uses_it() {
 	let drafts = by_status.get("\"draft\"").expect("\"draft\" dropped");
 	assert_eq!(drafts.len(), 1);
 	assert!(drafts.contains("/v/b.md"));
-}
-
-#[test]
-fn lookup_notes_by_property_returns_matching_entries_sorted() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![
-		entry_with_props("/v/zeta.md", &[("status", json!("draft"))]),
-		entry_with_props("/v/alpha.md", &[("status", json!("draft"))]),
-		entry_with_props("/v/done.md", &[("status", json!("done"))]),
-	]);
-	let drafts = idx.lookup_notes_by_property("status", &json!("draft"));
-	let titles: Vec<&str> = drafts.iter().map(|e| e.title.as_str()).collect();
-	assert_eq!(titles, vec!["alpha", "zeta"]);
-}
-
-#[test]
-fn lookup_notes_by_property_returns_empty_for_unknown_key() {
-	let idx = VaultIndex::default();
-	assert!(idx.lookup_notes_by_property("nope", &json!("anything")).is_empty());
-}
-
-#[test]
-fn lookup_notes_by_property_canonical_value_match() {
-	// JSON canonicalisation: numeric 1 vs string "1" stay distinct.
-	let mut idx = VaultIndex::default();
-	idx.build(vec![
-		entry_with_props("/v/n.md", &[("priority", json!(1))]),
-		entry_with_props("/v/s.md", &[("priority", json!("1"))]),
-	]);
-	let by_int = idx.lookup_notes_by_property("priority", &json!(1));
-	let by_str = idx.lookup_notes_by_property("priority", &json!("1"));
-	assert_eq!(by_int.len(), 1);
-	assert_eq!(by_str.len(), 1);
-	assert_ne!(by_int[0].path, by_str[0].path);
-}
-
-#[test]
-fn lookup_property_values_returns_distinct_values() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![
-		entry_with_props("/v/a.md", &[("priority", json!(1))]),
-		entry_with_props("/v/b.md", &[("priority", json!(2))]),
-		entry_with_props("/v/c.md", &[("priority", json!(1))]),
-	]);
-	let mut values = idx.lookup_property_values("priority");
-	values.sort_by_key(|v| v.as_i64().unwrap_or(0));
-	assert_eq!(values, vec![json!(1), json!(2)]);
-}
-
-#[test]
-fn lookup_note_properties_returns_full_frontmatter() {
-	let mut idx = VaultIndex::default();
-	idx.build(vec![entry_with_props(
-		"/v/a.md",
-		&[("status", json!("draft")), ("priority", json!(2))],
-	)]);
-	let props = idx.lookup_note_properties("/v/a.md");
-	assert_eq!(props.get("status"), Some(&json!("draft")));
-	assert_eq!(props.get("priority"), Some(&json!(2)));
-}
-
-#[test]
-fn lookup_note_properties_empty_for_unknown_path() {
-	let idx = VaultIndex::default();
-	assert!(idx.lookup_note_properties("/v/nope.md").is_empty());
 }
 
 #[test]

@@ -62,8 +62,8 @@ export interface WikiLinkV2 {
 
 /**
  * Canonical per-note metadata view returned by `scan_vault_v2`,
- * `update_note_in_index`, `get_backlinks_v2`, `get_notes_with_tag_v2`,
- * `get_all_vault_entries_v2` and `get_unlinked_mentions_v2`.
+ * `update_note_in_index`, `get_backlinks_v2`, `get_all_vault_entries_v2`
+ * and `get_unlinked_mentions_v2`.
  *
  * Mirrors `kokobrain_lib::vault::entry::NoteEntry`. Field semantics:
  *

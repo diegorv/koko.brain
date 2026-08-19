@@ -338,13 +338,6 @@ class VaultIndexImpl {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
-	getNotesWithTag(tag: string): NoteEntryV2[] {
-		const target = tag.toLowerCase();
-		return [...this.entries.values()].filter((entry) =>
-			entry.tags.some((t) => t.toLowerCase() === target),
-		);
-	}
-
 	getAllTasks(): FileTaskGroupV2[] {
 		const groups: FileTaskGroupV2[] = [];
 		for (const entry of this.entries.values()) {

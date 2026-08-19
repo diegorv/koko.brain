@@ -12,10 +12,10 @@
 
 use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_content};
-use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, Task};
+use crate::vault::task::{display_name, FileTaskGroup, TagAggregate};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 
 /// Mirrors `kokobrain_lib::vault::entry` over IPC: the result of a
 /// single `VaultIndex::update_entry` call. Serialised as camelCase to
@@ -171,15 +171,20 @@ pub struct VaultIndex {
 	/// at lookup time (`lookup_all_tags`).
 	tags_index: HashMap<String, BTreeSet<String>>,
 	/// Reverse property index: frontmatter key -> canonical-JSON-value
-	/// string -> sorted set of paths. Phase 8 — supports
-	/// `query_notes_by_property` and `get_property_values` lookups
-	/// without scanning every entry. Keys are case-sensitive (frontmatter
-	/// keys are user-defined identifiers); values are canonicalised via
-	/// `serde_json::to_string` to satisfy `HashMap`'s `Hash + Eq` bounds
-	/// (`JsonValue` is neither). The lookup commands re-canonicalise the
-	/// query value on read. Array values index by the FULL serialized
-	/// array (one entry per distinct value combination); list-membership
-	/// queries are out of scope for Phase 8.
+	/// string -> sorted set of paths. Phase 8. Keys are case-sensitive
+	/// (frontmatter keys are user-defined identifiers); values are
+	/// canonicalised via `serde_json::to_string` to satisfy `HashMap`'s
+	/// `Hash + Eq` bounds (`JsonValue` is neither). Array values index by
+	/// the FULL serialized array (one entry per distinct value
+	/// combination); list-membership queries are out of scope.
+	///
+	/// WRITE-ONLY: no production reader remains. The three lookup
+	/// commands that consumed it (`query_notes_by_property`,
+	/// `get_property_values`, `get_note_properties`) were never invoked
+	/// from the frontend and were deleted; the field is kept populated
+	/// and pruned in lock-step with `entries` because re-adding readers
+	/// is a deferred decision, not a cancelled one. Only the
+	/// `properties_index()` accessor (tests) reads it today.
 	properties_index: HashMap<String, HashMap<String, BTreeSet<String>>>,
 	/// Monotonic counter bumped on every `update_entry` call (even no-ops).
 	/// Consumers listen to `vault-index-updated` and use this to invalidate
@@ -439,7 +444,7 @@ impl VaultIndex {
 
 		// Property-side incremental updates. Phase 8. Empty value-set →
 		// drop the inner map entry; empty key-map → drop the outer entry
-		// (so `lookup_property_values` for a removed key returns []).
+		// (so a removed key leaves no residue behind in the index).
 		for (key, canon) in &props_removed {
 			let value_set_empty = if let Some(by_value) = self.properties_index.get_mut(key) {
 				let inner_empty = if let Some(paths) = by_value.get_mut(canon) {
@@ -810,24 +815,6 @@ impl VaultIndex {
 	// Phase 7 — Tag and Task lookups
 	// ------------------------------------------------------------------
 
-	/// Returns every `NoteEntry` whose tags contain `tag`
-	/// (case-insensitively, leading `#` stripped). Sorted by title for
-	/// stable UI ordering. Mirrors `tagMap.get(tag)?.filePaths` from the
-	/// TS `tags.service.ts`, but returns full entries (not just paths) so
-	/// the consumer panel can render previews without an extra IPC.
-	pub fn lookup_notes_with_tag(&self, tag: &str) -> Vec<NoteEntry> {
-		let key = tag.trim_start_matches('#').to_lowercase();
-		let mut sources: Vec<NoteEntry> = match self.tags_index.get(&key) {
-			Some(set) => set
-				.iter()
-				.filter_map(|p| self.entries.get(p).cloned())
-				.collect(),
-			None => Vec::new(),
-		};
-		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
-		sources
-	}
-
 	/// Returns the flat list of tag aggregates (one per distinct tag,
 	/// case-insensitive) sorted alphabetically. Mirrors the input to
 	/// `tags.logic.ts::buildTagTree`. The `name` field carries the FIRST
@@ -878,72 +865,6 @@ impl VaultIndex {
 			.collect();
 		out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
 		out
-	}
-
-	/// Returns the parsed task list for the entry at `path`. Empty when
-	/// `path` is unknown to the index or the entry has no tasks.
-	pub fn lookup_tasks_in_path(&self, path: &str) -> Vec<Task> {
-		self.entries
-			.get(path)
-			.map(|e| e.tasks.clone())
-			.unwrap_or_default()
-	}
-
-	// ------------------------------------------------------------------
-	// Phase 8 — Property lookups
-	// ------------------------------------------------------------------
-
-	/// Returns every `NoteEntry` whose `frontmatter[key]` equals `value`
-	/// (canonical-JSON equality). Sorted by title for stable UI ordering.
-	/// Empty when the key isn't present in the index, when no entry has
-	/// that exact value, or when `path` is unknown to the index.
-	pub fn lookup_notes_by_property(&self, key: &str, value: &JsonValue) -> Vec<NoteEntry> {
-		let canon = canon_value_key(value);
-		let by_value = match self.properties_index.get(key) {
-			Some(m) => m,
-			None => return Vec::new(),
-		};
-		let paths = match by_value.get(&canon) {
-			Some(s) => s,
-			None => return Vec::new(),
-		};
-		let mut sources: Vec<NoteEntry> = paths
-			.iter()
-			.filter_map(|p| self.entries.get(p).cloned())
-			.collect();
-		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
-		sources
-	}
-
-	/// Returns every distinct value the index has seen for `key`,
-	/// deserialised back from the canonical-JSON keys. Useful for the
-	/// Properties Panel's value autocomplete. Empty when the key is
-	/// unknown to the index.
-	pub fn lookup_property_values(&self, key: &str) -> Vec<JsonValue> {
-		let by_value = match self.properties_index.get(key) {
-			Some(m) => m,
-			None => return Vec::new(),
-		};
-		let mut out: Vec<JsonValue> = by_value
-			.keys()
-			.filter_map(|canon| serde_json::from_str(canon).ok())
-			.collect();
-		// Stable order: lexicographically by canonical string. Numeric
-		// values sort by string form, which is "good enough" for an
-		// autocomplete list.
-		out.sort_by(|a, b| canon_value_key(a).cmp(&canon_value_key(b)));
-		out
-	}
-
-	/// Returns the entry's frontmatter map (cloned) at `path`. Empty
-	/// when `path` is unknown to the index. Phase 8 — the IPC consumer
-	/// re-uses the same shape (`Record<string, FrontmatterValue>`) the
-	/// existing TS `parseFrontmatterProperties` produces.
-	pub fn lookup_note_properties(&self, path: &str) -> BTreeMap<String, JsonValue> {
-		self.entries
-			.get(path)
-			.map(|e| e.frontmatter.clone())
-			.unwrap_or_default()
 	}
 
 	/// Removes a single note from the index. Cleans up `entries`,
@@ -1104,6 +1025,7 @@ mod tests {
 	use crate::vault::entry::WikiLink;
 	use crate::vault::task::Task;
 	use serde_json::json;
+	use std::collections::BTreeMap;
 
 	// ---- helpers --------------------------------------------------------
 
@@ -1698,27 +1620,6 @@ mod tests {
 	}
 
 	#[test]
-	fn lookup_notes_with_tag_case_insensitive() {
-		let mut idx = VaultIndex::default();
-		idx.build(vec![
-			make_entry("/v/a.md", &[], &["Rust"]),
-			make_entry("/v/b.md", &[], &["rust"]),
-		]);
-
-		let notes = idx.lookup_notes_with_tag("RUST");
-		assert_eq!(notes.len(), 2);
-	}
-
-	#[test]
-	fn lookup_notes_with_tag_strips_hash() {
-		let mut idx = VaultIndex::default();
-		idx.build(vec![make_entry("/v/a.md", &[], &["tag1"])]);
-
-		let notes = idx.lookup_notes_with_tag("#tag1");
-		assert_eq!(notes.len(), 1);
-	}
-
-	#[test]
 	fn lookup_all_tags_aggregated_sorted() {
 		let mut idx = VaultIndex::default();
 		idx.build(vec![
@@ -1756,65 +1657,6 @@ mod tests {
 		let mut idx = VaultIndex::default();
 		idx.build(vec![make_entry("/v/a.md", &[], &[])]);
 		assert!(idx.lookup_all_tasks().is_empty());
-	}
-
-	#[test]
-	fn lookup_tasks_in_path_returns_tasks_or_empty() {
-		let mut idx = VaultIndex::default();
-		let mut e = make_entry("/v/a.md", &[], &[]);
-		e.tasks = vec![Task { text: "do it".to_string(), ..Default::default() }];
-		idx.build(vec![e]);
-
-		assert_eq!(idx.lookup_tasks_in_path("/v/a.md").len(), 1);
-		assert!(idx.lookup_tasks_in_path("/v/nope.md").is_empty());
-	}
-
-	#[test]
-	fn lookup_notes_by_property_canonical_match() {
-		let mut idx = VaultIndex::default();
-		idx.build(vec![
-			make_entry_with_fm("/v/a.md", &[], &[], fm(&[("type", json!("project"))])),
-			make_entry_with_fm("/v/b.md", &[], &[], fm(&[("type", json!("note"))])),
-		]);
-
-		let notes = idx.lookup_notes_by_property("type", &json!("project"));
-		assert_eq!(notes.len(), 1);
-		assert_eq!(notes[0].path, "/v/a.md");
-	}
-
-	#[test]
-	fn lookup_notes_by_property_unknown_key_empty() {
-		let idx = VaultIndex::default();
-		assert!(idx.lookup_notes_by_property("nope", &json!("x")).is_empty());
-	}
-
-	#[test]
-	fn lookup_property_values_sorted() {
-		let mut idx = VaultIndex::default();
-		idx.build(vec![
-			make_entry_with_fm("/v/a.md", &[], &[], fm(&[("status", json!("beta"))])),
-			make_entry_with_fm("/v/b.md", &[], &[], fm(&[("status", json!("alpha"))])),
-		]);
-
-		let vals = idx.lookup_property_values("status");
-		assert_eq!(vals.len(), 2);
-		assert_eq!(vals[0], json!("alpha"));
-		assert_eq!(vals[1], json!("beta"));
-	}
-
-	#[test]
-	fn lookup_note_properties_clone_or_default() {
-		let mut idx = VaultIndex::default();
-		idx.build(vec![make_entry_with_fm(
-			"/v/a.md", &[], &[],
-			fm(&[("key", json!("val"))]),
-		)]);
-
-		let props = idx.lookup_note_properties("/v/a.md");
-		assert_eq!(props.get("key"), Some(&json!("val")));
-
-		let empty = idx.lookup_note_properties("/v/nope.md");
-		assert!(empty.is_empty());
 	}
 
 	// ---- Group 6: Edge cases -------------------------------------------
