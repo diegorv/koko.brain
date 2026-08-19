@@ -6,7 +6,6 @@ import {
 	computeTaskStats,
 } from '$lib/features/tasks/tasks.logic';
 import type { TaskItem, FileTaskGroup } from '$lib/features/tasks/tasks.types';
-import { parseTaskMetadata } from '$lib/features/tasks/task-metadata.logic';
 
 /** Helper to build a TaskItem with sensible defaults for status and metadata */
 function makeTask(
@@ -14,7 +13,7 @@ function makeTask(
 ): TaskItem {
 	return {
 		status: overrides.checked ? 'done' : 'todo',
-		metadata: parseTaskMetadata(overrides.text),
+		metadata: { description: overrides.text, tags: [] },
 		...overrides,
 	};
 }

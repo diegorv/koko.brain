@@ -1145,8 +1145,10 @@ fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
 //   - `src/lib/features/tasks/tasks.logic.ts::extractTasks`
 //   - `src/lib/features/tasks/tasks.logic.ts::extractTasksFromSection`
 //   - `src/lib/features/tasks/tasks.logic.ts::toggleTaskInContent`
-//   - `src/lib/features/tasks/task-metadata.logic.ts::parseTaskMetadata`
-//   - `src/lib/features/tasks/task-metadata.logic.ts::mapCheckboxChar`
+//
+// Signifier parsing and checkbox mapping have no TS counterpart: Rust is the
+// sole implementation. The shape they must produce is the `TaskMetadata`
+// contract in `src/lib/features/tasks/task-metadata.types.ts`.
 //
 // Regex parity with TS: the same patterns are used here. The recurrence
 // regex's lookahead-stop list (next signifier OR `#\w`) is mirrored exactly.
@@ -1174,8 +1176,9 @@ static HEADING_RE: LazyLock<Regex> =
 
 // --- Date signifiers -----------------------------------------------------
 
-/// Date signifier emojis mapped to their `TaskMetadata` field. Mirrors
-/// `task-metadata.logic.ts::DATE_PATTERNS`.
+/// Date signifier emojis mapped to their `TaskMetadata` field. The fields fed
+/// here are the optional date fields of the `TaskMetadata` contract in
+/// `src/lib/features/tasks/task-metadata.types.ts`.
 const DATE_EMOJIS: &[(&str, DateField)] = &[
 	("\u{1F4C5}", DateField::DueDate),       // 📅
 	("\u{23F3}", DateField::ScheduledDate),  // ⏳
@@ -1195,8 +1198,11 @@ enum DateField {
 	CancelledDate,
 }
 
-/// Priority signifier emojis mapped to their `TaskPriority`. Mirrors
-/// `task-metadata.logic.ts::PRIORITY_PATTERNS`.
+/// Priority signifier emojis mapped to their `TaskPriority`. Listed highest to
+/// lowest: extraction walks this list in order and stops at the first entry
+/// whose emoji appears anywhere in the text, so list position decides the
+/// winner, not the emoji's position in the text. The level names are the
+/// `TaskPriority` union in `src/lib/features/tasks/task-metadata.types.ts`.
 const PRIORITY_EMOJIS: &[(&str, TaskPriority)] = &[
 	("\u{1F53A}", TaskPriority::Highest), // 🔺
 	("\u{23EB}", TaskPriority::High),     // ⏫
@@ -1246,14 +1252,14 @@ static PRIORITY_REGEXES: LazyLock<Vec<(Regex, TaskPriority)>> = LazyLock::new(||
 		.collect()
 });
 
-/// Recurrence regex. The TS source uses a lookahead `(?=...)` to peek at
-/// the stop point without consuming it; the Rust `regex` crate does not
-/// support lookahead. We instead match the stop point as part of the full
-/// regex (so the stop signifier is captured in group 0's span) and ONLY
-/// remove `[match0_start, capture1_end)` from the source text — which is
-/// equivalent to the lookahead's behaviour: the stop signifier remains in
-/// place for downstream extractors (tags etc.) to find. Mirrors
-/// `task-metadata.logic.ts::buildRecurrenceRegex` exactly otherwise.
+/// Recurrence regex: the recurrence emoji followed by text up to the next
+/// signifier. Peeking at that stop point without consuming it would need a
+/// lookahead `(?=...)`, which the Rust `regex` crate does not support. We
+/// instead match the stop point as part of the full regex (so the stop
+/// signifier is captured in group 0's span) and ONLY remove
+/// `[match0_start, capture1_end)` from the source text — which is equivalent
+/// to a lookahead: the stop signifier remains in place for downstream
+/// extractors (tags etc.) to find.
 static RECURRENCE_RE: LazyLock<Regex> = LazyLock::new(|| {
 	let mut alts: Vec<String> = DATE_EMOJIS
 		.iter()
@@ -1293,9 +1299,9 @@ static ON_COMPLETION_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Tag regex inside task metadata: `#word` with optional internal hyphens.
-/// Mirrors `task-metadata.logic.ts::TAG_RE = /#([\w][\w-]*)/g`. Note that
-/// TS `\w` is ASCII `[A-Za-z0-9_]` — encoded explicitly here to avoid
-/// the Rust regex crate's Unicode `\w` semantics and keep parity.
+/// The ASCII class `[A-Za-z0-9_]` is spelled out on purpose: the Rust regex
+/// crate's `\w` is Unicode-aware, and task tags must stay ASCII-only, so `\w`
+/// cannot be used here.
 static TASK_TAG_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"#([A-Za-z0-9_][A-Za-z0-9_-]*)").expect("task tag regex"));
 
@@ -1305,8 +1311,9 @@ static MULTI_SPACE_RE: LazyLock<Regex> =
 
 // --- Public API ----------------------------------------------------------
 
-/// Maps a checkbox character to a `TaskStatus`. Mirrors
-/// `task-metadata.logic.ts::mapCheckboxChar`.
+/// Maps a checkbox character to a `TaskStatus`; any unrecognised character
+/// falls back to `Todo`. The status names are the `TaskStatus` union in
+/// `src/lib/features/tasks/task-metadata.types.ts`.
 pub fn map_checkbox_char(c: char) -> TaskStatus {
 	match c {
 		' ' => TaskStatus::Todo,
@@ -1475,8 +1482,9 @@ pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task>
 	out
 }
 
-/// Parses a task's raw text for emoji-signifier metadata. Mirrors
-/// `task-metadata.logic.ts::parseTaskMetadata` exactly. Order of extraction:
+/// Parses a task's raw text for emoji-signifier metadata. This is the sole
+/// implementation; the shape it returns is the `TaskMetadata` contract in
+/// `src/lib/features/tasks/task-metadata.types.ts`. Order of extraction:
 /// dates, priorities (first wins), recurrence, ID, dependsOn, onCompletion,
 /// tags. The cleaned description is the leftover text with multi-spaces
 /// collapsed and trimmed.
