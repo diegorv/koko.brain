@@ -66,10 +66,10 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
  * When a folder is moved, also updates all child file tabs whose paths
  * start with `oldPath/`.
  *
- * The Rust `VaultIndex` is re-keyed independently: `fs.service.ts` invokes
- * `remove_note_from_index` for the old path, and the watcher detects the
- * new path's modification and invokes `update_note_in_index` for it.
- * Editor tabs are TS-only UI state, so they need this explicit sync.
+ * The Rust `VaultIndex` is re-keyed by `path-change.service.ts`, which awaits
+ * the `rename_note` command; the per-path `remove_note_from_index` sweep that
+ * follows is a deliberate no-op for the entries it already moved. Editor tabs
+ * are TS-only UI state, so they need this explicit sync.
  */
 export function updateTabAfterRenameOrMove(oldPath: string, newPath: string): void {
 	const oldPrefix = oldPath + '/';

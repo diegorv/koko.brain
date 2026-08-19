@@ -13,6 +13,7 @@ import {
 	isValidFileName,
 	getLanguageForFile,
 	collectAllDirPaths,
+	collectFilePathsUnder,
 	countFiles,
 	generateCopyName,
 	generateUniqueName,
@@ -512,6 +513,48 @@ describe('collectAllDirPaths', () => {
 			{ name: 'a.md', path: '/vault/a.md', isDirectory: false },
 		];
 		expect(collectAllDirPaths(tree)).toEqual(new Set());
+	});
+});
+
+describe('collectFilePathsUnder', () => {
+	const tree: FileTreeNode[] = [
+		{
+			name: 'dir', path: '/vault/dir', isDirectory: true, children: [
+				{ name: 'a.md', path: '/vault/dir/a.md', isDirectory: false },
+				{
+					name: 'nested', path: '/vault/dir/nested', isDirectory: true, children: [
+						{ name: 'c.md', path: '/vault/dir/nested/c.md', isDirectory: false },
+					],
+				},
+				{ name: 'b.md', path: '/vault/dir/b.md', isDirectory: false },
+			],
+		},
+		{ name: 'empty', path: '/vault/empty', isDirectory: true, children: [] },
+		{ name: 'dirty.md', path: '/vault/dirty.md', isDirectory: false },
+	];
+
+	it('collects every file under a directory, recursively', () => {
+		expect(collectFilePathsUnder(tree, '/vault/dir')).toEqual([
+			'/vault/dir/a.md',
+			'/vault/dir/nested/c.md',
+			'/vault/dir/b.md',
+		]);
+	});
+
+	it('returns an empty array for a directory with no children', () => {
+		expect(collectFilePathsUnder(tree, '/vault/empty')).toEqual([]);
+	});
+
+	it('returns an empty array for a path that is not in the tree', () => {
+		expect(collectFilePathsUnder(tree, '/vault/missing')).toEqual([]);
+	});
+
+	it('returns an empty array when the path is a file, not a directory', () => {
+		expect(collectFilePathsUnder(tree, '/vault/dirty.md')).toEqual([]);
+	});
+
+	it('returns an empty array for an empty tree', () => {
+		expect(collectFilePathsUnder([], '/vault/dir')).toEqual([]);
 	});
 });
 

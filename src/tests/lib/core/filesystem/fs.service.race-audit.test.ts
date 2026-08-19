@@ -75,6 +75,7 @@ import {
 	renameItem,
 	moveItem,
 } from '$lib/core/filesystem/fs.service';
+import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
 
 describe('AUDIT: file mutation ordering (P0 race conditions)', () => {
 	beforeEach(() => {
@@ -138,6 +139,37 @@ describe('AUDIT: file mutation ordering (P0 race conditions)', () => {
 
 			expect(renameIdx).toBeLessThan(tabUpdateIdx);
 			expect(tabUpdateIdx).toBeLessThan(linkUpdateIdx);
+		});
+	});
+
+	describe('renameItem: the Rust re-key must precede the per-path removal sweep', () => {
+		it('invokes rename_note before remove_note_from_index on a folder rename', async () => {
+			const callOrder: string[] = [];
+
+			vi.mocked(rename).mockResolvedValue(undefined);
+			vi.mocked(invoke).mockImplementation(async (cmd) => {
+				if (cmd === 'rename_note' || cmd === 'remove_note_from_index') {
+					callOrder.push(String(cmd));
+				}
+				return [];
+			});
+			fsStore.setFileTree([
+				makeDirNode('dir', [
+					makeFileNode({ name: 'a.md', path: '/vault/dir/a.md' }),
+				], { path: '/vault/dir' }),
+			]);
+
+			await renameItem('/vault/dir', 'dir2');
+
+			// CORRECT behavior: `rename_note` re-keys the VaultIndex first.
+			// Reversed, the sweep's `remove_note_from_index` would delete the
+			// very entries the re-key needs, and the children would vanish
+			// from the index instead of following the folder.
+			const rekeyIdx = callOrder.indexOf('rename_note');
+			const sweepIdx = callOrder.indexOf('remove_note_from_index');
+			expect(rekeyIdx).toBeGreaterThanOrEqual(0);
+			expect(sweepIdx).toBeGreaterThanOrEqual(0);
+			expect(rekeyIdx).toBeLessThan(sweepIdx);
 		});
 	});
 

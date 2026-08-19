@@ -3,13 +3,10 @@ import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, r
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, getFileName, isMarkdownFile, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
-import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
+import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
+import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
-import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
-import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
-import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
@@ -161,49 +158,25 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 	}
 }
 
-/**
- * Drops every trace of a note that stops existing at `path`: the index-dedupe
- * signature (so a later re-creation with identical bytes is not silently
- * skipped), every registered per-file index, and the Rust `VaultIndex` entry
- * (entries + tags_index + backlinks + properties_index + by_path). The Rust
- * command emits `vault-index-updated` so panels reactively refetch.
- *
- * A thin adapter over the note-change owner's delete branch. No vault root is
- * passed: the FTS5 row is dropped by the watcher event that follows the disk
- * operation, which is the only source that carries one.
- *
- * Fire-and-forget: the Rust removal is not awaited, its failure is logged.
- *
- * @param path Absolute path the note is vanishing from (delete, rename, move).
- */
-export function forgetNote(path: string): void {
-	void applyNoteChange({ kind: 'delete', source: 'fs', path });
-}
-
 /** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree */
 export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<boolean> {
 	try {
-		// Close tabs BEFORE the disk operation so the auto-save debounce
-		// cannot fire with a stale path during the async gap and recreate
-		// the file at its original location.
-		closeTabsForDeletedPath(itemPath);
-
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-		const vaultPath = vaultStore.path;
-		if (vaultPath) {
-			const { moveToTrash } = await import('$lib/core/trash/trash.service');
-			await moveToTrash(vaultPath, itemPath, isDirectory);
-		} else {
-			// Fallback: permanent delete if no vault is open
-			await remove(itemPath, { recursive: true });
-		}
-		await refreshTree();
-		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
-		forgetNote(itemPath);
-		// Drop the parsed `.view` definition so a re-created view at the same
-		// path is re-read from disk instead of served from the stale cache.
-		clearViewParseCache(itemPath);
-		quickSwitcherStore.removeRecentPath(itemPath);
+		await applyPathChange({
+			from: itemPath,
+			to: null,
+			isDirectory,
+			diskOp: async () => {
+				const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+				const vaultPath = vaultStore.path;
+				if (vaultPath) {
+					const { moveToTrash } = await import('$lib/core/trash/trash.service');
+					await moveToTrash(vaultPath, itemPath, isDirectory);
+				} else {
+					// Fallback: permanent delete if no vault is open
+					await remove(itemPath, { recursive: true });
+				}
+			},
+		});
 		debug('FS', 'deleted item:', itemPath);
 		return true;
 	} catch (err) {
@@ -223,29 +196,13 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 			error('FS', 'Target already exists:', newPath);
 			return null;
 		}
-		await rename(oldPath, newPath);
-
-		// Update tab path immediately after rename so the auto-save
-		// debounce writes to the NEW path, not the old one.
-		updateTabAfterRenameOrMove(oldPath, newPath);
-
-		// Update wikilinks BEFORE refreshTree — findFilesLinkingTo uses
-		// excludePath=oldPath which must still be keyed in noteContents.
-		// refreshTree can trigger the file watcher which would re-index
-		// under the new path, making the old-path lookup miss.
-		if (isMarkdownFile(newName)) {
-			await updateLinksAfterRename(oldPath, newPath);
-		}
-		await refreshTree();
-
-		// Drop the OLD path from the dedupe map and the Rust `VaultIndex`. The
-		// new path gets re-indexed via the watcher (or the next save).
-		forgetNote(oldPath);
-
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-		if (vaultStore.path) {
-			updateBookmarkPathsAfterMove(vaultStore.path, oldPath, newPath);
-		}
+		await applyPathChange({
+			from: oldPath,
+			to: newPath,
+			// `isDirectory` omitted: the rename entry points (FileTreeItem,
+			// type-definitions) do not carry it, so the owner walks the tree.
+			diskOp: () => rename(oldPath, newPath),
+		});
 
 		debug('FS', 'renamed item:', oldPath, '→', newPath);
 		return newPath;
@@ -266,23 +223,14 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 			error('FS', 'Target already exists:', newPath);
 			return null;
 		}
-		await rename(sourcePath, newPath);
-
-		// Update tab path immediately after rename so the auto-save
-		// debounce writes to the NEW path, not the old one.
-		updateTabAfterRenameOrMove(sourcePath, newPath);
-
-		await refreshTree();
+		await applyPathChange({
+			from: sourcePath,
+			to: newPath,
+			// `isDirectory` omitted: the drag-and-drop entry points do not
+			// carry it, so the owner walks the tree.
+			diskOp: () => rename(sourcePath, newPath),
+		});
 		fsStore.expandDir(targetDirPath);
-
-		// Drop the OLD path from the dedupe map and the Rust `VaultIndex`. The
-		// destination path gets re-indexed via the watcher (or the next save).
-		forgetNote(sourcePath);
-
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-		if (vaultStore.path) {
-			updateBookmarkPathsAfterMove(vaultStore.path, sourcePath, newPath);
-		}
 
 		debug('FS', 'moved item:', sourcePath, '→', newPath);
 		return newPath;

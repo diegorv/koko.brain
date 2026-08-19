@@ -254,6 +254,34 @@ export function collectAllDirPaths(nodes: FileTreeNode[]): Set<string> {
 }
 
 /**
+ * Collects the absolute path of every FILE stored under `dirPath`, recursively.
+ *
+ * The path-change owner uses this to snapshot a folder's children BEFORE the
+ * disk operation, because the per-file indexes are keyed by exact path and
+ * `refreshTree()` replaces the tree right after the rename. Returns an empty
+ * array when `dirPath` is not in the tree, is a file, or holds no files.
+ *
+ * @param nodes Tree to search, normally `fsStore.fileTree`.
+ * @param dirPath Absolute path of the directory whose files are wanted.
+ */
+export function collectFilePathsUnder(nodes: FileTreeNode[], dirPath: string): string[] {
+	const dir = findNodeByPath(nodes, dirPath);
+	if (!dir?.isDirectory || !dir.children) return [];
+	const paths: string[] = [];
+	const walk = (children: FileTreeNode[]) => {
+		for (const child of children) {
+			if (child.isDirectory) {
+				if (child.children) walk(child.children);
+			} else {
+				paths.push(child.path);
+			}
+		}
+	};
+	walk(dir.children);
+	return paths;
+}
+
+/**
  * Recursively reorders directory nodes according to folder-order.json
  * and _order frontmatter values.
  *

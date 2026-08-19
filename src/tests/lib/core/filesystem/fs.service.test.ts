@@ -63,6 +63,7 @@ import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { moveToTrash } from '$lib/core/trash/trash.service';
+import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { error } from '$lib/utils/debug';
 import {
 	loadDirectoryTree,
@@ -100,13 +101,26 @@ function setupDefaultMocks() {
 	vi.mocked(mkdir).mockResolvedValue(undefined);
 }
 
-/** Seeds the collection property index with a bare record for `path`. */
-function seedCollectionRecord(path: string): void {
-	const record: NoteRecord = {
-		path, name: path.split('/').pop() ?? '', basename: 'note', folder: '/vault',
-		ext: 'md', mtime: 0, ctime: 0, size: 0, properties: new Map(),
-	};
-	collectionStore.setPropertyIndex(new Map([[path, record]]));
+/** Seeds the collection property index with a bare record for every given path. */
+function seedCollectionRecord(...paths: string[]): void {
+	const index = new Map<string, NoteRecord>();
+	for (const path of paths) {
+		index.set(path, {
+			path, name: path.split('/').pop() ?? '', basename: 'note', folder: '/vault',
+			ext: 'md', mtime: 0, ctime: 0, size: 0, properties: new Map(),
+		});
+	}
+	collectionStore.setPropertyIndex(index);
+}
+
+/** Seeds `fsStore.fileTree` with `/vault/dir` holding `a.md` and `b.md`. */
+function seedDirWithTwoChildren(): void {
+	fsStore.setFileTree([
+		makeDirNode('dir', [
+			makeFileNode({ name: 'a.md', path: '/vault/dir/a.md' }),
+			makeFileNode({ name: 'b.md', path: '/vault/dir/b.md' }),
+		], { path: '/vault/dir' }),
+	]);
 }
 
 describe('loadFolderOrder', () => {
@@ -542,6 +556,19 @@ describe('deleteItem', () => {
 
 		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(false);
 	});
+
+	it('evicts every child of a deleted FOLDER from the collection property index', async () => {
+		seedCollectionRecord('/vault/dir/a.md', '/vault/dir/b.md');
+		seedDirWithTwoChildren();
+
+		await deleteItem('/vault/dir', true);
+
+		// `forgetNote(dirPath)` alone drops a single exact key; the children
+		// have to be walked out of the tree BEFORE the disk op, because
+		// refreshTree() replaces the tree right after it.
+		expect(collectionStore.propertyIndex.has('/vault/dir/a.md')).toBe(false);
+		expect(collectionStore.propertyIndex.has('/vault/dir/b.md')).toBe(false);
+	});
 });
 
 describe('renameItem', () => {
@@ -684,6 +711,76 @@ describe('renameItem', () => {
 		// not be short-circuited by the dedupe guard in index-updater.service.
 		expect(isAlreadyIndexed('/vault/old.md', 'identical bytes')).toBe(false);
 	});
+
+	it('evicts every child of a renamed FOLDER from the collection property index', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedCollectionRecord('/vault/dir/a.md', '/vault/dir/b.md');
+		seedDirWithTwoChildren();
+
+		const result = await renameItem('/vault/dir', 'dir2');
+
+		expect(result).toBe('/vault/dir2');
+		expect(collectionStore.propertyIndex.has('/vault/dir/a.md')).toBe(false);
+		expect(collectionStore.propertyIndex.has('/vault/dir/b.md')).toBe(false);
+	});
+
+	it('clears the dedupe signature for every child of a renamed FOLDER', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		markIndexed('/vault/dir/a.md', 'identical bytes');
+		markIndexed('/vault/dir/b.md', 'identical bytes');
+		seedDirWithTwoChildren();
+
+		const result = await renameItem('/vault/dir', 'dir2');
+
+		expect(result).toBe('/vault/dir2');
+		expect(isAlreadyIndexed('/vault/dir/a.md', 'identical bytes')).toBe(false);
+		expect(isAlreadyIndexed('/vault/dir/b.md', 'identical bytes')).toBe(false);
+	});
+
+	it('drops every child .view of a renamed FOLDER from the view parse cache', async () => {
+		const VIEW_PATH = '/vault/dir/Task.view';
+		const VIEW_YAML = 'source: notes\nviews:\n  - name: all\n';
+		clearAllViewParseCache();
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			const path = String(p);
+			if (path.endsWith('.kokobrain/folder-order.json')) return '{}';
+			if (path === VIEW_PATH) return VIEW_YAML;
+			throw new Error(`Unmocked readTextFile: ${path}`);
+		});
+		const viewReads = () =>
+			vi.mocked(readTextFile).mock.calls.filter(([p]) => String(p) === VIEW_PATH).length;
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		fsStore.setFileTree([
+			makeDirNode('dir', [
+				makeFileNode({ name: 'Task.view', path: VIEW_PATH }),
+			], { path: '/vault/dir' }),
+		]);
+
+		await refreshViewDefinition(VIEW_PATH);
+		expect(viewReads()).toBe(1);
+
+		await renameItem('/vault/dir', 'dir2');
+
+		await getCachedViewDefinition(VIEW_PATH);
+		expect(viewReads()).toBe(2);
+	});
+
+	it('drops the stale quick-switcher recent path on rename', async () => {
+		quickSwitcherStore.reset();
+		quickSwitcherStore.addRecentPath('/vault/old.md');
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		const result = await renameItem('/vault/old.md', 'new.md');
+
+		expect(result).toBe('/vault/new.md');
+		// The recent entry pointed at a path that no longer exists; opening it
+		// from the quick switcher would fail. Dropped, not re-keyed.
+		expect(quickSwitcherStore.recentPaths).not.toContain('/vault/old.md');
+	});
 });
 
 describe('moveItem', () => {
@@ -745,7 +842,7 @@ describe('moveItem', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('calls tab updater but not link updater on move', async () => {
+	it('calls the tab updater on move, and the link updater with an unchanged note name', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
 
@@ -754,7 +851,11 @@ describe('moveItem', () => {
 		expect(result).toBe('/vault/subfolder/note.md');
 		expect(fsStore.expandedDirs.has('/vault/subfolder')).toBe(true);
 		expect(updateTabAfterRenameOrMove).toHaveBeenCalledWith('/vault/note.md', '/vault/subfolder/note.md');
-		expect(updateLinksAfterRename).not.toHaveBeenCalled();
+		// `applyPathChange` routes rename and move through the same step. A move
+		// never changes the note name, so the real `updateLinksAfterRename`
+		// early-returns on its own same-name guard (pinned by
+		// link-updater.service.test.ts) and rewrites nothing.
+		expect(updateLinksAfterRename).toHaveBeenCalledWith('/vault/note.md', '/vault/subfolder/note.md');
 	});
 
 	it('returns null when rename() throws', async () => {
@@ -800,6 +901,19 @@ describe('moveItem', () => {
 		// A file later re-created at the abandoned path with identical bytes must
 		// not be short-circuited by the dedupe guard in index-updater.service.
 		expect(isAlreadyIndexed('/vault/note.md', 'identical bytes')).toBe(false);
+	});
+
+	it('evicts every child of a moved FOLDER from the collection property index', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedCollectionRecord('/vault/dir/a.md', '/vault/dir/b.md');
+		seedDirWithTwoChildren();
+
+		const result = await moveItem('/vault/dir', '/vault/other');
+
+		expect(result).toBe('/vault/other/dir');
+		expect(collectionStore.propertyIndex.has('/vault/dir/a.md')).toBe(false);
+		expect(collectionStore.propertyIndex.has('/vault/dir/b.md')).toBe(false);
 	});
 });
 
