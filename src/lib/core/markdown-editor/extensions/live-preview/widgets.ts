@@ -3,6 +3,7 @@ import type { ColumnAlignment } from './parsers/table';
 import type { MetaBindOption } from './parsers/meta-bind-input';
 import { findMetaBindInputRanges } from './parsers/meta-bind-input';
 import { renderInlineMarkdown } from './parsers/inline-markdown';
+import type { MediaTag } from './parsers/media';
 import { WIKILINK_DECORATION_RE } from '../wikilink/decoration.logic';
 import type { Property } from '$lib/features/properties/properties.types';
 import {
@@ -178,53 +179,32 @@ export class ImageWidget extends WidgetType {
 	}
 }
 
-export class AudioWidget extends WidgetType {
-	constructor(readonly src: string) {
+/** Renders an `<audio>` / `<video>` player; the tag drives the `cm-lp-${tag}` classes the theme styles */
+export class MediaWidget extends WidgetType {
+	constructor(
+		readonly tag: MediaTag,
+		readonly src: string,
+	) {
 		super();
 	}
 
 	toDOM() {
 		const wrapper = document.createElement('div');
-		wrapper.className = 'cm-lp-audio-wrapper';
-		const audio = document.createElement('audio');
+		wrapper.className = `cm-lp-${this.tag}-wrapper`;
+		const media = document.createElement(this.tag);
 		if (isSafeUrl(this.src)) {
-			audio.src = this.src;
+			media.src = this.src;
 		}
-		audio.controls = true;
-		audio.className = 'cm-lp-audio';
-		wrapper.appendChild(audio);
+		media.controls = true;
+		media.className = `cm-lp-${this.tag}`;
+		wrapper.appendChild(media);
 		return wrapper;
 	}
 
-	eq(other: AudioWidget) {
-		return this.src === other.src;
-	}
-
-	ignoreEvent() {
-		return true;
-	}
-}
-
-export class VideoWidget extends WidgetType {
-	constructor(readonly src: string) {
-		super();
-	}
-
-	toDOM() {
-		const wrapper = document.createElement('div');
-		wrapper.className = 'cm-lp-video-wrapper';
-		const video = document.createElement('video');
-		if (isSafeUrl(this.src)) {
-			video.src = this.src;
-		}
-		video.controls = true;
-		video.className = 'cm-lp-video';
-		wrapper.appendChild(video);
-		return wrapper;
-	}
-
-	eq(other: VideoWidget) {
-		return this.src === other.src;
+	eq(other: MediaWidget) {
+		// Tag must be compared: one class now serves both players, so class
+		// identity no longer keeps an audio widget apart from a video one.
+		return this.tag === other.tag && this.src === other.src;
 	}
 
 	ignoreEvent() {

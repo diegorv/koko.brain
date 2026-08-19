@@ -1,8 +1,8 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
-import { findAudioBlock } from '../parsers/audio';
-import { AudioWidget } from '../widgets';
+import { findMediaBlock } from '../parsers/media';
+import { MediaWidget } from '../widgets';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
@@ -15,15 +15,15 @@ export function computeAudioBlocks(state: EditorState): DecorationSet {
 	let idx = 0;
 
 	while (idx < lines.length) {
-		const result = findAudioBlock(lines, idx);
+		const result = findMediaBlock(lines, idx, 'audio');
 		if (result) {
 			const { block, endIdx } = result;
 
 			// When cursor is outside, replace opening line with widget and hide remaining lines
 			if (!shouldShowSource(state, block.openFrom, block.closeTo)) {
-				const widget = new AudioWidget(block.src);
+				const widget = new MediaWidget('audio', block.src);
 
-				// Opening line: replace with AudioWidget
+				// Opening line: replace with MediaWidget
 				builder.add(
 					block.openFrom,
 					block.openTo,

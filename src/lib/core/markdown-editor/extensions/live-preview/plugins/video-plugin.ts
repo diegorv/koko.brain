@@ -1,8 +1,8 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
-import { findVideoBlock } from '../parsers/video';
-import { VideoWidget } from '../widgets';
+import { findMediaBlock } from '../parsers/media';
+import { MediaWidget } from '../widgets';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
@@ -15,15 +15,15 @@ export function computeVideoBlocks(state: EditorState): DecorationSet {
 	let idx = 0;
 
 	while (idx < lines.length) {
-		const result = findVideoBlock(lines, idx);
+		const result = findMediaBlock(lines, idx, 'video');
 		if (result) {
 			const { block, endIdx } = result;
 
 			// When cursor is outside, replace opening line with widget and hide remaining lines
 			if (!shouldShowSource(state, block.openFrom, block.closeTo)) {
-				const widget = new VideoWidget(block.src);
+				const widget = new MediaWidget('video', block.src);
 
-				// Opening line: replace with VideoWidget
+				// Opening line: replace with MediaWidget
 				builder.add(
 					block.openFrom,
 					block.openTo,

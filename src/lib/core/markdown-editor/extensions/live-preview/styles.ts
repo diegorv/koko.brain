@@ -244,26 +244,20 @@ export const livePreviewStyles = EditorView.baseTheme({
 		maxWidth: '100%',
 		borderRadius: '4px',
 	},
-	'.cm-lp-audio-wrapper': {
+	'.cm-lp-audio-wrapper, .cm-lp-video-wrapper': {
 		display: 'block',
 		padding: '4px 0',
 	},
+	/* Audio fills the line, video only caps its width — the two are not interchangeable */
 	'.cm-lp-audio': {
 		width: '100%',
 		borderRadius: '4px',
-	},
-	'.cm-activeLine:has(.cm-lp-audio-wrapper)': {
-		backgroundColor: 'transparent !important',
-	},
-	'.cm-lp-video-wrapper': {
-		display: 'block',
-		padding: '4px 0',
 	},
 	'.cm-lp-video': {
 		maxWidth: '100%',
 		borderRadius: '4px',
 	},
-	'.cm-activeLine:has(.cm-lp-video-wrapper)': {
+	'.cm-activeLine:has(.cm-lp-audio-wrapper), .cm-activeLine:has(.cm-lp-video-wrapper)': {
 		backgroundColor: 'transparent !important',
 	},
 	'.cm-lp-codeblock': {
