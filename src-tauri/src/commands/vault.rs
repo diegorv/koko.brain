@@ -245,12 +245,29 @@ fn read_file_metadata(path: &str) -> (i64, i64, u64) {
 /// Phase 1.5 constructor and applies it through `VaultIndex::update_entry`.
 /// Tests construct an in-memory `VaultIndex`, call this directly, and
 /// inspect the returned `UpdateResult` without needing a Tauri AppHandle.
+///
+/// Invariant (issue 49): index membership is exactly what
+/// `collect_markdown_paths_with_metadata` walks, i.e. `.md` / `.markdown`
+/// / `.view` per `vault_fs::is_markdown_filename`. Every insertion path
+/// funnels through here (`create_note`, `update_note_in_index`,
+/// `propagate_type_rename_inner`, `toggle_task_status_inner`), so the
+/// guard below is what keeps the incremental side and the full-rescan
+/// side from disagreeing. Without it a `.canvas` / `.kanban` /
+/// `.collection` save inserted an entry that lived until the next
+/// `VaultIndex::build` silently dropped it.
 pub fn update_note_in_index_inner(
 	idx: &mut VaultIndex,
 	path: String,
 	content: &str,
 	mtime: i64,
 ) -> UpdateResult {
+	if !vault_fs::is_markdown_filename(&path) {
+		return UpdateResult {
+			changed: false,
+			affected: Vec::new(),
+			version: idx.version(),
+		};
+	}
 	// Read ctime + size at call time; Phase 8 added these to `NoteEntry`
 	// for kb-api parity. mtime is the only cheap one to thread through
 	// from the caller (already known by save hooks); the others are read

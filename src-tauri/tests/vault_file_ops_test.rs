@@ -8,10 +8,11 @@
 //! manually during smoke testing.
 
 use kokobrain_lib::commands::vault::{
-	project_note_record, toggle_task_status_inner, update_note_in_index_inner,
+	collect_v2_entries, project_note_record, toggle_task_status_inner, update_note_in_index_inner,
 };
 use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
+use std::collections::BTreeSet;
 use std::fs;
 use tempfile::tempdir;
 
@@ -38,6 +39,70 @@ fn create_note_flow_writes_file_and_updates_index() {
 	let entry = idx.entries().get(&path_str).expect("entry missing");
 	assert_eq!(entry.tags, vec!["tag1"]);
 	assert!(entry.size > 0, "size should be populated from disk metadata");
+}
+
+/// Issue 49 regression: the set of paths the save/create path inserts into
+/// the `VaultIndex` must equal the set a full rescan collects. Before the
+/// fix `update_note_in_index_inner` indexed any path handed to it, so a
+/// `.kanban` / `.canvas` / `.collection` file lived in the index until the
+/// next `VaultIndex::build` silently dropped it.
+#[test]
+fn create_note_index_set_matches_full_rescan_for_non_markdown() {
+	let tmp = tempdir().expect("tmpdir");
+	// Canonicalize once: `collect_v2_entries` canonicalizes the root, so on
+	// macOS an uncanonicalized `/var/folders/...` fixture would compare
+	// against `/private/var/folders/...` and fail for the wrong reason.
+	let root = tmp.path().canonicalize().expect("canonicalize");
+
+	let note = root.join("note.md");
+	let board = root.join("board.kanban");
+	let note_content = "# Note\n";
+	let board_content = "## To Do\n\n- [ ] see [[note]]\n";
+	fs::write(&note, note_content).expect("write note");
+	fs::write(&board, board_content).expect("write board");
+
+	// Exactly what `create_note` and the save hook do, once per file.
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, note.to_string_lossy().to_string(), note_content, 0);
+	update_note_in_index_inner(&mut idx, board.to_string_lossy().to_string(), board_content, 0);
+	let after_saves: BTreeSet<String> = idx.entries().keys().cloned().collect();
+
+	let scanned = collect_v2_entries(root.to_str().expect("utf-8 root")).expect("scan");
+	idx.build(scanned);
+	let after_rescan: BTreeSet<String> = idx.entries().keys().cloned().collect();
+
+	assert_eq!(
+		after_saves, after_rescan,
+		"the save/create index set must equal the full-rescan set"
+	);
+}
+
+/// Issue 49, user-visible half: a kanban card is serialized as literal
+/// markdown (`- [ ] text`), so a card containing a wikilink used to
+/// contribute a real backlink that vanished at the next rescan.
+#[test]
+fn kanban_card_wikilink_does_not_produce_a_transient_backlink() {
+	let tmp = tempdir().expect("tmpdir");
+	let root = tmp.path().canonicalize().expect("canonicalize");
+
+	let note = root.join("note.md");
+	let board = root.join("board.kanban");
+	let note_content = "# Note\n";
+	let board_content = "## To Do\n\n- [ ] see [[note]]\n";
+	fs::write(&note, note_content).expect("write note");
+	fs::write(&board, board_content).expect("write board");
+
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, note.to_string_lossy().to_string(), note_content, 0);
+	update_note_in_index_inner(&mut idx, board.to_string_lossy().to_string(), board_content, 0);
+
+	let note_path = note.to_string_lossy().to_string();
+	let backlinks = idx.backlinks().get(&note_path);
+	assert!(
+		backlinks.map_or(true, |set| set.is_empty()),
+		"a non-markdown file must not contribute backlinks, got {:?}",
+		backlinks
+	);
 }
 
 #[test]
