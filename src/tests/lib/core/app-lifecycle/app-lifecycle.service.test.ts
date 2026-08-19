@@ -140,8 +140,12 @@ vi.mock('$lib/core/trash/trash.service', () => ({
 }));
 
 vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
-	autoOpenDailyNote: vi.fn(),
+	autoOpenDailyNote: vi.fn(() => Promise.resolve()),
 	resetPeriodicNotes: vi.fn(),
+}));
+
+vi.mock('$lib/core/settings/update-check.service', () => ({
+	maybeAutoCheckForUpdates: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('$lib/features/quick-switcher/quick-switcher.service', () => ({
@@ -184,6 +188,7 @@ import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calen
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
@@ -219,16 +224,65 @@ describe('initializeVault', () => {
 		expect(loadSettings).toHaveBeenCalledWith('/vault');
 	});
 
-	it('prepares templates after settings are ready (daily-note auto-open is deferred to the layout)', async () => {
+	it('prepares templates after settings are ready, then runs the post-open side effects', async () => {
+		// Leading teardown invalidates any Step 9 timer left pending by an
+		// earlier test in this file, so the call counts below are exact.
+		teardownVault();
+		vi.clearAllMocks();
+
 		await initializeVault('/vault');
 
 		await vi.mocked(loadSettings).mock.results[0].value;
 		expect(ensureTemplatesFolder).toHaveBeenCalled();
-		// autoOpenDailyNote is intentionally NOT invoked from initializeVault
-		// anymore — it is triggered from +layout.svelte after initializeVault
-		// resolves so the daily-note exists()/readTextFile microtasks don't
-		// compete for the main thread with the synchronous index builds.
+
+		// Step 9 defers both post-open side effects by one macrotask so their
+		// file IO / network work isn't starved behind the synchronous index
+		// builds. Flush the macrotask queue before asserting they ran.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(autoOpenDailyNote).toHaveBeenCalledTimes(1);
+		expect(maybeAutoCheckForUpdates).toHaveBeenCalledTimes(1);
+	});
+
+	it('runs the post-open side effects once, for the vault that actually opened', async () => {
+		vi.useFakeTimers();
+		try {
+			teardownVault();
+			vi.clearAllMocks();
+
+			// Vault A's init is superseded before its Step 9 timer fires.
+			await initializeVault('/vault-a');
+			teardownVault();
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(autoOpenDailyNote).not.toHaveBeenCalled();
+			expect(maybeAutoCheckForUpdates).not.toHaveBeenCalled();
+
+			// Vault B opens for real — one daily-note open, one update check.
+			await initializeVault('/vault-b');
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(autoOpenDailyNote).toHaveBeenCalledTimes(1);
+			expect(maybeAutoCheckForUpdates).toHaveBeenCalledTimes(1);
+		} finally {
+			// Restore even on failure — a leaked fake clock hangs every later
+			// test in this file that awaits a real setTimeout.
+			vi.useRealTimers();
+		}
+	});
+
+	it('still rejects when settings fail to load, and skips the post-open side effects', async () => {
+		// loadSettings is the only awaited call without a try/catch, so it is
+		// what the layout's `.catch` + error toast hangs on. Absorbing the init
+		// tail must not swallow that rejection.
+		teardownVault();
+		vi.clearAllMocks();
+		vi.mocked(loadSettings).mockRejectedValueOnce(new Error('settings corrupt'));
+
+		await expect(initializeVault('/vault')).rejects.toThrow('settings corrupt');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		expect(autoOpenDailyNote).not.toHaveBeenCalled();
+		expect(maybeAutoCheckForUpdates).not.toHaveBeenCalled();
 	});
 
 	it('opens the shared database after settings load', async () => {

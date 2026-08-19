@@ -7,11 +7,9 @@
 	import { performSearch } from '$lib/features/search/search.service';
 	import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
 	import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
-	import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
 	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
 	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
 	import { registerQuickCaptureListener } from '$lib/plugins/quick-capture/quick-capture.service';
-	import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 	import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
 	import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 	import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
@@ -60,33 +58,10 @@
 
 		untrack(() => {
 			if (isOpen && path) {
-				initializeVault(path)
-					.then(() => {
-						// Defer the daily-note open until initializeVault has returned
-						// and the browser has had a chance to paint the UI. If we run
-						// it synchronously with the sync index builds, the auto-open's
-						// `exists()` / `readTextFile` microtasks get starved behind
-						// buildTagIndex / buildPropertyIndex / Svelte initial mount,
-						// adding ~2 s of perceived startup delay for a file IO that
-						// costs <20 ms on its own.
-						setTimeout(() => {
-							autoOpenDailyNote().catch((err) => {
-								console.error('autoOpenDailyNote failed:', err);
-							});
-						}, 0);
-						// Background update check. Internally throttled to once per
-						// 24h and gated by `settings.updates.autoCheck`, so a cold
-						// start is otherwise a no-op. Settings have to be loaded
-						// already (initializeVault calls loadSettings) for the
-						// auto-check policy to be readable.
-						maybeAutoCheckForUpdates().catch((err) => {
-							console.error('maybeAutoCheckForUpdates failed:', err);
-						});
-					})
-					.catch((err) => {
-						console.error('Vault initialization failed:', err);
-						toast.error('Vault initialization failed. Please try reopening the vault.');
-					});
+				initializeVault(path).catch((err) => {
+					console.error('Vault initialization failed:', err);
+					toast.error('Vault initialization failed. Please try reopening the vault.');
+				});
 			} else {
 				teardownVault();
 			}

@@ -33,6 +33,7 @@ import {
 } from '$lib/features/search/search.service';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { loadSettings, saveSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
@@ -57,7 +58,7 @@ import {
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
-import { resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { autoOpenDailyNote, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
@@ -249,13 +250,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	// ── Step 5: Post-index setup ─────────────────────────────────────
 	// Templates folder stays here (cheap, avoids racing loadDirectoryTree).
-	// autoOpenDailyNote is deliberately NOT called here — it is triggered
-	// from +layout.svelte after initializeVault resolves, so the daily-note
-	// `exists() → readTextFile` chain doesn't compete for the main thread
-	// with the synchronous index builds below and with Svelte's initial
-	// UI mount. Profiling showed that calling it here delayed the open
-	// of the daily note by ~2 seconds even though the Rust side responded
-	// in <10 ms — the JS microtask was starved.
+	// autoOpenDailyNote is deliberately NOT called here — it runs in Step 9,
+	// one macrotask later, so the daily-note `exists() → readTextFile` chain
+	// doesn't compete for the main thread with the synchronous index builds
+	// below and with Svelte's initial UI mount. Profiling showed that calling
+	// it here delayed the open of the daily note by ~2 seconds even though the
+	// Rust side responded in <10 ms — the JS microtask was starved.
 	const t5a = perfStart();
 	await ensureTemplatesFolder();
 	perfEnd('LIFECYCLE', 'Step 5a: ensureTemplatesFolder', t5a);
@@ -362,6 +362,24 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	executePendingAction().catch((err) => {
 		error('LIFECYCLE', 'Failed to execute pending deep-link action:', err);
 	});
+
+	// ── Step 9: Post-open side effects ──────────────────────────────
+	// Deferred by one macrotask (see Step 5) so the daily-note file IO isn't
+	// starved behind the synchronous index builds and Svelte's initial mount.
+	// The version guard is why these live here instead of after the promise
+	// resolves in +layout.svelte: initializeVault RESOLVES on every superseded
+	// or aborted path (every staleness check and the db-open failure return
+	// bare), so a rapid A → B switch used to open the daily note and fire the
+	// update check twice — once for the dead vault A init.
+	setTimeout(() => {
+		if (initVersion !== version) return;
+		autoOpenDailyNote().catch((err) => {
+			error('LIFECYCLE', 'autoOpenDailyNote failed:', err);
+		});
+		maybeAutoCheckForUpdates().catch((err) => {
+			error('LIFECYCLE', 'maybeAutoCheckForUpdates failed:', err);
+		});
+	}, 0);
 
 	debug('LIFECYCLE', `initializeVault complete in ${(performance.now() - initStart).toFixed(1)}ms:`, vaultPath);
 	logProcessMemory();
