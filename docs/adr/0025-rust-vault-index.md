@@ -73,6 +73,18 @@ Components (target state):
    `get_backlinks_v2`, `update_note_in_index`, `get_outgoing_links_v2`,
    tag/task/property reads and writes, file ops (`create_note`,
    `rename_note`, `delete_note`, `create_folder`).
+   Amendment 2026-08-19 (issue 39): `rename_note` is INDEX-ONLY. It
+   re-keys every entry stored under `from` and under the `from + '/'`
+   prefix (so a folder rename or move carries its children), but it does
+   NOT rename anything on disk; that write stays TS-side in
+   `fs.service.ts` through `plugin-fs`. This is the one file op that
+   diverges from `create_note`, which owns its own `write_atomic`.
+   Moving the disk rename into Rust would change the `exists()`
+   precheck, bypass the plugin-fs ACL and alter the error semantics of
+   three call sites for no stated benefit, so the command is a sibling
+   of `remove_note_from_index`, not of `create_note`. The caller must
+   invoke it BEFORE the per-path removal sweep; reversed, the sweep
+   deletes the entries the re-key needs.
 3. **Managed state**: `pub type VaultIndexState = RwLock<VaultIndex>;`
    added next to the existing `TerminalState` (ADR 0022 model).
 4. **Event-driven update flow**: any mutation calls `update_entry` under

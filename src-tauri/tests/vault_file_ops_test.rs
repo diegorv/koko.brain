@@ -8,7 +8,8 @@
 //! manually during smoke testing.
 
 use kokobrain_lib::commands::vault::{
-	collect_v2_entries, project_note_record, toggle_task_status_inner, update_note_in_index_inner,
+	collect_v2_entries, project_note_record, rename_note_inner, toggle_task_status_inner,
+	update_note_in_index_inner,
 };
 use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
@@ -370,4 +371,96 @@ fn project_record_frontmatter_preserved() {
 	let rec = project_note_record(&entry);
 	assert_eq!(rec.properties.get("custom"), Some(&serde_json::json!("value")));
 	assert_eq!(rec.properties.get("count"), Some(&serde_json::json!(42)));
+}
+
+// ============================================================================
+// rename_note_inner (issue 39)
+// ============================================================================
+
+#[test]
+fn rename_note_inner_rekeys_a_single_file() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		NoteEntry::from_content("/v/a.md".to_string(), "#alpha\n", 0),
+		NoteEntry::from_content("/v/src.md".to_string(), "see [[a]]\n", 0),
+	]);
+
+	let result = rename_note_inner(&mut idx, "/v/a.md", "/v/b.md").expect("rename result");
+
+	assert!(result.changed);
+	assert!(idx.entries().contains_key("/v/b.md"), "new key missing");
+	assert!(!idx.entries().contains_key("/v/a.md"), "old key survived");
+	assert_eq!(
+		idx.entries().get("/v/b.md").unwrap().title,
+		"b",
+		"title must be recomputed from the new path"
+	);
+	assert_eq!(idx.by_path().get("b").map(String::as_str), Some("/v/b.md"));
+	let tagged = idx.tags_index().get("alpha").expect("tag bucket missing");
+	assert!(tagged.contains("/v/b.md"), "tag index not re-keyed");
+	assert!(!tagged.contains("/v/a.md"), "tag index kept the old path");
+}
+
+#[test]
+fn rename_note_inner_rekeys_every_child_under_a_directory_prefix() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		NoteEntry::from_content("/v/dir/a.md".to_string(), "# A\n", 0),
+		NoteEntry::from_content("/v/dir/b.md".to_string(), "# B\n", 0),
+		// Sibling sharing the `from` prefix WITHOUT the `/` boundary: must
+		// not be swept up by the walk.
+		NoteEntry::from_content("/v/dirty.md".to_string(), "# Dirty\n", 0),
+	]);
+
+	let result = rename_note_inner(&mut idx, "/v/dir", "/v/moved").expect("rename result");
+
+	assert!(result.changed);
+	let keys: BTreeSet<String> = idx.entries().keys().cloned().collect();
+	assert_eq!(
+		keys,
+		BTreeSet::from([
+			"/v/moved/a.md".to_string(),
+			"/v/moved/b.md".to_string(),
+			"/v/dirty.md".to_string(),
+		])
+	);
+	assert_eq!(idx.entries().get("/v/moved/a.md").unwrap().title, "a");
+}
+
+#[test]
+fn rename_note_inner_drops_an_entry_renamed_to_a_non_markdown_extension() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![NoteEntry::from_content(
+		"/v/a.md".to_string(),
+		"#alpha\n",
+		0,
+	)]);
+
+	let result = rename_note_inner(&mut idx, "/v/a.md", "/v/a.canvas").expect("rename result");
+
+	assert!(result.changed);
+	assert!(
+		idx.is_empty(),
+		"a .md -> .canvas rename must drop the entry, not re-insert it"
+	);
+	assert!(idx.tags_index().is_empty(), "tag bucket left behind");
+}
+
+#[test]
+fn rename_note_inner_is_a_noop_for_an_unknown_path() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![NoteEntry::from_content(
+		"/v/a.md".to_string(),
+		"# A\n",
+		0,
+	)]);
+	let version_before = idx.version();
+
+	assert!(rename_note_inner(&mut idx, "/v/ghost.md", "/v/other.md").is_none());
+	assert_eq!(
+		idx.version(),
+		version_before,
+		"a no-op rename must not bump the version"
+	);
+	assert!(idx.entries().contains_key("/v/a.md"));
 }

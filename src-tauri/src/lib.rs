@@ -302,6 +302,7 @@ pub fn run() {
             commands::vault::get_tasks_in_section_v2,
             commands::vault::toggle_task_status,
             commands::vault::remove_note_from_index,
+            commands::vault::rename_note,
             commands::vault::get_all_property_records,
             commands::vault::create_note,
             commands::vault::create_folder,

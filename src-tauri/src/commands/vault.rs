@@ -902,6 +902,107 @@ pub fn remove_note_from_index(
 	Ok(result)
 }
 
+/// Re-keys the managed `VaultIndex` after a rename or move of `from` to
+/// `to`. Handles both cases with one walk: the entry stored under `from`
+/// itself (file rename) plus every entry stored under the `from + '/'`
+/// prefix (folder rename or move). The `/` boundary is what keeps a
+/// sibling like `/v/dirty.md` from being swept up by a rename of `/v/dir`.
+///
+/// Each matched key is removed and re-inserted under its new path via
+/// [`NoteEntry::with_path`], so the reverse indexes (`backlinks`,
+/// `tags_index`, `properties_index`, `by_path`) follow the file instead
+/// of being rebuilt from disk. No file is re-read: every `NoteEntry`
+/// field except `title` is path-independent.
+///
+/// Issue 49 invariant: a key whose NEW path is not `.md` / `.markdown` /
+/// `.view` per `vault_fs::is_markdown_filename` is DROPPED rather than
+/// re-inserted, so a `.md` -> `.canvas` rename cannot smuggle an entry
+/// into the index that the next full rescan would silently discard. See
+/// the `update_note_in_index_inner` doc comment for the same guard on
+/// the insertion side.
+///
+/// Children are processed one at a time, so mid-loop the index holds a
+/// mix of old and new child paths. That cannot break resolution AMONG
+/// the renamed children: wikilink resolution goes through `by_path`,
+/// which is keyed by lowercase stem rather than by directory. It can
+/// re-assign a stem shared with a note OUTSIDE the renamed subtree,
+/// because `remove_entry` promotes the surviving duplicate into the
+/// `by_path` slot and `update_entry` is first-write-wins, so the
+/// re-inserted child does not reclaim it. That end state is one a
+/// scan-order-ambiguous full rebuild could also produce, so it is not a
+/// divergence worth a two-phase pass. Do not "fix" this into one.
+///
+/// Returns the LAST `UpdateResult` produced (mirroring
+/// `propagate_type_rename_inner`), or `None` when nothing matched. The
+/// caller uses `None` to suppress the `vault-index-updated` emit. The
+/// disk-side rename stays TS-side in `fs.service.ts`; this command owns
+/// the index only (ADR 0025).
+pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<UpdateResult> {
+	let prefix = format!("{}/", from);
+	// Sorted so the emitted `UpdateResult` is reproducible; `entries()` is
+	// a HashMap and would otherwise yield a different last result per run.
+	let mut old_paths: Vec<String> = idx
+		.entries()
+		.keys()
+		.filter(|p| p.as_str() == from || p.starts_with(&prefix))
+		.cloned()
+		.collect();
+	old_paths.sort();
+
+	let mut last_result = None;
+	for old_path in old_paths {
+		let new_path = if old_path == from {
+			to.to_string()
+		} else {
+			format!("{}{}", to, &old_path[from.len()..])
+		};
+		let Some(old_entry) = idx.entries().get(&old_path).cloned() else {
+			continue;
+		};
+		let removed = idx.remove_entry(&old_path);
+		last_result = Some(if vault_fs::is_markdown_filename(&new_path) {
+			idx.update_entry(old_entry.with_path(new_path))
+		} else {
+			removed
+		});
+	}
+	last_result
+}
+
+/// Tauri command: re-keys the managed `VaultIndex` for a renamed or moved
+/// path. Called by the FE filesystem service AFTER the disk rename and
+/// BEFORE the per-path removal sweep. Reversed, the sweep would delete
+/// the very entries this command needs to re-key.
+///
+/// Unlike `create_note`, this command does NOT own its disk operation:
+/// the rename itself runs TS-side through `plugin-fs`. Emits
+/// `vault-index-updated` once, after the write lock is dropped, and only
+/// when something was actually re-keyed.
+#[tauri::command]
+pub fn rename_note(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	from: String,
+	to: String,
+) -> Result<Option<UpdateResult>, String> {
+	let _trace = CmdTrace::new("rename_note");
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		rename_note_inner(&mut idx, &from, &to)
+	};
+	if let Some(ref update) = result {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, update) {
+			debug_log(
+				"VAULT-V2",
+				format!("rename_note: vault-index-updated emit failed: {}", emit_err),
+			);
+		}
+	}
+	Ok(result)
+}
+
 /// Tauri command: scans a vault and rebuilds the managed `VaultIndex`.
 /// Returns the same `Vec<NoteEntry>` produced by [`collect_v2_entries`]
 /// so the frontend has the data without an extra round-trip.

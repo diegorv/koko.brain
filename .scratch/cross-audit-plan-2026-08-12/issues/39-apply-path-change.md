@@ -36,3 +36,17 @@ owner of ordering and fan-out, and give it the Rust half for folder re-keying.
   amendments, full commit format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+
+### Follow-up candidates deferred out of the Rust step
+
+- `NoteEntry::with_path` has no direct unit test in `entry.rs`'s own `mod tests`; it is exercised
+  only transitively through `vault_file_ops_test.rs::rename_note_inner_*`, which assert the `title`
+  recompute and the path swap but not the "every other field is preserved" half of the contract.
+  Adding that assertion grows the step's diff past its scope contract, so it is recorded here rather
+  than applied: a future edit that reset a field inside `with_path` would still pass the suite.
+- `rename_note_inner` re-keys a child whose lowercase stem is shared with a note OUTSIDE the renamed
+  subtree without reclaiming the `by_path` slot that `remove_entry`'s promotion pass handed to the
+  duplicate. Documented in the command's doc comment; a full rebuild can land on the same end state,
+  so it is a wart rather than a divergence. Fixing it would mean re-pointing `by_path[stem]` at the
+  new path when it pointed at the old one before removal.

@@ -272,6 +272,26 @@ impl NoteEntry {
 			relationships,
 		}
 	}
+
+	/// Returns this entry re-keyed to `new_path`, recomputing the
+	/// path-derived `title`. Every other field is either parsed from the
+	/// note's content or read from filesystem metadata, so a rename or
+	/// move within one extension family needs no re-read and no re-parse.
+	///
+	/// One exception: `frontmatter` is path-dependent across the
+	/// `.md` / `.view` boundary, because `from_content_full` picks
+	/// `parse_frontmatter_raw_yaml` vs `parse_frontmatter` via
+	/// `is_view_filename`. A `.md` -> `.view` rename (or the reverse)
+	/// therefore carries frontmatter parsed in the previous mode until
+	/// the next save or full rescan re-reads the file.
+	///
+	/// Used by `commands::vault::rename_note_inner` to re-key the
+	/// `VaultIndex` after a file or folder rename.
+	pub fn with_path(mut self, new_path: String) -> Self {
+		self.title = extract_title_from_path(&new_path);
+		self.path = new_path;
+		self
+	}
 }
 
 /// Extracts the title from a file path: filename without `.md` /
