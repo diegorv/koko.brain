@@ -9,6 +9,7 @@ import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
+import { clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
@@ -157,6 +158,27 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 	}
 }
 
+/**
+ * Drops every trace of a note that stops existing at `path`: the index-dedupe
+ * signature, so a later re-creation with identical bytes is not silently
+ * skipped by the per-file index updaters, and the Rust `VaultIndex` entry
+ * (entries + tags_index + backlinks + properties_index + by_path). The Rust
+ * command emits `vault-index-updated` so panels reactively refetch.
+ *
+ * Slice 1 of the single note-change owner that issue 29 absorbs. Do not grow a
+ * second, competing owner alongside it.
+ *
+ * Fire-and-forget: the Rust removal is not awaited, its failure is logged.
+ *
+ * @param path Absolute path the note is vanishing from (delete, rename, move).
+ */
+export function forgetNote(path: string): void {
+	clearIndexedEntry(path);
+	invoke('remove_note_from_index', { path }).catch((err) =>
+		error('FS', 'remove_note_from_index failed:', err)
+	);
+}
+
 /** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree */
 export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<boolean> {
 	try {
@@ -175,22 +197,11 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 			await remove(itemPath, { recursive: true });
 		}
 		await refreshTree();
-		const { clearIndexedEntry } = await import('$lib/utils/index-dedupe');
-		const { invoke } = await import('@tauri-apps/api/core');
 		const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
-		// Drop the dedup signature so a later re-creation with identical
-		// content doesn't get silently skipped by the post-Phase-11.5 index-
-		// updater (Rust still gets the new content via the watcher).
-		clearIndexedEntry(itemPath);
+		forgetNote(itemPath);
 		// Drop the parsed `.view` definition so a re-created view at the same
 		// path is re-read from disk instead of served from the stale cache.
 		clearViewParseCache(itemPath);
-		// Drop the entry from the Rust `VaultIndex` (entries + tags_index +
-		// backlinks + properties_index + by_path); the command emits
-		// `vault-index-updated` so panels reactively refetch.
-		invoke('remove_note_from_index', { path: itemPath }).catch((err) =>
-			error('FS', 'remove_note_from_index failed:', err)
-		);
 		quickSwitcherStore.removeRecentPath(itemPath);
 		debug('FS', 'deleted item:', itemPath);
 		return true;
@@ -226,12 +237,9 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		}
 		await refreshTree();
 
-		const { invoke } = await import('@tauri-apps/api/core');
-		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
-		// new path will get re-indexed via the watcher (or the next save).
-		invoke('remove_note_from_index', { path: oldPath }).catch((err) =>
-			error('FS', 'remove_note_from_index failed:', err)
-		);
+		// Drop the OLD path from the dedupe map and the Rust `VaultIndex`. The
+		// new path gets re-indexed via the watcher (or the next save).
+		forgetNote(oldPath);
 
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		if (vaultStore.path) {
@@ -266,12 +274,9 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 		await refreshTree();
 		fsStore.expandDir(targetDirPath);
 
-		const { invoke } = await import('@tauri-apps/api/core');
-		// Phase 7.5: drop the OLD path from the Rust `VaultIndex`. The
+		// Drop the OLD path from the dedupe map and the Rust `VaultIndex`. The
 		// destination path gets re-indexed via the watcher (or the next save).
-		invoke('remove_note_from_index', { path: sourcePath }).catch((err) =>
-			error('FS', 'remove_note_from_index failed:', err)
-		);
+		forgetNote(sourcePath);
 
 		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
 		if (vaultStore.path) {

@@ -37,10 +37,6 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	closeTabsForDeletedPath: vi.fn(),
 }));
 
-vi.mock('$lib/utils/index-dedupe', () => ({
-	clearIndexedEntry: vi.fn(),
-}));
-
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
@@ -62,7 +58,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
-import { clearIndexedEntry } from '$lib/utils/index-dedupe';
+import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
 import { moveToTrash } from '$lib/core/trash/trash.service';
 import { error } from '$lib/utils/debug';
 import {
@@ -420,6 +416,7 @@ describe('createFolder', () => {
 describe('deleteItem', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearAllIndexed();
 		clearLocalStorage();
 		fsStore.reset();
 		vaultStore._reset();
@@ -443,11 +440,13 @@ describe('deleteItem', () => {
 	});
 
 	it('closes tabs and removes from index on delete', async () => {
+		markIndexed('/vault/note.md', 'body');
+
 		const result = await deleteItem('/vault/note.md');
 
 		expect(result).toBe(true);
 		expect(closeTabsForDeletedPath).toHaveBeenCalledWith('/vault/note.md');
-		expect(clearIndexedEntry).toHaveBeenCalledWith('/vault/note.md');
+		expect(isAlreadyIndexed('/vault/note.md', 'body')).toBe(false);
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
 	});
 
@@ -497,6 +496,7 @@ describe('deleteItem', () => {
 describe('renameItem', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearAllIndexed();
 		clearLocalStorage();
 		fsStore.reset();
 		vaultStore._reset();
@@ -600,11 +600,25 @@ describe('renameItem', () => {
 		expect(result).toBe('/vault/new.md');
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/old.md' });
 	});
+
+	it('clears the dedupe signature for the abandoned path on rename (LB6)', async () => {
+		markIndexed('/vault/old.md', 'identical bytes');
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		const result = await renameItem('/vault/old.md', 'new.md');
+
+		expect(result).toBe('/vault/new.md');
+		// A file later re-created at the abandoned path with identical bytes must
+		// not be short-circuited by the dedupe guard in index-updater.service.
+		expect(isAlreadyIndexed('/vault/old.md', 'identical bytes')).toBe(false);
+	});
 });
 
 describe('moveItem', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearAllIndexed();
 		clearLocalStorage();
 		fsStore.reset();
 		vaultStore._reset();
@@ -683,6 +697,19 @@ describe('moveItem', () => {
 
 		expect(result).toBe('/vault/folder/note.md');
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
+	});
+
+	it('clears the dedupe signature for the abandoned path on move (LB6)', async () => {
+		markIndexed('/vault/note.md', 'identical bytes');
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		const result = await moveItem('/vault/note.md', '/vault/folder');
+
+		expect(result).toBe('/vault/folder/note.md');
+		// A file later re-created at the abandoned path with identical bytes must
+		// not be short-circuited by the dedupe guard in index-updater.service.
+		expect(isAlreadyIndexed('/vault/note.md', 'identical bytes')).toBe(false);
 	});
 });
 
