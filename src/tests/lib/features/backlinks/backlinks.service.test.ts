@@ -16,6 +16,28 @@ import {
 	fetchBacklinksV2,
 } from '$lib/features/backlinks/backlinks.service';
 
+const CACHED_SCAN_RESULT = {
+	source: 'full_scan',
+	entryCount: 10,
+	loadMs: 100,
+	filesReread: 10,
+};
+
+/**
+ * Arms `invoke` so the FIRST `scan_vault_v2_cached` hangs until the returned
+ * `resolveFirst` is called, and every later call resolves immediately. Used by
+ * the concurrency tests to hold a build in flight while a second vault path is
+ * requested.
+ */
+function mockSlowFirstScan() {
+	let resolveFirst: (v: unknown) => void = () => {};
+	const firstPending = new Promise<unknown>((r) => {
+		resolveFirst = r;
+	});
+	vi.mocked(invoke).mockReturnValueOnce(firstPending).mockResolvedValue(CACHED_SCAN_RESULT);
+	return { resolveFirst };
+}
+
 describe('buildIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -47,30 +69,61 @@ describe('buildIndex', () => {
 	});
 
 	it('queues a pending rebuild when called concurrently', async () => {
-		const cachedResult = {
-			source: 'full_scan',
-			entryCount: 10,
-			loadMs: 100,
-			filesReread: 10,
-		};
-		// First call slow-resolves; second call should be queued.
-		let resolveFirst: (v: unknown) => void = () => {};
-		const firstPending = new Promise<unknown>((r) => { resolveFirst = r; });
-		vi.mocked(invoke)
-			.mockReturnValueOnce(firstPending)
-			.mockResolvedValueOnce(cachedResult)
-			.mockResolvedValueOnce(cachedResult);
+		const { resolveFirst } = mockSlowFirstScan();
 
 		const first = buildIndex('/vault');
-		const second = buildIndex('/vault'); // marks pendingRebuild + returns
-		await second;
+		// Marks pendingRebuild and joins the in-flight build instead of
+		// resolving immediately.
+		const second = buildIndex('/vault');
 		// Only the first scan should have been invoked so far.
 		expect(invoke).toHaveBeenCalledTimes(1);
 
-		resolveFirst(cachedResult);
+		resolveFirst(CACHED_SCAN_RESULT);
 		await first;
+		await second;
 
 		// pendingRebuild flag re-fires buildIndex once the first call completes.
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('reruns the queued build for the LATEST requested vault path', async () => {
+		const { resolveFirst } = mockSlowFirstScan();
+
+		const first = buildIndex('/vault-b');
+		// Queued while /vault-b is still scanning: the rerun must target
+		// /vault-c, not replay the path the in-flight scan started with.
+		const second = buildIndex('/vault-c');
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		resolveFirst(CACHED_SCAN_RESULT);
+		await first;
+		await second;
+
+		expect(invoke).toHaveBeenCalledTimes(2);
+		expect(vi.mocked(invoke).mock.calls[1]).toEqual(['scan_vault_v2_cached', { path: '/vault-c' }]);
+	});
+
+	it('resolves the queued call only after the latest vault has been scanned', async () => {
+		const { resolveFirst } = mockSlowFirstScan();
+
+		const first = buildIndex('/vault-b');
+		let settled = false;
+		const second = buildIndex('/vault-c').then(() => {
+			settled = true;
+		});
+
+		// Flush several microtask ticks: a queued call that resolved without
+		// waiting for its own vault would have flipped the flag by now.
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(settled).toBe(false);
+
+		resolveFirst(CACHED_SCAN_RESULT);
+		await first;
+		await second;
+
+		expect(settled).toBe(true);
 		expect(invoke).toHaveBeenCalledTimes(2);
 	});
 });
@@ -103,6 +156,22 @@ describe('rebuildIndex', () => {
 		await rebuildIndex();
 
 		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault' });
+	});
+
+	it('targets the latest vault after a queued switch', async () => {
+		const { resolveFirst } = mockSlowFirstScan();
+
+		const first = buildIndex('/vault-b');
+		const second = buildIndex('/vault-c');
+		resolveFirst(CACHED_SCAN_RESULT);
+		await first;
+		await second;
+
+		vi.mocked(invoke).mockClear();
+		vi.mocked(invoke).mockResolvedValue(CACHED_SCAN_RESULT);
+		await rebuildIndex();
+
+		expect(invoke).toHaveBeenCalledWith('scan_vault_v2_cached', { path: '/vault-c' });
 	});
 
 	it('is a no-op when no vault has been bootstrapped', async () => {

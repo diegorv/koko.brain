@@ -45,19 +45,52 @@ interface CachedScanResult {
 }
 
 /**
+ * The promise of the build currently in flight, or `null` when idle. Read
+ * only from the `isBuilding` branch of `buildIndex`, and `isBuilding = true`
+ * is always followed synchronously by the assignment below, so it can never
+ * hand out a settled promise from a previous vault. Deliberately not cleared
+ * by `resetBacklinks` for the same reason.
+ */
+let inflightBuild: Promise<void> | null = null;
+
+/**
  * Bootstraps the Rust `VaultIndex` for the given vault path. Uses the
  * persistent disk cache when available, falling back to a full scan on
  * cache miss. Mtime reconciliation re-reads only files that changed
  * since the cache was written.
+ *
+ * Coalescing + completion contract: concurrent calls do not start a second
+ * scan. The latest requested `path` wins (it becomes the module-level
+ * `vaultPath`, which is what the queued rerun and every later
+ * `rebuildIndex()` replay), and the queued caller receives the in-flight
+ * build's promise. So `await buildIndex(p)` always means "the Rust
+ * `VaultIndex` has been built for `p`", never "a build for some other vault
+ * was already running". IPC failures are logged and swallowed, so a resolved
+ * promise does not by itself prove the scan succeeded.
  */
-export async function buildIndex(path: string) {
+export function buildIndex(path: string): Promise<void> {
+	// Before the early return: a build queued during an in-flight scan must
+	// rerun against the LATEST path, not the one the running scan started with.
+	vaultPath = path;
 	if (isBuilding) {
 		pendingRebuild = true;
-		return;
+		return inflightBuild ?? Promise.resolve();
 	}
 	isBuilding = true;
-	vaultPath = path;
+	inflightBuild = runBuildIndex(path);
+	return inflightBuild;
+}
 
+/**
+ * Runs one `scan_vault_v2_cached` round trip and, in its `finally`, replays
+ * any build queued while it was running. Awaiting the rerun is what makes the
+ * queued caller's promise settle only once the latest vault is indexed.
+ *
+ * `isBuilding` is reset BEFORE the rerun on purpose: the rerun re-enters
+ * through `buildIndex`, which must take the build branch, not the await
+ * branch. Moving the reset below the rerun self-deadlocks.
+ */
+async function runBuildIndex(path: string): Promise<void> {
 	const t0 = perfStart();
 	try {
 		const result = await invoke<CachedScanResult>('scan_vault_v2_cached', { path });
