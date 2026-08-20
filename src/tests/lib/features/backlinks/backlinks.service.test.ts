@@ -28,6 +28,11 @@ const CACHED_SCAN_RESULT = {
  * `resolveFirst` is called, and every later call resolves immediately. Used by
  * the concurrency tests to hold a build in flight while a second vault path is
  * requested.
+ *
+ * Every caller MUST call `resolveFirst` and await both promises before the test
+ * ends. `resetBacklinks()` no longer clears `isBuilding`, so an unresolved scan
+ * leaks the flag into the next test and turns its build branch into a queue
+ * branch.
  */
 function mockSlowFirstScan() {
 	let resolveFirst: (v: unknown) => void = () => {};
@@ -153,6 +158,54 @@ describe('buildIndex', () => {
 
 		expect(settled).toBe(true);
 		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+
+	it('does not start a second scan when the vault is torn down mid-scan', async () => {
+		const { resolveFirst } = mockSlowFirstScan();
+
+		const first = buildIndex('/vault-a');
+		// `teardownVault()` lands while /vault-a is still scanning. `resetBacklinks()`
+		// is the only thing `teardownVault` does to this module, so it is the honest
+		// stand-in here.
+		resetBacklinks();
+		const second = buildIndex('/vault-b');
+
+		// The detecting assertion, and it is fully synchronous: `buildIndex` calls
+		// `invoke` before its first await, so a reset that dropped `isBuilding`
+		// would already have started /vault-b's scan concurrently with /vault-a's.
+		expect(invoke).toHaveBeenCalledTimes(1);
+
+		resolveFirst(CACHED_SCAN_RESULT);
+		await first;
+		await second;
+
+		// /vault-b did run, strictly AFTER /vault-a settled.
+		expect(invoke).toHaveBeenCalledTimes(2);
+		expect(vi.mocked(invoke).mock.calls[1]).toEqual(['scan_vault_v2_cached', { path: '/vault-b' }]);
+	});
+
+	it('keeps the post-teardown caller pending until the new vault is scanned', async () => {
+		const { resolveFirst } = mockSlowFirstScan();
+
+		const first = buildIndex('/vault-a');
+		resetBacklinks();
+		let settled = false;
+		const second = buildIndex('/vault-b').then(() => {
+			settled = true;
+		});
+
+		// One macrotask drains every currently-schedulable microtask, so this is
+		// an ordering check, not a timing one. A post-teardown caller that started
+		// its own scan would have settled on that scan's immediate mock resolution.
+		await new Promise((r) => setTimeout(r, 0));
+		expect(settled).toBe(false);
+
+		resolveFirst(CACHED_SCAN_RESULT);
+		await first;
+		await second;
+
+		expect(settled).toBe(true);
+		expect(vi.mocked(invoke).mock.calls[1]).toEqual(['scan_vault_v2_cached', { path: '/vault-b' }]);
 	});
 });
 

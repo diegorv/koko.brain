@@ -32,8 +32,11 @@ interface CachedScanResult {
  * The promise of the build currently in flight, or `null` when idle. Read
  * only from the `isBuilding` branch of `buildIndex`, and `isBuilding = true`
  * is always followed synchronously by the assignment below, so it can never
- * hand out a settled promise from a previous vault. Deliberately not cleared
- * by `resetBacklinks` for the same reason.
+ * hand out a settled promise from a previous vault. That still holds across a
+ * `resetBacklinks()`, which leaves `isBuilding` alone: the flag is then owned
+ * by a scan that has not settled yet, so `inflightBuild` is that scan's
+ * still-pending promise. Deliberately not cleared by `resetBacklinks` for the
+ * same reason.
  */
 let inflightBuild: Promise<boolean> | null = null;
 
@@ -84,9 +87,13 @@ export function buildIndex(path: string): Promise<boolean> {
  * caller) and reported as `false`.
  */
 async function runBuildIndex(path: string): Promise<boolean> {
-	const t0 = perfStart();
 	let ok = false;
 	try {
+		// Inside the `try` so that nothing at all can throw between `isBuilding = true`
+		// in `buildIndex` and the `finally` that clears it. The flag is now the only
+		// serializer across a `resetBacklinks()`, so a leaked `true` would wedge every
+		// later build behind a promise that never settles again.
+		const t0 = perfStart();
 		const result = await invoke<CachedScanResult>('scan_vault_v2_cached', { path });
 		ok = true;
 		perfEnd('BACKLINKS', `buildIndex:${result.source}`, t0);
@@ -227,9 +234,32 @@ export const computeUnlinkedMentionsForFile = dedupeInflight(
 	(filePath: string) => filePath,
 );
 
+/**
+ * Clears the per-vault path, the queued-rebuild flag, the per-path version
+ * caches and the store. Called by `teardownVault()` in
+ * `core/app-lifecycle/app-lifecycle.service.ts`, which is its only production
+ * caller. `isBuilding` and `inflightBuild` are deliberately left alone, for
+ * the reasons below.
+ *
+ * `isBuilding` is deliberately NOT cleared. It is the only thing serializing
+ * scans, and a teardown can land while a watcher-triggered
+ * `scan_vault_v2_cached` for the dying vault is still on the Rust blocking
+ * pool. Clearing the flag there let the next vault's `buildIndex` take the
+ * build branch and run a SECOND concurrent scan; whichever scan reached the
+ * `VaultIndexState` write lock last replaced the whole process-wide index, so
+ * a slow scan of the old vault could land after the new one and leave the
+ * index holding the old vault's entries. Leaving the flag true makes the new
+ * vault's build queue behind the live scan instead, which costs the switch the
+ * dying vault's remaining scan time but makes the wrong ordering impossible.
+ * The flag still always returns to false on its own: `runBuildIndex`'s
+ * `finally` runs on every path, including the swallowed IPC rejection.
+ *
+ * `pendingRebuild` IS cleared: a stale flag would make the next vault's first
+ * `buildIndex` fire one spurious extra full scan, and any post-teardown caller
+ * re-arms it by itself.
+ */
 export function resetBacklinks() {
 	vaultPath = null;
-	isBuilding = false;
 	pendingRebuild = false;
 	lastFetchedBacklinksVersion.clear();
 	lastFetchedUnlinkedVersion.clear();

@@ -1,6 +1,6 @@
 # Issue 56: `resetBacklinks` clears `isBuilding` mid-scan, so a vault switch can leave the Rust index holding the OLD vault
 
-Status: ready-for-agent
+Status: done
 Phase: unplanned
 Source: reviewer follow-up surfaced during the cross-audit run, verified 2026-08-19 by triage
 Blocked by: none
@@ -236,3 +236,70 @@ Side channels that would fake a green, all of them load-bearing:
 - One commit, full commit format (Context, Problem, Solution, Behavior, Files with line ranges).
 
 ## Comments
+
+### 2026-08-19 resolved
+
+Fixed as specified: the single line `isBuilding = false;` is gone from
+`backlinks.service.ts::resetBacklinks`. `vaultPath = null`, `pendingRebuild = false`, both
+version caches and the store reset all stay, and `inflightBuild` stays uncleared.
+
+**Race timeline this closes.** A watcher batch with no markdown file in it takes
+`watcher-handler.service.ts::rebuildAllIndexes`'s full-rebuild branch, so
+`backlinks.service.ts::buildIndex(A)` is live and `scan_vault_v2_cached({ path: A })` is on the
+Rust blocking pool. The user switches vault, `initializeVault(B)` runs `teardownVault()` ->
+`resetBacklinks()`. Before: the flag was cleared, `buildIndex(B)` at step 4 took the BUILD branch
+and started a second concurrent scan, and since `VaultIndexState::build` replaces the whole index
+with no vault-path check, whichever scan reached `state.write()` last won. A slow reconcile of A
+landing after a cache hit on B left the process-wide index holding vault A while vault B was open,
+sticky until the next full rebuild of B. After: the flag survives the teardown, `buildIndex(B)`
+takes the QUEUE branch, sets `vaultPath = B` and `pendingRebuild = true` and returns A's still
+pending `inflightBuild`; A's `finally` replays `buildIndex(B)` and awaits it, so B's scan runs
+strictly after A's and step 4's `Promise.all` settles only once B is genuinely indexed.
+
+**Accepted cost, unchanged from `2f109e26`.** A vault switch that lands inside a watcher full
+rebuild now waits for the dying vault's remaining scan before its own. Step 4's own comment
+("Must complete before starting the watcher to avoid concurrent builds") asks for exactly that.
+
+**Red-green.** Two probes added to the `buildIndex` describe in
+`src/tests/lib/features/backlinks/backlinks.service.test.ts`, both reusing `mockSlowFirstScan()`
+and two distinct vault paths:
+
+- `does not start a second scan when the vault is torn down mid-scan` asserts
+  `toHaveBeenCalledTimes(1)` BEFORE `resolveFirst`, then the invoke ARGUMENT of call 2.
+- `keeps the post-teardown caller pending until the new vault is scanned` asserts the
+  post-teardown promise is still unsettled after a full macrotask drain.
+
+Red, with `isBuilding = false;` put back into `resetBacklinks`: 2 failed | 37 passed (39). Failures
+are `expected "vi.fn()" to be called 1 times, but got 2 times` and `expected true to be false`, i.e.
+the two detecting assertions the issue named, not the trailing ones. Green with the fix: 39 passed.
+
+**Collateral.** No other test file needed a change. `app-lifecycle.service.test.ts` mocks this
+module wholesale, so it is unaffected by construction; the four pre-existing concurrency tests all
+already resolve and await their slow scan, so the isolation trap the issue warned about is not
+tripped. `mockSlowFirstScan`'s JSDoc now records that contract for future callers, since
+`resetBacklinks()` in `beforeEach` no longer unsticks a leaked flag.
+
+**Gate at the fix commit.** `pnpm check` 191 files 0 errors 0 warnings. `pnpm vitest run` 292 files,
+6484 passed | 1 todo (baseline on main was 6476 | 1 todo; +6 from issue 55, +2 here). `pnpm build`
+exit 0. No Rust file touched.
+
+**Review verdict: findings, all three minor, all applied.**
+
+1. `resetBacklinks`'s new JSDoc opened with "Clears every piece of per-vault state this module owns",
+   which is false since `isBuilding` and `inflightBuild` are per-vault state it deliberately keeps.
+   Rewritten to list what it actually clears and to name both exceptions up front.
+2. The isolation contract change was unrecorded. Added to `mockSlowFirstScan`'s JSDoc.
+3. `const t0 = perfStart();` sat outside `runBuildIndex`'s `try`, the one statement that could in
+   principle throw between `isBuilding = true` and the `finally` that clears it. Unreachable today
+   (`perfStart` only reads two settings flags and `performance.now()`), but the fix now rests the
+   whole serialization on that flag, so the statement moved inside the `try` with a comment. The
+   invariant is now unconditional instead of a reachability argument.
+
+**Still open, deliberately out of scope.** A's orphaned scan still lands, still emits
+`vault-index-updated`, and still shows A's data for one debounce window before B's scan overwrites
+it. This fix downgrades the outcome from "wrong vault, sticky" to "wrong vault, transient"; closing
+the transient wants a vault-scoped guard in `core/layout/tauri-listeners.service.ts` and is the
+separate "stale post-teardown index events" follow-up. The tags-side defect (`buildTagIndex` has no
+epoch guard, so an orphaned run writes the old vault's tree into `tagsStore` after
+`tagsStore.reset()`) is likewise untouched and needs its own issue.
+
