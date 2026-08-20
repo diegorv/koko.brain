@@ -2,8 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import katex from 'katex';
 import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { syntaxHighlighting, forceParsing } from '@codemirror/language';
+import { syntaxHighlighting } from '@codemirror/language';
 
 // No mocks — exercise the real KaTeX render + DOMPurify sanitize path.
 
@@ -13,6 +12,7 @@ import {
 } from '$lib/core/markdown-editor/extensions/live-preview/widgets/math-widget';
 import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
 import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
+import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 describe('MathWidget', () => {
 	beforeEach(() => {
@@ -165,25 +165,31 @@ describe('MathWidget', () => {
 });
 
 describe('MathWidget — editor integration (duplicate formulas)', () => {
-	/** Mounts an EditorView with the production live-preview stack. The view is
-	 *  built into a DETACHED root with the syntax tree force-parsed before the
-	 *  root is attached — this mirrors the app's initial mount (EditorView
-	 *  assembles its DOM before `parent.appendChild`) and makes the block-math
-	 *  decorations deterministic (lezer's eager-parse time budget is flaky in
-	 *  jsdom, so without forceParsing the StateField may decorate 0 blocks). */
+	/**
+	 * Mounts an EditorView with the production live-preview stack on a state whose
+	 * syntax tree is already complete (`createMarkdownState`). That ordering is
+	 * load-bearing: every live-preview decorator that reads the syntax tree builds
+	 * its decorations in its ViewPlugin constructor, so a tree still truncated by
+	 * the 20 ms initial-parse budget at that moment decorates 0 math blocks.
+	 *
+	 * Repairing the tree afterwards with `forceParsing(view, ...)` does NOT work,
+	 * which is what this helper used to do: it re-snapshots the tree, but its empty
+	 * transaction carries no doc change, no selection change and no effect, so
+	 * `checkUpdateAction` returns `'none'` and the plugins keep the decorations they
+	 * built from the truncated tree. Measured under a 25 ms-stepping `Date.now`,
+	 * that shape found 0 of the 2 expected elements in every test below while the
+	 * tree itself read as fully repaired.
+	 */
 	function mountView(doc: string): { view: EditorView; root: HTMLElement } {
-		const state = EditorState.create({
-			doc,
+		const state = createMarkdownState(doc, {
 			extensions: [
 				markdownLanguage(),
 				syntaxHighlighting(markdownHighlight),
 				livePreviewExtensions(),
 			],
 		});
-		const root = document.createElement('div');
+		const root = document.body.appendChild(document.createElement('div'));
 		const view = new EditorView({ state, parent: root });
-		forceParsing(view, state.doc.length, 5000);
-		document.body.appendChild(root);
 		return { view, root };
 	}
 
@@ -191,12 +197,18 @@ describe('MathWidget — editor integration (duplicate formulas)', () => {
 
 	beforeEach(() => {
 		clearMathCache();
+		// Every mount below runs under an exhausted initial-parse budget, the state a
+		// loaded machine reaches by stalling >= 21 ms at one block boundary. It is
+		// strictly harder than a normal clock and it is the condition the old
+		// `forceParsing` mount failed under.
+		stepDateNow(25);
 	});
 
 	afterEach(() => {
 		view?.destroy();
 		view = null;
 		document.body.innerHTML = '';
+		vi.restoreAllMocks();
 	});
 
 	it('renders both occurrences of an identical block formula at mount', () => {

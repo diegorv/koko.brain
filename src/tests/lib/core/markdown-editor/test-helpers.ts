@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { EditorSelection, EditorState, type Extension } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
@@ -50,4 +51,26 @@ export function createMarkdownState(
 		);
 	}
 	return state.update({}).state;
+}
+
+/**
+ * Makes every `Date.now()` reading advance by `stepMs`, so the 20 ms budget CodeMirror
+ * gives the initial parse (`Work.Apply` in `LanguageState.init`) is provably exhausted
+ * instead of depending on machine load. `LanguageState.init` derives its deadline from
+ * `Date.now() + 20`, and that derivation already consumes one reading, so the budget buys
+ * roughly `20 / stepMs + 1` `advance()` calls. There is no flat safe/unsafe step: which
+ * step truncates depends on how many blocks the fixture has, and a fixture of three or
+ * more blocks already truncates at a 20 ms step. A 25 ms step leaves a single advance and
+ * truncates every multi-block fixture used here, which is why all callers pass 25.
+ * `vi.useFakeTimers()` is deliberately NOT an option: a frozen clock gives the parse an
+ * unlimited budget, so the test would pass against a truncating helper and prove nothing.
+ * Callers must restore the spy themselves (`vi.restoreAllMocks()`).
+ * @param stepMs Milliseconds added to the clock per reading.
+ */
+export function stepDateNow(stepMs: number): void {
+	let now = Date.now();
+	vi.spyOn(Date, 'now').mockImplementation(() => {
+		now += stepMs;
+		return now;
+	});
 }

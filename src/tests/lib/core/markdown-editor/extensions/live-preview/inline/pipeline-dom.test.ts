@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting } from '@codemirror/language';
 import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
 import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 const SAMPLE = '**bold** *italic* ~~strike~~ `code` ==hi==';
 const HEADINGS = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n';
@@ -16,10 +16,24 @@ const BLOCKQUOTES = '> a\n> > b\n> > > c\n';
  * editor uses (markdown language + the existing markdownHighlight + the live-
  * preview extension array). Returns the view's content element so tests can
  * grep its className list.
+ *
+ * The state comes from `createMarkdownState`, not a bare `EditorState.create`,
+ * because the parse `EditorState.create` starts runs under a hardcoded 20 ms
+ * budget (`Work.Apply` in `LanguageState.init`) and snapshots whatever tree
+ * that produced. Every live-preview decorator that reads the syntax tree builds
+ * its decorations in its ViewPlugin constructor from that snapshot, so a
+ * truncated tree silently drops the `cm-lp-*` classes of every block past the
+ * cut, with no error.
+ *
+ * The parse must be finished BEFORE the view is constructed. Repairing it
+ * afterwards with `forceParsing(view, ...)` does not work here: it does
+ * re-snapshot the full tree, but the empty transaction it dispatches to do so
+ * carries no doc change, no selection change and no effect, so
+ * `checkUpdateAction` returns `'none'` and every live-preview ViewPlugin keeps
+ * the decorations it built from the truncated tree.
  */
 function mountView(doc: string): { view: EditorView; root: HTMLElement } {
-	const state = EditorState.create({
-		doc,
+	const state = createMarkdownState(doc, {
 		extensions: [
 			markdownLanguage(),
 			syntaxHighlighting(markdownHighlight),
@@ -98,6 +112,22 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 		expect(classes.has('cm-lp-blockquote')).toBe(true);
 		expect(classes.has('cm-lp-blockquote-2')).toBe(true);
 		expect(classes.has('cm-lp-blockquote-3')).toBe(true);
+	});
+
+	describe('a stalled initial parse must not truncate the decorated tree', () => {
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('emits cm-lp-blockquote / -2 / -3 when the initial parse budget expires', () => {
+			stepDateNow(25);
+			const { view, root } = mountView(BLOCKQUOTES);
+			cleanup = () => view.destroy();
+			const classes = classesIn(root);
+			expect(classes.has('cm-lp-blockquote')).toBe(true);
+			expect(classes.has('cm-lp-blockquote-2')).toBe(true);
+			expect(classes.has('cm-lp-blockquote-3')).toBe(true);
+		});
 	});
 
 	describe('disabledDecorators wiring through the real settings store', () => {

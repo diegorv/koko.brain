@@ -362,3 +362,69 @@ make test 2's delta scale with row count and blunt the guard it exists to be.
 
 The Step 2 wall-clock removal itself is unchanged: `CEILING_MS`, `t0` and `elapsed` are gone and no
 assertion in the file reads a clock.
+
+### Step 3 deviation (2026-08-19)
+
+The Step 3 **Fix** paragraph above is WRONG and was not applied. It prescribes
+`forceParsing(view, state.doc.length, 5000)` inside `mountView`, claiming it "both
+re-snapshots the field tree and re-runs the decoration pass". It does the first and NOT the
+second, so it is a placebo: the classes stay missing.
+
+Measured in this worktree with a 25 ms-stepping `Date.now` (the same probe technique as
+Part 1), mounting each fixture through the prescribed shape (detached root, `new
+EditorView`, `forceParsing`, then `document.body.appendChild(root)`):
+
+| fixture | elements found @ step 0 ms | @ step 25 ms | `syntaxTree(view.state).length` @ 25 ms |
+|---|---|---|---|
+| block math twice (`.cm-lp-math-block`) | 2 | **0** | 34 / 34 (repaired) |
+| inline math twice on one line (`.cm-lp-math-inline`) | 2 | **0** | 37 / 37 (repaired) |
+| inline math on two lines (`.cm-lp-math-inline`) | 2 | **0** | 50 / 50 (repaired) |
+| block + inline in one doc (`.cm-lp-math-block`) | 1 | **0** | 40 / 40 (repaired) |
+
+Why: `forceParsing` dispatches an EMPTY transaction. It carries no doc change, no selection
+change, no effect and no reconfigure, so `live-preview/core/check-update-action.ts::checkUpdateAction`
+returns `'none'` and both `makeInlineFormattingPlugin` and `core/block-decorator.ts::blockDecorator`
+keep the decorations they built in their CONSTRUCTORS, from the truncated tree. Repairing the
+tree after the view exists is too late.
+
+**What was applied instead:** the parse is finished BEFORE the view is constructed, by
+routing `mountView` through `test-helpers.ts::createMarkdownState(doc, { extensions })` -
+the same helper Step 1 fixed. Same probe, same fixtures, same 25 ms clock: 2 / 2 / 2 / 1,
+all green.
+
+Two more corrections to the Part 3 text above:
+
+1. "The `cm-lp-*` classes come from `HighlightStyle` tag styling driven by that syntax tree"
+   is right for `cm-lp-bold` / `-italic` / `-strikethrough` / `-code` (those do come from
+   `inline/markdown-highlight-style.ts`) and WRONG for the two classes the failing
+   assertions actually read. `cm-lp-blockquote` / `-2` / `-3` and `cm-lp-h1..h6` are
+   `Decoration.line` constants in `live-preview/styles.ts`, applied by
+   `inline/handlers/blockquote-handler.ts` and `inline/handlers/heading-handler.ts` inside
+   `inlineFormattingPlugin`. The syntax tree still drives them, so the root cause is
+   unchanged; only the mechanism named in the text is.
+2. Block math is not a `StateField`. It is built with `core/block-decorator.ts::blockDecorator`,
+   a `ViewPlugin.fromClass`. The comment that used to sit above `math-widget.test.ts::mountView`
+   said StateField and was wrong.
+
+**The same defect was fixed in `math-widget.test.ts` in the same commit.** Its
+`describe('MathWidget - editor integration (duplicate formulas)')::mountView` is the
+original source of the refuted `forceParsing` recipe (it is what the Step 3 text cites), so
+leaving it would have kept the identical flake live in four tests and kept the wrong
+precedent on disk. It now uses `createMarkdownState` too, and its `beforeEach` installs the
+25 ms clock so all four tests run under the exhausted budget permanently. Mutation-checked:
+restoring the `forceParsing` mount turns those four red (`expected +0 to be 2` three times,
+plus `expected null not to be null`), and reverting the mutation turns them green again.
+
+The stepping-clock helper is now `test-helpers.ts::stepDateNow(stepMs)`, shared by
+`table.test.ts` (Step 1), `pipeline-dom.test.ts` (Step 3) and `math-widget.test.ts`, instead
+of three hand-rolled copies of the same three-line `vi.spyOn`.
+
+Step 3's "add the same for `mountView(HEADINGS)` if it costs nothing" was dropped: at the
+25 ms step both fixtures are truncated past their first block, so a second stepped mount
+costs a further ~1.3 s of jsdom and adds no discriminating power over the one already
+shipped. It is NOT true in general that the two fixtures move together: they have different
+block counts and therefore different truncation thresholds, so a smaller step separates them
+(at a 10 ms step `HEADINGS` truncates to 18 of 45 while `BLOCKQUOTES` stays complete at
+18 of 18). The `BLOCKQUOTES` case is the one kept because it is the fixture that failed
+naturally under 64 burners. The plain (non-stepped) `HEADINGS` test in the outer describe is
+untouched.

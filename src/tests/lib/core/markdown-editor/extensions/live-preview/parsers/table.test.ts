@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseAlignments, findAllTables } from '$lib/core/markdown-editor/extensions/live-preview/parsers/table';
-import { createMarkdownState } from '../../../test-helpers';
+import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 describe('parseAlignments', () => {
 	it('parses default left alignment', () => {
@@ -83,8 +83,7 @@ describe('findAllTables', () => {
 		// produced. A clock that steps 25 ms per reading forces that budget to expire
 		// at the first block boundary, which is what a scheduler stall does on a loaded
 		// machine. createMarkdownState must still hand back the complete tree.
-		let clock = 0;
-		const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => (clock += 25));
+		stepDateNow(25);
 		try {
 			const state = createMarkdownState(
 				'| a | b |\n| --- | --- |\n| 1 | 2 |\n\n| x | y |\n| --- | --- |\n| 3 | 4 |',
@@ -94,7 +93,7 @@ describe('findAllTables', () => {
 			expect(tables[0].headers).toEqual(['a', 'b']);
 			expect(tables[1].headers).toEqual(['x', 'y']);
 		} finally {
-			nowSpy.mockRestore();
+			vi.restoreAllMocks();
 		}
 	});
 
