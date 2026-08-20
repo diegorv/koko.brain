@@ -286,9 +286,14 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	} else {
 		// The scan for THIS vault did not complete, so nothing here may assert
 		// that the Rust `VaultIndex` holds it: readiness stays suppressed for the
-		// rest of this vault session, and every reader of that index (step 4b and
-		// the step 5b builders) is skipped, so no panel shows the previous vault's
-		// data. The user recovers by reopening.
+		// rest of this vault session, and the two INIT-TIME readers of that index
+		// (step 4b and the step 5b builders) are skipped. That reach is init only.
+		// It does not keep the previous vault's data off screen for the session:
+		// `registerVaultIndexUpdatedListener` survives vault switches (issue 54),
+		// so the first `vault-index-updated` bump still refills Properties,
+		// Collection, type-definitions and the file tree's content order from the
+		// stale index, and TagsView / TasksView still refetch on their own
+		// `vaultIndexVersion` effects. The user recovers by reopening.
 		toast.error('Failed to index the vault. Reopen it to try again.');
 	}
 	// Second drop, and the one that actually closes the wrong-vault window:
@@ -347,8 +352,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// `get_all_property_records`, `get_all_vault_entries_v2`), which on a failed
 	// scan still holds the PREVIOUS vault, and `scanFilesForCalendar` reads the
 	// property index the third of those fills. `teardownVault` already emptied
-	// those stores, so skipping leaves the panels empty instead of confidently
-	// showing another vault's tags, tasks and calendar dots.
+	// those stores, so skipping leaves the panels empty at init instead of
+	// confidently showing another vault's tags, tasks and calendar dots. The gate
+	// DELAYS that stale fill, it does not prevent it: the surviving
+	// `vault-index-updated` listener (issue 54) and the TagsView / TasksView
+	// version effects refill from the stale index on the first bump.
 	if (indexBuilt) {
 		secondaryBuildersTimer = setTimeout(() => {
 			secondaryBuildersTimer = null;

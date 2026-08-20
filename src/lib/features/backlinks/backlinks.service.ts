@@ -52,7 +52,11 @@ let inflightBuild: Promise<boolean> | null = null;
  * `rebuildIndex()` replay), and the queued caller receives the in-flight
  * build's promise. So `await buildIndex(p)` always means "the Rust
  * `VaultIndex` has been built for `p`", never "a build for some other vault
- * was already running". IPC failures are still logged and swallowed rather
+ * was already running". One exception: a `resetBacklinks()` landing between
+ * the queue and the replay clears `pendingRebuild`, so the queued caller then
+ * resolves with the dying vault's outcome and its own path is never scanned.
+ * `initializeVault`'s `initVersion !== version` guard, not this function, is
+ * what makes that safe. IPC failures are still logged and swallowed rather
  * than rethrown (the in-flight promise is shared with the queued caller), so
  * the resolved value carries the outcome instead: `true` only when the scan
  * for the LATEST requested path completed, `false` when it failed.
