@@ -260,9 +260,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// `Promise.all` rejects the instant `loadDirectoryTree` rejects: reading the
 	// outcome at that moment would see a scan that is still in flight and
 	// withhold readiness from a vault whose Rust `VaultIndex` was in fact built.
-	// The extra await cannot throw (`buildIndex` never rejects), so a
-	// `loadDirectoryTree` rejection still enters the catch below and still does
-	// not abort init.
+	// The second await carries its own `.catch` so a `loadDirectoryTree`
+	// rejection still enters the catch below and still does not abort init,
+	// without this function depending on `buildIndex` never rejecting.
+	// That wait is unbounded by design: the scan must finish before the watcher
+	// starts, even when the tree load already failed, so a switch that hooks
+	// onto a dying vault's in-flight scan pays for that scan plus its replay.
 	const indexBuild = buildIndex(vaultPath);
 	try {
 		await Promise.all([indexBuild, loadDirectoryTree(vaultPath)]);
@@ -270,7 +273,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		error('LIFECYCLE', 'Failed to build indexes or load file tree:', err);
 		toast.error('Failed to load vault contents. The file explorer or search may not work.');
 	}
-	const indexBuilt = await indexBuild;
+	const indexBuilt = await indexBuild.catch(() => false);
 	perfEnd('LIFECYCLE', 'Step 4: buildIndex+loadDirectoryTree(parallel)', t4);
 	if (initVersion !== version) return;
 	if (indexBuilt) {
@@ -282,9 +285,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		vaultStore.markIndexReady();
 	} else {
 		// The scan for THIS vault did not complete, so nothing here may assert
-		// that the Rust `VaultIndex` holds it. Readiness stays suppressed for the
-		// rest of this vault session: the placeholder is honest and the user
-		// recovers by reopening.
+		// that the Rust `VaultIndex` holds it: readiness stays suppressed for the
+		// rest of this vault session, and every reader of that index (step 4b and
+		// the step 5b builders) is skipped, so no panel shows the previous vault's
+		// data. The user recovers by reopening.
 		toast.error('Failed to index the vault. Reopen it to try again.');
 	}
 	// Second drop, and the one that actually closes the wrong-vault window:
@@ -338,19 +342,28 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// icon panels, which degrade gracefully if briefly empty. Running them via
 	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
 	// first, then the builders run as macrotasks.
-	secondaryBuildersTimer = setTimeout(() => {
-		secondaryBuildersTimer = null;
-		if (initVersion !== version) return;
-		const t5b = perfStart();
-		buildTagIndex();
-		buildTaskIndex();
-		buildPropertyIndex();
-		buildFrontmatterIconIndex().catch((err) =>
-			error('LIFECYCLE', 'buildFrontmatterIconIndex failed:', err),
-		);
-		scanFilesForCalendar();
-		perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons+calendar)', t5b);
-	}, 0);
+	// Gated on `indexBuilt` for the same reason as step 4b: four of the five read
+	// the Rust `VaultIndex` directly (`get_all_tags_v2`, `get_all_tasks_v2`,
+	// `get_all_property_records`, `get_all_vault_entries_v2`), which on a failed
+	// scan still holds the PREVIOUS vault, and `scanFilesForCalendar` reads the
+	// property index the third of those fills. `teardownVault` already emptied
+	// those stores, so skipping leaves the panels empty instead of confidently
+	// showing another vault's tags, tasks and calendar dots.
+	if (indexBuilt) {
+		secondaryBuildersTimer = setTimeout(() => {
+			secondaryBuildersTimer = null;
+			if (initVersion !== version) return;
+			const t5b = perfStart();
+			buildTagIndex();
+			buildTaskIndex();
+			buildPropertyIndex();
+			buildFrontmatterIconIndex().catch((err) =>
+				error('LIFECYCLE', 'buildFrontmatterIconIndex failed:', err),
+			);
+			scanFilesForCalendar();
+			perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons+calendar)', t5b);
+		}, 0);
+	}
 
 	// ── Step 6: Search ───────────────────────────────────────────────
 	debug('LIFECYCLE', 'Building FTS5 search index...');

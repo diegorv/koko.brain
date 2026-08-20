@@ -394,6 +394,47 @@ describe('initializeVault', () => {
 		expect(invoke).not.toHaveBeenCalledWith('get_all_vault_entries_v2');
 	});
 
+	it('skips the deferred secondary index builders when the vault scan fails', async () => {
+		// Four of the five read the Rust `VaultIndex` directly and the fifth
+		// reads the property index one of them fills. On a failed scan that
+		// index still holds the PREVIOUS vault, so running them would repopulate
+		// the Tags / Tasks / Properties / Calendar panels with the old vault's
+		// data while Backlinks still shows "Indexing vault...".
+		vaultStore._reset();
+		vi.mocked(buildIndex).mockResolvedValueOnce(false);
+
+		await initializeVault('/vault');
+		// The builders are deferred via setTimeout(…, 0); flush the macrotask
+		// queue so a missing gate would show up as a call, not as a race.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(vaultStore.indexReady).toBe(false);
+		expect(buildTagIndex).not.toHaveBeenCalled();
+		expect(buildTaskIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
+		expect(buildFrontmatterIconIndex).not.toHaveBeenCalled();
+		expect(scanFilesForCalendar).not.toHaveBeenCalled();
+		// The rest of init still runs: only the index readers are withheld.
+		expect(startWatching).toHaveBeenCalledWith('/vault');
+	});
+
+	it('does not abort initialization when the vault scan rejects outright', async () => {
+		// `buildIndex` is documented to swallow its IPC failures, but step 4
+		// re-awaits its promise OUTSIDE the try/catch above. The `.catch` on
+		// that second await is the only thing keeping a rejection from skipping
+		// steps 5 to 9 (watcher, templates folder, search index, daily note).
+		vaultStore._reset();
+		vi.mocked(buildIndex).mockRejectedValueOnce(new Error('scan threw'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(initializeVault('/vault')).resolves.toBeUndefined();
+		consoleSpy.mockRestore();
+
+		expect(vaultStore.indexReady).toBe(false);
+		expect(ensureTemplatesFolder).toHaveBeenCalled();
+		expect(startWatching).toHaveBeenCalledWith('/vault');
+	});
+
 	it('still marks the index ready when the file tree load fails before the scan settles', async () => {
 		// `Promise.all` rejects the instant `loadDirectoryTree` rejects, while the
 		// cold-cache scan is still in flight. The gate must read the scan's real
