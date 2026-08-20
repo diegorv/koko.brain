@@ -300,3 +300,65 @@ correct today and no failure was attributed to it; changing it here would be an 
   "No test files found" while looking like a silent pass inside a loop. Use `${=VAR}` or an array.
 
 ## Comments
+
+### Step 2 mutation results (2026-08-19)
+
+Required by Step 2 ("record both numbers in `## Comments` ... without that recorded delta the new
+assertion is unproven"). All readings taken in worktree `.claude/worktrees/issue-53-test-health` at
+`c1dfa9f6`, `src/lib` clean before and after every mutation (`git diff HEAD -- src/lib` empty),
+isolated `pnpm vitest run src/tests/lib/features/type-definitions/TypeNoteList.perf.test.ts`.
+The counter is deterministic, so these numbers do not move with machine load. The partial-revert
+rows and the margin caveat below were re-measured after the review fixes landed and reproduce
+unchanged.
+
+| Variant | test 1 rows / reads | ratio | test 2 rows | test 2 delta |
+|---|---|---|---|---|
+| O(1) path (as shipped) | 14 / 48295 | 6.16x TOTAL | 14 -> 104 | +135 |
+| Full revert of `2a6045bc` (both `icon-resolver.ts` scans plus the `TypeNoteList.svelte` `.find`) | 14 / 185711 | 23.67x | 14 -> 104 | +1212819 |
+| Partial revert (`resolveTypeIconForPath` scan only, `resolveIconForType` left on the Map) | 14 / 66410 | 8.46x | 14 -> 104 | +365154 |
+
+Bound chosen from those readings: ceiling `8 * TOTAL` (62768), which the 8.46x partial regression
+exceeds while leaving 30% of headroom over the 6.16x baseline. `10 * TOTAL` was tried first and
+LOWERED to 8x, because at 10x the 8.46x partial regression passes.
+
+Margin caveat, recorded because the 30% figure above is headroom over the BASELINE and not margin
+over the regression: the partial regression costs `(66410 - 48295) / 14` = ~1294 reads per mounted
+row, so the ceiling only trips at 12 or more mounted rows. jsdom mounts 14 here, and that number is
+virtua's (viewport height / row height plus its own overscan), not this repo's. At
+`VIEWPORT_HEIGHT = 420` the same partial regression measures 11 rows / 62058 reads = 7.91x and test
+1 stays GREEN. Test 2 catches it regardless (205590 against its own `TOTAL` bound), so the row
+scaling assertion, not the ceiling, is the load-bearing guard against a per-row scan.
+
+Two deviations from the Step 2 text, both deliberate:
+
+1. **The prescribed counting `Proxy` on integer-index `get` was NOT used.** Svelte's `$state` proxy
+   memoises each index read into a signal after the first pass
+   (`svelte/src/internal/client/proxy.js`, `get` trap), so an outer index-Proxy sees each index once
+   per snapshot and saturates: it discriminates the O(1) path from the regressed one by nothing.
+   The implementation instruments the entry OBJECTS instead, redefining `path` / `isA` / `title` as
+   accessors in `countReads`. The same `get` trap creates a memoising source only when
+   `get_descriptor(target, prop)?.writable` is truthy, so accessor properties fall through to
+   `Reflect.get` and keep reaching the counter on every pass. Do not "restore" the index-Proxy the
+   plan describes; it would silently turn the guard into a no-op.
+2. **An instrumentation self-check was added to `beforeEach`**, not just the ceiling. An upper bound
+   alone is satisfied by `reads = 0`, so any future change that stops the accessors from firing
+   (a svelte proxy change, a `setEntries` that clones or `$state.snapshot`s the array, deviation 1
+   being undone) would leave the suite green with the guard dead. The check reads one property
+   through the store's own `$state` proxy and asserts the counter moved by exactly 1. Verified by
+   stubbing `countReads` to return the entry untouched: `expected +0 to be 1`, BOTH tests red.
+
+   A read floor (`expect(reads).toBeGreaterThan(TOTAL)`) was tried for this job first and dropped.
+   It only covered test 1, leaving test 2 tautologically satisfiable (`0 - 0 < 7846` passes), and it
+   demanded that production perform at least one full pass over `entries` - so a legitimate future
+   optimisation (a by-type index in `typeDefinitionsStore`, exactly the pattern `2a6045bc`
+   established) would have gone red on an improvement. The `beforeEach` check tests the
+   instrumentation itself, covers both tests, and stays green however fast production gets.
+
+Scope of the counter, recorded so it is not mistaken for a full stand-in for the wall clock:
+`COUNTED_KEYS` is `path` / `isA` / `title` only. A regression that scans `entries` reading some other
+field is invisible to both tests. Widening to the remaining scalars was rejected: `snippet`,
+`wordCount` and `modifiedAt` are read by the row markup once per mounted row, so counting them would
+make test 2's delta scale with row count and blunt the guard it exists to be.
+
+The Step 2 wall-clock removal itself is unchanged: `CEILING_MS`, `t0` and `elapsed` are gone and no
+assertion in the file reads a clock.
