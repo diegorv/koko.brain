@@ -428,3 +428,151 @@ block counts and therefore different truncation thresholds, so a smaller step se
 18 of 18). The `BLOCKQUOTES` case is the one kept because it is the fixture that failed
 naturally under 64 burners. The plain (non-stepped) `HEADINGS` test in the outer describe is
 untouched.
+
+### Closing entry (2026-08-19)
+
+Written by the closing pass, after all three parts landed. It records the verdicts, the one
+process failure, and the leftovers, so nothing here has to be re-derived from commit messages.
+
+**Root cause, confirmed.** Parts 1 and 3 are one defect: a time-budgeted parse that returns a
+TRUNCATED syntax tree under CPU load. It is not the state pollution the original report
+hypothesised, and it could not have been: vitest runs the default `forks` pool with
+`isolate: true`, so every one of the 292 files gets a fresh module registry, and
+`SEPARATOR_CELL_RE` in `live-preview/parsers/table.ts` carries no `g`/`y` flag. The mechanism
+lives in `@codemirror/language` 6.12.4: `LanguageState.init` parses under a hardcoded 20 ms
+budget (`Work.Apply`), commits whatever it has via `takeTree()`, and the `LanguageState`
+constructor snapshots that tree once; `syntaxTree(state)` only ever reads the snapshot, and
+`ensureSyntaxTree` advances the mutable `ParseContext` without ever writing back to it.
+
+Probe evidence, reproduced deterministically by stepping `Date.now` a fixed amount per reading
+instead of waiting for a real scheduler stall:
+
+| fixture | step <= 20 ms | step >= 21 ms |
+|---|---|---|
+| two-table (68 chars, 2 blocks) | treeLen 68, 2 tables | treeLen 34, **1 table** (the reported symptom) |
+| `BLOCKQUOTES` (18 chars) | treeLen 18, full structure | treeLen 9, **first blockquote only** |
+| `HEADINGS` (45 chars, 6 blocks) | treeLen 45, `ATXHeading1..6` | treeLen 5, **only `ATXHeading1`** |
+| `SAMPLE` (42 chars, 1 block) | treeLen 42 | treeLen 42 (single-block fixtures are immune) |
+
+Truncation of the table fixture lands at position 34, exactly the end of the first table plus
+its newline. The `BLOCKQUOTES` row PREDICTED part 3's failure before it was observed, and the
+natural failure that then occurred under 64 CPU burners was byte-identical
+(`cm-lp-blockquote-2` / `-3` missing, `expected false to be true`). Part 2 is a different and
+simpler cause: a genuine wall-clock assertion measuring the machine.
+
+**Part 1: fix `f6256ed9`, correction `c1dfa9f6`. Committed BEFORE its review; process failure.**
+
+`f6256ed9` landed with NO adversarial review at all. The reviewer model was failing on
+`rate_limit`, and the orchestration treated a dead reviewer as a clean review, so the commit
+gate passed on the ABSENCE of a verdict rather than on a verdict. That is a worse defect than
+anything the diff contained, and it is recorded here rather than papered over.
+
+The review was run RETROACTIVELY against `f6256ed9` as landed. Verdict: NOT clean, four
+findings. None of them refuted the fix itself: the `update({})` re-snapshot is correct, and its
+regression test is genuinely red against the pre-fix helper with the exact reported symptom
+(`expected [ { from: +0, to: 33, ... } ] to have a length of 2 but got 1`). The findings were
+about what the fix left undefended:
+
+1. The `return state.update({}).state;` line propagated into the four local `createState`
+   copies was undefended. The stepping-clock test covers only `createMarkdownState` and passes
+   identically whether or not the copies keep their transaction, so a later tidy-up could
+   delete any of them, stay green, and silently restore the defect. `table-field.test.ts`'s
+   `SIMPLE_TABLE` fixture is a genuine two-block document and was provably exposed.
+2. A FIFTH helper was missed by this issue's own blast-radius survey:
+   `live-preview/core/is-inside-block-context.test.ts::createState`, which never called
+   `ensureSyntaxTree` at all. The survey searched for the "`ensureSyntaxTree` return value
+   discarded" shape, which that helper does not have. Latent rather than live only because all
+   seven of its fixtures are single-block.
+3. `createMarkdownState` carried two adjacent comments that contradicted each other. The older
+   `// Force synchronous tree parse for test reliability` asserts precisely what the new
+   comment two lines below denies, so a reader copying the first line into a new helper
+   reproduces the bug.
+4. The `ensureSyntaxTree` return value was still discarded, so exhausting its own 5000 ms
+   window would hand back a truncated tree with no error: the same silent symptom that cost
+   114 runs to diagnose.
+
+All four are corrected in `c1dfa9f6`, which collapses the five helpers onto one guarded builder
+(extension sets passed explicitly, so no suite's decoration count can shift), null-checks
+`ensureSyntaxTree` and throws instead of returning short, and folds the contradicting comments
+into one. Verified, not assumed: with `return state.update({}).state;` temporarily reverted to
+`return state;` in the shared helper, `table.test.ts` goes red with "expected 2, got 1".
+`f6256ed9` is left in history untouched.
+
+**Part 2: `a98e61bd`. Wall clock out, entry-read counter in.**
+
+`CEILING_MS`, `t0` and `elapsed` are deleted; no assertion in the file reads a clock. The guard
+is now a count of entry-property reads: `buildEntries` maps every fixture entry through
+`countReads`, which redefines `path` / `isA` / `title` as accessors that bump a counter. Nothing
+is mocked; the store receives real `NoteEntryV2` objects and builds its real indexes from them.
+Measured, all deterministic across runs and machine load: O(1) path 48295 reads (6.16x TOTAL),
+full revert of `2a6045bc` 185711 (23.67x), partial revert 66410 (8.46x). The ceiling is
+`8 * TOTAL` (62768); `10 * TOTAL` was tried first and LOWERED, because at 10x the partial
+regression passes. A second, load-independent test clicks at two viewport heights and requires
+that 7x more mounted rows cost less than one extra full pass: +135 reads for +90 rows on the
+O(1) path against +1212819 reverted. A `beforeEach` self-check reads one property through the
+store's own `$state` proxy and asserts the counter moved by exactly 1, so a dead counter fails
+both tests instead of leaving them tautologically green at `reads = 0`.
+
+Review verdict for this part: the review ran to completion and its corrections landed BEFORE
+the commit; the Step 2 comment above records that the partial-revert rows and the margin caveat
+were re-measured after the review fixes landed and reproduced unchanged. The individual findings
+were never transcribed into this file, and the closing pass could not recover them from the
+worktree, so what survives is the corrected state and not the finding list. Recorded as a gap
+in the record, not as a clean review.
+
+Known ceiling of the new guard, accepted deliberately and documented in the test: the partial
+regression costs about 1294 reads per mounted row, so test 1's bound only trips at 12 or more
+mounted rows. jsdom mounts 14 at the shipped 600 px viewport, and that number is virtua's, not
+this repo's; at 420 px the same regression measures 7.91x and test 1 stays GREEN. Test 2 catches
+it regardless, so the row-scaling assertion is the load-bearing guard. `COUNTED_KEYS` is
+`path` / `isA` / `title` only, so a regression that scans `entries` reading some other field is
+invisible to both tests.
+
+**Part 3: `1104b79b`.**
+
+Both jsdom mounts, `pipeline-dom.test.ts::mountView` and `math-widget.test.ts::mountView`, now
+build their state through `createMarkdownState`, so the parse finishes before the view exists.
+The Step 3 **Fix** paragraph in `## How` above is WRONG and was not applied: `forceParsing`
+after the view exists is a placebo, refuted by measurement (table in the Step 3 deviation
+comment). `math-widget.test.ts` was the source of that recipe, so the same defect was live in
+four tests this issue never named; restoring the `forceParsing` mount turns those four red
+(three `expected +0 to be 2`, one `expected null not to be null`) and reverting the mutation
+turns them green.
+
+Review record for this part: NONE recoverable. No adversarial-review verdict appears in
+`1104b79b`'s message, in this file, or anywhere in the worktree, and the closing instruction
+that produced this entry named none. Treat part 3's review status as unrecorded rather than as
+clean.
+
+**Test-health problems found and NOT fixed. For the orchestrator to file.**
+
+1. `pipeline-dom.test.ts`, nested `describe('disabledDecorators wiring through the real settings
+   store')`. Part 3 deliberately did not touch it, so it is unchanged. Its `afterEach` restores
+   by calling `settingsStore.toggleDecorator('heading', false)` and
+   `toggleDecorator('markdownStyle', false)`: it WRITES AN ASSUMED DEFAULT instead of restoring
+   the value it captured. Safe today only because the suite runs sequentially and the
+   module-global `settingsStore` starts with both decorators enabled. It leaks under
+   `--sequence.concurrent`, and it silently encodes "disabled is the default", so changing that
+   default converts the teardown into a mutation of every later suite in the file. The failure
+   shape would be the same `expected false to be true` this issue spent 114 runs chasing.
+   Cheap fix: capture `settingsStore.disabledDecorators` before the toggle and restore the
+   captured value.
+2. `c1dfa9f6`'s "remaining 19 test files that build an `EditorState` without either call" is
+   re-audited here and is NOT a live exposure, and the count is 17, not 19. Measured:
+   `grep -rln "EditorState.create" src/tests` matches 20 files; two of those are comment-only
+   mentions (`table.test.ts`, `pipeline-dom.test.ts`) and one is the shared builder, leaving 17
+   that construct a bare state. Sixteen of the 17 import no `@codemirror/lang-*`,
+   `@codemirror/language` or `@lezer/*` at all, so they configure NO language: there is no
+   `LanguageState` field, `syntaxTree()` returns an empty tree and there is no timed parse to
+   truncate. Their decorators are line scanners (`computeMermaidBlocks`, for instance, never
+   touches `syntaxTree`). The one exception, `setup/editor-extensions.test.ts`, builds its state
+   from the production `createExtensions(...)` bundle, which does carry `markdownLanguage`, but
+   its only view-mounting test asserts `onDocChanged` call counts and reads no tree. No
+   follow-up is needed; this is recorded so the next reader does not re-open it.
+3. `RUN-STATE-2026-08-19.md`'s "Test-health problems found (not fixed, worth their own work)"
+   section is now stale for all three suites, and its `table.test.ts` bullet states the refuted
+   theory ("smells like state pollution or order dependence"). Outside this issue's staging
+   scope, so it was left alone.
+4. Neither part 1's nor part 3's flake ever reproduced naturally on an unloaded machine, so a
+   green full-suite run is not evidence of the fix. The stepping-clock guards are the evidence:
+   they fail deterministically against the old helper shapes and pass against the new ones.
