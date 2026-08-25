@@ -36,11 +36,12 @@ runs:
     # `actions/*` (setup-node) is left on a version tag — those are
     # GitHub-published and considered part of the trusted base.
     #
-    # `dtolnay/rust-toolchain@stable` is intentionally NOT pinned by
-    # SHA: `stable` is a branch reference that tracks the rolling
-    # rustc stable channel, and pinning by SHA would freeze both the
-    # action code AND the channel (defeating the whole point of
-    # `stable`). The action is small and well-audited.
+    # `dtolnay/rust-toolchain@stable` is NOT pinned by SHA: `stable` is
+    # a branch reference and pinning it by SHA would freeze the action
+    # code at whatever commit that branch happened to point to. The
+    # action is small and well-audited. The rustc CHANNEL is pinned
+    # separately via the `toolchain` input on the step below - see the
+    # comment there for why.
     # The pinned pnpm version comes from `package.json#packageManager`
     # (currently `pnpm@11.5.1`). action-setup honors that field, so the
     # action's own major version is independent of the pnpm version it
@@ -63,7 +64,21 @@ runs:
       if: inputs.rust == 'true'
       uses: dtolnay/rust-toolchain@stable
       with:
+        # Pinned instead of riding the rolling `stable` channel: the
+        # 1.97.1 -> 1.98.0 bump that the runner picked up on its own
+        # between nightly runs 32319243059 (2026-08-20, clean) and
+        # 32667515677 (2026-08-23) changed how release `strip` works on
+        # Apple targets and started emitting build warnings with no
+        # commit to blame. Bump this deliberately.
+        toolchain: "1.98.0"
         targets: ${{ inputs.rust-targets }}
+        # `strip = true` in `[profile.release]` makes rustc shell out to
+        # the toolchain's `rust-objcopy` on Apple targets (1.98.0+). That
+        # binary is dynamically linked against `libLLVM.dylib`, which
+        # ships only with the `llvm-tools` component - without it the
+        # strip aborts with SIGABRT and rustc downgrades it to a warning,
+        # silently leaving symbols in the release binary.
+        components: llvm-tools
 
     # macos-15-arm64 image (image version 20260511.0048+) ships a Homebrew
     # rustup whose `cargo`/`rustc`/`rustup-init` are all hardlinks to a
