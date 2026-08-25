@@ -20,7 +20,17 @@ updates:
       default-days: 14
 
   - package-ecosystem: "github-actions"
-    directory: "/"
+    # `directories` (not `directory`) because `/` only covers
+    # `.github/workflows` plus a root-level `action.yml`. Half of this
+    # repo's third-party actions are pinned inside the composite action
+    # at `.github/actions/setup/action.yml`, which `/` never scanned:
+    # across six months Dependabot opened PRs for actions/checkout,
+    # actions/cache and dorny/paths-filter (all in workflows) and never
+    # once for pnpm/action-setup, Swatinem/rust-cache, sccache-action or
+    # setup-node (all in the composite), leaving them silently stale.
+    directories:
+      - "/"
+      - "/.github/actions/setup"
     schedule:
       interval: "weekly"
     cooldown:
