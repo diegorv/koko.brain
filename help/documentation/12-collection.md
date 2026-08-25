@@ -380,7 +380,25 @@ filters: 'type == "Project"'    # works
 filters: '_type == "Project"'   # also works
 ```
 
-Other system-flag aliases (`organized`, `archived`, `favorite`, etc. -- see the full list in [Types & Relationships > Frontmatter Key Aliases](25-types-and-relationships.md#frontmatter-key-aliases)) are recognised only on the frontmatter side. In filter expressions, use the canonical name (`_organized`, `_archived`, `_favorite`).
+The remaining aliases (`icon`, `color`, `sort`, `template`, etc. -- see the full list in [Types & Relationships > Frontmatter Key Aliases](25-types-and-relationships.md#frontmatter-key-aliases)) are recognised only on the frontmatter side. In filter expressions, use the canonical name (`_icon`, `_color`, ...).
+
+#### `archived` and `_archived` are different fields, not aliases
+
+The three lifecycle flags are the exception. Both spellings work in a filter, but they read different things:
+
+| Written | Reads | When the note has no such frontmatter key |
+|---------|-------|-------------------------------------------|
+| `_archived` / `_organized` / `_favorite` | the raw frontmatter value | absent, so the expression sees `null` |
+| `archived` / `organized` / `favorite` | the normalised lifecycle flag, always present | `archived` and `favorite` are `false`; **`organized` is `true`** |
+
+`organized` defaults to `true` because a note without the flag counts as already organized (only the inbox marks notes `_organized: false`). That makes the two spellings genuinely disagree:
+
+```yaml
+filters: '!organized'    # matches only notes explicitly marked _organized: false
+filters: '!_organized'   # matches every note that never wrote the key -- almost all of them
+```
+
+Prefer the flag spelling (`archived`, `organized`, `favorite`) when you mean lifecycle state, and the underscored spelling only when you specifically care whether the note wrote the key.
 
 #### `file.inFolder()` takes the absolute folder path
 

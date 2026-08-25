@@ -70,9 +70,17 @@ describe('buildNoteRecord', () => {
 		expect(record.properties.get('published')).toBe(true);
 	});
 
+	// Every record carries the four keys the Rust projection always injects
+	// (`tags` plus the three lifecycle flags), so a note with no frontmatter is
+	// not an empty map. See `project_note_record` in src-tauri/src/commands/vault.rs.
 	it('builds a record with no frontmatter', () => {
 		const record = buildNoteRecord('/vault/test.md', 'Just text');
-		expect(record.properties.size).toBe(0);
+		expect([...record.properties.keys()].sort()).toEqual([
+			'archived',
+			'favorite',
+			'organized',
+			'tags',
+		]);
 	});
 
 	it('merges inline #tags from the body into the tags property', () => {
@@ -94,7 +102,12 @@ describe('buildNoteRecord', () => {
 
 	it('builds a record from empty content', () => {
 		const record = buildNoteRecord('/vault/test.md', '');
-		expect(record.properties.size).toBe(0);
+		expect([...record.properties.keys()].sort()).toEqual([
+			'archived',
+			'favorite',
+			'organized',
+			'tags',
+		]);
 		expect(record.name).toBe('test.md');
 		expect(record.basename).toBe('test');
 	});

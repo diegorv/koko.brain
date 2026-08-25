@@ -143,6 +143,89 @@ describe('updateNoteInIndex', () => {
 	});
 });
 
+// The Rust projection (src-tauri/src/commands/vault.rs::project_note_record)
+// injects `organized` / `archived` / `favorite` / `tags` on every record, on top
+// of the canonicalised frontmatter. Filters, the toolbar property picker and the
+// QueryJS page proxy are all built against that key set. `updateNoteInIndex`
+// replaces the record wholesale, so the in-editor path has to produce the same
+// keys or an edit silently changes what a note matches.
+describe('property index producer parity', () => {
+	const content = '---\ntype: Project\narchived: true\n---\n\n#work body\n';
+
+	/** The record shape `project_note_record` returns for `content`. */
+	function rustRecordForContent() {
+		return record('/vault/a.md', {
+			_type: 'Project',
+			_archived: true,
+			organized: true,
+			archived: true,
+			favorite: false,
+			tags: ['work'],
+		});
+	}
+
+	it('an in-editor edit keeps the key set the Rust projection produced', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([rustRecordForContent()]);
+		await buildPropertyIndex();
+		const fromRust = [...collectionStore.propertyIndex.get('/vault/a.md')!.properties.keys()].sort();
+
+		updateNoteInIndex('/vault/a.md', content);
+		const fromEditor = [...collectionStore.propertyIndex.get('/vault/a.md')!.properties.keys()].sort();
+
+		expect(fromEditor).toEqual(fromRust);
+	});
+
+	it('an in-editor edit keeps the lifecycle values the Rust projection produced', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([rustRecordForContent()]);
+		await buildPropertyIndex();
+
+		updateNoteInIndex('/vault/a.md', content);
+		const p = collectionStore.propertyIndex.get('/vault/a.md')!.properties;
+
+		expect(p.get('archived')).toBe(true);
+		expect(p.get('favorite')).toBe(false);
+		expect(p.get('organized')).toBe(true);
+		expect(p.get('_archived')).toBe(true);
+	});
+
+	// `_organized` is the one flag that defaults to TRUE (existing notes count as
+	// organized) -- see src-tauri/src/vault/entry.rs `unwrap_or(true)`. Getting
+	// this backwards would invert `organized == false` across the whole vault.
+	it('mirrors the asymmetric defaults: organized true, archived/favorite false', () => {
+		updateNoteInIndex('/vault/bare.md', '---\ntitle: T\n---\n');
+		const p = collectionStore.propertyIndex.get('/vault/bare.md')!.properties;
+
+		expect(p.get('organized')).toBe(true);
+		expect(p.get('archived')).toBe(false);
+		expect(p.get('favorite')).toBe(false);
+	});
+
+	it('honours an explicit _organized: false', () => {
+		updateNoteInIndex('/vault/inbox.md', '---\norganized: false\n---\n');
+		const p = collectionStore.propertyIndex.get('/vault/inbox.md')!.properties;
+
+		expect(p.get('organized')).toBe(false);
+		expect(p.get('_organized')).toBe(false);
+	});
+
+	// Rust reads the flags with `as_bool()`, so a non-boolean value falls back to
+	// the default rather than being coerced.
+	it('falls back to the default when a flag is not a boolean', () => {
+		updateNoteInIndex('/vault/odd.md', '---\narchived: yes please\norganized: 3\n---\n');
+		const p = collectionStore.propertyIndex.get('/vault/odd.md')!.properties;
+
+		expect(p.get('archived')).toBe(false);
+		expect(p.get('organized')).toBe(true);
+	});
+
+	it('always emits tags, even when the note has none', () => {
+		updateNoteInIndex('/vault/untagged.md', '---\ntitle: T\n---\n');
+		const p = collectionStore.propertyIndex.get('/vault/untagged.md')!.properties;
+
+		expect(p.get('tags')).toEqual([]);
+	});
+});
+
 describe('removeNoteFromIndex', () => {
 	it('removes record from store', () => {
 		updateNoteInIndex('/vault/a.md', 'content');

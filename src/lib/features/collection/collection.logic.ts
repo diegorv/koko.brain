@@ -38,13 +38,38 @@ export function buildNoteRecord(
 	}
 	// Override `tags` with the merged frontmatter+inline set so Collection
 	// filters see inline `#tags` from the body. Mirrors the Rust-side merge
-	// in `project_note_record` (see src-tauri/src/commands/vault.rs).
-	const allTags = extractAllTags(content);
-	if (allTags.length > 0) {
-		properties.set('tags', allTags);
-	}
+	// in `project_note_record` (see src-tauri/src/commands/vault.rs), which
+	// inserts the key unconditionally.
+	properties.set('tags', extractAllTags(content));
+
+	// Lifecycle flags, always present, mirroring the same Rust projection.
+	// Filters (`archived == true`), the toolbar property picker and the QueryJS
+	// page proxy are all built against these bare keys, so a record rebuilt here
+	// has to carry them or an in-editor edit silently changes what the note
+	// matches until the next full `buildPropertyIndex`.
+	properties.set('organized', boolFlag(properties, '_organized', true));
+	properties.set('archived', boolFlag(properties, '_archived', false));
+	properties.set('favorite', boolFlag(properties, '_favorite', false));
 
 	return { path: filePath, name, basename, folder, ext, mtime, ctime, size, properties };
+}
+
+/**
+ * Reads a canonical lifecycle flag, falling back to `fallback` when it is
+ * absent or not a boolean.
+ *
+ * `_organized` defaults to `true` (a note without the flag counts as organized)
+ * while `_archived` and `_favorite` default to `false`. The non-boolean
+ * fallback matches Rust's `as_bool()`, which yields `None` rather than
+ * coercing. See `src-tauri/src/vault/entry.rs::NoteEntry::from_content`.
+ */
+function boolFlag(
+	properties: Map<string, unknown>,
+	key: string,
+	fallback: boolean,
+): boolean {
+	const value = properties.get(key);
+	return typeof value === 'boolean' ? value : fallback;
 }
 
 /**
