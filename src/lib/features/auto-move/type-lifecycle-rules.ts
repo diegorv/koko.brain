@@ -25,7 +25,11 @@ export function generateLifecycleRules(
 	for (const [typeName, metadata] of typeMetadataMap) {
 		if (!metadata.archiveTo) continue;
 
-		const typeExpr = `type.lower() == "${typeName.toLowerCase()}"`;
+		// `type ==` is already case-insensitive for the type key (see
+		// `evaluator.ts::evaluateBinary`), so no `.lower()` is needed. Calling a
+		// method here would also throw on any note whose type is absent or not a
+		// string, once per rule per save.
+		const typeExpr = `type == "${typeName}"`;
 
 		// Only "{folder}/<segment>" destinations have a static archive-folder
 		// segment and a correct `{parent}` restore target.

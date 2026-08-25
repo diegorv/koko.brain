@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { generateLifecycleRules } from '$lib/features/auto-move/type-lifecycle-rules';
 import { findMatchingRule } from '$lib/features/auto-move/auto-move.logic';
 import { buildNoteRecord } from '$lib/features/collection/collection.logic';
+import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
 import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 
@@ -33,11 +34,11 @@ describe('generateLifecycleRules', () => {
 		expect(rules).toHaveLength(2);
 
 		expect(rules[0].name).toBe('[Project] Archive');
-		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true && !file.folder.endsWith("_archive")');
+		expect(rules[0].expression).toBe('type == "Project" && _archived == true && !file.folder.endsWith("_archive")');
 		expect(rules[0].destination).toBe('{folder}/_archive');
 
 		expect(rules[1].name).toBe('[Project] Unarchive');
-		expect(rules[1].expression).toBe('type.lower() == "project" && _archived == false && file.folder.endsWith("_archive")');
+		expect(rules[1].expression).toBe('type == "Project" && _archived == false && file.folder.endsWith("_archive")');
 		expect(rules[1].destination).toBe('{parent}');
 	});
 
@@ -94,8 +95,8 @@ describe('generateLifecycleRules', () => {
 		const rules = generateLifecycleRules(map);
 		expect(rules).toHaveLength(2);
 		// Both guards use the derived segment "done", not the hardcoded "_archive".
-		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true && !file.folder.endsWith("done")');
-		expect(rules[1].expression).toBe('type.lower() == "project" && _archived == false && file.folder.endsWith("done")');
+		expect(rules[0].expression).toBe('type == "Project" && _archived == true && !file.folder.endsWith("done")');
+		expect(rules[1].expression).toBe('type == "Project" && _archived == false && file.folder.endsWith("done")');
 		expect(rules[1].destination).toBe('{parent}');
 	});
 
@@ -109,7 +110,7 @@ describe('generateLifecycleRules', () => {
 		expect(rules[0].name).toBe('[Event] Archive');
 		// No file.folder.endsWith(...) guard -- the service relies on
 		// isAlreadyInDestination to prevent re-archiving for dynamic destinations.
-		expect(rules[0].expression).toBe('type.lower() == "event" && _archived == true');
+		expect(rules[0].expression).toBe('type == "Event" && _archived == true');
 		expect(rules[0].destination).toBe('archive/events/{year}');
 	});
 
@@ -121,7 +122,7 @@ describe('generateLifecycleRules', () => {
 		const rules = generateLifecycleRules(map);
 		expect(rules).toHaveLength(1);
 		expect(rules[0].name).toBe('[Project] Archive');
-		expect(rules[0].expression).toBe('type.lower() == "project" && _archived == true');
+		expect(rules[0].expression).toBe('type == "Project" && _archived == true');
 	});
 
 	it('generates stable deterministic IDs per type', () => {
@@ -192,6 +193,24 @@ describe('generateLifecycleRules - evaluated against real note records', () => {
 		const record = recordFor('/vault/Projects/alpha.md', 'type: project\n_archived: true');
 
 		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+	});
+
+	// A vault is mostly untyped notes. With a `.lower()` in the expression each
+	// one threw `Unknown method: lower` once per lifecycle rule on every save.
+	// findMatchingRule swallows that, so it must be asserted on the expression
+	// itself -- going through findMatchingRule returns null either way.
+	it.each([
+		['no type at all', '_archived: true'],
+		['a numeric type', 'type: 2024\n_archived: true'],
+		['a list type', 'type: [Project]\n_archived: true'],
+	])('evaluates to false instead of throwing for %s', (_label, frontmatter) => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Inbox/scratch.md', frontmatter);
+		const ctx: EvalContext = { record, formulas: {} };
+
+		for (const rule of rules) {
+			expect(evaluateExpression(rule.expression, ctx)).toBe(false);
+		}
 	});
 
 	it('matches the archive rule for a dynamic (non-{folder}) destination', () => {

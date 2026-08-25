@@ -137,7 +137,7 @@ With this definition, any note with `type: Project` and `_archived: true` will b
 ### How it works
 
 1. Kokobrain reads all type definitions (notes with `type: Type`)
-2. For each type with `_archive_to`, a rule is generated: `type.lower() == "typename" && _archived == true` (the type match is case-insensitive)
+2. For each type with `_archive_to`, a rule is generated: `type == "TypeName" && _archived == true` (the type match is case-insensitive)
 3. The destination supports [dynamic templates](#dynamic-destinations) (e.g. `{folder}/_archive`)
 4. Generated rules run **after** user-defined rules — user rules take priority
 
