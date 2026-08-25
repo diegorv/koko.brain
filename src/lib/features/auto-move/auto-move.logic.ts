@@ -7,10 +7,17 @@ import { parse } from '$lib/features/collection/expression/parser';
  * Evaluates all rules against a NoteRecord and returns the first matching rule.
  * Uses first-match-wins semantics (rules are evaluated in order).
  * Only evaluates enabled rules. Invalid expressions are skipped gracefully.
+ *
+ * @param onError - Reports a rule whose expression threw. Optional so this
+ * module stays framework-free; the service passes a logger. Without it a
+ * broken rule is indistinguishable from a rule that simply did not match,
+ * which is how a generated lifecycle rule that threw on every note shipped
+ * unnoticed.
  */
 export function findMatchingRule(
 	rules: AutoMoveRule[],
 	record: NoteRecord,
+	onError?: (rule: AutoMoveRule, err: unknown) => void,
 ): AutoMoveRule | null {
 	for (const rule of rules) {
 		if (!rule.enabled) continue;
@@ -18,8 +25,9 @@ export function findMatchingRule(
 			const ctx: EvalContext = { record, formulas: {} };
 			const result = evaluateExpression(rule.expression, ctx);
 			if (result) return rule;
-		} catch {
-			// Skip rules with invalid expressions
+		} catch (err) {
+			// Skip rules with invalid expressions, but do not do it silently.
+			onError?.(rule, err);
 			continue;
 		}
 	}

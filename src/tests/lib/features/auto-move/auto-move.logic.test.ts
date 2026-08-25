@@ -134,6 +134,56 @@ describe('findMatchingRule', () => {
 
 		expect(findMatchingRule(rules, record)).toBeNull();
 	});
+
+	describe('onError reporting', () => {
+		/** `missing` is null, and `lower` only exists for string receivers. */
+		const throwing = "missing.lower() == 'x'";
+
+		it('reports the offending rule and the thrown error', () => {
+			const reported: Array<{ id: string; message: string }> = [];
+			const rules = [makeRule({ id: 'bad', expression: throwing })];
+
+			expect(
+				findMatchingRule(rules, makeRecord(), (rule, err) =>
+					reported.push({ id: rule.id, message: (err as Error).message }),
+				),
+			).toBeNull();
+
+			expect(reported).toEqual([{ id: 'bad', message: 'Unknown method: lower' }]);
+		});
+
+		it('keeps evaluating later rules after one throws', () => {
+			const reported: string[] = [];
+			const rules = [
+				makeRule({ id: 'bad', expression: throwing }),
+				makeRule({ id: 'good', expression: "file.hasTag('test')" }),
+			];
+			const record = makeRecord({ tags: ['test'] });
+
+			const result = findMatchingRule(rules, record, (rule) => reported.push(rule.id));
+
+			expect(result?.id).toBe('good');
+			expect(reported).toEqual(['bad']);
+		});
+
+		it('does not report anything when every rule evaluates cleanly', () => {
+			const reported: string[] = [];
+			const rules = [makeRule({ id: 'r1', expression: "file.hasTag('test')" })];
+
+			findMatchingRule(rules, makeRecord({ tags: ['test'] }), (rule) => reported.push(rule.id));
+
+			expect(reported).toEqual([]);
+		});
+
+		it('still skips a throwing rule when no reporter is supplied', () => {
+			const rules = [
+				makeRule({ id: 'bad', expression: throwing }),
+				makeRule({ id: 'good', expression: "file.hasTag('test')" }),
+			];
+
+			expect(findMatchingRule(rules, makeRecord({ tags: ['test'] }))?.id).toBe('good');
+		});
+	});
 });
 
 describe('isInExcludedFolder', () => {

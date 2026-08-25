@@ -153,7 +153,9 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);
 	const allRules = [...autoMoveStore.enabledRules, ...lifecycleRules];
 
-	const rule = findMatchingRule(allRules, record);
+	const rule = findMatchingRule(allRules, record, (failed, err) =>
+		error('AUTO-MOVE', `Rule "${failed.name}" failed to evaluate on ${filePath}:`, err),
+	);
 	if (!rule) {
 		debug('AUTO-MOVE', 'No matching rule for:', filePath);
 		return;
