@@ -228,6 +228,29 @@ describe('evaluate', () => {
 				// `is_a` is no longer an alias; it looks up a (missing) `is_a` property.
 				expect(evaluateExpression('is_a', ctx)).toBeNull();
 			});
+
+			// `type.lower()` parses to a dotted-callee `call` node (parser.ts
+			// isStaticPath), which resolves through resolvePropertyPath rather
+			// than resolveIdentifier. That path used to skip the alias, so the
+			// receiver was null and dispatchMethod threw "Unknown method: lower".
+			it('applies the alias to a method call on the bare type identifier', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				expect(evaluateExpression('type.lower()', ctx)).toBe('person');
+				expect(evaluateExpression('type.lower() == "person"', ctx)).toBe(true);
+				expect(evaluateExpression('type.contains("erso")', ctx)).toBe(true);
+			});
+
+			it('applies the alias to a method call behind note. / property.', () => {
+				const ctx = makeCtx({ _type: 'Person' });
+				expect(evaluateExpression('note.type.lower()', ctx)).toBe('person');
+				expect(evaluateExpression('property.type.lower()', ctx)).toBe('person');
+			});
+
+			it('leaves non-aliased identifiers untouched in method calls', () => {
+				const ctx = makeCtx({ _type: 'Person', status: 'Active' });
+				expect(evaluateExpression('status.lower()', ctx)).toBe('active');
+				expect(evaluateExpression('_type.lower()', ctx)).toBe('person');
+			});
 		});
 
 		describe('case-insensitive equality for type / _type', () => {

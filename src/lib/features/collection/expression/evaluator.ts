@@ -530,6 +530,12 @@ function evaluateFileMethod(method: string, args: ASTNode[], ctx: EvalContext, d
  * For `meta: { title: "hello" }`, `meta.title` looks up the literal
  * key "meta.title" in record.properties — it does NOT resolve `meta`
  * then access `.title` on the object. This matches Obsidian's behavior.
+ *
+ * Property lookups go through {@link canonicalPropertyName} so the `type`
+ * alias resolves to the stored `_type`, matching {@link resolveIdentifier}
+ * and {@link resolveMember}. Without it `type.lower()` (a dotted-callee
+ * `call` node — see `parser.ts` `isStaticPath`) resolved to null while the
+ * bare `type` identifier resolved correctly.
  */
 function resolvePropertyPath(path: string, ctx: EvalContext, depth: number): unknown {
 	if (path.startsWith('file.')) {
@@ -539,15 +545,15 @@ function resolvePropertyPath(path: string, ctx: EvalContext, depth: number): unk
 		return evaluateFormula(path.slice(8), ctx, depth);
 	}
 	if (path.startsWith('note.')) {
-		return ctx.record.properties.get(path.slice(5)) ?? null;
+		return ctx.record.properties.get(canonicalPropertyName(path.slice(5))) ?? null;
 	}
 	if (path.startsWith('property.')) {
-		return ctx.record.properties.get(path.slice(9)) ?? null;
+		return ctx.record.properties.get(canonicalPropertyName(path.slice(9))) ?? null;
 	}
 	if (ctx.formulas[path] !== undefined) {
 		return evaluateFormula(path, ctx, depth);
 	}
-	return ctx.record.properties.get(path) ?? null;
+	return ctx.record.properties.get(canonicalPropertyName(path)) ?? null;
 }
 
 /** Converts a value to a number for arithmetic */

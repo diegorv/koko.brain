@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { generateLifecycleRules } from '$lib/features/auto-move/type-lifecycle-rules';
+import { findMatchingRule } from '$lib/features/auto-move/auto-move.logic';
+import { buildNoteRecord } from '$lib/features/collection/collection.logic';
+import type { NoteRecord } from '$lib/features/collection/collection.types';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 
 function makeTypeMetadata(overrides: Partial<TypeMetadata> = {}): TypeMetadata {
@@ -129,5 +132,74 @@ describe('generateLifecycleRules', () => {
 		const rules = generateLifecycleRules(map);
 		expect(rules[0].id).toBe('lifecycle-archive-project');
 		expect(rules[1].id).toBe('lifecycle-unarchive-project');
+	});
+});
+
+describe('generateLifecycleRules - evaluated against real note records', () => {
+	const archiveMap = new Map([
+		['Project', makeTypeMetadata({ name: 'Project', archiveTo: '{folder}/_archive' })],
+	]);
+
+	/** Builds a record the same way auto-move.service.ts::evaluateAndMove does. */
+	function recordFor(path: string, frontmatter: string): NoteRecord {
+		return buildNoteRecord(path, `---\n${frontmatter}\n---\n\nbody\n`);
+	}
+
+	it('matches the archive rule for an archived note written with the `type` alias', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Projects/alpha.md', 'type: Project\n_archived: true');
+
+		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+	});
+
+	it('matches the archive rule for a note written with the canonical `_type` key', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Projects/alpha.md', '_type: Project\n_archived: true');
+
+		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+	});
+
+	it('matches the unarchive rule when an archived-folder note flips _archived to false', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Projects/_archive/alpha.md', 'type: Project\n_archived: false');
+
+		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Unarchive');
+	});
+
+	it('does not re-archive a note already inside the archive folder', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Projects/_archive/alpha.md', 'type: Project\n_archived: true');
+
+		expect(findMatchingRule(rules, record)).toBeNull();
+	});
+
+	it('ignores notes of a different type', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/People/bob.md', 'type: Person\n_archived: true');
+
+		expect(findMatchingRule(rules, record)).toBeNull();
+	});
+
+	it('ignores notes of the right type that are not archived', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Projects/alpha.md', 'type: Project\n_archived: false');
+
+		expect(findMatchingRule(rules, record)).toBeNull();
+	});
+
+	it('matches regardless of the casing the user wrote the type in', () => {
+		const rules = generateLifecycleRules(archiveMap);
+		const record = recordFor('/vault/Projects/alpha.md', 'type: project\n_archived: true');
+
+		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+	});
+
+	it('matches the archive rule for a dynamic (non-{folder}) destination', () => {
+		const rules = generateLifecycleRules(
+			new Map([['Event', makeTypeMetadata({ name: 'Event', archiveTo: 'archive/events/{year}' })]]),
+		);
+		const record = recordFor('/vault/Events/kickoff.md', 'type: Event\n_archived: true');
+
+		expect(findMatchingRule(rules, record)?.name).toBe('[Event] Archive');
 	});
 });
