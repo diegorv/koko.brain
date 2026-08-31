@@ -38,8 +38,8 @@ importers:
         specifier: ^6.43.9
         version: 6.43.9
       '@doist/todoist-sdk':
-        specifier: ^13.0.2
-        version: 13.0.2(type-fest@4.41.0)
+        specifier: ^14.0.0
+        version: 14.1.0(type-fest@4.41.0)
       '@fortawesome/free-brands-svg-icons':
         specifier: ^7.3.1
         version: 7.3.1
@@ -401,8 +401,8 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@doist/todoist-sdk@13.0.2':
-    resolution: {integrity: sha512-JdyI+gbqvA4oWG/QHOAE7L0iiAK/ycrO+X8avw/9H2KWs7ApSDPZEu5KpH6YENm+knW9ezcvgLSTUdEwbmvIiw==}
+  '@doist/todoist-sdk@14.1.0':
+    resolution: {integrity: sha512-4hNZe6Hx4/oLYQbFokWMMaQd3Q6pXnUpbVq64PmYby4l466wxLarvTqB9g7J+TNdt5f8qfYWHjXOhaBucHblgA==}
     engines: {node: '>=24', npm: '>=11'}
     peerDependencies:
       type-fest: ^4.12.0 || ^5.5.0
@@ -2634,7 +2634,7 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@doist/todoist-sdk@13.0.2(type-fest@4.41.0)':
+  '@doist/todoist-sdk@14.1.0(type-fest@4.41.0)':
     dependencies:
       camelcase: 6.3.0
       emoji-regex: 10.6.0
