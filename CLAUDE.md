@@ -297,7 +297,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
-| [docs/architecture/](docs/architecture/) | Four generated interactive maps: runtime architecture, `initializeVault` lifecycle, live-preview decoration pipeline, search retrieval pipeline. Each is an HTML viewer plus the `.json` source it was rendered from; regenerate with the `archify` skill |
+| [docs/architecture/archify/](docs/architecture/archify/) | Five generated interactive maps: runtime architecture, `initializeVault` lifecycle, markdown editor wiring, live-preview decoration pipeline, search retrieval pipeline. Each is an HTML viewer plus the `.json` source it was rendered from; regenerate with the `archify` skill |
 
 ## Plan Mode Workflow
 

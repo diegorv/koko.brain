@@ -1,0 +1,336 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Markdown Editor Wiring",
+    "locale": "en",
+    "output": "editor-wiring.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1370,
+      580
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Svelte store or service"
+        },
+        "backend": {
+          "label": "CodeMirror extension"
+        },
+        "messagebus": {
+          "label": "EditorView"
+        },
+        "security": {
+          "label": "Guard"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "assembly",
+        "label": "Extension assembly",
+        "focus": [
+          "cmcore",
+          "autocomplete",
+          "kokoext",
+          "livepreview",
+          "stack",
+          "view"
+        ],
+        "note": "One ordered array. Position in it is precedence."
+      },
+      {
+        "id": "reconfigure",
+        "label": "Runtime reconfigure",
+        "focus": [
+          "stores",
+          "compartments",
+          "view"
+        ],
+        "note": "Settings change by dispatch, never by recreating the view."
+      },
+      {
+        "id": "save-trigger",
+        "label": "What arms a save",
+        "focus": [
+          "view",
+          "listener",
+          "suppress",
+          "editorservice"
+        ],
+        "note": "The listener decides which of the two auto-save timers is armed."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "cmcore",
+      "type": "backend",
+      "label": "CodeMirror core",
+      "sublabel": "history · brackets · keymap",
+      "pos": [
+        60,
+        60
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "autocomplete",
+      "type": "backend",
+      "label": "autocompletion",
+      "sublabel": "one instance, 2 sources",
+      "pos": [
+        60,
+        180
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "kokoext",
+      "type": "backend",
+      "label": "Kokobrain extensions",
+      "sublabel": "wikilink · callout · date",
+      "pos": [
+        60,
+        300
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "livepreview",
+      "type": "backend",
+      "label": "livePreview(enabled)",
+      "sublabel": "22 kill switches",
+      "pos": [
+        60,
+        420
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "stack",
+      "type": "backend",
+      "label": "createExtensions",
+      "sublabel": "order is precedence",
+      "pos": [
+        320,
+        240
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "stores",
+      "type": "frontend",
+      "label": "settings + editor stores",
+      "sublabel": "font · toggles · mode",
+      "pos": [
+        320,
+        60
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "compartments",
+      "type": "backend",
+      "label": "5 compartments",
+      "sublabel": "swap, not rebuild",
+      "pos": [
+        600,
+        60
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "view",
+      "type": "messagebus",
+      "label": "EditorView",
+      "sublabel": "state + decorations",
+      "pos": [
+        600,
+        240
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "listener",
+      "type": "backend",
+      "label": "updateListener",
+      "sublabel": "frontmatter detection",
+      "pos": [
+        880,
+        240
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "suppress",
+      "type": "security",
+      "label": "Reentry guards",
+      "sublabel": "tab switch · external edit",
+      "pos": [
+        880,
+        420
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "editorservice",
+      "type": "frontend",
+      "label": "editor.service",
+      "sublabel": "500 ms or 2000 ms",
+      "pos": [
+        1160,
+        240
+      ],
+      "size": [
+        170,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Extension families",
+      "wraps": [
+        "cmcore",
+        "autocomplete",
+        "kokoext",
+        "livepreview"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Runtime reconfigure",
+      "wraps": [
+        "stores",
+        "compartments"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "core-stack",
+      "from": "cmcore",
+      "to": "stack"
+    },
+    {
+      "id": "auto-stack",
+      "from": "autocomplete",
+      "to": "stack"
+    },
+    {
+      "id": "koko-stack",
+      "from": "kokoext",
+      "to": "stack"
+    },
+    {
+      "id": "lp-stack",
+      "from": "livepreview",
+      "to": "stack"
+    },
+    {
+      "id": "stack-view",
+      "from": "stack",
+      "to": "view",
+      "label": "initial array",
+      "variant": "emphasis"
+    },
+    {
+      "id": "stores-comp",
+      "from": "stores",
+      "to": "compartments",
+      "label": "reconfigure"
+    },
+    {
+      "id": "comp-view",
+      "from": "compartments",
+      "to": "view",
+      "label": "dispatch effects",
+      "variant": "emphasis",
+      "labelAt": [
+        685,
+        179
+      ]
+    },
+    {
+      "id": "view-listener",
+      "from": "view",
+      "to": "listener",
+      "label": "docChanged",
+      "variant": "emphasis"
+    },
+    {
+      "id": "guard-listener",
+      "from": "suppress",
+      "to": "listener",
+      "label": "skip",
+      "variant": "security"
+    },
+    {
+      "id": "listener-service",
+      "from": "listener",
+      "to": "editorservice",
+      "label": "onDocChanged",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "One array, order matters",
+      "items": [
+        "createExtensions returns a single ordered array; position in it is precedence",
+        "livePreview(enabled) is one entry — everything the decoration pipeline installs lives inside it"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Five compartments, zero rebuilds",
+      "items": [
+        "Font, theme, language, highlight style and live preview all swap by dispatch",
+        "Toggling live preview reconfigures two compartments in a single dispatch"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "22 kill switches, persisted",
+      "items": [
+        "12 block decorators, 4 inline plugins, 6 inline handler groups",
+        "The names are user data in settings.json — renaming one orphans everyone's saved toggle"
+      ]
+    }
+  ]
+}
