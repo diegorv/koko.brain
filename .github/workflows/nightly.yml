@@ -262,14 +262,12 @@ jobs:
             echo ""
             echo "### Verify download integrity"
             echo ""
-            echo "After downloading, verify the SHA-256 checksum against the \`checksums-sha256.txt\`"
-            echo "file:"
-            echo ""
             echo "\`\`\`bash"
             echo "shasum -a 256 <downloaded-file>"
             echo "\`\`\`"
             echo ""
-            echo "Compare the output with the corresponding entry in \`checksums-sha256.txt\`."
+            echo "Compare the output with the matching entry in the checksums block appended"
+            echo "below (also uploaded as \`checksums-sha256.txt\`)."
             echo "NIGHTLY_BODY_EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -347,8 +345,11 @@ jobs:
           set -euo pipefail
           cd src-tauri/target/aarch64-apple-darwin/release/bundle
           CHECKSUM_FILE="checksums-sha256.txt"
-          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | sed 's|^\./||' | while read -r file; do
-            shasum -a 256 "$file" >> "$CHECKSUM_FILE"
+          # Emit basenames (not `dmg/<file>`) so the published block matches
+          # the release asset names and `shasum -a 256 -c checksums-sha256.txt`
+          # works in the directory the user downloaded them into.
+          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | while read -r file; do
+            shasum -a 256 "$file" | awk -v n="$(basename "$file")" '{print $1 "  " n}' >> "$CHECKSUM_FILE"
           done
           echo "--- Checksums ---"
           cat "$CHECKSUM_FILE"
@@ -361,6 +362,28 @@ jobs:
           gh release upload nightly \
             src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
             --clobber
+
+      - name: Publish checksums in the release body
+        # The release body is written by `tauri-action` BEFORE the bundle
+        # exists, so the checksums cannot be interpolated there. Read the
+        # published body back, drop any previous checksums section (the
+        # nightly release is reused across runs) and re-append the current
+        # one. Reading the body back instead of re-rendering it also keeps
+        # commit subjects out of the shell.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="nightly"
+          gh release view "$TAG" --json body --jq .body > body.md
+          sed -i '' '/^## Checksums (SHA256)$/,$d' body.md
+          {
+            echo "## Checksums (SHA256)"
+            echo '```'
+            cat src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt
+            echo '```'
+          } >> body.md
+          gh release edit "$TAG" --notes-file body.md
 
       - name: Prune stale assets and re-assert the pre-release flag
         # Runs only on a successful build (default `if: success()`), and
