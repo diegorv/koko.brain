@@ -58,13 +58,13 @@ RRF is in `src-tauri/src/search/rrf.rs`. `DEFAULT_RRF_K = 60`. Ties are broken a
 1. **Chunking** (`src-tauri/src/semantic/chunker.rs`)
    - Heading-driven by default. Each section becomes one chunk.
    - Maintains a parent-heading stack while walking the document. The full ancestry (e.g. `Project X > Decisions > Auth`) is prepended to the embedded text via `Chunk::embed_text()`, but the stored `content` is the original section body — display stays correct.
-   - Sections are capped at `max_chunk_chars = 3000` (~700 tokens). Overlap is char-based, ~200 chars, snapped to the previous newline so we never split mid-word.
-   - Notes with zero headings fall back to `window_chunks()` — 2500-char windows with 500-char overlap. Without this, long headless notes would be truncated to the model's 512-token limit and only the first ~2 KB would be indexed.
+   - Sections are capped at `max_chunk_chars = 3000` (~700 tokens). Overlap is char-based, `overlap_chars = 200`, snapped forward to the next newline so the overlap starts at a clean line boundary instead of mid-sentence.
+   - Notes with zero headings fall back to `window_chunks()` — `max_chunk_chars`-sized windows (3000 by default) with `WINDOW_OVERLAP_CHARS = 500` overlap. Without this, long headless notes would be truncated to the model's 512-token limit and only the first ~2 KB would be indexed.
    - `strip_code_blocks` keeps the first two lines (so language tag + function signature survive) and any inline comments — function/CLI names matter for retrieval.
 
 2. **Embedding** (`src-tauri/src/semantic/embedder.rs`)
    - BGE-M3 INT8 ONNX, 1024-d dense vectors, dynamic padding, `max_seq_len = 512`.
-   - Threads: `intra_op_threads = min(8, ...)`. Batch size: 4 (empirically optimal on M-series — batch 8 wastes padding and spills L2).
+   - Threads: `intra_op_threads = min(8, available_parallelism())`, raised from `min(4)` to use the M-series performance cores during indexing. `INFERENCE_BATCH_SIZE = 8`, raised from 4: the CPU SIMD path under-utilizes at batch 4, where per-batch dispatch overhead dominates. Peak RSS rises proportionally.
    - Content-hash short-circuit: chunks whose `content_hash` already matches a row in `chunks` skip embedding entirely. This makes save-time re-indexing nearly free for unchanged sections.
 
 3. **Storage** (`src-tauri/src/db/semantic_repo.rs`)
@@ -74,7 +74,8 @@ RRF is in `src-tauri/src/search/rrf.rs`. `DEFAULT_RRF_K = 60`. Ties are broken a
 
 4. **FTS5 index** (`src-tauri/src/db/schema.rs`, `src-tauri/src/search/`)
    - `tokenize = 'unicode61 remove_diacritics 2'`. Query and content are folded the same way, so `acao` ↔ `ação`.
-   - The schema is versioned via `FTS_SCHEMA_VERSION` (`v2-unicode61` at time of writing). On mismatch the FTS table is dropped and rebuilt from `notes` at startup.
+   - `notes_fts` is an external-content table (`content='notes_content'`, `content_rowid='rowid'`), so the document text is stored once in `notes_content` rather than duplicated into the index.
+   - The schema is versioned via `FTS_SCHEMA_VERSION` (`v3-external-content` at time of writing). On mismatch both tables are dropped and rebuilt at startup.
 
 ---
 
@@ -100,7 +101,7 @@ These constants force a full or partial reindex when bumped. Used to ship breaki
 | Constant | Location | What it forces |
 |----------|----------|----------------|
 | `EMBED_RECIPE_VERSION` | `src-tauri/src/commands/semantic.rs` | Mixed into `model_hash`. Bumping invalidates every chunk row → full re-embed. Bump when chunking or `embed_text` formatting changes. |
-| `FTS_SCHEMA_VERSION` | `src-tauri/src/db/schema.rs` | When stored value differs, the FTS table is dropped and rebuilt from `notes`. Bump when tokenizer settings change. |
+| `FTS_SCHEMA_VERSION` | `src-tauri/src/db/schema.rs` | When stored value differs, `notes_content` and `notes_fts` are dropped and rebuilt. Bump when the tokenizer or the external-content wiring changes. |
 | `model_hash` (computed) | `src-tauri/src/commands/semantic.rs` | sha256 of model file bytes mixed with `EMBED_RECIPE_VERSION`. Stored alongside each chunk; mismatched rows are deleted and re-embedded. |
 
 ---
