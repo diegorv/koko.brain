@@ -64,7 +64,7 @@
     "lowlight": "^3.3.0",
     "lucide-static": "^1.34.0",
     "marked": "^18.0.11",
-    "mermaid": "^11.16.1",
+    "mermaid": "^11.17.1",
     "simple-icons": "^16.28.0",
     "svelte-sonner": "^1.1.1",
     "tailwind-merge": "^3.6.0",
