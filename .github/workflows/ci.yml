@@ -211,6 +211,39 @@ jobs:
       - name: Run fonts tests
         run: cargo test --manifest-path src-tauri/Cargo.toml --test commands_test commands::fonts_test::macos
 
+  # Differential secret scan on every PR / dispatch / release run. Lives
+  # here rather than in security.yml because security.yml is change-gated
+  # by pr.yml on dependency files only — and a leaked credential can land
+  # in any file, so the scan has to be ungated. ci.yml is invoked
+  # unconditionally by pr.yml, and `ci-success` below is the required
+  # status check, so this becomes a merge blocker for free.
+  #
+  # The gitleaks-action scans the pushed / PR commit range only. Full
+  # reachable history is covered separately by the `gitleaks-history` job
+  # in security.yml, on the daily cron.
+  secrets:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          # The action diffs the commit range, so it needs real history
+          # rather than the default depth-1 clone. The repo's .git is
+          # ~22 MB, so the full fetch costs a couple of seconds.
+          fetch-depth: 0
+
+      # Pinned by commit SHA per the same supply-chain reasoning as
+      # dorny/paths-filter above. Dependabot bumps it via the trailing
+      # tag comment.
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Explicit rather than relying on gitleaks' root auto-discovery:
+          # a config silently ignored means a red run on a known-good
+          # allowlisted finding.
+          GITLEAKS_CONFIG: .gitleaks.toml
+
   # Aggregate gate used as the single required status check for branch
   # protection. `frontend` and `rust` are skipped when their paths
   # filter says nothing relevant changed, which makes them unusable as
@@ -220,7 +253,7 @@ jobs:
   # skipped, and fails on any real failure or cancellation.
   ci-success:
     name: CI success
-    needs: [changes, frontend, rust, rust-fonts-macos]
+    needs: [changes, frontend, rust, rust-fonts-macos, secrets]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
@@ -232,16 +265,18 @@ jobs:
           frontend="${{ needs.frontend.result }}"
           rust="${{ needs.rust.result }}"
           rust_fonts_macos="${{ needs.rust-fonts-macos.result }}"
-          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos"
+          secrets_scan="${{ needs.secrets.result }}"
+          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos secrets=$secrets_scan"
           if [ "$changes" != "success" ]; then
             echo "::error::changes job did not succeed (result=$changes)"
             exit 1
           fi
-          for name in frontend rust rust-fonts-macos; do
+          for name in frontend rust rust-fonts-macos secrets; do
             case "$name" in
               frontend) result="$frontend" ;;
               rust) result="$rust" ;;
               rust-fonts-macos) result="$rust_fonts_macos" ;;
+              secrets) result="$secrets_scan" ;;
             esac
             if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
               echo "::error::$name job did not pass (result=$result)"

@@ -1,0 +1,37 @@
+# gitleaks configuration.
+#
+# Consumed by the `secrets` job in .github/workflows/ci.yml (differential
+# scan of every PR / push commit range) and the `gitleaks-history` job in
+# .github/workflows/security.yml (full reachable history, daily cron).
+# gitleaks also auto-loads this file when run locally from the repo root:
+#
+#   gitleaks git .            # full history
+#   gitleaks dir .            # working tree only
+
+[extend]
+# Start from gitleaks' bundled ruleset and only add exceptions below.
+useDefault = true
+
+[[allowlists]]
+description = "Deleted encrypted-notes test fixtures"
+# `src/tests/lib/plugins/encrypted-notes/encrypted-notes.service.test.ts`
+# used a hardcoded fake `recoveryKey` string that the generic-api-key rule
+# flags. The whole encrypted-notes plugin was removed in commit b562224,
+# so the path exists only in history — but the full-history job walks
+# history, so without this entry it fails on every run. Nothing was ever a
+# real credential: the value was a literal in a unit test.
+paths = ['''src/tests/lib/plugins/encrypted-notes/.*''']
+
+[[allowlists]]
+description = "Build output and vendored dependencies"
+# The CI jobs run gitleaks in git mode, which only ever sees committed
+# blobs, so these directories are already invisible there (all gitignored).
+# This entry exists for the local `gitleaks dir .` invocation documented
+# above: rustc `.rmeta` files embed dependency source, and crates like
+# `global_hotkey`, `muda` and `pem-rfc7468` carry doc-comment strings that
+# trip generic-api-key / private-key. 44 findings, none of them a secret.
+paths = [
+    '''(^|/)target/''',
+    '''(^|/)node_modules/''',
+    '''^\.claude/worktrees/''',
+]

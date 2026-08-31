@@ -114,6 +114,37 @@ jobs:
           fi
           echo "✅ minimumReleaseAge is $age minutes ($(( age / 1440 )) days)"
 
+  gitleaks-history:
+    name: Secret Scan (full history)
+    # The differential scan lives in ci.yml and covers every PR / push
+    # commit range. This one re-scans the COMPLETE reachable history, which
+    # is what catches a credential committed months ago and never rotated,
+    # or a rule added to .gitleaks.toml after the fact.
+    #
+    # Same `github.workflow == 'Security'` guard as osv-scanner below: under
+    # `workflow_call` from pr.yml / release.yml / run-all.yml, `event_name`
+    # reports the CALLER's event, so without this guard a full-history scan
+    # would piggyback on every PR that touches a dependency file. Restricted
+    # further to the cron and manual dispatch — a push to main is already
+    # covered differentially.
+    if: >-
+      github.workflow == 'Security' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Explicit rather than relying on gitleaks' root auto-discovery:
+          # a config silently ignored means a red run on a known-good
+          # allowlisted finding.
+          GITLEAKS_CONFIG: .gitleaks.toml
+
   osv-scanner:
     name: OSV Scanner (full tree)
     # Full-tree OSV scan (pnpm lockfile + Cargo.lock) -> Security tab. Unified
