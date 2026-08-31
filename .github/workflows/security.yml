@@ -144,6 +144,16 @@ jobs:
           # a config silently ignored means a red run on a known-good
           # allowlisted finding.
           GITLEAKS_CONFIG: .gitleaks.toml
+          # gitleaks-action v3.0.0 hardcodes `GITLEAKS_VERSION || "8.24.3"`
+          # (src/index.js:138), and 8.24.3 predates the top-level plural
+          # `[[allowlists]]` table — that landed in 8.25.0. Viper is not
+          # configured with ErrorUnused, so 8.24.3 drops the unknown key
+          # SILENTLY: no error, no warning, the allowlist simply does not
+          # apply. Verified locally against this repo's history: 8.24.3 with
+          # .gitleaks.toml reports 1 leak (the allowlisted encrypted-notes
+          # fixture), 8.30.1 with the same file reports 0. Pinning here also
+          # keeps CI on the exact version used to validate the config.
+          GITLEAKS_VERSION: "8.30.1"
 
   osv-scanner:
     name: OSV Scanner (full tree)

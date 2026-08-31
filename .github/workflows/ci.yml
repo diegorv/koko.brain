@@ -218,9 +218,20 @@ jobs:
   # unconditionally by pr.yml, and `ci-success` below is the required
   # status check, so this becomes a merge blocker for free.
   #
-  # The gitleaks-action scans the pushed / PR commit range only. Full
-  # reachable history is covered separately by the `gitleaks-history` job
-  # in security.yml, on the daily cron.
+  # Scope depends on the event, and the action decides it, not us: it
+  # appends `--log-opts` for `push` and `pull_request` only
+  # (src/gitleaks.js:103-117), so those scan the commit range. Every other
+  # event — including a `workflow_dispatch` of this workflow or of
+  # run-all.yml — falls through to a full-history scan. That is harmless
+  # (history is clean, and the whole walk takes ~2s) but it does mean this
+  # job is not always differential. The scheduled full-history sweep still
+  # lives in security.yml's `gitleaks-history`, which is what guarantees
+  # the walk happens on a fixed cadence rather than only when someone
+  # dispatches a run.
+  #
+  # On a tag push (release.yml) the action takes the `push` branch and
+  # exits early when the event payload carries no commits, so treat
+  # release coverage as unverified rather than guaranteed.
   secrets:
     name: Secret Scan (gitleaks)
     runs-on: ubuntu-latest
@@ -243,6 +254,16 @@ jobs:
           # a config silently ignored means a red run on a known-good
           # allowlisted finding.
           GITLEAKS_CONFIG: .gitleaks.toml
+          # gitleaks-action v3.0.0 hardcodes `GITLEAKS_VERSION || "8.24.3"`
+          # (src/index.js:138), and 8.24.3 predates the top-level plural
+          # `[[allowlists]]` table — that landed in 8.25.0. Viper is not
+          # configured with ErrorUnused, so 8.24.3 drops the unknown key
+          # SILENTLY: no error, no warning, the allowlist simply does not
+          # apply. Verified locally against this repo's history: 8.24.3 with
+          # .gitleaks.toml reports 1 leak (the allowlisted encrypted-notes
+          # fixture), 8.30.1 with the same file reports 0. Pinning here also
+          # keeps CI on the exact version used to validate the config.
+          GITLEAKS_VERSION: "8.30.1"
 
   # Aggregate gate used as the single required status check for branch
   # protection. `frontend` and `rust` are skipped when their paths
