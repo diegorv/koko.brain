@@ -164,8 +164,8 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1(tailwind-merge@3.6.0)(tailwindcss@4.3.3)
       virtua:
-        specifier: ^0.50.1
-        version: 0.50.1(svelte@5.56.10(@typescript-eslint/types@8.58.0))
+        specifier: ^0.50.5
+        version: 0.50.5(svelte@5.56.10(@typescript-eslint/types@8.58.0))
       yaml:
         specifier: 2.9.0
         version: 2.9.0
@@ -2165,8 +2165,8 @@ packages:
     resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
     hasBin: true
 
-  virtua@0.50.1:
-    resolution: {integrity: sha512-rNue/Cv/0Z14Yg9Pj6Xx9QaQPKhmlNWkx7Y7SytRnhojxvZ0z3GhCWr4QH2+tJm5mYL2vm4GudZPPt0i1PLzSA==}
+  virtua@0.50.5:
+    resolution: {integrity: sha512-dhr2b3fiK8jWlXzTZr1lICU6gIjF+Q9ftzlDR9KoAbW4vgusx0hEsNwdhxrEVVnm7ZpB+40jgGtJH8/BSsfrZg==}
     peerDependencies:
       '@angular/common': '>=20.0.0'
       '@angular/core': '>=20.0.0'
@@ -4289,7 +4289,7 @@ snapshots:
 
   uuid@14.0.2: {}
 
-  virtua@0.50.1(svelte@5.56.10(@typescript-eslint/types@8.58.0)):
+  virtua@0.50.5(svelte@5.56.10(@typescript-eslint/types@8.58.0)):
     optionalDependencies:
       svelte: 5.56.10(@typescript-eslint/types@8.58.0)
 
