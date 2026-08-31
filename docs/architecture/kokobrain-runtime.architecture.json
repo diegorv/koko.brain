@@ -1,0 +1,395 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Kokobrain Runtime Architecture",
+    "locale": "en",
+    "output": "kokobrain-runtime.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1360,
+      640
+    ],
+    "views": [
+      {
+        "id": "write-path",
+        "label": "Note write path",
+        "focus": [
+          "editor",
+          "vault",
+          "notechange",
+          "ipc",
+          "commands"
+        ],
+        "note": "The webview writes the file itself, then hands the bytes to applyNoteChange."
+      },
+      {
+        "id": "search-stack",
+        "label": "Search stack",
+        "focus": [
+          "commands",
+          "semantic",
+          "sqlite",
+          "ipc",
+          "panels"
+        ],
+        "note": "Keyword FTS5 and BGE-M3 vectors share one SQLite file and fuse with RRF."
+      },
+      {
+        "id": "external-changes",
+        "label": "External file changes",
+        "focus": [
+          "vault",
+          "watcher",
+          "ipc",
+          "notechange",
+          "panels"
+        ],
+        "note": "Disk edits re-enter the app through the native watcher, not a TS poller."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "editor",
+      "type": "frontend",
+      "label": "Markdown Editor",
+      "sublabel": "CodeMirror 6",
+      "tag": "live decorators",
+      "pos": [
+        110,
+        70
+      ],
+      "size": [
+        190,
+        60
+      ]
+    },
+    {
+      "id": "notechange",
+      "type": "frontend",
+      "label": "applyNoteChange",
+      "sublabel": "note-change.service.ts",
+      "tag": "5 change sources",
+      "pos": [
+        110,
+        210
+      ],
+      "size": [
+        190,
+        60
+      ]
+    },
+    {
+      "id": "panels",
+      "type": "frontend",
+      "label": "Reactive Panels",
+      "sublabel": "backlinks · tags · tasks",
+      "tag": "vaultIndexVersion",
+      "pos": [
+        110,
+        350
+      ],
+      "size": [
+        190,
+        60
+      ]
+    },
+    {
+      "id": "vault",
+      "type": "external",
+      "label": "Vault Folder",
+      "sublabel": "Markdown on disk",
+      "pos": [
+        110,
+        520
+      ],
+      "size": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "composer",
+      "type": "frontend",
+      "label": "Quick Capture",
+      "sublabel": "/composer window",
+      "tag": "global shortcut",
+      "pos": [
+        470,
+        440
+      ],
+      "size": [
+        190,
+        60
+      ]
+    },
+    {
+      "id": "ipc",
+      "type": "messagebus",
+      "label": "Tauri IPC",
+      "sublabel": "invoke · emit events",
+      "pos": [
+        470,
+        200
+      ],
+      "size": [
+        180,
+        110
+      ]
+    },
+    {
+      "id": "vaultindex",
+      "type": "backend",
+      "label": "VaultIndex",
+      "sublabel": "links · tags · tasks · props",
+      "tag": "in-memory",
+      "pos": [
+        790,
+        70
+      ],
+      "size": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "commands",
+      "type": "backend",
+      "label": "Command Handlers",
+      "sublabel": "src-tauri/src/commands",
+      "tag": "scan_vault_v2",
+      "pos": [
+        790,
+        210
+      ],
+      "size": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "semantic",
+      "type": "backend",
+      "label": "Semantic Engine",
+      "sublabel": "ONNX · BGE-M3",
+      "pos": [
+        790,
+        350
+      ],
+      "size": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "watcher",
+      "type": "backend",
+      "label": "Vault Watcher",
+      "sublabel": "notify · 500 ms",
+      "pos": [
+        790,
+        520
+      ],
+      "size": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite",
+      "sublabel": "kokobrain.db",
+      "tag": "FTS5 + WAL",
+      "pos": [
+        1120,
+        210
+      ],
+      "size": [
+        200,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Main window WebView — Svelte 5",
+      "wraps": [
+        "editor",
+        "notechange",
+        "panels"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Tauri Rust process",
+      "wraps": [
+        "vaultindex",
+        "commands",
+        "semantic",
+        "watcher"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edit-to-owner",
+      "from": "editor",
+      "to": "notechange",
+      "label": "notifyAfterSave",
+      "variant": "emphasis",
+      "labelAt": [
+        205,
+        170
+      ]
+    },
+    {
+      "id": "editor-writes",
+      "from": "editor",
+      "to": "vault",
+      "label": "writeTextFile",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          50,
+          100
+        ],
+        [
+          50,
+          550
+        ]
+      ],
+      "labelAt": [
+        50,
+        470
+      ]
+    },
+    {
+      "id": "owner-to-ipc",
+      "from": "notechange",
+      "to": "ipc",
+      "label": "update_note_in_index",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ipc-to-commands",
+      "from": "ipc",
+      "to": "commands",
+      "label": "invoke",
+      "variant": "emphasis"
+    },
+    {
+      "id": "commands-to-index",
+      "from": "commands",
+      "to": "vaultindex",
+      "label": "parse + reindex"
+    },
+    {
+      "id": "index-updated",
+      "from": "vaultindex",
+      "to": "ipc",
+      "label": "vault-index-updated",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          560,
+          100
+        ]
+      ]
+    },
+    {
+      "id": "ipc-to-panels",
+      "from": "ipc",
+      "to": "panels",
+      "label": "get_*_v2 lookups",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "composer-to-ipc",
+      "from": "composer",
+      "to": "ipc",
+      "label": "submit_composer_capture",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "commands-to-semantic",
+      "from": "commands",
+      "to": "semantic",
+      "label": "embed changed chunks",
+      "labelAt": [
+        890,
+        310
+      ]
+    },
+    {
+      "id": "commands-to-sqlite",
+      "from": "commands",
+      "to": "sqlite",
+      "label": "FTS5 · history"
+    },
+    {
+      "id": "semantic-to-sqlite",
+      "from": "semantic",
+      "to": "sqlite",
+      "label": "1024-d vectors",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          1220,
+          380
+        ]
+      ]
+    },
+    {
+      "id": "vault-to-watcher",
+      "from": "vault",
+      "to": "watcher",
+      "label": "fs events"
+    },
+    {
+      "id": "watcher-to-ipc",
+      "from": "watcher",
+      "to": "ipc",
+      "label": "vault-files-changed",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Frontend",
+      "items": [
+        "The webview writes markdown itself with the Tauri fs plugin",
+        "applyNoteChange owns every change to a note's bytes",
+        "Panels refetch on vaultIndexVersion — no TS-side mirror"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Rust core",
+      "items": [
+        "VaultIndex parses links, tags, tasks and frontmatter at scan time",
+        "Reverse indexes stay in lock-step with entries",
+        "The watcher thread drops dot-directory events"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Search and storage",
+      "items": [
+        "FTS5 keyword search over notes_fts",
+        "BGE-M3 embeddings, 1024-d, content-hash chunk skip",
+        "Hybrid results fused with RRF, k = 60",
+        "One SQLite file: snapshots, chunks, FTS5"
+      ]
+    }
+  ]
+}

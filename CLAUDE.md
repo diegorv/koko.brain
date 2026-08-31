@@ -297,6 +297,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
+| [docs/architecture/kokobrain-runtime.html](docs/architecture/kokobrain-runtime.html) | Interactive runtime map: webview surfaces, `applyNoteChange`, Tauri IPC, Rust core, SQLite and the vault folder. Regenerate from `kokobrain-runtime.architecture.json` with the `archify` skill |
 
 ## Plan Mode Workflow
 
