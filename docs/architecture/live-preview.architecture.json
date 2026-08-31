@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Live Preview Decoration Pipeline",
+    "locale": "en",
+    "output": "live-preview.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1390,
+      670
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "CodeMirror extension"
+        },
+        "backend": {
+          "label": "Shared machinery"
+        },
+        "database": {
+          "label": "Cache"
+        },
+        "messagebus": {
+          "label": "Decoration output"
+        },
+        "security": {
+          "label": "Kill switch"
+        },
+        "external": {
+          "label": "Document / viewport"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "block-track",
+        "label": "Block track",
+        "focus": [
+          "doc",
+          "blockfactory",
+          "blockfields",
+          "widgets",
+          "decos"
+        ],
+        "note": "Twelve block decorators, eleven of them built by one factory."
+      },
+      {
+        "id": "inline-track",
+        "label": "Inline track",
+        "focus": [
+          "doc",
+          "inlineplugin",
+          "handlers",
+          "highlight",
+          "decos"
+        ],
+        "note": "One plugin for every inline mark, driven by a handler registry."
+      },
+      {
+        "id": "guards",
+        "label": "Scroll and rebuild guards",
+        "focus": [
+          "gate",
+          "scrolldebounce",
+          "blockfactory",
+          "inlineplugin"
+        ],
+        "note": "What stops a plain scroll from rebuilding the whole document."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "doc",
+      "type": "external",
+      "label": "Document + viewport",
+      "sublabel": "CodeMirror state",
+      "pos": [
+        50,
+        250
+      ],
+      "size": [
+        175,
+        60
+      ]
+    },
+    {
+      "id": "gate",
+      "type": "backend",
+      "label": "checkUpdateAction",
+      "sublabel": "returns 'none' on scroll",
+      "tag": "'none' on scroll",
+      "pos": [
+        300,
+        250
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "scrolldebounce",
+      "type": "backend",
+      "label": "scrollDebouncePlugin",
+      "sublabel": "150 ms after scroll",
+      "pos": [
+        300,
+        70
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "blockfactory",
+      "type": "backend",
+      "label": "blockDecorator()",
+      "sublabel": "core/block-decorator.ts",
+      "tag": "11 of 12",
+      "pos": [
+        610,
+        140
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "inlineplugin",
+      "type": "backend",
+      "label": "inlineFormattingPlugin",
+      "sublabel": "one ViewPlugin",
+      "pos": [
+        610,
+        400
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "blockfields",
+      "type": "frontend",
+      "label": "Block fields",
+      "sublabel": "code · table · callout",
+      "tag": "+ frontmatter",
+      "pos": [
+        920,
+        70
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "widgets",
+      "type": "frontend",
+      "label": "Widgets",
+      "sublabel": "queryjs · mermaid · math",
+      "pos": [
+        920,
+        210
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "handlers",
+      "type": "frontend",
+      "label": "Node + line handlers",
+      "sublabel": "inline/handlers",
+      "pos": [
+        920,
+        400
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "highlight",
+      "type": "frontend",
+      "label": "HighlightStyle",
+      "sublabel": "cm-lp-* classes",
+      "pos": [
+        920,
+        530
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "cache",
+      "type": "database",
+      "label": "Widget caches",
+      "sublabel": "markup or live DOM",
+      "pos": [
+        920,
+        300
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "killswitch",
+      "type": "security",
+      "label": "disabledDecorators",
+      "sublabel": "settings kill switch",
+      "pos": [
+        610,
+        530
+      ],
+      "size": [
+        185,
+        60
+      ]
+    },
+    {
+      "id": "decos",
+      "type": "messagebus",
+      "label": "DecorationSet",
+      "sublabel": "marks + replacements",
+      "pos": [
+        1180,
+        250
+      ],
+      "size": [
+        165,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Rebuild gating",
+      "wraps": [
+        "scrolldebounce",
+        "gate"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Two decoration tracks",
+      "wraps": [
+        "blockfactory",
+        "inlineplugin"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "doc-gate",
+      "from": "doc",
+      "to": "gate",
+      "label": "update",
+      "variant": "emphasis"
+    },
+    {
+      "id": "doc-scroll",
+      "from": "doc",
+      "to": "scrolldebounce",
+      "label": "scroll",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "scroll-rebuild",
+      "from": "scrolldebounce",
+      "to": "blockfactory",
+      "label": "forceDecorationRebuild",
+      "variant": "dashed",
+      "labelAt": [
+        560,
+        105
+      ]
+    },
+    {
+      "id": "gate-block",
+      "from": "gate",
+      "to": "blockfactory",
+      "label": "rebuild",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gate-inline",
+      "from": "gate",
+      "to": "inlineplugin",
+      "label": "rebuild",
+      "variant": "emphasis"
+    },
+    {
+      "id": "block-fields",
+      "from": "blockfactory",
+      "to": "blockfields",
+      "label": "compute()"
+    },
+    {
+      "id": "block-widgets",
+      "from": "blockfactory",
+      "to": "widgets",
+      "label": "toDOM()"
+    },
+    {
+      "id": "widgets-cache",
+      "from": "widgets",
+      "to": "cache",
+      "label": "cache by content",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1013,
+        285
+      ]
+    },
+    {
+      "id": "inline-handlers",
+      "from": "inlineplugin",
+      "to": "handlers",
+      "label": "handler registry"
+    },
+    {
+      "id": "inline-highlight",
+      "from": "inlineplugin",
+      "to": "highlight",
+      "label": "tag-based styling"
+    },
+    {
+      "id": "kill-block",
+      "from": "killswitch",
+      "to": "inlineplugin",
+      "label": "disable per feature",
+      "variant": "security"
+    },
+    {
+      "id": "fields-decos",
+      "from": "blockfields",
+      "to": "decos",
+      "label": "Decoration.replace()",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          1262.5,
+          100
+        ]
+      ]
+    },
+    {
+      "id": "handlers-decos",
+      "from": "handlers",
+      "to": "decos",
+      "label": "Decoration.mark()",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          1262.5,
+          430
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Two tracks, not fourteen",
+      "items": [
+        "Block widgets get one StateField or ViewPlugin each; inline marks share a single plugin",
+        "Eleven of the twelve block decorators come from blockDecorator(); frontmatter is the hand-written exception"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Marks beat widgets",
+      "items": [
+        "Decoration.mark() is CSS-only and GPU-painted; a widget forces DOM reflow",
+        "Bullets, rules and hard breaks use font-size 0 plus a pseudo-element instead of a widget"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Cache by content, never share a node",
+      "items": [
+        "A widget re-enters the viewport as a fresh toDOM(), so eq() alone saves nothing",
+        "math and mermaid cache markup strings; queryjs is the one live-DOM cache, so canvas and iframe state survives"
+      ]
+    }
+  ]
+}

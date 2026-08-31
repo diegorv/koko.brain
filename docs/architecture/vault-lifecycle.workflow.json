@@ -1,0 +1,402 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "initializeVault Lifecycle",
+    "locale": "en",
+    "output": "vault-lifecycle.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "critical-path",
+        "label": "Critical path",
+        "focus": [
+          "reset",
+          "settings",
+          "db",
+          "scan",
+          "fts",
+          "watcher"
+        ],
+        "note": "The six awaited steps that must finish in order before the vault is usable."
+      },
+      {
+        "id": "deferred",
+        "label": "Deferred off the path",
+        "focus": [
+          "secondary",
+          "semantic",
+          "daily"
+        ],
+        "note": "Work pushed to a later macrotask so the first paint and the daily note are not starved."
+      },
+      {
+        "id": "failures",
+        "label": "Failure handling",
+        "focus": [
+          "db",
+          "dbfail",
+          "scan",
+          "noindex"
+        ],
+        "note": "Two failures return early or suppress readiness for the rest of the vault session."
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Frontend step"
+        },
+        "backend": {
+          "label": "Rust work"
+        },
+        "database": {
+          "label": "SQLite"
+        },
+        "security": {
+          "label": "Failure path"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "fe",
+      "label": "Frontend orchestration"
+    },
+    {
+      "id": "rs",
+      "label": "Rust process"
+    },
+    {
+      "id": "bg",
+      "label": "Parallel + deferred"
+    },
+    {
+      "id": "err",
+      "label": "Aborts + failures",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "open",
+      "label": "Open",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "build",
+      "label": "Build indexes",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "arm",
+      "label": "Arm + hand back",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "groups": [
+    {
+      "id": "step4",
+      "label": "Step 4 · Promise.all",
+      "lane": "bg",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "dashed"
+    },
+    {
+      "id": "timers",
+      "label": "setTimeout, not await",
+      "lane": "bg",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "reset",
+    "settings",
+    "db",
+    "scan",
+    "fts",
+    "watcher"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "reset"
+    ],
+    "requiredEdges": [
+      {
+        "from": "db",
+        "to": "hooks"
+      }
+    ],
+    "requiredPaths": [
+      {
+        "from": "reset",
+        "to": "watcher"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "reset",
+      "lane": "fe",
+      "col": 0,
+      "type": "frontend",
+      "label": "Guard + teardown",
+      "sublabel": "resetIndexReady",
+      "tag": "unconditional",
+      "width": 134
+    },
+    {
+      "id": "settings",
+      "lane": "fe",
+      "col": 1,
+      "type": "frontend",
+      "label": "1 · loadSettings",
+      "sublabel": "then persistence",
+      "width": 134
+    },
+    {
+      "id": "hooks",
+      "lane": "fe",
+      "col": 3,
+      "type": "frontend",
+      "label": "Register consumers",
+      "sublabel": "silent no-op if late",
+      "width": 134
+    },
+    {
+      "id": "db",
+      "lane": "rs",
+      "col": 2,
+      "type": "database",
+      "label": "2 · open_vault_db",
+      "sublabel": "two connections",
+      "width": 134
+    },
+    {
+      "id": "scan",
+      "lane": "rs",
+      "col": 3,
+      "type": "backend",
+      "label": "4 · buildIndex",
+      "sublabel": "scan_vault_v2",
+      "width": 134
+    },
+    {
+      "id": "fts",
+      "lane": "rs",
+      "col": 4,
+      "type": "database",
+      "label": "6 · FTS5 index",
+      "sublabel": "build_search_index",
+      "width": 134
+    },
+    {
+      "id": "watcher",
+      "lane": "rs",
+      "col": 5,
+      "type": "backend",
+      "label": "7 · start watcher",
+      "sublabel": "registered last",
+      "width": 134
+    },
+    {
+      "id": "userdata",
+      "lane": "bg",
+      "col": 2,
+      "type": "frontend",
+      "label": "3 · user data",
+      "sublabel": "bookmarks · trash",
+      "width": 134
+    },
+    {
+      "id": "tree",
+      "lane": "bg",
+      "col": 3,
+      "type": "frontend",
+      "label": "loadDirectoryTree",
+      "sublabel": "file explorer",
+      "width": 134
+    },
+    {
+      "id": "daily",
+      "lane": "fe",
+      "col": 5,
+      "type": "frontend",
+      "label": "9 · daily note",
+      "sublabel": "+ update check",
+      "width": 134
+    },
+    {
+      "id": "secondary",
+      "lane": "bg",
+      "col": 4,
+      "type": "backend",
+      "label": "5b · builders",
+      "sublabel": "tags · tasks · props",
+      "width": 134
+    },
+    {
+      "id": "semantic",
+      "lane": "bg",
+      "col": 5,
+      "type": "backend",
+      "label": "Semantic init",
+      "sublabel": "ONNX load, 3 s later",
+      "width": 134
+    },
+    {
+      "id": "dbfail",
+      "lane": "err",
+      "col": 2,
+      "type": "security",
+      "label": "DB open failed",
+      "sublabel": "toast, return",
+      "width": 134
+    },
+    {
+      "id": "noindex",
+      "lane": "err",
+      "col": 4,
+      "type": "security",
+      "label": "Scan failed",
+      "sublabel": "readiness stays off",
+      "width": 134
+    }
+  ],
+  "edges": [
+    {
+      "id": "reset-settings",
+      "from": "reset",
+      "to": "settings",
+      "label": "await",
+      "variant": "emphasis"
+    },
+    {
+      "id": "settings-db",
+      "from": "settings",
+      "to": "db",
+      "label": "invoke",
+      "variant": "emphasis"
+    },
+    {
+      "id": "db-hooks",
+      "from": "db",
+      "to": "hooks",
+      "label": "before any write",
+      "variant": "default"
+    },
+    {
+      "id": "db-userdata",
+      "from": "db",
+      "to": "userdata",
+      "label": "Promise.all",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "db-scan",
+      "from": "db",
+      "to": "scan",
+      "label": "await",
+      "variant": "emphasis"
+    },
+    {
+      "id": "db-fail",
+      "from": "db",
+      "to": "dbfail",
+      "label": "reject",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "scan-tree",
+      "from": "scan",
+      "to": "tree",
+      "label": "in parallel",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "scan-fts",
+      "from": "scan",
+      "to": "fts",
+      "label": "markIndexReady",
+      "variant": "emphasis"
+    },
+    {
+      "id": "scan-noindex",
+      "from": "scan",
+      "to": "noindex",
+      "label": "no entries",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "scan-secondary",
+      "from": "scan",
+      "to": "secondary",
+      "label": "setTimeout 0",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "fts-watcher",
+      "from": "fts",
+      "to": "watcher",
+      "label": "300 ms debounce",
+      "variant": "emphasis"
+    },
+    {
+      "id": "fts-semantic",
+      "from": "fts",
+      "to": "semantic",
+      "label": "setTimeout 3000",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "watcher-daily",
+      "from": "watcher",
+      "to": "daily",
+      "label": "one macrotask later",
+      "variant": "dashed",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Ordering is load-bearing",
+      "items": [
+        "Consumers register before anything can write — a late registration is a silent no-op",
+        "The watcher starts last so it cannot race the initial scan"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Deferred on purpose",
+      "items": [
+        "Secondary builders cost ~460 ms of synchronous JS on the main thread",
+        "The ONNX load blocks ~2.7 s, so it waits 3 s past init"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Every step re-checks initVersion",
+      "items": [
+        "A rapid vault switch bumps the counter and each guard returns bare",
+        "A failed scan suppresses readiness for the rest of the session"
+      ]
+    }
+  ]
+}

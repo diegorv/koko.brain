@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Search Retrieval Pipeline",
+    "locale": "en",
+    "output": "search-pipeline.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      520
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "emphasis": {
+          "label": "Primary path"
+        },
+        "default": {
+          "label": "Mode-specific flow"
+        },
+        "dashed": {
+          "label": "Stored data read"
+        },
+        "security": {
+          "label": "Optional rerank"
+        },
+        "database": {
+          "label": "Storage"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "text-mode",
+        "label": "Text mode",
+        "focus": [
+          "query",
+          "notes",
+          "fts",
+          "results"
+        ],
+        "note": "FTS5 with BM25 only. No model on disk is required."
+      },
+      {
+        "id": "semantic-mode",
+        "label": "Semantic mode",
+        "focus": [
+          "query",
+          "chunks",
+          "vector",
+          "gap",
+          "results"
+        ],
+        "note": "Embed the query, scan every chunk, then cut the tail by score gap."
+      },
+      {
+        "id": "hybrid-mode",
+        "label": "Hybrid mode",
+        "focus": [
+          "fts",
+          "vector",
+          "rrf",
+          "rerank",
+          "results"
+        ],
+        "note": "Both retrievers run in parallel and fuse by rank, not by score."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Query"
+    },
+    {
+      "label": "Retrieve"
+    },
+    {
+      "label": "Fuse"
+    },
+    {
+      "label": "Refine"
+    },
+    {
+      "label": "Results"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "notes",
+      "type": "database",
+      "label": "notes_fts",
+      "sublabel": "external content",
+      "stage": 0,
+      "row": 0,
+      "tag": "v3 schema"
+    },
+    {
+      "id": "query",
+      "type": "external",
+      "label": "Query",
+      "sublabel": "performSearch",
+      "stage": 0,
+      "row": 1,
+      "tag": "3 modes"
+    },
+    {
+      "id": "chunks",
+      "type": "database",
+      "label": "chunks table",
+      "sublabel": "f32 blobs + hash",
+      "stage": 0,
+      "row": 2,
+      "tag": "no vector index"
+    },
+    {
+      "id": "fts",
+      "type": "backend",
+      "label": "FTS5 search",
+      "sublabel": "BM25, top-30",
+      "stage": 1,
+      "row": 0,
+      "tag": "top-30"
+    },
+    {
+      "id": "vector",
+      "type": "backend",
+      "label": "Vector retrieval",
+      "sublabel": "BGE-M3 + cosine, top-30",
+      "stage": 1,
+      "row": 2,
+      "tag": "top-30"
+    },
+    {
+      "id": "rrf",
+      "type": "messagebus",
+      "label": "RRF fuse",
+      "sublabel": "rank fusion, k = 60",
+      "stage": 2,
+      "row": 1,
+      "tag": "k = 60"
+    },
+    {
+      "id": "rerank",
+      "type": "security",
+      "label": "Cross-encoder",
+      "sublabel": "BGE-reranker-v2-m3",
+      "stage": 3,
+      "row": 0,
+      "tag": "pool 50"
+    },
+    {
+      "id": "gap",
+      "type": "backend",
+      "label": "Adaptive filter",
+      "sublabel": "score gap cutoff",
+      "stage": 3,
+      "row": 2,
+      "tag": "filtering.rs"
+    },
+    {
+      "id": "results",
+      "type": "frontend",
+      "label": "Results",
+      "sublabel": "ranked notes",
+      "stage": 4,
+      "row": 1,
+      "tag": "top-K"
+    }
+  ],
+  "flows": [
+    {
+      "id": "notes-fts",
+      "from": "notes",
+      "to": "fts",
+      "label": "content",
+      "classification": "read",
+      "variant": "dashed",
+      "route": "straight"
+    },
+    {
+      "id": "q-fts",
+      "from": "query",
+      "to": "fts",
+      "label": "text + hybrid",
+      "classification": "keyword",
+      "variant": "emphasis",
+      "channelX": 245,
+      "route": "vertical-channel"
+    },
+    {
+      "id": "q-vector",
+      "from": "query",
+      "to": "vector",
+      "label": "semantic + hybrid",
+      "classification": "1024-d",
+      "variant": "emphasis",
+      "channelX": 245,
+      "route": "vertical-channel"
+    },
+    {
+      "id": "chunks-vector",
+      "from": "chunks",
+      "to": "vector",
+      "label": "vectors",
+      "classification": "read",
+      "variant": "dashed",
+      "route": "straight"
+    },
+    {
+      "id": "fts-rrf",
+      "from": "fts",
+      "to": "rrf",
+      "label": "ranked paths",
+      "classification": "hybrid only",
+      "variant": "default"
+    },
+    {
+      "id": "vector-rrf",
+      "from": "vector",
+      "to": "rrf",
+      "label": "ranked chunks",
+      "classification": "hybrid only",
+      "variant": "default"
+    },
+    {
+      "id": "rrf-rerank",
+      "from": "rrf",
+      "to": "rerank",
+      "label": "fused pool",
+      "classification": "top-50",
+      "variant": "emphasis"
+    },
+    {
+      "id": "vector-gap",
+      "from": "vector",
+      "to": "gap",
+      "label": "scored chunks",
+      "classification": "semantic only",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "rerank-results",
+      "from": "rerank",
+      "to": "results",
+      "label": "reordered",
+      "classification": "skipped if absent",
+      "variant": "security"
+    },
+    {
+      "id": "gap-results",
+      "from": "gap",
+      "to": "results",
+      "label": "cut tail",
+      "classification": "adaptive",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Three modes, one stack",
+      "items": [
+        "Text is FTS5 with BM25 and needs no model on disk",
+        "Hybrid fuses by rank (RRF, k = 60), so the two score scales never have to be reconciled"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "The reranker is optional",
+      "items": [
+        "Absent model: ensure_reranker_loaded returns false and the 50-candidate pool passes through unranked",
+        "Both models unload after 120 s idle, giving back ~600 MB of RSS"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Re-save is cheap",
+      "items": [
+        "Chunks are heading-driven; headless notes fall back to 2500-char windows",
+        "A chunk whose content_hash already matches skips embedding entirely"
+      ]
+    }
+  ]
+}
