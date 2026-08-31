@@ -43,7 +43,7 @@ runs:
     # separately via the `toolchain` input on the step below - see the
     # comment there for why.
     # The pinned pnpm version comes from `package.json#packageManager`
-    # (currently `pnpm@11.5.1`). action-setup honors that field, so the
+    # (currently `pnpm@11.24.0`). action-setup honors that field, so the
     # action's own major version is independent of the pnpm version it
     # installs — v6 supports pnpm v11 internally but happily installs
     # v10 when packageManager pins it.
