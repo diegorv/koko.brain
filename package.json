@@ -48,7 +48,7 @@
     "@tauri-apps/plugin-http": "~2.5.9",
     "@tauri-apps/plugin-opener": "^2.5.5",
     "@tauri-apps/plugin-process": "^2.3.1",
-    "@tauri-apps/plugin-updater": "^2.10.1",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "@xyflow/svelte": "^1.6.3",
     "bits-ui": "^2.18.1",
     "chart.js": "^4.5.1",
