@@ -1,0 +1,9 @@
+# graph scope: application source only (src/ + src-tauri/)
+*
+!src/
+!src/**
+!src-tauri/
+!src-tauri/**
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
