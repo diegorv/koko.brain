@@ -131,7 +131,7 @@
 	{#if settingsStore.search.semanticSearchEnabled}
 		<SettingItem
 			label="Reranker (BGE-reranker-v2-m3)"
-			description="Cross-encoder rerank for higher top-K precision (~571MB extra download, ~500ms per query on CPU). Auto-used by semantic search once downloaded."
+			description="Cross-encoder rerank for higher top-K precision (~571MB extra download, roughly 10 s per query on CPU). Auto-used by semantic search once downloaded."
 		>
 			{#if rerankerAvailable}
 				<span class="text-xs text-muted-foreground">Installed</span>

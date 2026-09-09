@@ -95,7 +95,7 @@ Both models live under `{vault}/.kokobrain/models/{model_name}/` and are managed
 | Model | Role | Source | Size on disk | License | Approx latency |
 |-------|------|--------|--------------|---------|----------------|
 | BGE-M3 (Xenova INT8 ONNX) | Bi-encoder embedder | `huggingface.co/Xenova/bge-m3` | ~120 MB | MIT | ~50-100 ms per query |
-| BGE-reranker-v2-m3 (onnx-community INT8) | Cross-encoder reranker | `huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX` | ~571 MB | Apache 2.0 | ~500 ms for top-50 |
+| BGE-reranker-v2-m3 (onnx-community INT8) | Cross-encoder reranker | `huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX` | ~571 MB | Apache 2.0 | ~10 s p50 per query end-to-end with the reranker on (2026-09-09, `retrieval_eval`, Apple-silicon CPU; reranker time not isolated; the ~500 ms that used to be here was never measured) |
 
 Both models load lazily and are guarded by mutexes that are held across the entire load so concurrent first callers do not double-init.
 

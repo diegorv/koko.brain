@@ -49,7 +49,11 @@ const RERANKER_IDLE_TIMEOUT_SECS: u64 = 120;
 /// Top-N candidates fetched from cosine ranking before they get passed to the
 /// reranker. The reranker promotes/demotes within this pool, so make it big
 /// enough that the truly-relevant doc is almost always in the pool, small
-/// enough that 50 pair inferences finish under ~500ms on CPU.
+/// enough that the pair inferences stay tolerable on CPU. Measured
+/// 2026-09-09 with `examples/retrieval_eval` on Apple silicon (INT8 model):
+/// p50 ~11 s per semantic query with the full 50-pair pool, ~10 s per hybrid
+/// query (its pool is ~30, capped here at 50). The "~500 ms" this comment
+/// used to promise was never measured.
 const RERANK_CANDIDATE_POOL: usize = 50;
 
 /// Cached pre-deserialized embeddings to avoid reloading from DB on every search.

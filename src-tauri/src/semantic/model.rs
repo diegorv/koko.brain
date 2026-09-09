@@ -37,7 +37,8 @@ pub const BGE_M3_EMBEDDER: ManagedModel = ManagedModel {
 
 /// BGE-reranker-v2-m3 cross-encoder for reranking (`onnx-community/bge-reranker-v2-m3-ONNX`).
 /// 568M params, XLM-RoBERTa tokenizer, multilingual incl. PT-BR. Apache 2.0 license.
-/// INT8 quantized variant — ~571MB on disk, ~500ms CPU latency for top-50 query rerank.
+/// INT8 quantized variant — ~571MB on disk; a top-50 rerank measured ~10 s p50 per query
+/// on Apple-silicon CPU (2026-09-09, `examples/retrieval_eval`).
 pub const BGE_RERANKER_V2_M3: ManagedModel = ManagedModel {
 	name: "bge-reranker-v2-m3",
 	downloads: &[
