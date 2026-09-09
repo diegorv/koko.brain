@@ -1,4 +1,5 @@
 use crate::db;
+use crate::semantic::cache_stats;
 use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, Embedder};
 use crate::semantic::filtering;
@@ -152,7 +153,23 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 
 	let arc = Arc::new(chunks);
 	*cache = Some(Arc::clone(&arc));
-	debug_log("SEMANTIC", format!("Search cache loaded: {} chunks", arc.len()));
+	// Resident-memory estimate. The cache has no idle unload, so this is the
+	// number that decides whether quantizing the in-memory vectors is worth
+	// it (retrieval-quality plan, finding 5).
+	let footprint = cache_stats::estimate_footprint(arc.iter().map(|c| cache_stats::ChunkFootprint {
+		embedding_len: c.embedding.len(),
+		text_bytes: c.key.len()
+			+ c.source_path.len()
+			+ c.content.len()
+			+ c.heading.as_ref().map_or(0, |h| h.len())
+			+ c.parent_headings.iter().map(|h| h.len()).sum::<usize>(),
+		struct_bytes: std::mem::size_of::<CachedChunk>()
+			+ c.parent_headings.len() * std::mem::size_of::<String>(),
+	}));
+	debug_log(
+		"SEMANTIC",
+		format!("Search cache loaded: {} chunks, {}", arc.len(), footprint.describe()),
+	);
 	Ok(arc)
 }
 

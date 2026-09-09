@@ -1,3 +1,4 @@
+pub mod cache_stats;
 pub mod chunker;
 pub mod embedder;
 pub mod filtering;

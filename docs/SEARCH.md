@@ -79,6 +79,7 @@ Both `search_semantic` and `search_hybrid` end in `filtering::finalize_results(c
    - SQLite, one row per chunk. Embeddings stored as raw little-endian `f32` blobs.
    - `parent_headings` stored as JSON. `heading`, `line_start`, `line_end`, `content_hash` per chunk.
    - No vector index — brute-force cosine over all chunks completes in well under 50 ms for our typical vault size (~85k chunks).
+   - Query-time cache: `SEARCH_CACHE` holds every chunk with its embedding deserialized to `Vec<f32>` (4 KB per chunk at 1024 dims, before text). It is cleared on index mutation and vault shutdown but has no idle unload. The `Search cache loaded: N chunks, ~X MB (vectors …, text …, overhead …)` log line (`semantic/cache_stats.rs`) reports the resident estimate; read it before deciding whether in-memory quantization is worth doing.
 
 4. **FTS5 index** (`src-tauri/src/db/schema.rs`, `src-tauri/src/search/`)
    - `tokenize = 'unicode61 remove_diacritics 2'`. Query and content are folded the same way, so `acao` ↔ `ação`.
@@ -172,4 +173,4 @@ Useful tags to grep in `~/Library/Logs/com.diegorv.kokobrain/`:
 | `[FRONT-END:SEARCH]` | mode, query, fuzzy flag, result count |
 | `[TAURI:RUST:EMBEDDER]` | model i/o shape per query |
 | `[TAURI:RUST:RERANKER]` | load events, idle unload |
-| `[TAURI:RUST:SEMANTIC]` | cache hit / miss, gap-filter cut, `reranker=true/false`, per-result rank+score+path+heading |
+| `[TAURI:RUST:SEMANTIC]` | cache hit / miss and resident-size estimate on load, gap-filter cut, `reranker=true/false`, hybrid `fts_only`/`overlap`, per-result rank+score+path+heading |
