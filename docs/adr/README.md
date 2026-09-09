@@ -99,7 +99,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 - **Active ADRs are never edited.** Typo fixes and broken-link repairs are the only allowed changes; anything that changes the *meaning* requires a new superseding ADR.
 - **Supersede, don't rewrite.** When reality changes, write a new ADR that references the old one via `superseded_by`. Linking is traceability.
 - **Cite code with paths and line ranges.** An ADR that says "we do X" without pointing to the file that does X is fiction.
-- **Don't write speculative ADRs.** Record decisions the codebase actually embodies. Future ideas go in `tasks/todo/` or GitHub issues.
+- **Don't write speculative ADRs.** Record decisions the codebase actually embodies. Future ideas go in `.scratch/<feature-slug>/issues/` or GitHub issues.
 
 ## Index
 
@@ -120,7 +120,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0013](0013-encrypted-notes-aes-gcm-keyring.md) | Encrypted notes with AES-256-GCM and macOS Keychain + Touch ID                       | superseded |
 | [0014](0014-supply-chain-pnpm-quarantine.md) | Supply-chain defense: pnpm quarantine + pre-commit hook + CI guardrail               | active |
 | [0015](0015-dual-logging-frontend-rust.md) | Dual logging: appendLog (frontend → file) and debug_log (Rust → stderr + event)      | active |
-| [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: tasks/todo → tasks/done with one commit per task                 | active |
+| [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: one plan file per feature, one commit per task (amended: `.scratch/`) | active |
 | [0017](0017-file-watcher-incremental-hidden-filter.md) | File watcher: incremental subtree rescans, hidden-dir filtering, debounce + version counter | superseded |
 | [0018](0018-batch-ipc-pattern.md) | Batch IPC: scan_vault and read_files_batch over per-file invokes                     | active |
 | [0019](0019-kokobrain-in-vault-data-dir.md) | App data lives inside the vault at .kokobrain/                                       | active |

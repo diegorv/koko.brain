@@ -6,6 +6,10 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-09-09)
+
+Plan files now live under `.scratch/<feature-slug>/plan-<YYYY-MM-DD>.md` (the local issue tracker, see `docs/agents/issue-tracker.md`), not `tasks/todo/`. A finished plan is deleted in its own closing commit — the commit message records completion — instead of being moved to `tasks/done/`; the `tasks/` tree no longer exists. Follow-up issues stay as `.scratch/<feature-slug>/issues/<NN>-<slug>.md` until each is closed the same way. Everything else in this ADR (one task at a time, one commit per task, the test gate, the detailed commit format) is unchanged. `CLAUDE.md` § Plan Mode Workflow is the authoritative statement; read `tasks/todo/` and `tasks/done/` below as historical.
+
 ## Context
 
 The app is built by a solo developer driving LLM agents. Agents do excellent focused work but have two failure modes:

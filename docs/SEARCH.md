@@ -55,6 +55,9 @@ RRF is in `src-tauri/src/search/rrf.rs`. `DEFAULT_RRF_K = 60`. Ties are broken a
 
 - `Cosine` (reranker absent): gap > `COSINE_GAP_RATIO = 0.04` × top score. Cosine has a meaningful zero, so a fraction of the top works.
 - `Logit` (reranker ran): gap > `LOGIT_GAP_THRESHOLD = 1.0` logit units, an e-fold change in odds. Logits are an interval scale — a top logit near zero would make any gap "significant" under the ratio rule, a strongly negative top would make none — so the gap is judged in absolute units.
+- `Rrf` (hybrid without a reranker): no gap filter, truncation only. RRF scores are rank artefacts (`1/(k+rank)` summed per leg); the step between a path both legs found and a path one leg found is fixed by the formula and says nothing about the query.
+
+Both `search_semantic` and `search_hybrid` end in `filtering::finalize_results(candidates, limit, kind)`, which truncates, filters and truncates again, and returns the outcome for the log.
 
 ---
 
@@ -116,7 +119,7 @@ These constants force a full or partial reindex when bumped. Used to ship breaki
 - **Fused paths with zero semantic chunks**: hybrid picks one chunk per fused path from the whole semantic index (`src-tauri/src/search/hybrid.rs`: most literal query-term hits in content + heading, then highest cosine), so a path that only the FTS leg surfaced is reranked like any other. The one remaining gap is a path with no chunk at all (a brand-new file before the semantic index catches up): it is skipped. The `hybrid:` log line reports `fts_only=N` (paths materialized from the FTS leg alone) and `overlap=N` (paths both legs agreed on).
 - **No CoreML / Apple Neural Engine acceleration**. Verified empirically not to help BGE-M3 / XLM-RoBERTa on Apple Silicon — the ANE only engages for FP16 + ANE-friendly layer ordering, and Xenova's conversion has neither. INT8 + AMX on perf cores is the speed sweet spot.
 - **No sqlite-vec / HNSW index**. Brute-force cosine over ~85k chunks completes in <20 ms on M-series — not worth the schema migration.
-- **No sparse / ColBERT retrieval signals**. BGE-M3 outputs both, but storing them would roughly double on-disk size and the win on this vault is small. Reserved for the optional Phase 4 work — see `tasks/done/embedding-quality.md` if it's been moved there.
+- **No sparse / ColBERT retrieval signals**. BGE-M3 outputs both, but storing them would roughly double on-disk size and the win on this vault is small. Re-evaluate only if the retrieval eval (see below) still shows rare-term misses after the hybrid assembler change; tracked as a follow-up under `.scratch/retrieval-quality/`.
 
 ---
 

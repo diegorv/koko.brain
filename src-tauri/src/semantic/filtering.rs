@@ -22,6 +22,12 @@ pub enum ScoreKind {
 	/// between logits ARE meaningful (log-odds ratios), so the gap is judged
 	/// in absolute logit units (`LOGIT_GAP_THRESHOLD`).
 	Logit,
+	/// Reciprocal-rank-fusion score (hybrid mode without a reranker). Derived
+	/// from ranks alone, it carries no relevance magnitude: the "gap" between
+	/// a path both legs agreed on and a path only one leg found is a fixed
+	/// artefact of `1/(k+rank)`, not evidence about the query. No gap
+	/// filtering is applied; the list is only truncated.
+	Rrf,
 }
 
 /// Cosine rule: a gap counts when it exceeds this fraction of the top score.
@@ -47,7 +53,7 @@ pub const LOGIT_GAP_THRESHOLD: f32 = 1.0;
 /// Requires at least 3 results to apply any filtering. Returns `None` if
 /// filtering is not applicable (fewer than 3 results).
 pub fn adaptive_filter(results: &[SemanticResult], kind: ScoreKind) -> Option<FilterOutcome> {
-	if results.len() < 3 {
+	if results.len() < 3 || kind == ScoreKind::Rrf {
 		return None;
 	}
 
@@ -72,6 +78,7 @@ pub fn adaptive_filter(results: &[SemanticResult], kind: ScoreKind) -> Option<Fi
 	let gap_threshold = match kind {
 		ScoreKind::Cosine => top_score.abs() * COSINE_GAP_RATIO,
 		ScoreKind::Logit => LOGIT_GAP_THRESHOLD,
+		ScoreKind::Rrf => unreachable!("Rrf returns before the gap rule"),
 	};
 	if max_gap > gap_threshold && gap_idx < scores.len() - 1 {
 		let cut_at = gap_idx + 1;
@@ -101,6 +108,21 @@ pub fn adaptive_filter(results: &[SemanticResult], kind: ScoreKind) -> Option<Fi
 			dynamic_min, mean, stddev, removed
 		),
 	})
+}
+
+/// Final step shared by `search_semantic` and `search_hybrid`: truncate to
+/// `limit`, run `adaptive_filter` for `kind` on what is left, and truncate
+/// again to its `keep_count`. Returns the filter outcome so the caller can
+/// log it; `None` means only the `limit` truncation happened.
+pub fn finalize_results(
+	candidates: &mut Vec<SemanticResult>,
+	limit: usize,
+	kind: ScoreKind,
+) -> Option<FilterOutcome> {
+	candidates.truncate(limit);
+	let outcome = adaptive_filter(candidates, kind)?;
+	candidates.truncate(outcome.keep_count);
+	Some(outcome)
 }
 
 /// Logs diagnostic information about score distribution.
@@ -331,6 +353,60 @@ mod tests {
 	fn logit_fewer_than_3_results_is_none() {
 		let results = make_results(&[4.0, -2.0]);
 		assert!(adaptive_filter(&results, ScoreKind::Logit).is_none());
+	}
+
+	// --- adaptive_filter, ScoreKind::Rrf ---
+
+	#[test]
+	fn rrf_never_gap_filters_even_with_large_gaps() {
+		// Two paths in both legs (~0.032) then one-leg paths (~0.016): a 50%
+		// step that the cosine rule would cut on. RRF magnitudes are rank
+		// artefacts, so nothing is filtered.
+		let results = make_results(&[0.0328, 0.0323, 0.0164, 0.0161, 0.0159]);
+		assert!(adaptive_filter(&results, ScoreKind::Rrf).is_none());
+	}
+
+	// --- finalize_results ---
+
+	#[test]
+	fn finalize_truncates_to_limit_then_cuts_at_gap() {
+		// Limit drops the last two; the gap rule then cuts after #3.
+		let mut results = make_results(&[0.90, 0.85, 0.80, 0.50, 0.45, 0.40, 0.35]);
+		let outcome = finalize_results(&mut results, 5, ScoreKind::Cosine).unwrap();
+		assert_eq!(outcome.keep_count, 3);
+		assert_eq!(results.len(), 3);
+		assert!((results[2].score - 0.80).abs() < 1e-6);
+	}
+
+	#[test]
+	fn finalize_with_limit_below_3_only_truncates() {
+		let mut results = make_results(&[0.90, 0.20, 0.10, 0.05]);
+		assert!(finalize_results(&mut results, 2, ScoreKind::Cosine).is_none());
+		assert_eq!(results.len(), 2);
+	}
+
+	#[test]
+	fn finalize_rrf_only_truncates() {
+		let mut results = make_results(&[0.0328, 0.0164, 0.0161, 0.0159]);
+		assert!(finalize_results(&mut results, 3, ScoreKind::Rrf).is_none());
+		assert_eq!(results.len(), 3);
+	}
+
+	#[test]
+	fn finalize_logit_applies_the_absolute_rule() {
+		let mut results = make_results(&[5.0, 4.5, 1.0, 0.5]);
+		let outcome = finalize_results(&mut results, 20, ScoreKind::Logit).unwrap();
+		assert!(outcome.log_message.contains("Gap filter (Logit)"));
+		assert_eq!(results.len(), 2);
+	}
+
+	#[test]
+	fn finalize_empty_and_zero_limit() {
+		let mut empty: Vec<SemanticResult> = vec![];
+		assert!(finalize_results(&mut empty, 20, ScoreKind::Logit).is_none());
+		let mut results = make_results(&[0.9, 0.8, 0.7]);
+		assert!(finalize_results(&mut results, 0, ScoreKind::Cosine).is_none());
+		assert!(results.is_empty());
 	}
 
 	// --- format_score_distribution ---

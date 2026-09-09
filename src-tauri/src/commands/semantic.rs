@@ -759,15 +759,13 @@ pub async fn search_semantic(
 		// Limit + adaptive filter on whichever score the user is seeing. The
 		// kind matters: reranker logits are judged by absolute gap, cosine by
 		// a fraction of the top score (see `filtering::ScoreKind`).
-		candidates.truncate(limit);
 		let score_kind = if used_reranker {
 			filtering::ScoreKind::Logit
 		} else {
 			filtering::ScoreKind::Cosine
 		};
-		if let Some(outcome) = filtering::adaptive_filter(&candidates, score_kind) {
+		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
-			candidates.truncate(outcome.keep_count);
 		}
 
 		if !candidates.is_empty() {
@@ -794,7 +792,7 @@ pub async fn search_semantic(
 /// then reranks the top-50 with the BGE cross-encoder when available.
 ///
 /// Pipeline:
-/// 1. In parallel: FTS top-30 paths, semantic top-30 chunks.
+/// 1. Sequentially: FTS top-30 paths, then cosine over every chunk.
 /// 2. Reduce semantic chunks to a path ranking (best chunk per path,
 ///    order preserved).
 /// 3. RRF the two path rankings (k=60).
@@ -806,7 +804,9 @@ pub async fn search_semantic(
 ///    with zero chunks in the semantic index are still skipped.
 /// 5. Rerank with `Reranker::rerank` if the model is on disk; otherwise
 ///    keep RRF order.
-/// 6. Sort by final score, truncate to `max_results`.
+/// 6. Sort by final score, truncate to `max_results`, then gap-filter via
+///    `filtering::finalize_results` — `Logit` when reranked, `Rrf` (no
+///    filter, truncation only) when not.
 #[tauri::command]
 pub async fn search_hybrid(
 	query: String,
@@ -938,7 +938,17 @@ pub async fn search_hybrid(
 			candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 		}
 
-		candidates.truncate(limit);
+		// 6. Limit + gap filter. Reranked: absolute logit gap. Not reranked:
+		// the scores are RRF rank artefacts with no relevance magnitude, so
+		// only the truncation applies (see `filtering::ScoreKind::Rrf`).
+		let score_kind = if used_reranker {
+			filtering::ScoreKind::Logit
+		} else {
+			filtering::ScoreKind::Rrf
+		};
+		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
+			debug_log("SEMANTIC", &outcome.log_message);
+		}
 
 		debug_log(
 			"SEMANTIC",

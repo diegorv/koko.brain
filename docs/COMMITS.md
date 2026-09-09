@@ -18,13 +18,13 @@ Never assume the staging area is clean. Unrelated files staged from previous ope
 
 ## Atomic Commits per Task (Plan Mode)
 
-**When working through a plan (`tasks/todo/*.md`), EVERY completed task MUST be committed immediately as its own commit.** This is the single most important commit rule.
+**When working through a plan (`.scratch/<feature-slug>/plan-<date>.md`), EVERY completed task MUST be committed immediately as its own commit.** This is the single most important commit rule.
 
 ### Post-Task Commit Sequence
 
 After finishing each task in a plan, execute this exact sequence BEFORE starting the next task:
 
-1. **Mark the task `[x]` in the plan file** (`tasks/todo/<name>.md`).
+1. **Mark the task `[x]` in the plan file** (`.scratch/<feature-slug>/plan-<date>.md`).
 2. **Verify test coverage** for every source file you changed — see [docs/TESTING.md](TESTING.md) § Task Completion Gate, Step 0.
 3. **Run the relevant tests** based on what changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
