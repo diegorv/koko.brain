@@ -91,6 +91,20 @@ pub fn median(values: &[f32]) -> Option<f32> {
 	}
 }
 
+/// Cheap junk filter for fixture-draft candidates (`retrieval_eval
+/// --init-fixture`, bucket A): letters in any script with at most
+/// underscores, not a hex-looking blob, not one character repeated. Terms
+/// come from the FTS vocabulary already lower-cased and diacritics-folded.
+pub fn looks_like_a_real_term(term: &str) -> bool {
+	let alnum = term.chars().all(|c| c.is_alphanumeric() || c == '_');
+	let has_letter = term.chars().any(|c| c.is_alphabetic());
+	let hex_blob = term.len() >= 12 && term.chars().all(|c| c.is_ascii_hexdigit());
+	let mut chars = term.chars();
+	let first = chars.next();
+	let monotone = first.is_some() && chars.all(|c| Some(c) == first);
+	alnum && has_letter && !hex_blob && !monotone
+}
+
 /// One query's outcome in one search mode.
 pub struct QueryEval {
 	/// Unique paths returned, best first (already deduped by the caller).
@@ -252,6 +266,25 @@ mod tests {
 	fn reciprocal_rank_none_for_empty_expected() {
 		let ranked = strs(&["a.md"]);
 		assert_eq!(reciprocal_rank_at_k(&ranked, &[], 10), None);
+	}
+
+	// --- looks_like_a_real_term ---
+
+	#[test]
+	fn real_term_accepts_identifiers_names_and_accented_words() {
+		assert!(looks_like_a_real_term("applynotechange"));
+		assert!(looks_like_a_real_term("apply_note_change"));
+		assert!(looks_like_a_real_term("aurelius"));
+		assert!(looks_like_a_real_term("coração"));
+	}
+
+	#[test]
+	fn real_term_rejects_hex_blobs_punctuation_and_repeats() {
+		assert!(!looks_like_a_real_term("3f9a0c1b7e2d4a5b"));
+		assert!(!looks_like_a_real_term("foo-bar"));
+		assert!(!looks_like_a_real_term("aaaaaaaa"));
+		assert!(!looks_like_a_real_term("12345678"));
+		assert!(!looks_like_a_real_term(""));
 	}
 
 	// --- mean / median ---

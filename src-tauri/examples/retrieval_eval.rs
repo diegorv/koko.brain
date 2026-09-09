@@ -19,6 +19,16 @@
 //!   [--limit 20] [--modes text,semantic,hybrid] [--verbose]
 //! ```
 //!
+//! Do not have a fixture yet? `--init-fixture` drafts one from the vault's
+//! own FTS index: bucket A from terms that occur in exactly one note, bucket
+//! B from note titles (rewrite those as paraphrases), bucket C from nonsense
+//! queries verified absent from the vocabulary. Review, trim, then run.
+//!
+//! ```sh
+//! cargo run --release --manifest-path src-tauri/Cargo.toml --example retrieval_eval -- \
+//!   --vault ~/Vault --init-fixture [--count 10] [--force]
+//! ```
+//!
 //! See `retrieval_eval.queries.example.json` next to this file for the
 //! fixture format and `docs/SEARCH.md` § "Evaluating retrieval changes".
 
@@ -28,7 +38,8 @@ use kokobrain_lib::commands::semantic::{
 };
 use kokobrain_lib::db;
 use kokobrain_lib::search::eval_metrics::{
-	dedupe_paths, recall_at_k, reciprocal_rank_at_k, summarize, ModeSummary, QueryEval,
+	dedupe_paths, looks_like_a_real_term, recall_at_k, reciprocal_rank_at_k, summarize, ModeSummary,
+	QueryEval,
 };
 use kokobrain_lib::utils::logger::set_debug_mode;
 use serde::{Deserialize, Serialize};
@@ -51,6 +62,12 @@ struct Args {
 	limit: usize,
 	modes: Vec<String>,
 	verbose: bool,
+	/// Draft a fixture from the vault instead of running the eval.
+	init_fixture: bool,
+	/// Queries per bucket for `--init-fixture` (bucket C is capped at 3).
+	count: usize,
+	/// Overwrite an existing fixture in `--init-fixture` mode.
+	force: bool,
 }
 
 impl Args {
@@ -62,6 +79,9 @@ impl Args {
 		let mut limit = 20usize;
 		let mut modes: Vec<String> = ALL_MODES.iter().map(|m| m.to_string()).collect();
 		let mut verbose = false;
+		let mut init_fixture = false;
+		let mut count = 10usize;
+		let mut force = false;
 
 		let mut iter = raw.into_iter();
 		while let Some(flag) = iter.next() {
@@ -88,6 +108,13 @@ impl Args {
 					}
 				}
 				"--verbose" => verbose = true,
+				"--init-fixture" => init_fixture = true,
+				"--count" => {
+					count = next_value(&mut iter, &flag)?
+						.parse()
+						.map_err(|e| format!("--count must be an integer: {e}"))?;
+				}
+				"--force" => force = true,
 				"--help" | "-h" => return Err(USAGE.to_string()),
 				other => return Err(format!("unknown argument {other:?}\n{USAGE}")),
 			}
@@ -108,12 +135,16 @@ impl Args {
 			limit,
 			modes,
 			verbose,
+			init_fixture,
+			count,
+			force,
 		})
 	}
 }
 
 const USAGE: &str = "usage: retrieval_eval --vault <path> [--queries <file>] [--out <file>] \
-[--compare <baseline.json>] [--limit N] [--modes text,semantic,hybrid] [--verbose]";
+[--compare <baseline.json>] [--limit N] [--modes text,semantic,hybrid] [--verbose]\n\
+       retrieval_eval --vault <path> --init-fixture [--queries <file>] [--count N] [--force]";
 
 fn next_value(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, String> {
 	iter.next().ok_or_else(|| format!("{flag} expects a value"))
@@ -186,6 +217,13 @@ fn main() {
 fn run() -> Result<(), String> {
 	let args = Args::parse(std::env::args().skip(1).collect())?;
 	set_debug_mode(args.verbose);
+
+	if args.init_fixture {
+		db::open_database(&args.vault)?;
+		let result = init_fixture(&args);
+		let _ = db::close_database();
+		return result;
+	}
 
 	let fixture_text = std::fs::read_to_string(&args.queries)
 		.map_err(|e| format!("cannot read fixture {:?}: {e}", args.queries))?;
@@ -343,6 +381,172 @@ fn run() -> Result<(), String> {
 
 	println!("\nreport written to {}", args.out.display());
 	let _ = db::close_database();
+	Ok(())
+}
+
+/// Fixture file as written by `--init-fixture`. Same shape the eval reads,
+/// plus a `_comment` and per-query `_todo` hints that the reader ignores.
+#[derive(Serialize)]
+struct FixtureDraft {
+	#[serde(rename = "_comment")]
+	comment: String,
+	queries: Vec<FixtureDraftQuery>,
+}
+
+#[derive(Serialize)]
+struct FixtureDraftQuery {
+	id: String,
+	bucket: String,
+	query: String,
+	expected: Vec<String>,
+	#[serde(rename = "_todo", skip_serializing_if = "Option::is_none")]
+	todo: Option<String>,
+}
+
+/// Nonsense queries for bucket C; each token is checked against the vault
+/// vocabulary and the query is dropped if any token exists.
+const NONSENSE_QUERIES: [&str; 3] = [
+	"zorblat quennifer plasmoid kettleworth",
+	"vintrosque halberdine mocassinage",
+	"frumblewick oscillatrix pendragonal",
+];
+
+/// Drafts `queries.json` from the vault's own FTS index. Bucket A: terms
+/// that occur in exactly one note (rare exact terms, the case hybrid must
+/// not lose). Bucket B: note titles, to be rewritten as paraphrases by the
+/// author. Bucket C: nonsense verified absent from the vocabulary.
+fn init_fixture(args: &Args) -> Result<(), String> {
+	if args.queries.exists() && !args.force {
+		return Err(format!(
+			"{} already exists; pass --force to overwrite or --queries <other file>",
+			args.queries.display()
+		));
+	}
+	let count_a = args.count.max(1);
+	let count_b = args.count.max(1);
+
+	let (bucket_a, bucket_b, bucket_c) = db::with_fts_db(|conn| {
+		// A `row`-type fts5vocab table gives (term, doc, cnt) straight from
+		// the index. It must live in temp to reference a main-db FTS table
+		// by name; the `instance`-type table the app keeps would need a
+		// GROUP BY over every token occurrence.
+		conn.execute(
+			"CREATE VIRTUAL TABLE IF NOT EXISTS temp.eval_vocab USING fts5vocab('main', 'notes_fts', 'row')",
+			[],
+		)
+		.map_err(|e| format!("cannot create temp vocab table: {e}"))?;
+
+		// Bucket A candidates: single-document terms, 7-30 chars, no digits,
+		// random order. Over-fetch so junk can be filtered below.
+		let mut stmt = conn
+			.prepare(
+				"SELECT term FROM temp.eval_vocab
+				 WHERE doc = 1 AND length(term) BETWEEN 7 AND 30 AND term NOT GLOB '*[0-9]*'
+				 ORDER BY random() LIMIT ?1",
+			)
+			.map_err(|e| format!("vocab query failed: {e}"))?;
+		let terms: Vec<String> = stmt
+			.query_map(rusqlite::params![(count_a * 6) as i64], |row| row.get::<_, String>(0))
+			.map_err(|e| format!("vocab query execution failed: {e}"))?
+			.filter_map(|r| r.ok())
+			.collect();
+
+		let mut bucket_a: Vec<(String, String)> = Vec::new();
+		for term in terms {
+			if bucket_a.len() >= count_a {
+				break;
+			}
+			if !looks_like_a_real_term(&term) {
+				continue;
+			}
+			let hits = db::fts_repo::search_match(conn, &format!("\"{}\"", term), 2)?;
+			if hits.len() == 1 {
+				bucket_a.push((term, hits[0].path.clone()));
+			}
+		}
+
+		// Bucket B: random titled notes.
+		let mut stmt = conn
+			.prepare(
+				"SELECT path, title FROM notes_content
+				 WHERE length(trim(title)) >= 4 ORDER BY random() LIMIT ?1",
+			)
+			.map_err(|e| format!("notes_content query failed: {e}"))?;
+		let bucket_b: Vec<(String, String)> = stmt
+			.query_map(rusqlite::params![count_b as i64], |row| {
+				Ok((row.get::<_, String>(1)?, row.get::<_, String>(0)?))
+			})
+			.map_err(|e| format!("notes_content query execution failed: {e}"))?
+			.filter_map(|r| r.ok())
+			.collect();
+
+		// Bucket C: keep a nonsense query only if none of its tokens exists.
+		let mut exists = conn
+			.prepare("SELECT 1 FROM temp.eval_vocab WHERE term = ?1 LIMIT 1")
+			.map_err(|e| format!("vocab lookup failed: {e}"))?;
+		let mut bucket_c: Vec<String> = Vec::new();
+		for q in NONSENSE_QUERIES {
+			let any_known = q.split_whitespace().any(|tok| {
+				exists
+					.query_row(rusqlite::params![tok], |_| Ok(()))
+					.is_ok()
+			});
+			if !any_known {
+				bucket_c.push(q.to_string());
+			}
+		}
+		Ok((bucket_a, bucket_b, bucket_c))
+	})?;
+
+	if bucket_a.is_empty() && bucket_b.is_empty() {
+		return Err("the FTS index is empty; open the vault in the app once so it gets indexed".to_string());
+	}
+
+	let mut queries: Vec<FixtureDraftQuery> = Vec::new();
+	for (i, (term, path)) in bucket_a.iter().enumerate() {
+		queries.push(FixtureDraftQuery {
+			id: format!("a{:02}", i + 1),
+			bucket: "A".to_string(),
+			query: term.clone(),
+			expected: vec![path.clone()],
+			todo: Some("Keep only if this term is something you would actually search for (identifier, name, acronym); delete junk.".to_string()),
+		});
+	}
+	for (i, (title, path)) in bucket_b.iter().enumerate() {
+		queries.push(FixtureDraftQuery {
+			id: format!("b{:02}", i + 1),
+			bucket: "B".to_string(),
+			query: title.clone(),
+			expected: vec![path.clone()],
+			todo: Some("Rewrite this query as a paraphrase in your own words (do not reuse the title's words), then delete this key.".to_string()),
+		});
+	}
+	for (i, q) in bucket_c.iter().enumerate() {
+		queries.push(FixtureDraftQuery {
+			id: format!("c{:02}", i + 1),
+			bucket: "C".to_string(),
+			query: q.clone(),
+			expected: Vec::new(),
+			todo: None,
+		});
+	}
+
+	let draft = FixtureDraft {
+		comment: "DRAFT generated by retrieval_eval --init-fixture. Review every entry: delete junk in A, paraphrase B, add 1-2 more expected paths where another note is equally relevant. Paths are vault-relative. Delete the _todo keys when done.".to_string(),
+		queries,
+	};
+	if let Some(parent) = args.queries.parent() {
+		std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {parent:?}: {e}"))?;
+	}
+	let json = serde_json::to_string_pretty(&draft).map_err(|e| format!("serialize fixture: {e}"))?;
+	std::fs::write(&args.queries, json).map_err(|e| format!("cannot write {:?}: {e}", args.queries))?;
+	println!(
+		"fixture draft written to {}\n  bucket A (rare terms): {}\n  bucket B (titles, paraphrase them): {}\n  bucket C (nothing relevant): {}\nReview it, then run the eval without --init-fixture.",
+		args.queries.display(),
+		bucket_a.len(),
+		bucket_b.len(),
+		bucket_c.len()
+	);
 	Ok(())
 }
 
