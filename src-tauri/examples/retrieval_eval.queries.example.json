@@ -1,0 +1,10 @@
+{
+	"_comment": "Copy to {vault}/.kokobrain/eval/queries.json and replace with real notes. Paths are vault-relative. Buckets: A = rare exact term (identifier, proper noun, acronym), B = paraphrase / semantic, C = nothing relevant in the vault (expected stays empty).",
+	"queries": [
+		{ "id": "a01", "bucket": "A", "query": "applyNoteChange", "expected": ["dev/kokobrain/indexing-notes.md"] },
+		{ "id": "a02", "bucket": "A", "query": "Marcus Aurelius", "expected": ["reading/meditations.md", "philosophy/stoicism.md"] },
+		{ "id": "b01", "bucket": "B", "query": "how we decided to launch the product", "expected": ["work/launch-retro.md"] },
+		{ "id": "b02", "bucket": "B", "query": "journaling every morning to stay calm", "expected": ["philosophy/stoicism.md"] },
+		{ "id": "c01", "bucket": "C", "query": "quantum chromodynamics lattice gauge", "expected": [] }
+	]
+}

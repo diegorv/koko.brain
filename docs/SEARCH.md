@@ -125,6 +125,36 @@ These constants force a full or partial reindex when bumped. Used to ship breaki
 
 ---
 
+## Evaluating retrieval changes
+
+There is no synthetic fixture: retrieval quality is measured against a real vault on the machine that has the models. The harness is `src-tauri/examples/retrieval_eval.rs`; the metrics it prints are the pure functions in `src-tauri/src/search/eval_metrics.rs` (unit-tested, no I/O).
+
+1. **Write the fixture** at `{vault}/.kokobrain/eval/queries.json` (template: `src-tauri/examples/retrieval_eval.queries.example.json`). 15-25 queries in three buckets, each with the vault-relative paths of the notes that should come back:
+   - `A` rare exact terms (code identifiers, proper nouns, acronyms) — where the lexical leg of hybrid has to earn its keep;
+   - `B` paraphrase / semantic queries — where the embedder has to;
+   - `C` queries with nothing relevant in the vault (`expected: []`) — where the gap filter should keep the result list short.
+2. **Capture the baseline** on the commit before the change:
+
+   ```sh
+   cargo run --release --manifest-path src-tauri/Cargo.toml --example retrieval_eval -- \
+     --vault ~/Vault --out ~/Vault/.kokobrain/eval/report-baseline.json
+   ```
+
+3. **Re-run after the change** with `--compare` pointing at the baseline:
+
+   ```sh
+   cargo run --release --manifest-path src-tauri/Cargo.toml --example retrieval_eval -- \
+     --vault ~/Vault --compare ~/Vault/.kokobrain/eval/report-baseline.json
+   ```
+
+The report (JSON, one per run) stores the top-10 paths per query per mode, so a later reader can see *which* note moved, not just that a mean changed. The console prints recall@5, recall@10, MRR@10, mean result count and p50 latency per mode and per bucket, the list of expected paths missing from the top 10, and, with `--compare`, every expected path the baseline had in its top 10 that the current run lost.
+
+Read it in this order: the per-query regressions list (any entry is a real loss), then bucket `A` recall@10 for hybrid versus text, then bucket `C` mean result count (filter behavior), then p50 latency. A mean that moved without a per-query story is noise, not a result.
+
+`--modes text` runs without the models; semantic and hybrid are skipped automatically when the embedder is not on disk. The first query is run once per mode as a warm-up so model lazy-loads do not land in the latency numbers. `--verbose` turns on the `[SEMANTIC]` / `[FTS]` debug log lines.
+
+---
+
 ## Tracing a query
 
 Useful tags to grep in `~/Library/Logs/com.diegorv.kokobrain/`:
