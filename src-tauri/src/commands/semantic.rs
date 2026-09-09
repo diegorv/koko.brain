@@ -64,9 +64,25 @@ struct CachedChunk {
 	source_path: String,
 	content: String,
 	heading: Option<String>,
+	/// Ancestor headings (H1 down to the parent of `heading`); needed so the
+	/// reranker can score the same heading-prefixed projection the embedder saw.
+	parent_headings: Vec<String>,
 	line_start: usize,
 	line_end: usize,
 	embedding: Vec<f32>,
+}
+
+impl CachedChunk {
+	/// Text handed to the cross-encoder: the same `heading chain + body`
+	/// projection `Chunk::embed_text()` indexed. See
+	/// `semantic::types::heading_prefixed_text`.
+	fn rerank_text(&self) -> String {
+		crate::semantic::types::heading_prefixed_text(
+			&self.parent_headings,
+			self.heading.as_deref(),
+			&self.content,
+		)
+	}
 }
 
 /// Clears the search cache. Must be called after any index modification.
@@ -124,6 +140,7 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 					source_path: row.source_path,
 					content: row.content,
 					heading: row.heading,
+					parent_headings: row.parent_headings,
 					line_start: row.line_start as usize,
 					line_end: row.line_end as usize,
 					embedding,
@@ -672,37 +689,46 @@ pub async fn search_semantic(
 		// Load chunks from cache (avoids re-reading DB + re-deserializing on every search)
 		let cached_chunks = get_or_load_cache()?;
 
-		// Stage 1: cosine ranking. Filter on the user-supplied min_score (still
-		// cheap), then keep enough candidates to feed the reranker. When the
-		// reranker is not available we collapse this back to the old single
-		// stage by skipping rerank below.
-		let mut candidates: Vec<SemanticResult> = cached_chunks
+		// Stage 1: cosine ranking over chunk indices. Filter on the
+		// user-supplied min_score (still cheap), sort descending. Results are
+		// materialized only for the chunks that leave this stage, so the full
+		// scan clones no content strings.
+		let mut scored: Vec<(f32, usize)> = cached_chunks
 			.iter()
-			.map(|chunk| {
-				let score = cosine_similarity(&query_embedding, &chunk.embedding);
-				SemanticResult {
-					key: chunk.key.clone(),
-					source_path: chunk.source_path.clone(),
-					content: chunk.content.clone(),
-					heading: chunk.heading.clone(),
-					line_start: chunk.line_start,
-					line_end: chunk.line_end,
-					score,
-				}
-			})
-			.filter(|r| r.score >= threshold)
+			.enumerate()
+			.map(|(idx, chunk)| (cosine_similarity(&query_embedding, &chunk.embedding), idx))
+			.filter(|(score, _)| *score >= threshold)
 			.collect();
-		candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
+		scored.sort_by(|a, b| b.0.total_cmp(&a.0));
+
+		let to_result = |score: f32, idx: usize| -> SemanticResult {
+			let chunk = &cached_chunks[idx];
+			SemanticResult {
+				key: chunk.key.clone(),
+				source_path: chunk.source_path.clone(),
+				content: chunk.content.clone(),
+				heading: chunk.heading.clone(),
+				line_start: chunk.line_start,
+				line_end: chunk.line_end,
+				score,
+			}
+		};
 
 		// Stage 2: rerank the top RERANK_CANDIDATE_POOL with BGE-reranker-v2-m3
-		// when its model is on disk. We replace each candidate's `score` with
-		// the rerank logit so adaptive filtering downstream sees the more
-		// meaningful signal. If the reranker isn't downloaded we silently fall
-		// back to cosine ordering — search still works, just at lower quality.
-		let pool_size = RERANK_CANDIDATE_POOL.min(candidates.len());
-		let used_reranker = if pool_size > 0 && ensure_reranker_loaded()? {
-			let mut pool: Vec<SemanticResult> = candidates.drain(..pool_size).collect();
-			let docs: Vec<&str> = pool.iter().map(|r| r.content.as_str()).collect();
+		// when its model is on disk. The cross-encoder scores the SAME
+		// heading-prefixed projection the embedder indexed (`rerank_text`), not
+		// the bare body. We replace each candidate's `score` with the rerank
+		// logit so adaptive filtering downstream sees the more meaningful
+		// signal. If the reranker isn't downloaded we silently fall back to
+		// cosine ordering — search still works, just at lower quality.
+		let pool_size = RERANK_CANDIDATE_POOL.min(scored.len());
+		let (mut candidates, used_reranker) = if pool_size > 0 && ensure_reranker_loaded()? {
+			let pool = &scored[..pool_size];
+			let docs: Vec<String> = pool
+				.iter()
+				.map(|(_, idx)| cached_chunks[*idx].rerank_text())
+				.collect();
+			let doc_refs: Vec<&str> = docs.iter().map(|s| s.as_str()).collect();
 			let rerank_scores = {
 				let mut guard = RERANKER
 					.try_lock()
@@ -710,18 +736,24 @@ pub async fn search_semantic(
 				let reranker = guard
 					.as_mut()
 					.ok_or("Reranker not loaded — should be unreachable after ensure_reranker_loaded")?;
-				reranker.rerank(&trimmed, &docs)?
+				reranker.rerank(&trimmed, &doc_refs)?
 			};
 			schedule_reranker_unload();
 
-			for (r, s) in pool.iter_mut().zip(rerank_scores.iter()) {
-				r.score = *s;
-			}
-			pool.sort_by(|a, b| b.score.total_cmp(&a.score));
-			candidates = pool;
-			true
+			let mut reranked: Vec<SemanticResult> = pool
+				.iter()
+				.zip(rerank_scores.iter())
+				.map(|((_, idx), s)| to_result(*s, *idx))
+				.collect();
+			reranked.sort_by(|a, b| b.score.total_cmp(&a.score));
+			(reranked, true)
 		} else {
-			false
+			let plain: Vec<SemanticResult> = scored
+				.iter()
+				.take(limit)
+				.map(|(s, idx)| to_result(*s, *idx))
+				.collect();
+			(plain, false)
 		};
 
 		// Limit + adaptive filter on whichever score the user is seeing
@@ -878,13 +910,19 @@ pub async fn search_hybrid(
 		// available; replace `score` with the rerank logit.
 		let used_reranker = !candidates.is_empty() && ensure_reranker_loaded()?;
 		if used_reranker {
-			let docs: Vec<&str> = candidates.iter().map(|c| c.content.as_str()).collect();
+			// Same heading-prefixed projection the embedder indexed; `picks` and
+			// `candidates` are 1:1 in order at this point.
+			let docs: Vec<String> = picks
+				.iter()
+				.map(|p| cached_chunks[p.chunk_index].rerank_text())
+				.collect();
+			let doc_refs: Vec<&str> = docs.iter().map(|s| s.as_str()).collect();
 			let scores = {
 				let mut guard = RERANKER
 					.try_lock()
 					.map_err(|_| "Reranker temporarily busy".to_string())?;
 				let reranker = guard.as_mut().ok_or("Reranker not loaded")?;
-				reranker.rerank(&trimmed, &docs)?
+				reranker.rerank(&trimmed, &doc_refs)?
 			};
 			schedule_reranker_unload();
 			for (c, s) in candidates.iter_mut().zip(scores.iter()) {

@@ -81,25 +81,36 @@ pub struct Chunk {
 	pub content_hash: String,
 }
 
+/// Builds the heading-prefixed projection of a chunk: the text the embedder
+/// indexes (`Chunk::embed_text`) and the text the cross-encoder scores at
+/// query time (`CachedChunk::rerank_text` in `commands/semantic.rs`). Both
+/// sides MUST use this one function — a chunk's place in the document
+/// hierarchy is part of its relevance, and feeding the reranker the bare
+/// body while the embedder saw the heading chain was an asymmetry with no
+/// upside.
+///
+/// Format: `H1 > H2 > Hn\n\n<content>` when `parent_headings` is non-empty,
+/// `<heading>\n\n<content>` when only the local heading is known,
+/// or `<content>` alone for headless documents.
+pub fn heading_prefixed_text(parent_headings: &[String], heading: Option<&str>, content: &str) -> String {
+	let mut parts: Vec<&str> = parent_headings.iter().map(|s| s.as_str()).collect();
+	if let Some(h) = heading {
+		parts.push(h);
+	}
+	if parts.is_empty() {
+		content.to_string()
+	} else {
+		format!("{}\n\n{}", parts.join(" > "), content)
+	}
+}
+
 impl Chunk {
-	/// Returns the text that should be fed to the embedder.
-	/// Format: `H1 > H2 > Hn\n\n<content>` when parent_headings is non-empty,
-	/// `<heading>\n\n<content>` when only the local heading is known,
-	/// or `<content>` alone for headless documents.
+	/// Returns the text that should be fed to the embedder. Delegates to
+	/// `heading_prefixed_text`; `content_hash` is the hash of this output, so
+	/// any change to the projection is a recipe change (bump
+	/// `EMBED_RECIPE_VERSION`).
 	pub fn embed_text(&self) -> String {
-		let mut parts: Vec<&str> = self
-			.parent_headings
-			.iter()
-			.map(|s| s.as_str())
-			.collect();
-		if let Some(h) = &self.heading {
-			parts.push(h.as_str());
-		}
-		if parts.is_empty() {
-			self.content.clone()
-		} else {
-			format!("{}\n\n{}", parts.join(" > "), self.content)
-		}
+		heading_prefixed_text(&self.parent_headings, self.heading.as_deref(), &self.content)
 	}
 }
 
@@ -144,5 +155,36 @@ mod tests {
 		let c = chunk("just body", None, &[]);
 		assert_eq!(c.embed_text(), "just body");
 		assert_eq!(c.embed_text(), c.content);
+	}
+
+	// --- heading_prefixed_text (shared embedder / reranker projection) ---
+
+	#[test]
+	fn heading_prefixed_text_matches_embed_text_for_every_shape() {
+		let shapes = [
+			chunk("body", Some("Leaf"), &["Root", "Mid"]),
+			chunk("body", Some("Only"), &[]),
+			chunk("body", None, &["Root"]),
+			chunk("body", None, &[]),
+		];
+		for c in &shapes {
+			assert_eq!(
+				heading_prefixed_text(&c.parent_headings, c.heading.as_deref(), &c.content),
+				c.embed_text()
+			);
+		}
+	}
+
+	#[test]
+	fn heading_prefixed_text_parents_without_local_heading() {
+		let parents = vec!["Root".to_string(), "Mid".to_string()];
+		assert_eq!(heading_prefixed_text(&parents, None, "body"), "Root > Mid\n\nbody");
+	}
+
+	#[test]
+	fn heading_prefixed_text_empty_content_still_carries_headings() {
+		let parents = vec!["Root".to_string()];
+		assert_eq!(heading_prefixed_text(&parents, Some("Leaf"), ""), "Root > Leaf\n\n");
+		assert_eq!(heading_prefixed_text(&[], None, ""), "");
 	}
 }

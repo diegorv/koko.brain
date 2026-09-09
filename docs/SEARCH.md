@@ -57,7 +57,7 @@ RRF is in `src-tauri/src/search/rrf.rs`. `DEFAULT_RRF_K = 60`. Ties are broken a
 
 1. **Chunking** (`src-tauri/src/semantic/chunker.rs`)
    - Heading-driven by default. Each section becomes one chunk.
-   - Maintains a parent-heading stack while walking the document. The full ancestry (e.g. `Project X > Decisions > Auth`) is prepended to the embedded text via `Chunk::embed_text()`, but the stored `content` is the original section body — display stays correct.
+   - Maintains a parent-heading stack while walking the document. The full ancestry (e.g. `Project X > Decisions > Auth`) is prepended to the embedded text via `Chunk::embed_text()`, but the stored `content` is the original section body — display stays correct. At query time the cross-encoder scores the same projection (`heading_prefixed_text` in `semantic/types.rs`, shared by `Chunk::embed_text()` and `CachedChunk::rerank_text()`), so the reranker knows where a section sits in its document. Changing the projection is a recipe change: bump `EMBED_RECIPE_VERSION`.
    - Sections are capped at `max_chunk_chars = 3000` (~700 tokens). Overlap is char-based, `overlap_chars = 200`, snapped forward to the next newline so the overlap starts at a clean line boundary instead of mid-sentence.
    - Notes with zero headings fall back to `window_chunks()` — `max_chunk_chars`-sized windows (3000 by default) with `WINDOW_OVERLAP_CHARS = 500` overlap. Without this, long headless notes would be truncated to the model's 512-token limit and only the first ~2 KB would be indexed.
    - `strip_code_blocks` keeps the first two lines (so language tag + function signature survive) and any inline comments — function/CLI names matter for retrieval.
