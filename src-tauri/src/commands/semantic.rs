@@ -759,10 +759,12 @@ pub async fn search_semantic(
 /// 2. Reduce semantic chunks to a path ranking (best chunk per path,
 ///    order preserved).
 /// 3. RRF the two path rankings (k=60).
-/// 4. For each path in the fused top-50, pick its best-scoring semantic
-///    chunk to hand to the reranker. Paths that only matched in FTS are
-///    skipped (MVP limitation — the semantic indexer covers the full vault
-///    so this only affects files filtered out at index time).
+/// 4. For each path in the fused top-50 pick one representative chunk via
+///    `search::hybrid::assemble_candidates`: the chunk with the most literal
+///    query-term hits (content + heading), tie-broken by cosine. This covers
+///    paths that only the FTS leg surfaced — before, those had no chunk and
+///    were dropped, so the lexical leg could never add a result. Only paths
+///    with zero chunks in the semantic index are still skipped.
 /// 5. Rerank with `Reranker::rerank` if the model is on disk; otherwise
 ///    keep RRF order.
 /// 6. Sort by final score, truncate to `max_results`.
@@ -785,8 +787,7 @@ pub async fn search_hybrid(
 		let fts_results = crate::commands::search_index::search_fts_inner(&trimmed, SOURCE_TOP_N, false)?;
 		let fts_paths: Vec<String> = fts_results.iter().map(|r| r.path.clone()).collect();
 
-		// 1b. Semantic top-N chunks (cosine only — we don't want to pay
-		// reranker latency on this candidate pass; the rerank happens after RRF).
+		// 1b. Semantic ranking (cosine only — the rerank happens after RRF).
 		ensure_embedder_loaded()?;
 		let query_embedding = {
 			let mut guard = EMBEDDER.try_lock().map_err(|_| {
@@ -799,25 +800,28 @@ pub async fn search_hybrid(
 		schedule_embedder_unload();
 		let cached_chunks = get_or_load_cache()?;
 
-		// Rank ALL chunks by cosine, take top SOURCE_TOP_N.
-		let mut sem_ranked: Vec<(f32, &CachedChunk)> = cached_chunks
+		// Cosine for EVERY chunk. The full vector is kept (not just the top
+		// slice) because step 4 needs a score for chunks of paths that only
+		// the FTS leg surfaced.
+		let cosines: Vec<f32> = cached_chunks
 			.iter()
-			.map(|c| (cosine_similarity(&query_embedding, &c.embedding), c))
+			.map(|c| cosine_similarity(&query_embedding, &c.embedding))
 			.collect();
-		sem_ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
-		sem_ranked.truncate(SOURCE_TOP_N * 4); // headroom for path dedupe
+		let mut sem_order: Vec<usize> = (0..cached_chunks.len()).collect();
+		sem_order.sort_by(|a, b| cosines[*b].total_cmp(&cosines[*a]));
+		sem_order.truncate(SOURCE_TOP_N * 4); // headroom for path dedupe
 
-		// 2. Reduce to per-path ranking, preserving discovery order. Best
-		// chunk per path is the one we'll hand to the reranker downstream.
-		let mut best_chunk_for_path: std::collections::HashMap<String, &CachedChunk> =
-			std::collections::HashMap::new();
+		// 2. Reduce to a per-path ranking, preserving discovery order.
 		let mut sem_paths: Vec<String> = Vec::new();
-		for (_score, chunk) in &sem_ranked {
-			if !best_chunk_for_path.contains_key(&chunk.source_path) {
-				best_chunk_for_path.insert(chunk.source_path.clone(), chunk);
-				sem_paths.push(chunk.source_path.clone());
-				if sem_paths.len() >= SOURCE_TOP_N {
-					break;
+		{
+			let mut seen: HashSet<&str> = HashSet::new();
+			for idx in &sem_order {
+				let path = cached_chunks[*idx].source_path.as_str();
+				if seen.insert(path) {
+					sem_paths.push(path.to_string());
+					if sem_paths.len() >= SOURCE_TOP_N {
+						break;
+					}
 				}
 			}
 		}
@@ -830,21 +834,44 @@ pub async fn search_hybrid(
 			crate::search::rrf::DEFAULT_RRF_K,
 		);
 
-		// 4. Materialize a candidate list backed by real semantic chunks.
-		let mut candidates: Vec<SemanticResult> = Vec::with_capacity(FUSED_POOL);
-		for (path, rrf_score) in fused.iter().take(FUSED_POOL) {
-			if let Some(chunk) = best_chunk_for_path.get(path) {
-				candidates.push(SemanticResult {
-					key: chunk.key.clone(),
-					source_path: chunk.source_path.clone(),
-					content: chunk.content.clone(),
-					heading: chunk.heading.clone(),
-					line_start: chunk.line_start,
-					line_end: chunk.line_end,
-					// Provisional score — reranker overwrites if available.
-					score: *rrf_score,
-				});
+		// 4. One representative chunk per fused path — including paths only
+		// the FTS leg surfaced. Prefers the chunk that literally contains the
+		// query terms, then the highest cosine; the reranker arbitrates.
+		let terms = crate::search::hybrid::query_terms(&trimmed);
+		let picks = crate::search::hybrid::assemble_candidates(
+			&fused,
+			cached_chunks
+				.iter()
+				.zip(cosines.iter())
+				.map(|(c, cos)| crate::search::hybrid::ChunkCandidate {
+					path: c.source_path.as_str(),
+					heading: c.heading.as_deref(),
+					content: c.content.as_str(),
+					cosine: *cos,
+				}),
+			&terms,
+			FUSED_POOL,
+		);
+		let sem_set: HashSet<&str> = sem_paths.iter().map(|s| s.as_str()).collect();
+		let overlap = fts_paths.iter().filter(|p| sem_set.contains(p.as_str())).count();
+		let mut fts_only = 0usize;
+		let mut candidates: Vec<SemanticResult> = Vec::with_capacity(picks.len());
+		for pick in &picks {
+			let (path, rrf_score) = &fused[pick.fused_index];
+			let chunk = &cached_chunks[pick.chunk_index];
+			if !sem_set.contains(path.as_str()) {
+				fts_only += 1;
 			}
+			candidates.push(SemanticResult {
+				key: chunk.key.clone(),
+				source_path: chunk.source_path.clone(),
+				content: chunk.content.clone(),
+				heading: chunk.heading.clone(),
+				line_start: chunk.line_start,
+				line_end: chunk.line_end,
+				// Provisional score — reranker overwrites if available.
+				score: *rrf_score,
+			});
 		}
 
 		// 5. Rerank the candidate pool with the BGE cross-encoder when
@@ -871,10 +898,13 @@ pub async fn search_hybrid(
 		debug_log(
 			"SEMANTIC",
 			format!(
-				"hybrid: fts={} sem={} fused={} reranker={} returned={}",
+				"hybrid: fts={} sem={} overlap={} fused={} pool={} fts_only={} reranker={} returned={}",
 				fts_paths.len(),
 				sem_paths.len(),
+				overlap,
 				fused.len(),
+				picks.len(),
+				fts_only,
 				used_reranker,
 				candidates.len()
 			),

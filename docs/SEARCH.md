@@ -38,7 +38,7 @@ query
                           ├── RRF (k = 60) ── top-50 ──────────┤
         cosine top-30 ───┘                                     │
                                                                ▼
-                                      best chunk / path ── rerank* ── gap filter ── top-K
+                              term-hit chunk / path ── rerank* ── gap filter ── top-K
 
   * Rerank stage is skipped automatically when the BGE-reranker-v2-m3 model is not on disk.
 ```
@@ -108,7 +108,7 @@ These constants force a full or partial reindex when bumped. Used to ship breaki
 
 ## Known limitations / non-goals
 
-- **FTS-only paths in hybrid**: hybrid takes the best semantic chunk for each fused path. If a path is in the FTS top-30 but has no semantic chunk yet (e.g. brand-new file before the semantic index catches up), it is dropped. In practice the semantic indexer covers the full vault so this is rare; the failure mode is "the result drops out of hybrid" not "wrong result returned".
+- **Fused paths with zero semantic chunks**: hybrid picks one chunk per fused path from the whole semantic index (`src-tauri/src/search/hybrid.rs`: most literal query-term hits in content + heading, then highest cosine), so a path that only the FTS leg surfaced is reranked like any other. The one remaining gap is a path with no chunk at all (a brand-new file before the semantic index catches up): it is skipped. The `hybrid:` log line reports `fts_only=N` (paths materialized from the FTS leg alone) and `overlap=N` (paths both legs agreed on).
 - **No CoreML / Apple Neural Engine acceleration**. Verified empirically not to help BGE-M3 / XLM-RoBERTa on Apple Silicon — the ANE only engages for FP16 + ANE-friendly layer ordering, and Xenova's conversion has neither. INT8 + AMX on perf cores is the speed sweet spot.
 - **No sqlite-vec / HNSW index**. Brute-force cosine over ~85k chunks completes in <20 ms on M-series — not worth the schema migration.
 - **No sparse / ColBERT retrieval signals**. BGE-M3 outputs both, but storing them would roughly double on-disk size and the win on this vault is small. Reserved for the optional Phase 4 work — see `tasks/done/embedding-quality.md` if it's been moved there.
