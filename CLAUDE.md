@@ -51,7 +51,7 @@ pnpm check:watch      # Type checking in watch mode
 bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up)
 ```
 
-**Build performance:** `.cargo/config.toml` requires `sccache` on PATH (`brew install sccache`). The `beforeBuildCommand` is `bash scripts/tauri-before-build.sh`, which skips `pnpm build` when frontend inputs are unchanged; bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
+**Build performance:** `.cargo/config.toml` requires `sccache` on PATH (`brew install sccache`); on a box without it, `RUSTC_WRAPPER=` (empty) disables the wrapper. Linux / remote-container prerequisites and the ONNX Runtime download workaround are in [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md). The `beforeBuildCommand` is `bash scripts/tauri-before-build.sh`, which skips `pnpm build` when frontend inputs are unchanged; bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
 
 **E2E tests:** ALWAYS run via `bash scripts/e2e.sh`. NEVER run `PLAYWRIGHT=true pnpm dev` manually — the script handles server lifecycle, port cleanup, and teardown automatically.
 
@@ -294,6 +294,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/PATTERNS.md](docs/PATTERNS.md) | Svelte 5 reactive patterns: `$effect`+`untrack()`, PaneForge conditional panes, store pattern |
 | [docs/TESTING.md](docs/TESTING.md) | Full testing guide: mock rules, assertions, service/store tests, E2E, completion gate |
 | [docs/COMMITS.md](docs/COMMITS.md) | Commit message convention with format and examples |
+| [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) | Machine prerequisites for the test gates: sccache, rustc floor, Tauri Linux libs, ONNX Runtime download workaround for proxied containers |
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
