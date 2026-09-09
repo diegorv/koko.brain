@@ -756,9 +756,16 @@ pub async fn search_semantic(
 			(plain, false)
 		};
 
-		// Limit + adaptive filter on whichever score the user is seeing
+		// Limit + adaptive filter on whichever score the user is seeing. The
+		// kind matters: reranker logits are judged by absolute gap, cosine by
+		// a fraction of the top score (see `filtering::ScoreKind`).
 		candidates.truncate(limit);
-		if let Some(outcome) = filtering::adaptive_filter(&candidates) {
+		let score_kind = if used_reranker {
+			filtering::ScoreKind::Logit
+		} else {
+			filtering::ScoreKind::Cosine
+		};
+		if let Some(outcome) = filtering::adaptive_filter(&candidates, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
 			candidates.truncate(outcome.keep_count);
 		}

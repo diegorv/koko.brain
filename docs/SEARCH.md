@@ -51,6 +51,11 @@ Key constants (`src-tauri/src/commands/semantic.rs`):
 
 RRF is in `src-tauri/src/search/rrf.rs`. `DEFAULT_RRF_K = 60`. Ties are broken alphabetically so results are deterministic across runs.
 
+**Gap filter** (`src-tauri/src/semantic/filtering.rs`, `adaptive_filter`): after truncating to K, finds the largest gap between consecutive scores and cuts there when the gap is significant; otherwise falls back to a scale-free `mean - 1*stddev` floor. "Significant" depends on the score scale, passed as `ScoreKind`:
+
+- `Cosine` (reranker absent): gap > `COSINE_GAP_RATIO = 0.04` × top score. Cosine has a meaningful zero, so a fraction of the top works.
+- `Logit` (reranker ran): gap > `LOGIT_GAP_THRESHOLD = 1.0` logit units, an e-fold change in odds. Logits are an interval scale — a top logit near zero would make any gap "significant" under the ratio rule, a strongly negative top would make none — so the gap is judged in absolute units.
+
 ---
 
 ## Indexing pipeline (index time)

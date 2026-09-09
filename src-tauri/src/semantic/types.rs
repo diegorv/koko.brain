@@ -14,7 +14,9 @@ pub struct SemanticResult {
 	pub line_start: usize,
 	/// Ending line number in the source file
 	pub line_end: usize,
-	/// Cosine similarity score (0.0 to 1.0)
+	/// Cosine similarity (0.0 to 1.0) when the cross-encoder did not run, or
+	/// the reranker logit (unbounded log-odds) when it did. See
+	/// `filtering::ScoreKind` for how downstream filtering tells them apart.
 	pub score: f32,
 }
 
