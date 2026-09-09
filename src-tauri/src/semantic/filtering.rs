@@ -17,10 +17,16 @@ pub enum ScoreKind {
 	Cosine,
 	/// Cross-encoder logit (log-odds): an interval scale whose zero is
 	/// arbitrary and whose range differs per query, so a ratio of the top
-	/// score is meaningless — a top logit near zero would make any gap
-	/// "significant", a strongly negative top would make none. Differences
-	/// between logits ARE meaningful (log-odds ratios), so the gap is judged
-	/// in absolute logit units (`LOGIT_GAP_THRESHOLD`).
+	/// raw score is meaningless — a top logit near zero would make any gap
+	/// "significant", a strongly negative top would make none. The scores
+	/// are mapped through the sigmoid to probabilities first (`sigmoid`),
+	/// which have a meaningful zero, and the `COSINE_GAP_RATIO` rule then
+	/// applies. In probability space one logit step counts for little among
+	/// confident results (p near 1) and for a lot in the tail (p near 0),
+	/// which is where a nonsense query lands and where the list should be
+	/// cut short. An absolute threshold in logit units (1.0, tried first)
+	/// never fired on that flat, very negative tail and left those lists
+	/// long.
 	Logit,
 	/// Reciprocal-rank-fusion score (hybrid mode without a reranker). Derived
 	/// from ranks alone, it carries no relevance magnitude: the "gap" between
@@ -35,10 +41,13 @@ pub enum ScoreKind {
 /// 2% split them (see the "comida" regression test).
 pub const COSINE_GAP_RATIO: f32 = 0.04;
 
-/// Logit rule: a gap counts when two neighbours differ by more than this
-/// many logit units. 1.0 is an e-fold change in odds — the next result is
-/// less than 37% as likely to be relevant as the one above it.
-pub const LOGIT_GAP_THRESHOLD: f32 = 1.0;
+/// Logistic function: maps a logit (log-odds) to a probability in `[0, 1]`.
+/// In f32 it saturates to exactly 0.0 or 1.0 beyond roughly +-88; on a
+/// list sorted by score that only ever yields equal neighbours (gap 0),
+/// never a false cut.
+fn sigmoid(x: f32) -> f32 {
+	1.0 / (1.0 + (-x).exp())
+}
 
 /// Applies adaptive filtering to remove noise from semantic search results.
 ///
@@ -57,7 +66,12 @@ pub fn adaptive_filter(results: &[SemanticResult], kind: ScoreKind) -> Option<Fi
 		return None;
 	}
 
-	let scores: Vec<f32> = results.iter().map(|r| r.score).collect();
+	// Logits become probabilities so that both kinds below are ratio
+	// scales; the fallback runs on the same transformed values.
+	let scores: Vec<f32> = match kind {
+		ScoreKind::Logit => results.iter().map(|r| sigmoid(r.score)).collect(),
+		ScoreKind::Cosine | ScoreKind::Rrf => results.iter().map(|r| r.score).collect(),
+	};
 	let top_score = scores[0];
 
 	// Find the largest gap between consecutive scores
@@ -71,22 +85,23 @@ pub fn adaptive_filter(results: &[SemanticResult], kind: ScoreKind) -> Option<Fi
 		}
 	}
 
-	// If the largest gap is significant for this scale, cut there. Cosine:
-	// relative to the top score (abs() only guards a degenerate negative
-	// cosine). Logit: an absolute log-odds distance, independent of where
-	// the top happens to sit.
-	let gap_threshold = match kind {
-		ScoreKind::Cosine => top_score.abs() * COSINE_GAP_RATIO,
-		ScoreKind::Logit => LOGIT_GAP_THRESHOLD,
-		ScoreKind::Rrf => unreachable!("Rrf returns before the gap rule"),
+	// If the largest gap is significant, cut there: relative to the top
+	// score (abs() only guards a degenerate negative cosine; probabilities
+	// are never negative). For `Logit` the logged gap and threshold are in
+	// probability units, unlike the raw logits printed around it.
+	let scale = match kind {
+		ScoreKind::Logit => "Logit, sigmoid p",
+		ScoreKind::Cosine => "Cosine",
+		ScoreKind::Rrf => "Rrf",
 	};
+	let gap_threshold = top_score.abs() * COSINE_GAP_RATIO;
 	if max_gap > gap_threshold && gap_idx < scores.len() - 1 {
 		let cut_at = gap_idx + 1;
 		return Some(FilterOutcome {
 			keep_count: cut_at,
 			log_message: format!(
-				"Gap filter ({:?}): cut at #{} (gap={:.4}, threshold={:.4})",
-				kind, cut_at, max_gap, gap_threshold
+				"Gap filter ({scale}): cut at #{} (gap={:.4}, threshold={:.4})",
+				cut_at, max_gap, gap_threshold
 			),
 		});
 	}
@@ -98,13 +113,13 @@ pub fn adaptive_filter(results: &[SemanticResult], kind: ScoreKind) -> Option<Fi
 	let stddev = variance.sqrt();
 	let dynamic_min = mean - stddev;
 
-	let keep_count = results.iter().filter(|r| r.score >= dynamic_min).count();
+	let keep_count = scores.iter().filter(|s| **s >= dynamic_min).count();
 	let removed = results.len() - keep_count;
 
 	Some(FilterOutcome {
 		keep_count,
 		log_message: format!(
-			"Dynamic min filter: {:.4} (mean={:.4} - stddev={:.4}), removed {}",
+			"Dynamic min filter ({scale}): {:.4} (mean={:.4} - stddev={:.4}), removed {}",
 			dynamic_min, mean, stddev, removed
 		),
 	})
@@ -296,9 +311,20 @@ mod tests {
 	// --- adaptive_filter, ScoreKind::Logit ---
 
 	#[test]
-	fn logit_near_zero_top_does_not_collapse_to_one_result() {
-		// Regression for the ratio-of-top rule: top logit 0.3 gave a
-		// threshold of 0.012, so the 0.05 gaps below cut everything after #1.
+	fn sigmoid_maps_logits_to_probabilities() {
+		assert!((sigmoid(0.0) - 0.5).abs() < 1e-6);
+		assert!(sigmoid(4.0) > 0.98 && sigmoid(4.0) < 1.0);
+		assert!(sigmoid(-4.0) < 0.02 && sigmoid(-4.0) > 0.0);
+		assert!(sigmoid(-80.0) > 0.0, "reranker tail (-7..-12) is far from the f32 edge");
+		assert_eq!(sigmoid(-100.0), 0.0, "saturation is exact, not NaN");
+	}
+
+	#[test]
+	fn logit_near_zero_top_with_small_steps_does_not_collapse_to_one_result() {
+		// Regression for the ratio-of-raw-top rule: top logit 0.3 gave a
+		// threshold of 0.012, so the 0.05 steps below cut everything after
+		// #1. In probability space the steps are ~0.012 against a 0.023
+		// threshold, so the fallback runs.
 		let results = make_results(&[0.30, 0.25, 0.20, 0.15]);
 		let outcome = adaptive_filter(&results, ScoreKind::Logit).unwrap();
 		assert!(outcome.log_message.contains("Dynamic min filter"), "{}", outcome.log_message);
@@ -307,46 +333,79 @@ mod tests {
 
 	#[test]
 	fn logit_clear_gap_cuts_regardless_of_sign() {
-		// Positive top: 5.0, 4.5 | 1.0, 0.5 — gap 3.5 > 1.0.
+		// Positive top: 5.0, 4.5 | 1.0, 0.5 — p 0.993, 0.989 | 0.731, 0.622.
 		let positive = make_results(&[5.0, 4.5, 1.0, 0.5]);
 		let outcome = adaptive_filter(&positive, ScoreKind::Logit).unwrap();
 		assert_eq!(outcome.keep_count, 2);
-		assert!(outcome.log_message.contains("Gap filter (Logit)"));
+		assert!(outcome.log_message.contains("Gap filter (Logit"));
 
-		// Negative top (nothing strongly relevant): -1.0, -1.5 | -4.0, -4.2.
-		// The ratio rule would have used |−1.0| * 0.04 = 0.04 here and cut
-		// on the 0.5 step; the absolute rule cuts on the real 2.5 step.
+		// Negative top (nothing strongly relevant): -1.0, -1.5 | -4.0, -4.2 —
+		// p 0.269, 0.182 | 0.018, 0.015. The largest step is still the real
+		// 2.5-logit cliff, not the first step.
 		let negative = make_results(&[-1.0, -1.5, -4.0, -4.2]);
 		let outcome = adaptive_filter(&negative, ScoreKind::Logit).unwrap();
 		assert_eq!(outcome.keep_count, 2);
 	}
 
 	#[test]
-	fn logit_gap_exactly_at_threshold_does_not_cut() {
-		let results = make_results(&[3.0, 2.0, 1.9, 1.8]);
+	fn logit_same_step_counts_less_among_confident_results() {
+		// A 0.5-logit step at the top of a confident list (3.0 -> 2.5) is a
+		// 0.029 probability gap under a 0.038 threshold: no cut. The same
+		// step at p = 0.5 (0.0 -> -0.5) is a 0.122 gap over 0.02: cut.
+		let confident = make_results(&[3.0, 2.5, 2.4, 2.3]);
+		let outcome = adaptive_filter(&confident, ScoreKind::Logit).unwrap();
+		assert!(outcome.log_message.contains("Dynamic min filter"), "{}", outcome.log_message);
+
+		let midway = make_results(&[0.0, -0.5, -0.6, -0.7]);
+		let outcome = adaptive_filter(&midway, ScoreKind::Logit).unwrap();
+		assert_eq!(outcome.keep_count, 1);
+		assert!(outcome.log_message.contains("Gap filter (Logit"));
+	}
+
+	#[test]
+	fn logit_flat_negative_tail_is_cut_short() {
+		// A nonsense query: every candidate deeply negative, no cliff in
+		// logit units (steps of 0.3-0.7). The absolute 1.0 rule never fired
+		// here and its stddev fallback kept 5 of these 6; in probability
+		// space the relative steps are large, so the list is cut at the
+		// largest one.
+		let results = make_results(&[-7.2, -7.5, -8.2, -8.4, -8.5, -9.1]);
 		let outcome = adaptive_filter(&results, ScoreKind::Logit).unwrap();
-		// max gap = 1.0, threshold = 1.0 -> not strictly greater -> fallback.
-		assert!(outcome.log_message.contains("Dynamic min filter"));
+		assert!(outcome.log_message.contains("Gap filter (Logit"), "{}", outcome.log_message);
+		assert!(outcome.keep_count <= 2, "keep_count={}", outcome.keep_count);
 	}
 
 	#[test]
 	fn logit_tight_cluster_falls_back_to_stddev() {
-		let results = make_results(&[2.0, 1.6, 1.3, 1.1, 1.0]);
+		let results = make_results(&[2.0, 1.9, 1.8, 1.7, 1.6]);
 		let outcome = adaptive_filter(&results, ScoreKind::Logit).unwrap();
-		assert!(outcome.log_message.contains("Dynamic min filter"));
+		assert!(outcome.log_message.contains("Dynamic min filter"), "{}", outcome.log_message);
 		assert!(outcome.keep_count >= 3);
 	}
 
 	#[test]
-	fn logit_same_data_as_cosine_rule_differs_only_in_threshold() {
-		// Under Cosine the 0.30 gap is 33% of the top and cuts at #3; under
-		// Logit it is 0.30 units, below 1.0, so no cut. Same input, the kind
-		// decides — this is the whole point of the enum.
-		let results = make_results(&[0.90, 0.85, 0.80, 0.50, 0.45]);
+	fn logit_kind_differs_from_cosine_on_the_same_raw_scores() {
+		// Four confident logits one unit apart. Read as cosine the first
+		// 1.0 step is 12.5% of the top and cuts at #1; read as logits they
+		// are p 0.9997..0.9933, no step above 4% of the top, no cut. Same
+		// input, the kind decides — this is the whole point of the enum.
+		let results = make_results(&[8.0, 7.0, 6.0, 5.0]);
 		let cosine = adaptive_filter(&results, ScoreKind::Cosine).unwrap();
 		let logit = adaptive_filter(&results, ScoreKind::Logit).unwrap();
-		assert_eq!(cosine.keep_count, 3);
-		assert!(logit.log_message.contains("Dynamic min filter"));
+		assert_eq!(cosine.keep_count, 1);
+		assert!(logit.log_message.contains("Dynamic min filter"), "{}", logit.log_message);
+		assert!(logit.keep_count >= 3, "keep_count={}", logit.keep_count);
+	}
+
+	#[test]
+	fn logit_fallback_drops_the_tail_outlier() {
+		// Confident list whose steps (p 0.9997 .. 0.9608) all stay under 4%
+		// of the top, so the gap rule does not fire; the mean - stddev floor
+		// (0.975 in probability space) drops only the last one.
+		let results = make_results(&[8.0, 7.0, 6.0, 5.0, 4.0, 3.2]);
+		let outcome = adaptive_filter(&results, ScoreKind::Logit).unwrap();
+		assert!(outcome.log_message.contains("Dynamic min filter"), "{}", outcome.log_message);
+		assert_eq!(outcome.keep_count, 5);
 	}
 
 	#[test]
@@ -393,10 +452,10 @@ mod tests {
 	}
 
 	#[test]
-	fn finalize_logit_applies_the_absolute_rule() {
+	fn finalize_logit_applies_the_sigmoid_rule() {
 		let mut results = make_results(&[5.0, 4.5, 1.0, 0.5]);
 		let outcome = finalize_results(&mut results, 20, ScoreKind::Logit).unwrap();
-		assert!(outcome.log_message.contains("Gap filter (Logit)"));
+		assert!(outcome.log_message.contains("Gap filter (Logit"));
 		assert_eq!(results.len(), 2);
 	}
 

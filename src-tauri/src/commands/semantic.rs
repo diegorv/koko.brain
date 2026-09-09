@@ -774,8 +774,8 @@ pub async fn search_semantic(
 		};
 
 		// Limit + adaptive filter on whichever score the user is seeing. The
-		// kind matters: reranker logits are judged by absolute gap, cosine by
-		// a fraction of the top score (see `filtering::ScoreKind`).
+		// kind matters: reranker logits go through the sigmoid first, then
+		// the same fraction-of-top rule as cosine (see `filtering::ScoreKind`).
 		let score_kind = if used_reranker {
 			filtering::ScoreKind::Logit
 		} else {
@@ -955,9 +955,10 @@ pub async fn search_hybrid(
 			candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 		}
 
-		// 6. Limit + gap filter. Reranked: absolute logit gap. Not reranked:
-		// the scores are RRF rank artefacts with no relevance magnitude, so
-		// only the truncation applies (see `filtering::ScoreKind::Rrf`).
+		// 6. Limit + gap filter. Reranked: logits through the sigmoid, then
+		// the fraction-of-top rule. Not reranked: the scores are RRF rank
+		// artefacts with no relevance magnitude, so only the truncation
+		// applies (see `filtering::ScoreKind::Rrf`).
 		let score_kind = if used_reranker {
 			filtering::ScoreKind::Logit
 		} else {
