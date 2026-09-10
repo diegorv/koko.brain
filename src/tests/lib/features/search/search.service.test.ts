@@ -16,9 +16,10 @@ vi.mock('@tauri-apps/api/event', () => ({
 }));
 
 const mockDebug = vi.fn();
+const mockError = vi.fn();
 vi.mock('$lib/utils/debug', () => ({
 	debug: (...args: unknown[]) => mockDebug(...args),
-	error: vi.fn(),
+	error: (...args: unknown[]) => mockError(...args),
 }));
 
 // Mock editor hooks
@@ -426,7 +427,7 @@ describe('buildSearchIndex', () => {
 	});
 
 	it('calls build_search_index and updates store', async () => {
-		const stats = { totalDocuments: 42 };
+		const stats = { totalDocuments: 42, added: 3, updated: 2, removed: 1, unchanged: 36 };
 		mockInvoke.mockResolvedValueOnce(stats);
 
 		await buildSearchIndex();
@@ -608,9 +609,12 @@ describe('registerSearchIndexHook', () => {
 		registerSearchIndexHook();
 		callback!('/vault/notes/test.md', '# Hello');
 
+		// vaultPath rides along so Rust can stat the file and store its real
+		// mtime on the row - the reconcile at the next vault open skips it.
 		expect(mockInvoke).toHaveBeenCalledWith('update_search_index_file', {
 			filePath: 'notes/test.md',
 			content: '# Hello',
+			vaultPath: '/vault',
 		});
 		// Also updates semantic index
 		expect(mockInvoke).toHaveBeenCalledWith('update_semantic_file', {
@@ -633,6 +637,21 @@ describe('registerSearchIndexHook', () => {
 
 		expect(mockInvoke).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe('/vault');
+	});
+
+	it('callback logs a rejected update_search_index_file without rejecting', async () => {
+		let callback: (path: string, content: string) => void;
+		mockAddAfterSaveObserver.mockImplementation((cb: any) => {
+			callback = cb;
+			return () => {};
+		});
+		mockInvoke.mockRejectedValue(new Error('fts down'));
+
+		registerSearchIndexHook();
+		expect(() => callback!('/vault/notes/test.md', '# Hello')).not.toThrow();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(mockError).toHaveBeenCalledWith('SEARCH', 'FTS5 index update failed:', expect.any(Error));
 	});
 
 	it('callback SKIPS a sibling path that merely shares the vault prefix', () => {

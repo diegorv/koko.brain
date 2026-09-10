@@ -1,3 +1,62 @@
+use std::collections::HashMap;
+
+/// What a full-vault FTS reconcile has to do, derived from the disk state and
+/// the stored state alone. Every list holds vault-relative paths, sorted so
+/// the plan is deterministic.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct ReconcilePlan {
+	/// On disk, no row in `notes_content` - read the file and insert it.
+	pub added: Vec<String>,
+	/// Row exists but the file's mtime differs - read the file and re-index it.
+	pub updated: Vec<String>,
+	/// Row exists, file is gone - drop the row.
+	pub removed: Vec<String>,
+	/// Row exists and its mtime matches the file's - left untouched, never read.
+	pub unchanged: u64,
+}
+
+/// Diffs the disk's `path -> mtime` map against the one stored in
+/// `notes_content` and returns what has to change.
+///
+/// Both maps are keyed vault-relative and both mtimes are seconds since the
+/// UNIX epoch. Only an mtime that is *equal* leaves the row alone: any
+/// difference re-reads the file, matching the semantic index
+/// (`commands::semantic`, `*mtime != stored`). A strictly-newer test would
+/// miss every file that arrives with an older timestamp than the row - a
+/// restore from backup, `cp -p` / `rsync -t` / an unzip, a sync client's
+/// conflict copy - and leave it stale forever. Equality still keeps an
+/// untouched vault from costing a single file read, which is the point. This
+/// is the whole decision the old count-within-5% heuristic could not make - a
+/// cardinality comparison sees neither identity nor freshness, so an external
+/// add and an external delete cancelled out and an external edit never moved
+/// the count at all.
+///
+/// Second resolution leaves one residual hole, shared with the walk that
+/// produces `disk`: an external edit landing in the same wall-clock second as
+/// the save that stamped the row is indistinguishable from that save.
+pub fn plan_reconcile(disk: &HashMap<String, i64>, stored: &HashMap<String, i64>) -> ReconcilePlan {
+	let mut plan = ReconcilePlan::default();
+
+	for (path, disk_mtime) in disk {
+		match stored.get(path) {
+			None => plan.added.push(path.clone()),
+			Some(stored_mtime) if disk_mtime != stored_mtime => plan.updated.push(path.clone()),
+			Some(_) => plan.unchanged += 1,
+		}
+	}
+
+	for path in stored.keys() {
+		if !disk.contains_key(path) {
+			plan.removed.push(path.clone());
+		}
+	}
+
+	plan.added.sort();
+	plan.updated.sort();
+	plan.removed.sort();
+	plan
+}
+
 /// Extracts the title from a file path (filename without extension).
 pub fn extract_title(file_path: &str) -> String {
 	let name = file_path.rsplit('/').next().unwrap_or(file_path);
@@ -281,5 +340,79 @@ mod tests {
 	#[test]
 	fn sanitize_only_quotes() {
 		assert_eq!(sanitize_fts_term("\"\"\""), "");
+	}
+
+	// --- plan_reconcile ---
+
+	fn mtimes(pairs: &[(&str, i64)]) -> HashMap<String, i64> {
+		pairs.iter().map(|(p, m)| ((*p).to_string(), *m)).collect()
+	}
+
+	#[test]
+	fn reconcile_empty_stored_adds_everything() {
+		let plan = plan_reconcile(&mtimes(&[("a.md", 10), ("b.md", 20)]), &mtimes(&[]));
+		assert_eq!(plan.added, vec!["a.md", "b.md"]);
+		assert!(plan.updated.is_empty());
+		assert!(plan.removed.is_empty());
+		assert_eq!(plan.unchanged, 0);
+	}
+
+	#[test]
+	fn reconcile_empty_disk_removes_everything() {
+		let plan = plan_reconcile(&mtimes(&[]), &mtimes(&[("a.md", 10), ("b.md", 20)]));
+		assert_eq!(plan.removed, vec!["a.md", "b.md"]);
+		assert!(plan.added.is_empty());
+		assert!(plan.updated.is_empty());
+		assert_eq!(plan.unchanged, 0);
+	}
+
+	#[test]
+	fn reconcile_both_empty_is_a_no_op() {
+		assert_eq!(plan_reconcile(&mtimes(&[]), &mtimes(&[])), ReconcilePlan::default());
+	}
+
+	#[test]
+	fn reconcile_equal_mtimes_touch_nothing() {
+		let plan = plan_reconcile(&mtimes(&[("a.md", 10)]), &mtimes(&[("a.md", 10)]));
+		assert_eq!(plan.unchanged, 1);
+		assert!(plan.added.is_empty() && plan.updated.is_empty() && plan.removed.is_empty());
+	}
+
+	#[test]
+	fn reconcile_newer_on_disk_is_an_update() {
+		let plan = plan_reconcile(&mtimes(&[("a.md", 11)]), &mtimes(&[("a.md", 10)]));
+		assert_eq!(plan.updated, vec!["a.md"]);
+		assert_eq!(plan.unchanged, 0);
+	}
+
+	#[test]
+	fn reconcile_older_on_disk_is_an_update_too() {
+		// A restore from backup, `cp -p`, `rsync -t`, an unzip or a sync
+		// client's conflict copy all land content with a timestamp OLDER than
+		// the row. Only equality means "in sync"; a strictly-newer test would
+		// leave these stale forever.
+		let plan = plan_reconcile(&mtimes(&[("a.md", 9)]), &mtimes(&[("a.md", 10)]));
+		assert_eq!(plan.updated, vec!["a.md"]);
+		assert_eq!(plan.unchanged, 0);
+	}
+
+	#[test]
+	fn reconcile_mtime_zero_rows_are_re_indexed_once() {
+		// Rows migrated in before the column existed default to 0.
+		let plan = plan_reconcile(&mtimes(&[("a.md", 10)]), &mtimes(&[("a.md", 0)]));
+		assert_eq!(plan.updated, vec!["a.md"]);
+	}
+
+	#[test]
+	fn reconcile_sees_the_add_delete_pair_that_cancelled_out_in_the_count() {
+		// One file added and one removed outside the app: same cardinality on
+		// both sides, which is exactly what the old heuristic read as "in sync".
+		let plan = plan_reconcile(
+			&mtimes(&[("kept.md", 10), ("new.md", 20)]),
+			&mtimes(&[("kept.md", 10), ("gone.md", 5)]),
+		);
+		assert_eq!(plan.added, vec!["new.md"]);
+		assert_eq!(plan.removed, vec!["gone.md"]);
+		assert_eq!(plan.unchanged, 1);
 	}
 }

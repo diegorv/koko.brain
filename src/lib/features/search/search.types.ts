@@ -58,9 +58,18 @@ export interface HybridSearchResult {
 	source: 'text' | 'semantic' | 'both';
 }
 
-/** FTS5 index statistics */
+/** FTS5 index statistics, reported by one reconcile pass at vault open. */
 export interface SearchIndexStats {
+	/** Rows in `notes_content` after the pass. */
 	totalDocuments: number;
+	/** Files on disk that had no row and were indexed. */
+	added?: number;
+	/** Rows whose file differed on disk and got re-indexed. */
+	updated?: number;
+	/** Rows whose file no longer exists and were dropped. */
+	removed?: number;
+	/** Rows left alone - their files were never opened. */
+	unchanged?: number;
 }
 
 /** Semantic index statistics */

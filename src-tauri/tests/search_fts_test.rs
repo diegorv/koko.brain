@@ -54,6 +54,22 @@ fn teardown() {
 	let _ = db::close_database();
 }
 
+/// Current wall clock in seconds since the UNIX epoch.
+fn now_secs() -> i64 {
+	std::time::SystemTime::now()
+		.duration_since(std::time::UNIX_EPOCH)
+		.unwrap()
+		.as_secs() as i64
+}
+
+/// Forces a file's mtime, so "edited externally" does not depend on the test
+/// running slower than the filesystem's timestamp resolution.
+fn set_mtime_secs(path: &std::path::Path, secs: i64) {
+	let file = fs::OpenOptions::new().write(true).open(path).unwrap();
+	file.set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs as u64))
+		.unwrap();
+}
+
 // --- FTS5 Index Tests ---
 
 #[test]
@@ -189,6 +205,7 @@ fn update_search_index_file_updates_content() {
 	search_index::update_search_index_file_inner(
 		"hello.md".to_string(),
 		"# Updated Hello\n\nThis is brand new updated content about elephants.\n".to_string(),
+		tmp.path().to_string_lossy().to_string(),
 	)
 	.unwrap();
 
@@ -489,25 +506,31 @@ fn build_search_index_rejects_file_as_vault() {
 }
 
 #[test]
-fn build_search_index_skips_rebuild_when_counts_match() {
+fn build_search_index_leaves_an_unchanged_vault_untouched() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
 	let vault = tmp.path().to_string_lossy().to_string();
 
-	// First build: full index
+	// First build: everything is new.
 	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
 	assert_eq!(stats1.total_documents, 4);
+	assert_eq!(stats1.added, 4);
+	assert_eq!(stats1.unchanged, 0);
 
-	// Second build: should skip (counts match)
+	// Second build over the same untouched files: nothing is read again.
 	let stats2 = search_index::build_search_index_inner(vault).unwrap();
 	assert_eq!(stats2.total_documents, 4);
+	assert_eq!(stats2.added, 0);
+	assert_eq!(stats2.updated, 0);
+	assert_eq!(stats2.removed, 0);
+	assert_eq!(stats2.unchanged, 4);
 
 	teardown();
 }
 
 #[test]
-fn build_search_index_rebuilds_when_files_added() {
+fn build_search_index_indexes_files_added_while_closed() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	teardown();
 	let tmp = setup_vault();
@@ -516,18 +539,228 @@ fn build_search_index_rebuilds_when_files_added() {
 	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
 	assert_eq!(stats1.total_documents, 4);
 
-	// Add enough files to exceed the 5% threshold
-	for i in 0..10 {
-		fs::write(
-			tmp.path().join(format!("new-{i}.md")),
-			format!("# New note {i}\n\nContent.\n"),
-		)
-		.unwrap();
-	}
+	// A single external add used to move `diff` by 1, well under the old
+	// 5%-or-at-least-5 threshold, so it was never picked up.
+	fs::write(tmp.path().join("synced.md"), "# Synced\n\nArrived via a sync client.\n").unwrap();
 
-	// Rebuild should detect diff and rebuild
 	let stats2 = search_index::build_search_index_inner(vault).unwrap();
-	assert_eq!(stats2.total_documents, 14);
+	assert_eq!(stats2.added, 1);
+	assert_eq!(stats2.unchanged, 4);
+	assert_eq!(stats2.total_documents, 5);
+
+	let results = search_index::search_fts("sync client".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(results.len(), 1, "externally added file must be searchable");
+	assert_eq!(results[0].path, "synced.md");
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_reconciles_an_add_delete_pair_that_cancels_out_in_the_count() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// One in, one out: the row count is identical before and after, which is
+	// precisely the case the old cardinality check read as "in sync".
+	fs::remove_file(tmp.path().join("rust.md")).unwrap();
+	fs::write(tmp.path().join("elephants.md"), "# Elephants\n\nA brand new note.\n").unwrap();
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.added, 1);
+	assert_eq!(stats.removed, 1);
+	assert_eq!(stats.updated, 0);
+	assert_eq!(stats.total_documents, 4);
+
+	let gone = search_index::search_fts("dereferences".to_string(), Some(10), Some(false)).unwrap();
+	assert!(gone.is_empty(), "deleted file must not answer searches: {gone:?}");
+	let added = search_index::search_fts("elephants".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(added.len(), 1, "added file must be searchable");
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_reindexes_an_edited_file_and_leaves_its_neighbours_unread() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// Stale marker: rewrite the row of an untouched file with content that is
+	// NOT on disk. Only a re-read would overwrite it, so its survival proves
+	// the reconcile never opened that file.
+	db::with_fts_db(|conn| {
+		conn.execute(
+			"UPDATE notes_content SET content = 'sentinel-untouched' WHERE path = 'javascript.md'",
+			[],
+		)
+		.map_err(|e| e.to_string())?;
+		Ok(())
+	})
+	.unwrap();
+
+	// An external edit keeps the path and the row count identical - the old
+	// heuristic could not see it at all. Bump the mtime past the stored one.
+	let edited = tmp.path().join("rust.md");
+	fs::write(&edited, "# Rust\n\nRewritten externally to mention aardvarks.\n").unwrap();
+	set_mtime_secs(&edited, now_secs() + 60);
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.updated, 1);
+	assert_eq!(stats.added, 0);
+	assert_eq!(stats.removed, 0);
+	assert_eq!(stats.unchanged, 3);
+
+	let content: String = db::with_fts_db(|conn| {
+		conn.query_row(
+			"SELECT content FROM notes_content WHERE path = 'javascript.md'",
+			[],
+			|row| row.get(0),
+		)
+		.map_err(|e| e.to_string())
+	})
+	.unwrap();
+	assert_eq!(
+		content, "sentinel-untouched",
+		"an unchanged file must not be re-read"
+	);
+
+	let results = search_index::search_fts("aardvarks".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(results.len(), 1, "edited content must be searchable");
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_reindexes_a_file_restored_with_an_older_mtime() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// A restore from backup, `cp -p`, `rsync -t`, an unzip or a sync client's
+	// conflict copy all land content stamped OLDER than the row. A
+	// strictly-newer test would leave these stale forever.
+	let restored = tmp.path().join("rust.md");
+	fs::write(&restored, "# Rust\n\nRestored from a backup, mentions aardvarks.\n").unwrap();
+	set_mtime_secs(&restored, now_secs() - 3600);
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.updated, 1, "an older mtime is still a difference");
+	assert_eq!(stats.unchanged, 3);
+
+	let results = search_index::search_fts("aardvarks".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(results.len(), 1, "restored content must be searchable");
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_full_rebuild_when_no_row_survives_the_pass() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// The state the `mtime` column migration leaves behind: every pre-existing
+	// row defaults to 0, so all of them are stale at once. The pass takes the
+	// single `clear_index` + insert path instead of one FTS5 `'delete'` per row,
+	// and the end state has to be identical either way.
+	db::with_fts_db(|conn| {
+		conn.execute("UPDATE notes_content SET mtime = 0", [])
+			.map_err(|e| e.to_string())?;
+		Ok(())
+	})
+	.unwrap();
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.updated, 4);
+	assert_eq!(stats.unchanged, 0);
+	assert_eq!(stats.total_documents, 4, "no row may be lost by the shortcut");
+
+	let results = search_index::search_fts("dereferences".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(results.len(), 1, "the re-indexed rows must still be searchable");
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_full_rebuild_when_table_is_empty() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// An FTS5 schema migration drops and recreates both tables; emulate the
+	// state it leaves behind.
+	db::with_fts_db(db::fts_repo::clear_index).unwrap();
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.added, 4, "an empty table means everything is added");
+	assert_eq!(stats.unchanged, 0);
+	assert_eq!(stats.total_documents, 4);
+
+	teardown();
+}
+
+#[test]
+fn update_search_index_file_stores_the_mtime_so_the_next_open_skips_it() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// A save: the file on disk and the FTS row are written together.
+	let saved = "# Hello\n\nSaved content about walruses.\n";
+	fs::write(tmp.path().join("hello.md"), saved).unwrap();
+	set_mtime_secs(&tmp.path().join("hello.md"), now_secs() + 60);
+	search_index::update_search_index_file_inner(
+		"hello.md".to_string(),
+		saved.to_string(),
+		vault.clone(),
+	)
+	.unwrap();
+
+	// The stored mtime is the file's own, so the next open re-reads nothing.
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.updated, 0, "the saved file must not be re-read");
+	assert_eq!(stats.unchanged, 4);
+
+	teardown();
+}
+
+#[test]
+fn update_search_index_file_indexes_content_even_when_the_vault_path_is_bogus() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	// mtime resolution fails, the content still has to land (stored mtime 0,
+	// so the next open re-reads the file once).
+	search_index::update_search_index_file_inner(
+		"hello.md".to_string(),
+		"# Hello\n\nContent about walruses.\n".to_string(),
+		"/non/existent/vault/path".to_string(),
+	)
+	.unwrap();
+
+	let results = search_index::search_fts("walruses".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(results.len(), 1, "content must be indexed regardless of mtime");
 
 	teardown();
 }
@@ -551,9 +784,11 @@ fn build_search_index_rebuilds_when_vault_emptied() {
 	}
 	fs::remove_dir_all(tmp.path().join("subfolder")).unwrap();
 
-	// Should rebuild (disk_count=0 guard)
+	// Every row's file is gone, so every row is removed.
 	let stats2 = search_index::build_search_index_inner(vault).unwrap();
 	assert_eq!(stats2.total_documents, 0);
+	assert_eq!(stats2.removed, 4);
+	assert_eq!(stats2.unchanged, 0);
 
 	teardown();
 }

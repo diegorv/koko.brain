@@ -267,6 +267,7 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
 			filePath: 'notes/external.md',
 			content: '# external edit',
+			vaultPath: '/vault',
 		});
 		expect(invoke).toHaveBeenCalledWith('update_semantic_file', {
 			filePath: 'notes/external.md',

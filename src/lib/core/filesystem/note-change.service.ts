@@ -192,7 +192,9 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 	if (key !== null) {
 		// FTS5 - keeps text search fresh on external edits. Without this,
 		// `search_fts` returns stale content until the user opens + saves the file.
-		invoke('update_search_index_file', { filePath: key, content }).catch((err) => {
+		// `vaultPath` lets Rust stat the file and store its real mtime on the row,
+		// so the reconcile at the next vault open does not re-read it.
+		invoke('update_search_index_file', { filePath: key, content, vaultPath }).catch((err) => {
 			error('NOTE-CHANGE', 'update_search_index_file failed:', err);
 		});
 		// Semantic - the Rust side compares content hashes first, so unchanged

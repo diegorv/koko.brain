@@ -698,9 +698,19 @@ fn cached_scan_result_wire_shape_matches_ts_interface() {
 
 #[test]
 fn index_stats_wire_shape_matches_ts_interface() {
-    let stats = IndexStats { total_documents: 3 };
+    let stats = IndexStats {
+        total_documents: 3,
+        added: 1,
+        updated: 2,
+        removed: 4,
+        unchanged: 5,
+    };
     let value = serde_json::to_value(&stats).unwrap();
     assert_eq!(value["totalDocuments"], 3);
+    assert_eq!(value["added"], 1);
+    assert_eq!(value["updated"], 2);
+    assert_eq!(value["removed"], 4);
+    assert_eq!(value["unchanged"], 5);
     assert!(
         value.get("total_documents").is_none(),
         "snake_case must not leak"

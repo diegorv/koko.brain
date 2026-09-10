@@ -26,6 +26,7 @@ fn insert_fixture_corpus(conn: &Connection) {
 		"Rust is a systems programming language focused on safety.",
 		"Memory Safety",
 		"#programming #systems",
+		100,
 	)
 	.unwrap();
 	fts_repo::insert_entry(
@@ -35,6 +36,7 @@ fn insert_fixture_corpus(conn: &Connection) {
 		"JavaScript is a dynamic programming language. Java is different.",
 		"Functions",
 		"#programming",
+		200,
 	)
 	.unwrap();
 	fts_repo::insert_entry(
@@ -44,6 +46,7 @@ fn insert_fixture_corpus(conn: &Connection) {
 		"Boil water, add salt, cook the pasta until al dente.",
 		"Italian",
 		"#food",
+		300,
 	)
 	.unwrap();
 }
@@ -61,6 +64,7 @@ fn insert_entry_makes_document_searchable() {
 		"Some unique elephant content.",
 		"A Heading",
 		"#tag-one",
+		42,
 	)
 	.unwrap();
 
@@ -77,8 +81,8 @@ fn insert_entry_makes_document_searchable() {
 fn insert_entry_rejects_duplicate_path() {
 	let conn = open_memory_db();
 
-	fts_repo::insert_entry(&conn, "dup.md", "First", "content", "", "").unwrap();
-	let result = fts_repo::insert_entry(&conn, "dup.md", "Second", "content", "", "");
+	fts_repo::insert_entry(&conn, "dup.md", "First", "content", "", "", 0).unwrap();
+	let result = fts_repo::insert_entry(&conn, "dup.md", "Second", "content", "", "", 0);
 
 	assert!(result.is_err(), "duplicate path must violate UNIQUE constraint");
 	assert!(
@@ -213,6 +217,7 @@ fn delete_then_reinsert_same_path_is_searchable() {
 		"Completely new content about ownership.",
 		"",
 		"",
+		0,
 	)
 	.unwrap();
 
@@ -239,6 +244,25 @@ fn clear_index_removes_all_entries() {
 	assert_eq!(fts_repo::count_entries(&conn).unwrap(), 0);
 	let results = fts_repo::search_match(&conn, "programming", 10).unwrap();
 	assert!(results.is_empty(), "FTS index must be empty after clear");
+}
+
+#[test]
+fn clear_index_on_a_populated_table_leaves_reinserted_rows_searchable() {
+	// `notes_fts` is external-content: emptying `notes_content` first makes the
+	// FTS delete find no text to un-index, and every later insert lands in an
+	// index still full of stale terms - rows that then match nothing.
+	let conn = open_memory_db();
+	insert_fixture_corpus(&conn);
+
+	fts_repo::clear_index(&conn).unwrap();
+	fts_repo::insert_entry(&conn, "fresh.md", "Fresh", "A note about aardvarks.", "", "", 7).unwrap();
+
+	assert_eq!(fts_repo::count_entries(&conn).unwrap(), 1);
+	let results = fts_repo::search_match(&conn, "aardvarks", 10).unwrap();
+	assert_eq!(results.len(), 1, "a row inserted after a clear must be searchable");
+	assert_eq!(results[0].path, "fresh.md");
+	let stale = fts_repo::search_match(&conn, "programming", 10).unwrap();
+	assert!(stale.is_empty(), "cleared terms must not resurface: {stale:?}");
 }
 
 #[test]
@@ -283,6 +307,38 @@ fn expand_vocab_terms_no_match_returns_empty() {
 	assert!(terms.is_empty());
 }
 
+// --- get_entry_mtimes ---
+
+#[test]
+fn get_entry_mtimes_returns_the_stored_mtime_per_path() {
+	let conn = open_memory_db();
+	insert_fixture_corpus(&conn);
+
+	let mtimes = fts_repo::get_entry_mtimes(&conn).unwrap();
+
+	assert_eq!(mtimes.len(), 3);
+	assert_eq!(mtimes.get("rust.md"), Some(&100));
+	assert_eq!(mtimes.get("javascript.md"), Some(&200));
+	assert_eq!(mtimes.get("cooking.md"), Some(&300));
+}
+
+#[test]
+fn get_entry_mtimes_is_empty_on_an_empty_table() {
+	let conn = open_memory_db();
+	assert!(fts_repo::get_entry_mtimes(&conn).unwrap().is_empty());
+}
+
+#[test]
+fn get_entry_mtimes_drops_the_path_it_deleted() {
+	let conn = open_memory_db();
+	insert_fixture_corpus(&conn);
+	fts_repo::delete_entry(&conn, "rust.md").unwrap();
+
+	let mtimes = fts_repo::get_entry_mtimes(&conn).unwrap();
+	assert_eq!(mtimes.len(), 2);
+	assert!(!mtimes.contains_key("rust.md"));
+}
+
 // --- error paths: schema missing ---
 
 #[test]
@@ -290,7 +346,7 @@ fn repo_functions_error_without_schema() {
 	// Bare connection: none of the FTS tables exist.
 	let conn = Connection::open_in_memory().unwrap();
 
-	let err = fts_repo::insert_entry(&conn, "a.md", "t", "c", "", "").unwrap_err();
+	let err = fts_repo::insert_entry(&conn, "a.md", "t", "c", "", "", 0).unwrap_err();
 	assert!(err.contains("Failed to insert content entry"), "got: {err}");
 
 	let err = fts_repo::search_match(&conn, "q", 10).unwrap_err();
@@ -299,11 +355,14 @@ fn repo_functions_error_without_schema() {
 	let err = fts_repo::delete_entry(&conn, "a.md").unwrap_err();
 	assert!(err.contains("Failed to read content for FTS delete"), "got: {err}");
 
+	let err = fts_repo::get_entry_mtimes(&conn).unwrap_err();
+	assert!(err.contains("Failed to prepare mtime query"), "got: {err}");
+
 	let err = fts_repo::count_entries(&conn).unwrap_err();
 	assert!(err.contains("Failed to count entries"), "got: {err}");
 
 	let err = fts_repo::clear_index(&conn).unwrap_err();
-	assert!(err.contains("Failed to clear content table"), "got: {err}");
+	assert!(err.contains("Failed to clear FTS5 index"), "got: {err}");
 
 	let err = fts_repo::expand_vocab_terms(&conn, "a%", 10).unwrap_err();
 	assert!(err.contains("notes_fts_vocab"), "got: {err}");

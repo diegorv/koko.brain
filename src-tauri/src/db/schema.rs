@@ -92,7 +92,8 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 				title   TEXT NOT NULL,
 				content TEXT NOT NULL,
 				headings TEXT NOT NULL,
-				tags    TEXT NOT NULL
+				tags    TEXT NOT NULL,
+				mtime   INTEGER NOT NULL DEFAULT 0
 			 );
 
 			 CREATE VIRTUAL TABLE notes_fts USING fts5(
@@ -110,6 +111,23 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 		))
 		.map_err(|e| format!("Failed to migrate FTS5 schema: {e}"))?;
 		set_app_meta(conn, "fts_schema_version", FTS_SCHEMA_VERSION)?;
+	}
+
+	// Migration: add `mtime` to pre-existing `notes_content` tables. Same
+	// swallow-the-duplicate-column dance as `chunks.parent_headings` above.
+	// Deliberately NOT an `FTS_SCHEMA_VERSION` bump: that drops the table and
+	// throws away every indexed row, while an added column keeps them and lets
+	// the reconcile in `build_search_index_inner` re-read each one once (they
+	// default to mtime 0) and then settle. `notes_fts` addresses its external
+	// content columns by name, so the extra column is inert to FTS5.
+	if let Err(e) = conn.execute(
+		"ALTER TABLE notes_content ADD COLUMN mtime INTEGER NOT NULL DEFAULT 0",
+		[],
+	) {
+		let msg = e.to_string();
+		if !msg.contains("duplicate column name") {
+			return Err(format!("Failed to add mtime column: {msg}"));
+		}
 	}
 
 	Ok(())
@@ -316,6 +334,61 @@ mod tests {
 			.query_row("SELECT COUNT(*) FROM notes_content", [], |row| row.get(0))
 			.unwrap();
 		assert_eq!(count, 1, "second create_tables call wiped the content table");
+	}
+
+	#[test]
+	fn mtime_column_is_added_to_a_pre_existing_notes_content_without_losing_rows() {
+		// Reproduce a database created before the column existed: the old
+		// `notes_content` shape, already stamped with the current
+		// FTS_SCHEMA_VERSION so the drop + recreate path is not taken.
+		let conn = Connection::open_in_memory().unwrap();
+		conn.execute_batch(
+			"CREATE TABLE app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+			 CREATE TABLE notes_content (
+				rowid   INTEGER PRIMARY KEY AUTOINCREMENT,
+				path    TEXT NOT NULL UNIQUE,
+				title   TEXT NOT NULL,
+				content TEXT NOT NULL,
+				headings TEXT NOT NULL,
+				tags    TEXT NOT NULL
+			 );",
+		)
+		.unwrap();
+		conn.execute(
+			"INSERT INTO app_meta (key, value) VALUES ('fts_schema_version', ?1)",
+			[super::FTS_SCHEMA_VERSION],
+		)
+		.unwrap();
+		conn.execute(
+			"INSERT INTO notes_content(path, title, content, headings, tags)
+			 VALUES ('kept.md', 'Kept', 'old content', '', '')",
+			[],
+		)
+		.unwrap();
+
+		create_tables(&conn).unwrap();
+
+		let (path, mtime): (String, i64) = conn
+			.query_row("SELECT path, mtime FROM notes_content", [], |row| {
+				Ok((row.get(0)?, row.get(1)?))
+			})
+			.expect("the pre-existing row must survive the migration");
+		assert_eq!(path, "kept.md");
+		assert_eq!(mtime, 0, "migrated rows default to 0 and are re-indexed once");
+	}
+
+	#[test]
+	fn mtime_migration_is_idempotent() {
+		let conn = open_memory_db();
+		create_tables(&conn).unwrap();
+		let mtime: i64 = conn
+			.query_row(
+				"SELECT COUNT(*) FROM pragma_table_info('notes_content') WHERE name = 'mtime'",
+				[],
+				|row| row.get(0),
+			)
+			.unwrap();
+		assert_eq!(mtime, 1, "the column must exist exactly once");
 	}
 
 	#[test]

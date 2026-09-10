@@ -1,5 +1,6 @@
 use crate::utils::logger::debug_log;
 use rusqlite::{Connection, OptionalExtension};
+use std::collections::HashMap;
 
 /// A single FTS5 search result with BM25 score and snippet.
 #[derive(serde::Serialize, Debug)]
@@ -13,15 +14,29 @@ pub struct FtsSearchResult {
 }
 
 /// Deletes all entries from both the content table and the FTS5 index.
+///
+/// `notes_fts` is an external-content table, so it is emptied through the
+/// FTS5 `'delete-all'` command and BEFORE `notes_content` is touched. A plain
+/// `DELETE FROM notes_fts` makes FTS5 read each row's text back out of
+/// `notes_content` to work out which terms to drop; run after the content
+/// table is empty it finds nothing, removes nothing, and leaves an index full
+/// of terms pointing at rowids that no longer exist - rows inserted
+/// afterwards then answer no query at all.
 pub fn clear_index(conn: &Connection) -> Result<(), String> {
+	conn.execute("INSERT INTO notes_fts(notes_fts) VALUES('delete-all')", [])
+		.map_err(|e| format!("Failed to clear FTS5 index: {e}"))?;
 	conn.execute("DELETE FROM notes_content", [])
 		.map_err(|e| format!("Failed to clear content table: {e}"))?;
-	conn.execute("DELETE FROM notes_fts", [])
-		.map_err(|e| format!("Failed to clear FTS5 index: {e}"))?;
 	Ok(())
 }
 
 /// Inserts a single entry into the content table and the FTS5 index.
+///
+/// `mtime` is the file's modification time in seconds since the UNIX epoch -
+/// the same unit the semantic index stores - and is what
+/// `build_search_index_inner` compares against disk to decide whether the row
+/// needs re-reading. Pass `0` when it is unknown: that forces exactly one
+/// re-index on the next vault open.
 pub fn insert_entry(
 	conn: &Connection,
 	path: &str,
@@ -29,10 +44,11 @@ pub fn insert_entry(
 	content: &str,
 	headings: &str,
 	tags: &str,
+	mtime: i64,
 ) -> Result<(), String> {
 	conn.execute(
-		"INSERT INTO notes_content(path, title, content, headings, tags) VALUES (?1, ?2, ?3, ?4, ?5)",
-		rusqlite::params![path, title, content, headings, tags],
+		"INSERT INTO notes_content(path, title, content, headings, tags, mtime) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+		rusqlite::params![path, title, content, headings, tags, mtime],
 	)
 	.map_err(|e| format!("Failed to insert content entry: {e}"))?;
 
@@ -117,6 +133,31 @@ pub fn delete_entry(conn: &Connection, path: &str) -> Result<(), String> {
 	}
 
 	Ok(())
+}
+
+/// Reads every indexed `path -> mtime` pair out of the content table.
+/// The disk side of the same map comes from
+/// `utils::fs::collect_markdown_paths_with_mtime`; the two are diffed by
+/// `search::fts_logic::plan_reconcile`.
+pub fn get_entry_mtimes(conn: &Connection) -> Result<HashMap<String, i64>, String> {
+	let mut stmt = conn
+		.prepare("SELECT path, mtime FROM notes_content")
+		.map_err(|e| format!("Failed to prepare mtime query: {e}"))?;
+
+	let rows = stmt
+		.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)))
+		.map_err(|e| format!("Failed to read stored mtimes: {e}"))?;
+
+	let mut map = HashMap::new();
+	for row in rows {
+		match row {
+			Ok((path, mtime)) => {
+				map.insert(path, mtime);
+			}
+			Err(e) => debug_log("FTS", format!("Warning: skipped corrupt row in get_entry_mtimes: {e}")),
+		}
+	}
+	Ok(map)
 }
 
 /// Counts the total number of documents in the content table.

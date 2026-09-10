@@ -326,7 +326,7 @@ export function registerSearchIndexHook(): () => void {
 		debug('SEARCH', 'Incremental index update for:', relativePath);
 
 		// Update FTS5 index
-		invoke('update_search_index_file', { filePath: relativePath, content }).catch((err) => {
+		invoke('update_search_index_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
 			debug('SEARCH', 'FTS5 incremental update failed:', err);
 			error('SEARCH', 'FTS5 index update failed:', err);
 		});

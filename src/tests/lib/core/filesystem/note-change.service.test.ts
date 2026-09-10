@@ -194,7 +194,7 @@ describe('applyNoteChange', () => {
 			});
 
 			expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
-				filePath: 'notes/a.md', content: CONTENT,
+				filePath: 'notes/a.md', content: CONTENT, vaultPath: '/vault',
 			});
 			expect(invoke).toHaveBeenCalledWith('update_semantic_file', {
 				filePath: 'notes/a.md', content: CONTENT, vaultPath: '/vault',
