@@ -5,6 +5,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { mergeResults } from './search-hybrid.logic';
 import { parseSearchQuery, performSearchOverFiles, matchesPathFilter } from './search.logic';
+import { vaultRelativeKey } from '$lib/utils/path';
 import { debug, error } from '$lib/utils/debug';
 import type { FileReadResult } from '$lib/core/filesystem/fs.types';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -313,9 +314,14 @@ export function registerSearchIndexHook(): () => void {
 
 		const vaultPath = vaultStore.path;
 		if (!vaultPath) return;
-		const relativePath = filePath.startsWith(vaultPath)
-			? filePath.substring(vaultPath.length).replace(/^\//, '')
-			: filePath;
+		// Same nullable derivation `applyNoteChange` uses. A path outside the
+		// vault has no valid key: writing the ABSOLUTE path here would create a
+		// row that the vault-relative `remove_*` commands can never delete.
+		const relativePath = vaultRelativeKey(vaultPath, filePath);
+		if (relativePath === null) {
+			debug('SEARCH', 'Path outside the vault prefix - skipping index update:', filePath);
+			return;
+		}
 
 		debug('SEARCH', 'Incremental index update for:', relativePath);
 

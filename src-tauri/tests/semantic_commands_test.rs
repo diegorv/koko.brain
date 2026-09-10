@@ -2,7 +2,7 @@ use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
 	compute_model_hash, deserialize_embedding, get_semantic_file_status, get_semantic_stats,
 	is_reranker_model_available, is_semantic_model_available, search_cache_label, search_hybrid,
-	search_semantic, shutdown_semantic, update_semantic_file,
+	remove_semantic_file, search_semantic, shutdown_semantic, update_semantic_file,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::db::semantic_repo;
@@ -734,6 +734,77 @@ async fn update_semantic_file_errors_when_file_missing_on_disk() {
 	);
 
 	db::close_database().unwrap();
+}
+
+// --- remove_semantic_file ---
+
+#[tokio::test]
+async fn remove_semantic_file_drops_chunks_and_mtime_leaving_siblings_intact() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "gone#0", "gone.md", "body", None, &[], 1, 5, "h1", b"e1", 1000)?;
+		semantic_repo::insert_chunk(conn, "gone#1", "gone.md", "more", None, &[], 6, 9, "h2", b"e2", 1000)?;
+		// Two sibling chunks, not one: a `LIKE`/prefix predicate instead of `=`
+		// would take a sibling row down with the removed path, and a
+		// distinct-path assertion alone cannot see that.
+		semantic_repo::insert_chunk(conn, "keep#0", "keep.md", "body", None, &[], 1, 5, "h3", b"e3", 1000)?;
+		semantic_repo::insert_chunk(conn, "keep#1", "keep.md", "tail", None, &[], 6, 9, "h4", b"e4", 1000)?;
+		semantic_repo::upsert_mtimes(
+			conn,
+			&[("gone.md".to_string(), 111), ("keep.md".to_string(), 222)],
+		)
+	})
+	.unwrap();
+
+	remove_semantic_file("gone.md".to_string()).await.unwrap();
+
+	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	assert_eq!(sources, vec!["keep.md".to_string()], "only the removed path loses its chunks");
+
+	let total = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	assert_eq!(total, 2, "both of the sibling's rows survive, not just one");
+	let keep_hashes =
+		db::with_db(|conn| semantic_repo::get_chunk_hashes_for_path(conn, "keep.md")).unwrap();
+	assert_eq!(keep_hashes.len(), 2, "the sibling keeps every chunk row it had");
+
+	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	assert!(!mtimes.contains_key("gone.md"), "mtime key must be dropped with the chunks");
+	assert_eq!(mtimes["keep.md"], 222, "sibling mtime survives");
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn remove_semantic_file_for_an_unindexed_path_succeeds_without_touching_the_index() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "keep#0", "keep.md", "body", None, &[], 1, 5, "h1", b"e", 1000)?;
+		semantic_repo::upsert_mtimes(conn, &[("keep.md".to_string(), 222)])
+	})
+	.unwrap();
+
+	remove_semantic_file("never-indexed.md".to_string()).await.unwrap();
+
+	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	assert_eq!(sources, vec!["keep.md".to_string()]);
+	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	assert_eq!(mtimes["keep.md"], 222);
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn remove_semantic_file_errors_when_the_database_is_closed() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	db::close_database().unwrap();
+
+	let result = remove_semantic_file("gone.md".to_string()).await;
+
+	assert!(result.is_err(), "a closed database must surface an error, not a silent success");
 }
 
 // --- deserialize_embedding (audit finding #12: malformed blob handling) ---

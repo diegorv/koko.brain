@@ -250,20 +250,48 @@ describe('applyNoteChange', () => {
 			}
 		});
 
-		it('removes the FTS row when a vaultPath is supplied, and skips it otherwise', async () => {
+		it('removes the FTS row and the semantic chunks when a vaultPath is supplied, and skips both when it is missing', async () => {
 			await applyNoteChange({ kind: 'delete', source: 'watcher', path: '/vault/notes/a.md', vaultPath: '/vault' });
 			expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: 'notes/a.md' });
+			expect(invoke).toHaveBeenCalledWith('remove_semantic_file', { filePath: 'notes/a.md' });
 
+			// No vault root means no derivable key, so both legs are skipped. This
+			// is the nullable-key contract, NOT the app-side delete shape:
+			// `path-change.service::forgetNote` now supplies `vaultStore.path`, and
+			// `fs.service.test.ts` covers that end to end.
 			vi.mocked(invoke).mockClear();
 			await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/notes/a.md' });
 			expect(invokedCommands()).not.toContain('remove_from_search_index');
+			expect(invokedCommands()).not.toContain('remove_semantic_file');
 		});
 
-		it('SKIPS the FTS removal for a path outside the vault prefix', async () => {
+		it('SKIPS the FTS and semantic removal for a path outside the vault prefix', async () => {
 			await applyNoteChange({ kind: 'delete', source: 'watcher', path: '/vaulted/a.md', vaultPath: '/vault' });
 
 			expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vaulted/a.md' });
 			expect(invokedCommands()).not.toContain('remove_from_search_index');
+			expect(invokedCommands()).not.toContain('remove_semantic_file');
+			// Never the absolute path - that would key the chunks table wrong.
+			expect(invokedFilePaths()).toEqual([]);
+		});
+
+		it('logs a rejected remove_semantic_file without propagating or skipping the rest of the chain', async () => {
+			await applyNoteChange({ kind: 'upsert', source: 'watcher', path: '/vault/notes/a.md', content: CONTENT });
+			vi.mocked(invoke).mockImplementation((cmd: string) =>
+				cmd === 'remove_semantic_file' ? Promise.reject(new Error('ipc fail')) : Promise.resolve(undefined),
+			);
+
+			await expect(
+				applyNoteChange({ kind: 'delete', source: 'watcher', path: '/vault/notes/a.md', vaultPath: '/vault' }),
+			).resolves.toBeUndefined();
+			await new Promise((r) => setTimeout(r, 0));
+
+			expect(debugError).toHaveBeenCalledWith('NOTE-CHANGE', 'remove_semantic_file failed:', expect.any(Error));
+			// The consumer fan-out and the FTS leg run before the rejection and are unaffected.
+			expect(collectionStore.propertyIndex.has('/vault/notes/a.md')).toBe(false);
+			expect(isAlreadyIndexed('/vault/notes/a.md', CONTENT)).toBe(false);
+			expect(invokedCommands()).toContain('remove_note_from_index');
+			expect(invokedCommands()).toContain('remove_from_search_index');
 		});
 
 		it('a throwing consumer does not stop the others', async () => {

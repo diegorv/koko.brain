@@ -5,6 +5,7 @@ import { collectFilePathsUnder, getFileName, isMarkdownFile } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { applyNoteChange } from './note-change.service';
 import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
 import { error } from '$lib/utils/debug';
@@ -34,16 +35,21 @@ export interface PathChange {
  * (entries + tags_index + backlinks + properties_index + by_path). The Rust
  * command emits `vault-index-updated` so panels reactively refetch.
  *
- * A thin adapter over the note-change owner's delete branch. No vault root is
- * passed: the FTS5 row is dropped by the watcher event that follows the disk
- * operation, which is the only source that carries one.
+ * A thin adapter over the note-change owner's delete branch. The vault root is
+ * passed so the FTS5 row and the semantic chunks (+ the `mtime:` key) go with
+ * it. The watcher event that follows the disk operation is NOT a substitute:
+ * it is dropped whenever the burst matches `areAllRecentSaves` (a 2 s autosave
+ * before the delete leaves a 15 s marker), a folder delete arrives as a single
+ * directory rename that the directory-only filter discards, and a burst above
+ * `INCREMENTAL_THRESHOLD` takes the full-rebuild branch, which removes nothing
+ * per path.
  *
  * Fire-and-forget: the Rust removal is not awaited, its failure is logged.
  *
  * @param path Absolute path the note is vanishing from (delete, rename, move).
  */
 export function forgetNote(path: string): void {
-	void applyNoteChange({ kind: 'delete', source: 'fs', path });
+	void applyNoteChange({ kind: 'delete', source: 'fs', path, vaultPath: vaultStore.path ?? undefined });
 }
 
 /**

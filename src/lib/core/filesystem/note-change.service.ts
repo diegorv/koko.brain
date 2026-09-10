@@ -156,10 +156,17 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 		const key = ftsKey(vaultPath, path);
 		if (key !== null) {
 			// Drop the FTS5 row so deleted files stop appearing in text search
-			// results. Semantic chunks for deleted paths are cleaned up by the
-			// orphan pass at the end of the next `build_semantic_index` run.
+			// results.
 			invoke('remove_from_search_index', { filePath: key }).catch((err) => {
 				error('NOTE-CHANGE', 'remove_from_search_index failed:', err);
+			});
+			// Drop the semantic chunks + the stored mtime in the same breath. The
+			// orphan pass at the end of `build_semantic_index` remains the backstop
+			// for deletions made while the app is not running, but a session that
+			// never triggers a full build used to leak every deleted note's chunks
+			// into semantic / hybrid results.
+			invoke('remove_semantic_file', { filePath: key }).catch((err) => {
+				error('NOTE-CHANGE', 'remove_semantic_file failed:', err);
 			});
 		}
 		return;

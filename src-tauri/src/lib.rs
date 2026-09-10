@@ -321,6 +321,7 @@ pub fn run() {
             commands::semantic::get_semantic_stats,
             commands::semantic::get_semantic_file_status,
             commands::semantic::update_semantic_file,
+            commands::semantic::remove_semantic_file,
             commands::semantic::download_semantic_model,
             commands::semantic::is_reranker_model_available,
             commands::semantic::download_reranker_model,

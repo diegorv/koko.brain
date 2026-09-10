@@ -634,6 +634,22 @@ describe('registerSearchIndexHook', () => {
 		expect(mockInvoke).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe('/vault');
 	});
+
+	it('callback SKIPS a sibling path that merely shares the vault prefix', () => {
+		let callback: (path: string, content: string) => void;
+		mockAddAfterSaveObserver.mockImplementation((cb: any) => {
+			callback = cb;
+			return () => {};
+		});
+
+		registerSearchIndexHook();
+		callback!('/vaulted/note.md', '# Hello');
+
+		// The old prefix-strip fell back to the ABSOLUTE path here, producing a
+		// row that the vault-relative `remove_from_search_index` /
+		// `remove_semantic_file` can never delete - a permanent orphan.
+		expect(mockInvoke).not.toHaveBeenCalled();
+	});
 });
 
 describe('semantic progress listener (throttle)', () => {

@@ -83,13 +83,14 @@ pub fn delete_chunk_by_key(conn: &Connection, key: &str) -> Result<(), String> {
 }
 
 /// Deletes all chunks for a given source file path.
-pub fn delete_chunks_for_path(conn: &Connection, source_path: &str) -> Result<(), String> {
+/// Returns the number of chunk rows removed, so callers can skip work (a
+/// search-cache invalidation, a log line) when the path held nothing.
+pub fn delete_chunks_for_path(conn: &Connection, source_path: &str) -> Result<usize, String> {
 	conn.execute(
 		"DELETE FROM chunks WHERE source_path = ?1",
 		[source_path],
 	)
-	.map_err(|e| format!("Failed to delete chunks for {}: {e}", source_path))?;
-	Ok(())
+	.map_err(|e| format!("Failed to delete chunks for {}: {e}", source_path))
 }
 
 /// Inserts (or replaces) a single chunk with its embedding.
@@ -225,6 +226,21 @@ pub fn upsert_meta(conn: &Connection, key: &str, value: &str) -> Result<(), Stri
 	)
 	.map_err(|e| format!("Failed to upsert meta {}: {e}", key))?;
 	Ok(())
+}
+
+/// Deletes the stored mtime for a single file (the `mtime:<rel_path>` key).
+/// Returns the number of rows removed; a path with no stored mtime is a
+/// successful no-op that returns `0`.
+///
+/// Dropping the key matters on removal: chunks gone but the mtime left behind
+/// means a file re-created with the same mtime is treated as unchanged by
+/// `build_semantic_index` and never re-embedded.
+pub fn delete_mtime(conn: &Connection, rel_path: &str) -> Result<usize, String> {
+	conn.execute(
+		"DELETE FROM semantic_meta WHERE key = ?1",
+		[format!("mtime:{}", rel_path)],
+	)
+	.map_err(|e| format!("Failed to delete mtime for {}: {e}", rel_path))
 }
 
 /// Deletes mtime entries from semantic_meta for files no longer in the vault.
@@ -365,6 +381,39 @@ mod tests {
 		assert!(map.is_empty());
 	}
 
+	// --- delete_mtime ---
+
+	#[test]
+	fn delete_mtime_removes_only_the_named_path() {
+		let conn = setup();
+		upsert_mtimes(
+			&conn,
+			&[("a.md".to_string(), 100), ("notes/b.md".to_string(), 200)],
+		)
+		.unwrap();
+
+		assert_eq!(delete_mtime(&conn, "a.md").unwrap(), 1);
+
+		let map = get_stored_mtimes(&conn).unwrap();
+		assert_eq!(map.len(), 1);
+		assert_eq!(map["notes/b.md"], 200);
+	}
+
+	#[test]
+	fn delete_mtime_for_unknown_path_is_a_no_op() {
+		let conn = setup();
+		upsert_mtimes(&conn, &[("a.md".to_string(), 100)]).unwrap();
+
+		assert_eq!(
+			delete_mtime(&conn, "never-stored.md").unwrap(),
+			0,
+			"a no-op removal must report zero rows so callers can skip the cache reload"
+		);
+
+		let map = get_stored_mtimes(&conn).unwrap();
+		assert_eq!(map["a.md"], 100);
+	}
+
 	// --- delete_chunks_for_path / delete_chunks_for_paths ---
 
 	#[test]
@@ -375,7 +424,7 @@ mod tests {
 		insert_chunk(&conn, "k2", "b.md", "t2", None, &[], 1, 5, "h2", b"e", 1000)
 			.unwrap();
 
-		delete_chunks_for_path(&conn, "a.md").unwrap();
+		assert_eq!(delete_chunks_for_path(&conn, "a.md").unwrap(), 1);
 		assert_eq!(count_chunks(&conn).unwrap(), 1);
 
 		let sources = get_distinct_sources(&conn).unwrap();

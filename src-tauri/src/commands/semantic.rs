@@ -1135,6 +1135,42 @@ pub fn shutdown_semantic() -> Result<(), String> {
 	Ok(())
 }
 
+/// Removes a single note from the semantic index: every chunk row for
+/// `file_path` plus its `mtime:<file_path>` key, in one transaction, then
+/// invalidates the search cache so the removed note stops matching before the
+/// next rebuild.
+///
+/// `file_path` must be vault-relative (same convention as `update_semantic_file`).
+/// Removing a path that was never indexed is a successful no-op.
+///
+/// Dropping the mtime key matters: chunks gone but the mtime left behind means
+/// a file re-created with the same mtime is treated as unchanged by
+/// `build_semantic_index` and never re-embedded.
+///
+/// This is the per-delete leg. `build_semantic_index`'s Phase 4
+/// `cleanup_orphaned_chunks` stays as the backstop for files removed while the
+/// app is not running.
+#[tauri::command]
+pub async fn remove_semantic_file(file_path: String) -> Result<(), String> {
+	tokio::task::spawn_blocking(move || {
+		let removed = db::with_db_transaction("semantic remove file", |conn| {
+			let chunks = db::semantic_repo::delete_chunks_for_path(conn, &file_path)?;
+			let mtimes = db::semantic_repo::delete_mtime(conn, &file_path)?;
+			Ok(chunks + mtimes)
+		})?;
+		// The watcher fires a delete for every vanished `.md`, indexed or not.
+		// Reloading the cache costs a full chunk re-read (six figures of rows on
+		// a large vault), so only pay it when something was actually removed.
+		if removed > 0 {
+			debug_log("SEMANTIC", format!("Removed from index: {}", file_path));
+			invalidate_search_cache();
+		}
+		Ok(())
+	})
+	.await
+	.map_err(|e| format!("Task join error: {e}"))?
+}
+
 /// Re-chunks and re-embeds a single file (called on save).
 /// Runs on a blocking thread to avoid freezing the UI during inference.
 #[tauri::command]
@@ -1150,7 +1186,8 @@ pub async fn update_semantic_file(
 		if chunks.is_empty() {
 			// No content to index — delete old chunks atomically
 			db::with_db_transaction("semantic delete empty file", |conn| {
-				db::semantic_repo::delete_chunks_for_path(conn, &file_path)
+				db::semantic_repo::delete_chunks_for_path(conn, &file_path)?;
+				Ok(())
 			})?;
 			update_stored_mtime(&file_path, &vault_path)?;
 			invalidate_search_cache();

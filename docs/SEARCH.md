@@ -87,6 +87,14 @@ Both `search_semantic` and `search_hybrid` end in `filtering::finalize_results(c
    - `notes_fts` is an external-content table (`content='notes_content'`, `content_rowid='rowid'`), so the document text is stored once in `notes_content` rather than duplicated into the index.
    - The schema is versioned via `FTS_SCHEMA_VERSION` (`v3-external-content` at time of writing). On mismatch both tables are dropped and rebuilt at startup.
 
+5. **Index maintenance (per note, between builds)**
+   - Both tables are keyed vault-relative. The key comes from `vaultRelativeKey` (`src/lib/utils/path.ts`); a path outside the vault yields `null` and the update is skipped - never fall back to the absolute path.
+   - Upsert: `update_search_index_file` (FTS5) + `update_semantic_file` (chunks + `mtime:<rel_path>`), fired by `applyNoteChange`'s upsert branch and by the search after-save observer.
+   - Removal: `remove_from_search_index` (FTS5) + `remove_semantic_file` (chunk rows + the `mtime:<rel_path>` key, one transaction, then `invalidate_search_cache()`), both fired from the delete branch of `applyNoteChange` - the one owner of a note's removal. Dropping the mtime key with the chunks matters: chunks gone with the mtime left behind means a file re-created at the same mtime is treated as unchanged and never re-embedded.
+   - Both delete legs fire on the app-side path too: `path-change.service::forgetNote` passes `vaultStore.path`, so every delete / rename / move and every child of a deleted folder purges both tables directly. The watcher's `vault-files-changed` event cannot carry this on its own - it is dropped when the burst is all self-saves (`areAllRecentSaves`, and a 2 s autosave before a delete leaves a 15 s marker), a folder delete arrives as one directory rename that the directory-only filter discards, and a burst above `INCREMENTAL_THRESHOLD` (10) takes the full-rebuild branch, which does no per-path removal.
+   - Backstop: `cleanup_orphaned_chunks` at the end of `build_semantic_index` still sweeps chunk rows and mtime keys whose files no longer exist, covering deletions made while the app was not running. It also covers the residual race: the removal is fire-and-forget while an `update_semantic_file` for the same key may still be inside its 200-500 ms ONNX embed, and a delete that commits first is undone by that insert.
+   - `remove_semantic_file` reloads the search cache only when it actually deleted rows. The watcher fires a delete for every vanished `.md`, indexed or not, and a cache reload re-reads every chunk in the vault.
+
 ---
 
 ## Models

@@ -507,6 +507,42 @@ describe('deleteItem', () => {
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
 	});
 
+	it('drops the FTS row and the semantic chunks for the deleted note', async () => {
+		await deleteItem('/vault/note.md');
+
+		// `forgetNote` supplies `vaultStore.path`, so both search tables are
+		// purged by the delete itself. The watcher event is not a substitute:
+		// it is skipped when the burst is all self-saves, when the burst is
+		// directory-only, and above the incremental threshold.
+		expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: 'note.md' });
+		expect(invoke).toHaveBeenCalledWith('remove_semantic_file', { filePath: 'note.md' });
+	});
+
+	it('drops the FTS row and the semantic chunks for EVERY child of a deleted folder', async () => {
+		seedDirWithTwoChildren();
+
+		await deleteItem('/vault/dir', true);
+
+		// A folder delete reaches the watcher as one directory rename into the
+		// trash, which the handler's directory-only filter discards - the child
+		// walk here is the only thing that purges the children's rows.
+		for (const child of ['dir/a.md', 'dir/b.md']) {
+			expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: child });
+			expect(invoke).toHaveBeenCalledWith('remove_semantic_file', { filePath: child });
+		}
+	});
+
+	it('SKIPS both search removals when no vault is open (no derivable key)', async () => {
+		vaultStore.close();
+		vi.mocked(remove).mockResolvedValue(undefined);
+
+		await deleteItem('/vault/note.md');
+
+		const commands = vi.mocked(invoke).mock.calls.map(([cmd]) => cmd);
+		expect(commands).not.toContain('remove_from_search_index');
+		expect(commands).not.toContain('remove_semantic_file');
+	});
+
 	it('falls back to permanent delete when no vault is open', async () => {
 		vaultStore.close();
 		vi.mocked(remove).mockResolvedValue(undefined);
@@ -888,6 +924,16 @@ describe('moveItem', () => {
 
 		expect(result).toBe('/vault/folder/note.md');
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
+	});
+
+	it('drops the OLD path from the FTS and semantic tables on move', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await moveItem('/vault/note.md', '/vault/folder');
+
+		expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: 'note.md' });
+		expect(invoke).toHaveBeenCalledWith('remove_semantic_file', { filePath: 'note.md' });
 	});
 
 	it('clears the dedupe signature for the abandoned path on move (LB6)', async () => {
