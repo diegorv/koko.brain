@@ -1,8 +1,8 @@
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
 	compute_model_hash, deserialize_embedding, get_semantic_file_status, get_semantic_stats,
-	is_reranker_model_available, is_semantic_model_available, search_hybrid, search_semantic,
-	shutdown_semantic, update_semantic_file,
+	is_reranker_model_available, is_semantic_model_available, search_cache_label, search_hybrid,
+	search_semantic, shutdown_semantic, update_semantic_file,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::db::semantic_repo;
@@ -767,4 +767,35 @@ fn deserialize_embedding_rejects_blob_with_trailing_bytes() {
 #[test]
 fn deserialize_embedding_rejects_short_fragment() {
 	assert!(deserialize_embedding(&[0x01, 0x02]).is_none());
+}
+
+// --- search_cache_label (KOKO_SEARCH_CACHE eval switch) ---
+
+#[test]
+fn search_cache_label_is_int8_unless_the_eval_baseline_is_requested() {
+	// Serialized against every other env-touching test through TEST_LOCK;
+	// the var is restored before the guard drops.
+	let _guard = TEST_LOCK.lock().unwrap();
+	let previous = std::env::var("KOKO_SEARCH_CACHE").ok();
+
+	std::env::remove_var("KOKO_SEARCH_CACHE");
+	assert_eq!(search_cache_label(), "int8", "unset must ship the int8 cache");
+
+	std::env::set_var("KOKO_SEARCH_CACHE", "F32");
+	assert_eq!(search_cache_label(), "f32", "the value is case-insensitive");
+
+	std::env::set_var("KOKO_SEARCH_CACHE", "int8");
+	assert_eq!(search_cache_label(), "int8");
+
+	std::env::set_var("KOKO_SEARCH_CACHE", "yes-please");
+	assert_eq!(
+		search_cache_label(),
+		"int8",
+		"only an explicit f32 opts into the baseline"
+	);
+
+	match previous {
+		Some(value) => std::env::set_var("KOKO_SEARCH_CACHE", value),
+		None => std::env::remove_var("KOKO_SEARCH_CACHE"),
+	}
 }

@@ -1,21 +1,25 @@
 //! Resident-memory estimate for the in-memory embedding cache
 //! (`SEARCH_CACHE` in `commands/semantic.rs`).
 //!
-//! The cache holds every chunk with its embedding deserialized to `Vec<f32>`
-//! — 4 KB per chunk at 1024 dimensions before any text — and it has no idle
-//! unload path, unlike the ONNX models. Before deciding whether that
-//! footprint justifies quantization, measure it: this module turns the
-//! per-chunk sizes into one log line at cache load. Pure arithmetic, no I/O,
-//! so the numbers the log prints are unit-tested here.
+//! The cache holds every chunk with its embedding quantized to int8 plus one
+//! f32 scale (`semantic::quantize`) — 1028 bytes per chunk at 1024
+//! dimensions before any text, down from 4 KB under the old `Vec<f32>`
+//! layout — and it has no idle unload path, unlike the ONNX models. This
+//! module turns the per-chunk sizes into one log line at cache load. Pure
+//! arithmetic, no I/O, so the numbers the log prints are unit-tested here.
 
 /// Per-chunk sizes the caller reads off its cache entry.
 pub struct ChunkFootprint {
-	/// Number of `f32` components in the embedding.
+	/// Number of components in the embedding (one `i8` each).
 	pub embedding_len: usize,
 	/// Bytes of heap text: content, key, path, heading and parent headings.
 	pub text_bytes: usize,
 	/// Fixed struct bytes (the cache entry itself plus one `String` header
-	/// per parent heading).
+	/// per parent heading), **excluding** the entry's inline `scale`:
+	/// `estimate_footprint` adds that under `vector_bytes`, so it lands in
+	/// the number a reader compares against the old f32 layout. A caller
+	/// passing `size_of::<CacheEntry>()` must subtract `size_of::<f32>()`
+	/// or the 4 bytes are counted twice.
 	pub struct_bytes: usize,
 }
 
@@ -24,7 +28,8 @@ pub struct ChunkFootprint {
 pub struct CacheFootprint {
 	/// Number of chunks measured.
 	pub chunks: usize,
-	/// Bytes held by embedding vectors (`embedding_len * 4` each).
+	/// Bytes held by embedding vectors: `embedding_len` int8 components plus
+	/// the 4-byte per-vector scale.
 	pub vector_bytes: usize,
 	/// Bytes held by text buffers.
 	pub text_bytes: usize,
@@ -39,7 +44,7 @@ impl CacheFootprint {
 	}
 
 	/// One-line summary for the load log, e.g.
-	/// `~352.4 MB (vectors 348.2 MB, text 3.7 MB, overhead 0.5 MB)`.
+	/// `~91.3 MB (vectors 87.1 MB, text 3.7 MB, overhead 0.5 MB)`.
 	pub fn describe(&self) -> String {
 		format!(
 			"~{} (vectors {}, text {}, overhead {})",
@@ -64,7 +69,8 @@ where
 	let mut total = CacheFootprint::default();
 	for item in items {
 		total.chunks += 1;
-		total.vector_bytes += item.embedding_len * std::mem::size_of::<f32>();
+		total.vector_bytes +=
+			item.embedding_len * std::mem::size_of::<i8>() + std::mem::size_of::<f32>();
 		total.text_bytes += item.text_bytes;
 		total.overhead_bytes += item.struct_bytes;
 	}
@@ -91,24 +97,36 @@ mod tests {
 			struct_bytes: 200,
 		}]);
 		assert_eq!(fp.chunks, 1);
-		assert_eq!(fp.vector_bytes, 4_096);
+		// int8 layout: 1024 * 1 byte + one f32 scale (was 1024 * 4 = 4_096).
+		assert_eq!(fp.vector_bytes, 1_028);
 		assert_eq!(fp.text_bytes, 3_000);
 		assert_eq!(fp.overhead_bytes, 200);
-		assert_eq!(fp.total_bytes(), 7_296);
+		assert_eq!(fp.total_bytes(), 4_228);
 	}
 
 	#[test]
-	fn many_chunks_sum_and_vectors_dominate_at_1024_dims() {
-		// 85k chunks at 1024 dims: the finding 5 arithmetic.
-		let fp = estimate_footprint((0..85_000).map(|_| ChunkFootprint {
+	fn owners_vault_vectors_shrink_from_570_mb_to_143_mb() {
+		// The measured vault: 139,360 chunks at 1024 dims. Under the old
+		// `Vec<f32>` layout the log reported 570.8 MB of vectors; the int8
+		// layout reports 1 byte per dim plus one f32 scale per chunk.
+		let chunks = 139_360usize;
+		// Overhead per chunk: 188 B measured under the f32 layout
+		// (160 B struct + ~28 B of parent-heading `String` headers). The
+		// struct grew 32 B — `QuantizedVector` is 32 B where `Vec<f32>` was
+		// 24, plus the 24 B `Option<Vec<f32>>` eval-baseline slot — and the
+		// caller now subtracts the 4 B scale it reports under vectors: 216.
+		let fp = estimate_footprint((0..chunks).map(|_| ChunkFootprint {
 			embedding_len: 1024,
-			text_bytes: 800,
-			struct_bytes: 160,
+			text_bytes: 1_551,
+			struct_bytes: 216,
 		}));
-		assert_eq!(fp.chunks, 85_000);
-		assert_eq!(fp.vector_bytes, 85_000 * 4_096);
-		assert!(fp.vector_bytes > fp.text_bytes + fp.overhead_bytes);
-		assert_eq!(format_mb(fp.vector_bytes), "348.2 MB");
+		assert_eq!(fp.chunks, chunks);
+		assert_eq!(fp.vector_bytes, chunks * (1_024 + 4));
+		assert_eq!(format_mb(chunks * 1_024), "142.7 MB", "vectors alone");
+		assert_eq!(format_mb(chunks * 4), "0.6 MB", "scales alone");
+		assert_eq!(format_mb(fp.vector_bytes), "143.3 MB");
+		// Text now dominates, which is the point of measuring again.
+		assert!(fp.text_bytes > fp.vector_bytes);
 	}
 
 	#[test]
@@ -123,13 +141,15 @@ mod tests {
 	}
 
 	#[test]
-	fn zero_length_embedding_contributes_no_vector_bytes() {
+	fn zero_length_embedding_costs_only_its_scale() {
+		// Was `vector_bytes == 0` under the f32 layout. A `QuantizedVector`
+		// carries a scale whatever its length, so the floor is now 4 bytes.
 		let fp = estimate_footprint(vec![ChunkFootprint {
 			embedding_len: 0,
 			text_bytes: 10,
 			struct_bytes: 10,
 		}]);
-		assert_eq!(fp.vector_bytes, 0);
-		assert_eq!(fp.total_bytes(), 20);
+		assert_eq!(fp.vector_bytes, 4);
+		assert_eq!(fp.total_bytes(), 24);
 	}
 }

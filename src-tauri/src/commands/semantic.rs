@@ -4,6 +4,7 @@ use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, Embedder};
 use crate::semantic::filtering;
 use crate::semantic::model::ModelManager;
+use crate::semantic::quantize::QuantizedVector;
 use crate::semantic::reranker::Reranker;
 use crate::semantic::types::{SemanticFileStatus, SemanticProgress, SemanticResult, SemanticStats};
 use crate::utils::fs as vault_fs;
@@ -59,11 +60,40 @@ const RERANK_CANDIDATE_POOL: usize = 50;
 /// Cached pre-deserialized embeddings to avoid reloading from DB on every search.
 static SEARCH_CACHE: Mutex<Option<Arc<Vec<CachedChunk>>>> = Mutex::new(None);
 
+/// Env var that keeps the pre-quantization f32 vectors resident and scores
+/// with `embedder::cosine_similarity` instead of the int8 dot product.
+///
+/// Set it to `f32` to produce the baseline half of the recall comparison in
+/// `examples/retrieval_eval.rs` (`.scratch/retrieval-quality/issues/01-int8-in-memory-cache.md`);
+/// unset, or any other value, uses the int8 cache the app ships with. In
+/// baseline mode the footprint log still measures the int8 copy only — the
+/// f32 vectors it keeps beside it are eval overhead, not a shipped layout.
+const CACHE_MODE_ENV: &str = "KOKO_SEARCH_CACHE";
+
+/// True when `KOKO_SEARCH_CACHE=f32` asks for the pre-quantization baseline.
+fn f32_baseline_requested() -> bool {
+	std::env::var(CACHE_MODE_ENV).is_ok_and(|v| v.eq_ignore_ascii_case("f32"))
+}
+
+/// Layout the next cache load will build: `"int8"`, or `"f32"` under
+/// `KOKO_SEARCH_CACHE=f32`. `examples/retrieval_eval.rs` stamps it into its
+/// report so a recall comparison says which half it is.
+pub fn search_cache_label() -> &'static str {
+	if f32_baseline_requested() {
+		"f32"
+	} else {
+		"int8"
+	}
+}
+
 /// Guard to prevent concurrent `build_semantic_index` invocations.
 /// Only one build can run at a time; subsequent calls skip with a log message.
 static BUILD_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-/// A chunk with its embedding already deserialized from bytes to f32.
+/// A chunk with its embedding deserialized from the DB blob and quantized
+/// to int8 (see `semantic::quantize`). The f32 copy is dropped at load time:
+/// stored vectors are L2-normalized, so `QuantizedVector::dot` against the
+/// (still f32) query reproduces the cosine score at a quarter of the memory.
 struct CachedChunk {
 	key: String,
 	source_path: String,
@@ -74,10 +104,26 @@ struct CachedChunk {
 	parent_headings: Vec<String>,
 	line_start: usize,
 	line_end: usize,
-	embedding: Vec<f32>,
+	/// Int8 embedding plus its per-vector scale.
+	embedding: QuantizedVector,
+	/// The f32 vector the int8 copy was quantized from, retained only under
+	/// `KOKO_SEARCH_CACHE=f32` so the eval harness can score the
+	/// pre-quantization baseline. `None` in every shipped run.
+	embedding_f32: Option<Vec<f32>>,
 }
 
 impl CachedChunk {
+	/// Similarity against the (f32) query embedding. The int8 dot product,
+	/// or the f32 cosine when `KOKO_SEARCH_CACHE=f32` kept the original
+	/// vector resident. Both call sites — semantic and hybrid — go through
+	/// here so the eval switch cannot cover only one of them.
+	fn score(&self, query: &[f32]) -> f32 {
+		match &self.embedding_f32 {
+			Some(vector) => cosine_similarity(query, vector),
+			None => self.embedding.dot(query),
+		}
+	}
+
 	/// Text handed to the cross-encoder: the same `heading chain + body`
 	/// projection `Chunk::embed_text()` indexed. See
 	/// `semantic::types::heading_prefixed_text`.
@@ -124,6 +170,7 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 	}
 
 	debug_log("SEMANTIC", "Search cache miss — loading from DB");
+	let keep_f32 = f32_baseline_requested();
 	let chunks = db::with_db(|conn| {
 		let rows = db::semantic_repo::load_all_embeddings(conn)?;
 		let chunks: Vec<CachedChunk> = rows
@@ -148,7 +195,11 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 					parent_headings: row.parent_headings,
 					line_start: row.line_start as usize,
 					line_end: row.line_end as usize,
-					embedding,
+					// The f32 vector dies with this closure — only the int8
+					// copy is kept resident, unless the eval asked for the
+					// baseline.
+					embedding: QuantizedVector::from_f32(&embedding),
+					embedding_f32: keep_f32.then(|| embedding.clone()),
 				})
 			})
 			.collect();
@@ -157,22 +208,34 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 
 	let arc = Arc::new(chunks);
 	*cache = Some(Arc::clone(&arc));
-	// Resident-memory estimate. The cache has no idle unload, so this is the
-	// number that decides whether quantizing the in-memory vectors is worth
-	// it (retrieval-quality plan, finding 5).
+	// Resident-memory estimate. The cache has no idle unload, so this line is
+	// how the int8 quantization is verified on a real vault: at 139,360
+	// chunks the f32 layout reported 570.8 MB of vectors, the int8 layout
+	// reports ~143 MB (retrieval-quality plan, finding 5).
 	let footprint = cache_stats::estimate_footprint(arc.iter().map(|c| cache_stats::ChunkFootprint {
-		embedding_len: c.embedding.len(),
+		embedding_len: c.embedding.values.len(),
 		text_bytes: c.key.len()
 			+ c.source_path.len()
 			+ c.content.len()
 			+ c.heading.as_ref().map_or(0, |h| h.len())
 			+ c.parent_headings.iter().map(|h| h.len()).sum::<usize>(),
-		struct_bytes: std::mem::size_of::<CachedChunk>()
+		// `size_of::<CachedChunk>()` already contains the inline `scale`,
+		// which `estimate_footprint` reports under `vector_bytes` — drop it
+		// here instead of counting those 4 bytes per chunk twice.
+		struct_bytes: std::mem::size_of::<CachedChunk>() - std::mem::size_of::<f32>()
 			+ c.parent_headings.len() * std::mem::size_of::<String>(),
 	}));
 	debug_log(
 		"SEMANTIC",
-		format!("Search cache loaded: {} chunks, {}", arc.len(), footprint.describe()),
+		// The layout label matters: under `KOKO_SEARCH_CACHE=f32` the vector
+		// figure still measures the int8 copy, not the f32 vectors kept
+		// beside it for the eval.
+		format!(
+			"Search cache loaded: {} chunks, {} [{} layout]",
+			arc.len(),
+			footprint.describe(),
+			search_cache_label()
+		),
 	);
 	Ok(arc)
 }
@@ -717,7 +780,7 @@ pub async fn search_semantic(
 		let mut scored: Vec<(f32, usize)> = cached_chunks
 			.iter()
 			.enumerate()
-			.map(|(idx, chunk)| (cosine_similarity(&query_embedding, &chunk.embedding), idx))
+			.map(|(idx, chunk)| (chunk.score(&query_embedding), idx))
 			.filter(|(score, _)| *score >= threshold)
 			.collect();
 		scored.sort_by(|a, b| b.0.total_cmp(&a.0));
@@ -865,7 +928,7 @@ pub async fn search_hybrid(
 		// the FTS leg surfaced.
 		let cosines: Vec<f32> = cached_chunks
 			.iter()
-			.map(|c| cosine_similarity(&query_embedding, &c.embedding))
+			.map(|c| c.score(&query_embedding))
 			.collect();
 		let mut sem_order: Vec<usize> = (0..cached_chunks.len()).collect();
 		sem_order.sort_by(|a, b| cosines[*b].total_cmp(&cosines[*a]));

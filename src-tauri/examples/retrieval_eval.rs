@@ -19,6 +19,16 @@
 //!   [--limit 20] [--modes text,semantic,hybrid] [--verbose]
 //! ```
 //!
+//! To compare the int8 embedding cache against the pre-quantization f32
+//! baseline, run the same fixture twice — `KOKO_SEARCH_CACHE=f32` keeps the
+//! f32 vectors resident and scores with `embedder::cosine_similarity` — then
+//! `--compare` the two reports and read the per-query regression list:
+//!
+//! ```sh
+//! KOKO_SEARCH_CACHE=f32 cargo run --release … -- --vault ~/Vault --out /tmp/f32.json
+//! cargo run --release … -- --vault ~/Vault --out /tmp/int8.json --compare /tmp/f32.json
+//! ```
+//!
 //! Do not have a fixture yet? `--init-fixture` drafts one from the vault's
 //! own FTS index: bucket A from terms that occur in exactly one note, bucket
 //! B from note titles (rewrite those as paraphrases), bucket C from nonsense
@@ -34,7 +44,8 @@
 
 use kokobrain_lib::commands::search_index::search_fts_inner;
 use kokobrain_lib::commands::semantic::{
-	init_semantic_search, is_reranker_model_available, search_hybrid, search_semantic,
+	init_semantic_search, is_reranker_model_available, search_cache_label, search_hybrid,
+	search_semantic,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::search::eval_metrics::{
@@ -201,6 +212,12 @@ struct Report {
 	reranker_available: bool,
 	modes: Vec<String>,
 	queries: Vec<QueryReport>,
+	/// Embedding-cache layout the semantic scan used: `int8` (what the app
+	/// ships) or `f32` when `KOKO_SEARCH_CACHE=f32` forced the
+	/// pre-quantization baseline. Empty in reports written before the int8
+	/// cache landed.
+	#[serde(default)]
+	search_cache: String,
 	/// mode -> summary over all queries
 	summary: BTreeMap<String, ModeSummary>,
 	/// bucket -> mode -> summary
@@ -260,12 +277,13 @@ fn run() -> Result<(), String> {
 		return Err("no runnable modes".to_string());
 	}
 	eprintln!(
-		"vault={} queries={} modes={} embedder={} reranker={}",
+		"vault={} queries={} modes={} embedder={} reranker={} search_cache={}",
 		vault_str,
 		fixture.queries.len(),
 		modes.join(","),
 		embedder_available,
-		reranker_available
+		reranker_available,
+		search_cache_label()
 	);
 
 	// Warm-up: the first semantic call lazy-loads the embedder cache and the
@@ -354,6 +372,7 @@ fn run() -> Result<(), String> {
 		reranker_available,
 		modes: modes.clone(),
 		queries: query_reports,
+		search_cache: search_cache_label().to_string(),
 		summary,
 		per_bucket,
 	};
@@ -647,6 +666,13 @@ fn print_comparison(baseline: &Report, current: &Report) {
 		"\n== compared with baseline {} ({}) ==",
 		baseline.git_head.as_deref().unwrap_or("?"),
 		baseline.generated_at
+	);
+	// The int8-vs-f32 recall gate is exactly this line reading `f32 -> int8`
+	// with an empty regression list below.
+	println!(
+		"search cache: {} → {}",
+		if baseline.search_cache.is_empty() { "?" } else { &baseline.search_cache },
+		if current.search_cache.is_empty() { "?" } else { &current.search_cache }
 	);
 	println!(
 		"{:<9} {:>15} {:>15} {:>15} {:>15}",

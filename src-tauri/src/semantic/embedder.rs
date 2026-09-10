@@ -418,6 +418,12 @@ mod tests {
 
 /// Computes cosine similarity between two vectors.
 /// Returns 0.0 if either vector has zero magnitude.
+///
+/// The search scan no longer calls this: it scores int8 vectors through
+/// `semantic::quantize::QuantizedVector::dot`. This stays as the f32
+/// reference implementation — it is what `KOKO_SEARCH_CACHE=f32` scores with
+/// (`commands/semantic.rs`, `CachedChunk::score`) to produce the eval
+/// baseline, and what the quantizer's error bound is asserted against.
 pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
 	if a.len() != b.len() || a.is_empty() {
 		return 0.0;
