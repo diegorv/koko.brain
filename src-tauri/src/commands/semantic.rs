@@ -880,12 +880,17 @@ pub async fn search_semantic(
 /// 2. Reduce semantic chunks to a path ranking (best chunk per path,
 ///    order preserved).
 /// 3. RRF the two path rankings (k=60).
-/// 4. For each path in the fused top-50 pick one representative chunk via
-///    `search::hybrid::assemble_candidates`: the chunk with the most literal
+/// 4. Build the rerank pool via `search::hybrid::build_pool`: one
+///    representative chunk per fused path — the chunk with the most literal
 ///    query-term hits (content + heading), tie-broken by cosine. This covers
 ///    paths that only the FTS leg surfaced — before, those had no chunk and
-///    were dropped, so the lexical leg could never add a result. Only paths
-///    with zero chunks in the semantic index are still skipped.
+///    were dropped, so the lexical leg could never add a result.
+/// 4b. A fused path with zero chunks in the semantic index (a file the
+///    indexer has not caught up with) has no chunk to pick, so `build_pool`
+///    synthesizes a candidate from its FTS row instead: the `<mark>`-stripped
+///    snippet as `content`, no heading, line 0. Picks and synthesized entries
+///    are merged by fused rank and only then cut to the top-50, so text
+///    mode's hits stay a subset of the pool.
 /// 5. Rerank with `Reranker::rerank` if the model is on disk; otherwise
 ///    keep RRF order.
 /// 6. Sort by final score, truncate to `max_results`, then gap-filter via
@@ -957,11 +962,17 @@ pub async fn search_hybrid(
 			crate::search::rrf::DEFAULT_RRF_K,
 		);
 
-		// 4. One representative chunk per fused path — including paths only
-		// the FTS leg surfaced. Prefers the chunk that literally contains the
-		// query terms, then the highest cosine; the reranker arbitrates.
+		// 4. One entry per fused path, in fused order, cut to `FUSED_POOL`:
+		// the chunk that literally contains the most query terms (then the
+		// highest cosine), or — for a path the semantic index has no chunk
+		// for — a candidate synthesized from its FTS snippet. The reranker
+		// arbitrates.
 		let terms = crate::search::hybrid::query_terms(&trimmed);
-		let picks = crate::search::hybrid::assemble_candidates(
+		let fts_snippets: std::collections::HashMap<&str, &str> = fts_results
+			.iter()
+			.map(|r| (r.path.as_str(), r.snippet.as_str()))
+			.collect();
+		let pool_entries = crate::search::hybrid::build_pool(
 			&fused,
 			cached_chunks
 				.iter()
@@ -973,39 +984,62 @@ pub async fn search_hybrid(
 					cosine: *cos,
 				}),
 			&terms,
+			&fts_snippets,
 			FUSED_POOL,
 		);
 		let sem_set: HashSet<&str> = sem_paths.iter().map(|s| s.as_str()).collect();
 		let overlap = fts_paths.iter().filter(|p| sem_set.contains(p.as_str())).count();
 		let mut fts_only = 0usize;
-		let mut candidates: Vec<SemanticResult> = Vec::with_capacity(picks.len());
-		for pick in &picks {
-			let (path, rrf_score) = &fused[pick.fused_index];
-			let chunk = &cached_chunks[pick.chunk_index];
-			if !sem_set.contains(path.as_str()) {
-				fts_only += 1;
+		let mut synth_count = 0usize;
+		let mut candidates: Vec<SemanticResult> = Vec::with_capacity(pool_entries.len());
+		// Rerank doc source per candidate, 1:1 with `candidates`: the chunk to
+		// project, or `None` for a synthesized entry (reranked on its own FTS
+		// snippet — real text from the file, and with no heading to prefix
+		// `rerank_text` would return the body unchanged anyway).
+		let mut doc_chunks: Vec<Option<usize>> = Vec::with_capacity(pool_entries.len());
+		for entry in pool_entries {
+			match entry {
+				crate::search::hybrid::PoolEntry::Chunk(pick) => {
+					let (path, rrf_score) = &fused[pick.fused_index];
+					let chunk = &cached_chunks[pick.chunk_index];
+					if !sem_set.contains(path.as_str()) {
+						fts_only += 1;
+					}
+					candidates.push(SemanticResult {
+						key: chunk.key.clone(),
+						source_path: chunk.source_path.clone(),
+						content: chunk.content.clone(),
+						heading: chunk.heading.clone(),
+						line_start: chunk.line_start,
+						line_end: chunk.line_end,
+						// Provisional score — reranker overwrites if available.
+						score: *rrf_score,
+					});
+					doc_chunks.push(Some(pick.chunk_index));
+				}
+				crate::search::hybrid::PoolEntry::Fts(result) => {
+					// fts-only by construction: `sem_paths` is derived from chunks.
+					fts_only += 1;
+					synth_count += 1;
+					candidates.push(result);
+					doc_chunks.push(None);
+				}
 			}
-			candidates.push(SemanticResult {
-				key: chunk.key.clone(),
-				source_path: chunk.source_path.clone(),
-				content: chunk.content.clone(),
-				heading: chunk.heading.clone(),
-				line_start: chunk.line_start,
-				line_end: chunk.line_end,
-				// Provisional score — reranker overwrites if available.
-				score: *rrf_score,
-			});
 		}
+		let pool_size = candidates.len();
 
 		// 5. Rerank the candidate pool with the BGE cross-encoder when
 		// available; replace `score` with the rerank logit.
 		let used_reranker = !candidates.is_empty() && ensure_reranker_loaded()?;
 		if used_reranker {
-			// Same heading-prefixed projection the embedder indexed; `picks` and
-			// `candidates` are 1:1 in order at this point.
-			let docs: Vec<String> = picks
+			// Same heading-prefixed projection the embedder indexed.
+			let docs: Vec<String> = doc_chunks
 				.iter()
-				.map(|p| cached_chunks[p.chunk_index].rerank_text())
+				.zip(candidates.iter())
+				.map(|(chunk_index, c)| match chunk_index {
+					Some(idx) => cached_chunks[*idx].rerank_text(),
+					None => c.content.clone(),
+				})
 				.collect();
 			let doc_refs: Vec<&str> = docs.iter().map(|s| s.as_str()).collect();
 			let scores = {
@@ -1019,8 +1053,11 @@ pub async fn search_hybrid(
 			for (c, s) in candidates.iter_mut().zip(scores.iter()) {
 				c.score = *s;
 			}
-			candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 		}
+		// `finalize_results` truncates and expects descending order. Reranked:
+		// the logits bear no relation to the fused order the pool is in.
+		// Not reranked: the scores are still RRF, so this is a no-op.
+		candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 
 		// 6. Limit + gap filter. Reranked: logits through the sigmoid, then
 		// the fraction-of-top rule. Not reranked: the scores are RRF rank
@@ -1038,12 +1075,13 @@ pub async fn search_hybrid(
 		debug_log(
 			"SEMANTIC",
 			format!(
-				"hybrid: fts={} sem={} overlap={} fused={} pool={} fts_only={} reranker={} returned={}",
+				"hybrid: fts={} sem={} overlap={} fused={} pool={} synth={} fts_only={} reranker={} returned={}",
 				fts_paths.len(),
 				sem_paths.len(),
 				overlap,
 				fused.len(),
-				picks.len(),
+				pool_size,
+				synth_count,
 				fts_only,
 				used_reranker,
 				candidates.len()
