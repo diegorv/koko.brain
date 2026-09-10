@@ -40,9 +40,29 @@ pub struct Pick {
 	pub chunk_index: usize,
 }
 
+/// English and Portuguese function words dropped from the term list.
+///
+/// Matched literally against the already-lowercased token, so the accented
+/// forms are spelled out: `query_terms` does not fold diacritics.
+const STOP_WORDS: &[&str] = &[
+	// en
+	"the", "and", "for", "with", "that", "this", "from", "are", "was", "you", "your", "what", "how",
+	"when", "which", "not", "but", "can",
+	// pt
+	"que", "para", "com", "uma", "dos", "das", "por", "como", "não", "mais", "sobre", "pelo", "pela",
+	"ser", "isso", "quando", "onde", "mas",
+];
+
 /// Splits a query into lowercase, deduplicated terms on non-alphanumeric
-/// boundaries. Tokens shorter than two characters are dropped — they hit
-/// almost every chunk and carry no signal.
+/// boundaries. Tokens shorter than three characters and the `STOP_WORDS`
+/// function words are dropped: `term_hits` is a boundary-less substring
+/// match, so "que" hits inside "porque", "com" inside "commit" and "not"
+/// inside "note", and the "most hits wins" rule degenerates into "the
+/// longest chunk wins".
+///
+/// The three-character floor also drops short identifiers ("ai", "go", "js").
+/// Acceptable: a dropped term only costs a worse representative chunk for a
+/// path RRF has already fused, never a path and never an FTS match.
 ///
 /// This is a literal-match approximation of what FTS5 does (unicode61 with
 /// diacritic folding); a term FTS matched through diacritic folding or fuzzy
@@ -52,10 +72,13 @@ pub fn query_terms(query: &str) -> Vec<String> {
 	let mut seen: HashSet<String> = HashSet::new();
 	let mut out = Vec::new();
 	for raw in query.split(|c: char| !c.is_alphanumeric()) {
-		if raw.chars().count() < 2 {
+		if raw.chars().count() < 3 {
 			continue;
 		}
 		let term = raw.to_lowercase();
+		if STOP_WORDS.contains(&term.as_str()) {
+			continue;
+		}
 		if seen.insert(term.clone()) {
 			out.push(term);
 		}
@@ -164,22 +187,52 @@ mod tests {
 
 	#[test]
 	fn query_terms_lowercases_splits_and_dedupes() {
+		// "the" used to survive here; it is now a STOP_WORDS entry.
 		assert_eq!(
 			query_terms("Marcus Aurelius, marcus & the-Stoics"),
-			vec!["marcus", "aurelius", "the", "stoics"]
+			vec!["marcus", "aurelius", "stoics"]
 		);
 	}
 
 	#[test]
-	fn query_terms_drops_single_char_tokens_and_handles_empty() {
-		assert_eq!(query_terms("a b c ok"), vec!["ok"]);
+	fn query_terms_drops_short_tokens_and_handles_empty() {
+		// Was "a b c ok" -> ["ok"] under the 1-char rule; the floor is now 3
+		// characters, so the 2-char "ok" goes too.
+		assert!(query_terms("a b c ok").is_empty());
 		assert!(query_terms("").is_empty());
 		assert!(query_terms("   ").is_empty());
 	}
 
 	#[test]
+	fn query_terms_drops_two_char_tokens_but_keeps_content_words() {
+		assert_eq!(query_terms("js ai kb embeddings"), vec!["embeddings"]);
+	}
+
+	#[test]
 	fn query_terms_keeps_code_identifiers_whole() {
 		assert_eq!(query_terms("applyNoteChange"), vec!["applynotechange"]);
+	}
+
+	#[test]
+	fn query_terms_drops_stop_words_from_a_portuguese_paraphrase() {
+		assert_eq!(
+			query_terms("Como é que eu faço para não perder mais os anexos das notas?"),
+			vec!["faço", "perder", "anexos", "notas"]
+		);
+	}
+
+	#[test]
+	fn query_terms_folds_case_on_accented_stop_words() {
+		// to_lowercase() is unicode-aware, so the accented stop words match in
+		// any casing; query_terms still does not fold the accent itself.
+		assert!(query_terms("NÃO").is_empty());
+		assert_eq!(query_terms("Sessão"), vec!["sessão"]);
+	}
+
+	#[test]
+	fn query_terms_all_stop_words_yields_empty_list() {
+		// The pt-side twin lives in term_hits_zero_when_the_query_is_only_stop_words.
+		assert!(query_terms("what can you do with this").is_empty());
 	}
 
 	// --- term_hits ---
@@ -201,6 +254,13 @@ mod tests {
 	#[test]
 	fn term_hits_zero_for_empty_terms() {
 		assert_eq!(term_hits("anything", Some("x"), &[]), 0);
+	}
+
+	#[test]
+	fn term_hits_zero_when_the_query_is_only_stop_words() {
+		let t = terms("mais sobre isso");
+		assert!(t.is_empty());
+		assert_eq!(term_hits("fala mais sobre isso aqui", Some("Sobre"), &t), 0);
 	}
 
 	// --- assemble_candidates ---
@@ -255,6 +315,37 @@ mod tests {
 			chunk("a.md", None, "term", 0.6),
 		];
 		let picks = assemble_candidates(&f, chunks, &terms("term"), 50);
+		assert_eq!(picks, vec![Pick { fused_index: 0, chunk_index: 1 }]);
+	}
+
+	#[test]
+	fn mixed_query_ignores_substring_only_stop_word_hits() {
+		// The regression this change exists for. Old terms were ["para", "não",
+		// "perder", "anexos"], giving the long chunk 3 hits ("para" inside
+		// "separar", "não" inside "nãozinho", plus "perder") against 2 for the
+		// short one, so the long chunk won on substring noise. With the stop
+		// words gone the terms are ["perder", "anexos"] and the short chunk that
+		// actually carries both wins on hits, not cosine: its cosine is lower.
+		let f = fused(&["a.md"]);
+		let chunks = vec![
+			chunk("a.md", None, "como separar nãozinho de tudo sem perder o fio da meada", 0.2),
+			chunk("a.md", None, "anexos perder", 0.1),
+		];
+		let picks = assemble_candidates(&f, chunks, &terms("para não perder anexos"), 50);
+		assert_eq!(picks, vec![Pick { fused_index: 0, chunk_index: 1 }]);
+	}
+
+	#[test]
+	fn all_stop_word_query_falls_back_to_cosine() {
+		// Every token is a stop word, so no chunk can out-hit another and the
+		// pick collapses to the highest cosine even though the longer chunk
+		// contains all of them as substrings.
+		let f = fused(&["a.md"]);
+		let chunks = vec![
+			chunk("a.md", None, "mais sobre isso, com uma nota grande e desde sempre", 0.2),
+			chunk("a.md", None, "curto", 0.9),
+		];
+		let picks = assemble_candidates(&f, chunks, &terms("mais sobre isso"), 50);
 		assert_eq!(picks, vec![Pick { fused_index: 0, chunk_index: 1 }]);
 	}
 
