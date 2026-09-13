@@ -30,3 +30,22 @@ export function updateRecentVaults(
 	const filtered = current.filter((v) => v.path !== path);
 	return [{ path, name, openedAt: now }, ...filtered].slice(0, MAX_RECENT_VAULTS);
 }
+
+/** Folder under the documents directory that holds every vault the app creates. */
+export const VAULTS_FOLDER = 'kokobrain-vaults';
+
+/** Name of the single on-device vault the mobile build opens automatically. */
+export const MOBILE_VAULT_NAME = 'Notes';
+
+/**
+ * Absolute path of the on-device vault for the mobile build:
+ * `<documents>/kokobrain-vaults/Notes`. On iOS the documents directory is the
+ * app container's `Documents/`, which the Files app exposes when the bundle
+ * declares `UIFileSharingEnabled`. The `kokobrain-vaults` segment keeps the
+ * path inside the `$DOCUMENT/kokobrain-vaults/**` filesystem scope shared
+ * with desktop. A trailing separator on `documentDir` is tolerated.
+ */
+export function mobileVaultPath(documentDir: string): string {
+	const base = documentDir.replace(/[\\/]+$/, '');
+	return `${base}/${VAULTS_FOLDER}/${MOBILE_VAULT_NAME}`;
+}

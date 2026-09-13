@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
+	import { platformStore } from '$lib/core/platform/platform.store.svelte';
+	import { openVaultDialog, openRecentVault, openMobileVault } from '$lib/core/vault/vault.service';
 	import BuildInfo from '$lib/core/settings/BuildInfo.svelte';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import Clock from '@lucide/svelte/icons/clock';
@@ -9,8 +11,20 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import X from '@lucide/svelte/icons/x';
 
+	// Mobile has no folder picker: the on-device vault opens by itself, so
+	// the welcome screen is only visible while the first launch creates it.
+	onMount(() => {
+		if (platformStore.isMobile && !vaultStore.isOpen) {
+			void openMobileVault();
+		}
+	});
+
 	async function handleOpenVault() {
-		await openVaultDialog();
+		if (platformStore.isMobile) {
+			await openMobileVault();
+		} else {
+			await openVaultDialog();
+		}
 	}
 
 	async function handleOpenRecent(path: string) {
@@ -22,7 +36,7 @@
 	}
 </script>
 
-<div class="flex h-screen flex-col items-center justify-center gap-8 relative">
+<div class="flex h-dvh flex-col items-center justify-center gap-8 relative px-4">
 	<div class="flex flex-col items-center gap-2">
 		<h1 class="text-3xl font-bold">KokoBrain</h1>
 		<p class="text-sm text-muted-foreground">Your second brain for personal knowledge</p>
@@ -30,19 +44,21 @@
 
 	<Button size="lg" onclick={handleOpenVault} class="gap-2 transition-all hover:scale-[1.02] hover:shadow-md">
 		<FolderOpen class="size-4" />
-		Open Vault
+		{platformStore.isMobile ? 'Open Notes' : 'Open Vault'}
 	</Button>
 
 	{#if vaultStore.recentVaults.length > 0}
-		<div class="flex w-[32rem] flex-col gap-2 rounded-lg border border-muted-foreground/10 p-3">
+		<div class="flex w-full max-w-[32rem] flex-col gap-2 rounded-lg border border-muted-foreground/10 p-3">
 			<div class="flex items-center gap-2 text-sm text-muted-foreground">
 				<Clock class="size-3.5" />
 				<span>Recent Vaults</span>
 			</div>
-			<div class="flex items-center gap-1.5 rounded-md border border-muted-foreground/10 bg-card px-3 py-1.5 text-xs text-muted-foreground">
-				<ShieldCheck class="size-3.5 shrink-0" />
-				<span>Allowed locations: <span class="font-medium text-foreground/80">~/Documents/kokobrain-vaults/</span> and <span class="font-medium text-foreground/80">~/kokobrain-vaults/</span></span>
-			</div>
+			{#if !platformStore.isMobile}
+				<div class="flex items-center gap-1.5 rounded-md border border-muted-foreground/10 bg-card px-3 py-1.5 text-xs text-muted-foreground">
+					<ShieldCheck class="size-3.5 shrink-0" />
+					<span>Allowed locations: <span class="font-medium text-foreground/80">~/Documents/kokobrain-vaults/</span> and <span class="font-medium text-foreground/80">~/kokobrain-vaults/</span></span>
+				</div>
+			{/if}
 			{#each vaultStore.recentVaults as vault}
 				<div class="group flex items-center gap-2">
 					<ChevronRight class="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { extractVaultName, updateRecentVaults, type RecentVault } from '$lib/core/vault/vault.logic';
+import {
+	extractVaultName,
+	updateRecentVaults,
+	mobileVaultPath,
+	MOBILE_VAULT_NAME,
+	VAULTS_FOLDER,
+	type RecentVault,
+} from '$lib/core/vault/vault.logic';
 
 describe('extractVaultName', () => {
 	it('extracts the last segment of a path', () => {
@@ -81,5 +88,34 @@ describe('updateRecentVaults', () => {
 	it('handles empty path and name gracefully', () => {
 		const result = updateRecentVaults([], '', '', now);
 		expect(result).toEqual([{ path: '', name: '', openedAt: now }]);
+	});
+});
+
+describe('mobileVaultPath', () => {
+	it('places the vault under kokobrain-vaults inside the documents directory', () => {
+		expect(mobileVaultPath('/private/var/mobile/Containers/Data/Application/ABC/Documents')).toBe(
+			'/private/var/mobile/Containers/Data/Application/ABC/Documents/kokobrain-vaults/Notes',
+		);
+	});
+
+	it('tolerates a trailing separator on the documents directory', () => {
+		expect(mobileVaultPath('/Users/me/Documents/')).toBe('/Users/me/Documents/kokobrain-vaults/Notes');
+		expect(mobileVaultPath('C:\\Users\\me\\Documents\\')).toBe(
+			'C:\\Users\\me\\Documents/kokobrain-vaults/Notes',
+		);
+	});
+
+	it('uses the shared folder and vault name constants', () => {
+		expect(mobileVaultPath('/docs')).toBe(`/docs/${VAULTS_FOLDER}/${MOBILE_VAULT_NAME}`);
+		expect(VAULTS_FOLDER).toBe('kokobrain-vaults');
+		expect(MOBILE_VAULT_NAME).toBe('Notes');
+	});
+
+	it('yields a name the store will display as the vault name', () => {
+		expect(extractVaultName(mobileVaultPath('/docs'))).toBe('Notes');
+	});
+
+	it('handles an empty documents directory without crashing', () => {
+		expect(mobileVaultPath('')).toBe('/kokobrain-vaults/Notes');
 	});
 });
