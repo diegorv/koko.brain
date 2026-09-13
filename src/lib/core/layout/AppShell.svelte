@@ -3,8 +3,11 @@
 	import type { Snippet } from 'svelte';
 	import { appendLog } from '$lib/utils/log.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { editorStore } from '$lib/core/editor/editor.store.svelte';
+	import { platformStore } from '$lib/core/platform/platform.store.svelte';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 	import { excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
 	import { dockBadgeCount } from '$lib/features/dock-badge/dock-badge.logic';
@@ -28,15 +31,19 @@
 	import SaveStatus from '$lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '$lib/core/status-bar/SemanticIndexStatus.svelte';
 	import { toggleLeftSidebar, toggleRightSidebar } from './layout.service';
+	import { mobileLayoutStore } from './mobile-layout.store.svelte';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 
 	let { children }: { children: Snippet } = $props();
 
 	// Keep the macOS dock badge in sync with the lifecycle inbox count.
 	// Tracks the toggle and the vault entries version; the actual OS call
 	// is wrapped in untrack() so the service's reads never become deps.
+	// There is no dock on mobile, so the effect is skipped there.
 	$effect(() => {
+		if (platformStore.isMobile) return;
 		const enabled = settingsStore.dockBadgeInboxCount;
 		void typeDefinitionsStore.entriesVersion;
 		const entries = excludeSystemFolder(
@@ -78,10 +85,79 @@
 		!searchStore.isOpen && settingsStore.layout.sidebarMode === 'types'
 	);
 
+	// Mobile: opening a file from the drawer should reveal the editor, so the
+	// drawer closes whenever the active tab path changes. The store write is
+	// untracked so the effect only depends on the path.
+	$effect(() => {
+		const path = editorStore.activeTabPath;
+		untrack(() => {
+			if (platformStore.isMobile && path !== null) mobileLayoutStore.closeDrawer();
+		});
+	});
 </script>
 
 {#if !vaultStore.isOpen}
 	{@render children()}
+{:else if platformStore.isMobile}
+	<!--
+		Touch layout (iOS / iPadOS): the editor fills the screen and the file
+		explorer (or the search panel) slides in as an overlay drawer from the
+		status-bar button. No resizable panes, no right sidebar, no traffic-light
+		spacers. Safe-area insets keep the content clear of the notch and the
+		home indicator (`viewport-fit=cover` in app.html).
+	-->
+	<div class="relative flex h-dvh flex-col bg-tab-bar pt-[env(safe-area-inset-top)]">
+		<div class="relative min-h-0 flex-1 bg-card">
+			<EditorView />
+			{#if mobileLayoutStore.drawerOpen}
+				<button
+					type="button"
+					class="absolute inset-0 z-20 bg-black/40"
+					aria-label="Close sidebar"
+					onclick={() => mobileLayoutStore.closeDrawer()}
+				></button>
+				<div
+					class="absolute inset-y-0 left-0 z-30 flex w-[85%] max-w-sm flex-col overflow-hidden bg-file-explorer-bg shadow-xl"
+					role="dialog"
+					aria-label="Sidebar"
+				>
+					{#if searchStore.isOpen}
+						<SearchPanel />
+					{:else}
+						<FileExplorer />
+					{/if}
+				</div>
+			{/if}
+		</div>
+		<div class="shrink-0 bg-status-bar-bg pb-[env(safe-area-inset-bottom)]">
+			<StatusBar>
+				{#snippet left()}
+					<button
+						type="button"
+						class="inline-flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
+						aria-label={mobileLayoutStore.drawerOpen ? 'Hide sidebar' : 'Show sidebar'}
+						aria-pressed={mobileLayoutStore.drawerOpen}
+						onclick={() => mobileLayoutStore.toggleDrawer()}
+					>
+						<PanelLeft class="size-4" />
+					</button>
+					<button
+						type="button"
+						class="inline-flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
+						aria-label="Open settings"
+						onclick={() => settingsPanelStore.open()}
+					>
+						<SettingsIcon class="size-4" />
+					</button>
+					<SearchStatus />
+				{/snippet}
+				{#snippet right()}
+					<SaveStatus />
+					<WordCount />
+				{/snippet}
+			</StatusBar>
+		</div>
+	</div>
 {:else}
 	<div class="relative flex h-screen flex-col">
 		<button
