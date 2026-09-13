@@ -29,6 +29,7 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 }));
 
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import {
 	performSearch,
@@ -623,6 +624,30 @@ describe('registerSearchIndexHook', () => {
 			vaultPath: '/vault',
 		});
 		expect(vaultStore.path).toBe('/vault');
+	});
+
+	it('callback updates FTS5 but skips the semantic leg on mobile', () => {
+		let callback: (path: string, content: string) => void;
+		mockAddAfterSaveObserver.mockImplementation((cb: any) => {
+			callback = cb;
+			return () => {};
+		});
+		mockInvoke.mockResolvedValue(undefined);
+		platformStore._setPlatform('ios');
+		try {
+			registerSearchIndexHook();
+			callback!('/vault/notes/test.md', '# Hello');
+		} finally {
+			platformStore._reset();
+		}
+
+		expect(mockInvoke).toHaveBeenCalledWith('update_search_index_file', {
+			filePath: 'notes/test.md',
+			content: '# Hello',
+			vaultPath: '/vault',
+		});
+		expect(mockInvoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
+		expect(mockInvoke).toHaveBeenCalledTimes(1);
 	});
 
 	it('callback ignores non-markdown files', () => {

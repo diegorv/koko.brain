@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { searchStore } from './search.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { mergeResults } from './search-hybrid.logic';
 import { parseSearchQuery, performSearchOverFiles, matchesPathFilter } from './search.logic';
@@ -331,10 +332,13 @@ export function registerSearchIndexHook(): () => void {
 			error('SEARCH', 'FTS5 index update failed:', err);
 		});
 
-		// Update semantic index (if embedder is loaded)
-		invoke('update_semantic_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
-			debug('SEARCH', 'Semantic incremental update skipped:', err);
-		});
+		// Update semantic index (if embedder is loaded). The mobile build has
+		// no semantic commands at all, so the call is skipped there.
+		if (!platformStore.isMobile) {
+			invoke('update_semantic_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
+				debug('SEARCH', 'Semantic incremental update skipped:', err);
+			});
+		}
 	});
 }
 

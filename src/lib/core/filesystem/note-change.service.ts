@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { isAlreadyIndexed, markIndexed, clearIndexedEntry } from '$lib/utils/index-dedupe';
 import { vaultRelativeKey } from '$lib/utils/path';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -165,9 +166,12 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 			// for deletions made while the app is not running, but a session that
 			// never triggers a full build used to leak every deleted note's chunks
 			// into semantic / hybrid results.
-			invoke('remove_semantic_file', { filePath: key }).catch((err) => {
-				error('NOTE-CHANGE', 'remove_semantic_file failed:', err);
-			});
+			// The mobile build registers no semantic commands: skip the call.
+			if (!platformStore.isMobile) {
+				invoke('remove_semantic_file', { filePath: key }).catch((err) => {
+					error('NOTE-CHANGE', 'remove_semantic_file failed:', err);
+				});
+			}
 		}
 		return;
 	}
@@ -199,9 +203,12 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 		});
 		// Semantic - the Rust side compares content hashes first, so unchanged
 		// chunks skip ONNX inference. Skipped silently if the embedder isn't loaded.
-		invoke('update_semantic_file', { filePath: key, content, vaultPath }).catch((err) => {
-			debug('NOTE-CHANGE', `Semantic incremental update skipped: ${err}`);
-		});
+		// The mobile build registers no semantic commands: skip the call.
+		if (!platformStore.isMobile) {
+			invoke('update_semantic_file', { filePath: key, content, vaultPath }).catch((err) => {
+				debug('NOTE-CHANGE', `Semantic incremental update skipped: ${err}`);
+			});
+		}
 	}
 
 	if (!runConsumers) return;

@@ -25,6 +25,7 @@ import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte
 import { registerCalendarNoteChangeConsumer, resetCalendar } from '$lib/plugins/calendar/calendar.service';
 import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
 import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 
 /** Frontmatter that lights up all three registered consumers at once. */
 const CONTENT = '---\n_icon: lucide:star\ncreated: 2026-01-02\nstatus: done\n---\n';
@@ -215,6 +216,25 @@ describe('applyNoteChange', () => {
 			expect(collectionStore.propertyIndex.has('/vaulted/a.md')).toBe(true);
 		});
 
+		it('keeps the FTS5 leg but skips the semantic leg on mobile', async () => {
+			platformStore._setPlatform('ios');
+			try {
+				await applyNoteChange({
+					kind: 'upsert', source: 'watcher', path: '/vault/notes/a.md', content: CONTENT, vaultPath: '/vault',
+				});
+			} finally {
+				platformStore._reset();
+			}
+
+			expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+				filePath: 'notes/a.md', content: CONTENT, vaultPath: '/vault',
+			});
+			expect(invokedCommands()).not.toContain('update_semantic_file');
+			// Rust index + consumers still run.
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '/vault/notes/a.md', content: CONTENT });
+			expectAllConsumersIndexed('/vault/notes/a.md');
+		});
+
 		it('never touches FTS when no vaultPath is supplied', async () => {
 			for (const source of ['save', 'edit', 'create', 'fs'] as const) {
 				await applyNoteChange({ kind: 'upsert', source, path: '/vault/a.md', content: `${source}` });
@@ -263,6 +283,19 @@ describe('applyNoteChange', () => {
 			await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/notes/a.md' });
 			expect(invokedCommands()).not.toContain('remove_from_search_index');
 			expect(invokedCommands()).not.toContain('remove_semantic_file');
+		});
+
+		it('removes the FTS row but skips the semantic chunks on mobile', async () => {
+			platformStore._setPlatform('ios');
+			try {
+				await applyNoteChange({ kind: 'delete', source: 'watcher', path: '/vault/notes/a.md', vaultPath: '/vault' });
+			} finally {
+				platformStore._reset();
+			}
+
+			expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: 'notes/a.md' });
+			expect(invokedCommands()).not.toContain('remove_semantic_file');
+			expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/notes/a.md' });
 		});
 
 		it('SKIPS the FTS and semantic removal for a path outside the vault prefix', async () => {

@@ -41,6 +41,7 @@ import {
 } from '$lib/core/settings/settings-persistence.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import {
 	maybeAutoCheckForUpdates,
 	type UpdateMetadata,
@@ -100,6 +101,24 @@ describe('maybeAutoCheckForUpdates', () => {
 
 		expect(invoke).not.toHaveBeenCalled();
 		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(settingsStore.updates.lastCheckedAt).toBeNull();
+		expect(toast.info).not.toHaveBeenCalled();
+	});
+
+	it('does nothing on mobile even when autoCheck is enabled', async () => {
+		settingsStore.updateUpdates({ autoCheck: true, channel: 'stable' });
+		vaultStore.open('/vault');
+		startSettingsPersistence('/vault');
+		vi.mocked(invoke).mockResolvedValue(updateAvailable);
+		platformStore._setPlatform('ios');
+		try {
+			await maybeAutoCheckForUpdates();
+			await settle();
+		} finally {
+			platformStore._reset();
+		}
+
+		expect(invoke).not.toHaveBeenCalled();
 		expect(settingsStore.updates.lastCheckedAt).toBeNull();
 		expect(toast.info).not.toHaveBeenCalled();
 	});

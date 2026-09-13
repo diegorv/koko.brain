@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from './settings.store.svelte';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import { error } from '$lib/utils/debug';
 
 /**
@@ -27,8 +28,12 @@ export interface UpdateMetadata {
  *
  * Errors are logged but do not surface to the user (a transient network
  * failure during cold start should not nag the user with a toast).
+ *
+ * No-op on mobile: the updater plugin is desktop-only and App Store
+ * builds update through the store, so the command does not exist there.
  */
 export async function maybeAutoCheckForUpdates(): Promise<void> {
+	if (platformStore.isMobile) return;
 	const { autoCheck, channel } = settingsStore.updates;
 	if (!autoCheck) return;
 

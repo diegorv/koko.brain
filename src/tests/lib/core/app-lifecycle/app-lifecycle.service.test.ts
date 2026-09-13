@@ -220,6 +220,7 @@ import { toast } from 'svelte-sonner';
 import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { refreshViewDefinition, getCachedViewDefinition } from '$lib/features/type-definitions/view-parse-cache';
@@ -946,6 +947,20 @@ describe('teardownVault', () => {
 		expect(invoke).toHaveBeenCalledWith('shutdown_semantic');
 	});
 
+	it('does not invoke shutdown_semantic on mobile, where the command is not registered', () => {
+		platformStore._setPlatform('ios');
+		try {
+			teardownVault();
+		} finally {
+			platformStore._reset();
+		}
+
+		expect(invoke).not.toHaveBeenCalledWith('shutdown_semantic');
+		// The rest of the teardown still runs.
+		expect(invoke).toHaveBeenCalledWith('close_vault_db');
+		expect(resetEditor).toHaveBeenCalled();
+	});
+
 	it('logs error when shutdown_semantic fails and still completes teardown', async () => {
 		const semErr = new Error('semantic busy');
 		vi.mocked(invoke).mockImplementation((cmd: string) => {
@@ -1030,6 +1045,28 @@ describe('initializeVault — semantic search startup', () => {
 			'Semantic search model not found. Re-enable in Settings to download.'
 		);
 		expect(buildSemanticIndex).not.toHaveBeenCalled();
+	});
+
+	it('skips the semantic init chain on mobile even when the setting is on, and leaves the setting alone', async () => {
+		vi.useFakeTimers();
+		settingsStore.updateSearch({ semanticSearchEnabled: true });
+		platformStore._setPlatform('ios');
+		try {
+			await initializeVault('/vault');
+			await vi.advanceTimersByTimeAsync(3000);
+		} finally {
+			platformStore._reset();
+			vi.useRealTimers();
+		}
+
+		expect(startSemanticProgressListener).not.toHaveBeenCalled();
+		expect(initSemanticSearch).not.toHaveBeenCalled();
+		expect(buildSemanticIndex).not.toHaveBeenCalled();
+		expect(toast.warning).not.toHaveBeenCalled();
+		// A synced settings.json keeps its desktop value: mobile never rewrites it.
+		expect(settingsStore.search.semanticSearchEnabled).toBe(true);
+		// The text index still runs on mobile.
+		expect(buildSearchIndex).toHaveBeenCalled();
 	});
 
 	it('does not auto-download the model on startup', async () => {

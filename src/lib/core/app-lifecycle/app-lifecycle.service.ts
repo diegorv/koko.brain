@@ -73,6 +73,7 @@ import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.lo
 import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { platformStore } from '$lib/core/platform/platform.store.svelte';
 import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
@@ -397,8 +398,13 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// first tab switch, making the app feel frozen. Pushing it past the
 	// initial interaction window moves the unavoidable jank to a time the
 	// user isn't actively clicking around.
+	// The mobile build ships without ONNX Runtime (no `init_semantic_search`
+	// command), so a synced settings.json with the flag on must not start the
+	// init chain there - the setting itself is left untouched for desktop.
 	debug('LIFECYCLE', `Semantic search enabled: ${settingsStore.search.semanticSearchEnabled}`);
-	if (settingsStore.search.semanticSearchEnabled) {
+	if (settingsStore.search.semanticSearchEnabled && platformStore.isMobile) {
+		debug('LIFECYCLE', 'Semantic search unavailable on mobile - skipping init');
+	} else if (settingsStore.search.semanticSearchEnabled) {
 		debug('LIFECYCLE', `Scheduling deferred semantic search init in ${SEMANTIC_INIT_DEFER_MS}ms...`);
 		semanticInitTimer = setTimeout(async () => {
 			semanticInitTimer = null;
@@ -540,9 +546,13 @@ export function teardownVault(): void {
 	// Release the embedder/reranker and invalidate the process-static
 	// SEARCH_CACHE: without this, switching to an already-indexed vault
 	// serves the previous vault's chunks (Rust checks the cache before the DB).
-	invoke('shutdown_semantic').catch((err: unknown) => {
-		error('LIFECYCLE', 'Failed to shut down semantic engine:', err);
-	});
+	// Skipped on mobile: the command is not registered there and the
+	// embedder never loaded.
+	if (!platformStore.isMobile) {
+		invoke('shutdown_semantic').catch((err: unknown) => {
+			error('LIFECYCLE', 'Failed to shut down semantic engine:', err);
+		});
+	}
 	debug('LIFECYCLE', 'Closing vault database...');
 	invoke('close_vault_db').catch((err: unknown) => {
 		error('LIFECYCLE', 'Failed to close vault database:', err);
