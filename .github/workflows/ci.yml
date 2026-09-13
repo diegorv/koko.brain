@@ -86,6 +86,8 @@ jobs:
               - ".github/workflows/**"
             rust:
               - "src-tauri/**"
+              # The mobile-profile check script runs inside the Rust job.
+              - "scripts/check-mobile-profile.sh"
               # Same rationale as frontend: setup-action and workflow
               # changes can break the Rust toolchain setup (see commits
               # ce864fdb / fd02d64f, where a runner image regression
@@ -184,6 +186,15 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      # The iOS / iPadOS build compiles without the ONNX engine and the
+      # desktop shell (docs/IOS.md). `tauri ios` only exists in the CLI on
+      # macOS and the Apple SDK is not on this runner, so the mobile profile
+      # is reproduced with the two Cargo features off: build.rs emits the same
+      # cfg set an iOS build gets, on the host target. Catches an unused
+      # import or a missing `#[cfg]` before the first Xcode build.
+      - name: Check mobile profile (no semantic, no desktop integration)
+        run: bash scripts/check-mobile-profile.sh
 
   rust-fonts-macos:
     name: Rust (cargo test — macOS fonts)
