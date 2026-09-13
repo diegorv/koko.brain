@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Capability for the main window on every platform. Desktop-only plugins (global shortcuts, updater, process) live in desktop.json so the iOS / Android build, which does not link those plugins, still resolves this file.",
   "windows": [
     "main"
   ],
@@ -17,9 +17,6 @@
     "core:webview:allow-set-webview-zoom",
     "deep-link:default",
     "clipboard-manager:allow-read-text",
-    "global-shortcut:allow-register",
-    "global-shortcut:allow-unregister",
-    "global-shortcut:allow-is-registered",
     "opener:default",
     {
       "identifier": "opener:allow-open-path",
@@ -251,8 +248,6 @@
           "url": "https://api.todoist.com/**"
         }
       ]
-    },
-    "updater:default",
-    "process:allow-restart"
+    }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop",
+  "description": "Desktop-only permissions for the main window: quick-capture global shortcuts, the in-app updater and the post-update restart. The plugins behind them are compiled only for desktop targets (see the desktop-integration feature in Cargo.toml), so this capability must not apply to iOS / Android or the ACL build step fails on unknown permissions.",
+  "platforms": ["macOS", "windows", "linux"],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "global-shortcut:allow-is-registered",
+    "updater:default",
+    "process:allow-restart"
+  ]
+}

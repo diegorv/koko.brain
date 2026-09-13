@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Merged into the generated iOS Info.plist by `tauri ios dev` / `tauri ios build`
+	(Tauri picks up `Info.ios.plist` next to tauri.conf.json). The two keys expose
+	the app container's Documents directory in the Files app, which is where the
+	mobile build keeps its vault (`Documents/kokobrain-vaults/Notes`), so notes can
+	be browsed, edited and synced from there.
+-->
+<plist version="1.0">
+<dict>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+</dict>
+</plist>
