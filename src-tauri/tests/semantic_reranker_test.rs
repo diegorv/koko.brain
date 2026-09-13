@@ -8,6 +8,9 @@
 //! (missing files, invalid model bytes) and the public constants that gate
 //! batching/truncation behavior.
 
+// Desktop-only: the ONNX engine is compiled behind the `semantic` cfg.
+#![cfg(semantic)]
+
 use kokobrain_lib::semantic::reranker::Reranker;
 use std::fs;
 use tempfile::tempdir;

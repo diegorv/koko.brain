@@ -18,6 +18,27 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+default = ["semantic", "desktop-integration"]
+# ONNX Runtime semantic search: embedder, reranker, model download and the
+# `*_semantic*` / `search_hybrid` commands. Never compiled for iOS / Android
+# (build.rs turns the `semantic` cfg off there regardless of this feature),
+# and `--no-default-features` reproduces that mobile profile on a desktop
+# host - see docs/IOS.md.
+semantic = ["dep:ort", "dep:half", "dep:ndarray", "dep:tokenizers", "dep:reqwest", "dep:futures-util"]
+# Desktop shell integration: native menu bar, quick-capture composer window
+# + clipboard capture, global shortcuts, in-app updater and process restart.
+# Same mobile rule as `semantic` (cfg `desktop_integration`).
+desktop-integration = [
+	"dep:tauri-plugin-global-shortcut",
+	"dep:tauri-plugin-updater",
+	"dep:tauri-plugin-process",
+	"dep:arboard",
+	"dep:image",
+	"dep:mime_guess",
+	"dep:url",
+]
+
 [dependencies]
 tauri = { version = "2", features = ["macos-private-api", "protocol-asset"] }
 tauri-plugin-opener = "2"
@@ -25,12 +46,7 @@ tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-clipboard-manager = "2"
-tauri-plugin-global-shortcut = "2"
 
-# Quick Capture (clipboard adapter, kind detection, image re-encode)
-arboard = "3"
-image = { version = "0.25", default-features = false, features = ["png"] }
-mime_guess = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
@@ -49,18 +65,31 @@ sha2 = "0.11"
 # File History
 similar = "3.1"
 
-# Semantic Search
-ort = { version = "2.0.0-rc.13", features = ["download-binaries", "ndarray", "half"] }
-half = "2.7"
-ndarray = "0.17"
-tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
-reqwest = { version = "0.13", features = ["stream"] }
-futures-util = "0.3"
+# Shared async runtime (vault commands use `spawn_blocking`; the semantic
+# model download uses the fs / io helpers).
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
 tauri-plugin-http = "2"
-tauri-plugin-updater = "2.10.1"
-tauri-plugin-process = "2.3.1"
-url = "2"
+
+# Desktop-only crates. Declared for non-mobile targets only so an iOS /
+# Android build never resolves them, and optional so the `semantic` /
+# `desktop-integration` features can switch them off on a desktop host.
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+# Semantic Search
+ort = { version = "2.0.0-rc.13", features = ["download-binaries", "ndarray", "half"], optional = true }
+half = { version = "2.7", optional = true }
+ndarray = { version = "0.17", optional = true }
+tokenizers = { version = "0.23", default-features = false, features = ["onig"], optional = true }
+reqwest = { version = "0.13", features = ["stream"], optional = true }
+futures-util = { version = "0.3", optional = true }
+# Desktop shell integration
+tauri-plugin-global-shortcut = { version = "2", optional = true }
+tauri-plugin-updater = { version = "2.10.1", optional = true }
+tauri-plugin-process = { version = "2.3.1", optional = true }
+url = { version = "2", optional = true }
+# Quick Capture (clipboard adapter, kind detection, image re-encode)
+arboard = { version = "3", optional = true }
+image = { version = "0.25", default-features = false, features = ["png"], optional = true }
+mime_guess = { version = "2", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
@@ -95,4 +124,9 @@ strip = false
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# Offline retrieval eval (docs/SEARCH.md) drives the ONNX models directly.
+[[example]]
+name = "retrieval_eval"
+required-features = ["semantic"]
 

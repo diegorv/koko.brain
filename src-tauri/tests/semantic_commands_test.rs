@@ -1,3 +1,6 @@
+// Desktop-only: the ONNX engine is compiled behind the `semantic` cfg.
+#![cfg(semantic)]
+
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
 	compute_model_hash, deserialize_embedding, get_semantic_file_status, get_semantic_stats,

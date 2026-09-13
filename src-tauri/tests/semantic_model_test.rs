@@ -8,6 +8,9 @@
 //! divisor), and the streaming success/error paths against a one-shot loopback
 //! HTTP server.
 
+// Desktop-only: the ONNX engine is compiled behind the `semantic` cfg.
+#![cfg(semantic)]
+
 use kokobrain_lib::semantic::model::{ManagedModel, ModelManager, BGE_M3_EMBEDDER};
 use std::io::{Read, Write};
 use std::net::TcpListener;

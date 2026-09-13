@@ -699,6 +699,7 @@ mod tests {
 	}
 
 	#[test]
+	#[cfg(semantic)]
 	fn audit_finding_12_malformed_blob_is_rejected_by_deserializer() {
 		// The fixed read path: a blob with a trailing orphan byte is rejected
 		// outright instead of being truncated to a shorter vector.

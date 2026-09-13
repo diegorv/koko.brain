@@ -139,6 +139,7 @@ mod tests {
 	}
 
 	#[test]
+	#[cfg(semantic)]
 	fn dot_error_stays_inside_the_cauchy_schwarz_bound() {
 		// Per-component error is <= scale/2 (test above), so the error vector
 		// e = v - v_hat has ||e||_2 <= sqrt(d) * scale/2. The dot-product
