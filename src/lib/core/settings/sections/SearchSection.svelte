@@ -5,6 +5,7 @@
 	import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 	import { settingsStore } from '../settings.store.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { platformStore } from '$lib/core/platform/platform.store.svelte';
 	import { searchStore } from '$lib/features/search/search.store.svelte';
 	import {
 		initSemanticSearch,
@@ -32,6 +33,8 @@
 	}
 
 	$effect(() => {
+		// The mobile build has no reranker command to ask.
+		if (platformStore.isMobile) return;
 		untrack(() => refreshRerankerStatus());
 	});
 
@@ -97,16 +100,25 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Search</h2>
 
-	<SettingItem
-		label="Semantic search"
-		description="Enable AI-powered semantic search using BGE-M3 (~542MB download)"
-	>
-		<Switch
-			checked={settingsStore.search.semanticSearchEnabled}
-			disabled={isDownloading}
-			onCheckedChange={handleToggle}
-		/>
-	</SettingItem>
+	{#if platformStore.isMobile}
+		<SettingItem
+			label="Semantic search"
+			description="Not available on iPhone and iPad. Text search stays on; the setting synced from your Mac is left unchanged."
+		>
+			<span class="text-xs text-muted-foreground">Desktop only</span>
+		</SettingItem>
+	{:else}
+		<SettingItem
+			label="Semantic search"
+			description="Enable AI-powered semantic search using BGE-M3 (~542MB download)"
+		>
+			<Switch
+				checked={settingsStore.search.semanticSearchEnabled}
+				disabled={isDownloading}
+				onCheckedChange={handleToggle}
+			/>
+		</SettingItem>
+	{/if}
 
 	{#if isDownloading}
 		<div class="flex items-center gap-2 px-4 text-xs text-muted-foreground">
@@ -121,14 +133,14 @@
 		<p class="px-4 text-xs text-destructive">{downloadError}</p>
 	{/if}
 
-	{#if settingsStore.search.semanticSearchEnabled && searchStore.semanticStats}
+	{#if !platformStore.isMobile && settingsStore.search.semanticSearchEnabled && searchStore.semanticStats}
 		<div class="px-4 text-xs text-muted-foreground">
 			Model loaded · {searchStore.semanticStats.totalChunks} chunks indexed
 			from {searchStore.semanticStats.totalSources} files
 		</div>
 	{/if}
 
-	{#if settingsStore.search.semanticSearchEnabled}
+	{#if !platformStore.isMobile && settingsStore.search.semanticSearchEnabled}
 		<SettingItem
 			label="Reranker (BGE-reranker-v2-m3)"
 			description="Cross-encoder rerank for higher top-K precision (~571MB extra download, roughly 10 s per query on CPU). Auto-used by semantic search once downloaded."

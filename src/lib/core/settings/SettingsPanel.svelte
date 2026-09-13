@@ -87,11 +87,15 @@
 	import { fly } from 'svelte/transition';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { settingsPanelStore } from './settings-panel.store.svelte';
-	import { SETTINGS_SECTION_GROUPS } from '$lib/core/settings/settings.logic';
+	import { platformStore } from '$lib/core/platform/platform.store.svelte';
+	import { settingsSectionGroupsFor } from '$lib/core/settings/settings.logic';
 	import XIcon from '@lucide/svelte/icons/x';
 
 	/** Active section component, derived so it re-renders when the store section changes. */
 	const SectionContent = $derived(sectionComponents[settingsPanelStore.activeSection]);
+
+	/** Navigation groups for this platform (mobile hides updater + quick capture). */
+	const sectionGroups = $derived(settingsSectionGroupsFor(platformStore.isMobile));
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && settingsPanelStore.isOpen) {
@@ -105,13 +109,13 @@
 {#if settingsPanelStore.isOpen}
 	<div
 		class="fixed top-0 right-0 z-40 flex flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
-		style="bottom: 24px; width: 820px; max-width: 80vw;"
+		style={platformStore.isMobile ? 'bottom: 0; width: 100vw; max-width: 100vw;' : 'bottom: 24px; width: 820px; max-width: 80vw;'}
 		transition:fly={{ x: 820, duration: 200 }}
 		role="dialog"
 		aria-label="Settings"
 	>
 		<!-- Sidebar -->
-		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 py-5 bg-settings-sidebar-bg">
+		<nav class="flex shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border py-5 bg-settings-sidebar-bg {platformStore.isMobile ? 'w-36 px-1' : 'w-48 px-3'}">
 			<div class="mb-3 flex items-center justify-between px-3">
 				<h2 class="text-sm font-semibold">Settings</h2>
 				<button
@@ -123,7 +127,7 @@
 				</button>
 			</div>
 
-			{#each SETTINGS_SECTION_GROUPS as group, i}
+			{#each sectionGroups as group, i}
 				<h3 class="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground {i === 0 ? 'mb-1' : 'mt-3 mb-1'}">
 					{group.group}
 				</h3>
@@ -142,7 +146,7 @@
 
 		<!-- Content -->
 		<ScrollArea class="flex-1">
-			<div class="max-w-3xl px-10 py-8">
+			<div class="max-w-3xl {platformStore.isMobile ? 'px-4 py-6' : 'px-10 py-8'}">
 				<SectionContent />
 			</div>
 		</ScrollArea>

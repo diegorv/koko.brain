@@ -11,6 +11,8 @@ import {
 	clampHeadingLetterSpacing,
 	normalizeSettings,
 	SETTINGS_SECTION_GROUPS,
+	MOBILE_HIDDEN_SECTIONS,
+	settingsSectionGroupsFor,
 } from '$lib/core/settings/settings.logic';
 
 describe('clampFontSize', () => {
@@ -170,6 +172,40 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 				expect(section.label).toBeTruthy();
 			}
 		}
+	});
+});
+
+describe('settingsSectionGroupsFor', () => {
+	it('returns the full navigation on desktop', () => {
+		expect(settingsSectionGroupsFor(false)).toBe(SETTINGS_SECTION_GROUPS);
+	});
+
+	it('hides the updater and quick-capture sections on mobile', () => {
+		const ids = settingsSectionGroupsFor(true).flatMap((g) => g.sections.map((s) => s.id));
+		expect(ids).not.toContain('update');
+		expect(ids).not.toContain('quick-capture');
+		for (const hidden of MOBILE_HIDDEN_SECTIONS) expect(ids).not.toContain(hidden);
+	});
+
+	it('keeps every other section in the desktop order on mobile', () => {
+		const desktopIds = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
+		const mobileIds = settingsSectionGroupsFor(true).flatMap((g) => g.sections.map((s) => s.id));
+		expect(mobileIds).toEqual(desktopIds.filter((id) => !MOBILE_HIDDEN_SECTIONS.includes(id)));
+	});
+
+	it('keeps every group on mobile because none is emptied by the filter', () => {
+		expect(settingsSectionGroupsFor(true).map((g) => g.group)).toEqual(
+			SETTINGS_SECTION_GROUPS.map((g) => g.group),
+		);
+		for (const group of settingsSectionGroupsFor(true)) {
+			expect(group.sections.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('does not mutate the shared desktop navigation', () => {
+		const before = JSON.stringify(SETTINGS_SECTION_GROUPS);
+		settingsSectionGroupsFor(true);
+		expect(JSON.stringify(SETTINGS_SECTION_GROUPS)).toBe(before);
 	});
 });
 

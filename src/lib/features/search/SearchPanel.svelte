@@ -6,6 +6,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { searchStore } from './search.store.svelte';
+	import { platformStore } from '$lib/core/platform/platform.store.svelte';
 	import SearchResultItem from './SearchResult.svelte';
 	import type { SearchMode } from './search.types';
 
@@ -43,6 +44,9 @@
 		{ value: 'semantic', label: 'Semantic' },
 		{ value: 'hybrid', label: 'Hybrid' },
 	];
+
+	/** Modes offered on this platform: mobile has no semantic engine, so only text. */
+	const visibleModes = $derived(platformStore.isMobile ? modes.filter((m) => m.value === 'text') : modes);
 
 	const hasResults = $derived(
 		searchStore.mode === 'text'
@@ -96,9 +100,10 @@
 			{/if}
 		</div>
 
-		<!-- Mode toggle -->
+		<!-- Mode toggle (hidden when only text search exists) -->
+		{#if visibleModes.length > 1}
 		<div class="flex gap-0.5 rounded-md bg-muted p-0.5">
-			{#each modes as m}
+			{#each visibleModes as m}
 				<button
 					class="flex-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer
 						{searchStore.mode === m.value ? 'bg-background text-file-explorer-fg shadow-sm' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}
@@ -110,6 +115,7 @@
 				</button>
 			{/each}
 		</div>
+		{/if}
 
 		<!-- Index stats + progress -->
 		<div class="flex items-center gap-2 text-[10px] text-file-explorer-muted-fg">

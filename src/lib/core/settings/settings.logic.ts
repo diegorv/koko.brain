@@ -137,3 +137,25 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		],
 	},
 ] as const;
+
+/**
+ * Sections whose feature does not exist in the mobile build: the in-app
+ * updater (App Store builds update through the store) and quick capture
+ * (global shortcuts + composer window are desktop-only).
+ */
+export const MOBILE_HIDDEN_SECTIONS: readonly SettingsSection[] = ['quick-capture', 'update'];
+
+/**
+ * Settings navigation for the current platform. Desktop gets
+ * `SETTINGS_SECTION_GROUPS` as is; mobile drops `MOBILE_HIDDEN_SECTIONS`
+ * and any group left empty by that filter. Order is preserved.
+ */
+export function settingsSectionGroupsFor(isMobile: boolean): readonly SettingsSectionGroup[] {
+	if (!isMobile) return SETTINGS_SECTION_GROUPS;
+	return SETTINGS_SECTION_GROUPS
+		.map((group) => ({
+			group: group.group,
+			sections: group.sections.filter((section) => !MOBILE_HIDDEN_SECTIONS.includes(section.id)),
+		}))
+		.filter((group) => group.sections.length > 0);
+}
