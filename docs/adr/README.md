@@ -136,3 +136,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0029](0029-frontmatter-yaml-canonical-form.md) | Canonical YAML form for frontmatter on the write path                                | active |
 | [0030](0030-pnpm-build-in-precommit-gate.md) | pnpm build joins the pre-commit gate for frontend changes                            | active |
 | [0031](0031-native-rust-vault-watcher.md) | Native Rust vault watcher: Rust-side filter + debounce, one vault-files-changed event, no JS watch API | active |
+| [0032](0032-ios-reduced-target.md) | iOS / iPadOS as a reduced target: feature-gated semantic engine and desktop shell, one on-device vault | active |

@@ -11,7 +11,7 @@ A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md
 Your notes are plain Markdown files stored locally - no cloud, no lock-in, privacy first. Built entirely with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and human review.
 
 > [!NOTE]
-> 🍎 **macOS only.** Pull requests without a prior discussion will not be accepted - if you want to contribute, please open a discussion first.
+> 🍎 **macOS first.** A reduced iPhone / iPad build (editor, file explorer and text search; no semantic search, updater or quick capture) is described in [docs/IOS.md](docs/IOS.md). Pull requests without a prior discussion will not be accepted - if you want to contribute, please open a discussion first.
 > If you want a mature, cross-platform tool, check out [Obsidian](https://obsidian.md) or [Logseq](https://logseq.com).
 
 ## ✨ Features

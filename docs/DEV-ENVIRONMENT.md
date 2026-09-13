@@ -61,6 +61,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 For a container that is recreated per session, the right place for steps 1-4 is a SessionStart hook (see the `session-start-hook` skill in Claude Code) so every session starts with a working gate instead of rediscovering this file.
 
+## Mobile-profile check
+
+`bash scripts/check-mobile-profile.sh` type-checks the crate the way an iOS build compiles it (no ONNX Runtime, no desktop shell) and needs none of the four steps above except the Tauri Linux libraries and a current `rustc`: the ONNX Runtime download is skipped because the `semantic` feature is off. Details in [IOS.md](IOS.md).
+
 ## Frontend gate
 
 `pnpm check`, `pnpm vitest run` and `pnpm build` need only Node 22 and pnpm; no platform-specific steps were required.

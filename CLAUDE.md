@@ -20,6 +20,7 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
    - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run` + `pnpm build`
    - **Both**: all four commands. No exceptions.
+   - **Rust gating** (anything touching `Cargo.toml`, `build.rs`, `lib.rs`, `capabilities/` or a `#[cfg(semantic)]` / `#[cfg(desktop_integration)]` site): also `bash scripts/check-mobile-profile.sh` (the iOS profile, see [docs/IOS.md](docs/IOS.md)).
 
    `pnpm build` is part of the gate because vitest does not exercise the
    production bundler. A dependency bump that moves `rolldown`, `vite` or
@@ -37,6 +38,7 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 - **UI:** shadcn-svelte (Tailwind CSS + bits-ui)
 - **Backend:** Tauri 2 (Rust)
 - **Package manager:** pnpm
+- **Targets:** macOS (full), iOS / iPadOS (reduced: no semantic search, updater, quick capture or menu bar; `platformStore.isMobile` on the frontend, `semantic` / `desktop_integration` cfgs in Rust; see [docs/IOS.md](docs/IOS.md))
 
 ## Commands
 
@@ -49,6 +51,8 @@ pnpm tauri:build:fast # Local fast build: release-fast profile, no bundle/codesi
 pnpm check            # TypeScript type checking
 pnpm check:watch      # Type checking in watch mode
 bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up)
+bash scripts/check-mobile-profile.sh  # cargo check of the iOS profile (no ONNX, no desktop shell) on a desktop host
+pnpm tauri ios dev    # iPhone / iPad build (macOS only, after `pnpm tauri ios init`; see docs/IOS.md)
 ```
 
 **Build performance:** `.cargo/config.toml` requires `sccache` on PATH (`brew install sccache`); on a box without it, `RUSTC_WRAPPER=` (empty) disables the wrapper. Linux / remote-container prerequisites and the ONNX Runtime download workaround are in [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md). The `beforeBuildCommand` is `bash scripts/tauri-before-build.sh`, which skips `pnpm build` when frontend inputs are unchanged; bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
@@ -296,6 +300,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/TESTING.md](docs/TESTING.md) | Full testing guide: mock rules, assertions, service/store tests, E2E, completion gate |
 | [docs/COMMITS.md](docs/COMMITS.md) | Commit message convention with format and examples |
 | [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) | Machine prerequisites for the test gates: sccache, rustc floor, Tauri Linux libs, ONNX Runtime download workaround for proxied containers |
+| [docs/IOS.md](docs/IOS.md) | iOS / iPadOS build: what the reduced target contains, the on-device vault, the `semantic` / `desktop-integration` feature gating, the host-side mobile-profile check, building on a Mac |
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
