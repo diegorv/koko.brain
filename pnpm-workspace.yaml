@@ -56,11 +56,17 @@ overrides:
   # (`import { serialize } from 'cookie'`). Keep the >=0.7.0 security
   # floor but cap below 2 until SvelteKit supports it.
   cookie: '>=0.7.0 <2'
-  # @doist/todoist-sdk@10.5.0 pins undici to an exact 7.24.8, which
-  # reintroduces the undici advisories (GHSA-vmh5-mc38-953g and others)
-  # and breaks the dedup with jsdom's 7.28.0. Force the patched line.
-  # Patched: >=7.28.0.
-  undici: '>=7.28.0'
+  # Keep a single undici copy on the patched 8.x line. jsdom asks for
+  # `^8.9.0` while @doist/todoist-sdk@15 asks for `^7.29.0`; without this
+  # the SDK would pull a second copy from the 7.x line. 8.10.2 is the 8.x
+  # fix for undici's 2026-09-04 security release (GHSA-vp8m-p9jh-q5pm,
+  # GHSA-w293-vg96-wgc3, GHSA-rfgv-xxqx-mfg5 and eight more, listed on
+  # the nodejs/undici repo; `pnpm audit` did not report them as of
+  # 2026-09-15). Capped at `^8` so a future undici major is a deliberate
+  # bump. Lifting the SDK past its declared major is safe here: it only
+  # imports undici under Node when no `customFetch` is given, and the
+  # Tauri bridge always passes one (todoist-client.ts).
+  undici: '^8.10.2'
 
 # Dependencies allowed to run install/build scripts. pnpm 11 (see
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`
