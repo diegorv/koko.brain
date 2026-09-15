@@ -9,9 +9,10 @@
 //! HTTP server.
 
 use kokobrain_lib::semantic::model::{ManagedModel, ModelManager, BGE_M3_EMBEDDER};
-use std::io::{Read, Write};
-use std::net::TcpListener;
+use std::io::{ErrorKind, Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
 /// A managed model with zero downloads and zero required files.
@@ -22,27 +23,112 @@ static EMPTY_MODEL: ManagedModel = ManagedModel {
 	embedding_dimensions: None,
 };
 
-/// Spawns a one-shot HTTP server on a loopback ephemeral port that answers
-/// the first request with `status_line` + `body`, then exits. Returns the
-/// base URL (e.g. "http://127.0.0.1:54321").
-fn spawn_one_shot_server(status_line: &'static str, body: &'static [u8]) -> String {
+/// Serves one GET for `expected_path`, ignoring unrelated localhost probes.
+/// Connections and the server lifetime are bounded so a failed test cannot
+/// leave the fixture blocked indefinitely. Returns the loopback base URL.
+fn spawn_one_shot_server(
+	status_line: &'static str,
+	body: &'static [u8],
+	expected_path: &'static str,
+) -> String {
 	let listener = TcpListener::bind("127.0.0.1:0").expect("bind loopback");
 	let addr = listener.local_addr().expect("local addr");
+	listener.set_nonblocking(true).expect("nonblocking listener");
 	std::thread::spawn(move || {
-		if let Ok((mut stream, _)) = listener.accept() {
-			let mut buf = [0u8; 2048];
-			let _ = stream.read(&mut buf);
+		let deadline = Instant::now() + Duration::from_secs(10);
+		'connections: while Instant::now() < deadline {
+			let mut stream = match listener.accept() {
+				Ok((stream, _)) => stream,
+				Err(err) if err.kind() == ErrorKind::WouldBlock => {
+					std::thread::sleep(Duration::from_millis(10));
+					continue;
+				}
+				Err(err) if err.kind() == ErrorKind::Interrupted => continue,
+				Err(err) => panic!("accept loopback request: {err}"),
+			};
+			stream.set_nonblocking(false).expect("blocking connection");
+
+			let mut request = Vec::new();
+			let mut buf = [0u8; 1024];
+			loop {
+				let remaining = deadline.saturating_duration_since(Instant::now());
+				if remaining.is_zero() {
+					break 'connections;
+				}
+				stream
+					.set_read_timeout(Some(remaining.min(Duration::from_secs(1))))
+					.expect("request read timeout");
+				match stream.read(&mut buf) {
+					Ok(0) => continue 'connections,
+					Ok(n) => request.extend_from_slice(&buf[..n]),
+					Err(err) if err.kind() == ErrorKind::Interrupted => continue,
+					Err(_) => continue 'connections,
+				}
+				if request.len() > 8192 {
+					continue 'connections;
+				}
+				if request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+					break;
+				}
+			}
+
+			let request = String::from_utf8_lossy(&request);
+			let mut request_line = request.lines().next().unwrap_or_default().split_whitespace();
+			let expected = request_line.next() == Some("GET")
+				&& request_line.next() == Some(expected_path);
+			let remaining = deadline.saturating_duration_since(Instant::now());
+			if remaining.is_zero() {
+				break;
+			}
+			stream
+				.set_write_timeout(Some(remaining.min(Duration::from_secs(1))))
+				.expect("response write timeout");
+			if !expected {
+				// Local service discovery may send HEAD / before the test's GET.
+				let _ = stream.write_all(b"HTTP/1.1 204 No Content\r\nconnection: close\r\n\r\n");
+				continue;
+			}
 			let header = format!(
 				"HTTP/1.1 {}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
 				status_line,
 				body.len()
 			);
-			let _ = stream.write_all(header.as_bytes());
-			let _ = stream.write_all(body);
-			let _ = stream.flush();
+			stream.write_all(header.as_bytes()).expect("write response headers");
+			stream.write_all(body).expect("write response body");
+			return;
 		}
+		panic!("timed out waiting for GET {expected_path}");
 	});
 	format!("http://{}", addr)
+}
+
+#[test]
+fn loopback_server_ignores_probe_and_waits_for_complete_get_headers() {
+	let base = spawn_one_shot_server("200 OK", b"fixture-body", "/fixture.bin");
+	let addr = base.strip_prefix("http://").unwrap();
+
+	// A HEAD probe must not consume the one download.
+	let mut probe = TcpStream::connect(addr).expect("connect HEAD probe");
+	probe.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+	probe.write_all(b"HEAD / HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
+	let mut response = Vec::new();
+	probe.read_to_end(&mut response).expect("read probe response");
+	drop(probe);
+
+	let mut download = TcpStream::connect(addr).expect("connect expected GET after probe");
+	download.set_read_timeout(Some(Duration::from_millis(50))).unwrap();
+	download.write_all(b"GET /fixture.bin HTTP/1.1\r\n").unwrap();
+	let early_response = download.read(&mut [0u8; 1]);
+	assert!(
+		matches!(early_response, Err(ref err) if matches!(err.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut)),
+		"server must wait for complete headers, got {early_response:?}"
+	);
+	download.write_all(b"Host: localhost\r\n\r\n").unwrap();
+	download.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+	response.clear();
+	download.read_to_end(&mut response).expect("read download response");
+	assert!(response.starts_with(b"HTTP/1.1 200 OK\r\n"));
+	assert!(response.ends_with(b"\r\n\r\nfixture-body"));
 }
 
 /// Builds a `&'static ManagedModel` with a single download pointing at `url`.
@@ -126,7 +212,7 @@ async fn download_model_skips_existing_files_and_reports_progress() {
 #[tokio::test]
 async fn download_model_streams_file_from_server_and_renames_temp() {
 	let body: &'static [u8] = b"fake-model-bytes";
-	let base = spawn_one_shot_server("200 OK", body);
+	let base = spawn_one_shot_server("200 OK", body, "/model.bin");
 	let model = leaked_model("local-ok", format!("{}/model.bin", base), "model.bin");
 
 	let tmp = tempdir().unwrap();
@@ -158,7 +244,7 @@ async fn download_model_streams_file_from_server_and_renames_temp() {
 
 #[tokio::test]
 async fn download_model_propagates_http_error_status() {
-	let base = spawn_one_shot_server("404 Not Found", b"");
+	let base = spawn_one_shot_server("404 Not Found", b"", "/missing.bin");
 	let model = leaked_model("local-404", format!("{}/missing.bin", base), "missing.bin");
 
 	let tmp = tempdir().unwrap();
