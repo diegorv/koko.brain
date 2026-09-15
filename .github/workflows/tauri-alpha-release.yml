@@ -1,0 +1,268 @@
+name: Tauri 3 Alpha Build
+
+# Signed and notarized macOS build of the `update-tauri-to-v3` branch (draft
+# PR #173, the staged Tauri 3.0.0-alpha upgrade), published as the fixed
+# pre-release `tauri-v3-alpha`. It lets the upgrade be installed and QA'd
+# before Tauri 3 leaves alpha, and it exercises the release path nothing else
+# on the branch reaches: tauri-action v1.0.0 driving the v3 CLI, codesign,
+# notarization and the updater artifacts.
+#
+# TEMPORARY. Delete this file, the `tauri-v3-alpha` release and its tag
+# before the branch merges (see .scratch/tauri-v3/plan-2026-09-15.md).
+#
+# No CI gate on purpose: unlike nightly.yml this job does not wait for
+# ci.yml / e2e.yml. PR #173 already runs them on every push, and this build
+# only feeds a manual QA install, never an updater channel.
+#
+# Updater isolation: no installed build is ever offered this artifact.
+#   - The stable endpoint (`releases/latest/download/latest.json`) resolves to
+#     the newest non-prerelease release; this one is a prerelease.
+#   - The nightly endpoint reads the fixed `nightly` tag only.
+#   - The app has no third channel (src-tauri/src/commands/update_channel.rs).
+# The build is stamped `<major>.<minor+1>.0-tauri3-alpha.<count>.<sha>`, with
+# the base taken from the NEWER of this branch's and main's package.json, so
+# an installed alpha is not replaced right away either: it sorts above the
+# current stable and above the same-base nightly (`nightly` < `tauri3-alpha`
+# in semver prerelease order) even when main ships a release before the
+# branch merges it. Settings > Install Stable still works, since that flow
+# compares with `!=`.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [update-tauri-to-v3]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "docs/agents/**"
+      - "docs/adr/**"
+      - "tasks/**"
+      - ".scratch/**"
+      - "help/**"
+  workflow_dispatch:
+
+concurrency:
+  # A newer push supersedes a build in flight. Cancelling is harmless here:
+  # nothing reads this release, and the next run deletes whatever a cancelled
+  # run left behind (tag, release or both).
+  group: tauri-alpha-release
+  cancel-in-progress: true
+
+jobs:
+  build-macos:
+    name: Build macOS (Tauri 3 alpha)
+    # Canonical repo only, and only for this branch: workflow_dispatch can
+    # target any ref that carries this file.
+    if: github.repository == 'diegorv/koko.brain' && github.ref == 'refs/heads/update-tauri-to-v3'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          # Full history for `git rev-list --count HEAD`, plus origin/main for
+          # the version base.
+          fetch-depth: 0
+          # Do not leave the contents:write token in .git/config, where the
+          # install and build scripts of the alpha dependency tree could read
+          # it. The one git push below passes the token explicitly.
+          persist-credentials: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          # Own cache slot. The Tauri 3 dependency tree differs from main's,
+          # so sharing `macos-release-aarch64` with nightly.yml / release.yml
+          # would make the workflows overwrite each other's cache.
+          rust-cache-key: macos-tauri3-alpha-aarch64
+
+      - name: Compute alpha version
+        id: ver
+        run: |
+          set -euo pipefail
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          BRANCH_VERSION=$(jq -r '.version' package.json | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          MAIN_VERSION=$(git show origin/main:package.json | jq -r '.version' | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          # Newer of the two X.Y.Z, compared numerically field by field.
+          IFS='.' read -r B1 B2 B3 <<< "$BRANCH_VERSION"
+          IFS='.' read -r M1 M2 M3 <<< "$MAIN_VERSION"
+          if (( M1 > B1 || (M1 == B1 && (M2 > B2 || (M2 == B2 && M3 > B3))) )); then
+            BASE_VERSION="$MAIN_VERSION"
+          else
+            BASE_VERSION="$BRANCH_VERSION"
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+          ALPHA_VERSION="${MAJOR}.$((MINOR + 1)).0-tauri3-alpha.${COMMIT_COUNT}.${SHORT_SHA}"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "alpha_version=${ALPHA_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "branch=${BRANCH_VERSION} main=${MAIN_VERSION} base=${BASE_VERSION}"
+          echo "Computed alpha version: ${ALPHA_VERSION}"
+
+      - name: Patch tauri.conf.json with the alpha version
+        # Job-scoped edit, no commit. Tauri takes the bundle's Info.plist
+        # version and the `latest.json` version from this file. package.json
+        # stays untouched, as in nightly.yml.
+        run: |
+          set -euo pipefail
+          jq --arg v "${{ steps.ver.outputs.alpha_version }}" '.version = $v' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+          jq '{ productName, version }' src-tauri/tauri.conf.json
+
+      - name: Generate alpha release body
+        id: body
+        run: |
+          set -euo pipefail
+          {
+            echo "body<<ALPHA_BODY_EOF"
+            echo "## Tauri 3 alpha build from \`update-tauri-to-v3\` @ \`${{ steps.ver.outputs.short_sha }}\`"
+            echo ""
+            echo "**Version:** \`${{ steps.ver.outputs.alpha_version }}\`"
+            echo "**Commit:** [${{ steps.ver.outputs.short_sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+            echo "**Pull request:** #173"
+            echo ""
+            echo "### Testing build on a framework alpha"
+            echo ""
+            echo "Built on Tauri 3.0.0-alpha to test the upgrade before it lands on \`main\`."
+            echo "The in-app updater never offers this build on any channel. Use the"
+            echo "**Stable** channel for everyday work."
+            echo ""
+            echo "### Verify download integrity"
+            echo ""
+            echo "\`\`\`bash"
+            echo "shasum -a 256 <downloaded-file>"
+            echo "\`\`\`"
+            echo ""
+            echo "Compare the output with the matching entry in the checksums block appended"
+            echo "below (also uploaded as \`checksums-sha256.txt\`)."
+            echo "ALPHA_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Replace the previous alpha pre-release and point its tag here
+        # Nothing reads this release's latest.json, so unlike nightly.yml there
+        # is no updater outage to avoid: delete it up front. Only a missing
+        # release is tolerated; any other delete failure fails the job before
+        # the build, because tauri-action would otherwise reuse the stale
+        # release (keeping its old assets and never re-sending `prerelease`).
+        # The tag is then pushed at this commit BEFORE tauri-action runs, so
+        # its create-release call targets an existing tag. Tags pushed with
+        # GITHUB_TOKEN trigger no workflow, and release.yml only matches tags
+        # with two dots.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view tauri-v3-alpha >/dev/null 2>&1; then
+            gh release delete tauri-v3-alpha --cleanup-tag --yes
+          else
+            echo "No existing tauri-v3-alpha release"
+          fi
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/tags/tauri-v3-alpha"
+
+      - name: Build Tauri app
+        id: tauri
+        # Same pinned action and secrets as release.yml / nightly.yml.
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: tauri-v3-alpha
+          releaseName: "Tauri 3 alpha build (${{ steps.ver.outputs.short_sha }})"
+          # Ignored while the tag exists (pushed in the previous step); kept
+          # as the built SHA so a missing tag still lands on the right commit.
+          releaseCommitish: ${{ github.sha }}
+          args: "--target aarch64-apple-darwin"
+          releaseBody: ${{ steps.body.outputs.body }}
+          releaseDraft: false
+          prerelease: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          set -euo pipefail
+          cd src-tauri/target/aarch64-apple-darwin/release/bundle
+          CHECKSUM_FILE="checksums-sha256.txt"
+          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | while read -r file; do
+            shasum -a 256 "$file" | awk -v n="$(basename "$file")" '{print $1 "  " n}' >> "$CHECKSUM_FILE"
+          done
+          echo "--- Checksums ---"
+          cat "$CHECKSUM_FILE"
+
+      - name: Upload checksums to the alpha release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload tauri-v3-alpha \
+            src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
+            --clobber
+
+      - name: Publish checksums in the release body
+        # tauri-action writes the body before the bundle exists; read it back
+        # and append the checksums, as nightly.yml does.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release view tauri-v3-alpha --json body --jq .body > body.md
+          sed -i '' '/^## Checksums (SHA256)$/,$d' body.md
+          {
+            echo "## Checksums (SHA256)"
+            echo '```'
+            cat src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt
+            echo '```'
+          } >> body.md
+          gh release edit tauri-v3-alpha --notes-file body.md
+
+      - name: Verify the alpha latest.json is reachable and well-formed
+        # Checks that tauri-action v1.0.0 with the v3 CLI still produces the
+        # updater manifest the app reads: top-level `version` plus
+        # `platforms["darwin-aarch64"].url` and `.signature`. Polls because
+        # GitHub's CDN can lag right after an upload.
+        run: |
+          set -euo pipefail
+          URL="https://github.com/${{ github.repository }}/releases/download/tauri-v3-alpha/latest.json"
+          EXPECTED_VERSION="${{ steps.ver.outputs.alpha_version }}"
+          RAW=""
+          for attempt in 1 2 3 4 5; do
+            if FETCHED=$(curl --fail --silent --show-error --location "$URL"); then
+              GOT_VERSION=$(printf '%s' "$FETCHED" | jq -r '.version')
+              if [ "$GOT_VERSION" = "$EXPECTED_VERSION" ]; then
+                RAW="$FETCHED"
+                echo "Fetched latest.json for $EXPECTED_VERSION on attempt $attempt"
+                break
+              fi
+              echo "Attempt $attempt served version '$GOT_VERSION', want '$EXPECTED_VERSION'; backing off 6s..."
+            else
+              echo "Attempt $attempt failed to fetch; backing off 6s..."
+            fi
+            sleep 6
+          done
+          if [ -z "$RAW" ]; then
+            echo "::error::latest.json never advertised '$EXPECTED_VERSION' after 5 attempts: $URL"
+            exit 1
+          fi
+          printf '%s\n' "$RAW" | jq .
+          BUNDLE_URL=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].url')
+          SIGNATURE=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].signature')
+          if [ -z "$BUNDLE_URL" ] || [ "$BUNDLE_URL" = "null" ]; then
+            echo "::error::latest.json missing platforms[darwin-aarch64].url"
+            exit 1
+          fi
+          if [ -z "$SIGNATURE" ] || [ "$SIGNATURE" = "null" ]; then
+            echo "::error::latest.json missing platforms[darwin-aarch64].signature"
+            exit 1
+          fi
+          echo "Smoke check passed: version=$GOT_VERSION, bundle=$BUNDLE_URL, signature length=${#SIGNATURE}"
