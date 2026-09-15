@@ -178,7 +178,8 @@ fn watcher_stops_when_handle_dropped() {
 //
 // `start_vault_watcher` (the Tauri command) drops the old watcher inside
 // the state lock BEFORE building the new one (Audit Tier 2 #7). The command
-// itself takes an `AppHandle<Wry>` and cannot run in a test process, so
+// itself takes an `AppHandle<DynRuntime>` and cannot run in a test process
+// without the tauri `test` feature, so
 // these tests exercise the same drop-old-then-start-new sequence at the
 // `start_watcher_inner` boundary: the old watcher must go silent and the
 // new one must observe subsequent changes.
