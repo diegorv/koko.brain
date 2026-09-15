@@ -40,7 +40,6 @@ const isPlaywright = !!process.env.PLAYWRIGHT;
 const nodeShims = {
   "path":      path.resolve("./src/lib/utils/node-shims/path.js"),
   "fs":        path.resolve("./src/lib/utils/node-shims/fs.js"),
-  "form-data": path.resolve("./src/lib/utils/node-shims/form-data.js"),
 };
 
 // ─── Playwright mocks ────────────────────────────────────────────────────────

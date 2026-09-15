@@ -56,10 +56,6 @@ overrides:
   # (`import { serialize } from 'cookie'`). Keep the >=0.7.0 security
   # floor but cap below 2 until SvelteKit supports it.
   cookie: '>=0.7.0 <2'
-  # @doist/todoist-sdk pins form-data to an exact 4.0.5, below the patch,
-  # so `pnpm update` can't reach it. GHSA-hmw2-7cc7-3qxx (CRLF injection
-  # via unescaped multipart field/file names). Patched: >=4.0.6.
-  form-data: '>=4.0.6'
   # @doist/todoist-sdk@10.5.0 pins undici to an exact 7.24.8, which
   # reintroduces the undici advisories (GHSA-vmh5-mc38-953g and others)
   # and breaks the dedup with jsdom's 7.28.0. Force the patched line.
