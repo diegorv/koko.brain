@@ -147,7 +147,7 @@ fn build_composer_window(app: &tauri::AppHandle) -> tauri::Result<tauri::Webview
     Ok(composer_window)
 }
 
-fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::DynRuntime>> {
     let settings_item = MenuItemBuilder::new("Settings...")
         .id("settings")
         .accelerator("CmdOrCtrl+,")
@@ -248,7 +248,11 @@ pub fn run() {
         }
     });
 
+    // Tauri 3 has no default webview runtime: without `.runtime(...)` the
+    // builder fails with `RuntimeNotConfigured` and the `expect` below panics
+    // on every launch. Guarded by src-tauri/tests/lib_test.rs.
     tauri::Builder::default()
+        .runtime(tauri_runtime_wry::Wry::default())
         .setup(move |app| {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;

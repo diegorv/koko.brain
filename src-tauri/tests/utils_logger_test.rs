@@ -4,11 +4,13 @@
 //! `tauri-debug-log` event emitted through the global `APP_HANDLE`.
 //!
 //! EXCLUSION: the event-emission path is NOT tested here. `init_logger`
-//! takes a concrete `&tauri::AppHandle` (i.e. `AppHandle<Wry>`), which
+//! takes a concrete `&tauri::AppHandle` (i.e. `AppHandle<DynRuntime>`), which
 //! cannot be constructed in a test process — the tauri `test` feature
-//! (MockRuntime) is not enabled in Cargo.toml, and even with it the
-//! signature is Wry-bound. Testing that boundary would require a source
-//! change (generic runtime), which is out of scope for a test-only batch.
+//! (MockRuntime) is not enabled in Cargo.toml. Since Tauri 3 the handle is
+//! `AppHandle<DynRuntime>`, so with that feature a MockRuntime-backed handle
+//! could be built via `.runtime(tauri::test::MockRuntimeInitAttrs::default())`
+//! (not tried). Testing that boundary would require enabling the feature,
+//! which is out of scope for a test-only batch.
 //!
 //! The stderr path IS verified functionally via a self-exec pattern: the
 //! parent test re-runs this same test binary filtered to a child test

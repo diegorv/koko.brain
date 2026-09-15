@@ -16,16 +16,28 @@ name = "kokobrain_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "=3.0.0-alpha.0", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["macos-private-api", "protocol-asset"] }
-tauri-plugin-opener = "2"
-tauri-plugin-fs = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-deep-link = "2"
-tauri-plugin-clipboard-manager = "2"
-tauri-plugin-global-shortcut = "2"
+# Tauri 3 alpha: exact pins on purpose (see .scratch/tauri-v3/). They only
+# cover the direct dependencies. tauri, tauri-runtime-wry, tauri-macros,
+# tauri-build and the plugins require tauri-runtime / tauri-utils /
+# tauri-macros / tauri-codegen / tauri-plugin with `~3.0.0-alpha.0` or
+# `3.0.0-alpha.0`, and both accept later alphas. The committed Cargo.lock is
+# what holds those: do not run a bare `cargo update` until upstream
+# republishes past PR #16023.
+#
+# `macos-private-api` stays on `tauri` too: tauri-build's manifest check
+# requires it there because tauri.conf.json sets `macOSPrivateApi`, and the
+# runtime crate needs it for the transparent composer window.
+tauri = { version = "=3.0.0-alpha.1", features = ["macos-private-api", "protocol-asset"] }
+tauri-runtime-wry = { version = "=3.0.0-alpha.1", features = ["macos-private-api"] }
+tauri-plugin-opener = "=3.0.0-alpha.0"
+tauri-plugin-fs = "=3.0.0-alpha.0"
+tauri-plugin-dialog = "=3.0.0-alpha.0"
+tauri-plugin-deep-link = "=3.0.0-alpha.0"
+tauri-plugin-clipboard-manager = "=3.0.0-alpha.0"
+tauri-plugin-global-shortcut = "=3.0.0-alpha.0"
 
 # Quick Capture (clipboard adapter, kind detection, image re-encode)
 arboard = "3"
@@ -57,9 +69,9 @@ tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 reqwest = { version = "0.13", features = ["stream"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
-tauri-plugin-http = "2"
-tauri-plugin-updater = "2.10.1"
-tauri-plugin-process = "2.3.1"
+tauri-plugin-http = "=3.0.0-alpha.0"
+tauri-plugin-updater = "=3.0.0-alpha.0"
+tauri-plugin-process = "=3.0.0-alpha.0"
 url = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]

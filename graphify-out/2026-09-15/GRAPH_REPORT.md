@@ -1,16 +1,16 @@
 # Graph Report - update-tauri-to-v3  (2026-09-15)
 
 ## Corpus Check
-- 894 files · ~549,588 words
+- 893 files · ~549,094 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5600 nodes · 15124 edges · 211 communities (186 shown, 25 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 385 edges (avg confidence: 0.8)
+- 5587 nodes · 15104 edges · 225 communities (203 shown, 22 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 378 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0a2fa4c8`
+- Built from commit: `23d9a584`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -159,6 +159,8 @@
 - [[_COMMUNITY_Appearance Settings UI|Appearance Settings UI]]
 - [[_COMMUNITY_Kanban Serialization|Kanban Serialization]]
 - [[_COMMUNITY_Image Widget|Image Widget]]
+- [[_COMMUNITY_Capture Note Composer|Capture Note Composer]]
+- [[_COMMUNITY_Callout Decoration|Callout Decoration]]
 - [[_COMMUNITY_Collection View Tests|Collection View Tests]]
 - [[_COMMUNITY_Command Palette Logic|Command Palette Logic]]
 - [[_COMMUNITY_Rust Font Enumeration|Rust Font Enumeration]]
@@ -171,12 +173,17 @@
 - [[_COMMUNITY_Composer Window Capabilities|Composer Window Capabilities]]
 - [[_COMMUNITY_Default Window Capabilities|Default Window Capabilities]]
 - [[_COMMUNITY_Wikilink Click Capture|Wikilink Click Capture]]
+- [[_COMMUNITY_Tag Colors|Tag Colors]]
 - [[_COMMUNITY_Build Info|Build Info]]
+- [[_COMMUNITY_Layout Logic|Layout Logic]]
 - [[_COMMUNITY_Ordered List Markers|Ordered List Markers]]
 - [[_COMMUNITY_Task Checkbox Widget|Task Checkbox Widget]]
+- [[_COMMUNITY_Editor Settings Section|Editor Settings Section]]
 - [[_COMMUNITY_VaultIndex Entry Tests|VaultIndex Entry Tests]]
 - [[_COMMUNITY_Type Note List Perf|Type Note List Perf]]
 - [[_COMMUNITY_Word Count|Word Count]]
+- [[_COMMUNITY_Command Tracing|Command Tracing]]
+- [[_COMMUNITY_Kanban Board Parsing|Kanban Board Parsing]]
 - [[_COMMUNITY_Dependency Quarantine Audit|Dependency Quarantine Audit]]
 - [[_COMMUNITY_Node Shim FormData|Node Shim FormData]]
 - [[_COMMUNITY_SvelteKit Root Layout|SvelteKit Root Layout]]
@@ -185,9 +192,17 @@
 - [[_COMMUNITY_Virtua Virtual List|Virtua Virtual List]]
 - [[_COMMUNITY_XYFlow Canvas Library|XYFlow Canvas Library]]
 - [[_COMMUNITY_Community 204|Community 204]]
+- [[_COMMUNITY_Community 205|Community 205]]
+- [[_COMMUNITY_Community 206|Community 206]]
 - [[_COMMUNITY_Community 207|Community 207]]
+- [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 209|Community 209]]
 - [[_COMMUNITY_Community 210|Community 210]]
+- [[_COMMUNITY_Community 211|Community 211]]
+- [[_COMMUNITY_Community 212|Community 212]]
 - [[_COMMUNITY_Community 213|Community 213]]
+- [[_COMMUNITY_Community 214|Community 214]]
+- [[_COMMUNITY_Community 215|Community 215]]
 - [[_COMMUNITY_Community 216|Community 216]]
 - [[_COMMUNITY_Community 217|Community 217]]
 - [[_COMMUNITY_Community 218|Community 218]]
@@ -211,25 +226,24 @@
 10. `$lib/core/editor/editor.store.svelte` - 57 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `ensure_safe_write_path_rejects_non_absolute()` --calls--> `ensure_safe_write_path()`  [INFERRED]
-  src-tauri/tests/commands/vault_test.rs → src-tauri/src/commands/vault.rs
-- `ensure_safe_write_path_rejects_parent_dir_escape()` --calls--> `ensure_safe_write_path()`  [INFERRED]
-  src-tauri/tests/commands/vault_test.rs → src-tauri/src/commands/vault.rs
-- `scan_v2_inner_returns_entries_and_builds_index()` --calls--> `scan_vault_v2_inner()`  [INFERRED]
-  src-tauri/tests/commands/vault_test.rs → src-tauri/src/commands/vault.rs
-- `dispatch_shortcut()` --calls--> `capture_clipboard_now_with()`  [INFERRED]
-  src-tauri/src/lib.rs → src-tauri/src/quick_capture/commands.rs
-- `dispatch_shortcut()` --calls--> `show_composer()`  [INFERRED]
-  src-tauri/src/lib.rs → src-tauri/src/quick_capture/commands.rs
+- `shutdown_semantic_idempotent()` --calls--> `shutdown_semantic()`  [INFERRED]
+  src-tauri/tests/semantic_commands_test.rs → src-tauri/src/commands/semantic.rs
+- `shutdown_semantic_succeeds_when_no_model_loaded()` --calls--> `shutdown_semantic()`  [INFERRED]
+  src-tauri/tests/semantic_commands_test.rs → src-tauri/src/commands/semantic.rs
+- `remove_semantic_file_errors_when_the_database_is_closed()` --calls--> `remove_semantic_file()`  [INFERRED]
+  src-tauri/tests/semantic_commands_test.rs → src-tauri/src/commands/semantic.rs
+- `update_semantic_file_rejects_path_traversal_outside_vault()` --calls--> `update_semantic_file()`  [INFERRED]
+  src-tauri/tests/semantic_commands_test.rs → src-tauri/src/commands/semantic.rs
+- `audit_finding_9_toggle_task_loses_concurrent_external_edit()` --calls--> `toggle_task_status_inner()`  [INFERRED]
+  src-tauri/tests/vault_task_test.rs → src-tauri/src/commands/vault.rs
 
 ## Import Cycles
-- 1-file cycle: `src-tauri/src/lib.rs -> src-tauri/src/lib.rs`
-- 1-file cycle: `src-tauri/src/commands/vault.rs -> src-tauri/src/commands/vault.rs`
-- 1-file cycle: `src-tauri/tests/vault_watcher_test.rs -> src-tauri/tests/vault_watcher_test.rs`
 - 1-file cycle: `src-tauri/examples/retrieval_eval.rs -> src-tauri/examples/retrieval_eval.rs`
+- 1-file cycle: `src-tauri/src/commands/vault.rs -> src-tauri/src/commands/vault.rs`
 - 1-file cycle: `src-tauri/src/commands/history.rs -> src-tauri/src/commands/history.rs`
 - 1-file cycle: `src-tauri/src/commands/search_index.rs -> src-tauri/src/commands/search_index.rs`
 - 1-file cycle: `src-tauri/src/commands/semantic.rs -> src-tauri/src/commands/semantic.rs`
+- 1-file cycle: `src-tauri/src/lib.rs -> src-tauri/src/lib.rs`
 - 1-file cycle: `src-tauri/src/db/fts_repo.rs -> src-tauri/src/db/fts_repo.rs`
 - 1-file cycle: `src-tauri/src/db/history_repo.rs -> src-tauri/src/db/history_repo.rs`
 - 1-file cycle: `src-tauri/src/db/mod.rs -> src-tauri/src/db/mod.rs`
@@ -243,52 +257,53 @@
 - 1-file cycle: `src-tauri/src/quick_capture/kind_detect.rs -> src-tauri/src/quick_capture/kind_detect.rs`
 - 1-file cycle: `src-tauri/src/search/fts_logic.rs -> src-tauri/src/search/fts_logic.rs`
 - 1-file cycle: `src-tauri/src/search/fuzzy.rs -> src-tauri/src/search/fuzzy.rs`
+- 1-file cycle: `src-tauri/src/search/hybrid.rs -> src-tauri/src/search/hybrid.rs`
 
-## Communities (211 total, 25 thin omitted)
+## Communities (225 total, 22 thin omitted)
 
 ### Community 0 - "Command Palette & Canvas Images"
-Cohesion: 0.03
-Nodes (72): extToMime(), IMAGE_EXTENSIONS, isImageFile(), resolveImageSrc(), HarnessApi, $lib/utils/debounce, $lib/features/file-icons/file-icons.icon-data, clearLocalStorage() (+64 more)
+Cohesion: 0.06
+Nodes (58): extToMime(), IMAGE_EXTENSIONS, isImageFile(), resolveImageSrc(), getBuiltInCommands(), commandPaletteStore, isOpen, recentCommandIds (+50 more)
 
 ### Community 1 - "File Explorer & FS Logic"
-Cohesion: 0.24
-Nodes (15): BINARY_FILE_EXTENSIONS, collectAllDirPaths(), collectFilePathsUnder(), countFiles(), findNodeByPath(), getFileExtension(), getLanguageForFile(), getRelativePath() (+7 more)
+Cohesion: 0.08
+Nodes (50): closeTabsForDeletedPath(), openFileInEditor(), applyFolderOrder(), attachFileCounts(), BINARY_FILE_EXTENSIONS, collectAllDirPaths(), collectFilePathsUnder(), countFiles() (+42 more)
 
 ### Community 2 - "Rust VaultIndex Core"
-Cohesion: 0.06
-Nodes (66): BTreeSet, BTreeMap, FileTaskGroup, HashMap, JsonValue, NoteEntry, Option, OutgoingLink (+58 more)
+Cohesion: 0.09
+Nodes (33): build_backlinks_from_wikilinks(), build_empty_entries(), build_multiple_links_between_notes(), build_self_links_filtered(), build_stem_collision_first_wins(), build_tags_lowercased(), build_then_rebuild_clears_stale_data(), build_unresolved_links_no_backlink() (+25 more)
 
 ### Community 3 - "Rust Vault Parsing Tests"
 Cohesion: 0.03
 Nodes (42): DateField, parse_bare_string_scalar(), parse_blank_lines_between_keys_are_skipped(), parse_block_array_lone_dash_is_null_item(), parse_block_array_of_strings(), parse_block_array_terminates_when_indent_decreases(), parse_block_array_with_4_space_indent(), parse_block_array_with_quoted_items() (+34 more)
 
 ### Community 4 - "Watcher & Index Rebuild"
-Cohesion: 0.06
-Nodes (75): incrementalUpdateFiles(), rebuildAllIndexes(), rebuildIndex(), fileDateKeys, fileFilesystemKeys, fileFrontmatterKeys, openOrCreatePeriodicNoteForDate(), registerCalendarNoteChangeConsumer() (+67 more)
+Cohesion: 0.07
+Nodes (58): fileDateKeys, fileFilesystemKeys, fileFrontmatterKeys, openOrCreatePeriodicNoteForDate(), registerCalendarNoteChangeConsumer(), removeCalendarForFile(), resetCalendar(), scanFilesForCalendar() (+50 more)
 
 ### Community 5 - "Backlinks & Index Update Services"
-Cohesion: 0.05
-Nodes (62): updateIndexesForFile(), $lib/core/app-lifecycle/app-lifecycle.service, $lib/core/layout/AppOverlays.svelte, $lib/core/layout/AppShell.svelte, buildIndex(), CachedScanResult, computeUnlinkedMentionsForFile, computeUnlinkedMentionsForFileInner() (+54 more)
+Cohesion: 0.07
+Nodes (51): updateIndexesForFile(), incrementalUpdateFiles(), rebuildAllIndexes(), buildIndex(), CachedScanResult, computeUnlinkedMentionsForFile, computeUnlinkedMentionsForFileInner(), fetchBacklinksV2 (+43 more)
 
 ### Community 6 - "Editor Tabs & Logic"
-Cohesion: 0.11
-Nodes (27): isTabDirty(), isVirtualTab(), AutoSaveSchedule, closeActiveTab(), closeTab(), debouncedSave, debouncedSaveFrontmatter, onContentChange() (+19 more)
+Cohesion: 0.07
+Nodes (46): isTabDirty(), isVirtualTab(), AutoSaveSchedule, closeActiveTab(), closeTab(), debouncedSave, debouncedSaveFrontmatter, onContentChange() (+38 more)
 
 ### Community 7 - "Live Preview Core & Inline Handlers"
 Cohesion: 0.05
-Nodes (54): autolinkHandler, extendedAutolinkHandler, build(), DecoSpec, blockReferenceHandler, build(), DecoSpec, blockquoteDepthDeco (+46 more)
+Nodes (53): autolinkHandler, extendedAutolinkHandler, build(), DecoSpec, blockReferenceHandler, build(), DecoSpec, blockquoteDepthDeco (+45 more)
 
 ### Community 8 - "Rust Semantic Index Commands"
-Cohesion: 0.06
-Nodes (83): Arc, build_semantic_index(), CachedChunk, check_and_update_model_hash(), cleanup_orphaned_chunks(), clear_changed_files_without_chunks(), compute_model_hash(), deserialize_embedding() (+75 more)
+Cohesion: 0.13
+Nodes (41): Arc, build_semantic_index(), CachedChunk, clear_changed_files_without_chunks(), deserialize_embedding(), download_reranker_model(), download_semantic_model(), ensure_embedder_loaded() (+33 more)
 
 ### Community 9 - "Live Preview Source Visibility"
 Cohesion: 0.05
-Nodes (33): getAllLines(), hiddenLineDeco, MediaWidget, CollectionBlockInfo, findCollectionBlock(), extractSrcAttr(), findMediaBlock(), MediaBlockInfo (+25 more)
+Nodes (34): getAllLines(), hiddenLineDeco, MediaWidget, CollectionBlockInfo, findCollectionBlock(), extractSrcAttr(), findMediaBlock(), MediaBlockInfo (+26 more)
 
 ### Community 10 - "App Shell & Panels"
 Cohesion: 0.04
-Nodes (43): $lib/features/backlinks/BacklinksPanel.svelte, @lucide/svelte/icons/brain, @lucide/svelte/icons/brain-circuit, $lib/plugins/calendar/CalendarPanel.svelte, @lucide/svelte/icons/circle-check, applyDockBadge(), { setBadgeCount, errorMock }, $lib/features/dock-badge/dock-badge.service (+35 more)
+Nodes (45): @lucide/svelte/icons/alert-circle, $lib/features/backlinks/BacklinksPanel.svelte, @lucide/svelte/icons/brain, @lucide/svelte/icons/brain-circuit, $lib/plugins/calendar/CalendarPanel.svelte, $lib/components/ui/collapsible, $lib/core/markdown-editor/EditorView.svelte, $lib/core/file-explorer/FileExplorer.svelte (+37 more)
 
 ### Community 11 - "Rust Vault Entry Model"
 Cohesion: 0.06
@@ -299,12 +314,12 @@ Cohesion: 0.14
 Nodes (30): TempDir, build_search_index_full_rebuild_when_no_row_survives_the_pass(), build_search_index_full_rebuild_when_table_is_empty(), build_search_index_indexes_files_added_while_closed(), build_search_index_indexes_markdown_files(), build_search_index_leaves_an_unchanged_vault_untouched(), build_search_index_rebuilds_when_vault_emptied(), build_search_index_reconciles_an_add_delete_pair_that_cancels_out_in_the_count() (+22 more)
 
 ### Community 13 - "Tasks Logic & Metadata"
-Cohesion: 0.06
-Nodes (53): RecurrenceRule, TaskMetadata, TaskPriority, TaskStatus, computeTaskStats(), filterByDate(), filterCompleted(), filterCompletedTasks() (+45 more)
+Cohesion: 0.16
+Nodes (14): isLoadingProjects, isLoadingSections, isSending, isSyncing, lastPriority, lastProjectId, lastSectionId, projects (+6 more)
 
 ### Community 14 - "Rust Vault Watcher"
-Cohesion: 0.06
-Nodes (46): Duration, Option, Path, Receiver, RecommendedWatcher, Sender, AppHandle, F (+38 more)
+Cohesion: 0.05
+Nodes (46): Duration, RecommendedWatcher, Sender, AppHandle, F, Option, Receiver, Result (+38 more)
 
 ### Community 16 - "Semantic Chunker"
 Cohesion: 0.08
@@ -316,54 +331,54 @@ Nodes (55): MarkdownEntry, MarkdownEntryWithMetadata, MarkdownEntryWithMtime, Pa
 
 ### Community 18 - "App Lifecycle & Vault Init"
 Cohesion: 0.06
-Nodes (71): initializeVault(), pendingWatcherPaths, teardownVault(), unregisterNoteChangeConsumers, resetAutoMove(), resetBacklinks(), $lib/features/backlinks/backlinks.service, resetBookmarks() (+63 more)
+Nodes (78): initializeVault(), pendingWatcherPaths, teardownVault(), unregisterNoteChangeConsumers, registerAutoMoveHook(), resetAutoMove(), toggleAutoMoveHook(), resetBacklinks() (+70 more)
 
 ### Community 19 - "File Explorer & Dialog UI"
-Cohesion: 0.06
-Nodes (37): @lucide/svelte/icons/arrow-up-down, ./AutoMoveRuleRow.svelte, @lucide/svelte/icons/bookmark, @lucide/svelte/icons/bookmark-minus, $lib/features/canvas/canvas.service, @lucide/svelte/icons/circle-x, $lib/components/ui/dialog, @lucide/svelte/icons/file (+29 more)
+Cohesion: 0.07
+Nodes (26): @lucide/svelte/icons/arrow-up-down, ./AutoMoveRuleRow.svelte, @lucide/svelte/icons/circle-check, @lucide/svelte/icons/circle-x, $lib/features/collection/toolbar/FilterPanel.svelte, @lucide/svelte/icons/folder-search, $lib/features/file-icons/icon-resolver, $lib/features/file-icons/IconPicker.svelte (+18 more)
 
 ### Community 20 - "File Icons Logic"
-Cohesion: 0.08
-Nodes (38): EMOJI_LIST, extractSvgContent(), getIconsForPack(), getIconSync(), loadBoxicons(), loadCoolicons(), loadEmoji(), loadFeather() (+30 more)
+Cohesion: 0.06
+Nodes (46): EMOJI_LIST, extractSvgContent(), getIconsForPack(), getIconSync(), loadBoxicons(), loadCoolicons(), loadEmoji(), loadFeather() (+38 more)
 
 ### Community 21 - "Type Definitions Logic"
-Cohesion: 0.08
-Nodes (38): getTypeMetadataFallback(), TypeMetadata, removeViewIcon(), updateViewIcon(), applyFilter(), buildSecondaryComparator(), buildTypeSections(), collectViewFiles() (+30 more)
+Cohesion: 0.06
+Nodes (45): getTypeMetadataFallback(), TypeMetadata, removeViewIcon(), updateViewIcon(), entries, entriesByPath, entriesVersion, selectedTypeOrNav (+37 more)
 
 ### Community 22 - "Markdown Block Parsers"
-Cohesion: 0.10
-Nodes (38): createMarkdownState(), makeLines(), BlockRefRange, findBlockReference(), BlockquoteMarkRange, findBlockquoteMarkRange(), CalloutBlock, CalloutHeader (+30 more)
+Cohesion: 0.11
+Nodes (34): createMarkdownState(), makeLines(), BlockRefRange, findBlockReference(), BlockquoteMarkRange, findBlockquoteMarkRange(), CalloutBlock, CalloutHeader (+26 more)
 
 ### Community 23 - "QueryJS UI Renderers"
-Cohesion: 0.05
-Nodes (44): $lib/utils/clamp, CalendarEntry, CalendarPreamble, DEFAULT_HEATMAP_COLORS, DEFAULT_STATUS_COLORS, KBUI, chartCalls, KBCardItem (+36 more)
+Cohesion: 0.06
+Nodes (29): CalendarEntry, CalendarPreamble, DEFAULT_HEATMAP_COLORS, DEFAULT_STATUS_COLORS, KBUI, chartCalls, KBCardItem, KBCardsOptions (+21 more)
 
 ### Community 24 - "Block Decorator Framework"
-Cohesion: 0.10
-Nodes (15): buildDecorations(), calloutDecorationPlugin, getCalloutDecoration(), CALLOUT_COLORS, CalloutMatch, parseCalloutLine(), calloutFoldState, toggleCalloutFold (+7 more)
+Cohesion: 0.06
+Nodes (20): blockDecorator(), mount(), calloutFoldState, forceDecorationRebuild, toggleCalloutFold, mouseSelectingField, mouseSelectingHandlers, setMouseSelecting (+12 more)
 
 ### Community 25 - "Collection Calendar Logic"
 Cohesion: 0.09
-Nodes (37): CalendarDay, CalendarEvent, extractDateFromRecord(), formatDateKey(), formatMonthYear(), getCalendarGrid(), getWeekDayLabels(), groupRecordsByDate() (+29 more)
+Nodes (34): CalendarDay, CalendarEvent, extractDateFromRecord(), formatDateKey(), formatMonthYear(), getCalendarGrid(), getWeekDayLabels(), groupRecordsByDate() (+26 more)
 
 ### Community 26 - "Rust Vault Command Contracts"
-Cohesion: 0.06
-Nodes (39): project_note_record(), read_file_metadata(), rename_note_inner(), file_task_group_wire_shape_matches_ts_interface(), note_record_wire_shape_matches_collection_service_contract(), task_wire_shape_uses_camel_case_line_number(), toggle_task_result_wire_shape_matches_ts_interface(), update_inner_called_twice_with_same_content_reports_unchanged_second_time() (+31 more)
+Cohesion: 0.07
+Nodes (37): project_note_record(), read_file_metadata(), rename_note_inner(), file_task_group_wire_shape_matches_ts_interface(), note_record_wire_shape_matches_collection_service_contract(), task_wire_shape_uses_camel_case_line_number(), toggle_task_result_wire_shape_matches_ts_interface(), update_inner_called_twice_with_same_content_reports_unchanged_second_time() (+29 more)
 
 ### Community 27 - "Rust Semantic DB Repo"
 Cohesion: 0.13
 Nodes (52): audit_finding_12_db_persists_malformed_embedding_bytes_unchanged(), ChunkRow, clear_all_chunks(), clear_all_chunks_empties_table(), clear_all_chunks_on_empty_table_is_ok(), count_chunks(), count_chunks_and_sources(), count_sources() (+44 more)
 
 ### Community 28 - "Semantic Embedder"
-Cohesion: 0.08
-Nodes (35): Array2, ArrayViewD, EncodeInput, f16, cosine_different_lengths(), cosine_empty_vectors(), cosine_identical_vectors(), cosine_opposite_vectors() (+27 more)
+Cohesion: 0.11
+Nodes (26): Array2, ArrayViewD, f16, cosine_different_lengths(), cosine_empty_vectors(), cosine_identical_vectors(), cosine_opposite_vectors(), cosine_orthogonal_vectors() (+18 more)
 
 ### Community 29 - "Expression Evaluator"
-Cohesion: 0.11
-Nodes (35): Duration, parseDuration(), UNIT_MAP, canonicalPropertyName(), compareValues(), escapeForHtml(), evaluate(), evaluateBinary() (+27 more)
+Cohesion: 0.08
+Nodes (47): Duration, parseDuration(), UNIT_MAP, makeCtx(), makeRecord(), canonicalPropertyName(), compareValues(), escapeForHtml() (+39 more)
 
 ### Community 30 - "Search Query Logic"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (26): mergeResults(), ftsResults, fuzzyEnabled, hybridResults, indexStats, isIndexing, isOpen, isSearching (+18 more)
 
 ### Community 31 - "Settings Sections UI"
@@ -371,32 +386,32 @@ Cohesion: 0.06
 Nodes (39): $lib/core/settings/sections/AppearanceSection.svelte, $lib/features/auto-move/AutoMoveSection.svelte, @lucide/svelte/icons/bug, @lucide/svelte/icons/code-2, $lib/core/settings/sections/EditorSection.svelte, $lib/core/settings/sections/FileHistorySection.svelte, @lucide/svelte/icons/folder-output, $lib/core/settings/sections/GeneralSection.svelte (+31 more)
 
 ### Community 32 - "Collection Filter Toolbar"
-Cohesion: 0.11
-Nodes (36): astToFilterRow(), createEmptyFilterRow(), extractLiteralValue(), extractPropertyName(), FILE_PROPERTIES, filterGroupsToFilter(), filterRowToExpression(), flattenMember() (+28 more)
+Cohesion: 0.15
+Nodes (25): astToFilterRow(), createEmptyFilterRow(), extractLiteralValue(), extractPropertyName(), FILE_PROPERTIES, filterRowToExpression(), flattenMember(), getOperatorsForType() (+17 more)
 
 ### Community 33 - "Rust Vault Scan Commands"
-Cohesion: 0.07
-Nodes (38): collect_v2_entries(), scan_vault(), scan_vault_v2_cached_inner(), alphabetical_sort_is_case_insensitive(), cached_inner_drops_deleted_files(), cached_inner_full_scan_on_missing_cache_writes_cache(), cached_inner_pure_cache_hit_skips_rereads(), canonicalizes_symlinked_vault_path() (+30 more)
+Cohesion: 0.08
+Nodes (36): collect_v2_entries(), scan_vault(), scan_vault_v2_cached_inner(), alphabetical_sort_is_case_insensitive(), cached_inner_drops_deleted_files(), cached_inner_full_scan_on_missing_cache_writes_cache(), cached_inner_pure_cache_hit_skips_rereads(), canonicalizes_symlinked_vault_path() (+28 more)
 
 ### Community 34 - "Rust FTS Search Commands"
 Cohesion: 0.08
 Nodes (48): build_fts_query(), build_search_index(), build_search_index_inner(), file_mtime_secs(), index_entry(), IndexStats, read_files(), remove_from_search_index() (+40 more)
 
 ### Community 35 - "Rust Vault File Commands"
-Cohesion: 0.19
-Nodes (42): CachedScanResult, create_folder(), create_note(), emit_index_updated(), ensure_safe_write_path(), FileNode, get_all_property_records(), get_all_tags_v2() (+34 more)
+Cohesion: 0.17
+Nodes (46): CachedScanResult, create_folder(), create_note(), emit_index_updated(), ensure_safe_write_path(), FileNode, get_all_property_records(), get_all_tags_v2() (+38 more)
 
 ### Community 36 - "Meta-Bind Input Widgets"
 Cohesion: 0.04
-Nodes (26): mount(), buildMetaBindTextInput(), createMetaBindSelect(), fileUrlToFsPath(), ImageWidget, isDateString(), isNumericString(), META_BIND_TEXT_INPUTS (+18 more)
+Nodes (28): mount(), buildMetaBindTextInput(), createMetaBindSelect(), fileUrlToFsPath(), ImageWidget, isDateString(), isNumericString(), META_BIND_TEXT_INPUTS (+20 more)
 
 ### Community 37 - "Editor View & Icons"
-Cohesion: 0.10
-Nodes (19): @lucide/svelte/icons/arrow-down-01, @lucide/svelte/icons/arrow-down-az, $lib/components/ui/collapsible, @lucide/svelte/icons/filter, @lucide/svelte/icons/git-branch, @lucide/svelte/icons/link, $lib/components/ui/popover, ./TagColorPicker.svelte (+11 more)
+Cohesion: 0.07
+Nodes (29): @lucide/svelte/icons/arrow-down-01, @lucide/svelte/icons/arrow-down-az, @lucide/svelte/icons/circle-check-big, @lucide/svelte/icons/cloud, @lucide/svelte/icons/cloud-check, @lucide/svelte/icons/eye-off, @lucide/svelte/icons/filter, @lucide/svelte/icons/hash (+21 more)
 
 ### Community 38 - "Canvas Logic"
-Cohesion: 0.13
-Nodes (32): buildGroupStyle(), canvasEdgeToFlowEdge(), canvasNodeToFlowNode(), canvasToFlow(), computeGroupContainment(), createEmptyCanvas(), createFileNode(), createGroupNode() (+24 more)
+Cohesion: 0.11
+Nodes (35): buildGroupStyle(), canvasEdgeToFlowEdge(), canvasNodeToFlowNode(), canvasToFlow(), computeGroupContainment(), createEmptyCanvas(), createFileNode(), createGroupNode() (+27 more)
 
 ### Community 39 - "QueryJS DataArray"
 Cohesion: 0.06
@@ -404,23 +419,23 @@ Nodes (3): KEY, DataArray, AggregateStats
 
 ### Community 40 - "File History Logic"
 Cohesion: 0.06
-Nodes (56): buildMonthGrid(), CalendarDay, extractDisplayName(), formatDateLabel(), MonthGrid, parseDateToKey(), timestampToDateKey(), toDateKey() (+48 more)
+Nodes (51): buildMonthGrid(), CalendarDay, extractDisplayName(), formatDateLabel(), MonthGrid, parseDateToKey(), timestampToDateKey(), toDateKey() (+43 more)
 
 ### Community 41 - "Kanban Logic"
-Cohesion: 0.09
-Nodes (41): addItem(), addLane(), archiveCompletedItems(), archiveItem(), canReorderItems(), CardSegment, DateProximity, extractCardColor() (+33 more)
+Cohesion: 0.05
+Nodes (64): addItem(), addLane(), archiveCompletedItems(), archiveItem(), canReorderItems(), CardSegment, createEmptyKanbanBoard(), DateProximity (+56 more)
 
 ### Community 42 - "Dock Badge & Vault Fixtures"
 Cohesion: 0.10
-Nodes (27): parseWikilinks(), dockBadgeCount(), $lib/features/dock-badge/dock-badge.logic, entryV2(), entryV2WithContent(), outgoingLinksFromContent(), buildArchivedPathSet(), refreshArchivedPaths() (+19 more)
+Nodes (26): parseWikilinks(), dockBadgeCount(), $lib/features/dock-badge/dock-badge.logic, entryV2(), entryV2WithContent(), outgoingLinksFromContent(), $lib/features/properties/lifecycle-filter.store.svelte, buildArchivedPathSet() (+18 more)
 
 ### Community 43 - "Editor Extensions Setup"
 Cohesion: 0.07
-Nodes (32): calloutDecoration(), compositionAwareBracketMatching(), matchingDeco, nonmatchingDeco, mountView(), HighlightDelim, HighlightExtension, inlineHighlightParser (+24 more)
+Nodes (33): calloutDecoration(), compositionAwareBracketMatching(), matchingDeco, nonmatchingDeco, mountView(), HighlightDelim, HighlightExtension, inlineHighlightParser (+25 more)
 
 ### Community 44 - "Canvas UI Components"
-Cohesion: 0.08
-Nodes (27): @lucide/svelte/icons/alert-circle, ./CanvasContextMenu.svelte, ./CanvasEdge.svelte, ./CanvasInner.svelte, active, @lucide/svelte/icons/circle-arrow-left, @lucide/svelte/icons/circle-arrow-right, @lucide/svelte/icons/external-link (+19 more)
+Cohesion: 0.10
+Nodes (23): ./CanvasContextMenu.svelte, ./CanvasEdge.svelte, ./CanvasFilePicker.svelte, ./CanvasInner.svelte, active, @lucide/svelte/icons/circle-arrow-left, @lucide/svelte/icons/circle-arrow-right, @lucide/svelte/icons/copy (+15 more)
 
 ### Community 45 - "Fuzzy Search Matching"
 Cohesion: 0.09
@@ -443,48 +458,48 @@ Cohesion: 0.16
 Nodes (18): buildGraphData(), filterGraphData(), getFolderFromPath(), getLocalGraph(), getNodeRadius(), getUniqueFolders(), getUniqueTags(), display (+10 more)
 
 ### Community 50 - "Tags Logic"
-Cohesion: 0.29
-Nodes (6): hideRareTags, isLoading, sortMode, tagsStore, tagTree, totalTagCount
+Cohesion: 0.17
+Nodes (18): sortTagTree(), buildTagIndex(), closeTagsTab(), debouncedTrigger, flushScheduledTagIndexRebuild(), openTagsTab(), resetTags(), runScheduledRebuild() (+10 more)
 
 ### Community 51 - "Trash Logic"
-Cohesion: 0.13
-Nodes (29): $lib/core/trash/trash.logic, $lib/core/trash/trash.store.svelte, createTrashItem(), formatTrashedDate(), getTrashDir(), getTrashItemDir(), getTrashItemPath(), getTrashItemsDir() (+21 more)
+Cohesion: 0.11
+Nodes (33): @lucide/svelte/icons/file, @lucide/svelte/icons/folder, $lib/core/trash/trash.logic, $lib/core/trash/trash.store.svelte, createTrashItem(), formatTrashedDate(), getTrashDir(), getTrashItemDir() (+25 more)
 
 ### Community 52 - "Live Preview Range Utils"
 Cohesion: 0.07
-Nodes (39): blockDecorator(), BlockDecoratorSpec, BlockDecoratorValue, mount(), checkUpdateAction(), BlockDecoratorName, forceDecorationRebuild, expandedVisibleRanges() (+31 more)
+Nodes (36): BlockDecoratorValue, checkUpdateAction(), expandedVisibleRanges(), frontmatterSlice(), BLOCK_CONTEXT_TYPES, isInsideBlockContext(), createState(), isNodeInsideBlock() (+28 more)
 
 ### Community 53 - "Auto-Move Rules"
-Cohesion: 0.14
-Nodes (21): isAlreadyInDestination(), resolveDestination(), debounceTimers, DEFAULT_CONFIG, evaluateAndMove(), getConfigPath(), loadAutoMoveConfig(), registerAutoMoveHook() (+13 more)
+Cohesion: 0.12
+Nodes (25): findMatchingRule(), generateRuleId(), isAlreadyInDestination(), isInExcludedFolder(), resolveDestination(), validateExpression(), debounceTimers, DEFAULT_CONFIG (+17 more)
 
 ### Community 54 - "Rust File History Commands"
-Cohesion: 0.15
-Nodes (32): cleanup_history(), compute_diff(), DiffLine, get_file_history(), get_snapshot_content(), now_ms(), save_snapshot(), @lucide/svelte/icons/history (+24 more)
+Cohesion: 0.16
+Nodes (31): cleanup_history(), compute_diff(), DiffLine, get_file_history(), get_snapshot_content(), now_ms(), save_snapshot(), SnapshotInfo (+23 more)
 
 ### Community 55 - "Property & Picker UI"
 Cohesion: 0.09
 Nodes (20): @lucide/svelte/icons/archive-restore, @lucide/svelte/icons/blocks, @lucide/svelte/icons/folder-check, @lucide/svelte/icons/inbox, @lucide/svelte/icons/list, ./LifecycleActions.svelte, @lucide/svelte/icons/star, @lucide/svelte/icons/tag (+12 more)
 
 ### Community 56 - "Quick Capture Rust Commands"
-Cohesion: 0.15
-Nodes (28): CaptureContext, Clipboard, ClipboardError, build_composer_note_payload(), capture_clipboard_now_with(), capture_input_to_payload(), capture_signature(), composer_note_payload_has_note_kind() (+20 more)
+Cohesion: 0.14
+Nodes (32): CaptureContext, CaptureInput, Clipboard, ClipboardError, build_composer_note_payload(), capture_clipboard_now_with(), capture_input_to_payload(), capture_signature() (+24 more)
 
 ### Community 57 - "Collection Query Tokenizer"
-Cohesion: 0.08
-Nodes (27): findMatchingRule(), generateRuleId(), isInExcludedFolder(), validateExpression(), recordFor(), boolFlag(), buildNoteRecord(), evaluateFilter() (+19 more)
+Cohesion: 0.15
+Nodes (10): boolFlag(), evaluateFilter(), evaluateFilterCached(), executeQuery(), formatCellValue(), resolveColumns(), baseDef(), baseView() (+2 more)
 
 ### Community 58 - "Wikilink Completion"
-Cohesion: 0.16
-Nodes (24): resolveWikilink(), ./CanvasFilePicker.svelte, $lib/core/filesystem/fs.store.svelte, resolveEmbedTarget(), openWikilinkTarget(), $lib/features/quick-switcher/quick-switcher.logic, FileEntry, filterAndRank() (+16 more)
+Cohesion: 0.17
+Nodes (19): resolveEmbedTarget(), $lib/features/quick-switcher/quick-switcher.logic, FileEntry, filterAndRank(), flattenFileTree(), fuzzyMatch(), FuzzyMatchResult, buildBlockIdCompletions() (+11 more)
 
 ### Community 59 - "Deep Link Service"
-Cohesion: 0.09
-Nodes (52): dispatchQueue, executeAction(), executeCaptureAction(), executeDailyAction(), executeNewAction(), executePendingAction(), handleDeepLinkUrl(), refreshTreeInBackground() (+44 more)
+Cohesion: 0.10
+Nodes (49): $lib/features/copy-block-link/copy-block-link.service, dispatchQueue, enqueueDeepLinkUrl(), executeAction(), executeCaptureAction(), executeDailyAction(), executeNewAction(), executePendingAction() (+41 more)
 
 ### Community 60 - "Paste Handlers & Decorator Registry"
-Cohesion: 0.08
-Nodes (29): BLOCK_DECORATOR_NAMES, DECORATOR_NAMES, DecoratorName, INLINE_HANDLER_NAMES, INLINE_PLUGIN_NAMES, InlineHandlerName, InlinePluginName, scrollDebouncePlugin (+21 more)
+Cohesion: 0.09
+Nodes (28): BlockDecoratorSpec, BLOCK_DECORATOR_NAMES, BlockDecoratorName, DECORATOR_NAMES, DecoratorName, INLINE_HANDLER_NAMES, INLINE_PLUGIN_NAMES, InlineHandlerName (+20 more)
 
 ### Community 61 - "QueryJS KBAPI"
 Cohesion: 0.12
@@ -495,32 +510,32 @@ Cohesion: 0.07
 Nodes (29): app, macOSPrivateApi, security, windows, enable, scope, build, beforeBuildCommand (+21 more)
 
 ### Community 63 - "Block Links & Wikilink Decoration"
-Cohesion: 0.30
-Nodes (9): BlockElementType, buildWikilinkText(), detectBlockElement(), DetectedBlockElement, generateBlockId(), copyBlockEmbedToClipboard(), copyBlockLink(), copyBlockLinkToClipboard() (+1 more)
+Cohesion: 0.15
+Nodes (19): buildResolutionCache(), getNoteName(), noteEntryV2ToBacklinkEntry(), resolveWikilink(), resolveWikilinkCached(), WikilinkResolutionCache, BacklinkEntry, ContextSnippet (+11 more)
 
 ### Community 64 - "Deep Link Logic"
-Cohesion: 0.05
-Nodes (84): buildSourceFooter(), injectTagsIntoContent(), injectTitleIntoContent(), parseBooleanParam(), parseCaptureAction(), parseDeepLinkUri(), parseOptionalParam(), parseTagsParam() (+76 more)
+Cohesion: 0.16
+Nodes (27): buildSourceFooter(), parseBooleanParam(), parseCaptureAction(), parseDeepLinkUri(), parseOptionalParam(), parseTagsParam(), parseTitleParam(), pathBasename() (+19 more)
 
 ### Community 65 - "Simple Inline Widgets"
 Cohesion: 0.05
 Nodes (22): hardBreakHandler, horizontalRuleHandler, inlineMathHandler, listMarkHandler, simpleWidgetHandlers, taskMarkerHandler, build(), DecoSpec (+14 more)
 
 ### Community 66 - "Periodic Notes"
-Cohesion: 0.11
-Nodes (34): saveCurrentFile(), findBackupTimestamp(), formatFileSize(), formatSnapshotDateTime(), formatSnapshotLabel(), formatSnapshotTime(), getRelativePath(), getSnapshotBackupDir() (+26 more)
+Cohesion: 0.14
+Nodes (24): buildOneOnOneVariables(), filterPeople(), loadPeopleFromEntries(), mergePeopleLists(), PersonEntry, fixedDate, isOpen, oneOnOneStore (+16 more)
 
 ### Community 67 - "Semantic Model Config"
 Cohesion: 0.13
 Nodes (15): Fn, for_embedder_uses_bge_m3(), for_reranker_uses_bge_reranker(), is_model_available_false_for_empty_dir(), is_model_available_false_when_partial_files(), is_model_available_true_when_all_files_present(), ManagedModel, model_path_structure() (+7 more)
 
 ### Community 68 - "Folder Notes & Layout Bridge"
-Cohesion: 0.13
-Nodes (18): ArrayLiteral, BinaryExpr, BooleanLiteral, CallExpr, DisplayIcon, DisplayImage, DisplayLink, DisplayValue (+10 more)
+Cohesion: 0.06
+Nodes (38): $lib/core/app-lifecycle/app-lifecycle.service, $lib/core/layout/AppOverlays.svelte, $lib/core/layout/AppShell.svelte, $lib/utils/debounce, $lib/features/deep-link/deep-link.service, @tauri-apps/api/event, $lib/core/keybindings/global-keybindings, $lib/core/app-lifecycle/index-updater.service (+30 more)
 
 ### Community 69 - "Rust Task Model"
-Cohesion: 0.11
-Nodes (18): Default, Option, Self, String, TaskMetadata, TaskStatus, UpdateResult, Vec (+10 more)
+Cohesion: 0.09
+Nodes (20): FileTaskGroup, Default, Option, Self, String, TaskMetadata, TaskStatus, UpdateResult (+12 more)
 
 ### Community 70 - "VaultIndex Concurrency Tests"
 Cohesion: 0.07
@@ -528,19 +543,19 @@ Nodes (27): audit_finding_11_concurrent_update_entry_keeps_backlinks_consistent(
 
 ### Community 71 - "Kanban Card UI"
 Cohesion: 0.16
-Nodes (19): @lucide/svelte/icons/archive, @lucide/svelte/icons/check, @lucide/svelte/icons/chevron-right, $lib/utils/color-presets, $lib/components/ui/context-menu, @lucide/svelte/icons/grip-vertical, ./KanbanCard.svelte, ./KanbanCardText.svelte (+11 more)
+Nodes (18): @lucide/svelte/icons/archive, @lucide/svelte/icons/check, @lucide/svelte/icons/chevron-right, $lib/utils/color-presets, @lucide/svelte/icons/grip-vertical, ./KanbanCard.svelte, ./KanbanCardText.svelte, ./KanbanLane.svelte (+10 more)
 
 ### Community 72 - "Theme Logic"
-Cohesion: 0.10
-Nodes (37): CALLOUT_COLOR_GROUPS, camelCaseToLabel(), COLOR_GROUP_LABELS, COLOR_GROUP_ORDER, ColorGroupKey, ColorSubGroup, hexToColorInputValue(), isValidHex() (+29 more)
+Cohesion: 0.16
+Nodes (22): BUILTIN_THEMES, camelToKebab(), DEFAULT_APPEARANCE, findThemeByName(), GROUP_PREFIX, KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME, mergeThemeWithDefaults() (+14 more)
 
 ### Community 73 - "Quick Capture Clipboard"
 Cohesion: 0.19
 Nodes (18): ImageData, Clipboard, ClipboardError, ClipboardSnapshot, fake_clipboard_surfaces_error(), fake_clipboard_surfaces_files_snapshot(), fake_clipboard_surfaces_image_snapshot(), fake_clipboard_surfaces_text_snapshot() (+10 more)
 
 ### Community 74 - "Property Lifecycle"
-Cohesion: 0.16
-Nodes (13): board, editingItemId, editingLaneId, filterQuery, focusedItemIndex, focusedLaneIndex, KanbanBoard, KanbanItem (+5 more)
+Cohesion: 0.21
+Nodes (15): getLifecycleState(), isFavorite(), LifecycleState, removeBooleanFlag(), setBooleanFlag(), toggleArchived(), toggleFavorite(), toggleOrganized() (+7 more)
 
 ### Community 75 - "Semantic Result Filtering"
 Cohesion: 0.12
@@ -551,40 +566,40 @@ Cohesion: 0.11
 Nodes (21): @lucide/svelte/icons/calendar, ./CalendarGrid.svelte, @lucide/svelte/icons/calendar-days, @lucide/svelte/icons/calendar-plus, @lucide/svelte/icons/chevron-left, @lucide/svelte/icons/chevrons-left, @lucide/svelte/icons/chevrons-right, ./CollectionCalendarView.svelte (+13 more)
 
 ### Community 77 - "Collection Types & Toolbar"
-Cohesion: 0.13
-Nodes (19): CollectionDefinition, CollectionFilter, PropertyConfig, SortDef, addView(), CollectionYamlUpdates, ParseResult, removeView() (+11 more)
+Cohesion: 0.11
+Nodes (26): CollectionDefinition, CollectionViewDef, FilterItem, PropertyConfig, QueryColumn, SortDef, isValidFileName(), PropertyType (+18 more)
 
 ### Community 78 - "Collection YAML Parser"
-Cohesion: 0.17
-Nodes (3): String, selects_wry_runtime(), strip_comments_and_whitespace()
+Cohesion: 0.12
+Nodes (21): CollectionFilter, run(), addView(), CollectionYamlUpdates, parseCollectionYaml(), ParseResult, removeView(), renameView() (+13 more)
 
 ### Community 79 - "Date Shortcuts & Templates"
 Cohesion: 0.07
-Nodes (60): Args, Fixture, FixtureDraft, FixtureDraftQuery, FixtureQuery, fmt_opt(), git_head(), init_fixture() (+52 more)
+Nodes (59): Args, Fixture, FixtureDraft, FixtureDraftQuery, FixtureQuery, fmt_opt(), git_head(), init_fixture() (+51 more)
 
 ### Community 80 - "Rust History DB Repo"
 Cohesion: 0.25
 Nodes (23): delete_medium_duplicates(), delete_medium_duplicates_keeps_latest_per_day(), delete_old_snapshots(), delete_old_snapshots_removes_before_cutoff(), delete_old_snapshots_returns_zero_when_nothing_to_delete(), find_latest_hash(), find_latest_hash_isolates_by_file(), find_latest_hash_returns_last_inserted() (+15 more)
 
 ### Community 81 - "Rust DB Connection & Logger"
-Cohesion: 0.15
-Nodes (22): CmdTrace, checkpoint_fts_wal(), close_database(), open_database(), with_db(), with_db_transaction(), with_fts_db(), with_fts_db_transaction() (+14 more)
+Cohesion: 0.35
+Nodes (12): checkpoint_fts_wal(), close_database(), open_database(), with_db(), with_db_transaction(), with_fts_db(), with_fts_db_transaction(), F (+4 more)
 
 ### Community 82 - "Meta-Bind Buttons"
-Cohesion: 0.09
-Nodes (19): ButtonAction, ButtonConfig, ButtonStyle, CreateNoteAction, getButtonActions(), isValidAction(), OpenAction, parseButtonConfig() (+11 more)
+Cohesion: 0.12
+Nodes (14): ButtonAction, ButtonConfig, ButtonStyle, CreateNoteAction, getButtonActions(), isValidAction(), OpenAction, parseButtonConfig() (+6 more)
 
 ### Community 83 - "Properties Logic"
-Cohesion: 0.35
-Nodes (9): createEmptyKanbanBoard(), extractCardWikilinks(), serializeKanbanBoard(), serializeSettings(), createKanbanFile(), linkedContentCache, loadLinkedFileContent(), resetKanban() (+1 more)
+Cohesion: 0.19
+Nodes (17): cachedParse(), computeAddRelationshipValue(), computeAndCache(), computeRemoveRelationshipValue(), convertToProperty(), dedupeCanonicalKeys(), evictLru(), extractRawFrontmatter() (+9 more)
 
 ### Community 85 - "Heading Typography Settings"
 Cohesion: 0.18
-Nodes (5): setViewMode(), EXTERNAL, HarnessApi, ResizeObserverStub, SEED
+Nodes (15): FONT_WEIGHT_MAP, HEADING_LEVELS, headingTypographyToCssVars(), DEFAULT_TYPOGRAPHY, applyHeadingTypography(), getDirPath(), getSettingsPath(), loadSettings() (+7 more)
 
 ### Community 86 - "Type Note List View"
 Cohesion: 0.05
-Nodes (64): serializeCanvas(), createCanvasFile(), getBuiltInCommands(), closeTabsForDeletedPath(), $lib/core/editor/editor.service, FileExplorerContextActions, generateCopyName(), generateUniqueName() (+56 more)
+Nodes (33): FileExplorerContextActions, underline, seedDirWithTwoChildren(), contentOrder, expandedDirs, fileTree, folderOrder, fsStore (+25 more)
 
 ### Community 87 - "Rust Parsing Char Utils"
 Cohesion: 0.10
@@ -603,12 +618,16 @@ Cohesion: 0.18
 Nodes (23): chunks_indices_exist(), chunks_table_exists(), create_tables(), create_tables_idempotent(), create_tables_skips_fts_rebuild_on_second_call(), create_tables_succeeds(), fts_diacritic_match_folds_pt_br_terms(), fts_schema_version_persisted_in_app_meta() (+15 more)
 
 ### Community 92 - "QueryJS Integration Tests"
-Cohesion: 0.19
-Nodes (16): buildResolutionCache(), getNoteName(), noteEntryV2ToBacklinkEntry(), resolveWikilinkCached(), WikilinkResolutionCache, $lib/features/backlinks/backlinks.logic, buildKBLink(), buildKBPage() (+8 more)
+Cohesion: 0.25
+Nodes (12): $lib/features/backlinks/backlinks.logic, $lib/features/collection/collection.types, buildKBLink(), buildKBPage(), buildReverseIndex(), getBasename(), maybeParseDate(), parseSource() (+4 more)
+
+### Community 93 - "Settings Logic"
+Cohesion: 0.16
+Nodes (22): $lib/utils/clamp, lineStartToOffset(), NoteTarget, openNoteAt(), $lib/core/settings/settings.logic, clampContentWidth(), clampFontSize(), clampHeadingFontSize() (+14 more)
 
 ### Community 94 - "Settings Store & Types"
-Cohesion: 0.08
-Nodes (39): nextSidebarMode(), SIDEBAR_MODE_CYCLE, FONT_WEIGHT_MAP, HEADING_LEVELS, headingTypographyToCssVars(), DEFAULT_TYPOGRAPHY, applyHeadingTypography(), getDirPath() (+31 more)
+Cohesion: 0.09
+Nodes (22): nextSidebarMode(), SIDEBAR_MODE_CYCLE, AutoRunQueriesPolicy, EditorSettings, FolderNotesSettings, HeadingLevelSettings, HistorySettings, KeybindingsSettings (+14 more)
 
 ### Community 95 - "Templates"
 Cohesion: 0.05
@@ -621,10 +640,6 @@ Nodes (24): adjacent_wikilinks_emit_two_entries_with_correct_positions(), empty_
 ### Community 97 - "Unlinked Mention Parsing"
 Cohesion: 0.14
 Nodes (22): find_plain_text_mention_at_end_of_content(), find_plain_text_mention_at_start_of_content(), find_plain_text_mention_case_insensitive(), find_plain_text_mention_does_not_panic_when_lowercase_shifts_bytes_into_multibyte_char(), find_plain_text_mention_excludes_in_word_match(), find_plain_text_mention_excludes_match_inside_wikilink(), find_plain_text_mention_finds_outside_wikilink_on_same_line(), find_plain_text_mention_handles_multiple_matches_same_line() (+14 more)
-
-### Community 98 - "Command Menu Primitives"
-Cohesion: 0.27
-Nodes (7): FencedCodeBlockRange, findAllFencedCodeBlocks(), codeBlockField, computeCodeBlocks(), SPECIAL_LANGUAGES, collectDecos(), createState()
 
 ### Community 99 - "One-on-One Notes"
 Cohesion: 0.09
@@ -639,44 +654,48 @@ Cohesion: 0.36
 Nodes (6): marked, renderCanvasMarkdown(), sanitizeHtml(), sanitizeMermaidSvg(), sanitizeSnippetHtml(), sanitizeSvgContent()
 
 ### Community 102 - "App Overlays"
-Cohesion: 0.22
-Nodes (8): linkedMentions, relationshipBacklinks, unlinkedDirty, unlinkedMentions, BacklinkEntry, ContextSnippet, WikiLink, RelationshipBacklinkV2
+Cohesion: 0.09
+Nodes (36): check_and_update_model_hash(), cleanup_orphaned_chunks(), get_semantic_file_status(), SemanticFileStatus, TempDir, atomic_delete_insert_preserves_unprocessed_files(), atomic_delete_insert_rolls_back_on_failure(), check_and_update_model_hash_different_hash_returns_true() (+28 more)
 
 ### Community 103 - "Expression AST Types"
-Cohesion: 0.21
-Nodes (7): ASTNode, isMatchingQuote(), OPERATORS, Token, tokenize(), TokenType, TWO_CHAR_OPS
+Cohesion: 0.10
+Nodes (18): ArrayLiteral, ASTNode, BinaryExpr, BooleanLiteral, CallExpr, DisplayValue, Identifier, MemberExpr (+10 more)
 
 ### Community 104 - "File Icon Data"
-Cohesion: 0.20
-Nodes (9): $lib/features/copy-block-link/copy-block-link.service, @lucide/svelte/icons/file-symlink, $lib/plugins/periodic-notes/periodic-notes.logic, ./extensions/live-preview, ./extensions/wikilink, ./highlight-styles, ./setup, ./tab-view-state (+1 more)
+Cohesion: 0.14
+Nodes (16): BTreeSet, HashMap, NoteEntry, Option, OutgoingLink, OutgoingUnlinkedMention, String, TagAggregate (+8 more)
 
 ### Community 105 - "Rust Batch File Reads"
 Cohesion: 0.18
 Nodes (17): FileReadResult, read_files_batch(), empty_paths_returns_empty_results(), missing_file_returns_per_result_error(), non_utf8_file_returns_error(), reads_empty_file(), reads_file_with_unicode_content(), reads_multiple_files_successfully() (+9 more)
 
 ### Community 106 - "Table Parser & Frontmatter Slice"
-Cohesion: 0.08
-Nodes (43): findTabIndex(), getFileName(), getPinnedBoundary(), getPositionAfterFrontmatter(), isTabPinned(), lineStartToOffset(), reorderTabsAfterPinChange(), activeIndex (+35 more)
+Cohesion: 0.16
+Nodes (15): buildTaskIndex(), closeTasksTab(), openTasksTab(), resetTasks(), toggleTask(), toggleTasksTab(), updateSectionTagFilter(), dateFilter (+7 more)
 
 ### Community 107 - "Code Block Highlighting"
-Cohesion: 0.16
-Nodes (8): escapeHtml(), hastToHtml(), highlightCode(), HighlightResult, lowlight, CodeBlockLanguageRange, CodeBlockWidget, COMMON_LANGUAGES
+Cohesion: 0.10
+Nodes (15): escapeHtml(), hastToHtml(), highlightCode(), HighlightResult, lowlight, FencedCodeBlockRange, findAllFencedCodeBlocks(), codeBlockField (+7 more)
 
 ### Community 108 - "Rust Task Metadata Parsing"
 Cohesion: 0.11
 Nodes (19): TaskMetadata, parse_task_metadata(), parse_task_metadata_collapses_multi_spaces(), parse_task_metadata_depends_on_csv_no_spaces(), parse_task_metadata_depends_on_csv_with_spaces(), parse_task_metadata_depends_on_single_id(), parse_task_metadata_each_date_emoji(), parse_task_metadata_each_priority_emoji() (+11 more)
 
 ### Community 110 - "Live Preview Link Handling"
-Cohesion: 0.17
-Nodes (10): handleLivePreviewLinkMousedown(), livePreviewClickHandler, createView(), mockOpenUrl, ExtendedAutolinkRange, findExtendedAutolinkRanges(), findMarkdownLinkUrlAtPosition(), trimTrailingPunctuation() (+2 more)
+Cohesion: 0.16
+Nodes (13): handleLivePreviewLinkMousedown(), livePreviewClickHandler, createView(), mockOpenUrl, ExtendedAutolinkRange, findExtendedAutolinkRanges(), findMarkdownLinkUrlAtPosition(), trimTrailingPunctuation() (+5 more)
 
 ### Community 111 - "Theme Editor"
-Cohesion: 0.32
-Nodes (4): COLOR_PRESET_BG, COLOR_PRESET_TEXT, PALETTE, EXPECTED_KEYS
+Cohesion: 0.22
+Nodes (16): CALLOUT_COLOR_GROUPS, camelCaseToLabel(), COLOR_GROUP_LABELS, COLOR_GROUP_ORDER, ColorGroupKey, ColorSubGroup, hexToColorInputValue(), isValidHex() (+8 more)
 
 ### Community 112 - "Tauri Window Bootstrap"
 Cohesion: 0.20
-Nodes (16): App, AppHandle, DynRuntime, Menu, R, Result, ShortcutId, apply_move_to_active_space() (+8 more)
+Nodes (16): App, Menu, ShortcutId, apply_move_to_active_space(), build_composer_window(), build_menu(), dispatch_shortcut(), intercept_close_as_hide() (+8 more)
+
+### Community 113 - "Frontmatter Injection"
+Cohesion: 0.25
+Nodes (15): injectTagsIntoContent(), injectTitleIntoContent(), ensureFolderNote(), getFolderNotePath(), isMarkdown(), removeIconForPath(), setIconForPath(), removeFrontmatterIcon() (+7 more)
 
 ### Community 114 - "Kanban Store"
 Cohesion: 0.13
@@ -694,9 +713,13 @@ Nodes (13): BTreeMap, JsonValue, canonicalize_key(), leading_spaces(), parse_blo
 Cohesion: 0.12
 Nodes (17): String, TempDir, VaultIndex, Vec, build_index_with_fixtures(), lookup_entries_clones_full_note_entry_for_matched_paths(), lookup_entries_skips_paths_missing_from_index(), lookup_incoming_unlinked_mentions_excludes_self() (+9 more)
 
+### Community 118 - "Button & Dialog Primitives"
+Cohesion: 0.13
+Nodes (3): svelte/elements, ./index.js, $lib/utils.js
+
 ### Community 119 - "Frontmatter Decoration"
-Cohesion: 0.24
-Nodes (7): findFrontmatterBlock(), FrontmatterBlock, FrontmatterProperty, parseFrontmatterProperties(), stripYamlQuotes(), computeFrontmatter(), collectDecos()
+Cohesion: 0.21
+Nodes (9): findFrontmatterBlock(), FrontmatterBlock, FrontmatterProperty, parseFrontmatterProperties(), stripYamlQuotes(), computeFrontmatter(), frontmatterField, frontmatterGutter (+1 more)
 
 ### Community 120 - "Rust Update Channel"
 Cohesion: 0.17
@@ -707,20 +730,24 @@ Cohesion: 0.17
 Nodes (9): @lucide/svelte/icons/globe, ./GraphControls.svelte, @lucide/svelte/icons/target, ./graph-view.logic, ./graph-view.service, ./graph-view.store.svelte, ./graph-view.types, @lucide/svelte/icons/zoom-in (+1 more)
 
 ### Community 122 - "Keybindings Logic"
-Cohesion: 0.21
-Nodes (11): eventToKeybindingConfig(), findKeybindingConflict(), formatKey(), formatKeybinding(), isAcceptableShortcut(), keybindingsEqual(), MODIFIER_KEYS, RESERVED_KEYBINDINGS (+3 more)
+Cohesion: 0.20
+Nodes (12): eventToKeybindingConfig(), findKeybindingConflict(), formatKey(), formatKeybinding(), isAcceptableShortcut(), keybindingsEqual(), matchesKeybinding(), MODIFIER_KEYS (+4 more)
 
 ### Community 123 - "Table Widget"
-Cohesion: 0.18
-Nodes (16): flushLog(), formatTimestamp(), getLogDir(), initLogSession(), isLogSessionActive(), logTime(), openLogDir(), startHeartbeat() (+8 more)
+Cohesion: 0.17
+Nodes (17): $lib/utils/log.service, flushLog(), formatTimestamp(), getLogDir(), initLogSession(), isLogSessionActive(), logTime(), openLogDir() (+9 more)
 
 ### Community 124 - "Rust Date Parsing"
 Cohesion: 0.50
 Nodes (4): Regex, build_date_regex(), build_priority_regex(), emoji_pattern()
 
 ### Community 125 - "Rust Type Rename Propagation"
-Cohesion: 0.26
-Nodes (13): propagate_type_rename_inner(), read_file_mtime_secs(), Option, Path, String, VaultIndex, continues_past_write_failures_and_counts_only_successes(), leaves_non_members_and_definitions_untouched() (+5 more)
+Cohesion: 0.36
+Nodes (10): propagate_type_rename_inner(), Path, String, VaultIndex, continues_past_write_failures_and_counts_only_successes(), leaves_non_members_and_definitions_untouched(), returns_zero_when_no_members_exist(), rewrites_members_and_updates_index() (+2 more)
+
+### Community 126 - "Properties Service"
+Cohesion: 0.25
+Nodes (13): renamePropertyKey(), updatePropertyValue(), addNewProperty(), commitChanges(), consumeSkipNextParse(), findCanonicalTwin(), parseAndSetProperties(), removePropertyByKey() (+5 more)
 
 ### Community 127 - "Search RRF Fusion"
 Cohesion: 0.26
@@ -731,8 +758,8 @@ Cohesion: 0.31
 Nodes (7): extractTocHeadings(), stripHeadingChrome(), rebuildToc(), headings, tocStore, sample, TocHeading
 
 ### Community 130 - "Kanban View Tests"
-Cohesion: 0.06
-Nodes (32): $lib/features/canvas/CanvasView.svelte, @lucide/svelte/icons/circle-check-big, @lucide/svelte/icons/cloud, @lucide/svelte/icons/cloud-check, @lucide/svelte/icons/code, $lib/features/collection/CollectionView.svelte, @lucide/svelte/icons/eye, @lucide/svelte/icons/eye-off (+24 more)
+Cohesion: 0.07
+Nodes (27): @lucide/svelte/icons/bookmark, @lucide/svelte/icons/bookmark-minus, $lib/features/canvas/CanvasView.svelte, @lucide/svelte/icons/code, $lib/features/collection/CollectionView.svelte, $lib/components/ui/context-menu, @lucide/svelte/icons/eye, @lucide/svelte/icons/file-plus (+19 more)
 
 ### Community 131 - "Embed Resolver"
 Cohesion: 0.67
@@ -763,32 +790,44 @@ Cohesion: 0.36
 Nodes (8): extractNoteName(), replaceWikilinks(), basename(), normalizePath(), relativePath(), resolveFilePath(), stem(), vaultRelativeKey()
 
 ### Community 138 - "Quick Capture Commands"
-Cohesion: 0.25
-Nodes (16): CaptureInput, capture_clipboard_now(), dismiss_composer(), materialize_input(), open_composer(), schedule_refocus_after_space_move(), show_composer(), submit_composer_capture() (+8 more)
+Cohesion: 0.30
+Nodes (12): capture_clipboard_now(), dismiss_composer(), LastCaptureSignature, open_composer(), schedule_refocus_after_space_move(), show_composer(), submit_composer_capture(), AppHandle (+4 more)
 
 ### Community 139 - "Quick Capture App Focus"
 Cohesion: 0.23
 Nodes (8): activate_prev_app(), prev_frontmost_pid_peek_does_not_reset(), prev_frontmost_pid_take_resets_to_minus_one(), PrevFrontmostPid, record_prev_frontmost(), AppHandle, R, Self
 
+### Community 140 - "Quick Capture Service"
+Cohesion: 0.21
+Nodes (10): deduplicateByTarget(), fetchOutgoingLinksV2, lastFetchedOutgoingKey, OutgoingFetchKey, outgoingLinks, outgoingLinksStore, unlinkedMentions, OutgoingLink (+2 more)
+
 ### Community 141 - "Media Widget"
-Cohesion: 0.22
-Nodes (15): isValidFileName(), buildTypeMetadataMap(), buildTypeNoteDir(), BUILTIN_TYPES, DEFAULTS, extractTypeMetadata(), fmBool(), fmNumber() (+7 more)
+Cohesion: 0.25
+Nodes (13): buildTypeMetadataMap(), BUILTIN_TYPES, DEFAULTS, extractTypeMetadata(), fmBool(), fmNumber(), fmString(), fmStringArray() (+5 more)
 
 ### Community 142 - "Callout Folding"
 Cohesion: 0.21
 Nodes (10): CacheFootprint, ChunkFootprint, empty_cache_is_all_zero(), estimate_footprint(), format_mb(), owners_vault_vectors_shrink_from_570_mb_to_143_mb(), single_chunk_arithmetic(), zero_length_embedding_costs_only_its_scale() (+2 more)
 
 ### Community 143 - "Appearance Settings UI"
-Cohesion: 0.25
-Nodes (9): @lucide/svelte/icons/arrow-left, @lucide/svelte/icons/copy, @lucide/svelte/icons/download, ./ThemeColorRow.svelte, @lucide/svelte/icons/upload, ../theme-editor.logic, ../theme.logic, ../theme.service (+1 more)
+Cohesion: 0.29
+Nodes (8): @lucide/svelte/icons/arrow-left, @lucide/svelte/icons/download, ./ThemeColorRow.svelte, @lucide/svelte/icons/upload, ../theme-editor.logic, ../theme.logic, ../theme.service, ../theme.types
 
 ### Community 145 - "Kanban Serialization"
 Cohesion: 0.29
 Nodes (11): all_equal_components_reconstruct_exactly(), dot_error_stays_inside_the_cauchy_schwarz_bound(), empty_and_mismatched_dimensions_score_zero(), negation_quantizes_to_the_exact_opposite(), ordering_is_preserved_on_well_separated_vectors(), pseudo_random_unit(), QuantizedVector, round_trip_error_is_at_most_half_a_scale_step() (+3 more)
 
 ### Community 146 - "Image Widget"
+Cohesion: 0.27
+Nodes (10): buildTagTree(), computeTotalCounts(), extractAllTags(), extractFrontmatterTags(), extractInlineTags(), filterTagTree(), findTopLevelKey(), TagEntry (+2 more)
+
+### Community 147 - "Capture Note Composer"
 Cohesion: 0.26
-Nodes (11): buildTagTree(), computeTotalCounts(), extractAllTags(), extractFrontmatterTags(), extractInlineTags(), filterTagTree(), findTopLevelKey(), sortTagTree() (+3 more)
+Nodes (9): EncodeInput, Reranker, Path, Result, Self, Session, String, Tokenizer (+1 more)
+
+### Community 148 - "Callout Decoration"
+Cohesion: 0.36
+Nodes (6): buildDecorations(), calloutDecorationPlugin, getCalloutDecoration(), CALLOUT_COLORS, CalloutMatch, parseCalloutLine()
 
 ### Community 150 - "Command Palette Logic"
 Cohesion: 0.39
@@ -811,8 +850,8 @@ Cohesion: 0.43
 Nodes (4): Connection, TempDir, deferred_transaction_fails_with_busy_snapshot_on_stale_read(), setup_two_connections()
 
 ### Community 155 - "Rust Logger Tests"
-Cohesion: 0.44
-Nodes (8): getFileName(), getSearchContextSnippet(), matchesPathFilter(), matchesTagFilter(), parseSearchQuery(), performSearchOverFiles(), searchFileContent(), searchFileName()
+Cohesion: 0.31
+Nodes (11): getFileName(), getSearchContextSnippet(), matchesPathFilter(), matchesTagFilter(), parseSearchQuery(), performSearchOverFiles(), searchFileContent(), searchFileName() (+3 more)
 
 ### Community 157 - "Unlinked Mention Tests"
 Cohesion: 0.29
@@ -830,17 +869,29 @@ Nodes (5): description, identifier, permissions, $schema, windows
 Cohesion: 0.33
 Nodes (5): description, identifier, permissions, $schema, windows
 
+### Community 164 - "Tag Colors"
+Cohesion: 0.32
+Nodes (9): TaskStatus, computeTaskStats(), filterByDate(), filterCompleted(), filterCompletedTasks(), hasUncheckedDescendants(), FileTaskGroup, TaskDateFilter (+1 more)
+
 ### Community 166 - "Build Info"
 Cohesion: 0.52
 Nodes (5): $lib/utils/build-info, channelLabel(), formatBuildInfo(), parseReleaseChannel(), resolveVersion()
 
+### Community 167 - "Layout Logic"
+Cohesion: 0.29
+Nodes (9): unload_reranker(), Display, String, debug_log(), debug_log_enabled_without_app_handle_does_not_panic(), debug_log_noop_when_disabled(), DebugLogPayload, set_debug_mode() (+1 more)
+
 ### Community 168 - "Ordered List Markers"
-Cohesion: 0.33
-Nodes (7): ./DiffViewer.svelte, @lucide/svelte/icons/hard-drive, $lib/components/ui/scroll-area, ./file-history.logic, ./file-history.service, ./file-history.store.svelte, ./file-history.types
+Cohesion: 0.25
+Nodes (9): $lib/components/ui/dialog, ./DiffViewer.svelte, @lucide/svelte/icons/hard-drive, $lib/components/ui/scroll-area, ./TypeNameDialog.svelte, ./file-history.logic, ./file-history.service, ./file-history.store.svelte (+1 more)
 
 ### Community 169 - "Task Checkbox Widget"
 Cohesion: 0.31
 Nodes (8): get_process_memory(), get_process_memory_returns_positive_value(), set_tauri_debug_mode(), set_tauri_debug_mode_is_idempotent(), set_tauri_debug_mode_toggles_real_logger_state(), Mutex, Result, String
+
+### Community 170 - "Editor Settings Section"
+Cohesion: 0.40
+Nodes (6): getFileName(), getPinnedBoundary(), getPositionAfterFrontmatter(), isTabPinned(), reorderTabsAfterPinChange(), EditorTab
 
 ### Community 171 - "VaultIndex Entry Tests"
 Cohesion: 0.40
@@ -854,17 +905,53 @@ Nodes (6): ManagedModel, String, download_model_propagates_http_error_status(), 
 Cohesion: 0.70
 Nodes (3): countCharacters(), countWords(), estimateReadingTime()
 
+### Community 176 - "Command Tracing"
+Cohesion: 0.50
+Nodes (3): CmdTrace, Drop, Instant
+
+### Community 205 - "Community 205"
+Cohesion: 0.53
+Nodes (7): findTabIndex(), $lib/core/editor/editor.logic, buildGraph(), closeGraphTab(), openGraphTab(), resetGraphView(), toggleGraphTab()
+
+### Community 206 - "Community 206"
+Cohesion: 0.44
+Nodes (6): RecurrenceRule, TaskMetadata, TaskPriority, buildTodoistArgs(), mapPriorityToTodoist(), mergeLabel()
+
 ### Community 207 - "Community 207"
+Cohesion: 0.39
+Nodes (6): clearAllTabViewStates(), deleteTabViewState(), getTabViewState(), saveTabViewState(), TabViewState, tabViewStates
+
+### Community 208 - "Community 208"
 Cohesion: 0.43
-Nodes (5): clearAllTabViewStates(), getTabViewState(), saveTabViewState(), TabViewState, tabViewStates
+Nodes (8): BTreeMap, JsonValue, build_properties_indexed(), build_single_entry_populates_all_indexes(), fm(), make_entry_with_fm(), remove_entry_cleans_all_indexes(), update_entry_updates_properties()
+
+### Community 209 - "Community 209"
+Cohesion: 0.36
+Nodes (7): RelationshipBacklink, lookup_relationship_backlinks_belongs_to(), lookup_relationship_backlinks_custom(), lookup_relationship_backlinks_has_many(), lookup_relationship_backlinks_related_to(), make_entry_with_rels(), relationship_backlinks_no_false_positive_on_basename_collision()
 
 ### Community 210 - "Community 210"
-Cohesion: 0.13
-Nodes (16): commandPaletteStore, isOpen, recentCommandIds, localStorageMock, registerCycleSidebarKeybinding(), registerGlobalKeybindings(), matchesKeybinding(), cycleSidebarMode() (+8 more)
+Cohesion: 0.46
+Nodes (6): applyZoom(), resetZoom(), mockSetZoom, ZOOM_LEVELS, zoomIn(), zoomOut()
+
+### Community 211 - "Community 211"
+Cohesion: 0.38
+Nodes (5): deepLinkStore, pendingAction, openAction, searchAction, DeepLinkAction
+
+### Community 212 - "Community 212"
+Cohesion: 0.38
+Nodes (3): createTauriFetchAdapter(), { mockFetch }, { mockCreateTauriFetchAdapter }
 
 ### Community 213 - "Community 213"
 Cohesion: 0.47
 Nodes (6): Path, build_search_index_reindexes_a_file_restored_with_an_older_mtime(), build_search_index_reindexes_an_edited_file_and_leaves_its_neighbours_unread(), now_secs(), set_mtime_secs(), update_search_index_file_stores_the_mtime_so_the_next_open_skips_it()
+
+### Community 214 - "Community 214"
+Cohesion: 0.40
+Nodes (5): compute_model_hash(), Path, compute_model_hash_changes_with_different_content(), compute_model_hash_returns_consistent_hash(), compute_model_hash_returns_empty_when_no_model()
+
+### Community 215 - "Community 215"
+Cohesion: 0.50
+Nodes (3): applyDockBadge(), { setBadgeCount, errorMock }, $lib/features/dock-badge/dock-badge.service
 
 ### Community 216 - "Community 216"
 Cohesion: 0.40
@@ -875,24 +962,24 @@ Cohesion: 0.70
 Nodes (3): extractVaultName(), RecentVault, updateRecentVaults()
 
 ## Knowledge Gaps
-- **694 isolated node(s):** `R`, `ShortcutId`, `DynRuntime`, `String`, `String` (+689 more)
+- **693 isolated node(s):** `$schema`, `identifier`, `description`, `windows`, `permissions` (+688 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **25 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `debug_log()` connect `Rust DB Connection & Logger` to `Rust Vault Scan Commands`, `Rust FTS Search Commands`, `Rust Vault File Commands`, `Rust Semantic Index Commands`, `Rust Batch File Reads`, `Rust FTS Repo`, `Rust Vault Watcher`, `Kanban Store`, `Rust File History Commands`, `Rust Semantic DB Repo`, `Semantic Embedder`, `Rust Type Rename Propagation`?**
-  _High betweenness centrality (0.168) - this node is a cross-community bridge._
+- **Why does `debug_log()` connect `Layout Logic` to `Rust Vault Scan Commands`, `Rust FTS Search Commands`, `Rust Vault File Commands`, `App Overlays`, `Rust Semantic Index Commands`, `Rust Batch File Reads`, `Rust FTS Repo`, `Rust Vault Watcher`, `Command Tracing`, `Rust DB Connection & Logger`, `Kanban Store`, `Capture Note Composer`, `Rust File History Commands`, `Rust Semantic DB Repo`, `Semantic Embedder`, `Rust Type Rename Propagation`?**
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
 - **Why does `WikiLink` connect `Wikilink Parsing Tests` to `Table of Contents`, `Rust VaultIndex Core`, `Rust Vault Parsing Tests`, `Block Links & Wikilink Decoration`?**
-  _High betweenness centrality (0.125) - this node is a cross-community bridge._
-- **Why does `Mutex` connect `Task Checkbox Widget` to `Rust Semantic Index Commands`, `Quick Capture Clipboard`, `Rust DB & Debug Commands`, `Fuzzy Search Matching`, `Type Note List Perf`, `Rust Vault Watcher`, `Rust DB Connection & Logger`, `Kanban Store`, `Rust File History Commands`?**
-  _High betweenness centrality (0.069) - this node is a cross-community bridge._
-- **What connects `R`, `ShortcutId`, `DynRuntime` to the rest of the system?**
-  _694 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _High betweenness centrality (0.144) - this node is a cross-community bridge._
+- **Why does `$lib/core/vault/vault.store.svelte` connect `Command Palette & Canvas Images` to `File Explorer & FS Logic`, `Kanban View Tests`, `Watcher & Index Rebuild`, `Backlinks & Index Update Services`, `Editor Tabs & Logic`, `App Shell & Panels`, `Quick Capture Service`, `App Lifecycle & Vault Init`, `File Explorer & Dialog UI`, `File Icons Logic`, `Settings Sections UI`, `Editor View & Icons`, `Ordered List Markers`, `Canvas UI Components`, `Collection View UI`, `Trash Logic`, `Auto-Move Rules`, `Deep Link Service`, `Folder Notes & Layout Bridge`, `Type Note List View`, `Live Preview Link Handling`, `Graph View D3`?**
+  _High betweenness centrality (0.059) - this node is a cross-community bridge._
+- **What connects `$schema`, `identifier`, `description` to the rest of the system?**
+  _693 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Command Palette & Canvas Images` be split into smaller, more focused modules?**
-  _Cohesion score 0.033352906635349386 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05567765567765568 - nodes in this community are weakly interconnected._
+- **Should `File Explorer & FS Logic` be split into smaller, more focused modules?**
+  _Cohesion score 0.08361581920903954 - nodes in this community are weakly interconnected._
 - **Should `Rust VaultIndex Core` be split into smaller, more focused modules?**
-  _Cohesion score 0.05765870704717531 - nodes in this community are weakly interconnected._
-- **Should `Rust Vault Parsing Tests` be split into smaller, more focused modules?**
-  _Cohesion score 0.02808080808080808 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09254901960784313 - nodes in this community are weakly interconnected._

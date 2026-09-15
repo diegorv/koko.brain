@@ -4155,8 +4155,8 @@
     "semantic_hash": ""
   },
   "src-tauri/src/lib.rs": {
-    "mtime": 1789497465.1856155,
-    "ast_hash": "3fb14b6c03d7b24688a95787ff39e6c1",
+    "mtime": 1789495376.0329175,
+    "ast_hash": "96695ab297cce3ff6d303a821ea98bc6",
     "semantic_hash": ""
   },
   "src-tauri/src/main.rs": {
@@ -4400,9 +4400,9 @@
     "semantic_hash": "946c1d08de18d799d04db6f1ec55a143"
   },
   "src-tauri/tests/utils_logger_test.rs": {
-    "mtime": 1789497472.626452,
-    "ast_hash": "d9479306f6137f58ee59c274a4621d9e",
-    "semantic_hash": ""
+    "mtime": 1789495376.0381563,
+    "ast_hash": "9c332c9c46e0ce10430f9c06aa24a9e0",
+    "semantic_hash": "9c332c9c46e0ce10430f9c06aa24a9e0"
   },
   "src-tauri/tests/vault_aliases_test.rs": {
     "mtime": 1789495376.0382042,
@@ -4435,9 +4435,9 @@
     "semantic_hash": "382ea4f789f707f6c63a3631436db1c7"
   },
   "src-tauri/tests/vault_watcher_test.rs": {
-    "mtime": 1789497474.359263,
-    "ast_hash": "b36f0d974549a6129eeb2f4720da4178",
-    "semantic_hash": ""
+    "mtime": 1789495376.0386853,
+    "ast_hash": "6db617905186d4fef757238594e6a8ea",
+    "semantic_hash": "6db617905186d4fef757238594e6a8ea"
   },
   "src-tauri/examples/retrieval_eval.queries.example.json": {
     "mtime": 1789495376.0117607,
@@ -4467,11 +4467,6 @@
   "src-tauri/src/semantic/quantize.rs": {
     "mtime": 1789495376.0354974,
     "ast_hash": "d1a7c7e597254d91ba272a17eca1acf7",
-    "semantic_hash": ""
-  },
-  "src-tauri/tests/lib_test.rs": {
-    "mtime": 1789497463.4451895,
-    "ast_hash": "25fad25741ccc7ed850445a5dfbfd3f2",
     "semantic_hash": ""
   }
 }
