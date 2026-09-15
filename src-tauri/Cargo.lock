@@ -86,7 +86,7 @@ dependencies = [
  "objc2-foundation",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
  "wl-clipboard-rs",
  "x11rb",
 ]
@@ -259,9 +259,9 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.18.0"
+version = "1.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce2b2dcc879c3bae0d371e77c99f2238400ef24ec001394befa67b6e543add9e"
+checksum = "b281d307588d634de920874890732659e2e7672f72b5e10e81badc1a8a83621e"
 dependencies = [
  "aws-lc-sys",
  "zeroize",
@@ -269,9 +269,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.44.0"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f09fae7be8bb3174e05c6afdb34199e6dc0c7c04ba9fa237b1967adfbde27483"
+checksum = "9bff6c3b54fad79a2e60b8102caf565819711497c1f5f092f49508e2f5c31b27"
 dependencies = [
  "cc",
  "cmake",
@@ -531,9 +531,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.4.4"
+version = "1.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ad534f4357a5264cce5019c989cf66a4f0dc4e0d1b1d15f8aacec0ff7360273"
+checksum = "005ec2760ca554fae18df7a11195552ec576cd665632a881bc011d5bb2fd4d80"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1021,9 +1021,9 @@ dependencies = [
 
 [[package]]
 name = "der"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a69dedd701da44b0536442edf09c81a64b0ab97a7a4a5e3d1971f00027cbc63d"
+checksum = "a878c850e9e421b20262e9b41f9c860e4785fa07541c266b62ff9d1ef998a80a"
 dependencies = [
  "pem-rfc7468",
  "zeroize",
@@ -1455,9 +1455,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d45db016d36b838f563236e9193d0ee6ce38f3f68b6c94e914b4929c96bbb890"
+checksum = "3e0f1c7c3a72c66fd80abe965175f7523475c0489a87d3ff9d6e8c87d87a9d2d"
 
 [[package]]
 name = "fixedbitset"
@@ -2133,9 +2133,9 @@ checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
 
 [[package]]
 name = "hybrid-array"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707114b52a152fa7bdb290cd7cd5912d9467273b6d74e21b8d81aca1f8533f6b"
+checksum = "27f864f10dfb56725ce5ce5472bc52252c8f93a4ab86327122cebf62c5f59a17"
 dependencies = [
  "typenum",
 ]
@@ -2994,7 +2994,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.20",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4841,7 +4841,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5573,7 +5573,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.59.0",
@@ -5767,9 +5767,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-rustls"
-version = "0.26.4"
+version = "0.26.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1729aa945f29d91ba541258c8df89027d5792d85a8841fb65e8bf0f4ede4ef61"
+checksum = "b0c85f2c3ef0b1cd58b36682f4b17aaa995f0e5db534d85692b4903abce21f67"
 dependencies = [
  "rustls",
  "tokio",
@@ -6004,7 +6004,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.20",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6044,7 +6044,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
