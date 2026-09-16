@@ -6,11 +6,21 @@ on:
     paths:
       - "src/**"
       - "src-tauri/src/**"
+      - "src-tauri/tauri.conf.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "PRIVACY.md"
+      - ".github/workflows/privacy.yml"
   pull_request:
     branches: [main]
     paths:
       - "src/**"
       - "src-tauri/src/**"
+      - "src-tauri/tauri.conf.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "PRIVACY.md"
+      - ".github/workflows/privacy.yml"
   workflow_dispatch:
   # Reusable: invoked by `.github/workflows/run-all.yml`.
   workflow_call:
@@ -64,6 +74,7 @@ jobs:
             # External API clients
             @doist/todoist-api-typescript
             @tauri-apps/plugin-http
+            @sentry/browser
             # Hardcoded URLs
             https?://
           skip: |
@@ -89,6 +100,10 @@ jobs:
             todoist\.com
             @doist/todoist-api-typescript
             @tauri-apps/plugin-http
+            # Sentry error monitoring is user-configured per vault and only
+            # starts after explicit consent. See PRIVACY.md.
+            @sentry/browser
+            ingest(\.us|\.de)?\.sentry\.io
 
       # ── Rust scan ─────────────────────────────────────────────────────
       # HTTP clients, raw networking primitives, hardcoded URLs. Test
