@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod db;
+pub mod error_monitoring;
 pub mod quick_capture;
 pub mod search;
 pub mod semantic;
@@ -26,6 +27,7 @@ use quick_capture::source::{
 use utils::logger::init_logger;
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
+use error_monitoring::SentryState;
 
 /// Dispatch a fired global shortcut to its side-effect. `CaptureClipboard`
 /// runs the same helper the IPC command uses and emits one
@@ -275,6 +277,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(VaultIndexState::default())
         .manage(VaultWatcherState::default())
+        .manage(SentryState::default())
         .manage(PrevFrontmostPid::new())
         .manage(LastCaptureSignature::default())
         .invoke_handler(tauri::generate_handler![
@@ -328,6 +331,7 @@ pub fn run() {
             commands::semantic::shutdown_semantic,
             commands::debug::set_tauri_debug_mode,
             commands::debug::get_process_memory,
+            commands::sentry::configure_sentry,
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
             quick_capture::commands::capture_clipboard_now,

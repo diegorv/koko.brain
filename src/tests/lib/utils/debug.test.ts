@@ -12,11 +12,16 @@ vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn().mockResolvedValue(vi.fn()),
 }));
 
+vi.mock('$lib/core/settings/sentry.service', () => ({
+	captureSentryException: vi.fn(),
+}));
+
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { debug, error, logProcessMemory, perfBaseline, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
+import { captureSentryException } from '$lib/core/settings/sentry.service';
 
 describe('debug', () => {
 	let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -86,6 +91,7 @@ describe('error', () => {
 		consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		settingsStore.reset();
 		vi.mocked(appendLog).mockClear();
+		vi.mocked(captureSentryException).mockClear();
 	});
 
 	afterEach(() => {
@@ -121,7 +127,8 @@ describe('error', () => {
 	});
 
 	it('passes multiple arguments through', () => {
-		error('ENCRYPTION', 'Failed to encrypt:', '/path/file.md', new Error('denied'));
+		const exception = new Error('denied');
+		error('ENCRYPTION', 'Failed to encrypt:', '/path/file.md', exception);
 
 		expect(consoleSpy).toHaveBeenCalledWith(
 			expect.stringContaining('[FRONT-END:ENCRYPTION]'),
@@ -129,6 +136,7 @@ describe('error', () => {
 			'/path/file.md',
 			expect.any(Error),
 		);
+		expect(captureSentryException).toHaveBeenCalledWith('ENCRYPTION', exception);
 	});
 });
 

@@ -142,6 +142,46 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.typesBaseFolder).toBe('Notes');
 	});
 
+	it('keeps Sentry explicitly disabled when a saved file has no Sentry configuration', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.sentry).toEqual({ enabled: false, dsn: '' });
+	});
+
+	it('loads a valid persisted Sentry opt-in and DSN', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+			sentry: { enabled: true, dsn: 'https://key@o1.ingest.sentry.io/2' },
+		}));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.sentry).toEqual({
+			enabled: true,
+			dsn: 'https://key@o1.ingest.sentry.io/2',
+		});
+	});
+
+	it('does not treat a non-boolean saved Sentry opt-in as consent', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+			sentry: { enabled: 'true', dsn: 'https://key@o1.ingest.sentry.io/2' },
+		}));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.sentry).toEqual({
+			enabled: false,
+			dsn: 'https://key@o1.ingest.sentry.io/2',
+		});
+	});
+
 	it('merges templates settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

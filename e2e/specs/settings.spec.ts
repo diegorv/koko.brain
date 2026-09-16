@@ -27,4 +27,18 @@ test.describe('Settings panel', () => {
 		await page.keyboard.press('Escape');
 		await expect(panel).not.toBeVisible();
 	});
+
+	test('Sentry error monitoring is opt-in and asks for a DSN only when enabled', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Comma');
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await panel.getByRole('button', { name: /^sentry$/i }).click();
+
+		const errorMonitoring = panel.getByRole('switch');
+		await expect(errorMonitoring).toHaveAttribute('data-state', 'unchecked');
+		await expect(panel.locator('input[type="url"]')).not.toBeVisible();
+
+		await errorMonitoring.click();
+		await expect(panel.locator('input[type="url"]')).toBeVisible();
+		await expect(panel.getByRole('alert')).toContainText('valid Sentry Cloud DSN');
+	});
 });

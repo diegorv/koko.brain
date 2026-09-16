@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { captureSentryException } from '$lib/core/settings/sentry.service';
 import { appendLog } from './log.service';
 
 /** Returns a compact timestamp for console log entries (HH:mm:ss.SSS) */
@@ -26,6 +27,7 @@ export function error(tag: string, ...args: unknown[]): void {
 	if (settingsStore.debugLogToFile) {
 		appendLog(`ERROR:FRONT-END:${tag}`, ...args);
 	}
+	captureSentryException(tag, args.find((arg) => arg instanceof Error) ?? args.at(-1));
 	console.error(`[${logTime()}] [FRONT-END:${tag}]`, ...args);
 }
 

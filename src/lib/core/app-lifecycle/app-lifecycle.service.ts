@@ -36,6 +36,7 @@ import { loadSettings, resetSettings } from '$lib/core/settings/settings.service
 import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { configureSentry, disableSentry } from '$lib/core/settings/sentry.service';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
 import {
@@ -141,6 +142,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// below would hand it the NEW vault's settings to write there. Stopping
 	// now flushes while the store still matches the captured path.
 	void stopSettingsPersistence();
+	// Monitoring permission belongs to a vault. Stop the previous vault's
+	// client before its settings can be replaced by the next vault's settings.
+	void disableSentry();
 	// Same window again, and the only handles the skipped teardown would have
 	// released. Overwriting them below without unregistering first strands the
 	// previous init's consumers in the note-change registry and its after-save
@@ -176,6 +180,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	await loadSettings(vaultPath);
 	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
+	try {
+		await configureSentry(settingsStore.sentry);
+	} catch (err) {
+		error('LIFECYCLE', 'Failed to configure Sentry:', err);
+	}
 
 	// Persisting is a property of the settings module from here on: every
 	// mutation of the store is written back to THIS vault. Started after the
@@ -524,6 +533,7 @@ export function teardownVault(): void {
 	stopSemanticProgressListener();
 	stopTauriDebugListener();
 	teardownLogSession();
+	void disableSentry();
 
 	// ── Save index cache before teardown ─────────────────────────────
 	// Keyed on the vault the Rust index actually holds, NOT on
