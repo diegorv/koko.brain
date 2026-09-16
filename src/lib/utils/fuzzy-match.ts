@@ -4,7 +4,7 @@ export interface FuzzyMatchResult {
 	score: number;
 }
 
-/** Performs a fuzzy match of query against target. Lower score = better match. */
+/** Performs a fuzzy match of query against target. Lower score = better match. Empty query always matches. */
 export function fuzzyMatch(query: string, target: string): FuzzyMatchResult {
 	if (query.length === 0) return { match: true, score: 0 };
 
