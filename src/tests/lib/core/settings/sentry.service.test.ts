@@ -7,7 +7,12 @@ vi.mock('@sentry/browser', () => ({
 	captureException: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(() => Promise.resolve()),
+}));
+
 import * as Sentry from '@sentry/browser';
+import { invoke } from '@tauri-apps/api/core';
 import { captureSentryException, configureSentry, disableSentry, isSentryActive } from '$lib/core/settings/sentry.service';
 
 const VALID_DSN = 'https://public-key@o1.ingest.sentry.io/2';
@@ -23,6 +28,11 @@ describe('configureSentry', () => {
 
 		expect(isSentryActive()).toBe(false);
 		expect(Sentry.init).not.toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('configure_sentry', {
+			enabled: false,
+			dsn: '',
+			release: expect.stringMatching(/^kokobrain@/),
+		});
 	});
 
 	it('does not initialize a client when opt-in lacks a valid DSN', async () => {
@@ -30,6 +40,11 @@ describe('configureSentry', () => {
 
 		expect(isSentryActive()).toBe(false);
 		expect(Sentry.init).not.toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('configure_sentry', {
+			enabled: false,
+			dsn: '',
+			release: expect.stringMatching(/^kokobrain@/),
+		});
 	});
 
 	it('initializes error-only monitoring with strict data filtering after explicit opt-in', async () => {
@@ -39,6 +54,11 @@ describe('configureSentry', () => {
 		expect(Sentry.init).toHaveBeenCalledTimes(1);
 		const options = vi.mocked(Sentry.init).mock.calls[0][0]!;
 		expect(options.dsn).toBe(VALID_DSN);
+		expect(invoke).toHaveBeenCalledWith('configure_sentry', {
+			enabled: true,
+			dsn: VALID_DSN,
+			release: expect.stringMatching(/^kokobrain@/),
+		});
 		expect(options.dataCollection).toMatchObject({
 			userInfo: false,
 			cookies: false,

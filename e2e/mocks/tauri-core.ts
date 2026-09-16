@@ -294,6 +294,7 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,
+	configure_sentry: () => undefined,
 	list_system_fonts: handleListSystemFonts,
 	get_process_memory: handleGetProcessMemory,
 };

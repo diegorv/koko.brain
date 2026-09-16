@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/browser';
+import { invoke } from '@tauri-apps/api/core';
 import type { SentrySettings } from './settings.types';
 import { isValidSentryDsn } from './sentry.logic';
 
@@ -42,6 +43,12 @@ async function applySentryConfiguration(settings: SentrySettings): Promise<Sentr
 		await Sentry.close(2000);
 		activeDsn = null;
 	}
+
+	await invoke('configure_sentry', {
+		enabled: shouldEnable,
+		dsn: shouldEnable ? dsn : '',
+		release: sentryRelease(),
+	});
 
 	if (!shouldEnable) return settings.enabled ? 'invalid-dsn' : 'disabled';
 

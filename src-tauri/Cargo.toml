@@ -61,6 +61,7 @@ tauri-plugin-http = "2"
 tauri-plugin-updater = "2.10.1"
 tauri-plugin-process = "2.3.1"
 url = "2"
+sentry = { version = "0.49.2", default-features = false, features = ["backtrace", "contexts", "panic", "transport"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
