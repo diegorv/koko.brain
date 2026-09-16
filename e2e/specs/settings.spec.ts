@@ -39,5 +39,6 @@ test.describe('Settings panel', () => {
 
 		await errorMonitoring.click();
 		await expect(panel.locator('input[type="url"]')).toBeVisible();
+		await expect(panel.getByRole('alert')).toContainText('valid Sentry Cloud DSN');
 	});
 });

@@ -92,6 +92,11 @@ vi.mock('$lib/core/settings/settings.service', () => ({
 	resetSettings: vi.fn(),
 }));
 
+vi.mock('$lib/core/settings/sentry.service', () => ({
+	configureSentry: vi.fn(() => Promise.resolve('disabled')),
+	disableSentry: vi.fn(() => Promise.resolve('disabled')),
+}));
+
 // The persistence owner runs a Svelte `$effect.root`; its real behaviour is
 // covered in settings-persistence.test.ts (jsdom). Here only the lifecycle
 // wiring matters, so the module is a spy.
@@ -193,6 +198,7 @@ import { resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.
 import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
 import { resetSearch, buildSearchIndex } from '$lib/features/search/search.service';
 import { loadSettings, resetSettings } from '$lib/core/settings/settings.service';
+import { configureSentry, disableSentry } from '$lib/core/settings/sentry.service';
 import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
 import { resetProperties } from '$lib/features/properties/properties.service';
 import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
@@ -253,6 +259,14 @@ describe('initializeVault', () => {
 		// vault's own settings.json on the effect's first run.
 		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
 			.toBeLessThan(vi.mocked(startSettingsPersistence).mock.invocationCallOrder[0]);
+	});
+
+	it('configures Sentry only after this vault settings have loaded', async () => {
+		await initializeVault('/vault');
+
+		expect(configureSentry).toHaveBeenCalledWith(settingsStore.sentry);
+		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(configureSentry).mock.invocationCallOrder[0]);
 	});
 
 	it('stops any running persistence session before loading the next vault settings', async () => {
@@ -721,6 +735,14 @@ describe('teardownVault', () => {
 		expect(stopSettingsPersistence).toHaveBeenCalledTimes(1);
 		expect(resetSettings).toHaveBeenCalledTimes(1);
 		expect(vi.mocked(stopSettingsPersistence).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(resetSettings).mock.invocationCallOrder[0]);
+	});
+
+	it('disables the active Sentry client before resetting vault settings', () => {
+		teardownVault();
+
+		expect(disableSentry).toHaveBeenCalled();
+		expect(vi.mocked(disableSentry).mock.invocationCallOrder.at(-1)!)
 			.toBeLessThan(vi.mocked(resetSettings).mock.invocationCallOrder[0]);
 	});
 
