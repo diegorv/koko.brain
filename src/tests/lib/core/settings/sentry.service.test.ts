@@ -5,6 +5,7 @@ vi.mock('@sentry/browser', () => ({
 	close: vi.fn(() => Promise.resolve(true)),
 	withScope: vi.fn((callback) => callback({ setTag: vi.fn() })),
 	captureException: vi.fn(),
+	flush: vi.fn(() => Promise.resolve(true)),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -13,7 +14,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import * as Sentry from '@sentry/browser';
 import { invoke } from '@tauri-apps/api/core';
-import { captureSentryException, configureSentry, disableSentry, isSentryActive } from '$lib/core/settings/sentry.service';
+import { captureSentryException, configureSentry, disableSentry, isSentryActive, sendSentryTestEvent } from '$lib/core/settings/sentry.service';
 
 const VALID_DSN = 'https://public-key@o1.ingest.sentry.io/2';
 
@@ -103,6 +104,26 @@ describe('configureSentry', () => {
 
 		expect(Sentry.withScope).toHaveBeenCalledTimes(1);
 		expect(Sentry.captureException).toHaveBeenCalledWith(exception);
+	});
+
+	it('sends and flushes a synthetic test exception only while Sentry is active', async () => {
+		await expect(sendSentryTestEvent()).resolves.toBe('inactive');
+		expect(Sentry.captureException).not.toHaveBeenCalled();
+
+		await configureSentry({ enabled: true, dsn: VALID_DSN });
+		await expect(sendSentryTestEvent()).resolves.toBe('sent');
+
+		expect(Sentry.captureException).toHaveBeenCalledWith(
+			expect.objectContaining({ message: 'KokoBrain Sentry test event' }),
+		);
+		expect(Sentry.flush).toHaveBeenCalledWith(2000);
+	});
+
+	it('reports a pending test event when Sentry cannot flush it in time', async () => {
+		await configureSentry({ enabled: true, dsn: VALID_DSN });
+		vi.mocked(Sentry.flush).mockResolvedValueOnce(false);
+
+		await expect(sendSentryTestEvent()).resolves.toBe('pending');
 	});
 
 	it('reconfigures only when the enabled DSN changes and closes on disable', async () => {

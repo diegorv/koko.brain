@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { Button } from '$lib/components/ui/button';
 	import { Switch } from '$lib/components/ui/switch';
-	import { configureSentry } from '../sentry.service';
+	import { configureSentry, sendSentryTestEvent } from '../sentry.service';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	let configurationError = $state('');
+	let testEventStatus = $state('');
+	let isSendingTestEvent = $state(false);
 
 	async function updateSentry(value: Partial<typeof settingsStore.sentry>): Promise<void> {
 		settingsStore.updateSentry(value);
@@ -16,6 +19,24 @@
 		} catch (err) {
 			configurationError = 'Sentry could not be configured. Check the DSN and try again.';
 			console.error('Failed to configure Sentry:', err);
+		}
+	}
+
+	async function sendTestEvent(): Promise<void> {
+		testEventStatus = '';
+		isSendingTestEvent = true;
+		try {
+			const result = await sendSentryTestEvent();
+			testEventStatus = result === 'sent'
+				? 'Test event sent. Check Sentry Issues in a few moments.'
+				: result === 'pending'
+					? 'Test event was queued but delivery could not be confirmed. Check your connection and Sentry Issues.'
+					: 'Sentry is not active. Enter a valid DSN before sending a test event.';
+		} catch (err) {
+			testEventStatus = 'Could not send the test event. Check the DSN and try again.';
+			console.error('Failed to send Sentry test event:', err);
+		} finally {
+			isSendingTestEvent = false;
 		}
 	}
 </script>
@@ -51,6 +72,19 @@
 
 		{#if configurationError}
 			<p class="px-4 text-xs text-destructive" role="alert">{configurationError}</p>
+		{/if}
+
+		<SettingItem
+			label="Send test event"
+			description="Send a synthetic error without vault data to confirm this DSN reaches your Sentry project."
+		>
+			<Button variant="outline" size="sm" disabled={isSendingTestEvent} onclick={() => void sendTestEvent()}>
+				{isSendingTestEvent ? 'Sending…' : 'Send test event'}
+			</Button>
+		</SettingItem>
+
+		{#if testEventStatus}
+			<p class="px-4 text-xs text-muted-foreground" role="status">{testEventStatus}</p>
 		{/if}
 
 		<p class="px-4 text-xs text-muted-foreground">

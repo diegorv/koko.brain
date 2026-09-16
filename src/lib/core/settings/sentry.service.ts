@@ -6,6 +6,9 @@ import { isValidSentryDsn } from './sentry.logic';
 /** Result of applying a vault's Sentry settings to the runtime client. */
 export type SentryConfigurationResult = 'enabled' | 'disabled' | 'invalid-dsn';
 
+/** Result of enqueuing and flushing the synthetic event used to verify a DSN. */
+export type SentryTestEventResult = 'sent' | 'inactive' | 'pending';
+
 /** DSN currently bound to the Sentry client, or null when no client may send events. */
 let activeDsn: string | null = null;
 
@@ -111,4 +114,20 @@ export function captureSentryException(tag: string, exception: unknown): void {
 		scope.setTag('source', tag);
 		Sentry.captureException(exception);
 	});
+}
+
+/**
+ * Sends one known synthetic exception without vault context so a user can
+ * verify their DSN and alert configuration from Settings.
+ */
+export async function sendSentryTestEvent(): Promise<SentryTestEventResult> {
+	if (activeDsn === null) return 'inactive';
+
+	Sentry.withScope((scope) => {
+		scope.setTag('source', 'settings-test');
+		scope.setTag('synthetic', 'true');
+		Sentry.captureException(new Error('KokoBrain Sentry test event'));
+	});
+
+	return await Sentry.flush(2000) ? 'sent' : 'pending';
 }
