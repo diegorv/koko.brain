@@ -12,6 +12,7 @@
 	import AutoMoveSection from '$lib/features/auto-move/AutoMoveSection.svelte';
 	import TrashSection from '$lib/core/settings/sections/TrashSection.svelte';
 	import TodoistSection from '$lib/core/settings/sections/TodoistSection.svelte';
+	import SentrySection from '$lib/core/settings/sections/SentrySection.svelte';
 	import TroubleshootingSection from '$lib/core/settings/sections/TroubleshootingSection.svelte';
 	import UpdateSection from '$lib/core/settings/sections/UpdateSection.svelte';
 	import QueryjsSection from '$lib/core/settings/sections/QueryjsSection.svelte';
@@ -29,6 +30,7 @@
 	import FolderOutputIcon from '@lucide/svelte/icons/folder-output';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
+	import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
@@ -51,6 +53,7 @@
 		'auto-move': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
+		sentry: ShieldAlertIcon,
 		troubleshooting: BugIcon,
 		update: DownloadIcon,
 		queryjs: Code2Icon,
@@ -76,6 +79,7 @@
 		'auto-move': AutoMoveSection,
 		trash: TrashSection,
 		todoist: TodoistSection,
+		sentry: SentrySection,
 		troubleshooting: TroubleshootingSection,
 		update: UpdateSection,
 		queryjs: QueryjsSection,

@@ -201,6 +201,24 @@ describe('settingsStore', () => {
 			expect(settingsStore.todoist.apiToken).toBe('abc123');
 		});
 
+		it('keeps Sentry disabled with no DSN by default', () => {
+			expect(settingsStore.sentry).toEqual({ enabled: false, dsn: '' });
+		});
+
+		it('updateSentry merges the opt-in and DSN independently', () => {
+			settingsStore.updateSentry({ dsn: 'https://key@o1.ingest.sentry.io/2' });
+			expect(settingsStore.sentry).toEqual({
+				enabled: false,
+				dsn: 'https://key@o1.ingest.sentry.io/2',
+			});
+
+			settingsStore.updateSentry({ enabled: true });
+			expect(settingsStore.sentry).toEqual({
+				enabled: true,
+				dsn: 'https://key@o1.ingest.sentry.io/2',
+			});
+		});
+
 		it('updateDebugMode sets the flag', () => {
 			expect(settingsStore.debugMode).toBe(false);
 			settingsStore.updateDebugMode(true);

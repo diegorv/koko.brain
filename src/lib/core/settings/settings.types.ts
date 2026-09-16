@@ -196,6 +196,14 @@ export interface TodoistSettings {
 	defaultLabel: string;
 }
 
+/** Configuration for the optional Sentry error-monitoring integration. */
+export interface SentrySettings {
+	/** Whether this vault explicitly allows error events to be sent to Sentry. */
+	enabled: boolean;
+	/** Sentry Cloud project DSN, which identifies the destination for error events. */
+	dsn: string;
+}
+
 /** Configuration for tag color assignments */
 export interface TagColorSettings {
 	/** Map of lowercase tag path to hex color (e.g., { "work": "#fb464c", "personal/health": "#44cf6e" }) */
@@ -285,7 +293,7 @@ export interface KeybindingsSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
@@ -305,6 +313,8 @@ export interface AppSettings {
 	search: SearchSettings;
 	/** Todoist integration configuration */
 	todoist: TodoistSettings;
+	/** Optional Sentry error-monitoring configuration */
+	sentry: SentrySettings;
 	/** Auto-move feature configuration */
 	autoMove: import('$lib/features/auto-move/auto-move.types').AutoMoveSettings;
 	/** Whether debug messages are logged to the browser console */

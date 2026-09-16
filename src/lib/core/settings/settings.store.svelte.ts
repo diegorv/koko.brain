@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -103,6 +103,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		apiToken: '',
 		defaultLabel: '',
 	},
+	sentry: {
+		enabled: false,
+		dsn: '',
+	},
 	debugMode: false,
 	debugModeTauri: false,
 	debugLogToFile: false,
@@ -145,6 +149,7 @@ export const settingsStore = {
 	get search() { return settings.search; },
 	get autoMove() { return settings.autoMove; },
 	get todoist() { return settings.todoist; },
+	get sentry() { return settings.sentry; },
 	get debugMode() { return settings.debugMode; },
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
@@ -287,6 +292,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			todoist: { ...settings.todoist, ...value },
+		};
+	},
+
+	/** Partially updates optional Sentry error-monitoring settings. */
+	updateSentry(value: Partial<SentrySettings>) {
+		settings = {
+			...settings,
+			sentry: { ...settings.sentry, ...value },
 		};
 	},
 
