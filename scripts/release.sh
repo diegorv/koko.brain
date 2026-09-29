@@ -45,7 +45,7 @@ for arg in "$@"; do
 done
 
 # ─── Get latest tag ──────────────────────────────────────────────────
-LATEST_TAG=$(git tag --sort=-v:refname | grep -v '^nightly$' | head -1)
+LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
 
 if [ -z "$LATEST_TAG" ]; then
   echo "No tags found. Starting from 0.1.0${SUFFIX}"
@@ -153,7 +153,7 @@ echo "Pruning old tags (keeping last ${KEEP_COUNT})..."
 
 git fetch --tags --prune --prune-tags origin >/dev/null 2>&1 || true
 
-ALL_TAGS=$(git tag -l --sort=-v:refname | grep -v '^nightly$' || true)
+ALL_TAGS=$(git tag -l --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' || true)
 OLD_TAGS=$(echo "$ALL_TAGS" | tail -n +$((KEEP_COUNT + 1)))
 
 if [ -z "$OLD_TAGS" ]; then
