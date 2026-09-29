@@ -70,7 +70,7 @@
     "svelte-sonner": "^1.2.1",
     "tailwind-merge": "^3.7.0",
     "tailwind-variants": "^3.3.1",
-    "virtua": "^0.51.2",
+    "virtua": "^0.51.3",
     "yaml": "2.9.0"
   },
   "devDependencies": {
