@@ -64,8 +64,8 @@ importers:
         specifier: ^1.2.10
         version: 1.2.10
       '@iconify-json/tabler':
-        specifier: ^1.2.39
-        version: 1.2.39
+        specifier: ^1.2.41
+        version: 1.2.41
       '@lezer/highlight':
         specifier: ^1.2.3
         version: 1.2.3
@@ -154,8 +154,8 @@ importers:
         specifier: ^11.17.2
         version: 11.17.2
       simple-icons:
-        specifier: ^16.32.0
-        version: 16.32.0
+        specifier: ^16.33.0
+        version: 16.33.0
       svelte-sonner:
         specifier: ^1.2.1
         version: 1.2.1(svelte@5.57.1(@typescript-eslint/types@8.58.0))
@@ -461,8 +461,8 @@ packages:
   '@iconify-json/ri@1.2.10':
     resolution: {integrity: sha512-WWMhoncVVM+Xmu9T5fgu2lhYRrKTEWhKk3Com0KiM111EeEsRLiASjpsFKnC/SrB6covhUp95r2mH8tGxhgd5Q==}
 
-  '@iconify-json/tabler@1.2.39':
-    resolution: {integrity: sha512-lMj4kPXAS9G7fkkHxxR/LqBeaFXywTtnK5kRFDNEYxsYzGZBcBpQDaxRE4SZQS6XHBHoeOpRbE+Bg8kv0is+wg==}
+  '@iconify-json/tabler@1.2.41':
+    resolution: {integrity: sha512-GHg+H/cnr0anaCoV383JONiOMxZQOdojWYNLgL3x0fRE07YW7c+AHiYmIhXet//oq26T830qitdP7l43ojiCXw==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -1958,8 +1958,8 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  simple-icons@16.32.0:
-    resolution: {integrity: sha512-BwqATHxAulx7X6kNdTkecy7PBjLkgtAHcgrwYLd9iA+cD2At9DzhJwdwaSELk2+aZe01IfiM/Wxtyp68Dvup2A==}
+  simple-icons@16.33.0:
+    resolution: {integrity: sha512-z14u6A8ngAg9mgERRsNO8YkjIMefehIpBk7A8Dz3Gd91945qFP19MLPSHgV4z8P5u/MRYd5e07OTzaDoB4d6qA==}
     engines: {node: '>=0.12.18'}
 
   sirv@3.0.2:
@@ -2645,7 +2645,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify-json/tabler@1.2.39':
+  '@iconify-json/tabler@1.2.41':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -4029,7 +4029,7 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  simple-icons@16.32.0: {}
+  simple-icons@16.33.0: {}
 
   sirv@3.0.2:
     dependencies:
