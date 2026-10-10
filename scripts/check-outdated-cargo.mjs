@@ -30,8 +30,16 @@
  * requirement-compatible and resolvable versions (it listed syn 2 -> 3 as
  * "compat"), and knows nothing about release age.
  *
+ * Advisories come from two places. `cargo audit` reads the RustSec DB; GitHub
+ * repository advisories (published by the maintainers on the crate's repo) can
+ * be missing from it for days, as quinn-proto's 2026-09-30 GHSAs were. So the
+ * repository of every crate in Cargo.lock is looked up on crates.io and each
+ * GitHub repository's published advisories are fetched with `gh api`; matches
+ * not already in `cargo audit` are listed under GITHUB ADVISORIES and their
+ * fixes are tagged like RUSTSEC ones. Crates hosted elsewhere are only counted.
+ *
  * crates.io asks crawlers for at most one request per second, so lookups are
- * sequential and spaced; a full run takes a minute or two.
+ * sequential and spaced; a full run takes a few minutes.
  *
  * Usage: node scripts/check-outdated-cargo.mjs
  *
@@ -322,6 +330,27 @@ export function parseCargoAudit(raw) {
 }
 
 /**
+ * Advisory ids `cargo audit` already reports: each RUSTSEC id plus its aliases
+ * (the GHSA / CVE ids it was imported from), so a repository advisory that
+ * reached the RustSec DB is not listed twice.
+ *
+ * @param {unknown} raw Parsed `cargo audit --json` output.
+ * @returns {Set<string>}
+ */
+export function auditAdvisoryIds(raw) {
+	const ids = new Set();
+	const entries = [
+		...(raw?.vulnerabilities?.list ?? []),
+		...Object.values(raw?.warnings ?? {}).flatMap((list) => list ?? []),
+	];
+	for (const e of entries) {
+		if (e?.advisory?.id) ids.add(e.advisory.id);
+		for (const alias of e?.advisory?.aliases ?? []) ids.add(alias);
+	}
+	return ids;
+}
+
+/**
  * Whether `version` is patched for a RUSTSEC row. `patched` holds Cargo
  * requirements (`>=0.11.18`, `^1.2.3`); any match counts.
  *
@@ -334,6 +363,220 @@ export function isPatched(version, patched) {
 		const range = cargoReqToRange(req);
 		return range ? semver.satisfies(version, range, { includePrerelease: true }) : false;
 	});
+}
+
+/**
+ * `owner/repo` (lowercased) of a GitHub repository URL, or null for any other
+ * host. Subpaths (`/tree/master/crates/macro`) and a `.git` suffix are dropped,
+ * so the crates of one workspace collapse to one repository.
+ *
+ * @param {string | null | undefined} url `repository` field of a crate.
+ * @returns {string | null}
+ */
+export function githubRepoFromUrl(url) {
+	const m = String(url ?? '').match(/^(?:[a-z+]+:\/\/)?(?:www\.)?github\.com[/:]([^/\s]+)\/([^/\s#?]+)/i);
+	if (!m) return null;
+	const repo = m[2].replace(/\.git$/i, '');
+	return repo ? `${m[1]}/${repo}`.toLowerCase() : null;
+}
+
+/**
+ * Turn a crates.io `/api/v1/crates?ids[]=...` payload into name -> repository URL.
+ *
+ * @param {unknown} raw Parsed API response.
+ * @returns {Map<string, string | null>}
+ */
+export function crateReposFromApi(raw) {
+	const repos = new Map();
+	for (const c of raw?.crates ?? []) {
+		if (c?.id) repos.set(c.id, c.repository || null);
+	}
+	return repos;
+}
+
+/**
+ * npm range for a GitHub advisory's `vulnerable_version_range`.
+ *
+ * GitHub documents the comma as AND (`>= 0.11.0, <= 0.11.18`), but maintainers
+ * also write it as OR (`< 0.5.16, >= 0.6.0 < 0.6.3`, quinn-udp). The AND
+ * reading is kept when some version satisfies it, otherwise the parts are ORed.
+ * A bare version means exactly that version, as in GitHub's own syntax, and
+ * `none` (smallvec's 2.0 alpha advisory) matches no version.
+ *
+ * @param {string | null | undefined} text Range as written in the advisory.
+ * @returns {string | null} Null when it cannot be parsed.
+ */
+export function ghsaVulnerableRange(text) {
+	if (typeof text !== 'string' || !text.trim()) return null;
+	if (text.trim().toLowerCase() === 'none') return '<0.0.0-0';
+	const parts = text
+		.split(',')
+		.map((p) => p.trim())
+		.filter(Boolean);
+	const and = parts.join(' ');
+	if (semver.validRange(and) && semver.minVersion(and)) return and;
+	const or = parts.join(' || ');
+	return semver.validRange(or) ? or : null;
+}
+
+/** First version of the next semver-incompatible line (Cargo caret rules). */
+function nextBreaking(version) {
+	const v = semver.parse(version);
+	if (v.major > 0) return `${v.major + 1}.0.0`;
+	if (v.minor > 0) return `0.${v.minor + 1}.0`;
+	return `0.0.${v.patch + 1}`;
+}
+
+/**
+ * npm range for a GitHub advisory's `patched_versions`.
+ *
+ * Each comma part is a fix on one release line (`0.9.5, 0.10.5`,
+ * `>= 0.5.16, >= 0.6.3`, `~0.37.25, ~0.38.19`); a part starting with `<`
+ * closes the previous one (`>= 1.2.0, < 2.0.0`). A bare version or `>=` line
+ * is capped at its next breaking version, so 0.6.1 does not count as patched
+ * by `>= 0.5.16`. The newest line is left open instead: releases after it
+ * carry the fix (rustix 1.x for an advisory that lists only `~0.38.19`).
+ *
+ * @param {string | null | undefined} text Patched versions as written in the advisory.
+ * @returns {string | null} Null when it cannot be parsed.
+ */
+export function ghsaPatchedRange(text) {
+	if (typeof text !== 'string' || !text.trim()) return null;
+	const groups = [];
+	for (const part of text.split(',').map((p) => p.trim())) {
+		if (!part) continue;
+		if (part.startsWith('<') && groups.length) groups[groups.length - 1] += ` ${part}`;
+		else groups.push(part);
+	}
+	const lines = [];
+	for (const g of groups) {
+		const bound = g.match(/^(?:>=\s*)?v?(\d+\.\d+\.\d+\S*)$/)?.[1];
+		if (bound && semver.valid(bound)) {
+			lines.push({ min: bound, range: `>=${bound} <${nextBreaking(bound)}` });
+			continue;
+		}
+		const min = semver.validRange(g) ? semver.minVersion(g)?.version : null;
+		if (!min) return null;
+		lines.push({ min, range: g });
+	}
+	if (!lines.length) return null;
+	lines.sort((a, b) => semver.compare(a.min, b.min));
+	lines[lines.length - 1].range = `>=${lines[lines.length - 1].min}`;
+	return lines.map((l) => l.range).join(' || ');
+}
+
+/**
+ * Whether `version` is affected by one package entry of a GitHub advisory.
+ *
+ * A patched version is never affected, even when the vulnerable range is
+ * open-ended (quinn-proto `> 0.7.0`, patched `>= 0.11.18`), which maintainers
+ * write by mistake. Without a readable vulnerable range, anything unpatched
+ * counts as affected; with neither field readable the answer is unknown.
+ *
+ * @param {string} version Version to test.
+ * @param {{vulnerableRange: string | null, patchedVersions: string | null}} entry Advisory package entry.
+ * @returns {boolean | null}
+ */
+export function isAffected(version, { vulnerableRange, patchedVersions }) {
+	const opts = { includePrerelease: true };
+	const patched = ghsaPatchedRange(patchedVersions);
+	if (patched && semver.satisfies(version, patched, opts)) return false;
+	const vulnerable = ghsaVulnerableRange(vulnerableRange);
+	if (vulnerable) return semver.satisfies(version, vulnerable, opts);
+	return patched ? true : null;
+}
+
+/**
+ * Match GitHub repository advisories (`GET /repos/{o}/{r}/security-advisories`)
+ * against the crates in Cargo.lock.
+ *
+ * Repository advisories are published by the crate's maintainers and can take
+ * days to reach the RustSec DB that `cargo audit` reads (quinn-proto's
+ * 2026-09-30 GHSAs never showed up there). Only published, non-withdrawn
+ * `rust` entries count, and ids in `knownIds` (see auditAdvisoryIds) are
+ * skipped. `affected` is null when the advisory's ranges cannot be parsed.
+ *
+ * @param {unknown[]} advisories Advisory objects from the GitHub API.
+ * @param {Map<string, string[]>} lock Crate name -> locked versions (see parseCargoLock).
+ * @param {Set<string>} [knownIds] Ids already reported by cargo audit.
+ * @returns {Array<{id: string, severity: string, summary: string, name: string, version: string, vulnerableRange: string | null, patchedVersions: string | null, affected: boolean | null}>}
+ */
+export function matchRepoAdvisories(advisories, lock, knownIds = new Set()) {
+	const rows = [];
+	const seen = new Set();
+	for (const a of advisories) {
+		if (!a?.ghsa_id || a.state !== 'published' || a.withdrawn_at) continue;
+		if (knownIds.has(a.ghsa_id) || (a.cve_id && knownIds.has(a.cve_id))) continue;
+		for (const v of a.vulnerabilities ?? []) {
+			if (String(v?.package?.ecosystem).toLowerCase() !== 'rust') continue;
+			const name = v.package.name;
+			const entry = { vulnerableRange: v.vulnerable_version_range ?? null, patchedVersions: v.patched_versions ?? null };
+			for (const version of lock.get(name) ?? []) {
+				const key = `${a.ghsa_id}|${name}|${version}`;
+				if (seen.has(key)) continue;
+				const affected = isAffected(version, entry);
+				if (affected === false) continue;
+				seen.add(key);
+				rows.push({ id: a.ghsa_id, severity: a.severity ?? 'unknown', summary: a.summary ?? '', name, version, ...entry, affected });
+			}
+		}
+	}
+	return rows.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+}
+
+/** Run `fn` over `items` with at most `limit` calls in flight; results keep input order. */
+async function mapPool(items, limit, fn) {
+	const out = new Array(items.length);
+	let next = 0;
+	const worker = async () => {
+		while (next < items.length) {
+			const i = next++;
+			out[i] = await fn(items[i]);
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+	return out;
+}
+
+/**
+ * Repository URL of every crate in `names`, from the crates.io bulk endpoint
+ * (100 crates per request, spaced like every other crates.io call).
+ */
+async function fetchCrateRepos(names) {
+	const repos = new Map();
+	for (let i = 0; i < names.length; i += 100) {
+		const query = names
+			.slice(i, i + 100)
+			.map((n) => `ids%5B%5D=${encodeURIComponent(n)}`)
+			.join('&');
+		try {
+			const res = await fetch(`https://crates.io/api/v1/crates?per_page=100&${query}`, {
+				headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+			});
+			if (res.ok) for (const [k, v] of crateReposFromApi(await res.json())) repos.set(k, v);
+		} catch {
+			// Missing names are reported as unchecked by the caller.
+		}
+		await new Promise((r) => setTimeout(r, REQUEST_GAP_MS));
+	}
+	return repos;
+}
+
+/** Published advisories of one GitHub repository via `gh api`; null when the call fails. */
+async function fetchRepoAdvisories(repo) {
+	try {
+		const { stdout } = await exec(
+			'gh',
+			['api', `repos/${repo}/security-advisories?state=published&per_page=100`, '--paginate', '--jq', '.[]'],
+			{ cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 },
+		);
+		return stdout
+			.split('\n')
+			.filter((l) => l.trim())
+			.map((l) => JSON.parse(l));
+	} catch {
+		return null;
+	}
 }
 
 /** Fetch a crate's versions from crates.io; null on a network or API error. */
@@ -387,16 +630,29 @@ async function main() {
 	const lock = parseCargoLock(readFileSync(resolve(crateDir, 'Cargo.lock'), 'utf8'));
 
 	let audit = null;
+	let knownIds = new Set();
 	try {
 		// Run from src-tauri so cargo-audit picks up src-tauri/.cargo/audit.toml.
-		audit = parseCargoAudit(JSON.parse((await run('cargo', ['audit', '--json'], crateDir)).stdout));
+		const rawAudit = JSON.parse((await run('cargo', ['audit', '--json'], crateDir)).stdout);
+		audit = parseCargoAudit(rawAudit);
+		knownIds = auditAdvisoryIds(rawAudit);
 	} catch {
 		audit = null; // cargo-audit missing or offline — reported, not fatal.
 	}
 	const vulns = (audit ?? []).filter((a) => a.kind === 'vulnerability');
 
-	const names = new Set([...dry.updates.map((u) => u.name), ...directDeps.keys(), ...vulns.map((v) => v.name)]);
 	console.log(`Cooldown: a crate release must be ${cooldownDays}+ days old (dependabot.yml, cargo).`);
+
+	// ---- GitHub repository advisories for every crate in Cargo.lock. ----
+	const crateRepos = await fetchCrateRepos([...lock.keys()]);
+	const repoList = [...new Set([...crateRepos.values()].map(githubRepoFromUrl).filter(Boolean))].sort();
+	const notOnGithub = [...lock.keys()].filter((n) => !githubRepoFromUrl(crateRepos.get(n))).length;
+	console.log(`Checking GitHub advisories of ${repoList.length} repositories (${lock.size} crates).`);
+	const repoResults = await mapPool(repoList, 8, fetchRepoAdvisories);
+	const failedRepos = repoList.filter((_, i) => repoResults[i] === null);
+	const ghsa = matchRepoAdvisories(repoResults.filter(Boolean).flat(), lock, knownIds);
+
+	const names = new Set([...dry.updates.map((u) => u.name), ...directDeps.keys(), ...vulns.map((v) => v.name)]);
 	console.log(`Checking ${names.size} crates on crates.io, one request per second.\n`);
 
 	const versionsByName = new Map();
@@ -408,9 +664,11 @@ async function main() {
 		await new Promise((r) => setTimeout(r, REQUEST_GAP_MS));
 	}
 
-	/** RUSTSEC ids a version fixes for this crate. */
-	const fixes = (name, version) =>
-		vulns.filter((v) => v.name === name && isPatched(version, v.patched)).map((v) => v.id);
+	/** RUSTSEC and GHSA ids a version fixes for this crate. */
+	const fixes = (name, version) => [
+		...vulns.filter((v) => v.name === name && isPatched(version, v.patched)).map((v) => v.id),
+		...new Set(ghsa.filter((g) => g.name === name && isAffected(version, g) === false).map((g) => g.id)),
+	];
 
 	// ---- Lockfile moves inside the requirements. ----
 	const updateNow = [];
@@ -457,6 +715,7 @@ async function main() {
 		...locked.map((r) => r.name),
 		...outOfRange.map((r) => r.name),
 		...(audit ?? []).map((a) => a.name),
+		...ghsa.map((g) => g.name),
 	];
 	const wName = Math.max(7, ...allNames.map((n) => n.length));
 	const pad = (s, n) => String(s).padEnd(n);
@@ -476,6 +735,29 @@ async function main() {
 			console.log('\n  RUSTSEC vulnerability fixes are applied even inside the cooldown window.');
 		}
 		console.log('');
+	}
+
+	if (failedRepos.length === repoList.length && repoList.length) {
+		console.log('GITHUB ADVISORIES: could not query GitHub (is `gh` installed and logged in?).\n');
+	} else if (ghsa.length === 0) {
+		console.log('GITHUB ADVISORIES: none affecting Cargo.lock beyond what cargo audit reports.\n');
+	} else {
+		console.log(`GITHUB ADVISORIES (${ghsa.length}, repository advisories not in cargo audit):`);
+		for (const g of ghsa) {
+			const unsure = g.affected === null ? '  (ranges unreadable, check by hand)' : '';
+			console.log(`  ${pad(`[${g.severity}]`, 16)} ${pad(g.name, wName)}  ${pad(g.version, 10)}  ${g.id}${unsure}`);
+			console.log(`  ${' '.repeat(16)} ${pad('', wName)}  ${g.summary}`);
+			console.log(
+				`  ${' '.repeat(16)} ${pad('', wName)}  vulnerable ${g.vulnerableRange ?? '?'}; patched ${g.patchedVersions ?? '?'}`,
+			);
+		}
+		console.log('\n  Treated like RUSTSEC: fixes are applied even inside the cooldown window.\n');
+	}
+	if (failedRepos.length && failedRepos.length < repoList.length) {
+		console.log(`GITHUB ADVISORIES, could not check ${failedRepos.length} repositories: ${failedRepos.join(', ')}\n`);
+	}
+	if (notOnGithub) {
+		console.log(`GITHUB ADVISORIES, not covered: ${notOnGithub} crates whose repository is not on GitHub.\n`);
 	}
 
 	if (updateNow.length) {

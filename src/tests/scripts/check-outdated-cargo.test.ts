@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	auditAdvisoryIds,
 	cargoReqToRange,
 	classifyLockMove,
+	crateReposFromApi,
 	crateVersionsFromApi,
+	ghsaPatchedRange,
+	ghsaVulnerableRange,
+	githubRepoFromUrl,
+	isAffected,
 	isCompatibleMove,
 	isPatched,
 	lockedVersionFor,
 	newestOutOfRange,
+	matchRepoAdvisories,
 	parseCargoAudit,
 	parseCargoLock,
 	parseDirectDeps,
@@ -382,5 +389,235 @@ describe('isPatched', () => {
 
 	it('returns false when there is no patch', () => {
 		expect(isPatched('1.0.0', [])).toBe(false);
+	});
+});
+
+describe('auditAdvisoryIds', () => {
+	it('collects RUSTSEC ids and their aliases from vulnerabilities and warnings', () => {
+		const ids = auditAdvisoryIds({
+			vulnerabilities: {
+				list: [{ advisory: { id: 'RUSTSEC-2026-0001', aliases: ['GHSA-aaaa-bbbb-cccc', 'CVE-2026-1'] } }],
+			},
+			warnings: { unmaintained: [{ advisory: { id: 'RUSTSEC-2024-0436', aliases: [] } }], yanked: [{ advisory: null }] },
+		});
+
+		expect([...ids].sort()).toEqual(['CVE-2026-1', 'GHSA-aaaa-bbbb-cccc', 'RUSTSEC-2024-0436', 'RUSTSEC-2026-0001']);
+	});
+
+	it('returns an empty set for a clean or malformed report', () => {
+		expect(auditAdvisoryIds({ vulnerabilities: { list: [] }, warnings: {} }).size).toBe(0);
+		expect(auditAdvisoryIds(null).size).toBe(0);
+	});
+});
+
+describe('githubRepoFromUrl', () => {
+	it('reduces workspace subpaths and .git suffixes to owner/repo', () => {
+		expect(githubRepoFromUrl('https://github.com/quinn-rs/quinn')).toBe('quinn-rs/quinn');
+		expect(githubRepoFromUrl('https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/macro')).toBe(
+			'wasm-bindgen/wasm-bindgen',
+		);
+		expect(githubRepoFromUrl('git+https://github.com/Owner/Repo.git')).toBe('owner/repo');
+		expect(githubRepoFromUrl('https://www.github.com/a/b/')).toBe('a/b');
+	});
+
+	it('returns null for other hosts and missing URLs', () => {
+		expect(githubRepoFromUrl('https://gitlab.com/a/b')).toBeNull();
+		expect(githubRepoFromUrl('https://github.com/only-owner')).toBeNull();
+		expect(githubRepoFromUrl(null)).toBeNull();
+		expect(githubRepoFromUrl(undefined)).toBeNull();
+	});
+});
+
+describe('crateReposFromApi', () => {
+	it('maps crate ids to their repository, null when unset', () => {
+		const repos = crateReposFromApi({
+			crates: [
+				{ id: 'quinn-proto', repository: 'https://github.com/quinn-rs/quinn' },
+				{ id: 'no-repo', repository: null },
+			],
+		});
+
+		expect([...repos]).toEqual([
+			['quinn-proto', 'https://github.com/quinn-rs/quinn'],
+			['no-repo', null],
+		]);
+	});
+
+	it('returns an empty map for an error payload', () => {
+		expect(crateReposFromApi({ errors: [{ detail: 'Not Found' }] }).size).toBe(0);
+		expect(crateReposFromApi(null).size).toBe(0);
+	});
+});
+
+describe('ghsaVulnerableRange', () => {
+	it('reads the comma as AND when that is satisfiable', () => {
+		expect(ghsaVulnerableRange('>= 0.11.0, <= 0.11.18')).toBe('>= 0.11.0 <= 0.11.18');
+	});
+
+	it('falls back to OR when the AND reading matches nothing (quinn-udp)', () => {
+		expect(ghsaVulnerableRange('< 0.5.16, >= 0.6.0 < 0.6.3')).toBe('< 0.5.16 || >= 0.6.0 < 0.6.3');
+	});
+
+	it('keeps bare versions and hyphen ranges as GitHub writes them', () => {
+		expect(ghsaVulnerableRange('0.11.17')).toBe('0.11.17');
+		expect(ghsaVulnerableRange('0.11.0 - 0.11.6')).toBe('0.11.0 - 0.11.6');
+	});
+
+	it('reads `none` as no version at all (smallvec)', () => {
+		const range = ghsaVulnerableRange('none');
+		expect(range).not.toBeNull();
+		expect(isAffected('1.16.2', { vulnerableRange: 'none', patchedVersions: '2.0.0-alpha.12' })).toBe(false);
+		expect(isAffected('0.0.0', { vulnerableRange: 'None', patchedVersions: null })).toBe(false);
+	});
+
+	it('returns null for empty or unreadable input', () => {
+		expect(ghsaVulnerableRange('')).toBeNull();
+		expect(ghsaVulnerableRange(null)).toBeNull();
+		expect(ghsaVulnerableRange('every version')).toBeNull();
+	});
+});
+
+describe('ghsaPatchedRange', () => {
+	it('reads a single bare version as "this one and later"', () => {
+		expect(ghsaPatchedRange('0.11.19')).toBe('>=0.11.19');
+		expect(ghsaPatchedRange('>= 0.11.19')).toBe('>=0.11.19');
+	});
+
+	it('caps every release line but the newest at its next breaking version', () => {
+		expect(ghsaPatchedRange('>= 0.5.16, >= 0.6.3')).toBe('>=0.5.16 <0.6.0 || >=0.6.3');
+		expect(ghsaPatchedRange('0.10.5, 0.9.5')).toBe('>=0.9.5 <0.10.0 || >=0.10.5');
+		expect(ghsaPatchedRange('1.2.3, 2.0.1')).toBe('>=1.2.3 <2.0.0 || >=2.0.1');
+	});
+
+	it('keeps tilde lines and leaves only the newest one open (rustix)', () => {
+		expect(ghsaPatchedRange('~0.35.15, ~0.36.16, ~0.37.25, ~0.38.19')).toBe(
+			'~0.35.15 || ~0.36.16 || ~0.37.25 || >=0.38.19',
+		);
+	});
+
+	it('joins a `<` part to the line before it', () => {
+		expect(ghsaPatchedRange('>= 1.2.0, < 2.0.0, >= 2.0.4')).toBe('>= 1.2.0 < 2.0.0 || >=2.0.4');
+		expect(ghsaPatchedRange('>= 1.2.0, < 2.0.0')).toBe('>=1.2.0');
+	});
+
+	it('returns null for empty or unreadable input', () => {
+		expect(ghsaPatchedRange('')).toBeNull();
+		expect(ghsaPatchedRange(undefined)).toBeNull();
+		expect(ghsaPatchedRange('see release notes')).toBeNull();
+	});
+});
+
+describe('isAffected', () => {
+	it('flags a version inside the vulnerable range that is not patched', () => {
+		const entry = { vulnerableRange: '>= 0.11.0, <= 0.11.18', patchedVersions: '0.11.19' };
+		expect(isAffected('0.11.18', entry)).toBe(true);
+		expect(isAffected('0.11.19', entry)).toBe(false);
+		expect(isAffected('0.10.9', entry)).toBe(false);
+	});
+
+	it('lets a patched version win over an open-ended vulnerable range', () => {
+		const entry = { vulnerableRange: '> 0.7.0', patchedVersions: '>= 0.11.18' };
+		expect(isAffected('0.11.19', entry)).toBe(false);
+		expect(isAffected('0.11.17', entry)).toBe(true);
+	});
+
+	it('keeps an unpatched middle line affected (quinn-udp 0.6.1)', () => {
+		const entry = { vulnerableRange: '< 0.5.16, >= 0.6.0 < 0.6.3', patchedVersions: '>= 0.5.16, >= 0.6.3' };
+		expect(isAffected('0.5.15', entry)).toBe(true);
+		expect(isAffected('0.5.16', entry)).toBe(false);
+		expect(isAffected('0.6.1', entry)).toBe(true);
+		expect(isAffected('0.6.3', entry)).toBe(false);
+	});
+
+	it('treats versions after the newest patched line as fixed (rustix 1.x)', () => {
+		const entry = { vulnerableRange: '>0.35.11', patchedVersions: '~0.35.15, ~0.36.16, ~0.37.25, ~0.38.19' };
+		expect(isAffected('1.1.5', entry)).toBe(false);
+		expect(isAffected('0.37.25', entry)).toBe(false);
+		expect(isAffected('0.37.24', entry)).toBe(true);
+	});
+
+	it('treats unpatched as affected when only the patched field is readable', () => {
+		expect(isAffected('1.0.0', { vulnerableRange: 'all of them', patchedVersions: '1.0.1' })).toBe(true);
+		expect(isAffected('1.0.1', { vulnerableRange: 'all of them', patchedVersions: '1.0.1' })).toBe(false);
+	});
+
+	it('returns null when neither field can be read', () => {
+		expect(isAffected('1.0.0', { vulnerableRange: null, patchedVersions: null })).toBeNull();
+	});
+});
+
+describe('matchRepoAdvisories', () => {
+	const lock = new Map([
+		['quinn-proto', ['0.11.18']],
+		['quinn-udp', ['0.5.16']],
+	]);
+	const advisory = (over: Record<string, unknown> = {}) => ({
+		ghsa_id: 'GHSA-53rm-773f-4q8c',
+		cve_id: null,
+		state: 'published',
+		withdrawn_at: null,
+		severity: 'high',
+		summary: 'MAX_STREAM_DATA frame opens streams over the stream limit',
+		vulnerabilities: [
+			{
+				package: { ecosystem: 'rust', name: 'quinn-proto' },
+				vulnerable_version_range: '>= 0.11.0, <= 0.11.18',
+				patched_versions: '0.11.19',
+			},
+		],
+		...over,
+	});
+
+	it('reports a locked version the advisory affects', () => {
+		expect(matchRepoAdvisories([advisory()], lock)).toEqual([
+			{
+				id: 'GHSA-53rm-773f-4q8c',
+				severity: 'high',
+				summary: 'MAX_STREAM_DATA frame opens streams over the stream limit',
+				name: 'quinn-proto',
+				version: '0.11.18',
+				vulnerableRange: '>= 0.11.0, <= 0.11.18',
+				patchedVersions: '0.11.19',
+				affected: true,
+			},
+		]);
+	});
+
+	it('skips patched versions, crates not in the lock and non-rust entries', () => {
+		const patched = advisory({
+			vulnerabilities: [
+				{ package: { ecosystem: 'rust', name: 'quinn-udp' }, vulnerable_version_range: '< 0.5.16', patched_versions: '0.5.16' },
+				{ package: { ecosystem: 'rust', name: 'quinn' }, vulnerable_version_range: '< 1', patched_versions: '1.0.0' },
+				{ package: { ecosystem: 'npm', name: 'quinn-proto' }, vulnerable_version_range: '< 1', patched_versions: null },
+			],
+		});
+
+		expect(matchRepoAdvisories([patched], lock)).toEqual([]);
+	});
+
+	it('skips withdrawn, unpublished and already-audited advisories', () => {
+		expect(matchRepoAdvisories([advisory({ withdrawn_at: '2026-10-01T00:00:00Z' })], lock)).toEqual([]);
+		expect(matchRepoAdvisories([advisory({ state: 'draft' })], lock)).toEqual([]);
+		expect(matchRepoAdvisories([advisory()], lock, new Set(['GHSA-53rm-773f-4q8c']))).toEqual([]);
+		expect(matchRepoAdvisories([advisory({ cve_id: 'CVE-2026-9' })], lock, new Set(['CVE-2026-9']))).toEqual([]);
+	});
+
+	it('reports each advisory once even when two repositories return it', () => {
+		expect(matchRepoAdvisories([advisory(), advisory()], lock)).toHaveLength(1);
+	});
+
+	it('keeps unreadable ranges as affected: null so they are checked by hand', () => {
+		const rows = matchRepoAdvisories(
+			[advisory({ vulnerabilities: [{ package: { ecosystem: 'rust', name: 'quinn-proto' } }] })],
+			lock,
+		);
+
+		expect(rows).toHaveLength(1);
+		expect(rows[0].affected).toBeNull();
+	});
+
+	it('returns no rows for empty input', () => {
+		expect(matchRepoAdvisories([], lock)).toEqual([]);
+		expect(matchRepoAdvisories([advisory()], new Map())).toEqual([]);
 	});
 });
