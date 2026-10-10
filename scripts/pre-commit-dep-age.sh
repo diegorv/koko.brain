@@ -99,19 +99,24 @@ is_workspace_excluded() {
 }
 
 # --- Extract new/changed packages from lockfile diff ---
-# Lines in the packages: section look like:
+# Lines in the packages: and snapshots: sections look like:
 #   +  '@codemirror/language@6.12.3':
-#   +  'dayjs@1.11.20':
+#   +  dompurify@3.4.16:
+# pnpm quotes only keys that start with `@` (scoped packages); unscoped keys
+# are bare, so the match must not require the quote.
 # pnpm v9 lockfile may append peer-dep context in parentheses:
 #   +  '@csstools/css-calc@3.2.1(@csstools/css-parser-algorithms@4.0.0)':
+#   +  vite@8.3.2(@types/node@26.6.4):
 # Strip everything from the first '(' onward to get the bare name@version.
+# Requiring `name@version` at two-space indent skips the `settings:` and
+# `overrides:` entries and the deeper-indented importer/dependency lines.
 new_packages=()
 while IFS= read -r entry; do
 	[[ -n "$entry" ]] && new_packages+=("$entry")
 done < <(
 	git diff --cached -- pnpm-lock.yaml \
-		| grep "^+  '" \
-		| sed "s/^+  '//;s/(.*//;s/'*:*$//" \
+		| grep -E "^\+  '?(@[^@/ ]+/)?[^@ '(:]+@[^ '(:]+" \
+		| sed -E "s/^\+  '?//;s/\(.*//;s/'?:.*$//" \
 		| sort -u
 )
 
