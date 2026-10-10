@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	advisoryScope,
 	classifyUpgrades,
 	isWithinDeclaredRange,
+	newestInstallableInRange,
 	parseDeclaredRanges,
 	parseInstalledDeps,
 	parseLockfilePackages,
@@ -452,5 +454,96 @@ describe('classifyUpgrades', () => {
 		const result = classifyUpgrades(new Map(), '1.0.0', cutoff, false);
 
 		expect(result).toEqual({ installable: null, installableAt: null, locked: [] });
+	});
+});
+
+describe('newestInstallableInRange', () => {
+	const cutoff = new Date('2026-10-03T00:00:00.000Z').getTime();
+	const sentry = timesMap([
+		['10.75.2', '2026-09-20T00:00:00.000Z'],
+		['10.76.0', '2026-10-02T00:00:00.000Z'],
+		['10.76.1', '2026-10-05T00:00:00.000Z'],
+		['11.4.0', '2026-09-28T00:00:00.000Z'],
+	]);
+
+	it('finds the in-range bump hidden behind a newer out-of-range release', () => {
+		// The bug this guards: classifyUpgrades picked 11.4.0, the row went to
+		// OUT OF RANGE, and the reachable 10.76.0 never showed up in UPDATE NOW.
+		expect(classifyUpgrades(sentry, '10.75.2', cutoff, false).installable).toBe('11.4.0');
+
+		const result = newestInstallableInRange(sentry, '10.75.2', cutoff, false, '^10.75.2');
+
+		expect(result?.version).toBe('10.76.0');
+		expect(result?.publishedAt).toEqual(new Date('2026-10-02T00:00:00.000Z'));
+	});
+
+	it('skips in-range versions still inside the quarantine window', () => {
+		const result = newestInstallableInRange(sentry, '10.76.0', cutoff, false, '^10.75.2');
+
+		expect(result).toBeNull();
+	});
+
+	it('accepts quarantined versions for excluded packages', () => {
+		const result = newestInstallableInRange(sentry, '10.75.2', cutoff, true, '^10.75.2');
+
+		expect(result?.version).toBe('10.76.1');
+	});
+
+	it('respects a pre-1.0 caret range', () => {
+		const katex = timesMap([
+			['0.18.7', '2026-09-06T00:00:00.000Z'],
+			['0.18.10', '2026-09-30T00:00:00.000Z'],
+			['0.19.0', '2026-10-01T00:00:00.000Z'],
+		]);
+
+		expect(newestInstallableInRange(katex, '0.18.7', cutoff, false, '^0.18.7')?.version).toBe('0.18.10');
+	});
+
+	it('steps over skipped (deprecated) versions to the next one down', () => {
+		// katex 0.18.11 was deprecated as "accidentally published with breaking
+		// changes"; the caller passes it in `skip` and must get 0.18.10 back.
+		const katex = timesMap([
+			['0.18.7', '2026-09-06T00:00:00.000Z'],
+			['0.18.10', '2026-09-30T00:00:00.000Z'],
+			['0.18.11', '2026-10-01T00:00:00.000Z'],
+		]);
+
+		expect(newestInstallableInRange(katex, '0.18.7', cutoff, false, '^0.18.7')?.version).toBe('0.18.11');
+		expect(
+			newestInstallableInRange(katex, '0.18.7', cutoff, false, '^0.18.7', new Set(['0.18.11']))?.version,
+		).toBe('0.18.10');
+		expect(
+			newestInstallableInRange(katex, '0.18.10', cutoff, false, '^0.18.10', new Set(['0.18.11'])),
+		).toBeNull();
+	});
+
+	it('returns null when nothing is newer than the installed version', () => {
+		expect(newestInstallableInRange(sentry, '11.4.0', cutoff, false, '^11.0.0')).toBeNull();
+		expect(newestInstallableInRange(new Map(), '1.0.0', cutoff, false, '^1.0.0')).toBeNull();
+	});
+});
+
+describe('advisoryScope', () => {
+	it('labels a flagged transitive copy of a direct dependency as transitive', () => {
+		// The bug this guards: katex is a direct dependency at 0.18.x, but the
+		// advisory flagged mermaid's own katex 0.16.47, and the row read "direct".
+		expect(advisoryScope(['0.16.47'], new Set(['0.18.10']))).toBe('transitive');
+	});
+
+	it('labels the direct copy as direct', () => {
+		expect(advisoryScope(['3.4.15'], new Set(['3.4.15']))).toBe('direct');
+	});
+
+	it('reports both when the direct and a transitive copy are flagged', () => {
+		expect(advisoryScope(['3.4.15', '3.3.0'], new Set(['3.4.15']))).toBe('direct + transitive');
+	});
+
+	it('labels a package that is not a direct dependency as transitive', () => {
+		expect(advisoryScope(['1.2.1'], undefined)).toBe('transitive');
+	});
+
+	it('falls back to the dependency name when the audit lists no versions', () => {
+		expect(advisoryScope([], new Set(['1.0.0']))).toBe('direct');
+		expect(advisoryScope([], undefined)).toBe('transitive');
 	});
 });

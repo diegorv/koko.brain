@@ -26,7 +26,10 @@
  * Because it reads the tree rather than package.json, it also finds versions the
  * declared range does not reach. Those are reported under OUT OF RANGE instead
  * of UPDATE NOW: still visible (a waiting major is worth knowing about), but not
- * presented as something `pnpm update` can do for you.
+ * presented as something `pnpm update` can do for you. UPDATE NOW is computed
+ * from the declared range on its own, so an in-range bump still shows when a
+ * newer major sits in OUT OF RANGE, and deprecated releases are stepped over
+ * (listed under DEPRECATED IN RANGE when nothing else is left).
  *
  * The sweep covers the whole lockfile, not just direct dependencies. Transitive
  * packages move under `pnpm update --depth Infinity` without any package.json
@@ -263,6 +266,59 @@ export function isWithinDeclaredRange(version, range) {
 	return semver.satisfies(version, range);
 }
 
+/**
+ * Newest release `pnpm update` can reach today: above `current`, inside the
+ * declared range, and past quarantine (or quarantine-excluded). Null when none.
+ *
+ * Why: `classifyUpgrades` picks the newest installable release overall. When
+ * that one is outside the declared range the row goes to OUT OF RANGE, and an
+ * in-range bump sitting below it used to vanish from the report. That hid
+ * @sentry/browser 10.76.0 behind 11.4.0 and katex 0.18.10 behind 0.19.0, and
+ * earlier virtua 0.51.3 behind 0.52.6 (see 355e8565).
+ *
+ * @param {Map<string, Date>} times Stable version -> publish Date.
+ * @param {string} current Installed version.
+ * @param {number} cutoff Epoch ms; published at or before this has cleared quarantine.
+ * @param {boolean} excluded Whether the package bypasses quarantine entirely.
+ * @param {string | undefined} range Declared range.
+ * @param {Set<string>} [skip] Versions to pass over (the caller's deprecated releases).
+ * @returns {{version: string, publishedAt: Date} | null}
+ */
+export function newestInstallableInRange(times, current, cutoff, excluded, range, skip = new Set()) {
+	let best = null;
+	for (const [version, publishedAt] of times) {
+		if (skip.has(version)) continue;
+		if (!semver.gt(version, current)) continue;
+		if (!isWithinDeclaredRange(version, range)) continue;
+		if (!excluded && publishedAt.getTime() > cutoff) continue;
+		if (!best || semver.gt(version, best.version)) best = { version, publishedAt };
+	}
+	return best;
+}
+
+/**
+ * Where an advisory's vulnerable copies live: the direct dependency itself,
+ * only transitive copies, or both.
+ *
+ * Why: a package name being a direct dependency does not make every flagged
+ * copy direct. mermaid pins its own katex ^0.16, so `pnpm audit` flagged
+ * katex 0.16.47 while the direct katex (0.18.x) was already patched, and the
+ * report labelled the row "direct" — pointing at a package.json bump that
+ * cannot fix it.
+ *
+ * @param {string[]} vulnerableVersions Installed versions the audit flagged.
+ * @param {Set<string> | undefined} directVersions Versions installed as direct dependencies under this registry name.
+ * @returns {'direct' | 'transitive' | 'direct + transitive'}
+ */
+export function advisoryScope(vulnerableVersions, directVersions) {
+	// No findings to compare: fall back to whether the name is a direct dependency.
+	if (vulnerableVersions.length === 0) return directVersions?.size ? 'direct' : 'transitive';
+	const direct = vulnerableVersions.some((v) => directVersions?.has(v));
+	const transitive = vulnerableVersions.some((v) => !directVersions?.has(v));
+	if (direct && transitive) return 'direct + transitive';
+	return direct ? 'direct' : 'transitive';
+}
+
 /** Advisories from `pnpm audit`, grouped by module name. Includes transitive packages. */
 async function readAudit() {
 	let parsed;
@@ -376,6 +432,25 @@ async function fetchPublishTimes(name) {
 	return publishTimesFromView(raw);
 }
 
+/**
+ * Deprecation message of one published version, or null when it is not
+ * deprecated. The `time` lookup does not carry per-version deprecation, so this
+ * is a second call, made only for versions about to be recommended. A registry
+ * failure reads as "not deprecated" rather than hiding the row.
+ */
+async function fetchDeprecation(name, version) {
+	try {
+		const out = (await run('pnpm', ['view', `${name}@${version}`, 'deprecated', '--json'])).trim();
+		const parsed = out ? JSON.parse(out) : null;
+		return typeof parsed === 'string' && parsed ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
+/** Deprecated releases to step over before giving up on a package's in-range bump. */
+const MAX_DEPRECATED_SKIPS = 5;
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Compact UTC date, e.g. "Jun 14". */
@@ -415,6 +490,13 @@ async function main() {
 	// release can be dated too. Aliases collapse onto the aliased package here,
 	// so `typescript` is fetched once and shared by both entries that use it.
 	const directRegistryNames = new Set([...installed.values()].map((i) => i.registryName));
+	// Installed direct versions per registry name (an alias adds a second version).
+	const directVersionsByName = new Map();
+	for (const { registryName, version } of installed.values()) {
+		const versions = directVersionsByName.get(registryName) ?? new Set();
+		versions.add(version);
+		directVersionsByName.set(registryName, versions);
+	}
 	const names = new Set(directRegistryNames);
 	if (audit) for (const name of audit.keys()) names.add(name);
 
@@ -447,26 +529,24 @@ async function main() {
 	const upgradable = [];
 	const outOfRange = [];
 	const locked = [];
+	// When a version left quarantine (publish time + window).
+	const clearedAt = (publishedAt) => new Date(publishedAt.getTime() + ageMinutes * 60 * 1000);
+	const inRangeCandidates = [];
 	for (const [name, { version: current, dev, registryName }] of installed) {
 		const times = timesByName.get(registryName);
 		if (!times) continue;
 
 		const excluded = isExcluded(name);
+		const range = declaredRanges.get(name);
+		const base = { name, registryName, current, dev, excluded, range };
 		const { installable, installableAt, locked: held } = classifyUpgrades(times, current, cutoff, excluded);
-		if (installable) {
-			const range = declaredRanges.get(name);
-			const row = {
-				name,
-				registryName,
-				current,
-				installable,
-				dev,
-				excluded,
-				range,
-				// When this version left quarantine (publish time + window).
-				clearedAt: new Date(installableAt.getTime() + ageMinutes * 60 * 1000),
-			};
-			(isWithinDeclaredRange(installable, range) ? upgradable : outOfRange).push(row);
+		if (installable && !isWithinDeclaredRange(installable, range)) {
+			outOfRange.push({ ...base, installable, clearedAt: clearedAt(installableAt) });
+		}
+		// UPDATE NOW comes from the declared range, not from the newest release:
+		// an in-range bump can sit below an out-of-range one.
+		if (newestInstallableInRange(times, current, cutoff, excluded, range)) {
+			inRangeCandidates.push({ base, times });
 		}
 		for (const h of held) {
 			locked.push({
@@ -477,7 +557,38 @@ async function main() {
 			});
 		}
 	}
+	// Step over deprecated releases (e.g. katex 0.18.11, "accidentally published
+	// with breaking changes") so the report never recommends one.
+	// A package whose every in-range candidate is deprecated still gets a line:
+	// `pnpm update` takes the deprecated release anyway.
+	const deprecatedOnly = [];
+	await mapLimit(inRangeCandidates, CONCURRENCY, async ({ base, times }) => {
+		const skippedDeprecated = [];
+		for (let i = 0; i <= MAX_DEPRECATED_SKIPS; i++) {
+			const pick = newestInstallableInRange(
+				times,
+				base.current,
+				cutoff,
+				base.excluded,
+				base.range,
+				new Set(skippedDeprecated),
+			);
+			if (!pick) break;
+			if (!(await fetchDeprecation(base.registryName, pick.version))) {
+				upgradable.push({
+					...base,
+					installable: pick.version,
+					clearedAt: clearedAt(pick.publishedAt),
+					skippedDeprecated,
+				});
+				return;
+			}
+			skippedDeprecated.push(pick.version);
+		}
+		if (skippedDeprecated.length) deprecatedOnly.push({ ...base, skippedDeprecated });
+	});
 	upgradable.sort((a, b) => a.name.localeCompare(b.name));
+	deprecatedOnly.sort((a, b) => a.name.localeCompare(b.name));
 	outOfRange.sort((a, b) => a.name.localeCompare(b.name));
 	locked.sort((a, b) => a.clearsAt - b.clearsAt);
 
@@ -502,15 +613,17 @@ async function main() {
 		const worst = advisories.reduce((a, b) =>
 			SEVERITY_ORDER[a.severity] <= SEVERITY_ORDER[b.severity] ? a : b,
 		);
+		const installedVersions = [...new Set(advisories.flatMap((a) => a.installedVersions))];
 		security.push({
 			name,
 			severity: worst.severity,
 			count: advisories.length,
 			title: worst.title,
-			installedVersions: [...new Set(advisories.flatMap((a) => a.installedVersions))],
+			installedVersions,
 			// Audit reports registry names, so an aliased direct dep must be
 			// matched on its registry name to not be mislabelled as transitive.
-			direct: directRegistryNames.has(name),
+			// The flagged versions decide the scope, not the name alone.
+			scope: advisoryScope(installedVersions, directVersionsByName.get(name)),
 		});
 	}
 	security.sort(
@@ -545,16 +658,15 @@ async function main() {
 		console.log(`SECURITY (${security.length} affected packages, most severe first):`);
 		const wSev = Math.max(...security.map((s) => s.severity.length)) + 2;
 		for (const s of security) {
-			const scope = s.direct ? 'direct' : 'transitive';
 			const more = s.count > 1 ? ` (+${s.count - 1} more)` : '';
 			console.log(
-				`  ${pad(`[${s.severity}]`, wSev)} ${pad(s.name, wName)}  ${pad(s.installedVersions.join(', '), 8)}  ${scope}`,
+				`  ${pad(`[${s.severity}]`, wSev)} ${pad(s.name, wName)}  ${pad(s.installedVersions.join(', '), 8)}  ${s.scope}`,
 			);
 			console.log(`  ${' '.repeat(wSev)} ${pad('', wName)}  ${s.title}${more}`);
 		}
 		// A transitive package cannot be bumped from package.json; it needs the
 		// parent to release or a pnpm.overrides entry.
-		if (security.some((s) => !s.direct)) {
+		if (security.some((s) => s.scope !== 'direct')) {
 			console.log('\n  Transitive entries need an upstream bump or a pnpm.overrides pin.');
 		}
 		console.log('\n  Run `node scripts/quarantine-aware-audit.mjs` for the actionable/quarantined split.');
@@ -571,8 +683,9 @@ async function main() {
 			// Not meaningful for exclude-bypassed packages, which never waited.
 			const since = r.excluded ? '' : `  (since ${shortDate(r.clearedAt)})`;
 			const sec = securityTag(r.registryName, r.installable);
+			const dep = r.skippedDeprecated.length ? `  (skipped deprecated ${r.skippedDeprecated.join(', ')})` : '';
 			console.log(
-				`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}${since}${tag}${sec}`.trimEnd(),
+				`  ${pad(r.name, wName)}  ${pad(r.current, 8)} ->  ${pad(r.installable, 8)}${since}${tag}${sec}${dep}`.trimEnd(),
 			);
 		}
 	} else {
@@ -582,6 +695,15 @@ async function main() {
 		console.log(`UPDATE NOW: nothing${reason}`);
 	}
 	console.log('');
+
+	if (deprecatedOnly.length) {
+		console.log(`DEPRECATED IN RANGE (${deprecatedOnly.length}) — \`pnpm update\` would still take these:`);
+		for (const r of deprecatedOnly) {
+			console.log(`  ${pad(r.name, wName)}  ${pad(r.current, 8)} -x  ${r.skippedDeprecated.join(', ')}`);
+		}
+		console.log('\n  Leave the package alone or pin it below the deprecated release.');
+		console.log('');
+	}
 
 	if (outOfRange.length) {
 		console.log(`OUT OF RANGE (${outOfRange.length}) — released, but \`pnpm update\` will not reach them:`);
