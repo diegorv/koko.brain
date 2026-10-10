@@ -76,8 +76,8 @@ importers:
         specifier: ^19.38.0
         version: 19.38.0
       '@sentry/browser':
-        specifier: ^10.75.2
-        version: 10.75.2
+        specifier: ^10.76.0
+        version: 10.76.0
       '@tauri-apps/api':
         specifier: ^2.12.0
         version: 2.12.0
@@ -667,32 +667,32 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@sentry/browser-utils@10.75.2':
-    resolution: {integrity: sha512-U9RIJE0vZHWEnfEpJAa/SQ60MsNSUaxww4MVymNLwJ26BrLFz9jLhVIW9bXcx0i1iwK+KQbIv6ebPDOnCfYUPQ==}
+  '@sentry/browser-utils@10.76.0':
+    resolution: {integrity: sha512-PiNBEDSCW74NlBQynazauyIfqAYW4r7WgOpw1Fl36C/5CWAZMWLZVGIXjt8gnzx3yAm13O6qkhJU5KPdeVkHQQ==}
     engines: {node: '>=18'}
 
-  '@sentry/browser@10.75.2':
-    resolution: {integrity: sha512-2Q8Bd6aTIHmqWL/rGDZdr1JTGW2fYPXf+lMyhHp4CX6OE7gMaaI5ZUwQWgVelqUOvKkOZHHk0wo6K8+ExdwawQ==}
+  '@sentry/browser@10.76.0':
+    resolution: {integrity: sha512-x81duXkPe9bYHJI1H42O6OjPakcYXrEBAqV+G806oKTYzcIUzSbRwwDwQRec3QiMtvogvuR1vBI+4m1acpwx1Q==}
     engines: {node: '>=18'}
 
   '@sentry/conventions@0.16.0':
     resolution: {integrity: sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==}
     engines: {node: '>=14'}
 
-  '@sentry/core@10.75.2':
-    resolution: {integrity: sha512-KXzNf2c430cJIOMv84+MKpkXgave1DBNMNNwn073olVD773NME5IhDv/9VQyiFM2wIU+6bm4FEBVEVSuzqgjJw==}
+  '@sentry/core@10.76.0':
+    resolution: {integrity: sha512-H9irBNXHdkgvl86EKlQrPTGYyzvI8GUZ8eoWLay9IuqqZC6pWesf0nH7z/glxKBo7BEw3PIG+unQByHugBnsCg==}
     engines: {node: '>=18'}
 
-  '@sentry/feedback@10.75.2':
-    resolution: {integrity: sha512-/nrtMVSxOqBAigMWxIQS+Y8OqQ27ty+isMh6+X96kfAp/SaGrNZ425SZxKwq0mwHS0WnVkF+rE5dJnbbi56XSA==}
+  '@sentry/feedback@10.76.0':
+    resolution: {integrity: sha512-2kqcAsqAdHxlqN/uKKvIYloWOhltK9Vxt8z43Jb87iPdqm+rxpyxAJZJMFIzOPCqCLod9HrULo/bPd/aHwRpew==}
     engines: {node: '>=18'}
 
-  '@sentry/replay-canvas@10.75.2':
-    resolution: {integrity: sha512-4GVhCkn+/0QEpXdY8UfXahg8qjF2QTH1+qej/CLketHGfRqxLhdanzHU9ILesplWX5GeuTkPn5ZTmd5CJf+KXg==}
+  '@sentry/replay-canvas@10.76.0':
+    resolution: {integrity: sha512-Bq4x5YHEE28ulu8rZGepTPYjjC4koScxBI2E+rQj0iHVCB5ISHqO9S8GhDA2DTn08GrZyTQzzyvL+aQaw4tDEA==}
     engines: {node: '>=18'}
 
-  '@sentry/replay@10.75.2':
-    resolution: {integrity: sha512-cCfdPt892S+rrAFOuUvbwR318/ZPFfBFvVkMlL3goktAnbECAGy6comAxLQEalyp22Ee67bEqYQN7RdNuRHIJw==}
+  '@sentry/replay@10.76.0':
+    resolution: {integrity: sha512-ldO+F4koH+x5WaFcAuFIMU0WMDorhHJQM1mFUoR97JtnuC48/U3+AiH3FgC39JeRwDArusjiT+xmpjt1Q/buHQ==}
     engines: {node: '>=18'}
 
   '@standard-schema/spec@1.1.0':
@@ -2844,39 +2844,39 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@sentry/browser-utils@10.75.2':
+  '@sentry/browser-utils@10.76.0':
     dependencies:
       '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.75.2
+      '@sentry/core': 10.76.0
 
-  '@sentry/browser@10.75.2':
+  '@sentry/browser@10.76.0':
     dependencies:
-      '@sentry/browser-utils': 10.75.2
+      '@sentry/browser-utils': 10.76.0
       '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.75.2
-      '@sentry/feedback': 10.75.2
-      '@sentry/replay': 10.75.2
-      '@sentry/replay-canvas': 10.75.2
+      '@sentry/core': 10.76.0
+      '@sentry/feedback': 10.76.0
+      '@sentry/replay': 10.76.0
+      '@sentry/replay-canvas': 10.76.0
 
   '@sentry/conventions@0.16.0': {}
 
-  '@sentry/core@10.75.2':
+  '@sentry/core@10.76.0':
     dependencies:
       '@sentry/conventions': 0.16.0
 
-  '@sentry/feedback@10.75.2':
+  '@sentry/feedback@10.76.0':
     dependencies:
-      '@sentry/core': 10.75.2
+      '@sentry/core': 10.76.0
 
-  '@sentry/replay-canvas@10.75.2':
+  '@sentry/replay-canvas@10.76.0':
     dependencies:
-      '@sentry/core': 10.75.2
-      '@sentry/replay': 10.75.2
+      '@sentry/core': 10.76.0
+      '@sentry/replay': 10.76.0
 
-  '@sentry/replay@10.75.2':
+  '@sentry/replay@10.76.0':
     dependencies:
-      '@sentry/browser-utils': 10.75.2
-      '@sentry/core': 10.75.2
+      '@sentry/browser-utils': 10.76.0
+      '@sentry/core': 10.76.0
 
   '@standard-schema/spec@1.1.0': {}
 
