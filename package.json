@@ -40,7 +40,7 @@
     "@lezer/highlight": "^1.2.5",
     "@lezer/markdown": "^1.8.0",
     "@primer/octicons": "^19.40.0",
-    "@sentry/browser": "^10.76.2",
+    "@sentry/browser": "^11.6.0",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-clipboard-manager": "^2.5.0",
     "@tauri-apps/plugin-deep-link": "^2.6.2",
