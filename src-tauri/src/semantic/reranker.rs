@@ -54,7 +54,7 @@ impl Reranker {
 			.unwrap_or(4);
 		debug_log("RERANKER", format!("Using {} intra-op threads", num_threads));
 
-		let session = Session::builder()
+		let session = Session::builder(super::ort_environment()?)
 			.map_err(|e| format!("Failed to create session builder: {e}"))?
 			.with_intra_threads(num_threads)
 			.map_err(|e| format!("Failed to set threads: {e}"))?
