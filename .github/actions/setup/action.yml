@@ -110,7 +110,11 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        REAL_CARGO=$("$HOME/.cargo/bin/rustup" which cargo)
+        # Resolve rustup from PATH, not `~/.cargo/bin`: on macos-26-arm64
+        # (image 20261021.0445+) rustup is preinstalled outside
+        # `~/.cargo/bin`, so dtolnay skips its own install and that path
+        # does not exist (nightly run 40339171660, exit 127).
+        REAL_CARGO=$(rustup which cargo)
         REAL_DIR=$(dirname "$REAL_CARGO")
         echo "Real cargo: $REAL_CARGO"
         echo "$REAL_DIR" >> "$GITHUB_PATH"
