@@ -84,7 +84,12 @@ jobs:
           # Linux-only GTK stack (tauri -> gtk 0.18 -> atk -> glib), never
           # compiled for the shipped macOS target; fixed in glib 0.19,
           # which gtk-rs 0.18 pins out. Drop when tauri moves off gtk 0.18.
-          ignore: RUSTSEC-2024-0429
+          # RUSTSEC-2026-0367, -0368, -0369: zip 4.6.1 extraction flaws,
+          # reachable only through tauri-plugin-updater's Windows-only zip
+          # dependency, never compiled for the shipped macOS target; fixed
+          # in zip >=9.0.0, which the updater's latest stable does not use.
+          # Drop when the updater moves to zip >=9 or Windows is added.
+          ignore: RUSTSEC-2024-0429,RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369
 
   supply-chain-quarantine:
     name: Supply Chain Quarantine
