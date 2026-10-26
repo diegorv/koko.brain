@@ -63,7 +63,7 @@
       ]
     },
     {
-      "identifier": "fs:allow-read-text-file",
+      "identifier": "fs:allow-read-file",
       "allow": [
         {
           "path": "$DOCUMENT/kokobrain-vaults/**"
@@ -80,7 +80,7 @@
       ]
     },
     {
-      "identifier": "fs:allow-write-text-file",
+      "identifier": "fs:allow-write-file",
       "allow": [
         {
           "path": "$DOCUMENT/kokobrain-vaults/**"

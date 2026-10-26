@@ -19,7 +19,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
-	revealItemInDir: vi.fn(),
+	revealItemsInDir: vi.fn(),
 }));
 
 vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
@@ -52,7 +52,7 @@ vi.mock('#lib/core/trash/trash.service.js', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { revealItemsInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
@@ -1216,16 +1216,16 @@ describe('revealInSystemExplorer', () => {
 		vaultStore._reset();
 	});
 
-	it('calls revealItemInDir with the path', async () => {
-		vi.mocked(revealItemInDir).mockResolvedValue(undefined);
+	it('calls revealItemsInDir with the path', async () => {
+		vi.mocked(revealItemsInDir).mockResolvedValue(undefined);
 
 		await revealInSystemExplorer('/vault/note.md');
 
-		expect(revealItemInDir).toHaveBeenCalledWith('/vault/note.md');
+		expect(revealItemsInDir).toHaveBeenCalledWith('/vault/note.md');
 	});
 
 	it('handles errors gracefully', async () => {
-		vi.mocked(revealItemInDir).mockRejectedValue(new Error('not supported'));
+		vi.mocked(revealItemsInDir).mockRejectedValue(new Error('not supported'));
 
 		// Should not throw — errors are caught and logged
 		await expect(revealInSystemExplorer('/vault/note.md')).resolves.toBeUndefined();

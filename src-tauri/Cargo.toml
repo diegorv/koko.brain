@@ -16,28 +16,26 @@ name = "kokobrain_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "=3.0.0-alpha.0", features = [] }
+tauri-build = { version = "=3.0.0-alpha.4", features = [] }
 
 [dependencies]
 # Tauri 3 alpha: exact pins on purpose (see .scratch/tauri-v3/). They only
 # cover the direct dependencies. tauri, tauri-runtime-wry, tauri-macros,
 # tauri-build and the plugins require tauri-runtime / tauri-utils /
-# tauri-macros / tauri-codegen / tauri-plugin with `~3.0.0-alpha.0` or
-# `3.0.0-alpha.0`, and both accept later alphas. The committed Cargo.lock is
-# what holds those: do not run a bare `cargo update` until upstream
-# republishes past PR #16023.
+# tauri-macros / tauri-codegen / tauri-plugin with `~3.0.0-alpha.N`, which
+# accepts later alphas. The committed Cargo.lock is what holds those: bump
+# every tauri crate together, never with a bare `cargo update`.
 #
-# `macos-private-api` stays on `tauri` too: tauri-build's manifest check
-# requires it there because tauri.conf.json sets `macOSPrivateApi`, and the
-# runtime crate needs it for the transparent composer window.
-tauri = { version = "=3.0.0-alpha.1", features = ["macos-private-api", "protocol-asset"] }
-tauri-runtime-wry = { version = "=3.0.0-alpha.1", features = ["macos-private-api"] }
-tauri-plugin-opener = "=3.0.0-alpha.0"
-tauri-plugin-fs = "=3.0.0-alpha.0"
-tauri-plugin-dialog = "=3.0.0-alpha.0"
-tauri-plugin-deep-link = "=3.0.0-alpha.0"
-tauri-plugin-clipboard-manager = "=3.0.0-alpha.0"
-tauri-plugin-global-shortcut = "=3.0.0-alpha.0"
+# No `macos-private-api` feature: alpha.5 dropped it from both `tauri` and
+# `tauri-runtime-wry` (transparent windows are no longer feature-gated).
+tauri = { version = "=3.0.0-alpha.5", features = ["protocol-asset"] }
+tauri-runtime-wry = "=3.0.0-alpha.5"
+tauri-plugin-opener = "=3.0.0-alpha.3"
+tauri-plugin-fs = "=3.0.0-alpha.3"
+tauri-plugin-dialog = "=3.0.0-alpha.4"
+tauri-plugin-deep-link = "=3.0.0-alpha.3"
+tauri-plugin-clipboard-manager = "=3.0.0-alpha.3"
+tauri-plugin-global-shortcut = "=3.0.0-alpha.3"
 
 # Quick Capture (clipboard adapter, kind detection, image re-encode)
 arboard = "3"
@@ -69,9 +67,9 @@ tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 reqwest = { version = "0.13", features = ["stream"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
-tauri-plugin-http = "=3.0.0-alpha.0"
-tauri-plugin-updater = "=3.0.0-alpha.0"
-tauri-plugin-process = "=3.0.0-alpha.0"
+tauri-plugin-http = "=3.0.0-alpha.3"
+tauri-plugin-updater = "=3.0.0-alpha.3"
+tauri-plugin-process = "=3.0.0-alpha.3"
 url = "2"
 sentry = { version = "0.49.2", default-features = false, features = ["backtrace", "contexts", "panic", "transport"] }
 
