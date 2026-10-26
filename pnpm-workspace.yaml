@@ -67,6 +67,12 @@ overrides:
   # imports undici under Node when no `customFetch` is given, and the
   # Tauri bridge always passes one (todoist-client.ts).
   undici: '^8.10.2'
+  # @doist/todoist-sdk pins `zod` to the exact version 4.3.6, which carries
+  # GHSA-mrhx-c7xc-m3w5 (high, memory exhaustion validating oversized
+  # constrained collections; fixed in 4.6.6). Floor at the fix, capped at
+  # `^4` so a zod major is a deliberate bump. Drop this once the SDK
+  # declares a patched zod itself.
+  zod: '^4.6.6'
 
 # Dependencies allowed to run install/build scripts. pnpm 11 (see
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`

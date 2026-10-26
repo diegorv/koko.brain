@@ -7,6 +7,7 @@ settings:
 overrides:
   cookie: '>=0.7.0 <2'
   undici: ^8.10.2
+  zod: ^4.6.6
 
 importers:
 
@@ -2284,8 +2285,8 @@ packages:
   zimmerframe@1.1.5:
     resolution: {integrity: sha512-msJxIvYDYcoNL+PJsu+7qmpDWsYmAxTY+2TNYXXF0hzBzBk0BMecOqDOG/EckUoKCuKwObfbugIl8QpqHDXeFA==}
 
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
 snapshots:
 
@@ -2606,7 +2607,7 @@ snapshots:
       type-fest: 4.41.0
       undici: 8.12.2
       uuid: 11.1.1
-      zod: 4.3.6
+      zod: 4.6.7
 
   '@exodus/bytes@1.16.0': {}
 
@@ -4290,4 +4291,4 @@ snapshots:
 
   zimmerframe@1.1.5: {}
 
-  zod@4.3.6: {}
+  zod@4.6.7: {}
