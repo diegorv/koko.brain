@@ -39,7 +39,7 @@
     "@iconify-json/tabler": "^1.2.42",
     "@lezer/highlight": "^1.2.5",
     "@lezer/markdown": "^1.8.0",
-    "@primer/octicons": "^19.38.0",
+    "@primer/octicons": "^19.40.0",
     "@sentry/browser": "^10.76.0",
     "@tauri-apps/api": "^2.12.2",
     "@tauri-apps/plugin-clipboard-manager": "^2.4.1",
