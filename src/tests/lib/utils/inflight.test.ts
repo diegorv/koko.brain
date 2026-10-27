@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { dedupeInflight, versionGated, isStillCurrentPath } from '$lib/utils/inflight';
+import { dedupeInflight, versionGated, isStillCurrentPath, serializeWithRerun } from '$lib/utils/inflight';
 import { debounce } from '$lib/utils/debounce';
 
 /**
@@ -238,6 +238,71 @@ describe('dedupeInflight', () => {
 		// Cache cleared after rejection.
 		await expect(wrapped('/vault/a.md')).rejects.toThrow('sync throw');
 		expect(fn).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('serializeWithRerun', () => {
+	it('runs the task once for a single call', async () => {
+		const task = vi.fn(async () => {});
+		const run = serializeWithRerun(task);
+
+		await run();
+
+		expect(task).toHaveBeenCalledTimes(1);
+	});
+
+	it('never overlaps runs and collapses calls during a run into one follow-up', async () => {
+		const gates = [deferred<void>(), deferred<void>()];
+		let active = 0;
+		let maxActive = 0;
+		let calls = 0;
+		const task = vi.fn(async () => {
+			const gate = gates[calls++];
+			active++;
+			maxActive = Math.max(maxActive, active);
+			await gate.promise;
+			active--;
+		});
+		const run = serializeWithRerun(task);
+
+		const first = run();
+		// Three calls while the first run is in flight.
+		const second = run();
+		run();
+		run();
+		expect(task).toHaveBeenCalledTimes(1);
+		expect(second).toBe(first);
+
+		gates[0].resolve();
+		await vi.waitFor(() => expect(task).toHaveBeenCalledTimes(2));
+		gates[1].resolve();
+		await first;
+
+		// One follow-up for the three queued calls, and no overlap.
+		expect(task).toHaveBeenCalledTimes(2);
+		expect(maxActive).toBe(1);
+	});
+
+	it('starts fresh after the loop settles', async () => {
+		const task = vi.fn(async () => {});
+		const run = serializeWithRerun(task);
+
+		await run();
+		await run();
+
+		expect(task).toHaveBeenCalledTimes(2);
+	});
+
+	it('propagates a rejection and recovers on the next call', async () => {
+		const task = vi
+			.fn<() => Promise<void>>()
+			.mockRejectedValueOnce(new Error('boom'))
+			.mockResolvedValueOnce(undefined);
+		const run = serializeWithRerun(task);
+
+		await expect(run()).rejects.toThrow('boom');
+		await expect(run()).resolves.toBeUndefined();
+		expect(task).toHaveBeenCalledTimes(2);
 	});
 });
 

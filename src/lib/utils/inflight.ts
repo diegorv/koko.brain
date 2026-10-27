@@ -46,6 +46,46 @@ export function dedupeInflight<TArgs extends unknown[], TResult>(
 	};
 }
 
+/**
+ * Wraps an async task so runs never overlap. A call while a run is in flight
+ * does not start a second one; it marks the task dirty, and the in-flight run
+ * loops once more when it finishes. Any number of calls during one run
+ * collapse into a single follow-up run.
+ *
+ * Use case: the file watcher's debounced handler. A trailing `debounce` does
+ * not wait for the previous async handler to finish, so two
+ * `rebuildAllIndexes` passes could run at once during a sync burst. The task
+ * reads its own input (the pending path queue) at the start of each run, so
+ * the follow-up run picks up everything queued meanwhile.
+ *
+ * The returned Promise settles when the run it joined (including follow-ups)
+ * finishes. A rejection ends the loop and is propagated; the next call starts
+ * fresh.
+ */
+export function serializeWithRerun(task: () => Promise<void>): () => Promise<void> {
+	let running: Promise<void> | null = null;
+	let dirty = false;
+
+	return () => {
+		if (running) {
+			dirty = true;
+			return running;
+		}
+		running = (async () => {
+			try {
+				do {
+					dirty = false;
+					await task();
+				} while (dirty);
+			} finally {
+				running = null;
+				dirty = false;
+			}
+		})();
+		return running;
+	};
+}
+
 /** A memoized async read whose cache entry is keyed on a caller-supplied version. */
 export interface VersionGated<T> {
 	/** Returns the cached Promise for the current version, fetching once per version. */

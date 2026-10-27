@@ -188,7 +188,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error as debugError } from '$lib/utils/debug';
-import { resetEditor, saveAllDirtyTabs } from '$lib/core/editor/editor.service';
+import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
 import { resetHooks, addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { startWatching, stopWatching, onFileChange } from '$lib/core/filesystem/fs.watcher';
@@ -603,6 +603,34 @@ describe('initializeVault — file change listener', () => {
 		// after the watcher's incremental update_note_in_index calls — no
 		// explicit call here. Verify the TS-side rebuilders that still run.
 		expect(buildTagIndex).toHaveBeenCalled();
+	});
+
+	it('serializes watcher rebuilds: a change during an in-flight rebuild runs after it, with its own paths', async () => {
+		let capturedCallback: ((paths: string[]) => void) | null = null;
+		vi.mocked(onFileChange).mockImplementation((cb) => {
+			capturedCallback = cb;
+			return vi.fn();
+		});
+
+		await initializeVault('/vault');
+
+		vi.clearAllMocks();
+		let releaseFirst!: () => void;
+		vi.mocked(reloadExternallyChangedTabs).mockImplementationOnce(
+			() => new Promise<void>((resolve) => (releaseFirst = resolve)),
+		);
+
+		capturedCallback!(['/vault/a.md']);
+		capturedCallback!(['/vault/b.md']);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		// The second change must not start a run while the first is awaiting.
+		expect(reloadExternallyChangedTabs).toHaveBeenCalledTimes(1);
+		expect(reloadExternallyChangedTabs).toHaveBeenNthCalledWith(1, ['/vault/a.md']);
+
+		releaseFirst();
+		await vi.waitFor(() => expect(reloadExternallyChangedTabs).toHaveBeenCalledTimes(2));
+		expect(reloadExternallyChangedTabs).toHaveBeenNthCalledWith(2, ['/vault/b.md']);
 	});
 });
 

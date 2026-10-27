@@ -5,6 +5,7 @@ import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { debounce } from '$lib/utils/debounce';
+import { serializeWithRerun } from '$lib/utils/inflight';
 import { debug, error, logProcessMemory, perfStart, perfEnd, setTauriDebugMode, stopTauriDebugListener } from '$lib/utils/debug';
 import { initLogSession, teardownLogSession, startHeartbeat } from '$lib/utils/log.service';
 import {
@@ -442,12 +443,21 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// ── Step 7: File watcher ─────────────────────────────────────────
 	// Registered LAST (after indexes are built) to avoid rebuildIndex()
 	// racing with the initial buildIndex().
-	// Debounced to prevent concurrent rebuilds from rapid file changes.
-	debouncedFileChangeHandler = debounce(async () => {
+	// Debounced to coalesce rapid file changes, and serialized so a debounce
+	// fire landing while the previous rebuild is still awaiting cannot start
+	// a second, overlapping rebuild: it queues one follow-up run instead.
+	const runWatcherBatch = serializeWithRerun(async () => {
 		const paths = [...pendingWatcherPaths];
 		pendingWatcherPaths = [];
+		// A follow-up run after teardown (queue cleared) has nothing to do.
+		if (paths.length === 0) return;
 		await reloadExternallyChangedTabs(paths);
 		await rebuildAllIndexes(paths);
+	});
+	debouncedFileChangeHandler = debounce(() => {
+		runWatcherBatch().catch((err) => {
+			error('LIFECYCLE', 'Watcher rebuild failed:', err);
+		});
 	}, 300);
 	unsubscribeFileChange = onFileChange((paths) => {
 		debug('LIFECYCLE', `file change listener fired at ${Date.now()}, paths: ${paths.length}`);

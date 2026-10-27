@@ -16,7 +16,7 @@ import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
  * updated content to disk, and syncs open editor tabs. Each affected file
  * is also re-indexed via `applyNoteChange` so the Rust panels and every
  * registered per-file index see the new outgoing links immediately, ahead
- * of the watcher's 500 ms debounce. Skips when the note name didn't change
+ * of the watcher's 300 ms debounce. Skips when the note name didn't change
  * (pure folder move).
  */
 export async function updateLinksAfterRename(oldPath: string, newPath: string): Promise<void> {
