@@ -9,3 +9,5 @@
 - [ ] A module imported via `#lib` resolves in build, check and vitest
 - [ ] `$lib` still resolves everywhere
 - [ ] pnpm check + pnpm vitest run + pnpm build green
+
+**Pre-flight (01):** add only `"#lib/*": "./src/lib/*"`; the guide's `"#lib": "./src/lib/index.js"` points at a file this repo does not have. Prove a `.svelte.ts` store resolves when imported as `#lib/...store.svelte.js` (the spelling `sv migrate` emits) in build, check and vitest, and fix the convention here for 06-11.
