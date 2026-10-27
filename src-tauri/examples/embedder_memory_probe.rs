@@ -1,15 +1,21 @@
 //! Embedder memory probe.
 //!
-//! Loads the BGE-M3 ONNX model the way `semantic/embedder.rs` does and
-//! replays the batch shapes seen in the 2026-10-27 31 GB incident, logging
-//! the process footprint after each `run()`. One process per variant, so
-//! `lifetime_max_phys_footprint` is the peak for that variant alone.
+//! Loads the BGE-M3 ONNX model and replays the batch shapes seen in the
+//! 2026-10-27 incident (31 GB in Activity Monitor), printing the process
+//! footprint after each `run()`. Run it after any `ort` bump: the `app`
+//! variant must stay near the loaded footprint (~1.6 GB peak on an M-series
+//! Mac), while `ort-default` reproduces the CoreML blow-up that `ort` rc.15's
+//! default `AutoDevicePolicy::MaxEfficiency` caused.
 //!
 //! ```sh
 //! cargo run --release --manifest-path src-tauri/Cargo.toml --example embedder_memory_probe -- \
-//!   <model_dir> <default|cpu|no-pattern|no-arena|both|fixed>
+//!   <vault>/.kokobrain/models/bge-m3 [app|ort-default]
 //! ```
+//!
+//! A watchdog aborts the process once the footprint passes `PROBE_LIMIT_MB`
+//! (default 8192), so the `ort-default` variant cannot take the machine down.
 
+use kokobrain_lib::semantic::session_builder;
 use ndarray::Array2;
 use ort::session::Session;
 use std::path::PathBuf;
@@ -35,9 +41,6 @@ struct RusageInfoV4 {
 	fields: [u64; 40],
 }
 
-// The release-LTO workaround in build.rs only reaches the lib crate; this
-// example does not link it, so pull `___isPlatformVersionAtLeast` in here.
-#[link(name = "clang_rt.osx", kind = "static")]
 extern "C" {
 	fn proc_pid_rusage(pid: i32, flavor: i32, buffer: *mut RusageInfoV4) -> i32;
 }
@@ -55,15 +58,13 @@ fn memory_mb() -> (u64, u64, u64) {
 
 fn main() {
 	let args: Vec<String> = std::env::args().collect();
-	if args.len() != 3 {
-		eprintln!("usage: embedder_memory_probe <model_dir> <default|cpu|no-pattern|no-arena|both|fixed>");
+	if !(2..=3).contains(&args.len()) {
+		eprintln!("usage: embedder_memory_probe <model_dir> [app|ort-default]");
 		std::process::exit(2);
 	}
 	let model_path = PathBuf::from(&args[1]).join("model.onnx");
-	let variant = args[2].as_str();
+	let variant = args.get(2).map(String::as_str).unwrap_or("app");
 
-	// Watchdog: the default variant reached 30 GB footprint on the first try,
-	// so abort the probe the moment the footprint crosses PROBE_LIMIT_MB.
 	let limit_mb: u64 = std::env::var("PROBE_LIMIT_MB").ok().and_then(|v| v.parse().ok()).unwrap_or(8192);
 	std::thread::spawn(move || loop {
 		let (_, fp, _) = memory_mb();
@@ -74,26 +75,24 @@ fn main() {
 		std::thread::sleep(std::time::Duration::from_millis(100));
 	});
 
-	let env = ort::init().build().expect("ort env");
 	let threads = std::thread::available_parallelism().map(|n| n.get().min(8)).unwrap_or(4);
-	let mut builder = Session::builder(&env).expect("builder").with_intra_threads(threads).expect("threads");
-	if variant == "cpu" {
-		// ort rc.15 defaults to AutoDevicePolicy::MaxEfficiency, which registers CoreML on macOS.
-		builder = builder.with_auto_device(ort::session::builder::AutoDevicePolicy::PreferCPU).expect("auto device");
-	}
-	if matches!(variant, "no-pattern" | "both") {
-		builder = builder.with_memory_pattern(false).expect("memory pattern");
-	}
-	if matches!(variant, "no-arena" | "both") {
-		builder = builder.with_config_entry("session.enable_cpu_mem_arena", "0").expect("arena");
-	}
+	let mut builder = match variant {
+		"app" => session_builder(threads).expect("app builder"),
+		"ort-default" => {
+			let env = Box::leak(Box::new(ort::init().build().expect("ort env")));
+			Session::builder(env).expect("builder").with_intra_threads(threads).expect("threads")
+		}
+		other => {
+			eprintln!("unknown variant: {other}");
+			std::process::exit(2);
+		}
+	};
 	let mut session = builder.commit_from_file(&model_path).expect("load model");
 
 	let (rss, fp, max) = memory_mb();
 	println!("variant={variant} loaded rss={rss}MB footprint={fp}MB max={max}MB");
 
 	for &(batch, seq) in INCIDENT_SHAPES {
-		let (batch, seq) = if variant == "fixed" { (8, 512) } else { (batch, seq) };
 		// Token id 1000 everywhere: the shape drives memory, not the values.
 		let input_ids = Array2::<i64>::from_elem((batch, seq), 1000);
 		let attention_mask = Array2::<i64>::ones((batch, seq));
