@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Input } from '$lib/components/ui/input';
-	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	interface Props {
 		/** Whether the dialog is open (bindable). */

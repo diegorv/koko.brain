@@ -1,4 +1,4 @@
-import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { AutoMoveRule } from './auto-move.types';
 
 /**

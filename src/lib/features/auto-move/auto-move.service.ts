@@ -1,16 +1,16 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
-import { moveItem } from '$lib/core/filesystem/fs.service';
-import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
-import { buildNoteRecord } from '$lib/features/collection/collection.logic';
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { moveItem } from '#lib/core/filesystem/fs.service.js';
+import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { autoMoveStore } from './auto-move.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { findMatchingRule, isInExcludedFolder, isAlreadyInDestination, resolveDestination } from './auto-move.logic';
 import type { AutoMoveConfig } from './auto-move.types';
 import { generateLifecycleRules } from './type-lifecycle-rules';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { debug, error } from '$lib/utils/debug';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /** Internal directory inside the vault for metadata */
 const SETTINGS_DIR = '.kokobrain';

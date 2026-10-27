@@ -1,6 +1,6 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import {
 	parseFrontmatterProperties,
 	extractBody,
@@ -8,8 +8,8 @@ import {
 	updatePropertyValue,
 	addProperty,
 	removeProperty,
-} from '$lib/features/properties/properties.logic';
-import type { Property } from '$lib/features/properties/properties.types';
+} from '#lib/features/properties/properties.logic.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
 import type { IconPackId } from './file-icons.types';
 
 function upsertProperty(properties: Property[], key: string, value: string): Property[] {

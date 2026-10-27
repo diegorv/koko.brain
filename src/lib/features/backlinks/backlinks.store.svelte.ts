@@ -1,5 +1,5 @@
 import type { BacklinkEntry } from './backlinks.types';
-import type { RelationshipBacklinkV2 } from '$lib/types/vault-v2.types';
+import type { RelationshipBacklinkV2 } from '#lib/types/vault-v2.types.js';
 
 let linkedMentions = $state<BacklinkEntry[]>([]);
 let unlinkedMentions = $state<BacklinkEntry[]>([]);

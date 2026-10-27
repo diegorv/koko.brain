@@ -1,12 +1,12 @@
 <script lang="ts">
-	import * as Command from '$lib/components/ui/command';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import * as Command from '#lib/components/ui/command/index.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { toast } from 'svelte-sonner';
-	import { createFile } from '$lib/core/filesystem/fs.service';
-	import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
-	import { relativePath } from '$lib/utils/path';
+	import { createFile } from '#lib/core/filesystem/fs.service.js';
+	import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
+	import { relativePath } from '#lib/utils/path.js';
 	import { quickSwitcherStore } from './quick-switcher.store.svelte';
 	import { flattenFileTree, filterAndRank } from './quick-switcher.logic';
 	import FileText from '@lucide/svelte/icons/file-text';

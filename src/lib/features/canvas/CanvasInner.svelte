@@ -41,7 +41,7 @@
 	} from './canvas.logic';
 	import { isImageFile } from './canvas-image.logic';
 	import { createHistory, pushSnapshot, undo, redo, type CanvasHistory } from './canvas-history.logic';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import type { CanvasData, CanvasNode, CanvasColor } from './canvas.types';
 
 	interface Props {

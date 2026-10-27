@@ -1,5 +1,5 @@
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 
 interface ParseCacheEntry {
 	contentHash: string;

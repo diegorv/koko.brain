@@ -6,8 +6,8 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { resolveColor } from './canvas.logic';
 	import { renderCanvasMarkdown } from './canvas-markdown.logic';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import type { CanvasColor } from './canvas.types';
 
 	interface FileNodeData extends Record<string, unknown> {

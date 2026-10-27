@@ -1,7 +1,7 @@
 /** Icon assignment applied to moved files */
 export interface AutoMoveIcon {
 	/** Icon pack identifier */
-	iconPack: import('$lib/features/file-icons/file-icons.types').IconPackId;
+	iconPack: import('#lib/features/file-icons/file-icons.types.js').IconPackId;
 	/** Icon name within the pack (or emoji character) */
 	iconName: string;
 	/** Optional hex color override for the icon (e.g. '#ff5733') */

@@ -3,8 +3,8 @@ import { parse } from './parser';
 import type { NoteRecord } from '../collection.types';
 import { dispatchMethod, dispatchField } from './methods.logic';
 import { parseDuration } from './duration.logic';
-import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
-import { clamp } from '$lib/utils/clamp';
+import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+import { clamp } from '#lib/utils/clamp.js';
 
 /** Context provided to the evaluator for resolving properties and formulas */
 export interface EvalContext {

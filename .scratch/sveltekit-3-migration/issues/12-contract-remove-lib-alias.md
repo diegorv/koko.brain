@@ -10,4 +10,5 @@
 - [ ] No `$lib` deprecation warning in build output
 - [ ] Docs updated (import conventions, patterns, testing)
 - [ ] components.json shadcn aliases (currently $lib, lines 9-13) point to #lib so CLI-generated components don't reintroduce $lib
+- [ ] Code comments naming `$lib` paths updated (left by 08: src/lib/features/search/search.logic.ts:28 `$lib/utils/sanitize`)
 - [ ] pnpm check + pnpm vitest run + pnpm build green

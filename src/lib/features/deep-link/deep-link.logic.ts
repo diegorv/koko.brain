@@ -2,8 +2,8 @@ import {
 	parseFrontmatterProperties,
 	extractBody,
 	rebuildContent,
-} from '$lib/features/properties/properties.logic';
-import type { Property } from '$lib/features/properties/properties.types';
+} from '#lib/features/properties/properties.logic.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
 import type {
 	DeepLinkActionType,
 	OpenAction,
@@ -314,7 +314,7 @@ function buildSourceFooter(
 	return `> Source: [${label}](${sourceUrl})`;
 }
 
-export { resolveFilePath } from '$lib/utils/path';
+export { resolveFilePath } from '#lib/utils/path.js';
 
 /**
  * Parses a string parameter as a boolean.

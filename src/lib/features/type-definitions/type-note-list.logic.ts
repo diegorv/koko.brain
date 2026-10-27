@@ -1,8 +1,8 @@
-import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '$lib/features/collection/collection.types';
-import type { FilterGroup } from '$lib/features/collection/toolbar/toolbar.types';
-import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '$lib/features/collection/toolbar/filter.logic';
-import type { CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
-import { isValidFileName } from '$lib/core/filesystem/fs.logic';
+import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
+import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '#lib/features/collection/toolbar/filter.logic.js';
+import type { CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
+import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
 
 /**
  * Builds the target file name for an inline note-list rename, where the user

@@ -1,5 +1,5 @@
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { propertiesStore } from './properties.store.svelte';
 import { extractBody, rebuildContent } from './properties.logic';
 import {

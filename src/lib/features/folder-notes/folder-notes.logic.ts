@@ -1,5 +1,5 @@
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Finds a folder note inside a directory.

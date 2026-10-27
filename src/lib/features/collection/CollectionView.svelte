@@ -2,7 +2,7 @@
 	import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType, type ViewType } from './yaml-parser';
 	import { executeQuery } from './collection.logic';
 	import { collectionStore } from './collection.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import type { QueryResult, NoteRecord, SortDef, CollectionViewDef } from './collection.types';
 	import type { FilterGroup, FormulaEntry } from './toolbar/toolbar.types';
 	import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from './toolbar/filter.logic';
@@ -14,15 +14,15 @@
 	import SortPanel from './toolbar/SortPanel.svelte';
 	import PropertiesPanel from './toolbar/PropertiesPanel.svelte';
 	import { getAllAvailableColumns } from './toolbar/properties.logic';
-	import { Popover, PopoverTrigger, PopoverContent } from '$lib/components/ui/popover';
-	import { Button } from '$lib/components/ui/button';
+	import { Popover, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import CalendarConfigPanel from './toolbar/CalendarConfigPanel.svelte';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import Columns3 from '@lucide/svelte/icons/columns-3';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import Plus from '@lucide/svelte/icons/plus';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 
 	interface Props {
 		yamlContent: string;

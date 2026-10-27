@@ -1,12 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { findTabIndex, TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { findTabIndex, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tasksStore } from './tasks.store.svelte';
 import type { FileTaskGroup } from './tasks.types';
-import type { FileTaskGroupV2, ToggleTaskResultV2 } from '$lib/types/vault-v2.types';
-import { debug, error, timeAsync } from '$lib/utils/debug';
+import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import { debug, error, timeAsync } from '#lib/utils/debug.js';
 
 /**
  * Converts a `FileTaskGroupV2` (Rust, modifiedAt in seconds) into the

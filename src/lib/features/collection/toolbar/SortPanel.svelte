@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import {
 		DropdownMenu,
 		DropdownMenuTrigger,
 		DropdownMenuContent,
 		DropdownMenuItem,
-	} from '$lib/components/ui/dropdown-menu';
+	} from '#lib/components/ui/dropdown-menu/index.js';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';

@@ -1,6 +1,6 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { applyNoteChange, registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
+import { applyNoteChange, registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
@@ -13,8 +13,8 @@ import {
 import { preloadPacks, setOnPacksLoaded } from './file-icons.icon-data';
 
 setOnPacksLoaded(() => fileIconsStore.bumpPackVersion());
-import { debug, error, timeAsync } from '$lib/utils/debug';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { debug, error, timeAsync } from '#lib/utils/debug.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /** Internal directory inside the vault that stores app metadata */
 const KOKOBRAIN_DIR = '.kokobrain';

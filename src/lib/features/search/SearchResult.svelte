@@ -1,9 +1,9 @@
 <script lang="ts">
 	import FileText from '@lucide/svelte/icons/file-text';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { openNoteAt } from '$lib/core/editor/open-note-at.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { relativePath } from '$lib/utils/path';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { relativePath } from '#lib/utils/path.js';
 	import { sanitizeSnippetHtml } from './search.logic';
 	import type {
 		SearchResult,

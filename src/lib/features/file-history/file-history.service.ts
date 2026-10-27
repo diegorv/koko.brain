@@ -2,12 +2,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
 import { fileHistoryStore } from './file-history.store.svelte';
 import { getRelativePath, getSnapshotBackupDir, getSnapshotBackupPath } from './file-history.logic';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
-import { saveCurrentFile } from '$lib/core/editor/editor.service';
-import { debug, error } from '$lib/utils/debug';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { saveCurrentFile } from '#lib/core/editor/editor.service.js';
+import { debug, error } from '#lib/utils/debug.js';
 import type { SnapshotInfo, DiffLine } from './file-history.types';
 
 /**

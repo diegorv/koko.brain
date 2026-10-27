@@ -6,9 +6,9 @@
 	import { tagsStore } from './tags.store.svelte';
 	import { scheduleTagIndexRebuild, updateTagSort } from './tags.service';
 	import { filterTagTree } from './tags.logic';
-	import { searchStore } from '$lib/features/search/search.store.svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { searchStore } from '#lib/features/search/search.store.svelte.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { setTagColor } from './tag-colors.logic';
 	import TagItem from './TagItem.svelte';
 

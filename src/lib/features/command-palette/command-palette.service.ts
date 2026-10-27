@@ -7,27 +7,27 @@ import {
 	switchToNextTab,
 	switchToPreviousTab,
 	togglePinActiveTab,
-} from '$lib/core/editor/editor.service';
-import { createFile, createFolder } from '$lib/core/filesystem/fs.service';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
-import { createCanvasFile } from '$lib/features/canvas/canvas.service';
-import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { openTemplatePicker } from '$lib/plugins/templates/templates.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
-import { toggleTagsTab } from '$lib/features/tags/tags.service';
-import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
-import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
-import { openFileHistory } from '$lib/features/file-history/file-history.service';
-import { cycleSidebarMode } from '$lib/core/layout/layout.service';
+} from '#lib/core/editor/editor.service.js';
+import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
+import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
+import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { openTemplatePicker } from '#lib/plugins/templates/templates.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
+import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
+import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
+import { cycleSidebarMode } from '#lib/core/layout/layout.service.js';
 
 export function getBuiltInCommands(): AppCommand[] {
 	return [

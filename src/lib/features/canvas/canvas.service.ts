@@ -1,6 +1,6 @@
-import { createFile } from '$lib/core/filesystem/fs.service';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { serializeCanvas, createEmptyCanvas } from './canvas.logic';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Creates a new .canvas file with an empty canvas structure.

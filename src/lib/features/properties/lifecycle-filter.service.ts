@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { buildArchivedPathSet } from './lifecycle-filter.logic';
 import { lifecycleFilterStore } from './lifecycle-filter.store.svelte';
 

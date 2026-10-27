@@ -1,4 +1,4 @@
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import type { TypeSidebarSelection } from './type-sidebar.logic';
 

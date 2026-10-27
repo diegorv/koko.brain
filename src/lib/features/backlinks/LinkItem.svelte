@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FileText from '@lucide/svelte/icons/file-text';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import type { BacklinkEntry } from './backlinks.types';
 
 	let { entry }: { entry: BacklinkEntry } = $props();
