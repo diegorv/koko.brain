@@ -7,7 +7,7 @@
 //!
 //! ```sh
 //! cargo run --release --manifest-path src-tauri/Cargo.toml --example embedder_memory_probe -- \
-//!   <model_dir> <default|no-pattern|no-arena|both|fixed>
+//!   <model_dir> <default|cpu|no-pattern|no-arena|both|fixed>
 //! ```
 
 use ndarray::Array2;
@@ -56,7 +56,7 @@ fn memory_mb() -> (u64, u64, u64) {
 fn main() {
 	let args: Vec<String> = std::env::args().collect();
 	if args.len() != 3 {
-		eprintln!("usage: embedder_memory_probe <model_dir> <default|no-pattern|no-arena|both|fixed>");
+		eprintln!("usage: embedder_memory_probe <model_dir> <default|cpu|no-pattern|no-arena|both|fixed>");
 		std::process::exit(2);
 	}
 	let model_path = PathBuf::from(&args[1]).join("model.onnx");
@@ -77,6 +77,10 @@ fn main() {
 	let env = ort::init().build().expect("ort env");
 	let threads = std::thread::available_parallelism().map(|n| n.get().min(8)).unwrap_or(4);
 	let mut builder = Session::builder(&env).expect("builder").with_intra_threads(threads).expect("threads");
+	if variant == "cpu" {
+		// ort rc.15 defaults to AutoDevicePolicy::MaxEfficiency, which registers CoreML on macOS.
+		builder = builder.with_auto_device(ort::session::builder::AutoDevicePolicy::PreferCPU).expect("auto device");
+	}
 	if matches!(variant, "no-pattern" | "both") {
 		builder = builder.with_memory_pattern(false).expect("memory pattern");
 	}
