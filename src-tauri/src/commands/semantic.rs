@@ -340,10 +340,27 @@ fn schedule_embedder_unload() {
 	let gen = UNLOAD_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
 	tokio::spawn(async move {
 		tokio::time::sleep(std::time::Duration::from_secs(EMBEDDER_IDLE_TIMEOUT_SECS)).await;
-		if UNLOAD_GENERATION.load(Ordering::SeqCst) == gen {
-			unload_embedder();
+		if UNLOAD_GENERATION.load(Ordering::SeqCst) != gen {
+			return;
 		}
+		// Never unload under a running `build_semantic_index`: its next batch
+		// would find no embedder and abort ("Embedder not initialized", log
+		// 2026-10-27 batch 32/846). Re-arm instead of dropping the timer, so
+		// a build that exits on an error path still gets its idle unload.
+		// Not airtight: a build that takes BUILD_LOCK between this check and
+		// the unload still loses its embedder (issue 07 covers builds that
+		// start with the embedder already unloaded).
+		if semantic_build_running() {
+			schedule_embedder_unload();
+			return;
+		}
+		unload_embedder();
 	});
+}
+
+/// True while `build_semantic_index` holds `BUILD_LOCK`.
+fn semantic_build_running() -> bool {
+	BUILD_LOCK.try_lock().is_err()
 }
 
 /// Loads the ONNX model into the static embedder. Call once after vault open.
@@ -1467,4 +1484,21 @@ pub fn check_and_update_model_hash(current_hash: &str) -> Result<bool, String> {
 	}
 
 	Ok(changed)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	/// Pins the wiring the idle-unload guard relies on: holding `BUILD_LOCK`
+	/// (as `build_semantic_index` does for its whole run) must read as a
+	/// running build, and releasing it must not.
+	#[test]
+	fn semantic_build_running_tracks_build_lock() {
+		assert!(!semantic_build_running());
+		let guard = BUILD_LOCK.try_lock().expect("no build in this test");
+		assert!(semantic_build_running());
+		drop(guard);
+		assert!(!semantic_build_running());
+	}
 }
