@@ -35,6 +35,9 @@ struct RusageInfoV4 {
 	fields: [u64; 40],
 }
 
+// The release-LTO workaround in build.rs only reaches the lib crate; this
+// example does not link it, so pull `___isPlatformVersionAtLeast` in here.
+#[link(name = "clang_rt.osx", kind = "static")]
 extern "C" {
 	fn proc_pid_rusage(pid: i32, flavor: i32, buffer: *mut RusageInfoV4) -> i32;
 }
