@@ -4,7 +4,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	perfStart: vi.fn(() => 0),
@@ -15,14 +15,14 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { error as debugError } from '$lib/utils/debug';
-import { updateIndexesForFile } from '$lib/core/app-lifecycle/index-updater.service';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { registerCalendarNoteChangeConsumer, resetCalendar } from '$lib/plugins/calendar/calendar.service';
-import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
-import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
+import { error as debugError } from '#lib/utils/debug.js';
+import { updateIndexesForFile } from '#lib/core/app-lifecycle/index-updater.service.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { registerCalendarNoteChangeConsumer, resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
+import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
+import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index-dedupe.js';
 
 describe('updateIndexesForFile', () => {
 	let unregister: (() => void)[] = [];

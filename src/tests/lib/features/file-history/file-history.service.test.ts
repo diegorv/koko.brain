@@ -15,22 +15,22 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	readDir: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	saveCurrentFile: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
-import { saveCurrentFile } from '$lib/core/editor/editor.service';
-import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
-import { fileHistoryStore } from '$lib/features/file-history/file-history.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { saveCurrentFile } from '#lib/core/editor/editor.service.js';
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { fileHistoryStore } from '#lib/features/file-history/file-history.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	openFileHistory,
 	selectSnapshot,
@@ -39,8 +39,8 @@ import {
 	closeFileHistory,
 	registerFileHistoryHook,
 	loadBackupTimestamps,
-} from '$lib/features/file-history/file-history.service';
-import type { SnapshotInfo, DiffLine } from '$lib/features/file-history/file-history.types';
+} from '#lib/features/file-history/file-history.service.js';
+import type { SnapshotInfo, DiffLine } from '#lib/features/file-history/file-history.types.js';
 
 describe('openFileHistory', () => {
 	beforeEach(() => {

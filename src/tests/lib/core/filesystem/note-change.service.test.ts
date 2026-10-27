@@ -4,7 +4,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
@@ -12,19 +12,19 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { error as debugError } from '$lib/utils/debug';
+import { error as debugError } from '#lib/utils/debug.js';
 import {
 	applyNoteChange,
 	registerNoteChangeConsumer,
 	type NoteChangeSource,
-} from '$lib/core/filesystem/note-change.service';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { registerFileIconsNoteChangeConsumer } from '$lib/features/file-icons/file-icons.service';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { registerCalendarNoteChangeConsumer, resetCalendar } from '$lib/plugins/calendar/calendar.service';
-import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
-import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
+} from '#lib/core/filesystem/note-change.service.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { registerCalendarNoteChangeConsumer, resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
+import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
+import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index-dedupe.js';
 
 /** Frontmatter that lights up all three registered consumers at once. */
 const CONTENT = '---\n_icon: lucide:star\ncreated: 2026-01-02\nstatus: done\n---\n';

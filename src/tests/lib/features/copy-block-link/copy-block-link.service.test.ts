@@ -7,8 +7,8 @@ vi.mock('svelte-sonner', () => ({
 // No mocks for stores or logic files — use real implementations per CLAUDE.md
 
 import { toast } from 'svelte-sonner';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { copyBlockLink, copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { copyBlockLink, copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 
 function createMockView(lineText: string, cursorPos = 0) {
 	return {

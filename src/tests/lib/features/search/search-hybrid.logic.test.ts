@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { mergeResults } from '$lib/features/search/search-hybrid.logic';
-import type { FtsSearchResult, SemanticSearchResult } from '$lib/features/search/search.types';
+import { mergeResults } from '#lib/features/search/search-hybrid.logic.js';
+import type { FtsSearchResult, SemanticSearchResult } from '#lib/features/search/search.types.js';
 
 describe('mergeResults (RRF)', () => {
 	it('returns empty array when both inputs are empty', () => {

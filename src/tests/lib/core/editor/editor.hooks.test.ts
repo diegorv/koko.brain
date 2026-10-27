@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -20,10 +20,10 @@ import {
 	resetHooks,
 	markRecentSave,
 	areAllRecentSaves,
-} from '$lib/core/editor/editor.hooks';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
+} from '#lib/core/editor/editor.hooks.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { isAlreadyIndexed, markIndexed, clearAllIndexed } from '#lib/utils/index-dedupe.js';
 
 describe('notifyAfterSave', () => {
 	beforeEach(() => {

@@ -8,9 +8,9 @@ import {
 	getAllKnownProperties,
 	inferPropertyType,
 	createEmptyFilterRow,
-} from '$lib/features/collection/toolbar/filter.logic';
-import type { CollectionFilter, NoteRecord } from '$lib/features/collection/collection.types';
-import type { FilterOperator, FilterRow } from '$lib/features/collection/toolbar/toolbar.types';
+} from '#lib/features/collection/toolbar/filter.logic.js';
+import type { CollectionFilter, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { FilterOperator, FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 function makeRecord(
 	path: string,

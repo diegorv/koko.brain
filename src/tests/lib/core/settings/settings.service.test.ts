@@ -10,16 +10,16 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/theme.service', () => ({
+vi.mock('#lib/core/settings/theme.service.js', () => ({
 	applyActiveTheme: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { applyActiveTheme } from '$lib/core/settings/theme.service';
-import { settingsStore, DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
-import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '$lib/core/settings/settings.service';
-import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME } from '$lib/core/settings/theme.logic';
-import { FONT_WEIGHT_MAP } from '$lib/core/settings/heading-typography.logic';
+import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
+import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
+import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
+import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 
 describe('loadSettings', () => {
 	beforeEach(() => {

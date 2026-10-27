@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	findWikilinkRanges,
 	findWikilinkInfoAtPosition,
-} from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
+} from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
 
 describe('findWikilinkRanges', () => {
 	it('parses a basic wikilink [[Note]]', () => {

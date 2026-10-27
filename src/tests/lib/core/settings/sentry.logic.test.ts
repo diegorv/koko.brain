@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isValidSentryDsn } from '$lib/core/settings/sentry.logic';
+import { isValidSentryDsn } from '#lib/core/settings/sentry.logic.js';
 
 describe('isValidSentryDsn', () => {
 	it('accepts a complete Sentry Cloud DSN in each allowed region', () => {

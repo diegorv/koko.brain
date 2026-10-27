@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { fileHistoryStore } from '$lib/features/file-history/file-history.store.svelte';
-import type { SnapshotInfo, DiffLine } from '$lib/features/file-history/file-history.types';
+import { fileHistoryStore } from '#lib/features/file-history/file-history.store.svelte.js';
+import type { SnapshotInfo, DiffLine } from '#lib/features/file-history/file-history.types.js';
 
 const snapshot: SnapshotInfo = { id: 1, timestamp: 1700000000000, size: 256 };
 const diffLine: DiffLine = { type: 'insert', content: 'new line', newLineNum: 1 };

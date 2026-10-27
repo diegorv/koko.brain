@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('$lib/utils/log.service', () => ({
+vi.mock('#lib/utils/log.service.js', () => ({
 	appendLog: vi.fn(),
 }));
 
-import { appendLog } from '$lib/utils/log.service';
+import { appendLog } from '#lib/utils/log.service.js';
 import {
 	extractRawFrontmatter,
 	extractBody,
@@ -21,7 +21,7 @@ import {
 	computeAddRelationshipValue,
 	computeRemoveRelationshipValue,
 	_resetParseFrontmatterCache,
-} from '$lib/features/properties/properties.logic';
+} from '#lib/features/properties/properties.logic.js';
 
 describe('extractRawFrontmatter', () => {
 	it('extracts YAML content between delimiters', () => {

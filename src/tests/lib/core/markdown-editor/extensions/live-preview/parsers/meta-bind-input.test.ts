@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findMetaBindInputRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input';
+import { findMetaBindInputRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.js';
 
 describe('findMetaBindInputRanges', () => {
 	it('parses single INPUT with inlineSelect and options', () => {

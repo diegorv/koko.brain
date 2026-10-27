@@ -4,7 +4,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	timeAsync: vi.fn(async (_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
@@ -15,8 +15,8 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { tasksStore } from '$lib/features/tasks/tasks.store.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
 	buildTaskIndex,
 	updateSectionTagFilter,
@@ -25,8 +25,8 @@ import {
 	closeTasksTab,
 	toggleTasksTab,
 	resetTasks,
-} from '$lib/features/tasks/tasks.service';
-import type { FileTaskGroupV2, ToggleTaskResultV2 } from '$lib/types/vault-v2.types';
+} from '#lib/features/tasks/tasks.service.js';
+import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 
 function group(filePath: string, modifiedAtSec: number, taskTexts: string[]): FileTaskGroupV2 {
 	return {

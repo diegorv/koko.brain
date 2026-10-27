@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	parseCalloutHeader,
 	findAllCallouts,
-} from '$lib/core/markdown-editor/extensions/live-preview/parsers/callout';
+} from '#lib/core/markdown-editor/extensions/live-preview/parsers/callout.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('parseCalloutHeader', () => {

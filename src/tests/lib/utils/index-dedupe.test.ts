@@ -4,7 +4,7 @@ import {
 	markIndexed,
 	clearIndexedEntry,
 	clearAllIndexed,
-} from '$lib/utils/index-dedupe';
+} from '#lib/utils/index-dedupe.js';
 
 describe('index-dedupe', () => {
 	beforeEach(() => {

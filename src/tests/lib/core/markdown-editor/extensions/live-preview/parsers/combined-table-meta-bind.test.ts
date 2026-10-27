@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { findAllTables } from '$lib/core/markdown-editor/extensions/live-preview/parsers/table';
-import { findMetaBindInputRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
+import { findAllTables } from '#lib/core/markdown-editor/extensions/live-preview/parsers/table.js';
+import { findMetaBindInputRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 // ============================================================

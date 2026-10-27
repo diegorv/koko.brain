@@ -5,7 +5,7 @@ import {
 	canonicalizeScalar,
 	RESERVED_LITERALS,
 	MUST_QUOTE_LEADING_CHARS,
-} from '$lib/features/properties/yaml-quoting.logic';
+} from '#lib/features/properties/yaml-quoting.logic.js';
 
 /**
  * Strips the `k: ` prefix yaml.stringify emits for a single-key

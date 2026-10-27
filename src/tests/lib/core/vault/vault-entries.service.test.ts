@@ -8,8 +8,8 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { getVaultEntries, invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { getVaultEntries, invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT_A = [entryV2('/vault-a/Alpha.md')];

@@ -3,7 +3,7 @@
  * These mirror the exact structs returned by Rust commands,
  * ensuring test data matches production contracts.
  */
-import type { FileTreeNode, FileReadResult } from '$lib/core/filesystem/fs.types';
+import type { FileTreeNode, FileReadResult } from '#lib/core/filesystem/fs.types.js';
 
 /** Creates a file node matching the Rust `FileNode` struct from `scan_vault` */
 export function makeFileNode(overrides: Partial<FileTreeNode> = {}): FileTreeNode {

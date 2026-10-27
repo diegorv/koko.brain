@@ -8,8 +8,8 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
-import { loadBookmarks, saveBookmarks, toggleBookmarkForPath, updateBookmarkPathsAfterMove, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
+import { bookmarksStore } from '#lib/features/bookmarks/bookmarks.store.svelte.js';
+import { loadBookmarks, saveBookmarks, toggleBookmarkForPath, updateBookmarkPathsAfterMove, resetBookmarks } from '#lib/features/bookmarks/bookmarks.service.js';
 
 describe('loadBookmarks', () => {
 	beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderInlineMarkdown } from '$lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown';
+import { renderInlineMarkdown } from '#lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.js';
 
 describe('renderInlineMarkdown — basic', () => {
 	it('renders plain text as-is', () => {

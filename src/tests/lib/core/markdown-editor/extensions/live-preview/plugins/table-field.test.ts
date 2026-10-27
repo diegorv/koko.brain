@@ -3,8 +3,8 @@ import type { EditorState } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
-import { computeTables } from '$lib/core/markdown-editor/extensions/live-preview/plugins/table-field';
-import type { Property } from '$lib/features/properties/properties.types';
+import { computeTables } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {

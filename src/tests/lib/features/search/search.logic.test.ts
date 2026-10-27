@@ -9,7 +9,7 @@ import {
 	matchesPathFilter,
 	getFileName,
 	performSearchOverFiles,
-} from '$lib/features/search/search.logic';
+} from '#lib/features/search/search.logic.js';
 
 describe('parseSearchQuery', () => {
 	it('parses plain text query', () => {

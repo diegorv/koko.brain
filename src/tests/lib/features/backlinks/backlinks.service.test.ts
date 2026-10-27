@@ -5,16 +5,16 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	buildIndex,
 	rebuildIndex,
 	computeUnlinkedMentionsForFile,
 	resetBacklinks,
 	fetchBacklinksV2,
-} from '$lib/features/backlinks/backlinks.service';
+} from '#lib/features/backlinks/backlinks.service.js';
 
 const CACHED_SCAN_RESULT = {
 	source: 'full_scan',

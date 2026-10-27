@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { dedupeInflight, versionGated, isStillCurrentPath } from '$lib/utils/inflight';
-import { debounce } from '$lib/utils/debounce';
+import { dedupeInflight, versionGated, isStillCurrentPath } from '#lib/utils/inflight.js';
+import { debounce } from '#lib/utils/debounce.js';
 
 /**
  * Returns a controllable promise factory. Each call to `make()` produces

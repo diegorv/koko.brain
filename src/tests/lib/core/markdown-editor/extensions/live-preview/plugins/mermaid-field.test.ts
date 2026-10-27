@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { computeMermaidBlocks } from '$lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field';
+import { computeMermaidBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.js';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return EditorState.create({

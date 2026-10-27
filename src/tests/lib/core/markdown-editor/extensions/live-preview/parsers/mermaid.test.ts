@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findMermaidBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/mermaid';
+import { findMermaidBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/mermaid.js';
 
 function makeLines(text: string) {
 	const result: { text: string; from: number; to: number }[] = [];

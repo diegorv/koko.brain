@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '$lib/utils/build-info';
+import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '#lib/utils/build-info.js';
 
 describe('resolveVersion', () => {
 	it('returns the pkg version unchanged on the stable channel', () => {

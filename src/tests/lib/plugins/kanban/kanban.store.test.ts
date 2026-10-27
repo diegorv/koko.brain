@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { kanbanStore } from '$lib/plugins/kanban/kanban.store.svelte';
-import type { KanbanBoard } from '$lib/plugins/kanban/kanban.types';
+import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
+import type { KanbanBoard } from '#lib/plugins/kanban/kanban.types.js';
 
 function makeBoard(): KanbanBoard {
 	return {

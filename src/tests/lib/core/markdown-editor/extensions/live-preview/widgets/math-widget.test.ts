@@ -9,9 +9,9 @@ import { syntaxHighlighting } from '@codemirror/language';
 import {
 	MathWidget,
 	clearMathCache,
-} from '$lib/core/markdown-editor/extensions/live-preview/widgets/math-widget';
-import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
-import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
+} from '#lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.js';
+import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
+import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
 import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 describe('MathWidget', () => {

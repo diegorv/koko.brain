@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 
 describe('canonicalizeKey', () => {
 	it('resolves the type alias to the canonical _type key', () => {

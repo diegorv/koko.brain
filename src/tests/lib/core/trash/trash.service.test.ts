@@ -9,7 +9,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -18,21 +18,21 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
-import { trashStore } from '$lib/core/trash/trash.store.svelte';
-import type { TrashItem } from '$lib/core/trash/trash.types';
+import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+import type { TrashItem } from '#lib/core/trash/trash.types.js';
 import {
 	loadTrash,
 	moveToTrash,
 	restoreItem,
 	deletePermanently,
 	emptyTrash,
-} from '$lib/core/trash/trash.service';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
+} from '#lib/core/trash/trash.service.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
 
 const VAULT = '/Users/me/vault';
 

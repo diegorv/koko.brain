@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dockBadgeCount } from '$lib/features/dock-badge/dock-badge.logic';
+import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 describe('dockBadgeCount', () => {

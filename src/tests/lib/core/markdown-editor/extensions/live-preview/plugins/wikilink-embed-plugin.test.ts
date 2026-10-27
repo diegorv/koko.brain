@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
-import { buildWikilinkEmbedDecorations } from '$lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin';
+import { buildWikilinkEmbedDecorations } from '#lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function collectDecos(decoSet: ReturnType<typeof buildWikilinkEmbedDecorations>) {

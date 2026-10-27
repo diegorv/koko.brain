@@ -4,8 +4,8 @@ import {
 	filterCompleted,
 	filterCompletedTasks,
 	computeTaskStats,
-} from '$lib/features/tasks/tasks.logic';
-import type { TaskItem, FileTaskGroup } from '$lib/features/tasks/tasks.types';
+} from '#lib/features/tasks/tasks.logic.js';
+import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
 
 /** Helper to build a TaskItem with sensible defaults for status and metadata */
 function makeTask(

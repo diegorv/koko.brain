@@ -3,9 +3,9 @@ import { EditorSelection } from '@codemirror/state';
 import {
 	autolinkHandler,
 	extendedAutolinkHandler,
-} from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/autolink-handlers';
-import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+} from '#lib/core/markdown-editor/extensions/live-preview/inline/handlers/autolink-handlers.js';
+import { buildInlineDecorations } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../../test-helpers';
 
 interface DecoSpec { from: number; to: number; class: string }

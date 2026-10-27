@@ -6,11 +6,11 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 // localStorage (no backing file) shadows jsdom's, so stub it explicitly.
 setupLocalStorage();
 
-vi.mock('$lib/utils/keybindings', () => ({
+vi.mock('#lib/utils/keybindings.js', () => ({
 	registerKeybinding: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	saveCurrentFile: vi.fn(),
 	closeActiveTab: vi.fn(),
 	switchToNextTab: vi.fn(),
@@ -18,11 +18,11 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	toggleSourceMode: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/graph-view/graph-view.service', () => ({
+vi.mock('#lib/plugins/graph-view/graph-view.service.js', () => ({
 	toggleGraphTab: vi.fn(),
 }));
 
-vi.mock('$lib/features/tasks/tasks.service', () => ({
+vi.mock('#lib/features/tasks/tasks.service.js', () => ({
 	toggleTasksTab: vi.fn(),
 }));
 
@@ -35,45 +35,45 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(() => Promise.resolve(true)),
 }));
 
-vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
+vi.mock('#lib/plugins/quick-capture/note-composer.service.js', () => ({
 	createNoteComposer: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
+vi.mock('#lib/plugins/one-on-one/one-on-one.service.js', () => ({
 	openOneOnOnePicker: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/features/file-history/file-history.service', () => ({
+vi.mock('#lib/features/file-history/file-history.service.js', () => ({
 	openFileHistory: vi.fn(),
 }));
 
-vi.mock('$lib/core/zoom/zoom.service', () => ({
+vi.mock('#lib/core/zoom/zoom.service.js', () => ({
 	zoomIn: vi.fn(() => Promise.resolve()),
 	zoomOut: vi.fn(() => Promise.resolve()),
 	resetZoom: vi.fn(() => Promise.resolve()),
 }));
 
-import { registerKeybinding } from '$lib/utils/keybindings';
-import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
-import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleSourceMode } from '$lib/core/editor/editor.service';
-import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
-import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
-import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
+import { registerKeybinding } from '#lib/utils/keybindings.js';
+import { registerGlobalKeybindings } from '#lib/core/keybindings/global-keybindings.js';
+import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleSourceMode } from '#lib/core/editor/editor.service.js';
+import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
+import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { commandPaletteStore } from '#lib/features/command-palette/command-palette.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import {
 	startSettingsPersistence,
 	stopSettingsPersistence,
-} from '$lib/core/settings/settings-persistence.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
-import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { openFileHistory } from '$lib/features/file-history/file-history.service';
-import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
+} from '#lib/core/settings/settings-persistence.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
+import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
+import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
 
 /**
  * Runs `action` with the settings persistence owner live for `/vault` and

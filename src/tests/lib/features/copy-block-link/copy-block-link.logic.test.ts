@@ -3,7 +3,7 @@ import {
 	detectBlockElement,
 	generateBlockId,
 	buildWikilinkText,
-} from '$lib/features/copy-block-link/copy-block-link.logic';
+} from '#lib/features/copy-block-link/copy-block-link.logic.js';
 
 describe('detectBlockElement', () => {
 	it('detects h1 heading', () => {

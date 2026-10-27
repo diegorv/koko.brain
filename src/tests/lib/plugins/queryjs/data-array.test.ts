@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DataArray } from '$lib/plugins/queryjs/data-array';
-import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
+import { DataArray } from '#lib/plugins/queryjs/data-array.js';
+import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 
 describe('DataArray', () => {
 	describe('where / filter', () => {

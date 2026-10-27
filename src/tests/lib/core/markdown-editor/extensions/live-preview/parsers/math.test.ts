@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findAllBlockMath } from '$lib/core/markdown-editor/extensions/live-preview/parsers/math';
+import { findAllBlockMath } from '#lib/core/markdown-editor/extensions/live-preview/parsers/math.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('findAllBlockMath', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { autoMoveStore } from '$lib/features/auto-move/auto-move.store.svelte';
-import type { AutoMoveRule } from '$lib/features/auto-move/auto-move.types';
+import { autoMoveStore } from '#lib/features/auto-move/auto-move.store.svelte.js';
+import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
 
 function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
 	return {

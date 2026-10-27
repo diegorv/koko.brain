@@ -3,7 +3,7 @@ import {
 	findFootnoteRefRanges,
 	findFootnoteDefRange,
 	findInlineFootnoteRanges,
-} from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
+} from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('findFootnoteRefRanges', () => {

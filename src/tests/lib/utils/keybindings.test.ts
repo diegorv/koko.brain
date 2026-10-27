@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { registerKeybinding } from '$lib/utils/keybindings';
+import { registerKeybinding } from '#lib/utils/keybindings.js';
 
 function fireKeyDown(key: string, options: Partial<KeyboardEvent> & { code?: string } = {}) {
 	const event = new KeyboardEvent('keydown', {

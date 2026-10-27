@@ -12,8 +12,8 @@ vi.mock('chart.js/auto', () => ({
 	},
 }));
 
-import { KBUI } from '$lib/plugins/queryjs/kb-ui';
-import { DataArray } from '$lib/plugins/queryjs/data-array';
+import { KBUI } from '#lib/plugins/queryjs/kb-ui.js';
+import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 
 describe('KBUI', () => {
 	let container: HTMLElement;

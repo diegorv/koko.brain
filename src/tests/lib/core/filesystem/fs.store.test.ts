@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 
 describe('fsStore', () => {
 	beforeEach(() => {

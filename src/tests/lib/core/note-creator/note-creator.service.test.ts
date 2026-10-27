@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -18,29 +18,29 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(),
 }));
 
 import dayjs from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { markRecentSave } from '$lib/core/editor/editor.hooks';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
-import { clearAllIndexed, isAlreadyIndexed } from '$lib/utils/index-dedupe';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { clearAllIndexed, isAlreadyIndexed } from '#lib/utils/index-dedupe.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 
 describe('openOrCreateNote', () => {
 	let unregister: (() => void)[] = [];

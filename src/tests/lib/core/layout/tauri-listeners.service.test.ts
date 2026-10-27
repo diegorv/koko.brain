@@ -49,27 +49,27 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	saveAllDirtyTabs: vi.fn(),
 }));
 
 // loadDirectoryTree is a side-effect service (scan_vault IPC + fsStore tree
 // write) — mocked per docs/TESTING.md allowlist.
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	loadDirectoryTree: vi.fn().mockResolvedValue(undefined),
 	// collection.service (buildPropertyIndex producer) imports createFile from
 	// the same module; the mock must expose it or the import fails to link.
 	createFile: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Pulled in transitively by the settings persistence owner (the close handler
 // flushes it before quitting). Mocked at the write boundary so the flush is
 // observable without touching the real Tauri filesystem plugin.
-vi.mock('$lib/core/settings/settings.service', () => ({
+vi.mock('#lib/core/settings/settings.service.js', () => ({
 	writeSettingsFile: vi.fn(() => Promise.resolve()),
 }));
 
@@ -93,21 +93,21 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
-import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
-import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
-import { writeSettingsFile } from '$lib/core/settings/settings.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import type { NoteRecordV2 } from '$lib/types/vault-v2.types';
-import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
+import { saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
+import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
+import { refreshDailyNoteIfDateChanged } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
+import { writeSettingsFile } from '#lib/core/settings/settings.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
+import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/core/layout/tauri-listeners.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 // --- Tests ---

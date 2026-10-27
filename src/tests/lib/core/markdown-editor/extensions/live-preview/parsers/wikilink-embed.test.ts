@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	findWikilinkEmbedRanges,
 	isImageEmbed,
-} from '$lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed';
+} from '#lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed.js';
 
 describe('isImageEmbed', () => {
 	it('returns true for common image extensions', () => {

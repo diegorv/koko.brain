@@ -5,8 +5,8 @@ import {
 	evaluateFilter,
 	formatCellValue,
 	getPropertyValue,
-} from '$lib/features/collection/collection.logic';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord } from '$lib/features/collection/collection.types';
+} from '#lib/features/collection/collection.logic.js';
+import type { CollectionDefinition, CollectionViewDef, NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,

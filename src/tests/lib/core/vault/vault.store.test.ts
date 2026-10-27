@@ -12,7 +12,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
 
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 
 describe('vaultStore', () => {
 	beforeEach(() => {

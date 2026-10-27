@@ -8,7 +8,7 @@ import {
 	markdownLanguage,
 	getLanguageEffects,
 	getLanguageEffectsSync,
-} from '$lib/core/markdown-editor/highlight-styles';
+} from '#lib/core/markdown-editor/highlight-styles.js';
 
 describe('markdownHighlight', () => {
 	it('is a valid HighlightStyle instance', () => {

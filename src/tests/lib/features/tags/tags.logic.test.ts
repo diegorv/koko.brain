@@ -6,7 +6,7 @@ import {
 	buildTagTree,
 	sortTagTree,
 	filterTagTree,
-} from '$lib/features/tags/tags.logic';
+} from '#lib/features/tags/tags.logic.js';
 
 describe('extractFrontmatterTags', () => {
 	it('extracts tags from inline array format', () => {

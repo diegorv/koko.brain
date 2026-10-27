@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
-import { MathExtension } from '$lib/core/markdown-editor/extensions/lezer/math-extension';
-import { computeBlockMath } from '$lib/core/markdown-editor/extensions/live-preview/plugins/block-math-field';
+import { MathExtension } from '#lib/core/markdown-editor/extensions/lezer/math-extension.js';
+import { computeBlockMath } from '#lib/core/markdown-editor/extensions/live-preview/plugins/block-math-field.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {

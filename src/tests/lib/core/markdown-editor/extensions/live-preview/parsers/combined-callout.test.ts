@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseCalloutHeader, findAllCallouts } from '$lib/core/markdown-editor/extensions/live-preview/parsers/callout';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findFootnoteRefRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findWikilinkEmbedRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed';
-import { findBlockReference } from '$lib/core/markdown-editor/extensions/live-preview/parsers/block-reference';
-import { findInlineCommentRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
+import { parseCalloutHeader, findAllCallouts } from '#lib/core/markdown-editor/extensions/live-preview/parsers/callout.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findWikilinkEmbedRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed.js';
+import { findBlockReference } from '#lib/core/markdown-editor/extensions/live-preview/parsers/block-reference.js';
+import { findInlineCommentRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('callout header + bold', () => {

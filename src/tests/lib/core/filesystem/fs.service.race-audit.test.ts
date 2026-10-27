@@ -33,48 +33,48 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 	revealItemInDir: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/link-updater.service', () => ({
+vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
 	updateLinksAfterRename: vi.fn(),
 	updateTabAfterRenameOrMove: vi.fn(),
 }));
 
-vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
+vi.mock('#lib/features/bookmarks/bookmarks.service.js', () => ({
 	updateBookmarkPathsAfterMove: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({}));
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({}));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	closeTabsForDeletedPath: vi.fn(),
 }));
 
-vi.mock('$lib/utils/index-dedupe', () => ({
+vi.mock('#lib/utils/index-dedupe.js', () => ({
 	clearIndexedEntry: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('$lib/core/trash/trash.service', () => ({
+vi.mock('#lib/core/trash/trash.service.js', () => ({
 	moveToTrash: vi.fn(),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
 import { rename, exists } from '@tauri-apps/plugin-fs';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
-import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
-import { moveToTrash } from '$lib/core/trash/trash.service';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
+import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
+import { moveToTrash } from '#lib/core/trash/trash.service.js';
 import {
 	deleteItem,
 	renameItem,
 	moveItem,
-} from '$lib/core/filesystem/fs.service';
+} from '#lib/core/filesystem/fs.service.js';
 import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
 
 describe('AUDIT: file mutation ordering (P0 race conditions)', () => {

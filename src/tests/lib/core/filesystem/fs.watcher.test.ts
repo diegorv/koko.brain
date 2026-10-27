@@ -8,11 +8,11 @@ vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -21,16 +21,16 @@ vi.mock('$lib/utils/debug', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import {
 	patchSubtree,
 	onFileChange,
 	startWatching,
 	stopWatching,
 	getWatcherCounters,
-} from '$lib/core/filesystem/fs.watcher';
+} from '#lib/core/filesystem/fs.watcher.js';
 
 // ---------------------------------------------------------------------------
 // patchSubtree (pure logic, unchanged from pre-Phase 9)

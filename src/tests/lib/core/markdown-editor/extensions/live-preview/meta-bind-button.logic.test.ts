@@ -3,7 +3,7 @@ import {
 	parseButtonConfig,
 	validateButtonConfig,
 	getButtonActions,
-} from '$lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic';
+} from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
 
 describe('parseButtonConfig', () => {
 	it('parses a basic config with single action', () => {

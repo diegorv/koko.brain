@@ -10,9 +10,9 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { writeTextFile } from '@tauri-apps/plugin-fs';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { resetEditor } from '$lib/core/editor/editor.service';
-import { propertiesStore } from '$lib/features/properties/properties.store.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { resetEditor } from '#lib/core/editor/editor.service.js';
+import { propertiesStore } from '#lib/features/properties/properties.store.svelte.js';
 import {
 	updateProperty,
 	upsertProperty,
@@ -22,7 +22,7 @@ import {
 	parseAndSetProperties,
 	consumeSkipNextParse,
 	resetProperties,
-} from '$lib/features/properties/properties.service';
+} from '#lib/features/properties/properties.service.js';
 
 /** Opens a tab with frontmatter content for testing */
 function openTabWithContent(content: string) {

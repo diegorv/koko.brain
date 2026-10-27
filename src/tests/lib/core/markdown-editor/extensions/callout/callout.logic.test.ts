@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	parseCalloutLine,
 	CALLOUT_COLORS,
-} from '$lib/core/markdown-editor/extensions/callout/callout.logic';
+} from '#lib/core/markdown-editor/extensions/callout/callout.logic.js';
 
 describe('parseCalloutLine', () => {
 	it('parses a standard note callout', () => {

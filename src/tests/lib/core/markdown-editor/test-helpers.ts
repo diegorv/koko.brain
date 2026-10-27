@@ -3,8 +3,8 @@ import { EditorSelection, EditorState, type Extension } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { GFM } from '@lezer/markdown';
-import { MathExtension } from '$lib/core/markdown-editor/extensions/lezer/math-extension';
-import { HighlightExtension } from '$lib/core/markdown-editor/extensions/lezer/highlight-extension';
+import { MathExtension } from '#lib/core/markdown-editor/extensions/lezer/math-extension.js';
+import { HighlightExtension } from '#lib/core/markdown-editor/extensions/lezer/highlight-extension.js';
 
 /** Splits a multi-line string into line objects with text and absolute positions */
 export function makeLines(text: string) {

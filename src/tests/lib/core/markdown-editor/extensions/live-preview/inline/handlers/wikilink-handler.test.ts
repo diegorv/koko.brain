@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
-import { wikilinkHandler } from '$lib/core/markdown-editor/extensions/live-preview/inline/handlers/wikilink-handler';
-import { buildInlineDecorations } from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { wikilinkHandler } from '#lib/core/markdown-editor/extensions/live-preview/inline/handlers/wikilink-handler.js';
+import { buildInlineDecorations } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../../test-helpers';
 
 interface DecoSpec { from: number; to: number; class: string }

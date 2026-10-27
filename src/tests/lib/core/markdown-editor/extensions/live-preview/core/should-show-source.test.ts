@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { shouldShowSource } from '$lib/core/markdown-editor/extensions/live-preview/core/should-show-source';
+import { shouldShowSource } from '#lib/core/markdown-editor/extensions/live-preview/core/should-show-source.js';
 
 function createState(doc: string, cursor: number): EditorState {
 	return EditorState.create({ doc, selection: EditorSelection.single(cursor) });

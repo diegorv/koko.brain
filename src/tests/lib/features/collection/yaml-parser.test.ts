@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType } from '$lib/features/collection/yaml-parser';
+import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType } from '#lib/features/collection/yaml-parser.js';
 
 describe('parseCollectionYaml', () => {
 	it('parses a minimal collection with one table view', () => {

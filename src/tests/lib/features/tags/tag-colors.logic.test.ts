@@ -4,7 +4,7 @@ import {
 	TAG_COLOR_PRESET_ENTRIES,
 	getTagColor,
 	setTagColor,
-} from '$lib/features/tags/tag-colors.logic';
+} from '#lib/features/tags/tag-colors.logic.js';
 
 describe('TAG_COLOR_PRESETS', () => {
 	it('has 6 preset colors', () => {

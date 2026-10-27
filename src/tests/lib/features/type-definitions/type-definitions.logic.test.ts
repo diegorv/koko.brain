@@ -7,8 +7,8 @@ import {
 	getTypeMetadataFallback,
 	validateTypeName,
 	rewriteTypeInFrontmatter,
-} from '$lib/features/type-definitions/type-definitions.logic';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+} from '#lib/features/type-definitions/type-definitions.logic.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function typeDefEntry(title: string, fm: Record<string, unknown> = {}): NoteEntryV2 {

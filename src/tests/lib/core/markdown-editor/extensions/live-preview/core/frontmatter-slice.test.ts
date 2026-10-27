@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Text } from '@codemirror/state';
-import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
-import { frontmatterSlice } from '$lib/core/markdown-editor/extensions/live-preview/core/frontmatter-slice';
+import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { frontmatterSlice } from '#lib/core/markdown-editor/extensions/live-preview/core/frontmatter-slice.js';
 
 function doc(text: string): Text {
 	return Text.of(text.split('\n'));

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	findMarkdownLinkUrlAtPosition,
 	findExtendedAutolinkRanges,
-} from '$lib/core/markdown-editor/extensions/live-preview/parsers/link';
+} from '#lib/core/markdown-editor/extensions/live-preview/parsers/link.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('findMarkdownLinkUrlAtPosition', () => {

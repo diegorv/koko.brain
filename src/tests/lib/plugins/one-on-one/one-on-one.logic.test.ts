@@ -9,8 +9,8 @@ import {
 	filterPeople,
 	mergePeopleLists,
 	type PersonEntry,
-} from '$lib/plugins/one-on-one/one-on-one.logic';
-import type { PeriodicNotesSettings } from '$lib/core/settings/settings.types';
+} from '#lib/plugins/one-on-one/one-on-one.logic.js';
+import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
 
 dayjs.extend(advancedFormat);
 dayjs.extend(quarterOfYear);

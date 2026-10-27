@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
+import { bookmarksStore } from '#lib/features/bookmarks/bookmarks.store.svelte.js';
 
 describe('bookmarksStore', () => {
 	beforeEach(() => {

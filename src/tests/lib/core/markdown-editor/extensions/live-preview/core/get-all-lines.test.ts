@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState } from '@codemirror/state';
-import { getAllLines } from '$lib/core/markdown-editor/extensions/live-preview/core/get-all-lines';
+import { getAllLines } from '#lib/core/markdown-editor/extensions/live-preview/core/get-all-lines.js';
 
 function createState(doc: string): EditorState {
 	return EditorState.create({ doc });

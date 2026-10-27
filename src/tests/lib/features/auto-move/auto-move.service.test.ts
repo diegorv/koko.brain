@@ -10,37 +10,37 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	moveItem: vi.fn(() => Promise.resolve('/vault/Archive/note.md')),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
-import { moveItem } from '$lib/core/filesystem/fs.service';
-import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
-import { autoMoveStore } from '$lib/features/auto-move/auto-move.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { moveItem } from '#lib/core/filesystem/fs.service.js';
+import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
+import { autoMoveStore } from '#lib/features/auto-move/auto-move.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	loadAutoMoveConfig,
 	saveAutoMoveConfig,
 	registerAutoMoveHook,
 	toggleAutoMoveHook,
 	resetAutoMove,
-} from '$lib/features/auto-move/auto-move.service';
+} from '#lib/features/auto-move/auto-move.service.js';
 
 describe('auto-move.service', () => {
 	beforeEach(() => {

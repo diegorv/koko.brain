@@ -9,8 +9,8 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import EditorSection from '$lib/core/settings/sections/EditorSection.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import EditorSection from '#lib/core/settings/sections/EditorSection.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 
 describe('EditorSection - clamp on commit', () => {
 	let target: HTMLElement;

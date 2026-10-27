@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	findHeadingPosition,
 	findBlockIdPosition,
-} from '$lib/core/markdown-editor/extensions/wikilink/navigation.logic';
+} from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
 
 describe('findHeadingPosition', () => {
 	const doc = [

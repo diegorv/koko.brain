@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { renderCanvasMarkdown } from '$lib/features/canvas/canvas-markdown.logic';
+import { renderCanvasMarkdown } from '#lib/features/canvas/canvas-markdown.logic.js';
 
 describe('renderCanvasMarkdown', () => {
 	it('returns empty string for empty input', () => {

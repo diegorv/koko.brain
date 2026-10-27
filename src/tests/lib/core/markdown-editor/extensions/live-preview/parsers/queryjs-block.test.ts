@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findQueryjsBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block';
+import { findQueryjsBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.js';
 
 function makeLines(texts: string[]) {
 	let pos = 0;

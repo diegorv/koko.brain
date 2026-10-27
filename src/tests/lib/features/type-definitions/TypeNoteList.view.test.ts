@@ -54,43 +54,43 @@ const cacheMocks = vi.hoisted(() => ({
 	refreshViewDefinition: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	getIconSync: vi.fn(),
 	preloadPacks: vi.fn(),
 	setOnPacksLoaded: vi.fn(),
 }));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
-vi.mock('$lib/core/editor/editor.service', () => ({ openFileInEditor: vi.fn() }));
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	deleteItem: vi.fn(),
 	duplicateItem: vi.fn(),
 	renameItem: vi.fn(),
 	revealInSystemExplorer: vi.fn(),
 }));
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createNoteOfType: vi.fn(),
 	toggleFavoriteForPath: vi.fn(),
 	updateViewQuery: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/view-parse-cache', () => cacheMocks);
-vi.mock('$lib/utils/log.service', () => ({ appendLog: vi.fn() }));
+vi.mock('#lib/features/type-definitions/view-parse-cache.js', () => cacheMocks);
+vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
-import TypeNoteList from '$lib/features/type-definitions/TypeNoteList.svelte';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { updateViewQuery } from '$lib/features/type-definitions/type-definitions.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import TypeNoteList from '#lib/features/type-definitions/TypeNoteList.svelte';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 const VIEW_PATH = '/vault/v.view';
 

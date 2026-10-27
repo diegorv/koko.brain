@@ -22,22 +22,22 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 	revealItemInDir: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/link-updater.service', () => ({
+vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
 	updateLinksAfterRename: vi.fn(),
 	updateTabAfterRenameOrMove: vi.fn(),
 }));
 
-vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
+vi.mock('#lib/features/bookmarks/bookmarks.service.js', () => ({
 	updateBookmarkPathsAfterMove: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({}));
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({}));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	closeTabsForDeletedPath: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -46,25 +46,25 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('$lib/core/trash/trash.service', () => ({
+vi.mock('#lib/core/trash/trash.service.js', () => ({
 	moveToTrash: vi.fn(),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
-import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
-import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
-import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index-dedupe';
-import { moveToTrash } from '$lib/core/trash/trash.service';
-import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
-import { error } from '$lib/utils/debug';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
+import { updateBookmarkPathsAfterMove } from '#lib/features/bookmarks/bookmarks.service.js';
+import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
+import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { moveToTrash } from '#lib/core/trash/trash.service.js';
+import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+import { error } from '#lib/utils/debug.js';
 import {
 	loadDirectoryTree,
 	refreshTree,
@@ -77,8 +77,8 @@ import {
 	resetFileSystem,
 	duplicateItem,
 	revealInSystemExplorer,
-} from '$lib/core/filesystem/fs.service';
-import { refreshViewDefinition, getCachedViewDefinition, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
+} from '#lib/core/filesystem/fs.service.js';
+import { refreshViewDefinition, getCachedViewDefinition, clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
 
 /**

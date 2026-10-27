@@ -9,9 +9,9 @@ vi.mock('@tauri-apps/api/core', () => ({
 import {
 	resolveImageEmbedAssetUrl,
 	WikilinkImageEmbedWidget,
-} from '$lib/core/markdown-editor/extensions/live-preview/widgets';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+} from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
 function makeFile(path: string): FileTreeNode {
 	const segments = path.split('/');

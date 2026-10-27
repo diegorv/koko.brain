@@ -7,8 +7,8 @@ import {
 	getFolderFromPath,
 	getUniqueFolders,
 	getUniqueTags,
-} from '$lib/plugins/graph-view/graph-view.logic';
-import type { GraphData, GraphNode } from '$lib/plugins/graph-view/graph-view.types';
+} from '#lib/plugins/graph-view/graph-view.logic.js';
+import type { GraphData, GraphNode } from '#lib/plugins/graph-view/graph-view.types.js';
 import { entryV2, entryV2WithContent } from '../../../fixtures/vault-entries.fixture';
 
 describe('getFolderFromPath', () => {

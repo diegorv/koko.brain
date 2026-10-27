@@ -12,7 +12,7 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
@@ -32,9 +32,9 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { error as debugError } from '$lib/utils/debug';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
+import { error as debugError } from '#lib/utils/debug.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { openVaultDialog, openRecentVault } from '#lib/core/vault/vault.service.js';
 
 describe('openVaultDialog', () => {
 	beforeEach(() => {

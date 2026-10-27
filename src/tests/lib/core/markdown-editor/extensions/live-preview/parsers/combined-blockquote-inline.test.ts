@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { findBlockquoteMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/blockquote';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findInlineCommentRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
-import { findFootnoteRefRanges, findInlineFootnoteRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findWikilinkEmbedRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed';
-import { findBlockReference } from '$lib/core/markdown-editor/extensions/live-preview/parsers/block-reference';
-import { parseCalloutHeader } from '$lib/core/markdown-editor/extensions/live-preview/parsers/callout';
+import { findBlockquoteMarkRange } from '#lib/core/markdown-editor/extensions/live-preview/parsers/blockquote.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findInlineCommentRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
+import { findFootnoteRefRanges, findInlineFootnoteRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findWikilinkEmbedRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed.js';
+import { findBlockReference } from '#lib/core/markdown-editor/extensions/live-preview/parsers/block-reference.js';
+import { parseCalloutHeader } from '#lib/core/markdown-editor/extensions/live-preview/parsers/callout.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('blockquote + bold', () => {

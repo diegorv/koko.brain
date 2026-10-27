@@ -8,7 +8,7 @@ import {
 	undo,
 	redo,
 	type CanvasSnapshot,
-} from '$lib/features/canvas/canvas-history.logic';
+} from '#lib/features/canvas/canvas-history.logic.js';
 
 /** Helper to create a minimal snapshot */
 function snap(label: string): CanvasSnapshot {

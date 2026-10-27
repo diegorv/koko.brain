@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	findInlineCommentRanges,
 	findBlockComment,
-} from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
+} from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function makeLines(text: string) {

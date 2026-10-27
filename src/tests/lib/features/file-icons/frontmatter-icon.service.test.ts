@@ -11,13 +11,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { setFrontmatterIcon, removeFrontmatterIcon } from '$lib/features/file-icons/frontmatter-icon.service';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { registerFileIconsNoteChangeConsumer } from '$lib/features/file-icons/file-icons.service';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { setFrontmatterIcon, removeFrontmatterIcon } from '#lib/features/file-icons/frontmatter-icon.service.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 
 beforeEach(() => {
 	vi.clearAllMocks();

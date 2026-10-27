@@ -5,27 +5,27 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 // Mock only side-effect services
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
 import {
 	scanFilesForCalendar,
 	updateCalendarForFile,
 	removeCalendarForFile,
 	openOrCreatePeriodicNoteForDate,
 	resetCalendar,
-} from '$lib/plugins/calendar/calendar.service';
+} from '#lib/plugins/calendar/calendar.service.js';
 
 describe('scanFilesForCalendar', () => {
 	beforeEach(() => {

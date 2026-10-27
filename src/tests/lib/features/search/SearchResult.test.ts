@@ -7,21 +7,21 @@ setupLocalStorage();
 
 // openFileInEditor hits Tauri fs IPC — legitimately mocked. Stores stay real
 // (CLAUDE.md rule 1): assertions run against the real editorStore.
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import SearchResult from '$lib/features/search/SearchResult.svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import SearchResult from '#lib/features/search/SearchResult.svelte';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type {
 	SemanticSearchResult,
 	HybridSearchResult,
 	SearchResult as LegacySearchResult,
 	FtsSearchResult,
-} from '$lib/features/search/search.types';
+} from '#lib/features/search/search.types.js';
 
 /**
  * Note content served by the mocked openFileInEditor. 1-indexed line start offsets:

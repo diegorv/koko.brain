@@ -6,10 +6,10 @@ import {
 	validateExpression,
 	generateRuleId,
 	resolveDestination,
-} from '$lib/features/auto-move/auto-move.logic';
-import { buildNoteRecord } from '$lib/features/collection/collection.logic';
-import type { AutoMoveRule } from '$lib/features/auto-move/auto-move.types';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+} from '#lib/features/auto-move/auto-move.logic.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
 	return {
