@@ -9,7 +9,17 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // TS resolves package.json `imports` targets without the `.svelte` ->
+    // `.d.svelte.ts` lookup svelte-check relies on, so `#lib/...svelte` fell
+    // back to the ambient `*.svelte` module (props untyped). Mirroring `#lib/*`
+    // as a path restores typed resolution. A local `paths` replaces the
+    // inherited one, so `$lib` is repeated until ticket 12 drops it.
+    "paths": {
+      "#lib/*": ["./src/lib/*"],
+      "$lib": ["./src/lib"],
+      "$lib/*": ["./src/lib/*"]
+    }
   },
   // Kit 3's generated parent declares no include/exclude, so they live here.
   // `src` covers src/tests; this matches what kit 2's generated config included.
