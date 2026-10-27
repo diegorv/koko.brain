@@ -72,6 +72,9 @@ export default defineConfig(async () => ({
       adapter: adapter({
         fallback: "index.html",
       }),
+      // Deprecated kit 3 escape hatch: keeps the existing `$lib` imports
+      // compiling through the `#lib` migration (05-11); ticket 12 removes it.
+      alias: { $lib: "src/lib" },
     }),
     tailwindcss(),
   ],
