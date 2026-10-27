@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 // Side-effect import: registers the dayjs plugins the delegated methods need
 // (isoWeek for Monday-based week boundaries, quarterOfYear for quarter units).
 // Registration lives in utils/date so there is a single source of truth.
-import '$lib/utils/date';
+import '#lib/utils/date.js';
 
 /**
  * Lightweight Luxon-compatible date wrapper.

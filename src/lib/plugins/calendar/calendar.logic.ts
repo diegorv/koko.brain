@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import '$lib/utils/date';
+import '#lib/utils/date.js';
 
 /** A cell in the calendar grid */
 export interface CalendarDay {

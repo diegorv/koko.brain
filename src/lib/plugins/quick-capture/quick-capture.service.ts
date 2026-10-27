@@ -1,9 +1,9 @@
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'svelte-sonner';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { executeAction } from '$lib/features/deep-link/deep-link.service';
-import type { CaptureAction, CaptureKind } from '$lib/features/deep-link/deep-link.types';
-import { debug, error } from '$lib/utils/debug';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { executeAction } from '#lib/features/deep-link/deep-link.service.js';
+import type { CaptureAction, CaptureKind } from '#lib/features/deep-link/deep-link.types.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /**
  * Event emitted by the Rust side (`quick_capture::commands::capture_clipboard_now`

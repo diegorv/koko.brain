@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { pinTabByPath, unpinTabByPath } from '$lib/core/editor/editor.service';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { appendLog } from '$lib/utils/log.service';
-import type { PeriodType } from '$lib/core/settings/settings.types';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { pinTabByPath, unpinTabByPath } from '#lib/core/editor/editor.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { appendLog } from '#lib/utils/log.service.js';
+import type { PeriodType } from '#lib/core/settings/settings.types.js';
 import {
 	buildPeriodicNotePath,
 	getFormatForPeriod,

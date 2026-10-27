@@ -5,11 +5,11 @@
 	import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
 	import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
 	import FileText from '@lucide/svelte/icons/file-text';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
-	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import DailyNoteButton from '#lib/plugins/periodic-notes/DailyNoteButton.svelte';
+	import SidebarModeToggle from '#lib/features/type-definitions/SidebarModeToggle.svelte';
 	import { calendarStore } from './calendar.store.svelte';
 	import { openOrCreatePeriodicNoteForDate } from './calendar.service';
 	import { buildMonthGrid, formatDateLabel, extractDisplayName } from './calendar.logic';

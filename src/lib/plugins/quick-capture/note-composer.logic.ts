@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
-import type { PeriodicNotesSettings } from '$lib/core/settings/settings.types';
-import { buildWikilinkPath } from '$lib/plugins/periodic-notes/periodic-notes.logic';
+import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
+import { buildWikilinkPath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 
 /**
  * Builds the full absolute path for a quick note.

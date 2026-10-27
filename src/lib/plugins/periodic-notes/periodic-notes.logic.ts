@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
-import { formatToCapturingRegex } from '$lib/utils/date';
-import type { PeriodType, PeriodicNotesSettings } from '$lib/core/settings/settings.types';
+import { formatToCapturingRegex } from '#lib/utils/date.js';
+import type { PeriodType, PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
 
 /**
  * Builds the full absolute path for a periodic note given a specific date.

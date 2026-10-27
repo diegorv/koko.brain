@@ -1,6 +1,6 @@
-import { buildResolutionCache, resolveWikilinkCached } from '$lib/features/backlinks/backlinks.logic';
+import { buildResolutionCache, resolveWikilinkCached } from '#lib/features/backlinks/backlinks.logic.js';
 import type { GraphNode, GraphLink, GraphData, GraphFilters } from './graph-view.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 export function getFolderFromPath(filePath: string): string {
 	const lastSlash = filePath.lastIndexOf('/');

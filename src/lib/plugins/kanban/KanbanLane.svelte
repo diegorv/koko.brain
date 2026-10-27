@@ -12,8 +12,8 @@
 	import type { KanbanLane, KanbanItem } from './kanban.types';
 	import KanbanCard from './KanbanCard.svelte';
 	import KanbanWikilinkSuggestions from './KanbanWikilinkSuggestions.svelte';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
-	import { clamp } from '$lib/utils/clamp';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import { clamp } from '#lib/utils/clamp.js';
 
 	interface Props {
 		lane: KanbanLane;

@@ -1,11 +1,11 @@
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { KBPage, KBLink, KBTask } from './queryjs.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { KBDateTime } from './kb-datetime';
 import {
 	resolveWikilinkCached,
 	type WikilinkResolutionCache,
-} from '$lib/features/backlinks/backlinks.logic';
+} from '#lib/features/backlinks/backlinks.logic.js';
 
 /** Extracts basename (without extension) from a file path */
 function getBasename(filePath: string): string {

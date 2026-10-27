@@ -1,13 +1,13 @@
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { KBPage, KBLink, KBElOptions } from './queryjs.types';
 import { DataArray } from './data-array';
 import { KBDateTime } from './kb-datetime';
 import { KBUI } from './kb-ui';
 import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './queryjs.logic';
-import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { clamp } from '$lib/utils/clamp';
+import { buildResolutionCache } from '#lib/features/backlinks/backlinks.logic.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { clamp } from '#lib/utils/clamp.js';
 
 /**
  * QueryJS API object.

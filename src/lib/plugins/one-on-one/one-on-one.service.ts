@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
 import { readDir, exists } from '@tauri-apps/plugin-fs';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { oneOnOneStore } from './one-on-one.store.svelte';
 import {
 	buildOneOnOnePath,
@@ -10,7 +10,7 @@ import {
 	loadPeopleFromEntries,
 	mergePeopleLists,
 } from './one-on-one.logic';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Loads people from a single folder and returns them tagged with the given context.

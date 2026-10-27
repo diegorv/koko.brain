@@ -1,10 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { findTabIndex, GRAPH_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { findTabIndex, GRAPH_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { buildGraphData } from './graph-view.logic';
 import { graphViewStore } from './graph-view.store.svelte';
 import type { GraphData } from './graph-view.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Fetches the full vault index snapshot from Rust and builds the graph
