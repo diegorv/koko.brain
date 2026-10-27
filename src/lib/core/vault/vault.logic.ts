@@ -1,4 +1,4 @@
-import { basename } from '$lib/utils/path';
+import { basename } from '#lib/utils/path.js';
 
 /** Entry in the "recent vaults" list persisted to localStorage */
 export interface RecentVault {

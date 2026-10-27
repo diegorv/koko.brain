@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { applyTheme } from '../theme.service';
 	import { mergeThemeWithDefaults } from '../theme.logic';
 	import {

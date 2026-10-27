@@ -1,26 +1,26 @@
-import { registerKeybinding } from '$lib/utils/keybindings';
+import { registerKeybinding } from '#lib/utils/keybindings.js';
 import {
 	saveCurrentFile,
 	closeActiveTab,
 	switchToNextTab,
 	switchToPreviousTab,
 	toggleSourceMode,
-} from '$lib/core/editor/editor.service';
-import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
-import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
-import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
-import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { openFileHistory } from '$lib/features/file-history/file-history.service';
-import { cycleSidebarMode } from '$lib/core/layout/layout.service';
-import { matchesKeybinding } from '$lib/core/keybindings/keybindings.logic';
-import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
-import { error } from '$lib/utils/debug';
+} from '#lib/core/editor/editor.service.js';
+import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
+import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { commandPaletteStore } from '#lib/features/command-palette/command-palette.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
+import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
+import { cycleSidebarMode } from '#lib/core/layout/layout.service.js';
+import { matchesKeybinding } from '#lib/core/keybindings/keybindings.logic.js';
+import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Registers the customizable "cycle sidebar view" shortcut as a dedicated

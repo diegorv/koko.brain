@@ -1,22 +1,22 @@
 <script module lang="ts">
-	import AppearanceSection from '$lib/core/settings/sections/AppearanceSection.svelte';
-	import GeneralSection from '$lib/core/settings/sections/GeneralSection.svelte';
-	import EditorSection from '$lib/core/settings/sections/EditorSection.svelte';
-	import KeybindingsSection from '$lib/core/settings/sections/KeybindingsSection.svelte';
-	import PeriodicNotesSection from '$lib/core/settings/sections/PeriodicNotesSection.svelte';
-	import QuickCaptureSection from '$lib/core/settings/sections/QuickCaptureSection.svelte';
-	import OneOnOneSection from '$lib/core/settings/sections/OneOnOneSection.svelte';
-	import TemplatesSection from '$lib/core/settings/sections/TemplatesSection.svelte';
-	import SearchSection from '$lib/core/settings/sections/SearchSection.svelte';
-	import FileHistorySection from '$lib/core/settings/sections/FileHistorySection.svelte';
-	import AutoMoveSection from '$lib/features/auto-move/AutoMoveSection.svelte';
-	import TrashSection from '$lib/core/settings/sections/TrashSection.svelte';
-	import TodoistSection from '$lib/core/settings/sections/TodoistSection.svelte';
-	import SentrySection from '$lib/core/settings/sections/SentrySection.svelte';
-	import TroubleshootingSection from '$lib/core/settings/sections/TroubleshootingSection.svelte';
-	import UpdateSection from '$lib/core/settings/sections/UpdateSection.svelte';
-	import QueryjsSection from '$lib/core/settings/sections/QueryjsSection.svelte';
-	import TypesSection from '$lib/core/settings/sections/TypesSection.svelte';
+	import AppearanceSection from '#lib/core/settings/sections/AppearanceSection.svelte';
+	import GeneralSection from '#lib/core/settings/sections/GeneralSection.svelte';
+	import EditorSection from '#lib/core/settings/sections/EditorSection.svelte';
+	import KeybindingsSection from '#lib/core/settings/sections/KeybindingsSection.svelte';
+	import PeriodicNotesSection from '#lib/core/settings/sections/PeriodicNotesSection.svelte';
+	import QuickCaptureSection from '#lib/core/settings/sections/QuickCaptureSection.svelte';
+	import OneOnOneSection from '#lib/core/settings/sections/OneOnOneSection.svelte';
+	import TemplatesSection from '#lib/core/settings/sections/TemplatesSection.svelte';
+	import SearchSection from '#lib/core/settings/sections/SearchSection.svelte';
+	import FileHistorySection from '#lib/core/settings/sections/FileHistorySection.svelte';
+	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
+	import TrashSection from '#lib/core/settings/sections/TrashSection.svelte';
+	import TodoistSection from '#lib/core/settings/sections/TodoistSection.svelte';
+	import SentrySection from '#lib/core/settings/sections/SentrySection.svelte';
+	import TroubleshootingSection from '#lib/core/settings/sections/TroubleshootingSection.svelte';
+	import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';
+	import QueryjsSection from '#lib/core/settings/sections/QueryjsSection.svelte';
+	import TypesSection from '#lib/core/settings/sections/TypesSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -35,7 +35,7 @@
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
-	import type { SettingsSection } from '$lib/core/settings/settings.types';
+	import type { SettingsSection } from '#lib/core/settings/settings.types.js';
 	import type { Component } from 'svelte';
 
 	/** Sidebar icon for each settings section */
@@ -89,9 +89,9 @@
 
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { settingsPanelStore } from './settings-panel.store.svelte';
-	import { SETTINGS_SECTION_GROUPS } from '$lib/core/settings/settings.logic';
+	import { SETTINGS_SECTION_GROUPS } from '#lib/core/settings/settings.logic.js';
 	import XIcon from '@lucide/svelte/icons/x';
 
 	/** Active section component, derived so it re-renders when the store section changes. */

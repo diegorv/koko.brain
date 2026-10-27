@@ -1,4 +1,4 @@
-import { basename } from '$lib/utils/path';
+import { basename } from '#lib/utils/path.js';
 
 import type { EditorTab } from './editor.types';
 

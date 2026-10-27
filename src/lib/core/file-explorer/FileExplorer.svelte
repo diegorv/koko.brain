@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { bookmarksStore } from '$lib/features/bookmarks/bookmarks.store.svelte';
-	import { toggleBookmarkForPath } from '$lib/features/bookmarks/bookmarks.service';
-	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { bookmarksStore } from '#lib/features/bookmarks/bookmarks.store.svelte.js';
+	import { toggleBookmarkForPath } from '#lib/features/bookmarks/bookmarks.service.js';
+	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import {
 		setIconForPath,
 		removeIconForPath,
 		trackRecentIcon,
-	} from '$lib/features/file-icons/file-icons.service';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	} from '#lib/features/file-icons/file-icons.service.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import {
 		createFile,
 		createFolder,
@@ -17,19 +17,19 @@
 		duplicateItem,
 		moveItem,
 		revealInSystemExplorer,
-	} from '$lib/core/filesystem/fs.service';
+	} from '#lib/core/filesystem/fs.service.js';
 	import {
 		validateDragDrop,
 		getRelativePath,
 		getParentPath,
-	} from '$lib/core/filesystem/fs.logic';
-	import { createCanvasFile } from '$lib/features/canvas/canvas.service';
-	import { createKanbanFile } from '$lib/plugins/kanban/kanban.service';
-	import { createCollectionFile } from '$lib/features/collection/collection.service';
+	} from '#lib/core/filesystem/fs.logic.js';
+	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
+	import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
+	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
 	import { ask } from '@tauri-apps/plugin-dialog';
-	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
-	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
+	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
+	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import Vault from '@lucide/svelte/icons/vault';
 	import FilePlus from '@lucide/svelte/icons/file-plus';
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
@@ -44,10 +44,10 @@
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import Palette from '@lucide/svelte/icons/palette';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import FileExplorerHeader from './FileExplorerHeader.svelte';
 	import FileTreeItem from './FileTreeItem.svelte';
 	import { setFileExplorerContext } from './file-explorer.context';

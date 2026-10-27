@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
-	import { Input } from '$lib/components/ui/input';
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Command from '$lib/components/ui/command';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import * as Command from '#lib/components/ui/command/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import { clampFontSize, clampLineHeight, clampContentWidth, clampParagraphSpacing } from '../settings.logic';
 	import SettingItem from './SettingItem.svelte';

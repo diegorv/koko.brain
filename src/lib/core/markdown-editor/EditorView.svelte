@@ -5,18 +5,18 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Kanban from '@lucide/svelte/icons/kanban';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { onContentChange } from '$lib/core/editor/editor.service';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import EditorTabs from './EditorTabs.svelte';
 	import MarkdownEditor from './MarkdownEditor.svelte';
-	import CollectionView from '$lib/features/collection/CollectionView.svelte';
-	import TasksView from '$lib/features/tasks/TasksView.svelte';
-	import TagsView from '$lib/features/tags/TagsView.svelte';
-	import GraphView from '$lib/plugins/graph-view/GraphView.svelte';
-	import CanvasView from '$lib/features/canvas/CanvasView.svelte';
-	import KanbanView from '$lib/plugins/kanban/KanbanView.svelte';
-	import { isVirtualTab } from '$lib/core/editor/editor.logic';
+	import CollectionView from '#lib/features/collection/CollectionView.svelte';
+	import TasksView from '#lib/features/tasks/TasksView.svelte';
+	import TagsView from '#lib/features/tags/TagsView.svelte';
+	import GraphView from '#lib/plugins/graph-view/GraphView.svelte';
+	import CanvasView from '#lib/features/canvas/CanvasView.svelte';
+	import KanbanView from '#lib/plugins/kanban/KanbanView.svelte';
+	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
 
 	/** Whether the .collection file is shown in source (YAML) mode vs table view */
 	let collectionSourceMode = $state(false);

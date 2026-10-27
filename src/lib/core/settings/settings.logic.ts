@@ -1,4 +1,4 @@
-import { clamp } from '$lib/utils/clamp';
+import { clamp } from '#lib/utils/clamp.js';
 import type { AppSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
 
 /** Clamps a font size to the valid range (8–32 px) */

@@ -1,5 +1,5 @@
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { appendLog } from '$lib/utils/log.service';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { appendLog } from '#lib/utils/log.service.js';
 
 /**
  * Starts a profiling measurement for a live preview decoration plugin.

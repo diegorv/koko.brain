@@ -5,14 +5,14 @@ import { findMetaBindInputRanges } from './parsers/meta-bind-input';
 import { renderInlineMarkdown } from './parsers/inline-markdown';
 import type { MediaTag } from './parsers/media';
 import { WIKILINK_DECORATION_RE } from '../wikilink/decoration.logic';
-import type { Property } from '$lib/features/properties/properties.types';
+import type { Property } from '#lib/features/properties/properties.types.js';
 import {
 	parseFrontmatterProperties,
 	setPropertyByBindTarget,
 	extractBody,
 	rebuildContent,
-} from '$lib/features/properties/properties.logic';
-import { isSafeUrl } from '$lib/utils/sanitize-url';
+} from '#lib/features/properties/properties.logic.js';
+import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { openWikilinkTarget } from './wikilink-navigation';
 
 export class TaskCheckboxWidget extends WidgetType {
@@ -583,9 +583,9 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 
 /** Resolves a wikilink target to a file path using the file tree */
 async function resolveEmbedTarget(target: string): Promise<string | null> {
-	const { fsStore } = await import('$lib/core/filesystem/fs.store.svelte');
-	const { flattenFileTree } = await import('$lib/features/quick-switcher/quick-switcher.logic');
-	const { resolveWikilink } = await import('$lib/features/backlinks/backlinks.logic');
+	const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
+	const { flattenFileTree } = await import('#lib/features/quick-switcher/quick-switcher.logic.js');
+	const { resolveWikilink } = await import('#lib/features/backlinks/backlinks.logic.js');
 	const files = flattenFileTree(fsStore.fileTree);
 	return resolveWikilink(target, files.map((f) => f.path));
 }

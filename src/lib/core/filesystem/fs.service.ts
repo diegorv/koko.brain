@@ -6,8 +6,8 @@ import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
-import { markRecentSave } from '$lib/core/editor/editor.hooks';
-import { debug, error, timeAsync } from '$lib/utils/debug';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { debug, error, timeAsync } from '#lib/utils/debug.js';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
 function countTreeNodes(nodes: FileTreeNode[]): number {
@@ -102,7 +102,7 @@ export async function loadDirectoryTree(vaultPath: string) {
 
 /** Re-reads the current vault's file tree (lazy-imports vaultStore to avoid circular deps) */
 export async function refreshTree() {
-	const { path } = await import('$lib/core/vault/vault.store.svelte').then(m => ({ path: m.vaultStore.path }));
+	const { path } = await import('#lib/core/vault/vault.store.svelte.js').then(m => ({ path: m.vaultStore.path }));
 	if (path) {
 		await loadDirectoryTree(path);
 	}
@@ -166,10 +166,10 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 			to: null,
 			isDirectory,
 			diskOp: async () => {
-				const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+				const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
 				const vaultPath = vaultStore.path;
 				if (vaultPath) {
-					const { moveToTrash } = await import('$lib/core/trash/trash.service');
+					const { moveToTrash } = await import('#lib/core/trash/trash.service.js');
 					await moveToTrash(vaultPath, itemPath, isDirectory);
 				} else {
 					// Fallback: permanent delete if no vault is open

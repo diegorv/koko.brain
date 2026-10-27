@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, applyFolderOrder, attachFileCounts } from './fs.logic';
-import { debug, error } from '$lib/utils/debug';
+import { debug, error } from '#lib/utils/debug.js';
 import type { FileTreeNode } from './fs.types';
 
 /**

@@ -6,12 +6,12 @@
 	import Network from '@lucide/svelte/icons/network';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Kanban from '@lucide/svelte/icons/kanban';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { switchTab, closeTab, togglePinTab } from '$lib/core/editor/editor.service';
-	import { isTabDirty, isTabPinned, isVirtualTab } from '$lib/core/editor/editor.logic';
-	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
-	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { switchTab, closeTab, togglePinTab } from '#lib/core/editor/editor.service.js';
+	import { isTabDirty, isTabPinned, isVirtualTab } from '#lib/core/editor/editor.logic.js';
+	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 </script>
 
 {#if editorStore.tabs.length > 0}

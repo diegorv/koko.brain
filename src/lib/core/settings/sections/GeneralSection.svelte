@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Switch } from '$lib/components/ui/switch';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 </script>

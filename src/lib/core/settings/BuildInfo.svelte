@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { channelLabel } from '$lib/utils/build-info';
+	import { channelLabel } from '#lib/utils/build-info.js';
 
 	/**
 	 * Standalone display widget for `__BUILD_INFO__` with a per-channel

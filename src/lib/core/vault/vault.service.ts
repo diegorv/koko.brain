@@ -2,7 +2,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from './vault.store.svelte';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /** Opens a native directory picker and, if the user selects a folder, opens it as a vault */
 export async function openVaultDialog(): Promise<boolean> {

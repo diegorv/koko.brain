@@ -1,6 +1,6 @@
 <script lang="ts">
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { settingsStore, DEFAULT_SETTINGS } from '../settings.store.svelte';
 	import {
 		eventToKeybindingConfig,
@@ -8,7 +8,7 @@
 		findKeybindingConflict,
 		keybindingsEqual,
 		isAcceptableShortcut,
-	} from '$lib/core/keybindings/keybindings.logic';
+	} from '#lib/core/keybindings/keybindings.logic.js';
 	import SettingItem from './SettingItem.svelte';
 
 	/** Factory default for the cycle-sidebar shortcut (used to detect/reset). */

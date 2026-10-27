@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { isAlreadyIndexed, markIndexed, clearIndexedEntry } from '$lib/utils/index-dedupe';
-import { vaultRelativeKey } from '$lib/utils/path';
-import { debug, error } from '$lib/utils/debug';
+import { isAlreadyIndexed, markIndexed, clearIndexedEntry } from '#lib/utils/index-dedupe.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /**
  * Where a note change came from. Each source gets its own policy row in

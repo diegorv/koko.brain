@@ -11,8 +11,8 @@ import {
 	parseTrashManifest,
 	serializeTrashManifest,
 } from './trash.logic';
-import { getRelativePath } from '$lib/core/filesystem/fs.logic';
-import { debug, error } from '$lib/utils/debug';
+import { getRelativePath } from '#lib/core/filesystem/fs.logic.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /**
  * Loads the trash manifest from disk and updates the store.
@@ -134,7 +134,7 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		trashStore.removeItem(item.id);
 
 		// Refresh the file tree so the restored item appears
-		const { refreshTree } = await import('$lib/core/filesystem/fs.service');
+		const { refreshTree } = await import('#lib/core/filesystem/fs.service.js');
 		await refreshTree();
 
 		debug('Trash', `Restored: ${item.originalPath} → ${restorePath}`);

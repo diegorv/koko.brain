@@ -1,8 +1,8 @@
 import { EditorView } from '@codemirror/view';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { findMarkdownLinkUrlAtPosition } from './parsers/link';
-import { isSafeUrl } from '$lib/utils/sanitize-url';
-import { error } from '$lib/utils/debug';
+import { isSafeUrl } from '#lib/utils/sanitize-url.js';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Handles a mousedown on a live-preview link. With Cmd/Ctrl held, opens the

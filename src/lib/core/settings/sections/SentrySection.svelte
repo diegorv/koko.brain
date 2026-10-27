@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Switch } from '$lib/components/ui/switch';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { configureSentry, sendSentryTestEvent } from '../sentry.service';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';

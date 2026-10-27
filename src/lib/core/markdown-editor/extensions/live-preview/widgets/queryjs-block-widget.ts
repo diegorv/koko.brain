@@ -1,13 +1,13 @@
 import { WidgetType } from '@codemirror/view';
-import { appendLog } from '$lib/utils/log.service';
-import { KBAPI } from '$lib/plugins/queryjs/kb-api';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
-import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
+import { appendLog } from '#lib/utils/log.service.js';
+import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
 import { profileStart, profileEnd } from '../core/profiling';
 
 /**

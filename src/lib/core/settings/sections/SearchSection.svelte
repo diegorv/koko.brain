@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
-	import { Switch } from '$lib/components/ui/switch';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 	import { settingsStore } from '../settings.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { searchStore } from '$lib/features/search/search.store.svelte';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { searchStore } from '#lib/features/search/search.store.svelte.js';
 	import {
 		initSemanticSearch,
 		buildSemanticIndex,
 		startSemanticProgressListener,
 		stopSemanticProgressListener,
-	} from '$lib/features/search/search.service';
-	import { debug } from '$lib/utils/debug';
+	} from '#lib/features/search/search.service.js';
+	import { debug } from '#lib/utils/debug.js';
 	import SettingItem from './SettingItem.svelte';
 
 	let isDownloading = $state(false);

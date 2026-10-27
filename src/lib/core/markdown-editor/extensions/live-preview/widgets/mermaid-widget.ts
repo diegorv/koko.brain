@@ -1,5 +1,5 @@
 import { WidgetType } from '@codemirror/view';
-import { sanitizeMermaidSvg } from '$lib/utils/sanitize';
+import { sanitizeMermaidSvg } from '#lib/utils/sanitize.js';
 
 /** Whether mermaid has been initialized */
 let initialized = false;
