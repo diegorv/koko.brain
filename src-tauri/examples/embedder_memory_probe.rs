@@ -62,6 +62,18 @@ fn main() {
 	let model_path = PathBuf::from(&args[1]).join("model.onnx");
 	let variant = args[2].as_str();
 
+	// Watchdog: the default variant reached 30 GB footprint on the first try,
+	// so abort the probe the moment the footprint crosses PROBE_LIMIT_MB.
+	let limit_mb: u64 = std::env::var("PROBE_LIMIT_MB").ok().and_then(|v| v.parse().ok()).unwrap_or(8192);
+	std::thread::spawn(move || loop {
+		let (_, fp, _) = memory_mb();
+		if fp > limit_mb {
+			println!("ABORT footprint={fp}MB > limit={limit_mb}MB");
+			std::process::exit(3);
+		}
+		std::thread::sleep(std::time::Duration::from_millis(100));
+	});
+
 	let env = ort::init().build().expect("ort env");
 	let threads = std::thread::available_parallelism().map(|n| n.get().min(8)).unwrap_or(4);
 	let mut builder = Session::builder(&env).expect("builder").with_intra_threads(threads).expect("threads");
