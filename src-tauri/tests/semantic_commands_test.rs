@@ -1,6 +1,6 @@
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
-	compute_model_hash, deserialize_embedding, get_semantic_file_status, get_semantic_stats,
+	compute_model_hash, deserialize_embedding, get_semantic_file_status, init_semantic_search, get_semantic_stats,
 	is_reranker_model_available, is_semantic_model_available, search_cache_label, search_hybrid,
 	remove_semantic_file, search_semantic, shutdown_semantic, update_semantic_file,
 };
@@ -346,6 +346,18 @@ fn shutdown_semantic_succeeds_when_no_model_loaded() {
 fn shutdown_semantic_idempotent() {
 	shutdown_semantic().unwrap();
 	shutdown_semantic().unwrap();
+}
+
+// --- init_semantic_search ---
+
+#[tokio::test]
+async fn init_semantic_search_returns_false_without_model_and_loads_nothing() {
+	let tmp = tempfile::tempdir().unwrap();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	assert_eq!(init_semantic_search(vault.clone()).await, Ok(false));
+	// Idempotent: a second init on the same vault is still a clean no-op.
+	assert_eq!(init_semantic_search(vault).await, Ok(false));
 }
 
 // --- cleanup_orphaned_chunks: all entries orphaned ---

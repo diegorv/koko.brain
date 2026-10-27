@@ -378,12 +378,11 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 			return Ok(false);
 		}
 
-		let expected_dim = manager
-			.embedding_dimensions()
-			.ok_or_else(|| "Embedder model has no declared embedding_dimensions in the registry".to_string())?;
-		let embedder = Embedder::load(&manager.model_path(), expected_dim)?;
-		let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
-		*guard = Some(embedder);
+		// Load under the EMBEDDER lock and skip when a model is already
+		// resident. Loading first and assigning after let a concurrent
+		// lazy reload build a second ~1 GB session (logs 2026-09-29 and
+		// 2026-10-26 show two loads with no unload between them).
+		ensure_embedder_loaded()?;
 		MODEL_AVAILABLE.store(true, Ordering::SeqCst);
 		Ok(true)
 	})
