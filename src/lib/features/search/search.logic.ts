@@ -25,7 +25,7 @@ export function parseSearchQuery(raw: string): SearchQuery {
 }
 
 // Re-exported from the centralized sanitize utility for backwards compatibility.
-// The implementation lives in $lib/utils/sanitize and also escapes single quotes.
+// The implementation lives in #lib/utils/sanitize and also escapes single quotes.
 export { sanitizeSnippetHtml } from '#lib/utils/sanitize.js';
 
 export function searchFileContent(content: string, query: string): SearchMatch[] {

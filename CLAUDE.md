@@ -166,10 +166,10 @@ All app logs are written to `~/Library/Logs/com.diegorv.kokobrain/` (one file pe
 
 ### Frontend logging
 
-**Use `appendLog(tag, ...args)` from `$lib/utils/log.service`** — NOT `console.log`. `appendLog` writes to the session log file; `console.log` only goes to browser devtools (which requires right-click → Inspect in the Tauri window) and is not persisted.
+**Use `appendLog(tag, ...args)` from `#lib/utils/log.service.js`** — NOT `console.log`. `appendLog` writes to the session log file; `console.log` only goes to browser devtools (which requires right-click → Inspect in the Tauri window) and is not persisted.
 
 ```typescript
-import { appendLog } from '$lib/utils/log.service';
+import { appendLog } from '#lib/utils/log.service.js';
 appendLog('MY-TAG', `value=${someVar} state=${otherVar}`);
 // Output in log file: [HH:mm:ss.SSS] [MY-TAG] value=... state=...
 ```
@@ -213,7 +213,7 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing guide: mock rules, a
 | Utilities | kebab-case `.ts` | `fuzzy-match.ts` |
 | Types | kebab-case `.types.ts` | `canvas.types.ts` |
 
-- **Imports:** Group in order: (1) external packages (`svelte`, `@codemirror`, `lucide-svelte`, etc.), (2) `$lib/` imports (core → features → plugins), (3) local relative imports (`./`).
+- **Imports:** Group in order: (1) external packages (`svelte`, `@codemirror`, `lucide-svelte`, etc.), (2) `#lib/` imports (core → features → plugins), (3) local relative imports (`./`). `#lib/*` is a package.json subpath import (SvelteKit 3 removed the old lib alias): write the `.js` ending for `.ts` modules (`#lib/x.js`, `#lib/x.store.svelte.js`, `#lib/dir/index.js`) and the real name for components (`#lib/x/Comp.svelte`); extensionless `#lib` specifiers fail `pnpm check`. SvelteKit config lives in `vite.config.js` (`sveltekit({...})`); there is no `svelte.config.js`.
 - **Comments:** Use JSDoc (`/** */`) on all exported functions, interfaces, interface fields, store methods, and state variables. Write in English.
 - **Tests:** Every code change MUST include corresponding test updates (`src/tests/` for TypeScript, `src-tauri/tests/` for Rust).
 - **Commits:** Use Conventional Commits with **full detailed descriptions** — every commit must include Context, Problem (if applicable), Solution, Behavior, and Files (with line ranges). No short-form commits. See [docs/COMMITS.md](docs/COMMITS.md) for the full format and examples.
@@ -278,7 +278,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 7. **Frontmatter auto-save uses a faster debounce** — `editor.service.ts` runs two mutually exclusive timers: 500 ms for frontmatter-only edits (property changes via meta-bind, icon picker, lifecycle actions) and 2000 ms for body text. The timers cancel each other so only one fires per edit burst.
 
-8. **Index dedupe** (`$lib/utils/index-dedupe.ts`) - shared `Map<path, lastContent>` with `isAlreadyIndexed` / `markIndexed` / `clearIndexedEntry` / `clearAllIndexed`. `applyNoteChange` is the only reader/writer, plus one guard in `updateIndexesForFile` that must run BEFORE it bumps its version counter (a dedupe hit that bumped the version would cancel the consumer fan-out of an in-flight call). The owner's delete branch clears the signature - reached through `path-change.service.ts::applyPathChange` from `deleteItem` / `renameItem` / `moveItem`, plus the watcher's deletion path - so a re-created file with identical bytes re-indexes. On a folder change `applyPathChange` walks the children out of `fsStore.fileTree` first, so each child's signature is cleared too. `resetHooks` wipes the whole map on vault teardown. Memory cost is one Map entry per indexed file (~50 B × N).
+8. **Index dedupe** (`#lib/utils/index-dedupe.js`) - shared `Map<path, lastContent>` with `isAlreadyIndexed` / `markIndexed` / `clearIndexedEntry` / `clearAllIndexed`. `applyNoteChange` is the only reader/writer, plus one guard in `updateIndexesForFile` that must run BEFORE it bumps its version counter (a dedupe hit that bumped the version would cancel the consumer fan-out of an in-flight call). The owner's delete branch clears the signature - reached through `path-change.service.ts::applyPathChange` from `deleteItem` / `renameItem` / `moveItem`, plus the watcher's deletion path - so a re-created file with identical bytes re-indexes. On a folder change `applyPathChange` walks the children out of `fsStore.fileTree` first, so each child's signature is cleared too. `resetHooks` wipes the whole map on vault teardown. Memory cost is one Map entry per indexed file (~50 B × N).
 
 9. **Absolute paths everywhere** — `FileTreeNode.path`, editor tabs, all `*_v2` IPC params and return `path` fields are absolute. Never convert to vault-relative paths before storing or invoking. Path traversal protection lives in Rust's `read_files_batch` (`canonicalize` + `starts_with`); the frontend doesn't strip prefixes.
 

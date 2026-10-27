@@ -16,8 +16,8 @@ import CollectionView from '#lib/features/collection/CollectionView.svelte';
 const SRC = join(process.cwd(), 'src');
 const SKIP_DIRS = new Set(['node_modules', '.svelte-kit']);
 const FILE_RE = /\.(ts|js|svelte)$/;
-/** Quoted `#lib/...` specifier inside import/export/import()/vi.* string args. */
-const SPECIFIER_RE = /(?:from\s+|import\s*\(\s*|import\s+|vi\.\w+\(\s*)(['"`])(#lib\/[^'"`]*)\1/g;
+/** Quoted `#lib/...` specifier inside import/export/import()/vi.* string args (incl. `vi.importActual<T>(...)`). */
+const SPECIFIER_RE = /(?:from\s+|import\s*\(\s*|import\s+|vi\.\w+(?:<[^>]*>)?\(\s*)(['"`])(#lib\/[^'"`]*)\1/g;
 const EXTENSION_RE = /\.(js|svelte|json|css)$/;
 
 /** Lists every source file under `dir`, skipping generated/vendor trees. */
@@ -52,6 +52,12 @@ describe('#lib specifier convention', () => {
 			0,
 		);
 		expect(count).toBeGreaterThan(100);
+	});
+
+	it('scanner matches generic vi calls', () => {
+		// Built by concatenation so the repo-wide scan below does not flag this line.
+		const sample = "await vi.importActual<typeof Mod>(" + "'#lib/utils/fuzzy-match');";
+		expect([...sample.matchAll(SPECIFIER_RE)].map((m) => m[2])).toEqual(['#lib/utils/fuzzy-match']);
 	});
 
 	it('every #lib specifier in src carries an extension', () => {

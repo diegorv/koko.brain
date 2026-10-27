@@ -6,6 +6,10 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-10-27)
+
+SvelteKit moved to 3.x with `@sveltejs/adapter-static` 4.x. The kit config (adapter-static with `fallback: "index.html"`, preprocess) now lives in `sveltekit({...})` in `vite.config.js`; `svelte.config.js` no longer exists. The built-in lib alias was removed in favor of the `#lib/*` package.json subpath import. The stack decision is unchanged; read the `package.json` and `svelte.config.js` anchors below as historical.
+
 ## Context
 
 Kokobrain is a local-first markdown note-taking app inspired by Obsidian. It must open and watch large vaults (1800+ notes), render rich live-preview markdown, run a local semantic-search model, access the filesystem without a backend server, and feel native on macOS. A single developer builds it with heavy AI assistance.

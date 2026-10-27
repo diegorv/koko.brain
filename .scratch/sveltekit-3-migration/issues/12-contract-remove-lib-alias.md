@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] No `$lib` specifier or alias left in the repo
-- [ ] No `$lib` deprecation warning in build output
-- [ ] Docs updated (import conventions, patterns, testing)
-- [ ] components.json shadcn aliases (currently $lib, lines 9-13) point to #lib so CLI-generated components don't reintroduce $lib
-- [ ] Code comments naming `$lib` paths updated (left by 08: src/lib/features/search/search.logic.ts:28 `$lib/utils/sanitize`)
-- [ ] When removing `$lib`/`$lib/*` from tsconfig.json `paths`, keep `"#lib/*": ["./src/lib/*"]` (without it `#lib` component props are untyped; see plan Notes)
-- [ ] Rework or delete `src/tests/lib/lib-subpath-import.test.ts` (lines 7-8 import via `$lib` as the ticket-05 equivalence proof)
-- [ ] pnpm check + pnpm vitest run + pnpm build green
+- [x] No `$lib` specifier or alias left in the repo
+- [x] No `$lib` deprecation warning in build output
+- [x] Docs updated (import conventions, patterns, testing)
+- [x] components.json shadcn aliases (currently $lib, lines 9-13) point to #lib so CLI-generated components don't reintroduce $lib
+- [x] Code comments naming `$lib` paths updated (left by 08: src/lib/features/search/search.logic.ts:28 `$lib/utils/sanitize`)
+- [x] When removing `$lib`/`$lib/*` from tsconfig.json `paths`, keep `"#lib/*": ["./src/lib/*"]` (without it `#lib` component props are untyped; see plan Notes)
+- [x] Rework or delete `src/tests/lib/lib-subpath-import.test.ts` (lines 7-8 import via `$lib` as the ticket-05 equivalence proof)
+- [x] pnpm check + pnpm vitest run + pnpm build green

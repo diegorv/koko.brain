@@ -6,6 +6,10 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-10-27)
+
+SvelteKit 3 removed the built-in lib alias, so `components.json` aliases now use the `#lib` subpath import (package.json `imports`), which shadcn-svelte 1.x detects and validates against `tsconfig.json` `paths`. The decision is unchanged.
+
 ## Context
 
 Kokobrain needs a consistent set of accessible, themeable UI primitives (buttons, dialogs, dropdowns, menus, tooltips, sliders, selects, resizable panes, etc.) across a desktop app with dense editor chrome. The primitives must:
@@ -16,7 +20,7 @@ Kokobrain needs a consistent set of accessible, themeable UI primitives (buttons
 
 ## Decision
 
-Use **shadcn-svelte generated components + Tailwind CSS 4 + bits-ui as the headless primitive layer**, with components copied into `src/lib/components/ui/` and customized locally. `components.json:2-14` configures the shadcn-svelte CLI with `baseColor: zinc`, `css: src/app.css`, and alias `$lib/components/ui`.
+Use **shadcn-svelte generated components + Tailwind CSS 4 + bits-ui as the headless primitive layer**, with components copied into `src/lib/components/ui/` and customized locally. `components.json:2-14` configures the shadcn-svelte CLI with `baseColor: zinc`, `css: src/app.css`, and alias `#lib/components/ui`.
 
 Related pins:
 
