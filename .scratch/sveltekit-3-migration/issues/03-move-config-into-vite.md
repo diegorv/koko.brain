@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Standalone Svelte config file removed; adapter (with SPA fallback) and preprocess configured inline
-- [ ] Vitest compiles components with preprocess
-- [ ] Before-build fingerprint updated
-- [ ] pnpm check + pnpm vitest run + pnpm build green and the built SPA fallback page exists
+- [x] Standalone Svelte config file removed; adapter (with SPA fallback) and preprocess configured inline
+- [x] Vitest compiles components with preprocess
+- [x] Before-build fingerprint updated
+- [x] pnpm check + pnpm vitest run + pnpm build green and the built SPA fallback page exists

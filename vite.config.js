@@ -4,6 +4,8 @@ import { readFileSync } from "fs";
 import { execSync } from "child_process";
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
+import adapter from "@sveltejs/adapter-static";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { formatBuildInfo, parseReleaseChannel } from "./src/lib/utils/build-info.js";
 
@@ -60,7 +62,19 @@ const playwrightMocks = {
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [sveltekit(), tailwindcss()],
+  plugins: [
+    // Tauri doesn't have a Node.js server to do proper SSR
+    // so we use adapter-static with a fallback to index.html to put the site in SPA mode
+    // See: https://svelte.dev/docs/kit/single-page-apps
+    // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
+    sveltekit({
+      preprocess: vitePreprocess(),
+      adapter: adapter({
+        fallback: "index.html",
+      }),
+    }),
+    tailwindcss(),
+  ],
 
   define: {
     __BUILD_INFO__: JSON.stringify(buildInfo),

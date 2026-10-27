@@ -63,7 +63,6 @@ jobs:
               - "pnpm-lock.yaml"
               - "package.json"
               - "tsconfig.json"
-              - "svelte.config.*"
               - "vite.config.*"
               - "tailwind.config.*"
               - "postcss.config.*"
