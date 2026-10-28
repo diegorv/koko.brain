@@ -503,6 +503,18 @@ describe('createFolder', () => {
 		expect(result).toBe('/vault/new-folder 1');
 	});
 
+	it('numbers a folder whose name differs from a sibling only by case', async () => {
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'projects', isDirectory: true, isFile: false, isSymlink: false },
+		] as any);
+
+		const result = await createFolder('/vault', 'Projects');
+
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/Projects 1' });
+		expect(fsStore.expandedDirs.has('/vault/Projects 1')).toBe(true);
+		expect(result).toBe('/vault/Projects 1');
+	});
+
 	it('returns null on mkdir error', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {

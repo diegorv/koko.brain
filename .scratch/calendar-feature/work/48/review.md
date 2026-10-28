@@ -28,3 +28,9 @@ Reviewed `git diff main...HEAD` (6fa84294, 9c153b41, 5ab22882 on top of main 0da
 1. **Low (optional)**, `src/tests/lib/core/filesystem/fs.service.test.ts:494`: `createFolder` changes behavior for a case-only variant (it used to reuse `projects` silently, and now creates `Projects 1`), but no service test covers it. Only the directory branch of `generateUniqueName` is covered (`fs.logic.test.ts:636-638`). Fix: add a `createFolder` case next to `generates unique name when folder already exists` with `readDir` returning `projects` and `createFolder('/vault', 'Projects')`, asserting `create_folder` gets `/vault/Projects 1`, `expandedDirs` has it and the result equals it. Not blocking, because `createFolder` itself is unchanged.
 2. **Info**, commit 9c153b41 Files block: it cites `src/tests/lib/core/filesystem/fs.service.test.ts:428-438`, but the added test is at `:436-446`. Fix: none needed. Do not rewrite history for a line-range typo.
 3. **Info**, `src/lib/core/filesystem/fs.logic.ts:196`: `toLowerCase()` does not normalize Unicode (NFC vs NFD). APFS also ignores normalization, so a title typed as NFC `Café` next to an NFD `café` on disk would still collide in Rust. This is outside this Issue, which is about case-only collisions; note it as a possible follow-up (`.normalize('NFC').toLowerCase()`) only.
+
+## Resolution
+
+1. Fixed: `fs.service.test.ts` `createFolder` gains `numbers a folder whose name differs from a sibling only by case` (`readDir` returns `projects`, `createFolder('/vault', 'Projects')`; asserts `create_folder` gets `/vault/Projects 1`, `expandedDirs` has it, result equals it).
+2. No change: commit line-range typo only; history is not rewritten.
+3. No change: Unicode normalization is outside this Issue's case-only scope; left as a possible follow-up.
