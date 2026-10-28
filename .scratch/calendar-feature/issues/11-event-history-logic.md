@@ -24,3 +24,7 @@
 - [ ] `event-calendar-history.logic.test.ts` ports the behaviour of `calender-app-design/src/stores/app-store.test.ts:6-37` without its order dependence on seed ids, and covers: labels, redo cleared by a new op, the cap, a no-op not recorded, remap and drop, create/delete round trips through undo and redo, `refuseOp` and `removeOp`.
 - [ ] JSDoc on every export; tabs for indentation.
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:35 — discovery — plan in work/11/discovery.md; one new pure module + test — 0ace4d20
