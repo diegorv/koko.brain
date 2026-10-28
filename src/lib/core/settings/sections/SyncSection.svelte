@@ -18,8 +18,6 @@
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
-	let { onchange }: { onchange: () => void } = $props();
-
 	/** Input buffer for the add-exposed-folder field. */
 	let newExposedFolder = $state('');
 
@@ -42,7 +40,6 @@
 
 	async function handleToggleExpose(enabled: boolean) {
 		settingsStore.updateSync({ exposeEnabled: enabled });
-		onchange();
 		const path = vaultStore.path;
 		if (!path) return;
 		try {
@@ -57,7 +54,6 @@
 	async function handleGenerateKey() {
 		try {
 			await generatePairingKey();
-			onchange();
 		} catch {
 			// service already toasted
 		}
@@ -79,7 +75,6 @@
 		if (!folder || settingsStore.sync.exposedFolders.includes(folder)) return;
 		settingsStore.updateSync({ exposedFolders: [...settingsStore.sync.exposedFolders, folder] });
 		newExposedFolder = '';
-		onchange();
 		void restartListenerIfRunning();
 	}
 
@@ -87,14 +82,12 @@
 		settingsStore.updateSync({
 			exposedFolders: settingsStore.sync.exposedFolders.filter((f) => f !== folder),
 		});
-		onchange();
 		void restartListenerIfRunning();
 	}
 
 	function handleToggleSubscription(folder: string, subscribed: boolean) {
 		const rest = settingsStore.sync.subscriptions.filter((f) => f !== folder);
 		settingsStore.updateSync({ subscriptions: subscribed ? [...rest, folder] : rest });
-		onchange();
 	}
 
 	async function handleListShares() {
@@ -125,7 +118,6 @@
 			placeholder="kokobrain"
 			oninput={(e) => {
 				settingsStore.updateSync({ deviceName: (e.currentTarget as HTMLInputElement).value });
-				onchange();
 			}}
 		/>
 	</SettingItem>
@@ -152,7 +144,6 @@
 				placeholder="Generate or paste the peer's key"
 				oninput={(e) => {
 					settingsStore.updateSync({ pairingKey: (e.currentTarget as HTMLInputElement).value.trim() });
-					onchange();
 				}}
 			/>
 			<Button variant="outline" size="sm" onclick={handleGenerateKey}>Generate</Button>
@@ -166,7 +157,6 @@
 			placeholder="192.168.0.10:38712"
 			oninput={(e) => {
 				settingsStore.updateSync({ peerAddress: (e.currentTarget as HTMLInputElement).value.trim() });
-				onchange();
 			}}
 		/>
 	</SettingItem>
