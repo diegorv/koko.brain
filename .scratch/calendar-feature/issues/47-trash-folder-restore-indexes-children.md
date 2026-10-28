@@ -15,3 +15,4 @@
 ## Comments
 
 - 2026-10-28 18:29 — discovery — plan: walk the restored folder via fsStore.fileTree after refreshTree and index each note with source restore — work/47/discovery.md
+- 2026-10-28 18:31 — implement — folder restore indexes every Markdown note under the restored path (nested, suffixed, unreadable-child and empty-folder tests); pnpm check 0 errors, trash + related suites green — 663ecb52
