@@ -130,11 +130,13 @@ export function applyStartChange(draft: EventFormDraft, value: string): EventFor
  * Applies a new end from the time input.
  * @param draft - current draft
  * @param value - the `<input type="time">` value; an empty or unreadable value
- *   becomes 1440, as in the prototype (`00:00` stays 0 and fails validation)
+ *   and `00:00` become 1440, as in the prototype (`|| 1440`). A time input
+ *   cannot show `24:00`, so `00:00` is how a user ends an event at midnight
  * @returns a new draft
  */
 export function applyEndChange(draft: EventFormDraft, value: string): EventFormDraft {
-	return { ...draft, end: parseTimeStrict(value) ?? DAY_MINUTES };
+	const end = parseTimeStrict(value);
+	return { ...draft, end: end === null || end === 0 ? DAY_MINUTES : end };
 }
 
 /**
@@ -192,7 +194,8 @@ export function draftToPatch(draft: EventFormDraft, original: EventState): Event
  * change renames nothing, because `renameItem` refuses a target that
  * `exists`, which a case-only change does on a case-insensitive volume, and a
  * sibling that differs only in case counts as taken. A taken name gets a
- * number (`Standup 1.md`) instead of failing.
+ * number (`Standup 1.md`) instead of failing; when that number lands on the
+ * note's own name, nothing is renamed.
  * @param currentFileBase - the note's filename without `.md`
  * @param newTitle - the new display title (already trimmed)
  * @param siblingNames - names of the entries in the note's folder, the note itself included or not
@@ -208,8 +211,12 @@ export function planTitleChange(currentFileBase: string, newTitle: string, sibli
 		const self = `${currentFileBase}${NOTE_EXT}`.toLowerCase();
 		const siblings = siblingNames.map((n) => n.toLowerCase()).filter((n) => n !== self);
 		const unique = generateUniqueName(`${lowerBase}${NOTE_EXT}`, false, siblings);
-		finalBase = base + unique.slice(lowerBase.length, -NOTE_EXT.length);
-		renameTo = `${finalBase}${NOTE_EXT}`;
+		// A numbered result can be the note's own name (`Standup 1` retitled
+		// `standup`): keep the file instead of renaming it onto itself.
+		if (unique !== self) {
+			finalBase = base + unique.slice(lowerBase.length, -NOTE_EXT.length);
+			renameTo = `${finalBase}${NOTE_EXT}`;
+		}
 	}
 	return { renameTo, eventTitle: newTitle !== finalBase ? newTitle : null };
 }

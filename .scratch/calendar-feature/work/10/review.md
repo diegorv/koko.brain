@@ -34,3 +34,11 @@ Reviewed `git diff main...HEAD` (35987c78, 3bf91350, 052ba7e4) in the worktree.
 ## Scope
 
 No scope creep. Exactly the two files in the Issue's Touches list, plus scratch notes. Comparing sibling names case-insensitively (`:209`) goes beyond the literal spec, but it follows from the plan's own case-insensitive-volume reasoning, is documented in discovery.md, and is tested (`:261-266`).
+
+## Resolution
+
+All three findings accepted and fixed; none rejected.
+
+1. `planTitleChange` keeps the file (`renameTo: null`, `finalBase` = current base) when the numbered result equals the note's own name. Tests cover the case-only (`Standup 1` -> `standup`) and same-casing (`1-1 with manager 1` -> `1/1 with manager`) variants.
+2. `applyEndChange` maps an empty/unreadable value and `00:00` to 1440, as the prototype's `|| 1440`. JSDoc updated; the test now asserts 1440 and a clean `validateDraft`.
+3. Covered by the tests added for finding 1.

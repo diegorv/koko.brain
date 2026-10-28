@@ -141,10 +141,10 @@ describe('applyEndChange', () => {
 		expect(applyEndChange(draft(), '').end).toBe(1440);
 	});
 
-	it('keeps 00:00 as 0 so validation reports it', () => {
+	it('turns 00:00 into 1440 so the event ends at midnight and validates', () => {
 		const d = applyEndChange(draft(), '00:00');
-		expect(d.end).toBe(0);
-		expect(validateDraft(d).time).toBeDefined();
+		expect(d.end).toBe(1440);
+		expect(validateDraft(d)).toEqual({});
 	});
 });
 
@@ -267,6 +267,19 @@ describe('planTitleChange', () => {
 
 	it('skips numbers that are already taken', () => {
 		expect(planTitleChange('Retro', 'Standup', ['Standup.md', 'standup 1.md', 'Retro.md']).renameTo).toBe('Standup 2.md');
+	});
+
+	it('does not rename a numbered note onto itself for a case-only retitle', () => {
+		expect(planTitleChange('Standup 1', 'standup', ['Standup.md', 'Standup 1.md'])).toEqual({
+			renameTo: null,
+			eventTitle: 'standup',
+		});
+	});
+
+	it('does not rename a numbered note onto its own name with the same casing', () => {
+		expect(
+			planTitleChange('1-1 with manager 1', '1/1 with manager', ['1-1 with manager.md', '1-1 with manager 1.md']),
+		).toEqual({ renameTo: null, eventTitle: '1/1 with manager' });
 	});
 
 	it('works with an empty sibling list', () => {
