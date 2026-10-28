@@ -27,4 +27,5 @@
 
 ## Comments
 
-- 2026-10-28 13:57 — discovery — plan in work/23/discovery.md: EventMonthGrid (store-driven, no props) + view wiring + unit and E2E tests in one feat commit; out-of-month chips not faded — pending
+- 2026-10-28 13:57 — discovery — plan in work/23/discovery.md: EventMonthGrid (store-driven, no props) + view wiring + unit and E2E tests in one feat commit; out-of-month chips not faded — 0fe4b371
+- 2026-10-28 13:59 — implement — EventMonthGrid + view wiring + generic itemsForDay (pending reaches chips) + unit and E2E tests in one feat commit; pnpm check 0 errors, vitest event-calendar 499/499, E2E event-calendar 10/10; full gate left to deliver — 4ac46fb3
