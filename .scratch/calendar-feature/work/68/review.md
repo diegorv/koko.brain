@@ -34,3 +34,11 @@ Branch `issue/calendar-feature-68-duplicate-creation-guards`, `git diff main...H
 3. **Low (follow-up, out of scope)**, `src/lib/features/type-definitions/TypeSidebar.svelte:396`. "Create type definition" has the same dedupe class. With an ordinary root `Name.md`, `createTypeDefinition(name)` writes `Name 1.md`, which defines type "Name 1", and the section stays without a definition, so every repeat writes another copy. The Calendar call-site fix does not cover this surface. A basename check inside `createTypeDefinition` (not `fs.service.ts`) would cover both callers. Fix: file a follow-up Issue. Do not widen this one.
 4. **Nit**, `src/lib/features/event-calendar/EventDailyNoteButton.svelte:17-23`. A double click whose open fails now shows two identical toasts, because both callers share one rejected promise. This is disclosed and accepted in the discovery notes. No change required.
 5. **Nit**, `.scratch/calendar-feature/issues/68-calendar-duplicate-creation-guards.md`. The two deferred items are still `[ ]` in a file that the closing commit deletes. The decision is recorded only in the Comments log. Fix (optional, at delivery): name both items and their reasons in the closing commit message so the record survives the file's deletion.
+
+## Resolution
+
+1. Fixed. `register()` clears `inFlight`, and an open's `finally` removes its map entry only while the entry is still that open, so a late finish of the previous opener cannot evict the new opener's entry. New store test: "a new registration does not join an open of the previous opener" (fails on the reviewed source).
+2. Fixed with conditional wording: the toast now says the root note "is not the \"<type>\" type yet. If it should be, add \"_type: Type\" to its frontmatter; otherwise rename it." Tests updated. A `refreshTypeDefinitions()` before toasting was not added: it would turn a synchronous guard into an async one for a rare stale-map case.
+3. Filed as `.scratch/calendar-feature/issues/70-type-definition-create-name-collision.md`. Not widened here.
+4. Accepted, no change (disclosed tradeoff).
+5. Done at delivery: the closing commit message names both deferred items and why.

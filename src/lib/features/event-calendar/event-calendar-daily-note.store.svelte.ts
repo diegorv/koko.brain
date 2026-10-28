@@ -28,9 +28,12 @@ export const eventCalendarDailyNoteStore = {
 	/**
 	 * Registers `next` as the opener, replacing any previous one. The returned
 	 * function unregisters it, and is a no-op once a later registration replaced it.
+	 * Opens still in flight belong to the previous opener (another vault), so a
+	 * later open of the same day must not join them.
 	 */
 	register(next: DailyNoteOpener): () => void {
 		opener = next;
+		inFlight.clear();
 		return () => {
 			if (opener === next) opener = null;
 		};
@@ -44,7 +47,9 @@ export const eventCalendarDailyNoteStore = {
 		if (!opener) return Promise.reject(new Error('No daily note opener is registered'));
 		const pending = inFlight.get(day);
 		if (pending) return pending;
-		const opening = opener(day).finally(() => inFlight.delete(day));
+		const opening: Promise<void> = opener(day).finally(() => {
+			if (inFlight.get(day) === opening) inFlight.delete(day);
+		});
 		inFlight.set(day, opening);
 		return opening;
 	},

@@ -57,9 +57,15 @@
 	/** True while "Open Event type" is creating the definition, so a second click cannot create a duplicate. */
 	let creating = $state(false);
 
-	/** Toast for a vault-root note that holds the type's file name without being a type definition. */
-	function toastNameTaken(fileName: string) {
-		toast.error(`A note named "${fileName}" already exists in the vault root. Add "_type: Type" to its frontmatter or rename it.`);
+	/**
+	 * Toast for a vault-root note that holds the type's file name but is not the
+	 * resolved type. It may already be a type definition the throttled type map
+	 * has not picked up yet, so the advice is conditional.
+	 */
+	function toastNameTaken(fileName: string, typeName: string) {
+		toast.error(
+			`A note named "${fileName}" already exists in the vault root and is not the "${typeName}" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.`,
+		);
 	}
 
 	/**
@@ -91,7 +97,7 @@
 		const fileName = `${name}.md`;
 		const taken = fsStore.fileTree.find((node) => !node.isDirectory && node.name.toLowerCase() === fileName.toLowerCase());
 		if (taken) {
-			toastNameTaken(taken.name);
+			toastNameTaken(taken.name, name);
 			return;
 		}
 		creating = true;
@@ -102,7 +108,7 @@
 				return;
 			}
 			if (path.slice(path.lastIndexOf('/') + 1) !== fileName) {
-				toastNameTaken(fileName);
+				toastNameTaken(fileName, name);
 				return;
 			}
 			settingsPanelStore.close();

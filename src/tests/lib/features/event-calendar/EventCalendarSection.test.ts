@@ -285,7 +285,7 @@ describe('EventCalendarSection', () => {
 		openButton().click();
 		expect(createTypeDefinition).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith(
-			'A note named "event.md" already exists in the vault root. Add "_type: Type" to its frontmatter or rename it.',
+			'A note named "event.md" already exists in the vault root and is not the "Event" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.',
 		);
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});
@@ -309,7 +309,7 @@ describe('EventCalendarSection', () => {
 		openButton().click();
 		await vi.waitFor(() =>
 			expect(toast.error).toHaveBeenCalledWith(
-				'A note named "Event.md" already exists in the vault root. Add "_type: Type" to its frontmatter or rename it.',
+				'A note named "Event.md" already exists in the vault root and is not the "Event" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.',
 			),
 		);
 		expect(settingsPanelStore.isOpen).toBe(true);

@@ -80,6 +80,28 @@ describe('eventCalendarDailyNoteStore', () => {
 		await Promise.all(opens);
 	});
 
+	it('a new registration does not join an open of the previous opener', async () => {
+		let finishOld!: () => void;
+		const old = vi.fn(() => new Promise<void>((resolve) => (finishOld = resolve)));
+		const oldUnregister = eventCalendarDailyNoteStore.register(old);
+		const stale = eventCalendarDailyNoteStore.open('2026-11-12');
+
+		let finishNext!: () => void;
+		const next = vi.fn(() => new Promise<void>((resolve) => (finishNext = resolve)));
+		unregister = eventCalendarDailyNoteStore.register(next);
+		oldUnregister();
+		const fresh = eventCalendarDailyNoteStore.open('2026-11-12');
+		expect(fresh).not.toBe(stale);
+		expect(next).toHaveBeenCalledWith('2026-11-12');
+
+		finishOld();
+		await stale;
+		expect(eventCalendarDailyNoteStore.open('2026-11-12')).toBe(fresh);
+		expect(next).toHaveBeenCalledTimes(1);
+		finishNext();
+		await fresh;
+	});
+
 	it('lets the day open again after a failed open', async () => {
 		const opener = vi.fn().mockRejectedValueOnce(new Error('disk full')).mockResolvedValueOnce(undefined);
 		unregister = eventCalendarDailyNoteStore.register(opener);
