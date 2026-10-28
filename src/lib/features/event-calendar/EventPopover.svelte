@@ -1,10 +1,13 @@
 <script lang="ts">
+	import Copy from '@lucide/svelte/icons/copy';
 	import MapPin from '@lucide/svelte/icons/map-pin';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { Button } from '$lib/components/ui/button';
 	import * as Popover from '$lib/components/ui/popover';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { formatDuration, formatLong, formatTimeRange, formatWeekday } from './event-calendar-dates.logic';
+	import { deleteEventFromUi, duplicateEventFromUi } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 
@@ -22,6 +25,8 @@
 	let outsideTarget: Element | null = null;
 	/** Set by Edit: the dialog that replaces the popover takes focus, so the close leaves it alone. */
 	let handOffFocus = false;
+	/** Set by Duplicate: the copy's block takes focus once it renders, so the close only parks it on the root. */
+	let focusCopy = false;
 
 	/** Elements an outside click may land focus on. */
 	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
@@ -89,6 +94,11 @@
 			handOffFocus = false;
 			return;
 		}
+		if (focusCopy) {
+			focusCopy = false;
+			if (root?.isConnected && !root.contains(document.activeElement)) root.focus();
+			return;
+		}
 		const focusable = outside?.isConnected ? outside.closest<HTMLElement>(FOCUSABLE) : null;
 		if (focusable) {
 			focusable.focus();
@@ -114,6 +124,24 @@
 		handOffFocus = true;
 		eventCalendarViewStore.closePopover();
 		eventCalendarViewStore.openDialog({ mode: 'edit', path });
+	}
+
+	/** Closes the popover (focus goes to the root, the block is going away) and deletes the event. */
+	function deleteNote() {
+		if (!event) return;
+		const path = event.path;
+		lastPath = null;
+		eventCalendarViewStore.closePopover();
+		void deleteEventFromUi(path, root);
+	}
+
+	/** Closes the popover and duplicates the event; focus moves to the copy once it renders. */
+	function duplicateNote() {
+		if (!event) return;
+		const path = event.path;
+		focusCopy = true;
+		eventCalendarViewStore.closePopover();
+		void duplicateEventFromUi(path, root);
 	}
 </script>
 
@@ -158,6 +186,14 @@
 			<div class="flex items-center gap-1 border-t border-border px-2 py-2">
 				<Button size="sm" variant="outline" onclick={editNote}>Edit</Button>
 				<Button size="sm" onclick={openNote}>Open note</Button>
+				<div class="ml-auto flex items-center gap-1">
+					<Button size="icon" variant="ghost" class="size-8" aria-label="Duplicate event" title="Duplicate" onclick={duplicateNote} data-duplicate>
+						<Copy />
+					</Button>
+					<Button size="icon" variant="ghost" class="size-8" aria-label="Delete event" title="Delete" onclick={deleteNote} data-delete>
+						<Trash2 class="text-destructive" />
+					</Button>
+				</div>
 			</div>
 		{/if}
 	</Popover.Content>

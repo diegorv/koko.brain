@@ -30,6 +30,11 @@
 		eventCalendarViewStore.setDate(day);
 		eventCalendarViewStore.setView('day');
 	}
+
+	/** Opens the create dialog in all-day mode when a click lands on the cell itself, not on a chip or button. */
+	function handleCellClick(e: MouseEvent, day: string) {
+		if (e.target === e.currentTarget) eventCalendarViewStore.openDialog({ mode: 'create', date: day, allDay: true });
+	}
 </script>
 
 <div class="flex w-full shrink-0 items-stretch overflow-clip border-b border-border" style="height: {height}px" data-all-day-lane>
@@ -37,11 +42,14 @@
 		<span class="text-[11px] text-muted-foreground">All day</span>
 	</div>
 	{#each cells as cell (cell.day)}
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+		<!-- Keyboard users create through the palette's "New Calendar Event". -->
 		<div
 			role="group"
 			aria-label="All-day events"
 			class="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden border-l border-border px-1"
 			data-all-day-cell={cell.day}
+			onclick={(e) => handleCellClick(e, cell.day)}
 		>
 			{#each cell.chips as chip (chip.path)}
 				<button

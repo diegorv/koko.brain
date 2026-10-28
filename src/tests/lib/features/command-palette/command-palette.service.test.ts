@@ -74,6 +74,8 @@ import { searchStore } from '$lib/features/search/search.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { getBuiltInCommands } from '$lib/features/command-palette/command-palette.service';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {
@@ -87,10 +89,58 @@ describe('getBuiltInCommands', () => {
 		settingsPanelStore._reset();
 	});
 
-	it('returns 27 built-in commands', () => {
+	it('returns 29 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(27);
+		expect(commands).toHaveLength(29);
+	});
+
+	it('includes a new-event command that opens the Calendar tab and the create dialog at the default slot', () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 10, 10, 10, 7));
+		try {
+			eventCalendarViewStore.reset();
+			const command = getBuiltInCommands().find((c) => c.id === 'event-calendar:new-event');
+
+			expect(command).toBeDefined();
+			expect(command!.label).toBe('New Calendar Event');
+
+			command!.action();
+
+			expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+			expect(eventCalendarViewStore.dialog?.payload).toEqual({
+				mode: 'create',
+				date: '2026-11-10',
+				start: 600,
+				end: 600 + settingsStore.eventCalendar.defaultDurationMinutes,
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('the new-event command uses dayStartHour on a day other than today', () => {
+		eventCalendarViewStore.reset();
+		settingsStore.updateEventCalendar({ dayStartHour: 8 });
+		eventCalendarViewStore.setDate('2000-01-03');
+
+		getBuiltInCommands().find((c) => c.id === 'event-calendar:new-event')!.action();
+
+		expect(eventCalendarViewStore.dialog?.payload).toMatchObject({ mode: 'create', date: '2000-01-03', start: 480 });
+	});
+
+	it('includes a go-to-today command that opens the Calendar tab on today', () => {
+		eventCalendarViewStore.reset();
+		eventCalendarViewStore.setDate('2000-01-03');
+		const command = getBuiltInCommands().find((c) => c.id === 'event-calendar:today');
+
+		expect(command).toBeDefined();
+		expect(command!.label).toBe('Calendar: Go to Today');
+
+		command!.action();
+
+		expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
 	});
 
 	it('includes a toggle-calendar command that opens and closes the Calendar tab', () => {

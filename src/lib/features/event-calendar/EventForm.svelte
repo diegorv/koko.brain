@@ -23,9 +23,11 @@
 		oncancel: () => void;
 		/** Extra footer actions, left of Cancel and Save. */
 		actions?: Snippet;
+		/** Shows the notes field, whose text becomes the new note's body (create only). */
+		withNotes?: boolean;
 	}
 
-	let { initial, onsubmit, oncancel, actions }: Props = $props();
+	let { initial, onsubmit, oncancel, actions, withNotes = false }: Props = $props();
 
 	const id = $props.id();
 
@@ -158,6 +160,21 @@
 		<span class="text-sm font-medium">Color</span>
 		<EventColorSwatches value={draft.color} onchange={(color) => (draft.color = color)} />
 	</div>
+
+	{#if withNotes}
+		<div class="grid gap-1.5">
+			<label for="{id}-notes" class="text-sm font-medium">Notes</label>
+			<!-- Styled like `ui/input`, multi-line. -->
+			<textarea
+				id="{id}-notes"
+				rows={3}
+				class="flex min-h-16 w-full min-w-0 resize-y rounded-md border border-input bg-input-bg px-3 py-2 text-base text-foreground/80 shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+				value={draft.notes}
+				oninput={(e) => (draft.notes = (e.currentTarget as HTMLTextAreaElement).value)}
+				data-field="notes"
+			></textarea>
+		</div>
+	{/if}
 
 	{#if submitError}
 		<p class="text-sm text-destructive" role="alert" data-form-error>{submitError}</p>

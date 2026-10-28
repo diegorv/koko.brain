@@ -318,6 +318,19 @@ describe('EventTimeGrid: all-day lane', () => {
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-11');
 		expect(eventCalendarViewStore.view).toBe('day');
 	});
+
+	it('opens the create dialog in all-day mode on a click on empty lane space, not on a chip', () => {
+		seed([event({ path: P('Off'), title: 'Time off', date: '2026-11-09', allDay: true, start: 0, end: 1440 })]);
+		mountGrid();
+
+		q<HTMLButtonElement>(`[data-all-day-cell="2026-11-09"] [data-event-path="${P('Off')}"]`)!.click();
+		flushSync();
+		expect(eventCalendarViewStore.dialog).toBeNull();
+
+		q('[data-all-day-cell="2026-11-11"]')!.click();
+		flushSync();
+		expect(eventCalendarViewStore.dialog?.payload).toEqual({ mode: 'create', date: '2026-11-11', allDay: true });
+	});
 });
 
 describe('EventTimeGrid: now-line', () => {

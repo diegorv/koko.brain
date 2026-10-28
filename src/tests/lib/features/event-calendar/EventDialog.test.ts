@@ -21,7 +21,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn(), success: vi.fn() },
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
 // Opening a note is the editor's side effect; saving stays real.
@@ -38,16 +38,18 @@ vi.mock('$lib/core/filesystem/fs.service', async () => {
 
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
-import { exists, readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { renameItem } from '$lib/core/filesystem/fs.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { trashStore } from '$lib/core/trash/trash.store.svelte';
 import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { _resetParseFrontmatterCache } from '$lib/features/properties/properties.logic';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import EventDialog from '$lib/features/event-calendar/EventDialog.svelte';
 import EventTimeGrid from '$lib/features/event-calendar/EventTimeGrid.svelte';
@@ -95,6 +97,12 @@ async function settle() {
 	flushSync();
 }
 
+/** Opens the create dialog on 2026-11-12 at 10:00 and waits for it to render. */
+async function openCreate(payload: { allDay?: boolean } = {}) {
+	eventCalendarViewStore.openDialog({ mode: 'create', date: '2026-11-12', start: 600, ...payload });
+	await settle();
+}
+
 /** Opens the edit dialog for `path` and waits for it to render. */
 async function openEdit(path: string) {
 	eventCalendarViewStore.openDialog({ mode: 'edit', path });
@@ -130,9 +138,19 @@ beforeEach(async () => {
 	_resetParseFrontmatterCache();
 	disk.clear();
 	version = 0;
-	vi.mocked(invoke).mockImplementation(async (cmd) => {
+	trashStore.clear();
+	typeDefinitionsStore.reset();
+	vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+		// `create_note` writes the note; `scan_vault` feeds `refreshTree` an empty tree.
+		if (cmd === 'create_note') {
+			const { path, content } = args as { path: string; content: string };
+			disk.set(path, content);
+			return undefined;
+		}
+		if (cmd === 'scan_vault') return [];
 		if (cmd !== 'get_all_vault_entries_v2') return undefined;
-		return [...disk.entries()].map(([path, content]) => eventEntryFromContent(path, content));
+		// Rust skips dot-folders, so the Trash under `.kokobrain/` is never indexed.
+		return [...disk.entries()].filter(([path]) => !path.includes('/.')).map(([path, content]) => eventEntryFromContent(path, content));
 	});
 	vi.mocked(readTextFile).mockImplementation(async (p) => {
 		const path = String(p);
@@ -143,6 +161,16 @@ beforeEach(async () => {
 		disk.set(String(p), String(data));
 	});
 	vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)));
+	vi.mocked(mkdir).mockResolvedValue(undefined);
+	vi.mocked(rename).mockImplementation(async (from, to) => {
+		if (!disk.has(String(from))) throw new Error(`No such file: ${String(from)}`);
+		disk.set(String(to), disk.get(String(from))!);
+		disk.delete(String(from));
+	});
+	vi.mocked(remove).mockImplementation(async (p) => {
+		const prefix = `${String(p)}/`;
+		for (const key of [...disk.keys()]) if (key === String(p) || key.startsWith(prefix)) disk.delete(key);
+	});
 	vi.mocked(readDir).mockImplementation(async (dir) => {
 		const prefix = `${String(dir)}/`;
 		return [...disk.keys()]
@@ -427,5 +455,151 @@ describe('EventDialog: closing', () => {
 
 		expect(dialog()).toBeNull();
 		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+});
+
+describe('EventDialog: create', () => {
+	it('opens an untitled form with a notes field and an "Open note after creating" checkbox', async () => {
+		mountView();
+		await openCreate();
+
+		expect(dialog()!.textContent).toContain('New event');
+		expect(field('title').value).toBe('');
+		expect(field('start').value).toBe('10:00');
+		expect(field('end').value).toBe('11:00');
+		expect(dialog()!.querySelector('textarea[data-field="notes"]')).not.toBeNull();
+		expect(field('open-after-create').type).toBe('checkbox');
+		expect(field('open-after-create').checked).toBe(false);
+		expect(dialog()!.querySelector('[data-delete]')).toBeNull();
+		expect(save().disabled).toBe(true);
+	});
+
+	it('creates the note with the notes as its body and shows the pending create', async () => {
+		mountView();
+		await openCreate();
+
+		type(field('title'), ' Planning ');
+		const notes = dialog()!.querySelector<HTMLTextAreaElement>('[data-field="notes"]')!;
+		notes.value = 'Agenda';
+		notes.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		save().click();
+		await settle();
+
+		const written = disk.get(P('Planning'))!;
+		expect(written).toContain('_type: Event\n');
+		expect(written).toContain('date: 2026-11-12\n');
+		expect(written).toContain('start: 10:00\n');
+		expect(written).toContain('Agenda');
+		expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Planning', date: '2026-11-12', pending: true });
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(document.activeElement).toBe(block(P('Planning')));
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('opens the new note when the checkbox is on', async () => {
+		mountView();
+		await openCreate();
+
+		type(field('title'), 'Planning');
+		field('open-after-create').click();
+		flushSync();
+		save().click();
+		await settle();
+
+		expect(openFileInEditor).toHaveBeenCalledWith(P('Planning'));
+		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+
+	it('creates an all-day event from an all-day payload', async () => {
+		mountView();
+		await openCreate({ allDay: true });
+
+		expect(dialog()!.querySelector('[data-field="start"]')).toBeNull();
+		type(field('title'), 'Offsite');
+		save().click();
+		await settle();
+
+		expect(disk.get(P('Offsite'))).toContain('all_day: true\n');
+		expect(eventCalendarStore.eventByPath(P('Offsite'))).toMatchObject({ allDay: true });
+	});
+});
+
+describe('EventDialog: create cancel', () => {
+	it('Cancel on a create opened after an edit leaves focus on the view root', async () => {
+		mountView();
+		await openEdit(P('Standup'));
+		button('Cancel').click();
+		await settle();
+		expect(document.activeElement).toBe(block(P('Standup')));
+
+		await openCreate();
+		button('Cancel').click();
+		await settle();
+
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(document.activeElement).toBe(root);
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+});
+
+describe('EventDialog: footer Delete and Duplicate', () => {
+	it('Delete closes the dialog, toasts "Event deleted" with Undo, and leaves focus on the view root', async () => {
+		mountView();
+		await openEdit(P('Standup'));
+
+		dialog()!.querySelector<HTMLButtonElement>('[data-delete]')!.click();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(dialog()).toBeNull();
+		expect(disk.has(P('Standup'))).toBe(false);
+		expect(root.querySelector(`[data-event-path="${P('Standup')}"]`)).toBeNull();
+		expect(document.activeElement).toBe(root);
+		expect(toast).toHaveBeenCalledWith('Event deleted', { action: { label: 'Undo', onClick: expect.any(Function) } });
+
+		const [, options] = vi.mocked(toast).mock.calls[0] as unknown as [string, { action: { onClick: () => void } }];
+		document.body.focus();
+		options.action.onClick();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(disk.has(P('Standup'))).toBe(true);
+		expect(eventCalendarStore.eventByPath(P('Standup'))).toBeDefined();
+		expect(document.activeElement).toBe(root);
+	});
+
+	it('Duplicate closes the dialog, toasts the copy\'s title, and focuses the copy\'s block', async () => {
+		mountView();
+		await openEdit(P('Standup'));
+
+		dialog()!.querySelector<HTMLButtonElement>('[data-duplicate]')!.click();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(disk.has(P('Standup (copy)'))).toBe(true);
+		expect(toast.success).toHaveBeenCalledWith('Event duplicated', { description: 'Standup (copy)' });
+		expect(document.activeElement).toBe(block(P('Standup (copy)')));
+	});
+
+	it('a failed delete toasts the error and keeps the event', async () => {
+		vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+		mountView();
+		await openEdit(P('Standup'));
+
+		dialog()!.querySelector<HTMLButtonElement>('[data-delete]')!.click();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(toast).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalled();
+		expect(disk.has(P('Standup'))).toBe(true);
+		expect(document.activeElement).toBe(root);
 	});
 });

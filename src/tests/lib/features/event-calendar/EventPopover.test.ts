@@ -9,10 +9,18 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
+// The delete / duplicate flows write through the fs; they run for real in
+// `EventDialog.test.ts` and `event-calendar.service.test.ts`.
+vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+	deleteEventFromUi: vi.fn(async () => {}),
+	duplicateEventFromUi: vi.fn(async () => {}),
+}));
+
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import EventPopover from '$lib/features/event-calendar/EventPopover.svelte';
+import { deleteEventFromUi, duplicateEventFromUi } from '$lib/features/event-calendar/event-calendar.service';
 import EventTimeGrid from '$lib/features/event-calendar/EventTimeGrid.svelte';
 import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
@@ -341,5 +349,51 @@ describe('EventPopover: closing', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith(P('Standup'));
 		expect(eventCalendarViewStore.popover).toBeNull();
 		expect(popover()).toBeNull();
+	});
+
+	it('"Delete" closes the popover, deletes the event and focuses the view root', async () => {
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		popover()!.querySelector<HTMLButtonElement>('[data-delete]')!.click();
+		await settle();
+
+		expect(deleteEventFromUi).toHaveBeenCalledWith(P('Standup'), root);
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(popover()).toBeNull();
+		expect(document.activeElement).toBe(root);
+	});
+
+	it('"Duplicate" closes the popover, duplicates the event and parks focus on the view root', async () => {
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+		document.body.focus();
+
+		popover()!.querySelector<HTMLButtonElement>('[data-duplicate]')!.click();
+		await settle();
+
+		expect(duplicateEventFromUi).toHaveBeenCalledWith(P('Standup'), root);
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(document.activeElement).toBe(root);
+	});
+
+	it('"Duplicate" leaves focus where the flow moves it once the copy renders', async () => {
+		vi.mocked(duplicateEventFromUi).mockImplementationOnce(async () => {
+			await new Promise((r) => setTimeout(r, 5));
+			block(P('Review')).focus();
+		});
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		popover()!.querySelector<HTMLButtonElement>('[data-duplicate]')!.click();
+		await settle();
+		await new Promise((r) => setTimeout(r, 10));
+		await settle();
+
+		expect(popover()).toBeNull();
+		expect(document.activeElement).toBe(block(P('Review')));
 	});
 });

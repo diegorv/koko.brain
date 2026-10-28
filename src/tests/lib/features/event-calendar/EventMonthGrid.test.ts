@@ -255,3 +255,28 @@ describe('EventMonthGrid: selection', () => {
 		expect(eventCalendarViewStore.view).toBe('day');
 	});
 });
+
+describe('EventMonthGrid: create', () => {
+	const dblclick = (el: HTMLElement) => el.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+	it('opens the create dialog at dayStartHour on a double-click on an empty cell', () => {
+		settingsStore.updateEventCalendar({ dayStartHour: 7 });
+		mountGrid();
+
+		dblclick(cell('2026-11-20'));
+		flushSync();
+
+		expect(eventCalendarViewStore.dialog?.payload).toEqual({ mode: 'create', date: '2026-11-20', start: 420 });
+	});
+
+	it('does not open create on a double-click on a chip or the day number', () => {
+		seed([event({ path: P('A'), title: 'A', date: '2026-11-20' })]);
+		mountGrid();
+
+		dblclick(cell('2026-11-20').querySelector<HTMLElement>(`[data-event-path="${P('A')}"]`)!);
+		dblclick(cell('2026-11-20').querySelector<HTMLElement>('[data-month-day]')!);
+		flushSync();
+
+		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+});

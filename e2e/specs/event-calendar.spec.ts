@@ -384,6 +384,67 @@ test.describe('Event calendar edit dialog', () => {
 	});
 });
 
+test.describe('Event calendar create, delete and undo', () => {
+	test('"New Calendar Event" creates a note the calendar shows, in the folder createNoteOfType uses', async ({ vaultPage: page }) => {
+		// No Event type definition and no types base folder: `createNoteOfType` writes to the vault root.
+		const created = '/test-vault/Planning.md';
+		await openSeededCalendar(page);
+
+		await openCommandPalette(page);
+		await page.locator('input[placeholder*="command"]:visible').first().fill('New Calendar Event');
+		await page.getByRole('option', { name: /New Calendar Event/ }).click();
+		const dialog = page.locator('[data-event-dialog]');
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled();
+		// The clock is 10:00 today, so the default slot is 10:00 to 11:00.
+		await expect(dialog.getByLabel('Start')).toHaveValue('10:00');
+
+		await dialog.getByLabel('Title').fill('Planning');
+		await dialog.getByLabel('Notes').fill('Agenda items');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${created}"]`);
+		await expect(block).toBeVisible();
+		await expect(block).toContainText('Planning');
+		const bytes = await page.evaluate((path) => window.__e2e.fs.readFile(path), created);
+		expect(bytes).toContain('_type: Event\n');
+		expect(bytes).toContain('\ndate: 2026-11-10\n');
+		expect(bytes).toContain('\nstart: 10:00\n');
+		expect(bytes).toContain('Agenda items');
+	});
+
+	test('deleting from the popover hides the block, and the toast Undo brings it back settled', async ({ vaultPage: page }) => {
+		const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${STANDUP}"]`);
+		await openSeededCalendar(page);
+		await expect(block).toBeVisible({ timeout: 10_000 });
+		await page.locator('[data-time-grid]').evaluate(
+			(el) =>
+				new Promise<void>((resolve) => {
+					el.addEventListener('scroll', () => requestAnimationFrame(() => resolve()), { once: true });
+					el.scrollTop = 6 * 64;
+				}),
+		);
+		await block.click();
+		await page.locator('[data-event-popover]').getByRole('button', { name: 'Delete event' }).click();
+
+		await expect(block).toHaveCount(0);
+		await expect(page.locator('[data-event-calendar]')).toBeFocused();
+		expect(await page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(false);
+		const toast = page.locator('[data-sonner-toast]', { hasText: 'Event deleted' });
+		await expect(toast).toBeVisible();
+		const before = await indexVersion(page);
+		await toast.getByRole('button', { name: 'Undo' }).click();
+
+		await expect(block).toHaveCount(1);
+		expect(await page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(true);
+		await expect.poll(() => indexVersion(page)).toBeGreaterThan(before);
+		// The throttled vault-index refresh settles the overlay (2 s after the event, 10 s spacing).
+		await expect(page.locator(`[data-event-path="${STANDUP}"][data-pending="false"]`)).toHaveCount(1, { timeout: 15_000 });
+		await expect(page.locator('[data-event-calendar]')).toBeFocused();
+	});
+});
+
 test.describe('Event calendar selected day in a narrow pane', () => {
 	test.use({ clockTime: '2026-11-15T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 

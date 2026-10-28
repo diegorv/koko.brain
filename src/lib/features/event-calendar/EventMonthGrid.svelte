@@ -37,6 +37,15 @@
 	function handleCellClick(e: MouseEvent, day: string) {
 		if (e.target === e.currentTarget) eventCalendarViewStore.setDate(day);
 	}
+
+	/**
+	 * Opens the create dialog at `dayStartHour` when a double-click lands on
+	 * the empty cell (the prototype hard-coded 09:00, `month-view.tsx:83`).
+	 */
+	function handleCellDoubleClick(e: MouseEvent, day: string) {
+		if (e.target !== e.currentTarget) return;
+		eventCalendarViewStore.openDialog({ mode: 'create', date: day, start: settingsStore.eventCalendar.dayStartHour * 60 });
+	}
 </script>
 
 <div class="flex h-full min-h-0 flex-col" data-month-grid>
@@ -62,6 +71,7 @@
 				data-month-cell={cell.day}
 				data-in-month={cell.inMonth}
 				onclick={(e) => handleCellClick(e, cell.day)}
+				ondblclick={(e) => handleCellDoubleClick(e, cell.day)}
 			>
 				<button
 					type="button"

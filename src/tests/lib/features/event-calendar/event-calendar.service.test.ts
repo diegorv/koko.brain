@@ -19,7 +19,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn(), success: vi.fn() },
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
 // `renameItem` runs the full path-change owner (tree refresh, link rewrite,
@@ -50,8 +50,10 @@ import {
 	closeEventCalendarTab,
 	createEvent,
 	deleteEvent,
+	deleteEventFromUi,
 	drainEventCalendarWrites,
 	duplicateEvent,
+	duplicateEventFromUi,
 	editEvent,
 	EventCalendarError,
 	eventErrorMessage,
@@ -1605,6 +1607,94 @@ describe('calendar writes', () => {
 			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
 			expect(disk.has(P('Standup (restored)'))).toBe(false);
 			expect(disk.get(P('Standup'))).toContain('start: 14:00');
+		});
+	});
+
+	describe('deleteEventFromUi and duplicateEventFromUi', () => {
+		/** A focusable stand-in for the Calendar view root. */
+		function makeRoot(): HTMLElement {
+			const el = document.body.appendChild(document.createElement('div'));
+			el.tabIndex = -1;
+			return el;
+		}
+
+		/** The `onClick` of the action the last plain toast carried. */
+		function toastAction(): () => void {
+			const [, options] = vi.mocked(toast).mock.calls.at(-1) as unknown as [string, { action: { onClick: () => void } }];
+			return options.action.onClick;
+		}
+
+		afterEach(() => {
+			document.body.innerHTML = '';
+		});
+
+		it('deletes, toasts "Event deleted" with Undo, and the Undo restores and focuses the root', async () => {
+			const root = makeRoot();
+
+			await deleteEventFromUi(P('Standup'), root);
+
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(toast).toHaveBeenCalledWith('Event deleted', { action: { label: 'Undo', onClick: expect.any(Function) } });
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(eventCalendarStore.history.undo.some((op) => op.kind === 'delete')).toBe(false);
+			expect(document.activeElement).toBe(root);
+		});
+
+		it('an Undo after the Trash was emptied toasts "Event is no longer in the Trash" and focuses the root', async () => {
+			const root = makeRoot();
+			await deleteEventFromUi(P('Standup'), root);
+			trashStore.setItems([]);
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(toast.error).toHaveBeenCalledWith('Event is no longer in the Trash');
+			expect(document.activeElement).toBe(root);
+		});
+
+		it('a failed delete toasts the error and shows no "Event deleted"', async () => {
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			await deleteEventFromUi(P('Standup'), makeRoot());
+
+			expect(toast).not.toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalled();
+			expect(disk.has(P('Standup'))).toBe(true);
+		});
+
+		it("duplicates, toasts the copy's title, and focuses the root when the copy has no block", async () => {
+			const root = makeRoot();
+
+			await duplicateEventFromUi(P('Standup'), root);
+
+			expect(disk.has(P('Standup (copy)'))).toBe(true);
+			expect(toast.success).toHaveBeenCalledWith('Event duplicated', { description: 'Standup (copy)' });
+			expect(document.activeElement).toBe(root);
+		});
+
+		it("focuses the copy's block when it renders", async () => {
+			const root = makeRoot();
+			const copyBlock = root.appendChild(document.createElement('div'));
+			copyBlock.tabIndex = 0;
+			copyBlock.dataset.eventPath = P('Standup (copy)');
+
+			await duplicateEventFromUi(P('Standup'), root);
+
+			expect(document.activeElement).toBe(copyBlock);
+		});
+
+		it('a failed duplicate toasts the error and focuses the root', async () => {
+			const root = makeRoot();
+
+			await duplicateEventFromUi(P('Gone'), root);
+
+			expect(toast.success).not.toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledWith('The note was moved or deleted outside the calendar');
+			expect(document.activeElement).toBe(root);
 		});
 	});
 

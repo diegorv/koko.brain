@@ -11,6 +11,7 @@
 
 import dayjs from 'dayjs';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
+import { tick as svelteTick } from 'svelte';
 import { toast } from 'svelte-sonner';
 import { EVENT_CALENDAR_VIRTUAL_PATH, findTabIndex } from '$lib/core/editor/editor.logic';
 import { openFileInEditor, saveFileByPath } from '$lib/core/editor/editor.service';
@@ -963,4 +964,60 @@ export function toastEventError(err: unknown, path: string): void {
 		}
 	}
 	toast.error(eventErrorMessage(err));
+}
+
+/** Focuses the Calendar view root when it is still mounted. */
+function focusRoot(root: HTMLElement | undefined): void {
+	if (root?.isConnected) root.focus();
+}
+
+/**
+ * The popover's and the dialog's Delete: deletes the event and shows an
+ * "Event deleted" toast whose Undo restores it through `undoDeleteEvent`
+ * and then focuses the view root (the toast sits outside it). A failure is
+ * reported through `toastEventError` instead.
+ * @param path - absolute path of the event note
+ * @param root - the Calendar view root
+ */
+export async function deleteEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> {
+	try {
+		await deleteEvent(path);
+	} catch (err) {
+		toastEventError(err, path);
+		return;
+	}
+	toast('Event deleted', {
+		action: {
+			label: 'Undo',
+			onClick: () => {
+				undoDeleteEvent(path)
+					.catch((err) => toastEventError(err, path))
+					.finally(() => focusRoot(root));
+			},
+		},
+	});
+}
+
+/**
+ * The popover's and the dialog's Duplicate: duplicates the event, shows an
+ * "Event duplicated" toast with the copy's title, and once the view has
+ * rendered moves focus to the copy's block, else to the view root. A
+ * failure is reported through `toastEventError` and focuses the root.
+ * @param path - absolute path of the event note
+ * @param root - the Calendar view root
+ */
+export async function duplicateEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> {
+	let copy: string;
+	try {
+		copy = await duplicateEvent(path);
+	} catch (err) {
+		toastEventError(err, path);
+		focusRoot(root);
+		return;
+	}
+	toast.success('Event duplicated', { description: eventCalendarStore.eventByPath(copy)?.title ?? fileBase(copy) });
+	await svelteTick();
+	if (!root?.isConnected) return;
+	const block = root.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(copy)}"]`);
+	(block ?? root).focus();
 }
