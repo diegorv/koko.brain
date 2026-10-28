@@ -39,6 +39,7 @@ vi.mock('$lib/core/filesystem/fs.service', async () => {
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { exists, readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
@@ -240,6 +241,19 @@ describe('EventDialog: form', () => {
 
 		expect(field('end').value).toBe('11:30');
 	});
+
+	it('shows 00:00, not 23:59, as the end of an event that ends at midnight', async () => {
+		disk.set(P('Late'), eventFile({ start: '23:00', end: '24:00' }));
+		await refresh();
+		expect(eventCalendarStore.eventByPath(P('Late'))).toMatchObject({ start: 1380, end: 1440 });
+		mountView();
+		await openEdit(P('Late'));
+
+		expect(field('start').value).toBe('23:00');
+		expect(field('end').value).toBe('00:00');
+		expect(error('time')).toBeNull();
+		expect(save().disabled).toBe(false);
+	});
 });
 
 describe('EventDialog: color swatches', () => {
@@ -309,6 +323,52 @@ describe('EventDialog: saving', () => {
 		expect(save().disabled).toBe(false);
 	});
 
+	it('toasts a failed write when the dialog was closed during the save', async () => {
+		let reject!: (err: Error) => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((_, r) => (reject = r)));
+		mountView();
+		await openEdit(P('Standup'));
+
+		type(field('location'), 'Room 4');
+		save().click();
+		await settle();
+		expect(writeTextFile).toHaveBeenCalled();
+		eventCalendarViewStore.closeDialog();
+		await settle();
+		reject(new Error('disk full'));
+		await settle();
+
+		expect(toast.error).toHaveBeenCalledWith('disk full');
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(disk.get(P('Standup'))).not.toContain('Room 4');
+	});
+
+	it('leaves a newer dialog open when an earlier save finishes', async () => {
+		let resolve!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
+			await new Promise<void>((r) => (resolve = r));
+			disk.set(String(p), String(data));
+		});
+		mountView();
+		await openEdit(P('Standup'));
+
+		type(field('location'), 'Room 4');
+		save().click();
+		await settle();
+		eventCalendarViewStore.closeDialog();
+		await settle();
+		await openEdit(P('Retreat'));
+		const retreat = eventCalendarViewStore.dialog!.session;
+		resolve();
+		await settle();
+
+		expect(disk.get(P('Standup'))).toContain('Room 4');
+		expect(eventCalendarViewStore.dialog?.session).toBe(retreat);
+		expect(dialog()).not.toBeNull();
+		expect(field('title').value).toBe('Retreat');
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
 	it('closes without a write when nothing changed', async () => {
 		mountView();
 		await openEdit(P('Standup'));
@@ -333,6 +393,21 @@ describe('EventDialog: closing', () => {
 		expect(eventCalendarViewStore.dialog).toBeNull();
 		expect(dialog()).toBeNull();
 		expect(document.activeElement).toBe(block(P('Standup')));
+	});
+
+	it('moves focus to the view root when the edited block is gone', async () => {
+		mountView();
+		await openEdit(P('Standup'));
+		expect(dialog()).not.toBeNull();
+
+		disk.delete(P('Standup'));
+		await refresh();
+		await settle();
+
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(dialog()).toBeNull();
+		expect(root.querySelector(`[data-event-path="${P('Standup')}"]`)).toBeNull();
+		expect(document.activeElement).toBe(root);
 	});
 
 	it('"Open note" closes the dialog and opens the note', async () => {

@@ -5,7 +5,7 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { eventState } from './event-calendar-event.logic';
 	import { draftFromEvent, draftToPatch, type EventFormDraft } from './event-calendar-form.logic';
-	import { editEvent } from './event-calendar.service';
+	import { editEvent, toastEventError } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import EventForm from './EventForm.svelte';
@@ -60,12 +60,31 @@
 		(block ?? el).focus();
 	}
 
-	/** Writes the changed fields through `editEvent`, then closes; an unchanged draft just closes. */
+	/**
+	 * Writes the changed fields through `editEvent`, then closes; an unchanged
+	 * draft just closes. When the dialog was closed (or reopened for another
+	 * event) during the write, the result no longer belongs to the open dialog:
+	 * a success leaves it alone and a failure is reported in a toast, since the
+	 * form that would show it inline is gone.
+	 */
 	async function save(draft: EventFormDraft) {
 		if (!path || !opened) return;
+		const target = path;
+		const s = session;
 		const patch = draftToPatch(draft, opened.state);
 		if (Object.keys(patch).length > 0) {
-			lastPath = await editEvent(path, patch);
+			let newPath: string;
+			try {
+				newPath = await editEvent(target, patch);
+			} catch (err) {
+				if (eventCalendarViewStore.dialog?.session !== s) {
+					toastEventError(err, target);
+					return;
+				}
+				throw err;
+			}
+			if (eventCalendarViewStore.dialog?.session !== s) return;
+			lastPath = newPath;
 		}
 		eventCalendarViewStore.closeDialog();
 	}

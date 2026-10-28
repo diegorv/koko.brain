@@ -129,7 +129,7 @@
 						id="{id}-end"
 						type="time"
 						step={900}
-						value={timeInputValue(draft.end)}
+						value={draft.end >= 1440 ? '00:00' : timeInputValue(draft.end)}
 						disabled={locked}
 						oninput={(e) => (draft = applyEndChange(draft, inputValue(e)))}
 						aria-invalid={errors.time ? true : undefined}

@@ -65,3 +65,11 @@ Run by the reviewer in the worktree:
   - `EventBlock.svelte` makes the ticket's `[data-pending="false"]` selector match.
   - `event-calendar.service.ts` adds `eventErrorMessage` for the inline error. The `toastEventError` refactor keeps the same texts and actions, and the existing toast tests still pass.
 - No scope creep found. Create mode, Delete and Duplicate are left to ticket 29.
+
+## Resolution
+
+- 1 (Medium): fixed. `EventDialog.svelte` `save` captures the dialog session before the write. When the session changed by the time the write rejects, it calls `toastEventError(err, path)`; otherwise it rethrows so `EventForm` shows the inline error. Test: "toasts a failed write when the dialog was closed during the save" (fails before the fix).
+- 2 (Low): fixed with the same guard. After a successful write, `lastPath` and `closeDialog()` run only while the session is unchanged. Test: "leaves a newer dialog open when an earlier save finishes" (fails before the fix).
+- 3 (Low): fixed inline in `EventForm.svelte`: the End field shows `00:00` when `draft.end >= 1440`, matching `applyEndChange`. Test: "shows 00:00, not 23:59, as the end of an event that ends at midnight" (fails before the fix).
+- 4 (Low, test gap): added "moves focus to the view root when the edited block is gone" (the note is removed from the fake disk, `refresh()` closes the dialog through the `path && !event` effect).
+- 5, 6 (Info): no change, as the review says.
