@@ -1,0 +1,20 @@
+# 67: Calendar focus and accessibility polish
+
+**What to build:** focus handling and accessible names in the Calendar. Split out of the former ticket 64 (Calendar polish from the post-merge adversarial reviews). Items are low severity as recorded; line anchors are as recorded at review time and may have drifted, so re-locate them on main first.
+
+**Blocked by:** None
+
+**Status:** ready-for-agent
+
+Ticket 26 review (fix ed15a49c):
+- [ ] `FOCUSABLE` (`:24`, now `:32`) matches `[tabindex]`, so a `tabindex="-1"` wrapper takes focus after an outside click; exclude `-1` or skip when `document.activeElement` is already outside the popover.
+
+Ticket 29 review (fix 5c14e82d):
+- [ ] The delete toast Undo (`event-calendar.service.ts:1019`, now `:1023`) focuses `document.querySelector('[data-event-calendar]')`, the first Calendar root in the DOM, so with two mounted views it can focus the wrong one (focus only).
+
+Ticket 41 review (fix 03026a54):
+- [ ] A span segment block's aria-label reads its clipped day range (e.g. `00:00 – 24:00`) instead of the full event range; the block only receives the clipped segment, so the label needs the full range passed down.
+
+Ticket 59 review (fix f1504724):
+- [ ] The post-drop click swallow (`event-calendar-day-drag.svelte.ts:69`) filters on `detail === 0`; an assistive-tech click with `detail >= 1` and no prior `pointerdown` in the area is eaten once if a drop outside the area or an Escape/pointercancel left the flag armed. Unconfirmed for VoiceOver.
+- [ ] The comment at `:60-67` says "the next press in the area resets the flag"; a press outside the area does not. Reword.
