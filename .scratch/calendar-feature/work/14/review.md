@@ -54,3 +54,11 @@ Reviewed `git diff main...HEAD` (0bf8dc4a, 5d3063d7, cbe644d0) against the Issue
 
 - Scope: only the two mock files plus the scratch docs. No source, store or test-policy changes, and nothing outside the ticket except finding 4, which is justified.
 - CLAUDE.md: tabs are used. JSDoc is on `extractIsA`, `lastHookResult`, `takeHookResult`, `emitIndexUpdated` and `handleRenameNote`. The imports follow the existing relative `../../src/lib/types/vault-v2.types` pattern. Layer and error-handling rules do not apply to E2E mocks.
+
+## Resolution
+
+Fixed in deliver (all three Low findings accepted; findings 4 and 5 are Info, accepted, no change):
+
+1. `e2e/mocks/vault-index.ts` `update()`: `changed` now compares the whole entry (`JSON.stringify(previous) !== JSON.stringify(next)`), matching Rust `index.rs::update_entry` (`old_entry.as_ref() != Some(&entry)`), so a same-size edit such as `- [ ]` -> `- [x]` emits. Timestamps are part of the comparison, as in Rust.
+2. `e2e/mocks/tauri-core.ts` `handleRenameNote`: also takes and discards the hook results recorded under `to` and `to + '/'`, so no stale `update(new)` entry lingers.
+3. `e2e/mocks/vault-index.ts` `onPopulate`: clears `lastHookResult` before `rebuildAll()`, so a repopulate drops results from the previous vault.

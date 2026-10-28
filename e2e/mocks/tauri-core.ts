@@ -146,7 +146,14 @@ function handleRenameNote(args: Args): unknown {
 	const to = get<string>(args, 'to');
 	const prefix = from + '/';
 	let changed = false;
+	const toPrefix = to + '/';
 	for (const key of [...lastHookResult.keys()]) {
+		// The hook's `update(new)` results under `to` are never consumed by a
+		// later call, so drop them here rather than leave them stale.
+		if (key === to || key.startsWith(toPrefix)) {
+			takeHookResult(key);
+			continue;
+		}
 		if (key !== from && !key.startsWith(prefix)) continue;
 		if (takeHookResult(key)?.changed) changed = true;
 	}

@@ -242,12 +242,9 @@ class VaultIndexImpl {
 		}
 		for (const link of next.outgoingLinks) affected.add(link.target);
 
-		const changed =
-			!previous ||
-			previous.size !== next.size ||
-			JSON.stringify(previous.outgoingLinks) !== JSON.stringify(next.outgoingLinks) ||
-			JSON.stringify(previous.tags) !== JSON.stringify(next.tags) ||
-			JSON.stringify(previous.frontmatter) !== JSON.stringify(next.frontmatter);
+		// Rust compares the whole `NoteEntry` (`index.rs::update_entry`), so a
+		// same-size edit (`- [ ]` -> `- [x]`) still counts as a change.
+		const changed = !previous || JSON.stringify(previous) !== JSON.stringify(next);
 
 		return { changed, affected: [...affected], version: bumpVersion() };
 	}
@@ -461,7 +458,10 @@ export const vaultIndex = new VaultIndexImpl();
 export const lastHookResult = new Map<string, UpdateResultV2>();
 
 virtualFS.subscribe({
-	onPopulate: () => vaultIndex.rebuildAll(),
+	onPopulate: () => {
+		lastHookResult.clear();
+		vaultIndex.rebuildAll();
+	},
 	onWrite: (path, content) => {
 		lastHookResult.set(path, vaultIndex.update(path, content));
 	},
