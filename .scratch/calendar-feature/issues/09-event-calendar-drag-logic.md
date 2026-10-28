@@ -31,3 +31,7 @@
 
   Both cases are under test.
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:41 — discovery — plan, risks and defaults in work/09/discovery.md (DragState reshaped to day indices) — bf0fbbbc
