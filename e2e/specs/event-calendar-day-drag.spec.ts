@@ -2,6 +2,8 @@ import { test, expect } from '../fixtures/test-vault';
 import { openCommandPalette } from '../fixtures/helpers';
 import type { Page } from '@playwright/test';
 
+test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
+
 const STANDUP = '/test-vault/Events/Standup.md';
 const HOLIDAY = '/test-vault/Events/Holiday.md';
 const RETREAT = '/test-vault/Events/Retreat.md';
