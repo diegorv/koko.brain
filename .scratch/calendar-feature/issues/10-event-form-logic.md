@@ -29,3 +29,4 @@
 
 - 2026-10-28 12:53 — discovery — plan in work/10/discovery.md; one pure module + test, ticket 09 template — 29a7f5d8
 - 2026-10-28 12:55 — implement — form logic + 41 tests; pnpm check 0 errors, event-calendar tests 232/232 — 3bf91350
+- 2026-10-28 12:58 — review — CHANGES_REQUESTED: 2 medium (numbered note planned onto its own name in another case; end 00:00 no longer 1440), 1 low test gap; see work/10/review.md — 052ba7e4
