@@ -181,6 +181,21 @@ describe('EventPopover: opening', () => {
 		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Review');
 	});
 
+	it('follows a rename overlay to the new path instead of closing', async () => {
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		// What `writeEvent` does on a title rename, in one synchronous step.
+		eventCalendarStore.remapPath(P('Standup'), P('Daily sync'));
+		eventCalendarViewStore.remapPath(P('Standup'), P('Daily sync'));
+		await settle();
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Daily sync'));
+		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Standup');
+		expect(root.querySelector(`[data-event-path="${P('Standup')}"]`)).toBeNull();
+	});
+
 	it('renders nothing while no event is selected, or when the selected note is not an event', async () => {
 		mountView();
 		expect(popover()).toBeNull();
