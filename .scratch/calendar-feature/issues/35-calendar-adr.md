@@ -31,3 +31,4 @@
 
 - 2026-10-28 16:24 — discovery — docs-only plan in work/35/discovery.md; grep inventory taken on the final tree (no #lib specifiers; EventCalendarSection adds type-definitions.logic and two service imports beyond the plan list) — 82e1ee31
 - 2026-10-28 16:27 — implement — ADR-0032 added, README row, ADR-0029 and ADR-0009 amendments; docs only, no gate needed (diff --cached --stat lists only docs/adr) — 1ec63284
+- 2026-10-28 16:30 — review — CHANGES_REQUESTED: all 10 criteria met; 3 low factual fixes in ADR-0032 (precedent count :56, missing renameItem/createFile owners :41-46, indexRestoredNote range :50/:123) plus 1 info; see work/35/review.md — 8a1ab589
