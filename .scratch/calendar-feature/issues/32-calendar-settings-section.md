@@ -35,3 +35,4 @@
 - 2026-10-28 15:41 — discovery — plan in work/32/discovery.md; section + settings wiring + unit and E2E tests — 6119eff3
 - 2026-10-28 15:46 — implement — Calendar settings section wired; pnpm check 0 errors, vitest settings + event-calendar 31 files / 946 passed, E2E event-calendar.spec + settings.spec 29 passed; full gate not run — 58590aa7
 - 2026-10-28 15:49 — review — CHANGES_REQUESTED: 1 medium (Open Event type double-create behind the open settings panel), 2 low, 2 nits; see work/32/review.md — dc6507ba
+- 2026-10-28 15:55 — fix — all 5 review findings fixed (panel close + single create, null/invalid create toast, default view E2E, descriptions); rebased onto main 195bf454; full gate green (check 0 errors, vitest 316 files / 7440 passed, build ok); E2E event-calendar + settings 30 passed — 0542bac2
