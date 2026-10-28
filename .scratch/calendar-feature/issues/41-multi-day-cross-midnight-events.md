@@ -14,3 +14,7 @@
 - [ ] Cross-midnight timed events render on both days
 - [ ] Writes never desync `date` and `end_date`
 - [ ] Logic tests for span splitting and an E2E for a two-day event
+
+## Comments
+
+- 2026-10-28 17:26 — discovery — spans read-only, per-day segments in the view logic, `end-before-start` replaces `crosses-midnight`, service refuses timing writes on spans; see work/41/discovery.md — pending
