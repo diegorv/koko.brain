@@ -35,3 +35,4 @@
 ## Comments
 
 - 2026-10-28 12:41 — discovery — plan, risks and defaults in work/09/discovery.md (DragState reshaped to day indices) — bf0fbbbc
+- 2026-10-28 12:44 — implement — drag logic + 34 tests; event-calendar tests 95/95, pnpm check 0 errors; full gate not run (deliver runs it) — 99647b0a
