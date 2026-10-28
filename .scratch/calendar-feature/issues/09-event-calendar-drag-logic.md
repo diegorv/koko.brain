@@ -37,3 +37,4 @@
 - 2026-10-28 12:41 — discovery — plan, risks and defaults in work/09/discovery.md (DragState reshaped to day indices) — bf0fbbbc
 - 2026-10-28 12:44 — implement — drag logic + 34 tests; event-calendar tests 95/95, pnpm check 0 errors; full gate not run (deliver runs it) — 99647b0a
 - 2026-10-28 12:47 — review — VERDICT: APPROVED; 2 low findings (resize date from press slot, unguarded days[index]) + 1 info in work/09/review.md — 5d3435d6
+- 2026-10-28 12:48 — fix — review findings 1-2 fixed (resize keeps event.date, none on missing day key), +3 tests, event-calendar tests 98/98, pnpm check 0 errors; finding 3 info, no change — pending

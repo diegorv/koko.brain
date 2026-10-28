@@ -175,24 +175,31 @@ export function updateDrag(drag: DragState, slot: Slot, distancePx: number): Dra
  * drag's indices point into, and `events` the events the grid shows.
  *
  * - A create resolves to its payload (the click range, or the dragged range).
+ * - A drag whose day index no longer points into `days` (the view changed
+ *   mid-drag) resolves to `none`.
  * - A move or resize of an event that is no longer shown resolves to `none`.
  * - A press that never passed the threshold, or any drag of a read-only
  *   event, opens the popover.
  * - A drop with the same date, start and end resolves to `none`, so no
  *   no-op write is recorded.
  * - Anything else resolves to `move` with the new timing; a resize does too,
- *   and the caller tells them apart by `drag.kind`.
+ *   keeping the event's own date, and the caller tells them apart by
+ *   `drag.kind`.
  */
 export function resolveDrag(drag: DragState, events: EventNote[], days: string[]): DragResult {
 	if (drag.kind === 'create') {
-		return { kind: 'create', payload: { date: days[drag.originDay], start: drag.start, end: drag.end } };
+		const date = days[drag.originDay];
+		if (date === undefined) return { kind: 'none' };
+		return { kind: 'create', payload: { date, start: drag.start, end: drag.end } };
 	}
 
 	const event = events.find((e) => e.path === drag.path);
 	if (!event) return { kind: 'none' };
 	if (!drag.moved || event.readOnly) return { kind: 'popover', path: event.path };
 
-	const timing = { date: days[drag.day], start: drag.start, end: drag.end };
+	const date = drag.kind === 'resize' ? event.date : days[drag.day];
+	if (date === undefined) return { kind: 'none' };
+	const timing = { date, start: drag.start, end: drag.end };
 	if (timing.date === event.date && timing.start === event.start && timing.end === event.end) {
 		return { kind: 'none' };
 	}

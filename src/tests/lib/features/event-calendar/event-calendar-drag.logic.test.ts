@@ -163,6 +163,11 @@ describe('create', () => {
 		const drag = updateDrag(beginCreate(slot(1, 540), 60), slot(3, 600), FAR);
 		expect(resolveDrag(drag, [], days)).toMatchObject({ payload: { date: days[1] } });
 	});
+
+	it('resolves to none when the visible days shrank mid-drag', () => {
+		const drag = updateDrag(beginCreate(slot(3, 540), 60), slot(3, 600), FAR);
+		expect(resolveDrag(drag, [], days.slice(0, 1))).toEqual({ kind: 'none' });
+	});
 });
 
 describe('createGhost', () => {
@@ -237,6 +242,12 @@ describe('move', () => {
 		expect(resolveDrag(drag, [], days)).toEqual({ kind: 'none' });
 		expect(resolveDrag(beginMove(event, slot(1, 560)), [], days)).toEqual({ kind: 'none' });
 	});
+
+	it('resolves to none when the visible days shrank mid-drag', () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginMove(event, slot(1, 560)), slot(3, 700), FAR);
+		expect(resolveDrag(drag, [event], days.slice(0, 1))).toEqual({ kind: 'none' });
+	});
 });
 
 describe('resize', () => {
@@ -274,5 +285,15 @@ describe('resize', () => {
 		const same = updateDrag(beginResize(event, slot(1, 598)), slot(1, 601), FAR);
 		expect(resolveDrag(same, [event], days)).toEqual({ kind: 'none' });
 		expect(resolveDrag(beginResize(event, slot(1, 598)), [event], days)).toEqual({ kind: 'popover', path: 'a' });
+	});
+
+	it("keeps the event's own date when the press slot is in another column", () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginResize(event, slot(2, 598)), slot(2, 688), FAR);
+		expect(resolveDrag(drag, [event], days)).toEqual({
+			kind: 'move',
+			path: 'a',
+			timing: { date: days[1], start: 540, end: 690 },
+		});
 	});
 });
