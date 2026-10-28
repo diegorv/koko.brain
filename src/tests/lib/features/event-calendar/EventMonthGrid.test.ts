@@ -80,6 +80,27 @@ describe('EventMonthGrid: cells and headers', () => {
 		expect(cell('2026-11-01').getAttribute('data-in-month')).toBe('true');
 	});
 
+	it('dims out-of-month cells and their day numbers', () => {
+		mountGrid();
+		const dayNumber = (day: string) => cell(day).querySelector('[data-month-day]')!;
+
+		expect(cell('2026-10-26').classList.contains('bg-muted/40')).toBe(true);
+		expect(dayNumber('2026-10-26').classList.contains('text-muted-foreground')).toBe(true);
+		expect(cell('2026-11-20').classList.contains('bg-muted/40')).toBe(false);
+		expect(dayNumber('2026-11-20').classList.contains('text-muted-foreground')).toBe(false);
+	});
+
+	it('colors a today that is not the selected day with text-primary', () => {
+		eventCalendarViewStore.setDate('2026-11-20');
+		mountGrid();
+		const today = cell('2026-11-10').querySelector('[data-month-day]')!;
+
+		expect(today.hasAttribute('data-today')).toBe(true);
+		expect(today.getAttribute('aria-pressed')).toBe('false');
+		expect(today.classList.contains('text-primary')).toBe(true);
+		expect(today.classList.contains('bg-primary')).toBe(false);
+	});
+
 	it('follows a Sunday-first weekStartsOn', () => {
 		settingsStore.updateEventCalendar({ weekStartsOn: 0 });
 		mountGrid();
@@ -195,6 +216,17 @@ describe('EventMonthGrid: selection', () => {
 		cell('2026-11-20').click();
 		flushSync();
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-20');
+		expect(eventCalendarViewStore.view).toBe('month');
+	});
+
+	it('stays in month view on a cell-body click on the selected day', () => {
+		mountGrid();
+
+		cell('2026-11-10').click();
+		flushSync();
+		cell('2026-11-10').click();
+		flushSync();
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
 		expect(eventCalendarViewStore.view).toBe('month');
 	});
 

@@ -8,6 +8,7 @@ import {
 	buildMonthCells,
 	defaultCreateSlot,
 	groupEventsByDay,
+	itemsByDay,
 	itemsForDay,
 	laneRows,
 	MONTH_MAX_CHIPS,
@@ -334,6 +335,43 @@ describe('itemsForDay', () => {
 
 	it('caps month chips at 3', () => {
 		expect(MONTH_MAX_CHIPS).toBe(3);
+	});
+});
+
+describe('itemsByDay', () => {
+	const day = '2026-11-10';
+	const events = [
+		ev('b', day, 600, 660),
+		allDay('z', day),
+		ev('a', day, 600, 630),
+		ev('other', '2026-11-11', 480, 540),
+		ev('outside', '2026-12-01', 480, 540),
+		allDay('y', day),
+		ev('c', day, 540, 600),
+	];
+
+	it('gives each day the same chips itemsForDay gives it', () => {
+		const map = itemsByDay(events, [day, '2026-11-11'], '24h');
+		expect(map.get(day)).toEqual(itemsForDay(events, day, '24h'));
+		expect(map.get('2026-11-11')!.map((i) => i.label)).toEqual(['08:00 other']);
+	});
+
+	it('keys every day in order, empty days included, and drops events outside the days', () => {
+		const map = itemsByDay(events, ['2026-11-12', day], '12h');
+		expect([...map.keys()]).toEqual(['2026-11-12', day]);
+		expect(map.get('2026-11-12')).toEqual([]);
+		expect([...map.values()].flat().some((i) => i.event.path === 'outside')).toBe(false);
+		expect(map.get(day)!.map((i) => i.label)).toEqual(['y', 'z', '9:00 AM c', '10:00 AM a', '10:00 AM b']);
+	});
+
+	it('returns an empty map for no days and empty lists for no events', () => {
+		expect(itemsByDay(events, [], '24h').size).toBe(0);
+		expect(itemsByDay([], [day], '24h').get(day)).toEqual([]);
+	});
+
+	it('keeps the input event objects', () => {
+		const pending = { ...ev('p', day, 540, 600), pending: true };
+		expect(itemsByDay([pending], [day], '24h').get(day)![0].event).toBe(pending);
 	});
 });
 

@@ -3,7 +3,7 @@
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { dayOfWeek, formatLong, formatWeekday, fromKey, WEEKDAYS_SHORT } from './event-calendar-dates.logic';
 	import { eventColorStyle } from './event-calendar-event.logic';
-	import { itemsForDay, MONTH_MAX_CHIPS } from './event-calendar-view.logic';
+	import { itemsByDay, MONTH_MAX_CHIPS } from './event-calendar-view.logic';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 
@@ -12,6 +12,13 @@
 	let headers = $derived(cells.slice(0, cols).map((c) => WEEKDAYS_SHORT[dayOfWeek(c.day)]));
 	let events = $derived(eventCalendarStore.events);
 	let timeFormat = $derived(settingsStore.eventCalendar.timeFormat);
+	let chipsByDay = $derived(
+		itemsByDay(
+			events,
+			cells.map((c) => c.day),
+			timeFormat,
+		),
+	);
 	let gridColumns = $derived(`grid-template-columns: repeat(${cols}, minmax(0, 1fr))`);
 
 	/** Opens day view on `day` (the "+N more" button, a second click on the selected day number). */
@@ -42,7 +49,7 @@
 	</div>
 	<div class="grid min-h-0 flex-1" style="{gridColumns}; grid-template-rows: repeat(6, minmax(0, 1fr))">
 		{#each cells as cell, i (cell.day)}
-			{@const items = itemsForDay(events, cell.day, timeFormat)}
+			{@const items = chipsByDay.get(cell.day) ?? []}
 			{@const hidden = items.length - MONTH_MAX_CHIPS}
 			{@const selected = cell.day === eventCalendarViewStore.focusedDate}
 			{@const today = cell.day === eventCalendarViewStore.todayKey}

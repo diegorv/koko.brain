@@ -217,6 +217,25 @@ export function itemsForDay<T extends EventNote>(events: T[], day: string, timeF
 }
 
 /**
+ * Chips of every month cell, built in one pass over `events` instead of one
+ * `itemsForDay` scan of the whole list per cell.
+ * @param events - any events; those outside `days` are dropped
+ * @param days - the visible days
+ * @param timeFormat - format of the start time in timed labels
+ * @returns one (possibly empty) list per day, keyed in `days` order, each
+ *   ordered as `itemsForDay` orders it
+ */
+export function itemsByDay<T extends EventNote>(
+	events: T[],
+	days: string[],
+	timeFormat: TimeFormat,
+): Map<string, DayItem<T>[]> {
+	const buckets = new Map<string, T[]>(days.map((d) => [d, []]));
+	for (const e of events) buckets.get(e.date)?.push(e);
+	return new Map(days.map((d) => [d, itemsForDay(buckets.get(d)!, d, timeFormat)]));
+}
+
+/**
  * Chips of the all-day lane, capped so no day needs more than
  * `ALL_DAY_MAX_ROWS` rows: a day with more all-day events than that shows
  * one row fewer of chips and reserves the last row for "+N".

@@ -30,3 +30,4 @@
 - 2026-10-28 13:57 — discovery — plan in work/23/discovery.md: EventMonthGrid (store-driven, no props) + view wiring + unit and E2E tests in one feat commit; out-of-month chips not faded — 0fe4b371
 - 2026-10-28 13:59 — implement — EventMonthGrid + view wiring + generic itemsForDay (pending reaches chips) + unit and E2E tests in one feat commit; pnpm check 0 errors, vitest event-calendar 499/499, E2E event-calendar 10/10; full gate left to deliver — 4ac46fb3
 - 2026-10-28 14:02 — review — VERDICT: APPROVED; all criteria met except the gate (pending deliver); 2 low findings (per-cell itemsForDay over all events, class branches and selected-cell click untested), 1 nit (short pane clips "+N more") — da18ee43
+- 2026-10-28 14:04 — fix — review findings 1 and 2 fixed (one-pass itemsByDay map; class-branch and selected-cell click tests), 3 left as noted; vitest event-calendar 506/506, pnpm check 0 errors — pending
