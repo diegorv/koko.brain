@@ -24,3 +24,7 @@
 - [ ] `setNow`, `remapPath`, `initFromSettings()` (applies the default view once per session) and `reset()` exist
 - [ ] `event-calendar-view.store.test.ts` sets the real `settingsStore` (no store or `.logic.ts` mocks), every `beforeEach` resets every store it uses, and time-dependent cases use fake timers or `withTimeZone`, never the real clock
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:55 — discovery — plan in work/18/discovery.md: one store + test, payload type declared locally — 84ef4007
