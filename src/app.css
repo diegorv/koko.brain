@@ -281,6 +281,28 @@
 	--callout-quote: #94a3b8;
 }
 
+/*
+ * Event calendar colors. Declared once, outside .dark: themes (light ones
+ * included) only set inline variables on the root, so the hues are mixed
+ * with the active --editor-bg / --editor-fg and follow every preset.
+ * 25% bg / 30% fg keeps every pair at 4.5:1 or more on KokoBrain Default
+ * and Sakura.
+ */
+:root {
+	--event-green-bg: color-mix(in oklab, #10b981 25%, var(--editor-bg));
+	--event-green-fg: color-mix(in oklab, #10b981 30%, var(--editor-fg));
+	--event-purple-bg: color-mix(in oklab, #8b5cf6 25%, var(--editor-bg));
+	--event-purple-fg: color-mix(in oklab, #8b5cf6 30%, var(--editor-fg));
+	--event-cyan-bg: color-mix(in oklab, #06b6d4 25%, var(--editor-bg));
+	--event-cyan-fg: color-mix(in oklab, #06b6d4 30%, var(--editor-fg));
+	--event-orange-bg: color-mix(in oklab, #f97316 25%, var(--editor-bg));
+	--event-orange-fg: color-mix(in oklab, #f97316 30%, var(--editor-fg));
+	--event-pink-bg: color-mix(in oklab, #ec4899 25%, var(--editor-bg));
+	--event-pink-fg: color-mix(in oklab, #ec4899 30%, var(--editor-fg));
+	--event-blue-bg: color-mix(in oklab, #3b82f6 25%, var(--editor-bg));
+	--event-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
+}
+
 /* Force date input text color (WebKit pseudo-elements ignore normal color inheritance) */
 input[type="date"],
 input[type="date"]::-webkit-datetime-edit,

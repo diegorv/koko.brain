@@ -17,6 +17,7 @@
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import EventCalendarHeader from './EventCalendarHeader.svelte';
 	import EventCalendarNeedsAttention from './EventCalendarNeedsAttention.svelte';
+	import EventTimeGrid from './EventTimeGrid.svelte';
 
 	onMount(() => {
 		eventCalendarViewStore.initFromSettings();
@@ -68,8 +69,12 @@
 				<div class="flex h-full items-center justify-center p-4 text-sm text-destructive" role="alert" data-calendar-load-error>
 					Could not load events: {eventCalendarStore.loadError}
 				</div>
-			{:else}
+			{:else if eventCalendarViewStore.view === 'month'}
 				<div class="h-full" data-calendar-grid-placeholder></div>
+			{:else}
+				{#key eventCalendarViewStore.view}
+					<EventTimeGrid days={eventCalendarViewStore.visibleDays} />
+				{/key}
 			{/if}
 		</div>
 		<EventCalendarNeedsAttention />

@@ -172,13 +172,38 @@ describe('EventCalendarView: loading', () => {
 		expect(invoke).not.toHaveBeenCalled();
 	});
 
-	it('loads on mount and shows the empty grid placeholder', async () => {
+	it('loads on mount and shows the empty time grid in week view', async () => {
 		mountView();
 		await settle();
 
 		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
-		expect(target.querySelector('[data-calendar-grid-placeholder]')).not.toBeNull();
+		expect(target.querySelector('[data-time-grid]')).not.toBeNull();
+		expect(target.querySelectorAll('[data-day-column]')).toHaveLength(7);
 		expect(target.querySelector('[data-calendar-issues]')).toBeNull();
+	});
+
+	it('shows one day column in day view and the placeholder in month view', async () => {
+		mountView();
+		await settle();
+
+		eventCalendarViewStore.setView('day');
+		flushSync();
+		expect(target.querySelectorAll('[data-day-column]')).toHaveLength(1);
+		expect(target.querySelector('[data-day-column]')?.getAttribute('data-day-column')).toBe('2026-11-10');
+
+		eventCalendarViewStore.setView('month');
+		flushSync();
+		expect(target.querySelector('[data-time-grid]')).toBeNull();
+		expect(target.querySelector('[data-calendar-grid-placeholder]')).not.toBeNull();
+	});
+
+	it('renders a loaded event on the grid', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
+		mountView();
+		await settle();
+
+		const block = target.querySelector(`[data-day-column="2026-11-10"] [data-event-path="${P('Standup')}"]`);
+		expect(block?.getAttribute('aria-label')).toBe('Standup, 09:00 – 10:00');
 	});
 
 	it('re-projects when defaultDurationMinutes changes, with no extra IPC', async () => {
