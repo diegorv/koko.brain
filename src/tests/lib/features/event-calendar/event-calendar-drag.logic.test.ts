@@ -1,0 +1,278 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+	beginCreate,
+	beginMove,
+	beginResize,
+	createGhost,
+	DRAG_THRESHOLD_PX,
+	resolveDrag,
+	slotFromPoint,
+	updateDrag,
+} from '$lib/features/event-calendar/event-calendar-drag.logic';
+import { HOUR_HEIGHT } from '$lib/features/event-calendar/event-calendar-layout.logic';
+import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+
+const days = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'];
+
+/** Builds a timed event on `days[dayIndex]`; `id` doubles as the path and the title. */
+const ev = (id: string, dayIndex: number, start: number, end: number, readOnly = false): EventNote => ({
+	path: id,
+	title: id,
+	date: days[dayIndex],
+	start,
+	end,
+	allDay: false,
+	color: 'blue',
+	location: '',
+	snippet: '',
+	readOnly,
+});
+
+/** Builds a slot. */
+const slot = (dayIndex: number, minutes: number) => ({ dayIndex, minutes });
+
+/** A distance past the drag threshold. */
+const FAR = DRAG_THRESHOLD_PX + 1;
+
+describe('slotFromPoint', () => {
+	const rect = { left: 100, top: 50, width: 500 };
+
+	it('maps a point to its day column and minutes', () => {
+		expect(slotFromPoint(rect, 100, 50, 5)).toEqual({ dayIndex: 0, minutes: 0 });
+		expect(slotFromPoint(rect, 350, 50 + HOUR_HEIGHT * 9.5, 5)).toEqual({ dayIndex: 2, minutes: 570 });
+		expect(slotFromPoint(rect, 599, 50, 5)).toEqual({ dayIndex: 4, minutes: 0 });
+	});
+
+	it('clamps the day index to the visible columns', () => {
+		expect(slotFromPoint(rect, 20, 50, 5).dayIndex).toBe(0);
+		expect(slotFromPoint(rect, 600, 50, 5).dayIndex).toBe(4);
+		expect(slotFromPoint(rect, 2000, 50, 5).dayIndex).toBe(4);
+	});
+
+	it('clamps the minutes to the day', () => {
+		expect(slotFromPoint(rect, 100, 0, 5).minutes).toBe(0);
+		expect(slotFromPoint(rect, 100, 50 + HOUR_HEIGHT * 30, 5).minutes).toBe(1440);
+	});
+
+	it('reads the rect it is given, so a scrolled body maps correctly', () => {
+		const scrolled = { left: 100, top: 50 - HOUR_HEIGHT * 8, width: 500 };
+		expect(slotFromPoint(scrolled, 100, 50, 5).minutes).toBe(480);
+	});
+
+	it('maps a single-day view to day 0', () => {
+		expect(slotFromPoint(rect, 550, 50, 1).dayIndex).toBe(0);
+	});
+});
+
+describe('updateDrag threshold', () => {
+	it(`ignores moves up to ${DRAG_THRESHOLD_PX} px`, () => {
+		const drag = beginMove(ev('a', 1, 540, 600), slot(1, 550));
+		expect(updateDrag(drag, slot(3, 900), DRAG_THRESHOLD_PX)).toBe(drag);
+		expect(updateDrag(drag, slot(3, 900), 0)).toBe(drag);
+	});
+
+	it('starts the drag past the threshold', () => {
+		const drag = beginMove(ev('a', 1, 540, 600), slot(1, 550));
+		expect(updateDrag(drag, slot(1, 610), DRAG_THRESHOLD_PX + 0.5).moved).toBe(true);
+	});
+
+	it('keeps tracking once moved, even when the pointer comes back', () => {
+		const drag = beginMove(ev('a', 1, 540, 600), slot(1, 540));
+		const moved = updateDrag(drag, slot(1, 600), FAR);
+		const back = updateDrag(moved, slot(1, 540), 0);
+		expect(back.moved).toBe(true);
+		expect(back.start).toBe(540);
+	});
+});
+
+describe('create', () => {
+	it('a click floors the anchor and uses the default duration', () => {
+		const drag = beginCreate(slot(2, 548), 60);
+		expect(drag.kind).toBe('create');
+		expect(drag.path).toBeNull();
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[2], start: 540, end: 600 },
+		});
+	});
+
+	it('a click at anchor 1425 stays inside the day', () => {
+		expect(resolveDrag(beginCreate(slot(0, 1425), 60), [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[0], start: 1425, end: 1440 },
+		});
+	});
+
+	it('a click at anchor 1440 starts at 1425', () => {
+		expect(resolveDrag(beginCreate(slot(0, 1440), 30), [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[0], start: 1425, end: 1440 },
+		});
+	});
+
+	it('a drag down spans anchor to current', () => {
+		const drag = updateDrag(beginCreate(slot(1, 540), 60), slot(1, 668), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[1], start: 540, end: 675 },
+		});
+	});
+
+	it('a drag up spans current to anchor', () => {
+		const drag = updateDrag(beginCreate(slot(1, 600), 60), slot(1, 480), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[1], start: 480, end: 600 },
+		});
+	});
+
+	it('a short drag keeps the 15-minute minimum', () => {
+		const drag = updateDrag(beginCreate(slot(1, 600), 60), slot(1, 602), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[1], start: 600, end: 615 },
+		});
+	});
+
+	it('a drag from anchor 1425 to the end of the day ends at 1440', () => {
+		const drag = updateDrag(beginCreate(slot(0, 1425), 60), slot(0, 1440), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[0], start: 1425, end: 1440 },
+		});
+	});
+
+	it('a drag from anchor 1440 upward starts at the pointer and ends at the capped anchor', () => {
+		const drag = updateDrag(beginCreate(slot(0, 1440), 60), slot(0, 1380), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[0], start: 1380, end: 1425 },
+		});
+	});
+
+	it('a drag at anchor 1440 that stays at 1440 keeps a 15-minute slot', () => {
+		const drag = updateDrag(beginCreate(slot(0, 1440), 60), slot(0, 1440), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({
+			kind: 'create',
+			payload: { date: days[0], start: 1425, end: 1440 },
+		});
+	});
+
+	it('stays on the day where it started', () => {
+		const drag = updateDrag(beginCreate(slot(1, 540), 60), slot(3, 600), FAR);
+		expect(resolveDrag(drag, [], days)).toMatchObject({ payload: { date: days[1] } });
+	});
+});
+
+describe('createGhost', () => {
+	it('shows the click range before the threshold', () => {
+		expect(createGhost(beginCreate(slot(2, 548), 60))).toEqual({ dayIndex: 2, start: 540, end: 600 });
+	});
+
+	it('shows the dragged range once moved', () => {
+		const drag = updateDrag(beginCreate(slot(2, 540), 60), slot(2, 720), FAR);
+		expect(createGhost(drag)).toEqual({ dayIndex: 2, start: 540, end: 720 });
+	});
+
+	it('is null for a move or resize', () => {
+		expect(createGhost(beginMove(ev('a', 1, 540, 600), slot(1, 550)))).toBeNull();
+		expect(createGhost(beginResize(ev('a', 1, 540, 600), slot(1, 595)))).toBeNull();
+	});
+});
+
+describe('move', () => {
+	it('moves from day 1 to day 3 keeping the duration', () => {
+		const event = ev('a', 1, 540, 630);
+		const drag = updateDrag(beginMove(event, slot(1, 560)), slot(3, 680), FAR);
+		expect(resolveDrag(drag, [event], days)).toEqual({
+			kind: 'move',
+			path: 'a',
+			timing: { date: days[3], start: 660, end: 750 },
+		});
+	});
+
+	it('keeps the grab offset and snaps the start', () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginMove(event, slot(1, 570)), slot(1, 647), FAR);
+		expect(drag.start).toBe(615);
+		expect(drag.end).toBe(675);
+	});
+
+	it('clamps at the start of the day', () => {
+		const event = ev('a', 1, 60, 120);
+		const drag = updateDrag(beginMove(event, slot(1, 90)), slot(1, 0), FAR);
+		expect([drag.start, drag.end]).toEqual([0, 60]);
+	});
+
+	it('clamps at the end of the day', () => {
+		const event = ev('a', 1, 1200, 1290);
+		const drag = updateDrag(beginMove(event, slot(1, 1200)), slot(1, 1440), FAR);
+		expect([drag.start, drag.end]).toEqual([1350, 1440]);
+	});
+
+	it('resolves to none when dropped where it started', () => {
+		const event = ev('a', 1, 540, 600);
+		const away = updateDrag(beginMove(event, slot(1, 560)), slot(2, 700), FAR);
+		const back = updateDrag(away, slot(1, 560), FAR);
+		expect(back.moved).toBe(true);
+		expect(resolveDrag(back, [event], days)).toEqual({ kind: 'none' });
+	});
+
+	it('resolves to popover for a click that did not move', () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginMove(event, slot(1, 560)), slot(1, 562), 2);
+		expect(resolveDrag(drag, [event], days)).toEqual({ kind: 'popover', path: 'a' });
+	});
+
+	it('resolves a read-only event to popover even when dragged', () => {
+		const event = ev('a', 1, 540, 600, true);
+		const drag = updateDrag(beginMove(event, slot(1, 560)), slot(3, 800), FAR);
+		expect(resolveDrag(drag, [event], days)).toEqual({ kind: 'popover', path: 'a' });
+	});
+
+	it('resolves to none when the event is gone', () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginMove(event, slot(1, 560)), slot(1, 700), FAR);
+		expect(resolveDrag(drag, [], days)).toEqual({ kind: 'none' });
+		expect(resolveDrag(beginMove(event, slot(1, 560)), [], days)).toEqual({ kind: 'none' });
+	});
+});
+
+describe('resize', () => {
+	it('moves the end and keeps start and day', () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginResize(event, slot(1, 598)), slot(3, 688), FAR);
+		expect(drag.kind).toBe('resize');
+		expect(resolveDrag(drag, [event], days)).toEqual({
+			kind: 'move',
+			path: 'a',
+			timing: { date: days[1], start: 540, end: 690 },
+		});
+	});
+
+	it('clamps the end to start + 15', () => {
+		const event = ev('a', 1, 540, 600);
+		const drag = updateDrag(beginResize(event, slot(1, 598)), slot(1, 300), FAR);
+		expect([drag.start, drag.end]).toEqual([540, 555]);
+	});
+
+	it('clamps the end to the end of the day', () => {
+		const event = ev('a', 1, 1380, 1410);
+		const drag = updateDrag(beginResize(event, slot(1, 1408)), slot(1, 1440), FAR);
+		expect(drag.end).toBe(1440);
+	});
+
+	it('ends at 1440, not 1445, for a start of 1430 (max wins)', () => {
+		const event = ev('a', 1, 1430, 1440);
+		const drag = updateDrag(beginResize(event, slot(1, 1438)), slot(1, 1200), FAR);
+		expect(drag.end).toBe(1440);
+	});
+
+	it('resolves an unchanged resize to none and an unmoved one to popover', () => {
+		const event = ev('a', 1, 540, 600);
+		const same = updateDrag(beginResize(event, slot(1, 598)), slot(1, 601), FAR);
+		expect(resolveDrag(same, [event], days)).toEqual({ kind: 'none' });
+		expect(resolveDrag(beginResize(event, slot(1, 598)), [event], days)).toEqual({ kind: 'popover', path: 'a' });
+	});
+});

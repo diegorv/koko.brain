@@ -183,24 +183,33 @@ export type HistoryOp =
 			trashId?: string;
 	  };
 
-/** A pointer drag in progress on the time grid. */
+/**
+ * A pointer drag in progress on the time grid. Days are indices into the
+ * visible days, so `slotFromPoint` needs only the column count; the drag
+ * logic maps them back to day keys when it resolves.
+ */
 export interface DragState {
 	/** What the drag does. */
 	kind: 'create' | 'move' | 'resize';
 	/** Absolute path of the dragged event; `null` for a create. */
 	path: string | null;
-	/** Day key where the drag started. */
-	originDate: string;
-	/** Minutes from midnight where the pointer went down. */
+	/** Index of the visible day where the drag started. */
+	originDay: number;
+	/** Index of the visible day the drag currently targets. */
+	day: number;
+	/**
+	 * Minutes from midnight where the pointer went down: the snapped, capped
+	 * anchor for a create, the raw pointer minutes for a move or resize.
+	 */
 	anchorMinutes: number;
-	/** Day key under the pointer now. */
-	currentDate: string;
-	/** Minutes from midnight under the pointer now. */
-	currentMinutes: number;
-	/** Start of the dragged event before the drag (the anchor for a create). */
+	/** Start of the dragged event before the drag (the click range for a create). */
 	originStart: number;
-	/** End of the dragged event before the drag (the anchor for a create). */
+	/** End of the dragged event before the drag (the click range for a create). */
 	originEnd: number;
+	/** Start of the dragged range now. */
+	start: number;
+	/** End of the dragged range now. */
+	end: number;
 	/** Whether the pointer has moved past the drag threshold. */
 	moved: boolean;
 }
