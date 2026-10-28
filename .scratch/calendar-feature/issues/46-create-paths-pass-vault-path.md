@@ -10,10 +10,11 @@
 - Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - `vaultRelativeKey` (`utils/path.ts`) skips a path outside the vault; never fall back to the absolute path (CLAUDE.md Indexing #6).
 
-- [ ] Both create paths pass `vaultStore.path`
-- [ ] Tests: a created note gets its FTS5 upsert with the vault-relative key; a path outside the vault is skipped
-- [ ] An E2E that a note created via "New Event" is found by text search before any edit
+- [x] Both create paths pass `vaultStore.path`
+- [x] Tests: a created note gets its FTS5 upsert with the vault-relative key; a path outside the vault is skipped
+- [x] An E2E that a note created via "New Event" is found by text search before any edit
 
 ## Comments
 
 - 2026-10-28 18:30 — discovery — both create paths pass vaultStore.path for Markdown files; E2E mock models the FTS gap — 48e49feb
+- 2026-10-28 18:34 — implement — createFile and openOrCreateNote pass vaultStore.path (Markdown only); unit tests green (242 files / 5725 tests in core, plugins, calendar, types), pnpm check 0 errors; E2E spec calendar-feature-46-created-note-search.spec.ts written, not run — 98f783ec
