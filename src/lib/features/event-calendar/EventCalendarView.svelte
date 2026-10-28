@@ -1,3 +1,11 @@
+<script lang="ts" module>
+	/**
+	 * Bumped per load any mounted view starts, shared across mounts so a
+	 * remount supersedes the load an unmounted instance left in flight.
+	 */
+	let loadSeq = 0;
+</script>
+
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -9,9 +17,6 @@
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import EventCalendarHeader from './EventCalendarHeader.svelte';
 	import EventCalendarNeedsAttention from './EventCalendarNeedsAttention.svelte';
-
-	/** Bumped per load this view starts; a failure toasts only while it is the latest. */
-	let loadSeq = 0;
 
 	onMount(() => {
 		eventCalendarViewStore.initFromSettings();
@@ -33,8 +38,11 @@
 			const seq = ++loadSeq;
 			const path = vaultStore.path;
 			loadEvents().catch((err) => {
-				// A load a newer one or a vault switch replaced is not the user's concern.
+				// A load a newer one, a reset or a vault switch replaced is not the
+				// user's concern. The service sets loadError only for a current
+				// failure, so a null loadError means the service discarded it.
 				if (seq !== loadSeq || vaultStore.path !== path) return;
+				if (eventCalendarStore.loadError === null) return;
 				toast.error('Could not load calendar events', {
 					description: err instanceof Error ? err.message : String(err),
 				});

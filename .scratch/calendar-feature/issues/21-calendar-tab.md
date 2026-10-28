@@ -41,3 +41,4 @@
 - 2026-10-28 13:21 — discovery — plan in work/21/discovery.md: palette entry, view + header + Needs attention + wiring, E2E fixture + spec, three commits — 29e3a578
 - 2026-10-28 13:26 — implement — palette entry, Calendar view/header/Needs attention, EditorView/EditorTabs wiring, clockTime fixture and E2E spec in one feat commit; pnpm check 0 errors, vitest (event-calendar, command-palette, app-lifecycle, editor) 752/752, E2E event-calendar 3/3 and editor/tabs/command-palette 9/9; full gate left to deliver — 45cd1679
 - 2026-10-28 13:29 — review — CHANGES_REQUESTED: superseded-load toast guard is per-instance (double toast on remount, toast after a same-vault reset); no test pins the clock release on unmount — fc00e26b
+- 2026-10-28 13:31 — fix — review findings 1 and 2 fixed: shared module-level load counter plus loadError currency check, three new view tests; EventCalendarView.test.ts 19/19, pnpm check 0 errors — pending

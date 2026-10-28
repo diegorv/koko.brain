@@ -231,6 +231,33 @@ describe('EventCalendarView: loading', () => {
 		expect(toast.error).not.toHaveBeenCalled();
 		expect(eventCalendarStore.loadError).toBeNull();
 	});
+
+	it('toasts once when a remount shares the failing in-flight load', async () => {
+		const first = deferred<NoteEntryV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(first.promise);
+		mountView();
+		unmountView();
+		mountView();
+		first.reject(new Error('boom'));
+		await settle();
+
+		expect(vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2')).toHaveLength(1);
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(text('[data-calendar-load-error]')).toContain('boom');
+	});
+
+	it('does not toast for a load that a same-vault reset discarded', async () => {
+		const first = deferred<NoteEntryV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(first.promise);
+		mountView();
+
+		resetEventCalendar();
+		first.reject(new Error('stale'));
+		await settle();
+
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(eventCalendarStore.loadError).toBeNull();
+	});
 });
 
 describe('EventCalendarView: needs attention', () => {
@@ -316,5 +343,21 @@ describe('EventCalendarView: lifecycle', () => {
 		mountView();
 
 		expect(eventCalendarViewStore.nowMs).toBeGreaterThan(0);
+	});
+
+	it('releases the clock on unmount', async () => {
+		vi.useFakeTimers();
+		try {
+			mountView();
+			unmountView();
+			eventCalendarViewStore.setNow(0);
+
+			vi.advanceTimersByTime(61_000);
+			window.dispatchEvent(new Event('focus'));
+
+			expect(eventCalendarViewStore.nowMs).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

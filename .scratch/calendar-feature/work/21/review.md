@@ -47,3 +47,8 @@ The test verdict rests on `src/tests/lib/features/event-calendar/EventCalendarVi
 - The build report says this already: the explicit `defaultDurationMinutes` / `defaultColor` / `eventTypeName` reads are subsumed by reading `settingsStore.eventCalendar`, so no test fails if one of them is removed. They stay because the criterion names them.
 - `aria-keyshortcuts` advertises D/W/M before ticket 31 binds those keys. The criterion asks for it now.
 - `eventCalendarViewStore.focusedDate` is "today at module load" (from ticket 18). A Calendar opened days after launch, with no vault re-open, starts on the old week until Today is pressed. That belongs to the view store's design, not this diff.
+
+## Resolution
+
+- Finding 1: accepted. `loadSeq` moved to `<script module>` so every mount shares it, and the `.catch` now also requires `eventCalendarStore.loadError !== null` (set by the service only for a current failure). New tests "toasts once when a remount shares the failing in-flight load" and "does not toast for a load that a same-vault reset discarded" fail on the old component and pass now.
+- Finding 2: accepted. New fake-timer test "releases the clock on unmount" (mount, unmount, `setNow(0)`, advance 61 s, dispatch `focus`, `nowMs` stays 0).
