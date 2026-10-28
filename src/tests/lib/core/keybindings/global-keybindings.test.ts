@@ -72,6 +72,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
 
@@ -127,13 +128,13 @@ describe('registerGlobalKeybindings', () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
-	it('registers all 20 fixed global keybindings via registerKeybinding', () => {
+	it('registers all 21 fixed global keybindings via registerKeybinding', () => {
 		// The customizable Cycle Sidebar View shortcut is registered as a
 		// separate dynamic listener (not through registerKeybinding), so the
-		// fixed-binding count is 20.
+		// fixed-binding count is 21.
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(20);
+		expect(registerKeybinding).toHaveBeenCalledTimes(21);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -208,6 +209,14 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
+	it('registers Cmd+Shift+C for the Calendar tab', () => {
+		registerGlobalKeybindings();
+
+		expect(registerKeybinding).toHaveBeenCalledWith(
+			expect.objectContaining({ key: 'c', meta: true, shift: true }),
+		);
+	});
+
 	it('registers Cmd+B for right sidebar toggle', () => {
 		registerGlobalKeybindings();
 
@@ -257,7 +266,7 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	it('returns a cleanup function that calls all individual cleanups', () => {
-		const cleanupFns = Array.from({ length: 19 }, () => vi.fn());
+		const cleanupFns = Array.from({ length: 21 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {
 			vi.mocked(registerKeybinding).mockReturnValueOnce(fn);
 		});
@@ -350,6 +359,33 @@ describe('registerGlobalKeybindings', () => {
 			handler();
 
 			expect(toggleTasksTab).toHaveBeenCalledTimes(1);
+		});
+
+		it('Cmd+Shift+C handler opens the Calendar tab, and a second press closes it', () => {
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'c', meta: true, shift: true });
+
+			handler();
+
+			expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+			expect(editorStore.activeTab?.fileType).toBe('event-calendar');
+
+			handler();
+
+			expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+			expect(editorStore.activeTab?.path).toBe('/vault/note.md');
+		});
+
+		it('Cmd+Shift+C handler yields to a cycleSidebarView binding on the same combo', () => {
+			settingsStore.updateKeybindings({
+				cycleSidebarView: { key: 'c', meta: true, shift: true, alt: false, ctrl: false },
+			});
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'c', meta: true, shift: true });
+
+			handler();
+
+			expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
 		});
 
 		it('Cmd+Shift+B handler toggles left sidebar and persists it', async () => {

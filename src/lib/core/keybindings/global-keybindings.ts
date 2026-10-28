@@ -10,6 +10,7 @@ import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { toggleGraphTab } from '$lib/plugins/graph-view/graph-view.service';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
+import { toggleEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
 import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
@@ -18,7 +19,7 @@ import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { openFileHistory } from '$lib/features/file-history/file-history.service';
 import { cycleSidebarMode } from '$lib/core/layout/layout.service';
-import { matchesKeybinding } from '$lib/core/keybindings/keybindings.logic';
+import { keybindingsEqual, matchesKeybinding, TOGGLE_CALENDAR_KEYBINDING } from '$lib/core/keybindings/keybindings.logic';
 import { zoomIn, zoomOut, resetZoom } from '$lib/core/zoom/zoom.service';
 import { error } from '$lib/utils/debug';
 
@@ -97,6 +98,20 @@ export function registerGlobalKeybindings(): () => void {
 			shift: true,
 			handler: () => {
 				toggleTasksTab();
+			},
+		}),
+		// Calendar tab. A user's cycleSidebarView binding on the same combo wins:
+		// the settings recorder saves conflicting combos, and its dynamic
+		// listener below handles the key too. registerKeybinding has already
+		// matched Cmd+Shift+C exactly, so comparing the configs is the same
+		// test as matchesKeybinding(e, cycleSidebarView).
+		registerKeybinding({
+			key: TOGGLE_CALENDAR_KEYBINDING.key,
+			meta: true,
+			shift: true,
+			handler: () => {
+				if (keybindingsEqual(settingsStore.keybindings.cycleSidebarView, TOGGLE_CALENDAR_KEYBINDING)) return;
+				toggleEventCalendarTab();
 			},
 		}),
 		registerKeybinding({

@@ -7,6 +7,7 @@ import {
 	formatKeybinding,
 	findKeybindingConflict,
 	RESERVED_KEYBINDINGS,
+	TOGGLE_CALENDAR_KEYBINDING,
 } from '$lib/core/keybindings/keybindings.logic';
 import type { KeybindingConfig } from '$lib/core/settings/settings.types';
 
@@ -117,6 +118,13 @@ describe('findKeybindingConflict', () => {
 	it('returns null when there is no collision', () => {
 		// Default cycle-sidebar combo is not in the reserved list.
 		expect(findKeybindingConflict(CYCLE)).toBeNull();
+	});
+
+	it('reports the Calendar toggle (Cmd+Shift+C) as "Toggle Calendar"', () => {
+		expect(findKeybindingConflict({ key: 'c', meta: true, shift: true, alt: false, ctrl: false })).toBe('Toggle Calendar');
+		expect(findKeybindingConflict({ key: 'C', meta: true, shift: true, alt: false, ctrl: false })).toBe('Toggle Calendar');
+		expect(findKeybindingConflict({ key: 'c', meta: true, shift: false, alt: false, ctrl: false })).toBeNull();
+		expect(TOGGLE_CALENDAR_KEYBINDING).toEqual({ key: 'c', meta: true, shift: true, alt: false, ctrl: false });
 	});
 
 	it('reserved list excludes the customizable cycle-sidebar shortcut', () => {

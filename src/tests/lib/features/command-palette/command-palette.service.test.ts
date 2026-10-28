@@ -61,7 +61,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn() },
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
 // No mocks for stores or logic files — use real implementations per CLAUDE.md
@@ -72,7 +72,9 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
+import { toast } from 'svelte-sonner';
 import { getBuiltInCommands } from '$lib/features/command-palette/command-palette.service';
+import { formatShortcut } from '$lib/features/command-palette/command-palette.logic';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
@@ -89,10 +91,10 @@ describe('getBuiltInCommands', () => {
 		settingsPanelStore._reset();
 	});
 
-	it('returns 29 built-in commands', () => {
+	it('returns 31 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(29);
+		expect(commands).toHaveLength(31);
 	});
 
 	it('includes a new-event command that opens the Calendar tab and the create dialog', () => {
@@ -122,12 +124,31 @@ describe('getBuiltInCommands', () => {
 		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
 	});
 
+	it('includes "Calendar: Undo" and "Calendar: Redo" without shortcuts', async () => {
+		const commands = getBuiltInCommands();
+		const undo = commands.find((c) => c.id === 'event-calendar:undo');
+		const redo = commands.find((c) => c.id === 'event-calendar:redo');
+
+		expect(undo?.label).toBe('Calendar: Undo');
+		expect(redo?.label).toBe('Calendar: Redo');
+		expect(undo?.shortcut).toBeUndefined();
+		expect(redo?.shortcut).toBeUndefined();
+
+		undo!.action();
+		redo!.action();
+		await vi.waitFor(() => expect(vi.mocked(toast).mock.calls).toEqual([['Nothing to undo'], ['Nothing to redo']]));
+		// The palette commands do not open the Calendar tab.
+		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
 	it('includes a toggle-calendar command that opens and closes the Calendar tab', () => {
 		const toggle = getBuiltInCommands().find((c) => c.id === 'event-calendar:toggle');
 
 		expect(toggle).toBeDefined();
 		expect(toggle!.label).toBe('Toggle Calendar View');
 		expect(toggle!.category).toBe('Navigation');
+		expect(toggle!.shortcut).toEqual({ meta: true, shift: true, key: 'c' });
+		expect(formatShortcut(toggle!.shortcut!)).toBe('⌘⇧C');
 
 		toggle!.action();
 

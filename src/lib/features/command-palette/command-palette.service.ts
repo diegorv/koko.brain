@@ -23,7 +23,13 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
-import { openEventCalendarTab, openNewEventDialog, toggleEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
+import {
+	openEventCalendarTab,
+	openNewEventDialog,
+	redoEventChangeFromUi,
+	toggleEventCalendarTab,
+	undoEventChangeFromUi,
+} from '$lib/features/event-calendar/event-calendar.service';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
@@ -150,6 +156,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'event-calendar:toggle',
 			label: 'Toggle Calendar View',
 			category: 'Navigation',
+			shortcut: { meta: true, shift: true, key: 'c' },
 			action: () => {
 				toggleEventCalendarTab();
 			},
@@ -169,6 +176,22 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: () => {
 				openEventCalendarTab();
 				eventCalendarViewStore.goToToday();
+			},
+		},
+		{
+			id: 'event-calendar:undo',
+			label: 'Calendar: Undo',
+			category: 'Navigation',
+			action: () => {
+				void undoEventChangeFromUi();
+			},
+		},
+		{
+			id: 'event-calendar:redo',
+			label: 'Calendar: Redo',
+			category: 'Navigation',
+			action: () => {
+				void redoEventChangeFromUi();
 			},
 		},
 		{

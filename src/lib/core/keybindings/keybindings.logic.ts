@@ -85,6 +85,9 @@ export function formatKeybinding(kb: KeybindingConfig): string {
 	return parts.join('');
 }
 
+/** The global Calendar tab toggle, Cmd+Shift+C (`global-keybindings.ts`). */
+export const TOGGLE_CALENDAR_KEYBINDING: KeybindingConfig = { key: 'c', meta: true, shift: true, alt: false, ctrl: false };
+
 /**
  * Built-in global shortcuts other than the customizable ones, used to warn
  * when a chosen combo collides. The bracket/comma entries are matched here by
@@ -101,6 +104,7 @@ export const RESERVED_KEYBINDINGS: readonly { label: string; binding: Keybinding
 	{ label: 'Search', binding: kb('f', { meta: true, shift: true }) },
 	{ label: 'Toggle Graph View', binding: kb('g', { meta: true }) },
 	{ label: 'Toggle Tasks', binding: kb('t', { meta: true, shift: true }) },
+	{ label: 'Toggle Calendar', binding: TOGGLE_CALENDAR_KEYBINDING },
 	{ label: 'Toggle Left Sidebar', binding: kb('b', { meta: true, shift: true }) },
 	{ label: 'Toggle Right Sidebar', binding: kb('b', { meta: true }) },
 	{ label: 'New Note', binding: kb('n', { meta: true }) },
