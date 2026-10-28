@@ -16,3 +16,4 @@
 ## Comments
 
 - 2026-10-28 18:30 — discovery — both writers move to updateNoteFrontmatter; refusal adopted with a toast; remove keeps its no-op early return — base 48e49feb
+- 2026-10-28 18:34 — implement — icon and favorite writers use updateNoteFrontmatter; lossy refusal toasted (toastFrontmatterWriteError), icon store untouched on refusal; ADR-0029 amended; pnpm check 0 errors — 4af94d3b
