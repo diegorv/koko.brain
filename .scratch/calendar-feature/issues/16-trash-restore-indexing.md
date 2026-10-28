@@ -25,3 +25,7 @@
 - [ ] `trash.service.test.ts`: a suffixed restore path is indexed under the suffixed path; a directory restore indexes nothing; a read failure still returns the path and removes the trash item
 - [ ] The "restore indexes the note" test is written first and fails on the current tree (Notes C4 Q5); the unit test is the proof, since the E2E mock syncs its index through virtualFS hooks and no spec can observe the gap
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:15 — discovery — plan in work/16/discovery.md: restore policy row + restoreItem read/mark/applyNoteChange for non-directory Markdown items — 2f7f46b6
