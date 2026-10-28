@@ -29,3 +29,7 @@
 - [ ] `EventCalendarSection.test.ts` mounts the section, commits an out-of-range duration and asserts the clamped store value, and commits a blank event type and asserts `Event`; it is written first and fails before the section exists (C11)
 - [ ] E2E in `event-calendar.spec.ts`: setting week start to Sunday in Settings > Calendar makes the Calendar tab's first day header Sunday; setting the time format to 12h makes the axis show "9 AM"
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 15:41 — discovery — plan in work/32/discovery.md; section + settings wiring + unit and E2E tests — 6119eff3
