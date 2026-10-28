@@ -64,7 +64,7 @@ import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { drainEventCalendarWrites, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
-import { autoOpenDailyNote, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { resetKanban } from '$lib/plugins/kanban/kanban.service';
 import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
 import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
@@ -120,6 +120,8 @@ let unsubscribeFileHistory: (() => void) | null = null;
 let unsubscribeSearchIndex: (() => void) | null = null;
 /** Cleanup functions for the per-file note-change consumers */
 let unregisterNoteChangeConsumers: (() => void)[] = [];
+/** Cleanup function for the Calendar's daily note opener */
+let unregisterCalendarDailyNote: (() => void) | null = null;
 /** Debounced handler for file change events, stored for cancellation on teardown */
 let debouncedFileChangeHandler: ReturnType<typeof debounce> | null = null;
 /** Accumulated changed paths from the watcher, consumed by the debounced handler */
@@ -240,6 +242,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerFileIconsNoteChangeConsumer(),
 		registerCalendarNoteChangeConsumer(),
 	];
+	// Single slot: a later registration replaces this one, so the double-init
+	// window above cannot strand a stale opener.
+	unregisterCalendarDailyNote = registerCalendarDailyNoteOpener();
 
 	if (settingsStore.history.enabled) {
 		debug('LIFECYCLE', 'File history enabled — registering after-save hook');
@@ -542,6 +547,8 @@ export function teardownVault(): void {
 	}
 	for (const unregister of unregisterNoteChangeConsumers) unregister();
 	unregisterNoteChangeConsumers = [];
+	unregisterCalendarDailyNote?.();
+	unregisterCalendarDailyNote = null;
 	// ── Stop background processes ────────────────────────────────────
 	// Settings persistence first, and well before `resetSettings()` below:
 	// that call puts DEFAULT_SETTINGS in the store, and a live effect would

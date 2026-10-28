@@ -163,10 +163,16 @@ vi.mock('$lib/core/trash/trash.service', () => ({
 	resetTrash: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
-	autoOpenDailyNote: vi.fn(() => Promise.resolve()),
-	resetPeriodicNotes: vi.fn(),
-}));
+// The opener registers a stub into the REAL bridge store, so the wiring is
+// observable on store state without the note-creator side effects.
+vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', async () => {
+	const { eventCalendarDailyNoteStore } = await import('$lib/features/event-calendar/event-calendar-daily-note.store.svelte');
+	return {
+		autoOpenDailyNote: vi.fn(() => Promise.resolve()),
+		registerCalendarDailyNoteOpener: vi.fn(() => eventCalendarDailyNoteStore.register(() => Promise.resolve())),
+		resetPeriodicNotes: vi.fn(),
+	};
+});
 
 vi.mock('$lib/core/settings/update-check.service', () => ({
 	maybeAutoCheckForUpdates: vi.fn(() => Promise.resolve()),
@@ -237,6 +243,7 @@ import { typeDefinitionsStore } from '$lib/features/type-definitions/type-defini
 import { refreshViewDefinition, getCachedViewDefinition } from '$lib/features/type-definitions/view-parse-cache';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
 import { wikilinkCompletionSource } from '$lib/core/markdown-editor/extensions/wikilink/completion';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
@@ -719,6 +726,16 @@ describe('note-change consumer wiring', () => {
 		seed('/vault/note.md');
 		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/note.md' });
 		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
+	});
+
+	it('registers the Calendar daily note opener during initializeVault and unregisters it on teardown', async () => {
+		expect(eventCalendarDailyNoteStore.available).toBe(false);
+
+		await initializeVault('/vault');
+		expect(eventCalendarDailyNoteStore.available).toBe(true);
+
+		teardownVault();
+		expect(eventCalendarDailyNoteStore.available).toBe(false);
 	});
 
 	it('unregisters the superseded init hooks when a second initializeVault overwrites the handles', async () => {

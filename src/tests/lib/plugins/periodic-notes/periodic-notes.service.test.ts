@@ -18,6 +18,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { pinTabByPath, unpinTabByPath } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
 import {
 	buildPeriodicNotePath,
 	buildPeriodicVariables,
@@ -31,6 +32,7 @@ import {
 	refreshDailyNoteIfDateChanged,
 	resetPeriodicNotes,
 	_getLastAutoOpenedDate,
+	registerCalendarDailyNoteOpener,
 } from '$lib/plugins/periodic-notes/periodic-notes.service';
 
 describe('openOrCreateDailyNote', () => {
@@ -626,5 +628,55 @@ describe('resetPeriodicNotes', () => {
 		resetPeriodicNotes();
 
 		expect(_getLastAutoOpenedDate()).toBeNull();
+	});
+});
+
+describe('registerCalendarDailyNoteOpener', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		vaultStore.open('/vault');
+		settingsStore.updatePeriodicNotes({ folder: '_notes', daily: { format: 'DD-MM-YYYY', template: '', templatePath: undefined } });
+	});
+
+	it('makes the Calendar daily note action available until unregistered', () => {
+		const unregister = registerCalendarDailyNoteOpener();
+		expect(eventCalendarDailyNoteStore.available).toBe(true);
+
+		unregister();
+		expect(eventCalendarDailyNoteStore.available).toBe(false);
+	});
+
+	it('opens the daily note of the day the Calendar hands it, not today', async () => {
+		const unregister = registerCalendarDailyNoteOpener();
+		try {
+			await eventCalendarDailyNoteStore.open('2026-11-12');
+		} finally {
+			unregister();
+		}
+
+		const date = dayjs('2026-11-12');
+		const settings = settingsStore.periodicNotes;
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: buildPeriodicNotePath('/vault', '_notes', getFormatForPeriod(settings, 'daily'), date),
+				title: '12-11-2026',
+				customVariables: buildPeriodicVariables('daily', date, settings),
+			}),
+		);
+	});
+
+	it('does nothing without an open vault', async () => {
+		vaultStore.close();
+		const unregister = registerCalendarDailyNoteOpener();
+		try {
+			await eventCalendarDailyNoteStore.open('2026-11-12');
+		} finally {
+			unregister();
+		}
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
 	});
 });
