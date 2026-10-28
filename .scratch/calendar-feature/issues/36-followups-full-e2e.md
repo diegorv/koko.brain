@@ -43,3 +43,7 @@
 - [ ] `pnpm check`, `pnpm vitest run` and `pnpm build` pass
 - [ ] `git diff --cached --stat` lists only the new follow-up files and, when applicable, `.scratch/sveltekit-3-migration/issues/11-migrate-tests-to-lib-subpath.md` with its new `## Comments` entry
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- **2026-10-28, post-merge adversarial review of ticket 22 fix b3ffc1ef (verdict OK), follow-up candidates:** (1) low: `compositedTextColors` in `e2e/specs/event-calendar.spec.ts` (~41-59) folds the block opacity into the text color but not the background, and reads the background without its alpha, so contrast is mis-measured on a translucent block; no contrast assertion covers a pending block. (2) nit: the pending dashed border in `EventBlock.svelte:60` takes 2px, so the `@max-[84px]` title-only switch triggers about 2px earlier for a pending block. (3) nit: the z-index clamp `10 + min(column, 9)` has only a style-string unit test, no E2E check of the layering against the now-line.
