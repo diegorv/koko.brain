@@ -301,6 +301,17 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
 | [docs/architecture/archify/](docs/architecture/archify/) | Five generated interactive maps: runtime architecture, `initializeVault` lifecycle, markdown editor wiring, live-preview decoration pipeline, search retrieval pipeline. Each is an HTML viewer plus the `.json` source it was rendered from; regenerate with the `archify` skill |
 
+## Implementation process
+
+Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` through the saved Claude Code workflow `.claude/workflows/implement-issue.js` (`implement-brain-issue`), one Issue at a time. There is no ledger: the Issue file is the state (`Status:` line from docs/agents/triage-labels.md plus a `## Comments` log); the workflow keeps `ready-for-agent` while an Issue is in flight (its branch or worktree marks that) and sets `ready-for-human` when it stops, and an Issue is done once its closing commit deletes the file.
+
+- **Start:** run `/next-issue <feature> [NN]` (`.claude/commands/next-issue.md`) or `Workflow({ name: "implement-brain-issue", args: { feature: "<feature>" } })`. `feature` is required. Pass `issue` only when the user names one, and `delivery: "pr"` only when the user asks for a PR.
+- **Worktree:** each Issue gets its own, at `.claude/worktrees/<feature>-<NN>-<slug>` on branch `issue/<feature>-<NN>-<slug>`, created from `main`. All work happens there, never in the main checkout, except the final merge. While that branch or worktree exists the Issue is in flight whatever main's file says, and the workflow skips it.
+- **Three agents, in order:** build (discovery and implement, `.scratch/<feature>/work/<NN>/discovery.md`), review (`work/<NN>/review.md`, starting with `VERDICT: APPROVED` or `VERDICT: CHANGES_REQUESTED`; no source changes), fix and deliver (the only full-gate run, logged to `.claude/worktrees/test-logs/<feature>-<NN>-<step>.log`). When the review agent returns nothing, the Issue becomes `Status: ready-for-human` and nothing is delivered.
+- **Gate:** Quick Reference rule 6 (`pnpm check` + `pnpm vitest run` + `pnpm build`, plus `cargo test` when `src-tauri/` changed).
+- **Delivery:** `merge` (default): close the Issue (`docs(scratch): close issue NN: <title>`, deleting its file), fast-forward the branch into local `main`, push `main` to `origin`, then remove the worktree and the branch. `pr`: push the branch and open a pull request; the Issue stays `ready-for-agent` until the PR merges and its file is deleted. If the gate cannot pass, the Issue becomes `Status: ready-for-human` with the reason in a comment, and nothing is delivered.
+- After each Issue the main session stops and asks the user when an Issue ends `ready-for-human` or its branch is still open, the gate failed, or the main checkout is not clean.
+
 ## Plan Mode Workflow
 
 **Every plan created in plan-mode MUST be saved under `.scratch/<feature-slug>/` as a task file** (see [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)). This is non-negotiable.
