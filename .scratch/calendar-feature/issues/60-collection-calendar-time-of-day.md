@@ -18,3 +18,4 @@
 ## Comments
 
 - 2026-10-28 17:23 — discovery — day-key comparisons in groupRecordsByDate, extractEventsForYear and layoutEventsInMonth; tests first — base 65f96ae
+- 2026-10-28 17:24 — implement — day-key comparisons in place, 5 new failing tests now green (collection suite 740/740, pnpm check 0 errors) — 24d802a
