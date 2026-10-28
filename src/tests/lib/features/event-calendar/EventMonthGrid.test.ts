@@ -292,6 +292,29 @@ describe('EventMonthGrid: daily note action', () => {
 		expect(eventCalendarViewStore.view).toBe('month');
 	});
 
+	it('ignores clicks while an open is in flight and accepts one after it settles', async () => {
+		let resolveOpen: () => void = () => {};
+		const opener = vi.fn(
+			() =>
+				new Promise<void>((resolve) => {
+					resolveOpen = resolve;
+				}),
+		);
+		unregister = eventCalendarDailyNoteStore.register(opener);
+		mountGrid();
+		const button = cell('2026-11-20').querySelector<HTMLButtonElement>('[data-daily-note]')!;
+
+		button.click();
+		button.click();
+		expect(opener).toHaveBeenCalledTimes(1);
+
+		resolveOpen();
+		await vi.waitFor(() => {
+			button.click();
+			expect(opener).toHaveBeenCalledTimes(2);
+		});
+	});
+
 	it('toasts when the opener fails', async () => {
 		unregister = eventCalendarDailyNoteStore.register(() => Promise.reject(new Error('disk full')));
 		mountGrid();

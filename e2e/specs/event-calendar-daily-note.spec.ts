@@ -35,4 +35,19 @@ test.describe('Event calendar daily note action', () => {
 
 		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('2026-11-20.md', { timeout: 10_000 });
 	});
+
+	test('a click in the gap between the day number and the action selects the day', async ({ vaultPage: page }) => {
+		await openCalendar(page);
+		await page.getByRole('tab', { name: 'Month' }).click();
+
+		const dayNumber = page.locator('[data-month-cell="2026-11-20"] [data-month-day]');
+		await expect(dayNumber).toHaveAttribute('aria-pressed', 'false');
+
+		// The row is pointer-events-none, so a mouse click at its centre lands on the cell.
+		const row = await dayNumber.locator('..').boundingBox();
+		expect(row).not.toBeNull();
+		await page.mouse.click(row!.x + row!.width / 2, row!.y + row!.height / 2);
+
+		await expect(dayNumber).toHaveAttribute('aria-pressed', 'true');
+	});
 });

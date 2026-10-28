@@ -18,3 +18,4 @@
 - 2026-10-28 17:50 — discovery — bridge store in event-calendar, plugin registers opener via initializeVault, icon button beside header and month day number; work/54/discovery.md — cdad575f
 - 2026-10-28 17:54 — implement — bridge store + plugin opener wired in initializeVault, notebook button beside day headers and month day numbers, new E2E spec (not run); pnpm check 0 errors, 26 test files / 989 tests pass — d3c59287
 - 2026-10-28 17:57 — review — CHANGES_REQUESTED: ACs met; guard the daily note button against a double-click race (second create_note toasts "File already exists"); optional E2E for the month row gap; work/54/review.md — 0b5b2a7b
+- 2026-10-28 17:59 — fix — in-flight guard on the daily note button + unit test; E2E for the month row gap (not run); pnpm check 0 errors, grid tests pass — 83c1f585
