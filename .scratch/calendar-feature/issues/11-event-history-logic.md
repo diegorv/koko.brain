@@ -30,3 +30,4 @@
 - 2026-10-28 12:35 — discovery — plan in work/11/discovery.md; one new pure module + test — 0ace4d20
 - 2026-10-28 12:38 — implement — history logic + 21 tests; pnpm check 0 errors, event-calendar tests 56/56 — 3fc6beb8
 - 2026-10-28 12:40 — review — APPROVED; 3 findings (2 low, 1 nit), see work/11/review.md — 0f3291dc
+- 2026-10-28 12:42 — fix — 3 review findings fixed (satisfies-checked state keys, refuseOp JSDoc, non-mutation test); history tests 22/22, pnpm check 0 errors — 582d59a8

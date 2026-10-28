@@ -243,6 +243,24 @@ describe('remapPath / dropPath', () => {
 		expect(h.redo).toEqual([]);
 	});
 
+	it('leave the input history untouched when they change something', () => {
+		const path = `${VAULT}/a.md`;
+		let h = pushAll(createEventHistory(), [move(path), move(`${VAULT}/b.md`), move(path)]);
+		h = takeUndo(h)!.history;
+		const undoBefore = [...h.undo];
+		const redoBefore = [...h.redo];
+		const snapshot = structuredClone(h);
+		expect(remapPath(h, path, `${VAULT}/c.md`)).not.toEqual(h);
+		expect(dropPath(h, path)).not.toEqual(h);
+		expect(removeOp(h, (op) => op.path === `${VAULT}/b.md`)).not.toEqual(h);
+		expect(refuseOp(h, h.redo[0])).not.toEqual(h);
+		expect(h).toEqual(snapshot);
+		expect(h.undo).toEqual(undoBefore);
+		expect(h.redo).toEqual(redoBefore);
+		h.undo.forEach((op, i) => expect(op).toBe(undoBefore[i]));
+		h.redo.forEach((op, i) => expect(op).toBe(redoBefore[i]));
+	});
+
 	it('leave a history without that path unchanged', () => {
 		const h = pushOp(createEventHistory(), move(`${VAULT}/a.md`));
 		expect(remapPath(h, `${VAULT}/x.md`, `${VAULT}/y.md`)).toEqual(h);

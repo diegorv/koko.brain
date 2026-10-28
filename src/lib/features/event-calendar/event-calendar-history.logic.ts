@@ -29,9 +29,26 @@ export interface TakenOp {
 	history: EventHistory;
 }
 
-const STATE_KEYS: (keyof EventState)[] = ['title', 'date', 'start', 'end', 'allDay', 'color', 'location'];
+/**
+ * Every `EventState` key, checked at compile time: a field added to
+ * `EventFields` fails here until it is listed, so `sameState` never misses it.
+ */
+const STATE_KEY_SET = {
+	title: true,
+	date: true,
+	start: true,
+	end: true,
+	allDay: true,
+	color: true,
+	location: true,
+} satisfies Record<keyof EventState, true>;
 
-/** Whether two event states hold the same value in every field. */
+const STATE_KEYS = Object.keys(STATE_KEY_SET) as (keyof EventState)[];
+
+/**
+ * Whether two event states hold the same value in every field.
+ * Follow-up: switch to ticket 07's `sameEventState` once it is on main.
+ */
 function sameState(a: EventState, b: EventState): boolean {
 	return STATE_KEYS.every((key) => a[key] === b[key]);
 }
@@ -74,6 +91,8 @@ export function removeOp(h: EventHistory, predicate: (op: HistoryOp) => boolean)
 /**
  * Removes `op` itself (by reference) from both stacks. The service calls it
  * when an op it took fails its precondition, so it is not offered again.
+ * Call it before any `remapPath` of the op's path: a remap replaces the op
+ * object, and the old reference then matches nothing.
  */
 export function refuseOp(h: EventHistory, op: HistoryOp): EventHistory {
 	return removeOp(h, (candidate) => candidate === op);
