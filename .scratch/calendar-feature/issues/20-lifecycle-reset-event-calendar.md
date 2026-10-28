@@ -22,3 +22,7 @@
 - [ ] `invocationCallOrder` assertions show `resetEventCalendar` running before `loadSettings` on both the normal and the double-switch path, and they fail before the call is added (C6 Q5)
 - [ ] A teardown assertion, next to `:791-797`, shows that teardown calls `resetEventCalendar`
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 13:19 — discovery — two calls (init entry after invalidateVaultEntries, teardown after resetCalendar) plus pin test first; see work/20/discovery.md — 29e3a578
