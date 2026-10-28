@@ -76,3 +76,14 @@ Layer rules: the module is pure, in `features/`, and imports only `core/settings
    - **Fix (optional):** cite `84c91f63`.
 
 Findings 1, 2 and 4 should be fixed before delivery. 3, 5 and 6 are cheap and optional.
+
+## Resolution
+
+All six findings accepted and fixed in the fix step; none rejected.
+
+1. `applyEventFields` now deletes `all_day` for `allDay: false` or any `start` / `end` patch that is not all-day. Test: base `all_day: true` with `{ start, end }` and with `{ end }` alone; a color-only patch keeps `all_day`.
+2. `mergePending` appends an `update` whose path is absent from the snapshot (and not hidden) as `{ path, ...state, snippet: '', readOnly: false, pending: true }`. JSDoc updated. The "ignores an update" test is replaced by a synthesized-event test plus a rename-shaped case (delete at `a`, update at `a2`, snapshot `[a]` gives one event at `a2`).
+3. The trailing-comment check is `/\s#/.test(value)`; a `\t#` case is tested.
+4. Added a settled `create` that never appears and a settled `delete` that stays present, each kept at +1 and pruned at +2.
+5. `applyEventDraft` trims trailing newlines of the notes and leading newlines of the template body before joining with one blank line; tested.
+6. The discovery comment now cites 84c91f63.

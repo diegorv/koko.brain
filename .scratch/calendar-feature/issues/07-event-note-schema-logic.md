@@ -84,6 +84,7 @@
 
 ## Comments
 
-- 2026-10-28 12:37 — discovery — plan, risks and defaults in work/07/discovery.md — 0ace4d20
+- 2026-10-28 12:37 — discovery — plan, risks and defaults in work/07/discovery.md — 84c91f63
 - 2026-10-28 12:41 — implement — schema logic, Rust-shaped fixture and 65 tests; pnpm check 0 errors, event-calendar/properties/type-definitions vitest 819/819 — 3320c134
 - 2026-10-28 12:46 — review — CHANGES_REQUESTED: all_day kept on a timed patch, mergePending drops an update at a renamed path, +2 fallback untested for create/delete (work/07/review.md) — ba14cc2c
+- 2026-10-28 12:48 — fix — all six review findings fixed (all_day on timed patch, rename-path update overlay, tab comment, +2 create/delete tests, body join, sha); targeted vitest 71/71, pnpm check 0 errors — c3355541

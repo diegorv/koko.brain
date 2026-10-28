@@ -224,6 +224,11 @@ describe('entryToEvent', () => {
 		}
 	});
 
+	it('reports a trailing comment after a tab', () => {
+		const result = entryToEvent(eventEntry(P('a'), { date: '2026-11-10\t# x', start: '09:00' }), DEFAULTS);
+		expect(issueOf(result)).toMatchObject({ reason: 'trailing-comment', detail: 'date', rendered: false });
+	});
+
 	it('never reports a trailing comment in location, event_title or the filename', () => {
 		const entry = eventEntry(P('Sprint #4'), { date: '2026-11-10', location: 'Room #4', event_title: 'Retro #4' });
 		const result = entryToEvent(entry, DEFAULTS);
@@ -364,6 +369,16 @@ describe('applyEventFields', () => {
 		]);
 	});
 
+	it('removes all_day for a start/end patch without allDay', () => {
+		const base: Property[] = [{ key: 'all_day', value: true, type: 'boolean' }];
+		expect(applyEventFields(base, { start: 540, end: 600 })).toEqual([
+			{ key: 'start', value: '09:00', type: 'text' },
+			{ key: 'end', value: '10:00', type: 'text' },
+		]);
+		expect(applyEventFields(base, { end: 600 })).toEqual([{ key: 'end', value: '10:00', type: 'text' }]);
+		expect(applyEventFields(base, { color: 'pink' })).toEqual([...base, { key: 'event_color', value: 'pink', type: 'text' }]);
+	});
+
 	it('updates existing keys in place and keeps unrelated ones', () => {
 		const base: Property[] = [
 			{ key: '_type', value: 'Event', type: 'text' },
@@ -430,6 +445,11 @@ describe('applyEventDraft', () => {
 		expect(prop(props, '_type')?.value).toBe('Meeting');
 		expect(prop(props, 'attendees')?.value).toEqual(['Ana', 'Bob']);
 		expect(content.endsWith('---\nBring slides\n\n## Agenda\n')).toBe(true);
+	});
+
+	it('joins notes and the template body with exactly one blank line', () => {
+		const content = applyEventDraft('---\n_type: Event\n---\n\n## Agenda\n', draft({ notes: 'Hi\n' }), 'Standup', 'Event');
+		expect(content.endsWith('---\nHi\n\n## Agenda\n')).toBe(true);
 	});
 
 	it('adds _type when the base has none', () => {
@@ -519,8 +539,22 @@ describe('mergePending', () => {
 		expect(merged).toEqual([{ ...a, ...state, pending: true }, { ...b, pending: false }]);
 	});
 
-	it('ignores an update for a path the snapshot does not have', () => {
-		expect(mergePending([a], [{ kind: 'update', path: P('zz'), state: eventState(a), settled: false }])).toEqual([{ ...a, pending: false }]);
+	it('builds an event from an update whose path the snapshot does not have', () => {
+		const state = { ...eventState(a), title: 'Elsewhere' };
+		expect(mergePending([a], [{ kind: 'update', path: P('zz'), state, settled: false }])).toEqual([
+			{ ...a, pending: false },
+			{ path: P('zz'), ...state, snippet: '', readOnly: false, pending: true },
+		]);
+	});
+
+	it('keeps exactly one event across a rename (delete tombstone plus update at the new path)', () => {
+		const state = { ...eventState(a), title: 'Renamed' };
+		const pending: PendingWrite[] = [
+			{ kind: 'delete', path: P('a'), settled: false },
+			{ kind: 'update', path: P('a2'), state, settled: false },
+		];
+		expect(mergePending([a], pending)).toEqual([{ path: P('a2'), ...state, snippet: '', readOnly: false, pending: true }]);
+		expect(mergePending([b], [{ kind: 'delete', path: P('zz'), settled: false }, { kind: 'update', path: P('zz'), state, settled: false }])).toEqual([{ ...b, pending: false }]);
 	});
 
 	it('adds a create, replacing a snapshot copy at the same path', () => {
@@ -573,6 +607,18 @@ describe('prunePending', () => {
 		expect(prunePending([update], [a], 7)).toEqual([update]);
 		expect(prunePending([update], [a], 8)).toEqual([update]);
 		expect(prunePending([update], [a], 9)).toEqual([]);
+	});
+
+	it('a settled create whose path never appears stays at +1 and prunes at +2', () => {
+		const create: PendingWrite = { kind: 'create', path: P('gone'), event: makeEvent(P('gone')), settled: true, settledAtVersion: 3 };
+		expect(prunePending([create], [a], 4)).toEqual([create]);
+		expect(prunePending([create], [a], 5)).toEqual([]);
+	});
+
+	it('a settled delete whose path stays present stays at +1 and prunes at +2', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 3 };
+		expect(prunePending([del], [a], 4)).toEqual([del]);
+		expect(prunePending([del], [a], 5)).toEqual([]);
 	});
 
 	it('falls back to settledAtVersion + 2 for a settled entry without a version', () => {

@@ -132,7 +132,7 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 
 	for (const key of COMMENT_CHECKED_KEYS) {
 		const value = fm[key];
-		if (typeof value === 'string' && value.includes(' #')) return { issue: issue('trailing-comment', key) };
+		if (typeof value === 'string' && /\s#/.test(value)) return { issue: issue('trailing-comment', key) };
 	}
 
 	const date = fm.date;
@@ -253,7 +253,8 @@ function deleteProperty(properties: Property[], key: string): Property[] {
  * @param patch - fields to change; `undefined` fields are left alone
  * @returns new properties: `date` typed `date`; `start` / `end` as `HH:mm`
  *   text, removed for an all-day patch; `all_day: true` only for all-day,
- *   removed for `allDay: false`; `event_color` when patched; an empty
+ *   removed for `allDay: false` or a `start` / `end` patch without
+ *   `allDay: true`; `event_color` when patched; an empty
  *   `location` removed; `event_title` written for a string, removed for null
  */
 export function applyEventFields(properties: Property[], patch: EventPatch): Property[] {
@@ -263,7 +264,9 @@ export function applyEventFields(properties: Property[], patch: EventPatch): Pro
 		result = deleteProperty(deleteProperty(result, 'start'), 'end');
 		result = setProperty(result, 'all_day', true, 'boolean');
 	} else {
-		if (patch.allDay === false) result = deleteProperty(result, 'all_day');
+		if (patch.allDay === false || patch.start !== undefined || patch.end !== undefined) {
+			result = deleteProperty(result, 'all_day');
+		}
 		if (patch.start !== undefined) result = setProperty(result, 'start', formatEventTime(patch.start), 'text');
 		if (patch.end !== undefined) result = setProperty(result, 'end', formatEventTime(patch.end), 'text');
 	}
@@ -287,7 +290,7 @@ export function applyEventFields(properties: Property[], patch: EventPatch): Pro
  * @param typeName - resolved event type name, written when the base has no `_type`
  * @returns full note content: the base's keys with the draft's fields
  *   applied (`event_title` only when the title differs from `fileBase`),
- *   then the draft's notes followed by the template body
+ *   then the draft's notes and the template body joined by one blank line
  */
 export function applyEventDraft(baseContent: string, draft: EventDraft, fileBase: string, typeName: string): string {
 	let properties = parseFrontmatterProperties(baseContent);
@@ -304,7 +307,9 @@ export function applyEventDraft(baseContent: string, draft: EventDraft, fileBase
 		eventTitle: draft.title !== fileBase ? draft.title : null,
 	});
 	const templateBody = extractBody(baseContent);
-	const body = draft.notes === '' ? templateBody : templateBody === '' ? draft.notes : `${draft.notes}\n\n${templateBody}`;
+	const notes = draft.notes.replace(/\n+$/, '');
+	const trimmedBody = templateBody.replace(/^\n+/, '');
+	const body = notes === '' ? templateBody : trimmedBody === '' ? draft.notes : `${notes}\n\n${trimmedBody}`;
 	return rebuildContent(properties, body);
 }
 
@@ -367,10 +372,12 @@ export function eventColorStyle(color: EventColor): string {
  * Overlays pending writes on the projected snapshot.
  * @param snapshot - events projected from the current index snapshot
  * @param pending - writes the index may not reflect yet
- * @returns the snapshot with each `update` state applied (ignored when its
- *   path is not in the snapshot), each `delete` path hidden (rename
- *   tombstones included) and each `create` appended in place of any
- *   snapshot copy; overlaid and created events carry `pending: true`
+ * @returns the snapshot with each `update` state applied, each `delete`
+ *   path hidden (rename tombstones included) and each `create` appended in
+ *   place of any snapshot copy. An `update` whose path is not in the
+ *   snapshot (the new path of a rename) is appended as an event built from
+ *   its state, with an empty snippet and `readOnly: false`. Overlaid and
+ *   created events carry `pending: true`
  */
 export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): PendingEventNote[] {
 	const hidden = new Set<string>();
@@ -385,10 +392,16 @@ export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): Pe
 		}
 	}
 	const merged: PendingEventNote[] = [];
+	const seen = new Set<string>();
 	for (const event of snapshot) {
+		seen.add(event.path);
 		if (hidden.has(event.path)) continue;
 		const state = updates.get(event.path);
 		merged.push(state ? { ...event, ...state, pending: true } : { ...event, pending: false });
+	}
+	for (const [path, state] of updates) {
+		if (seen.has(path) || hidden.has(path)) continue;
+		merged.push({ path, ...state, snippet: '', readOnly: false, pending: true });
 	}
 	for (const event of creates) {
 		if (pending.some((w) => w.kind === 'delete' && w.path === event.path)) continue;
