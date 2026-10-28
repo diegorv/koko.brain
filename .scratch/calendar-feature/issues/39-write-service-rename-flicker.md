@@ -30,3 +30,4 @@
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
+- 2026-10-28 13:55 — discovery — plan in work/39/discovery.md: clocked rename create prunes on state match; intake chain orders undo before later writes — 43dc6ead
