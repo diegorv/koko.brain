@@ -65,6 +65,22 @@ describe('layoutDay', () => {
 		expect(map.b).toMatchObject({ column: 0, columns: 1 });
 	});
 
+	it('starts a new cluster at an event that begins exactly when the cluster ends', () => {
+		const out = layoutDay([ev('a', 540, 600), ev('b', 560, 600), ev('c', 600, 660)]);
+		const map = byPath(out);
+		expect(map.a).toMatchObject({ column: 0, columns: 2 });
+		expect(map.b).toMatchObject({ column: 1, columns: 2 });
+		expect(map.c).toMatchObject({ column: 0, columns: 1 });
+	});
+
+	it('reuses a column inside a cluster when its event ends exactly at the next start', () => {
+		const out = layoutDay([ev('a', 540, 720), ev('b', 540, 600), ev('c', 600, 660)]);
+		const map = byPath(out);
+		expect(map.a).toMatchObject({ column: 0, columns: 2 });
+		expect(map.b).toMatchObject({ column: 1, columns: 2 });
+		expect(map.c).toMatchObject({ column: 1, columns: 2 });
+	});
+
 	it('opens a third column when three events overlap at once', () => {
 		const out = layoutDay([ev('a', 540, 720), ev('b', 570, 690), ev('c', 600, 660)]);
 		const map = byPath(out);
@@ -128,7 +144,7 @@ describe('layoutDay', () => {
 		expect(map.after).toMatchObject({ column: 1, columns: 2 });
 	});
 
-	it('gives a lone inverted event one column and ends its cluster at its start', () => {
+	it('gives a lone inverted event one column and lets the next event start a new cluster', () => {
 		const out = layoutDay([ev('inverted', 600, 500), ev('next', 620, 700)]);
 		const map = byPath(out);
 		expect(map.inverted).toMatchObject({ column: 0, columns: 1 });

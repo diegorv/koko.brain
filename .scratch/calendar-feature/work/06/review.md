@@ -43,3 +43,8 @@ The source is a faithful port of the prototype. A line-by-line compare of `event
 - Zero-length and inverted events are left as the prototype handles them. This is safe because the Task 6 projection rejects `end <= start` ("crosses-midnight", plan line 152), so `layoutDay` never sees such events in production. The tests pin the prototype behaviour without endorsing it.
 - No scope creep. The diff is the two new files plus the scratch notes. There is no UI change and no change to existing code. `PositionedEvent` is reused from the types file, not redefined.
 - Layer rules: the module is a feature `.logic.ts` with a type-only import and no state or side effects. The error-handling rules do not apply (pure arithmetic).
+
+## Resolution
+
+- Finding 1: accepted. Added the cluster-boundary case and the in-cluster reuse case (`event-calendar-layout.logic.test.ts:68-82`); the original touching test is kept. Re-ran the mutation probe: mutation A fails the boundary case, mutation B fails the reuse case (26 tests, 1 failure each).
+- Finding 2: accepted. Renamed the lone inverted test (`:147`) to "gives a lone inverted event one column and lets the next event start a new cluster".
