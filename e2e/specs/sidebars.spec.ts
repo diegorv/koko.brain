@@ -64,4 +64,20 @@ test.describe('Sidebar toggle buttons persist layout', () => {
 		await page.locator('button[title="Hide left sidebar"]').click();
 		await expect.poll(() => readPersistedVisibility(page, 'leftSidebarVisible')).toBe(false);
 	});
+
+	test('hiding only the left sidebar keeps the tabs clear of the traffic lights', async ({ vaultPage: page }) => {
+		await openTreeItem(page, 'Welcome.md');
+		await page.locator('button[title="Hide left sidebar"]').click();
+		await expect(page.locator('button[title="Hide right sidebar"]')).toBeVisible();
+
+		const spacer = page.locator('[data-traffic-light-spacer]');
+		await expect(spacer).toBeVisible();
+		const spacerBox = (await spacer.boundingBox())!;
+		expect(spacerBox.x).toBe(0);
+		expect(spacerBox.width).toBe(116);
+
+		const tab = page.locator('[role="tab"]', { hasText: 'Welcome' }).first();
+		await expect(tab).toBeVisible();
+		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(116);
+	});
 });

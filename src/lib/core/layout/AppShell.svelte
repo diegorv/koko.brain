@@ -101,8 +101,12 @@
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
-					{#if !settingsStore.layout.leftSidebarVisible && !settingsStore.layout.rightSidebarVisible}
-						<div class="flex flex-col w-[116px] shrink-0">
+					<!-- Shown whenever the left sidebar is hidden, whatever the right one does: it is the
+						room for the macOS traffic lights (titleBarStyle Overlay) and the left toggle at
+						left-[82px], not only layout symmetry. The right placeholder below stays
+						both-hidden only, for symmetry. -->
+					{#if !settingsStore.layout.leftSidebarVisible}
+						<div class="flex flex-col w-[116px] shrink-0" data-traffic-light-spacer>
 							<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
 							<div class="flex-1 bg-editor-bg"></div>
 						</div>
