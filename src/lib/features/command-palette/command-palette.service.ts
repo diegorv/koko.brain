@@ -23,9 +23,8 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
-import { openEventCalendarTab, toggleEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
+import { openEventCalendarTab, openNewEventDialog, toggleEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import { defaultCreateSlot } from '$lib/features/event-calendar/event-calendar-view.logic';
 import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
@@ -160,18 +159,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'New Calendar Event',
 			category: 'Navigation',
 			action: () => {
-				openEventCalendarTab();
-				// The clock only ticks while the view is mounted: read "now" fresh.
-				eventCalendarViewStore.setNow(Date.now());
-				const s = settingsStore.eventCalendar;
-				const slot = defaultCreateSlot(
-					eventCalendarViewStore.focusedDate,
-					eventCalendarViewStore.todayKey,
-					eventCalendarViewStore.nowMinutes,
-					s.dayStartHour,
-					s.defaultDurationMinutes,
-				);
-				eventCalendarViewStore.openDialog({ mode: 'create', ...slot });
+				openNewEventDialog();
 			},
 		},
 		{

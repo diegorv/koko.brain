@@ -525,6 +525,90 @@ describe('EventDialog: create', () => {
 	});
 });
 
+describe('EventDialog: create failures', () => {
+	/** The message `createEvent` gives a rejected `create_note`. */
+	const CREATE_FAILED = 'Could not create the note; a note with the same name, possibly differing only in case, may exist';
+
+	/** Makes the next `create_note` wait; returns its resolve and reject. */
+	function holdCreateNote() {
+		const held: { resolve: () => void; reject: (err: Error) => void } = { resolve: () => {}, reject: () => {} };
+		const fallback = vi.mocked(invoke).getMockImplementation()!;
+		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+			if (cmd !== 'create_note') return fallback(cmd, args);
+			vi.mocked(invoke).mockImplementation(fallback);
+			await new Promise<void>((resolve, reject) => {
+				held.resolve = resolve;
+				held.reject = reject;
+			});
+			return fallback(cmd, args);
+		});
+		return held;
+	}
+
+	it('keeps the dialog open with an inline error and writes nothing when the create fails', async () => {
+		const fallback = vi.mocked(invoke).getMockImplementation()!;
+		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+			if (cmd === 'create_note') throw new Error('disk full');
+			return fallback(cmd, args);
+		});
+		mountView();
+		await openCreate();
+
+		type(field('title'), 'Planning');
+		save().click();
+		await settle();
+
+		expect(eventCalendarViewStore.dialog).not.toBeNull();
+		expect(dialog()).not.toBeNull();
+		expect(dialog()!.querySelector('[data-form-error]')?.textContent?.trim()).toBe(CREATE_FAILED);
+		expect(disk.has(P('Planning'))).toBe(false);
+		expect(eventCalendarStore.eventByPath(P('Planning'))).toBeUndefined();
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('toasts a failed create when the dialog was closed during the write', async () => {
+		const held = holdCreateNote();
+		mountView();
+		await openCreate();
+
+		type(field('title'), 'Planning');
+		save().click();
+		await settle();
+		eventCalendarViewStore.closeDialog();
+		await settle();
+		held.reject(new Error('disk full'));
+		await settle();
+
+		expect(toast.error).toHaveBeenCalledWith(CREATE_FAILED);
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(disk.has(P('Planning'))).toBe(false);
+	});
+
+	it('leaves a newer dialog open when an earlier create finishes', async () => {
+		const held = holdCreateNote();
+		mountView();
+		await openCreate();
+
+		type(field('title'), 'Planning');
+		save().click();
+		await settle();
+		eventCalendarViewStore.closeDialog();
+		await settle();
+		await openEdit(P('Retreat'));
+		const retreat = eventCalendarViewStore.dialog!.session;
+		held.resolve();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(disk.has(P('Planning'))).toBe(true);
+		expect(eventCalendarViewStore.dialog?.session).toBe(retreat);
+		expect(field('title').value).toBe('Retreat');
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+});
+
 describe('EventDialog: create cancel', () => {
 	it('Cancel on a create opened after an edit leaves focus on the view root', async () => {
 		mountView();
@@ -558,7 +642,7 @@ describe('EventDialog: footer Delete and Duplicate', () => {
 		expect(disk.has(P('Standup'))).toBe(false);
 		expect(root.querySelector(`[data-event-path="${P('Standup')}"]`)).toBeNull();
 		expect(document.activeElement).toBe(root);
-		expect(toast).toHaveBeenCalledWith('Event deleted', { action: { label: 'Undo', onClick: expect.any(Function) } });
+		expect(toast).toHaveBeenCalledWith('Event deleted', { description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } });
 
 		const [, options] = vi.mocked(toast).mock.calls[0] as unknown as [string, { action: { onClick: () => void } }];
 		document.body.focus();

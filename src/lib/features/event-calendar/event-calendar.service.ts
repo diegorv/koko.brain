@@ -34,6 +34,7 @@ import type { EventTiming } from './event-calendar-drag.logic';
 import { planTitleChange, type EventFormPatch } from './event-calendar-form.logic';
 import { dropPath, pushOp, refuseOp, removeOp, takeRedo, takeUndo } from './event-calendar-history.logic';
 import { eventCalendarStore } from './event-calendar.store.svelte';
+import { defaultCreateSlot } from './event-calendar-view.logic';
 import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 import type { CalendarViewMode, EventDraft, EventNote, EventPatch, EventState, HistoryOp } from './event-calendar.types';
 
@@ -137,6 +138,25 @@ export function toggleEventCalendarTab(): void {
 	} else {
 		editorStore.setActiveIndex(existingIndex);
 	}
+}
+
+/**
+ * Opens the Calendar tab and the create dialog at the default slot: now,
+ * rounded, on today; `dayStartHour` on any other focused day. The clock
+ * only ticks while the view is mounted, so "now" is read fresh first.
+ */
+export function openNewEventDialog(): void {
+	openEventCalendarTab();
+	tick();
+	const s = settingsStore.eventCalendar;
+	const slot = defaultCreateSlot(
+		eventCalendarViewStore.focusedDate,
+		eventCalendarViewStore.todayKey,
+		eventCalendarViewStore.nowMinutes,
+		s.dayStartHour,
+		s.defaultDurationMinutes,
+	);
+	eventCalendarViewStore.openDialog({ mode: 'create', ...slot });
 }
 
 /** Sets the view store's clock to the current system time. */
@@ -973,13 +993,16 @@ function focusRoot(root: HTMLElement | undefined): void {
 
 /**
  * The popover's and the dialog's Delete: deletes the event and shows an
- * "Event deleted" toast whose Undo restores it through `undoDeleteEvent`
- * and then focuses the view root (the toast sits outside it). A failure is
+ * "Event deleted" toast, described by the event's title, whose Undo
+ * restores it through `undoDeleteEvent` and then focuses the view root (the
+ * toast sits outside it). The root is resolved when Undo is clicked, so a
+ * view remounted while the toast was up still gets focus. A failure is
  * reported through `toastEventError` instead.
  * @param path - absolute path of the event note
- * @param root - the Calendar view root
+ * @param root - the Calendar view root at delete time, the fallback when no live root is found
  */
 export async function deleteEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> {
+	const title = eventCalendarStore.eventByPath(path)?.title ?? fileBase(path);
 	try {
 		await deleteEvent(path);
 	} catch (err) {
@@ -987,12 +1010,13 @@ export async function deleteEventFromUi(path: string, root: HTMLElement | undefi
 		return;
 	}
 	toast('Event deleted', {
+		description: title,
 		action: {
 			label: 'Undo',
 			onClick: () => {
 				undoDeleteEvent(path)
 					.catch((err) => toastEventError(err, path))
-					.finally(() => focusRoot(root));
+					.finally(() => focusRoot(document.querySelector<HTMLElement>('[data-event-calendar]') ?? root));
 			},
 		},
 	});

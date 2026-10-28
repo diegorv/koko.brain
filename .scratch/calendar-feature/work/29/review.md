@@ -76,3 +76,14 @@ I did not run the full gate.
 6. **Low: the Undo handler focuses the `root` captured at delete time** (`event-calendar.service.ts:977-993`).
    - If the Calendar view unmounts and remounts during the toast's lifetime (switching to a note tab and back), `root` is the old, disconnected section. `focusRoot` then does nothing and focus stays on `<body>`, which is the dead-shortcut state the Issue wants to avoid.
    - Fix: at click time, resolve the live root (for example `document.querySelector('[data-event-calendar]')`), falling back to the captured one. Alternatively, record this as an accepted edge case in a comment.
+
+## Resolution
+
+All six findings accepted and fixed in the fix step.
+
+1. E2E delete/Undo: the test now asserts the "Event deleted" toast (and its "Standup" description) before the Trash check, and both `fs.exists` checks are `expect.poll`. `e2e.sh event-calendar + command-palette`: 19 passed.
+2. `EventDialog.test.ts` gains "EventDialog: create failures": a rejected `create_note` keeps the dialog open with the inline `[data-form-error]`, writes nothing and toasts nothing; a close mid-write toasts the error; a create that finishes after a newer dialog opened leaves that dialog alone.
+3. The palette's new-event logic moved to `openNewEventDialog()` in `event-calendar.service.ts`; the palette action is a one-liner. The slot assertions moved to the service test; the palette test checks the tab and the create dialog.
+4. Took the documented alternative: the E2E test now notes that `_folder` routing is covered by the createEvent service test "uses the Event type's folder and template" (no E2E fixture seeds type definitions).
+5. The "Event deleted" toast carries the event's title, read before the delete, as `description`; both assertions updated.
+6. The Undo handler resolves the live `[data-event-calendar]` root at click time, falling back to the captured root; a service test covers a remount while the toast is up.

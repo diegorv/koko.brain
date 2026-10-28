@@ -60,6 +60,7 @@ import {
 	loadEvents,
 	moveEvent,
 	openEventCalendarTab,
+	openNewEventDialog,
 	redoEventChange,
 	resetEventCalendar,
 	resizeEvent,
@@ -216,6 +217,33 @@ describe('Calendar tab openers', () => {
 		expect(editorStore.tabs).toHaveLength(1);
 		closeEventCalendarTab();
 		expect(editorStore.tabs).toHaveLength(1);
+	});
+});
+
+describe('openNewEventDialog', () => {
+	it('opens the Calendar tab and the create dialog at now, rounded, on today', () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 10, 10, 10, 7));
+		eventCalendarViewStore.setDate('2026-11-10');
+
+		openNewEventDialog();
+
+		expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+		expect(eventCalendarViewStore.dialog?.payload).toEqual({
+			mode: 'create',
+			date: '2026-11-10',
+			start: 600,
+			end: 600 + settingsStore.eventCalendar.defaultDurationMinutes,
+		});
+	});
+
+	it('uses dayStartHour on a day other than today', () => {
+		settingsStore.updateEventCalendar({ dayStartHour: 8 });
+		eventCalendarViewStore.setDate('2000-01-03');
+
+		openNewEventDialog();
+
+		expect(eventCalendarViewStore.dialog?.payload).toMatchObject({ mode: 'create', date: '2000-01-03', start: 480 });
 	});
 });
 
@@ -1634,13 +1662,28 @@ describe('calendar writes', () => {
 			await deleteEventFromUi(P('Standup'), root);
 
 			expect(disk.has(P('Standup'))).toBe(false);
-			expect(toast).toHaveBeenCalledWith('Event deleted', { action: { label: 'Undo', onClick: expect.any(Function) } });
+			expect(toast).toHaveBeenCalledWith('Event deleted', { description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } });
 			toastAction()();
 			await drainEventCalendarWrites();
 			await flush();
 			expect(disk.has(P('Standup'))).toBe(true);
 			expect(eventCalendarStore.history.undo.some((op) => op.kind === 'delete')).toBe(false);
 			expect(document.activeElement).toBe(root);
+		});
+
+		it('the Undo focuses the live view root when the view remounted while the toast was up', async () => {
+			const stale = makeRoot();
+			await deleteEventFromUi(P('Standup'), stale);
+			stale.remove();
+			const live = makeRoot();
+			live.dataset.eventCalendar = '';
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(document.activeElement).toBe(live);
 		});
 
 		it('an Undo after the Trash was emptied toasts "Event is no longer in the Trash" and focuses the root', async () => {

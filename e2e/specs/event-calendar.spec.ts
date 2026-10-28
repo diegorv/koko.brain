@@ -387,6 +387,8 @@ test.describe('Event calendar edit dialog', () => {
 test.describe('Event calendar create, delete and undo', () => {
 	test('"New Calendar Event" creates a note the calendar shows, in the folder createNoteOfType uses', async ({ vaultPage: page }) => {
 		// No Event type definition and no types base folder: `createNoteOfType` writes to the vault root.
+		// The Event type's `_folder` routing is covered by the createEvent service test
+		// ("uses the Event type's folder and template").
 		const created = '/test-vault/Planning.md';
 		await openSeededCalendar(page);
 
@@ -430,14 +432,16 @@ test.describe('Event calendar create, delete and undo', () => {
 
 		await expect(block).toHaveCount(0);
 		await expect(page.locator('[data-event-calendar]')).toBeFocused();
-		expect(await page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(false);
+		// The block hides as soon as the pending delete starts; the toast shows once the note is in the Trash.
 		const toast = page.locator('[data-sonner-toast]', { hasText: 'Event deleted' });
 		await expect(toast).toBeVisible();
+		await expect(toast).toContainText('Standup');
+		await expect.poll(() => page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(false);
 		const before = await indexVersion(page);
 		await toast.getByRole('button', { name: 'Undo' }).click();
 
 		await expect(block).toHaveCount(1);
-		expect(await page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(true);
+		await expect.poll(() => page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(true);
 		await expect.poll(() => indexVersion(page)).toBeGreaterThan(before);
 		// The throttled vault-index refresh settles the overlay (2 s after the event, 10 s spacing).
 		await expect(page.locator(`[data-event-path="${STANDUP}"][data-pending="false"]`)).toHaveCount(1, { timeout: 15_000 });
