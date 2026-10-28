@@ -16,3 +16,4 @@
 
 - 2026-10-28 17:33 — discovery — key table added to keys.logic, help state in the view store, dialog + header button; plan in work/57/discovery.md — b41e9b0c
 - 2026-10-28 17:40 — implement — CALENDAR_SHORTCUTS table + `?` help action, help state in view store, EventShortcutsDialog + header button; pnpm check 0 errors, event-calendar tests 703/703 — 2a5145b3
+- 2026-10-28 17:43 — review — CHANGES_REQUESTED: AC2 partly met (resolver keys missing from the table pass every test), 1 major + 1 low + 1 nit in work/57/review.md — aaf833d1
