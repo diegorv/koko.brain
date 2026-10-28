@@ -54,3 +54,6 @@ Ticket 56 review (fix 0e187396):
 
 E2E harness (found while fixing the issue 56 backlink spec, 81053434):
 - [ ] `e2e/specs/sidebars.spec.ts` "backlinks panel populates for a note with incoming links" only checks that `/backlinks|linked mentions/i` is visible; the panel header satisfies it, so it passed while backlinks failed to render. Assert on an actual backlink entry.
+
+Ticket 40 review (fix c987395b):
+- [ ] `EventTimeGrid.svelte:278` still reads `settingsStore.eventCalendar.showTasks` in the template, unlike the `$derived` used in `EventCalendarView.svelte:199` and `EventMonthGrid.svelte:26`; no visible effect, align for consistency.
