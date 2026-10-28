@@ -17,7 +17,7 @@ import { toast } from 'svelte-sonner';
 import { EVENT_CALENDAR_VIRTUAL_PATH, findTabIndex } from '$lib/core/editor/editor.logic';
 import { openFileInEditor, saveFileByPath } from '$lib/core/editor/editor.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { getFileName, getParentPath, getRelativePath } from '$lib/core/filesystem/fs.logic';
+import { generateUniqueName, getFileName, getParentPath, getRelativePath } from '$lib/core/filesystem/fs.logic';
 import { createFile, deleteItem, renameItem } from '$lib/core/filesystem/fs.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { restoreItem } from '$lib/core/trash/trash.service';
@@ -400,6 +400,19 @@ function holdPath(path: string, promise: Promise<unknown>): void {
 	});
 }
 
+/**
+ * Joins `path`'s queue from inside a task queued on another path: resolves
+ * once every write already queued on `path` has settled, and holds the
+ * writes queued there later until the returned release runs.
+ */
+async function joinPath(path: string): Promise<() => void> {
+	const previous = writeTails.get(path);
+	let release!: () => void;
+	holdPath(path, new Promise<void>((resolve) => (release = resolve)));
+	await previous;
+	return release;
+}
+
 /** A check that tells whether `resetEventCalendar` ran since it was made. */
 function generationCheck(): () => boolean {
 	const generation = writeGeneration;
@@ -771,7 +784,8 @@ async function createNow(draft: EventDraft, isCurrent: () => boolean): Promise<s
 
 /**
  * Duplicates an event note into the same folder as "<title> (copy).md",
- * queued after the writes on `path`. The bytes come from the open tab when
+ * queued after the writes on `path` and on the copy's path, which a later
+ * write there waits for in turn. The bytes come from the open tab when
  * there is one (unsaved edits included), else from disk, and are copied
  * unchanged, except that a note with `event_title` and safe frontmatter gets
  * `event_title: <title> (copy)`. Records a 'Duplicate event' op.
@@ -790,14 +804,24 @@ export function duplicateEvent(path: string): Promise<string> {
 		const hasEventTitle = properties.some((p) => p.key === 'event_title');
 		const rewrite = hasEventTitle && detectLossyFrontmatter(base) === null;
 		const content = rewrite ? rebuildContent(applyEventFields(properties, { eventTitle: copyTitle }), extractBody(base)) : base;
-		const copy = await createFile(getParentPath(path), `${eventFileBase(current.title)} (copy)${NOTE_EXT}`, content);
-		if (copy === null) throw new EventCalendarError('create-failed');
-		if (isCurrent()) {
-			// A lossy base keeps its `event_title`, so the copy shows the original title.
-			const title = rewrite ? copyTitle : hasEventTitle ? current.title : fileBase(copy);
-			showCreated({ ...current, path: copy, title }, 'Duplicate event');
+		const parent = getParentPath(path);
+		const fileName = `${eventFileBase(current.title)} (copy)${NOTE_EXT}`;
+		// `createFile` picks its name from the same listing; joining that path's
+		// queue first keeps a restore in flight there from landing on the copy.
+		const planned = generateUniqueName(fileName, false, (await readDir(parent)).map((entry) => entry.name));
+		const release = await joinPath(`${parent}/${planned}`);
+		try {
+			const copy = await createFile(parent, fileName, content);
+			if (copy === null) throw new EventCalendarError('create-failed');
+			if (isCurrent()) {
+				// A lossy base keeps its `event_title`, so the copy shows the original title.
+				const title = rewrite ? copyTitle : hasEventTitle ? current.title : fileBase(copy);
+				showCreated({ ...current, path: copy, title }, 'Duplicate event');
+			}
+			return copy;
+		} finally {
+			release();
 		}
-		return copy;
 	});
 }
 

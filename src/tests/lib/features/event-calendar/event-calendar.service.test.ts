@@ -1756,6 +1756,31 @@ describe('calendar writes', () => {
 			expect(disk.get(path)).toBe(lossy);
 		});
 
+		it("waits for a write in flight on the copy's path before creating the copy", async () => {
+			await duplicateEvent(P('Standup'));
+			await refresh(2);
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Duplicate event' });
+			disk.set(P('Standup'), eventFile({ start: '11:00', end: '11:30' }));
+			await refresh(2);
+			// The redo restores the first copy to "Standup (copy)"; hold its move out of the Trash.
+			const gate = deferred<void>();
+			const real = vi.mocked(rename).getMockImplementation()!;
+			vi.mocked(rename).mockImplementationOnce(async (from, to) => {
+				await gate.promise;
+				return real(from, to);
+			});
+
+			const redo = redoEventChange();
+			const copy = duplicateEvent(P('Standup'));
+			await flush();
+			gate.resolve();
+
+			expect(await redo).toEqual({ status: 'done', label: 'Duplicate event' });
+			expect(await copy).toBe(P('Standup (copy) 1'));
+			expect(disk.get(P('Standup (copy)'))).toContain('start: 09:30');
+			expect(disk.get(P('Standup (copy) 1'))).toContain('start: 11:00');
+		});
+
 		it('turns a refused createFile into create-failed, leaving history and overlay unchanged', async () => {
 			const real = vi.mocked(invoke).getMockImplementation()!;
 			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
