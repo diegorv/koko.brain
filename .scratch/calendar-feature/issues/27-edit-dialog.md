@@ -35,3 +35,4 @@
 ## Comments
 
 - 2026-10-28 14:33 — discovery — plan in work/27/discovery.md: EventDialog + EventForm + EventColorSwatches mounted in the view, popover Edit action, EventBlock data-pending true/false for the E2E selector; bits-ui unchanged at 2.19.5 — pending
+- 2026-10-28 14:41 — implement — EventDialog + EventForm + EventColorSwatches, popover Edit, eventErrorMessage, EventBlock data-pending true/false; check 0 errors, event-calendar vitest 590/590, event-calendar E2E 14/14 (new edit-dialog tests 9/9 at repeat-each=3); event_title is written unquoted (`event_title: 1:1 sync`), asserted as such — d5e42f54
