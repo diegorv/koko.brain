@@ -75,6 +75,11 @@
 		<div class="sticky top-0 z-40 bg-editor-bg" data-time-grid-header>
 			<EventDayHeaders {days} />
 			<EventAllDayLane {days} {events} />
+			<!-- Masks the hour line and label that sit exactly on the header edge after the mount scroll. -->
+			<div class="pointer-events-none absolute inset-x-0 top-full h-2" aria-hidden="true" data-time-grid-mask>
+				<div class="absolute inset-x-0 top-0 h-px bg-editor-bg"></div>
+				<div class="sticky left-0 h-2 w-(--axis) bg-editor-bg"></div>
+			</div>
 		</div>
 
 		<div class="relative flex w-full" style="height: {24 * HOUR_HEIGHT}px">

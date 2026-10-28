@@ -32,7 +32,7 @@
 	}
 </script>
 
-<div class="flex w-full shrink-0 items-stretch overflow-hidden border-b border-border" style="height: {height}px" data-all-day-lane>
+<div class="flex w-full shrink-0 items-stretch overflow-clip border-b border-border" style="height: {height}px" data-all-day-lane>
 	<div class="sticky left-0 z-10 flex w-(--axis) shrink-0 items-center justify-end bg-editor-bg pr-2">
 		<span class="text-[11px] text-muted-foreground">All day</span>
 	</div>

@@ -27,6 +27,8 @@
 	const MIN_BLOCK_PX = 14;
 	/** Line height of the narrow title-only variant, in px. */
 	const NARROW_LINE_PX = 13;
+	/** Highest overlap column that still raises the z-index: keeps blocks under the now-line (z-20) and the sticky axis (z-30). */
+	const MAX_Z_COLUMN = 9;
 
 	let height = $derived(minutesToPx(event.end - event.start) - 2);
 	let time = $derived(formatTimeRange(event.start, event.end, timeFormat));
@@ -39,7 +41,7 @@
 			`height: ${Math.max(height, MIN_BLOCK_PX)}px`,
 			`left: calc((100% - 5px) * ${column / columns} + 2px)`,
 			`width: calc((100% - 5px) / ${columns} - ${columns > 1 ? 2 : 0}px)`,
-			`z-index: ${10 + column}`,
+			`z-index: ${10 + Math.min(column, MAX_Z_COLUMN)}`,
 			`--lines: ${Math.max(1, Math.floor((height - 6) / NARROW_LINE_PX))}`,
 		].join('; '),
 	);
@@ -55,7 +57,7 @@
 	role="button"
 	tabindex="0"
 	class="@container absolute cursor-pointer overflow-hidden rounded-md font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-		{event.pending ? 'opacity-80' : ''}"
+		{event.pending ? 'border border-dashed border-current' : ''}"
 	{style}
 	aria-label={label}
 	data-event-path={event.path}
@@ -69,7 +71,7 @@
 			<p class="min-w-0 flex-1 truncate text-xs @max-[84px]:text-[11px]" data-event-title>
 				{event.title}
 				{#if height < 28}
-					<span class="ml-1 opacity-80 @max-[84px]:hidden" data-event-time>{formatTime(event.start, timeFormat)}</span>
+					<span class="ml-1 @max-[84px]:hidden" data-event-time>{formatTime(event.start, timeFormat)}</span>
 				{/if}
 			</p>
 		</div>
@@ -84,9 +86,9 @@
 				>
 					{event.title}
 				</p>
-				<p class="w-full shrink-0 truncate text-[11px] opacity-80" data-event-time>{time}</p>
+				<p class="w-full shrink-0 truncate text-[11px]" data-event-time>{time}</p>
 				{#if snippetLine && height >= SNIPPET_PX}
-					<p class="w-full shrink-0 truncate text-[11px] opacity-80" data-event-snippet>{snippetLine}</p>
+					<p class="w-full shrink-0 truncate text-[11px]" data-event-snippet>{snippetLine}</p>
 				{/if}
 			</div>
 			<p class="hidden text-[11px] leading-[13px] wrap-anywhere @max-[84px]:line-clamp-(--lines)" data-event-narrow-title>

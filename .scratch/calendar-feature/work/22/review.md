@@ -43,3 +43,14 @@ Layer rules: only `core/editor` and `core/settings` are imported from `features/
 5. **Minor (test gap)**: `src/lib/features/event-calendar/EventTimeGrid.svelte:44-60` and `src/lib/features/event-calendar/EventBlock.svelte:92`. No test at any level exercises two D23 behaviours: scrolling the selected day into view, and the title-only variant under 84 px. jsdom cannot run them. In the 900 px E2E the focused Tuesday is already in view, so the effect never scrolls, and blocks are about 91 px wide, above the 84 px threshold. **Fix:** add E2E cases at 900 px: (a) a selected day at the end of the week (for example a Saturday `clockTime` in its own describe) opens with `scrollLeft > 0` and that day's header in the viewport; (b) two overlapping seeded events in one column show `[data-event-narrow-title]` and hide `[data-event-time]`.
 
 6. **Nit**: `src/lib/features/event-calendar/EventBlock.svelte:42`. `z-index: 10 + column` passes the now-line (`z-20`) from 11 overlap columns and the sticky axis (`z-30`) from 21, so blocks would paint over the axis when scrolled sideways. This is unlikely in practice. **Fix:** clamp, for example `10 + Math.min(column, 9)`.
+
+## Resolution
+
+All six findings accepted and fixed in the fix commit; none rejected.
+
+1. `EventAllDayLane.svelte:35` uses `overflow-clip`. The 900 px E2E asserts the lane's "All day" cell and the time axis keep their left edge at the grid's left edge after the sideways scroll; with `overflow-hidden` restored the assertion fails (off by 200 px).
+2. `opacity-80` removed from the time line, the snippet line and the compact start time. The Sakura E2E now also measures `[data-event-time]` and `[data-event-snippet]` with every ancestor opacity up to the block composited over the block background.
+3. A pending block keeps its color and background and gets `border border-dashed border-current` instead of `opacity-80` (unit test).
+4. Ported the header mask (`data-time-grid-mask`): a hairline cover at the header's bottom edge and a `sticky left-0 w-(--axis) h-2` cell (unit test).
+5. New E2E cases at 900 px: a Sunday clock (weeks start Monday in the E2E settings) opens with `scrollLeft > 0` and the Sunday header fully in view; two overlapping 13:00-14:00 events are under 84 px wide, show `[data-event-narrow-title]` and hide `[data-event-time]`.
+6. `z-index` is `10 + Math.min(column, 9)` (unit test with 12 overlapping events: 10..19).

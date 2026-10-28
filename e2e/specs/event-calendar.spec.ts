@@ -34,6 +34,31 @@ async function computedColors(page: Page, selector: string): Promise<{ bg: numbe
 	}, selector);
 }
 
+/**
+ * Reads the block background and an inner element's text color, the text composited
+ * over that background with the opacity of every element between them.
+ */
+async function compositedTextColors(page: Page, blockSelector: string, innerSelector: string): Promise<{ bg: number[]; fg: number[] }> {
+	return page.evaluate(({ blockSel, innerSel }) => {
+		const block = document.querySelector(blockSel)!;
+		const inner = block.querySelector(innerSel)!;
+		const ctx = document.createElement('canvas').getContext('2d')!;
+		const toRgb = (color: string) => {
+			ctx.clearRect(0, 0, 1, 1);
+			ctx.fillStyle = color;
+			ctx.fillRect(0, 0, 1, 1);
+			return [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+		};
+		let alpha = 1;
+		for (let el: Element | null = inner; el && el !== block.parentElement; el = el.parentElement) {
+			alpha *= Number(getComputedStyle(el).opacity);
+		}
+		const bg = toRgb(getComputedStyle(block).backgroundColor);
+		const fg = toRgb(getComputedStyle(inner).color);
+		return { bg, fg: fg.map((c, i) => Math.round(c * alpha + bg[i] * (1 - alpha))) };
+	}, { blockSel: blockSelector, innerSel: innerSelector });
+}
+
 /** WCAG relative luminance of sRGB bytes. */
 function luminance([r, g, b]: number[]): number {
 	const lin = (c: number) => {
@@ -144,6 +169,11 @@ test.describe('Event calendar time grid', () => {
 		const { bg, fg } = await computedColors(page, selector);
 		expect(luminance(bg)).toBeGreaterThan(0.5);
 		expect(contrast(bg, fg)).toBeGreaterThanOrEqual(4.5);
+
+		for (const line of ['[data-event-time]', '[data-event-snippet]']) {
+			const composited = await compositedTextColors(page, selector, line);
+			expect(contrast(composited.bg, composited.fg)).toBeGreaterThanOrEqual(4.5);
+		}
 	});
 
 	test('a narrow pane scrolls sideways and keeps the day headers on top', async ({ vaultPage: page }) => {
@@ -158,12 +188,62 @@ test.describe('Event calendar time grid', () => {
 		await grid.evaluate((el) => el.scrollTo({ left: 200 }));
 		await expect.poll(() => grid.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
 
+		const gridLeft = (await grid.boundingBox())!.x;
+		await expect
+			.poll(async () => Math.abs((await page.locator('[data-all-day-lane] > :first-child').boundingBox())!.x - gridLeft))
+			.toBeLessThanOrEqual(1);
+		const axis = (await page.locator('[data-time-axis]').boundingBox())!;
+		expect(Math.abs(axis.x - gridLeft)).toBeLessThanOrEqual(1);
+
 		const gridTop = (await grid.boundingBox())!.y;
 		await grid.evaluate((el) => el.scrollTo({ top: el.scrollTop + 500 }));
 		await expect.poll(() => grid.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 		const header = (await page.locator('[data-day-headers]').boundingBox())!;
 		expect(Math.abs(header.y - gridTop)).toBeLessThanOrEqual(1);
 		await expect(page.locator('[data-day-header="2026-11-10"]')).toBeInViewport();
+	});
+
+	test('overlapping events in a narrow pane show the title-only variant', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 900, height: 800 });
+		await page.evaluate(() => {
+			const e2e = (window as any).__e2e;
+			const files: Record<string, string> = {
+				'/test-vault/Events/': '',
+				'/test-vault/Events/Overlap A.md': '---\n_type: Event\ndate: 2026-11-10\nstart: 13:00\nend: 14:00\n---\n',
+				'/test-vault/Events/Overlap B.md': '---\n_type: Event\ndate: 2026-11-10\nstart: 13:00\nend: 14:00\n---\n',
+			};
+			e2e.fs.populate(files);
+			e2e.events.emit('vault-index-updated', {
+				changed: true,
+				affected: Object.keys(files).filter((p) => !p.endsWith('/')),
+				version: e2e.vaultIndex.version,
+			});
+		});
+		await openCalendar(page);
+
+		const block = page.locator('[data-day-column="2026-11-10"] [data-event-path="/test-vault/Events/Overlap A.md"]');
+		await expect(block).toBeAttached({ timeout: 10_000 });
+		const width = (await block.boundingBox())!.width;
+		expect(width).toBeLessThan(84);
+		await expect(block.locator('[data-event-narrow-title]')).toBeVisible();
+		await expect(block.locator('[data-event-narrow-title]')).toHaveText('Overlap A');
+		await expect(block.locator('[data-event-time]')).toBeHidden();
+	});
+});
+
+test.describe('Event calendar selected day in a narrow pane', () => {
+	test.use({ clockTime: '2026-11-15T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
+
+	test('a selected day at the end of the week scrolls into view', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 900, height: 800 });
+		await openCalendar(page);
+		const grid = page.locator('[data-time-grid]');
+		await expect(grid).toBeVisible();
+
+		const days = await page.locator('[data-day-column]').evaluateAll((els) => els.map((el) => el.getAttribute('data-day-column')));
+		expect(days.at(-1)).toBe('2026-11-15');
+		await expect.poll(() => grid.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+		await expect(page.locator('[data-day-header="2026-11-15"]')).toBeInViewport({ ratio: 1 });
 	});
 });
 

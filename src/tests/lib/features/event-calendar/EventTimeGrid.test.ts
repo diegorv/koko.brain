@@ -134,6 +134,47 @@ describe('EventTimeGrid: timed blocks', () => {
 		expect(q(`[data-event-path="${P('Plain')}"]`)!.hasAttribute('data-pending')).toBe(true);
 	});
 
+	it('marks a pending block with a dashed border instead of dimming it', () => {
+		seed([event({ path: P('Plain'), title: 'Plain', date: '2026-11-12' })]);
+		mountGrid();
+		const block = () => q(`[data-event-path="${P('Plain')}"]`)!;
+		expect(block().classList.contains('border-dashed')).toBe(false);
+
+		eventCalendarStore.putPending({
+			kind: 'update',
+			path: P('Plain'),
+			state: { title: 'Plain', date: '2026-11-12', start: 600, end: 660, allDay: false, color: 'blue', location: '' },
+			settled: false,
+		});
+		flushSync();
+
+		expect(block().classList.contains('border-dashed')).toBe(true);
+		expect(block().className).not.toMatch(/opacity-/);
+	});
+
+	it('draws the time and snippet lines at full opacity', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10', start: 540, end: 600, snippet: 'Agenda' })]);
+		mountGrid();
+
+		const block = q(`[data-event-path="${P('Standup')}"]`)!;
+		expect(block.querySelector('[data-event-time]')!.className).not.toMatch(/opacity-/);
+		expect(block.querySelector('[data-event-snippet]')!.className).not.toMatch(/opacity-/);
+	});
+
+	it('clamps the z-index of deep overlap columns below the now-line and the axis', () => {
+		seed(
+			Array.from({ length: 12 }, (_, i) =>
+				event({ path: P(`E${i}`), title: `E${i}`, date: '2026-11-10', start: 540, end: 600 }),
+			),
+		);
+		mountGrid();
+
+		const zs = qa('[data-day-column="2026-11-10"] [data-event-path]').map((el) => Number(el.style.zIndex));
+		expect(zs).toHaveLength(12);
+		expect(Math.min(...zs)).toBe(10);
+		expect(Math.max(...zs)).toBe(19);
+	});
+
 	it('opens the note on a block click and on Enter', () => {
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
 		mountGrid();
@@ -178,6 +219,15 @@ describe('EventTimeGrid: layout', () => {
 		const labels = qa('[data-time-axis] span').map((s) => s.textContent);
 		expect(labels[8]).toBe('9 AM');
 		expect(labels[12]).toBe('1 PM');
+	});
+
+	it('masks the hour line under the sticky header with an axis-wide cell', () => {
+		mountGrid();
+
+		const mask = q('[data-time-grid-header] > [data-time-grid-mask]')!;
+		expect(mask).not.toBeNull();
+		expect(mask.getAttribute('aria-hidden')).toBe('true');
+		expect(mask.querySelector('.sticky.left-0.w-\\(--axis\\)')).not.toBeNull();
 	});
 
 	it('scrolls to dayStartHour on mount', () => {
