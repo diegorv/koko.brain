@@ -16,8 +16,23 @@
 //!
 //! Everything here is a no-op on other targets.
 
+use std::marker::PhantomData;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::utils::logger::debug_log;
+
 /// `QOS_CLASS_UTILITY` from `<sys/qos.h>`.
 pub const QOS_CLASS_UTILITY: u32 = 0x11;
+
+/// ORT worker threads started by [`UtilityQosThreadManager`] that reached
+/// utility QoS, since process start.
+static UTILITY_WORKERS_STARTED: AtomicUsize = AtomicUsize::new(0);
+
+/// Returns how many ORT worker threads [`UtilityQosThreadManager`] has started
+/// at utility QoS since process start (always 0 off macOS).
+pub fn utility_workers_started() -> usize {
+	UTILITY_WORKERS_STARTED.load(Ordering::Relaxed)
+}
 
 #[cfg(target_os = "macos")]
 mod sys {
@@ -52,10 +67,17 @@ fn set_current_qos_class(qos_class: u32) -> bool {
 }
 
 /// Restores the thread's previous QoS class when dropped.
+///
+/// Not `Send`: QoS belongs to a thread, so the guard must drop on the thread
+/// that created it. Held across an `.await`, a task could migrate and the
+/// guard would then restore a different thread. The marker makes the compiler
+/// reject that.
 pub struct UtilityQosGuard {
 	/// Class to restore; `None` when nothing was changed.
 	#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 	previous: Option<u32>,
+	/// Makes the guard `!Send` (see the type docs).
+	_not_send: PhantomData<*const ()>,
 }
 
 /// Lowers the current thread to utility QoS until the returned guard drops.
@@ -68,25 +90,36 @@ pub fn enter_utility_qos() -> UtilityQosGuard {
 	{
 		let previous = current_qos_class().filter(|&class| class != sys::QOS_CLASS_UNSPECIFIED);
 		if previous.is_some() && set_current_qos_class(QOS_CLASS_UTILITY) {
-			return UtilityQosGuard { previous };
+			return UtilityQosGuard {
+				previous,
+				_not_send: PhantomData,
+			};
 		}
 	}
-	UtilityQosGuard { previous: None }
+	UtilityQosGuard {
+		previous: None,
+		_not_send: PhantomData,
+	}
 }
 
 impl Drop for UtilityQosGuard {
 	fn drop(&mut self) {
 		#[cfg(target_os = "macos")]
 		if let Some(previous) = self.previous {
-			set_current_qos_class(previous);
+			// Drop cannot propagate an error. A failed restore leaves this
+			// (possibly shared `spawn_blocking`) thread at utility, so record it.
+			if !set_current_qos_class(previous) {
+				debug_log("SEMANTIC", format!("Failed to restore thread QoS class {previous:#x}"));
+			}
 		}
 	}
 }
 
 /// ORT thread manager that starts each worker thread at utility QoS.
 ///
-/// Attached to the embedder session in `Embedder::load`; ORT then creates the
-/// session's intra-op pool through it instead of its own `pthread_create`.
+/// Attached to the embedder session by `embedder_session_builder`; ORT then
+/// creates the session's intra-op pool through it instead of its own
+/// `pthread_create`.
 pub struct UtilityQosThreadManager;
 
 impl ort::environment::ThreadManager for UtilityQosThreadManager {
@@ -98,6 +131,9 @@ impl ort::environment::ThreadManager for UtilityQosThreadManager {
 			.spawn(move || {
 				// A dedicated worker: keep utility for its whole life.
 				std::mem::forget(enter_utility_qos());
+				if current_qos_class() == Some(QOS_CLASS_UTILITY) {
+					UTILITY_WORKERS_STARTED.fetch_add(1, Ordering::Relaxed);
+				}
 				work();
 			})
 			.map_err(|e| ort::Error::new(format!("Failed to spawn ORT worker thread: {e}")))

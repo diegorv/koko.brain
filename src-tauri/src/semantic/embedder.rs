@@ -19,6 +19,16 @@ pub fn embedder_intra_threads(available: Option<usize>) -> usize {
 	available.map(|n| n.min(4)).unwrap_or(4)
 }
 
+/// Starts the embedder's session builder: the shared [`super::session_builder`]
+/// policies plus [`super::qos::UtilityQosThreadManager`], so ORT starts the
+/// intra-op workers at macOS utility QoS. They do not inherit the QoS of the
+/// thread that builds the session (see `qos.rs`).
+pub fn embedder_session_builder(num_threads: usize) -> Result<ort::session::builder::SessionBuilder, String> {
+	super::session_builder(num_threads)?
+		.with_thread_manager(super::qos::UtilityQosThreadManager)
+		.map_err(|e| format!("Failed to set utility QoS thread manager: {e}"))
+}
+
 /// Embedding model wrapper for ONNX inference.
 pub struct Embedder {
 	session: Session,
@@ -64,11 +74,7 @@ impl Embedder {
 			embedder_intra_threads(std::thread::available_parallelism().ok().map(|n| n.get()));
 		debug_log("EMBEDDER", format!("Using {} intra-op threads", num_threads));
 
-		// Intra-op workers start at macOS utility QoS: they do not inherit
-		// the QoS of the thread that builds the session (see `qos.rs`).
-		let session = super::session_builder(num_threads)?
-			.with_thread_manager(super::qos::UtilityQosThreadManager)
-			.map_err(|e| format!("Failed to set utility QoS thread manager: {e}"))?
+		let session = embedder_session_builder(num_threads)?
 			.commit_from_file(&model_path)
 			.map_err(|e| format!("Failed to load model: {e}"))?;
 

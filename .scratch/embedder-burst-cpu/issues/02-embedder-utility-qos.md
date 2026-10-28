@@ -24,5 +24,6 @@
 ## Comments
 - 2026-10-28 12:34 — discovery — probe shows pthread/std threads do not inherit QoS; plan: utility guard on the 5 embed call sites + ort ThreadManager for intra-op workers — 0ace4d20
 - 2026-10-28 12:41 — implement — qos.rs: scoped utility guard on all 5 embedder sites + ORT ThreadManager starting intra-op workers at utility (probe: macOS threads do not inherit QoS); targeted cargo tests 66/66 pass — 1d57a0ad
-- 2026-10-28 12:41 (open items, deferred by the user): (1) that ORT spawns a real session's intra-op workers through UtilityQosThreadManager is the ORT API contract, not proven by a test (needs the model); check by hand with `ps -M <pid>` or Activity Monitor during an embed burst. (2) Query-time search latency at utility QoS: manual check, not a gate.
+- 2026-10-28 12:41 (open item, deferred by the user): query-time search latency at utility QoS: manual check, not a gate.
 - 2026-10-28 12:44 — review — CHANGES_REQUESTED: 1 medium (ORT-routes-workers-through-manager is testable with a tiny in-memory ONNX model, reviewer probe saw 3 workers at utility; extract and test the embedder builder), 2 low (guard should be !Send; log a failed QoS restore) — 1c92d3a1
+- 2026-10-28 12:57 — fix — embedder_session_builder extracted and tested with a tiny in-memory ONNX model (3 intra-op workers at utility; fails with 0 when the manager is removed); guard made !Send; failed QoS restore logged; former open item (1) closed — pending

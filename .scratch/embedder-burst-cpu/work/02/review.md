@@ -107,3 +107,15 @@ session-level hook is the one that applies.
   priority inversion for a known owner, and the wait existed before this change, so no
   finding; worth watching in the manual latency check.
 - Style: tabs throughout, doc comments on every public item, English.
+
+## Resolution
+All three findings accepted and fixed; none rejected.
+1. `embedder_session_builder(num_threads)` (`src-tauri/src/semantic/embedder.rs`) now owns the
+   `session_builder` + `UtilityQosThreadManager` chain and `Embedder::load` uses it. New
+   `src-tauri/tests/semantic_embedder_qos_session_test.rs` commits the reviewer's 61-byte Add model from
+   `embedder_session_builder(4)` and asserts, via the process-wide `qos::utility_workers_started()`
+   counter (own test binary so nothing else bumps it), that 3 workers reached utility on macOS (0
+   elsewhere). Mutation check: removing `.with_thread_manager(..)` makes it fail with 0 vs 3. The
+   EXCLUDED note and open item (1) are gone.
+2. `UtilityQosGuard` carries `PhantomData<*const ()>` and is `!Send`; the doc comment says why.
+3. `Drop` now `debug_log("SEMANTIC", ..)`s when restoring the previous class fails.

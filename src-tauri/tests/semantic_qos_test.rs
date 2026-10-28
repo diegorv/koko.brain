@@ -1,14 +1,13 @@
 //! Tests for `semantic::qos` (`src/semantic/qos.rs`).
 //!
 //! Each test runs in a fresh `std::thread` so the QoS it sets never leaks
-//! into the test harness thread.
-//!
-//! EXCLUDED: proving that ORT spawns a real session's intra-op workers
-//! through the thread manager needs a real model, which the semantic-test
-//! policy keeps out of unit/integration tests.
+//! into the test harness thread. That ORT starts a real session's intra-op
+//! workers through the manager is tested in
+//! `semantic_embedder_qos_session_test.rs`, its own binary so the process-wide
+//! worker counter is not shared with the tests here.
 
 use kokobrain_lib::semantic::qos::{current_qos_class, enter_utility_qos, UtilityQosThreadManager, QOS_CLASS_UTILITY};
-use kokobrain_lib::semantic::session_builder;
+use kokobrain_lib::semantic::embedder::embedder_session_builder;
 use ort::environment::ThreadManager;
 
 #[cfg(target_os = "macos")]
@@ -78,8 +77,8 @@ fn thread_manager_runs_the_work() {
 }
 
 #[test]
-fn session_builder_accepts_the_thread_manager() {
-	// Smoke test only: the embedder attaches this manager in `Embedder::load`;
-	// ort has no getter for it, so this proves the setter does not error.
-	assert!(session_builder(2).unwrap().with_thread_manager(UtilityQosThreadManager).is_ok());
+fn embedder_session_builder_constructs() {
+	// Smoke test on every target; the macOS worker check needs a commit and
+	// lives in `semantic_embedder_qos_session_test.rs`.
+	assert!(embedder_session_builder(2).is_ok());
 }
