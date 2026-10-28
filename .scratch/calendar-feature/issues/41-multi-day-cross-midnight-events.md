@@ -18,3 +18,4 @@
 ## Comments
 
 - 2026-10-28 17:26 — discovery — spans read-only, per-day segments in the view logic, `end-before-start` replaces `crosses-midnight`, service refuses timing writes on spans; see work/41/discovery.md — pending
+- 2026-10-28 17:34 — implement — spans and cross-midnight events render on every day (time grid, all-day lane, month), read-only with a service-side timing guard; event-calendar vitest 722/722, pnpm check 0 errors, event-calendar.spec.ts 32/32 on an isolated port 1431 — 249f9ee4
