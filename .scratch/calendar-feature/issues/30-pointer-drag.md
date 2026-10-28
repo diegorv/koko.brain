@@ -25,3 +25,7 @@
 - [ ] `event-calendar-drag.logic.test.ts` is extended with any edge cases found; the drag tests stay logic-only (plus the E2E below): ticket 01 recorded pre-flight answer (f) as jsdom 30.1.3 implementing `PointerEvent` but not `Element.setPointerCapture`, so `EventTimeGrid.test.ts` gets no pointer smoke test (the `?.` capture call would tolerate the gap, but jsdom rects are zero-size, so the E2E carries the pointer wiring)
 - [ ] E2E (`page.mouse`): dragging a block one hour down updates its label and the frontmatter `start`; dragging a block one column right renders it in the next day column and the note's `date:` equals the next day; a resize updates `end`; a drag on empty space opens the dialog with the dragged range
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- **2026-10-28, from ticket 09 (0a3418d9):** place the E2E events on the 15-minute grid. A small drag past the 4 px threshold re-snaps an off-grid event, so an off-grid fixture makes the label and frontmatter assertions flaky.
