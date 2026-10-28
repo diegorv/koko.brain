@@ -16,3 +16,4 @@
 
 - 2026-10-28 18:44 — discovery — fix the shared `generateUniqueName` to compare case-insensitively; unit + both service tests, no E2E (case-sensitive virtual FS) — 0da29ab9
 - 2026-10-28 18:46 — implement — generateUniqueName folds case for createFile and resolveTypedNoteTarget; 338/338 related tests and pnpm check green — 9c153b41
+- 2026-10-28 18:47 — review — APPROVED: both criteria met (17 related test files, 672 tests, and pnpm check green); 1 optional createFolder test, 2 info notes — 5ab22882
