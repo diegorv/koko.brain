@@ -58,6 +58,7 @@ import {
 	EventCalendarError,
 	eventErrorMessage,
 	findCalendarEvent,
+	loadCalendarTasks,
 	loadEvents,
 	moveEvent,
 	moveEventToDay,
@@ -80,7 +81,7 @@ import { eventState } from '$lib/features/event-calendar/event-calendar-event.lo
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import type { EventDraft } from '$lib/features/event-calendar/event-calendar.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { FileTaskGroupV2, NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { eventEntry, eventEntryFromContent, eventNote } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -598,6 +599,91 @@ describe('loadEvents', () => {
 		await loadEvents();
 
 		expect(eventCalendarStore.events.map((e) => e.path)).toEqual([P('Meeting note')]);
+	});
+});
+
+describe('loadCalendarTasks', () => {
+	/** A task group with one task per `[line, text, dueDate?]`. */
+	function taskGroup(path: string, tasks: [number, string, string?][]): FileTaskGroupV2 {
+		return {
+			filePath: path,
+			fileName: getFileName(path).replace(/\.md$/, ''),
+			modifiedAt: 0,
+			tasks: tasks.map(([lineNumber, text, dueDate]) => ({
+				text,
+				checked: false,
+				indent: 0,
+				lineNumber,
+				status: 'todo',
+				metadata: { description: text, dueDate, tags: [] },
+			})),
+		};
+	}
+
+	it('stores the dated tasks of the task index', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			taskGroup(P('Projects'), [[3, 'Pay rent', '2026-11-12'], [4, 'Undated']]),
+		]);
+
+		await loadCalendarTasks();
+
+		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
+		expect(eventCalendarStore.tasks).toEqual([
+			{ path: P('Projects'), fileName: 'Projects', line: 3, description: 'Pay rent', checked: false, date: '2026-11-12' },
+		]);
+	});
+
+	it('stores an empty list for an index without tasks', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+
+		await loadCalendarTasks();
+
+		expect(eventCalendarStore.tasks).toEqual([]);
+	});
+
+	it('leaves the tasks untouched and rethrows when the IPC rejects', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([taskGroup(P('a'), [[1, 'Pay rent', '2026-11-12']])]);
+		await loadCalendarTasks();
+		const before = eventCalendarStore.tasks;
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('index gone'));
+
+		await expect(loadCalendarTasks()).rejects.toThrow('index gone');
+
+		expect(eventCalendarStore.tasks).toBe(before);
+		expect(console.error).toHaveBeenCalled();
+	});
+
+	it('keeps the latest load when an earlier one resolves last', async () => {
+		const first = deferred<FileTaskGroupV2[]>();
+		const second = deferred<FileTaskGroupV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+		const load1 = loadCalendarTasks();
+		const load2 = loadCalendarTasks();
+
+		second.resolve([taskGroup(P('new'), [[1, 'new', '2026-11-12']])]);
+		await load2;
+		first.resolve([taskGroup(P('old'), [[1, 'old', '2026-11-12']])]);
+		await load1;
+
+		expect(eventCalendarStore.tasks.map((t) => t.path)).toEqual([P('new')]);
+	});
+
+	it('discards a result read for a vault that is no longer open, or after a reset', async () => {
+		const pending = deferred<FileTaskGroupV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(pending.promise);
+		const load = loadCalendarTasks();
+		vaultStore.open('/other');
+		pending.resolve([taskGroup(P('a'), [[1, 'a', '2026-11-12']])]);
+		await load;
+		expect(eventCalendarStore.tasks).toEqual([]);
+
+		const afterReset = deferred<FileTaskGroupV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(afterReset.promise);
+		const load2 = loadCalendarTasks();
+		resetEventCalendar();
+		afterReset.resolve([taskGroup(P('a'), [[1, 'a', '2026-11-12']])]);
+		await load2;
+		expect(eventCalendarStore.tasks).toEqual([]);
 	});
 });
 

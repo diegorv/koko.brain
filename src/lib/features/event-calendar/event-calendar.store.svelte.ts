@@ -1,6 +1,7 @@
 /**
  * Reactive data of the Calendar tab: the projected index snapshot, the
- * pending-write overlay, the undo history and the load state.
+ * pending-write overlay, the undo history, the load state and the dated
+ * tasks overlay.
  *
  * Derived values (merged and sorted events, the path map, the pending path
  * set and the split issue lists) are recomputed once at the end of every
@@ -11,6 +12,7 @@
 
 import { createEventHistory, remapPath as remapHistoryPath, type EventHistory } from './event-calendar-history.logic';
 import { isActionableIssue, mergePending, prunePending, type PendingEventNote } from './event-calendar-event.logic';
+import type { CalendarTask } from './event-calendar-tasks.logic';
 import type { EventIssue, EventNote, EventProjection, PendingWrite } from './event-calendar.types';
 
 /** Events projected from the latest index snapshot, before the overlay. */
@@ -29,6 +31,8 @@ let history = $state.raw<EventHistory>(createEventHistory());
 let loadError = $state<string | null>(null);
 /** Whether a load is in progress. */
 let loading = $state(false);
+/** Dated tasks from the latest task index read, sorted by due date. */
+let tasks = $state.raw<CalendarTask[]>([]);
 
 /** Cached: snapshot with the overlay applied, sorted. */
 let events = $state.raw<PendingEventNote[]>([]);
@@ -98,6 +102,8 @@ export const eventCalendarStore = {
 	get canUndo() { return history.undo.length > 0; },
 	/** Whether there is an op to redo. */
 	get canRedo() { return history.redo.length > 0; },
+	/** Dated tasks the calendar overlays, sorted by due date. */
+	get tasks() { return tasks; },
 
 	/**
 	 * Replaces the snapshot and drops the pending writes it has caught up with.
@@ -180,6 +186,9 @@ export const eventCalendarStore = {
 	/** Replaces the undo / redo history. */
 	setHistory(value: EventHistory) { history = value; },
 
+	/** Replaces the dated tasks (`tasksFromGroups` output). */
+	setTasks(value: CalendarTask[]) { tasks = value; },
+
 	/** Returns every field to its initial value. */
 	reset() {
 		snapshot = [];
@@ -190,6 +199,7 @@ export const eventCalendarStore = {
 		history = createEventHistory();
 		loadError = null;
 		loading = false;
+		tasks = [];
 		recompute();
 	},
 };

@@ -156,6 +156,7 @@ See [Types & Relationships](25-types-and-relationships.md) for details.
 | **Time format** | Clock used for the time axis and event times (24-hour or 12-hour) | 24-hour |
 | **Day starts at** | Hour the time grid scrolls to when it opens (0-12) | 7 |
 | **Show weekends** | Show Saturday and Sunday in the week and month views | Enabled |
+| **Show dated tasks** | Show tasks with a due date (📅) on their day in every view | Enabled |
 | **Default view** | View the Calendar tab opens in when the app starts (Day, Week or Month) | Week |
 | **Default duration** | Length of a new event in minutes (15-480, in steps of 15) | 60 |
 | **Default color** | Color of a new event | Blue |

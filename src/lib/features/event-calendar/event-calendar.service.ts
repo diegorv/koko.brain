@@ -1,6 +1,6 @@
 /**
  * Service of the Calendar tab. Read side: projects the vault entries snapshot
- * into `eventCalendarStore`, opens and closes the singleton Calendar tab, runs
+ * and the dated tasks of the task index into `eventCalendarStore`, opens and closes the singleton Calendar tab, runs
  * the clock that keeps "today" current, and resets the two event-calendar
  * stores. Write side: changes existing events (move, resize, edit with
  * rename) through `updateNoteFrontmatter`, and creates, duplicates, deletes
@@ -10,6 +10,7 @@
  */
 
 import dayjs from 'dayjs';
+import { invoke } from '@tauri-apps/api/core';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { tick as svelteTick } from 'svelte';
 import { toast } from 'svelte-sonner';
@@ -28,11 +29,12 @@ import { FrontmatterWriteError, updateNoteFrontmatter, type FrontmatterWriteReas
 import { detectLossyFrontmatter, extractBody, parseFrontmatterProperties, rebuildContent } from '$lib/features/properties/properties.logic';
 import { createTypedNote } from '$lib/features/type-definitions/type-definitions.service';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { FileTaskGroupV2, NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { error } from '$lib/utils/debug';
 import { applyEventDraft, applyEventFields, eventFileBase, eventState, eventsFromEntries, resolveEventTypeName, sameEventState } from './event-calendar-event.logic';
 import type { EventTiming } from './event-calendar-drag.logic';
 import { planTitleChange, type EventFormPatch } from './event-calendar-form.logic';
+import { tasksFromGroups } from './event-calendar-tasks.logic';
 import { dropPath, pushOp, refuseOp, removeOp, takeRedo, takeUndo } from './event-calendar-history.logic';
 import { eventCalendarStore } from './event-calendar.store.svelte';
 import { defaultCreateSlot, focusViewFor } from './event-calendar-view.logic';
@@ -47,6 +49,9 @@ let loadToken = 0;
 
 /** Projection inputs of the snapshot in `eventCalendarStore`, or null while it holds none. */
 let storeProjectionKey: string | null = null;
+
+/** `loadToken` of the dated tasks: bumped by every task load and every reset. */
+let taskLoadToken = 0;
 
 /** Number of live clock acquirers. */
 let clockRefs = 0;
@@ -89,6 +94,26 @@ export async function loadEvents(): Promise<void> {
 		} else if (token === loadToken) {
 			eventCalendarStore.setLoading(false);
 		}
+		throw err;
+	}
+}
+
+/**
+ * Reads the Rust task index (`get_all_tasks_v2`, the IPC the Tasks view
+ * uses, without its section-tag filter) and stores its dated tasks in
+ * `eventCalendarStore.tasks`. Latest wins: a result that lands after a newer
+ * task load, a reset or a vault switch is discarded.
+ * @throws the IPC error, after logging it; the tasks are left untouched
+ */
+export async function loadCalendarTasks(): Promise<void> {
+	const token = ++taskLoadToken;
+	const vaultPath = vaultStore.path;
+	try {
+		const groups = await invoke<FileTaskGroupV2[]>('get_all_tasks_v2');
+		if (token !== taskLoadToken || vaultStore.path !== vaultPath) return;
+		eventCalendarStore.setTasks(tasksFromGroups(groups));
+	} catch (err) {
+		error('EVENT-CALENDAR', 'loadCalendarTasks failed:', err);
 		throw err;
 	}
 }
@@ -282,6 +307,7 @@ export function acquireCalendarClock(): () => void {
  */
 export function resetEventCalendar(): void {
 	loadToken += 1;
+	taskLoadToken += 1;
 	writeGeneration += 1;
 	lookupMemo = null;
 	storeProjectionKey = null;

@@ -575,6 +575,25 @@ describe('eventCalendarStore', () => {
 		});
 	});
 
+	describe('tasks', () => {
+		it('starts empty', () => {
+			expect(store.tasks).toEqual([]);
+		});
+
+		it('setTasks replaces the tasks without touching the events', () => {
+			const a = note('a');
+			store.setSnapshot(projection([a]), 1);
+			const tasks = [{ path: '/vault/b.md', fileName: 'b', line: 3, description: 'Pay rent', checked: false, date: '2026-11-12' }];
+
+			store.setTasks(tasks);
+
+			expect(store.tasks).toBe(tasks);
+			expect(store.events.map((e) => e.path)).toEqual([a.path]);
+			store.setTasks([]);
+			expect(store.tasks).toEqual([]);
+		});
+	});
+
 	describe('reset', () => {
 		it('returns every field to its initial value', () => {
 			const a = note('a');
@@ -583,6 +602,7 @@ describe('eventCalendarStore', () => {
 			store.setHistory(pushOp(createEventHistory(), updateOp(a)));
 			store.setLoading(true);
 			store.setLoadError('x');
+			store.setTasks([{ path: '/vault/a.md', fileName: 'a', line: 1, description: 'Pay rent', checked: false, date: '2026-11-12' }]);
 
 			store.reset();
 
@@ -600,6 +620,7 @@ describe('eventCalendarStore', () => {
 			expect(store.loadError).toBeNull();
 			expect(store.canUndo).toBe(false);
 			expect(store.canRedo).toBe(false);
+			expect(store.tasks).toEqual([]);
 		});
 	});
 });

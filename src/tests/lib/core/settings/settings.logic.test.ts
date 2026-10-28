@@ -389,6 +389,7 @@ describe('normalizeSettings', () => {
 			timeFormat: '12h',
 			dayStartHour: 6,
 			showWeekends: false,
+			showTasks: false,
 			defaultView: 'month',
 			defaultDurationMinutes: 30,
 			defaultColor: 'pink',

@@ -104,6 +104,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		timeFormat: '24h',
 		dayStartHour: 7,
 		showWeekends: true,
+		showTasks: true,
 		defaultView: 'week',
 		defaultDurationMinutes: 60,
 		defaultColor: 'blue',

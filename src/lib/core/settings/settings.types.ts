@@ -313,6 +313,8 @@ export interface EventCalendarSettings {
 	dayStartHour: number;
 	/** Whether Saturday and Sunday are shown in the week view */
 	showWeekends: boolean;
+	/** Whether dated tasks (📅) are shown on their due day */
+	showTasks: boolean;
 	/** View mode the calendar opens in */
 	defaultView: EventCalendarViewMode;
 	/** Duration of a newly created event in minutes (multiple of 15, 15–480) */

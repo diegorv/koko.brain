@@ -147,6 +147,15 @@ describe('EventCalendarSection', () => {
 		expect(settingsStore.eventCalendar.showWeekends).toBe(false);
 	});
 
+	it('toggling show dated tasks writes the store', () => {
+		render();
+		expect(settingsStore.eventCalendar.showTasks).toBe(true);
+		const toggle = target.querySelector<HTMLButtonElement>('[data-setting="tasks"] [role="switch"]');
+		toggle!.click();
+		flushSync();
+		expect(settingsStore.eventCalendar.showTasks).toBe(false);
+	});
+
 	it('picking a swatch sets the default color', () => {
 		render();
 		target.querySelector<HTMLButtonElement>('[data-color="pink"]')!.click();

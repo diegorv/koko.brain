@@ -161,6 +161,15 @@
 		</SettingItem>
 	</div>
 
+	<div data-setting="tasks">
+		<SettingItem label="Show dated tasks" description="Show tasks with a due date (📅) on their day in every view">
+			<Switch
+				checked={calendar.showTasks}
+				onCheckedChange={(v) => settingsStore.updateEventCalendar({ showTasks: v })}
+			/>
+		</SettingItem>
+	</div>
+
 	<div data-setting="default-view">
 		<SettingItem label="Default view" description="View the Calendar tab opens in when the app starts">
 			<Select.Root
