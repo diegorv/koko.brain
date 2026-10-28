@@ -31,3 +31,8 @@ Ticket 40 review (fix c987395b):
 
 Ticket 47 review (fix 8bd85874):
 - [ ] The "restored folder not in the tree" line in `trash.service.ts:160` uses `debug()`, which is off by default, yet a miss leaves the folder's notes out of VaultIndex, FTS5 and semantic until a full rebuild (the watcher drops the directory-only rename). Raise it to `error()` / `appendLog`, and consider indexing from a disk listing when the tree lookup misses (symlinked vault root).
+
+Ticket 68 review (fix 17dd1f47):
+- [ ] `event-calendar-daily-note.store.svelte.ts:36` clears the per-day in-flight map on every `register`, including a same-vault re-init (double-init window noted at `app-lifecycle.service.ts:244-246`) or HMR; a click in that window runs a second open and toasts "File already exists" (no duplicate file). Clear on unregister/teardown instead, and fix the comment that says the entries belong to another vault.
+- [ ] With a stale tree, "Open Event type" (`EventCalendarSection.svelte:109-111`) has already written and opened `Event 1.md` before the name-taken toast fires: one stray copy, not one per click.
+- [ ] Unverified: `openEventType` builds the file name from the untrimmed `calendar.eventTypeName` while `validateTypeName` trims; check whether the setting can hold surrounding spaces.
