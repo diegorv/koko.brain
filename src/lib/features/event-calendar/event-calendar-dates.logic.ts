@@ -42,10 +42,10 @@ function pad2(n: number): string {
 /**
  * Converts a `Date` to its local day key.
  * @param date - any instant; only its local year, month and day are used
- * @returns `YYYY-MM-DD`
+ * @returns `YYYY-MM-DD`, the year zero-padded to four digits like dayjs
  */
 export function toKey(date: Date): string {
-	return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+	return `${String(date.getFullYear()).padStart(4, '0')}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
 /**
@@ -268,7 +268,9 @@ export function formatRange(from: string, to: string): string {
 
 /**
  * Formats minutes from midnight as a clock time.
- * @param minutes - 0..1440; 1440 is the end of the day
+ * @param minutes - integer minutes, 0..1440; 1440 is the end of the day.
+ *   Callers round and clamp first (see `timeInputValue`); other input gives
+ *   meaningless output.
  * @param format - `'24h'` (default) or `'12h'`
  * @returns `09:30` / `24:00` in 24h, `9:30 AM` / `12:00 AM` in 12h
  */
@@ -326,9 +328,11 @@ export function parseTimeStrict(value: string): number | null {
 /**
  * Value for an `<input type="time">`, which cannot show `24:00`.
  * @param minutes - minutes from midnight; rounded, then clamped to 0..1439
+ *   (a non-finite value counts as 0)
  * @returns `HH:mm`
  */
 export function timeInputValue(minutes: number): string {
-	const clamped = Math.min(MINUTES_PER_DAY - 1, Math.max(0, Math.round(minutes)));
+	const finite = Number.isFinite(minutes) ? minutes : 0;
+	const clamped = Math.min(MINUTES_PER_DAY - 1, Math.max(0, Math.round(finite)));
 	return formatTime(clamped, '24h');
 }

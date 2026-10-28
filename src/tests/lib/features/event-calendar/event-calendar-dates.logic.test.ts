@@ -109,6 +109,7 @@ describe('event-calendar dates: keys', () => {
 		expect(toKey(new Date(2026, 0, 5))).toBe('2026-01-05');
 		expect(toKey(new Date(2026, 10, 10, 23, 59, 59))).toBe('2026-11-10');
 		expect(toKey(new Date(2026, 10, 10, 0, 0, 0))).toBe('2026-11-10');
+		expect(toKey(new Date(999, 0, 1))).toBe('0999-01-01');
 	});
 
 	it('fromKey gives local midnight of that day', () => {
@@ -143,6 +144,7 @@ describe('event-calendar dates: keys', () => {
 			new Date(2026, 10, 1, 1, 30),
 			new Date(2026, 11, 31, 12),
 			new Date(1999, 8, 9, 9, 9),
+			new Date(999, 0, 1),
 		];
 		for (const d of dates) {
 			expect(toKey(d)).toBe(toDateKey(d));
@@ -250,6 +252,8 @@ describe('event-calendar dates: time input', () => {
 		expect(timeInputValue(5000)).toBe('23:59');
 		expect(timeInputValue(-30)).toBe('00:00');
 		expect(timeInputValue(569.6)).toBe('09:30');
+		expect(timeInputValue(NaN)).toBe('00:00');
+		expect(timeInputValue(Infinity)).toBe('00:00');
 	});
 });
 

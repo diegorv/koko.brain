@@ -12,7 +12,9 @@
  * Runs `fn` with `process.env.TZ` set to `tz`, then restores the previous
  * value (or removes the variable when it was unset), even when `fn` throws.
  * @param tz - IANA zone name, e.g. `'America/New_York'`
- * @param fn - code to run under that zone
+ * @param fn - code to run under that zone; it must be synchronous, because
+ *   TZ is restored as soon as `fn` returns (an async `fn` would finish its
+ *   awaited work under the previous zone)
  * @returns whatever `fn` returns
  */
 export function withTimeZone<T>(tz: string, fn: () => T): T {

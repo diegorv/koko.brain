@@ -59,3 +59,12 @@ CLAUDE.md checks:
    **Fix (optional):** say "`fn` must be synchronous" in the JSDoc.
 6. **Nit: `TimeFormat` and `WeekStart` re-declare settings literals.** At `event-calendar-dates.logic.ts:12, 15`, they copy `EventCalendarSettings.timeFormat` / `weekStartsOn` (`settings.types.ts:309, 311`), so the two copies can drift.
    **Fix (optional):** derive them with a type-only import (`EventCalendarSettings['timeFormat']`). Otherwise leave them as they are, since the `.logic.ts` import rule favors the local copy.
+
+## Resolution
+
+1. Accepted, no code change. The prototype is still not on this machine; `work/05/discovery.md` stays the contract until Tasks 7-10 can diff against `dates.ts:24-163`.
+2. Fixed. `timeInputValue` maps a non-finite value to 0 before rounding and clamping (tests for `NaN` and `Infinity`). `formatTime` now documents integer minutes 0..1440 as a precondition instead of rounding, so its output for valid input is unchanged.
+3. Fixed. `toKey` pads the year to four digits; tests assert `0999-01-01` and add the date to the `toDateKey` parity list.
+4. Rejected for this ticket. It follows from the local-components (`setDate`) approach the plan mandates; switching to UTC arithmetic is a plan-level change.
+5. Fixed. The `withTimeZone` JSDoc says `fn` must be synchronous and why.
+6. Rejected. The CLAUDE.md `.logic.ts` rule allows imports only from other `.logic.ts` files or `utils/`, so the local literal copies stay.
