@@ -41,7 +41,7 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import EventCalendarView from '$lib/features/event-calendar/EventCalendarView.svelte';
-import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { openEventInCalendar, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { CALENDAR_SHORTCUTS } from '$lib/features/event-calendar/event-calendar-keys.logic';
 import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
@@ -796,6 +796,86 @@ describe('EventCalendarView: shortcuts help', () => {
 
 		expect(eventCalendarViewStore.view).toBe('week');
 		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+});
+
+describe('EventCalendarView: focus request', () => {
+	const STANDUP = () => target.querySelector<HTMLElement>(`[data-event-path="${P('Standup')}"]`);
+	const ENTRIES = [
+		eventEntry(P('Standup'), { date: '2026-11-24', start: '09:00', end: '10:00' }),
+		eventEntry(P('Other'), { date: '2026-11-24', start: '11:00', end: '12:00' }),
+	];
+
+	it('focuses and pulses the requested block once the events load, then drops the request', async () => {
+		vi.mocked(invoke).mockResolvedValue(ENTRIES);
+		await openEventInCalendar(P('Standup'));
+		mountView();
+		await settle();
+		await settle();
+
+		const block = STANDUP();
+		expect(block?.closest('[data-day-column]')?.getAttribute('data-day-column')).toBe('2026-11-24');
+		expect(document.activeElement).toBe(block);
+		expect(block?.hasAttribute('data-event-pulse')).toBe(true);
+		expect(target.querySelectorAll('[data-event-pulse]')).toHaveLength(1);
+		expect(eventCalendarViewStore.focusRequest).toBeNull();
+	});
+
+	it('pulses once: the attribute goes after the animation', async () => {
+		vi.mocked(invoke).mockResolvedValue(ENTRIES);
+		mountView();
+		await settle();
+		vi.useFakeTimers();
+		try {
+			eventCalendarViewStore.setDate('2026-11-24');
+			eventCalendarViewStore.requestFocus(P('Standup'));
+			flushSync();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(STANDUP()?.hasAttribute('data-event-pulse')).toBe(true);
+
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(STANDUP()?.hasAttribute('data-event-pulse')).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('focuses a block in an already mounted view, in the month grid too', async () => {
+		vi.mocked(invoke).mockResolvedValue(ENTRIES);
+		mountView();
+		await settle();
+		eventCalendarViewStore.setView('month');
+		flushSync();
+
+		await openEventInCalendar(P('Standup'));
+		await settle();
+
+		expect(eventCalendarViewStore.view).toBe('month');
+		expect(document.activeElement).toBe(STANDUP());
+		expect(STANDUP()?.hasAttribute('data-event-pulse')).toBe(true);
+	});
+
+	it('keeps the request while the block is not rendered and drops it on navigation', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+		mountView();
+		await settle();
+		eventCalendarViewStore.requestFocus(P('Standup'));
+		await settle();
+
+		expect(eventCalendarViewStore.focusRequest?.path).toBe(P('Standup'));
+		expect(target.querySelector('[data-event-pulse]')).toBeNull();
+
+		eventCalendarViewStore.step(1);
+		flushSync();
+		expect(eventCalendarViewStore.focusRequest).toBeNull();
+	});
+
+	it('drops the request on unmount', async () => {
+		mountView();
+		eventCalendarViewStore.requestFocus(P('Standup'));
+		unmountView();
+
+		expect(eventCalendarViewStore.focusRequest).toBeNull();
 	});
 });
 

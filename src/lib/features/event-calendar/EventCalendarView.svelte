@@ -141,6 +141,41 @@
 		});
 	});
 
+	/** How long a focused block keeps `data-event-pulse`: the pulse animation plus slack. */
+	const PULSE_MS = 1600;
+
+	// Focus request (`openEventInCalendar`): once the requested block renders,
+	// scroll it into view, focus it and pulse it once. Re-runs on every load
+	// and navigation, so a block that lands after the first render is still
+	// found; the request stays until then (navigation drops it).
+	$effect(() => {
+		const request = eventCalendarViewStore.focusRequest;
+		void eventCalendarStore.events;
+		void eventCalendarViewStore.view;
+		void eventCalendarViewStore.focusedDate;
+		if (!request) return;
+		untrack(() => {
+			void tick().then(() => {
+				if (eventCalendarViewStore.focusRequest?.seq !== request.seq) return;
+				const block = root?.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(request.path)}"]`);
+				if (!block) return;
+				eventCalendarViewStore.clearFocusRequest(request.seq);
+				block.scrollIntoView?.({ block: 'center', inline: 'nearest' });
+				block.focus({ preventScroll: true });
+				pulse(block);
+			});
+		});
+	});
+
+	/** Marks `block` with `data-event-pulse` for one pulse animation. */
+	function pulse(block: HTMLElement) {
+		block.removeAttribute('data-event-pulse');
+		// Restart the animation when the same block pulses again.
+		void block.offsetWidth;
+		block.setAttribute('data-event-pulse', '');
+		setTimeout(() => block.removeAttribute('data-event-pulse'), PULSE_MS);
+	}
+
 	// The mounted view owns the clock; the release is the cleanup.
 	$effect(() => untrack(() => acquireCalendarClock()));
 
@@ -189,3 +224,26 @@
 		<EventShortcutsDialog />
 	</Tooltip.Provider>
 </section>
+
+<style>
+	/* One pulse on the block a focus request landed on (`openEventInCalendar`). */
+	:global([data-event-calendar] [data-event-pulse]) {
+		animation: event-calendar-pulse 1.4s ease-out 1;
+	}
+
+	@keyframes -global-event-calendar-pulse {
+		0% {
+			box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 70%, transparent);
+		}
+		100% {
+			box-shadow: 0 0 0 12px color-mix(in oklab, var(--primary) 0%, transparent);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global([data-event-calendar] [data-event-pulse]) {
+			animation: none;
+			outline: 2px solid var(--primary);
+		}
+	}
+</style>
