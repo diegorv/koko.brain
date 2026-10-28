@@ -26,3 +26,4 @@
 ## Comments
 
 - 2026-10-28 13:19 — discovery — two calls (init entry after invalidateVaultEntries, teardown after resetCalendar) plus pin test first; see work/20/discovery.md — 29e3a578
+- 2026-10-28 13:20 — implement — pin test green before change; resetEventCalendar at init entry and in teardown; app-lifecycle 63/63, event-calendar suites pass, pnpm check 0 errors; full gate and E2E left to deliver — 8b6bb486
