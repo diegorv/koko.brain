@@ -96,7 +96,7 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Toggle Tags View | Open tags as a dedicated virtual tab |
 | New Calendar Event | Open the Calendar tab and the new-event dialog |
 | Calendar: Go to Today | Open the Calendar tab on today |
-| Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change |
+| Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change (`Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab) |
 | Toggle Table of Contents | Toggle the TOC panel in the right sidebar |
 
 > [!TIP]
@@ -117,7 +117,7 @@ Cmd+P   Commands    Cmd+W   Close Tab   Cmd+Shift+N  1:1 Note
 Cmd+Shift+F Search  Cmd+K   Mode Toggle Cmd+,     Settings
 Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In
 Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
-Cmd+Shift+C Calendar
 Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom
 Cmd+Shift+B L Side  Cmd+Shift+L Block
+Cmd+Shift+C Calendar
 ```

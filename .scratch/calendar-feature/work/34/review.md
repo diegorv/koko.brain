@@ -49,3 +49,15 @@ My test verdict rests on no test file, because the diff changes no source or tes
 5. **Low** `help/documentation/20-keyboard-shortcuts.md:120`. On the printable reference card, the lone `Cmd+Shift+C Calendar` line sits between two three-column rows and breaks the column layout. Move it below the last row (`Cmd+Shift+B L Side  Cmd+Shift+L Block`).
 6. **Low** `help/documentation/20-keyboard-shortcuts.md:99`. **Calendar: Undo / Calendar: Redo** is listed under "Commands Without Shortcuts", but inside the Calendar tab both have shortcuts (`Cmd+Z`, `Cmd+Shift+Z` / `Ctrl+Y`), as the new Calendar section on the same page says. Add "(`Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab)", or move the row.
 7. **Low** `CLAUDE.md:66`. Adding `event-calendar` to the comment line makes it much longer than its neighbors. Re-wrap the `features/` comment so each line stays about as wide as the others (for example, move `file-history,` to the next line).
+
+## Resolution
+
+All seven findings accepted and fixed (none rejected). Finding 1 was confirmed against `renameType` (`type-definitions.service.ts:174-192`) and `rewrite_type_line` (`parsing.rs`), which rewrites both `_type:` and `type:`.
+
+1. `27-calendar.md`: the rename paragraph now says the sidebar rename updates every member note but not the setting, so the user must enter the new name or the events disappear.
+2. `27-calendar.md`: the Event type paragraph now says an empty value or `Type` (any case) resets to `Event`.
+3. `27-calendar.md`: "Events in a narrow column show only their title."
+4. `27-calendar.md`: the Escape row now reads "Close the event popover, or cancel a drag", matching `20-keyboard-shortcuts.md`.
+5. `20-keyboard-shortcuts.md`: `Cmd+Shift+C Calendar` moved below the last row of the printable card.
+6. `20-keyboard-shortcuts.md`: the Calendar: Undo / Redo row notes `Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab.
+7. `CLAUDE.md`: the `features/` comment is re-wrapped across four lines of similar width.

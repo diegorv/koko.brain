@@ -29,7 +29,7 @@ All-day events sit in the **All day** lane above the time grid. When a day has m
 
 In the month view, click a day number to select the day; click the selected day's number again to open it in the day view.
 
-**Narrow panes**: each day column keeps a minimum width. When the pane is too narrow for every column (for example a week view in a split pane), the grid scrolls sideways while the time axis stays in place. Short events in a narrow column show only their title.
+**Narrow panes**: each day column keeps a minimum width. When the pane is too narrow for every column (for example a week view in a split pane), the grid scrolls sideways while the time axis stays in place. Events in a narrow column show only their title.
 
 The grid scrolls to the **Day starts at** hour (Settings > Calendar) when it opens.
 
@@ -91,9 +91,9 @@ The title is the note's filename, and a filename cannot contain `< > : " / \ | ?
 
 ### The Event Type
 
-**Settings > Calendar > Event type** sets which type counts as an event (default `Event`). The calendar never uses the name `Type`.
+**Settings > Calendar > Event type** sets which type counts as an event (default `Event`). Leaving the field empty, or entering `Type` (in any case; it is the type of type-definition notes), resets it to `Event`.
 
-If you rename the type in the type sidebar, notes keep their old `type:` value until they are updated, and the calendar keeps looking for the old name: enter the new name in **Settings > Calendar > Event type** so the calendar follows it.
+Renaming the type in the type sidebar renames it in every member note, but not in this setting: enter the new name in **Settings > Calendar > Event type**, or your events disappear from the calendar.
 
 ### Needs Attention
 
@@ -179,7 +179,7 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 | `D` / `W` / `M` | Day / week / month view |
 | `Left` / `Right` | Previous / next day, week or month |
 | `Delete` / `Backspace` | Delete the event in the open popover, or the focused event |
-| `Escape` | Close the popover |
+| `Escape` | Close the event popover, or cancel a drag |
 | `Cmd+Z` / `Cmd+Shift+Z` / `Ctrl+Y` | Undo / redo |
 
 `Cmd+Shift+C` opens and closes the Calendar from anywhere. See [Keyboard Shortcuts](20-keyboard-shortcuts.md).
