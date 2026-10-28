@@ -44,3 +44,4 @@
 - 2026-10-28 12:41 — discovery — pure port of calendar/header/month/all-day/now-line view math; defaults: month visibleDays = month days, lane 3 rows incl. "+N", today slot floors now to 15 min — 2b52521e
 - 2026-10-28 12:44 — implement — view logic + 46 tests green (event-calendar dir 107/107, DST block ran), pnpm check 0 errors; full gate left to deliver — ca7e6216
 - 2026-10-28 12:49 — review — CHANGES_REQUESTED: 1 medium (today-slot floor unpinned, round mutant survives), 2 low (4-event test name, laneRows input); 107/107 + pnpm check green; reviewed at — e92cde6b
+- 2026-10-28 12:52 — fix — all 3 review findings fixed (floor test kills round mutant, test rename, laneRows(maxEvents) + chips-plus-overflow test); 109/109, pnpm check green — pending

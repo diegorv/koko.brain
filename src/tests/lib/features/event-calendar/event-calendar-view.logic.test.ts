@@ -363,7 +363,7 @@ describe('all-day lane', () => {
 		expect(cell.overflow).toBe(0);
 	});
 
-	it('overflows by 1 when a day holds 4 all-day events', () => {
+	it('shows 2 chips and an overflow of 2 when a day holds 4 all-day events', () => {
 		const four = ['w', 'x', 'y', 'z'].map((id) => allDay(id, '2026-11-09'));
 		const [cell] = buildAllDayChips(['2026-11-09'], four);
 		expect(cell.chips.map((e) => e.path)).toEqual(['w', 'x']);
@@ -382,6 +382,15 @@ describe('all-day lane', () => {
 		expect(laneRows(3)).toBe(3);
 		expect(laneRows(4)).toBe(3);
 		expect(laneRows(50)).toBe(3);
+	});
+
+	it('sizes the lane from chips plus overflow, giving 3 rows for the 5-event day', () => {
+		const cells = buildAllDayChips(['2026-11-11'], events);
+		const maxEvents = Math.max(...cells.map((c) => c.chips.length + c.overflow));
+		expect(maxEvents).toBe(5);
+		expect(laneRows(maxEvents)).toBe(3);
+		// Counting only the shown chips would undercount the overflowing day.
+		expect(laneRows(Math.max(...cells.map((c) => c.chips.length)))).toBe(2);
 	});
 });
 
@@ -442,6 +451,14 @@ describe('defaultCreateSlot', () => {
 			date: '2026-11-10',
 			start: 600,
 			end: 630,
+		});
+	});
+
+	it('floors, not rounds, now to the slot start today', () => {
+		expect(defaultCreateSlot('2026-11-10', '2026-11-10', 614, 7, 60)).toEqual({
+			date: '2026-11-10',
+			start: 600,
+			end: 660,
 		});
 	});
 

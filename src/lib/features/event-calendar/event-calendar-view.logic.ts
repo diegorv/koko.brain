@@ -235,11 +235,13 @@ export function buildAllDayChips(days: string[], events: EventNote[]): AllDayCel
 
 /**
  * Height of the all-day lane in rows.
- * @param maxChips - the largest number of all-day events on any visible day
+ * @param maxEvents - the largest number of all-day events on any visible
+ *   day; from `buildAllDayChips` output that is `chips.length + overflow`,
+ *   not `chips.length`, which undercounts an overflowing day
  * @returns 1 through `ALL_DAY_MAX_ROWS` (the lane keeps one row when empty)
  */
-export function laneRows(maxChips: number): number {
-	return Math.min(ALL_DAY_MAX_ROWS, Math.max(1, maxChips));
+export function laneRows(maxEvents: number): number {
+	return Math.min(ALL_DAY_MAX_ROWS, Math.max(1, maxEvents));
 }
 
 /**

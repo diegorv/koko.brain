@@ -68,3 +68,13 @@ The logic is correct against the Issue, the plan (Task 7, `plan-2026-10-28.md:19
 3. **Low. `event-calendar-view.logic.ts:236-243`: the `laneRows(maxChips)` parameter name invites an undercount.** The JSDoc says the input is the largest number of all-day *events* on a visible day. A caller in ticket 22 that holds `buildAllDayChips` output will naturally pass `Math.max(...cells.map((c) => c.chips.length))`. For a day with 5 events that is 2, so `laneRows` returns 2 while the cell needs 3 rows (2 chips plus "+N"), and the overflow row gets clipped. No test ties `laneRows` to `buildAllDayChips` output. Fix (no API change): rename the parameter to `maxEvents`, or state in the JSDoc that it is `chips.length + overflow`. Then add one test that derives `laneRows` from `buildAllDayChips(days, events)` for the 5-event day in the existing fixture and expects 3.
 
 Informational, no change requested: `itemsForDay` filters the full event list once per month cell (42 x N). That is fine at vault scale, and it matches the per-cell call shape in ticket 23.
+
+## Resolution
+
+All three findings accepted and fixed; none rejected.
+
+1. Added `floors, not rounds, now to the slot start today`: `defaultCreateSlot('2026-11-10', '2026-11-10', 614, 7, 60)` gives `{ start: 600, end: 660 }`. Against the round mutant (M5) it fails (1 failed, 47 passed); with `floorToSnap` restored it passes.
+2. Renamed the 4-event test to `shows 2 chips and an overflow of 2 when a day holds 4 all-day events`.
+3. Renamed `laneRows(maxChips)` to `laneRows(maxEvents)` and documented that from `buildAllDayChips` output the input is `chips.length + overflow`. Added `sizes the lane from chips plus overflow, giving 3 rows for the 5-event day`, which derives 5 from `buildAllDayChips(['2026-11-11'], events)`, expects `laneRows` 3, and shows `chips.length` alone gives 2.
+
+Targeted checks after the fixes: `vitest run src/tests/lib/features/event-calendar/` 3 files, 109/109; `pnpm check` 0 errors, 0 warnings.
