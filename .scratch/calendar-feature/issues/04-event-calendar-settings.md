@@ -31,3 +31,7 @@
 - [ ] `settings.logic.test.ts` covers every clamp and normalize rule, identity for valid input, and both constant arrays
 - [ ] If p2p-sync Task 3 has already landed, its `sync` keys in the three shared spots stay unchanged (this ticket only rebases its own lines)
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 11:39 — discovery — plan in work/04/discovery.md: four settings files plus three tests, missing-block service test written first — 15cd919c
