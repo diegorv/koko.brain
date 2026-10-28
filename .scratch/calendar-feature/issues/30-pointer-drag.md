@@ -29,3 +29,4 @@
 ## Comments
 
 - **2026-10-28, from ticket 09 (0a3418d9):** place the E2E events on the 15-minute grid. A small drag past the 4 px threshold re-snaps an off-grid event, so an off-grid fixture makes the label and frontmatter assertions flaky.
+- 2026-10-28 15:13 — discovery — plan in work/30/discovery.md; adds a `[data-resize]` handle to EventBlock.svelte (not in Touches) and a pure `previewDayEvents` — f4b70e86
