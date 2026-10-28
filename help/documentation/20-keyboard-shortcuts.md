@@ -71,6 +71,7 @@ These work while the [Calendar tab](27-calendar.md) has focus, not while you typ
 | `Escape` | Close the event popover, or cancel a drag |
 | `Cmd+Z` | Undo the last calendar change |
 | `Cmd+Shift+Z` / `Ctrl+Y` | Redo |
+| `?` | Show the Calendar shortcuts |
 
 ## Editor (In-Editor)
 

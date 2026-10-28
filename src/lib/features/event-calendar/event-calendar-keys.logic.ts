@@ -9,6 +9,7 @@ import type { CalendarViewMode } from './event-calendar.types';
 
 /** What a key press asks the Calendar view to do. */
 export type CalendarKeyAction =
+	| { kind: 'help' }
 	| { kind: 'today' }
 	| { kind: 'view'; view: CalendarViewMode }
 	| { kind: 'step'; dir: 1 | -1 }
@@ -22,7 +23,7 @@ export type CalendarKeyAction =
 export interface CalendarKeyState {
 	/** Whether the key landed in a text field (`isTypingTarget`). */
 	typing: boolean;
-	/** Whether the event dialog is open, read from the view store. */
+	/** Whether the event dialog or the shortcuts help is open, read from the view store. */
 	dialogOpen: boolean;
 	/** Whether the key landed inside the D/W/M tablist, which handles its own arrows. */
 	targetInTablist: boolean;
@@ -34,6 +35,34 @@ export interface CalendarKeyState {
 
 /** The key and modifier fields of a keyboard event that `resolveCalendarKey` reads. */
 export type CalendarKeyEvent = Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>;
+
+/** One row of the shortcuts help: the keys that trigger one action. */
+export interface CalendarShortcut {
+	/** Alternative chords, written as the help pages write them (`Cmd+Shift+Z`, `Left`). */
+	keys: readonly string[];
+	/** What the keys do. */
+	label: string;
+	/** The action `resolveCalendarKey` returns for each of `keys`. */
+	action: CalendarKeyAction['kind'];
+}
+
+/**
+ * The shortcuts `resolveCalendarKey` handles, in the order the help dialog
+ * lists them. The dialog renders this table; tests tie each chord to the
+ * resolver and to the Calendar tables of `help/documentation/20-keyboard-shortcuts.md`
+ * and `27-calendar.md`.
+ */
+export const CALENDAR_SHORTCUTS: readonly CalendarShortcut[] = [
+	{ keys: ['T'], label: 'Go to today', action: 'today' },
+	{ keys: ['N'], label: 'New event', action: 'new-event' },
+	{ keys: ['D', 'W', 'M'], label: 'Day / week / month view', action: 'view' },
+	{ keys: ['Left', 'Right'], label: 'Previous / next day, week or month', action: 'step' },
+	{ keys: ['Delete', 'Backspace'], label: 'Delete the event in the open popover, or the focused event', action: 'delete' },
+	{ keys: ['Escape'], label: 'Close the event popover, or cancel a drag', action: 'close-popover' },
+	{ keys: ['Cmd+Z'], label: 'Undo the last calendar change', action: 'undo' },
+	{ keys: ['Cmd+Shift+Z', 'Ctrl+Y'], label: 'Redo', action: 'redo' },
+	{ keys: ['?'], label: 'Show keyboard shortcuts', action: 'help' },
+];
 
 /** Single-letter view keys. */
 const VIEW_KEYS: Record<string, CalendarViewMode> = { d: 'day', w: 'week', m: 'month' };
@@ -56,7 +85,7 @@ export function isTypingTarget(el: EventTarget | null): boolean {
 /**
  * Maps a key press in the Calendar view to an action.
  *
- * Nothing fires while the user types or while the dialog is open. Letters
+ * Nothing fires while the user types or while a dialog is open. Letters
  * and arrows are ignored with Meta, Ctrl or Alt held, and the arrows inside
  * the tablist. Escape acts only on an open popover, so a live drag's own
  * Escape listener keeps it. Delete and Backspace target the popover's event,
@@ -73,6 +102,7 @@ export function resolveCalendarKey(e: CalendarKeyEvent, state: CalendarKeyState)
 	if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && key === 'y') return { kind: 'redo' };
 	if (e.metaKey || e.ctrlKey || e.altKey) return null;
 
+	if (e.key === '?') return { kind: 'help' };
 	if (key === 't') return { kind: 'today' };
 	if (key === 'n') return { kind: 'new-event' };
 	if (Object.hasOwn(VIEW_KEYS, key)) return { kind: 'view', view: VIEW_KEYS[key] };

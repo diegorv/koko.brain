@@ -184,6 +184,7 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 | `Delete` / `Backspace` | Delete the event in the open popover, or the focused event |
 | `Escape` | Close the event popover, or cancel a drag |
 | `Cmd+Z` / `Cmd+Shift+Z` / `Ctrl+Y` | Undo / redo |
+| `?` | Show these shortcuts |
 
 `Cmd+Shift+C` opens and closes the Calendar from anywhere. See [Keyboard Shortcuts](20-keyboard-shortcuts.md).
 

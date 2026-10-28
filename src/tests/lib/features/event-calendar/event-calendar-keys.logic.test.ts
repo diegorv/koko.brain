@@ -1,8 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+	CALENDAR_SHORTCUTS,
 	isTypingTarget,
 	resolveCalendarKey,
+	type CalendarKeyAction,
 	type CalendarKeyEvent,
 	type CalendarKeyState,
 } from '$lib/features/event-calendar/event-calendar-keys.logic';
@@ -37,6 +41,14 @@ describe('isTypingTarget', () => {
 });
 
 describe('resolveCalendarKey', () => {
+	it('maps ? to the shortcuts help, with or without Shift held', () => {
+		expect(resolveCalendarKey(key('?'), state())).toEqual({ kind: 'help' });
+		expect(resolveCalendarKey(key('?', { shiftKey: true }), state())).toEqual({ kind: 'help' });
+		expect(resolveCalendarKey(key('?', { metaKey: true }), state())).toBeNull();
+		expect(resolveCalendarKey(key('?'), state({ typing: true }))).toBeNull();
+		expect(resolveCalendarKey(key('?'), state({ dialogOpen: true }))).toBeNull();
+	});
+
 	it('maps T to today and N to a new event, in either case', () => {
 		expect(resolveCalendarKey(key('t'), state())).toEqual({ kind: 'today' });
 		expect(resolveCalendarKey(key('T', { shiftKey: true }), state())).toEqual({ kind: 'today' });
@@ -116,5 +128,70 @@ describe('resolveCalendarKey', () => {
 		expect(resolveCalendarKey(key(' '), state())).toBeNull();
 		expect(resolveCalendarKey(key('ArrowUp'), state())).toBeNull();
 		expect(resolveCalendarKey(key('constructor'), state())).toBeNull();
+	});
+});
+
+/** Turns a chord as the table writes it ("Cmd+Shift+Z", "Left", "D") into a key press. */
+function chordToKey(chord: string): CalendarKeyEvent {
+	const parts = chord.split('+');
+	const name = parts.pop()!;
+	const named: Record<string, string> = { Left: 'ArrowLeft', Right: 'ArrowRight' };
+	return key(named[name] ?? (name.length === 1 ? name.toLowerCase() : name), {
+		metaKey: parts.includes('Cmd'),
+		ctrlKey: parts.includes('Ctrl'),
+		shiftKey: parts.includes('Shift'),
+	});
+}
+
+/** The `## <heading>` section of a help page, up to the next `## ` heading. */
+function helpSection(file: string, heading: string): string {
+	const text = readFileSync(resolve(process.cwd(), 'help/documentation', file), 'utf8');
+	const start = text.indexOf(`\n## ${heading}\n`);
+	expect(start, `${file} has no "## ${heading}" section`).toBeGreaterThanOrEqual(0);
+	const end = text.indexOf('\n## ', start + 1);
+	return text.slice(start, end === -1 ? undefined : end);
+}
+
+describe('CALENDAR_SHORTCUTS', () => {
+	it('resolves every chord of a row to that row action', () => {
+		for (const row of CALENDAR_SHORTCUTS) {
+			for (const chord of row.keys) {
+				const action = resolveCalendarKey(chordToKey(chord), state({ popoverPath: '/v/a.md' }));
+				expect(action?.kind, chord).toBe(row.action);
+			}
+		}
+	});
+
+	it('has a row for every action resolveCalendarKey returns', () => {
+		// A new action kind fails `pnpm check` here until it is listed.
+		const kinds: Record<CalendarKeyAction['kind'], true> = {
+			help: true,
+			today: true,
+			view: true,
+			step: true,
+			'new-event': true,
+			delete: true,
+			'close-popover': true,
+			undo: true,
+			redo: true,
+		};
+		expect(new Set(CALENDAR_SHORTCUTS.map((r) => r.action))).toEqual(new Set(Object.keys(kinds)));
+	});
+
+	it('gives every row at least one chord and a label', () => {
+		for (const row of CALENDAR_SHORTCUTS) {
+			expect(row.keys.length, row.action).toBeGreaterThan(0);
+			expect(row.label.trim(), row.action).not.toBe('');
+		}
+	});
+
+	it.each([
+		['20-keyboard-shortcuts.md', 'Calendar'],
+		['27-calendar.md', 'Calendar Keyboard Shortcuts'],
+	])('lists every chord in %s', (file, heading) => {
+		const section = helpSection(file, heading);
+		for (const chord of CALENDAR_SHORTCUTS.flatMap((r) => r.keys)) {
+			expect(section, `${file} is missing \`${chord}\``).toContain(`\`${chord}\``);
+		}
 	});
 });
