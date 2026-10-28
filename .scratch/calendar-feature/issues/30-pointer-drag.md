@@ -31,3 +31,4 @@
 - **2026-10-28, from ticket 09 (0a3418d9):** place the E2E events on the 15-minute grid. A small drag past the 4 px threshold re-snaps an off-grid event, so an off-grid fixture makes the label and frontmatter assertions flaky.
 - 2026-10-28 15:13 — discovery — plan in work/30/discovery.md; adds a `[data-resize]` handle to EventBlock.svelte (not in Touches) and a pure `previewDayEvents` — f4b70e86
 - 2026-10-28 15:28 — implement — pointer gestures wired; pnpm check 0 errors, vitest event-calendar 16 files / 630 passed, E2E event-calendar.spec 21 passed (retries=0, several runs); full gate not run — 14df9dbf
+- 2026-10-28 15:34 — review — CHANGES_REQUESTED: 1 medium (no test for the failed-drop revert and toast; YAML-comment refusal E2E), 1 low (held preview keyed by column index across a days change), 1 nit — bb71ea98
