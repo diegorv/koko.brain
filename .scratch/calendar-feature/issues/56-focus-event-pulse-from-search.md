@@ -7,6 +7,7 @@
 **Status:** ready-for-agent
 
 - Prototype parity row "Focus event from search, with pulse highlight": deferred because Kokobrain search opens the note itself.
+- Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - Needs an entry point (context menu or a secondary action) plus a store call that sets the view date and a focus target; the pulse is CSS.
 
 - [ ] Action available on search results and backlinks for event notes

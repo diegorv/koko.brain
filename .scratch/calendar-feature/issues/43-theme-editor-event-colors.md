@@ -7,6 +7,7 @@
 **Status:** needs-triage
 
 - Plan Open questions item 11 and D-notes: "Rejected adding 12 tokens to `ThemeColors` now: that is the theme-editor follow-up."
+- Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - Open: whether users need this, and whether derived defaults stay as the fallback for themes that set none.
 
 - [ ] Decision recorded

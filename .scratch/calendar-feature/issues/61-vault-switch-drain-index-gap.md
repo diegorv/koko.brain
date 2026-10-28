@@ -1,6 +1,6 @@
-# 61: Calendar writes drained on vault switch still update the old vault's index
+# 61: No calendar write lands on disk without its index update across a vault switch
 
-**What to build:** a calendar write to a note that is not open in a tab, still in flight when the user switches vault, updates the old vault's index after it reaches disk.
+**What to build:** no calendar write lands on disk without its index update across a vault switch. A write to a note that is not open in a tab, still in flight when the user switches vault, either updates the old vault's index after it reaches disk or is refused before writing. Today it reaches disk and the old vault's index never sees it.
 
 **Blocked by:** None
 

@@ -7,6 +7,7 @@
 **Status:** ready-for-agent
 
 - Today `end_date` is reserved: `eventsFromEntries` renders the event on its start day with `readOnly: true` and a `multi-day` issue ("multi-day spans are not supported yet"), `features/event-calendar/event-calendar-event.logic.ts:166-180`. Plan D2: "no cross-midnight or multi-day events in v1".
+- Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - Needs: the projection splits a span into per-day segments; the all-day lane and the month grid draw spans; drag and resize keep `end_date` in sync (or stay disabled on spans with a clear reason).
 
 - [ ] `end_date` events render on every day of the span in all three views; the `multi-day` issue is gone

@@ -7,6 +7,7 @@
 **Status:** needs-triage
 
 - Plan Notes > Dependencies and Risks item 15; the Calendar user guide documents the duplicate today.
+- Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - Open: how a conflict is shown (badge, Needs-attention entry) and whether resolving it is in scope.
 
 - [ ] Conflict copies are detected by name and shown distinctly

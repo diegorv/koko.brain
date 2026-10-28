@@ -103,3 +103,14 @@ The diff is tracker-only: 25 new tickets (40-64), the kit-3 ticket 11 comment, d
    - Fix (optional): restore the dropped sentences, so the item is quoted like the rest.
 
 No correctness, scope-creep or layer-rule problems were found. Ticket 40's "clicking one opens the note at the task line" and similar behaviour notes are proposals inside the follow-up tickets, not changes to the code.
+
+## Resolution
+
+All six findings accepted and fixed in the fix step.
+
+1. Ticket 52: `**Blocked by:** 60`.
+2. Ticket 61: title and What to build now state the target ("No calendar write lands on disk without its index update across a vault switch"), accepting either fix outcome, matching the AC.
+3. Tickets 41, 43, 44, 46, 50, 53, 55, 56, 58: a line after line 9 names `.scratch/calendar-feature/plan-2026-10-28.md` and how to read it (`git show c0103ff5:...`).
+4. Ticket 57: cites the plan deferral reason (plan:1141) and both help tables (`20-keyboard-shortcuts.md:60-73`, `27-calendar.md:171-185`); the drift-guard checkbox now covers both help tables. Status kept `ready-for-agent` (the review allowed either option; the extended guard was chosen).
+5. Ticket 64: recorded anchors kept, current lines added as "now" (EventBlock `:66`, `opsUpTo` `:734`, `FOCUSABLE` `:32`, Undo focus `:1023`, `undoDeleteEvent` `:1021`).
+6. Ticket 64: the ticket 27 item restored verbatim from the Comments entry.

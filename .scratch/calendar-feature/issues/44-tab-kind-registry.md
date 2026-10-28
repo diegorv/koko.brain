@@ -7,6 +7,7 @@
 **Status:** needs-triage
 
 - Today the kinds are a closed union in `src/lib/core/editor/editor.types.ts:12` (`fileType?: ... | 'event-calendar'`) and `EditorView.svelte` imports the feature view directly. The plan (D-notes on core changes) filed the registry instead of adding it.
+- Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - Open: the registration API, and whether every existing kind moves at once or one at a time.
 
 - [ ] Decision recorded on the API and the migration order

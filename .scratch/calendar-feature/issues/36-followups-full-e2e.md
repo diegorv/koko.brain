@@ -63,3 +63,4 @@
 - 2026-10-28 16:39 — discovery — 25 follow-ups to file as 40-64 (highest used number is 39), kit-3 ticket 11 still open; see work/36/discovery.md — c0103ff5
 - 2026-10-28 16:43 — implement — filed tickets 40-64 (21 plan items incl. archify, owner items A-D as 61-64) and the kit-3 ticket 11 vi.mock comment; pnpm check 0 errors; full E2E and frontend gate left to deliver — 4c26b825
 - 2026-10-28 16:47 — review — APPROVED: AC met for the 25 tickets (40-64), owner items A-D and the kit-3 comment; 3 Low + 3 Nit tracker findings (52 Blocked by 60, 61 title vs AC, plan refs after ticket 37); E2E and gate left to deliver; see work/36/review.md — 297abe81
+- 2026-10-28 16:49 — fix — all 6 review findings fixed in tickets 41-61 and 64 (52 blocked by 60, 61 retitled to the target, plan-file pointer on 9 tickets, 57 help-table refs, 64 current anchors and verbatim ticket 27 quote); see work/36/review.md § Resolution — fa83faf1

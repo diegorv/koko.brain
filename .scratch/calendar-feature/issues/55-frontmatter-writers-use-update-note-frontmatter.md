@@ -7,6 +7,7 @@
 **Status:** ready-for-agent
 
 - Disk-direct writers: `src/lib/features/file-icons/frontmatter-icon.service.ts:22-54` (`setFrontmatterIcon`, `removeFrontmatterIcon` at `:57`) and `src/lib/features/type-definitions/type-definitions.service.ts:236` (`toggleFavoriteForPath`). Plan D-notes: they "clobber dirty tabs and skip the after-save observers".
+- Plan: `.scratch/calendar-feature/plan-2026-10-28.md`, deleted by ticket 37; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`.
 - Writer: `src/lib/features/properties/frontmatter-write.service.ts`. Note ADR-0029's amendment: the calendar writer refuses lossy frontmatter while these writers drop; decide whether they adopt the refusal (and how the UI reports it).
 
 - [ ] Both writers use `updateNoteFrontmatter`; a dirty open tab keeps its edits
