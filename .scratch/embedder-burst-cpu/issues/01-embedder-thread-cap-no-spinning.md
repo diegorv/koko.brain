@@ -25,3 +25,4 @@
 ## Comments
 - 2026-10-28 11:48 — discovery — plan in work/01/discovery.md: cap 4, spinning off in session_builder; no ort getter, manual measurement left for human — a293e4bf
 - 2026-10-28 11:51 — implement — cap min(4) + intra-op spinning off in session_builder; semantic cargo tests 55/55 pass; manual top measurement (before/after ~20-file replay) still TODO by a human — 2217134b
+- 2026-10-28 11:54 — review — CHANGES_REQUESTED: code correct, 4 semantic test files 55/55 pass; cap has no test (med), measurement unmet so do not close/delete this file, deliver as ready-for-human (med), two comment inaccuracies (low), wrong discovery sha (nit) — de3e2e56
