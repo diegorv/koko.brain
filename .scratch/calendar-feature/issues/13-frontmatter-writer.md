@@ -14,19 +14,20 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
-- [ ] `frontmatter-write.service.ts` exports `FrontmatterWriteError`, with `reason: LossyFrontmatterReason | 'save-failed' | 'vault-changed' | 'missing'`, and `updateNoteFrontmatter(path, mutate: (props: Property[]) => Property[]): Promise<string>`, which returns the written content
-- [ ] `vaultStore.path` is captured at entry; after every later `await`, a changed path throws `vault-changed` before the next side effect (test: vault switched during the read, nothing written)
-- [ ] The base is the open tab's `content` when a tab has that path, otherwise `readTextFile(path)`, whose errors propagate (test: missing file at read time)
-- [ ] A non-null `detectLossyFrontmatter(base)` throws with that reason, writes nothing and leaves the tab untouched (one test per reason); otherwise `next = rebuildContent(mutate(parseFrontmatterProperties(base)), extractBody(base))`, and `next === base` returns without writing (no-op test)
-- [ ] Tab branch calls `syncExternalContentToEditor(path, next, false, 'none')` then `await saveFileByPath(path)`; tests cover a clean open tab and a dirty open tab (body edit preserved, tab clean afterwards, merged content asserted)
-- [ ] When `saveFileByPath` returns `false` (it toasts instead of throwing), the tab is restored with `syncExternalContentToEditor(path, base, false, 'none')` and `save-failed` is thrown, so callers never toast twice (test: tab restored to base, `save-failed` thrown)
-- [ ] No-tab branch re-checks `exists(path)` immediately before writing; false throws `missing` and writes nothing (test: deleted between read and write, `exists` resolves false on the re-check, the reason is `missing`, the mocked fs holds no file at the old path)
-- [ ] No-tab branch re-checks for a tab with no `await` between that check and the write, and restarts once from step 2 on the tab branch (test: a tab opened while the read is pending takes the tab branch and ends up holding `next` and clean)
-- [ ] Otherwise it calls `writeTextFile(path, next)`, `syncExternalContentToEditor(path, next, true, 'none')`, then `notifyAfterSave(path, next)`; the closed-file test asserts the disk bytes and the `notifyAfterSave` effects through the real dedupe and consumer path
-- [ ] Tests mock only `@tauri-apps/plugin-fs`, `@tauri-apps/api/core` (`invoke`) and `svelte-sonner`, use the real `editorStore` and `vaultStore`, and the dirty-tab preservation, open-during-read and deleted-between-read-and-write tests are written first (Notes C2, Q5)
-- [ ] `editor.service.ts` and the disk-direct writers in `src/lib/features/file-icons/frontmatter-icon.service.ts` are not edited (rerouting them is a follow-up)
+- [x] `frontmatter-write.service.ts` exports `FrontmatterWriteError`, with `reason: LossyFrontmatterReason | 'save-failed' | 'vault-changed' | 'missing'`, and `updateNoteFrontmatter(path, mutate: (props: Property[]) => Property[]): Promise<string>`, which returns the written content
+- [x] `vaultStore.path` is captured at entry; after every later `await`, a changed path throws `vault-changed` before the next side effect (test: vault switched during the read, nothing written)
+- [x] The base is the open tab's `content` when a tab has that path, otherwise `readTextFile(path)`, whose errors propagate (test: missing file at read time)
+- [x] A non-null `detectLossyFrontmatter(base)` throws with that reason, writes nothing and leaves the tab untouched (one test per reason); otherwise `next = rebuildContent(mutate(parseFrontmatterProperties(base)), extractBody(base))`, and `next === base` returns without writing (no-op test)
+- [x] Tab branch calls `syncExternalContentToEditor(path, next, false, 'none')` then `await saveFileByPath(path)`; tests cover a clean open tab and a dirty open tab (body edit preserved, tab clean afterwards, merged content asserted)
+- [x] When `saveFileByPath` returns `false` (it toasts instead of throwing), the tab is restored with `syncExternalContentToEditor(path, base, false, 'none')` and `save-failed` is thrown, so callers never toast twice (test: tab restored to base, `save-failed` thrown)
+- [x] No-tab branch re-checks `exists(path)` immediately before writing; false throws `missing` and writes nothing (test: deleted between read and write, `exists` resolves false on the re-check, the reason is `missing`, the mocked fs holds no file at the old path)
+- [x] No-tab branch re-checks for a tab with no `await` between that check and the write, and restarts once from step 2 on the tab branch (test: a tab opened while the read is pending takes the tab branch and ends up holding `next` and clean)
+- [x] Otherwise it calls `writeTextFile(path, next)`, `syncExternalContentToEditor(path, next, true, 'none')`, then `notifyAfterSave(path, next)`; the closed-file test asserts the disk bytes and the `notifyAfterSave` effects through the real dedupe and consumer path
+- [x] Tests mock only `@tauri-apps/plugin-fs`, `@tauri-apps/api/core` (`invoke`) and `svelte-sonner`, use the real `editorStore` and `vaultStore`, and the dirty-tab preservation, open-during-read and deleted-between-read-and-write tests are written first (Notes C2, Q5)
+- [x] `editor.service.ts` and the disk-direct writers in `src/lib/features/file-icons/frontmatter-icon.service.ts` are not edited (rerouting them is a follow-up)
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
 
 ## Comments
 
 - 2026-10-28 12:27 — discovery — plan in work/13/discovery.md: new frontmatter-write.service.ts with vault guard after every await, tab/no-tab branches, one restart; race tests first — 44bcee52
+- 2026-10-28 12:30 — implement — frontmatter-write.service.ts + 16 tests (race cases first, each guard mutation-checked); pnpm check 0 errors, properties + core/editor tests 644 passed; gate left to deliver — 735d739d
