@@ -34,3 +34,7 @@
 - [ ] The same test file shows that changing `defaultDurationMinutes` after the first load re-projects: the store event's `end` follows the new default with no extra `get_all_vault_entries_v2` call. After `openPopover` and `openDialog` on the store, then mount, unmount and mount again, `popover` and `dialog` are null
 - [ ] `e2e/specs/event-calendar.spec.ts` uses `test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' })`, seeds with `fs.populate`, then emits `vault-index-updated` using `window.__e2e.vaultIndex.version`. Opened via the palette, the header reads "November, 2026" and the subtitle contains "Week 46". A seeded `_type: Event` note with an invalid `start` appears under Needs attention with its reason, and a dateless one appears only under "Unscheduled". Clicking a Needs-attention row opens that note's tab (the tab title and the editor text are asserted). This spec meets rule 11 for the `EditorView.svelte` and `EditorTabs.svelte` wiring
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- **2026-10-28, from ticket 19 (b272b6ca):** `loadEvents()` still rethrows the failure of a load that a newer load or a vault switch replaced. The view effect's `.catch` must not toast for those superseded loads; toast only when the failing load is still the current one.
