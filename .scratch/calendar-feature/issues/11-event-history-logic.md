@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-10-28 12:35 — discovery — plan in work/11/discovery.md; one new pure module + test — 0ace4d20
+- 2026-10-28 12:38 — implement — history logic + 21 tests; pnpm check 0 errors, event-calendar tests 56/56 — 3fc6beb8
