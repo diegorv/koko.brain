@@ -31,3 +31,4 @@
 - 2026-10-28 12:15 — discovery — plan in work/16/discovery.md: restore policy row + restoreItem read/mark/applyNoteChange for non-directory Markdown items — 2f7f46b6
 - 2026-10-28 12:17 — implement — restore source + restoreItem indexing, tests written first (2 red, then green); pnpm check 0 errors, trash + filesystem + app-lifecycle + kanban tests 619 passed; gate and E2E left to deliver — ed698ef0
 - 2026-10-28 12:21 — review — CHANGES_REQUESTED: new invoke mock leaves 6 unhandled rejections (vitest exits 1); restore mark suppresses watcher queryjs/kanban/unlinked invalidation; read-failure log unasserted — 4c7d2be2
+- 2026-10-28 12:23 — fix — review findings 1-3 fixed: resolving invoke mock, watcher post-update calls after a restore, read-failure log asserted; targeted trash + note-change tests 92 passed, pnpm check 0 errors — 307f1fb7

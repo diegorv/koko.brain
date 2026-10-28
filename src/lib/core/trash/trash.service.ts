@@ -14,6 +14,9 @@ import {
 import { getRelativePath } from '$lib/core/filesystem/fs.logic';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
+import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
+import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -209,6 +212,11 @@ export function resetTrash(): void {
  * Reads the restored note and hands it to the note-change owner. A read
  * failure is logged and sets no recent-save mark, so the watcher still
  * indexes the file.
+ *
+ * The recent-save mark makes the watcher skip this restore, so the
+ * post-update steps of its incremental path run here instead: unlinked
+ * mentions are flagged dirty and the queryjs and kanban linked-content
+ * caches are cleared.
  */
 async function indexRestoredNote(vaultPath: string, restorePath: string): Promise<void> {
 	let content: string;
@@ -220,6 +228,9 @@ async function indexRestoredNote(vaultPath: string, restorePath: string): Promis
 	}
 	markRecentSave(restorePath);
 	void applyNoteChange({ kind: 'upsert', source: 'restore', path: restorePath, content, vaultPath });
+	backlinksStore.markUnlinkedDirty();
+	invalidateQueryjsCache();
+	clearLinkedContentCache();
 }
 
 /** Whether `path` is a Markdown note, using the watcher's filter. */

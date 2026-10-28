@@ -40,3 +40,11 @@ PRD/plan decisions: the change follows D20 (a documented `restore` source, no `n
 
 3. **Low (test gap).** `src/tests/lib/core/trash/trash.service.test.ts:416-431`. AC 3 says the read failure "is logged with `error('Trash', ...)`", but no test checks the log.
    - **Fix:** spy on or mock `$lib/utils/debug`'s `error` and assert it was called with `'Trash'` and a message about the read, next to the existing state assertions.
+
+## Resolution
+
+All three findings accepted and fixed; none rejected.
+
+1. The `invoke` mock now defaults to `vi.fn(() => Promise.resolve(undefined))`, so the pre-existing `restoreItem` tests no longer leave unhandled rejections. Targeted run: 4 files, 92/92, no Errors section, exit 0.
+2. `indexRestoredNote` keeps the recent-save mark and, after `applyNoteChange`, runs the watcher's three post-update calls (`backlinksStore.markUnlinkedDirty()`, `invalidateQueryjsCache()`, `clearLinkedContentCache()`). The imports add no new layer edge beyond what `editor.hooks.ts`, already imported by `trash.service.ts`, carries. Tests assert `backlinksStore.unlinkedDirty` is true and a seeded queryjs session result is cleared after a `.md` restore, and both are untouched after a read failure. The kanban cache is private to `kanban.service.ts`, so it is not asserted directly.
+3. The read-failure test asserts `error` was called with `'Trash'`, a message containing "read restored note", and the error.

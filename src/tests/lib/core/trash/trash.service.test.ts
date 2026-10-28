@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
-	invoke: vi.fn(),
+	invoke: vi.fn(() => Promise.resolve(undefined)),
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
@@ -41,6 +41,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { clearAllIndexed } from '$lib/utils/index-dedupe';
+import { error } from '$lib/utils/debug';
+import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
 const VAULT = '/Users/me/vault';
 
@@ -336,6 +339,9 @@ describe('restoreItem - indexing', () => {
 		vi.clearAllMocks();
 		trashStore.clear();
 		clearAllIndexed();
+		backlinksStore.reset();
+		queryjsSessionStore.clearResults();
+		queryjsSessionStore.setResult('cached-script', {} as HTMLElement);
 		vi.mocked(invoke).mockResolvedValue(undefined);
 		mockExists.mockResolvedValue(false);
 		mockRename.mockResolvedValue(undefined);
@@ -370,6 +376,9 @@ describe('restoreItem - indexing', () => {
 		});
 		expect(upserts).toEqual([[path, CONTENT]]);
 		expect(areAllRecentSaves([path])).toBe(true);
+		// The watcher skips this restore, so its post-update steps run here.
+		expect(backlinksStore.unlinkedDirty).toBe(true);
+		expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
 	});
 
 	it('indexes a suffixed restore under the suffixed path', async () => {
@@ -426,6 +435,10 @@ describe('restoreItem - indexing', () => {
 		expect(upserts).toEqual([]);
 		// No self-save mark, so the watcher still indexes the file.
 		expect(areAllRecentSaves([path])).toBe(false);
+		expect(error).toHaveBeenCalledWith('Trash', expect.stringContaining('read restored note'), expect.any(Error));
+		// The watcher owns the post-update steps on this path.
+		expect(backlinksStore.unlinkedDirty).toBe(false);
+		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
 		expect(refreshTree).toHaveBeenCalled();
 	});
 });
