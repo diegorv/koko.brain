@@ -27,3 +27,4 @@
 ## Comments
 
 - 2026-10-28 11:54 — discovery — parseDocument + visit path planned, one feat commit; defaults in work/12/discovery.md — 45e2577e
+- 2026-10-28 11:56 — implement — detectLossyFrontmatter + reason/non-case/fixture round-trip tests; pnpm check 0 errors, properties tests 419/419 — df65c5bf
