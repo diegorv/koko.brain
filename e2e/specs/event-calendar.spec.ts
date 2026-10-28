@@ -560,6 +560,42 @@ test.describe('Event calendar pointer drag', () => {
 		await expect(page.locator('[data-day-column] [data-event-path]')).toHaveCount(blocks);
 	});
 
+	test('a refused drop reverts the block and toasts with "Open note"', async ({ vaultPage: page }) => {
+		await openGridAt(page, 8);
+		// A YAML comment makes the frontmatter writer refuse ('comments').
+		const refused = '---\n_type: Event\ndate: 2026-11-10\nstart: 09:00\nend: 10:00\n# keep me\n---\nDaily sync notes\n';
+		await page.evaluate(({ p, c }) => window.__e2e.fs.writeFile(p, c), { p: STANDUP, c: refused });
+
+		const box = (await standup(page).boundingBox())!;
+		await drag(page, box.x + box.width / 2, box.y + 20, 0, 64);
+
+		const toast = page.locator('[data-sonner-toast]', { hasText: "The note's frontmatter has comments" });
+		await expect(toast).toBeVisible();
+		await expect(toast.getByRole('button', { name: 'Open note' })).toBeVisible();
+		await expect(standup(page).locator('[data-event-time]')).toHaveText('09:00 – 10:00');
+		await expect(standup(page)).toHaveAttribute('data-pending', 'false');
+		expect(await readNote(page, STANDUP)).toBe(refused);
+	});
+
+	test('a week step mid-drag discards the move: no copy in the new week, nothing written', async ({ vaultPage: page }) => {
+		await openGridAt(page, 8);
+		const before = await readNote(page, STANDUP);
+
+		const box = (await standup(page).boundingBox())!;
+		await page.mouse.move(box.x + box.width / 2, box.y + 20);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width / 2, box.y + 20 + 64, { steps: 8 });
+		await expect(standup(page).locator('[data-event-time]')).toHaveText('10:00 – 11:00');
+		await page.getByRole('button', { name: 'Next week' }).focus();
+		await page.keyboard.press('Enter');
+		await expect(page.locator('[data-day-column="2026-11-17"]')).toBeVisible();
+		await expect(page.locator(`[data-day-column] [data-event-path="${STANDUP}"]`)).toHaveCount(0);
+		await page.mouse.up();
+
+		await expect(page.locator(`[data-day-column] [data-event-path="${STANDUP}"]`)).toHaveCount(0);
+		expect(await readNote(page, STANDUP)).toBe(before);
+	});
+
 	test('Escape mid-drag discards the move', async ({ vaultPage: page }) => {
 		await openGridAt(page, 8);
 		const before = await readNote(page, STANDUP);

@@ -38,3 +38,11 @@ Scope: the two changes outside Touches are both justified and documented. `Event
    **Fix:** drop the cast, or keep it with a comment saying why.
 
 Not a finding, by design: an empty-space click while a popover is open both dismisses the popover and opens the create dialog. The prototype does the same (`time-grid.tsx:346-356`, no popover check).
+
+## Resolution
+
+All three findings accepted and fixed in the fix-and-deliver step.
+
+1. Added the E2E `a refused drop reverts the block and toasts with "Open note"`: Standup gets a `# keep me` frontmatter comment through `window.__e2e.fs.writeFile`, a one-hour drag down shows the comments refusal toast with its "Open note" action, the block is back at `09:00 – 10:00` with `data-pending="false"`, and the file bytes are unchanged.
+2. `EventTimeGrid.svelte` now discards the live gesture and clears the preview when the visible range changes (an `$effect` on `days.join(',')`, so a fresh array for the same days does not drop a held drop). A held drop's write still settles; `commitDrop` only clears a preview that is still its own. New E2E `a week step mid-drag discards the move`: it fails on the pre-fix code (the phantom copy shows in the new week) and passes with the fix.
+3. Dropped the `as PendingEventNote[]` cast.

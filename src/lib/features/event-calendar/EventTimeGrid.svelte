@@ -68,7 +68,7 @@
 	// During a drag only the source and target columns are laid out again.
 	let columns = $derived(
 		baseColumns.map((column, i) => {
-			const shown = previewDayEvents(preview, dragged, i, days[i], (timed.get(days[i]) ?? []) as PendingEventNote[]);
+			const shown = previewDayEvents(preview, dragged, i, days[i], timed.get(days[i]) ?? []);
 			return shown ? layoutDay(shown) : column;
 		}),
 	);
@@ -205,6 +205,18 @@
 			if (preview === drag) clearPreview();
 		}
 	}
+
+	// The preview is keyed by column index: a week step or a weekend/week-start
+	// change mid-gesture, or while a drop waits on its write, would show it in the
+	// new range. Drop both; a held drop's write still settles on its own.
+	let daysKey = $derived(days.join(','));
+	$effect(() => {
+		void daysKey;
+		untrack(() => {
+			discardGesture();
+			clearPreview();
+		});
+	});
 
 	function handlePointerCancel(e: PointerEvent) {
 		if (gesture && e.pointerId === gesture.pointerId) discardGesture();
