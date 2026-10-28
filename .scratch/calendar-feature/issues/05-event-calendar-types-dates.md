@@ -32,3 +32,4 @@
 ## Comments
 
 - 2026-10-28 11:53 — discovery — plan in work/05/discovery.md: four new files, prototype not on disk so signatures are recorded as defaults — 45e2577e
+- 2026-10-28 11:58 — implement — types, dates logic, TZ fixture and 24 tests landed; dates test 24/24, pnpm check 0 errors, full gate left to deliver — 567a76c6
