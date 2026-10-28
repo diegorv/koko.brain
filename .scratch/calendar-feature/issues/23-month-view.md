@@ -24,3 +24,7 @@
 - [ ] `EventMonthGrid.test.ts` covers the chip text, the "+N more" count and the weekend filter, and passes
 - [ ] `e2e/specs/event-calendar.spec.ts` switches to Month and asserts the chip is visible
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 13:57 — discovery — plan in work/23/discovery.md: EventMonthGrid (store-driven, no props) + view wiring + unit and E2E tests in one feat commit; out-of-month chips not faded — pending
