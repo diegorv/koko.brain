@@ -165,6 +165,22 @@ function parseTasks(content: string): TaskV2[] {
 	return tasks;
 }
 
+/**
+ * Mirrors `extract_is_a` (`src-tauri/src/vault/entry.rs`). Rust reads the
+ * alias-resolved `_type`; this mock does not canonicalize keys, so it reads
+ * `_type` or bare `type`, taking the first non-empty string. The first code
+ * point is uppercased and the rest preserved (`normalize_type_casing`).
+ */
+function extractIsA(fm: Record<string, FrontmatterValue>): string | null {
+	for (const key of ['_type', 'type']) {
+		const value = fm[key];
+		if (typeof value !== 'string' || value.length === 0) continue;
+		const first = String.fromCodePoint(value.codePointAt(0) as number);
+		return first.toUpperCase() + value.slice(first.length);
+	}
+	return null;
+}
+
 function buildEntry(path: string, content: string): NoteEntryV2 {
 	const body = stripFrontmatter(content);
 	const wikilinks = parseWikilinks(content).map<WikiLinkV2>((wl) => ({
@@ -190,6 +206,7 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		wordCount: wordCount(body),
 		snippet: bodySnippet(body),
 		tasks,
+		isA: extractIsA(fm),
 	};
 }
 
@@ -433,18 +450,28 @@ class VaultIndexImpl {
 
 export const vaultIndex = new VaultIndexImpl();
 
+/**
+ * The `UpdateResultV2` each `virtualFS` hook below computed, keyed by path.
+ * The hooks index a file the moment it is written, so by the time the app
+ * calls `update_note_in_index` / `remove_note_from_index` / `rename_note`,
+ * re-running the index would report `changed: false`. `tauri-core.ts` reads
+ * (and deletes) the hook's result instead, to emit `vault-index-updated`
+ * under the same conditions as the Rust commands.
+ */
+export const lastHookResult = new Map<string, UpdateResultV2>();
+
 virtualFS.subscribe({
 	onPopulate: () => vaultIndex.rebuildAll(),
 	onWrite: (path, content) => {
-		vaultIndex.update(path, content);
+		lastHookResult.set(path, vaultIndex.update(path, content));
 	},
 	onRemove: (path) => {
-		vaultIndex.remove(path);
+		lastHookResult.set(path, vaultIndex.remove(path));
 	},
 	onRename: (oldPath, newPath) => {
-		vaultIndex.remove(oldPath);
+		lastHookResult.set(oldPath, vaultIndex.remove(oldPath));
 		const next = virtualFS.readFileSafe(newPath);
-		if (next !== null) vaultIndex.update(newPath, next);
+		if (next !== null) lastHookResult.set(newPath, vaultIndex.update(newPath, next));
 	},
 });
 

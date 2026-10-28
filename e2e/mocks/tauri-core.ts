@@ -12,12 +12,27 @@
  */
 
 import { virtualFS } from './virtual-fs';
-import { vaultIndex } from './vault-index';
+import { vaultIndex, lastHookResult } from './vault-index';
+import type { UpdateResultV2 } from '../../src/lib/types/vault-v2.types';
 
 type Args = Record<string, unknown> | undefined;
 
 function get<T = unknown>(args: Args, key: string): T {
 	return (args ?? {})[key] as T;
+}
+
+/** Reads and deletes the result the `virtualFS` hook recorded for `path`. */
+function takeHookResult(path: string): UpdateResultV2 | undefined {
+	const result = lastHookResult.get(path);
+	lastHookResult.delete(path);
+	return result;
+}
+
+/** Emits `vault-index-updated` through the E2E event bus, as Rust's `app.emit` does. */
+function emitIndexUpdated(result: UpdateResultV2): void {
+	if (typeof window !== 'undefined') {
+		(window as any).__e2e?.events?.emit('vault-index-updated', result);
+	}
 }
 
 // ─── File system / legacy vault ────────────────────────────────────────────
@@ -40,8 +55,14 @@ function handleSearchVault(args: Args): unknown {
 	);
 }
 
-function handleCreateNote(args: Args): void {
-	virtualFS.writeFile(get<string>(args, 'path'), (get<string>(args, 'content') as string) ?? '');
+function handleCreateNote(args: Args): unknown {
+	const path = get<string>(args, 'path');
+	virtualFS.writeFile(path, (get<string>(args, 'content') as string) ?? '');
+	// Rust `create_note` emits unconditionally (commands/vault.rs).
+	takeHookResult(path);
+	const result: UpdateResultV2 = { changed: true, affected: [path], version: vaultIndex.version };
+	emitIndexUpdated(result);
+	return result;
 }
 
 function handleCreateFolder(args: Args): void {
@@ -101,11 +122,38 @@ function handleToggleTaskStatus(args: Args): unknown {
 }
 
 function handleUpdateNoteInIndex(args: Args): unknown {
-	return vaultIndex.update(get<string>(args, 'path'), get<string>(args, 'content'));
+	const path = get<string>(args, 'path');
+	const result = takeHookResult(path) ?? vaultIndex.update(path, get<string>(args, 'content'));
+	if (result.changed) emitIndexUpdated(result);
+	return result;
 }
 
 function handleRemoveNoteFromIndex(args: Args): unknown {
-	return vaultIndex.remove(get<string>(args, 'path'));
+	const path = get<string>(args, 'path');
+	const result = takeHookResult(path) ?? vaultIndex.remove(path);
+	if (result.changed) emitIndexUpdated(result);
+	return result;
+}
+
+/**
+ * Rust `rename_note` re-keys `from` and every entry under `from + '/'`, and
+ * emits once when anything moved. The disk rename already ran through
+ * `virtualFS.rename`, whose `onRename` hook recorded one removal per moved
+ * key (children only, for a folder), so those removals decide the emit.
+ */
+function handleRenameNote(args: Args): unknown {
+	const from = get<string>(args, 'from');
+	const to = get<string>(args, 'to');
+	const prefix = from + '/';
+	let changed = false;
+	for (const key of [...lastHookResult.keys()]) {
+		if (key !== from && !key.startsWith(prefix)) continue;
+		if (takeHookResult(key)?.changed) changed = true;
+	}
+	if (!changed) return null;
+	const result: UpdateResultV2 = { changed: true, affected: [from, to], version: vaultIndex.version };
+	emitIndexUpdated(result);
+	return result;
 }
 
 function handleGetAllPropertyRecords(): unknown {
@@ -263,6 +311,7 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	toggle_task_status: handleToggleTaskStatus,
 	update_note_in_index: handleUpdateNoteInIndex,
 	remove_note_from_index: handleRemoveNoteFromIndex,
+	rename_note: handleRenameNote,
 	get_all_property_records: handleGetAllPropertyRecords,
 
 	// Watcher
