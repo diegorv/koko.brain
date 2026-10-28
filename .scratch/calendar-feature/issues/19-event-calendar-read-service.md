@@ -34,3 +34,4 @@
 - 2026-10-28 13:09 — discovery — plan written to work/19/discovery.md — 1033a194
 - 2026-10-28 13:12 — implement — service + 29 tests (28 service, 1 editor.logic); pnpm check 0 errors, editor + event-calendar vitest 596/596; full gate and e2e left to deliver — c3ef20b7
 - 2026-10-28 13:15 — review — CHANGES_REQUESTED: 1 medium (isLoading stuck true on a vault-switch-stale load), 2 low test gaps, 1 info; pnpm check 0 errors, targeted vitest 705/705 — b12e8343
+- 2026-10-28 13:16 — fix — review findings 1-3 fixed (isLoading on vault-switch-stale load, settings re-projection test, clock afterEach release), 4 noted for Task 20; service suite 30/30 — 9f1b9c96

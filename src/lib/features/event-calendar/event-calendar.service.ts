@@ -29,7 +29,8 @@ let clockTimer: ReturnType<typeof setInterval> | null = null;
 /**
  * Projects the current vault entries snapshot into `eventCalendarStore`.
  * Latest wins: a result that lands after a newer load, a reset or a vault
- * switch is discarded. The snapshot is memoized per index version, so a
+ * switch is discarded; a load stale only by a vault switch still clears
+ * `isLoading`. The snapshot is memoized per index version, so a
  * re-projection after a settings change costs no IPC.
  * @throws the IPC error, after logging it and setting `loadError`; events
  *   are left untouched
@@ -42,7 +43,11 @@ export async function loadEvents(): Promise<void> {
 	eventCalendarStore.setLoading(true);
 	try {
 		const entries = await getVaultEntries();
-		if (!isCurrent()) return;
+		if (!isCurrent()) {
+			// Stale by vault switch only: no newer load or reset owns the flag.
+			if (token === loadToken) eventCalendarStore.setLoading(false);
+			return;
+		}
 		const settings = settingsStore.eventCalendar;
 		const projection = eventsFromEntries(entries, {
 			defaults: { defaultDurationMinutes: settings.defaultDurationMinutes, defaultColor: settings.defaultColor },
@@ -57,6 +62,8 @@ export async function loadEvents(): Promise<void> {
 		error('EVENT-CALENDAR', 'loadEvents failed:', err);
 		if (isCurrent()) {
 			eventCalendarStore.setLoadError(err instanceof Error ? err.message : String(err));
+			eventCalendarStore.setLoading(false);
+		} else if (token === loadToken) {
 			eventCalendarStore.setLoading(false);
 		}
 		throw err;

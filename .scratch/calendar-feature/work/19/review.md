@@ -43,3 +43,10 @@ Reviewed `git diff main...HEAD` (36ebf354, c3ef20b7, b12e8343) in the worktree.
 4. **Info, no change in this Issue: `event-calendar.service.ts:62`.** A stale failure is rethrown by design (the documented default). The Task 20 caller's `.catch(...)` must therefore not toast an error from a superseded load, such as the previous vault's error after a switch. Record this for Task 20. It does not block this Issue.
 
 No scope creep. All five touched source and test files are the ones the Issue lists. The layer rules hold (a feature imports core), and the service propagates its errors as CLAUDE.md requires. No mocks of stores or `.logic.ts` files were added.
+
+## Resolution
+
+- Finding 1: fixed. `loadEvents()` clears `isLoading` when the load is still the latest token but the vault path changed, in both the success and the failure branch; nothing else is written. `discards a result read for a vault that is no longer open` now asserts `isLoading === false`, and a new stale-by-path rejection case asserts the rethrow, `loadError` null and `isLoading` false. Both fail without the fix.
+- Finding 2: fixed. New test loads twice at version 3 with `defaultColor: 'green'` set between the loads, and asserts one `invoke` call and `color === 'green'`.
+- Finding 3: fixed. The clock describe acquires through an `acquire()` helper that records each release; an `afterEach` calls them all (release is idempotent).
+- Finding 4: accepted, no change in this Issue. Task 20's `.catch` on `loadEvents()` must not toast an error from a superseded load.

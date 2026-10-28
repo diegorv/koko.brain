@@ -273,6 +273,32 @@ describe('loadEvents', () => {
 		await load;
 
 		expect(eventCalendarStore.events).toEqual([]);
+		expect(eventCalendarStore.isLoading).toBe(false);
+	});
+
+	it('discards a failure read for a vault that is no longer open, but clears isLoading and rethrows', async () => {
+		const pending = deferred<NoteEntryV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(pending.promise);
+
+		const load = loadEvents();
+		vaultStore.open('/other');
+		pending.reject(new Error('old vault'));
+
+		await expect(load).rejects.toThrow('old vault');
+		expect(eventCalendarStore.loadError).toBeNull();
+		expect(eventCalendarStore.isLoading).toBe(false);
+	});
+
+	it('re-projects after a settings change at the same index version without a second IPC', async () => {
+		vaultStore.bumpVaultIndexVersion(3);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('a'), { date: '2026-11-10', start: '09:00' })]);
+		await loadEvents();
+
+		settingsStore.updateEventCalendar({ defaultColor: 'green' });
+		await loadEvents();
+
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(eventCalendarStore.eventByPath(P('a'))?.color).toBe('green');
 	});
 
 	it('leaves out templates under the system folder and archived events', async () => {
@@ -304,14 +330,29 @@ describe('loadEvents', () => {
 describe('acquireCalendarClock', () => {
 	const T0 = new Date(2026, 10, 10, 9, 0).getTime();
 
+	/** Releases handed out in the current test; released in afterEach so a failing test cannot leak a clock ref. */
+	let releases: Array<() => void> = [];
+
+	/** Acquires the clock and records the release for afterEach. */
+	function acquire(): () => void {
+		const release = acquireCalendarClock();
+		releases.push(release);
+		return release;
+	}
+
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.setSystemTime(T0);
 		eventCalendarViewStore.setNow(0);
 	});
 
+	afterEach(() => {
+		for (const release of releases) release();
+		releases = [];
+	});
+
 	it('ticks on acquire and every 30 seconds', () => {
-		const release = acquireCalendarClock();
+		const release = acquire();
 		expect(eventCalendarViewStore.nowMs).toBe(T0);
 
 		vi.advanceTimersByTime(29_999);
@@ -322,7 +363,7 @@ describe('acquireCalendarClock', () => {
 	});
 
 	it('re-ticks on window focus and on visibilitychange', () => {
-		const release = acquireCalendarClock();
+		const release = acquire();
 
 		vi.setSystemTime(T0 + 86_400_000);
 		window.dispatchEvent(new Event('focus'));
@@ -335,7 +376,7 @@ describe('acquireCalendarClock', () => {
 	});
 
 	it('the last release clears the interval and both listeners', () => {
-		const release = acquireCalendarClock();
+		const release = acquire();
 		release();
 		expect(vi.getTimerCount()).toBe(0);
 
@@ -348,8 +389,8 @@ describe('acquireCalendarClock', () => {
 	});
 
 	it('a double release is a no-op and two acquirers keep the clock until both release', () => {
-		const a = acquireCalendarClock();
-		const b = acquireCalendarClock();
+		const a = acquire();
+		const b = acquire();
 		expect(vi.getTimerCount()).toBe(1);
 
 		a();
@@ -362,10 +403,10 @@ describe('acquireCalendarClock', () => {
 	});
 
 	it('never counts below zero: extra releases do not stop a later acquirer', () => {
-		const a = acquireCalendarClock();
+		const a = acquire();
 		a();
 		a();
-		const b = acquireCalendarClock();
+		const b = acquire();
 		expect(vi.getTimerCount()).toBe(1);
 		vi.advanceTimersByTime(30_000);
 		expect(eventCalendarViewStore.nowMs).toBe(T0 + 30_000);
@@ -374,13 +415,13 @@ describe('acquireCalendarClock', () => {
 	});
 
 	it('resetEventCalendar never touches the clock', () => {
-		const a = acquireCalendarClock();
+		const a = acquire();
 		resetEventCalendar();
 		vi.advanceTimersByTime(30_000);
 		expect(eventCalendarViewStore.nowMs).toBe(T0 + 30_000);
 		a();
 
-		const b = acquireCalendarClock();
+		const b = acquire();
 		vi.advanceTimersByTime(30_000);
 		expect(eventCalendarViewStore.nowMs).toBe(T0 + 60_000);
 		b();
