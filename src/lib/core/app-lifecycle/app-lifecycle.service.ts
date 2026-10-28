@@ -61,6 +61,7 @@ import {
 	scanFilesForCalendar,
 } from '$lib/plugins/calendar/calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
+import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
 import { autoOpenDailyNote, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -138,6 +139,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// so the entries memo would keep serving the previous vault's snapshot
 	// under an unchanged key.
 	invalidateVaultEntries();
+	// Same window: the skipped teardown would leave the previous vault's events
+	// and view state in the event-calendar stores. Resets only those two
+	// stores; a mounted Calendar tab keeps its clock and reloads on its own.
+	resetEventCalendar();
 	// Unconditional for the same reason: a session left running by the skipped
 	// teardown still holds the PREVIOUS vault's path, and the `loadSettings`
 	// below would hand it the NEW vault's settings to write there. Stopping
@@ -598,6 +603,7 @@ export function teardownVault(): void {
 	resetBookmarks();
 	resetFileIcons();
 	resetCalendar();
+	resetEventCalendar();
 	resetTasks();
 	resetProperties();
 	resetCollection();

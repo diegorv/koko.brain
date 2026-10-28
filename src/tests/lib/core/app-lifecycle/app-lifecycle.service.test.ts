@@ -148,6 +148,10 @@ vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 	scanFilesForCalendar: vi.fn(),
 }));
 
+vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+	resetEventCalendar: vi.fn(),
+}));
+
 vi.mock('$lib/features/tasks/tasks.service', () => ({
 	buildTaskIndex: vi.fn(),
 	resetTasks: vi.fn(),
@@ -206,6 +210,7 @@ import { resetTemplates, ensureTemplatesFolder } from '$lib/plugins/templates/te
 import { loadBookmarks, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
 import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '$lib/features/file-icons/file-icons.service';
 import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
+import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -284,6 +289,49 @@ describe('initializeVault', () => {
 		expect(stopSettingsPersistence).toHaveBeenCalledTimes(1);
 		expect(vi.mocked(stopSettingsPersistence).mock.invocationCallOrder[0])
 			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+	});
+
+	it('runs the entry steps in order: stop persistence, disable Sentry, then load settings', async () => {
+		const expectEntryOrder = () => {
+			const stop = vi.mocked(stopSettingsPersistence).mock.invocationCallOrder[0];
+			const sentry = vi.mocked(disableSentry).mock.invocationCallOrder[0];
+			const load = vi.mocked(loadSettings).mock.invocationCallOrder[0];
+			expect(stop).toBeLessThan(sentry);
+			expect(sentry).toBeLessThan(load);
+		};
+
+		// Normal path.
+		vi.clearAllMocks();
+		await initializeVault('/vault');
+		expectEntryOrder();
+
+		// Double-switch path: the leading teardown clears the watcher handle,
+		// so this init skips teardownVault.
+		teardownVault();
+		vi.clearAllMocks();
+		await initializeVault('/vault-c');
+		expectEntryOrder();
+	});
+
+	it('resets the event calendar before loading settings, on both entry paths', async () => {
+		const expectResetBeforeLoad = () => {
+			expect(resetEventCalendar).toHaveBeenCalled();
+			expect(vi.mocked(resetEventCalendar).mock.invocationCallOrder[0])
+				.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+		};
+
+		// Normal path.
+		vi.clearAllMocks();
+		await initializeVault('/vault');
+		expectResetBeforeLoad();
+
+		// Double-switch path: teardownVault is skipped, so only the entry call
+		// keeps the previous vault's events out of the next one.
+		teardownVault();
+		vi.clearAllMocks();
+		await initializeVault('/vault-c');
+		expect(resetEventCalendar).toHaveBeenCalledTimes(1);
+		expectResetBeforeLoad();
 	});
 
 	it('prepares templates after settings are ready, then runs the post-open side effects', async () => {
@@ -794,6 +842,13 @@ describe('teardownVault', () => {
 		expect(resetGraphView).toHaveBeenCalled();
 		expect(resetTemplates).toHaveBeenCalled();
 		expect(resetCalendar).toHaveBeenCalled();
+	});
+
+	it('resets the event calendar stores', () => {
+		vi.clearAllMocks();
+		teardownVault();
+
+		expect(resetEventCalendar).toHaveBeenCalledTimes(1);
 	});
 
 	it('resets UI state (quick switcher, command palette)', () => {
