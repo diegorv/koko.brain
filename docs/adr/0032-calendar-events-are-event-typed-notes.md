@@ -48,7 +48,7 @@ The feature is always loaded and owns a singleton virtual tab (`fileType: 'event
 
 ### New note-change source: `restore` (plan D20)
 
-`NoteChangeSource` gains a sixth value, `restore` (`src/lib/core/filesystem/note-change.service.ts:17`), with the policy row `restore: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false }` (`:92-94`). `restoreItem` calls it for a restored Markdown file after the rename back (`src/lib/core/trash/trash.service.ts:145-146`, `indexRestoredNote` at `:221-234`), so the note is indexed at once instead of after the watcher debounce. The IPC must fire on every call: the delete already removed the note from Rust (`forgetNote`), and unlike `create` / `fs` no `create_note` ran for the restored file. Restored directories still rely on the watcher. The Trash panel's own restores get the same fix.
+`NoteChangeSource` gains a sixth value, `restore` (`src/lib/core/filesystem/note-change.service.ts:17`), with the policy row `restore: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false }` (`:92-94`). `restoreItem` calls it for a restored Markdown file after the rename back (`src/lib/core/trash/trash.service.ts:146-147`, `indexRestoredNotes` at `:221-248`), so the note is indexed at once instead of after the watcher debounce. The IPC must fire on every call: the delete already removed the note from Rust (`forgetNote`), and unlike `create` / `fs` no `create_note` ran for the restored file. A restored folder takes the same path for every Markdown note under it, walked from the file tree after `refreshTree()` (`:156-160`); the watcher cannot cover it, since the folder rename arrives as one directory event that its directory-only filter drops. The Trash panel's own restores get the same fix.
 
 ### Cross-layer imports
 
@@ -128,4 +128,4 @@ The existing writers (Properties panel, lifecycle toggles, meta-bind widgets, th
 - Event type setting: `src/lib/core/settings/settings.logic.ts:64-69`; resolution: `event-calendar-event.logic.ts:367-370`.
 - Shared writer: `src/lib/features/properties/frontmatter-write.service.ts:68` (`updateNoteFrontmatter`), lossy check `:94`.
 - Template refusal: `src/lib/features/event-calendar/event-calendar.service.ts:598`.
-- `restore` source: `src/lib/core/filesystem/note-change.service.ts:17, 92-94`; caller `src/lib/core/trash/trash.service.ts:145-146, 221-234`.
+- `restore` source: `src/lib/core/filesystem/note-change.service.ts:17, 92-94`; caller `src/lib/core/trash/trash.service.ts:146-147, 156-160, 221-248`.

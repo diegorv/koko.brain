@@ -11,7 +11,8 @@ import {
 	parseTrashManifest,
 	serializeTrashManifest,
 } from './trash.logic';
-import { getRelativePath } from '$lib/core/filesystem/fs.logic';
+import { collectFilePathsUnder, getRelativePath } from '$lib/core/filesystem/fs.logic';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
@@ -102,8 +103,8 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
  * Restores a trashed item to its original location.
  * Creates parent directories if they no longer exist.
  * Appends a numeric suffix if the original path is occupied.
- * A restored Markdown note is re-indexed through `applyNoteChange`
- * (`restore` source); directories are left to the watcher.
+ * A restored Markdown note, or every Markdown note inside a restored
+ * folder, is re-indexed through `applyNoteChange` (`restore` source).
  */
 export async function restoreItem(vaultPath: string, item: TrashItem): Promise<string | null> {
 	try {
@@ -141,14 +142,22 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		trashStore.removeItem(item.id);
 
 		// Re-index a restored note right away instead of waiting for the
-		// watcher. Directories keep relying on the watcher.
+		// watcher.
 		if (!item.isDirectory && isMarkdownPath(restorePath)) {
-			await indexRestoredNote(vaultPath, restorePath);
+			await indexRestoredNotes(vaultPath, [restorePath]);
 		}
 
 		// Refresh the file tree so the restored item appears
 		const { refreshTree } = await import('$lib/core/filesystem/fs.service');
 		await refreshTree();
+
+		// A folder's notes are walked from the refreshed tree, so they match
+		// what the vault scan sees. The watcher cannot stand in: the restore
+		// arrives as one directory rename, which its directory-only filter drops.
+		if (item.isDirectory) {
+			const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
+			await indexRestoredNotes(vaultPath, notes);
+		}
 
 		debug('Trash', `Restored: ${item.originalPath} → ${restorePath}`);
 		return restorePath;
@@ -209,25 +218,30 @@ export function resetTrash(): void {
 }
 
 /**
- * Reads the restored note and hands it to the note-change owner. A read
- * failure is logged and sets no recent-save mark, so the watcher still
- * indexes the file.
+ * Reads each restored note and hands it to the note-change owner. A read
+ * failure is logged and sets no recent-save mark for that note, so the
+ * watcher still indexes it.
  *
  * The recent-save mark makes the watcher skip this restore, so the
- * post-update steps of its incremental path run here instead: unlinked
- * mentions are flagged dirty and the queryjs and kanban linked-content
- * caches are cleared.
+ * post-update steps of its incremental path run here instead, once, when at
+ * least one note was indexed: unlinked mentions are flagged dirty and the
+ * queryjs and kanban linked-content caches are cleared.
  */
-async function indexRestoredNote(vaultPath: string, restorePath: string): Promise<void> {
-	let content: string;
-	try {
-		content = await readTextFile(restorePath);
-	} catch (err) {
-		error('Trash', 'Failed to read restored note for indexing (watcher will index it):', err);
-		return;
+async function indexRestoredNotes(vaultPath: string, paths: string[]): Promise<void> {
+	let indexed = false;
+	for (const path of paths) {
+		let content: string;
+		try {
+			content = await readTextFile(path);
+		} catch (err) {
+			error('Trash', 'Failed to read restored note for indexing (watcher will index it):', err);
+			continue;
+		}
+		markRecentSave(path);
+		void applyNoteChange({ kind: 'upsert', source: 'restore', path, content, vaultPath });
+		indexed = true;
 	}
-	markRecentSave(restorePath);
-	void applyNoteChange({ kind: 'upsert', source: 'restore', path: restorePath, content, vaultPath });
+	if (!indexed) return;
 	backlinksStore.markUnlinkedDirty();
 	invalidateQueryjsCache();
 	clearLinkedContentCache();

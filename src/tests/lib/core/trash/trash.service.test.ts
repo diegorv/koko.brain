@@ -29,6 +29,8 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
 import { trashStore } from '$lib/core/trash/trash.store.svelte';
 import type { TrashItem } from '$lib/core/trash/trash.types';
+import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import {
 	loadTrash,
 	moveToTrash,
@@ -349,6 +351,8 @@ describe('restoreItem - indexing', () => {
 		mockMkdir.mockResolvedValue(undefined);
 		mockWriteTextFile.mockResolvedValue(undefined);
 		mockReadTextFile.mockResolvedValue(CONTENT);
+		vi.mocked(refreshTree).mockReset();
+		fsStore.setFileTree([]);
 		upserts = [];
 		unregister = registerNoteChangeConsumer({
 			name: 'test-consumer',
@@ -397,9 +401,100 @@ describe('restoreItem - indexing', () => {
 		expect(upserts).toEqual([[path, CONTENT]]);
 	});
 
-	it('indexes nothing for a directory restore', async () => {
+	/** A directory node holding `children`. */
+	function dir(path: string, children: FileTreeNode[]): FileTreeNode {
+		return { name: path.substring(path.lastIndexOf('/') + 1), path, isDirectory: true, children };
+	}
+
+	/** A file node. */
+	function file(path: string): FileTreeNode {
+		return { name: path.substring(path.lastIndexOf('/') + 1), path, isDirectory: false };
+	}
+
+	/** Makes the mocked `refreshTree` publish `tree` as the post-restore file tree. */
+	function treeAfterRefresh(tree: FileTreeNode[]): void {
+		vi.mocked(refreshTree).mockImplementation(async () => { fsStore.setFileTree(tree); });
+	}
+
+	it('indexes every Markdown note of a restored nested folder', async () => {
 		const item = makeStoredItem('1000', 'projects/archive', true);
 		trashStore.setItems([item]);
+		const root = '/Users/me/vault/projects/archive';
+		const top = `${root}/plan.md`;
+		const deep = `${root}/2026/q1/review.markdown`;
+		treeAfterRefresh([
+			dir('/Users/me/vault/projects', [
+				dir(root, [
+					file(top),
+					file(`${root}/diagram.png`),
+					dir(`${root}/2026`, [dir(`${root}/2026/q1`, [file(deep)]), dir(`${root}/2026/empty`, [])]),
+				]),
+				file('/Users/me/vault/projects/other.md'),
+			]),
+		]);
+
+		const result = await restoreItem(VAULT, item);
+
+		expect(result).toBe(root);
+		expect(mockReadTextFile.mock.calls.map((c) => c[0])).toEqual([top, deep]);
+		for (const [path, rel] of [[top, 'projects/archive/plan.md'], [deep, 'projects/archive/2026/q1/review.markdown']]) {
+			expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path, content: CONTENT });
+			expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+				filePath: rel, content: CONTENT, vaultPath: VAULT,
+			});
+		}
+		expect(invokedCommands().filter((c) => c === 'update_note_in_index')).toHaveLength(2);
+		expect(upserts).toEqual([[top, CONTENT], [deep, CONTENT]]);
+		expect(areAllRecentSaves([top, deep])).toBe(true);
+		expect(backlinksStore.unlinkedDirty).toBe(true);
+		expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+		expect(trashStore.items).toHaveLength(0);
+	});
+
+	it('indexes a suffixed folder restore under the suffixed path', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+		mockExists.mockResolvedValueOnce(true).mockResolvedValue(false);
+		const root = '/Users/me/vault/projects/archive (restored)';
+		const note = `${root}/plan.md`;
+		treeAfterRefresh([
+			dir('/Users/me/vault/projects', [
+				dir('/Users/me/vault/projects/archive', [file('/Users/me/vault/projects/archive/plan.md')]),
+				dir(root, [file(note)]),
+			]),
+		]);
+
+		const result = await restoreItem(VAULT, item);
+
+		expect(result).toBe(root);
+		expect(mockReadTextFile.mock.calls.map((c) => c[0])).toEqual([note]);
+		expect(upserts).toEqual([[note, CONTENT]]);
+	});
+
+	it('skips an unreadable note of a restored folder and indexes the rest', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+		const root = '/Users/me/vault/projects/archive';
+		const bad = `${root}/bad.md`;
+		const good = `${root}/good.md`;
+		treeAfterRefresh([dir(root, [file(bad), file(good)])]);
+		mockReadTextFile.mockImplementation(async (p) => {
+			if (p === bad) throw new Error('read failed');
+			return CONTENT;
+		});
+
+		await restoreItem(VAULT, item);
+
+		expect(upserts).toEqual([[good, CONTENT]]);
+		expect(areAllRecentSaves([good])).toBe(true);
+		// No self-save mark, so the watcher still indexes the unreadable note.
+		expect(areAllRecentSaves([bad])).toBe(false);
+	});
+
+	it('indexes nothing for an empty restored folder', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+		treeAfterRefresh([dir('/Users/me/vault/projects', [dir('/Users/me/vault/projects/archive', [])])]);
 
 		const result = await restoreItem(VAULT, item);
 
@@ -407,6 +502,8 @@ describe('restoreItem - indexing', () => {
 		expect(mockReadTextFile).not.toHaveBeenCalled();
 		expect(invokedCommands()).toEqual([]);
 		expect(upserts).toEqual([]);
+		expect(backlinksStore.unlinkedDirty).toBe(false);
+		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
 		expect(trashStore.items).toHaveLength(0);
 	});
 
