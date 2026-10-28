@@ -12,6 +12,13 @@ export type DailyNoteOpener = (day: string) => Promise<void>;
 /** The registered opener, or null when no plugin provides one. */
 let opener = $state.raw<DailyNoteOpener | null>(null);
 
+/**
+ * Opens still in flight, by day. Every Calendar view and remount shares this
+ * map, so a second open of a day whose note does not exist yet joins the first
+ * instead of racing its `create_note` into "File already exists".
+ */
+const inFlight = new Map<string, Promise<void>>();
+
 export const eventCalendarDailyNoteStore = {
 	/** Whether an opener is registered, i.e. whether the daily note action is shown. */
 	get available(): boolean {
@@ -29,9 +36,16 @@ export const eventCalendarDailyNoteStore = {
 		};
 	},
 
-	/** Opens the daily note of `day`; rejects when no opener is registered or the opener fails. */
+	/**
+	 * Opens the daily note of `day`; rejects when no opener is registered or the
+	 * opener fails. While an open of `day` is in flight, returns that same promise.
+	 */
 	open(day: string): Promise<void> {
 		if (!opener) return Promise.reject(new Error('No daily note opener is registered'));
-		return opener(day);
+		const pending = inFlight.get(day);
+		if (pending) return pending;
+		const opening = opener(day).finally(() => inFlight.delete(day));
+		inFlight.set(day, opening);
+		return opening;
 	},
 };

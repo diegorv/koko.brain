@@ -49,4 +49,43 @@ describe('eventCalendarDailyNoteStore', () => {
 		expect(second).toHaveBeenCalledWith('2026-11-13');
 		expect(first).not.toHaveBeenCalled();
 	});
+
+	it('joins a second open of the same day while the first is in flight', async () => {
+		let finish!: () => void;
+		const opener = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+		unregister = eventCalendarDailyNoteStore.register(opener);
+
+		const first = eventCalendarDailyNoteStore.open('2026-11-12');
+		const second = eventCalendarDailyNoteStore.open('2026-11-12');
+		expect(opener).toHaveBeenCalledTimes(1);
+		expect(second).toBe(first);
+
+		finish();
+		await Promise.all([first, second]);
+		const again = eventCalendarDailyNoteStore.open('2026-11-12');
+		expect(opener).toHaveBeenCalledTimes(2);
+		finish();
+		await again;
+	});
+
+	it('opens different days independently', async () => {
+		const finishers: (() => void)[] = [];
+		const opener = vi.fn(() => new Promise<void>((resolve) => finishers.push(resolve)));
+		unregister = eventCalendarDailyNoteStore.register(opener);
+
+		const opens = [eventCalendarDailyNoteStore.open('2026-11-12'), eventCalendarDailyNoteStore.open('2026-11-13')];
+		expect(opener.mock.calls).toEqual([['2026-11-12'], ['2026-11-13']]);
+
+		finishers.forEach((finish) => finish());
+		await Promise.all(opens);
+	});
+
+	it('lets the day open again after a failed open', async () => {
+		const opener = vi.fn().mockRejectedValueOnce(new Error('disk full')).mockResolvedValueOnce(undefined);
+		unregister = eventCalendarDailyNoteStore.register(opener);
+
+		await expect(eventCalendarDailyNoteStore.open('2026-11-12')).rejects.toThrow('disk full');
+		await eventCalendarDailyNoteStore.open('2026-11-12');
+		expect(opener).toHaveBeenCalledTimes(2);
+	});
 });

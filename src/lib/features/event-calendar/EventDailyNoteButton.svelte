@@ -13,26 +13,13 @@
 
 	let { day, class: className = '' }: Props = $props();
 
-	/**
-	 * True while an open is in flight. A second click before it settles would
-	 * race the first `create_note` for a note that does not exist yet and fail
-	 * with "File already exists" on top of a note that opened fine.
-	 */
-	let pending = false;
-
+	/** Repeat clicks are safe: the store joins an open of the same day that is still in flight. */
 	function handleClick() {
-		if (pending) return;
-		pending = true;
-		eventCalendarDailyNoteStore
-			.open(day)
-			.catch((err) => {
-				toast.error('Could not open the daily note', {
-					description: err instanceof Error ? err.message : String(err),
-				});
-			})
-			.finally(() => {
-				pending = false;
+		eventCalendarDailyNoteStore.open(day).catch((err) => {
+			toast.error('Could not open the daily note', {
+				description: err instanceof Error ? err.message : String(err),
 			});
+		});
 	}
 </script>
 

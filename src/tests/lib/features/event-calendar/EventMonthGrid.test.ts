@@ -377,6 +377,30 @@ describe('EventMonthGrid: daily note action', () => {
 			button.click();
 			expect(opener).toHaveBeenCalledTimes(2);
 		});
+		resolveOpen();
+		await eventCalendarDailyNoteStore.open('2026-11-20');
+	});
+
+	it('a remounted grid joins an open of the same day that is still in flight', async () => {
+		let resolveOpen: () => void = () => {};
+		const opener = vi.fn(
+			() =>
+				new Promise<void>((resolve) => {
+					resolveOpen = resolve;
+				}),
+		);
+		unregister = eventCalendarDailyNoteStore.register(opener);
+		mountGrid();
+		cell('2026-11-20').querySelector<HTMLButtonElement>('[data-daily-note]')!.click();
+
+		unmount(component!);
+		mountGrid();
+		cell('2026-11-20').querySelector<HTMLButtonElement>('[data-daily-note]')!.click();
+		expect(opener).toHaveBeenCalledTimes(1);
+
+		resolveOpen();
+		await eventCalendarDailyNoteStore.open('2026-11-20');
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('toasts when the opener fails', async () => {
