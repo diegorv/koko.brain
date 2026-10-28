@@ -33,3 +33,4 @@
 ## Comments
 
 - 2026-10-28 14:08 — discovery — plan in work/26/discovery.md: EventPopover (bits-ui customAnchor, fixed strategy, no portal) mounted in the view; blocks/chips open it and carry the ring; focus restored only when lost; bits-ui unchanged at 2.19.5 — pending
+- 2026-10-28 14:18 — implement — EventPopover + ring on blocks/month chips/lane chips; check 0 errors, event-calendar vitest 517/517, event-calendar E2E 10/11 with the pre-existing DST now-line test flaky under parallel load (3/3 alone); new popover E2E 4/4 repeated — f7ac87e4
