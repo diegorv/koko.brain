@@ -10,7 +10,11 @@ import { loadNoteTemplate, openOrCreateNote } from '$lib/core/note-creator/note-
 import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
-import { parseFrontmatterProperties, extractBody, rebuildContent } from '$lib/features/properties/properties.logic';
+import {
+	FrontmatterWriteError,
+	toastFrontmatterWriteError,
+	updateNoteFrontmatter,
+} from '$lib/features/properties/frontmatter-write.service';
 import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
 import { toast } from 'svelte-sonner';
 import { error } from '$lib/utils/debug';
@@ -232,21 +236,18 @@ export async function createView(): Promise<void> {
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 }
 
-/** Toggles _favorite on a note by path, updating file and editor if open. */
+/**
+ * Toggles _favorite on a note by path through `updateNoteFrontmatter`, so an
+ * open tab keeps its unsaved edits. A refused or failed write (lossy
+ * frontmatter, vanished note) is reported in a toast; other errors propagate.
+ */
 export async function toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> {
-	const content = await readTextFile(filePath);
-	const properties = parseFrontmatterProperties(content);
-	const body = extractBody(content);
-	const updated = toggleFavorite(properties, favorite);
-	const newContent = rebuildContent(updated, body);
-	await writeTextFile(filePath, newContent);
-	if (editorStore.activeTabPath === filePath) {
-		// `'none'`: the toggled `_favorite` was just written to disk above.
-		syncExternalContentToEditor(filePath, newContent, true, 'none');
+	try {
+		await updateNoteFrontmatter(filePath, (props) => toggleFavorite(props, favorite));
+	} catch (err) {
+		if (!(err instanceof FrontmatterWriteError)) throw err;
+		toastFrontmatterWriteError(err);
 	}
-	// The write bypasses the editor save path, so the owner is the only thing
-	// that indexes the toggled `_favorite` before the watcher debounce.
-	await applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content: newContent });
 }
 
 /** Updates _icon, _color, and _title_color in a .view YAML file. */

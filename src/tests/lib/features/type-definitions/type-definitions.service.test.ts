@@ -8,6 +8,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	readDir: vi.fn(),
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
+	exists: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -29,6 +30,7 @@ vi.mock('$lib/core/note-creator/note-creator.service', async () => {
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 	syncExternalContentToEditor: vi.fn(),
+	saveFileByPath: vi.fn(),
 }));
 
 vi.mock('$lib/core/filesystem/fs.service', () => ({
@@ -52,11 +54,11 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readDir, readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
+import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -551,12 +553,16 @@ describe('toggleFavoriteForPath', () => {
 		vi.resetAllMocks();
 		clearLocalStorage();
 		vaultStore._reset();
-		// The write now routes through `applyNoteChange`, which calls `invoke`.
+		editorStore.reset();
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(saveFileByPath).mockResolvedValue(true);
+		// The write runs `notifyAfterSave` -> `applyNoteChange`, which calls `invoke`.
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
 	});
 
 	afterEach(() => {
 		vaultStore._reset();
+		editorStore.reset();
 		clearLocalStorage();
 	});
 
@@ -586,28 +592,42 @@ describe('toggleFavoriteForPath', () => {
 		);
 	});
 
-	it('syncs editor when file is active tab', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
-		editorStore.reset();
-		editorStore.addTab({ path: '/vault/note.md', name: 'note', content: '', savedContent: '' });
+	it('patches an open dirty tab from its own content, keeping the body edit, and saves it', async () => {
+		editorStore.addTab({
+			path: '/vault/note.md',
+			name: 'note',
+			content: '---\ntype: Project\n---\n\n# Unsaved edit\n',
+			savedContent: '---\ntype: Project\n---\n\n# My Note\n',
+		});
 
 		await toggleFavoriteForPath('/vault/note.md', true);
 
-		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
-			'/vault/note.md',
-			expect.stringContaining('_favorite: true'),
-			true,
-			'none',
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		const [path, content, markClean] = vi.mocked(syncExternalContentToEditor).mock.calls[0];
+		expect(path).toBe('/vault/note.md');
+		expect(content).toContain('_favorite: true');
+		expect(content).toContain('# Unsaved edit');
+		expect(markClean).toBe(false);
+		expect(saveFileByPath).toHaveBeenCalledWith('/vault/note.md');
+	});
+
+	it('refuses lossy frontmatter: no write, error toast', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n# keep me\ntype: Project\n---\n\n# My Note\n');
+
+		await toggleFavoriteForPath('/vault/note.md', true);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith(
+			"The note's frontmatter has comments; it cannot be rewritten without losing them",
 		);
 	});
 
-	it('does not sync editor when file is not active tab', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
-		editorStore.reset();
+	it('propagates a read error', async () => {
+		vi.mocked(readTextFile).mockRejectedValue(new Error('EACCES'));
 
-		await toggleFavoriteForPath('/vault/note.md', true);
-
-		expect(syncExternalContentToEditor).not.toHaveBeenCalled();
+		await expect(toggleFavoriteForPath('/vault/note.md', true)).rejects.toThrow('EACCES');
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 });
 
@@ -918,6 +938,8 @@ describe('note-change indexing (issue 29)', () => {
 		clearAllIndexed();
 		collectionStore.reset();
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		// `updateNoteFrontmatter` checks the closed note still exists before writing.
+		vi.mocked(exists).mockResolvedValue(true);
 		unregister = registerCollectionNoteChangeConsumer();
 	});
 
