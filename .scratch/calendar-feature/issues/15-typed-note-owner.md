@@ -27,3 +27,7 @@
 - [ ] The note-creator mock in `type-definitions.service.test.ts` is extended with `loadNoteTemplate` from `vi.importActual`, so the real template path runs against the mocked `readTextFile`, and its `vi.mock` string uses the same specifier as the module's import (Notes > Dependencies)
 - [ ] The `createTypedNote` and `loadNoteTemplate` tests are written first, before the functions are exported (Notes C3, Q5)
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:05 — discovery — plan in work/15/discovery.md: move the template block, extract resolveTypedNoteTarget, add createTypedNote, tests first — fce4801d
