@@ -31,3 +31,6 @@ Ticket 29 review (fix 5c14e82d):
 Ticket 32 review (fix 0542bac2):
 - [ ] "Open Event type" (`EventCalendarSection.svelte:79-90`) with an ordinary note `Event.md` already in the vault root: `createFile` (`fs.service.ts:121`) dedupes to `Event 1.md`, whose type name never matches the configured "Event" (resolved by name at `:46-49`), so every later click creates another `Event N.md` and closes Settings on a definition that is not the configured type. Fix: check the returned path's basename against the configured name, or detect the collision first and toast.
 - [ ] Nit: `TypeSidebar.svelte:396` discards the new return value (harmless).
+
+Ticket 41 review (fix 03026a54):
+- [ ] A span segment block's aria-label reads its clipped day range (e.g. `00:00 – 24:00`) instead of the full event range; the block only receives the clipped segment, so the label needs the full range passed down.
