@@ -18,3 +18,4 @@ Ticket 54 review (fix dd9f45a4):
 
 - 2026-10-28 18:30 — discovery — plan: root-note collision check + basename backstop in openEventType; per-day in-flight map in the daily note store — 48e49feb
 - 2026-10-28 18:33 — implement — root-note collision check + basename backstop in openEventType (18553e9b); per-day in-flight map in the daily note store (3115e898); TypeSidebar nit left as is; no periodic-notes off switch exists, so nothing to hide yet — 3115e898
+- 2026-10-28 18:35 — review — VERDICT: APPROVED; 5 findings (3 low, 2 nit), none blocking: stale in-flight entry across opener swap, toast wording when the type map is stale, TypeSidebar same dedupe class (follow-up), double toast, record deferred items at close — c5709c3f
