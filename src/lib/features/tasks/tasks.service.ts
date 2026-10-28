@@ -89,6 +89,10 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
  * chain — no TS-side index sync remains. The Rust update emits
  * `vault-index-updated`; panels react via `vaultStore.vaultIndexVersion`.
  *
+ * On a changed result the Tasks store is refetched right away: the version
+ * bump is throttled (2 s, up to 10 s during a burst), and the clicked
+ * checkbox must not look unclicked until then.
+ *
  * The open editor tab still gets `syncExternalContentToEditor` so the
  * checkbox toggle is visible without waiting for the watcher to
  * round-trip the file change.
@@ -108,6 +112,7 @@ export async function toggleTask(filePath: string, lineNumber: number): Promise<
 		// path matches the active tab.
 		// `'none'`: Rust already wrote the toggled line to disk.
 		syncExternalContentToEditor(filePath, updatedContent, true, 'none');
+		await buildTaskIndex();
 	} catch (err) {
 		error('TASKS', 'Failed to toggle task:', err);
 		toast.error('Failed to save task change.');

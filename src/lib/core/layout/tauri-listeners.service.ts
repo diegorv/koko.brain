@@ -105,6 +105,8 @@ const REFRESH_MIN_INTERVAL_MS = 10_000;
  * but never sooner than `REFRESH_MIN_INTERVAL_MS` after the previous refresh.
  * Events that arrive while a timer is pending only update `latestVersion`, so
  * the trailing refresh after the last event always carries the latest version.
+ * The wait is capped at `REFRESH_MIN_INTERVAL_MS`, so a backward wall-clock
+ * jump cannot stall the refresh. Events delivered after cleanup are ignored.
  * Panels may lag up to 10 s behind external changes during a burst (the
  * snapshot is a cache, CLAUDE.md Indexing 12).
  * `fetchSeq` is a latest-wins guard: a slow older fetch resolving after
@@ -152,8 +154,13 @@ export function registerVaultIndexUpdatedListener(): () => void {
 		}).catch((err) => { error('LISTENERS', 'get_all_vault_entries_v2 failed:', err); });
 	};
 	const scheduleRefresh = () => {
-		if (timer !== undefined) return;
-		const wait = Math.max(REFRESH_DELAY_MS, lastRefreshAt + REFRESH_MIN_INTERVAL_MS - Date.now());
+		if (cancelled || timer !== undefined) return;
+		// Capped at the min interval: `Date.now()` is wall-clock time, so a
+		// backward clock jump would otherwise stretch the wait by the jump.
+		const wait = Math.min(
+			REFRESH_MIN_INTERVAL_MS,
+			Math.max(REFRESH_DELAY_MS, lastRefreshAt + REFRESH_MIN_INTERVAL_MS - Date.now()),
+		);
 		timer = setTimeout(() => {
 			timer = undefined;
 			lastRefreshAt = Date.now();

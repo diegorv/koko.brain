@@ -152,19 +152,36 @@ describe('toggleTask', () => {
 		});
 	});
 
-	it('does not invoke any TS-side index update beyond toggle_task_status', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
+	it('refetches the Tasks store on a changed toggle without any vaultIndexVersion bump', async () => {
+		const toggled = group('/vault/a.md', 100, ['task']);
+		toggled.tasks[0].checked = true;
+		toggled.tasks[0].status = 'done';
+		tasksStore.setSectionTag('');
+		vi.mocked(invoke)
+			.mockResolvedValueOnce(makeResult('- [x] task'))
+			.mockResolvedValueOnce([toggled]);
 
 		await toggleTask('/vault/a.md', 1);
 
-		// Rust `toggle_task_status` already updated VaultIndex and emitted
-		// `vault-index-updated`; panels react via vaultIndexVersion. No
-		// secondary IPC fires from the TS side after the toggle.
+		// The throttled vault-index-updated bump can land 2-10 s later; the
+		// acting view refetches itself so the checkbox reflects the click now.
+		expect(invoke).toHaveBeenNthCalledWith(2, 'get_all_tasks_v2');
+		expect(tasksStore.fileTaskGroups).toHaveLength(1);
+		expect(tasksStore.fileTaskGroups[0].tasks[0].checked).toBe(true);
+		expect(tasksStore.isLoading).toBe(false);
+	});
+
+	it('does not refetch the Tasks store when the toggle is a no-op', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [ ] task', /* changed */ false));
+
+		await toggleTask('/vault/a.md', 1);
+
 		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(invoke).toHaveBeenCalledWith('toggle_task_status', {
 			path: '/vault/a.md',
 			lineNumber: 1,
 		});
+		expect(tasksStore.fileTaskGroups).toHaveLength(0);
 	});
 
 	it('bumps externalContentSignal when toggled file is the active tab', async () => {

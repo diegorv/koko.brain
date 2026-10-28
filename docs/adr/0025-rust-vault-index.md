@@ -181,15 +181,16 @@ Components (target state):
   event. This does not reintroduce the TS-side mirror the decision above
   rules out: nothing derives from the snapshot, no store holds it, and the
   Rust `VaultIndex` remains the source of truth. The consequence to accept is
-  bounded staleness — between a Rust index mutation and the 300 ms-debounced
-  `vaultIndexVersion` bump in `tauri-listeners.service.ts`, a reader is
+  bounded staleness — between a Rust index mutation and the throttled
+  `vaultIndexVersion` bump in `tauri-listeners.service.ts` (2 s after an
+  isolated event, at most one per 10 s during a burst), a reader is
   served the previous snapshot instead of refetching. That window is the
   price of collapsing the fan-out; a reader that cannot tolerate it must not
   use the memo. That is why the one-shot builders that run BEFORE the bump
   (`initializeVault` step 4b, `buildFrontmatterIconIndex`) keep their direct
   `invoke`, and why the search content/tag maps keep theirs for a different
   reason: they run at query time, so they want freshness beyond the last
-  debounced bump, and each fires at most once per settled query. The content
+  throttled bump, and each fires at most once per settled query. The content
   map fires only on the two fallback paths (an operator-only query, or FTS5
   unavailable); the tag map fires only on a successful `search_fts` call whose
   query carries `tag:` operators. Neither has a repeat-reader fan-out for a
@@ -199,7 +200,7 @@ Components (target state):
   a vault by itself. `invalidateVaultEntries()` does that, and
   `app-lifecycle.service.ts` calls it at three points: `initializeVault`
   entry, immediately after `markIndexReady()`, and in `teardownVault`'s
-  cache-clear block. Dropping any of them reopens the ~300 ms window in which
+  cache-clear block. Dropping any of them reopens the 2-10 s window in which
   a freshly opened vault B is offered vault A's notes.
 - **Re-evaluation triggers**: a phase's parity verification fails the
   delta gate; the `notify` crate ABI breaks compatibility with our tokio

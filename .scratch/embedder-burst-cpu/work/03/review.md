@@ -44,3 +44,11 @@ Constraint checks: `applyNoteChange` and `note-change.service.ts` are untouched.
 ## Scope
 
 No scope creep. The comment-only edits in `vault-entries.service.ts`, `vault.store.svelte.ts`, `app-lifecycle.service.test.ts` and `vault.store.test.ts` keep existing comments accurate. Findings 1 and 2 must be fixed before delivery. 3 is a docs follow-up, and 4 and 5 are optional.
+
+## Resolution
+
+1. Fixed. `toggleTask` awaits `buildTaskIndex()` after a changed result. Tests: changed toggle refetches the store with no version bump; a no-op toggle fires no refetch.
+2. Fixed. The wait is capped with `Math.min(REFRESH_MIN_INTERVAL_MS, ...)`. Test: `vi.setSystemTime` back 1 h, the bump lands within 10 s (fails without the cap).
+3. Fixed in `docs/adr/0025-rust-vault-index.md` (both lines, plus "debounced bump" at the content-map sentence). `CLAUDE.md:289` left for the human.
+4. Not changed (out of scope, as the review says). Left for the human: consider `invalidateVaultEntries()` on create paths.
+5. Fixed. `scheduleRefresh` returns early when `cancelled`. Test: an event after cleanup fires no IPC (fails without the guard).

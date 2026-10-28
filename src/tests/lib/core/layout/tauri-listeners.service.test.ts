@@ -655,6 +655,29 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		expect(vaultStore.vaultIndexVersion).toBe(2);
 	});
 
+	it('still refreshes within 10 s after the wall clock jumps backward', async () => {
+		registerVaultIndexUpdatedListener();
+		fireEvent(1);
+		await settleFanOut();
+		expect(vaultStore.vaultIndexVersion).toBe(1);
+
+		vi.setSystemTime(Date.now() - 3_600_000); // clock steps back 1 h
+		fireEvent(2);
+		await vi.advanceTimersByTimeAsync(10_000);
+
+		expect(vaultStore.vaultIndexVersion).toBe(2);
+	});
+
+	it('ignores an event delivered after cleanup', async () => {
+		const cleanup = registerVaultIndexUpdatedListener();
+		cleanup();
+		fireEvent(3);
+		await vi.advanceTimersByTimeAsync(20_000);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(vaultStore.vaultIndexVersion).toBe(0);
+	});
+
 	it('coalesces a burst into one snapshot fetch carrying the final version', async () => {
 		const snapshot = [entryV2('/vault/c.md', { archived: true })];
 		mockInvokeByCommand(snapshot);
