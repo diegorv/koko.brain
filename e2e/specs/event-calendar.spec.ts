@@ -254,6 +254,76 @@ test.describe('Event calendar month view', () => {
 	});
 });
 
+test.describe('Event calendar spans', () => {
+	const RETREAT = '/test-vault/Events/Retreat.md';
+	const LATE = '/test-vault/Events/Late show.md';
+	const SPAN_FILES: Record<string, string> = {
+		'/test-vault/Events/': '',
+		[RETREAT]: '---\n_type: Event\ndate: 2026-11-11\nend_date: 2026-11-12\n---\n',
+		[LATE]: '---\n_type: Event\ndate: 2026-11-10\nstart: 23:00\nend: 01:00\n---\n',
+	};
+
+	async function seedSpans(page: Page): Promise<void> {
+		await page.evaluate(({ files }) => {
+			const e2e = (window as any).__e2e;
+			e2e.fs.populate(files);
+			e2e.events.emit('vault-index-updated', {
+				changed: true,
+				affected: Object.keys(files).filter((p) => !p.endsWith('/')),
+				version: e2e.vaultIndex.version,
+			});
+		}, { files: SPAN_FILES });
+	}
+
+	test('a two-day event shows on both days in week and month view, without a Needs-attention row', async ({ vaultPage: page }) => {
+		await seedSpans(page);
+		await openCalendar(page);
+
+		const laneChip = (day: string) => page.locator(`[data-all-day-cell="${day}"] [data-event-path="${RETREAT}"]`);
+		await expect(laneChip('2026-11-11')).toHaveText('Retreat', { timeout: 10_000 });
+		await expect(laneChip('2026-11-12')).toHaveText('Retreat');
+		await expect(laneChip('2026-11-10')).toHaveCount(0);
+		await expect(laneChip('2026-11-13')).toHaveCount(0);
+
+		const late = (day: string) => page.locator(`[data-day-column="${day}"] [data-event-path="${LATE}"]`);
+		await expect(late('2026-11-10').locator('[data-event-time]')).toHaveText('23:00 – 24:00');
+		await expect(late('2026-11-11').locator('[data-event-time]')).toHaveText('00:00 – 01:00');
+		await expect(page.locator('[data-attention-badge]')).toHaveCount(0);
+
+		await laneChip('2026-11-12').click();
+		const card = page.locator('[data-event-popover]');
+		await expect(card.locator('[data-popover-date]')).toHaveText('Wednesday, November 11, 2026 – Thursday, November 12, 2026');
+		await page.keyboard.press('Escape');
+		await expect(card).toHaveCount(0);
+
+		await page.getByRole('tab', { name: 'Month' }).click();
+		const monthChip = (day: string, path: string) => page.locator(`[data-month-cell="${day}"] [data-event-path="${path}"]`);
+		await expect(monthChip('2026-11-11', RETREAT)).toHaveText('Retreat');
+		await expect(monthChip('2026-11-12', RETREAT)).toHaveText('Retreat');
+		await expect(monthChip('2026-11-13', RETREAT)).toHaveCount(0);
+		await expect(monthChip('2026-11-10', LATE)).toHaveText('23:00 Late show');
+		await expect(monthChip('2026-11-11', LATE)).toHaveText('Late show');
+	});
+
+	test('a span does not drag: the block stays and the note is unchanged', async ({ vaultPage: page }) => {
+		await seedSpans(page);
+		await openCalendar(page);
+		await scrollGridToHour(page, 22);
+
+		const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${LATE}"]`);
+		await expect(block).toHaveAttribute('data-readonly', 'true', { timeout: 10_000 });
+		await expect(block.locator('[data-resize]')).toHaveCount(0);
+		const box = (await block.boundingBox())!;
+		const column = (await page.locator('[data-day-column="2026-11-10"]').boundingBox())!;
+		await drag(page, box.x + box.width / 2, box.y + 5, column.width, -64);
+
+		await expect(page.locator('[data-create-ghost]')).toHaveCount(0);
+		await expect(block.locator('[data-event-time]')).toHaveText('23:00 – 24:00');
+		await expect(page.locator(`[data-day-column="2026-11-11"] [data-event-path="${LATE}"] [data-event-time]`)).toHaveText('00:00 – 01:00');
+		expect(await readNote(page, LATE)).toBe(SPAN_FILES[LATE]);
+	});
+});
+
 test.describe('Event calendar popover', () => {
 	test('clicking a block shows the popover; "Open note" opens the note and the Calendar tab comes back without it', async ({ vaultPage: page }) => {
 		await seedEvents(page);

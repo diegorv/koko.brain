@@ -74,16 +74,18 @@ Agenda and notes go in the body as usual.
 |-----|---------|-------------|
 | `date` | The day, as `YYYY-MM-DD` | The note is **Unscheduled** (see below) |
 | `start` | Start time, `HH:mm` (24-hour) | The event is all-day |
-| `end` | End time, `HH:mm`; `24:00` is the end of the day | `start` plus the **Default duration** |
+| `end` | End time, `HH:mm`; `24:00` (or `00:00` after a later `start`) is the end of the day. An `end` before `start` ends on the next day | `start` plus the **Default duration**; with `end_date`, the end of that day |
 | `all_day` | `true` makes it an all-day event | Not all-day, unless `start` is absent |
 | `event_color` | `green`, `purple`, `cyan`, `orange`, `pink` or `blue` | The **Default color**; an unknown color also falls back to it |
 | `location` | Free text | No location |
 | `event_title` | Display title, when it differs from the filename | The filename (without `.md`) is the title |
-| `end_date` | Marks a multi-day event | Single-day event |
+| `end_date` | Last day of a multi-day event, as `YYYY-MM-DD` | Single-day event |
 
 `type` is an alias of `_type` (see [Types & Relationships](25-types-and-relationships.md#frontmatter-key-aliases)); the type name matches without regard to case, so `type: event` counts too.
 
-A multi-day event (one with `end_date`) shows read-only on its start day: the calendar does not move or resize it.
+A multi-day event (one with `end_date`) shows on every day from `date` to `end_date`: an all-day one in the all-day row, a timed one from `start` on its first day to `end` on its last day. A timed event whose `end` is before its `start`, such as `start: "23:00"` and `end: "01:00"`, crosses midnight and shows on both days.
+
+Both are read-only on the calendar: you cannot drag, resize or retime them there, because the calendar never writes `end_date` and moving `date` alone would break the span. Change their dates and times in the note. The edit dialog still changes the title, color and location.
 
 ### Titles with `:` or `/`
 
@@ -102,10 +104,11 @@ An event note the calendar cannot place, or can only place with a caveat, is lis
 | Reason shown | What to fix |
 |--------------|-------------|
 | `start is not a valid time (HH:mm)` / `end is not a valid time (HH:mm)` | Write the time as `HH:mm`, for example `09:30` |
+| `end_date is not YYYY-MM-DD` | Write the last day as `YYYY-MM-DD`, or remove the key |
 | `all_day is not true or false` | Use `all_day: true` or remove the key |
-| `end is not after start` | An event cannot cross midnight; set `end` later than `start` on the same day |
-| `<key> has a trailing # comment` | Remove the `# ...` comment after the value of `date`, `start`, `end`, `all_day` or `event_color` |
-| `multi-day (end_date): shown read-only on its start day` | Informational: the event shows, but the calendar does not edit its timing |
+| `end is not after start` | `end` equals `start` (an empty event), or `end_date` is the same day as `date` and `end` is before `start`; fix the times |
+| `end_date is before date` | Set `end_date` on or after `date` |
+| `<key> has a trailing # comment` | Remove the `# ...` comment after the value of `date`, `end_date`, `start`, `end`, `all_day` or `event_color` |
 
 The calendar never guesses a value it cannot read: a note with an unreadable `start`, `end` or `all_day` stays off the grid, so a drag can never overwrite what you wrote.
 
