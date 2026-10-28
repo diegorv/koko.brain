@@ -31,3 +31,4 @@
 
 - 2026-10-28 12:53 — discovery — plan written to work/17/discovery.md — 29a7f5d8
 - 2026-10-28 12:55 — implement — store + 31 tests; pnpm check 0 errors, event-calendar vitest 222/222 — 046387de
+- 2026-10-28 12:58 — review — CHANGES_REQUESTED: moved settled write keeps stale settledAtVersion (event vanishes on lagging snapshot), settle-on-tombstone duplicate, remap overwrite at to, partial getter coverage — 91894e89
