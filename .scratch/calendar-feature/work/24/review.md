@@ -72,3 +72,13 @@ The full gate and the E2E spec were not run (deliver runs them).
 5. **Nit: weak queue test and stale line ranges.**
    - `src/tests/lib/features/event-calendar/event-calendar.service.test.ts:712`. In "resetEventCalendar keeps the queue", `await second.catch(() => {})` hides whether the second write succeeded. Assert its outcome (it should resolve and the disk should contain `end: 10:30`).
    - The feat commit's Files section cites the test file at `:450-909`. The added block starts at `:486`. Fix it if the commit is reworded anyway.
+
+## Resolution
+
+All five findings accepted and fixed in the fix commit (`event-calendar.service.ts`, `event-calendar.service.test.ts`). Each new test was run against the old service first and failed (5 failed, 61 passed), then passed with the fix (66 passed).
+
+1. **Fixed.** `applyHistory` now chains every undo and redo on a module-level `historyTail` and takes the op inside the chained task (`applyHistoryNow`), so the second Cmd+Z sees the history the first one remapped. A task that starts after `resetEventCalendar` (stale `writeGeneration`) returns `empty` and touches nothing. `drainEventCalendarWrites` also awaits `historyTail`. Tests: "two undos started back to back undo a title edit and the move before it" and "an undo that starts after resetEventCalendar returns empty and writes nothing".
+2. **Fixed.** When the write follows a rename, `writeEvent` overlays a `create` of `{ ...current, ...after, path: target }` (unsettled, then settled with no version clock, like the `create` `remapPath` leaves), so `snippet` and `readOnly` survive until the snapshot has the new path. Same-path writes keep the `update` overlay. Test: "keeps a renamed read-only event read-only in the overlay before the snapshot".
+3. **Fixed.** In `writeEvent`'s catch, an error that is not a `FrontmatterWriteError` becomes `FrontmatterWriteError('missing', target)` when `exists(target)` is false (an `exists` failure keeps the original error). Test: "rejects with missing when the note was deleted on disk before the index caught up".
+4. **Fixed.** A failed undo / redo now removes the op by identity or, after a remap replaced it, by its unchanged `before` / `after` object references (`remapPath` spreads the op, so they survive). Test: "drops an undo whose field write fails after it renamed the note back".
+5. **Fixed (test); commit range not reworded.** The queue test now asserts `second` resolves and the disk contains `end: 10:30`. The feat commit 748ad5a1 is not reworded (no history rewrite for a line-range nit); the correct start of the added test block in that commit is `:486`.

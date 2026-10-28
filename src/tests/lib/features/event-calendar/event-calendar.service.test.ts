@@ -647,6 +647,16 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 
+		it('rejects with missing when the note was deleted on disk before the index caught up', async () => {
+			disk.delete(P('Standup'));
+
+			expect(await reasonOf(moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 }))).toBe('missing');
+
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(eventCalendarStore.isPending(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
 		it('rejects with missing and writes nothing for a path the calendar does not show', async () => {
 			expect(await reasonOf(moveEvent(P('Nope'), { date: '2026-11-11', start: 600, end: 660 }))).toBe('missing');
 			expect(writeTextFile).not.toHaveBeenCalled();
@@ -709,8 +719,9 @@ describe('calendar writes', () => {
 
 			gate.resolve();
 			await first;
-			await second.catch(() => {});
+			await expect(second).resolves.toBeUndefined();
 			expect(writeTextFile).toHaveBeenCalledTimes(2);
+			expect(disk.get(P('Standup'))).toContain('end: 10:30');
 		});
 
 		it('drainEventCalendarWrites resolves after an in-flight write and never rejects', async () => {
@@ -755,6 +766,20 @@ describe('calendar writes', () => {
 			await refresh(2);
 			expect(eventCalendarStore.pendingPaths.size).toBe(0);
 			expect(eventCalendarStore.events.map((e) => [e.path, e.title])).toEqual([[P('Daily sync'), 'Daily sync']]);
+		});
+
+		it('keeps a renamed read-only event read-only in the overlay before the snapshot', async () => {
+			disk.set(P('Retreat'), eventFile({ date: '2026-11-12', end_date: '2026-11-14' }));
+			await refresh();
+			expect(eventCalendarStore.eventByPath(P('Retreat'))?.readOnly).toBe(true);
+
+			const finalPath = await editEvent(P('Retreat'), { title: 'Offsite', location: 'Lisbon' });
+
+			expect(finalPath).toBe(P('Offsite'));
+			expect(eventCalendarStore.eventByPath(P('Offsite'))).toMatchObject({ title: 'Offsite', location: 'Lisbon', readOnly: true, pending: true });
+			await refresh();
+			expect(eventCalendarStore.isPending(P('Offsite'))).toBe(false);
+			expect(eventCalendarStore.eventByPath(P('Offsite'))).toMatchObject({ location: 'Lisbon', readOnly: true, pending: false });
 		});
 
 		it('a second "Standup" renames to Standup 1.md with event_title: Standup', async () => {
@@ -874,6 +899,52 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toEqual([]);
 			expect(eventCalendarStore.history.redo).toEqual([]);
 			expect(disk.has(P('Standup'))).toBe(false);
+		});
+
+		it('two undos started back to back undo a title edit and the move before it', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await editEvent(P('Standup'), { title: 'Daily sync' });
+			await refresh(2);
+
+			const first = undoEventChange();
+			const second = undoEventChange();
+
+			expect(await first).toEqual({ status: 'done', label: 'Edit event' });
+			expect(await second).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.has(P('Daily sync'))).toBe(false);
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+			expect(disk.get(P('Standup'))).toContain('end: 10:00');
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.history.redo.map((op) => [op.label, op.path])).toEqual([
+				['Edit event', P('Standup')],
+				['Move event', P('Standup')],
+			]);
+		});
+
+		it('drops an undo whose field write fails after it renamed the note back', async () => {
+			await editEvent(P('Standup'), { title: 'Daily sync', start: 600, end: 660 });
+			await refresh(2);
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			await expect(undoEventChange()).rejects.toThrow('disk full');
+
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(disk.has(P('Daily sync'))).toBe(false);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.history.redo).toEqual([]);
+		});
+
+		it('an undo that starts after resetEventCalendar returns empty and writes nothing', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			vi.mocked(writeTextFile).mockClear();
+
+			const undo = undoEventChange();
+			resetEventCalendar();
+
+			expect(await undo).toEqual({ status: 'empty', label: null });
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-11');
 		});
 
 		it('returns empty with nothing to undo or redo', async () => {

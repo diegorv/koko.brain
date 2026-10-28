@@ -33,3 +33,4 @@
 - 2026-10-28 13:38 — discovery — plan in work/24/discovery.md: one private writeEvent core behind a self-cleaning per-path queue; vanished = not in store or not on disk — d785034f
 - 2026-10-28 13:42 — implement — service queue, writeEvent core, update/move/resize/edit, undo/redo, drain, toastEventError; pnpm check 0 errors, 18 related test files 605 passed; p2p-sync Task 1 not landed, so the re-run note stays open; E2E and full gate left to deliver — 748ad5a1
 - 2026-10-28 13:45 — review — VERDICT: CHANGES_REQUESTED: 1 major (two quick undos after a renaming op return vanished and strand the older op), 3 minor, 1 nit; see work/24/review.md — 586ba2b3
+- 2026-10-28 13:49 — fix — all 5 review findings fixed (serialized undo/redo queue, create overlay after rename, missing mapping for a deleted note, failed undo drops the remapped op, stronger queue test); 5 new tests red before, 66 passed after; pnpm check 0 errors — 748ad5a1

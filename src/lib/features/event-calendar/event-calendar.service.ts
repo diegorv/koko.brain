@@ -22,7 +22,7 @@ import { error } from '$lib/utils/debug';
 import { applyEventFields, eventState, eventsFromEntries, sameEventState } from './event-calendar-event.logic';
 import type { EventTiming } from './event-calendar-drag.logic';
 import { planTitleChange, type EventFormPatch } from './event-calendar-form.logic';
-import { dropPath, pushOp, refuseOp, takeRedo, takeUndo } from './event-calendar-history.logic';
+import { dropPath, pushOp, refuseOp, removeOp, takeRedo, takeUndo } from './event-calendar-history.logic';
 import { eventCalendarStore } from './event-calendar.store.svelte';
 import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 import type { CalendarViewMode, EventNote, EventPatch, EventState, HistoryOp } from './event-calendar.types';
@@ -183,6 +183,12 @@ const writeTails = new Map<string, Promise<void>>();
 /** Bumped by `resetEventCalendar`; a write applies its store changes only while it holds the latest value. */
 let writeGeneration = 0;
 
+/**
+ * Tail of the undo / redo queue. Each undo or redo takes its op only once the
+ * previous one has settled, so it sees the history a rename has remapped.
+ */
+let historyTail: Promise<unknown> = Promise.resolve();
+
 /** Label of a recorded calendar change. */
 export type EventChangeLabel = HistoryOp['label'];
 
@@ -238,7 +244,7 @@ function enqueue<T>(path: string, task: (isCurrent: () => boolean) => Promise<T>
  * vault-switch and window-close paths await it before tearing down.
  */
 export async function drainEventCalendarWrites(): Promise<void> {
-	await Promise.allSettled([...writeTails.values()]);
+	await Promise.allSettled([historyTail, ...writeTails.values()]);
 }
 
 /** Filename base of `path` (its name without `.md`). */
@@ -334,14 +340,29 @@ async function writeEvent(
 		}
 	}
 
-	if (isCurrent()) eventCalendarStore.putPending({ kind: 'update', path: target, state: after, settled: false });
+	// A renamed note is not in the snapshot yet: a `create` keeps its snippet
+	// and readOnly flag, which a bare `update` overlay would render as '' and false.
+	const renamedEvent: EventNote = { ...current, ...after, path: target };
+	if (isCurrent()) {
+		eventCalendarStore.putPending(
+			target === path
+				? { kind: 'update', path: target, state: after, settled: false }
+				: { kind: 'create', path: target, event: renamedEvent, settled: false },
+		);
+	}
 	const write = updateNoteFrontmatter(target, (props) => applyEventFields(props, fields));
 	// A later write queued on the new path must wait for this one.
 	if (target !== path) holdPath(target, write);
 	try {
 		await write;
-	} catch (err) {
-		error('EVENT-CALENDAR', 'event write failed:', target, err);
+	} catch (caught) {
+		let err = caught;
+		// The writer passes read errors through as-is: a note deleted on disk
+		// before the index caught up surfaces as `missing`, not as the OS message.
+		if (!(err instanceof FrontmatterWriteError) && !(await exists(target).catch(() => true))) {
+			err = new FrontmatterWriteError('missing', target);
+		}
+		error('EVENT-CALENDAR', 'event write failed:', target, caught);
 		if (isCurrent()) {
 			if (target === path) {
 				eventCalendarStore.dropPending(target);
@@ -355,7 +376,12 @@ async function writeEvent(
 		throw err;
 	}
 	if (!isCurrent()) return target;
-	eventCalendarStore.settlePending(target, vaultStore.vaultIndexVersion);
+	if (target === path) {
+		eventCalendarStore.settlePending(target, vaultStore.vaultIndexVersion);
+	} else {
+		// Like the `create` `remapPath` leaves: no version clock, it prunes once the snapshot has `target`.
+		eventCalendarStore.putPending({ kind: 'create', path: target, event: renamedEvent, settled: true });
+	}
 	if (options.record) record({ kind: 'update', label: options.label, path: target, before, after });
 	return target;
 }
@@ -422,8 +448,21 @@ export function editEvent(path: string, patch: EventFormPatch): Promise<string> 
 	});
 }
 
+/**
+ * Runs one undo or redo after the previous one has settled, whatever its
+ * outcome. One that starts after `resetEventCalendar` returns `empty`.
+ */
+function applyHistory(direction: 'undo' | 'redo'): Promise<EventChangeResult> {
+	const generation = writeGeneration;
+	const run = historyTail.then(() =>
+		generation === writeGeneration ? applyHistoryNow(direction) : { status: 'empty' as const, label: null },
+	);
+	historyTail = run.catch(() => {});
+	return run;
+}
+
 /** Takes an op off one stack and applies its other state, queued on its path. */
-async function applyHistory(direction: 'undo' | 'redo'): Promise<EventChangeResult> {
+async function applyHistoryNow(direction: 'undo' | 'redo'): Promise<EventChangeResult> {
 	const taken = direction === 'undo' ? takeUndo(eventCalendarStore.history) : takeRedo(eventCalendarStore.history);
 	if (!taken) return { status: 'empty', label: null };
 	const { op } = taken;
@@ -449,8 +488,13 @@ async function applyHistory(direction: 'undo' | 'redo'): Promise<EventChangeResu
 		try {
 			await writeEvent(op.path, current, target, patchBetween(eventState(current), target), { label: op.label, record: false, planTitle: true }, isCurrent);
 		} catch (err) {
-			// Not offered again; a no-op once a rename has remapped the op.
-			if (isCurrent()) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, op));
+			// Not offered again. A rename before the failure has replaced the op
+			// with a remapped copy that keeps its `before` / `after` objects.
+			if (isCurrent()) {
+				eventCalendarStore.setHistory(
+					removeOp(eventCalendarStore.history, (candidate) => candidate === op || (candidate.kind === 'update' && candidate.before === op.before && candidate.after === op.after)),
+				);
+			}
 			throw err;
 		}
 		return { status: 'done', label: op.label };
