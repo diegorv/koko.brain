@@ -32,3 +32,4 @@
 - 2026-10-28 15:13 — discovery — plan in work/30/discovery.md; adds a `[data-resize]` handle to EventBlock.svelte (not in Touches) and a pure `previewDayEvents` — f4b70e86
 - 2026-10-28 15:28 — implement — pointer gestures wired; pnpm check 0 errors, vitest event-calendar 16 files / 630 passed, E2E event-calendar.spec 21 passed (retries=0, several runs); full gate not run — 14df9dbf
 - 2026-10-28 15:34 — review — CHANGES_REQUESTED: 1 medium (no test for the failed-drop revert and toast; YAML-comment refusal E2E), 1 low (held preview keyed by column index across a days change), 1 nit — bb71ea98
+- 2026-10-28 15:37 — fix — review findings 1-3 fixed (refused-drop E2E, days-change discard + E2E, cast dropped); pnpm check 0 errors, vitest event-calendar 630 passed, E2E pointer-drag group 7 passed — b64ae140
