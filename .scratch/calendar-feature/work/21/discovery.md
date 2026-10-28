@@ -9,9 +9,10 @@
 - Tests: new `src/tests/lib/features/event-calendar/EventCalendarView.test.ts`, `command-palette.service.test.ts:84-87` (26 -> 27, plus toggle test), new `e2e/specs/event-calendar.spec.ts`.
 
 ## Plan (test first where there is a seam)
-1. Palette: failing count + toggle tests (real event-calendar service, `vi.mock('@tauri-apps/api/core')` added; its chain imports neither `editor.service` nor `fs.service`, so those factories need no new names), then the entry. One commit.
-2. View + header + Needs attention + EditorView/EditorTabs wiring + view test. One commit.
-3. E2E fixture option + spec. One commit.
+The ticket asks for one feat commit, so the three steps land together:
+1. Palette: failing count + toggle tests (real event-calendar service, `vi.mock('@tauri-apps/api/core')` added; its chain imports neither `editor.service` nor `fs.service`, so those factories need no new names), then the entry.
+2. View + header + Needs attention + EditorView/EditorTabs wiring + view test.
+3. E2E fixture option + spec.
 
 ## View details
 - Load effect reads `vaultIndexVersion`, `indexReady`, the three `eventCalendar` keys and `templates.systemFolder`; loads only when `indexReady`. Superseded-load errors (ticket 19 comment): a view-local `loadSeq` plus the captured `vaultStore.path`; the `.catch` toasts (`svelte-sonner`) only when both still match. The inline error state comes from `eventCalendarStore.loadError`.
