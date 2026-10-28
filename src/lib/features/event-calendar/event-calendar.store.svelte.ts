@@ -171,24 +171,32 @@ export const eventCalendarStore = {
 	 * flight when the rename lands must be settled at `to` afterwards;
 	 * settling `from` hits the tombstone and is a no-op.
 	 *
-	 * With `titles` (a rename made outside the calendar, which writes no
-	 * `event_title`), a title equal to `titles.from` becomes `titles.to`, on
-	 * the moved event and in the history (`followRename`).
-	 * @param titles - filename bases of `from` and `to`, without `.md`
+	 * With `outside` (a rename or move made outside the calendar, which writes
+	 * no `event_title`), a title equal to `outside.fromBase` becomes
+	 * `outside.toBase`, on the moved event and in the history (`followRename`).
+	 * The `create` at `to` is then settled with a version clock instead: `to`
+	 * may never enter the projection (a dot-folder, the system folder, a
+	 * non-`.md` name), and a clockless overlay would stay there for good.
+	 * @param outside - filename bases of `from` and `to` (without `.md`), and
+	 *   the current `vaultIndexVersion`
 	 */
-	remapPath(from: string, to: string, titles?: { from: string; to: string }) {
+	remapPath(from: string, to: string, outside?: { fromBase: string; toBase: string; version: number }) {
 		if (from === to) return;
 		const write = pending.get(from);
 		const current = eventMap.get(from);
 		const next = new Map(pending);
 		if (current && !pending.has(to)) {
 			const event = { ...plainEvent(current), path: to };
-			if (titles && event.title === titles.from) event.title = titles.to;
-			next.set(to, { kind: 'create', path: to, event, settled: write ? write.settled : true });
+			if (outside) {
+				if (event.title === outside.fromBase) event.title = outside.toBase;
+				next.set(to, { kind: 'create', path: to, event, settled: true, settledAtVersion: outside.version });
+			} else {
+				next.set(to, { kind: 'create', path: to, event, settled: write ? write.settled : true });
+			}
 		}
 		next.set(from, { kind: 'delete', path: from, settled: true });
 		pending = next;
-		history = titles ? followRename(history, from, to, titles.from, titles.to) : remapHistoryPath(history, from, to);
+		history = outside ? followRename(history, from, to, outside.fromBase, outside.toBase) : remapHistoryPath(history, from, to);
 		recompute();
 	},
 

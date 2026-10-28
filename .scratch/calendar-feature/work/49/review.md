@@ -69,3 +69,12 @@ Reviewed `git diff main...HEAD` (f4076bdc, 6e83ee31, a1693747, 0a438c62) in the 
 
 4. **Low (docs). CLAUDE.md:273 (Indexing and Watcher §6) lists the consumer registrations wired in `initializeVault` and warns that forgetting one is a silent no-op, but it does not mention the new path-change registry.**
    - Fix: add one clause naming `registerPathChangeConsumer` (path-change.service.ts) and `registerEventCalendarPathChangeConsumer`. Say that consumers are called synchronously after `diskOp` and before the link rewrite, once per change, with folder changes reported once for the folder.
+
+## Resolution
+
+All four findings accepted.
+
+1. Fixed. An outside rename or move now gives the `create` at `to` a version clock (`remapPath(from, to, { fromBase, toBase, version })`, settled, `settledAtVersion` = current `vaultIndexVersion`), so it expires two bumps later when the index never shows `to`. The calendar's own rename keeps the clockless overlay. Tests: dot-folder move, rename to `.txt` (service), clock expiry (store).
+2. Fixed. The delete branch also puts a settled `delete` tombstone (no clock, prunes once the index drops the path) on every visible event at or under `from`. Test: rename then delete before the index refresh.
+3. Partly fixed, rest documented. Because the outside overlay is now always settled with a clock, no unsettled `create` survives at `to`. The op recorded at the old path stays: the same in-flight write recreates the old file on disk (pre-existing race), so the op at `from` matches what is on disk. Recorded as a known limitation in the `followPathChange` JSDoc and in discovery.md. Test: rename during a held write leaves no overlay at `to` after the refreshes.
+4. Fixed. CLAUDE.md Indexing §6 names the path-change registry and when its consumers run.

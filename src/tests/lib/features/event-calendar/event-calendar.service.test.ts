@@ -2254,6 +2254,57 @@ describe('calendar writes', () => {
 			expect(disk.get(P('Retro'))).toContain('start: 09:30');
 		});
 
+		it('drops the event of a note moved into a dot-folder, which the index never shows', async () => {
+			await moveEvent(P('Standup'), MOVED);
+
+			expect(await moveItem(P('Standup'), `${VAULT}/.archive`)).toBe(`${VAULT}/.archive/Standup.md`);
+			await refresh(6);
+
+			expect(eventCalendarStore.events).toEqual([]);
+			expect(eventCalendarStore.isPending(`${VAULT}/.archive/Standup.md`)).toBe(false);
+		});
+
+		it('drops the event of a note renamed to a non-.md name', async () => {
+			await moveEvent(P('Standup'), MOVED);
+			// The fake index still lists any key; a real one has no `.txt` note.
+			const served = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				const result = await served(cmd, args);
+				return cmd === 'get_all_vault_entries_v2' ? (result as NoteEntryV2[]).filter((e) => e.path.endsWith('.md')) : result;
+			});
+
+			expect(await renameItem(P('Standup'), 'Standup.txt')).toBe(`${VAULT}/Standup.txt`);
+			await refresh(6);
+
+			expect(eventCalendarStore.events).toEqual([]);
+		});
+
+		it('hides a note renamed and then deleted before the index catches up', async () => {
+			await moveEvent(P('Standup'), MOVED);
+			await renameItem(P('Standup'), 'Retro.md');
+
+			expect(await deleteItem(P('Retro'))).toBe(true);
+
+			expect(eventCalendarStore.events).toEqual([]);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			await refresh(6);
+			expect(eventCalendarStore.events).toEqual([]);
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+		});
+
+		it('does not leave an unsettled overlay when the rename lands during a calendar write', async () => {
+			const gate = holdNextWrite();
+			const move = moveEvent(P('Standup'), MOVED);
+			await flush();
+
+			await renameItem(P('Standup'), 'Retro.md');
+			gate.resolve();
+			await move;
+			await refresh(6);
+
+			expect(eventCalendarStore.pendingWrite(P('Retro'))).toBeUndefined();
+		});
+
 		it('leaves the history alone for a note the calendar does not know', async () => {
 			disk.set(P('Notes'), '# Notes\n');
 			await moveEvent(P('Standup'), MOVED);

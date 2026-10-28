@@ -24,3 +24,7 @@ Anchors on main (76e1a7ee).
 - External delete drops every op on the path (matches the existing `vanished` rule), including a `delete` op of an earlier note the calendar deleted at that path.
 - Renames made outside the app (OS / watcher) arrive as delete + create through the watcher, not `applyPathChange`; out of scope.
 - No E2E: the unit tests drive the real `renameItem` / `moveItem` / `deleteItem`.
+
+## Known limitation (from review)
+
+- A calendar write still in flight on `from` when an outside rename lands settles and records its op at `from`; the write also recreates `from` on disk (pre-existing race). The overlay at `to` is settled with a version clock, so it still expires. The window is one frontmatter write.

@@ -480,13 +480,13 @@ describe('eventCalendarStore', () => {
 			expect(store.history.undo).toEqual([expect.objectContaining({ before: expect.objectContaining({ title: 'a' }) })]);
 		});
 
-		it('with `titles`, a title read from the old filename follows the new one, on the event and in the history', () => {
+		it('with `outside`, a title read from the old filename follows the new one, on the event and in the history', () => {
 			const a = note('a');
 			const titled = note('t', { title: 'Team sync' });
 			store.setSnapshot(projection([a, titled]), 1);
 			store.setHistory(pushOp(pushOp(createEventHistory(), updateOp(a)), updateOp(titled)));
-			store.remapPath(a.path, P('b'), { from: 'a', to: 'b' });
-			store.remapPath(titled.path, P('u'), { from: 't', to: 'u' });
+			store.remapPath(a.path, P('b'), { fromBase: 'a', toBase: 'b', version: 1 });
+			store.remapPath(titled.path, P('u'), { fromBase: 't', toBase: 'u', version: 1 });
 
 			expect(store.eventByPath(P('b'))).toMatchObject({ title: 'b', pending: true });
 			expect(store.eventByPath(P('u'))).toMatchObject({ title: 'Team sync', pending: true });
@@ -494,6 +494,19 @@ describe('eventCalendarStore', () => {
 				[P('b'), 'b', 'b'],
 				[P('u'), 'Team sync', 'Team sync'],
 			]);
+		});
+
+		it('with `outside`, the moved event expires two bumps later when the index never shows `to`', () => {
+			const a = note('a');
+			store.setSnapshot(projection([a]), 3);
+			store.remapPath(a.path, P('b'), { fromBase: 'a', toBase: 'b', version: 3 });
+			expect(store.pendingWrite(P('b'))).toMatchObject({ kind: 'create', settled: true, settledAtVersion: 3 });
+
+			store.setSnapshot(projection([]), 4);
+			expect(store.eventByPath(P('b'))).toBeDefined();
+			store.setSnapshot(projection([]), 5);
+			expect(store.eventByPath(P('b'))).toBeUndefined();
+			expect(store.pendingPaths.size).toBe(0);
 		});
 
 		it('is a no-op for the same path', () => {

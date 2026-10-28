@@ -17,3 +17,4 @@
 - 2026-10-28 19:03 — discovery — path-change consumer registry in applyPathChange + calendar consumer (remap overlay/history on rename and move, drop ops on delete, skip own changes); see work/49/discovery.md — 76e1a7ee
 - 2026-10-28 19:08 — implement — path-change registry (6e83ee31) + calendar consumer, title follow, own-change skip, lifecycle wiring; pnpm check 0 errors, touched suites 36 files / 1383 passed — a1693747
 - 2026-10-28 19:13 — review — CHANGES_REQUESTED: outside-change overlay never expires for unindexed targets (ghost event), delete branch keeps the overlay, in-flight write race, CLAUDE.md registry note; see work/49/review.md — 0a438c62
+- 2026-10-28 19:15 — fix — review findings 1-4: version clock on the outside-change overlay, delete tombstone, in-flight race documented, CLAUDE.md registry clause; touched suites 35 files / 1344 passed — 7c641c3a
