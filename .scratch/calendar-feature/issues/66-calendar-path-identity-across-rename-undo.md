@@ -23,3 +23,7 @@ Ticket 29 review (fix 5c14e82d):
 Ticket 56 review (fix 0e187396):
 - [ ] Rename/delete tombstone with a stale store: `lookupCalendarEvent` falls through to the stale snapshot for the old path, so "Show in Calendar" stays and opens the old date with nothing focused. When `isPending(path)` and `eventByPath(path)` is undefined, return `{ event: null }`.
 - [ ] The throttled index bump means a body edit that moves the date pulses the old day for ~2-10 s; inherent, but the "current day" wording overstates it.
+
+## Comments
+
+- 2026-10-28 18:41 — discovery — plan for all 8 items in work/66/discovery.md (popover remap verified; dialog in-flight guard; generation-checked toast Undo) — pending
