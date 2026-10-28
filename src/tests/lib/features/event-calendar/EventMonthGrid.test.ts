@@ -9,12 +9,16 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn() } }));
+
 import { flushSync, mount, unmount } from 'svelte';
+import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import EventMonthGrid from '$lib/features/event-calendar/EventMonthGrid.svelte';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
@@ -253,6 +257,48 @@ describe('EventMonthGrid: selection', () => {
 		day().click();
 		flushSync();
 		expect(eventCalendarViewStore.view).toBe('day');
+	});
+});
+
+describe('EventMonthGrid: daily note action', () => {
+	let unregister: (() => void) | null = null;
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+	});
+
+	it('has no daily note action when no plugin registered an opener', () => {
+		mountGrid();
+
+		expect(qa('[data-month-day]')).toHaveLength(42);
+		expect(qa('[data-daily-note]')).toHaveLength(0);
+	});
+
+	it('puts the action beside each day number and opens that day without selecting it', () => {
+		const opener = vi.fn(() => Promise.resolve());
+		unregister = eventCalendarDailyNoteStore.register(opener);
+		mountGrid();
+
+		expect(qa('[data-daily-note]')).toHaveLength(42);
+		const button = cell('2026-11-20').querySelector<HTMLButtonElement>('[data-daily-note]')!;
+		expect(button.dataset.dailyNote).toBe('2026-11-20');
+		expect(button.parentElement).toBe(cell('2026-11-20').querySelector('[data-month-day]')!.parentElement);
+
+		button.click();
+		flushSync();
+		expect(opener).toHaveBeenCalledWith('2026-11-20');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(eventCalendarViewStore.view).toBe('month');
+	});
+
+	it('toasts when the opener fails', async () => {
+		unregister = eventCalendarDailyNoteStore.register(() => Promise.reject(new Error('disk full')));
+		mountGrid();
+
+		cell('2026-11-20').querySelector<HTMLButtonElement>('[data-daily-note]')!.click();
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not open the daily note', { description: 'disk full' }));
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
 	});
 });
 

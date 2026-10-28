@@ -5,6 +5,7 @@
 	import { itemsByDay, MONTH_MAX_CHIPS } from './event-calendar-view.logic';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
+	import EventDailyNoteButton from './EventDailyNoteButton.svelte';
 
 	let cells = $derived(eventCalendarViewStore.monthCells);
 	let cols = $derived(settingsStore.eventCalendar.showWeekends ? 7 : 5);
@@ -73,24 +74,28 @@
 				onclick={(e) => handleCellClick(e, cell.day)}
 				ondblclick={(e) => handleCellDoubleClick(e, cell.day)}
 			>
-				<button
-					type="button"
-					class="flex h-6 min-w-6 shrink-0 items-center justify-center self-start rounded-md px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
-						{selected
-						? 'bg-primary font-semibold text-primary-foreground'
-						: today
-							? 'text-primary hover:bg-muted'
-							: cell.inMonth
-								? 'hover:bg-muted'
-								: 'text-muted-foreground hover:bg-muted'}"
-					aria-pressed={selected}
-					aria-label="{formatWeekday(cell.day)}, {formatLong(cell.day)}{selected ? ', selected, open day view' : ''}"
-					data-month-day
-					data-today={today || undefined}
-					onclick={() => handleDayClick(cell.day)}
-				>
-					{fromKey(cell.day).getDate()}
-				</button>
+				<!-- Clicks between the two buttons fall through to the cell, which selects the day. -->
+				<div class="pointer-events-none flex shrink-0 items-center justify-between *:pointer-events-auto">
+					<button
+						type="button"
+						class="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
+							{selected
+							? 'bg-primary font-semibold text-primary-foreground'
+							: today
+								? 'text-primary hover:bg-muted'
+								: cell.inMonth
+									? 'hover:bg-muted'
+									: 'text-muted-foreground hover:bg-muted'}"
+						aria-pressed={selected}
+						aria-label="{formatWeekday(cell.day)}, {formatLong(cell.day)}{selected ? ', selected, open day view' : ''}"
+						data-month-day
+						data-today={today || undefined}
+						onclick={() => handleDayClick(cell.day)}
+					>
+						{fromKey(cell.day).getDate()}
+					</button>
+					<EventDailyNoteButton day={cell.day} class="size-6" />
+				</div>
 				{#each items.slice(0, MONTH_MAX_CHIPS) as item (item.event.path)}
 					<button
 						type="button"

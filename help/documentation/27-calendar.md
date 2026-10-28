@@ -29,6 +29,8 @@ All-day events sit in the **All day** lane above the time grid. When a day has m
 
 In the month view, click a day number to select the day; click the selected day's number again to open it in the day view.
 
+**Daily notes**: with Periodic Notes, a notebook button sits beside each day header (day and week views) and each day number (month view). It opens that day's daily note, creating it from the daily template when it does not exist yet.
+
 **Narrow panes**: each day column keeps a minimum width. When the pane is too narrow for every column (for example a week view in a split pane), the grid scrolls sideways while the time axis stays in place. Events in a narrow column show only their title.
 
 The grid scrolls to the **Day starts at** hour (Settings > Calendar) when it opens.

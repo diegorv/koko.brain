@@ -16,6 +16,7 @@ import EventTimeGrid from '$lib/features/event-calendar/EventTimeGrid.svelte';
 import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
@@ -296,6 +297,50 @@ describe('EventTimeGrid: accessibility and headers', () => {
 		header().click();
 		flushSync();
 		expect(eventCalendarViewStore.view).toBe('day');
+	});
+});
+
+describe('EventTimeGrid: daily note action', () => {
+	let unregister: (() => void) | null = null;
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+	});
+
+	it('has no daily note action when no plugin registered an opener', () => {
+		mountGrid();
+
+		expect(qa('[data-day-header]')).toHaveLength(7);
+		expect(qa('[data-daily-note]')).toHaveLength(0);
+	});
+
+	it('opens the daily note of its day without selecting it', () => {
+		const opener = vi.fn(() => Promise.resolve());
+		unregister = eventCalendarDailyNoteStore.register(opener);
+		mountGrid();
+
+		const buttons = qa<HTMLButtonElement>('[data-daily-note]');
+		expect(buttons.map((b) => b.dataset.dailyNote)).toEqual(WEEK);
+		const button = q<HTMLButtonElement>('[data-daily-note="2026-11-12"]')!;
+		expect(button.getAttribute('aria-label')).toBe('Open daily note for November 12, 2026');
+
+		button.click();
+		flushSync();
+		expect(opener).toHaveBeenCalledWith('2026-11-12');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(eventCalendarViewStore.view).toBe('week');
+	});
+
+	it('drops the action when the opener is unregistered', () => {
+		unregister = eventCalendarDailyNoteStore.register(() => Promise.resolve());
+		mountGrid();
+		expect(qa('[data-daily-note]')).toHaveLength(7);
+
+		unregister();
+		unregister = null;
+		flushSync();
+		expect(qa('[data-daily-note]')).toHaveLength(0);
 	});
 });
 
