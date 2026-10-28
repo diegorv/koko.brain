@@ -14,7 +14,8 @@ export type TimeFormat = '24h' | '12h';
 /** First day of the week: 0 = Sunday, 1 = Monday. */
 export type WeekStart = 0 | 1;
 
-const MONTH_NAMES = [
+/** Full English month names, January first. */
+export const MONTHS: readonly string[] = [
 	'January',
 	'February',
 	'March',
@@ -28,7 +29,16 @@ const MONTH_NAMES = [
 	'November',
 	'December',
 ];
-const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Three-letter month names (`Jan`..`Dec`), January first. */
+export const MONTHS_SHORT: readonly string[] = MONTHS.map((m) => m.slice(0, 3));
+
+/** Full English weekday names, Sunday first (index = `dayOfWeek`). */
+export const WEEKDAYS: readonly string[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Upper-case grid column headings (`SUN`..`SAT`), Sunday first. */
+export const WEEKDAYS_SHORT: readonly string[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
 const DAY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^(\d{1,2}):(\d{2})$/;
 const MS_PER_DAY = 86_400_000;
@@ -176,14 +186,14 @@ export function isoWeek(key: string): number {
 }
 
 /**
- * Whole days from `b` to `a` (`a` minus `b`). The millisecond difference is
+ * Whole days from `a` to `b` (`b` minus `a`). The millisecond difference is
  * rounded, so a 23 h or 25 h day still counts as one.
- * @param a - later day for a positive result
- * @param b - earlier day for a positive result
- * @returns the signed day count
+ * @param a - earlier day for a positive result
+ * @param b - later day for a positive result
+ * @returns the signed day count (`diffDays('2026-11-08', '2026-11-14')` is 6)
  */
 export function diffDays(a: string, b: string): number {
-	return Math.round((fromKey(a).getTime() - fromKey(b).getTime()) / MS_PER_DAY);
+	return Math.round((fromKey(b).getTime() - fromKey(a).getTime()) / MS_PER_DAY);
 }
 
 /**
@@ -193,7 +203,7 @@ export function diffDays(a: string, b: string): number {
  * @returns the keys, or `[]` when `to` is before `from`
  */
 export function rangeKeys(from: string, to: string): string[] {
-	const count = diffDays(to, from);
+	const count = diffDays(from, to);
 	if (count < 0) return [];
 	return Array.from({ length: count + 1 }, (_, i) => addDays(from, i));
 }
@@ -214,17 +224,17 @@ export function isWeekend(key: string): boolean {
  * @returns e.g. `November`
  */
 export function monthName(key: string): string {
-	return MONTH_NAMES[fromKey(key).getMonth()];
+	return MONTHS[fromKey(key).getMonth()];
 }
 
 /**
- * Long date label.
+ * Long date label without the weekday (callers prepend `formatWeekday`).
  * @param key - day key
- * @returns e.g. `Tuesday, November 10, 2026`
+ * @returns e.g. `November 10, 2026`
  */
 export function formatLong(key: string): string {
 	const d = fromKey(key);
-	return `${WEEKDAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+	return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 /**
@@ -234,36 +244,34 @@ export function formatLong(key: string): string {
  */
 export function formatShort(key: string): string {
 	const d = fromKey(key);
-	return `${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
+	return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
 }
 
 /**
- * Short weekday name.
+ * Full weekday name.
  * @param key - day key
- * @returns e.g. `Tue`
+ * @returns e.g. `Tuesday`
  */
 export function formatWeekday(key: string): string {
-	return WEEKDAY_NAMES[dayOfWeek(key)].slice(0, 3);
+	return WEEKDAYS[dayOfWeek(key)];
 }
 
 /**
- * Label for a span of days, sharing the month and year where they match.
+ * Label for a span of days, without the year (the header title carries it).
+ * Same month and year share the month name; anything else joins two
+ * `formatShort` labels.
  * @param from - first day
  * @param to - last day
- * @returns `Nov 9 – 15, 2026`, `Nov 30 – Dec 6, 2026`,
- *   `Dec 28, 2026 – Jan 3, 2027`, or `Nov 10, 2026` for a single day
+ * @returns `Nov 8 – 14`, `Nov 29 – Dec 5`, `Dec 28 – Jan 3`, or
+ *   `Nov 10 – 10` for a single day
  */
 export function formatRange(from: string, to: string): string {
 	const a = fromKey(from);
 	const b = fromKey(to);
-	if (from === to) return `${formatShort(from)}, ${a.getFullYear()}`;
-	if (a.getFullYear() !== b.getFullYear()) {
-		return `${formatShort(from)}, ${a.getFullYear()} – ${formatShort(to)}, ${b.getFullYear()}`;
+	if (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()) {
+		return `${MONTHS_SHORT[a.getMonth()]} ${a.getDate()} – ${b.getDate()}`;
 	}
-	if (a.getMonth() !== b.getMonth()) {
-		return `${formatShort(from)} – ${formatShort(to)}, ${b.getFullYear()}`;
-	}
-	return `${formatShort(from)} – ${b.getDate()}, ${b.getFullYear()}`;
+	return `${formatShort(from)} – ${formatShort(to)}`;
 }
 
 /**
