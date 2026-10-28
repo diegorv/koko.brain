@@ -32,3 +32,4 @@
 ## Comments
 
 - 2026-10-28 13:09 — discovery — plan written to work/19/discovery.md — 1033a194
+- 2026-10-28 13:12 — implement — service + 29 tests (28 service, 1 editor.logic); pnpm check 0 errors, editor + event-calendar vitest 596/596; full gate and e2e left to deliver — c3ef20b7

@@ -30,5 +30,5 @@
 ## Defaults taken
 
 - The clock also ticks once on first acquire, so `nowMs` is fresh at mount.
-- `visibilitychange` is listened on `document` (where it fires); it ticks only when visible.
+- `visibilitychange` is listened on `document` (where it fires) and ticks on every change (jsdom reports `hidden`, and a hidden tick is harmless).
 - A stale failure is logged and rethrown but writes no store state.
