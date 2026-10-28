@@ -30,6 +30,7 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - ".scratch/**"
 
 concurrency:
   group: pr-${{ github.ref }}

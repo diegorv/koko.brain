@@ -14,6 +14,7 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - ".scratch/**"
   schedule:
     # Daily full-tree OSV scan (12:30 UTC). Catches advisories disclosed
     # for unchanged dependencies on days with no push.
