@@ -26,3 +26,7 @@
 - [ ] Duplicate tests: the duplicated content matches, including a dirty tab's content, and a duplicate of an `event_title` note carries "<title> (copy)"
 - [ ] Delete and restore tests: deleting a dirty open tab then restoring yields trashed and restored bytes that include the edit; a save failure aborts the delete; `deleteItem` returning false throws; restore by id; a restore with a suffixed path remaps; no match throws with stores and `trashStore` unchanged; undo of a delete restores, undo of a create deletes, and redo of each works
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 14:11 — discovery — plan in work/28/discovery.md: internal deleteNow/restoreNow shared by public calls and undo; real owners in tests on the fake disk — pending
