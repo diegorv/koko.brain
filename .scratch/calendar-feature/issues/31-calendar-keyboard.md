@@ -33,3 +33,7 @@
 - [ ] `EventCalendarView.test.ts`: Cmd+Z with an empty stack shows "Nothing to undo" through the mocked `svelte-sonner`; after Escape on an open popover `document.activeElement` is the block and `w` switches to week; with focus on `document.body` `m` switches to month, and with focus in an `<input>` it does not
 - [ ] E2E in `event-calendar.spec.ts`: after opening via the palette, `m` without a click shows the month grid and `w` / `d` switch the grid; after dragging a block, Meta+Z restores the original `start:` in `window.__e2e.fs.readFile` and Meta+Shift+Z re-applies the moved value; Delete on a focused block removes it and the toast Undo (or Meta+Z when Task 1 (b) is a "no") brings it back; Escape closes an open popover
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 15:59 — discovery — plan in work/31/discovery.md: keys logic, service undo/redo feedback, view wiring, Cmd+Shift+C toggle, palette Undo/Redo — 526262b2
