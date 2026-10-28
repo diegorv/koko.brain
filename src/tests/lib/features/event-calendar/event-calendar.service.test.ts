@@ -1254,6 +1254,28 @@ describe('calendar writes', () => {
 			expect(disk.has(P('Planning'))).toBe(false);
 			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
+
+		it('drainEventCalendarWrites waits for a create in flight', async () => {
+			const gate = deferred<void>();
+			const real = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'create_note') await gate.promise;
+				return real(cmd, args);
+			});
+			const create = createEvent(draft());
+			let drained = false;
+			const drain = drainEventCalendarWrites().then(() => {
+				drained = true;
+			});
+			await flush();
+			expect(drained).toBe(false);
+
+			gate.resolve();
+			await create;
+			await drain;
+			expect(drained).toBe(true);
+			expect(disk.has(P('Planning'))).toBe(true);
+		});
 	});
 
 	describe('duplicateEvent', () => {
@@ -1297,6 +1319,20 @@ describe('calendar writes', () => {
 			const path = await duplicateEvent(P('Retro'));
 
 			expect(disk.get(path)).toBe(lossy);
+		});
+
+		it('turns a refused createFile into create-failed, leaving history and overlay unchanged', async () => {
+			const real = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'create_note') throw new Error('a note with that name exists');
+				return real(cmd, args);
+			});
+
+			expect(await calendarReasonOf(duplicateEvent(P('Standup')))).toBe('create-failed');
+
+			expect(disk.has(P('Standup (copy)'))).toBe(false);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
 		});
 	});
 
@@ -1359,9 +1395,22 @@ describe('calendar writes', () => {
 
 			expect(disk.get(P('Standup'))).toContain('start: 09:30');
 			expect(trashStore.items.map((i) => i.id)).toEqual([secondId]);
+			// The overlay shows the state the first delete recorded, not the second's 14:00.
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 570, end: 600, pending: true });
 		});
 
-		it('remaps history and view to a suffixed path, leaving the note now at the old path visible', async () => {
+		it('a restore with no recorded delete op shows the note once indexed', async () => {
+			await deleteEvent(P('Standup'));
+			eventCalendarStore.setHistory({ undo: [], redo: [], max: 100 });
+
+			expect(await restoreDeletedEvent(P('Standup'))).toBe(P('Standup'));
+
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+			await refresh();
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 570, pending: false });
+		});
+
+		it('remaps its own history to a suffixed path, leaving the view and the note now at the old path alone', async () => {
 			await deleteEvent(P('Standup'));
 			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
 			await refresh();
@@ -1372,7 +1421,8 @@ describe('calendar writes', () => {
 			expect(restored).toBe(P('Standup (restored)'));
 			expect(disk.get(restored)).toContain('start: 09:30');
 			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([restored]);
-			expect(eventCalendarViewStore.popover?.path).toBe(restored);
+			// The popover was opened on the note that now holds the old path.
+			expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
 			expect(eventCalendarStore.eventByPath(restored)).toMatchObject({ title: 'Standup (restored)', start: 570, pending: true });
 			await refresh(2);
 			expect(eventCalendarStore.events.map((e) => [e.path, e.start, e.pending])).toEqual([
@@ -1402,6 +1452,42 @@ describe('calendar writes', () => {
 
 			expect(trashStore.items).toBe(items);
 			expect(disk.has(P('Standup'))).toBe(false);
+		});
+
+		it('a suffixed toast Undo leaves the ops of the note created at the old path on it', async () => {
+			await deleteEvent(P('Standup'));
+			await refresh(2);
+			const created = await createEvent(draft({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }));
+			expect(created).toBe(P('Standup'));
+			await refresh(2);
+			eventCalendarViewStore.openPopover(P('Standup'), RECT);
+
+			expect(await undoDeleteEvent(P('Standup'))).toBe(P('Standup (restored)'));
+
+			expect(eventCalendarStore.history.undo).toEqual([expect.objectContaining({ kind: 'create', label: 'Create event', path: P('Standup'), state: expect.objectContaining({ title: 'Standup' }) })]);
+			expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+			await refresh(2);
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Create event' });
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(disk.get(P('Standup (restored)'))).toContain('start: 09:30');
+		});
+
+		it('a suffixed restoreDeletedEvent moves only the delete op, not the later create on the old path', async () => {
+			await deleteEvent(P('Standup'));
+			await refresh(2);
+			await createEvent(draft({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }));
+			await refresh(2);
+
+			expect(await restoreDeletedEvent(P('Standup'))).toBe(P('Standup (restored)'));
+
+			expect(eventCalendarStore.history.undo.map((op) => [op.kind, op.path])).toEqual([
+				['delete', P('Standup (restored)')],
+				['create', P('Standup')],
+			]);
+			await refresh(2);
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Create event' });
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(disk.has(P('Standup (restored)'))).toBe(true);
 		});
 
 		it("undoDeleteEvent restores and retires the delete op, so Cmd+Z offers nothing", async () => {

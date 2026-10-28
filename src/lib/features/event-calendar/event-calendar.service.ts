@@ -31,7 +31,7 @@ import { error } from '$lib/utils/debug';
 import { applyEventDraft, applyEventFields, eventFileBase, eventState, eventsFromEntries, resolveEventTypeName, sameEventState } from './event-calendar-event.logic';
 import type { EventTiming } from './event-calendar-drag.logic';
 import { planTitleChange, type EventFormPatch } from './event-calendar-form.logic';
-import { dropPath, pushOp, refuseOp, remapPath as remapHistoryPath, removeOp, takeRedo, takeUndo } from './event-calendar-history.logic';
+import { dropPath, pushOp, refuseOp, removeOp, takeRedo, takeUndo } from './event-calendar-history.logic';
 import { eventCalendarStore } from './event-calendar.store.svelte';
 import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 import type { CalendarViewMode, EventDraft, EventNote, EventPatch, EventState, HistoryOp } from './event-calendar.types';
@@ -188,6 +188,12 @@ const NOTE_EXT = '.md';
 
 /** Tail of the write queue per path; deleted when it settles while still the tail. */
 const writeTails = new Map<string, Promise<void>>();
+
+/**
+ * Queue key of `createEvent`, which has no path until `createTypedNote`
+ * plans it. Not a valid absolute path, so no note write shares it.
+ */
+const CREATE_QUEUE_KEY = '\0create';
 
 /** Bumped by `resetEventCalendar`; a write applies its store changes only while it holds the latest value. */
 let writeGeneration = 0;
@@ -536,14 +542,20 @@ function showCreated(event: EventNote, label: 'Create event' | 'Duplicate event'
  * folder, with the same dedupe and template, as the type sidebar's
  * "New Event". The template is rendered for the draft's day, and refused
  * when its frontmatter would be rewritten lossily. Shows the note through
- * the overlay and records a 'Create event' op.
+ * the overlay and records a 'Create event' op. Creates run one at a time,
+ * and `drainEventCalendarWrites` waits for them.
  * @param draft - the new event (a validated form)
  * @returns the created note's path
  * @throws `EventCalendarError` (`template-lossy`, `create-failed`), or
  *   whatever else `createTypedNote` throws; no note is written then
  */
-export async function createEvent(draft: EventDraft): Promise<string> {
-	const isCurrent = generationCheck();
+export function createEvent(draft: EventDraft): Promise<string> {
+	// Queued so `drainEventCalendarWrites` waits for a create in flight.
+	return enqueue(CREATE_QUEUE_KEY, (isCurrent) => createNow(draft, isCurrent));
+}
+
+/** Body of `createEvent`, run at its turn on the create queue. */
+async function createNow(draft: EventDraft, isCurrent: () => boolean): Promise<string> {
 	const typeName = resolveEventTypeName([...typeDefinitionsStore.typeMetadataMap.keys()], settingsStore.eventCalendar.eventTypeName);
 	let plannedBase = '';
 	let path: string;
@@ -672,13 +684,28 @@ function findTrashEntry(path: string, trashId: string | undefined): TrashItem | 
 	return newest;
 }
 
-/** The newest recorded `delete` op on `path`, on either stack. */
-function findDeleteOp(path: string): Extract<HistoryOp, { kind: 'delete' }> | undefined {
+/**
+ * The newest recorded `delete` op on `path`, on either stack; with `trashId`,
+ * only the one that recorded that Trash entry.
+ */
+function findDeleteOp(path: string, trashId?: string): Extract<HistoryOp, { kind: 'delete' }> | undefined {
 	const { undo, redo } = eventCalendarStore.history;
 	for (const op of [...redo, ...undo].reverse()) {
-		if (op.kind === 'delete' && op.path === path) return op;
+		if (op.kind === 'delete' && op.path === path && (trashId === undefined || op.trashId === trashId)) return op;
 	}
 	return undefined;
+}
+
+/**
+ * The ops on `path` recorded at or before `anchor`, in recording order
+ * (the undo stack oldest first, then the redo stack newest first): the
+ * history of the note `anchor` deleted. Empty without an anchor.
+ */
+function opsUpTo(path: string, anchor: HistoryOp | undefined): Set<HistoryOp> {
+	const { undo, redo } = eventCalendarStore.history;
+	const timeline = [...undo, ...[...redo].reverse()];
+	const end = anchor ? timeline.indexOf(anchor) : -1;
+	return new Set(timeline.slice(0, end + 1).filter((op) => op.path === path));
 }
 
 /** `state` with a title read from `from`'s filename moved to `to`'s. */
@@ -688,12 +715,15 @@ function followFilename(state: EventState, from: string, to: string): EventState
 
 /**
  * Restores `path` from the Trash. A note restored under a suffixed path
- * moves the history and view store there, and a create or delete op whose
- * title was its filename takes the new one; the old path is left alone, as
- * another note may hold it. With a known `state`, the note shows through a
- * `create` overlay until the snapshot has its path.
+ * moves its own ops there (`anchor` and the ops on `path` recorded before
+ * it), and a create or delete op among them whose title was its filename
+ * takes the new one. Later ops and the view store stay on `path`: they
+ * belong to the note that now holds it. With a known `state`, the note
+ * shows through a `create` overlay until the snapshot has its path; without
+ * one, a same-path restore drops the delete tombstone at `path`.
+ * @param anchor - the op that deleted the note, which the restore undoes
  * @param retire - op removed from the history once the restore succeeds,
- *   before any remap
+ *   after its owned ops are known
  * @returns the restored path
  * @throws `EventCalendarError('not-in-trash')` before touching any store,
  *   or the restore error
@@ -703,6 +733,7 @@ async function restoreNow(
 	trashId: string | undefined,
 	state: EventState | undefined,
 	isCurrent: () => boolean,
+	anchor: HistoryOp | undefined,
 	retire?: HistoryOp,
 ): Promise<string> {
 	const item = findTrashEntry(path, trashId);
@@ -711,13 +742,17 @@ async function restoreNow(
 	const restored = await restoreItem(vaultPath, item);
 	if (restored === null) throw new EventCalendarError('not-in-trash');
 	if (!isCurrent()) return restored;
+	const owned = restored === path ? new Set<HistoryOp>() : opsUpTo(path, anchor);
 	if (retire) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, retire));
-	if (restored !== path) {
-		const remapped = remapHistoryPath(eventCalendarStore.history, path, restored);
-		const follow = (op: HistoryOp): HistoryOp => (op.kind !== 'update' && op.path === restored ? { ...op, state: followFilename(op.state, path, restored) } : op);
-		eventCalendarStore.setHistory({ ...remapped, undo: remapped.undo.map(follow), redo: remapped.redo.map(follow) });
-		eventCalendarViewStore.remapPath(path, restored);
+	if (owned.size > 0) {
+		const move = (op: HistoryOp): HistoryOp => {
+			if (!owned.has(op)) return op;
+			return op.kind === 'update' ? { ...op, path: restored } : { ...op, path: restored, state: followFilename(op.state, path, restored) };
+		};
+		const { history } = eventCalendarStore;
+		eventCalendarStore.setHistory({ ...history, undo: history.undo.map(move), redo: history.redo.map(move) });
 	}
+	if (!state && restored === path) eventCalendarStore.dropPending(path);
 	if (state) {
 		const { title } = followFilename(state, path, restored);
 		eventCalendarStore.putPending({
@@ -734,7 +769,8 @@ async function restoreNow(
  * Restores a deleted event note from the Trash, queued per path. Takes the
  * entry with `trashId`, else the newest one whose original path is `path`.
  * `restoreItem` re-indexes the note and may return a suffixed path when
- * `path` is taken again.
+ * `path` is taken again. With `trashId`, overlays the state of the delete op
+ * that recorded it, else none.
  * @param path - absolute path the note had
  * @param trashId - Trash entry id recorded by the delete
  * @returns the restored path
@@ -743,8 +779,9 @@ async function restoreNow(
  */
 export function restoreDeletedEvent(path: string, trashId?: string): Promise<string> {
 	return enqueue(path, (isCurrent) => {
-		const op = findDeleteOp(path);
-		return restoreNow(path, trashId ?? op?.trashId, op?.state, isCurrent);
+		// An explicit id overlays only the state its own delete recorded.
+		const op = findDeleteOp(path, trashId);
+		return restoreNow(path, trashId ?? op?.trashId, op?.state, isCurrent, op);
 	});
 }
 
@@ -758,7 +795,7 @@ export function restoreDeletedEvent(path: string, trashId?: string): Promise<str
 export function undoDeleteEvent(path: string): Promise<string> {
 	return enqueue(path, (isCurrent) => {
 		const op = findDeleteOp(path);
-		return restoreNow(path, op?.trashId, op?.state, isCurrent, op);
+		return restoreNow(path, op?.trashId, op?.state, isCurrent, op, op);
 	});
 }
 
@@ -789,7 +826,7 @@ function applyNoteOp(op: Exclude<HistoryOp, { kind: 'update' }>, direction: 'und
 			return { status: 'done', label: op.label };
 		}
 		try {
-			await restoreNow(op.path, op.kind === 'delete' ? op.trashId : undefined, op.state, isCurrent);
+			await restoreNow(op.path, op.kind === 'delete' ? op.trashId : undefined, op.state, isCurrent, op);
 		} catch (err) {
 			// `restoreNow` throws before any remap, so the op is still this reference.
 			if (isCurrent()) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, op));

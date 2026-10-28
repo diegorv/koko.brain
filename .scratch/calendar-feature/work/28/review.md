@@ -50,3 +50,13 @@ Layer rules: the feature imports `core/trash`, `core/filesystem`, `features/type
    - Fix: add a case where `create_note` throws during a duplicate. Assert the reason is `create-failed` and that the history and the pending entries are unchanged.
 
 Not a finding: `restoreItem` never returns null (it rethrows every failure, `trash.service.ts:155-157`), so the null check at `event-calendar.service.ts:712` is unreachable. A restore I/O error reaches the caller as the raw error, and `applyNoteOp` refuses the op and rethrows it. That is the intended behavior.
+
+## Resolution
+
+All five findings accepted and fixed in the fix commit; none rejected.
+
+1. `restoreNow` takes the deleting op as `anchor` and re-points only the ops on the old path recorded at or before it (`opsUpTo`: undo stack oldest first, then redo newest first). Later ops and the view store stay on the old path. Regression tests through `undoDeleteEvent` and `restoreDeletedEvent`; the popover assertion now expects the popover to stay on the occupant.
+2. `createEvent` is queued with `enqueue` under a dedicated key, so `drainEventCalendarWrites` waits for it (creates now also run one at a time). Test added.
+3. `restoreDeletedEvent(path, trashId)` overlays the state of the delete op that recorded `trashId`, else none. Asserted in the "given id" test.
+4. A same-path restore without a known state drops the tombstone at `path`. Test added.
+5. Test added for `duplicateEvent` with a failing `create_note`.

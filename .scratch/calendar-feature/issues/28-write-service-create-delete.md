@@ -32,3 +32,4 @@
 - 2026-10-28 14:11 — discovery — plan in work/28/discovery.md: internal deleteNow/restoreNow shared by public calls and undo; real owners in tests on the fake disk — aa71267f
 - 2026-10-28 14:16 — implement — create/duplicate/delete/restore/undoDelete + create/delete undo-redo; event-calendar vitest 544/544, importers+trash+type-definitions 491/491, svelte-check 0 errors; e2e and full gate left to deliver — 407b00a9
 - 2026-10-28 14:21 — review — CHANGES_REQUESTED: suffixed restore remaps the occupying note's ops (Cmd+Z can trash the wrong note), drain skips createEvent, 3 Low; check 0 errors, vitest 1044/1044 — b262e451
+- 2026-10-28 14:25 — fix — all 5 review findings fixed: suffixed restore moves only the note's own ops, create queued for drain, trashId-matched overlay, tombstone dropped, duplicate create-failed test; event-calendar vitest 549/549, check 0 errors — pending
