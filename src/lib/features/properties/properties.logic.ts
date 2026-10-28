@@ -1,4 +1,15 @@
-import { parse as yamlParse, Document, type YAMLSeq } from 'yaml';
+import {
+	parse as yamlParse,
+	parseDocument,
+	visit,
+	isAlias,
+	isCollection,
+	isMap,
+	isScalar,
+	isSeq,
+	Document,
+	type YAMLSeq,
+} from 'yaml';
 import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
 import { appendLog } from '$lib/utils/log.service';
 import type { Property, PropertyType } from './properties.types';
@@ -170,6 +181,96 @@ export function parseFrontmatterProperties(content: string): Property[] {
 	const raw = extractRawFrontmatter(content);
 	if (!raw) return [];
 	return cachedParse(raw);
+}
+
+/**
+ * Why a parse + re-serialize of a note's frontmatter would lose data:
+ * - `unparseable`: YAML errors, or a root that is not a mapping.
+ * - `nested`: a mapping below the root, a collection inside a list, or a collection key.
+ * - `comments`: any comment; the serializer drops them.
+ * - `duplicate-keys`: one key twice in the root mapping; the parse is last-wins.
+ * - `alias-collision`: two keys with one canonical name, both non-empty; one is discarded.
+ * - `anchors`: an anchor or alias node; the rewrite would expand it.
+ */
+export type LossyFrontmatterReason =
+	| 'unparseable'
+	| 'nested'
+	| 'comments'
+	| 'duplicate-keys'
+	| 'alias-collision'
+	| 'anchors';
+
+/** Precedence when a block has several problems: the first listed is reported. */
+const LOSSY_REASON_ORDER: readonly LossyFrontmatterReason[] = [
+	'unparseable',
+	'nested',
+	'comments',
+	'duplicate-keys',
+	'alias-collision',
+	'anchors',
+];
+
+/** True when a YAML value node carries no data: missing, null, `''` or `[]`. */
+function isEmptyYamlNode(node: unknown): boolean {
+	if (node === null || node === undefined) return true;
+	if (isScalar(node)) return node.value === null || node.value === '';
+	if (isSeq(node)) return node.items.length === 0;
+	return false;
+}
+
+/**
+ * Tells a caller, before it rewrites a note, whether the
+ * `parseFrontmatterProperties` -> `serializeProperties` round trip would lose
+ * data, and why. Returns null when the rewrite is safe: no frontmatter, an empty
+ * block, or only the coercions ADR-0029 defines as canonical (`key:` / `key: null`
+ * to `""`, scalar list items to strings, alias keys to canonical, quote style).
+ * Pure; reads no store.
+ */
+export function detectLossyFrontmatter(content: string): LossyFrontmatterReason | null {
+	const raw = extractRawFrontmatter(content);
+	if (raw === null || raw.trim() === '') return null;
+
+	const doc = parseDocument(raw, { uniqueKeys: false });
+	const root = doc.contents;
+	if (doc.errors.length > 0 || (root !== null && !isMap(root))) return 'unparseable';
+
+	const found = new Set<LossyFrontmatterReason>();
+	if (doc.commentBefore || doc.comment) found.add('comments');
+
+	visit(doc, {
+		Node(key, node, path) {
+			if (node.commentBefore || node.comment) found.add('comments');
+			if (isAlias(node) || node.anchor) found.add('anchors');
+			if (!isCollection(node)) return;
+			if (key === 'key' || (isMap(node) && node !== root)) {
+				found.add('nested');
+				return;
+			}
+			for (let i = path.length - 1; i >= 0; i--) {
+				const ancestor = path[i];
+				if (!isCollection(ancestor)) continue;
+				if (isSeq(ancestor)) found.add('nested');
+				break;
+			}
+		},
+	});
+
+	if (isMap(root)) {
+		const rawKeys = new Set<string>();
+		const populatedCanonical = new Set<string>();
+		for (const pair of root.items) {
+			if (!isScalar(pair.key)) continue;
+			const rawKey = String(pair.key.value);
+			if (rawKeys.has(rawKey)) found.add('duplicate-keys');
+			rawKeys.add(rawKey);
+			if (isEmptyYamlNode(pair.value)) continue;
+			const canonical = canonicalizeKey(rawKey);
+			if (populatedCanonical.has(canonical)) found.add('alias-collision');
+			populatedCanonical.add(canonical);
+		}
+	}
+
+	return LOSSY_REASON_ORDER.find((reason) => found.has(reason)) ?? null;
 }
 
 /** True when a property value carries no data (empty string, null, or empty list). */

@@ -4,11 +4,14 @@ vi.mock('$lib/utils/log.service', () => ({
 	appendLog: vi.fn(),
 }));
 
+import { parse as yamlParse } from 'yaml';
 import { appendLog } from '$lib/utils/log.service';
+import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
 import {
 	extractRawFrontmatter,
 	extractBody,
 	parseFrontmatterProperties,
+	detectLossyFrontmatter,
 	serializeProperties,
 	setPropertyByBindTarget,
 	rebuildContent,
@@ -773,6 +776,193 @@ describe('round-trip: parse → serialize → rebuild', () => {
 		expect(reparsed[1]).toEqual({ key: 'count', value: 42, type: 'number' });
 		expect(reparsed[2]).toEqual({ key: 'tags', value: ['a', 'b'], type: 'list' });
 	});
+});
+
+describe('detectLossyFrontmatter', () => {
+	const note = (yaml: string) => `---\n${yaml}\n---\nBody`;
+
+	describe('refuses', () => {
+		it('a list of maps as nested', () => {
+			expect(detectLossyFrontmatter(note('items:\n  - name: a\n  - name: b'))).toBe('nested');
+		});
+
+		it('a nested list as nested', () => {
+			expect(detectLossyFrontmatter(note('grid: [[1, 2], [3, 4]]'))).toBe('nested');
+		});
+
+		it('a map under a top-level key as nested', () => {
+			expect(detectLossyFrontmatter(note('meta:\n  author: Alice'))).toBe('nested');
+		});
+
+		it('a collection key as nested', () => {
+			expect(detectLossyFrontmatter(note('? [a, b]\n: value'))).toBe('nested');
+		});
+
+		it('the same key twice as duplicate-keys', () => {
+			expect(detectLossyFrontmatter(note('a: 1\na: 1'))).toBe('duplicate-keys');
+		});
+
+		it('an alias and its canonical twin both set as alias-collision', () => {
+			expect(detectLossyFrontmatter(note('color: blue\n_color: red'))).toBe('alias-collision');
+		});
+
+		it('two aliases of one canonical key both set as alias-collision', () => {
+			expect(detectLossyFrontmatter(note('sidebar_label: A\nsidebar label: B'))).toBe(
+				'alias-collision',
+			);
+		});
+
+		it('an anchor and its alias as anchors', () => {
+			expect(detectLossyFrontmatter(note('base: &x value\nref: *x'))).toBe('anchors');
+		});
+
+		it('an anchor alone as anchors', () => {
+			expect(detectLossyFrontmatter(note('base: &x value'))).toBe('anchors');
+		});
+
+		it('a comment line as comments', () => {
+			expect(detectLossyFrontmatter(note('# managed by script\ntitle: Hello'))).toBe('comments');
+		});
+
+		it('a trailing comment as comments', () => {
+			expect(detectLossyFrontmatter(note('title: Hello # keep me'))).toBe('comments');
+		});
+
+		it('a comment between keys and at the end as comments', () => {
+			expect(detectLossyFrontmatter(note('a: 1\n# mid\nb: 2'))).toBe('comments');
+			expect(detectLossyFrontmatter(note('a: 1\n# end'))).toBe('comments');
+		});
+
+		it('a comment inside a flow list as comments', () => {
+			expect(detectLossyFrontmatter(note('tags: [a, # x\n  b]'))).toBe('comments');
+		});
+
+		it('a comment-only block as comments', () => {
+			expect(detectLossyFrontmatter(note('# just a note'))).toBe('comments');
+		});
+
+		it('invalid YAML as unparseable', () => {
+			expect(detectLossyFrontmatter(note('a: [1, 2'))).toBe('unparseable');
+		});
+
+		it('a scalar root as unparseable', () => {
+			expect(detectLossyFrontmatter(note('just text'))).toBe('unparseable');
+		});
+
+		it('a sequence root as unparseable', () => {
+			expect(detectLossyFrontmatter(note('- a\n- b'))).toBe('unparseable');
+		});
+	});
+
+	describe('accepts (returns null)', () => {
+		it('a # inside a quoted string', () => {
+			expect(detectLossyFrontmatter(note('location: "Room #4"\nnote: \'a # b\''))).toBeNull();
+		});
+
+		it('an empty alias next to a populated canonical twin', () => {
+			expect(detectLossyFrontmatter(note("color: ''\n_color: red"))).toBeNull();
+		});
+
+		it('an empty list or null alias next to a populated twin', () => {
+			expect(detectLossyFrontmatter(note('color: []\n_color: red'))).toBeNull();
+			expect(detectLossyFrontmatter(note('_color: red\ncolor:'))).toBeNull();
+		});
+
+		it('a flow list of mixed scalars', () => {
+			expect(detectLossyFrontmatter(note('vals: [1, true]'))).toBeNull();
+		});
+
+		it('key: null and an empty key', () => {
+			expect(detectLossyFrontmatter(note('a: null\nb:'))).toBeNull();
+		});
+
+		it('a block scalar', () => {
+			expect(detectLossyFrontmatter(note('desc: |\n  Line one\n  Line two'))).toBeNull();
+		});
+
+		it('a lone alias key and a quoted value', () => {
+			expect(detectLossyFrontmatter(note("favorite: true\ntitle: 'Hello'"))).toBeNull();
+		});
+
+		it('an empty block', () => {
+			expect(detectLossyFrontmatter('---\n\n---\nBody')).toBeNull();
+			expect(detectLossyFrontmatter('---\n  \n---\nBody')).toBeNull();
+		});
+
+		it('absent frontmatter', () => {
+			expect(detectLossyFrontmatter('Just body text')).toBeNull();
+			expect(detectLossyFrontmatter('')).toBeNull();
+		});
+	});
+});
+
+describe('round-trip fixtures: detectLossyFrontmatter reason list is complete', () => {
+	/** True for the values `dedupeCanonicalKeys` treats as placeholders. */
+	const isEmpty = (v: unknown) => v === '' || (Array.isArray(v) && v.length === 0);
+
+	/**
+	 * Applies only the ADR-0029 canonical coercions: null becomes `""`, list
+	 * items become strings, alias keys become canonical (a placeholder loses to
+	 * a populated twin). Quote style is invisible after a parse.
+	 */
+	function normalizeAccepted(parsed: unknown): Record<string, unknown> {
+		const out = new Map<string, unknown>();
+		for (const [rawKey, raw] of Object.entries((parsed ?? {}) as Record<string, unknown>)) {
+			const key = canonicalizeKey(rawKey);
+			const value =
+				raw === null
+					? ''
+					: Array.isArray(raw)
+						? raw.map((item) => (item === null ? '' : String(item)))
+						: raw;
+			if (!out.has(key) || (isEmpty(out.get(key)) && !isEmpty(value))) out.set(key, value);
+		}
+		return Object.fromEntries(out);
+	}
+
+	const fixtures: { name: string; content: string; reason: string | null }[] = [
+		{ name: 'absent frontmatter', content: 'Body only', reason: null },
+		{ name: 'empty block', content: '---\n\n---\nBody', reason: null },
+		{
+			name: 'event note',
+			content:
+				'---\n_type: event\nevent_title: Standup\ndate: 2026-11-10\nstart: 09:30\nend: 10:00\nall_day: false\nlocation: "Room #4"\nevent_color: blue\n---\nNotes',
+			reason: null,
+		},
+		{ name: 'empty template keys', content: '---\nlocation:\nend: null\ntags: []\n---\n', reason: null },
+		{ name: 'mixed scalar list', content: '---\nvals: [1, true, 2026-01-01, ~]\n---\n', reason: null },
+		{ name: 'block list', content: '---\ntags:\n  - a\n  - b\n---\n', reason: null },
+		{ name: 'alias keys', content: '---\ntype: person\nfavorite: true\nicon: star\n---\n', reason: null },
+		{ name: 'placeholder alias twin', content: "---\ncolor: ''\n_color: red\n---\n", reason: null },
+		{ name: 'quote styles', content: "---\na: 'single'\nb: \"double\"\nc: '42'\n---\n", reason: null },
+		{ name: 'numbers', content: '---\nn: 42\nf: 3.5\nh: 0x1F\nneg: -7\n---\n', reason: null },
+		{ name: 'block scalars', content: '---\nkeep: |\n  a\n  b\nfold: >-\n  c\n  d\n---\n', reason: null },
+		{ name: 'url and wikilink', content: '---\nurl: https://x.io/a#b\nlink: "[[Note]]"\n---\n', reason: null },
+		{ name: 'list of maps', content: '---\nitems:\n  - name: a\n---\n', reason: 'nested' },
+		{ name: 'nested list', content: '---\ngrid: [[1, 2]]\n---\n', reason: 'nested' },
+		{ name: 'nested map', content: '---\nmeta:\n  author: A\n---\n', reason: 'nested' },
+		{ name: 'comment line', content: '---\n# hi\na: 1\n---\n', reason: 'comments' },
+		{ name: 'trailing comment', content: '---\na: 1 # hi\n---\n', reason: 'comments' },
+		{ name: 'duplicate key', content: '---\na: 1\na: 2\n---\n', reason: 'duplicate-keys' },
+		{ name: 'alias collision', content: '---\ncolor: blue\n_color: red\n---\n', reason: 'alias-collision' },
+		{ name: 'anchors', content: '---\na: &x 1\nb: *x\n---\n', reason: 'anchors' },
+		{ name: 'unparseable', content: '---\na: [1\n---\n', reason: 'unparseable' },
+	];
+
+	for (const f of fixtures) {
+		it(`${f.name}: reason is ${f.reason ?? 'null'}`, () => {
+			expect(detectLossyFrontmatter(f.content)).toBe(f.reason);
+		});
+
+		if (f.reason !== null) continue;
+
+		it(`${f.name}: round trip loses nothing beyond the accepted coercions`, () => {
+			_resetParseFrontmatterCache();
+			const original = yamlParse(extractRawFrontmatter(f.content) ?? '');
+			const rewritten = yamlParse(serializeProperties(parseFrontmatterProperties(f.content)));
+			expect(rewritten ?? {}).toEqual(normalizeAccepted(original));
+		});
+	}
 });
 
 describe('frontmatter alias normalization', () => {
