@@ -2,8 +2,8 @@
 //!
 //! EXCLUDED: asserting that no graph node lands on CoreML needs the real
 //! BGE-M3 model and live ORT inference, which the semantic-test policy keeps
-//! out of unit/integration tests. `examples/embedder_memory_probe.rs` is the
-//! guard for that: run it after any `ort` bump.
+//! out of unit/integration tests. There is no automated guard for it:
+//! re-check peak memory by hand after any `ort` bump.
 
 use kokobrain_lib::semantic::session_builder;
 

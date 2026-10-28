@@ -27,7 +27,7 @@ pub(crate) fn ort_environment() -> Result<&'static ort::environment::Environment
 /// which on macOS always registers the CoreML EP. With the dynamic batch
 /// shapes the embedder produces, CoreML pushed the process to a 30 GB
 /// footprint and 20-190 s per [8,512] batch; CPU-only peaks at ~1.6 GB and
-/// ~2 s (measured with `examples/embedder_memory_probe.rs`, 2026-10-27).
+/// ~2 s (measured with a since-removed macOS-only probe, 2026-10-27).
 /// Every session must start here so the policy cannot drift per call site.
 pub fn session_builder(num_threads: usize) -> Result<ort::session::builder::SessionBuilder, String> {
 	ort::session::Session::builder(ort_environment()?)
