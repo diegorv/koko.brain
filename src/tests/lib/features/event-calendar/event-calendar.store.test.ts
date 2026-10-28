@@ -152,6 +152,7 @@ describe('eventCalendarStore', () => {
 			expect(store.events).not.toBe(events);
 			expect(store.pendingPaths).not.toBe(pendingPaths);
 			expect(store.attentionIssues).not.toBe(attention);
+			expect(store.unscheduledIssues).not.toBe(unscheduled);
 		});
 
 		it('does not rebuild on setLoading, setLoadError or setHistory', () => {
@@ -230,6 +231,17 @@ describe('eventCalendarStore', () => {
 			// An unsettled write would never prune; a settled one does at +2.
 			store.setSnapshot(projection([a]), 7);
 			expect(store.isPending(a.path)).toBe(false);
+		});
+
+		it('settlePending of an already settled write keeps its version clock', () => {
+			const created = note('c');
+			store.setSnapshot(projection([]), 1);
+			store.putPending({ kind: 'create', path: created.path, event: created, settled: true });
+			store.settlePending(created.path, 1);
+			store.setSnapshot(projection([]), 3);
+
+			expect(store.isPending(created.path)).toBe(true);
+			expect(store.eventByPath(created.path)).toMatchObject({ pending: true });
 		});
 
 		it('settlePending of an unknown path is a no-op', () => {
@@ -354,6 +366,96 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toEqual([{ ...renamed, pending: false }]);
 		});
 
+		it('keeps a moved settled update through a snapshot that predates the rename', () => {
+			const a = note('a', { readOnly: true });
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 5);
+			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700, end: 760 }), settled: false });
+			store.settlePending(a.path, 5);
+			store.setSnapshot(projection([a]), 6);
+			store.remapPath(a.path, to);
+
+			const moved = { path: to, start: 700, end: 760, snippet: 'a body', readOnly: true, pending: true };
+			expect(store.events).toHaveLength(1);
+			expect(store.eventByPath(to)).toMatchObject(moved);
+
+			store.setSnapshot(projection([a]), 7);
+			expect(store.events).toHaveLength(1);
+			expect(store.eventByPath(a.path)).toBeUndefined();
+			expect(store.eventByPath(to)).toMatchObject(moved);
+
+			const renamed = { ...a, path: to, start: 700, end: 760 };
+			store.setSnapshot(projection([renamed]), 8);
+			expect(store.pendingPaths.size).toBe(0);
+			expect(store.events).toEqual([{ ...renamed, pending: false }]);
+		});
+
+		it('keeps a moved settled create through a snapshot that predates the rename', () => {
+			const created = note('c');
+			const to = P('restored 1');
+			store.setSnapshot(projection([]), 5);
+			store.putPending({ kind: 'create', path: created.path, event: created, settled: false });
+			store.settlePending(created.path, 5);
+			store.setSnapshot(projection([]), 6);
+			store.remapPath(created.path, to);
+
+			store.setSnapshot(projection([]), 7);
+			expect(store.events).toHaveLength(1);
+			expect(store.eventByPath(to)).toMatchObject({ path: to, title: 'c', snippet: 'c body', pending: true });
+			expect(store.isPending(to)).toBe(true);
+		});
+
+		it('keeps the snippet and readOnly of a moved pending update', () => {
+			const a = note('a', { readOnly: true });
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 1);
+			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false });
+			store.remapPath(a.path, to);
+
+			expect(store.eventByPath(to)).toMatchObject({ snippet: 'a body', readOnly: true, start: 700 });
+		});
+
+		it('ignores settlePending on the tombstone, so both paths never render', () => {
+			const a = note('a');
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 5);
+			store.remapPath(a.path, to);
+			store.settlePending(a.path, 5);
+			store.setSnapshot(projection([a]), 7);
+
+			expect(store.isPending(a.path)).toBe(true);
+			expect(store.events.map((e) => e.path)).toEqual([to]);
+		});
+
+		it('lets a write in flight at the rename be settled at the new path', () => {
+			const a = note('a');
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 1);
+			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false });
+			store.remapPath(a.path, to);
+			// Unsettled: no snapshot prunes it.
+			store.setSnapshot(projection([{ ...a, path: to }]), 2);
+			expect(store.isPending(to)).toBe(true);
+
+			store.settlePending(to, 2);
+			store.setSnapshot(projection([{ ...a, path: to, start: 700 }]), 3);
+			expect(store.pendingPaths.size).toBe(0);
+			expect(store.events).toEqual([{ ...a, path: to, start: 700, pending: false }]);
+		});
+
+		it('keeps a write already held at the new path', () => {
+			const a = note('a');
+			const to = P('restored 1');
+			const held = note('restored 1', { title: 'held' });
+			store.setSnapshot(projection([a]), 1);
+			store.putPending({ kind: 'create', path: to, event: held, settled: false });
+			store.remapPath(a.path, to);
+
+			expect(store.events).toHaveLength(1);
+			expect(store.eventByPath(to)).toMatchObject({ title: 'held', pending: true });
+			expect(store.eventByPath(a.path)).toBeUndefined();
+		});
+
 		it('moves the history to the new path', () => {
 			const a = note('a');
 			const other = note('o');
@@ -382,6 +484,65 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toEqual([]);
 			expect([...store.pendingPaths]).toEqual([P('ghost')]);
 		});
+	});
+
+	describe('getters after each overlay mutator', () => {
+		const a = note('a');
+		const issues = [issue('u', 'unscheduled'), issue('bad', 'invalid-time')];
+		const to = P('renamed');
+		const cases: { name: string; run: () => void; pending: string[]; visible: string[] }[] = [
+			{
+				name: 'putPending',
+				run: () => store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false }),
+				pending: [a.path],
+				visible: [a.path],
+			},
+			{
+				name: 'settlePending',
+				run: () => {
+					store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false });
+					store.settlePending(a.path, 3);
+				},
+				pending: [a.path],
+				visible: [a.path],
+			},
+			{
+				name: 'dropPending',
+				run: () => {
+					store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false });
+					store.dropPending(a.path);
+				},
+				pending: [],
+				visible: [a.path],
+			},
+			{ name: 'remapPath', run: () => store.remapPath(a.path, to), pending: [a.path, to], visible: [to] },
+		];
+
+		for (const c of cases) {
+			it(`${c.name} changes only the overlay getters`, () => {
+				store.setSnapshot(projection([a], issues, 2), 3);
+				const before = {
+					issues: store.issues,
+					attention: store.attentionIssues.map((i) => i.path),
+					unscheduled: store.unscheduledIssues.map((i) => i.path),
+				};
+
+				c.run();
+
+				expect(store.issues).toBe(before.issues);
+				expect(store.attentionIssues.map((i) => i.path)).toEqual(before.attention);
+				expect(store.unscheduledIssues.map((i) => i.path)).toEqual(before.unscheduled);
+				expect(store.attentionCount).toBe(1);
+				expect(store.archivedCount).toBe(2);
+				expect(store.snapshotVersion).toBe(3);
+				expect(store.isLoading).toBe(false);
+				expect(store.loadError).toBeNull();
+				expect([...store.pendingPaths].sort()).toEqual([...c.pending].sort());
+				for (const path of [a.path, to]) expect(store.isPending(path)).toBe(c.pending.includes(path));
+				expect(store.events.map((e) => e.path)).toEqual(c.visible);
+				for (const path of [a.path, to]) expect(store.eventByPath(path)?.path).toBe(c.visible.includes(path) ? path : undefined);
+			});
+		}
 	});
 
 	describe('loading, error and history', () => {

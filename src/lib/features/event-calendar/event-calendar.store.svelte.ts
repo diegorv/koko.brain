@@ -126,13 +126,16 @@ export const eventCalendarStore = {
 	},
 
 	/**
-	 * Marks the write at `path` as finished on disk; no-op when there is none.
+	 * Marks the write at `path` as finished on disk. No-op when there is none
+	 * or it is already settled, so a write keeps its first version clock and a
+	 * rename tombstone left by `remapPath` never gains one (it must prune only
+	 * once the snapshot drops its path).
 	 * @param path - absolute note path
 	 * @param versionAtSettle - `vaultIndexVersion` when the write finished
 	 */
 	settlePending(path: string, versionAtSettle: number) {
 		const write = pending.get(path);
-		if (!write) return;
+		if (!write || write.settled) return;
 		pending = new Map(pending).set(path, { ...write, settled: true, settledAtVersion: versionAtSettle });
 		recompute();
 	},
@@ -147,21 +150,27 @@ export const eventCalendarStore = {
 	},
 
 	/**
-	 * Follows a renamed or restored note. The write at `from` moves to `to`
-	 * (a visible event without one becomes a settled `create` at `to`, which
-	 * prunes once the snapshot has `to`); a `delete` at `from` stays put, as
-	 * moving it would hide `to`. `from` keeps a settled `delete` tombstone
-	 * that prunes once the snapshot no longer contains it. History ops on
-	 * `from` are re-pointed at `to`.
+	 * Follows a renamed or restored note. The visible event at `from` (with any
+	 * pending update or create already applied) becomes a `create` at `to` with
+	 * no version clock, so it prunes only once the snapshot has `to`; it keeps
+	 * the moved write's `settled` flag, and is settled when there was no write.
+	 * A `delete` at `from` stays put, as moving it would hide `to`. `from`
+	 * keeps a settled `delete` tombstone that prunes once the snapshot no
+	 * longer contains it. History ops on `from` are re-pointed at `to`.
+	 *
+	 * Call it before putting any write at `to`: a write already held at `to`
+	 * is kept and the event at `from` is not moved over it. A write still in
+	 * flight when the rename lands must be settled at `to` afterwards;
+	 * settling `from` hits the tombstone and is a no-op.
 	 */
 	remapPath(from: string, to: string) {
 		if (from === to) return;
 		const write = pending.get(from);
 		const current = eventMap.get(from);
 		const next = new Map(pending);
-		if (write?.kind === 'update') next.set(to, { ...write, path: to });
-		else if (write?.kind === 'create') next.set(to, { ...write, path: to, event: { ...write.event, path: to } });
-		else if (!write && current) next.set(to, { kind: 'create', path: to, event: { ...plainEvent(current), path: to }, settled: true });
+		if (current && !pending.has(to)) {
+			next.set(to, { kind: 'create', path: to, event: { ...plainEvent(current), path: to }, settled: write ? write.settled : true });
+		}
 		next.set(from, { kind: 'delete', path: from, settled: true });
 		pending = next;
 		history = remapHistoryPath(history, from, to);

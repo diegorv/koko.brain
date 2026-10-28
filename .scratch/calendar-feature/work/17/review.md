@@ -64,3 +64,14 @@ I did not run the full gate (`pnpm vitest run` on the whole suite, plus `pnpm bu
 6. **Info: scope.** The `history` getter (`event-calendar.store.svelte.ts:96`) is not in the ticket's getter list. The write service needs the held history to call `takeUndo` and `pushOp`, so it is justified and tested (:357-366, :402-414). Keep it.
 
 No layer-rule, error-handling or performance problems were found. The store imports only `./*.logic.ts` and types. It has no Tauri calls or services. Recompute is O(N log N) per mutation, and every read is O(1).
+
+## Resolution
+
+All six findings accepted; none rejected.
+
+1. Fixed. `remapPath` now turns the merged event at `from` (pending update or create already applied, snippet and `readOnly` included) into a `create` at `to` with no `settledAtVersion`, keeping the moved write's `settled` flag (settled when there was no write). It prunes only once the snapshot has `to`. Tests cover the lagging-snapshot sequence for an update and for a create, and the snippet / `readOnly` surviving.
+2. Fixed. `settlePending` is a no-op on an already settled write, so the rename tombstone never gains a version clock and a write keeps its first one. `remapPath` JSDoc says a write in flight must be settled at `to`. Tests: settle on the tombstone leaves only `to` visible; settle at `to` then prunes on presence; re-settle keeps the clock.
+3. Fixed by keeping an existing write at `to` (the event at `from` is not moved over it) and documenting the call order on `remapPath`. Test added.
+4. Fixed. Table-driven test runs `putPending`, `settlePending`, `dropPending` and `remapPath` and checks every getter; the identity test now also checks `unscheduledIssues`.
+5. Done at close: acceptance checkboxes ticked.
+6. Kept.
