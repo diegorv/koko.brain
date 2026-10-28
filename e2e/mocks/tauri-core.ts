@@ -58,6 +58,9 @@ function handleSearchVault(args: Args): unknown {
 function handleCreateNote(args: Args): unknown {
 	const path = get<string>(args, 'path');
 	virtualFS.writeFile(path, (get<string>(args, 'content') as string) ?? '');
+	// Rust `create_note` does not touch the FTS5 table: the note is not
+	// searchable until the frontend upserts it.
+	notInFts.add(path);
 	// Rust `create_note` emits unconditionally (commands/vault.rs).
 	takeHookResult(path);
 	const result: UpdateResultV2 = { changed: true, affected: [path], version: vaultIndex.version };
@@ -185,12 +188,23 @@ function handleStopVaultWatcher(): void {
 
 // ─── Search (FTS + semantic) — no-ops with sensible empty shapes ───────────
 
+/**
+ * Absolute paths written by `create_note` and not yet upserted through
+ * `update_search_index_file`. `search_fts` skips them, so a spec can see
+ * whether a created note reached the FTS5 table. Files seeded straight into
+ * `virtualFS` stay searchable.
+ */
+const notInFts = new Set<string>();
+
 function handleBuildSearchIndex(): unknown {
+	notInFts.clear();
 	return { totalDocuments: vaultIndex.getAll().length };
 }
 
-function handleUpdateSearchIndexFile(): void {
-	/* no-op */
+function handleUpdateSearchIndexFile(args: Args): void {
+	const vaultPath = get<string>(args, 'vaultPath');
+	const filePath = get<string>(args, 'filePath');
+	if (vaultPath && filePath) notInFts.delete(`${vaultPath}/${filePath}`);
 }
 
 function handleSearchFts(args: Args): unknown[] {
@@ -204,6 +218,7 @@ function handleSearchFts(args: Args): unknown[] {
 
 	for (const [filePath, content] of Object.entries(allFiles)) {
 		if (!filePath.endsWith('.md')) continue;
+		if (notInFts.has(filePath)) continue;
 		pattern.lastIndex = 0;
 		if (!pattern.test(content)) continue;
 
