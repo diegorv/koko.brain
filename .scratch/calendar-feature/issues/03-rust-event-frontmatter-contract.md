@@ -24,3 +24,7 @@
 - [ ] `event_title: "1:1 with manager"` parses to `String("1:1 with manager")`
 - [ ] Test-only: no file under `src-tauri/src/` changes
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 11:22 — discovery — plan written; empty `start:` parses to Null, not String(""), pinned as-is and flagged — pending
