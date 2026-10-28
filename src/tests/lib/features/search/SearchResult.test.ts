@@ -11,11 +11,23 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
+// The "Show in Calendar" lookup reads the vault entries over Tauri IPC.
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 import { mount, unmount, flushSync } from 'svelte';
+import { invoke } from '@tauri-apps/api/core';
 import SearchResult from '$lib/features/search/SearchResult.svelte';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
+import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { eventEntry } from '../../../fixtures/event-notes.fixture';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type {
 	SemanticSearchResult,
 	HybridSearchResult,
@@ -210,5 +222,60 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		// ...and once the note is really open the offset still lands on it.
 		expect(editorStore.activeTabPath).toBe(NOTE_PATH);
 		expect(editorStore.pendingScrollPosition).toBe(12);
+	});
+});
+
+describe('SearchResult: Show in Calendar', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		invalidateVaultEntries();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vaultStore.markIndexReady();
+		editorStore.reset();
+		resetEventCalendar();
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry('/vault/Events/Standup.md', { date: '2026-11-10', start: '09:00', end: '10:00' }),
+			entryV2(NOTE_PATH),
+		]);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		editorStore.reset();
+	});
+
+	/** Mounts an FTS result for a vault-relative path and lets the lookup resolve. */
+	async function mountFts(path: string): Promise<void> {
+		component = mount(SearchResult, { target, props: { ftsResult: { path, title: 'T', score: 1, snippet: '', tags: '' } } });
+		flushSync();
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync();
+	}
+
+	it('offers the action on an event note and opens the Calendar on its day without opening the note', async () => {
+		await mountFts('Events/Standup.md');
+		const action = target.querySelector<HTMLButtonElement>('[data-show-in-calendar]');
+		expect(action?.getAttribute('aria-label')).toBe('Show in Calendar');
+
+		action!.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(eventCalendarViewStore.focusRequest?.path).toBe('/vault/Events/Standup.md');
+	});
+
+	it('offers no action on a plain note', async () => {
+		await mountFts('notes/target.md');
+		expect(target.querySelector('[data-show-in-calendar]')).toBeNull();
 	});
 });

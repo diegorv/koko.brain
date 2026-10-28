@@ -3,6 +3,7 @@
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { openNoteAt } from '$lib/core/editor/open-note-at.service';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import ShowInCalendarButton from '$lib/features/event-calendar/ShowInCalendarButton.svelte';
 	import { relativePath } from '$lib/utils/path';
 	import { sanitizeSnippetHtml } from './search.logic';
 	import type {
@@ -93,6 +94,15 @@
 
 	let badgeSource = $derived(hybridResult?.source ?? null);
 
+	/** Absolute path of the note the result stands for. */
+	let notePath = $derived(
+		ftsResult ? toAbsolutePath(ftsResult.path)
+			: semanticResult ? toAbsolutePath(semanticResult.sourcePath)
+				: hybridResult ? toAbsolutePath(hybridResult.path)
+					: legacyResult ? legacyResult.filePath
+						: '',
+	);
+
 	async function handleClick() {
 		if (ftsResult) {
 			openFileInEditor(toAbsolutePath(ftsResult.path));
@@ -122,7 +132,7 @@
 </script>
 
 <!-- Fixed-height wrapper ensures every card is exactly the same size -->
-<div class="h-20 overflow-hidden">
+<div class="relative h-20 overflow-hidden">
 	<button
 		class="w-full h-full text-left px-2 py-2 hover:bg-file-explorer-accent/60 transition-colors cursor-pointer"
 		onclick={handleClick}
@@ -161,4 +171,8 @@
 			{/if}
 		</p>
 	</button>
+	{#if notePath}
+		<!-- Sibling of the card button: a button cannot nest in a button. -->
+		<ShowInCalendarButton path={notePath} class="absolute right-1 bottom-1 bg-file-explorer-bg" />
+	{/if}
 </div>
