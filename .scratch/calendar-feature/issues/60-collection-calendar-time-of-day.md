@@ -19,3 +19,4 @@
 
 - 2026-10-28 17:23 — discovery — day-key comparisons in groupRecordsByDate, extractEventsForYear and layoutEventsInMonth; tests first — base 65f96ae
 - 2026-10-28 17:24 — implement — day-key comparisons in place, 5 new failing tests now green (collection suite 740/740, pnpm check 0 errors) — 24d802a
+- 2026-10-28 17:27 — review — CHANGES_REQUESTED: AC met (red-first verified, 91/91 + collection-block 28/28, pnpm check clean); 1 medium (linear overlap filter formats dates per event per month, ~32x slower), 2 low — 1aa6677
