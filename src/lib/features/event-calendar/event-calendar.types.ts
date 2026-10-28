@@ -87,7 +87,7 @@ export type EventDraft = EventFields & {
 	notes: string;
 };
 
-/** Why an event-typed note cannot be shown, or is shown with a caveat. */
+/** Why an event-typed note cannot be shown. */
 export type EventIssueReason = 'unscheduled' | 'invalid-time' | 'end-before-start' | 'trailing-comment';
 
 /** One problem found while projecting event notes. */
@@ -100,8 +100,6 @@ export interface EventIssue {
 	reason: EventIssueReason;
 	/** Human-readable detail, for example the offending value. */
 	detail?: string;
-	/** Whether the note still renders on the calendar despite the issue. */
-	rendered: boolean;
 }
 
 /** Result of projecting the vault entries onto the calendar. */

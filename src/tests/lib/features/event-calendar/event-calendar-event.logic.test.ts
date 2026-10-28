@@ -181,7 +181,7 @@ describe('entryToEvent', () => {
 		const cases: Record<string, FrontmatterValue>[] = [{}, { date: '' }, { date: null }];
 		for (const fm of cases) {
 			const issue = issueOf(entryToEvent(eventEntry(P('a'), fm), DEFAULTS));
-			expect(issue).toMatchObject({ reason: 'unscheduled', detail: 'no-date', rendered: false, path: P('a'), title: 'a' });
+			expect(issue).toMatchObject({ reason: 'unscheduled', detail: 'no-date', path: P('a'), title: 'a' });
 			expect('event' in entryToEvent(eventEntry(P('a'), fm), DEFAULTS)).toBe(false);
 		}
 	});
@@ -203,7 +203,7 @@ describe('entryToEvent', () => {
 		for (const fm of cases) {
 			const result = entryToEvent(eventEntry(P('a'), { date: '2026-11-10', ...fm }), DEFAULTS);
 			expect('event' in result).toBe(false);
-			expect(issueOf(result)).toMatchObject({ reason: 'invalid-time', rendered: false });
+			expect(issueOf(result)).toMatchObject({ reason: 'invalid-time' });
 		}
 	});
 
@@ -213,9 +213,14 @@ describe('entryToEvent', () => {
 	});
 
 	it('reports an empty range as end-before-start', () => {
-		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '10:00', end: '10:00' }), DEFAULTS))).toMatchObject({ reason: 'end-before-start', detail: 'end', rendered: false });
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '10:00', end: '10:00' }), DEFAULTS))).toMatchObject({ reason: 'end-before-start', detail: 'end' });
 		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '24:00' }), DEFAULTS)).reason).toBe('end-before-start');
 		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '00:00', end: '00:00' }), DEFAULTS)).reason).toBe('end-before-start');
+	});
+
+	it('reports a 24:00 start as end-before-start even when the end is on the next day', () => {
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '24:00', end: '01:00' }), DEFAULTS))).toMatchObject({ reason: 'end-before-start', detail: 'start' });
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', end_date: '2026-11-11', start: '24:00', end: '01:00' }), DEFAULTS)).reason).toBe('end-before-start');
 	});
 
 	it('renders an end before the start as a read-only event that ends the next day', () => {
@@ -242,13 +247,13 @@ describe('entryToEvent', () => {
 	it('reports a trailing comment in a time field', () => {
 		for (const [key, value] of [['date', '2026-11-10 # x'], ['end_date', '2026-11-12 # x'], ['start', '09:30 # standup'], ['end', '10:00 # x'], ['all_day', 'true # x'], ['event_color', 'blue # x']]) {
 			const result = entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '09:00', [key]: value }), DEFAULTS);
-			expect(issueOf(result)).toMatchObject({ reason: 'trailing-comment', detail: key, rendered: false });
+			expect(issueOf(result)).toMatchObject({ reason: 'trailing-comment', detail: key });
 		}
 	});
 
 	it('reports a trailing comment after a tab', () => {
 		const result = entryToEvent(eventEntry(P('a'), { date: '2026-11-10\t# x', start: '09:00' }), DEFAULTS);
-		expect(issueOf(result)).toMatchObject({ reason: 'trailing-comment', detail: 'date', rendered: false });
+		expect(issueOf(result)).toMatchObject({ reason: 'trailing-comment', detail: 'date' });
 	});
 
 	it('never reports a trailing comment in location, event_title or the filename', () => {

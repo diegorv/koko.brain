@@ -1971,7 +1971,7 @@ describe('calendar writes', () => {
 
 		it('maps an EventCalendarError to its reason message', () => {
 			expect(eventErrorMessage(new EventCalendarError('not-in-trash'))).toBe('Event is no longer in the Trash');
-			expect(eventErrorMessage(new EventCalendarError('read-only'))).toBe('This event spans several days; change its date and time in the note');
+			expect(eventErrorMessage(new EventCalendarError('read-only'))).toBe('This event has an end date or crosses midnight; change its date and time in the note');
 		});
 
 		it('passes any other error message through, and stringifies a non-error', () => {

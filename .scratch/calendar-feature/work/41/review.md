@@ -78,3 +78,13 @@ The behavior is correct and every acceptance criterion is met. The changes reque
 - **No layer-rule, error-handling or performance problems.**
   - `bucketByDay` / `itemsByDay` loop over the visible days only for spans.
   - The `read-only` refusal is a typed `EventCalendarError` that reaches the existing toast and inline-error paths.
+
+## Resolution
+
+- 1 (Medium, ADR): fixed. ADR-0032 has a dated amendment (2026-10-28, issue 41) covering spans on every day, `end < start` ending the next day and `00:00` as 24:00, read-only spans with the `writeEvent` guard, and timed spans in the time grid. The `end_date` storage bullet and the Consequences line now point to it.
+- 2 (Low, dead `rendered`): fixed. Removed from `EventIssue`, the `issue()` builder and the test fixtures/matchers; the type comment reads "Why an event-typed note cannot be shown."
+- 3 (Low, indent): fixed.
+- 4 (Low, `start: 24:00`): fixed. A timed event that starts at 24:00 is reported as `end-before-start` / `start`, with or without `end_date`; new test next to the empty-range case.
+- 5 (Low, wording): fixed. Lock notice and `read-only` toast now say "This event has an end date or crosses midnight"; service test updated.
+- 6 (Low, optional, segment aria-label): rejected for this ticket. The block receives the clipped `segmentOnDay` copy, which no longer carries the event's real `start` / `end`, so building the label from `eventWhenLabel` needs the original event threaded through the bucket and layout path. Candidate for the ticket 64 polish list.
+- 7 (Low, optional, duration): fixed. `eventWhenLabel` formats durations of 24 hours or more as days plus the rest (`2d 8h`, `1d`, `1d 30m`); new test case.

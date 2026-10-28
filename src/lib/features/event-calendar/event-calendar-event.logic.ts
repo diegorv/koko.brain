@@ -132,7 +132,6 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 		title,
 		reason,
 		...(detail === undefined ? {} : { detail }),
-		rendered: false,
 	});
 
 	for (const key of COMMENT_CHECKED_KEYS) {
@@ -161,6 +160,8 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 	let endMinutes = MINUTES_PER_DAY;
 	if (!allDay && start.kind === 'ok') {
 		startMinutes = start.minutes;
+		// A 24:00 start leaves nothing on its own day, whatever the end.
+		if (startMinutes === MINUTES_PER_DAY) return { issue: issue('end-before-start', 'start') };
 		endMinutes =
 			end.kind === 'ok'
 				? end.minutes

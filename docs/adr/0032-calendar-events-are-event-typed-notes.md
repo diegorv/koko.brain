@@ -19,7 +19,7 @@ Three questions had to be settled before any code: where an event's data lives, 
 ### Storage: typed notes
 
 - An event note's `_type` (alias `type`) equals the configured event type. Detection compares `entry.isA` ignoring case and never matches a type-definition note (`event-calendar-event.logic.ts:81-85`, `isEventEntry`).
-- Schedule keys: `date` (`YYYY-MM-DD`), `start` / `end` (`HH:mm`, `24:00` allowed), optional `all_day`, `event_color` (six named hues), `location`. `end_date` is reserved: such an event renders read-only on its start day with a notice. A present but unparseable value is reported as an issue and never replaced by a default, so the calendar never overwrites a hand-written value it cannot read.
+- Schedule keys: `date` (`YYYY-MM-DD`), `start` / `end` (`HH:mm`, `24:00` allowed), optional `all_day`, `event_color` (six named hues), `location`. `end_date` (`YYYY-MM-DD`, not before `date`) marks a span; see the amendment below. A present but unparseable value is reported as an issue and never replaced by a default, so the calendar never overwrites a hand-written value it cannot read.
 - Events are ordinary notes, so search, backlinks, QueryJS, collections, File History and the Trash cover them with no extra code. The note body is the event's description.
 
 ### The configurable event type (plan D25)
@@ -86,6 +86,13 @@ Plugin to feature (allowed by ADR-0003):
 
 The feature imports no plugin.
 
+### Amendment 2026-10-28 (calendar-feature issue 41): multi-day and cross-midnight events
+
+- **Spans render on every day they cover**, in the day, week and month views. `segmentOnDay` (`src/lib/features/event-calendar/event-calendar-view.logic.ts:187`) cuts a timed span into one segment per day; an all-day span is listed as itself on each day.
+- **An `end` before `start` without `end_date` ends the next day** (`entryToEvent`, `event-calendar-event.logic.ts`). `end: 00:00` after a later `start` means 24:00 of the same day. A `start` of `24:00` is reported as an issue, since nothing of the event would fall on its own day.
+- **Spans are read-only on the calendar**, because the calendar never writes `end_date`: moving one bound would desync `date` and `end_date`. Every event with `end_date` or a cross-midnight range is `readOnly`, and `writeEvent` (`event-calendar.service.ts:418`) refuses any timing patch on it with `EventCalendarError('read-only')` before anything is written. Non-timing edits (title, colour, location, notes) still go through.
+- **Timed spans are drawn in the time grid**, one block per day, not in the all-day lane; a middle day gets a full-height block.
+
 ## Relation to ADR-0029
 
 [0029](0029-frontmatter-yaml-canonical-form.md) says nested mappings and YAML comments are dropped on a frontmatter rewrite and that callers must accept the loss. The calendar departs from that, in two places only:
@@ -110,7 +117,7 @@ The existing writers (Properties panel, lifecycle toggles, meta-bind widgets, th
 - `applyNoteChange` has six sources. Any new restore-like path that puts bytes back without a Rust `create_note` uses `restore` (or another `rust: 'always'` row), not `create` / `fs`.
 - A rename of the event type needs the matching settings edit, or the calendar shows no events.
 - Notes with lossy frontmatter cannot be moved or edited from the calendar until the user fixes the frontmatter; the toast names the reason. The rest of the app still drops per ADR-0029.
-- No cross-midnight or multi-day events in v1 (`end_date` is read-only); no recurrence.
+- Multi-day and cross-midnight events render on every day but are read-only on the calendar (see the amendment); no recurrence.
 - A new cross-layer import needs a row here; re-run the two greps above to check the inventory.
 
 ## Citation map

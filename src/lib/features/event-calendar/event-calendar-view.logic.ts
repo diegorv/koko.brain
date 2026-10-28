@@ -300,7 +300,7 @@ export function itemsByDay<T extends EventNote>(
  * @param timeFormat - clock format of the times
  * @returns the weekday and date (`Tue, November 10, 2026`, joined by ` – `
  *   with the last day for a span), and `All day` or the time range with
- *   its full duration across the span's days
+ *   its full duration across the span's days (`2d 8h` from 24 hours up)
  */
 export function eventWhenLabel(event: EventNote, timeFormat: TimeFormat): EventWhenLabel {
 	const dayLabel = (day: string) => `${formatWeekday(day)}, ${formatLong(day)}`;
@@ -308,7 +308,10 @@ export function eventWhenLabel(event: EventNote, timeFormat: TimeFormat): EventW
 	const date = last === event.date ? dayLabel(event.date) : `${dayLabel(event.date)} – ${dayLabel(last)}`;
 	if (event.allDay) return { date, time: 'All day' };
 	const minutes = diffDays(event.date, last) * MINUTES_PER_DAY + event.end - event.start;
-	return { date, time: `${formatTimeRange(event.start, event.end, timeFormat)} · ${formatDuration(minutes)}` };
+	const days = Math.floor(minutes / MINUTES_PER_DAY);
+	const rest = minutes % MINUTES_PER_DAY;
+	const duration = days === 0 ? formatDuration(rest) : rest === 0 ? `${days}d` : `${days}d ${formatDuration(rest)}`;
+	return { date, time: `${formatTimeRange(event.start, event.end, timeFormat)} · ${duration}` };
 }
 
 /**

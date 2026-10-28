@@ -35,7 +35,7 @@ function stateOf(event: EventNote, overrides: Partial<EventState> = {}): EventSt
 }
 
 function issue(name: string, reason: EventIssueReason): EventIssue {
-	return { path: P(name), title: name, reason, rendered: false };
+	return { path: P(name), title: name, reason };
 }
 
 function projection(events: EventNote[], issues: EventIssue[] = [], archivedCount = 0): EventProjection {

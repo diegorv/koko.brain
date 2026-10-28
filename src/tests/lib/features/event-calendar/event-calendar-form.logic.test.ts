@@ -66,7 +66,7 @@ describe('draftFromEvent', () => {
 		expect(patch).toEqual({ title: 'Late show' });
 	});
 
-		it('locks the timing of a read-only event', () => {
+	it('locks the timing of a read-only event', () => {
 		expect(draftFromEvent(ev({ readOnly: true })).timingLocked).toBe(true);
 	});
 });

@@ -286,6 +286,12 @@ describe('eventWhenLabel', () => {
 		});
 		expect(eventWhenLabel(span(allDay('r', '2026-11-10'), '2026-11-12'), '12h').time).toBe('All day');
 	});
+
+	it('counts a span of a day or more in days and hours', () => {
+		expect(eventWhenLabel(span(ev('trip', '2026-11-10', 540, 1020), '2026-11-12'), '24h').time).toBe('09:00 – 17:00 · 2d 8h');
+		expect(eventWhenLabel(span(ev('day', '2026-11-10', 540, 540), '2026-11-11'), '24h').time).toBe('09:00 – 09:00 · 1d');
+		expect(eventWhenLabel(span(ev('long', '2026-11-10', 540, 570), '2026-11-11'), '24h').time).toBe('09:00 – 09:30 · 1d 30m');
+	});
 });
 
 describe('groupEventsByDay', () => {

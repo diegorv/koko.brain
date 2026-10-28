@@ -77,7 +77,7 @@
 
 	{#if locked}
 		<p class="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground" data-timing-locked>
-			This event spans several days. Change its date and time in the note.
+			This event has an end date or crosses midnight. Change its date and time in the note.
 		</p>
 	{/if}
 
