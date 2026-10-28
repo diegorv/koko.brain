@@ -30,3 +30,4 @@
 ## Comments
 
 - 2026-10-28 12:53 — discovery — plan written to work/17/discovery.md — 29a7f5d8
+- 2026-10-28 12:55 — implement — store + 31 tests; pnpm check 0 errors, event-calendar vitest 222/222 — 046387de
