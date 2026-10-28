@@ -18,6 +18,11 @@
 	let content: HTMLElement | null = $state(null);
 	/** Path of the event the popover last showed; focus returns to its block on close. */
 	let lastPath: string | null = null;
+	/** Target of the outside pointer interaction that is closing the popover; focus goes there on close. */
+	let outsideTarget: Element | null = null;
+
+	/** Elements an outside click may land focus on. */
+	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
 
 	let target = $derived(eventCalendarViewStore.popover);
 	let event = $derived(target ? eventCalendarStore.events.find((e) => e.path === target.path) : undefined);
@@ -32,6 +37,12 @@
 		if (open && target) lastPath = target.path;
 	});
 
+	// The event left the snapshot: drop the target so the card and the ring do not
+	// come back on their own at the old anchor when the note returns.
+	$effect(() => {
+		if (target && !event) eventCalendarViewStore.closePopover();
+	});
+
 	// Scroll events do not bubble: a capture listener on the root sees the time-grid scroller.
 	$effect(() => {
 		const el = root;
@@ -44,16 +55,39 @@
 		return () => el.removeEventListener('scroll', onScroll, true);
 	});
 
+	/**
+	 * A pointerdown on another event retargets the open popover instead of closing it:
+	 * bits-ui dismisses 10 ms after pointerdown, which would clear the target a quick click
+	 * just set. Any other outside target is remembered so focus can land on it on close.
+	 */
+	function handleInteractOutside(e: PointerEvent) {
+		const t = e.target;
+		if (!(t instanceof Element)) return;
+		if (root?.contains(t) && t.closest('[data-event-path]')) {
+			e.preventDefault();
+			return;
+		}
+		outsideTarget = t;
+	}
+
 	function handleOpenChange(next: boolean) {
 		if (!next) eventCalendarViewStore.closePopover();
 	}
 
 	/**
-	 * Returns focus to the clicked block, or to the root when the block is gone.
-	 * bits-ui would restore it to an element that may have unmounted, leaving it on `<body>`.
+	 * Moves focus to the control an outside click landed on; otherwise returns it to the
+	 * clicked block, or to the root when the block is gone. bits-ui would restore it to an
+	 * element that may have unmounted, leaving it on `<body>`.
 	 */
 	function handleCloseAutoFocus(e: Event) {
 		e.preventDefault();
+		const outside = outsideTarget;
+		outsideTarget = null;
+		const focusable = outside?.isConnected ? outside.closest<HTMLElement>(FOCUSABLE) : null;
+		if (focusable) {
+			focusable.focus();
+			return;
+		}
 		const el = root;
 		if (!el || !el.isConnected) return;
 		const block = lastPath ? el.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(lastPath)}"]`) : null;
@@ -81,6 +115,7 @@
 		class="w-[300px] max-w-[calc(100vw-24px)] gap-0 p-0"
 		onOpenAutoFocus={(e) => e.preventDefault()}
 		onCloseAutoFocus={handleCloseAutoFocus}
+		onInteractOutside={handleInteractOutside}
 		data-event-popover
 	>
 		{#if event}

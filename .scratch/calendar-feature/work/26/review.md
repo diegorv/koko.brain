@@ -68,3 +68,14 @@ Reviewed `git diff main...HEAD` (9cfa6601, f7ac87e4, 2fa1a2b5) against Issue 26,
 - Layer rules hold: everything lives in `features/event-calendar/`, and `ui/` is untouched.
 - Stores are real in tests. The only mock is `openFileInEditor`, which is allowed.
 - Tabs are used throughout.
+
+## Resolution
+
+All four findings accepted and fixed; none rejected.
+
+1. `EventPopover.svelte` passes `onInteractOutside`; a pointerdown on a `[data-event-path]` element inside the root calls `preventDefault()`, so the click retargets the open popover. Mount tests cover block-to-block and block-to-lane-chip quick clicks (pointerdown + click back to back); the E2E test now clicks the Holiday lane chip and then the Standup block with default Playwright clicks.
+2. Any other outside target is recorded and, on close, focus goes to its nearest focusable ancestor when it is still connected; otherwise the block-then-root rule holds. Tests: an outside button keeps focus; an outside control that moves the date leaves focus on that control, not on `<body>`.
+3. An `$effect` closes the store popover when the target no longer resolves to an event. The "event is gone" test now asserts the store is null and that re-adding the event shows no card and no ring.
+4. `EventCalendarView.test.ts` gains a popover block: a block click shows the card and Escape returns focus to the block; a time-grid scroll closes it; a vanished event focuses the `section`; unmounting while open nulls the store popover.
+
+Every new `EventPopover.test.ts` case fails with the source fix reverted and passes with it.

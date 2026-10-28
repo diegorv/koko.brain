@@ -72,6 +72,31 @@ const popover = () => document.querySelector<HTMLElement>('[data-event-popover]'
 const block = (path: string) => q(`[data-day-column] [data-event-path="${path}"]`)!;
 const laneChip = (path: string) => q<HTMLButtonElement>(`[data-all-day-cell] [data-event-path="${path}"]`)!;
 
+/** Waits past bits-ui's 10 ms outside-pointerdown dismiss debounce. */
+const pastDismiss = () => new Promise((r) => setTimeout(r, 30));
+
+/**
+ * jsdom lays nothing out, so the card's rect is all zeros; a pointer at (-1, -1) is
+ * outside it, which bits-ui checks before it dismisses.
+ */
+const pointerdown = () => new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: -1, clientY: -1 });
+
+/** A quick click: pointerdown, focus and click back to back, as a trackpad tap lands them. */
+function quickClick(el: HTMLElement) {
+	el.dispatchEvent(pointerdown());
+	el.focus();
+	el.click();
+}
+
+/** A slow click: pointerdown, then the click after bits-ui has dismissed the popover. */
+async function slowClick(el: HTMLElement) {
+	el.dispatchEvent(pointerdown());
+	el.focus();
+	await pastDismiss();
+	await settle();
+	el.click();
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	clearLocalStorage();
@@ -143,6 +168,37 @@ describe('EventPopover: opening', () => {
 	});
 });
 
+describe('EventPopover: clicking another event while open', () => {
+	it('retargets the open popover to a second block on a quick click', async () => {
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		quickClick(block(P('Review')));
+		await pastDismiss();
+		await settle();
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Review');
+		expect(block(P('Review')).className).toContain(RING);
+		expect(block(P('Standup')).className).not.toContain(RING);
+	});
+
+	it('retargets the open popover to a lane chip on a quick click', async () => {
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		quickClick(laneChip(P('Off')));
+		await pastDismiss();
+		await settle();
+
+		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Time off');
+		expect(laneChip(P('Off')).className).toContain(RING);
+		expect(block(P('Standup')).className).not.toContain(RING);
+	});
+});
+
 describe('EventPopover: selected-event ring', () => {
 	it('rings only the clicked block', async () => {
 		mountView();
@@ -182,7 +238,7 @@ describe('EventPopover: closing', () => {
 		expect(block(P('Standup')).className).not.toContain(RING);
 	});
 
-	it('focuses the root when the clicked event is gone on close', async () => {
+	it('focuses the root when the clicked event is gone on close, and stays closed when it returns', async () => {
 		mountView();
 		block(P('Review')).click();
 		await settle();
@@ -191,7 +247,44 @@ describe('EventPopover: closing', () => {
 		await settle();
 
 		expect(popover()).toBeNull();
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(eventCalendarViewStore.selectedEventPath).toBeNull();
 		expect(document.activeElement).toBe(root);
+
+		eventCalendarStore.setSnapshot({ events: [STANDUP, REVIEW, OFF], issues: [], archivedCount: 0 }, 3);
+		await settle();
+
+		expect(popover()).toBeNull();
+		expect(root.querySelector(`.${CSS.escape(RING)}`)).toBeNull();
+	});
+
+	it('leaves focus on an outside button the user clicked', async () => {
+		const outside = document.body.appendChild(document.createElement('button'));
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		await slowClick(outside);
+		await settle();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(popover()).toBeNull();
+		expect(document.activeElement).toBe(outside);
+	});
+
+	it('does not leave focus on <body> when an outside control moves to a week without the event', async () => {
+		const next = document.body.appendChild(document.createElement('button'));
+		next.addEventListener('click', () => eventCalendarViewStore.setDate('2026-11-17'));
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		await slowClick(next);
+		await settle();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(document.activeElement).not.toBe(document.body);
+		expect(document.activeElement).toBe(next);
 	});
 
 	it('closes on a scroll inside the root and on a window resize', async () => {

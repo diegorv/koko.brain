@@ -352,6 +352,72 @@ describe('EventCalendarView: needs attention', () => {
 	});
 });
 
+describe('EventCalendarView: popover', () => {
+	const STANDUP = () => target.querySelector<HTMLElement>(`[data-day-column="2026-11-10"] [data-event-path="${P('Standup')}"]`)!;
+
+	/** Lets bits-ui finish mounting or unmounting the popover. */
+	async function settlePopover() {
+		await settle();
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync();
+	}
+
+	beforeEach(() => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
+	});
+
+	it('shows the popover for a clicked block and returns focus to it on Escape', async () => {
+		mountView();
+		await settle();
+
+		STANDUP().click();
+		await settlePopover();
+		const card = document.querySelector('[data-event-popover]');
+		expect(card?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Standup');
+
+		document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settlePopover();
+
+		expect(document.querySelector('[data-event-popover]')).toBeNull();
+		expect(document.activeElement).toBe(STANDUP());
+	});
+
+	it('closes on a scroll of the time grid inside the view', async () => {
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+
+		target.querySelector('[data-time-grid]')!.dispatchEvent(new Event('scroll'));
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('focuses the view root when the event leaves the snapshot', async () => {
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+
+		eventCalendarStore.setSnapshot({ events: [], issues: [], archivedCount: 0 }, 99);
+		await settlePopover();
+
+		expect(document.activeElement).toBe(target.querySelector('section[data-event-calendar]'));
+	});
+
+	it('drops an open popover on unmount', async () => {
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+
+		unmountView();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+});
+
 describe('EventCalendarView: lifecycle', () => {
 	it('closes the popover and the dialog on unmount', async () => {
 		eventCalendarViewStore.openPopover(P('a'), { x: 1, y: 2, width: 3, height: 4 });
