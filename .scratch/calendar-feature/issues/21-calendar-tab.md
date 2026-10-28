@@ -38,3 +38,4 @@
 ## Comments
 
 - **2026-10-28, from ticket 19 (b272b6ca):** `loadEvents()` still rethrows the failure of a load that a newer load or a vault switch replaced. The view effect's `.catch` must not toast for those superseded loads; toast only when the failing load is still the current one.
+- 2026-10-28 13:21 — discovery — plan in work/21/discovery.md: palette entry, view + header + Needs attention + wiring, E2E fixture + spec, three commits — 29e3a578
