@@ -25,4 +25,5 @@
 - Clockless `create` (outside rename via `remapPath`) keeps path-present pruning: its title may legitimately differ from the snapshot (filename-derived title), so a state check would hold it forever.
 
 ## Fail-without-fix evidence
-(filled in at implement)
+- Fix 1 (f578bf14): tests written first and run against the unchanged source (= 4e07625f code): 5 failed, 138 passed in the two test files. Failing: prunePending "keeps a settled create with a clock ... until +2"; service "keeps a renamed read-only event read-only ..." (stale refresh step), "keeps the written time after a rename ...", "drops a renamed overlay on the version clock ..." (pruned on the first stale refresh), "keeps the undone time after an undo that renames ...". All green after the fix (453/453 in event-calendar).
+- Fix 2 (51955ebd): tests written first against f578bf14: "Cmd+Z then an immediate drag ..." and "a drag started after the second of two quick undos ..." failed with `{ status: 'refused' }` (2 failed, 70 passed). The drain test passes on the old code (no deferral there), so it was checked against the new code with `await intake` removed from `drainEventCalendarWrites`: it failed (`expected true to be false`). All green after (456/456 in event-calendar), including ticket 24's tests (two quick undos, undo after reset, failed undo after rename, drain).
