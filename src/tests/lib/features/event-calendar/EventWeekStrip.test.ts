@@ -125,4 +125,37 @@ describe('EventWeekStrip: selection and ARIA', () => {
 		expect(keys()[0]).toBe('2026-11-16');
 		expect(day('2026-11-16').getAttribute('aria-pressed')).toBe('true');
 	});
+
+	it('keeps focus in the strip when a focused day steps past the week edge', () => {
+		mountStrip();
+		eventCalendarViewStore.setDate('2026-11-15');
+		flushSync();
+		day('2026-11-15').focus();
+
+		eventCalendarViewStore.setDate('2026-11-16');
+		flushSync();
+
+		expect(document.activeElement).toBe(day('2026-11-16'));
+	});
+
+	it('moves focus to the pressed day when a focused day steps inside the week', () => {
+		mountStrip();
+		day('2026-11-10').focus();
+
+		eventCalendarViewStore.setDate('2026-11-11');
+		flushSync();
+
+		expect(document.activeElement).toBe(day('2026-11-11'));
+	});
+
+	it('does not take focus when nothing in the strip had it', () => {
+		mountStrip();
+		const outside = document.body.appendChild(document.createElement('button'));
+		outside.focus();
+
+		eventCalendarViewStore.setDate('2026-11-16');
+		flushSync();
+
+		expect(document.activeElement).toBe(outside);
+	});
 });

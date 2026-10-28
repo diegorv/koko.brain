@@ -6,6 +6,23 @@
 	// All seven days, whatever `showWeekends` says: the strip is how a day view
 	// reaches a weekend day the week view hides.
 	const days = $derived(weekDays(eventCalendarViewStore.focusedDate, settingsStore.eventCalendar.weekStartsOn));
+
+	let strip: HTMLDivElement | undefined = $state();
+	let refocus = false;
+
+	// An arrow step past the week edge re-keys the days and unmounts the focused
+	// button, dropping focus to <body>. Note before the DOM update whether focus
+	// was in the strip, then hand it to the newly pressed day.
+	$effect.pre(() => {
+		void eventCalendarViewStore.focusedDate;
+		refocus = !!strip && strip.contains(document.activeElement);
+	});
+	$effect(() => {
+		void eventCalendarViewStore.focusedDate;
+		if (!refocus) return;
+		refocus = false;
+		strip?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
+	});
 </script>
 
 <div
@@ -13,6 +30,7 @@
 	role="group"
 	aria-label="Days of the week"
 	data-week-strip
+	bind:this={strip}
 >
 	{#each days as day (day)}
 		{@const selected = day === eventCalendarViewStore.focusedDate}

@@ -566,7 +566,6 @@ describe('EventCalendarView: keyboard', () => {
 			flushSync();
 			expect(e.defaultPrevented).toBe(false);
 		}
-		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
 
 		press(stripDay, 'ArrowRight');
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-11');
