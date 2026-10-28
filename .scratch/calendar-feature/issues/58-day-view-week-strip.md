@@ -17,3 +17,4 @@
 
 - 2026-10-28 17:45 — discovery — new EventWeekStrip above the day-view grid, aria-pressed buttons over weekDays(weekStartsOn) — b41e9b0c
 - 2026-10-28 17:48 — implement — EventWeekStrip in day view, component + view tests green (event-calendar 19 files, 702 tests), pnpm check 0 errors; E2E at e2e/specs/event-calendar-week-strip.spec.ts not run here — 5434b264
+- 2026-10-28 17:50 — review — APPROVED: all criteria met; 2 low findings (focus drops to body on a week-edge arrow step from the strip, a jsdom-coupled assertion), 2 info — 668c98ef
