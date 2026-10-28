@@ -30,10 +30,11 @@ pub(crate) fn ort_environment() -> Result<&'static ort::environment::Environment
 /// ~2 s (measured with a since-removed macOS-only probe, 2026-10-27).
 ///
 /// Intra-op spinning is also turned off for every session built here (the
-/// embedder and the reranker). ORT spins intra-op threads in a busy-wait
-/// between ops by default, which burns idle cores at 100% while the UI is in
-/// use; with spinning off the threads block instead.
-/// Every session must start here so the policy cannot drift per call site.
+/// embedder and the reranker). ORT lets idle intra-op threads spin for a
+/// short period before blocking (on by default); during a burst those spins
+/// keep cores busy between ops. With spinning off they block at once.
+///
+/// Every session must start here so these policies cannot drift per call site.
 pub fn session_builder(num_threads: usize) -> Result<ort::session::builder::SessionBuilder, String> {
 	ort::session::Session::builder(ort_environment()?)
 		.map_err(|e| format!("Failed to create session builder: {e}"))?

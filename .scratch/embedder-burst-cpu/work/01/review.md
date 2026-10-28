@@ -107,3 +107,20 @@ old text claimed it matched the embedder cap. Error handling propagates through
    "Every session must start here so the policy cannot drift per call site." now sits at
    the end of the spinning paragraph, so it reads as if it covers only spinning.
    **Fix:** Put a blank `///` line before it and say "policies" (CPU EP and spinning).
+
+## Resolution
+
+All six findings accepted.
+
+1. Accepted, option (a): the code is merged into main after the gate, but the closing
+   commit is skipped. The Issue file stays, set to `Status: ready-for-human`, with a
+   comment naming the owed before/after measurement.
+2. Fixed: `embedder_intra_threads(available: Option<usize>) -> usize` in
+   `src-tauri/src/semantic/embedder.rs`, tested in
+   `src-tauri/tests/semantic_embedder_threads_test.rs` (Some(16) -> 4, Some(2) -> 2,
+   None -> 4).
+3. Fixed: the comment now says the cap bounds ONNX inference threads and that
+   tokenization on rayon's global pool is not bounded by it.
+4. Fixed: `session_builder` doc reworded to "spin for a short period before blocking".
+5. Fixed: discovery comment sha is now `e8a24bf1`.
+6. Fixed: blank `///` line and "these policies".

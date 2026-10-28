@@ -5,6 +5,20 @@ use ort::session::Session;
 use std::path::Path;
 use tokenizers::Tokenizer;
 
+/// Returns the ONNX intra-op thread count for the embedder session, given
+/// the machine's available parallelism (`None` when it cannot be read).
+///
+/// Capped at 4, with a fallback of 4. The embedder also runs during
+/// background bursts (a sync tool writing ~10 new notes/min fans each file
+/// through the watcher into ONNX) while the user is working in the UI; with
+/// 8 threads that held the process near 580% CPU and slowed the whole
+/// machine. Inference is serialized by `EMBEDDER.lock()`, so this cap bounds
+/// the embedder's ONNX inference threads. Tokenization (`encode_batch`) runs
+/// on rayon's global pool and is not bounded by it.
+pub fn embedder_intra_threads(available: Option<usize>) -> usize {
+	available.map(|n| n.min(4)).unwrap_or(4)
+}
+
 /// Embedding model wrapper for ONNX inference.
 pub struct Embedder {
 	session: Session,
@@ -46,15 +60,8 @@ impl Embedder {
 			return Err(format!("Tokenizer not found: {:?}", tokenizer_path));
 		}
 
-		// Capped at 4. The embedder also runs during background bursts (a
-		// sync tool writing ~10 new notes/min fans each file through the
-		// watcher into ONNX) while the user is working in the UI; with 8
-		// threads that held the process near 580% CPU and slowed the whole
-		// machine. Inference is serialized by `EMBEDDER.lock()`, so this cap
-		// bounds the embedder's total CPU use.
-		let num_threads = std::thread::available_parallelism()
-			.map(|n| n.get().min(4))
-			.unwrap_or(4);
+		let num_threads =
+			embedder_intra_threads(std::thread::available_parallelism().ok().map(|n| n.get()));
 		debug_log("EMBEDDER", format!("Using {} intra-op threads", num_threads));
 
 		let session = super::session_builder(num_threads)?
