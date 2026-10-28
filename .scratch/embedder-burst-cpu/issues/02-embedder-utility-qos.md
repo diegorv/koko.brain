@@ -23,3 +23,5 @@
 
 ## Comments
 - 2026-10-28 12:34 — discovery — probe shows pthread/std threads do not inherit QoS; plan: utility guard on the 5 embed call sites + ort ThreadManager for intra-op workers — 0ace4d20
+- 2026-10-28 12:41 — implement — qos.rs: scoped utility guard on all 5 embedder sites + ORT ThreadManager starting intra-op workers at utility (probe: macOS threads do not inherit QoS); targeted cargo tests 66/66 pass — 1d57a0ad
+- 2026-10-28 12:41 (open items, deferred by the user): (1) that ORT spawns a real session's intra-op workers through UtilityQosThreadManager is the ORT API contract, not proven by a test (needs the model); check by hand with `ps -M <pid>` or Activity Monitor during an embed burst. (2) Query-time search latency at utility QoS: manual check, not a gate.
