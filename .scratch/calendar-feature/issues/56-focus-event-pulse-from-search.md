@@ -18,3 +18,4 @@
 
 - 2026-10-28 17:46 — discovery — plan in work/56/discovery.md: focus request in the view store, Show in Calendar button on event search results and backlinks, pulse in EventCalendarView — b41e9b0c
 - 2026-10-28 17:53 — implement — focus request + findCalendarEvent/openEventInCalendar, view focus and pulse, Show in Calendar button on search results and backlinks, E2E spec e2e/specs/event-calendar-focus.spec.ts (not run here); pnpm check clean, 1391 targeted vitest pass — 03054c5a
+- 2026-10-28 17:57 — review — CHANGES_REQUESTED: stale Calendar store wins over the fresher snapshot (wrong day when the tab is inactive), overflow-hidden events never focused, notePath branches untested, clipped pulse — 6f1fc50b
