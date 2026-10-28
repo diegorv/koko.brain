@@ -109,6 +109,7 @@ async function ensureFolderNote(dirPath: string): Promise<string> {
  * Sets a custom icon for a file/folder path.
  * - .md files: writes to frontmatter (_icon, _color, _title_color).
  * - Directories (isDirectory=true): writes to folder note frontmatter (auto-creates if needed).
+ * A refused frontmatter write (already toasted) leaves the icon store untouched.
  */
 export async function setIconForPath(
 	vaultPath: string,
@@ -121,7 +122,7 @@ export async function setIconForPath(
 ): Promise<void> {
 	if (isMarkdown(path)) {
 		const { setFrontmatterIcon } = await import('./frontmatter-icon.service');
-		await setFrontmatterIcon(path, iconPack, iconName, color, textColor);
+		if (!(await setFrontmatterIcon(path, iconPack, iconName, color, textColor))) return;
 		fileIconsStore.updateFrontmatterIcon(path, {
 			iconPack, iconName, color, titleColor: textColor,
 		});
@@ -131,7 +132,7 @@ export async function setIconForPath(
 	if (isDirectory) {
 		const notePath = await ensureFolderNote(path);
 		const { setFrontmatterIcon } = await import('./frontmatter-icon.service');
-		await setFrontmatterIcon(notePath, iconPack, iconName, color, textColor);
+		if (!(await setFrontmatterIcon(notePath, iconPack, iconName, color, textColor))) return;
 		const ref: FrontmatterIconRef = { iconPack, iconName, color, titleColor: textColor };
 		fileIconsStore.updateFrontmatterIcon(notePath, ref);
 		fileIconsStore.updateFrontmatterIcon(path, ref);
@@ -143,11 +144,12 @@ export async function setIconForPath(
  * Removes a custom icon from a file/folder path.
  * - .md files: removes _icon, _color, _title_color from frontmatter.
  * - Directories (isDirectory=true): removes icon from folder note frontmatter.
+ * A refused frontmatter write (already toasted) leaves the icon store untouched.
  */
 export async function removeIconForPath(vaultPath: string, path: string, isDirectory = false): Promise<void> {
 	if (isMarkdown(path)) {
 		const { removeFrontmatterIcon } = await import('./frontmatter-icon.service');
-		await removeFrontmatterIcon(path);
+		if (!(await removeFrontmatterIcon(path))) return;
 		fileIconsStore.updateFrontmatterIcon(path, null);
 		return;
 	}
@@ -157,7 +159,7 @@ export async function removeIconForPath(vaultPath: string, path: string, isDirec
 		const noteExists = await exists(notePath);
 		if (noteExists) {
 			const { removeFrontmatterIcon } = await import('./frontmatter-icon.service');
-			await removeFrontmatterIcon(notePath);
+			if (!(await removeFrontmatterIcon(notePath))) return;
 			fileIconsStore.updateFrontmatterIcon(notePath, null);
 		}
 		fileIconsStore.updateFrontmatterIcon(path, null);

@@ -1,4 +1,5 @@
 import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { saveFileByPath, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { notifyAfterSave } from '$lib/core/editor/editor.hooks';
@@ -38,6 +39,28 @@ export class FrontmatterWriteError extends Error {
 		this.reason = reason;
 		this.path = path;
 	}
+}
+
+/** Toast text per `FrontmatterWriteReason` for writers outside the calendar; `save-failed` has none. */
+const WRITE_ERROR_MESSAGES: Record<Exclude<FrontmatterWriteReason, 'save-failed'>, string> = {
+	unparseable: "The note's frontmatter could not be parsed; fix it in the note",
+	nested: "The note's frontmatter has nested values; it cannot be rewritten without losing them",
+	comments: "The note's frontmatter has comments; it cannot be rewritten without losing them",
+	'duplicate-keys': "The note's frontmatter repeats a key; it cannot be rewritten without losing one",
+	'alias-collision': "The note's frontmatter has two keys for one property; it cannot be rewritten without losing one",
+	anchors: "The note's frontmatter uses YAML anchors; it cannot be rewritten without expanding them",
+	'vault-changed': 'The vault changed before the note was saved',
+	missing: 'The note was moved or deleted',
+};
+
+/**
+ * Reports a failed `updateNoteFrontmatter` call in an error toast. `save-failed`
+ * shows nothing, because the editor already toasted it.
+ * @param err - the error the write threw
+ */
+export function toastFrontmatterWriteError(err: FrontmatterWriteError): void {
+	if (err.reason === 'save-failed') return;
+	toast.error(WRITE_ERROR_MESSAGES[err.reason]);
 }
 
 /** Throws `vault-changed` when the vault is no longer the one captured at entry. */

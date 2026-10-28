@@ -11,6 +11,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn() },
+}));
+
 vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 	preloadPacks: vi.fn(),
 	setOnPacksLoaded: vi.fn(),
@@ -18,6 +22,7 @@ vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'svelte-sonner';
 import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { saveFileByPath } from '$lib/core/editor/editor.service';
@@ -143,7 +148,8 @@ describe('setIconForPath', () => {
 	});
 
 	it('routes directories to folder note frontmatter', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		// The folder note is missing until the placeholder write creates it.
+		vi.mocked(exists).mockResolvedValueOnce(false).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue('---\n---\n');
 		await setIconForPath('/vault', '/vault/Projects', 'lucide', 'folder', '#0000ff', undefined, true);
 
@@ -153,6 +159,30 @@ describe('setIconForPath', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')).toBeDefined();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects/Projects.md')).toBeDefined();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')?.iconName).toBe('folder');
+	});
+
+	it('leaves the icon store untouched when the frontmatter write is refused', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n# a comment\ntitle: Test\n---\nBody');
+
+		await setIconForPath('/vault', '/vault/a.md', 'lucide', 'star');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledOnce();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+	});
+
+	it('leaves the folder icon in the store when removing it from the folder note is refused', async () => {
+		const ref = { iconPack: 'lucide' as const, iconName: 'folder' };
+		fileIconsStore.updateFrontmatterIcon('/vault/Projects', ref);
+		fileIconsStore.updateFrontmatterIcon('/vault/Projects/Projects.md', ref);
+		vi.mocked(readTextFile).mockResolvedValue('---\n_icon: lucide:folder\nmeta:\n  a: 1\n---\n');
+
+		await removeIconForPath('/vault', '/vault/Projects', true);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledOnce();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects')?.iconName).toBe('folder');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects/Projects.md')?.iconName).toBe('folder');
 	});
 });
 
@@ -406,7 +436,8 @@ describe('ensureFolderNote note-change indexing (issue 29)', () => {
 	});
 
 	it('indexes the auto-created folder note placeholder as well as the icon write', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
+		// The folder note is missing until the placeholder write creates it.
+		vi.mocked(exists).mockResolvedValueOnce(false).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue('---\n---\n');
 
 		await setIconForPath('/vault', '/vault/Projects', 'lucide', 'folder', undefined, undefined, true);

@@ -3,14 +3,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
+	exists: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn() },
+}));
+
+import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { setFrontmatterIcon, removeFrontmatterIcon } from '$lib/features/file-icons/frontmatter-icon.service';
 import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
@@ -23,7 +29,8 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	editorStore.reset();
 	vi.mocked(writeTextFile).mockResolvedValue(undefined);
-	// The write now routes through `applyNoteChange`, which calls `invoke`.
+	vi.mocked(exists).mockResolvedValue(true);
+	// The write routes through `notifyAfterSave` -> `applyNoteChange`, which calls `invoke`.
 	vi.mocked(invoke).mockResolvedValue(undefined);
 });
 
@@ -104,31 +111,48 @@ describe('setFrontmatterIcon', () => {
 	});
 });
 
-describe('editor tab sync (issue 03)', () => {
-	it('setFrontmatterIcon syncs an open tab with the written content, marked saved', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
-		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'stale', savedContent: 'stale' });
-		const signalBefore = editorStore.externalContentSignal;
+describe('editor tab sync (issue 55)', () => {
+	it('setFrontmatterIcon patches a dirty open tab, keeps its body edit and saves it clean', async () => {
+		const saved = '---\ntitle: Test\n---\nOld body';
+		const edited = '---\ntitle: Test\n---\nUnsaved body edit';
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: edited, savedContent: saved });
 
-		await setFrontmatterIcon('/vault/a.md', 'lucide', 'star');
+		expect(await setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).toBe(true);
 
+		expect(readTextFile).not.toHaveBeenCalled();
 		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).toContain('_icon: lucide:star');
+		expect(written).toContain('Unsaved body edit');
 		const tab = editorStore.tabs[0];
 		expect(tab.content).toBe(written);
 		expect(tab.savedContent).toBe(written);
-		expect(editorStore.externalContentSignal).toBe(signalBefore + 1);
 	});
 
-	it('removeFrontmatterIcon syncs an open tab with the written content, marked saved', async () => {
-		vi.mocked(readTextFile).mockResolvedValue('---\n_icon: lucide:star\ntitle: Test\n---\nBody');
-		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'stale', savedContent: 'stale' });
+	it('removeFrontmatterIcon patches a dirty open tab, keeps its body edit and saves it clean', async () => {
+		const saved = '---\n_icon: lucide:star\ntitle: Test\n---\nOld body';
+		const edited = '---\n_icon: lucide:star\ntitle: Test\n---\nUnsaved body edit';
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: edited, savedContent: saved });
 
-		await removeFrontmatterIcon('/vault/a.md');
+		expect(await removeFrontmatterIcon('/vault/a.md')).toBe(true);
 
+		expect(readTextFile).not.toHaveBeenCalled();
 		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
-		const tab = editorStore.tabs[0];
-		expect(tab.content).toBe(written);
-		expect(tab.savedContent).toBe(written);
+		expect(written).not.toContain('_icon');
+		expect(written).toContain('title: Test');
+		expect(written).toContain('Unsaved body edit');
+		expect(editorStore.tabs[0].content).toBe(written);
+		expect(editorStore.tabs[0].savedContent).toBe(written);
+	});
+
+	it('removeFrontmatterIcon reads the open tab, not the disk, to decide there is nothing to strip', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n_icon: lucide:star\n---\nBody');
+		const content = '---\ntitle: Test\n---\nBody';
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content, savedContent: content });
+
+		expect(await removeFrontmatterIcon('/vault/a.md')).toBe(true);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe(content);
 	});
 
 	it('does nothing to the editor when the note is not open in any tab', async () => {
@@ -140,15 +164,50 @@ describe('editor tab sync (issue 03)', () => {
 		expect(editorStore.externalContentSignal).toBe(0);
 	});
 
-	it('leaves the tab untouched when the disk write fails', async () => {
+	it('restores the tab and reports false when saving the tab fails', async () => {
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		const content = '---\ntitle: Test\n---\nBody';
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content, savedContent: content });
+
+		expect(await setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).toBe(false);
+
+		expect(editorStore.tabs[0].content).toBe(content);
+		expect(editorStore.tabs[0].savedContent).toBe(content);
+	});
+
+	it('propagates a disk write failure for a closed note', async () => {
 		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
 		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
-		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'stale', savedContent: 'stale' });
 
 		await expect(setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).rejects.toThrow('disk full');
+	});
+});
 
-		expect(editorStore.tabs[0].content).toBe('stale');
-		expect(editorStore.tabs[0].savedContent).toBe('stale');
+describe('lossy frontmatter refusal (issue 55)', () => {
+	it('setFrontmatterIcon refuses a note with frontmatter comments: no write, toast, false', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n# keep me\ntitle: Test\n---\nBody');
+
+		expect(await setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).toBe(false);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith(
+			"The note's frontmatter has comments; it cannot be rewritten without losing them",
+		);
+	});
+
+	it('removeFrontmatterIcon refuses a note with nested values and leaves a dirty tab as it was', async () => {
+		const saved = '---\n_icon: lucide:star\nmeta:\n  a: 1\n---\nOld body';
+		const edited = '---\n_icon: lucide:star\nmeta:\n  a: 1\n---\nUnsaved body edit';
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: edited, savedContent: saved });
+
+		expect(await removeFrontmatterIcon('/vault/a.md')).toBe(false);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe(edited);
+		expect(editorStore.tabs[0].savedContent).toBe(saved);
+		expect(toast.error).toHaveBeenCalledWith(
+			"The note's frontmatter has nested values; it cannot be rewritten without losing them",
+		);
 	});
 });
 

@@ -37,6 +37,7 @@ import { _resetParseFrontmatterCache, type LossyFrontmatterReason } from '$lib/f
 import type { Property } from '$lib/features/properties/properties.types';
 import {
 	FrontmatterWriteError,
+	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
 } from '$lib/features/properties/frontmatter-write.service';
 
@@ -419,5 +420,31 @@ describe('updateNoteFrontmatter', () => {
 		expect(tabFor(path)?.content).toBe(result);
 		expect(tabFor(path)?.savedContent).toBe(result);
 		expect(disk.get(path)).toBe(result);
+	});
+});
+
+describe('toastFrontmatterWriteError', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('toasts the refusal reason', () => {
+		toastFrontmatterWriteError(new FrontmatterWriteError('comments', '/vault/a.md'));
+
+		expect(toast.error).toHaveBeenCalledWith(
+			"The note's frontmatter has comments; it cannot be rewritten without losing them",
+		);
+	});
+
+	it('toasts a vanished note', () => {
+		toastFrontmatterWriteError(new FrontmatterWriteError('missing', '/vault/a.md'));
+
+		expect(toast.error).toHaveBeenCalledWith('The note was moved or deleted');
+	});
+
+	it('stays silent on save-failed, which the editor already toasted', () => {
+		toastFrontmatterWriteError(new FrontmatterWriteError('save-failed', '/vault/a.md'));
+
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 });
