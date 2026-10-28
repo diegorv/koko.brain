@@ -614,6 +614,80 @@ test.describe('Event calendar pointer drag', () => {
 	});
 });
 
+test.describe('Event calendar keyboard', () => {
+	const standup = (page: Page) => page.locator(`[data-day-column="2026-11-10"] [data-event-path="${STANDUP}"]`);
+
+	/** Opens the seeded calendar scrolled to 08:00 once the Needs-attention badge has shifted the layout. */
+	async function openGridAt8(page: Page): Promise<void> {
+		await openSeededCalendar(page);
+		await expect(standup(page)).toBeVisible({ timeout: 10_000 });
+		await expect(page.locator('[data-attention-badge]')).toBeVisible({ timeout: 10_000 });
+		await scrollGridToHour(page, 8);
+	}
+
+	test('after opening from the palette, M, W and D switch the grid without a click', async ({ vaultPage: page }) => {
+		await openCalendar(page);
+
+		await page.keyboard.press('m');
+		await expect(page.locator('[data-month-grid]')).toBeVisible();
+		await expect(page.locator('[data-time-grid]')).toHaveCount(0);
+
+		await page.keyboard.press('w');
+		await expect(page.locator('[data-time-grid]')).toBeVisible();
+		await expect(page.locator('[data-day-column]')).toHaveCount(7);
+
+		await page.keyboard.press('d');
+		await expect(page.locator('[data-day-column]')).toHaveCount(1);
+		await expect(page.locator('[data-day-column="2026-11-10"]')).toBeVisible();
+	});
+
+	test('Meta+Z undoes a drag and Meta+Shift+Z re-applies it', async ({ vaultPage: page }) => {
+		await openGridAt8(page);
+
+		const box = (await standup(page).boundingBox())!;
+		await drag(page, box.x + box.width / 2, box.y + 20, 0, 64);
+		await expect.poll(() => readNote(page, STANDUP)).toContain('\nstart: 10:00\n');
+
+		await page.keyboard.press('Meta+z');
+		await expect.poll(() => readNote(page, STANDUP)).toContain('\nstart: 09:00\n');
+		await expect(page.locator('[data-sonner-toast]', { hasText: 'Undone: Move event' })).toBeVisible();
+
+		await page.keyboard.press('Meta+Shift+z');
+		await expect.poll(() => readNote(page, STANDUP)).toContain('\nstart: 10:00\n');
+		await expect(page.locator('[data-sonner-toast]', { hasText: 'Redone: Move event' })).toBeVisible();
+		expect(await readNote(page, STANDUP)).toContain('\nend: 11:00\n');
+	});
+
+	test('Delete on a focused block removes it, and the toast Undo brings it back', async ({ vaultPage: page }) => {
+		await openGridAt8(page);
+
+		await standup(page).focus();
+		await page.keyboard.press('Delete');
+
+		await expect(standup(page)).toHaveCount(0);
+		await expect.poll(() => page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(false);
+		const toast = page.locator('[data-sonner-toast]', { hasText: 'Event deleted' });
+		await expect(toast).toBeVisible();
+		await toast.getByRole('button', { name: 'Undo' }).click();
+
+		await expect(standup(page)).toHaveCount(1);
+		await expect.poll(() => page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(true);
+		await expect(page.locator('[data-event-calendar]')).toBeFocused();
+	});
+
+	test('Escape closes an open popover', async ({ vaultPage: page }) => {
+		await openGridAt8(page);
+
+		await standup(page).click();
+		await expect(page.locator('[data-event-popover]')).toBeVisible();
+
+		await page.keyboard.press('Escape');
+
+		await expect(page.locator('[data-event-popover]')).toHaveCount(0);
+		await expect(standup(page)).toBeFocused();
+	});
+});
+
 /** Opens Settings > Calendar and returns the settings panel. */
 async function openCalendarSettings(page: Page) {
 	await pressShortcut(page, 'Mod+Comma');
