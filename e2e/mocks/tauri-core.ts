@@ -83,6 +83,12 @@ function handleGetBacklinksV2(args: Args): unknown {
 	return vaultIndex.getBacklinks(get<string>(args, 'path'));
 }
 
+// No relationship fields in the fixtures; Rust returns a `Vec`, never null,
+// and BacklinksPanel reads `.length` on the result.
+function handleGetRelationshipBacklinksV2(): unknown {
+	return [];
+}
+
 function handleGetOutgoingLinksV2(args: Args): unknown {
 	return vaultIndex.getOutgoingLinks(get<string>(args, 'path'));
 }
@@ -309,6 +315,7 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	scan_vault_v2: handleScanVaultV2,
 	get_all_vault_entries_v2: handleGetAllVaultEntriesV2,
 	get_backlinks_v2: handleGetBacklinksV2,
+	get_relationship_backlinks_v2: handleGetRelationshipBacklinksV2,
 	get_outgoing_links_v2: handleGetOutgoingLinksV2,
 	get_outgoing_unlinked_mentions_v2: handleGetOutgoingUnlinkedMentionsV2,
 	get_unlinked_mentions_v2: handleGetUnlinkedMentionsV2,
