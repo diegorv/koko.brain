@@ -4,7 +4,7 @@
 
 **Plan reference:** Task 30 in `.scratch/calendar-feature/plan-2026-10-28.md` (lines 704-745). The plan task is the full spec (files, line anchors, test cases); this ticket is the definition of done.
 
-**Blocked by:** 02, 30
+**Blocked by:** 30
 
 **Status:** ready-for-agent
 
@@ -28,7 +28,7 @@
 - [ ] Undo feedback toasts: "Undone: <label>" with a Redo action, "Redone: <label>" with an Undo action (actions gated on the Task 1 (b) answer from ticket 01, and they focus the root when they finish), "Nothing to undo" / "Nothing to redo", a refusal shows "Event changed since; not undone" with "Open note", and `vanished` shows "Event was moved or renamed outside the calendar; cannot undo"
 - [ ] The global toggle uses the combo the Task 1 (e) answers settled (tickets 01 and 02: Cmd+Shift+C, else Cmd+Shift+Y), is registered in `global-keybindings.ts` next to Cmd+Shift+T, calls `toggleEventCalendarTab`, and returns early when `matchesKeybinding(e, settingsStore.keybindings.cycleSidebarView)`; the existing `cycleSidebarView` listener is untouched
 - [ ] `RESERVED_KEYBINDINGS` has a "Toggle Calendar" entry and the palette command `event-calendar:toggle` carries the `shortcut`; `keybindings.logic.test.ts` covers the conflict lookup and `command-palette.service.test.ts` covers the shortcut label
-- [ ] If ticket 02 recorded that the native Edit menu swallows Cmd+Z, the palette commands "Calendar: Undo" / "Calendar: Redo" exist instead and the `command-palette.service.test.ts` count rises by 2
+- [ ] Ticket 02 settled the toggle on Cmd+Shift+C and could not establish whether `preventDefault` suppresses the native Edit menu undo (Pre-flight log, (e) bullets 2 and 3). So the Cmd+Z / Shift+Cmd+Z / Ctrl+Y keys stay, AND the palette commands "Calendar: Undo" / "Calendar: Redo" are added; the `command-palette.service.test.ts` count rises by 2
 - [ ] `global-keybindings.test.ts`: the count at `:130-136` goes from 20 to 21 and the cleanup array at `:260` from 19 to 21 (fixing the existing off-by-one); with the event-calendar service not mocked, the captured handler opens the tab (`editorStore.activeTab?.path === EVENT_CALENDAR_VIRTUAL_PATH`, `fileType === 'event-calendar'`) and a second call removes it; with `cycleSidebarView` set to Cmd+Shift+C the handler leaves the tabs unchanged. These tests are written first and fail (C10)
 - [ ] `EventCalendarView.test.ts`: Cmd+Z with an empty stack shows "Nothing to undo" through the mocked `svelte-sonner`; after Escape on an open popover `document.activeElement` is the block and `w` switches to week; with focus on `document.body` `m` switches to month, and with focus in an `<input>` it does not
 - [ ] E2E in `event-calendar.spec.ts`: after opening via the palette, `m` without a click shows the month grid and `w` / `d` switch the grid; after dragging a block, Meta+Z restores the original `start:` in `window.__e2e.fs.readFile` and Meta+Shift+Z re-applies the moved value; Delete on a focused block removes it and the toast Undo (or Meta+Z when Task 1 (b) is a "no") brings it back; Escape closes an open popover
