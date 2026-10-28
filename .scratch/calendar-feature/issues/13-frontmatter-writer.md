@@ -31,3 +31,4 @@
 
 - 2026-10-28 12:27 — discovery — plan in work/13/discovery.md: new frontmatter-write.service.ts with vault guard after every await, tab/no-tab branches, one restart; race tests first — 44bcee52
 - 2026-10-28 12:30 — implement — frontmatter-write.service.ts + 16 tests (race cases first, each guard mutation-checked); pnpm check 0 errors, properties + core/editor tests 644 passed; gate left to deliver — 735d739d
+- 2026-10-28 12:33 — review — VERDICT: APPROVED; 4 low/nit findings (save-failed restore clobbers edits made during the save, JSDoc on mutate re-run / per-path serialization / vault-changed after write, untested post-await vault guards, localStorage stub scope) in work/13/review.md — 954f923b
