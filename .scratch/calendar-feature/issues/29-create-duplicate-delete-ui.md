@@ -30,3 +30,7 @@
 - [ ] E2E: create via the dialog; the block renders, the note's frontmatter holds `_type: Event`, `date` and `start`, and the note sits in the folder `createNoteOfType` would use
 - [ ] E2E: delete, then Undo; the block is gone, then back with `data-pending="false"` after the refresh
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 14:52 — discovery — plan in work/29/discovery.md: dialog create mode, footer and popover Delete/Duplicate via shared service flows, lane/month create, two palette entries — 02e742a7
