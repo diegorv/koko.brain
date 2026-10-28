@@ -23,7 +23,7 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn() },
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
 import { flushSync, mount, unmount } from 'svelte';
@@ -35,6 +35,7 @@ import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import EventCalendarView from '$lib/features/event-calendar/EventCalendarView.svelte';
 import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -437,6 +438,166 @@ describe('EventCalendarView: popover', () => {
 		unmountView();
 
 		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+});
+
+describe('EventCalendarView: keyboard', () => {
+	const ROOT = () => target.querySelector<HTMLElement>('section[data-event-calendar]')!;
+	const STANDUP = () => target.querySelector<HTMLElement>(`[data-day-column="2026-11-10"] [data-event-path="${P('Standup')}"]`)!;
+
+	/** Dispatches a bubbling keydown on `el` and flushes. */
+	function press(el: Element, key: string, mods: KeyboardEventInit = {}) {
+		el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...mods }));
+		flushSync();
+	}
+
+	/** Lets bits-ui finish mounting or unmounting the popover. */
+	async function settlePopover() {
+		await settle();
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync();
+	}
+
+	it('focuses the view root on mount', async () => {
+		mountView();
+		await settle();
+
+		expect(document.activeElement).toBe(ROOT());
+	});
+
+	it('Cmd+Z with an empty stack shows "Nothing to undo"', async () => {
+		mountView();
+		await settle();
+
+		press(ROOT(), 'z', { metaKey: true });
+		await settle();
+
+		expect(toast).toHaveBeenCalledWith('Nothing to undo');
+	});
+
+	it('Shift+Cmd+Z and Ctrl+Y with an empty stack show "Nothing to redo"', async () => {
+		mountView();
+		await settle();
+
+		press(ROOT(), 'z', { metaKey: true, shiftKey: true });
+		press(ROOT(), 'y', { ctrlKey: true });
+		await settle();
+
+		expect(vi.mocked(toast).mock.calls).toEqual([['Nothing to redo'], ['Nothing to redo']]);
+	});
+
+	it('T, D/W/M and the arrows drive the view store, once per key', async () => {
+		mountView();
+		await settle();
+
+		press(ROOT(), 'ArrowRight');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-17');
+		press(ROOT(), 'ArrowLeft');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		press(ROOT(), 'd');
+		expect(eventCalendarViewStore.view).toBe('day');
+		press(ROOT(), 'm');
+		expect(eventCalendarViewStore.view).toBe('month');
+		press(ROOT(), 'w');
+		expect(eventCalendarViewStore.view).toBe('week');
+		press(ROOT(), 't');
+		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
+	});
+
+	it('leaves the arrows to the D/W/M tablist', async () => {
+		mountView();
+		await settle();
+		const weekTab = target.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1];
+
+		press(weekTab, 'ArrowRight');
+
+		expect(eventCalendarViewStore.view).toBe('month');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+	});
+
+	it('N opens the create dialog, and letters do nothing while it is open', async () => {
+		mountView();
+		await settle();
+
+		press(ROOT(), 'n');
+		expect(eventCalendarViewStore.dialog?.mode).toBe('create');
+
+		press(ROOT(), 'm');
+		expect(eventCalendarViewStore.view).toBe('week');
+	});
+
+	it('ignores letters held with Meta', async () => {
+		mountView();
+		await settle();
+
+		press(ROOT(), 'm', { metaKey: true });
+
+		expect(eventCalendarViewStore.view).toBe('week');
+	});
+
+	it('after Escape on an open popover the block has focus and "w" switches to week', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
+		mountView();
+		await settle();
+		press(ROOT(), 'd');
+		STANDUP().click();
+		await settlePopover();
+		expect(document.querySelector('[data-event-popover]')).not.toBeNull();
+
+		press(document.activeElement!, 'Escape');
+		await settlePopover();
+
+		expect(document.querySelector('[data-event-popover]')).toBeNull();
+		expect(document.activeElement).toBe(STANDUP());
+		press(document.activeElement!, 'w');
+		expect(eventCalendarViewStore.view).toBe('week');
+	});
+
+	it('Escape on the focused block closes an open popover', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
+		mountView();
+		await settle();
+		eventCalendarViewStore.openPopover(P('Standup'), { x: 0, y: 0, width: 1, height: 1 });
+		flushSync();
+
+		press(STANDUP(), 'Escape');
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('handles a key on <body> but not one in an <input>', async () => {
+		mountView();
+		await settle();
+		ROOT().blur();
+		expect(document.activeElement).toBe(document.body);
+
+		press(document.body, 'm');
+		expect(eventCalendarViewStore.view).toBe('month');
+
+		const input = document.body.appendChild(document.createElement('input'));
+		input.focus();
+		press(input, 'w');
+		expect(eventCalendarViewStore.view).toBe('month');
+	});
+
+	it('ignores a letter typed in an input inside the view', async () => {
+		mountView();
+		await settle();
+		const input = ROOT().appendChild(document.createElement('input'));
+
+		press(input, 'd');
+
+		expect(eventCalendarViewStore.view).toBe('week');
+	});
+
+	it('removes the <body> listener on unmount', async () => {
+		mountView();
+		await settle();
+		unmountView();
+
+		press(document.body, 'm');
+
+		expect(eventCalendarViewStore.view).toBe('week');
 	});
 });
 
