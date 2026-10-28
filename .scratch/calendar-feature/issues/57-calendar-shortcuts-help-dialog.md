@@ -11,3 +11,7 @@
 
 - [ ] Dialog opens from a key and from a header button, closes on Escape, restores focus
 - [ ] Content generated from the key table; a test fails if a shortcut is missing from the dialog or from either help table
+
+## Comments
+
+- 2026-10-28 17:33 — discovery — key table added to keys.logic, help state in the view store, dialog + header button; plan in work/57/discovery.md — b41e9b0c
