@@ -28,3 +28,7 @@
 - [ ] Clock tests use fake timers and a focus event: a double release is a no-op, and two acquirers keep the clock running until both release
 - [ ] `resetEventCalendar()` resets only the two event-calendar stores and never touches the clock; a test that acquires, calls `resetEventCalendar`, releases and acquires again sees the interval still ticking
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 13:09 — discovery — plan written to work/19/discovery.md — 1033a194
