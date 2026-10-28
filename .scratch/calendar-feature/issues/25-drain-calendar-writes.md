@@ -26,3 +26,7 @@
 - [ ] Both drain-order assertions are seen failing before the awaits are added (Notes C9, Q5)
 - [ ] Every new or extended `vi.mock` string uses the same specifier as the module's import (`$lib` or `#lib` per Notes > Dependencies), so no mock silently loads the real service
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 13:52 — discovery — plan in work/25/discovery.md: two awaits, tests first; flush order observed via the mocked writeSettingsFile; ticket anchor :1169-1185 drifted to :1221-1243 — 1953f3c6
