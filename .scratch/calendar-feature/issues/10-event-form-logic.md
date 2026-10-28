@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-10-28 12:53 — discovery — plan in work/10/discovery.md; one pure module + test, ticket 09 template — 29a7f5d8
+- 2026-10-28 12:55 — implement — form logic + 41 tests; pnpm check 0 errors, event-calendar tests 232/232 — 3bf91350
