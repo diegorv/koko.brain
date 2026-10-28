@@ -73,3 +73,12 @@ next vault.
    orders `$lib/` imports core, then features, then plugins. The `DailyNoteButton` line was already out of
    order before this change. Fix: move the `openEventCalendarTab` import (and, if touching it anyway, the
    `DailyNoteButton` import below `SidebarModeToggle`). Optional.
+
+## Resolution
+
+- Finding 1 accepted: the Open Calendar button now uses the `Tooltip.Root` / `Tooltip.Trigger` /
+  `Tooltip.Content` pattern of its header siblings, keeps `aria-label`, and drops the native `title`.
+  Selectors in `CalendarPanel.test.ts:35` and `calendar-plugin.spec.ts:43` switched to
+  `button[aria-label="Open Calendar"]`.
+- Finding 2 accepted: `$lib/` imports in `CalendarPanel.svelte` reordered core, features, plugins
+  (the `DailyNoteButton` import moved below `SidebarModeToggle`).

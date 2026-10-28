@@ -10,9 +10,9 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import { openEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
 	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
+	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import { calendarStore } from './calendar.store.svelte';
 	import { openOrCreatePeriodicNoteForDate } from './calendar.service';
 	import { buildMonthGrid, formatDateLabel, extractDisplayName, toDateKey } from './calendar.logic';
@@ -56,16 +56,23 @@
 <div class="flex flex-col h-full">
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
-			<Button
-				variant="ghost"
-				size="icon-sm"
-				class="size-6"
-				title="Open Calendar"
-				aria-label="Open Calendar"
-				onclick={handleOpenCalendar}
-			>
-				<CalendarRange class="size-3.5" />
-			</Button>
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="ghost"
+							size="icon-sm"
+							class="size-6"
+							aria-label="Open Calendar"
+							onclick={handleOpenCalendar}
+						>
+							<CalendarRange class="size-3.5" />
+						</Button>
+					{/snippet}
+				</Tooltip.Trigger>
+				<Tooltip.Content>Open Calendar</Tooltip.Content>
+			</Tooltip.Root>
 			<DailyNoteButton />
 			<div class="mx-0.5 h-4 w-px bg-file-explorer-fg/30"></div>
 			<SidebarModeToggle />

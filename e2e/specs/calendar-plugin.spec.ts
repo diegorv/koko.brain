@@ -40,7 +40,7 @@ test.describe('Calendar plugin', () => {
 		await switchToCalendarMode(page);
 		// Today is 2026-11-10 (week 46); select a day in week 48.
 		await page.locator('[data-date="2026-11-24"]').click();
-		await page.locator('button[title="Open Calendar"]').click();
+		await page.locator('button[aria-label="Open Calendar"]').click();
 		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
 		await expect(page.locator('[data-calendar-title]')).toHaveText('November, 2026');
 		await expect(page.locator('[data-calendar-subtitle]')).toContainText('Week 48');

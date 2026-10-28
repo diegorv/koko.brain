@@ -32,7 +32,7 @@ function mountPanel() {
 }
 
 const q = <T extends Element = HTMLElement>(selector: string) => target.querySelector<T>(selector);
-const openButton = () => q<HTMLButtonElement>('button[title="Open Calendar"]')!;
+const openButton = () => q<HTMLButtonElement>('button[aria-label="Open Calendar"]')!;
 const calendarTabs = () => editorStore.tabs.filter((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH);
 
 beforeEach(() => {
