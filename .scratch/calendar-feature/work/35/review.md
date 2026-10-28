@@ -39,3 +39,12 @@ The ADR content is accurate and complete against every acceptance criterion. The
 - `docs/adr/README.md` Rules say "Active ADRs are never edited" and to supersede instead. This diff appends dated amendment notes to ADR-0009 and ADR-0029. The Issue and plan Task 34 require that, and it has precedent (`0009:69`, and `0025:76` and `:175` for "Amendment 2026-08-19"). No action.
 - `CLAUDE.md:274` still lists five sources. Issue 34 (user docs) owns that change, so it is out of scope here.
 - Scope: no file outside the Issue's Touches list, apart from `.scratch` bookkeeping.
+
+## Resolution
+
+All four findings accepted and fixed in ADR-0032; none rejected. Each was checked against the tree before editing.
+
+1. Precedent count changed to "five features and three plugins" (confirmed against `git show c3ef20b7^:src/lib/core/keybindings/global-keybindings.ts:9-19`).
+2. Added the owner bullet: a title edit renames through `renameItem` (`event-calendar.service.ts:418`), Duplicate writes through `createFile` (`event-calendar.service.ts:652`, which calls `applyNoteChange` with source `fs` in `fs.service.ts:131`).
+3. `indexRestoredNote` range changed to `trash.service.ts:221-234` in both places.
+4. Added `FrontmatterWriteReason` (type) to the `event-calendar.service.ts:27` row.

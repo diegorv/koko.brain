@@ -42,18 +42,19 @@ The feature is always loaded and owns a singleton virtual tab (`fileType: 'event
 
 - Frontmatter edits (move, resize, edit) go through one shared writer, `updateNoteFrontmatter` in `src/lib/features/properties/frontmatter-write.service.ts`: an open note is patched in its tab and saved at once, a closed note is written and then runs `notifyAfterSave`. It never re-creates a note that vanished.
 - Creation goes through `createTypedNote` (`type-definitions.service.ts`), the owner the type sidebar's "New Event" also uses, so both entry points put Event notes in the same folder (`_folder` on the type) with the same template.
+- A title edit renames the note through `renameItem`; Duplicate writes the copy through `createFile` (`fs` source).
 - Delete and restore go through `deleteItem` and `trash.service::restoreItem`. Undo of a create or a delete goes through the Trash.
 - Rust needs no production change; a contract test (`src-tauri/tests/vault_event_frontmatter_test.rs`) pins the fields the projection reads.
 
 ### New note-change source: `restore` (plan D20)
 
-`NoteChangeSource` gains a sixth value, `restore` (`src/lib/core/filesystem/note-change.service.ts:17`), with the policy row `restore: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false }` (`:92-94`). `restoreItem` calls it for a restored Markdown file after the rename back (`src/lib/core/trash/trash.service.ts:145-146`, `indexRestoredNote` at `:221-230`), so the note is indexed at once instead of after the watcher debounce. The IPC must fire on every call: the delete already removed the note from Rust (`forgetNote`), and unlike `create` / `fs` no `create_note` ran for the restored file. Restored directories still rely on the watcher. The Trash panel's own restores get the same fix.
+`NoteChangeSource` gains a sixth value, `restore` (`src/lib/core/filesystem/note-change.service.ts:17`), with the policy row `restore: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false }` (`:92-94`). `restoreItem` calls it for a restored Markdown file after the rename back (`src/lib/core/trash/trash.service.ts:145-146`, `indexRestoredNote` at `:221-234`), so the note is indexed at once instead of after the watcher debounce. The IPC must fire on every call: the delete already removed the note from Rust (`forgetNote`), and unlike `create` / `fs` no `create_note` ran for the restored file. Restored directories still rely on the watcher. The Trash panel's own restores get the same fix.
 
 ### Cross-layer imports
 
 Built from `grep -rn "features/event-calendar" src/lib` and `grep -rnE "['\"](\\\$|#)lib/features/" src/lib/features/event-calendar` on the final tree (2026-10-28). The plan wrote the second grep as `"\$lib/features/"`; BSD grep on macOS reads that `$` as an anchor and matches nothing, so the escaped pattern above is the one that was run. It also covers the `#lib/features/` specifier form; no event-calendar file uses `#lib/` yet.
 
-Core to event-calendar (each has precedent: `global-keybindings.ts` already imported four features and two plugins, `tauri-listeners.service.ts` a plugin and four features):
+Core to event-calendar (each has precedent: `global-keybindings.ts` already imported five features and three plugins, `tauri-listeners.service.ts` a plugin and four features):
 
 | Importer | Imports | Why |
 | --- | --- | --- |
@@ -72,7 +73,7 @@ Feature to feature:
 | `src/lib/features/command-palette/command-palette.service.ts:32-33` | `event-calendar.service` (open, toggle, new event, undo / redo commands), `eventCalendarViewStore` |
 | `src/lib/features/event-calendar/event-calendar-event.logic.ts:14, 16` | `features/properties`: `Property` type, `extractBody`, `parseFrontmatterProperties`, `rebuildContent` |
 | `src/lib/features/event-calendar/event-calendar-event.logic.ts:17` | `features/type-definitions/type-sidebar.logic`: `excludeSystemFolder` |
-| `src/lib/features/event-calendar/event-calendar.service.ts:27` | `features/properties/frontmatter-write.service`: `updateNoteFrontmatter`, `FrontmatterWriteError` |
+| `src/lib/features/event-calendar/event-calendar.service.ts:27` | `features/properties/frontmatter-write.service`: `updateNoteFrontmatter`, `FrontmatterWriteError`, `FrontmatterWriteReason` (type) |
 | `src/lib/features/event-calendar/event-calendar.service.ts:28` | `features/properties/properties.logic`: `detectLossyFrontmatter`, `extractBody`, `parseFrontmatterProperties`, `rebuildContent` |
 | `src/lib/features/event-calendar/event-calendar.service.ts:29-30` | `features/type-definitions`: `createTypedNote`, `typeDefinitionsStore` |
 | `src/lib/features/event-calendar/EventCalendarSection.svelte:14-16` | `features/type-definitions`: `typeDefinitionsStore`, `buildTypeNoteDir`, `validateTypeName`, `createTypeDefinition`, `refreshTypeDefinitions` (the events-folder line and the "Open Event type" button, which creates the definition when the vault has none) |
@@ -120,4 +121,4 @@ The existing writers (Properties panel, lifecycle toggles, meta-bind widgets, th
 - Event type setting: `src/lib/core/settings/settings.logic.ts:64-69`; resolution: `event-calendar-event.logic.ts:367-370`.
 - Shared writer: `src/lib/features/properties/frontmatter-write.service.ts:68` (`updateNoteFrontmatter`), lossy check `:94`.
 - Template refusal: `src/lib/features/event-calendar/event-calendar.service.ts:598`.
-- `restore` source: `src/lib/core/filesystem/note-change.service.ts:17, 92-94`; caller `src/lib/core/trash/trash.service.ts:145-146, 221-230`.
+- `restore` source: `src/lib/core/filesystem/note-change.service.ts:17, 92-94`; caller `src/lib/core/trash/trash.service.ts:145-146, 221-234`.
