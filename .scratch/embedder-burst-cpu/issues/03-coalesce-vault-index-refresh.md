@@ -27,3 +27,4 @@
 ## Comments
 - 2026-10-28 11:59 — discovery — inline throttle (2 s first delay, 10 s min interval, trailing) in the listener; no new util; plan in work/03/discovery.md — 09411068
 - 2026-10-28 12:01 — implement — inline throttle in registerVaultIndexUpdatedListener + tests; pnpm check 0 errors, touched tests 150/150; CLAUDE.md Indexing 12 and ADR 0025:184 still say "300 ms-debounced" (left for the human) — 32ee0c80
+- 2026-10-28 12:04 — review — CHANGES_REQUESTED: Tasks-view toggle feedback now lags 2-10 s (toggleTask must refetch); backward wall-clock jump stalls refresh (cap wait at 10 s); ADR 0025:184,202 still say 300 ms (CLAUDE.md:289 left for the human) — 2d721e05
