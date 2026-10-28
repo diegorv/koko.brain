@@ -41,3 +41,7 @@ Ticket 55 review (fix 27152237):
 - [ ] `saveFileByPath` (`editor.service.ts:132-149`) does not serialize per path: an autosave of A in flight plus an icon write saving B (A + icon) can land A last, so the disk lacks the icon and the tab stays dirty with no timer armed until the next edit. No text is lost; a per-path save queue would close it.
 - [ ] `auto-move.service.ts:195` checks lossiness on the content captured at save time, not at write time after the debounce; an edit in that window yields one refusal toast or a delayed icon.
 - [ ] No test for a lossy note that auto-move actually moves, nor for an IO error from `setIconForPath`.
+
+Ticket 66 review (fix 7c772842):
+- [ ] `lookupCalendarEvent` (`event-calendar.service.ts:220`) reads `vaultIndexVersion` after `await getVaultEntries()`, while the store reload reads it before its await (`:76`); a bump during the await pairs an older snapshot with a newer version and can expire a delete marker one bump early. Practically unreachable; capture the version before the await.
+- [ ] Unchecked: once `undoDeleteEvent` starts, a vault switch mid-flight is not re-checked in the toast Undo closure; confirm `undoDeleteEvent` guards it.
