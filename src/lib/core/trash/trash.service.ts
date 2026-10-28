@@ -11,7 +11,7 @@ import {
 	parseTrashManifest,
 	serializeTrashManifest,
 } from './trash.logic';
-import { collectFilePathsUnder, getRelativePath } from '$lib/core/filesystem/fs.logic';
+import { collectFilePathsUnder, findNodeByPath, getRelativePath } from '$lib/core/filesystem/fs.logic';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
@@ -153,8 +153,12 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 
 		// A folder's notes are walked from the refreshed tree, so they match
 		// what the vault scan sees. The watcher cannot stand in: the restore
-		// arrives as one directory rename, which its directory-only filter drops.
+		// arrives as one directory rename, which its directory-only filter drops
+		// for a folder name without a dot.
 		if (item.isDirectory) {
+			if (!findNodeByPath(fsStore.fileTree, restorePath)) {
+				debug('Trash', `Restored folder not found in the refreshed tree, notes not indexed: ${restorePath}`);
+			}
 			const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
 			await indexRestoredNotes(vaultPath, notes);
 		}

@@ -43,7 +43,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import { error } from '$lib/utils/debug';
+import { debug, error } from '$lib/utils/debug';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
@@ -442,6 +442,9 @@ describe('restoreItem - indexing', () => {
 			expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
 				filePath: rel, content: CONTENT, vaultPath: VAULT,
 			});
+			expect(invoke).toHaveBeenCalledWith('update_semantic_file', {
+				filePath: rel, content: CONTENT, vaultPath: VAULT,
+			});
 		}
 		expect(invokedCommands().filter((c) => c === 'update_note_in_index')).toHaveLength(2);
 		expect(upserts).toEqual([[top, CONTENT], [deep, CONTENT]]);
@@ -505,6 +508,32 @@ describe('restoreItem - indexing', () => {
 		expect(backlinksStore.unlinkedDirty).toBe(false);
 		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
 		expect(trashStore.items).toHaveLength(0);
+	});
+
+	it('logs and indexes nothing when the restored folder is missing from the refreshed tree', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+		treeAfterRefresh([dir('/Users/me/vault/projects', [])]);
+
+		const result = await restoreItem(VAULT, item);
+
+		expect(result).toBe('/Users/me/vault/projects/archive');
+		expect(mockReadTextFile).not.toHaveBeenCalled();
+		expect(invokedCommands()).toEqual([]);
+		expect(debug).toHaveBeenCalledWith(
+			'Trash',
+			'Restored folder not found in the refreshed tree, notes not indexed: /Users/me/vault/projects/archive',
+		);
+	});
+
+	it('does not log a tree miss for an empty restored folder', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+		treeAfterRefresh([dir('/Users/me/vault/projects', [dir('/Users/me/vault/projects/archive', [])])]);
+
+		await restoreItem(VAULT, item);
+
+		expect(vi.mocked(debug).mock.calls.some((c) => String(c[1]).startsWith('Restored folder not found'))).toBe(false);
 	});
 
 	it('indexes nothing for a non-Markdown file', async () => {
