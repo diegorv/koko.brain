@@ -38,3 +38,9 @@ The diff is tracker-only. It deletes the plan, adds discovery.md and adds two Is
 3. **Nit, no action.** `work/37/discovery.md:9` says the plan has "1359 lines" while the commit's Files section says `1-1360`. Both are right: the difference is the final line, which has no trailing newline. There is nothing to fix.
 
 Scope: nothing beyond the Issue was added. The plan's `[ ]` boxes were not ticked before the deletion, which is correct because ticking them would have added a second change to the deletion commit.
+
+## Resolution
+
+- Finding 1 (Medium): fixed. ADR-0032 lines 11 and 118 now point at `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md` and say the plan was deleted when the feature closed. Line 118 keeps the "Notes > Decisions D1-D26" anchor. The repair is its own commit after 24e79da1, so the deletion commit stays pure (allowed by `docs/adr/README.md:99`).
+- Finding 2 (Info): accepted, no action. The older work/ records are historical.
+- Finding 3 (Nit): accepted, no action. Both line counts are correct.

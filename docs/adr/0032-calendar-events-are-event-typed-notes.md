@@ -8,7 +8,7 @@ date: 2026-10-28
 
 ## Context
 
-The calendar-feature plan (`.scratch/calendar-feature/plan-2026-10-28.md`) ports a week / day / month event calendar from a standalone prototype that kept its events in `localStorage`. Kokobrain already had `plugins/calendar`, a sidebar month panel over periodic notes, and `plugins/periodic-notes`, but nothing that stores timed events.
+The calendar-feature plan (`.scratch/calendar-feature/plan-2026-10-28.md`, deleted when the feature closed; read it with `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md`) ports a week / day / month event calendar from a standalone prototype that kept its events in `localStorage`. Kokobrain already had `plugins/calendar`, a sidebar month panel over periodic notes, and `plugins/periodic-notes`, but nothing that stores timed events.
 
 Three questions had to be settled before any code: where an event's data lives, where the feature lives in the four-layer taxonomy ([0003](0003-four-layer-source-taxonomy.md)), and how its writes reach the indexes without a second note-change owner ([0009](0009-incremental-indexing-reverse-index.md), [0025](0025-rust-vault-index.md)).
 
@@ -115,7 +115,7 @@ The existing writers (Properties panel, lifecycle toggles, meta-bind widgets, th
 
 ## Citation map
 
-- Plan and decision log: `.scratch/calendar-feature/plan-2026-10-28.md`, Notes > Decisions D1-D26.
+- Plan and decision log: `git show c0103ff5:.scratch/calendar-feature/plan-2026-10-28.md` (deleted from the tree when the feature closed), Notes > Decisions D1-D26.
 - Event detection: `src/lib/features/event-calendar/event-calendar-event.logic.ts:81-85`.
 - Display title: `event-calendar-event.logic.ts:110-113`; `event_title` write: `:278-279`.
 - Event type setting: `src/lib/core/settings/settings.logic.ts:64-69`; resolution: `event-calendar-event.logic.ts:367-370`.
