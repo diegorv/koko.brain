@@ -1,5 +1,7 @@
 /**
- * Pointer gestures of the time grid: create, move and resize. A desktop-only
+ * Pointer gestures of the time grid (create, move and resize) and of the
+ * day cells of the month grid and the all-day lane (move to another day). A
+ * desktop-only
  * port of `calender-app-design/src/components/calendar/time-grid.tsx:225-380`
  * without the touch branches. The component owns the pointer events and the
  * live rect; this module maps a point to a slot, tracks the drag and decides
@@ -9,7 +11,7 @@
  */
 
 import { clampMinutes, floorToSnap, MIN_EVENT_MINUTES, pxToMinutes, snap } from './event-calendar-layout.logic';
-import type { DragState, EventNote } from './event-calendar.types';
+import type { DayDragState, DragState, EventNote } from './event-calendar.types';
 
 /** Distance, in px, the pointer must travel before a press becomes a drag. */
 export const DRAG_THRESHOLD_PX = 4;
@@ -239,4 +241,78 @@ export function previewDayEvents<T extends EventNote>(
 	const rest = dayEvents.filter((e) => e.path !== dragged.path);
 	if (isTarget) rest.push({ ...dragged, date: dayKey, start: drag.start, end: drag.end });
 	return rest;
+}
+
+/** The part of a cell area's bounding rect the day-cell math reads. */
+export type CellRect = Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>;
+
+/** Where a day drag drops. */
+export type DayDragResult =
+	| {
+			/** Write the new day to the event. */
+			kind: 'move';
+			/** Absolute path of the event note. */
+			path: string;
+			/** New day key. */
+			date: string;
+	  }
+	| {
+			/** Do nothing (an unmoved press, a same-day drop, a read-only or gone event). */
+			kind: 'none';
+	  };
+
+/**
+ * Maps a pointer position to a day cell of a `cols` x `rows` area laid out
+ * row by row (the month grid, or the one-row all-day lane). `rect` is read
+ * live by the caller. A point outside the area clamps to the nearest cell.
+ * @returns the row-major cell index, an index into the visible days
+ */
+export function cellFromPoint(rect: CellRect, clientX: number, clientY: number, cols: number, rows: number): number {
+	const col = rect.width > 0 ? Math.floor(((clientX - rect.left) * cols) / rect.width) : 0;
+	const row = rect.height > 0 ? Math.floor(((clientY - rect.top) * rows) / rect.height) : 0;
+	return clampMinutes(row, 0, rows - 1) * cols + clampMinutes(col, 0, cols - 1);
+}
+
+/** Starts a day drag on the chip of `event`, pressed in cell `dayIndex`. */
+export function beginDayDrag(event: EventNote, dayIndex: number): DayDragState {
+	return { path: event.path, originDay: dayIndex, day: dayIndex, moved: false };
+}
+
+/**
+ * Advances a day drag to the cell under the pointer. `distancePx` is the
+ * distance from the press point; until it exceeds `DRAG_THRESHOLD_PX` once,
+ * the same `drag` is returned unchanged.
+ */
+export function updateDayDrag(drag: DayDragState, dayIndex: number, distancePx: number): DayDragState {
+	if (!drag.moved && distancePx <= DRAG_THRESHOLD_PX) return drag;
+	return { ...drag, moved: true, day: dayIndex };
+}
+
+/**
+ * Decides what a finished day drag does. A drop moves only the date: the
+ * start, end and all-day flag stay. An unmoved press resolves to `none` (the
+ * chip's own click opens the popover), and so do a drop on the event's
+ * current day, a read-only event, an event no longer shown and a day index
+ * that no longer points into `days` (the view changed mid-drag).
+ * @param drag - the finished drag
+ * @param events - the events the surface shows
+ * @param days - the visible day keys the drag's indices point into
+ */
+export function resolveDayDrag(drag: DayDragState, events: EventNote[], days: string[]): DayDragResult {
+	if (!drag.moved) return { kind: 'none' };
+	const event = events.find((e) => e.path === drag.path);
+	const date = days[drag.day];
+	if (!event || event.readOnly || date === undefined || date === event.date) return { kind: 'none' };
+	return { kind: 'move', path: event.path, date };
+}
+
+/**
+ * Events as a day drag shows them: the dragged event re-dated to the target
+ * day, keeping its other fields. Returns `events` itself when no moved drag
+ * is in progress or the target is out of range, so derived views stay put.
+ */
+export function previewDayMove<T extends EventNote>(events: T[], drag: DayDragState | null, days: string[]): T[] {
+	const date = drag?.moved ? days[drag.day] : undefined;
+	if (!drag || date === undefined) return events;
+	return events.map((e) => (e.path === drag.path ? { ...e, date } : e));
 }

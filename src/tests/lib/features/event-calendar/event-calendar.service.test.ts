@@ -59,6 +59,7 @@ import {
 	eventErrorMessage,
 	loadEvents,
 	moveEvent,
+	moveEventToDay,
 	openEventCalendarTab,
 	openNewEventDialog,
 	redoEventChange,
@@ -1017,6 +1018,61 @@ describe('calendar writes', () => {
 			await refreshWith({});
 			expect(eventCalendarStore.isPending(P('Daily sync'))).toBe(false);
 			expect(eventCalendarStore.events).toEqual([]);
+		});
+	});
+
+	describe('moveEventToDay', () => {
+		it('writes only the date of a timed event, as an undoable Move event op', async () => {
+			await moveEventToDay(P('Standup'), '2026-11-12');
+
+			const bytes = disk.get(P('Standup'))!;
+			expect(bytes).toContain('date: 2026-11-12');
+			expect(bytes).toContain('start: 09:30');
+			expect(bytes).toContain('end: 10:00');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-12', start: 570, end: 600 });
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-10', start: 570, end: 600 });
+		});
+
+		it('keeps all_day on an all-day event and adds no start or end, also through undo', async () => {
+			disk.set(P('Holiday'), eventNote({ _type: 'Event', date: '2026-11-10', all_day: 'true' }, ''));
+			await refresh();
+
+			await moveEventToDay(P('Holiday'), '2026-11-11');
+
+			const bytes = disk.get(P('Holiday'))!;
+			expect(bytes).toContain('date: 2026-11-11');
+			expect(bytes).toContain('all_day: true');
+			expect(bytes).not.toMatch(/\n(start|end):/);
+			expect(eventCalendarStore.eventByPath(P('Holiday'))).toMatchObject({ date: '2026-11-11', allDay: true });
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Holiday'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Holiday'))).toContain('all_day: true');
+		});
+
+		it('refuses a span before writing', async () => {
+			const trip = eventFile({ end_date: '2026-11-12' });
+			disk.set(P('Trip'), trip);
+			await refresh();
+			vi.mocked(writeTextFile).mockClear();
+
+			await expect(moveEventToDay(P('Trip'), '2026-11-13')).rejects.toMatchObject({ name: 'EventCalendarError', reason: 'read-only' });
+
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(disk.get(P('Trip'))).toBe(trip);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
+		it('rolls back and rethrows when the write fails', async () => {
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			await expect(moveEventToDay(P('Standup'), '2026-11-12')).rejects.toThrow('disk full');
+
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-10', pending: false });
+			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 	});
 

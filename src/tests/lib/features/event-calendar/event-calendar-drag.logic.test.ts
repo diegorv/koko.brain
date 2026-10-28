@@ -2,13 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	beginCreate,
+	beginDayDrag,
 	beginMove,
 	beginResize,
+	cellFromPoint,
 	createGhost,
 	DRAG_THRESHOLD_PX,
 	previewDayEvents,
+	previewDayMove,
+	resolveDayDrag,
 	resolveDrag,
 	slotFromPoint,
+	updateDayDrag,
 	updateDrag,
 } from '$lib/features/event-calendar/event-calendar-drag.logic';
 import { HOUR_HEIGHT } from '$lib/features/event-calendar/event-calendar-layout.logic';
@@ -343,5 +348,113 @@ describe('previewDayEvents', () => {
 	it('leaves every column alone when the dragged event is unknown', () => {
 		const drag = updateDrag(beginMove(a, slot(1, 560)), slot(3, 680), FAR);
 		expect(previewDayEvents(drag, null, 3, days[3], [c])).toBeNull();
+	});
+});
+
+describe('cellFromPoint', () => {
+	const rect = { left: 100, top: 50, width: 700, height: 600 };
+
+	it('maps a point to the row-major index of its cell', () => {
+		expect(cellFromPoint(rect, 150, 60, 7, 6)).toBe(0);
+		expect(cellFromPoint(rect, 250, 60, 7, 6)).toBe(1);
+		expect(cellFromPoint(rect, 150, 160, 7, 6)).toBe(7);
+		expect(cellFromPoint(rect, 799, 649, 7, 6)).toBe(41);
+	});
+
+	it('clamps a point outside the rect to the nearest cell', () => {
+		expect(cellFromPoint(rect, 0, 0, 7, 6)).toBe(0);
+		expect(cellFromPoint(rect, 2000, 2000, 7, 6)).toBe(41);
+		expect(cellFromPoint(rect, 2000, 0, 7, 6)).toBe(6);
+	});
+
+	it('reads one row of cells for the all-day lane', () => {
+		expect(cellFromPoint(rect, 450, 9999, 5, 1)).toBe(2);
+	});
+
+	it('returns 0 for a rect with no size (an element not laid out)', () => {
+		expect(cellFromPoint({ left: 0, top: 0, width: 0, height: 0 }, 10, 10, 7, 6)).toBe(0);
+	});
+});
+
+describe('beginDayDrag and updateDayDrag', () => {
+	const a = ev('a', 1, 540, 600);
+
+	it('starts unmoved on the pressed cell', () => {
+		expect(beginDayDrag(a, 1)).toEqual({ path: 'a', originDay: 1, day: 1, moved: false });
+	});
+
+	it('returns the same drag until the pointer passes the threshold', () => {
+		const drag = beginDayDrag(a, 1);
+		expect(updateDayDrag(drag, 3, DRAG_THRESHOLD_PX)).toBe(drag);
+	});
+
+	it('follows the pointer cell once past the threshold, and keeps following below it', () => {
+		const moved = updateDayDrag(beginDayDrag(a, 1), 3, FAR);
+		expect(moved).toEqual({ path: 'a', originDay: 1, day: 3, moved: true });
+		expect(updateDayDrag(moved, 2, 0)).toEqual({ path: 'a', originDay: 1, day: 2, moved: true });
+	});
+});
+
+describe('resolveDayDrag', () => {
+	const a = ev('a', 1, 540, 600);
+	const allDay: EventNote = { ...ev('h', 1, 0, 1440), allDay: true };
+
+	it('moves the event to the target day, keeping the rest to the service', () => {
+		const drag = updateDayDrag(beginDayDrag(a, 1), 3, FAR);
+		expect(resolveDayDrag(drag, [a], days)).toEqual({ kind: 'move', path: 'a', date: days[3] });
+	});
+
+	it('moves an all-day event the same way', () => {
+		const drag = updateDayDrag(beginDayDrag(allDay, 1), 0, FAR);
+		expect(resolveDayDrag(drag, [allDay], days)).toEqual({ kind: 'move', path: 'h', date: days[0] });
+	});
+
+	it('does nothing for a press that never passed the threshold (the chip click opens the popover)', () => {
+		expect(resolveDayDrag(beginDayDrag(a, 1), [a], days)).toEqual({ kind: 'none' });
+	});
+
+	it('does nothing for a drop on the same day', () => {
+		const drag = updateDayDrag(updateDayDrag(beginDayDrag(a, 1), 3, FAR), 1, 0);
+		expect(resolveDayDrag(drag, [a], days)).toEqual({ kind: 'none' });
+	});
+
+	it('does nothing for a read-only event', () => {
+		const span = { ...a, endDate: days[2], readOnly: true };
+		const drag = updateDayDrag(beginDayDrag(span, 1), 3, FAR);
+		expect(resolveDayDrag(drag, [span], days)).toEqual({ kind: 'none' });
+	});
+
+	it('does nothing when the event is gone or the day index is out of range', () => {
+		const drag = updateDayDrag(beginDayDrag(a, 1), 3, FAR);
+		expect(resolveDayDrag(drag, [], days)).toEqual({ kind: 'none' });
+		expect(resolveDayDrag(drag, [a], days.slice(0, 2))).toEqual({ kind: 'none' });
+	});
+
+	it('compares with the event as it is now, not as it was at the press', () => {
+		const drag = updateDayDrag(beginDayDrag(a, 1), 3, FAR);
+		expect(resolveDayDrag(drag, [{ ...a, date: days[3] }], days)).toEqual({ kind: 'none' });
+	});
+});
+
+describe('previewDayMove', () => {
+	const a = ev('a', 1, 540, 600);
+	const b = ev('b', 2, 600, 660);
+
+	it('returns the input untouched without a moved drag', () => {
+		const events = [a, b];
+		expect(previewDayMove(events, null, days)).toBe(events);
+		expect(previewDayMove(events, beginDayDrag(a, 1), days)).toBe(events);
+	});
+
+	it('re-dates only the dragged event to the target day, keeping its other fields', () => {
+		const pending = { ...a, pending: true };
+		const drag = updateDayDrag(beginDayDrag(pending, 1), 3, FAR);
+		expect(previewDayMove([pending, b], drag, days)).toEqual([{ ...pending, date: days[3] }, b]);
+	});
+
+	it('returns the input untouched when the target index is out of range', () => {
+		const events = [a, b];
+		const drag = updateDayDrag(beginDayDrag(a, 1), 9, FAR);
+		expect(previewDayMove(events, drag, days)).toBe(events);
 	});
 });

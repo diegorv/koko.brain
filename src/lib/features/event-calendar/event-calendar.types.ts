@@ -220,6 +220,21 @@ export interface DragState {
 	moved: boolean;
 }
 
+/**
+ * A pointer drag of an event chip between day cells: the month grid or the
+ * all-day lane. Days are indices into the visible days, as in `DragState`.
+ */
+export interface DayDragState {
+	/** Absolute path of the dragged event. */
+	path: string;
+	/** Index of the visible day where the drag started. */
+	originDay: number;
+	/** Index of the visible day the drag currently targets. */
+	day: number;
+	/** Whether the pointer has moved past the drag threshold. */
+	moved: boolean;
+}
+
 /** A timed event placed in its day column by the overlap layout. */
 export interface PositionedEvent {
 	/** The event being placed. */

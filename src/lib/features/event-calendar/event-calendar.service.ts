@@ -517,6 +517,18 @@ export function moveEvent(path: string, timing: EventTiming): Promise<void> {
 }
 
 /**
+ * Moves an event to another day (a drag in the month grid or the all-day
+ * lane), as a 'Move event' op. Writes `date` only: `start`, `end` and
+ * `all_day` stay as they are, which a `moveEvent` timing would not keep for
+ * an all-day event.
+ * @param path - absolute path of the event note
+ * @param date - new day key
+ */
+export function moveEventToDay(path: string, date: string): Promise<void> {
+	return updateEventFields(path, { date }, { label: 'Move event' });
+}
+
+/**
  * Changes an event's end (a resize), as a 'Resize event' op.
  * @param path - absolute path of the event note
  * @param end - new end in minutes from midnight
