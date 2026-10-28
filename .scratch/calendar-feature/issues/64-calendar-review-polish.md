@@ -37,3 +37,7 @@ Ticket 41 review (fix 03026a54):
 
 Ticket 58 review (fix 269cfc1e):
 - [ ] No view-level test asserts `document.activeElement` after an arrow key on a focused WeekStrip day; the focus-follow is only tested in `EventWeekStrip.test.ts` via a direct `setDate`. Add one to `EventCalendarView.test.ts`.
+
+Ticket 54 review (fix dd9f45a4):
+- [ ] The in-flight guard in `EventDailyNoteButton.svelte:21` is per instance, not per day: a remount or a second Calendar view during an open can fire a second `openOrCreate` for the same date and toast "File already exists". A per-day set in the store, or a guard in `openOrCreatePeriodicNoteForDate`, closes it.
+- [ ] The daily note opener is registered unconditionally (`app-lifecycle.service.ts:247`); if periodic notes ever gets an off switch, the header button must hide with it.
