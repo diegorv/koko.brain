@@ -212,6 +212,40 @@ describe('groupRecordsByDate', () => {
 		expect(groups.has('2026-03-13')).toBe(false);
 	});
 
+	it('places a timed multi-day event on its end day when the end time is earlier than the start time', () => {
+		const records = [
+			makeRecord('/event.md', {
+				start: '2026-03-10T10:00',
+				end: '2026-03-12T09:00',
+			}),
+		];
+		const groups = groupRecordsByDate(records, 'start', 'end');
+		expect([...groups.keys()].sort()).toEqual(['2026-03-10', '2026-03-11', '2026-03-12']);
+	});
+
+	it('places a timed event ending the next morning on both days', () => {
+		const records = [
+			makeRecord('/event.md', {
+				start: '2026-03-10T22:00',
+				end: '2026-03-11T02:00',
+			}),
+		];
+		const groups = groupRecordsByDate(records, 'start', 'end');
+		expect([...groups.keys()].sort()).toEqual(['2026-03-10', '2026-03-11']);
+	});
+
+	it('places a timed event that starts and ends on the same day once', () => {
+		const records = [
+			makeRecord('/event.md', {
+				start: '2026-03-10T09:00',
+				end: '2026-03-10T17:00',
+			}),
+		];
+		const groups = groupRecordsByDate(records, 'start', 'end');
+		expect([...groups.keys()]).toEqual(['2026-03-10']);
+		expect(groups.get('2026-03-10')?.length).toBe(1);
+	});
+
 	it('treats event as single-day when end equals start', () => {
 		const records = [
 			makeRecord('/event.md', {

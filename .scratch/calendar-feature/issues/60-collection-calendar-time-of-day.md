@@ -12,8 +12,8 @@
   - `linear-calendar.logic.ts:175-180`: `lastDay` is the month's last day at 00:00, so a record starting that day after midnight is left out of the month.
 - Fix by comparing date keys (day granularity), not timestamps.
 
-- [ ] Failing tests first for each of the three cases above
-- [ ] Day-granular comparisons; tests green
+- [x] Failing tests first for each of the three cases above
+- [x] Day-granular comparisons; tests green
 
 ## Comments
 

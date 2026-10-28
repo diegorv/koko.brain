@@ -116,12 +116,13 @@ export function groupRecordsByDate(
 
 		const event: CalendarEvent = { record, startDate, endDate: endDate ?? undefined };
 		const startKey = formatDateKey(startDate);
+		const endKey = endDate ? formatDateKey(endDate) : startKey;
 
-		if (endDate && endDate.getTime() > startDate.getTime()) {
+		// Day keys, not timestamps: a 10:00 start must still reach an end day whose time is earlier
+		if (endKey > startKey) {
 			// Multi-day: place on each day from start to end (inclusive)
-			const current = new Date(startDate);
-			const endTime = endDate.getTime();
-			while (current.getTime() <= endTime) {
+			const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+			while (formatDateKey(current) <= endKey) {
 				const key = formatDateKey(current);
 				const list = groups.get(key) ?? [];
 				list.push(event);

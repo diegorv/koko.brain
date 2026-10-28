@@ -1,5 +1,5 @@
 import type { NoteRecord } from './collection.types';
-import { extractDateFromRecord } from './calendar.logic';
+import { extractDateFromRecord, formatDateKey } from './calendar.logic';
 import { getPropertyValue } from './collection.logic';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -127,8 +127,8 @@ export function extractEventsForYear(
 	endDateProperty?: string,
 	colorProperty?: string,
 ): RawEvent[] {
-	const yearStart = new Date(year, 0, 1);
-	const yearEnd = new Date(year, 11, 31);
+	const yearStartKey = formatDateKey(new Date(year, 0, 1));
+	const yearEndKey = formatDateKey(new Date(year, 11, 31));
 	const events: RawEvent[] = [];
 
 	for (const record of records) {
@@ -143,9 +143,10 @@ export function extractEventsForYear(
 			endDate = startDate;
 		}
 
-		// Skip events entirely outside the year
-		if (endDate.getTime() < yearStart.getTime()) continue;
-		if (startDate.getTime() > yearEnd.getTime()) continue;
+		// Skip events entirely outside the year. Day keys, not timestamps, so a
+		// Dec 31 start after midnight stays in the year.
+		if (formatDateKey(endDate) < yearStartKey) continue;
+		if (formatDateKey(startDate) > yearEndKey) continue;
 
 		let colorValue: string | null = null;
 		if (colorProperty) {
@@ -171,12 +172,13 @@ export function layoutEventsInMonth(
 	month: number,
 	year: number,
 ): { events: LinearCalendarEvent[]; maxLane: number } {
-	const firstDay = new Date(year, month, 1);
-	const lastDay = new Date(year, month, getDaysInMonth(year, month));
+	const firstDayKey = formatDateKey(new Date(year, month, 1));
+	const lastDayKey = formatDateKey(new Date(year, month, getDaysInMonth(year, month)));
 
-	// Filter events that overlap with this month
+	// Filter events that overlap with this month. Day keys, not timestamps, so a
+	// start on the last day after midnight stays in the month.
 	const overlapping = rawEvents.filter((e) => {
-		return e.endDate.getTime() >= firstDay.getTime() && e.startDate.getTime() <= lastDay.getTime();
+		return formatDateKey(e.endDate) >= firstDayKey && formatDateKey(e.startDate) <= lastDayKey;
 	});
 
 	if (overlapping.length === 0) {

@@ -175,6 +175,23 @@ describe('extractEventsForYear', () => {
 		expect(events).toHaveLength(0);
 	});
 
+	it('keeps a record starting on Dec 31 after midnight', () => {
+		const records = [
+			makeRecord('notes/nye.md', { date: '2026-12-31T10:00' }),
+		];
+		const events = extractEventsForYear(records, 2026, 'date');
+		expect(events).toHaveLength(1);
+		expect(events[0].record.path).toBe('notes/nye.md');
+	});
+
+	it('skips a timed record on Dec 31 of the previous year', () => {
+		const records = [
+			makeRecord('notes/old.md', { date: '2025-12-31T23:00' }),
+		];
+		const events = extractEventsForYear(records, 2026, 'date');
+		expect(events).toHaveLength(0);
+	});
+
 	it('includes events that partially overlap the year', () => {
 		const records = [
 			makeRecord('notes/cross-year.md', { start: '2025-12-28', end: '2026-01-05' }),
@@ -282,6 +299,30 @@ describe('layoutEventsInMonth', () => {
 		expect(longEvent?.lane).toBe(0);
 	});
 
+	it('includes an event starting on the last day of the month after midnight', () => {
+		const raw = [{
+			record: makeRecord('notes/late.md', {}),
+			startDate: new Date(2026, 2, 31, 10, 0), // Mar 31 10:00
+			endDate: new Date(2026, 2, 31, 11, 0),
+			colorValue: null,
+		}];
+		const { events } = layoutEventsInMonth(raw, 2, 2026);
+		expect(events).toHaveLength(1);
+		expect(events[0].startDate.getDate()).toBe(31);
+		expect(events[0].endDate.getDate()).toBe(31);
+	});
+
+	it('leaves an event that ends late on the previous month out of this month', () => {
+		const raw = [{
+			record: makeRecord('notes/feb.md', {}),
+			startDate: new Date(2026, 1, 28, 9, 0),  // Feb 28 09:00
+			endDate: new Date(2026, 1, 28, 23, 30),  // Feb 28 23:30
+			colorValue: null,
+		}];
+		const { events } = layoutEventsInMonth(raw, 2, 2026); // March
+		expect(events).toEqual([]);
+	});
+
 	it('returns maxLane -1 for month with no events', () => {
 		const { events, maxLane } = layoutEventsInMonth([], 2, 2026);
 		expect(events).toEqual([]);
@@ -340,6 +381,15 @@ describe('buildLinearYearLayout', () => {
 		const layout = buildLinearYearLayout(records, 2026, 'start', 'end');
 		expect(layout[1].events).toHaveLength(1); // February
 		expect(layout[2].events).toHaveLength(1); // March
+	});
+
+	it('places a timed record on the last day of the year in December', () => {
+		const records = [
+			makeRecord('notes/nye.md', { date: '2026-12-31T10:00' }),
+		];
+		const layout = buildLinearYearLayout(records, 2026, 'date');
+		expect(layout[11].events).toHaveLength(1);
+		expect(layout[11].events[0].startDate.getDate()).toBe(31);
 	});
 
 	it('empty year returns 12 rows with no events', () => {
