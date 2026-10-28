@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-vault';
+import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { openCommandPalette, pressShortcut } from '../fixtures/helpers';
 import type { Page } from '@playwright/test';
 
@@ -651,6 +651,22 @@ test.describe('Event calendar settings', () => {
 		await openCalendar(page);
 
 		await expect(page.locator('[data-time-axis]')).toContainText('9 AM');
+	});
+
+	test('default view Month is persisted to settings.json', async ({ vaultPage: page }) => {
+		await openCalendarSettings(page);
+		await pickOption(page, 'Default view', 'Month');
+
+		// The view applies once per session, so assert the persisted setting,
+		// not the open Calendar tab.
+		await expect
+			.poll(() =>
+				page.evaluate((vaultPath) => {
+					const raw = window.__e2e.fs.readFile(`${vaultPath}/.kokobrain/settings.json`);
+					return JSON.parse(raw).eventCalendar?.defaultView as string | undefined;
+				}, TEST_VAULT_PATH),
+			)
+			.toBe('month');
 	});
 });
 

@@ -52,3 +52,13 @@ Layer rule: `core/settings/SettingsPanel.svelte` imports a `features/` component
 5. **Nit: the "Default view" description does not say when the setting applies.** `src/lib/features/event-calendar/EventCalendarSection.svelte:136`
    - "View the Calendar tab opens in" reads as immediate, but `initFromSettings` applies the setting once per session.
    - Fix: "View the Calendar tab opens in when the app starts".
+
+## Resolution
+
+All five findings accepted and fixed; none rejected.
+
+1. `openEventType` closes the settings panel after both branches. The create branch disables the button while it runs (`creating`) and awaits `refreshTypeDefinitions()` before re-enabling it. Unit tests: open closes the panel; create closes the panel and refreshes once; a double click creates once and the button stays disabled until the refresh settles.
+2. E2E "default view Month is persisted to settings.json" picks Month and polls `.kokobrain/settings.json` for `eventCalendar.defaultView === 'month'`.
+3. `createTypeDefinition` now returns the created path or `null` (callers in `TypeSidebar.svelte` adjusted; service tests assert the return). The section toasts on `null` and keeps the panel open. The configured name goes through `validateTypeName(name, [])` first and the message is toasted (no existing-name list: a type that exists only as `_type` values, without a definition, must still be creatable).
+4. "Show weekends" description now says "in the week and month views".
+5. "Default view" description now says "when the app starts".

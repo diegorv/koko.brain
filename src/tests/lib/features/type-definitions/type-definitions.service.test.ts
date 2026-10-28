@@ -489,7 +489,7 @@ describe('createTypeDefinition', () => {
 
 	it('does nothing when vault path is not set', async () => {
 		vaultStore._reset();
-		await createTypeDefinition('Sprint');
+		expect(await createTypeDefinition('Sprint')).toBeNull();
 		expect(createFile).not.toHaveBeenCalled();
 	});
 
@@ -497,7 +497,7 @@ describe('createTypeDefinition', () => {
 		vaultStore.open('/vault');
 		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
 
-		await createTypeDefinition('Sprint');
+		expect(await createTypeDefinition('Sprint')).toBe('/vault/Sprint.md');
 
 		// Content goes through createFile (one step) so the Rust create_note
 		// indexes the real frontmatter — no separate write or re-index needed.
@@ -514,7 +514,7 @@ describe('createTypeDefinition', () => {
 		vaultStore.open('/vault');
 		vi.mocked(createFile).mockResolvedValue(null);
 
-		await createTypeDefinition('Sprint');
+		expect(await createTypeDefinition('Sprint')).toBeNull();
 
 		expect(openFileInEditor).not.toHaveBeenCalled();
 	});

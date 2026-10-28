@@ -5,14 +5,15 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 	import { clampDayStartHour, clampEventDuration, normalizeEventTypeName, EVENT_CALENDAR_VIEW_MODES } from '$lib/core/settings/settings.logic';
 	import type { EventCalendarViewMode } from '$lib/core/settings/settings.types';
 	import SettingItem from '$lib/core/settings/sections/SettingItem.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-	import { buildTypeNoteDir } from '$lib/features/type-definitions/type-definitions.logic';
-	import { createTypeDefinition } from '$lib/features/type-definitions/type-definitions.service';
+	import { buildTypeNoteDir, validateTypeName } from '$lib/features/type-definitions/type-definitions.logic';
+	import { createTypeDefinition, refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 	import { error } from '$lib/utils/debug';
 	import EventColorSwatches from './EventColorSwatches.svelte';
 	import { resolveEventTypeName } from './event-calendar-event.logic';
@@ -52,16 +53,44 @@
 		vaultStore.path ? buildTypeNoteDir(vaultStore.path, settingsStore.typesBaseFolder, eventType?.folder ?? null) : null,
 	);
 
-	/** Opens the event type definition, creating it first when the vault has none. */
-	function openEventType() {
+	/** True while "Open Event type" is creating the definition, so a second click cannot create a duplicate. */
+	let creating = $state(false);
+
+	/**
+	 * Opens the event type definition, creating it first when the vault has
+	 * none, then closes the settings panel so the opened note is visible.
+	 * After a create it refreshes the type map before re-enabling the button:
+	 * the throttled index refresh would otherwise leave `eventType` unset for
+	 * seconds, and a second click would write a duplicate `Event 1.md`.
+	 */
+	async function openEventType() {
 		if (eventType?.path) {
 			openFileInEditor(eventType.path);
+			settingsPanelStore.close();
 			return;
 		}
-		createTypeDefinition(calendar.eventTypeName).catch((err) => {
+		if (creating) return;
+		const name = calendar.eventTypeName;
+		const invalid = validateTypeName(name, []);
+		if (invalid) {
+			toast.error(invalid);
+			return;
+		}
+		creating = true;
+		try {
+			const path = await createTypeDefinition(name);
+			if (!path) {
+				toast.error(`Could not create the "${name}" type`);
+				return;
+			}
+			settingsPanelStore.close();
+			await refreshTypeDefinitions().catch((err) => error('EVENT-CALENDAR', 'Failed to refresh the type definitions:', err));
+		} catch (err) {
 			error('EVENT-CALENDAR', 'Failed to create the event type:', err);
-			toast.error(`Could not create the "${calendar.eventTypeName}" type`);
-		});
+			toast.error(`Could not create the "${name}" type`);
+		} finally {
+			creating = false;
+		}
 	}
 </script>
 
@@ -124,7 +153,7 @@
 	</div>
 
 	<div data-setting="weekends">
-		<SettingItem label="Show weekends" description="Show Saturday and Sunday in the week view">
+		<SettingItem label="Show weekends" description="Show Saturday and Sunday in the week and month views">
 			<Switch
 				checked={calendar.showWeekends}
 				onCheckedChange={(v) => settingsStore.updateEventCalendar({ showWeekends: v })}
@@ -133,7 +162,7 @@
 	</div>
 
 	<div data-setting="default-view">
-		<SettingItem label="Default view" description="View the Calendar tab opens in">
+		<SettingItem label="Default view" description="View the Calendar tab opens in when the app starts">
 			<Select.Root
 				type="single"
 				value={calendar.defaultView}
@@ -209,6 +238,6 @@
 	{/if}
 
 	<SettingItem label="Folder and template" description="Set the folder or template of new events in the event type">
-		<Button variant="outline" size="sm" onclick={openEventType} data-open-event-type>Open Event type</Button>
+		<Button variant="outline" size="sm" onclick={openEventType} disabled={creating} data-open-event-type>Open Event type</Button>
 	</SettingItem>
 </div>

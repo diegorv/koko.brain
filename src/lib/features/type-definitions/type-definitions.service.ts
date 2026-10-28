@@ -139,17 +139,21 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
  * new definition opens in the editor; with `select: true` it is instead
  * selected in the type sidebar (used by the "New type" dialog, where the
  * user wants the empty type, not the raw definition .md).
+ *
+ * Returns the created path, or `null` without a vault or when `createFile`
+ * fails (it logs and returns `null` rather than throwing).
  */
-export async function createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<void> {
-	if (!vaultStore.path) return;
+export async function createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<string | null> {
+	if (!vaultStore.path) return null;
 	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
 	const filePath = await createFile(vaultStore.path, `${typeName}.md`, content);
-	if (!filePath) return;
+	if (!filePath) return null;
 	if (opts.select) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
 	} else {
 		openFileInEditor(filePath);
 	}
+	return filePath;
 }
 
 /**

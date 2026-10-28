@@ -408,7 +408,9 @@
 	title="New type"
 	confirmLabel="Create"
 	validate={(name) => validateTypeName(name, existingTypeNames)}
-	onConfirm={(name) => createTypeDefinition(name, { select: true })}
+	onConfirm={async (name) => {
+		await createTypeDefinition(name, { select: true });
+	}}
 />
 
 {#if renameTypeTarget}

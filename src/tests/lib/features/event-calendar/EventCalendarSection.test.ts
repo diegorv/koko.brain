@@ -12,7 +12,8 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
 vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
-	createTypeDefinition: vi.fn(() => Promise.resolve()),
+	createTypeDefinition: vi.fn((name: string) => Promise.resolve(`/vault/${name}.md`)),
+	refreshTypeDefinitions: vi.fn(() => Promise.resolve()),
 }));
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn() },
@@ -21,11 +22,12 @@ vi.mock('svelte-sonner', () => ({
 import { mount, unmount, flushSync } from 'svelte';
 import EventCalendarSection from '$lib/features/event-calendar/EventCalendarSection.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { getTypeMetadataFallback, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { createTypeDefinition } from '$lib/features/type-definitions/type-definitions.service';
+import { createTypeDefinition, refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 import { toast } from 'svelte-sonner';
 
 const VAULT = '/vault';
@@ -50,6 +52,7 @@ describe('EventCalendarSection', () => {
 		settingsStore.reset();
 		vaultStore._reset();
 		typeDefinitionsStore.reset();
+		settingsPanelStore._reset();
 	});
 
 	afterEach(() => {
@@ -59,6 +62,7 @@ describe('EventCalendarSection', () => {
 		settingsStore.reset();
 		vaultStore._reset();
 		typeDefinitionsStore.reset();
+		settingsPanelStore._reset();
 		clearLocalStorage();
 	});
 
@@ -178,22 +182,81 @@ describe('EventCalendarSection', () => {
 		expect(target.querySelector('[data-event-folder]')).toBeNull();
 	});
 
-	it('"Open Event type" opens the existing definition', () => {
+	/** The "Open Event type" button. */
+	function openButton(): HTMLButtonElement {
+		return target.querySelector<HTMLButtonElement>('[data-open-event-type]')!;
+	}
+
+	it('"Open Event type" opens the existing definition and closes the settings panel', () => {
 		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
 		typeDefinitionsStore.setTypeMetadataMap(new Map([['Event', eventType(null)]]));
 		render();
-		target.querySelector<HTMLButtonElement>('[data-open-event-type]')!.click();
+		openButton().click();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Event.md');
 		expect(createTypeDefinition).not.toHaveBeenCalled();
+		expect(settingsPanelStore.isOpen).toBe(false);
 	});
 
-	it('"Open Event type" creates the definition when there is none', () => {
+	it('"Open Event type" creates the definition when there is none, then closes the panel', async () => {
 		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
 		settingsStore.updateEventCalendar({ eventTypeName: 'Meeting' });
 		render();
-		target.querySelector<HTMLButtonElement>('[data-open-event-type]')!.click();
+		openButton().click();
 		expect(createTypeDefinition).toHaveBeenCalledWith('Meeting');
 		expect(openFileInEditor).not.toHaveBeenCalled();
+		await vi.waitFor(() => expect(settingsPanelStore.isOpen).toBe(false));
+		expect(refreshTypeDefinitions).toHaveBeenCalledTimes(1);
+	});
+
+	it('"Open Event type" creates once on a double click and stays disabled until the type map refreshes', async () => {
+		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
+		let finishCreate!: (path: string) => void;
+		vi.mocked(createTypeDefinition).mockReturnValueOnce(new Promise((resolve) => (finishCreate = resolve)));
+		let finishRefresh!: () => void;
+		vi.mocked(refreshTypeDefinitions).mockReturnValueOnce(new Promise((resolve) => (finishRefresh = resolve)));
+		render();
+
+		openButton().click();
+		flushSync();
+		expect(openButton().disabled).toBe(true);
+		openButton().click();
+		openButton().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		expect(createTypeDefinition).toHaveBeenCalledTimes(1);
+
+		finishCreate('/vault/Event.md');
+		await vi.waitFor(() => expect(settingsPanelStore.isOpen).toBe(false));
+		flushSync();
+		expect(openButton().disabled).toBe(true);
+
+		finishRefresh();
+		await vi.waitFor(() => {
+			flushSync();
+			expect(openButton().disabled).toBe(false);
+		});
+		expect(createTypeDefinition).toHaveBeenCalledTimes(1);
+	});
+
+	it('"Open Event type" toasts and keeps the panel open when the create returns no file', async () => {
+		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
+		vi.mocked(createTypeDefinition).mockResolvedValueOnce(null);
+		render();
+		openButton().click();
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not create the "Event" type'));
+		expect(settingsPanelStore.isOpen).toBe(true);
+		expect(refreshTypeDefinitions).not.toHaveBeenCalled();
+	});
+
+	it('"Open Event type" toasts the validation message for a name that is not a legal file name', () => {
+		vaultStore.open(VAULT);
+		settingsStore.updateEventCalendar({ eventTypeName: 'Work/Meetings' });
+		render();
+		openButton().click();
+		expect(toast.error).toHaveBeenCalledWith('Invalid type name');
+		expect(createTypeDefinition).not.toHaveBeenCalled();
 	});
 
 	it('"Open Event type" toasts when the definition cannot be created', async () => {
