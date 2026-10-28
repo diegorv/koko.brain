@@ -10,6 +10,7 @@
 	import SearchSection from '$lib/core/settings/sections/SearchSection.svelte';
 	import FileHistorySection from '$lib/core/settings/sections/FileHistorySection.svelte';
 	import AutoMoveSection from '$lib/features/auto-move/AutoMoveSection.svelte';
+	import EventCalendarSection from '$lib/features/event-calendar/EventCalendarSection.svelte';
 	import TrashSection from '$lib/core/settings/sections/TrashSection.svelte';
 	import TodoistSection from '$lib/core/settings/sections/TodoistSection.svelte';
 	import SentrySection from '$lib/core/settings/sections/SentrySection.svelte';
@@ -35,6 +36,7 @@
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import Code2Icon from '@lucide/svelte/icons/code-2';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
 	import type { SettingsSection } from '$lib/core/settings/settings.types';
 	import type { Component } from 'svelte';
 
@@ -58,6 +60,7 @@
 		update: DownloadIcon,
 		queryjs: Code2Icon,
 		types: LayoutGridIcon,
+		'event-calendar': CalendarRangeIcon,
 	};
 
 	/**
@@ -84,6 +87,7 @@
 		update: UpdateSection,
 		queryjs: QueryjsSection,
 		types: TypesSection,
+		'event-calendar': EventCalendarSection,
 	};
 </script>
 

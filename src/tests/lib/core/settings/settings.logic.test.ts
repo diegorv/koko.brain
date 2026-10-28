@@ -256,7 +256,12 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'keybindings', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'keybindings', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+	});
+
+	it('lists Calendar in the Notes group', () => {
+		const notes = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Notes');
+		expect(notes?.sections).toContainEqual({ id: 'event-calendar', label: 'Calendar' });
 	});
 
 	it('has labels for every section', () => {

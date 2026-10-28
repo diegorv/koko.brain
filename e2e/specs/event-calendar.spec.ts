@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openCommandPalette } from '../fixtures/helpers';
+import { openCommandPalette, pressShortcut } from '../fixtures/helpers';
 import type { Page } from '@playwright/test';
 
 const BROKEN = '/test-vault/Events/Broken start.md';
@@ -611,6 +611,46 @@ test.describe('Event calendar pointer drag', () => {
 
 		await expect(page.locator('[data-event-popover]')).toHaveCount(0);
 		expect(await readNote(page, STANDUP)).toBe(before);
+	});
+});
+
+/** Opens Settings > Calendar and returns the settings panel. */
+async function openCalendarSettings(page: Page) {
+	await pressShortcut(page, 'Mod+Comma');
+	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+	await expect(panel).toBeVisible();
+	await panel.getByRole('button', { name: /^Calendar$/ }).click();
+	await expect(panel.getByRole('heading', { name: 'Calendar' })).toBeVisible();
+	return panel;
+}
+
+/** Picks `option` in the settings Select labelled `label`. */
+async function pickOption(page: Page, label: string, option: string): Promise<void> {
+	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+	await panel.getByRole('button', { name: label, exact: true }).click();
+	await page.getByRole('option', { name: option }).click();
+	await expect(panel.getByRole('button', { name: label, exact: true })).toContainText(option);
+}
+
+test.describe('Event calendar settings', () => {
+	test('week start Sunday makes the first day header a Sunday', async ({ vaultPage: page }) => {
+		await openCalendarSettings(page);
+		await pickOption(page, 'Week starts on', 'Sunday');
+		await page.keyboard.press('Escape');
+		await openCalendar(page);
+
+		const first = await page.locator('[data-day-header]').first().getAttribute('data-day-header');
+		expect(new Date(`${first}T12:00:00`).getDay()).toBe(0);
+		await expect(page.locator('[data-day-header]').first()).toContainText('SUN');
+	});
+
+	test('time format 12h makes the axis show "9 AM"', async ({ vaultPage: page }) => {
+		await openCalendarSettings(page);
+		await pickOption(page, 'Time format', '12-hour');
+		await page.keyboard.press('Escape');
+		await openCalendar(page);
+
+		await expect(page.locator('[data-time-axis]')).toContainText('9 AM');
 	});
 });
 

@@ -165,6 +165,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 			{ id: 'one-on-one', label: '1:1 Notes' },
 			{ id: 'templates', label: 'Templates' },
 			{ id: 'types', label: 'Types' },
+			{ id: 'event-calendar', label: 'Calendar' },
 		],
 	},
 	{
