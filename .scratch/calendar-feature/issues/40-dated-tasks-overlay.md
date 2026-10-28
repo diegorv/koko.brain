@@ -13,3 +13,7 @@
 - [ ] Dated tasks appear on their due day in month, week and day views, visually distinct from events
 - [ ] A setting or view toggle turns the overlay off
 - [ ] Logic tests for the task-to-day projection; an E2E that a dated task in a note renders on its day
+
+## Comments
+
+- 2026-10-28 18:06 — discovery — plan in work/40/discovery.md: task projection logic, store + loadCalendarTasks, showTasks setting, month chips and a week/day task lane, E2E in a new spec — 8063e54b
