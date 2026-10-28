@@ -24,3 +24,7 @@
 - [ ] `planTitleChange` tests pass for: `1:1 with manager` (rename to `1-1 with manager.md`, `eventTitle` kept); a second `Standup` beside an existing `Standup.md` (rename to `Standup 1.md`, `eventTitle: 'Standup'`, so both display "Standup"); `standup` to `Standup` (no rename, `eventTitle: 'Standup'`); an unchanged title (no rename, `eventTitle: null`).
 - [ ] JSDoc on every export; tabs for indentation; the test lives under `src/tests/lib/features/event-calendar/`.
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:53 — discovery — plan in work/10/discovery.md; one pure module + test, ticket 09 template — 29a7f5d8
