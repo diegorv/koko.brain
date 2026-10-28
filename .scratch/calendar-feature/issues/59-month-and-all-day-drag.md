@@ -12,3 +12,7 @@
 - [ ] Drag to another day in month view and in the all-day lane moves the event, with undo
 - [ ] Read-only events (multi-day, ticket 41) do not drag
 - [ ] Logic tests and an E2E per surface
+
+## Comments
+
+- 2026-10-28 17:49 — discovery — plan in work/59/discovery.md: pure day-drag logic, date-only moveEventToDay, one shared gesture controller for month grid and all-day lane — e1233aed
