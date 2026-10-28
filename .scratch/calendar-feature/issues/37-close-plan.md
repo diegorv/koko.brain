@@ -26,3 +26,4 @@
 
 - 2026-10-28 16:53 — discovery — preconditions hold (01-36 closed, ADR-0032 + amendments landed, follow-ups 40-64 filed); plan is a single own-commit deletion — 60cd2986
 - 2026-10-28 16:53 — implement — plan deleted in its own commit (only file in the diff); follow-ups 40-64 untouched; no gate (no source change) — 24e79da1
+- 2026-10-28 16:54 — review — CHANGES_REQUESTED: all 8 criteria met; ADR-0032:11,118 now cite the deleted plan path, repair in a separate commit (work/37/review.md) — ec6b32b2
