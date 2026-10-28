@@ -149,6 +149,22 @@ describe('Calendar tab openers', () => {
 		expect(eventCalendarViewStore.popover).toBeNull();
 	});
 
+	it('keeps an explicit view when the tab first mounts and applies the default view', () => {
+		settingsStore.updateEventCalendar({ defaultView: 'week' });
+		openEventCalendarTab({ date: '2026-11-24', view: 'day' });
+		// EventCalendarView's onMount
+		eventCalendarViewStore.initFromSettings();
+		expect(eventCalendarViewStore.view).toBe('day');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-24');
+	});
+
+	it('still applies the default view on first mount when no view is given', () => {
+		settingsStore.updateEventCalendar({ defaultView: 'month' });
+		openEventCalendarTab({ date: '2026-11-24' });
+		eventCalendarViewStore.initFromSettings();
+		expect(eventCalendarViewStore.view).toBe('month');
+	});
+
 	it('leaves the view store alone when neither date nor view is given', () => {
 		eventCalendarViewStore.setDate('2026-01-05');
 		eventCalendarViewStore.setView('day');

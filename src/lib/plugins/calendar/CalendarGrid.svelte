@@ -7,9 +7,11 @@
 		selectedDateKey: string | null;
 		onDayClick: (dateKey: string) => void;
 		onWeekClick?: (dateKey: string) => void;
+		/** Called with the day's key when a day is double-clicked. */
+		onDayDblClick?: (dateKey: string) => void;
 	}
 
-	let { grid, dayFileCounts, selectedDateKey, onDayClick, onWeekClick }: Props = $props();
+	let { grid, dayFileCounts, selectedDateKey, onDayClick, onWeekClick, onDayDblClick }: Props = $props();
 
 	const DAY_HEADERS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -57,7 +59,9 @@
 						{day.isCurrentMonth ? (di >= 5 ? 'text-file-explorer-primary' : 'text-file-explorer-fg') : 'text-file-explorer-muted-fg/40'}
 						{day.isToday ? 'font-bold ring-1 ring-file-explorer-primary' : ''}
 						{selectedDateKey === day.dateKey ? 'bg-file-explorer-primary text-primary-foreground' : 'hover:bg-file-explorer-accent'}"
+					data-date={day.dateKey}
 					onclick={() => onDayClick(day.dateKey)}
+					ondblclick={() => onDayDblClick?.(day.dateKey)}
 				>
 					{day.day}
 					{#if count > 0}

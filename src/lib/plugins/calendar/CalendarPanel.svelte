@@ -4,15 +4,18 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
 	import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
+	import CalendarRange from '@lucide/svelte/icons/calendar-range';
 	import FileText from '@lucide/svelte/icons/file-text';
+	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import DailyNoteButton from '$lib/plugins/periodic-notes/DailyNoteButton.svelte';
+	import { openEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
 	import SidebarModeToggle from '$lib/features/type-definitions/SidebarModeToggle.svelte';
 	import { calendarStore } from './calendar.store.svelte';
 	import { openOrCreatePeriodicNoteForDate } from './calendar.service';
-	import { buildMonthGrid, formatDateLabel, extractDisplayName } from './calendar.logic';
+	import { buildMonthGrid, formatDateLabel, extractDisplayName, toDateKey } from './calendar.logic';
 	import CalendarGrid from './CalendarGrid.svelte';
 
 	let grid = $derived(buildMonthGrid(calendarStore.currentYear, calendarStore.currentMonth));
@@ -37,12 +40,32 @@
 	function handleQuarterClick() {
 		openOrCreatePeriodicNoteForDate('quarterly', currentMonthDateKey).catch(console.error);
 	}
+
+	/** Opens the Calendar tab at the selected date, or today when none is selected. */
+	function handleOpenCalendar() {
+		openEventCalendarTab({ date: calendarStore.selectedDateKey ?? toDateKey(new Date()) });
+	}
+
+	/** Opens the Calendar tab in day view on the double-clicked day. */
+	function handleDayDblClick(dateKey: string) {
+		openEventCalendarTab({ date: dateKey, view: 'day' });
+	}
 </script>
 
 <Tooltip.Provider delayDuration={400}>
 <div class="flex flex-col h-full">
 	<div class="flex items-center justify-end h-10 px-3 gap-0.5 bg-tab-bar shrink-0" data-tauri-drag-region>
 		<div class="flex items-center gap-0.5">
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="size-6"
+				title="Open Calendar"
+				aria-label="Open Calendar"
+				onclick={handleOpenCalendar}
+			>
+				<CalendarRange class="size-3.5" />
+			</Button>
 			<DailyNoteButton />
 			<div class="mx-0.5 h-4 w-px bg-file-explorer-fg/30"></div>
 			<SidebarModeToggle />
@@ -106,6 +129,7 @@
 			selectedDateKey={calendarStore.selectedDateKey}
 			onDayClick={handleDayClick}
 			onWeekClick={handleWeekClick}
+			onDayDblClick={handleDayDblClick}
 		/>
 
 		<!-- Selected date section -->

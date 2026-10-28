@@ -7,6 +7,8 @@ async function switchToCalendarMode(page: import('@playwright/test').Page) {
 	await page.waitForTimeout(300);
 }
 
+test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
+
 test.describe('Calendar plugin', () => {
 	test('calendar panel is visible after switching sidebar mode', async ({ vaultPage: page }) => {
 		await switchToCalendarMode(page);
@@ -25,20 +27,31 @@ test.describe('Calendar plugin', () => {
 		await expect(monthLabel).not.toHaveText(initialText!, { timeout: 5_000 });
 	});
 
-	test('clicking a day selects it and shows date details', async ({ vaultPage: page }) => {
+	test('clicking a day selects it and shows its date label', async ({ vaultPage: page }) => {
 		await switchToCalendarMode(page);
-		// Click any day cell in the grid (day buttons are inside the calendar grid)
-		const dayButton = page.locator('button[title*="Daily note"]').first();
+		// Today is preselected, so select another day first to prove the click moves the selection.
+		await page.locator('[data-date="2026-11-03"]').click();
+		await expect(page.getByText('3 Nov 2026', { exact: true })).toBeVisible({ timeout: 5_000 });
+		await page.locator('[data-date="2026-11-10"]').click();
+		await expect(page.getByText('10 Nov 2026', { exact: true })).toBeVisible({ timeout: 5_000 });
+	});
 
-		// If no day button with that title, look for grid day cells
-		const dayCell = dayButton.or(
-			page.locator('.calendar-day, [data-date]').first(),
-		);
+	test('the Open Calendar button opens the Calendar tab at the selected date', async ({ vaultPage: page }) => {
+		await switchToCalendarMode(page);
+		// Today is 2026-11-10 (week 46); select a day in week 48.
+		await page.locator('[data-date="2026-11-24"]').click();
+		await page.locator('button[title="Open Calendar"]').click();
+		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
+		await expect(page.locator('[data-calendar-title]')).toHaveText('November, 2026');
+		await expect(page.locator('[data-calendar-subtitle]')).toContainText('Week 48');
+		await expect(page.locator('[data-day-column="2026-11-24"]')).toBeVisible();
+	});
 
-		if (await dayCell.isVisible({ timeout: 3_000 }).catch(() => false)) {
-			await dayCell.click();
-			// After selecting a day, the date label area should update
-			await page.waitForTimeout(500);
-		}
+	test('double-clicking a day opens the Calendar tab in day view on that day', async ({ vaultPage: page }) => {
+		await switchToCalendarMode(page);
+		await page.locator('[data-date="2026-11-24"]').dblclick();
+		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
+		await expect(page.locator('[data-day-column]')).toHaveCount(1);
+		await expect(page.locator('[data-day-column="2026-11-24"]')).toBeVisible();
 	});
 });

@@ -94,11 +94,16 @@ export async function loadEvents(): Promise<void> {
 /**
  * Opens or focuses the Calendar tab, creating it when absent.
  * @param options.date - day key to show; moves the view store there (closes the popover)
- * @param options.view - view to show; switches the view store (closes the popover)
+ * @param options.view - view to show; switches the view store (closes the popover).
+ *   The `defaultView` setting is applied first, so the tab's first mount does
+ *   not replace this view with the default.
  */
 export function openEventCalendarTab(options: { date?: string; view?: CalendarViewMode } = {}): void {
 	if (options.date !== undefined) eventCalendarViewStore.setDate(options.date);
-	if (options.view !== undefined) eventCalendarViewStore.setView(options.view);
+	if (options.view !== undefined) {
+		eventCalendarViewStore.initFromSettings();
+		eventCalendarViewStore.setView(options.view);
+	}
 	const existingIndex = findTabIndex(editorStore.tabs, EVENT_CALENDAR_VIRTUAL_PATH);
 	if (existingIndex >= 0) {
 		editorStore.setActiveIndex(existingIndex);
