@@ -223,6 +223,8 @@ describe('EventTimeGrid: layout', () => {
 
 		expect(q('[data-time-grid-columns]')!.getAttribute('style')).toContain('min-width: calc(var(--axis) + 7 * 96px)');
 		expect(q('[data-time-grid]')!.getAttribute('style')).toContain('--axis: 56px');
+		// The header's z-40 must stay inside the grid, under app overlays like Settings.
+		expect(q('[data-time-grid]')!.classList.contains('isolate')).toBe(true);
 	});
 
 	it('draws 23 hour labels in the 24h format', () => {

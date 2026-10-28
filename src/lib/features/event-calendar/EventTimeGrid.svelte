@@ -258,10 +258,11 @@
 	});
 </script>
 
-<!-- One scroller for both axes: the header block sticks to the top, the time axis to the left. -->
+<!-- One scroller for both axes: the header block sticks to the top, the time axis to the left.
+	`isolate` keeps the grid's z-10..z-40 layers inside it, so they never paint over app overlays such as Settings (also z-40). -->
 <div
 	bind:this={scroller}
-	class="relative h-full min-h-0 w-full overflow-auto overscroll-x-contain"
+	class="relative isolate h-full min-h-0 w-full overflow-auto overscroll-x-contain"
 	style="--axis: {AXIS_PX}px"
 	data-time-grid
 >
