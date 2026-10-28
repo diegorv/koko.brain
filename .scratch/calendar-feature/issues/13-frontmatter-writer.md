@@ -26,3 +26,7 @@
 - [ ] Tests mock only `@tauri-apps/plugin-fs`, `@tauri-apps/api/core` (`invoke`) and `svelte-sonner`, use the real `editorStore` and `vaultStore`, and the dirty-tab preservation, open-during-read and deleted-between-read-and-write tests are written first (Notes C2, Q5)
 - [ ] `editor.service.ts` and the disk-direct writers in `src/lib/features/file-icons/frontmatter-icon.service.ts` are not edited (rerouting them is a follow-up)
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:27 — discovery — plan in work/13/discovery.md: new frontmatter-write.service.ts with vault guard after every await, tab/no-tab branches, one restart; race tests first — 44bcee52
