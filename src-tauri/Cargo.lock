@@ -2722,7 +2722,7 @@ dependencies = [
 
 [[package]]
 name = "kokobrain"
-version = "3.0.11"
+version = "3.0.12"
 dependencies = [
  "arboard",
  "chrono",
