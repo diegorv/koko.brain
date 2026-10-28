@@ -37,7 +37,7 @@ The grid scrolls to the **Day starts at** hour (Settings > Calendar) when it ope
 
 ## Dated Tasks
 
-Tasks with a due date (`- [ ] Pay rent 📅 2026-11-12`) show on their due day, from the same task index the Tasks view reads. They are outlined, not colored, with a circle (a check mark once done):
+Tasks with a due date (`- [ ] Pay rent 📅 2026-11-12`) show on their due day, from the same task index the Tasks view reads. They are outlined, not colored, with a circle, or a struck-through check mark once done (`[x]`) or cancelled (`[-]`):
 
 - **Week and day views**: a **Tasks** row under the **All day** lane, shown when a visible day has a task. A busy day scrolls inside its cell.
 - **Month view**: after the event chips, in the slots the events leave. **+N more** counts the tasks that do not fit.

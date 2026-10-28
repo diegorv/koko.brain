@@ -4,7 +4,7 @@
  * (📅); tasks without one, or with an invalid one, are left out.
  */
 
-import type { FileTaskGroupV2 } from '$lib/types/vault-v2.types';
+import type { FileTaskGroupV2, TaskStatusV2 } from '$lib/types/vault-v2.types';
 import { isValidDayKey } from './event-calendar-dates.logic';
 import { MONTH_MAX_CHIPS } from './event-calendar-view.logic';
 
@@ -18,8 +18,8 @@ export interface CalendarTask {
 	line: number;
 	/** Task text with its signifiers stripped. */
 	description: string;
-	/** Whether the checkbox is checked (done, cancelled or any other non-space status). */
-	checked: boolean;
+	/** Status from the checkbox character; only `done` and `cancelled` close the task. */
+	status: TaskStatusV2;
 	/** Due day key (`YYYY-MM-DD`). */
 	date: string;
 }
@@ -57,7 +57,7 @@ export function tasksFromGroups(groups: FileTaskGroupV2[]): CalendarTask[] {
 				fileName: group.fileName,
 				line: task.lineNumber,
 				description: task.metadata.description || task.text,
-				checked: task.checked,
+				status: task.status,
 				date,
 			});
 		}

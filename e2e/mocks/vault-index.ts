@@ -128,7 +128,7 @@ function coerceFrontmatterValue(value: unknown): FrontmatterValue {
 }
 
 /** `📅 YYYY-MM-DD`, the due-date signifier (`DATE_EMOJIS` in `parsing.rs`). */
-const DUE_DATE_RE = /\u{1F4C5}\s*(\d{4}-\d{2}-\d{2})/u;
+const DUE_DATE_RE = /\u{1F4C5}\u{FE0F}?\s*(\d{4}-\d{2}-\d{2})/u;
 
 /**
  * Minimal task parser. The Rust source of truth lives in

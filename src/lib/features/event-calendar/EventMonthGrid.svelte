@@ -21,7 +21,10 @@
 	let cellsEl: HTMLDivElement | undefined = $state();
 	const drag = new DayDrag({ area: () => cellsEl, days: () => days, rows: 6, events: () => events });
 	let chipsByDay = $derived(itemsByDay(previewDayMove(events, drag.preview, days), days, timeFormat));
-	let dayTasks = $derived(settingsStore.eventCalendar.showTasks ? tasksByDay(eventCalendarStore.tasks, days) : new Map());
+	// Every settings write replaces the whole settings object; a separate
+	// `$derived` notifies only when the flag itself changes.
+	let showTasks = $derived(settingsStore.eventCalendar.showTasks);
+	let dayTasks = $derived(showTasks ? tasksByDay(eventCalendarStore.tasks, days) : new Map());
 	let selectedPath = $derived(eventCalendarViewStore.selectedEventPath);
 	let gridColumns = $derived(`grid-template-columns: repeat(${cols}, minmax(0, 1fr))`);
 

@@ -15,7 +15,7 @@ import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-t
 const DAYS = ['2026-11-10', '2026-11-11', '2026-11-12'];
 
 function datedTask(name: string, date: string, line = 1, overrides: Partial<CalendarTask> = {}): CalendarTask {
-	return { path: `/vault/${name}.md`, fileName: name, line, description: name, checked: false, date, ...overrides };
+	return { path: `/vault/${name}.md`, fileName: name, line, description: name, status: 'todo', date, ...overrides };
 }
 
 let target: HTMLElement;
@@ -72,14 +72,38 @@ describe('EventTaskLane', () => {
 	});
 
 	it('marks a done task and labels the chip with its note', () => {
-		mountLane([datedTask('Bills', '2026-11-10', 4, { description: 'Pay bills', checked: true })]);
+		mountLane([datedTask('Bills', '2026-11-10', 4, { description: 'Pay bills', status: 'done' })]);
 
 		const chip = q('[data-calendar-task]')!;
-		expect(chip.dataset.checked).toBe('true');
+		expect(chip.dataset.taskStatus).toBe('done');
 		expect(chip.dataset.taskPath).toBe('/vault/Bills.md');
 		expect(chip.dataset.taskLine).toBe('4');
 		expect(chip.getAttribute('aria-label')).toBe('Task: Pay bills, done, open Bills at the task');
 		expect(chip.querySelector('.line-through')?.textContent).toBe('Pay bills');
+	});
+
+	it('marks a cancelled task as closed', () => {
+		mountLane([datedTask('Trip', '2026-11-10', 2, { description: 'Book trip', status: 'cancelled' })]);
+
+		const chip = q('[data-calendar-task]')!;
+		expect(chip.dataset.taskStatus).toBe('cancelled');
+		expect(chip.getAttribute('aria-label')).toBe('Task: Book trip, cancelled, open Trip at the task');
+		expect(chip.querySelector('.line-through')?.textContent).toBe('Book trip');
+	});
+
+	it('keeps an in-progress or important task open', () => {
+		mountLane([
+			datedTask('Draft', '2026-11-10', 2, { description: 'Write draft', status: 'in-progress' }),
+			datedTask('Taxes', '2026-11-10', 5, { description: 'Pay taxes', status: 'important' }),
+		]);
+
+		const chips = qa('[data-calendar-task]');
+		expect(chips.map((c) => c.dataset.taskStatus)).toEqual(['in-progress', 'important']);
+		expect(chips.map((c) => c.getAttribute('aria-label'))).toEqual([
+			'Task: Write draft, open Draft at the task',
+			'Task: Pay taxes, open Taxes at the task',
+		]);
+		expect(q('[data-task-lane] .line-through')).toBeNull();
 	});
 
 	it('opens the note at the task line on click', async () => {

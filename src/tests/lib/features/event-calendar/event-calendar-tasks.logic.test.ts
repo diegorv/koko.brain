@@ -21,11 +21,11 @@ function group(filePath: string, tasks: TaskV2[]): FileTaskGroupV2 {
 }
 
 function calendarTask(overrides: Partial<CalendarTask> & Pick<CalendarTask, 'date'>): CalendarTask {
-	return { path: '/vault/a.md', fileName: 'a', line: 1, description: 'x', checked: false, ...overrides };
+	return { path: '/vault/a.md', fileName: 'a', line: 1, description: 'x', status: 'todo', ...overrides };
 }
 
 describe('tasksFromGroups', () => {
-	it('keeps dated tasks with their note, line, description and checked state', () => {
+	it('keeps dated tasks with their note, line, description and status', () => {
 		const groups = [
 			group('/vault/Projects/Q4.md', [
 				task(3, 'Pay rent 📅 2026-11-12', '2026-11-12'),
@@ -35,9 +35,15 @@ describe('tasksFromGroups', () => {
 		];
 
 		expect(tasksFromGroups(groups)).toEqual([
-			{ path: '/vault/Projects/Q4.md', fileName: 'Q4', line: 7, description: 'Ship it', checked: true, date: '2026-11-10' },
-			{ path: '/vault/Projects/Q4.md', fileName: 'Q4', line: 3, description: 'Pay rent', checked: false, date: '2026-11-12' },
+			{ path: '/vault/Projects/Q4.md', fileName: 'Q4', line: 7, description: 'Ship it', status: 'done', date: '2026-11-10' },
+			{ path: '/vault/Projects/Q4.md', fileName: 'Q4', line: 3, description: 'Pay rent', status: 'todo', date: '2026-11-12' },
 		]);
+	});
+
+	it('keeps a status other than done that Rust reports as checked', () => {
+		const groups = [group('/vault/a.md', [task(2, 'Draft 📅 2026-11-10', '2026-11-10', { checked: true, status: 'in-progress' })])];
+
+		expect(tasksFromGroups(groups).map((t) => t.status)).toEqual(['in-progress']);
 	});
 
 	it('sorts by due date, then path, then line', () => {

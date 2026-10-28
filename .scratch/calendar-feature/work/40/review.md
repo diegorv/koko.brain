@@ -66,3 +66,13 @@ Reviewed `git diff main...HEAD` (6fa04f72..12ba9a83) in the worktree.
      - Add a logic test that `status` is kept, and an `EventTaskLane.test.ts` case for an `in-progress` task that is not struck through.
 4. **Nit (docs): the reflowed module comment is now a 117-character line among ~75-character lines** (`src/lib/features/event-calendar/event-calendar.service.ts:3`). Fix: rewrap the paragraph.
 5. **Nit (test mock): the E2E due-date regex does not accept the optional U+FE0F that `parsing.rs` allows** (`e2e/mocks/vault-index.ts:131`; `emoji_pattern` adds `\u{FE0F}?`). The comment above it says it reads the date "the same way". Fix: `/\u{1F4C5}\u{FE0F}?\s*(\d{4}-\d{2}-\d{2})/u`.
+
+## Resolution
+
+All five findings were accepted and fixed. None were rejected.
+
+1. `EventCalendarView.svelte` and `EventMonthGrid.svelte` read the overlay flag through a component-level `$derived` (`showTasks`), so a settings write that leaves the flag unchanged no longer reloads or regroups the tasks. Regression test: `EventCalendarView.test.ts` "does not reload the tasks on unrelated settings writes" (`updateLayout` + `showWeekends`). It fails against the old effect (2 calls) and passes with the fix.
+2. Rebased onto `main` (644783c6, Issue 56 merged). Each conflict kept both sides: the `FileTaskGroupV2, NoteEntryV2` import, `storeProjectionKey` and `taskLoadToken`, the focus-request and tasks effects, and the `findCalendarEvent` and `loadCalendarTasks` test imports.
+3. `CalendarTask.checked` is replaced by `status`. The chip strikes through and shows the check icon only for `done` and `cancelled`, says ", done" or ", cancelled" in its label, and exposes `data-task-status` in place of `data-checked`. Tests: a logic test that an `in-progress` task Rust reports as checked keeps its status; `EventTaskLane.test.ts` cases for a cancelled task and for open `in-progress` / `important` tasks. The help page explains which statuses close a task.
+4. The module comment in `event-calendar.service.ts` is rewrapped.
+5. The E2E mock's `DUE_DATE_RE` accepts the optional U+FE0F.

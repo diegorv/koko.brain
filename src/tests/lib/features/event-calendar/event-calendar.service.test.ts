@@ -629,7 +629,7 @@ describe('loadCalendarTasks', () => {
 
 		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
 		expect(eventCalendarStore.tasks).toEqual([
-			{ path: P('Projects'), fileName: 'Projects', line: 3, description: 'Pay rent', checked: false, date: '2026-11-12' },
+			{ path: P('Projects'), fileName: 'Projects', line: 3, description: 'Pay rent', status: 'todo', date: '2026-11-12' },
 		]);
 	});
 

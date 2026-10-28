@@ -1,8 +1,8 @@
 /**
  * Service of the Calendar tab. Read side: projects the vault entries snapshot
- * and the dated tasks of the task index into `eventCalendarStore`, opens and closes the singleton Calendar tab, runs
- * the clock that keeps "today" current, and resets the two event-calendar
- * stores. Write side: changes existing events (move, resize, edit with
+ * and the dated tasks of the task index into `eventCalendarStore`, opens and
+ * closes the singleton Calendar tab, runs the clock that keeps "today"
+ * current, and resets the two event-calendar stores. Write side: changes existing events (move, resize, edit with
  * rename) through `updateNoteFrontmatter`, and creates, duplicates, deletes
  * and restores event notes through the note owners (`createTypedNote`,
  * `createFile`, `deleteItem`, `restoreItem`), behind a per-path queue, with

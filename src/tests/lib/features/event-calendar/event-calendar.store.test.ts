@@ -583,7 +583,7 @@ describe('eventCalendarStore', () => {
 		it('setTasks replaces the tasks without touching the events', () => {
 			const a = note('a');
 			store.setSnapshot(projection([a]), 1);
-			const tasks = [{ path: '/vault/b.md', fileName: 'b', line: 3, description: 'Pay rent', checked: false, date: '2026-11-12' }];
+			const tasks = [{ path: '/vault/b.md', fileName: 'b', line: 3, description: 'Pay rent', status: 'todo' as const, date: '2026-11-12' }];
 
 			store.setTasks(tasks);
 
@@ -602,7 +602,7 @@ describe('eventCalendarStore', () => {
 			store.setHistory(pushOp(createEventHistory(), updateOp(a)));
 			store.setLoading(true);
 			store.setLoadError('x');
-			store.setTasks([{ path: '/vault/a.md', fileName: 'a', line: 1, description: 'Pay rent', checked: false, date: '2026-11-12' }]);
+			store.setTasks([{ path: '/vault/a.md', fileName: 'a', line: 1, description: 'Pay rent', status: 'todo', date: '2026-11-12' }]);
 
 			store.reset();
 

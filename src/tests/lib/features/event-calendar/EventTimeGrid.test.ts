@@ -43,7 +43,7 @@ function seed(events: EventNote[]) {
 
 /** A dated task on `date`, in note `name`, on `line`. */
 function datedTask(name: string, date: string, line = 1, overrides: Partial<CalendarTask> = {}): CalendarTask {
-	return { path: `/vault/${name}.md`, fileName: name, line, description: name, checked: false, date, ...overrides };
+	return { path: `/vault/${name}.md`, fileName: name, line, description: name, status: 'todo', date, ...overrides };
 }
 
 let target: HTMLElement;

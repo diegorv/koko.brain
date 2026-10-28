@@ -402,6 +402,21 @@ describe('EventCalendarView: dated tasks', () => {
 		expect(target.querySelector('[data-calendar-task]')).not.toBeNull();
 	});
 
+	it('does not reload the tasks on unrelated settings writes', async () => {
+		mockTasks([RENT]);
+		mountView();
+		await settle();
+		expect(taskCalls()).toHaveLength(1);
+
+		settingsStore.updateLayout({ leftPaneSize: 30 });
+		settingsStore.updateEventCalendar({ showWeekends: false });
+		flushSync();
+		await settle();
+
+		expect(taskCalls()).toHaveLength(1);
+		expect(target.querySelector('[data-calendar-task]')).not.toBeNull();
+	});
+
 	it('hides the overlay and stops loading tasks when the setting is off', async () => {
 		mockTasks([RENT]);
 		mountView();

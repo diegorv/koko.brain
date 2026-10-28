@@ -52,7 +52,7 @@ function seed(events: EventNote[]) {
 
 /** A dated task on `date`, in note `name`, on `line`. */
 function datedTask(name: string, date: string, line = 1, overrides: Partial<CalendarTask> = {}): CalendarTask {
-	return { path: `/vault/${name}.md`, fileName: name, line, description: name, checked: false, date, ...overrides };
+	return { path: `/vault/${name}.md`, fileName: name, line, description: name, status: 'todo', date, ...overrides };
 }
 
 let target: HTMLElement;
@@ -201,7 +201,7 @@ describe('EventMonthGrid: chips', () => {
 
 	it('shows dated tasks after the events, in the slots the events leave', () => {
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-12' })]);
-		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3), datedTask('Bills', '2026-11-12', 4, { checked: true })]);
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3), datedTask('Bills', '2026-11-12', 4, { status: 'done' })]);
 		mountGrid();
 
 		const children = [...cell('2026-11-12').children].slice(1);
@@ -211,7 +211,7 @@ describe('EventMonthGrid: chips', () => {
 			'task:Bills',
 		]);
 		const bills = q(`[data-month-cell="2026-11-12"] [data-task-line="4"]`)!;
-		expect(bills.dataset.checked).toBe('true');
+		expect(bills.dataset.taskStatus).toBe('done');
 		expect(bills.querySelector('.line-through')).not.toBeNull();
 		expect(q('[data-month-more]')).toBeNull();
 	});

@@ -193,13 +193,17 @@
 		setTimeout(() => block.removeAttribute('data-event-pulse'), PULSE_MS);
 	}
 
+	// Every settings write (a pane drag included) replaces the whole settings
+	// object; a separate `$derived` notifies only when the flag changes, so
+	// unrelated writes do not refetch the task index.
+	let showTasks = $derived(settingsStore.eventCalendar.showTasks);
+
 	// Dated tasks: load on mount, on every index bump and when the overlay is
 	// turned on. Off, the store keeps its last tasks and nothing renders them.
 	$effect(() => {
 		void vaultStore.vaultIndexVersion;
 		const ready = vaultStore.indexReady;
-		const show = settingsStore.eventCalendar.showTasks;
-		if (!ready || !show) return;
+		if (!ready || !showTasks) return;
 		untrack(() => {
 			// The service rejects only for the current load.
 			loadCalendarTasks().catch((err) => {
