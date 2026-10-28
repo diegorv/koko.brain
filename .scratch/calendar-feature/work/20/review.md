@@ -36,3 +36,8 @@ The full gate and `bash scripts/e2e.sh e2e/specs/editor.spec.ts` were not run he
 
 1. **Low (no change required).** Test file `:325-328`: on the normal path a vault is already initialized, so `teardownVault` also calls `resetEventCalendar` before `loadSettings`. The normal-path assertion would pass on the teardown call alone, which probe 2 shows. Only the double-switch half proves the entry call. The Issue asks only for "before `loadSettings` on both paths", so this is met as written. Optional fix: add a comment saying the double-switch half is what pins the entry call, or assert `toHaveBeenCalledTimes(2)` on the normal path.
 2. **Nit.** `app-lifecycle.service.ts:142-144`: the comment says a mounted Calendar tab "reloads on its own". That is true only once Task 20's `EventCalendarView` effect lands. It is accurate for the planned design, so it can stay.
+
+## Resolution
+
+1. Fixed. The normal-path half now asserts `toHaveBeenCalledTimes(2)` (entry + teardown) with a comment saying why. Probe: removing only the entry call now fails the normal-path assertion ("expected 2 times, but got 1 times").
+2. Rejected (kept as is). The comment describes the planned design; Task 20's `EventCalendarView` mount effect is the next ticket, and rewording it now would only need reverting there.

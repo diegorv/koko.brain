@@ -320,9 +320,11 @@ describe('initializeVault', () => {
 				.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
 		};
 
-		// Normal path.
+		// Normal path: a vault is already open, so teardownVault resets too.
+		// Two calls (entry + teardown) pin the entry call on this path as well.
 		vi.clearAllMocks();
 		await initializeVault('/vault');
+		expect(resetEventCalendar).toHaveBeenCalledTimes(2);
 		expectResetBeforeLoad();
 
 		// Double-switch path: teardownVault is skipped, so only the entry call
