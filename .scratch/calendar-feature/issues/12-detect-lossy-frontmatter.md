@@ -23,3 +23,7 @@
 - [ ] A fixture-driven round-trip test passes: for every non-refused fixture, `yamlParse(serializeProperties(parseFrontmatterProperties(c)))` equals the original parse after a test-local normalizer that applies only the accepted coercions. Its fixtures live in this test file, not in `src/tests/fixtures/event-notes.fixture.ts`.
 - [ ] JSDoc on every new export; tabs for indentation.
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 11:54 — discovery — parseDocument + visit path planned, one feat commit; defaults in work/12/discovery.md — 45e2577e
