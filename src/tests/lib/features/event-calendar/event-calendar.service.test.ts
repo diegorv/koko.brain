@@ -19,7 +19,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), dismiss: vi.fn() }),
 }));
 
 // `renameItem` runs the full path-change owner (tree refresh, link rewrite,
@@ -2181,6 +2181,38 @@ describe('calendar writes', () => {
 			await drainEventCalendarWrites();
 			await flush();
 
+			expect(toast.error).toHaveBeenCalledWith('Event is no longer in the Trash');
+			expect(document.activeElement).toBe(root);
+		});
+
+		it('a vault switch dismisses the "Event deleted" toasts', async () => {
+			// The suite's own reset dismissed earlier tests' toasts.
+			vi.mocked(toast.dismiss).mockClear();
+			vi.mocked(toast).mockReturnValueOnce('first').mockReturnValueOnce('second');
+			disk.set(P('Retro'), eventFile());
+			await refresh();
+			await deleteEventFromUi(P('Standup'), makeRoot());
+			await deleteEventFromUi(P('Retro'), makeRoot());
+
+			resetEventCalendar();
+
+			expect(vi.mocked(toast.dismiss).mock.calls).toEqual([['first'], ['second']]);
+			resetEventCalendar();
+			expect(toast.dismiss).toHaveBeenCalledTimes(2);
+		});
+
+		it('an Undo clicked after a vault switch restores nothing and says the note is no longer in the Trash', async () => {
+			const root = makeRoot();
+			await deleteEventFromUi(P('Standup'), root);
+			// The next vault resolves the same relative path (a nested vault, or the same one reopened).
+			resetEventCalendar();
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(trashStore.items.map((i) => i.originalPath)).toEqual(['Standup.md']);
 			expect(toast.error).toHaveBeenCalledWith('Event is no longer in the Trash');
 			expect(document.activeElement).toBe(root);
 		});

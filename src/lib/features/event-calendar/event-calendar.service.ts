@@ -53,6 +53,9 @@ let storeProjectionKey: string | null = null;
 /** `loadToken` of the dated tasks: bumped by every task load and every reset. */
 let taskLoadToken = 0;
 
+/** Ids of the "Event deleted" toasts shown since the last reset; their Undo belongs to that vault. */
+const deleteToasts = new Set<string | number>();
+
 /** Number of live clock acquirers. */
 let clockRefs = 0;
 /** Interval of the running clock, or null while nobody holds it. */
@@ -311,9 +314,10 @@ export function acquireCalendarClock(): () => void {
 /**
  * Resets the two event-calendar stores, discards any load in flight and
  * bumps the write generation, so a write still in flight leaves the stores
- * alone when it resolves, and drops the `findCalendarEvent` projection. The
- * write queue is kept: a later write to the same path still waits for the one
- * in flight. Leaves the clock and the editor tabs alone.
+ * alone when it resolves, and drops the `findCalendarEvent` projection.
+ * Dismisses the "Event deleted" toasts, whose Undo targets the previous
+ * vault. The write queue is kept: a later write to the same path still waits
+ * for the one in flight. Leaves the clock and the editor tabs alone.
  */
 export function resetEventCalendar(): void {
 	loadToken += 1;
@@ -321,6 +325,8 @@ export function resetEventCalendar(): void {
 	writeGeneration += 1;
 	lookupMemo = null;
 	storeProjectionKey = null;
+	for (const id of deleteToasts) toast.dismiss(id);
+	deleteToasts.clear();
 	eventCalendarStore.reset();
 	eventCalendarViewStore.reset();
 }
@@ -1178,12 +1184,15 @@ function focusRoot(root: HTMLElement | undefined): void {
  * "Event deleted" toast, described by the event's title, whose Undo
  * restores it through `undoDeleteEvent` and then focuses the view root (the
  * toast sits outside it). The root is resolved when Undo is clicked, so a
- * view remounted while the toast was up still gets focus. A failure is
- * reported through `toastEventError` instead.
+ * view remounted while the toast was up still gets focus. After a
+ * `resetEventCalendar` (a vault switch) the toast is dismissed, and an Undo
+ * that still fires is refused as `not-in-trash`: its path belongs to the
+ * previous vault. A failure is reported through `toastEventError` instead.
  * @param path - absolute path of the event note
  * @param root - the Calendar view root at delete time, the fallback when no live root is found
  */
 export async function deleteEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> {
+	const isCurrent = generationCheck();
 	const title = eventCalendarStore.eventByPath(path)?.title ?? fileBase(path);
 	try {
 		await deleteEvent(path);
@@ -1191,17 +1200,18 @@ export async function deleteEventFromUi(path: string, root: HTMLElement | undefi
 		toastEventError(err, path);
 		return;
 	}
-	toast('Event deleted', {
+	const id = toast('Event deleted', {
 		description: title,
 		action: {
 			label: 'Undo',
 			onClick: () => {
-				undoDeleteEvent(path)
+				(isCurrent() ? undoDeleteEvent(path) : Promise.reject(new EventCalendarError('not-in-trash')))
 					.catch((err) => toastEventError(err, path))
 					.finally(() => focusRoot(document.querySelector<HTMLElement>('[data-event-calendar]') ?? root));
 			},
 		},
 	});
+	deleteToasts.add(id);
 }
 
 /**

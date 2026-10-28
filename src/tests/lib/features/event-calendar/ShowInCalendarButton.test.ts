@@ -11,7 +11,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), dismiss: vi.fn() }),
 }));
 
 import { flushSync, mount, unmount } from 'svelte';

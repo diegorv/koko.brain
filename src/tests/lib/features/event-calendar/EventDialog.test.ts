@@ -21,7 +21,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), dismiss: vi.fn() }),
 }));
 
 // Opening a note is the editor's side effect; saving stays real.
