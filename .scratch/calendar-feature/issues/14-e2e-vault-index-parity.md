@@ -23,3 +23,7 @@
 - [ ] The change lands as an isolated commit touching only `e2e/mocks/vault-index.ts` and `e2e/mocks/tauri-core.ts` (Risks 8), so reverting it restores the old mocks (Rollback)
 - [ ] The full `bash scripts/e2e.sh` suite passes, and the commit body records why it ran: every save, create, delete and rename in every spec now runs the listener refresh (`tauri-listeners.service.ts:121-138`), and the per-task "never the full suite" rule (`docs/TESTING.md:148`) is about per-task core edits
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:04 — discovery — plan in work/14/discovery.md: isA, hook-result map, four emitting handlers incl. new rename_note — fce4801d
