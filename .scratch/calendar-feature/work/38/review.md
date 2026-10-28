@@ -87,3 +87,9 @@ Test verdict rests on:
    (issue 16 commits). No conflict expected (they touch `core/trash`), but the
    branch is not fast-forwardable as is. Fix: deliver rebases onto `main`
    before the gate and the ff-only merge.
+
+## Resolution
+
+1. Accepted. The discovery comment in the Issue file now cites `f90fc628`.
+2. Accepted. The deliver step rebases the branch onto `main` (44bcee52) before
+   the full gate and the ff-only merge.

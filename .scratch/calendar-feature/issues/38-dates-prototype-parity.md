@@ -35,6 +35,7 @@ Out of scope: `formatTime` does not wrap outside 0..1440 (the prototype turns -3
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
-- 2026-10-28 12:24 — discovery — five divergences mapped to dates.ts lines; no callers outside the test file; formatRange follows the prototype in every branch — 96a8c3cd
+- 2026-10-28 12:24 — discovery — five divergences mapped to dates.ts lines; no callers outside the test file; formatRange follows the prototype in every branch — f90fc628
 - 2026-10-28 12:25 — implement — five divergences fixed, prototype cases ported; date tests 35/35, pnpm check 0 errors — a85ed624
 - 2026-10-28 12:27 — review — VERDICT: APPROVED; 7/7 checkable criteria met, prototype parity probe 0 mismatches over 2020-2030 in 5 zones, 2 low/info findings — 36e13111
+- 2026-10-28 12:28 — fix — review findings 1 and 2 accepted; discovery sha corrected, rebase planned before gate — 3698adb8
