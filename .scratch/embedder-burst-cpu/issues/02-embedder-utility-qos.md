@@ -22,3 +22,4 @@
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
+- 2026-10-28 12:34 — discovery — probe shows pthread/std threads do not inherit QoS; plan: utility guard on the 5 embed call sites + ort ThreadManager for intra-op workers — 0ace4d20
