@@ -40,7 +40,7 @@ import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/c
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import { clearAllIndexed, isAlreadyIndexed } from '$lib/utils/index-dedupe';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { loadNoteTemplate, openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 
 describe('openOrCreateNote', () => {
 	let unregister: (() => void)[] = [];
@@ -279,5 +279,78 @@ describe('openOrCreateNote', () => {
 
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to open or create note:', expect.any(Error));
 		consoleSpy.mockRestore();
+	});
+});
+
+describe('loadNoteTemplate', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it('reads the template file and processes it', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('# <% tp.file.title %>');
+
+		const content = await loadNoteTemplate({
+			templatePath: '/vault/_templates/event.md',
+			inlineTemplate: 'inline',
+			title: 'Standup',
+		});
+
+		expect(readTextFile).toHaveBeenCalledWith('/vault/_templates/event.md');
+		expect(content).toBe('# Standup');
+	});
+
+	it('falls back to the inline template when the read fails', async () => {
+		vi.mocked(readTextFile).mockRejectedValue(new Error('not found'));
+
+		const content = await loadNoteTemplate({
+			templatePath: '/vault/_templates/missing.md',
+			inlineTemplate: '---\n_type: Event\n---\n# <% tp.file.title %>',
+			title: 'Standup',
+		});
+
+		expect(content).toBe('---\n_type: Event\n---\n# Standup');
+	});
+
+	it('returns empty content when the read fails and there is no inline template', async () => {
+		vi.mocked(readTextFile).mockRejectedValue(new Error('not found'));
+
+		const content = await loadNoteTemplate({ templatePath: '/vault/_templates/missing.md', title: 'note' });
+
+		expect(content).toBe('');
+	});
+
+	it('uses the inline template alone when no templatePath is given', async () => {
+		const content = await loadNoteTemplate({ inlineTemplate: 'title: <% tp.file.title %>', title: 'Standup' });
+
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(content).toBe('title: Standup');
+	});
+
+	it('returns empty content when neither template source is given', async () => {
+		const content = await loadNoteTemplate({ title: 'note' });
+
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(content).toBe('');
+	});
+
+	it('applies processTemplate with customVariables', async () => {
+		const content = await loadNoteTemplate({
+			inlineTemplate: '<% yesterdayPath %>',
+			title: 'note',
+			customVariables: { yesterdayPath: '/vault/yesterday.md' },
+		});
+
+		expect(content).toBe('/vault/yesterday.md');
+	});
+
+	it('resolves tp.date.now() to contextDate', async () => {
+		const content = await loadNoteTemplate({
+			inlineTemplate: 'date: <% tp.date.now("YYYY-MM-DD") %>',
+			title: 'Standup',
+			contextDate: dayjs('2026-11-12'),
+		});
+
+		expect(content).toBe('date: 2026-11-12');
 	});
 });

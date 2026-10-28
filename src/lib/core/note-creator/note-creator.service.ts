@@ -30,6 +30,31 @@ export interface NoteCreationOptions {
 	contextDate?: Dayjs;
 }
 
+/** Template inputs of {@link NoteCreationOptions}, without the target path. */
+export type NoteTemplateOptions = Pick<NoteCreationOptions, 'templatePath' | 'inlineTemplate' | 'title' | 'customVariables' | 'contextDate'>;
+
+/**
+ * Loads a note's initial content: reads `templatePath` (falling back to
+ * `inlineTemplate` when the read fails), or uses `inlineTemplate` alone, then
+ * expands its `<% %>` expressions. Missing sources yield `''`.
+ */
+export async function loadNoteTemplate(options: NoteTemplateOptions): Promise<string> {
+	const { templatePath, inlineTemplate, title, customVariables, contextDate } = options;
+	let content = '';
+
+	if (templatePath) {
+		try {
+			content = await readTextFile(templatePath);
+		} catch {
+			content = inlineTemplate ?? '';
+		}
+	} else {
+		content = inlineTemplate ?? '';
+	}
+
+	return processTemplate(content, title, customVariables, contextDate);
+}
+
 /**
  * Opens a note if it exists, or creates it from a template and opens it.
  *
@@ -64,19 +89,7 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
 			await invoke('create_folder', { path: parentDir });
 
-			let content = '';
-
-			if (templatePath) {
-				try {
-					content = await readTextFile(templatePath);
-				} catch {
-					content = inlineTemplate ?? '';
-				}
-			} else {
-				content = inlineTemplate ?? '';
-			}
-
-			content = processTemplate(content, title, customVariables, contextDate);
+			const content = await loadNoteTemplate({ templatePath, inlineTemplate, title, customVariables, contextDate });
 
 			await invoke('create_note', { path: filePath, content });
 			// Mark the path as a self-save so the watcher's batch-rebuild

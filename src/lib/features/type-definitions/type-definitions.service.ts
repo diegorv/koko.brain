@@ -1,3 +1,4 @@
+import type { Dayjs } from 'dayjs';
 import { invoke } from '@tauri-apps/api/core';
 import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -5,7 +6,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { loadNoteTemplate, openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
 import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
@@ -26,35 +27,99 @@ export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<v
 	typeDefinitionsStore.setTypeMetadataMap(map);
 }
 
-/** Creates a new note of a given type, applying the type's template if configured. */
-export async function createNoteOfType(typeName: string): Promise<void> {
-	if (!vaultStore.path) return;
+/** Where a new note of a type goes, and the template it starts from. */
+export interface TypedNoteTarget {
+	/** Absolute folder: vault / global base folder / the type's own `_folder`. */
+	dir: string;
+	/** Deduped filename inside `dir`, with the `.md` extension. */
+	fileName: string;
+	/** `fileName` without `.md`; used for `tp.file.title`. */
+	title: string;
+	/** Absolute path of the type's `_template`, when it has one. */
+	templatePath: string | undefined;
+	/** Fallback content when there is no template or it cannot be read. */
+	inlineTemplate: string;
+}
+
+/**
+ * Resolves the folder, deduped filename and template for a new note of
+ * `typeName` titled `baseTitle`. Returns null when no vault is open.
+ */
+export async function resolveTypedNoteTarget(typeName: string, baseTitle: string): Promise<TypedNoteTarget | null> {
+	if (!vaultStore.path) return null;
 	const metadata = typeDefinitionsStore.typeMetadataMap.get(typeName);
 	// Target dir = vault / global base folder / type's own _folder (each
 	// optional; both empty = vault root, the prior default behavior).
-	const targetDir = buildTypeNoteDir(
+	const dir = buildTypeNoteDir(
 		vaultStore.path,
 		settingsStore.typesBaseFolder,
 		metadata?.folder ?? null,
 	);
 	// Dedup against the target folder's existing notes. The folder may not
 	// exist yet — readDir throws, so there are simply no siblings to dedup
-	// against; openOrCreateNote creates it (recursive create_folder) on write.
+	// against; the caller creates it (recursive create_folder) on write.
 	let siblingNames: string[] = [];
 	try {
-		const entries = await readDir(targetDir);
+		const entries = await readDir(dir);
 		siblingNames = entries.map((e) => e.name);
 	} catch {
 		siblingNames = [];
 	}
-	const uniqueName = generateUniqueName(`Untitled ${typeName}.md`, false, siblingNames);
-	const filePath = `${targetDir}/${uniqueName}`;
-	const title = uniqueName.replace(/\.md$/, '');
+	const fileName = generateUniqueName(`${baseTitle}.md`, false, siblingNames);
+	const title = fileName.replace(/\.md$/, '');
 	const templatePath = metadata?.template
 		? `${vaultStore.path}/${metadata.template}`
 		: undefined;
 	const inlineTemplate = `---\n_type: ${typeName}\n---\n`;
-	await openOrCreateNote({ filePath, templatePath, inlineTemplate, title });
+	return { dir, fileName, title, templatePath, inlineTemplate };
+}
+
+/** Creates a new note of a given type, applying the type's template if configured. */
+export async function createNoteOfType(typeName: string): Promise<void> {
+	const target = await resolveTypedNoteTarget(typeName, `Untitled ${typeName}`);
+	if (!target) return;
+	const { dir, fileName, title, templatePath, inlineTemplate } = target;
+	await openOrCreateNote({ filePath: `${dir}/${fileName}`, templatePath, inlineTemplate, title });
+}
+
+/** Options for {@link createTypedNote}. */
+export interface CreateTypedNoteOptions {
+	/** Type name written as `_type` (also selects `_folder` and `_template`). */
+	typeName: string;
+	/** Desired title; deduped against the target folder. */
+	title: string;
+	/** Date that `tp.date.now()` in the template resolves to. */
+	contextDate?: Dayjs;
+	/**
+	 * Merges the caller's content into the rendered template. Receives the
+	 * deduped target so the caller can see the final name before the write.
+	 * Whatever it throws propagates and no file is created.
+	 */
+	buildContent?: (base: string, target: { fileName: string; title: string }) => string;
+}
+
+/**
+ * Creates a note of a type without opening it, through the same folder,
+ * dedupe and template owner as {@link createNoteOfType}. Returns the created
+ * path. Throws `Error('no-vault')` without a vault, `Error('create-failed')`
+ * when `createFile` refuses (including a case-folded name collision in Rust
+ * `create_note`), or whatever `buildContent` throws.
+ */
+export async function createTypedNote(options: CreateTypedNoteOptions): Promise<string> {
+	const { typeName, title, contextDate, buildContent } = options;
+	const target = await resolveTypedNoteTarget(typeName, title);
+	if (!target) throw new Error('no-vault');
+	await invoke('create_folder', { path: target.dir });
+	const base = await loadNoteTemplate({
+		templatePath: target.templatePath,
+		inlineTemplate: target.inlineTemplate,
+		title: target.title,
+		contextDate,
+	});
+	const content = buildContent?.(base, { fileName: target.fileName, title: target.title }) ?? base;
+	const path = await createFile(target.dir, target.fileName, content);
+	if (!path) throw new Error('create-failed');
+	return path;
 }
 
 /**

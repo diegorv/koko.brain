@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import dayjs from 'dayjs';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -13,9 +14,17 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
-	openOrCreateNote: vi.fn(),
-}));
+vi.mock('$lib/core/note-creator/note-creator.service', async () => {
+	// The real template loader runs against the mocked `readTextFile`, so
+	// `createTypedNote` is tested through the actual `processTemplate` path.
+	const actual = await vi.importActual<typeof import('$lib/core/note-creator/note-creator.service')>(
+		'$lib/core/note-creator/note-creator.service',
+	);
+	return {
+		openOrCreateNote: vi.fn(),
+		loadNoteTemplate: actual.loadNoteTemplate,
+	};
+});
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
@@ -53,7 +62,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { createNoteOfType, createTypeDefinition, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
+import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
 import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
@@ -313,6 +322,124 @@ describe('createNoteOfType', () => {
 				filePath: '/vault/Notes/Untitled Project.md',
 			}),
 		);
+	});
+});
+
+describe('createTypedNote', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		typeDefinitionsStore.reset();
+		settingsStore.reset();
+		vi.mocked(createFile).mockImplementation(async (dir, name) => `${dir}/${name}`);
+	});
+
+	afterEach(() => {
+		vaultStore._reset();
+		typeDefinitionsStore.reset();
+		settingsStore.reset();
+		clearLocalStorage();
+	});
+
+	it('creates the note in _folder under typesBaseFolder without opening it', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		settingsStore.setSettings({ ...settingsStore.settings, typesBaseFolder: 'Notes' });
+		typeDefinitionsStore.setTypeMetadataMap(new Map([
+			['Event', makeMeta({ name: 'Event', folder: 'Events' })],
+		]));
+
+		const path = await createTypedNote({ typeName: 'Event', title: 'Standup' });
+
+		expect(path).toBe('/vault/Notes/Events/Standup.md');
+		expect(readDir).toHaveBeenCalledWith('/vault/Notes/Events');
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/Notes/Events' });
+		expect(createFile).toHaveBeenCalledWith('/vault/Notes/Events', 'Standup.md', '---\n_type: Event\n---\n');
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('dedupes the filename and hands the deduped target to buildContent', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir)
+			.mockResolvedValueOnce([])
+			.mockResolvedValueOnce([
+				{ name: 'Standup.md', isDirectory: false, isFile: true, isSymlink: false },
+			] as any);
+		const buildContent = vi.fn((base: string, target: { fileName: string; title: string }) => `${base}# ${target.title}\n`);
+
+		const first = await createTypedNote({ typeName: 'Event', title: 'Standup', buildContent });
+		const second = await createTypedNote({ typeName: 'Event', title: 'Standup', buildContent });
+
+		expect(first).toBe('/vault/Standup.md');
+		expect(second).toBe('/vault/Standup 1.md');
+		expect(buildContent).toHaveBeenNthCalledWith(2, '---\n_type: Event\n---\n', { fileName: 'Standup 1.md', title: 'Standup 1' });
+		expect(createFile).toHaveBeenNthCalledWith(2, '/vault', 'Standup 1.md', '---\n_type: Event\n---\n# Standup 1\n');
+	});
+
+	it('loads the type template, then applies buildContent on top of it', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		vi.mocked(readTextFile).mockResolvedValue('---\n_type: Event\nlocation: \n---\n# <% tp.file.title %>\n');
+		typeDefinitionsStore.setTypeMetadataMap(new Map([
+			['Event', makeMeta({ name: 'Event', template: '_system/templates/Event.md' })],
+		]));
+
+		const path = await createTypedNote({
+			typeName: 'Event',
+			title: 'Standup',
+			buildContent: (base) => base.replace('location: ', 'location: Room 4'),
+		});
+
+		expect(path).toBe('/vault/Standup.md');
+		expect(readTextFile).toHaveBeenCalledWith('/vault/_system/templates/Event.md');
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Standup.md', '---\n_type: Event\nlocation: Room 4\n---\n# Standup\n');
+	});
+
+	it('renders tp.date.now() in the template against contextDate', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		vi.mocked(readTextFile).mockResolvedValue('---\n_type: Event\ndate: <% tp.date.now("YYYY-MM-DD") %>\n---\n');
+		typeDefinitionsStore.setTypeMetadataMap(new Map([
+			['Event', makeMeta({ name: 'Event', template: '_system/templates/Event.md' })],
+		]));
+
+		const path = await createTypedNote({ typeName: 'Event', title: 'Standup', contextDate: dayjs('2026-11-12') });
+
+		expect(path).toBe('/vault/Standup.md');
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Standup.md', '---\n_type: Event\ndate: 2026-11-12\n---\n');
+	});
+
+	it('creates no file when buildContent throws, and rethrows its error', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+
+		await expect(createTypedNote({
+			typeName: 'Event',
+			title: 'Standup',
+			buildContent: () => { throw new Error('bad-frontmatter'); },
+		})).rejects.toThrow('bad-frontmatter');
+
+		expect(createFile).not.toHaveBeenCalled();
+	});
+
+	it('throws create-failed when createFile returns null', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		vi.mocked(createFile).mockResolvedValue(null);
+
+		await expect(createTypedNote({ typeName: 'Event', title: 'Standup' })).rejects.toThrow('create-failed');
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Standup.md', '---\n_type: Event\n---\n');
+	});
+
+	it('throws no-vault without a vault and touches nothing', async () => {
+		await expect(createTypedNote({ typeName: 'Event', title: 'Standup' })).rejects.toThrow('no-vault');
+
+		expect(readDir).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
+		expect(createFile).not.toHaveBeenCalled();
 	});
 });
 
