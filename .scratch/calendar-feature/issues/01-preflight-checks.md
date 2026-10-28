@@ -31,3 +31,4 @@
 - 2026-10-28 11:04 — discovery — plan written to work/01/discovery.md; only the plan log and ticket 30 (if (f) says no) change — 636991c8
 - 2026-10-28 11:05 — implement — Pre-flight log filled for (a)-(h) minus ticket 02's two WebView checks; one "no" ((f) no `setPointerCapture` in jsdom) switched ticket 30 to logic-only drag tests; (h) answered from source, no 1.64 browser installed — abf710b5
 - 2026-10-28 11:10 — review — VERDICT: APPROVED; all criteria met, answers re-verified independently; 4 low/info clarifications + 1 nit in work/01/review.md — f1d9cab5
+- 2026-10-28 11:12 — fix — review findings 1-4 applied to the plan log and ticket 30, 5 rejected (nit); see work/01/review.md Resolution — 4e79d4f0

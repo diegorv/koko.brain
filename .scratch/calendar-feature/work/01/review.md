@@ -63,3 +63,11 @@ Test verdict: the diff adds and changes no test file, so no test files apply. Ea
 5. **Nit**: commit f1d9cab5, the Files section. It cites `plan-2026-10-28.md:1334-1356`, but the file has 1355 lines (1334-1355). There is no action, since rewriting history is not worth an off-by-one.
 
 None of the findings is blocking: every acceptance criterion is met, and each answer matches an independent re-check. Findings 1-4 are one-line clarifications the fix step may apply to the plan log or ticket 30.
+
+## Resolution
+
+- Finding 1: applied. Ticket 30 line 25 and the plan (f) log now say why logic-only still wins (the `?.` capture call tolerates the gap, jsdom rects are zero-size, the E2E carries the pointer wiring).
+- Finding 2: applied. The plan (e) log names `src/lib/core/keybindings/global-keybindings.ts` and its letter keys (re-checked: no `key: 'c'`).
+- Finding 3: applied. The plan (d) log adds the `---` placement on `doc.contents.commentBefore` and tells ticket 12 to visit the root map and `Pair` keys.
+- Finding 4: applied. The plan (h) log says `pnpm exec playwright install chromium` must run before the first E2E-gated ticket.
+- Finding 5: rejected as the reviewer suggested; an off-by-one in a commit body is not worth a history rewrite.
