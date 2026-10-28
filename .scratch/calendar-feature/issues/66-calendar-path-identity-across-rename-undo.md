@@ -28,3 +28,4 @@ Ticket 56 review (fix 0e187396):
 
 - 2026-10-28 18:41 — discovery — plan for all 8 items in work/66/discovery.md (popover remap verified; dialog in-flight guard; generation-checked toast Undo) — pending
 - 2026-10-28 18:48 — implement — all 8 items done (opsUpTo note boundary, suffixed-restore tombstone, duplicate joins copy queue, popover remap pinned, dialog save guard + new E2E spec not run, vault-switch toast dismiss/refuse, tombstone lookup, JSDoc lag); pnpm check 0 errors, 1375 targeted vitest pass — ed096d93
+- 2026-10-28 18:53 — review — CHANGES_REQUESTED: 1 medium (stale-store tombstone hides a returned note from Show in Calendar), 2 low, 2 nits in work/66/review.md — edb2ee2c
