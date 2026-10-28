@@ -16,10 +16,10 @@ Template: issue 23 (`work/23/discovery.md`): same store-driven components, test 
 ## Plan (one feat commit, the ticket asks for one)
 - Content: color dot (`var(--event-<color>-fg)`), title, `formatWeekday, formatLong` date line, `formatTimeRange · formatDuration` or "All day", location with `map-pin` icon, snippet, footer `Button size="sm"` "Open note" (`closePopover()` then `openFileInEditor(path)`). Marked `data-event-popover`.
 - Close: `onOpenChange(false)` -> `closePopover()` (Escape, outside click); capture-phase `scroll` listener on `root` (catches the time-grid scroller; scrolls inside the card ignored); `<svelte:window onresize>`; view/date change already close in the store.
-- Focus: `onCloseAutoFocus` prevented; the last opened path is kept locally; focus goes to `root.querySelector('[data-event-path="' + CSS.escape(path) + '"]')`, else `root`, when `root` is connected.
+- Focus: `onCloseAutoFocus` prevented; the last opened path is kept locally; focus goes to `root.querySelector('[data-event-path="' + CSS.escape(path) + '"]')`, else `root`, when `root` is still connected ("Open note" unmounts the view).
 
 ## Defaults / risks
-- Focus is redirected only when it was lost (on `<body>`/null or inside the card). A header button the user clicked to change the date or view keeps focus; otherwise each arrow click would jump focus into the grid.
+- Focus is always redirected on close, as the spec says. The focus trap pulls any focus that leaves the block into the card, so a "keep focus on the control the user moved to" rule would never fire; a mouse click on a header button still ends on that button in Chromium, since its default focus runs after the close.
 - `trapFocus` stays on (bits default): Tab from the focused block lands in the card.
 - A click on another block first closes (outside interaction), then opens the new target: one popover at a time.
 - The snippet is clamped to 4 lines; the card is `w-[300px] max-w-[calc(100vw-24px)]`, `p-0`.

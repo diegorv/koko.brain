@@ -175,16 +175,24 @@ describe('EventTimeGrid: timed blocks', () => {
 		expect(Math.max(...zs)).toBe(19);
 	});
 
-	it('opens the note on a block click and on Enter', () => {
-		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+	it('opens the popover, not the note, on a block click and on Enter, and rings the block', () => {
+		seed([
+			event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' }),
+			event({ path: P('Review'), title: 'Review', date: '2026-11-11' }),
+		]);
 		mountGrid();
 		const block = q(`[data-event-path="${P('Standup')}"]`)!;
 
 		block.click();
-		block.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(block.className).toContain('ring-primary/70');
+		expect(q(`[data-event-path="${P('Review')}"]`)!.className).not.toContain('ring-primary/70');
 
-		expect(openFileInEditor).toHaveBeenCalledTimes(2);
-		expect(openFileInEditor).toHaveBeenCalledWith(P('Standup'));
+		eventCalendarViewStore.closePopover();
+		block.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 
 	it('renders no blocks for an empty week', () => {
@@ -276,7 +284,7 @@ describe('EventTimeGrid: accessibility and headers', () => {
 });
 
 describe('EventTimeGrid: all-day lane', () => {
-	it('renders an all-day chip as a button with data-event-path that opens the note', () => {
+	it('renders an all-day chip as a button with data-event-path that opens the popover', () => {
 		seed([event({ path: P('Off'), title: 'Time off', date: '2026-11-09', allDay: true, start: 0, end: 1440, color: 'green' })]);
 		mountGrid();
 
@@ -287,7 +295,10 @@ describe('EventTimeGrid: all-day lane', () => {
 		expect(q(`[data-day-column] [data-event-path="${P('Off')}"]`)).toBeNull();
 
 		chip.click();
-		expect(openFileInEditor).toHaveBeenCalledWith(P('Off'));
+		flushSync();
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Off'));
+		expect(chip.className).toContain('ring-primary/70');
+		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 
 	it('caps the lane at 3 rows with a "+N" that opens day view', () => {

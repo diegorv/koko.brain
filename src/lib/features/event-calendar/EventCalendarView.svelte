@@ -18,7 +18,11 @@
 	import EventCalendarHeader from './EventCalendarHeader.svelte';
 	import EventCalendarNeedsAttention from './EventCalendarNeedsAttention.svelte';
 	import EventMonthGrid from './EventMonthGrid.svelte';
+	import EventPopover from './EventPopover.svelte';
 	import EventTimeGrid from './EventTimeGrid.svelte';
+
+	/** The view root: the popover's scroll source and focus fallback. */
+	let root: HTMLElement | undefined = $state();
 
 	onMount(() => {
 		eventCalendarViewStore.initFromSettings();
@@ -60,7 +64,7 @@
 	$effect(() => () => eventCalendarViewStore.closeTransient());
 </script>
 
-<section tabindex="-1" class="flex h-full flex-col outline-none" aria-label="Calendar" data-event-calendar>
+<section bind:this={root} tabindex="-1" class="flex h-full flex-col outline-none" aria-label="Calendar" data-event-calendar>
 	<Tooltip.Provider delayDuration={400}>
 		<EventCalendarHeader />
 		<div class="relative min-h-0 flex-1">
@@ -79,5 +83,6 @@
 			{/if}
 		</div>
 		<EventCalendarNeedsAttention />
+		<EventPopover {root} />
 	</Tooltip.Provider>
 </section>

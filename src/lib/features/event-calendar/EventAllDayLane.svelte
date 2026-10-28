@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { eventColorStyle } from './event-calendar-event.logic';
 	import { buildAllDayChips, laneRows } from './event-calendar-view.logic';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
@@ -23,6 +22,7 @@
 
 	let cells = $derived(buildAllDayChips(days, events));
 	let rows = $derived(laneRows(Math.max(0, ...cells.map((c) => c.chips.length + c.overflow))));
+	let selectedPath = $derived(eventCalendarViewStore.selectedEventPath);
 	let height = $derived(ROW_PADDING * 2 + rows * CHIP_HEIGHT + (rows - 1) * CHIP_GAP + 1);
 
 	/** Opens day view on `day` (the "+N" button). */
@@ -46,10 +46,11 @@
 			{#each cell.chips as chip (chip.path)}
 				<button
 					type="button"
-					class="flex h-7 w-full shrink-0 items-center overflow-hidden rounded-md px-2 text-left outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring"
+					class="flex h-7 w-full shrink-0 items-center overflow-hidden rounded-md px-2 text-left outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
+						{selectedPath === chip.path ? 'ring-2 ring-primary/70' : ''}"
 					style={eventColorStyle(chip.color)}
 					data-event-path={chip.path}
-					onclick={() => openFileInEditor(chip.path)}
+					onclick={(e) => eventCalendarViewStore.openPopover(chip.path, e.currentTarget.getBoundingClientRect())}
 				>
 					<span class="min-w-0 flex-1 truncate text-sm font-medium">{chip.title}</span>
 				</button>

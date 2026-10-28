@@ -248,6 +248,43 @@ test.describe('Event calendar month view', () => {
 	});
 });
 
+test.describe('Event calendar popover', () => {
+	test('clicking a block shows the popover; "Open note" opens the note and the Calendar tab comes back without it', async ({ vaultPage: page }) => {
+		await seedEvents(page);
+		await openCalendar(page);
+
+		const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${STANDUP}"]`);
+		await expect(block).toBeVisible({ timeout: 10_000 });
+		// 09:00 sits under the sticky header after the mount scroll to 07:00, so the click's own
+		// scroll-into-view would close the popover it opens. Scroll it clear first and
+		// let that scroll event pass.
+		await page.locator('[data-time-grid]').evaluate(
+			(el) =>
+				new Promise<void>((resolve) => {
+					el.addEventListener('scroll', () => requestAnimationFrame(() => resolve()), { once: true });
+					el.scrollTop = 6 * 64;
+				}),
+		);
+		await block.click();
+
+		const popover = page.locator('[data-event-popover]');
+		await expect(popover).toBeVisible();
+		await expect(popover.locator('[data-popover-title]')).toHaveText('Standup');
+		await expect(popover.locator('[data-popover-time]')).toHaveText('09:00 – 10:00 · 1h');
+		await expect(block).toHaveClass(/ring-primary\/70/);
+
+		await popover.getByRole('button', { name: 'Open note' }).click();
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Standup');
+		await expect(page.locator('.cm-content')).toContainText('Daily sync notes');
+
+		await page.locator('[role="tab"]', { hasText: 'Calendar' }).click();
+		await expect(page.locator('[data-event-calendar]')).toBeVisible();
+		await expect(block).toBeVisible();
+		await expect(page.locator('[data-event-popover]')).toHaveCount(0);
+		await expect(block).not.toHaveClass(/ring-primary\/70/);
+	});
+});
+
 test.describe('Event calendar selected day in a narrow pane', () => {
 	test.use({ clockTime: '2026-11-15T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 

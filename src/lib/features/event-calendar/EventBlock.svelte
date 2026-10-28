@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { formatTime, formatTimeRange, type TimeFormat } from './event-calendar-dates.logic';
 	import { eventColorStyle, type PendingEventNote } from './event-calendar-event.logic';
 	import { minutesToPx } from './event-calendar-layout.logic';
+	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 
 	interface Props {
 		/** The merged event the block shows. */
@@ -33,6 +33,7 @@
 	let height = $derived(minutesToPx(event.end - event.start) - 2);
 	let time = $derived(formatTimeRange(event.start, event.end, timeFormat));
 	let snippetLine = $derived(event.snippet.split('\n')[0]?.trim() ?? '');
+	let selected = $derived(eventCalendarViewStore.selectedEventPath === event.path);
 	let label = $derived(`${event.title}, ${time}${snippetLine ? `, ${snippetLine}` : ''}`);
 	let style = $derived(
 		[
@@ -46,10 +47,15 @@
 		].join('; '),
 	);
 
+	/** Opens the details popover anchored at the block. */
+	function openPopover(el: HTMLElement) {
+		eventCalendarViewStore.openPopover(event.path, el.getBoundingClientRect());
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Enter' && e.key !== ' ') return;
 		e.preventDefault();
-		openFileInEditor(event.path);
+		openPopover(e.currentTarget as HTMLElement);
 	}
 </script>
 
@@ -57,13 +63,14 @@
 	role="button"
 	tabindex="0"
 	class="@container absolute cursor-pointer overflow-hidden rounded-md font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-		{event.pending ? 'border border-dashed border-current' : ''}"
+		{event.pending ? 'border border-dashed border-current' : ''}
+		{selected ? 'ring-2 ring-primary/70' : ''}"
 	{style}
 	aria-label={label}
 	data-event-path={event.path}
 	data-pending={event.pending || undefined}
 	data-readonly={event.readOnly || undefined}
-	onclick={() => openFileInEditor(event.path)}
+	onclick={(e) => openPopover(e.currentTarget)}
 	onkeydown={handleKeydown}
 >
 	{#if height < COMPACT_PX}

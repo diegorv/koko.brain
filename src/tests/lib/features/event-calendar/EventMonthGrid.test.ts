@@ -180,13 +180,21 @@ describe('EventMonthGrid: chips', () => {
 		expect(q('[data-month-more]')).toBeNull();
 	});
 
-	it('opens the note on a chip click without changing the selected day', () => {
-		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-11' })]);
+	it('opens the popover on a chip click without changing the selected day, and rings only that chip', () => {
+		seed([
+			event({ path: P('Standup'), title: 'Standup', date: '2026-11-11' }),
+			event({ path: P('Review'), title: 'Review', date: '2026-11-12' }),
+		]);
 		mountGrid();
+		const chip = q<HTMLButtonElement>(`[data-event-path="${P('Standup')}"]`)!;
 
-		q<HTMLButtonElement>(`[data-event-path="${P('Standup')}"]`)!.click();
-		expect(openFileInEditor).toHaveBeenCalledWith(P('Standup'));
+		chip.click();
+		flushSync();
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(chip.className).toContain('ring-primary/70');
+		expect(q(`[data-event-path="${P('Review')}"]`)!.className).not.toContain('ring-primary/70');
+		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 
 	it('marks a pending chip with data-pending and a dashed border', () => {

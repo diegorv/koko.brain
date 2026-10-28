@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { dayOfWeek, formatLong, formatWeekday, fromKey, WEEKDAYS_SHORT } from './event-calendar-dates.logic';
 	import { eventColorStyle } from './event-calendar-event.logic';
@@ -19,6 +18,7 @@
 			timeFormat,
 		),
 	);
+	let selectedPath = $derived(eventCalendarViewStore.selectedEventPath);
 	let gridColumns = $derived(`grid-template-columns: repeat(${cols}, minmax(0, 1fr))`);
 
 	/** Opens day view on `day` (the "+N more" button, a second click on the selected day number). */
@@ -85,11 +85,12 @@
 					<button
 						type="button"
 						class="flex h-[22px] w-full shrink-0 items-center overflow-hidden rounded-md px-1.5 text-left text-xs font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-							{item.event.pending ? 'border border-dashed border-current' : ''}"
+							{item.event.pending ? 'border border-dashed border-current' : ''}
+							{selectedPath === item.event.path ? 'ring-2 ring-primary/70' : ''}"
 						style={eventColorStyle(item.event.color)}
 						data-event-path={item.event.path}
 						data-pending={item.event.pending || undefined}
-						onclick={() => openFileInEditor(item.event.path)}
+						onclick={(e) => eventCalendarViewStore.openPopover(item.event.path, e.currentTarget.getBoundingClientRect())}
 					>
 						<span class="min-w-0 flex-1 truncate">{item.label}</span>
 					</button>
