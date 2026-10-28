@@ -254,6 +254,54 @@ describe('findCalendarEvent', () => {
 		expect(await findCalendarEvent(P('Standup'))).toMatchObject({ date: '2026-11-11' });
 	});
 
+	it('reads the snapshot over a store left stale by an unmounted Calendar', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' })]);
+		await loadEvents();
+		// The event moved while the Calendar was not mounted: no reload followed.
+		vaultStore.bumpVaultIndexVersion(5);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-20', start: '09:30', end: '10:00' })]);
+
+		expect(await findCalendarEvent(P('Standup'))).toMatchObject({ date: '2026-11-20' });
+		expect(await openEventInCalendar(P('Standup'))).toBe(true);
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-20');
+	});
+
+	it('finds nothing for a note a stale store still holds as an event', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10' })]);
+		await loadEvents();
+		vaultStore.bumpVaultIndexVersion(5);
+		vi.mocked(invoke).mockResolvedValue([entryV2(P('Standup'))]);
+		addNoteTab();
+
+		expect(await findCalendarEvent(P('Standup'))).toBeNull();
+		expect(await openEventInCalendar(P('Standup'))).toBe(false);
+		expect(calendarTabs()).toHaveLength(0);
+	});
+
+	it('keeps a pending write of a stale store over the snapshot', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' })]);
+		await loadEvents();
+		const loaded = eventCalendarStore.eventByPath(P('Standup'))!;
+		eventCalendarStore.putPending({ kind: 'update', path: P('Standup'), state: { ...eventState(loaded), date: '2026-11-12' }, settled: false });
+		vaultStore.bumpVaultIndexVersion(5);
+
+		const found = await findCalendarEvent(P('Standup'));
+		expect(found).toMatchObject({ date: '2026-11-12' });
+		expect(found).not.toHaveProperty('pending');
+	});
+
+	it('reads the snapshot when a projection setting changed after the load', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('m'), { _type: 'Meeting', date: '2026-11-10' })]);
+		await loadEvents();
+		expect(await findCalendarEvent(P('m'))).toBeNull();
+
+		settingsStore.updateEventCalendar({ eventTypeName: 'Meeting' });
+		expect(await findCalendarEvent(P('m'))).toMatchObject({ date: '2026-11-10' });
+	});
+
 	it('re-projects when the index version or a projection setting changes', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([eventEntry(P('a'), { date: '2026-11-10' })]);
 		expect(await findCalendarEvent(P('a'))).not.toBeNull();
@@ -302,6 +350,25 @@ describe('openEventInCalendar', () => {
 
 		expect(eventCalendarViewStore.view).toBe('day');
 		expect(eventCalendarViewStore.focusRequest?.path).toBe(P('Standup'));
+	});
+
+	it('switches the month view to the day view for an event behind "+N more"', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('a'), { date: '2026-11-10', start: '08:00', end: '09:00' }),
+			eventEntry(P('b'), { date: '2026-11-10', start: '09:00', end: '10:00' }),
+			eventEntry(P('c'), { date: '2026-11-10', start: '10:00', end: '11:00' }),
+			eventEntry(P('d'), { date: '2026-11-10', start: '11:00', end: '12:00' }),
+		]);
+		eventCalendarViewStore.initFromSettings();
+		eventCalendarViewStore.setView('month');
+
+		await openEventInCalendar(P('c'));
+		expect(eventCalendarViewStore.view).toBe('month');
+
+		await openEventInCalendar(P('d'));
+		expect(eventCalendarViewStore.view).toBe('day');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(eventCalendarViewStore.focusRequest?.path).toBe(P('d'));
 	});
 
 	it('switches to the day view when hidden weekends would hide the event', async () => {

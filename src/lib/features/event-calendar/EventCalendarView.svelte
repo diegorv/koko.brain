@@ -147,22 +147,38 @@
 	// Focus request (`openEventInCalendar`): once the requested block renders,
 	// scroll it into view, focus it and pulse it once. Re-runs on every load
 	// and navigation, so a block that lands after the first render is still
-	// found; the request stays until then (navigation drops it).
+	// found. Once a current load is in and the block is still absent, the
+	// day's overflow control ("+N") stands in for an event it hides, and the
+	// request ends either way, so no later load can steal focus with it.
 	$effect(() => {
 		const request = eventCalendarViewStore.focusRequest;
 		void eventCalendarStore.events;
+		void eventCalendarStore.isLoading;
+		void eventCalendarStore.snapshotVersion;
+		void vaultStore.vaultIndexVersion;
 		void eventCalendarViewStore.view;
 		void eventCalendarViewStore.focusedDate;
 		if (!request) return;
 		untrack(() => {
 			void tick().then(() => {
 				if (eventCalendarViewStore.focusRequest?.seq !== request.seq) return;
-				const block = root?.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(request.path)}"]`);
-				if (!block) return;
+				let target = root?.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(request.path)}"]`);
+				if (!target) {
+					const loaded =
+						!eventCalendarStore.isLoading && eventCalendarStore.snapshotVersion === vaultStore.vaultIndexVersion;
+					if (!loaded) return;
+					const day = eventCalendarStore.eventByPath(request.path)?.date;
+					target = day
+						? root?.querySelector<HTMLElement>(
+								`[data-all-day-cell="${day}"] [data-all-day-more], [data-month-cell="${day}"] [data-month-more]`,
+							)
+						: null;
+				}
 				eventCalendarViewStore.clearFocusRequest(request.seq);
-				block.scrollIntoView?.({ block: 'center', inline: 'nearest' });
-				block.focus({ preventScroll: true });
-				pulse(block);
+				if (!target) return;
+				target.scrollIntoView?.({ block: 'center', inline: 'nearest' });
+				target.focus({ preventScroll: true });
+				pulse(target);
 			});
 		});
 	});
@@ -232,11 +248,12 @@
 	}
 
 	@keyframes -global-event-calendar-pulse {
+		/* A 3px ring: month and all-day cells clip overflow at 4px of padding. */
 		0% {
-			box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 70%, transparent);
+			box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 90%, transparent);
 		}
 		100% {
-			box-shadow: 0 0 0 12px color-mix(in oklab, var(--primary) 0%, transparent);
+			box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 0%, transparent);
 		}
 	}
 

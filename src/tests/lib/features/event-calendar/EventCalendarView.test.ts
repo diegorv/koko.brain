@@ -855,18 +855,64 @@ describe('EventCalendarView: focus request', () => {
 		expect(STANDUP()?.hasAttribute('data-event-pulse')).toBe(true);
 	});
 
-	it('keeps the request while the block is not rendered and drops it on navigation', async () => {
-		vi.mocked(invoke).mockResolvedValue([]);
+	it('keeps the request while the load is in flight and drops it on navigation', async () => {
+		const load = deferred<unknown>();
+		vi.mocked(invoke).mockReturnValue(load.promise);
+		eventCalendarViewStore.requestFocus(P('Standup'));
 		mountView();
 		await settle();
-		eventCalendarViewStore.requestFocus(P('Standup'));
-		await settle();
 
+		expect(eventCalendarStore.isLoading).toBe(true);
 		expect(eventCalendarViewStore.focusRequest?.path).toBe(P('Standup'));
 		expect(target.querySelector('[data-event-pulse]')).toBeNull();
 
 		eventCalendarViewStore.step(1);
 		flushSync();
+		expect(eventCalendarViewStore.focusRequest).toBeNull();
+		load.resolve([]);
+		await settle();
+	});
+
+	it('drops the request once a completed load has no block for it, so a later load cannot steal focus', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+		mountView();
+		await settle();
+		eventCalendarViewStore.setDate('2026-11-24');
+		eventCalendarViewStore.requestFocus(P('Standup'));
+		await settle();
+
+		expect(eventCalendarViewStore.focusRequest).toBeNull();
+
+		// The event appears later: it renders, but nothing focuses or pulses it.
+		vaultStore.bumpVaultIndexVersion(2);
+		vi.mocked(invoke).mockResolvedValue(ENTRIES);
+		await settle();
+		await settle();
+		expect(STANDUP()).not.toBeNull();
+		expect(document.activeElement).not.toBe(STANDUP());
+		expect(target.querySelector('[data-event-pulse]')).toBeNull();
+	});
+
+	it('focuses and pulses the all-day "+N" control for an event it hides, in the day view too', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('A'), { date: '2026-11-24' }),
+			eventEntry(P('B'), { date: '2026-11-24' }),
+			eventEntry(P('C'), { date: '2026-11-24' }),
+			eventEntry(P('D'), { date: '2026-11-24' }),
+		]);
+		eventCalendarViewStore.initFromSettings();
+		eventCalendarViewStore.setView('day');
+		await openEventInCalendar(P('D'));
+		mountView();
+		await settle();
+		await settle();
+
+		const more = target.querySelector<HTMLElement>('[data-all-day-cell="2026-11-24"] [data-all-day-more]');
+		expect(target.querySelector(`[data-event-path="${P('D')}"]`)).toBeNull();
+		expect(more).not.toBeNull();
+		expect(document.activeElement).toBe(more);
+		expect(more?.hasAttribute('data-event-pulse')).toBe(true);
+		expect(target.querySelectorAll('[data-event-pulse]')).toHaveLength(1);
 		expect(eventCalendarViewStore.focusRequest).toBeNull();
 	});
 

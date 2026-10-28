@@ -45,6 +45,9 @@ const CLOCK_INTERVAL_MS = 30_000;
 /** Bumped by every load and every reset; a load writes only while it still holds the latest value. */
 let loadToken = 0;
 
+/** Projection inputs of the snapshot in `eventCalendarStore`, or null while it holds none. */
+let storeProjectionKey: string | null = null;
+
 /** Number of live clock acquirers. */
 let clockRefs = 0;
 /** Interval of the running clock, or null while nobody holds it. */
@@ -72,14 +75,10 @@ export async function loadEvents(): Promise<void> {
 			if (token === loadToken) eventCalendarStore.setLoading(false);
 			return;
 		}
-		const settings = settingsStore.eventCalendar;
-		const projection = eventsFromEntries(entries, {
-			defaults: { defaultDurationMinutes: settings.defaultDurationMinutes, defaultColor: settings.defaultColor },
-			typeName: settings.eventTypeName,
-			vaultPath,
-			systemFolder: settingsStore.templates.systemFolder,
-		});
+		const options = projectionOptions();
+		const projection = eventsFromEntries(entries, options);
 		eventCalendarStore.setSnapshot(projection, version);
+		storeProjectionKey = JSON.stringify(options);
 		eventCalendarStore.setLoadError(null);
 		eventCalendarStore.setLoading(false);
 	} catch (err) {
@@ -142,7 +141,7 @@ export function toggleEventCalendarTab(): void {
 }
 
 /** Projection behind `findCalendarEvent`, kept while the snapshot and the projection inputs are unchanged. */
-let lookupMemo: { entries: NoteEntryV2[]; key: string; byPath: Map<string, EventNote> } | null = null;
+let lookupMemo: { entries: NoteEntryV2[]; key: string; events: EventNote[]; byPath: Map<string, EventNote> } | null = null;
 
 /** Inputs of `eventsFromEntries` for the current vault and settings. */
 function projectionOptions() {
@@ -155,46 +154,68 @@ function projectionOptions() {
 	};
 }
 
+/** Strips the store's `pending` flag. */
+function withoutPending({ pending: _pending, ...event }: EventNote & { pending?: boolean }): EventNote {
+	return event;
+}
+
+/**
+ * The calendar event at `path` and the events around it. The loaded store
+ * answers only while it holds the current index version and projection
+ * inputs: it reloads only while the Calendar view is mounted, so it goes
+ * stale once another tab is active. A pending write in the store still wins over a stale store, so a
+ * move in flight shows its new day. Otherwise the vault entries snapshot is
+ * projected once per index version and settings.
+ * @throws the IPC error of the snapshot read
+ */
+async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | null; events: EventNote[] }> {
+	const options = projectionOptions();
+	const key = JSON.stringify(options);
+	if (storeProjectionKey === key && eventCalendarStore.snapshotVersion === vaultStore.vaultIndexVersion) {
+		const loaded = eventCalendarStore.eventByPath(path);
+		return { event: loaded ? withoutPending(loaded) : null, events: eventCalendarStore.events };
+	}
+	const entries = await getVaultEntries();
+	if (!lookupMemo || lookupMemo.entries !== entries || lookupMemo.key !== key) {
+		const { events } = eventsFromEntries(entries, options);
+		lookupMemo = { entries, key, events, byPath: new Map(events.map((event) => [event.path, event])) };
+	}
+	const pending = eventCalendarStore.isPending(path) ? eventCalendarStore.eventByPath(path) : undefined;
+	if (pending) {
+		const event = withoutPending(pending);
+		return { event, events: [...lookupMemo.events.filter((e) => e.path !== path), event] };
+	}
+	return { event: lookupMemo.byPath.get(path) ?? null, events: lookupMemo.events };
+}
+
 /**
  * The calendar event at `path`, whether or not the Calendar tab has loaded.
- * The loaded store wins, so a pending move shows its new day; otherwise the
- * vault entries snapshot is projected once per index version and settings.
+ * A current store answers (with its pending writes); otherwise the vault
+ * entries snapshot is projected once per index version and settings.
  * @param path - absolute note path
  * @returns the event, or null when the note is not a renderable event
  *   (not event-typed, archived, invalid or dateless)
  * @throws the IPC error of the snapshot read
  */
 export async function findCalendarEvent(path: string): Promise<EventNote | null> {
-	const loaded = eventCalendarStore.eventByPath(path);
-	if (loaded) {
-		const { pending: _pending, ...event } = loaded;
-		return event;
-	}
-	const entries = await getVaultEntries();
-	const options = projectionOptions();
-	const key = JSON.stringify(options);
-	if (!lookupMemo || lookupMemo.entries !== entries || lookupMemo.key !== key) {
-		const { events } = eventsFromEntries(entries, options);
-		lookupMemo = { entries, key, byPath: new Map(events.map((event) => [event.path, event])) };
-	}
-	return lookupMemo.byPath.get(path) ?? null;
+	return (await lookupCalendarEvent(path)).event;
 }
 
 /**
  * Opens the Calendar on the day of the event at `path` and asks the view to
  * focus and pulse its block. Keeps the current view (the `defaultView`
- * setting on first open) unless hidden weekends would hide the day, then
- * shows the day view.
+ * setting on first open) unless it would not show the block, then shows the
+ * day view (`focusViewFor`).
  * @param path - absolute note path
  * @returns false, with nothing changed, when the note is not a calendar event
  * @throws the IPC error of the snapshot read
  */
 export async function openEventInCalendar(path: string): Promise<boolean> {
-	const event = await findCalendarEvent(path);
+	const { event, events } = await lookupCalendarEvent(path);
 	if (!event) return false;
 	eventCalendarViewStore.initFromSettings();
 	const s = settingsStore.eventCalendar;
-	const view = focusViewFor(eventCalendarViewStore.view, event.date, s.weekStartsOn, s.showWeekends);
+	const view = focusViewFor(eventCalendarViewStore.view, event, events, s.weekStartsOn, s.showWeekends);
 	openEventCalendarTab({ date: event.date, view });
 	eventCalendarViewStore.requestFocus(event.path);
 	return true;
@@ -263,6 +284,7 @@ export function resetEventCalendar(): void {
 	loadToken += 1;
 	writeGeneration += 1;
 	lookupMemo = null;
+	storeProjectionKey = null;
 	eventCalendarStore.reset();
 	eventCalendarViewStore.reset();
 }

@@ -40,3 +40,12 @@ Reviewed `git diff main...HEAD` on `issue/calendar-feature-56-focus-event-pulse`
    - **Tests:** add logic tests for the view choice, plus a view test that the request does not outlive a completed load when the block cannot render.
 3. **LOW: `notePath` is tested only for FTS results.** `src/lib/features/search/SearchResult.svelte:98-104`. The semantic (`sourcePath`), hybrid (`path`) and legacy (`filePath`, already absolute) branches have no test. A wrong field or a double prefix in one of them would silently hide the action for that search mode. Fix: add one `SearchResult.test.ts` case per branch asserting `[data-show-in-calendar]` renders for an event note.
 4. **LOW (cosmetic): the pulse's 12px box-shadow is clipped in the month grid and the all-day lane.** `src/lib/features/event-calendar/EventCalendarView.svelte:226`. Month cells (`EventMonthGrid.svelte:68`, `overflow-hidden p-1.5`) and all-day cells (`EventAllDayLane.svelte:50`, `overflow-hidden px-1`) cut the ring to about 4-6px, so there the highlight reads as a faint edge flash. Fix: use a pulse that stays inside the element (an inset shadow or a background/brightness flash), or a spread of 4px or less.
+
+## Resolution
+
+All four findings accepted and fixed; none rejected.
+
+1. `lookupCalendarEvent` (`event-calendar.service.ts`) trusts the store only when it holds the current index version and the current projection inputs (`storeProjectionKey`, set by `loadEvents`, cleared by `resetEventCalendar`). The version check alone is not enough: before any load the store sits at version 0, which can equal the vault's version. A stale store still wins for a path with a pending write. Tests: stale date, stale non-event, stale pending write, changed projection setting.
+2. `focusViewFor` now takes the event and the events, and switches the month view to `day` when the event sits past `MONTH_MAX_CHIPS` in its cell. The view effect, once a current load is in and the block is absent, focuses and pulses the day's `[data-all-day-more]` / `[data-month-more]` control when there is one, and ends the request either way. Tests: logic cases for the month overflow, a service case, view cases for the all-day "+N" in the day view and for a request that does not outlive a completed load.
+3. `SearchResult.test.ts` covers the semantic, hybrid and legacy `notePath` branches.
+4. The pulse is a fading 3px ring, which fits inside the month and all-day cells' padding.

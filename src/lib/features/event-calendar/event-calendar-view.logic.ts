@@ -228,15 +228,29 @@ export function groupEventsByDay(events: EventNote[], days: string[]): EventsByD
 }
 
 /**
- * The view to show `date` in when focusing an event there.
+ * The view to show `event` in when focusing it.
  * @param view - the current view
- * @param date - day key of the event
+ * @param event - the event to focus
+ * @param events - the calendar's events, `event` included; only those on
+ *   `event.date` matter
  * @param weekStartsOn - 0 for Sunday-first, 1 for Monday-first weeks
  * @param showWeekends - when false, week and month views leave weekends out
- * @returns `view` when it shows `date`, else `day`
+ * @returns `view` when it shows the event's block, else `day`: the day is
+ *   hidden (a weekend with weekends off), or the month cell puts the event
+ *   behind "+N more" (past `MONTH_MAX_CHIPS`)
  */
-export function focusViewFor(view: CalendarViewMode, date: string, weekStartsOn: WeekStart, showWeekends: boolean): CalendarViewMode {
-	return visibleDays(view, date, weekStartsOn, showWeekends).includes(date) ? view : 'day';
+export function focusViewFor(
+	view: CalendarViewMode,
+	event: EventNote,
+	events: EventNote[],
+	weekStartsOn: WeekStart,
+	showWeekends: boolean,
+): CalendarViewMode {
+	if (!visibleDays(view, event.date, weekStartsOn, showWeekends).includes(event.date)) return 'day';
+	if (view !== 'month') return view;
+	// The label format does not change the order.
+	const index = itemsForDay(events, event.date, '24h').findIndex((item) => item.event.path === event.path);
+	return index >= MONTH_MAX_CHIPS ? 'day' : view;
 }
 
 /**

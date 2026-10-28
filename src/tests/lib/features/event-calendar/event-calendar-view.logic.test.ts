@@ -633,15 +633,44 @@ describe('defaultCreateSlot', () => {
 
 describe('focusViewFor', () => {
 	// 2026-11-14 is a Saturday, 2026-11-10 a Tuesday.
+	const tue = ev('tue', '2026-11-10', 540, 600);
+	const sat = ev('sat', '2026-11-14', 540, 600);
+
 	it('keeps every view that shows the day', () => {
-		expect(focusViewFor('week', '2026-11-10', 1, true)).toBe('week');
-		expect(focusViewFor('month', '2026-11-10', 1, false)).toBe('month');
-		expect(focusViewFor('day', '2026-11-14', 1, false)).toBe('day');
-		expect(focusViewFor('week', '2026-11-14', 0, true)).toBe('week');
+		expect(focusViewFor('week', tue, [tue], 1, true)).toBe('week');
+		expect(focusViewFor('month', tue, [tue], 1, false)).toBe('month');
+		expect(focusViewFor('day', sat, [sat], 1, false)).toBe('day');
+		expect(focusViewFor('week', sat, [sat], 0, true)).toBe('week');
 	});
 
 	it('falls back to the day view when hidden weekends would hide the day', () => {
-		expect(focusViewFor('week', '2026-11-14', 1, false)).toBe('day');
-		expect(focusViewFor('month', '2026-11-14', 0, false)).toBe('day');
+		expect(focusViewFor('week', sat, [sat], 1, false)).toBe('day');
+		expect(focusViewFor('month', sat, [sat], 0, false)).toBe('day');
+	});
+
+	describe('month cell overflow', () => {
+		const day = '2026-11-10';
+		// Chip order: all-day a1, a2, then timed t1 (09:00), t2 (10:00), t3 (11:00).
+		const a1 = allDay('a1', day);
+		const a2 = allDay('a2', day);
+		const t1 = ev('t1', day, 540, 600);
+		const t2 = ev('t2', day, 600, 660);
+		const t3 = ev('t3', day, 660, 720);
+		const other = ev('other', '2026-11-11', 540, 600);
+		const events = [t3, t1, a2, other, t2, a1];
+
+		it('keeps the month view for an event among the first MONTH_MAX_CHIPS chips', () => {
+			expect(focusViewFor('month', t1, events, 1, true)).toBe('month');
+			expect(focusViewFor('month', a1, events, 1, true)).toBe('month');
+		});
+
+		it('switches to the day view for an event behind "+N more"', () => {
+			expect(focusViewFor('month', t2, events, 1, true)).toBe('day');
+			expect(focusViewFor('month', t3, events, 1, true)).toBe('day');
+		});
+
+		it('ignores the chip cap in the week view', () => {
+			expect(focusViewFor('week', t3, events, 1, true)).toBe('week');
+		});
 	});
 });

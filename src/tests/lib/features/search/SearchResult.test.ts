@@ -252,12 +252,17 @@ describe('SearchResult: Show in Calendar', () => {
 		editorStore.reset();
 	});
 
-	/** Mounts an FTS result for a vault-relative path and lets the lookup resolve. */
-	async function mountFts(path: string): Promise<void> {
-		component = mount(SearchResult, { target, props: { ftsResult: { path, title: 'T', score: 1, snippet: '', tags: '' } } });
+	/** Mounts a result and lets the lookup resolve. */
+	async function mountWith(props: Record<string, unknown>): Promise<void> {
+		component = mount(SearchResult, { target, props });
 		flushSync();
 		await new Promise((r) => setTimeout(r, 0));
 		flushSync();
+	}
+
+	/** Mounts an FTS result for a vault-relative path and lets the lookup resolve. */
+	async function mountFts(path: string): Promise<void> {
+		await mountWith({ ftsResult: { path, title: 'T', score: 1, snippet: '', tags: '' } });
 	}
 
 	it('offers the action on an event note and opens the Calendar on its day without opening the note', async () => {
@@ -277,5 +282,26 @@ describe('SearchResult: Show in Calendar', () => {
 	it('offers no action on a plain note', async () => {
 		await mountFts('notes/target.md');
 		expect(target.querySelector('[data-show-in-calendar]')).toBeNull();
+	});
+
+	it('offers the action on a semantic result, keyed by its vault-relative source path', async () => {
+		await mountWith({
+			semanticResult: { key: 'k', sourcePath: 'Events/Standup.md', content: 'x', heading: null, lineStart: 1, lineEnd: 1, score: 0.9 },
+		});
+		expect(target.querySelector('[data-show-in-calendar]')).not.toBeNull();
+	});
+
+	it('offers the action on a hybrid result, keyed by its vault-relative path', async () => {
+		await mountWith({
+			hybridResult: { path: 'Events/Standup.md', title: 'Standup', combinedScore: 1, snippet: '', source: 'both' },
+		});
+		expect(target.querySelector('[data-show-in-calendar]')).not.toBeNull();
+	});
+
+	it('offers the action on a legacy result, whose path is already absolute', async () => {
+		await mountWith({
+			legacyResult: { filePath: '/vault/Events/Standup.md', fileName: 'Standup', matches: [], snippets: [] },
+		});
+		expect(target.querySelector('[data-show-in-calendar]')).not.toBeNull();
 	});
 });
