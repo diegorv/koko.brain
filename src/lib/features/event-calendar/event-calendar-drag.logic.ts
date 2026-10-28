@@ -1,11 +1,11 @@
 /**
  * Pointer gestures of the time grid (create, move and resize) and of the
- * day cells of the month grid and the all-day lane (move to another day). A
- * desktop-only
- * port of `calender-app-design/src/components/calendar/time-grid.tsx:225-380`
- * without the touch branches. The component owns the pointer events and the
- * live rect; this module maps a point to a slot, tracks the drag and decides
- * what the gesture does.
+ * day cells of the month grid and the all-day lane (move to another day).
+ * The time-grid part is a desktop-only port of
+ * `calender-app-design/src/components/calendar/time-grid.tsx:225-380` without
+ * the touch branches: it maps a point to a slot. The day-cell part maps a
+ * point to a cell. In both, the component owns the pointer events and the
+ * live rect; this module tracks the drag and decides what the gesture does.
  *
  * Times are minutes from midnight (0..1440). Pure logic: no framework imports.
  */
@@ -270,7 +270,8 @@ export type DayDragResult =
 export function cellFromPoint(rect: CellRect, clientX: number, clientY: number, cols: number, rows: number): number {
 	const col = rect.width > 0 ? Math.floor(((clientX - rect.left) * cols) / rect.width) : 0;
 	const row = rect.height > 0 ? Math.floor(((clientY - rect.top) * rows) / rect.height) : 0;
-	return clampMinutes(row, 0, rows - 1) * cols + clampMinutes(col, 0, cols - 1);
+	const clampIndex = (i: number, max: number) => Math.min(Math.max(i, 0), max);
+	return clampIndex(row, rows - 1) * cols + clampIndex(col, cols - 1);
 }
 
 /** Starts a day drag on the chip of `event`, pressed in cell `dayIndex`. */

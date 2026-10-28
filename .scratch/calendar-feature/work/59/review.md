@@ -49,3 +49,12 @@ Scope: `git diff main...HEAD` on `issue/calendar-feature-59-month-and-all-day-dr
 5. **Nit: `cellFromPoint` clamps a row and column index with `clampMinutes`.** `src/lib/features/event-calendar/event-calendar-drag.logic.ts:273`. It works, but the name suggests a minutes value.
    - **Fix:** clamp with `Math.min(Math.max(...))`, or with a small local `clampIndex`. Optional.
 6. **Nit, no change required: in the month grid, a chip dragged into a full cell can vanish behind "+N more" mid-drag.** `src/lib/features/event-calendar/EventMonthGrid.svelte:110`. The preview re-dates the event and `itemsForDay` sorts it, so a timed chip dropped onto a cell that already has 3 all-day chips renders past `MONTH_MAX_CHIPS`. The only feedback is the count. The drop itself is correct. Mention this as a follow-up if the fixer agrees; it is not needed for this Issue.
+
+## Resolution
+
+1. Fixed. `DayDrag.clickcapture` swallows only pointer clicks (`e.detail === 0` passes through), so a keyboard Enter or Space after a drop whose click landed outside the area still acts. Regression test in `EventAllDayLane.test.ts` (fails without the fix). The drop tests that expect the swallow now dispatch a `detail: 1` click.
+2. Accepted with no source change: Issue 62 now names `DayDrag.#keydown` and the month grid Escape test, so its fix covers both controllers.
+3. Fixed. `EventMonthGrid.test.ts` covers pointercancel mid-drag, the popover closing past the threshold and the click after an Escape-discarded drag.
+4. Fixed. The module header is rewrapped and separates the time-grid port (point to slot) from the day-cell part (point to cell).
+5. Fixed. `cellFromPoint` clamps with a local `clampIndex`.
+6. Not changed, as the reviewer allows: the drop is correct, the hidden chip mid-drag in a full cell is cosmetic. Left as a possible follow-up.

@@ -57,9 +57,16 @@ export class DayDrag {
 		window.addEventListener('keydown', this.#keydown, true);
 	};
 
-	/** Swallows the click a moved or discarded gesture produces, so a dropped chip does not open its popover. */
+	/**
+	 * Swallows the click a moved or discarded gesture produces, so a dropped
+	 * chip does not open its popover. Only a pointer click (`detail > 0`) is
+	 * swallowed: a release outside the area sends its click elsewhere and
+	 * leaves the flag armed, and a keyboard Enter or Space on a chip or day
+	 * button (`detail === 0`) must still act. The next press in the area
+	 * resets the flag.
+	 */
 	clickcapture = (e: MouseEvent): void => {
-		if (!this.#swallowClick) return;
+		if (!this.#swallowClick || e.detail === 0) return;
 		this.#swallowClick = false;
 		e.stopPropagation();
 	};

@@ -83,7 +83,8 @@ describe('EventAllDayLane: drag to another day', () => {
 		expect(chipIn('2026-11-12', 'Holiday')?.textContent?.trim()).toBe('Holiday');
 
 		pointer(window, 'pointerup', 3);
-		chipIn('2026-11-12', 'Holiday')!.click();
+		// A mouse click (`detail: 1`), as the release sends.
+		chipIn('2026-11-12', 'Holiday')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
 		flushSync();
 
 		expect(moveEventToDay).toHaveBeenCalledTimes(1);
@@ -102,6 +103,22 @@ describe('EventAllDayLane: drag to another day', () => {
 
 		expect(moveEventToDay).not.toHaveBeenCalled();
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Holiday'));
+	});
+
+	it('a drop whose click lands outside the lane does not swallow the next keyboard activation', () => {
+		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>(() => {}));
+		mountLane([allDay('Holiday', '2026-11-10'), allDay('Offsite', '2026-11-13')]);
+
+		pointer(chipIn('2026-11-10', 'Holiday')!, 'pointerdown', 1);
+		pointer(window, 'pointermove', 3);
+		// Released below the lane: no click reaches the cells.
+		pointer(window, 'pointerup', 3);
+		// Enter on another chip: a click with `detail: 0` and no pointerdown.
+		chipIn('2026-11-13', 'Offsite')!.click();
+		flushSync();
+
+		expect(moveEventToDay).toHaveBeenCalledWith(P('Holiday'), '2026-11-12');
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Offsite'));
 	});
 
 	it('marks a read-only span chip and never drags it', () => {

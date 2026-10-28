@@ -407,6 +407,12 @@ describe('EventMonthGrid: drag to another day', () => {
 		flushSync();
 	}
 
+	/** A mouse click (`detail: 1`), as a pointer release sends; `el.click()` is a keyboard-style click (`detail: 0`). */
+	function pointerClick(el: HTMLElement) {
+		el.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+		flushSync();
+	}
+
 	function press(key: string): KeyboardEvent {
 		const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
 		document.body.dispatchEvent(e);
@@ -426,8 +432,7 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(chipIn('2026-11-12', 'Standup')?.textContent?.trim()).toBe('09:00 Standup');
 
 		move(NOV_12, 'pointerup');
-		chipIn('2026-11-12', 'Standup')!.click();
-		flushSync();
+		pointerClick(chipIn('2026-11-12', 'Standup')!);
 
 		expect(moveEventToDay).toHaveBeenCalledTimes(1);
 		expect(moveEventToDay).toHaveBeenCalledWith(P('Standup'), '2026-11-12');
@@ -513,6 +518,47 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(reached).toEqual(['d']);
 		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
 		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('swallows the pointer click that follows an Escape-discarded drag', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		press('Escape');
+		move(NOV_12, 'pointerup');
+		pointerClick(chipIn('2026-11-10', 'Standup')!);
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('pointercancel mid-drag puts the chip back and writes nothing', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerType: 'mouse', pointerId: 1, ...at(NOV_12) }));
+		flushSync();
+		move(NOV_12, 'pointerup');
+
+		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
+		expect(chipIn('2026-11-12', 'Standup')).toBeNull();
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('closes an open popover once the press moves past the threshold', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+		eventCalendarViewStore.openPopover(P('Standup'), { x: 0, y: 0, width: 10, height: 10 });
+
+		down('Standup', NOV_10);
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		move(NOV_12);
+
+		expect(eventCalendarViewStore.popover).toBeNull();
 	});
 
 	it('a month step mid-drag discards the drag: nothing is written', () => {
