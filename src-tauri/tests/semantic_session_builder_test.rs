@@ -9,9 +9,10 @@ use kokobrain_lib::semantic::session_builder;
 
 #[test]
 fn session_builder_constructs() {
-	// Smoke test only: proves the policy and thread setters do not error.
-	// ort has no getter for the EP policy, so whether CoreML stays out is
-	// checked by the probe example, not here.
+	// Smoke test only: proves the policy, thread and intra-op spinning
+	// setters do not error. ort has no getter for the EP policy or for
+	// config entries (`session.intra_op.allow_spinning`), so whether CoreML
+	// stays out and spinning is off is verified by measurement only.
 	assert!(session_builder(2).is_ok());
 }
 

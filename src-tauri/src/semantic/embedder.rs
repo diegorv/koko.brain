@@ -46,11 +46,14 @@ impl Embedder {
 			return Err(format!("Tokenizer not found: {:?}", tokenizer_path));
 		}
 
-		// Raised from min(4) → min(8) to use the M-series performance cores
-		// during indexing. Indexing is the only flow that pegs the embedder,
-		// and the user doesn't typically interact with the UI while it runs.
+		// Capped at 4. The embedder also runs during background bursts (a
+		// sync tool writing ~10 new notes/min fans each file through the
+		// watcher into ONNX) while the user is working in the UI; with 8
+		// threads that held the process near 580% CPU and slowed the whole
+		// machine. Inference is serialized by `EMBEDDER.lock()`, so this cap
+		// bounds the embedder's total CPU use.
 		let num_threads = std::thread::available_parallelism()
-			.map(|n| n.get().min(8))
+			.map(|n| n.get().min(4))
 			.unwrap_or(4);
 		debug_log("EMBEDDER", format!("Using {} intra-op threads", num_threads));
 
