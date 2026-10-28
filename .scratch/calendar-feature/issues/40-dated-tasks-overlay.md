@@ -17,3 +17,4 @@
 ## Comments
 
 - 2026-10-28 18:06 — discovery — plan in work/40/discovery.md: task projection logic, store + loadCalendarTasks, showTasks setting, month chips and a week/day task lane, E2E in a new spec — 8063e54b
+- 2026-10-28 18:13 — implement — task projection, store, loadCalendarTasks, showTasks setting, month chips and week/day Tasks lane, E2E spec event-calendar-tasks.spec.ts (not run here); pnpm check clean, event-calendar + settings + tasks vitest green — cb716518
