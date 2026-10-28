@@ -31,3 +31,4 @@
 ## Comments
 
 - 2026-10-28 12:05 — discovery — plan in work/15/discovery.md: move the template block, extract resolveTypedNoteTarget, add createTypedNote, tests first — fce4801d
+- 2026-10-28 12:08 — implement — loadNoteTemplate, resolveTypedNoteTarget and createTypedNote landed with 14 new tests; related suites 748/748, pnpm check 0 errors; full gate and the wikilink-create-on-click E2E left to deliver — 0f584fd6
