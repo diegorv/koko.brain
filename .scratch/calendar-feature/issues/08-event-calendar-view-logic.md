@@ -41,4 +41,5 @@
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
 
 ## Comments
-- 2026-10-28 12:41 — discovery — pure port of calendar/header/month/all-day/now-line view math; defaults: month visibleDays = month days, lane 3 rows incl. "+N", today slot floors now to 15 min — pending
+- 2026-10-28 12:41 — discovery — pure port of calendar/header/month/all-day/now-line view math; defaults: month visibleDays = month days, lane 3 rows incl. "+N", today slot floors now to 15 min — 2b52521e
+- 2026-10-28 12:44 — implement — view logic + 46 tests green (event-calendar dir 107/107, DST block ran), pnpm check 0 errors; full gate left to deliver — ca7e6216
