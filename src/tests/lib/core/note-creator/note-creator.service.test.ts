@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+setupLocalStorage();
 
 vi.mock('$lib/utils/debug', () => ({
 	debug: vi.fn(),
@@ -39,6 +42,7 @@ import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { clearAllIndexed, isAlreadyIndexed } from '$lib/utils/index-dedupe';
 import { loadNoteTemplate, openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
 
@@ -48,6 +52,8 @@ describe('openOrCreateNote', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		clearAllIndexed();
+		clearLocalStorage();
+		vaultStore._reset();
 		collectionStore.reset();
 		unregister = [registerCollectionNoteChangeConsumer()];
 	});
@@ -83,6 +89,49 @@ describe('openOrCreateNote', () => {
 		expect(isAlreadyIndexed('/vault/sub/note.md', '')).toBe(false);
 		expect(refreshTree).toHaveBeenCalled();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/sub/note.md');
+	});
+
+	it('upserts a created note into FTS5 and semantic with its vault-relative key', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		vaultStore.open('/vault');
+
+		await openOrCreateNote({ filePath: '/vault/Daily/2026-11-10.md', title: '2026-11-10', inlineTemplate: '# Today' });
+
+		expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+			filePath: 'Daily/2026-11-10.md',
+			content: '# Today',
+			vaultPath: '/vault',
+		});
+		expect(invoke).toHaveBeenCalledWith('update_semantic_file', {
+			filePath: 'Daily/2026-11-10.md',
+			content: '# Today',
+			vaultPath: '/vault',
+		});
+	});
+
+	it('skips the FTS5 and semantic upsert for a path outside the vault', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		vaultStore.open('/vault');
+
+		await openOrCreateNote({ filePath: '/elsewhere/note.md', title: 'note' });
+
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/elsewhere/note.md', content: '' });
+		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
+		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
+	});
+
+	it('skips the FTS5 and semantic upsert for a non-Markdown file', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		vaultStore.open('/vault');
+
+		await openOrCreateNote({ filePath: '/vault/board.canvas', title: 'board' });
+
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/board.canvas', content: '' });
+		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
+		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
 	});
 
 	it('still opens the file when a note-change consumer throws', async () => {

@@ -3,8 +3,10 @@ import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
+import { isMarkdownFile } from '$lib/core/filesystem/fs.logic';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
 import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { processTemplate } from '$lib/utils/template';
 import { error } from '$lib/utils/debug';
 import { appendLog } from '$lib/utils/log.service';
@@ -102,8 +104,11 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			// `updateIndexesForFile` - the cached error then sticks because
 			// `first-open` auto-run only fires once per session. The 'create'
 			// policy row skips the Rust IPC: `create_note` above already
-			// updated `VaultIndex` and emitted `vault-index-updated`.
-			void applyNoteChange({ kind: 'upsert', source: 'create', path: filePath, content });
+			// updated `VaultIndex` and emitted `vault-index-updated`. The vault
+			// root puts a Markdown note in FTS5 / semantic now instead of at its
+			// first save.
+			const vaultPath = isMarkdownFile(filePath) ? (vaultStore.path ?? undefined) : undefined;
+			void applyNoteChange({ kind: 'upsert', source: 'create', path: filePath, content, vaultPath });
 			try {
 				await refreshTree();
 			} catch (refreshErr) {

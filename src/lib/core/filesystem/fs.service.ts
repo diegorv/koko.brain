@@ -3,10 +3,11 @@ import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, r
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts } from './fs.logic';
+import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '$lib/core/editor/editor.hooks';
+import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { debug, error, timeAsync } from '$lib/utils/debug';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
@@ -127,8 +128,11 @@ export async function createFile(parentPath: string, fileName: string, content: 
 		await invoke('create_note', { path: filePath, content });
 		markRecentSave(filePath);
 		// Refresh the per-file TS indexes for the new file. The 'fs' policy row
-		// skips the Rust IPC - `create_note` above already indexed it.
-		void applyNoteChange({ kind: 'upsert', source: 'fs', path: filePath, content });
+		// skips the Rust IPC - `create_note` above already indexed it. The vault
+		// root puts a Markdown note in FTS5 / semantic now instead of at its
+		// first save; other files stay out, as on the save side.
+		const vaultPath = isMarkdownFile(uniqueName) ? (vaultStore.path ?? undefined) : undefined;
+		void applyNoteChange({ kind: 'upsert', source: 'fs', path: filePath, content, vaultPath });
 		await refreshTree();
 		debug('FS', 'created file:', filePath);
 		return filePath;

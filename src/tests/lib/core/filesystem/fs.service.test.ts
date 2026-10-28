@@ -365,6 +365,52 @@ describe('createFile', () => {
 		expect(isAlreadyIndexed('/vault/new.md', '---\nstatus: draft\n---\n')).toBe(false);
 	});
 
+	it('upserts a created note into FTS5 and semantic with its vault-relative key', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+
+		await createFile('/vault/Events', 'Planning.md', 'Agenda items');
+
+		expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+			filePath: 'Events/Planning.md',
+			content: 'Agenda items',
+			vaultPath: '/vault',
+		});
+		expect(invoke).toHaveBeenCalledWith('update_semantic_file', {
+			filePath: 'Events/Planning.md',
+			content: 'Agenda items',
+			vaultPath: '/vault',
+		});
+	});
+
+	it('skips the FTS5 and semantic upsert for a path outside the vault', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+
+		const result = await createFile('/elsewhere', 'note.md', 'body');
+
+		expect(result).toBe('/elsewhere/note.md');
+		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
+		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
+	});
+
+	it('skips the FTS5 and semantic upsert for a non-Markdown file', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+
+		await createFile('/vault', 'board.canvas', '{"nodes":[],"edges":[]}');
+
+		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
+		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
+	});
+
+	it('skips the FTS5 and semantic upsert when no vault is open', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+		vaultStore.close();
+
+		await createFile('/vault', 'note.md', 'body');
+
+		expect(invoke).not.toHaveBeenCalledWith('update_search_index_file', expect.anything());
+		expect(invoke).not.toHaveBeenCalledWith('update_semantic_file', expect.anything());
+	});
+
 	it('creates file with requested name when no conflicts', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		// Default invoke mock returns []; create_note returns undefined.
