@@ -23,3 +23,4 @@
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
+- 2026-10-28 11:48 — discovery — plan in work/01/discovery.md: cap 4, spinning off in session_builder; no ort getter, manual measurement left for human — a293e4bf
