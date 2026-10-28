@@ -30,6 +30,7 @@
 	import EventPopover from './EventPopover.svelte';
 	import EventShortcutsDialog from './EventShortcutsDialog.svelte';
 	import EventTimeGrid from './EventTimeGrid.svelte';
+	import EventWeekStrip from './EventWeekStrip.svelte';
 
 	/** The view root: the popover's scroll source and the popover's and dialog's focus fallback. */
 	let root: HTMLElement | undefined = $state();
@@ -170,9 +171,16 @@
 			{:else if eventCalendarViewStore.view === 'month'}
 				<EventMonthGrid />
 			{:else}
-				{#key eventCalendarViewStore.view}
-					<EventTimeGrid days={eventCalendarViewStore.visibleDays} />
-				{/key}
+				<div class="flex h-full min-h-0 flex-col">
+					{#if eventCalendarViewStore.view === 'day'}
+						<EventWeekStrip />
+					{/if}
+					<div class="min-h-0 flex-1">
+						{#key eventCalendarViewStore.view}
+							<EventTimeGrid days={eventCalendarViewStore.visibleDays} />
+						{/key}
+					</div>
+				</div>
 			{/if}
 		</div>
 		<EventCalendarNeedsAttention />

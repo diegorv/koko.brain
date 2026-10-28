@@ -207,6 +207,27 @@ describe('EventCalendarView: loading', () => {
 		expect(target.querySelectorAll('[data-month-cell]')).toHaveLength(42);
 	});
 
+	it('shows the week strip above the day grid in day view only, and a strip click moves the day column', async () => {
+		mountView();
+		await settle();
+		expect(target.querySelector('[data-week-strip]')).toBeNull();
+
+		eventCalendarViewStore.setView('day');
+		flushSync();
+		const strip = target.querySelector('[data-week-strip]')!;
+		const grid = target.querySelector('[data-time-grid]')!;
+		expect(strip.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+		target.querySelector<HTMLButtonElement>('[data-week-strip-day="2026-11-12"]')!.click();
+		flushSync();
+		expect(target.querySelector('[data-day-column]')?.getAttribute('data-day-column')).toBe('2026-11-12');
+		expect(eventCalendarViewStore.view).toBe('day');
+
+		eventCalendarViewStore.setView('month');
+		flushSync();
+		expect(target.querySelector('[data-week-strip]')).toBeNull();
+	});
+
 	it('renders a loaded event on the grid', async () => {
 		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
 		mountView();
@@ -529,6 +550,27 @@ describe('EventCalendarView: keyboard', () => {
 		expect(eventCalendarViewStore.view).toBe('week');
 		press(ROOT(), 't');
 		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
+	});
+
+	it('leaves Enter and Space on a week-strip day to the button, and the arrows step the day from there', async () => {
+		mountView();
+		await settle();
+		eventCalendarViewStore.setView('day');
+		flushSync();
+		const stripDay = target.querySelector<HTMLButtonElement>('[data-week-strip-day="2026-11-12"]')!;
+		stripDay.focus();
+
+		for (const key of ['Enter', ' ']) {
+			const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+			stripDay.dispatchEvent(e);
+			flushSync();
+			expect(e.defaultPrevented).toBe(false);
+		}
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+
+		press(stripDay, 'ArrowRight');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-11');
+		expect(target.querySelector('[data-week-strip-day="2026-11-11"]')?.getAttribute('aria-pressed')).toBe('true');
 	});
 
 	it('leaves the arrows to the D/W/M tablist', async () => {
