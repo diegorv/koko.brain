@@ -104,9 +104,9 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			// `updateIndexesForFile` - the cached error then sticks because
 			// `first-open` auto-run only fires once per session. The 'create'
 			// policy row skips the Rust IPC: `create_note` above already
-			// updated `VaultIndex` and emitted `vault-index-updated`. The vault
-			// root puts a Markdown note in FTS5 / semantic now instead of at its
-			// first save.
+			// updated `VaultIndex` and emitted `vault-index-updated`. Passing
+			// the vault root upserts a Markdown note into FTS5 / semantic at
+			// creation, so it is searchable before its first save.
 			const vaultPath = isMarkdownFile(filePath) ? (vaultStore.path ?? undefined) : undefined;
 			void applyNoteChange({ kind: 'upsert', source: 'create', path: filePath, content, vaultPath });
 			try {

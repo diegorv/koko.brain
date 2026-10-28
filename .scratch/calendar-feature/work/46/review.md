@@ -34,3 +34,8 @@ Diff reviewed: `git diff main...HEAD` on `issue/calendar-feature-46-create-paths
 
 1. **Low (comment wording)**: `src/lib/core/filesystem/fs.service.ts:131-133` and `src/lib/core/note-creator/note-creator.service.ts:107-109`. The new comment "The vault root puts a Markdown note in FTS5 / semantic now instead of at its first save" narrates the change ("now instead of"), which the global CLAUDE.md comment rule (section 8) forbids. "The vault root" also reads as the subject doing the indexing. Fix: reword both to state the current behavior, e.g. "Passing the vault root upserts a Markdown note into FTS5 / semantic at creation, so it is searchable before its first save; other files stay out, as on the save side." Optional, since it does not affect behavior.
 2. **Low (test gap)**: `src/tests/lib/core/note-creator/note-creator.service.test.ts:94-135`. The `openOrCreateNote` block has no "no vault open" case, although `fs.service.test.ts:404-412` has one for `createFile`. Fix: add a test that leaves `vaultStore` closed (the `beforeEach` already calls `_reset()`), creates `/vault/note.md` and asserts neither `update_search_index_file` nor `update_semantic_file` was invoked. Optional.
+
+## Resolution
+
+- Finding 1: fixed. Both comments now state the current behavior (`fs.service.ts:131-134`, `note-creator.service.ts:107-109`).
+- Finding 2: fixed. `note-creator.service.test.ts:137-146` creates `/vault/note.md` with no vault open and asserts neither `update_search_index_file` nor `update_semantic_file` is invoked.

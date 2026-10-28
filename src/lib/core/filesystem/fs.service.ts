@@ -128,9 +128,10 @@ export async function createFile(parentPath: string, fileName: string, content: 
 		await invoke('create_note', { path: filePath, content });
 		markRecentSave(filePath);
 		// Refresh the per-file TS indexes for the new file. The 'fs' policy row
-		// skips the Rust IPC - `create_note` above already indexed it. The vault
-		// root puts a Markdown note in FTS5 / semantic now instead of at its
-		// first save; other files stay out, as on the save side.
+		// skips the Rust IPC - `create_note` above already indexed it. Passing
+		// the vault root upserts a Markdown note into FTS5 / semantic at
+		// creation, so it is searchable before its first save; other files
+		// stay out, as on the save side.
 		const vaultPath = isMarkdownFile(uniqueName) ? (vaultStore.path ?? undefined) : undefined;
 		void applyNoteChange({ kind: 'upsert', source: 'fs', path: filePath, content, vaultPath });
 		await refreshTree();
