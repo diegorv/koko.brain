@@ -27,4 +27,5 @@
 
 ## Comments
 
-- 2026-10-28 12:55 — discovery — plan in work/18/discovery.md: one store + test, payload type declared locally — 84ef4007
+- 2026-10-28 12:55 — discovery — plan in work/18/discovery.md: one store + test, payload type declared locally — bbc45c45
+- 2026-10-28 12:57 — implement — view store + 35 tests; pnpm check 0 errors, event-calendar + settings store tests 323/323 — b3ac4367
