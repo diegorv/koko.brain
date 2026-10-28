@@ -35,3 +35,4 @@ Out of scope: `formatTime` does not wrap outside 0..1440 (the prototype turns -3
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
+- 2026-10-28 12:24 — discovery — five divergences mapped to dates.ts lines; no callers outside the test file; formatRange follows the prototype in every branch — 96a8c3cd
