@@ -13,3 +13,7 @@
 - [ ] Both create paths pass `vaultStore.path`
 - [ ] Tests: a created note gets its FTS5 upsert with the vault-relative key; a path outside the vault is skipped
 - [ ] An E2E that a note created via "New Event" is found by text search before any edit
+
+## Comments
+
+- 2026-10-28 18:30 — discovery — both create paths pass vaultStore.path for Markdown files; E2E mock models the FTS gap — 48e49feb
