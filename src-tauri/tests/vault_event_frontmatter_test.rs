@@ -42,7 +42,6 @@ fn time_parses_to_the_same_string_quoted_or_bare() {
 #[test]
 fn integer_and_boolean_values_are_typed() {
 	assert_eq!(parse_key("start: 570", "start"), Some(json!(570)));
-	assert!(parse_key("start: 570", "start").unwrap().is_number());
 	assert_eq!(parse_key("all_day: true", "all_day"), Some(Value::Bool(true)));
 }
 

@@ -30,3 +30,4 @@
 - 2026-10-28 11:22 — discovery — plan written; empty `start:` parses to Null, not String(""), pinned as-is and flagged — pending
 - 2026-10-28 11:25 — implement — vault_event_frontmatter_test.rs added, 12/12 pass (targeted cargo test); full gate left to deliver — see commit
 - 2026-10-28 11:27 — review — VERDICT: APPROVED; empty `start:` -> Null deviation accepted, plan/ticket 07 '' wording flagged (non-blocking) — see commit
+- 2026-10-28 11:28 — fix — review finding 2 fixed (redundant is_number dropped), finding 1 deferred to user/ticket 07, finding 3 no change; targeted test 12/12 — see commit

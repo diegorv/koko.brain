@@ -30,3 +30,9 @@ Test verdict rests on: `src-tauri/tests/vault_event_frontmatter_test.rs`, which 
 3. **Nit (formatting).** `src-tauri/tests/vault_event_frontmatter_test.rs:88` and `:110` are long single-line string literals. The repo has no rustfmt config and no CI fmt check, and the tabs match the other `src-tauri/tests/*.rs` files. **Fix:** none required.
 
 There is no correctness bug, no missing test against the criteria, and no scope creep. Layer rules, error handling and performance guidelines do not apply to a test-only Rust diff.
+
+## Resolution
+
+1. **Deferred, not applied here.** The finding is correct: Rust parses a bare `start:` to `null`, not `''`. The files it names (`plan-2026-10-28.md` and `issues/07-event-note-schema-logic.md`) are outside this Issue's Touches. Changing them also changes ticket 07's spec (what the `eventEntry` fixture models), so the user or ticket 07's build step decides. The behavior is pinned in `vault_event_frontmatter_test.rs` (`empty_value_is_null_and_quoted_empty_is_an_empty_string`).
+2. **Fixed.** Dropped the redundant `is_number()` assertion from `integer_and_boolean_values_are_typed`.
+3. **No change.** The reviewer requires no fix: there is no rustfmt config or CI fmt check.
