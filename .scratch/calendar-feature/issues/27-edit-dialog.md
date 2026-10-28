@@ -31,3 +31,7 @@
 - [ ] `event-calendar.spec.ts`: renaming through the title field, then waiting for `window.__e2e.vaultIndex.version` to advance and the 300 ms debounce to pass, leaves exactly one block with the title, at `[data-event-path="<new path>"][data-pending="false"]`
 - [ ] `event-calendar.spec.ts`: renaming to `1:1 sync` shows "1:1 sync" on the block, the file is `1-1 sync.md`, and its frontmatter holds `event_title: "1:1 sync"`
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 14:33 — discovery — plan in work/27/discovery.md: EventDialog + EventForm + EventColorSwatches mounted in the view, popover Edit action, EventBlock data-pending true/false for the E2E selector; bits-ui unchanged at 2.19.5 — pending
