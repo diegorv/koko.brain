@@ -503,6 +503,19 @@ describe('calendar writes', () => {
 		}
 	}
 
+	/** One index refresh that serves `files` instead of the fake disk (an index that has not caught up). */
+	async function refreshWith(files: Record<string, string>, overrides: Partial<NoteEntryV2> = {}): Promise<void> {
+		const real = vi.mocked(invoke).getMockImplementation()!;
+		vi.mocked(invoke).mockImplementation(async (cmd) =>
+			cmd === 'get_all_vault_entries_v2' ? Object.entries(files).map(([path, content]) => eventEntryFromContent(path, content, overrides)) : undefined,
+		);
+		try {
+			await refresh();
+		} finally {
+			vi.mocked(invoke).mockImplementation(real);
+		}
+	}
+
 	/** Lets every queued microtask run. */
 	async function flush(): Promise<void> {
 		for (let i = 0; i < 20; i++) await Promise.resolve();
@@ -777,9 +790,44 @@ describe('calendar writes', () => {
 
 			expect(finalPath).toBe(P('Offsite'));
 			expect(eventCalendarStore.eventByPath(P('Offsite'))).toMatchObject({ title: 'Offsite', location: 'Lisbon', readOnly: true, pending: true });
+			// The index has the rename but not the field write yet.
+			await refreshWith({ [P('Offsite')]: eventFile({ date: '2026-11-12', end_date: '2026-11-14' }) });
+			expect(eventCalendarStore.eventByPath(P('Offsite'))).toMatchObject({ title: 'Offsite', location: 'Lisbon', readOnly: true, pending: true });
 			await refresh();
 			expect(eventCalendarStore.isPending(P('Offsite'))).toBe(false);
 			expect(eventCalendarStore.eventByPath(P('Offsite'))).toMatchObject({ location: 'Lisbon', readOnly: true, pending: false });
+		});
+
+		it('keeps the written time after a rename while the index still shows the old fields, until it catches up', async () => {
+			await refreshWith({ [P('Standup')]: eventFile() }, { snippet: 'Body' });
+			expect(eventCalendarStore.eventByPath(P('Standup'))?.snippet).toBe('Body');
+
+			await editEvent(P('Standup'), { title: 'Daily sync', start: 600, end: 660 });
+			// Rust indexed the rename, not the field write: new path, old time, no snippet.
+			await refreshWith({ [P('Daily sync')]: eventFile() });
+
+			expect(eventCalendarStore.events).toHaveLength(1);
+			expect(eventCalendarStore.eventByPath(P('Daily sync'))).toMatchObject({
+				title: 'Daily sync',
+				start: 600,
+				end: 660,
+				snippet: 'Body',
+				readOnly: false,
+				pending: true,
+			});
+
+			await refresh();
+			expect(eventCalendarStore.isPending(P('Daily sync'))).toBe(false);
+			expect(eventCalendarStore.eventByPath(P('Daily sync'))).toMatchObject({ start: 600, end: 660, pending: false });
+		});
+
+		it('drops a renamed overlay on the version clock when the index never shows the written state', async () => {
+			await editEvent(P('Standup'), { title: 'Daily sync', start: 600, end: 660 });
+
+			await refreshWith({ [P('Daily sync')]: eventFile() });
+			expect(eventCalendarStore.isPending(P('Daily sync'))).toBe(true);
+			await refreshWith({ [P('Daily sync')]: eventFile() });
+			expect(eventCalendarStore.isPending(P('Daily sync'))).toBe(false);
 		});
 
 		it('a second "Standup" renames to Standup 1.md with event_title: Standup', async () => {
@@ -870,6 +918,22 @@ describe('calendar writes', () => {
 			expect(disk.has(P('Daily sync'))).toBe(true);
 			expect(eventCalendarStore.events.map((e) => [e.path, e.title])).toEqual([[P('Daily sync'), 'Daily sync']]);
 			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([P('Daily sync')]);
+		});
+
+		it('keeps the undone time after an undo that renames while the index still shows the old fields', async () => {
+			await editEvent(P('Standup'), { title: 'Daily sync', start: 600, end: 660 });
+			await refresh(2);
+			const written = disk.get(P('Daily sync'))!;
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Edit event' });
+			await refreshWith({ [P('Standup')]: written });
+
+			expect(eventCalendarStore.events).toHaveLength(1);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ title: 'Standup', start: 570, end: 600, pending: true });
+
+			await refresh();
+			expect(eventCalendarStore.isPending(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 570, end: 600, pending: false });
 		});
 
 		it('refuses an undo after an external change and drops the op', async () => {

@@ -608,6 +608,19 @@ describe('prunePending', () => {
 		expect(prunePending([create], [], 5)).toEqual([create]);
 	});
 
+	it('keeps a settled create with a clock while the snapshot at its path shows other fields, until +2', () => {
+		const create: PendingWrite = { kind: 'create', path: P('a'), event: { ...a, start: 600, end: 660 }, settled: true, settledAtVersion: 5 };
+		expect(prunePending([create], [a], 6)).toEqual([create]);
+		expect(prunePending([create], [a], 7)).toEqual([]);
+		expect(prunePending([create], [{ ...a, start: 600, end: 660 }], 6)).toEqual([]);
+	});
+
+	it('prunes a settled create without a clock once its path is present, whatever its fields', () => {
+		const create: PendingWrite = { kind: 'create', path: P('a'), event: { ...a, title: 'Old name' }, settled: true };
+		expect(prunePending([create], [a], 1)).toEqual([]);
+		expect(prunePending([create], [], 1)).toEqual([create]);
+	});
+
 	it('prunes a settled delete when the path is absent', () => {
 		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 5 };
 		expect(prunePending([del], [], 5)).toEqual([]);

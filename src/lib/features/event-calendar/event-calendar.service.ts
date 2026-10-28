@@ -369,19 +369,23 @@ async function writeEvent(
 			} else {
 				// The rename landed: keep it visible and undoable on its own.
 				const renamedOnly: EventState = { ...before, title: before.title === fileBase(path) ? fileBase(target) : before.title };
-				eventCalendarStore.putPending({ kind: 'create', path: target, event: { ...current, ...renamedOnly, path: target }, settled: true });
+				eventCalendarStore.putPending({
+					kind: 'create',
+					path: target,
+					event: { ...current, ...renamedOnly, path: target },
+					settled: true,
+					settledAtVersion: vaultStore.vaultIndexVersion,
+				});
 				if (options.record) record({ kind: 'update', label: options.label, path: target, before, after: renamedOnly });
 			}
 		}
 		throw err;
 	}
 	if (!isCurrent()) return target;
-	if (target === path) {
-		eventCalendarStore.settlePending(target, vaultStore.vaultIndexVersion);
-	} else {
-		// Like the `create` `remapPath` leaves: no version clock, it prunes once the snapshot has `target`.
-		eventCalendarStore.putPending({ kind: 'create', path: target, event: renamedEvent, settled: true });
-	}
+	// After a rename this settles the `create` at `target` with a version clock:
+	// Rust indexes the rename before the field write, so it stays until the
+	// snapshot shows `after` (or the clock runs out), not just until `target` appears.
+	eventCalendarStore.settlePending(target, vaultStore.vaultIndexVersion);
 	if (options.record) record({ kind: 'update', label: options.label, path: target, before, after });
 	return target;
 }
