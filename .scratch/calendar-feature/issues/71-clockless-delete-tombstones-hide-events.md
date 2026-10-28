@@ -18,3 +18,4 @@
 ## Comments
 
 - 2026-10-28 20:47 — discovery — plan in work/71/discovery.md: clock every delete tombstone (service outside delete, store remapPath with a version arg) and let a remap replace a tombstone at `to` — cb258fca
+- 2026-10-28 20:49 — implement — every delete tombstone carries settledAtVersion; remap back onto a tombstone shows the event; event-calendar vitest 24 files / 933 passed, pnpm check 0 errors — 83c7896a
