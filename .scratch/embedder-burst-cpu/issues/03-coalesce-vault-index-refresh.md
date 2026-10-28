@@ -25,3 +25,4 @@
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
+- 2026-10-28 11:59 — discovery — inline throttle (2 s first delay, 10 s min interval, trailing) in the listener; no new util; plan in work/03/discovery.md — 09411068
