@@ -36,4 +36,5 @@
 
 ## Comments
 
-- 2026-10-28 13:37 — discovery — plan in work/22/discovery.md: color tokens (25% / 30% oklab mixes, min contrast 6.64) then grid components + view wiring + tests in one feat commit — pending
+- 2026-10-28 13:37 — discovery — plan in work/22/discovery.md: color tokens (25% / 30% oklab mixes, min contrast 6.64) then grid components + view wiring + tests in one feat commit — e97fcc9b
+- 2026-10-28 13:43 — implement — grid, day headers, block, all-day lane, view wiring and the 12 color tokens in one feat commit (the ticket asks for one; discovery had planned two); pnpm check 0 errors, vitest event-calendar + markdown-editor 1720/1720, E2E event-calendar 7/7; full gate left to deliver — d33f1b1c
