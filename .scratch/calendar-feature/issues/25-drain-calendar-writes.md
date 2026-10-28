@@ -31,3 +31,4 @@
 
 - 2026-10-28 13:52 — discovery — plan in work/25/discovery.md: two awaits, tests first; flush order observed via the mocked writeSettingsFile; ticket anchor :1169-1185 drifted to :1221-1243 — 1953f3c6
 - 2026-10-28 13:53 — implement — two awaits (initializeVault switch branch, close handler after discard prompt) with 4 new tests seen red first (2 order tests failed); pnpm check 0 errors, 5 related test files 214 passed; full gate and editor.spec E2E left to deliver — 9baefa39
+- 2026-10-28 13:57 — review — CHANGES_REQUESTED: order tests do not pin the await (deferred-drain case needed); switch-path comment claims an index update the vault-changed check prevents — 893e0327
