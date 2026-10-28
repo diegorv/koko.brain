@@ -9,7 +9,8 @@
  * or forget a removed one (`dropPath`).
  */
 
-import type { EventState, HistoryOp } from './event-calendar.types';
+import { sameEventState } from './event-calendar-event.logic';
+import type { HistoryOp } from './event-calendar.types';
 
 /** Undo and redo stacks of the calendar, newest op last. */
 export interface EventHistory {
@@ -29,30 +30,6 @@ export interface TakenOp {
 	history: EventHistory;
 }
 
-/**
- * Every `EventState` key, checked at compile time: a field added to
- * `EventFields` fails here until it is listed, so `sameState` never misses it.
- */
-const STATE_KEY_SET = {
-	title: true,
-	date: true,
-	start: true,
-	end: true,
-	allDay: true,
-	color: true,
-	location: true,
-} satisfies Record<keyof EventState, true>;
-
-const STATE_KEYS = Object.keys(STATE_KEY_SET) as (keyof EventState)[];
-
-/**
- * Whether two event states hold the same value in every field.
- * Follow-up: switch to ticket 07's `sameEventState` once it is on main.
- */
-function sameState(a: EventState, b: EventState): boolean {
-	return STATE_KEYS.every((key) => a[key] === b[key]);
-}
-
 /** Creates an empty history that keeps at most `max` undo ops. */
 export function createEventHistory(max = 100): EventHistory {
 	return { undo: [], redo: [], max };
@@ -64,7 +41,7 @@ export function createEventHistory(max = 100): EventHistory {
  * the oldest op is dropped past `max`, and the redo stack is cleared.
  */
 export function pushOp(h: EventHistory, op: HistoryOp): EventHistory {
-	if (op.kind === 'update' && sameState(op.before, op.after)) return h;
+	if (op.kind === 'update' && sameEventState(op.before, op.after)) return h;
 	const undo = [...h.undo, op];
 	return { undo: undo.length > h.max ? undo.slice(undo.length - h.max) : undo, redo: [], max: h.max };
 }

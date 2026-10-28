@@ -90,6 +90,23 @@ describe('pushOp', () => {
 		expect(next.redo).toHaveLength(1);
 	});
 
+	it('records an update that changes any single field', () => {
+		const changes: Partial<EventState>[] = [
+			{ title: 'x' },
+			{ date: '2026-11-09' },
+			{ start: 541 },
+			{ end: 571 },
+			{ allDay: true },
+			{ color: 'pink' },
+			{ location: 'y' },
+		];
+		expect(changes.map((c) => Object.keys(c)[0]).sort()).toEqual(Object.keys(state()).sort());
+		for (const change of changes) {
+			const op: HistoryOp = { kind: 'update', label: 'Edit event', path: `${VAULT}/a.md`, before: state(), after: state(change) };
+			expect(pushOp(createEventHistory(), op).undo).toEqual([op]);
+		}
+	});
+
 	it('records an update that changes only the title', () => {
 		const op: HistoryOp = {
 			kind: 'update',

@@ -331,20 +331,30 @@ export function eventState(event: EventNote): EventState {
 }
 
 /**
+ * Every `EventState` key, checked at compile time: a field added to
+ * `EventState` fails here until it is listed, so `sameEventState` never
+ * misses it.
+ */
+const EVENT_STATE_KEY_SET = {
+	title: true,
+	date: true,
+	start: true,
+	end: true,
+	allDay: true,
+	color: true,
+	location: true,
+} satisfies Record<keyof EventState, true>;
+
+/** The keys of `EVENT_STATE_KEY_SET`, in declaration order. */
+export const EVENT_STATE_KEYS: readonly (keyof EventState)[] = Object.keys(EVENT_STATE_KEY_SET) as (keyof EventState)[];
+
+/**
  * Whether two event states are equal field by field.
  * @param a - one state
  * @param b - the other state
  */
 export function sameEventState(a: EventState, b: EventState): boolean {
-	return (
-		a.title === b.title &&
-		a.date === b.date &&
-		a.start === b.start &&
-		a.end === b.end &&
-		a.allDay === b.allDay &&
-		a.color === b.color &&
-		a.location === b.location
-	);
+	return EVENT_STATE_KEYS.every((key) => a[key] === b[key]);
 }
 
 /**

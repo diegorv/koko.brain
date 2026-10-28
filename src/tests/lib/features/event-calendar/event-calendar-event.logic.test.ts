@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { isValidFileName } from '$lib/core/filesystem/fs.logic';
 import {
+	EVENT_STATE_KEYS,
 	applyEventDraft,
 	applyEventFields,
 	entryToEvent,
@@ -510,6 +511,17 @@ describe('small helpers', () => {
 		expect(sameEventState(eventState(a), eventState(makeEvent(P('b'))))).toBe(true);
 		for (const change of [{ title: 'x' }, { date: '2026-11-11' }, { start: 0 }, { end: 1 }, { allDay: true }, { color: 'pink' as const }, { location: 'y' }]) {
 			expect(sameEventState(eventState(a), { ...eventState(a), ...change })).toBe(false);
+		}
+	});
+
+	it('EVENT_STATE_KEYS lists every key eventState produces, so sameEventState compares them all', () => {
+		const s = eventState(makeEvent(P('a')));
+		expect([...EVENT_STATE_KEYS].sort()).toEqual(Object.keys(s).sort());
+		for (const key of Object.keys(s) as (keyof typeof s)[]) {
+			const value = s[key];
+			const other = typeof value === 'number' ? value + 1 : typeof value === 'boolean' ? !value : `${value}x`;
+			const changed = { ...s, [key]: other };
+			expect(sameEventState(s, changed)).toBe(false);
 		}
 	});
 
