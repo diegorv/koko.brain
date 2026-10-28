@@ -4,7 +4,7 @@
 
 **Plan reference:** Task 7 in `.scratch/calendar-feature/plan-2026-10-28.md` (lines 197-218). The plan task is the full spec (files, line anchors, test cases); this ticket is the definition of done.
 
-**Blocked by:** 06
+**Blocked by:** 06, 38
 
 **Status:** ready-for-agent
 
