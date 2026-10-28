@@ -4,6 +4,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { saveFileByPath, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { notifyAfterSave } from '$lib/core/editor/editor.hooks';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { basename } from '$lib/utils/path';
 import {
 	detectLossyFrontmatter,
 	extractBody,
@@ -54,13 +55,15 @@ const WRITE_ERROR_MESSAGES: Record<Exclude<FrontmatterWriteReason, 'save-failed'
 };
 
 /**
- * Reports a failed `updateNoteFrontmatter` call in an error toast. `save-failed`
- * shows nothing, because the editor already toasted it.
+ * Reports a failed `updateNoteFrontmatter` call in an error toast prefixed with
+ * the note's file name, since the target can differ from what the user clicked
+ * (a folder's note) or come from a background writer. `save-failed` shows
+ * nothing, because the editor already toasted it.
  * @param err - the error the write threw
  */
 export function toastFrontmatterWriteError(err: FrontmatterWriteError): void {
 	if (err.reason === 'save-failed') return;
-	toast.error(WRITE_ERROR_MESSAGES[err.reason]);
+	toast.error(`${basename(err.path)}: ${WRITE_ERROR_MESSAGES[err.reason]}`);
 }
 
 /** Throws `vault-changed` when the vault is no longer the one captured at entry. */

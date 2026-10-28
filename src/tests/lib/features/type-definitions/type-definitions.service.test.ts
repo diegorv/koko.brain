@@ -619,7 +619,7 @@ describe('toggleFavoriteForPath', () => {
 
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith(
-			"The note's frontmatter has comments; it cannot be rewritten without losing them",
+			"note.md: The note's frontmatter has comments; it cannot be rewritten without losing them",
 		);
 	});
 

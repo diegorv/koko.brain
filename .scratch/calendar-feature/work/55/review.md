@@ -30,3 +30,9 @@ Reviewed `git diff main...HEAD` (c6e3634e..6a2d2daa) in the worktree.
 ## Scope
 
 No scope creep. The ADR amendment and the generic toast helper are what the Issue asked for ("decide ... and how the UI reports it"). `ensureFolderNote`'s placeholder write staying disk-direct is out of scope, and the build report says so. One nit, no change needed: `removeFrontmatterIcon` reads a closed note twice, once for the "no icon keys" pre-check and once inside `updateNoteFrontmatter`. The cost is one extra read on a user click.
+
+## Resolution
+
+1. Fixed. `evaluateAndMove` skips the icon write when `detectLossyFrontmatter(content)` is not null and logs `Skipped icon for <path>: frontmatter is <reason>` through `debug`; no toast, no `Applied icon` line. Test: `auto-move.service.test.ts` "observer skips the icon of a note with lossy frontmatter and logs instead".
+2. Fixed. `toastFrontmatterWriteError` prefixes the message with `basename(err.path)` (`$lib/utils/path`). Expected strings updated in `frontmatter-write.service.test.ts`, `frontmatter-icon.service.test.ts` and `type-definitions.service.test.ts`; `file-icons.service.test.ts` and the calendar (own message map) assert no toast text.
+3. Fixed. `frontmatter-icon.service.test.ts` "after-save observers" registers a real observer over an in-memory disk: one call for the first icon write, none (and no second write) for the identical repeat.

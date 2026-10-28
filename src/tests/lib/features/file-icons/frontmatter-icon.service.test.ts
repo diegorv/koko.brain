@@ -18,6 +18,7 @@ import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { setFrontmatterIcon, removeFrontmatterIcon } from '$lib/features/file-icons/frontmatter-icon.service';
 import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
@@ -183,6 +184,30 @@ describe('editor tab sync (issue 55)', () => {
 	});
 });
 
+describe('after-save observers', () => {
+	it('run once for a closed-note icon write and not for an identical repeat', async () => {
+		let disk = '---\ntitle: Test\n---\nBody';
+		vi.mocked(readTextFile).mockImplementation(async () => disk);
+		vi.mocked(writeTextFile).mockImplementation(async (_path, data) => {
+			disk = data as string;
+		});
+		const observer = vi.fn();
+		const unsubscribe = addAfterSaveObserver(observer);
+
+		try {
+			expect(await setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).toBe(true);
+			expect(observer).toHaveBeenCalledOnce();
+			expect(observer).toHaveBeenCalledWith('/vault/a.md', disk);
+
+			expect(await setFrontmatterIcon('/vault/a.md', 'lucide', 'star')).toBe(true);
+			expect(writeTextFile).toHaveBeenCalledOnce();
+			expect(observer).toHaveBeenCalledOnce();
+		} finally {
+			unsubscribe();
+		}
+	});
+});
+
 describe('lossy frontmatter refusal (issue 55)', () => {
 	it('setFrontmatterIcon refuses a note with frontmatter comments: no write, toast, false', async () => {
 		vi.mocked(readTextFile).mockResolvedValue('---\n# keep me\ntitle: Test\n---\nBody');
@@ -191,7 +216,7 @@ describe('lossy frontmatter refusal (issue 55)', () => {
 
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith(
-			"The note's frontmatter has comments; it cannot be rewritten without losing them",
+			"a.md: The note's frontmatter has comments; it cannot be rewritten without losing them",
 		);
 	});
 
@@ -206,7 +231,7 @@ describe('lossy frontmatter refusal (issue 55)', () => {
 		expect(editorStore.tabs[0].content).toBe(edited);
 		expect(editorStore.tabs[0].savedContent).toBe(saved);
 		expect(toast.error).toHaveBeenCalledWith(
-			"The note's frontmatter has nested values; it cannot be rewritten without losing them",
+			"a.md: The note's frontmatter has nested values; it cannot be rewritten without losing them",
 		);
 	});
 });

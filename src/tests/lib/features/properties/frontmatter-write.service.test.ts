@@ -432,14 +432,14 @@ describe('toastFrontmatterWriteError', () => {
 		toastFrontmatterWriteError(new FrontmatterWriteError('comments', '/vault/a.md'));
 
 		expect(toast.error).toHaveBeenCalledWith(
-			"The note's frontmatter has comments; it cannot be rewritten without losing them",
+			"a.md: The note's frontmatter has comments; it cannot be rewritten without losing them",
 		);
 	});
 
 	it('toasts a vanished note', () => {
 		toastFrontmatterWriteError(new FrontmatterWriteError('missing', '/vault/a.md'));
 
-		expect(toast.error).toHaveBeenCalledWith('The note was moved or deleted');
+		expect(toast.error).toHaveBeenCalledWith('a.md: The note was moved or deleted');
 	});
 
 	it('stays silent on save-failed, which the editor already toasted', () => {

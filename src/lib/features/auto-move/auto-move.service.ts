@@ -3,6 +3,7 @@ import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { moveItem } from '$lib/core/filesystem/fs.service';
 import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
 import { buildNoteRecord } from '$lib/features/collection/collection.logic';
+import { detectLossyFrontmatter } from '$lib/features/properties/properties.logic';
 import { autoMoveStore } from './auto-move.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -189,6 +190,13 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 
 	// Apply icon to the file if the rule has one configured (even if already in destination)
 	if (rule.icon) {
+		// The icon write would refuse this frontmatter and toast on every autosave;
+		// skip it quietly instead.
+		const lossy = detectLossyFrontmatter(content);
+		if (lossy !== null) {
+			debug('AUTO-MOVE', `Skipped icon for ${targetPath}: frontmatter is ${lossy}`);
+			return;
+		}
 		try {
 			await setIconForPath(vaultPath, targetPath, rule.icon.iconPack, rule.icon.iconName, rule.icon.color, rule.icon.textColor);
 			debug('AUTO-MOVE', `Applied icon "${rule.icon.iconPack}:${rule.icon.iconName}" to ${targetPath}`);

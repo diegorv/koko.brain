@@ -31,6 +31,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { moveItem } from '$lib/core/filesystem/fs.service';
 import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
+import { debug } from '$lib/utils/debug';
 import { autoMoveStore } from '$lib/features/auto-move/auto-move.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -292,6 +293,41 @@ describe('auto-move.service', () => {
 			expect(setIconForPath).toHaveBeenCalledWith(
 				'/vault', '/vault/Archive/note.md', 'lucide', 'archive', '#ff0000', '#00ff00',
 			);
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
+		it('observer skips the icon of a note with lossy frontmatter and logs instead', async () => {
+			vi.useFakeTimers();
+
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{
+					id: 'r1',
+					name: 'Archive',
+					expression: "file.hasTag('archive')",
+					destination: 'Archive',
+					enabled: true,
+					icon: { iconPack: 'lucide', iconName: 'archive' },
+				}],
+				excludedFolders: [],
+			});
+
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+
+			registerAutoMoveHook();
+			capturedObserver!('/vault/Archive/note.md', '---\n# keep me\ntags:\n  - archive\n---\n');
+
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(moveItem).not.toHaveBeenCalled();
+			expect(setIconForPath).not.toHaveBeenCalled();
+			expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
 
 			vi.useRealTimers();
 			vaultStore.close();
