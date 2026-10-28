@@ -868,15 +868,24 @@ function findDeleteOp(path: string, trashId?: string): Extract<HistoryOp, { kind
 }
 
 /**
- * The ops on `path` recorded at or before `anchor`, in recording order
- * (the undo stack oldest first, then the redo stack newest first): the
- * history of the note `anchor` deleted. Empty without an anchor.
+ * The history of the note `anchor` deleted: the ops on `path` recorded at or
+ * before `anchor`, in recording order (the undo stack oldest first, then the
+ * redo stack newest first), back to that note's start at `path`. A `create`
+ * starts it and belongs to it; an earlier `delete` ended a different note,
+ * so neither it nor anything before it belongs. Empty without an anchor.
  */
 function opsUpTo(path: string, anchor: HistoryOp | undefined): Set<HistoryOp> {
 	const { undo, redo } = eventCalendarStore.history;
 	const timeline = [...undo, ...[...redo].reverse()];
-	const end = anchor ? timeline.indexOf(anchor) : -1;
-	return new Set(timeline.slice(0, end + 1).filter((op) => op.path === path));
+	const owned = new Set<HistoryOp>();
+	for (let i = anchor ? timeline.indexOf(anchor) : -1; i >= 0; i--) {
+		const op = timeline[i];
+		if (op.path !== path) continue;
+		if (op.kind === 'delete' && op !== anchor) break;
+		owned.add(op);
+		if (op.kind === 'create') break;
+	}
+	return owned;
 }
 
 /** `state` with a title read from `from`'s filename moved to `to`'s. */

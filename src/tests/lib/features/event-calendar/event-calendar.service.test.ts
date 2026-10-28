@@ -1935,6 +1935,53 @@ describe('calendar writes', () => {
 			expect(disk.has(P('Standup (restored)'))).toBe(true);
 		});
 
+		it('a suffixed restore leaves the ops of an earlier note at the old path on it', async () => {
+			// Note A: moved through the calendar, then deleted outside it.
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 630 });
+			await refresh(2);
+			disk.delete(P('Standup'));
+			await refresh();
+			// Note B: created at the same path, then deleted through the calendar.
+			expect(await createEvent(draft({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }))).toBe(P('Standup'));
+			await refresh(2);
+			await deleteEvent(P('Standup'));
+			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
+			await refresh(2);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+
+			const restored = P('Standup (restored)');
+			expect(eventCalendarStore.history.undo.map((op) => [op.kind, op.path])).toEqual([
+				['update', P('Standup')],
+				['create', restored],
+			]);
+			expect(eventCalendarStore.history.redo.map((op) => [op.kind, op.path])).toEqual([['delete', restored]]);
+		});
+
+		it('a suffixed restore leaves an earlier delete and the ops before it on the old path', async () => {
+			// Note A: moved, then deleted through the calendar. Note B appears outside it.
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 630 });
+			await refresh(2);
+			await deleteEvent(P('Standup'));
+			disk.set(P('Standup'), eventFile({ start: '12:00', end: '13:00' }));
+			await refresh(2);
+			await moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 });
+			await refresh(2);
+			await deleteEvent(P('Standup'));
+			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
+			await refresh(2);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+
+			const restored = P('Standup (restored)');
+			expect(disk.get(restored)).toContain('start: 12:00');
+			expect(eventCalendarStore.history.undo.map((op) => [op.kind, op.path])).toEqual([
+				['update', P('Standup')],
+				['delete', P('Standup')],
+				['update', restored],
+			]);
+		});
+
 		it("undoDeleteEvent restores and retires the delete op, so Cmd+Z offers nothing", async () => {
 			await deleteEvent(P('Standup'));
 
