@@ -103,4 +103,8 @@
 			</p>
 		</div>
 	{/if}
+	{#if !event.readOnly}
+		<!-- Bottom resize handle: the time grid's pointerdown hit-tests `[data-resize]`. -->
+		<div class="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" aria-hidden="true" data-resize></div>
+	{/if}
 </div>

@@ -449,6 +449,135 @@ test.describe('Event calendar create, delete and undo', () => {
 	});
 });
 
+/** Scrolls the time grid so `hour` sits just under the sticky header, and waits for that scroll to land. */
+async function scrollGridToHour(page: Page, hour: number): Promise<void> {
+	await page.locator('[data-time-grid]').evaluate(
+		(el, top) =>
+			new Promise<void>((resolve) => {
+				// The mount scroll may already have put it there: no scroll event would come.
+				if (el.scrollTop === top) return resolve();
+				el.addEventListener('scroll', () => requestAnimationFrame(() => resolve()), { once: true });
+				el.scrollTop = top;
+			}),
+		(hour - 1) * 64,
+	);
+}
+
+/** Presses the mouse at (x, y), drags by (dx, dy) in steps past the 4 px threshold, and releases. */
+async function drag(page: Page, x: number, y: number, dx: number, dy: number): Promise<void> {
+	await page.mouse.move(x, y);
+	await page.mouse.down();
+	await page.mouse.move(x + dx, y + dy, { steps: 8 });
+	await page.mouse.up();
+}
+
+/** Reads a note's bytes from the E2E disk. */
+function readNote(page: Page, path: string): Promise<string> {
+	return page.evaluate((p) => window.__e2e.fs.readFile(p), path);
+}
+
+test.describe('Event calendar pointer drag', () => {
+	const standup = (page: Page, day = '2026-11-10') => page.locator(`[data-day-column="${day}"] [data-event-path="${STANDUP}"]`);
+
+	/**
+	 * Opens the seeded calendar scrolled to `hour`, once the layout has settled: the
+	 * Needs-attention badge lands above the grid after the blocks and would shift them
+	 * under a pointer press measured before it.
+	 */
+	async function openGridAt(page: Page, hour: number): Promise<void> {
+		await openSeededCalendar(page);
+		await expect(standup(page)).toBeVisible({ timeout: 10_000 });
+		await expect(page.locator('[data-attention-badge]')).toBeVisible({ timeout: 10_000 });
+		await scrollGridToHour(page, hour);
+	}
+
+	test('dragging a block one hour down moves it and writes the new start', async ({ vaultPage: page }) => {
+		await openGridAt(page, 8);
+
+		const box = (await standup(page).boundingBox())!;
+		await drag(page, box.x + box.width / 2, box.y + 20, 0, 64);
+
+		await expect(standup(page).locator('[data-event-time]')).toHaveText('10:00 – 11:00');
+		await expect.poll(() => readNote(page, STANDUP)).toContain('\nstart: 10:00\n');
+		const bytes = await readNote(page, STANDUP);
+		expect(bytes).toContain('\nend: 11:00\n');
+		expect(bytes).toContain('\ndate: 2026-11-10\n');
+		// The drop's click is swallowed: no popover.
+		await expect(page.locator('[data-event-popover]')).toHaveCount(0);
+	});
+
+	test('dragging a block one column right moves it to the next day', async ({ vaultPage: page }) => {
+		await openGridAt(page, 8);
+
+		const box = (await standup(page).boundingBox())!;
+		const column = (await page.locator('[data-day-column="2026-11-10"]').boundingBox())!;
+		await drag(page, box.x + box.width / 2, box.y + 20, column.width, 0);
+
+		await expect(standup(page, '2026-11-11')).toBeVisible();
+		await expect(standup(page)).toHaveCount(0);
+		await expect(standup(page, '2026-11-11').locator('[data-event-time]')).toHaveText('09:00 – 10:00');
+		await expect.poll(() => readNote(page, STANDUP)).toContain('\ndate: 2026-11-11\n');
+		expect(await readNote(page, STANDUP)).toContain('\nstart: 09:00\n');
+	});
+
+	test('dragging the resize handle writes the new end', async ({ vaultPage: page }) => {
+		await openGridAt(page, 8);
+
+		const handle = (await standup(page).locator('[data-resize]').boundingBox())!;
+		await drag(page, handle.x + handle.width / 2, handle.y + handle.height / 2, 0, 64);
+
+		await expect(standup(page).locator('[data-event-time]')).toHaveText('09:00 – 11:00');
+		await expect.poll(() => readNote(page, STANDUP)).toContain('\nend: 11:00\n');
+		expect(await readNote(page, STANDUP)).toContain('\nstart: 09:00\n');
+	});
+
+	test('a click or a drag on empty space opens the create dialog with that range and writes nothing', async ({ vaultPage: page }) => {
+		await openGridAt(page, 12);
+		const blocks = await page.locator('[data-day-column] [data-event-path]').count();
+
+		const column = (await page.locator('[data-day-column="2026-11-11"]').boundingBox())!;
+		const body = (await page.locator('[data-time-grid-body]').boundingBox())!;
+		const x = column.x + column.width / 2;
+		const at = (minutes: number) => body.y + (minutes / 60) * 64 + 2;
+		const dialog = page.locator('[data-event-dialog]');
+
+		// An unmoved click: the default 60-minute range.
+		await page.mouse.click(x, at(13 * 60));
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByLabel('Start')).toHaveValue('13:00');
+		await expect(dialog.getByLabel('End')).toHaveValue('14:00');
+		await page.keyboard.press('Escape');
+		await expect(dialog).toHaveCount(0);
+		// bits-ui restores the body's pointer events a moment after the modal closes.
+		await expect(page.locator('body')).not.toHaveCSS('pointer-events', 'none');
+
+		// A drag: the dragged range.
+		await drag(page, x, at(13 * 60), 0, 2 * 64);
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByLabel('Start')).toHaveValue('13:00');
+		await expect(dialog.getByLabel('End')).toHaveValue('15:00');
+		await expect(page.locator('[data-create-ghost]')).toHaveCount(0);
+		await expect(page.locator('[data-day-column] [data-event-path]')).toHaveCount(blocks);
+	});
+
+	test('Escape mid-drag discards the move', async ({ vaultPage: page }) => {
+		await openGridAt(page, 8);
+		const before = await readNote(page, STANDUP);
+
+		const box = (await standup(page).boundingBox())!;
+		await page.mouse.move(box.x + box.width / 2, box.y + 20);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width / 2, box.y + 20 + 128, { steps: 8 });
+		await expect(standup(page).locator('[data-event-time]')).toHaveText('11:00 – 12:00');
+		await page.keyboard.press('Escape');
+		await expect(standup(page).locator('[data-event-time]')).toHaveText('09:00 – 10:00');
+		await page.mouse.up();
+
+		await expect(page.locator('[data-event-popover]')).toHaveCount(0);
+		expect(await readNote(page, STANDUP)).toBe(before);
+	});
+});
+
 test.describe('Event calendar selected day in a narrow pane', () => {
 	test.use({ clockTime: '2026-11-15T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
@@ -469,6 +598,8 @@ test.describe('Event calendar now-line on a DST day', () => {
 	test.use({ clockTime: '2026-10-25T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
 	test('the fall-back day places 10:00 at 640px, not 704px', async ({ vaultPage: page }) => {
+		// Under load the auto-opened daily note can land after the Calendar tab and take the selection.
+		await expect(page.locator('[role="tab"]', { hasText: '2026-10-25.md' })).toBeVisible({ timeout: 10_000 });
 		await openCalendar(page);
 
 		const line = page.locator('[data-day-column="2026-10-25"] [data-now-line]');

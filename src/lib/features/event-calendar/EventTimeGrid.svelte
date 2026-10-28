@@ -1,15 +1,29 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { formatLong, formatTime } from './event-calendar-dates.logic';
+	import { formatLong, formatTime, formatTimeRange } from './event-calendar-dates.logic';
+	import {
+		beginCreate,
+		beginMove,
+		beginResize,
+		createGhost,
+		previewDayEvents,
+		resolveDrag,
+		slotFromPoint,
+		updateDrag,
+		type EventTiming,
+		type Slot,
+	} from './event-calendar-drag.logic';
 	import { HOUR_HEIGHT, layoutDay, MIN_COLUMN_PX, minutesToPx } from './event-calendar-layout.logic';
 	import { groupEventsByDay, nowOffsetMinutes } from './event-calendar-view.logic';
+	import { moveEvent, resizeEvent, toastEventError } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import EventAllDayLane from './EventAllDayLane.svelte';
 	import EventBlock from './EventBlock.svelte';
 	import EventDayHeaders from './EventDayHeaders.svelte';
 	import type { PendingEventNote } from './event-calendar-event.logic';
+	import type { DragState } from './event-calendar.types';
 
 	interface Props {
 		/** Visible day keys: seven (or five) in week view, one in day view. */
@@ -24,11 +38,41 @@
 	const HOURS = Array.from({ length: 23 }, (_, i) => i + 1);
 
 	let scroller: HTMLDivElement | undefined = $state();
+	/** The day-columns body: pointer capture target and the rect the slot math reads. */
+	let bodyEl: HTMLDivElement | undefined = $state();
+
+	/** A pointer press in progress on the body. Not reactive: only the handlers read it. */
+	interface Gesture {
+		/** Pointer that started the gesture. */
+		pointerId: number;
+		/** Press point, for the drag threshold. */
+		x: number;
+		/** Press point, for the drag threshold. */
+		y: number;
+		/** Block pressed at pointerdown; `null` for a create on empty space. */
+		block: HTMLElement | null;
+	}
+
+	let gesture: Gesture | null = null;
+	/** Set when a mouse or pen gesture ends, so the click that follows it does nothing. */
+	let swallowClick = false;
+	/** Live drag preview; held after a drop until its write settles. */
+	let preview = $state.raw<DragState | null>(null);
+	/** The event a move or resize drags, as shown at pointerdown. */
+	let dragged = $state.raw<PendingEventNote | null>(null);
 
 	let timeFormat = $derived(settingsStore.eventCalendar.timeFormat);
 	let events = $derived(eventCalendarStore.events);
 	let timed = $derived(groupEventsByDay(events, days).timed);
-	let columns = $derived(days.map((day) => layoutDay(timed.get(day) ?? [])));
+	let baseColumns = $derived(days.map((day) => layoutDay(timed.get(day) ?? [])));
+	// During a drag only the source and target columns are laid out again.
+	let columns = $derived(
+		baseColumns.map((column, i) => {
+			const shown = previewDayEvents(preview, dragged, i, days[i], (timed.get(days[i]) ?? []) as PendingEventNote[]);
+			return shown ? layoutDay(shown) : column;
+		}),
+	);
+	let ghost = $derived(preview ? createGhost(preview) : null);
 
 	/** Axis label: 12h labels drop `:00` ("9 AM"). */
 	function hourLabel(hour: number): string {
@@ -38,7 +82,140 @@
 	// Open on the working day; `{#key view}` in the parent remounts the grid.
 	onMount(() => {
 		if (scroller) scroller.scrollTop = settingsStore.eventCalendar.dayStartHour * HOUR_HEIGHT;
+		return endGesture;
 	});
+
+	/** Slot under the pointer; the body rect is read live, so a scroll mid-drag stays correct. */
+	function slotAt(e: PointerEvent, body: HTMLElement): Slot {
+		return slotFromPoint(body.getBoundingClientRect(), e.clientX, e.clientY, days.length);
+	}
+
+	/** Forgets the live gesture and its Escape listener. The preview is left to the caller. */
+	function endGesture() {
+		gesture = null;
+		window.removeEventListener('keydown', handleGestureKeydown, true);
+	}
+
+	/** Clears the preview. */
+	function clearPreview() {
+		preview = null;
+		dragged = null;
+	}
+
+	/** Drops the live gesture without doing anything (Escape, `pointercancel`, lost capture). */
+	function discardGesture() {
+		const live = gesture;
+		if (!live) return;
+		endGesture();
+		clearPreview();
+		swallowClick = true;
+		if (bodyEl?.hasPointerCapture?.(live.pointerId)) bodyEl.releasePointerCapture(live.pointerId);
+	}
+
+	function handleGestureKeydown(e: KeyboardEvent) {
+		if (e.key !== 'Escape') return;
+		e.preventDefault();
+		e.stopPropagation();
+		discardGesture();
+	}
+
+	/**
+	 * Starts a gesture for a primary mouse or pen press: resize on a block's
+	 * `[data-resize]` handle, move on a block, create on empty space. Read-only
+	 * blocks are skipped, so their click opens the popover as before.
+	 */
+	function handlePointerDown(e: PointerEvent) {
+		swallowClick = false;
+		const body = bodyEl;
+		if (!body || e.button !== 0 || (e.pointerType !== 'mouse' && e.pointerType !== 'pen')) return;
+		const target = e.target instanceof Element ? e.target : null;
+		const block = target?.closest<HTMLElement>('[data-event-path]') ?? null;
+		if (block?.hasAttribute('data-readonly')) return;
+		const slot = slotAt(e, body);
+		let drag: DragState;
+		let event: PendingEventNote | null = null;
+		if (block) {
+			event = events.find((ev) => ev.path === block.dataset.eventPath) ?? null;
+			if (!event) return;
+			drag = target?.closest('[data-resize]') ? beginResize(event, slot) : beginMove(event, slot);
+		} else {
+			drag = beginCreate(slot, settingsStore.eventCalendar.defaultDurationMinutes);
+		}
+		endGesture();
+		gesture = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, block };
+		dragged = event;
+		preview = drag;
+		body.setPointerCapture?.(e.pointerId);
+		window.addEventListener('keydown', handleGestureKeydown, true);
+	}
+
+	/** The drag at the pointer, or `null` when `e` is not the live gesture's pointer. */
+	function dragAt(e: PointerEvent): DragState | null {
+		const body = bodyEl;
+		if (!gesture || e.pointerId !== gesture.pointerId || !preview || !body) return null;
+		return updateDrag(preview, slotAt(e, body), Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y));
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		const current = preview;
+		const next = dragAt(e);
+		if (!current || !next || next === current) return;
+		if (next.moved === current.moved && next.day === current.day && next.start === current.start && next.end === current.end) return;
+		// The popover would float at a stale anchor while its block moves.
+		if (!current.moved) eventCalendarViewStore.closePopover();
+		preview = next;
+	}
+
+	/** Ends the gesture: opens the dialog or the popover, or writes the drop once. */
+	function handlePointerUp(e: PointerEvent) {
+		const drag = dragAt(e);
+		const live = gesture;
+		if (!drag || !live) return;
+		endGesture();
+		swallowClick = true;
+		const result = resolveDrag(drag, events, days);
+		if (result.kind === 'move') {
+			preview = drag;
+			void commitDrop(drag, result.path, result.timing);
+			return;
+		}
+		clearPreview();
+		if (result.kind === 'create') {
+			eventCalendarViewStore.openDialog({ mode: 'create', ...result.payload });
+		} else if (result.kind === 'popover') {
+			const block = live.block?.isConnected
+				? live.block
+				: bodyEl?.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(result.path)}"]`);
+			if (block) eventCalendarViewStore.openPopover(result.path, block.getBoundingClientRect());
+		}
+	}
+
+	/**
+	 * Writes a drop through the service. The preview holds the dropped block in
+	 * place until the write settles, so it never snaps back; then the pending
+	 * overlay (or, on failure, the rolled-back event) shows. A later gesture's
+	 * preview is left alone.
+	 */
+	async function commitDrop(drag: DragState, path: string, timing: EventTiming) {
+		try {
+			await (drag.kind === 'resize' ? resizeEvent(path, timing.end) : moveEvent(path, timing));
+		} catch (err) {
+			toastEventError(err, path);
+		} finally {
+			if (preview === drag) clearPreview();
+		}
+	}
+
+	function handlePointerCancel(e: PointerEvent) {
+		if (gesture && e.pointerId === gesture.pointerId) discardGesture();
+	}
+
+	/** Swallows the click a mouse or pen gesture produces, so a moved block does not open its popover. */
+	function handleClickCapture(e: MouseEvent) {
+		if (!swallowClick) return;
+		swallowClick = false;
+		e.stopPropagation();
+	}
 
 	// When the week is wider than the pane, keep the selected day in view.
 	let didScrollX = false;
@@ -98,7 +275,18 @@
 				{/each}
 			</div>
 
-			<div class="relative flex h-full min-w-0 flex-1 select-none">
+			<div
+				bind:this={bodyEl}
+				class="relative flex h-full min-w-0 flex-1 select-none"
+				role="presentation"
+				data-time-grid-body
+				onpointerdown={handlePointerDown}
+				onpointermove={handlePointerMove}
+				onpointerup={handlePointerUp}
+				onpointercancel={handlePointerCancel}
+				onlostpointercapture={handlePointerCancel}
+				onclickcapture={handleClickCapture}
+			>
 				{#each days as day, i (day)}
 					{@const now = nowOffsetMinutes(eventCalendarViewStore.nowMs, day)}
 					<div
@@ -115,6 +303,16 @@
 								{timeFormat}
 							/>
 						{/each}
+						{#if ghost && ghost.dayIndex === i}
+							<div
+								class="pointer-events-none absolute right-1 left-0.5 z-20 overflow-hidden rounded-md border border-primary bg-primary/15 px-2 py-1 text-[11px] text-foreground"
+								style="top: {minutesToPx(ghost.start) + 1}px; height: {Math.max(minutesToPx(ghost.end - ghost.start) - 2, 14)}px"
+								aria-hidden="true"
+								data-create-ghost
+							>
+								{formatTimeRange(ghost.start, ghost.end, timeFormat)}
+							</div>
+						{/if}
 						{#if now !== null}
 							<div
 								class="pointer-events-none absolute right-0 left-0 z-20 h-0"

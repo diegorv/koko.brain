@@ -6,6 +6,7 @@ import {
 	beginResize,
 	createGhost,
 	DRAG_THRESHOLD_PX,
+	previewDayEvents,
 	resolveDrag,
 	slotFromPoint,
 	updateDrag,
@@ -295,5 +296,52 @@ describe('resize', () => {
 			path: 'a',
 			timing: { date: days[1], start: 540, end: 690 },
 		});
+	});
+});
+
+describe('previewDayEvents', () => {
+	const a = ev('a', 1, 540, 600);
+	const b = ev('b', 1, 570, 630);
+	const c = ev('c', 3, 600, 660);
+
+	it('leaves every column alone with no drag, a create, or a press under the threshold', () => {
+		expect(previewDayEvents(null, null, 1, days[1], [a, b])).toBeNull();
+		const create = updateDrag(beginCreate(slot(1, 540), 60), slot(1, 700), FAR);
+		expect(previewDayEvents(create, null, 1, days[1], [a, b])).toBeNull();
+		expect(previewDayEvents(beginMove(a, slot(1, 560)), a, 1, days[1], [a, b])).toBeNull();
+	});
+
+	it('moves the dragged event out of its source column and into the target column', () => {
+		const drag = updateDrag(beginMove(a, slot(1, 560)), slot(3, 680), FAR);
+		expect(previewDayEvents(drag, a, 1, days[1], [a, b])).toEqual([b]);
+		expect(previewDayEvents(drag, a, 3, days[3], [c])).toEqual([c, { ...a, date: days[3], start: 660, end: 720 }]);
+	});
+
+	it('leaves columns that are neither source nor target alone', () => {
+		const drag = updateDrag(beginMove(a, slot(1, 560)), slot(3, 680), FAR);
+		expect(previewDayEvents(drag, a, 2, days[2], [])).toBeNull();
+		expect(previewDayEvents(drag, a, 0, days[0], [])).toBeNull();
+	});
+
+	it('replaces the event in place for a move within its own day', () => {
+		const drag = updateDrag(beginMove(a, slot(1, 560)), slot(1, 680), FAR);
+		expect(previewDayEvents(drag, a, 1, days[1], [a, b])).toEqual([b, { ...a, start: 660, end: 720 }]);
+	});
+
+	it("resizes in the event's own column even when the press slot was in another", () => {
+		const drag = updateDrag(beginResize(a, slot(2, 598)), slot(2, 688), FAR);
+		expect(previewDayEvents(drag, a, 1, days[1], [a, b])).toEqual([b, { ...a, end: 690 }]);
+		expect(previewDayEvents(drag, a, 2, days[2], [])).toBeNull();
+	});
+
+	it('keeps the fields of the dragged event, such as its pending flag', () => {
+		const pending = { ...a, pending: true };
+		const drag = updateDrag(beginMove(pending, slot(1, 560)), slot(1, 680), FAR);
+		expect(previewDayEvents(drag, pending, 1, days[1], [pending])).toEqual([{ ...pending, start: 660, end: 720 }]);
+	});
+
+	it('leaves every column alone when the dragged event is unknown', () => {
+		const drag = updateDrag(beginMove(a, slot(1, 560)), slot(3, 680), FAR);
+		expect(previewDayEvents(drag, null, 3, days[3], [c])).toBeNull();
 	});
 });

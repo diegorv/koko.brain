@@ -134,6 +134,20 @@ describe('EventTimeGrid: timed blocks', () => {
 		expect(q(`[data-event-path="${P('Plain')}"]`)!.getAttribute('data-pending')).toBe('true');
 	});
 
+	it('gives writable blocks a bottom resize handle and read-only blocks none', () => {
+		seed([
+			event({ path: P('Trip'), title: 'Trip', date: '2026-11-10', readOnly: true }),
+			event({ path: P('Plain'), title: 'Plain', date: '2026-11-12' }),
+		]);
+		mountGrid();
+
+		const handle = q(`[data-event-path="${P('Plain')}"] [data-resize]`);
+		expect(handle).not.toBeNull();
+		expect(handle!.className).toContain('cursor-ns-resize');
+		expect(handle!.getAttribute('aria-hidden')).toBe('true');
+		expect(q(`[data-event-path="${P('Trip')}"] [data-resize]`)).toBeNull();
+	});
+
 	it('marks a pending block with a dashed border instead of dimming it', () => {
 		seed([event({ path: P('Plain'), title: 'Plain', date: '2026-11-12' })]);
 		mountGrid();

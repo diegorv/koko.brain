@@ -211,3 +211,32 @@ export function createGhost(drag: DragState): CreateGhost | null {
 	if (drag.kind !== 'create') return null;
 	return { dayIndex: drag.originDay, start: drag.start, end: drag.end };
 }
+
+/**
+ * Events of one visible day column as a move or resize drag shows them, or
+ * `null` when the drag leaves that column alone, so the caller re-lays out
+ * only the source and target columns. The source is the dragged event's own
+ * day; the target is the pointer's day for a move and the source for a
+ * resize. The dragged event leaves the source and lands in the target with
+ * the drag's range, keeping its other fields.
+ * @param drag - the live drag, or `null` when none is in progress
+ * @param dragged - the event being dragged, as the grid showed it at pointerdown
+ * @param dayIndex - index of the column in the visible days
+ * @param dayKey - day key of the column
+ * @param dayEvents - timed events the column shows without the drag
+ */
+export function previewDayEvents<T extends EventNote>(
+	drag: DragState | null,
+	dragged: T | null,
+	dayIndex: number,
+	dayKey: string,
+	dayEvents: T[],
+): T[] | null {
+	if (!drag || drag.kind === 'create' || !drag.moved || !dragged) return null;
+	const isSource = dragged.date === dayKey;
+	const isTarget = drag.kind === 'move' ? dayIndex === drag.day : isSource;
+	if (!isSource && !isTarget) return null;
+	const rest = dayEvents.filter((e) => e.path !== dragged.path);
+	if (isTarget) rest.push({ ...dragged, date: dayKey, start: drag.start, end: drag.end });
+	return rest;
+}
