@@ -39,3 +39,5 @@
 - 2026-10-28 13:37 — discovery — plan in work/22/discovery.md: color tokens (25% / 30% oklab mixes, min contrast 6.64) then grid components + view wiring + tests in one feat commit — e97fcc9b
 - 2026-10-28 13:43 — implement — grid, day headers, block, all-day lane, view wiring and the 12 color tokens in one feat commit (the ticket asks for one; discovery had planned two); pnpm check 0 errors, vitest event-calendar + markdown-editor 1720/1720, E2E event-calendar 7/7; full gate left to deliver — d33f1b1c
 - 2026-10-28 13:47 — review — CHANGES_REQUESTED: all-day lane corner not sticky sideways (overflow-hidden), opacity-80 time/snippet lines below 4.5:1 on Sakura, plus 3 minor and 1 nit in work/22/review.md — 1cbe52c3
+- 2026-10-28 13:51 — fix — all 6 review findings fixed (lane overflow-clip, no opacity on secondary lines, dashed pending border, header mask, z-index clamp, 3 new E2E cases); pnpm check 0 errors, EventTimeGrid 21/21, E2E event-calendar 9/9 — 38d524ea
+- 2026-10-28 13:52 — gate — pnpm check 0 errors, vitest 310 files / 7223 passed, pnpm build ok (no src-tauri changes); log test-logs/calendar-feature-22-deliver.log — 38d524ea
