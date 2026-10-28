@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import dayjs from 'dayjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 setupLocalStorage();
@@ -12,6 +13,9 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: vi.fn(),
 	exists: vi.fn(),
 	readDir: vi.fn(),
+	mkdir: vi.fn(),
+	rename: vi.fn(),
+	remove: vi.fn(),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -26,7 +30,7 @@ vi.mock('$lib/core/filesystem/fs.service', async () => {
 });
 
 import { invoke } from '@tauri-apps/api/core';
-import { exists, readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { renameItem } from '$lib/core/filesystem/fs.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
@@ -34,28 +38,38 @@ import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import { _resetParseFrontmatterCache } from '$lib/features/properties/properties.logic';
 import { FrontmatterWriteError } from '$lib/features/properties/frontmatter-write.service';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { getFileName } from '$lib/core/filesystem/fs.logic';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { trashStore } from '$lib/core/trash/trash.store.svelte';
+import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import {
 	acquireCalendarClock,
 	closeEventCalendarTab,
+	createEvent,
+	deleteEvent,
 	drainEventCalendarWrites,
+	duplicateEvent,
 	editEvent,
+	EventCalendarError,
 	loadEvents,
 	moveEvent,
 	openEventCalendarTab,
 	redoEventChange,
 	resetEventCalendar,
 	resizeEvent,
+	restoreDeletedEvent,
 	toastEventError,
 	toggleEventCalendarTab,
+	undoDeleteEvent,
 	undoEventChange,
 	updateEventFields,
 } from '$lib/features/event-calendar/event-calendar.service';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import type { EventDraft } from '$lib/features/event-calendar/event-calendar.types';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { eventEntry, eventEntryFromContent, eventNote } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -548,9 +562,19 @@ describe('calendar writes', () => {
 		resetHooks();
 		clearAllIndexed();
 		_resetParseFrontmatterCache();
-		vi.mocked(invoke).mockImplementation(async (cmd) => {
+		trashStore.clear();
+		typeDefinitionsStore.reset();
+		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+			// `create_note` writes the note; `scan_vault` feeds `refreshTree` an empty tree.
+			if (cmd === 'create_note') {
+				const { path, content } = args as { path: string; content: string };
+				disk.set(path, content);
+				return undefined;
+			}
+			if (cmd === 'scan_vault') return [];
 			if (cmd !== 'get_all_vault_entries_v2') return undefined;
-			return [...disk.entries()].map(([path, content]) => eventEntryFromContent(path, content));
+			// Rust skips dot-folders, so the Trash under `.kokobrain/` is never indexed.
+			return [...disk.entries()].filter(([path]) => !path.includes('/.')).map(([path, content]) => eventEntryFromContent(path, content));
 		});
 		vi.mocked(readTextFile).mockImplementation(async (p) => {
 			const path = String(p);
@@ -561,6 +585,16 @@ describe('calendar writes', () => {
 			disk.set(String(p), String(data));
 		});
 		vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)));
+		vi.mocked(mkdir).mockResolvedValue(undefined);
+		vi.mocked(rename).mockImplementation(async (from, to) => {
+			if (!disk.has(String(from))) throw new Error(`No such file: ${String(from)}`);
+			disk.set(String(to), disk.get(String(from))!);
+			disk.delete(String(from));
+		});
+		vi.mocked(remove).mockImplementation(async (p) => {
+			const prefix = `${String(p)}/`;
+			for (const key of [...disk.keys()]) if (key === String(p) || key.startsWith(prefix)) disk.delete(key);
+		});
 		vi.mocked(readDir).mockImplementation(async (dir) => {
 			const prefix = `${String(dir)}/`;
 			return [...disk.keys()]
@@ -584,6 +618,7 @@ describe('calendar writes', () => {
 		vi.mocked(writeTextFile).mockReset();
 		vi.mocked(exists).mockReset();
 		vi.mocked(renameItem).mockReset();
+		vi.mocked(rename).mockReset();
 	});
 
 	describe('updateEventFields, moveEvent and resizeEvent', () => {
@@ -1083,6 +1118,393 @@ describe('calendar writes', () => {
 		});
 	});
 
+	/** A draft for a timed event on 2026-11-12 at 10:00-10:30. */
+	function draft(overrides: Partial<EventDraft> = {}): EventDraft {
+		return { title: 'Planning', date: '2026-11-12', start: 600, end: 630, allDay: false, color: 'blue', location: '', notes: '', ...overrides };
+	}
+
+	/** Configures the Event type with a `_template` (and optional `_folder`) whose content is on the fake disk. */
+	function useTemplate(content: string, folder: string | null = null): void {
+		disk.set(`${VAULT}/_system/templates/Event.md`, content);
+		typeDefinitionsStore.setTypeMetadataMap(
+			new Map([
+				[
+					'Event',
+					{
+						name: 'Event',
+						path: null,
+						icon: 'file',
+						color: 'blue',
+						order: 50,
+						sidebarLabel: 'Events',
+						template: '_system/templates/Event.md',
+						folder,
+						sort: 'title',
+						view: 'all',
+						visible: true,
+						listPropertiesDisplay: [],
+						archiveTo: null,
+					},
+				],
+			]),
+		);
+	}
+
+	/** The `EventCalendarError` reason `promise` rejects with, or fails the test. */
+	async function calendarReasonOf(promise: Promise<unknown>): Promise<string> {
+		try {
+			await promise;
+		} catch (err) {
+			expect(err).toBeInstanceOf(EventCalendarError);
+			return (err as EventCalendarError).reason;
+		}
+		throw new Error('expected an EventCalendarError');
+	}
+
+	/** Paths on the fake disk inside the Trash. */
+	function trashedPaths(): string[] {
+		return [...disk.keys()].filter((p) => p.includes('/.kokobrain/trash/items/'));
+	}
+
+	/** Opens `path` in a tab whose unsaved content is `content`. */
+	function openDirtyTab(path: string, content: string): void {
+		editorStore.addTab({ path, name: getFileName(path), content, savedContent: disk.get(path)! });
+	}
+
+	describe('createEvent', () => {
+		it('writes the inline template with the draft, overlays it at once and records a Create event op', async () => {
+			const path = await createEvent(draft());
+
+			expect(path).toBe(P('Planning'));
+			const written = disk.get(P('Planning'))!;
+			expect(written).toContain('_type: Event');
+			expect(written).toContain('date: 2026-11-12');
+			expect(written).toContain('start: 10:00');
+			expect(written).toContain('end: 10:30');
+			expect(written).not.toContain('event_title');
+			expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Planning', date: '2026-11-12', start: 600, end: 630, pending: true });
+			expect(eventCalendarStore.history.undo).toEqual([expect.objectContaining({ kind: 'create', label: 'Create event', path: P('Planning') })]);
+
+			await refresh(2);
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+			expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Planning', start: 600, end: 630, pending: false });
+		});
+
+		it("uses the Event type's folder and template", async () => {
+			useTemplate('---\n_type: Event\nattendees: Ana\n---\n## Agenda\n', 'Events');
+
+			const path = await createEvent(draft({ notes: 'Bring the slides' }));
+
+			expect(path).toBe(`${VAULT}/Events/Planning.md`);
+			const written = disk.get(path)!;
+			expect(written).toContain('attendees: Ana');
+			expect(written).toContain('start: 10:00');
+			expect(written).toContain('Bring the slides\n\n## Agenda');
+		});
+
+		it("renders tp.date.now for the draft's day, not today", async () => {
+			useTemplate('---\n_type: Event\ndate: <% tp.date.now("YYYY-MM-DD") %>\n---\n# Notes for <% tp.date.now("YYYY-MM-DD") %>\n');
+
+			const path = await createEvent(draft({ date: '2027-03-04' }));
+
+			const written = disk.get(path)!;
+			expect(written).toContain('date: 2027-03-04');
+			expect(written).toContain('# Notes for 2027-03-04');
+			expect(written).not.toContain(dayjs().format('YYYY-MM-DD'));
+		});
+
+		it('refuses a template whose frontmatter has a comment, writing nothing', async () => {
+			useTemplate('---\n_type: Event\n# who attends\nattendees: Ana\n---\n');
+
+			expect(await calendarReasonOf(createEvent(draft()))).toBe('template-lossy');
+
+			expect(disk.has(P('Planning'))).toBe(false);
+			expect(invoke).not.toHaveBeenCalledWith('create_note', expect.anything());
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
+		it('a second "Standup" lands in Standup 1.md with event_title: Standup', async () => {
+			const path = await createEvent(draft({ title: 'Standup' }));
+
+			expect(path).toBe(P('Standup 1'));
+			expect(disk.get(path)).toContain('event_title: Standup');
+			expect(eventCalendarStore.eventByPath(path)?.title).toBe('Standup');
+			await refresh(2);
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup', pending: false });
+		});
+
+		it('"1:1 with manager" lands in 1-1 with manager.md and keeps its title', async () => {
+			const path = await createEvent(draft({ title: '1:1 with manager' }));
+
+			expect(path).toBe(P('1-1 with manager'));
+			expect(disk.get(path)).toContain('event_title:');
+			await refresh(2);
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: '1:1 with manager', pending: false });
+		});
+
+		it('turns a refused createFile into create-failed', async () => {
+			const real = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'create_note') throw new Error('a note with that name exists');
+				return real(cmd, args);
+			});
+
+			expect(await calendarReasonOf(createEvent(draft()))).toBe('create-failed');
+			expect(disk.has(P('Planning'))).toBe(false);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+	});
+
+	describe('duplicateEvent', () => {
+		it('copies the bytes unchanged into "<title> (copy).md" as a Duplicate event op', async () => {
+			const path = await duplicateEvent(P('Standup'));
+
+			expect(path).toBe(P('Standup (copy)'));
+			expect(disk.get(path)).toBe(disk.get(P('Standup')));
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup (copy)', start: 570, end: 600, pending: true });
+			expect(eventCalendarStore.history.undo).toEqual([expect.objectContaining({ kind: 'create', label: 'Duplicate event', path })]);
+			await refresh(2);
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup (copy)', pending: false });
+		});
+
+		it("copies a dirty tab's content", async () => {
+			const edited = eventFile({ start: '11:00', end: '11:30' });
+			openDirtyTab(P('Standup'), edited);
+
+			const path = await duplicateEvent(P('Standup'));
+
+			expect(disk.get(path)).toBe(edited);
+		});
+
+		it('gives the copy of an event_title note "<title> (copy)"', async () => {
+			disk.set(P('1-1 sync'), eventFile({ event_title: '"1:1 sync"' }));
+			await refresh();
+
+			const path = await duplicateEvent(P('1-1 sync'));
+
+			expect(path).toBe(P('1-1 sync (copy)'));
+			expect(eventCalendarStore.eventByPath(path)?.title).toBe('1:1 sync (copy)');
+			await refresh(2);
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: '1:1 sync (copy)', start: 570, pending: false });
+		});
+
+		it('keeps the bytes of a lossy note, which then shows the original title', async () => {
+			const lossy = eventNote({ _type: 'Event', date: '2026-11-10', start: '09:30', end: '10:00', event_title: 'Retro # monthly' }, 'Body\n');
+			disk.set(P('Retro'), lossy);
+			await refresh();
+
+			const path = await duplicateEvent(P('Retro'));
+
+			expect(disk.get(path)).toBe(lossy);
+		});
+	});
+
+	describe('deleteEvent and restoreDeletedEvent', () => {
+		it('saves a dirty tab first, so the trashed and restored bytes keep the edit', async () => {
+			const edited = eventFile({ start: '11:00', end: '11:30' });
+			openDirtyTab(P('Standup'), edited);
+
+			await deleteEvent(P('Standup'));
+
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(trashedPaths().map((p) => disk.get(p))).toEqual([edited]);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
+			expect(editorStore.tabs.some((t) => t.path === P('Standup'))).toBe(false);
+			const [item] = trashStore.items;
+			expect(item.originalPath).toBe('Standup.md');
+			expect(eventCalendarStore.history.undo).toEqual([
+				expect.objectContaining({ kind: 'delete', label: 'Delete event', path: P('Standup'), trashId: item.id }),
+			]);
+
+			expect(await restoreDeletedEvent(P('Standup'))).toBe(P('Standup'));
+			expect(disk.get(P('Standup'))).toBe(edited);
+			expect(trashStore.items).toEqual([]);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ title: 'Standup', pending: true });
+			await refresh();
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 660, end: 690, pending: false });
+		});
+
+		it('a save failure aborts the delete', async () => {
+			openDirtyTab(P('Standup'), eventFile({ start: '11:00' }));
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			expect(await reasonOf(deleteEvent(P('Standup')))).toBe('save-failed');
+
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(trashStore.items).toEqual([]);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ pending: false });
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
+		it('throws when deleteItem fails, rolling the overlay back', async () => {
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			await expect(deleteEvent(P('Standup'))).rejects.toThrow('Could not move the note to the Trash');
+
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ pending: false });
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
+		it('restores the entry with the given id', async () => {
+			await deleteEvent(P('Standup'));
+			const firstId = trashStore.items[0].id;
+			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
+			await refresh(2);
+			await deleteEvent(P('Standup'));
+			const secondId = trashStore.items[0].id;
+
+			expect(await restoreDeletedEvent(P('Standup'), firstId)).toBe(P('Standup'));
+
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+			expect(trashStore.items.map((i) => i.id)).toEqual([secondId]);
+		});
+
+		it('remaps history and view to a suffixed path, leaving the note now at the old path visible', async () => {
+			await deleteEvent(P('Standup'));
+			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
+			await refresh();
+			eventCalendarViewStore.openPopover(P('Standup'), RECT);
+
+			const restored = await restoreDeletedEvent(P('Standup'));
+
+			expect(restored).toBe(P('Standup (restored)'));
+			expect(disk.get(restored)).toContain('start: 09:30');
+			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([restored]);
+			expect(eventCalendarViewStore.popover?.path).toBe(restored);
+			expect(eventCalendarStore.eventByPath(restored)).toMatchObject({ title: 'Standup (restored)', start: 570, pending: true });
+			await refresh(2);
+			expect(eventCalendarStore.events.map((e) => [e.path, e.start, e.pending])).toEqual([
+				[P('Standup (restored)'), 570, false],
+				[P('Standup'), 840, false],
+			]);
+		});
+
+		it('refuses with not-in-trash after the Trash was emptied, leaving every store untouched', async () => {
+			await deleteEvent(P('Standup'));
+			trashStore.setItems([]);
+			const before = { events: eventCalendarStore.events, history: eventCalendarStore.history, pending: eventCalendarStore.pendingPaths };
+
+			expect(await calendarReasonOf(restoreDeletedEvent(P('Standup')))).toBe('not-in-trash');
+
+			expect(eventCalendarStore.events).toBe(before.events);
+			expect(eventCalendarStore.history).toBe(before.history);
+			expect(eventCalendarStore.pendingPaths).toBe(before.pending);
+			expect(trashStore.items).toEqual([]);
+		});
+
+		it('refuses with not-in-trash for a path that was never trashed', async () => {
+			await deleteEvent(P('Standup'));
+			const items = trashStore.items;
+
+			expect(await calendarReasonOf(restoreDeletedEvent(P('Unknown')))).toBe('not-in-trash');
+
+			expect(trashStore.items).toBe(items);
+			expect(disk.has(P('Standup'))).toBe(false);
+		});
+
+		it("undoDeleteEvent restores and retires the delete op, so Cmd+Z offers nothing", async () => {
+			await deleteEvent(P('Standup'));
+
+			expect(await undoDeleteEvent(P('Standup'))).toBe(P('Standup'));
+
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(eventCalendarStore.canUndo).toBe(false);
+			expect(eventCalendarStore.canRedo).toBe(false);
+			expect(await undoEventChange()).toEqual({ status: 'empty', label: null });
+		});
+	});
+
+	describe('undo and redo of creates and deletes', () => {
+		it('undo of a delete restores the note, redo deletes it again', async () => {
+			await deleteEvent(P('Standup'));
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(trashStore.items).toEqual([]);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 570, end: 600 });
+
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(trashStore.items).toHaveLength(1);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+			expect(disk.has(P('Standup'))).toBe(true);
+		});
+
+		it('undo of a create deletes the note, redo restores it', async () => {
+			await createEvent(draft());
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Create event' });
+			expect(disk.has(P('Planning'))).toBe(false);
+			expect(eventCalendarStore.eventByPath(P('Planning'))).toBeUndefined();
+			expect(trashStore.items.map((i) => i.originalPath)).toEqual(['Planning.md']);
+
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Create event' });
+			expect(disk.get(P('Planning'))).toContain('start: 10:00');
+			expect(trashStore.items).toEqual([]);
+			expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Planning', start: 600 });
+		});
+
+		it('undo of a duplicate deletes the copy', async () => {
+			await duplicateEvent(P('Standup'));
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Duplicate event' });
+			expect(disk.has(P('Standup (copy)'))).toBe(false);
+			expect(disk.has(P('Standup'))).toBe(true);
+		});
+
+		it('refuses to undo a create after the note changed, keeping the note', async () => {
+			await createEvent(draft());
+			await refresh(2);
+			const external = eventFile({ date: '2026-11-12', start: '16:00', end: '17:00' });
+			disk.set(P('Planning'), external);
+			await refresh(2);
+
+			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Create event' });
+			expect(disk.get(P('Planning'))).toBe(external);
+			expect(eventCalendarStore.canUndo).toBe(false);
+			expect(eventCalendarStore.canRedo).toBe(false);
+		});
+
+		it('returns vanished for a created note deleted outside the calendar', async () => {
+			await createEvent(draft());
+			await refresh(2);
+			disk.delete(P('Planning'));
+			await refresh();
+
+			expect(await undoEventChange()).toEqual({ status: 'vanished', label: 'Create event' });
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.history.redo).toEqual([]);
+		});
+
+		it('refuses to undo a delete once the Trash was emptied', async () => {
+			await deleteEvent(P('Standup'));
+			trashStore.setItems([]);
+
+			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Delete event' });
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.canUndo).toBe(false);
+			expect(eventCalendarStore.canRedo).toBe(false);
+		});
+
+		it('undo of a delete restored under a suffixed path remaps the op there', async () => {
+			await deleteEvent(P('Standup'));
+			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
+			await refresh(2);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+
+			expect(disk.get(P('Standup (restored)'))).toContain('start: 09:30');
+			expect(eventCalendarStore.history.redo.map((op) => op.path)).toEqual([P('Standup (restored)')]);
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+			expect(disk.has(P('Standup (restored)'))).toBe(false);
+			expect(disk.get(P('Standup'))).toContain('start: 14:00');
+		});
+	});
+
 	describe('toastEventError', () => {
 		it('skips save-failed, which the editor already toasted', () => {
 			toastEventError(new FrontmatterWriteError('save-failed', P('Standup')), P('Standup'));
@@ -1100,6 +1522,15 @@ describe('calendar writes', () => {
 				expect.any(String),
 				expect.objectContaining({ action: expect.objectContaining({ label: 'Open note' }) }),
 			);
+		});
+
+		it.each([
+			['not-in-trash', 'Event is no longer in the Trash'],
+			['template-lossy', "The Event template's frontmatter has comments or nested values; fix it or remove the template from the Event type"],
+			['create-failed', 'Could not create the note; a note with the same name, possibly differing only in case, may exist'],
+		] as const)('shows the message of EventCalendarError %s', (reason, message) => {
+			toastEventError(new EventCalendarError(reason), P('Standup'));
+			expect(toast.error).toHaveBeenCalledWith(message);
 		});
 
 		it('shows the message of any other error', () => {
