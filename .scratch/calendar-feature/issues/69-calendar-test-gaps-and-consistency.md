@@ -28,3 +28,6 @@ E2E harness (found while fixing the issue 56 backlink spec, 81053434):
 
 Ticket 40 review (fix c987395b):
 - [ ] `EventTimeGrid.svelte:278` still reads `settingsStore.eventCalendar.showTasks` in the template, unlike the `$derived` used in `EventCalendarView.svelte:199` and `EventMonthGrid.svelte:26`; no visible effect, align for consistency.
+
+Ticket 47 review (fix 8bd85874):
+- [ ] The "restored folder not in the tree" line in `trash.service.ts:160` uses `debug()`, which is off by default, yet a miss leaves the folder's notes out of VaultIndex, FTS5 and semantic until a full rebuild (the watcher drops the directory-only rename). Raise it to `error()` / `appendLog`, and consider indexing from a disk listing when the tree lookup misses (symlinked vault root).
