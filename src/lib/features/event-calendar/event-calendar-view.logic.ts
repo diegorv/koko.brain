@@ -65,10 +65,10 @@ export interface MonthCell {
 	inMonth: boolean;
 }
 
-/** One chip of a month cell. */
-export interface DayItem {
-	/** The event the chip opens. */
-	event: EventNote;
+/** One chip of a month cell; `T` keeps the caller's event type (the pending overlay's `PendingEventNote`). */
+export interface DayItem<T extends EventNote = EventNote> {
+	/** The event the chip opens (the input object, not a copy). */
+	event: T;
 	/** Chip text: the title, prefixed by the start time for a timed event. */
 	label: string;
 }
@@ -201,7 +201,7 @@ export function buildMonthCells(date: string, weekStartsOn: WeekStart, showWeeke
  * @param timeFormat - format of the start time in timed labels
  * @returns all-day events first, then timed ones by start, ties by title
  */
-export function itemsForDay(events: EventNote[], day: string, timeFormat: TimeFormat): DayItem[] {
+export function itemsForDay<T extends EventNote>(events: T[], day: string, timeFormat: TimeFormat): DayItem<T>[] {
 	return events
 		.filter((e) => e.date === day)
 		.sort(

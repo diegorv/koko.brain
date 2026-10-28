@@ -325,6 +325,13 @@ describe('itemsForDay', () => {
 		expect(itemsForDay([], day, '24h')).toEqual([]);
 	});
 
+	it('returns the input event objects, so extra fields such as pending survive', () => {
+		const pending = { ...ev('p', day, 540, 600), pending: true };
+		const [item] = itemsForDay([pending], day, '24h');
+		expect(item.event).toBe(pending);
+		expect(item.event.pending).toBe(true);
+	});
+
 	it('caps month chips at 3', () => {
 		expect(MONTH_MAX_CHIPS).toBe(3);
 	});

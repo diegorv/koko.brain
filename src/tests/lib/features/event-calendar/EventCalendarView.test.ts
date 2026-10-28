@@ -182,7 +182,7 @@ describe('EventCalendarView: loading', () => {
 		expect(target.querySelector('[data-calendar-issues]')).toBeNull();
 	});
 
-	it('shows one day column in day view and the placeholder in month view', async () => {
+	it('shows one day column in day view and the month grid in month view', async () => {
 		mountView();
 		await settle();
 
@@ -194,7 +194,8 @@ describe('EventCalendarView: loading', () => {
 		eventCalendarViewStore.setView('month');
 		flushSync();
 		expect(target.querySelector('[data-time-grid]')).toBeNull();
-		expect(target.querySelector('[data-calendar-grid-placeholder]')).not.toBeNull();
+		expect(target.querySelector('[data-month-grid]')).not.toBeNull();
+		expect(target.querySelectorAll('[data-month-cell]')).toHaveLength(42);
 	});
 
 	it('renders a loaded event on the grid', async () => {

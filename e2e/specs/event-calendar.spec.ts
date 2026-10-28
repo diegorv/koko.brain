@@ -231,6 +231,23 @@ test.describe('Event calendar time grid', () => {
 	});
 });
 
+test.describe('Event calendar month view', () => {
+	test('switching to Month shows the event chips in their day cells', async ({ vaultPage: page }) => {
+		await seedEvents(page);
+		await openCalendar(page);
+
+		await page.getByRole('tab', { name: 'Month' }).click();
+		await expect(page.locator('[data-month-grid]')).toBeVisible();
+		await expect(page.locator('[data-time-grid]')).toHaveCount(0);
+
+		const chip = page.locator(`[data-month-cell="2026-11-10"] [data-event-path="${STANDUP}"]`);
+		await expect(chip).toBeVisible({ timeout: 10_000 });
+		await expect(chip).toHaveText('09:00 Standup');
+		await expect(page.locator(`[data-month-cell="2026-11-12"] [data-event-path="${HOLIDAY}"]`)).toHaveText('Holiday');
+		await expect(page.locator('[data-month-cell="2026-11-10"] [data-month-day]')).toHaveAttribute('data-today', 'true');
+	});
+});
+
 test.describe('Event calendar selected day in a narrow pane', () => {
 	test.use({ clockTime: '2026-11-15T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
