@@ -31,7 +31,7 @@ import { createTypedNote } from '$lib/features/type-definitions/type-definitions
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import type { FileTaskGroupV2, NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { error } from '$lib/utils/debug';
-import { applyEventDraft, applyEventFields, eventFileBase, eventState, eventsFromEntries, resolveEventTypeName, sameEventState } from './event-calendar-event.logic';
+import { applyEventDraft, applyEventFields, eventFileBase, eventState, eventsFromEntries, prunePending, resolveEventTypeName, sameEventState } from './event-calendar-event.logic';
 import type { EventTiming } from './event-calendar-drag.logic';
 import { planTitleChange, type EventFormPatch } from './event-calendar-form.logic';
 import { tasksFromGroups } from './event-calendar-tasks.logic';
@@ -194,10 +194,12 @@ function withoutPending({ pending: _pending, ...event }: EventNote & { pending?:
  * The calendar event at `path` and the events around it. The loaded store
  * answers only while it holds the current index version and projection
  * inputs: it reloads only while the Calendar view is mounted, so it goes
- * stale once another tab is active. A pending write in the store still wins over a stale store, so a
- * move in flight shows its new day, and a rename or delete tombstone finds
- * nothing at the old path. Otherwise the vault entries snapshot is
- * projected once per index version and settings.
+ * stale once another tab is active. A pending write in the store still wins
+ * over a stale store while a reload would keep it (`prunePending` against
+ * the snapshot), so a move in flight shows its new day, and a rename or
+ * delete tombstone finds nothing at the old path until it expires. Otherwise
+ * the vault entries snapshot is projected once per index version and
+ * settings.
  * @throws the IPC error of the snapshot read
  */
 async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | null; events: EventNote[] }> {
@@ -212,7 +214,10 @@ async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | n
 		const { events } = eventsFromEntries(entries, options);
 		lookupMemo = { entries, key, events, byPath: new Map(events.map((event) => [event.path, event])) };
 	}
-	const isPending = eventCalendarStore.isPending(path);
+	// A stale store never prunes, so a write counts only while a reload at the
+	// current version would keep it; an expired one defers to the snapshot.
+	const write = eventCalendarStore.pendingWrite(path);
+	const isPending = write !== undefined && prunePending([write], lookupMemo.events, vaultStore.vaultIndexVersion).length > 0;
 	const pending = isPending ? eventCalendarStore.eventByPath(path) : undefined;
 	// A pending path the store does not show is a tombstone: the snapshot still
 	// lists the note the calendar renamed or deleted away.
@@ -903,6 +908,13 @@ function findDeleteOp(path: string, trashId?: string): Extract<HistoryOp, { kind
  * redo stack newest first), back to that note's start at `path`. A `create`
  * starts it and belongs to it; an earlier `delete` ended a different note,
  * so neither it nor anything before it belongs. Empty without an anchor.
+ *
+ * The walk sees only the calendar's own ops, so it misreads two cases: a
+ * note that replaced an earlier one at the path outside the calendar (no
+ * `delete` op between them) takes that note's ops, and a note the calendar deleted, restored outside it (the Trash
+ * panel) and deleted again stops at that first `delete`, leaving its own
+ * earlier ops on the old path. Their undo is then refused by the state
+ * precondition, so they are lost rather than misapplied.
  */
 function opsUpTo(path: string, anchor: HistoryOp | undefined): Set<HistoryOp> {
 	const { undo, redo } = eventCalendarStore.history;
@@ -1200,8 +1212,13 @@ export async function deleteEventFromUi(path: string, root: HTMLElement | undefi
 		toastEventError(err, path);
 		return;
 	}
+	// A vault switch during the delete already dismissed this vault's toasts.
+	if (!isCurrent()) return;
+	const forget = (t: { id: string | number }) => deleteToasts.delete(t.id);
 	const id = toast('Event deleted', {
 		description: title,
+		onDismiss: forget,
+		onAutoClose: forget,
 		action: {
 			label: 'Undo',
 			onClick: () => {

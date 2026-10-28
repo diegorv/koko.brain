@@ -107,10 +107,10 @@
 	 * Writes the changed fields through `editEvent`, then closes; an unchanged
 	 * draft just closes. The dialog stays open while the write is in flight,
 	 * even when the old path of a rename leaves the snapshot before the remap,
-	 * so the result still reaches it. When the dialog was closed (or reopened for another
-	 * event) during the write, the result no longer belongs to the open dialog:
-	 * a success leaves it alone and a failure is reported in a toast, since the
-	 * form that would show it inline is gone.
+	 * so the result still reaches it. When the dialog was closed (or reopened
+	 * for another event) during the write, the result no longer belongs to the
+	 * open dialog: a success leaves it alone and a failure is reported in a
+	 * toast, since the form that would show it inline is gone.
 	 */
 	async function save(draft: EventFormDraft) {
 		if (!path || !opened?.state) return;

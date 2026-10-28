@@ -78,6 +78,8 @@ export const eventCalendarStore = {
 	eventByPath(path: string): PendingEventNote | undefined { return eventMap.get(path); },
 	/** Whether `path` holds a pending write. O(1). */
 	isPending(path: string): boolean { return pendingSet.has(path); },
+	/** The pending write held for `path`, or undefined. O(1). */
+	pendingWrite(path: string): PendingWrite | undefined { return pending.get(path); },
 	/** Paths that hold a pending write. */
 	get pendingPaths(): ReadonlySet<string> { return pendingSet; },
 	/** Every issue of the latest snapshot. */

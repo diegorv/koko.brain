@@ -706,7 +706,7 @@ describe('EventDialog: footer Delete and Duplicate', () => {
 		expect(disk.has(P('Standup'))).toBe(false);
 		expect(root.querySelector(`[data-event-path="${P('Standup')}"]`)).toBeNull();
 		expect(document.activeElement).toBe(root);
-		expect(toast).toHaveBeenCalledWith('Event deleted', { description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } });
+		expect(toast).toHaveBeenCalledWith('Event deleted', expect.objectContaining({ description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } }));
 
 		const [, options] = vi.mocked(toast).mock.calls[0] as unknown as [string, { action: { onClick: () => void } }];
 		document.body.focus();

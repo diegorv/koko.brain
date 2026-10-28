@@ -58,6 +58,7 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toEqual([]);
 			expect(store.eventByPath(P('a'))).toBeUndefined();
 			expect(store.isPending(P('a'))).toBe(false);
+			expect(store.pendingWrite(P('a'))).toBeUndefined();
 			expect(store.pendingPaths.size).toBe(0);
 			expect(store.issues).toEqual([]);
 			expect(store.attentionIssues).toEqual([]);
@@ -186,6 +187,7 @@ describe('eventCalendarStore', () => {
 			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 720 }), settled: false });
 
 			expect(store.eventByPath(a.path)?.start).toBe(720);
+			expect(store.pendingWrite(a.path)).toEqual({ kind: 'update', path: a.path, state: stateOf(a, { start: 720 }), settled: false });
 			expect(store.pendingPaths.size).toBe(1);
 		});
 

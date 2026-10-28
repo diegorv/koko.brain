@@ -309,6 +309,27 @@ describe('findCalendarEvent', () => {
 		expect(await findCalendarEvent(P('Daily'))).toMatchObject({ path: P('Daily'), date: '2026-11-10' });
 	});
 
+	it('finds a note restored at the path of an expired delete tombstone in a stale store', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-20' })]);
+		await loadEvents();
+		eventCalendarStore.putPending({ kind: 'delete', path: P('Standup'), settled: true, settledAtVersion: 1 });
+		// The Calendar tab closed; the note came back from the Trash panel since.
+		vaultStore.bumpVaultIndexVersion(50);
+
+		expect(await findCalendarEvent(P('Standup'))).toMatchObject({ path: P('Standup'), date: '2026-11-20' });
+	});
+
+	it('still hides a delete tombstone the stale store would keep', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-20' })]);
+		await loadEvents();
+		eventCalendarStore.putPending({ kind: 'delete', path: P('Standup'), settled: true, settledAtVersion: 1 });
+		vaultStore.bumpVaultIndexVersion(2);
+
+		expect(await findCalendarEvent(P('Standup'))).toBeNull();
+	});
+
 	it('reads the snapshot when a projection setting changed after the load', async () => {
 		vi.mocked(invoke).mockResolvedValue([eventEntry(P('m'), { _type: 'Meeting', date: '2026-11-10' })]);
 		await loadEvents();
@@ -2148,7 +2169,12 @@ describe('calendar writes', () => {
 			await deleteEventFromUi(P('Standup'), root);
 
 			expect(disk.has(P('Standup'))).toBe(false);
-			expect(toast).toHaveBeenCalledWith('Event deleted', { description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } });
+			expect(toast).toHaveBeenCalledWith('Event deleted', {
+				description: 'Standup',
+				onDismiss: expect.any(Function),
+				onAutoClose: expect.any(Function),
+				action: { label: 'Undo', onClick: expect.any(Function) },
+			});
 			toastAction()();
 			await drainEventCalendarWrites();
 			await flush();
@@ -2199,6 +2225,43 @@ describe('calendar writes', () => {
 			expect(vi.mocked(toast.dismiss).mock.calls).toEqual([['first'], ['second']]);
 			resetEventCalendar();
 			expect(toast.dismiss).toHaveBeenCalledTimes(2);
+		});
+
+		it('a vault switch while the delete is in flight shows no "Event deleted" toast', async () => {
+			const gate = deferred<void>();
+			const real = vi.mocked(rename).getMockImplementation()!;
+			vi.mocked(rename).mockImplementationOnce(async (...args) => {
+				await gate.promise;
+				return real(...args);
+			});
+			const done = deleteEventFromUi(P('Standup'), makeRoot());
+			await flush();
+
+			resetEventCalendar();
+			gate.resolve();
+			await done;
+
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(toast).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('a toast closed by the user or by its timer is not dismissed again on a vault switch', async () => {
+			vi.mocked(toast.dismiss).mockClear();
+			vi.mocked(toast).mockReturnValueOnce('closed').mockReturnValueOnce('timed-out').mockReturnValueOnce('open');
+			disk.set(P('Retro'), eventFile());
+			disk.set(P('Review'), eventFile());
+			await refresh();
+			await deleteEventFromUi(P('Standup'), makeRoot());
+			await deleteEventFromUi(P('Retro'), makeRoot());
+			await deleteEventFromUi(P('Review'), makeRoot());
+			const options = vi.mocked(toast).mock.calls.map(([, o]) => o as { onDismiss: (t: { id: string }) => void; onAutoClose: (t: { id: string }) => void });
+			options[0].onDismiss({ id: 'closed' });
+			options[1].onAutoClose({ id: 'timed-out' });
+
+			resetEventCalendar();
+
+			expect(vi.mocked(toast.dismiss).mock.calls).toEqual([['open']]);
 		});
 
 		it('an Undo clicked after a vault switch restores nothing and says the note is no longer in the Trash', async () => {

@@ -798,7 +798,7 @@ describe('EventCalendarView: keyboard', () => {
 		press(STANDUP(), 'Delete');
 		await settlePopover();
 
-		expect(toast).toHaveBeenCalledWith('Event deleted', { description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } });
+		expect(toast).toHaveBeenCalledWith('Event deleted', expect.objectContaining({ description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } }));
 		expect(eventCalendarStore.history.undo.at(-1)).toMatchObject({ kind: 'delete', path: P('Standup') });
 		expect(document.activeElement).toBe(ROOT());
 	});

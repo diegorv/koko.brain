@@ -46,3 +46,13 @@ CLAUDE.md checks: no layer violations (feature imports `core/filesystem/fs.logic
 4. **Nit**, `src/lib/features/event-calendar/event-calendar.service.ts:57,1214`. `deleteToasts` keeps ids of toasts that auto-closed or were dismissed by the user until the next reset. svelte-sonner offers `onDismiss` / `onAutoClose`, which could `deleteToasts.delete(id)`. Optional.
 
 5. **Nit**, `src/lib/features/event-calendar/EventDialog.svelte:107-114`. The edited JSDoc has one over-long line ("so the result still reaches it. When the dialog was closed (or reopened for another"). Rewrap it to match the paragraph.
+
+## Resolution
+
+All five findings accepted and fixed; none rejected.
+
+1. `lookupCalendarEvent` honors a pending write only while `prunePending([write], lookupMemo.events, vaultIndexVersion)` keeps it, via the new `eventCalendarStore.pendingWrite(path)`. The probe is a regression test ("finds a note restored at the path of an expired delete tombstone in a stale store"), next to one that pins a tombstone still within its window.
+2. `deleteEventFromUi` returns before the toast when `isCurrent()` is false; test "a vault switch while the delete is in flight shows no "Event deleted" toast".
+3. `opsUpTo` JSDoc names both blind spots (replacement outside the calendar; delete, restore outside, delete again).
+4. The toast's `onDismiss` / `onAutoClose` remove its id from `deleteToasts`; test "a toast closed by the user or by its timer is not dismissed again on a vault switch".
+5. `EventDialog.svelte` `save()` JSDoc rewrapped.
