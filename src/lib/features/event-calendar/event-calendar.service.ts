@@ -895,10 +895,11 @@ function followFilename(state: EventState, from: string, to: string): EventState
 
 /**
  * Restores `path` from the Trash. A note restored under a suffixed path
- * moves its own ops there (`anchor` and the ops on `path` recorded before
- * it), and a create or delete op among them whose title was its filename
- * takes the new one. Later ops and the view store stay on `path`: they
- * belong to the note that now holds it. With a known `state`, the note
+ * moves its own ops there (`anchor` and the ops on `path` before it, back
+ * to that note's start, see `opsUpTo`), and a create or delete op among them
+ * whose title was its filename takes the new one. Later ops and the view
+ * store stay on `path`: they belong to the note that now holds it, so a
+ * delete tombstone at `path` is dropped. With a known `state`, the note
  * shows through a `create` overlay until the snapshot has its path; without
  * one, a same-path restore drops the delete tombstone at `path`.
  * @param anchor - the op that deleted the note, which the restore undoes
@@ -932,7 +933,10 @@ async function restoreNow(
 		const { history } = eventCalendarStore;
 		eventCalendarStore.setHistory({ ...history, undo: history.undo.map(move), redo: history.redo.map(move) });
 	}
-	if (!state && restored === path) eventCalendarStore.dropPending(path);
+	// The note is back at `path`, or another note holds it: either way a delete
+	// tombstone there is stale. A same-path restore with a state replaces it below.
+	const tombstone = eventCalendarStore.isPending(path) && !eventCalendarStore.eventByPath(path);
+	if (tombstone && (restored !== path || !state)) eventCalendarStore.dropPending(path);
 	if (state) {
 		const { title } = followFilename(state, path, restored);
 		eventCalendarStore.putPending({

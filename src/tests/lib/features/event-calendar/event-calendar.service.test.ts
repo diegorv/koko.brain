@@ -1855,6 +1855,22 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 570, pending: false });
 		});
 
+		it.each([
+			['without a recorded delete op', true],
+			['with the recorded state', false],
+		])('a suffixed restore %s drops the delete tombstone that hides the note now at the old path', async (_label, clearHistory) => {
+			await deleteEvent(P('Standup'));
+			if (clearHistory) eventCalendarStore.setHistory({ undo: [], redo: [], max: 100 });
+			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
+			// One refresh: the settled tombstone outlives it and still hides the new note.
+			await refresh();
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
+
+			expect(await restoreDeletedEvent(P('Standup'))).toBe(P('Standup (restored)'));
+
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 840, pending: false });
+		});
+
 		it('remaps its own history to a suffixed path, leaving the view and the note now at the old path alone', async () => {
 			await deleteEvent(P('Standup'));
 			disk.set(P('Standup'), eventFile({ start: '14:00', end: '15:00' }));
