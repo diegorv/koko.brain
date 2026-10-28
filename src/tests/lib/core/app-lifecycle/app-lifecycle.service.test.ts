@@ -150,6 +150,7 @@ vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 
 vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
 	resetEventCalendar: vi.fn(),
+	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('$lib/features/tasks/tasks.service', () => ({
@@ -210,7 +211,7 @@ import { resetTemplates, ensureTemplatesFolder } from '$lib/plugins/templates/te
 import { loadBookmarks, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
 import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '$lib/features/file-icons/file-icons.service';
 import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
-import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { drainEventCalendarWrites, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -1242,6 +1243,20 @@ describe('state transitions: teardown → reinitialize', () => {
 		);
 	});
 
+	it('drains in-flight calendar writes after saving dirty tabs and before teardown on switch', async () => {
+		await initializeVault('/vault-a');
+		vi.clearAllMocks();
+
+		await initializeVault('/vault-b');
+
+		expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1);
+		const save = vi.mocked(saveAllDirtyTabs).mock.invocationCallOrder[0];
+		const drain = vi.mocked(drainEventCalendarWrites).mock.invocationCallOrder[0];
+		const reset = vi.mocked(resetEditor).mock.invocationCallOrder[0];
+		expect(save).toBeLessThan(drain);
+		expect(drain).toBeLessThan(reset);
+	});
+
 	it('tears down previous vault automatically when switching without explicit teardown', async () => {
 		// Initialize vault A
 		await initializeVault('/vault-a');
@@ -1316,5 +1331,11 @@ describe('state transitions: teardown → reinitialize', () => {
 		expect(resetEditor).not.toHaveBeenCalled();
 		expect(stopWatching).not.toHaveBeenCalled();
 		expect(saveAllDirtyTabs).not.toHaveBeenCalled();
+	});
+
+	it('does not drain calendar writes on the first open', async () => {
+		await initializeVault('/vault-a');
+
+		expect(drainEventCalendarWrites).not.toHaveBeenCalled();
 	});
 });

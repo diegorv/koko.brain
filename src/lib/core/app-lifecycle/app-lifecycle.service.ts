@@ -61,7 +61,7 @@ import {
 	scanFilesForCalendar,
 } from '$lib/plugins/calendar/calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
-import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { drainEventCalendarWrites, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
 import { autoOpenDailyNote, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -172,6 +172,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	if (unsubscribeFileChange) {
 		debug('LIFECYCLE', 'Saving dirty tabs before tearing down previous vault');
 		await saveAllDirtyTabs();
+		// Queued calendar writes still owe the old vault their notifyAfterSave;
+		// let them land in its index before teardown resets it.
+		await drainEventCalendarWrites();
 		debug('LIFECYCLE', 'Tearing down previous vault before re-initialization');
 		teardownVault();
 	}

@@ -14,6 +14,7 @@ import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
 import { buildPropertyIndex } from '$lib/features/collection/collection.service';
+import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
 import { error } from '$lib/utils/debug';
 import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
 
@@ -59,6 +60,9 @@ export function registerCloseHandler(): () => void {
 			);
 			if (!discard) return;
 		}
+		// A drag, create or delete queued just before quitting must finish its
+		// write and its index update before the window dies.
+		await drainEventCalendarWrites();
 		// The settings effect debounces its write by 500 ms; without this the
 		// last change before quitting dies with the window. After the discard
 		// prompt so a cancelled close does not flush.

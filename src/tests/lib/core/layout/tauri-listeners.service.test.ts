@@ -62,6 +62,12 @@ vi.mock('$lib/core/filesystem/fs.service', () => ({
 	createFile: vi.fn(),
 }));
 
+// Side-effect service (queued frontmatter writes); the close handler only
+// awaits its drain, so the mock resolves at once and records the call order.
+vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 	refreshDailyNoteIfDateChanged: vi.fn().mockResolvedValue(undefined),
 }));
@@ -94,6 +100,7 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
+import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
@@ -285,6 +292,40 @@ describe('registerCloseHandler', () => {
 		expect(JSON.parse(content).layout.leftSidebarVisible).toBe(false);
 		expect(vi.mocked(writeSettingsFile).mock.invocationCallOrder[0])
 			.toBeLessThan(mockDestroy.mock.invocationCallOrder[0]);
+	});
+
+	it('drains calendar writes after saving tabs and before flushing settings and destroying', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		registerCloseHandler();
+		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
+
+		startSettingsPersistence('/vault');
+		// A pending change makes the real flush reach the mocked write boundary.
+		settingsStore.updateLayout({ leftSidebarVisible: false });
+
+		await capturedCloseHandler!({ preventDefault: vi.fn() });
+
+		expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1);
+		const save = vi.mocked(saveAllDirtyTabs).mock.invocationCallOrder[0];
+		const drain = vi.mocked(drainEventCalendarWrites).mock.invocationCallOrder[0];
+		const flush = vi.mocked(writeSettingsFile).mock.invocationCallOrder[0];
+		const destroy = mockDestroy.mock.invocationCallOrder[0];
+		expect(save).toBeLessThan(drain);
+		expect(drain).toBeLessThan(flush);
+		expect(flush).toBeLessThan(destroy);
+	});
+
+	it('neither drains calendar writes nor destroys when the user cancels the discard prompt', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue(['/vault/note.md']);
+		vi.mocked(ask).mockResolvedValue(false);
+		registerCloseHandler();
+		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
+
+		await capturedCloseHandler!({ preventDefault: vi.fn() });
+
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(drainEventCalendarWrites).not.toHaveBeenCalled();
+		expect(mockDestroy).not.toHaveBeenCalled();
 	});
 
 	it('does not flush settings when the user cancels the close', async () => {
