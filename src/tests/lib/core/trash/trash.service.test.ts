@@ -1,4 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -33,6 +37,10 @@ import {
 	emptyTrash,
 } from '$lib/core/trash/trash.service';
 import { refreshTree } from '$lib/core/filesystem/fs.service';
+import { invoke } from '@tauri-apps/api/core';
+import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
+import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
+import { clearAllIndexed } from '$lib/utils/index-dedupe';
 
 const VAULT = '/Users/me/vault';
 
@@ -311,6 +319,114 @@ describe('restoreItem', () => {
 		await expect(
 			restoreItem(VAULT, item),
 		).rejects.toThrow('fail');
+	});
+});
+
+describe('restoreItem - indexing', () => {
+	const CONTENT = '---\nstatus: done\n---\n# Meeting\n';
+	let upserts: [string, string][] = [];
+	let unregister: () => void = () => {};
+
+	/** Names of the commands the invoke mock was called with. */
+	function invokedCommands(): string[] {
+		return vi.mocked(invoke).mock.calls.map((c) => c[0] as string);
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		trashStore.clear();
+		clearAllIndexed();
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		mockExists.mockResolvedValue(false);
+		mockRename.mockResolvedValue(undefined);
+		mockRemove.mockResolvedValue(undefined);
+		mockMkdir.mockResolvedValue(undefined);
+		mockWriteTextFile.mockResolvedValue(undefined);
+		mockReadTextFile.mockResolvedValue(CONTENT);
+		upserts = [];
+		unregister = registerNoteChangeConsumer({
+			name: 'test-consumer',
+			upsert: (path, content) => { upserts.push([path, content]); },
+			remove: () => {},
+		});
+	});
+
+	afterEach(() => {
+		unregister();
+	});
+
+	it('indexes a restored .md note through applyNoteChange', async () => {
+		const item = makeStoredItem('1000', 'notes/meeting.md');
+		trashStore.setItems([item]);
+
+		const result = await restoreItem(VAULT, item);
+
+		const path = '/Users/me/vault/notes/meeting.md';
+		expect(result).toBe(path);
+		expect(mockReadTextFile).toHaveBeenCalledWith(path);
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path, content: CONTENT });
+		expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+			filePath: 'notes/meeting.md', content: CONTENT, vaultPath: VAULT,
+		});
+		expect(upserts).toEqual([[path, CONTENT]]);
+		expect(areAllRecentSaves([path])).toBe(true);
+	});
+
+	it('indexes a suffixed restore under the suffixed path', async () => {
+		const item = makeStoredItem('1000', 'notes/meeting.md');
+		trashStore.setItems([item]);
+		mockExists.mockResolvedValueOnce(true).mockResolvedValue(false);
+
+		const result = await restoreItem(VAULT, item);
+
+		const path = '/Users/me/vault/notes/meeting (restored).md';
+		expect(result).toBe(path);
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path, content: CONTENT });
+		expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+			filePath: 'notes/meeting (restored).md', content: CONTENT, vaultPath: VAULT,
+		});
+		expect(upserts).toEqual([[path, CONTENT]]);
+	});
+
+	it('indexes nothing for a directory restore', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+
+		const result = await restoreItem(VAULT, item);
+
+		expect(result).toBe('/Users/me/vault/projects/archive');
+		expect(mockReadTextFile).not.toHaveBeenCalled();
+		expect(invokedCommands()).toEqual([]);
+		expect(upserts).toEqual([]);
+		expect(trashStore.items).toHaveLength(0);
+	});
+
+	it('indexes nothing for a non-Markdown file', async () => {
+		const item = makeStoredItem('1000', 'assets/photo.png');
+		trashStore.setItems([item]);
+
+		await restoreItem(VAULT, item);
+
+		expect(mockReadTextFile).not.toHaveBeenCalled();
+		expect(invokedCommands()).toEqual([]);
+		expect(upserts).toEqual([]);
+	});
+
+	it('still returns the path and removes the trash item when the read fails', async () => {
+		const item = makeStoredItem('1000', 'notes/unreadable.md');
+		trashStore.setItems([item]);
+		mockReadTextFile.mockRejectedValue(new Error('read failed'));
+
+		const result = await restoreItem(VAULT, item);
+
+		const path = '/Users/me/vault/notes/unreadable.md';
+		expect(result).toBe(path);
+		expect(trashStore.items).toHaveLength(0);
+		expect(invokedCommands()).toEqual([]);
+		expect(upserts).toEqual([]);
+		// No self-save mark, so the watcher still indexes the file.
+		expect(areAllRecentSaves([path])).toBe(false);
+		expect(refreshTree).toHaveBeenCalled();
 	});
 });
 

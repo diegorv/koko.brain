@@ -83,6 +83,7 @@ describe('applyNoteChange', () => {
 			['watcher', true, true],
 			['create', false, false],
 			['fs', false, false],
+			['restore', true, true],
 		])('source %s: rust=%s mark=%s', async (source, firesRust, marks) => {
 			await applyNoteChange({ kind: 'upsert', source, path: '/vault/a.md', content: CONTENT });
 

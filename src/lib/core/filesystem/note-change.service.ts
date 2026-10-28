@@ -12,8 +12,9 @@ import { debug, error } from '$lib/utils/debug';
  * - `watcher` - an external on-disk change picked up by the file watcher
  * - `create`  - the note creator, right after Rust's `create_note`
  * - `fs`      - the file explorer's create / delete / rename / move
+ * - `restore` - Trash restore, after the rename back
  */
-export type NoteChangeSource = 'save' | 'edit' | 'watcher' | 'create' | 'fs';
+export type NoteChangeSource = 'save' | 'edit' | 'watcher' | 'create' | 'fs' | 'restore';
 
 /**
  * A per-file index that has to follow a note's bytes. Consumers live in
@@ -88,6 +89,9 @@ const SOURCE_POLICY: Record<NoteChangeSource, SourcePolicy> = {
 	watcher: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false },
 	create: { consumers: 'always', rust: 'never', mark: false, yieldBeforeConsumers: false },
 	fs: { consumers: 'always', rust: 'never', mark: false, yieldBeforeConsumers: false },
+	// The delete already removed the note from Rust (`forgetNote`) and no
+	// `create_note` runs on restore, so the IPC must fire, unlike `create` / `fs`.
+	restore: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false },
 };
 
 /** Registered consumers, in registration order. */

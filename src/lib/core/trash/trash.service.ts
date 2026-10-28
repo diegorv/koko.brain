@@ -12,6 +12,8 @@ import {
 	serializeTrashManifest,
 } from './trash.logic';
 import { getRelativePath } from '$lib/core/filesystem/fs.logic';
+import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
+import { markRecentSave } from '$lib/core/editor/editor.hooks';
 import { debug, error } from '$lib/utils/debug';
 
 /**
@@ -97,6 +99,8 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
  * Restores a trashed item to its original location.
  * Creates parent directories if they no longer exist.
  * Appends a numeric suffix if the original path is occupied.
+ * A restored Markdown note is re-indexed through `applyNoteChange`
+ * (`restore` source); directories are left to the watcher.
  */
 export async function restoreItem(vaultPath: string, item: TrashItem): Promise<string | null> {
 	try {
@@ -132,6 +136,12 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 			error('Trash', 'Failed to save manifest after restore (removing phantom entry):', err);
 		}
 		trashStore.removeItem(item.id);
+
+		// Re-index a restored note right away instead of waiting for the
+		// watcher. Directories keep relying on the watcher.
+		if (!item.isDirectory && isMarkdownPath(restorePath)) {
+			await indexRestoredNote(vaultPath, restorePath);
+		}
 
 		// Refresh the file tree so the restored item appears
 		const { refreshTree } = await import('$lib/core/filesystem/fs.service');
@@ -193,6 +203,28 @@ export async function emptyTrash(vaultPath: string): Promise<boolean> {
  */
 export function resetTrash(): void {
 	trashStore.clear();
+}
+
+/**
+ * Reads the restored note and hands it to the note-change owner. A read
+ * failure is logged and sets no recent-save mark, so the watcher still
+ * indexes the file.
+ */
+async function indexRestoredNote(vaultPath: string, restorePath: string): Promise<void> {
+	let content: string;
+	try {
+		content = await readTextFile(restorePath);
+	} catch (err) {
+		error('Trash', 'Failed to read restored note for indexing (watcher will index it):', err);
+		return;
+	}
+	markRecentSave(restorePath);
+	void applyNoteChange({ kind: 'upsert', source: 'restore', path: restorePath, content, vaultPath });
+}
+
+/** Whether `path` is a Markdown note, using the watcher's filter. */
+function isMarkdownPath(path: string): boolean {
+	return path.endsWith('.md') || path.endsWith('.markdown');
 }
 
 /**
