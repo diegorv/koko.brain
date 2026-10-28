@@ -314,6 +314,21 @@ describe('EventPopover: closing', () => {
 		expect(eventCalendarViewStore.popover).toBeNull();
 	});
 
+	it('"Edit" replaces the popover with the edit dialog for the same event', async () => {
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		const edit = [...popover()!.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Edit')!;
+		edit.click();
+		await settle();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(popover()).toBeNull();
+		expect(eventCalendarViewStore.dialog?.payload).toEqual({ mode: 'edit', path: P('Standup') });
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
 	it('"Open note" closes the popover and opens the note', async () => {
 		mountView();
 		block(P('Standup')).click();

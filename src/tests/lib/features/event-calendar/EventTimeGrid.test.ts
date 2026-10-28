@@ -121,7 +121,7 @@ describe('EventTimeGrid: timed blocks', () => {
 
 		expect(q(`[data-event-path="${P('Trip')}"]`)!.hasAttribute('data-readonly')).toBe(true);
 		expect(q(`[data-event-path="${P('Plain')}"]`)!.hasAttribute('data-readonly')).toBe(false);
-		expect(q(`[data-event-path="${P('Plain')}"]`)!.hasAttribute('data-pending')).toBe(false);
+		expect(q(`[data-event-path="${P('Plain')}"]`)!.getAttribute('data-pending')).toBe('false');
 
 		eventCalendarStore.putPending({
 			kind: 'update',
@@ -131,7 +131,7 @@ describe('EventTimeGrid: timed blocks', () => {
 		});
 		flushSync();
 
-		expect(q(`[data-event-path="${P('Plain')}"]`)!.hasAttribute('data-pending')).toBe(true);
+		expect(q(`[data-event-path="${P('Plain')}"]`)!.getAttribute('data-pending')).toBe('true');
 	});
 
 	it('marks a pending block with a dashed border instead of dimming it', () => {

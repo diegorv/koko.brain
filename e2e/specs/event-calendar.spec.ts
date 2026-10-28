@@ -295,6 +295,95 @@ test.describe('Event calendar popover', () => {
 	});
 });
 
+/**
+ * Seeds the events and opens the Calendar tab once the auto-opened daily note
+ * has landed, so that tab cannot take the selection from the calendar.
+ */
+async function openSeededCalendar(page: Page): Promise<void> {
+	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
+	await seedEvents(page);
+	await openCalendar(page);
+}
+
+/** Opens the edit dialog of the Standup block through its popover. */
+async function openStandupEditor(page: Page): Promise<void> {
+	const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${STANDUP}"]`);
+	await expect(block).toBeVisible({ timeout: 10_000 });
+	// Scroll 09:00 clear of the sticky header first, so the click does not scroll and close the popover.
+	await page.locator('[data-time-grid]').evaluate(
+		(el) =>
+			new Promise<void>((resolve) => {
+				el.addEventListener('scroll', () => requestAnimationFrame(() => resolve()), { once: true });
+				el.scrollTop = 6 * 64;
+			}),
+	);
+	await block.click();
+	await page.locator('[data-event-popover]').getByRole('button', { name: 'Edit' }).click();
+	await expect(page.locator('[data-event-dialog]')).toBeVisible();
+}
+
+/** Current version of the E2E vault index. */
+function indexVersion(page: Page): Promise<number> {
+	return page.evaluate(() => window.__e2e.vaultIndex.version);
+}
+
+test.describe('Event calendar edit dialog', () => {
+	test('editing the time updates the block and the note frontmatter', async ({ vaultPage: page }) => {
+		await openSeededCalendar(page);
+		await openStandupEditor(page);
+
+		const dialog = page.locator('[data-event-dialog]');
+		await dialog.getByLabel('Start').fill('11:00');
+		await expect(dialog.getByLabel('End')).toHaveValue('12:00');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${STANDUP}"]`);
+		await expect(block.locator('[data-event-time]')).toHaveText('11:00 – 12:00');
+		const bytes = await page.evaluate((path) => window.__e2e.fs.readFile(path), STANDUP);
+		expect(bytes).toContain('\nstart: 11:00\n');
+		expect(bytes).toContain('\nend: 12:00\n');
+		expect(bytes).toContain('Daily sync notes');
+	});
+
+	test('renaming through the title leaves one settled block at the new path', async ({ vaultPage: page }) => {
+		const renamed = '/test-vault/Events/Daily sync.md';
+		await openSeededCalendar(page);
+		await openStandupEditor(page);
+		const before = await indexVersion(page);
+
+		const dialog = page.locator('[data-event-dialog]');
+		await dialog.getByLabel('Title').fill('Daily sync');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		await expect.poll(() => indexVersion(page)).toBeGreaterThan(before);
+		await page.waitForTimeout(300);
+		// The throttled vault-index refresh settles the overlay (2 s after the event, 10 s spacing).
+		await expect(page.locator(`[data-event-path="${renamed}"][data-pending="false"]`)).toHaveCount(1, { timeout: 15_000 });
+		await expect(page.locator('[data-day-column] [data-event-path]', { hasText: 'Daily sync' })).toHaveCount(1);
+		await expect(page.locator(`[data-event-path="${STANDUP}"]`)).toHaveCount(0);
+		expect(await page.evaluate((path) => window.__e2e.fs.exists(path), STANDUP)).toBe(false);
+	});
+
+	test('renaming to "1:1 sync" keeps the typed title in event_title', async ({ vaultPage: page }) => {
+		const renamed = '/test-vault/Events/1-1 sync.md';
+		await openSeededCalendar(page);
+		await openStandupEditor(page);
+
+		const dialog = page.locator('[data-event-dialog]');
+		await dialog.getByLabel('Title').fill('1:1 sync');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const block = page.locator(`[data-day-column="2026-11-10"] [data-event-path="${renamed}"]`);
+		await expect(block.locator('[data-event-title]')).toHaveText('1:1 sync');
+		expect(await page.evaluate((path) => window.__e2e.fs.exists(path), renamed)).toBe(true);
+		const bytes = await page.evaluate((path) => window.__e2e.fs.readFile(path), renamed);
+		expect(bytes).toMatch(/^event_title: 1:1 sync$/m);
+	});
+});
+
 test.describe('Event calendar selected day in a narrow pane', () => {
 	test.use({ clockTime: '2026-11-15T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 

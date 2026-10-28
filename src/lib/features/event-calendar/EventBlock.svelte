@@ -68,7 +68,7 @@
 	{style}
 	aria-label={label}
 	data-event-path={event.path}
-	data-pending={event.pending || undefined}
+	data-pending={event.pending ? 'true' : 'false'}
 	data-readonly={event.readOnly || undefined}
 	onclick={(e) => openPopover(e.currentTarget)}
 	onkeydown={handleKeydown}

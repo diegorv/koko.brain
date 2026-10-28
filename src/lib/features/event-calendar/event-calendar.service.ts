@@ -923,6 +923,23 @@ const WRITE_ERROR_MESSAGES: Partial<Record<FrontmatterWriteReason, string>> = {
 };
 
 /**
+ * The user-facing text of a failed calendar write, for an inline error.
+ * @param err - what the write threw
+ * @returns the reason's message for an `EventCalendarError` or a
+ *   `FrontmatterWriteError` (`save-failed` and `missing` included), else
+ *   the error's own message
+ */
+export function eventErrorMessage(err: unknown): string {
+	if (err instanceof EventCalendarError) return CALENDAR_ERROR_MESSAGES[err.reason];
+	if (err instanceof FrontmatterWriteError) {
+		if (err.reason === 'save-failed') return 'Could not save the note';
+		if (err.reason === 'missing') return 'The note was moved or deleted outside the calendar';
+		return WRITE_ERROR_MESSAGES[err.reason] ?? err.message;
+	}
+	return err instanceof Error ? err.message : String(err);
+}
+
+/**
  * Reports a failed calendar write in a toast. An `EventCalendarError` shows
  * its reason's message, `save-failed` is skipped (the editor already
  * toasted), `missing` says the note moved or was deleted, refusals and
@@ -931,20 +948,14 @@ const WRITE_ERROR_MESSAGES: Partial<Record<FrontmatterWriteReason, string>> = {
  * @param path - the note the write targeted
  */
 export function toastEventError(err: unknown, path: string): void {
-	if (err instanceof EventCalendarError) {
-		toast.error(CALENDAR_ERROR_MESSAGES[err.reason]);
-		return;
-	}
 	if (err instanceof FrontmatterWriteError) {
 		if (err.reason === 'save-failed') return;
-		if (err.reason === 'missing') {
-			toast.error('The note was moved or deleted outside the calendar');
+		if (err.reason !== 'missing') {
+			toast.error(eventErrorMessage(err), {
+				action: { label: 'Open note', onClick: () => void openFileInEditor(path) },
+			});
 			return;
 		}
-		toast.error(WRITE_ERROR_MESSAGES[err.reason] ?? err.message, {
-			action: { label: 'Open note', onClick: () => void openFileInEditor(path) },
-		});
-		return;
 	}
-	toast.error(err instanceof Error ? err.message : String(err));
+	toast.error(eventErrorMessage(err));
 }

@@ -405,6 +405,28 @@ describe('EventCalendarView: popover', () => {
 		expect(document.activeElement).toBe(target.querySelector('section[data-event-calendar]'));
 	});
 
+	it('"Edit" in the popover opens the edit dialog, and Escape returns focus to the block', async () => {
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+
+		const edit = [...document.querySelectorAll<HTMLButtonElement>('[data-event-popover] button')].find((b) => b.textContent?.trim() === 'Edit')!;
+		edit.click();
+		await settlePopover();
+
+		const dialog = document.querySelector('[data-event-dialog]');
+		expect(document.querySelector('[data-event-popover]')).toBeNull();
+		expect(dialog?.querySelector<HTMLInputElement>('[data-field="title"]')?.value).toBe('Standup');
+		expect(dialog?.contains(document.activeElement)).toBe(true);
+
+		document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settlePopover();
+
+		expect(document.querySelector('[data-event-dialog]')).toBeNull();
+		expect(document.activeElement).toBe(STANDUP());
+	});
+
 	it('drops an open popover on unmount', async () => {
 		mountView();
 		await settle();

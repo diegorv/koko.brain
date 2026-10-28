@@ -20,6 +20,8 @@
 	let lastPath: string | null = null;
 	/** Target of the outside pointer interaction that is closing the popover; focus goes there on close. */
 	let outsideTarget: Element | null = null;
+	/** Set by Edit: the dialog that replaces the popover takes focus, so the close leaves it alone. */
+	let handOffFocus = false;
 
 	/** Elements an outside click may land focus on. */
 	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
@@ -83,6 +85,10 @@
 		e.preventDefault();
 		const outside = outsideTarget;
 		outsideTarget = null;
+		if (handOffFocus) {
+			handOffFocus = false;
+			return;
+		}
 		const focusable = outside?.isConnected ? outside.closest<HTMLElement>(FOCUSABLE) : null;
 		if (focusable) {
 			focusable.focus();
@@ -99,6 +105,15 @@
 		const path = event.path;
 		eventCalendarViewStore.closePopover();
 		openFileInEditor(path);
+	}
+
+	/** Replaces the popover with the edit dialog for the same event. */
+	function editNote() {
+		if (!event) return;
+		const path = event.path;
+		handOffFocus = true;
+		eventCalendarViewStore.closePopover();
+		eventCalendarViewStore.openDialog({ mode: 'edit', path });
 	}
 </script>
 
@@ -141,6 +156,7 @@
 				</div>
 			</div>
 			<div class="flex items-center gap-1 border-t border-border px-2 py-2">
+				<Button size="sm" variant="outline" onclick={editNote}>Edit</Button>
 				<Button size="sm" onclick={openNote}>Open note</Button>
 			</div>
 		{/if}

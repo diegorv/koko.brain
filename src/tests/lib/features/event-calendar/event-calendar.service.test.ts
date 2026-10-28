@@ -54,6 +54,7 @@ import {
 	duplicateEvent,
 	editEvent,
 	EventCalendarError,
+	eventErrorMessage,
 	loadEvents,
 	moveEvent,
 	openEventCalendarTab,
@@ -1622,6 +1623,26 @@ describe('calendar writes', () => {
 		it('shows the message of any other error', () => {
 			toastEventError(new Error('Could not rename'), P('Standup'));
 			expect(toast.error).toHaveBeenCalledWith('Could not rename');
+		});
+	});
+
+	describe('eventErrorMessage', () => {
+		it.each([
+			['save-failed', 'Could not save the note'],
+			['missing', 'The note was moved or deleted outside the calendar'],
+			['comments', "The note's frontmatter has comments; the calendar cannot rewrite it"],
+			['vault-changed', 'The vault changed before the event was saved'],
+		] as const)('maps FrontmatterWriteError %s to its message', (reason, message) => {
+			expect(eventErrorMessage(new FrontmatterWriteError(reason, P('Standup')))).toBe(message);
+		});
+
+		it('maps an EventCalendarError to its reason message', () => {
+			expect(eventErrorMessage(new EventCalendarError('not-in-trash'))).toBe('Event is no longer in the Trash');
+		});
+
+		it('passes any other error message through, and stringifies a non-error', () => {
+			expect(eventErrorMessage(new Error('disk full'))).toBe('disk full');
+			expect(eventErrorMessage('boom')).toBe('boom');
 		});
 	});
 });

@@ -17,11 +17,12 @@
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import EventCalendarHeader from './EventCalendarHeader.svelte';
 	import EventCalendarNeedsAttention from './EventCalendarNeedsAttention.svelte';
+	import EventDialog from './EventDialog.svelte';
 	import EventMonthGrid from './EventMonthGrid.svelte';
 	import EventPopover from './EventPopover.svelte';
 	import EventTimeGrid from './EventTimeGrid.svelte';
 
-	/** The view root: the popover's scroll source and focus fallback. */
+	/** The view root: the popover's scroll source and the popover's and dialog's focus fallback. */
 	let root: HTMLElement | undefined = $state();
 
 	onMount(() => {
@@ -84,5 +85,6 @@
 		</div>
 		<EventCalendarNeedsAttention />
 		<EventPopover {root} />
+		<EventDialog {root} />
 	</Tooltip.Provider>
 </section>
