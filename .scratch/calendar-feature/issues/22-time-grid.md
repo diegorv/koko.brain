@@ -33,3 +33,7 @@
 - [ ] `e2e/specs/event-calendar.spec.ts` (fixed clock from ticket 21) asserts: seeded timed and all-day event notes for the week of 2026-11-09 render with title and time; with Sakura's `--editor-bg` / `--editor-fg` applied inline as `applyTheme` does, `getComputedStyle` gives a light block background and a contrast of at least 4.5:1; at a 900 px viewport with both sidebars open the grid scrolls sideways and the day headers stay visible while scrolling vertically
 - [ ] A separate `test.describe` with `test.use({ clockTime: '2026-10-25T10:00:00+01:00', timezoneId: 'Europe/Berlin' })` (the fall-back day) asserts the now-line's `top` is `640px` (600 minutes x 64 px / 60), not the prototype's 704 px
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 13:37 — discovery — plan in work/22/discovery.md: color tokens (25% / 30% oklab mixes, min contrast 6.64) then grid components + view wiring + tests in one feat commit — pending
