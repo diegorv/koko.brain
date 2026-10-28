@@ -1,5 +1,5 @@
 import type { NoteRecord } from './collection.types';
-import { extractDateFromRecord, formatDateKey } from './calendar.logic';
+import { extractDateFromRecord } from './calendar.logic';
 import { getPropertyValue } from './collection.logic';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -127,8 +127,8 @@ export function extractEventsForYear(
 	endDateProperty?: string,
 	colorProperty?: string,
 ): RawEvent[] {
-	const yearStartKey = formatDateKey(new Date(year, 0, 1));
-	const yearEndKey = formatDateKey(new Date(year, 11, 31));
+	const yearStart = new Date(year, 0, 1).getTime();
+	const nextYearStart = new Date(year + 1, 0, 1).getTime();
 	const events: RawEvent[] = [];
 
 	for (const record of records) {
@@ -143,10 +143,10 @@ export function extractEventsForYear(
 			endDate = startDate;
 		}
 
-		// Skip events entirely outside the year. Day keys, not timestamps, so a
-		// Dec 31 start after midnight stays in the year.
-		if (formatDateKey(endDate) < yearStartKey) continue;
-		if (formatDateKey(startDate) > yearEndKey) continue;
+		// Skip events entirely outside the year. The upper bound is next year's
+		// first local midnight (exclusive), so a Dec 31 start after midnight stays in the year.
+		if (endDate.getTime() < yearStart) continue;
+		if (startDate.getTime() >= nextYearStart) continue;
 
 		let colorValue: string | null = null;
 		if (colorProperty) {
@@ -172,13 +172,13 @@ export function layoutEventsInMonth(
 	month: number,
 	year: number,
 ): { events: LinearCalendarEvent[]; maxLane: number } {
-	const firstDayKey = formatDateKey(new Date(year, month, 1));
-	const lastDayKey = formatDateKey(new Date(year, month, getDaysInMonth(year, month)));
+	const monthStart = new Date(year, month, 1).getTime();
+	const nextMonthStart = new Date(year, month + 1, 1).getTime();
 
-	// Filter events that overlap with this month. Day keys, not timestamps, so a
-	// start on the last day after midnight stays in the month.
+	// Filter events that overlap with this month. The upper bound is next month's
+	// first local midnight (exclusive), so a start on the last day after midnight stays in the month.
 	const overlapping = rawEvents.filter((e) => {
-		return formatDateKey(e.endDate) >= firstDayKey && formatDateKey(e.startDate) <= lastDayKey;
+		return e.endDate.getTime() >= monthStart && e.startDate.getTime() < nextMonthStart;
 	});
 
 	if (overlapping.length === 0) {

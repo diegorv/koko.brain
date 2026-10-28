@@ -46,3 +46,11 @@ Reviewed `git diff main...HEAD` (base 65f96aea, head 1aa6677f): `calendar.logic.
 3. **Low, no change required: `src/lib/features/collection/calendar.logic.ts:119-122`, timed end at exactly midnight.** A timed end at exactly `T00:00`, as in `start: 2026-03-10T22:00, end: 2026-03-11T00:00`, now also places the record on Mar 11. On main the grid placed it on Mar 10 only.
    - This is the inclusive day-key reading the Issue asks for. It matches how date-only ends work (`2026-03-11` parses to 00:00 and is inclusive), and the linear view already showed such a record through day 11 on main.
    - **Optional:** add a `groupRecordsByDate` test that pins this, so that changing it later is a deliberate choice.
+
+## Resolution
+
+1. Fixed. `extractEventsForYear` and `layoutEventsInMonth` compare timestamps against exclusive local-midnight bounds (`new Date(year + 1, 0, 1)`, `new Date(year, month + 1, 1)`) instead of formatting day keys; the `formatDateKey` import is gone. `buildLinearYearLayout` on 5000 timed two-day records: 152 ms before the fix, 4.6 ms after (main parity).
+2. Fixed. The multi-day loop in `groupRecordsByDate` runs against the numeric exclusive bound `new Date(endY, endM, endD + 1)` and formats once per pass. Same 5000 records: 52 ms before, 32 ms after.
+3. Accepted as intended. Added a `groupRecordsByDate` test that pins a 22:00 to 00:00 event on both days.
+
+Targeted tests (calendar-logic, linear-calendar-logic, collection-block) pass in TZ=UTC, America/Sao_Paulo and Asia/Tokyo.

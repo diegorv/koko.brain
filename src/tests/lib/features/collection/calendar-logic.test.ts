@@ -234,6 +234,17 @@ describe('groupRecordsByDate', () => {
 		expect([...groups.keys()].sort()).toEqual(['2026-03-10', '2026-03-11']);
 	});
 
+	it('places a timed event ending at exactly midnight on its end day too (inclusive day keys)', () => {
+		const records = [
+			makeRecord('/event.md', {
+				start: '2026-03-10T22:00',
+				end: '2026-03-11T00:00',
+			}),
+		];
+		const groups = groupRecordsByDate(records, 'start', 'end');
+		expect([...groups.keys()].sort()).toEqual(['2026-03-10', '2026-03-11']);
+	});
+
 	it('places a timed event that starts and ends on the same day once', () => {
 		const records = [
 			makeRecord('/event.md', {

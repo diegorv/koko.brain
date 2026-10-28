@@ -119,10 +119,11 @@ export function groupRecordsByDate(
 		const endKey = endDate ? formatDateKey(endDate) : startKey;
 
 		// Day keys, not timestamps: a 10:00 start must still reach an end day whose time is earlier
-		if (endKey > startKey) {
+		if (endDate && endKey > startKey) {
 			// Multi-day: place on each day from start to end (inclusive)
 			const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-			while (formatDateKey(current) <= endKey) {
+			const afterEndDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
+			while (current.getTime() < afterEndDay.getTime()) {
 				const key = formatDateKey(current);
 				const list = groups.get(key) ?? [];
 				list.push(event);
