@@ -280,3 +280,25 @@ describe('EventMonthGrid: create', () => {
 		expect(eventCalendarViewStore.dialog).toBeNull();
 	});
 });
+
+describe('EventMonthGrid: spans', () => {
+	it('shows a span on every cell it covers, crossing the week row, with the time only on its first day', () => {
+		seed([
+			event({ path: P('Retreat'), title: 'Retreat', date: '2026-11-15', endDate: '2026-11-17', allDay: true, start: 0, end: 1440, readOnly: true }),
+			event({ path: P('Late'), title: 'Late show', date: '2026-11-10', endDate: '2026-11-11', start: 1380, end: 60, readOnly: true }),
+		]);
+		mountGrid();
+		const chip = (day: string, name: string) => cell(day).querySelector(`[data-event-path="${P(name)}"]`)?.textContent?.trim();
+
+		expect(['2026-11-14', '2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18'].map((d) => chip(d, 'Retreat'))).toEqual([
+			undefined,
+			'Retreat',
+			'Retreat',
+			'Retreat',
+			undefined,
+		]);
+		expect(chip('2026-11-10', 'Late')).toBe('23:00 Late show');
+		expect(chip('2026-11-11', 'Late')).toBe('Late show');
+		expect(chip('2026-11-12', 'Late')).toBeUndefined();
+	});
+});

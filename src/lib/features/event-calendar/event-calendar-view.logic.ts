@@ -15,9 +15,13 @@ import {
 	addMonths,
 	daysInMonth,
 	dayOfWeek,
+	diffDays,
+	formatDuration,
+	formatLong,
 	formatRange,
 	formatShort,
 	formatTime,
+	formatTimeRange,
 	formatWeekday,
 	fromKey,
 	isoWeek,
@@ -81,6 +85,14 @@ export interface AllDayCell {
 	chips: EventNote[];
 	/** All-day events of the day that do not render (shown as "+N"). */
 	overflow: number;
+}
+
+/** The popover's two lines describing when an event happens. */
+export interface EventWhenLabel {
+	/** The day, or the first and last day of a span. */
+	date: string;
+	/** `All day`, or the time range and its duration. */
+	time: string;
 }
 
 /** Date and time a new event starts with. */
@@ -164,19 +176,55 @@ export function rangeLabel(view: CalendarViewMode, date: string, days: string[])
 }
 
 /**
+ * The part of an event that falls on one day.
+ * @param event - any event
+ * @param day - a day key
+ * @returns `null` when the event does not cover `day` or its part there is
+ *   empty (a span ending at 00:00); the input object for a single-day or
+ *   all-day event; else a copy of a timed span clipped to the day: `start`
+ *   on its first day, 0 after it, `end` on its last day, 1440 before it
+ */
+export function segmentOnDay<T extends EventNote>(event: T, day: string): T | null {
+	const last = event.endDate ?? event.date;
+	if (day < event.date || day > last) return null;
+	if (last === event.date || event.allDay) return event;
+	const start = day === event.date ? event.start : 0;
+	const end = day === last ? event.end : MINUTES_PER_DAY;
+	return end > start ? { ...event, start, end } : null;
+}
+
+/**
+ * Buckets events by the visible days they cover; a span lands on each of
+ * its days as `segmentOnDay` cuts it.
+ */
+function bucketByDay<T extends EventNote>(events: T[], days: string[]): Map<string, T[]> {
+	const buckets = new Map<string, T[]>(days.map((d) => [d, []]));
+	for (const e of events) {
+		if (e.endDate === undefined) {
+			buckets.get(e.date)?.push(e);
+			continue;
+		}
+		for (const day of days) {
+			const segment = segmentOnDay(e, day);
+			if (segment) buckets.get(day)!.push(segment);
+		}
+	}
+	return buckets;
+}
+
+/**
  * Groups events by day and lane.
  * @param events - any events; those outside `days` are dropped
  * @param days - the visible days
  * @returns one (possibly empty) list per visible day in each lane, keyed in
- *   `days` order
+ *   `days` order. A span is listed on every day it covers: an all-day span
+ *   as itself, a timed span as its clipped `segmentOnDay` copy
  */
 export function groupEventsByDay(events: EventNote[], days: string[]): EventsByDay {
-	const timed = new Map<string, EventNote[]>(days.map((d) => [d, []]));
-	const allDay = new Map<string, EventNote[]>(days.map((d) => [d, []]));
-	for (const e of events) {
-		(e.allDay ? allDay : timed).get(e.date)?.push(e);
-	}
-	return { timed, allDay };
+	return {
+		timed: bucketByDay(events.filter((e) => !e.allDay), days),
+		allDay: bucketByDay(events.filter((e) => e.allDay), days),
+	};
 }
 
 /**
@@ -196,23 +244,29 @@ export function buildMonthCells(date: string, weekStartsOn: WeekStart, showWeeke
 
 /**
  * Chips of one month cell.
- * @param events - any events; only those on `day` are kept
+ * @param events - any events; only those covering `day` are kept
  * @param day - the cell's day key
  * @param timeFormat - format of the start time in timed labels
- * @returns all-day events first, then timed ones by start, ties by title
+ * @returns all-day events first, then timed ones by their start on `day`,
+ *   ties by title. A timed label starts with the start time, except on the
+ *   later days of a span
  */
 export function itemsForDay<T extends EventNote>(events: T[], day: string, timeFormat: TimeFormat): DayItem<T>[] {
 	return events
-		.filter((e) => e.date === day)
+		.flatMap((event) => {
+			const segment = segmentOnDay(event, day);
+			return segment ? [{ event, start: segment.start }] : [];
+		})
 		.sort(
 			(a, b) =>
-				Number(b.allDay) - Number(a.allDay) ||
-				(a.allDay ? 0 : a.start - b.start) ||
-				compareText(a.title, b.title),
+				Number(b.event.allDay) - Number(a.event.allDay) ||
+				(a.event.allDay ? 0 : a.start - b.start) ||
+				compareText(a.event.title, b.event.title),
 		)
-		.map((event) => ({
+		.map(({ event }) => ({
 			event,
-			label: event.allDay ? event.title : `${formatTime(event.start, timeFormat)} ${event.title}`,
+			label:
+				event.allDay || day !== event.date ? event.title : `${formatTime(event.start, timeFormat)} ${event.title}`,
 		}));
 }
 
@@ -231,8 +285,30 @@ export function itemsByDay<T extends EventNote>(
 	timeFormat: TimeFormat,
 ): Map<string, DayItem<T>[]> {
 	const buckets = new Map<string, T[]>(days.map((d) => [d, []]));
-	for (const e of events) buckets.get(e.date)?.push(e);
+	for (const e of events) {
+		const last = e.endDate ?? e.date;
+		for (const day of last === e.date ? [e.date] : days) {
+			if (day >= e.date && day <= last) buckets.get(day)?.push(e);
+		}
+	}
 	return new Map(days.map((d) => [d, itemsForDay(buckets.get(d)!, d, timeFormat)]));
+}
+
+/**
+ * When an event happens, as the popover shows it.
+ * @param event - any event
+ * @param timeFormat - clock format of the times
+ * @returns the weekday and date (`Tue, November 10, 2026`, joined by ` – `
+ *   with the last day for a span), and `All day` or the time range with
+ *   its full duration across the span's days
+ */
+export function eventWhenLabel(event: EventNote, timeFormat: TimeFormat): EventWhenLabel {
+	const dayLabel = (day: string) => `${formatWeekday(day)}, ${formatLong(day)}`;
+	const last = event.endDate ?? event.date;
+	const date = last === event.date ? dayLabel(event.date) : `${dayLabel(event.date)} – ${dayLabel(last)}`;
+	if (event.allDay) return { date, time: 'All day' };
+	const minutes = diffDays(event.date, last) * MINUTES_PER_DAY + event.end - event.start;
+	return { date, time: `${formatTimeRange(event.start, event.end, timeFormat)} · ${formatDuration(minutes)}` };
 }
 
 /**

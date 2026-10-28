@@ -11,6 +11,7 @@ import {
 	toggleAllDay,
 	validateDraft,
 } from '$lib/features/event-calendar/event-calendar-form.logic';
+import { eventState } from '$lib/features/event-calendar/event-calendar-event.logic';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
 
 const settings = { defaultDurationMinutes: 60, defaultColor: 'green' as const };
@@ -59,7 +60,13 @@ describe('draftFromEvent', () => {
 		});
 	});
 
-	it('locks the timing of a read-only event', () => {
+	it('leaves the timing of a span alone when only the title changes', () => {
+		const event = ev({ start: 1380, end: 60, endDate: '2026-11-11', readOnly: true });
+		const patch = draftToPatch({ ...draftFromEvent(event), title: 'Late show' }, eventState(event));
+		expect(patch).toEqual({ title: 'Late show' });
+	});
+
+		it('locks the timing of a read-only event', () => {
 		expect(draftFromEvent(ev({ readOnly: true })).timingLocked).toBe(true);
 	});
 });
@@ -186,6 +193,12 @@ describe('validateDraft', () => {
 
 	it('skips the time check for an all-day draft', () => {
 		expect(validateDraft(draft({ allDay: true, start: 600, end: 540 }))).toEqual({});
+	});
+
+	it('skips the time check for a locked span, whose end may be on a later day', () => {
+		const late = draftFromEvent(ev({ start: 1380, end: 60, endDate: '2026-11-11', readOnly: true }));
+		expect(validateDraft(late)).toEqual({});
+		expect(validateDraft({ ...late, title: '' })).toEqual({ title: 'Enter a title.' });
 	});
 
 	it('reports every problem at once', () => {

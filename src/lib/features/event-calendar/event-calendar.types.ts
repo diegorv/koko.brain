@@ -25,11 +25,17 @@ export interface EventNote {
 	path: string;
 	/** Display title: `event_title` when set, else the filename base. */
 	title: string;
-	/** Day key the event falls on. */
+	/** Day key the event starts on. */
 	date: string;
-	/** Start in minutes from midnight (0 for an all-day event). */
+	/**
+	 * Day key the event ends on, set only for a read-only span: a note with
+	 * `end_date`, or a timed note whose `end` is before its `start` (it ends
+	 * the next day). Absent for an ordinary single-day event.
+	 */
+	endDate?: string;
+	/** Start in minutes from midnight on `date` (0 for an all-day event). */
 	start: number;
-	/** End in minutes from midnight (1440 for an all-day event). */
+	/** End in minutes from midnight on `endDate` (else `date`); 1440 for an all-day event. */
 	end: number;
 	/** Whether the event spans the whole day (`all_day`). */
 	allDay: boolean;
@@ -39,7 +45,7 @@ export interface EventNote {
 	location: string;
 	/** Short excerpt of the note body, empty when there is none. */
 	snippet: string;
-	/** When true, the timing cannot be changed from the calendar (for example a multi-day span). */
+	/** When true, the timing cannot be changed from the calendar: every event with `endDate`. */
 	readOnly: boolean;
 }
 
@@ -63,6 +69,8 @@ export interface EventFields {
 export type EventState = EventFields & {
 	/** Display title of the event. */
 	title: string;
+	/** Last day of a span (`EventNote.endDate`); the calendar never writes it. */
+	endDate?: string;
 };
 
 /** A partial update to an event's fields. */
@@ -80,7 +88,7 @@ export type EventDraft = EventFields & {
 };
 
 /** Why an event-typed note cannot be shown, or is shown with a caveat. */
-export type EventIssueReason = 'unscheduled' | 'invalid-time' | 'crosses-midnight' | 'trailing-comment' | 'multi-day';
+export type EventIssueReason = 'unscheduled' | 'invalid-time' | 'end-before-start' | 'trailing-comment';
 
 /** One problem found while projecting event notes. */
 export interface EventIssue {

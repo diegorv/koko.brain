@@ -322,6 +322,23 @@ describe('EventDialog: saving', () => {
 		expect(document.activeElement).toBe(block(P('Standup')));
 	});
 
+	it('saves a location change on a cross-midnight event, leaving its times alone', async () => {
+		disk.set(P('Late'), eventFile({ start: '23:00', end: '01:00' }));
+		await refresh();
+		mountView();
+		await openEdit(P('Late'));
+
+		expect(error('time')).toBeNull();
+		type(field('location'), 'Club');
+		save().click();
+		await settle();
+
+		expect(disk.get(P('Late'))).toContain('location: Club\n');
+		expect(disk.get(P('Late'))).toContain('start: 23:00\n');
+		expect(disk.get(P('Late'))).toContain('end: 01:00\n');
+		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+
 	it('renames on a title change and returns focus to the renamed block', async () => {
 		mountView();
 		await openEdit(P('Standup'));

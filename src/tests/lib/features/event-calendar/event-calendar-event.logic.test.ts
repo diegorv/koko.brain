@@ -212,14 +212,35 @@ describe('entryToEvent', () => {
 		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', all_day: 1 }), DEFAULTS)).reason).toBe('invalid-time');
 	});
 
-	it('reports end <= start as crosses-midnight', () => {
-		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '23:00', end: '01:00' }), DEFAULTS))).toMatchObject({ reason: 'crosses-midnight', rendered: false });
-		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '10:00', end: '10:00' }), DEFAULTS)).reason).toBe('crosses-midnight');
-		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '24:00' }), DEFAULTS)).reason).toBe('crosses-midnight');
+	it('reports an empty range as end-before-start', () => {
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '10:00', end: '10:00' }), DEFAULTS))).toMatchObject({ reason: 'end-before-start', detail: 'end', rendered: false });
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '24:00' }), DEFAULTS)).reason).toBe('end-before-start');
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '00:00', end: '00:00' }), DEFAULTS)).reason).toBe('end-before-start');
+	});
+
+	it('renders an end before the start as a read-only event that ends the next day', () => {
+		const result = entryToEvent(eventEntry(P('Late show'), { date: '2026-11-10', start: '23:00', end: '01:00' }), DEFAULTS);
+		expect(result.issue).toBeUndefined();
+		expect(eventOf(result)).toMatchObject({ date: '2026-11-10', endDate: '2026-11-11', start: 1380, end: 60, allDay: false, readOnly: true });
+	});
+
+	it('crosses the month and year boundary', () => {
+		const result = entryToEvent(eventEntry(P('NYE'), { date: '2026-12-31', start: '22:00', end: '02:00' }), DEFAULTS);
+		expect(eventOf(result)).toMatchObject({ date: '2026-12-31', endDate: '2027-01-01' });
+	});
+
+	it('reads end 00:00 after a later start as midnight of the same day, editable', () => {
+		const event = eventOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '23:00', end: '00:00' }), DEFAULTS));
+		expect(event).toMatchObject({ date: '2026-11-10', start: 1380, end: 1440, readOnly: false });
+		expect(event.endDate).toBeUndefined();
+	});
+
+	it('leaves endDate off a single-day event', () => {
+		expect('endDate' in eventOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '09:00', end: '10:00' }), DEFAULTS))).toBe(false);
 	});
 
 	it('reports a trailing comment in a time field', () => {
-		for (const [key, value] of [['date', '2026-11-10 # x'], ['start', '09:30 # standup'], ['end', '10:00 # x'], ['all_day', 'true # x'], ['event_color', 'blue # x']]) {
+		for (const [key, value] of [['date', '2026-11-10 # x'], ['end_date', '2026-11-12 # x'], ['start', '09:30 # standup'], ['end', '10:00 # x'], ['all_day', 'true # x'], ['event_color', 'blue # x']]) {
 			const result = entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '09:00', [key]: value }), DEFAULTS);
 			expect(issueOf(result)).toMatchObject({ reason: 'trailing-comment', detail: key, rendered: false });
 		}
@@ -237,15 +258,40 @@ describe('entryToEvent', () => {
 		expect(eventOf(result)).toMatchObject({ location: 'Room #4', title: 'Retro #4' });
 	});
 
-	it('renders a multi-day note on its start day, read-only, with an issue', () => {
-		const result = entryToEvent(eventEntry(P('Trip'), { date: '2026-11-10', start: '09:00', end_date: '2026-11-12' }), DEFAULTS);
-		expect(eventOf(result)).toMatchObject({ date: '2026-11-10', start: 540, readOnly: true });
-		expect(issueOf(result)).toMatchObject({ reason: 'multi-day', rendered: true });
+	it('renders an end_date note as a read-only span without an issue', () => {
+		const timed = entryToEvent(eventEntry(P('Trip'), { date: '2026-11-10', start: '09:00', end: '17:00', end_date: '2026-11-12' }), DEFAULTS);
+		expect(timed.issue).toBeUndefined();
+		expect(eventOf(timed)).toMatchObject({ date: '2026-11-10', endDate: '2026-11-12', start: 540, end: 1020, allDay: false, readOnly: true });
+		const allDay = eventOf(entryToEvent(eventEntry(P('Retreat'), { date: '2026-11-10', end_date: '2026-11-12' }), DEFAULTS));
+		expect(allDay).toMatchObject({ date: '2026-11-10', endDate: '2026-11-12', start: 0, end: 1440, allDay: true, readOnly: true });
+	});
+
+	it('ends a timed end_date note without end at 24:00 of end_date, and allows an end before the start', () => {
+		expect(eventOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '09:00', end_date: '2026-11-11' }), DEFAULTS))).toMatchObject({ endDate: '2026-11-11', start: 540, end: 1440 });
+		expect(eventOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '18:00', end: '08:00', end_date: '2026-11-12' }), DEFAULTS))).toMatchObject({ endDate: '2026-11-12', start: 1080, end: 480 });
+	});
+
+	it('keeps an end_date on the same day read-only, without crossing midnight', () => {
+		expect(eventOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '09:00', end: '10:00', end_date: '2026-11-10' }), DEFAULTS))).toMatchObject({ endDate: '2026-11-10', readOnly: true });
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '23:00', end: '01:00', end_date: '2026-11-10' }), DEFAULTS))).toMatchObject({ reason: 'end-before-start', detail: 'end' });
+	});
+
+	it('reports an unreadable end_date as invalid-time and one before date as end-before-start', () => {
+		for (const value of ['soon', '2026-11-12T10:00', '2026-02-30']) {
+			expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', end_date: value }), DEFAULTS))).toMatchObject({ reason: 'invalid-time', detail: 'end_date' });
+		}
+		expect(issueOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', end_date: '2026-11-09' }), DEFAULTS))).toMatchObject({ reason: 'end-before-start', detail: 'end_date' });
+	});
+
+	it('treats an empty end_date as absent', () => {
+		const event = eventOf(entryToEvent(eventEntry(P('a'), { date: '2026-11-10', start: '09:00', end_date: '' }), DEFAULTS));
+		expect(event).toMatchObject({ readOnly: false });
+		expect(event.endDate).toBeUndefined();
 	});
 
 	it('only unscheduled is not actionable', () => {
 		expect(isActionableIssue('unscheduled')).toBe(false);
-		for (const reason of ['invalid-time', 'crosses-midnight', 'trailing-comment', 'multi-day'] as const) {
+		for (const reason of ['invalid-time', 'end-before-start', 'trailing-comment'] as const) {
 			expect(isActionableIssue(reason)).toBe(true);
 		}
 	});
@@ -269,10 +315,7 @@ describe('eventsFromEntries', () => {
 			opts,
 		);
 		expect(projection.events.map((e) => e.path)).toEqual([P('a'), P('c')]);
-		expect(projection.issues.map((i) => [i.path, i.reason])).toEqual([
-			[P('b'), 'unscheduled'],
-			[P('c'), 'multi-day'],
-		]);
+		expect(projection.issues.map((i) => [i.path, i.reason])).toEqual([[P('b'), 'unscheduled']]);
 		expect(projection.archivedCount).toBe(0);
 	});
 
@@ -514,8 +557,14 @@ describe('small helpers', () => {
 		}
 	});
 
+	it('eventState carries the endDate of a span, and sameEventState tells a span from a single day', () => {
+		const span = makeEvent(P('a'), { endDate: '2026-11-11', readOnly: true });
+		expect(eventState(span)).toMatchObject({ date: '2026-11-10', endDate: '2026-11-11' });
+		expect(sameEventState(eventState(span), eventState(makeEvent(P('a'))))).toBe(false);
+	});
+
 	it('EVENT_STATE_KEYS lists every key eventState produces, so sameEventState compares them all', () => {
-		const s = eventState(makeEvent(P('a')));
+		const s = eventState(makeEvent(P('a'), { endDate: '2026-11-11' }));
 		expect([...EVENT_STATE_KEYS].sort()).toEqual(Object.keys(s).sort());
 		for (const key of Object.keys(s) as (keyof typeof s)[]) {
 			const value = s[key];
@@ -556,6 +605,13 @@ describe('mergePending', () => {
 		expect(mergePending([a], [{ kind: 'update', path: P('zz'), state, settled: false }])).toEqual([
 			{ ...a, pending: false },
 			{ path: P('zz'), ...state, snippet: '', readOnly: false, pending: true },
+		]);
+	});
+
+	it('keeps a span read-only when an update builds it from its state', () => {
+		const state = { ...eventState(makeEvent(P('a'), { endDate: '2026-11-12' })), title: 'Trip' };
+		expect(mergePending([], [{ kind: 'update', path: P('zz'), state, settled: false }])).toEqual([
+			{ path: P('zz'), ...state, snippet: '', readOnly: true, pending: true },
 		]);
 	});
 

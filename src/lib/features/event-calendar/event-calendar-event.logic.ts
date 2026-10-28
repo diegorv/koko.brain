@@ -15,7 +15,7 @@ import type { Property } from '$lib/features/properties/properties.types';
 import { EVENT_CALENDAR_COLORS } from '$lib/core/settings/settings.logic';
 import { extractBody, parseFrontmatterProperties, rebuildContent } from '$lib/features/properties/properties.logic';
 import { excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
-import { formatTime, isValidDayKey, parseTimeStrict } from './event-calendar-dates.logic';
+import { addDays, formatTime, isValidDayKey, parseTimeStrict } from './event-calendar-dates.logic';
 import type {
 	EventColor,
 	EventDraft,
@@ -31,7 +31,7 @@ import type {
 const MINUTES_PER_DAY = 1440;
 
 /** Keys whose values must not carry a trailing YAML comment (Rust keeps it in the value). */
-const COMMENT_CHECKED_KEYS = ['date', 'start', 'end', 'all_day', 'event_color'] as const;
+const COMMENT_CHECKED_KEYS = ['date', 'end_date', 'start', 'end', 'all_day', 'event_color'] as const;
 
 /** Characters a file name cannot contain (mirrors `isValidFileName` in `fs.logic.ts`). */
 const FORBIDDEN_FILE_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -57,8 +57,8 @@ export interface EventProjectionOptions {
 /** Result of reading one time field. */
 export type EventTime = { kind: 'absent' } | { kind: 'ok'; minutes: number } | { kind: 'invalid' };
 
-/** Result of projecting one entry: an event, an issue, or (for `multi-day`) both. */
-export type EntryProjection = { event: EventNote; issue?: EventIssue } | { event?: undefined; issue: EventIssue };
+/** Result of projecting one entry: an event or an issue. */
+export type EntryProjection = { event: EventNote; issue?: undefined } | { event?: undefined; issue: EventIssue };
 
 /** An event as the calendar shows it after the pending overlay. */
 export type PendingEventNote = EventNote & {
@@ -114,20 +114,25 @@ function eventTitle(entry: NoteEntryV2): string {
 
 /**
  * Projects one event-typed entry.
+ *
+ * A span is read-only and carries `endDate`: a note with `end_date` (even
+ * the same day as `date`, since a date move would desync it), or a timed
+ * note without `end_date` whose `end` is before its `start`, which ends the
+ * next day. `end: 00:00` after a later `start` is midnight of the same day.
+ * A timed note with `end_date` and no `end` ends at 24:00 of `end_date`.
  * @param entry - Rust index entry of the event type
  * @param defaults - fallbacks for absent keys
- * @returns `{ event }` when it renders, `{ issue }` when it does not, and
- *   both for `multi-day` (rendered read-only on its start day)
+ * @returns `{ event }` when it renders, else `{ issue }`
  */
 export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): EntryProjection {
 	const fm = entry.frontmatter;
 	const title = eventTitle(entry);
-	const issue = (reason: EventIssueReason, detail?: string, rendered = false): EventIssue => ({
+	const issue = (reason: EventIssueReason, detail?: string): EventIssue => ({
 		path: entry.path,
 		title,
 		reason,
 		...(detail === undefined ? {} : { detail }),
-		rendered,
+		rendered: false,
 	});
 
 	for (const key of COMMENT_CHECKED_KEYS) {
@@ -138,6 +143,11 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 	const date = fm.date;
 	if (isAbsent(date)) return { issue: issue('unscheduled', 'no-date') };
 	if (!isValidDayKey(date)) return { issue: issue('unscheduled', 'not-a-day') };
+	const endDateValue = fm.end_date;
+	const hasEndDate = !isAbsent(endDateValue);
+	if (hasEndDate && !isValidDayKey(endDateValue)) return { issue: issue('invalid-time', 'end_date') };
+	let endDate = hasEndDate ? (endDateValue as string) : date;
+	if (endDate < date) return { issue: issue('end-before-start', 'end_date') };
 
 	const start = parseEventTime(fm.start);
 	if (start.kind === 'invalid') return { issue: issue('invalid-time', 'start') };
@@ -152,8 +162,16 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 	if (!allDay && start.kind === 'ok') {
 		startMinutes = start.minutes;
 		endMinutes =
-			end.kind === 'ok' ? end.minutes : Math.min(start.minutes + defaults.defaultDurationMinutes, MINUTES_PER_DAY);
-		if (endMinutes <= startMinutes) return { issue: issue('crosses-midnight', 'end') };
+			end.kind === 'ok'
+				? end.minutes
+				: hasEndDate
+					? MINUTES_PER_DAY
+					: Math.min(start.minutes + defaults.defaultDurationMinutes, MINUTES_PER_DAY);
+		if (endDate === date && endMinutes < startMinutes) {
+			if (endMinutes === 0) endMinutes = MINUTES_PER_DAY;
+			else if (!hasEndDate) endDate = addDays(date, 1);
+		}
+		if (endDate === date && endMinutes <= startMinutes) return { issue: issue('end-before-start', 'end') };
 	}
 
 	const colorValue = fm.event_color;
@@ -163,21 +181,22 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 			: defaults.defaultColor;
 	const locationValue = fm.location;
 	const location = typeof locationValue === 'string' ? locationValue : typeof locationValue === 'number' ? String(locationValue) : '';
-	const multiDay = !isAbsent(fm.end_date);
+	const span = hasEndDate || endDate !== date;
 
 	const event: EventNote = {
 		path: entry.path,
 		title,
 		date,
+		...(span ? { endDate } : {}),
 		start: startMinutes,
 		end: endMinutes,
 		allDay,
 		color,
 		location,
 		snippet: entry.snippet,
-		readOnly: multiDay,
+		readOnly: span,
 	};
-	return multiDay ? { event, issue: issue('multi-day', 'end_date', true) } : { event };
+	return { event };
 }
 
 /**
@@ -322,6 +341,7 @@ export function eventState(event: EventNote): EventState {
 	return {
 		title: event.title,
 		date: event.date,
+		...(event.endDate === undefined ? {} : { endDate: event.endDate }),
 		start: event.start,
 		end: event.end,
 		allDay: event.allDay,
@@ -338,6 +358,7 @@ export function eventState(event: EventNote): EventState {
 const EVENT_STATE_KEY_SET = {
 	title: true,
 	date: true,
+	endDate: true,
 	start: true,
 	end: true,
 	allDay: true,
@@ -386,7 +407,8 @@ export function eventColorStyle(color: EventColor): string {
  *   path hidden (rename tombstones included) and each `create` appended in
  *   place of any snapshot copy. An `update` whose path is not in the
  *   snapshot (the new path of a rename) is appended as an event built from
- *   its state, with an empty snippet and `readOnly: false`. Overlaid and
+ *   its state, with an empty snippet, read-only when the state is a span
+ *   (`endDate`). Overlaid and
  *   created events carry `pending: true`
  */
 export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): PendingEventNote[] {
@@ -411,7 +433,7 @@ export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): Pe
 	}
 	for (const [path, state] of updates) {
 		if (seen.has(path) || hidden.has(path)) continue;
-		merged.push({ path, ...state, snippet: '', readOnly: false, pending: true });
+		merged.push({ path, ...state, snippet: '', readOnly: state.endDate !== undefined, pending: true });
 	}
 	for (const event of creates) {
 		if (pending.some((w) => w.kind === 'delete' && w.path === event.path)) continue;

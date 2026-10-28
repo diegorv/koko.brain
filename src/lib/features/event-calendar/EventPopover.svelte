@@ -6,7 +6,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { formatDuration, formatLong, formatTimeRange, formatWeekday } from './event-calendar-dates.logic';
+	import { eventWhenLabel } from './event-calendar-view.logic';
 	import { deleteEventFromUi, duplicateEventFromUi } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
@@ -35,6 +35,7 @@
 	let event = $derived(target ? eventCalendarStore.events.find((e) => e.path === target.path) : undefined);
 	let open = $derived(target !== null && event !== undefined);
 	let timeFormat = $derived(settingsStore.eventCalendar.timeFormat);
+	let when = $derived(event ? eventWhenLabel(event, timeFormat) : null);
 	let anchor = $derived.by(() => {
 		const rect = target?.rect ?? { x: 0, y: 0, width: 0, height: 0 };
 		return { getBoundingClientRect: () => DOMRect.fromRect(rect) };
@@ -166,12 +167,8 @@
 				<span class="mt-1 size-3 shrink-0 rounded-[4px]" style="background: var(--event-{event.color}-fg)" data-popover-dot></span>
 				<div class="grid min-w-0 flex-1 gap-2">
 					<h3 class="text-base leading-5 font-medium break-words" data-popover-title>{event.title}</h3>
-					<p class="text-sm text-muted-foreground" data-popover-date>{formatWeekday(event.date)}, {formatLong(event.date)}</p>
-					<p class="text-sm text-muted-foreground" data-popover-time>
-						{event.allDay
-							? 'All day'
-							: `${formatTimeRange(event.start, event.end, timeFormat)} · ${formatDuration(event.end - event.start)}`}
-					</p>
+					<p class="text-sm text-muted-foreground" data-popover-date>{when?.date}</p>
+					<p class="text-sm text-muted-foreground" data-popover-time>{when?.time}</p>
 					{#if event.location}
 						<p class="flex items-center gap-1.5 text-sm text-muted-foreground" data-popover-location>
 							<MapPin class="size-3.5 shrink-0" aria-hidden="true" />

@@ -17,13 +17,13 @@
 			case 'invalid-time':
 				return issue.detail === 'all_day'
 					? 'all_day is not true or false'
-					: `${issue.detail ?? 'start'} is not a valid time (HH:mm)`;
-			case 'crosses-midnight':
-				return 'end is not after start';
+					: issue.detail === 'end_date'
+						? 'end_date is not YYYY-MM-DD'
+						: `${issue.detail ?? 'start'} is not a valid time (HH:mm)`;
+			case 'end-before-start':
+				return issue.detail === 'end_date' ? 'end_date is before date' : 'end is not after start';
 			case 'trailing-comment':
 				return `${issue.detail ?? 'a value'} has a trailing # comment`;
-			case 'multi-day':
-				return 'multi-day (end_date): shown read-only on its start day';
 			default:
 				return issue.reason;
 		}

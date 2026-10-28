@@ -351,13 +351,15 @@ function requireEvent(path: string): EventNote {
 /**
  * The state an event shows after `patch`, the way `applyEventFields` writes
  * it: all-day spans 0..1440, a `start` / `end` without `allDay: true` clears
- * all-day, and a blank location reads as empty.
+ * all-day, a blank location reads as empty, and a span keeps its `endDate`
+ * (no patch reaches the timing of a span, see `writeEvent`).
  */
 function patchedState(before: EventState, patch: EventPatch, title: string): EventState {
 	const allDay = patch.allDay ?? (patch.start !== undefined || patch.end !== undefined ? false : before.allDay);
 	return {
 		title,
 		date: patch.date ?? before.date,
+		...(before.endDate === undefined ? {} : { endDate: before.endDate }),
 		allDay,
 		start: allDay ? 0 : (patch.start ?? before.start),
 		end: allDay ? DAY_MINUTES : (patch.end ?? before.end),
@@ -382,6 +384,9 @@ function patchBetween(from: EventState, to: EventState): EventPatch {
 	return patch;
 }
 
+/** The patch keys that change when an event happens; a read-only span refuses them. */
+const TIMING_KEYS = ['date', 'start', 'end', 'allDay'] as const satisfies readonly (keyof EventPatch)[];
+
 /** Records `op` in the store's history. */
 function record(op: HistoryOp): void {
 	eventCalendarStore.setHistory(pushOp(eventCalendarStore.history, op));
@@ -394,9 +399,12 @@ function record(op: HistoryOp): void {
  * `after`, writes the fields, settles the overlay and records the op. A field
  * failure after a rename keeps the rename visible and records an op that
  * covers only the rename. Store changes are skipped once the generation is
- * stale.
+ * stale. A timing patch on a read-only span is refused before anything is
+ * written: the calendar never writes `end_date`, so moving `date` alone
+ * would desync the span.
  * @returns the note's final path
- * @throws the read, rename or write error, after rolling the overlay back
+ * @throws `EventCalendarError('read-only')`, or the read, rename or write
+ *   error, after rolling the overlay back
  */
 async function writeEvent(
 	path: string,
@@ -407,6 +415,7 @@ async function writeEvent(
 	isCurrent: () => boolean,
 ): Promise<string> {
 	const before = eventState(current);
+	if (current.readOnly && TIMING_KEYS.some((key) => patch[key] !== undefined)) throw new EventCalendarError('read-only');
 	const fields: EventPatch = { ...patch };
 	let target = path;
 	if (options.planTitle && after.title !== before.title) {
@@ -539,17 +548,18 @@ export function editEvent(path: string, patch: EventFormPatch): Promise<string> 
 	});
 }
 
-/** Why a create, duplicate or restore was refused. */
-export type EventCalendarErrorReason = 'not-in-trash' | 'template-lossy' | 'create-failed';
+/** Why a create, duplicate, restore or timing write was refused. */
+export type EventCalendarErrorReason = 'not-in-trash' | 'template-lossy' | 'create-failed' | 'read-only';
 
 /** Toast text per `EventCalendarError` reason. */
 const CALENDAR_ERROR_MESSAGES: Record<EventCalendarErrorReason, string> = {
 	'not-in-trash': 'Event is no longer in the Trash',
 	'template-lossy': "The Event template's frontmatter has comments or nested values; fix it or remove the template from the Event type",
 	'create-failed': 'Could not create the note; a note with the same name, possibly differing only in case, may exist',
+	'read-only': 'This event spans several days; change its date and time in the note',
 };
 
-/** A create, duplicate or restore the calendar refused; `toastEventError` shows its message. */
+/** A create, duplicate, restore or timing write the calendar refused; `toastEventError` shows its message. */
 export class EventCalendarError extends Error {
 	/** What went wrong; see `EventCalendarErrorReason`. */
 	readonly reason: EventCalendarErrorReason;
@@ -788,7 +798,7 @@ async function restoreNow(
 		eventCalendarStore.putPending({
 			kind: 'create',
 			path: restored,
-			event: { path: restored, ...state, title, snippet: '', readOnly: false },
+			event: { path: restored, ...state, title, snippet: '', readOnly: state.endDate !== undefined },
 			settled: true,
 		});
 	}

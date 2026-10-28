@@ -150,6 +150,21 @@ describe('EventPopover: opening', () => {
 		expect(card.querySelector<HTMLElement>('[data-popover-dot]')?.getAttribute('style')).toContain('var(--event-pink-fg)');
 	});
 
+	it('shows both days and the full duration of a cross-midnight event, from either day', async () => {
+		const late = event({ path: P('Late'), title: 'Late show', date: '2026-11-10', endDate: '2026-11-11', start: 1380, end: 60, readOnly: true });
+		eventCalendarStore.setSnapshot({ events: [late], issues: [], archivedCount: 0 }, 2);
+		mountView();
+
+		const segments = root.querySelectorAll<HTMLElement>(`[data-day-column] [data-event-path="${P('Late')}"]`);
+		expect([...segments].map((el) => el.closest('[data-day-column]')?.getAttribute('data-day-column'))).toEqual(['2026-11-10', '2026-11-11']);
+		segments[1].click();
+		await settle();
+
+		const card = popover()!;
+		expect(card.querySelector('[data-popover-date]')?.textContent?.trim()).toBe('Tuesday, November 10, 2026 – Wednesday, November 11, 2026');
+		expect(card.querySelector('[data-popover-time]')?.textContent?.trim()).toBe('23:00 – 01:00 · 2h');
+	});
+
 	it('opens on Enter and on Space on a focused block', async () => {
 		mountView();
 		const el = block(P('Review'));

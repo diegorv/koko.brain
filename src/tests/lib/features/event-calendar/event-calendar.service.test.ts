@@ -692,6 +692,45 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-11', start: 600, end: 660, pending: false });
 		});
 
+		it('refuses a timing write on a span before writing, so date and end_date never desync', async () => {
+			const trip = eventFile({ start: '09:00', end: '17:00', end_date: '2026-11-12' });
+			const late = eventFile({ start: '23:00', end: '01:00' });
+			disk.set(P('Trip'), trip);
+			disk.set(P('Late'), late);
+			await refresh();
+			expect(eventCalendarStore.eventByPath(P('Trip'))).toMatchObject({ endDate: '2026-11-12', readOnly: true });
+			vi.mocked(writeTextFile).mockClear();
+
+			for (const write of [
+				moveEvent(P('Trip'), { date: '2026-11-11', start: 540, end: 1020 }),
+				resizeEvent(P('Trip'), 1080),
+				updateEventFields(P('Late'), { allDay: true }, { label: 'Edit event' }),
+				editEvent(P('Late'), { date: '2026-11-12' }),
+			]) {
+				await expect(write).rejects.toMatchObject({ name: 'EventCalendarError', reason: 'read-only' });
+			}
+
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(disk.get(P('Trip'))).toBe(trip);
+			expect(disk.get(P('Late'))).toBe(late);
+			expect(eventCalendarStore.isPending(P('Trip'))).toBe(false);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
+		it('writes a non-timing change of a span and keeps its endDate through the overlay', async () => {
+			disk.set(P('Late'), eventFile({ start: '23:00', end: '01:00' }));
+			await refresh();
+
+			await updateEventFields(P('Late'), { color: 'pink' }, { label: 'Edit event' });
+
+			expect(disk.get(P('Late'))).toContain('event_color: pink');
+			expect(disk.get(P('Late'))).toContain('start: 23:00');
+			expect(disk.get(P('Late'))).toContain('end: 01:00');
+			expect(eventCalendarStore.eventByPath(P('Late'))).toMatchObject({ color: 'pink', endDate: '2026-11-11', readOnly: true, pending: true });
+			await refresh();
+			expect(eventCalendarStore.isPending(P('Late'))).toBe(false);
+		});
+
 		it('resizeEvent writes only the end, as a Resize event op', async () => {
 			await resizeEvent(P('Standup'), 630);
 
@@ -1410,6 +1449,16 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ start: 660, end: 690, pending: false });
 		});
 
+		it('keeps a restored span read-only in the overlay before the snapshot', async () => {
+			disk.set(P('Trip'), eventFile({ end_date: '2026-11-12' }));
+			await refresh();
+			await deleteEvent(P('Trip'));
+
+			await undoEventChange();
+
+			expect(eventCalendarStore.eventByPath(P('Trip'))).toMatchObject({ endDate: '2026-11-12', readOnly: true, pending: true });
+		});
+
 		it('a save failure aborts the delete', async () => {
 			openDirtyTab(P('Standup'), eventFile({ start: '11:00' }));
 			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
@@ -1922,6 +1971,7 @@ describe('calendar writes', () => {
 
 		it('maps an EventCalendarError to its reason message', () => {
 			expect(eventErrorMessage(new EventCalendarError('not-in-trash'))).toBe('Event is no longer in the Trash');
+			expect(eventErrorMessage(new EventCalendarError('read-only'))).toBe('This event spans several days; change its date and time in the note');
 		});
 
 		it('passes any other error message through, and stringifies a non-error', () => {

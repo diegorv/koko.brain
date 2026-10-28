@@ -96,11 +96,11 @@ describe('eventCalendarStore', () => {
 		});
 
 		it('stores issues, splits them and counts archived events', () => {
-			const issues = [issue('u', 'unscheduled'), issue('bad', 'invalid-time'), issue('md', 'multi-day')];
+			const issues = [issue('u', 'unscheduled'), issue('bad', 'invalid-time'), issue('md', 'end-before-start')];
 			store.setSnapshot(projection([], issues, 4), 1);
 
 			expect(store.issues).toEqual(issues);
-			expect(store.attentionIssues.map((i) => i.reason)).toEqual(['invalid-time', 'multi-day']);
+			expect(store.attentionIssues.map((i) => i.reason)).toEqual(['invalid-time', 'end-before-start']);
 			expect(store.unscheduledIssues.map((i) => i.reason)).toEqual(['unscheduled']);
 			expect(store.attentionCount).toBe(2);
 			expect(store.archivedCount).toBe(4);

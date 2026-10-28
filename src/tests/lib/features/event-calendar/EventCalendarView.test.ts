@@ -310,6 +310,25 @@ describe('EventCalendarView: needs attention', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith(P('Broken'));
 	});
 
+	it('names the span problems: an unreadable end_date, an end_date before date and an empty range', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('Bad end date'), { date: '2026-11-10', end_date: 'soon' }),
+			eventEntry(P('Backwards'), { date: '2026-11-10', end_date: '2026-11-09' }),
+			eventEntry(P('Empty'), { date: '2026-11-10', start: '10:00', end: '10:00' }),
+			eventEntry(P('Trip'), { date: '2026-11-10', end_date: '2026-11-12' }),
+		]);
+		mountView();
+		await settle();
+
+		const reason = (name: string) =>
+			target.querySelector(`[data-attention-list] [data-issue-path="${P(name)}"] [data-issue-reason]`)?.textContent;
+		expect(text('[data-attention-badge]')).toBe('3 events need attention');
+		expect(reason('Bad end date')).toBe('end_date is not YYYY-MM-DD');
+		expect(reason('Backwards')).toBe('end_date is before date');
+		expect(reason('Empty')).toBe('end is not after start');
+		expect(target.querySelector(`[data-issue-path="${P('Trip')}"]`)).toBeNull();
+	});
+
 	it('counts only actionable issues and keeps 50 unscheduled notes collapsed', async () => {
 		const unscheduled = Array.from({ length: 50 }, (_, i) => eventEntry(P(`Someday ${i}`)));
 		vi.mocked(invoke).mockResolvedValue([...unscheduled, eventEntry(P('Broken'), { date: '2026-11-10', start: '25:00' })]);

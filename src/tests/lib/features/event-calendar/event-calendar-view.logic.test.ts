@@ -7,6 +7,7 @@ import {
 	buildAllDayChips,
 	buildMonthCells,
 	defaultCreateSlot,
+	eventWhenLabel,
 	groupEventsByDay,
 	itemsByDay,
 	itemsForDay,
@@ -14,6 +15,7 @@ import {
 	MONTH_MAX_CHIPS,
 	nowOffsetMinutes,
 	rangeLabel,
+	segmentOnDay,
 	stepDate,
 	visibleDays,
 } from '$lib/features/event-calendar/event-calendar-view.logic';
@@ -231,6 +233,61 @@ describe('rangeLabel', () => {
 	});
 });
 
+/** Builds a read-only span from `date` to `endDate`. */
+const span = (base: EventNote, endDate: string): EventNote => ({ ...base, endDate, readOnly: true });
+
+describe('segmentOnDay', () => {
+	const trip = span(ev('trip', '2026-11-10', 540, 1020), '2026-11-12');
+
+	it('returns a single-day event itself on its day and null elsewhere', () => {
+		const e = ev('a', '2026-11-10', 540, 600);
+		expect(segmentOnDay(e, '2026-11-10')).toBe(e);
+		expect(segmentOnDay(e, '2026-11-11')).toBeNull();
+	});
+
+	it('clips a timed span: from start on the first day, whole middle days, to end on the last day', () => {
+		expect(segmentOnDay(trip, '2026-11-09')).toBeNull();
+		expect(segmentOnDay(trip, '2026-11-10')).toMatchObject({ path: 'trip', date: '2026-11-10', start: 540, end: 1440 });
+		expect(segmentOnDay(trip, '2026-11-11')).toMatchObject({ start: 0, end: 1440 });
+		expect(segmentOnDay(trip, '2026-11-12')).toMatchObject({ start: 0, end: 1020 });
+		expect(segmentOnDay(trip, '2026-11-13')).toBeNull();
+	});
+
+	it('splits a cross-midnight event over its two days', () => {
+		const late = span(ev('late', '2026-11-10', 1380, 60), '2026-11-11');
+		expect(segmentOnDay(late, '2026-11-10')).toMatchObject({ start: 1380, end: 1440 });
+		expect(segmentOnDay(late, '2026-11-11')).toMatchObject({ start: 0, end: 60 });
+	});
+
+	it('drops an empty last-day segment (a span ending at 00:00)', () => {
+		expect(segmentOnDay(span(ev('a', '2026-11-10', 540, 0), '2026-11-11'), '2026-11-11')).toBeNull();
+	});
+
+	it('returns an all-day span itself on every day it covers', () => {
+		const retreat = span(allDay('retreat', '2026-11-10'), '2026-11-12');
+		for (const day of ['2026-11-10', '2026-11-11', '2026-11-12']) expect(segmentOnDay(retreat, day)).toBe(retreat);
+		expect(segmentOnDay(retreat, '2026-11-13')).toBeNull();
+	});
+});
+
+describe('eventWhenLabel', () => {
+	it('shows the day and the time range with its duration', () => {
+		expect(eventWhenLabel(ev('a', '2026-11-10', 540, 630), '24h')).toEqual({ date: 'Tuesday, November 10, 2026', time: '09:00 – 10:30 · 1h 30m' });
+	});
+
+	it('shows All day for an all-day event', () => {
+		expect(eventWhenLabel(allDay('a', '2026-11-10'), '24h')).toEqual({ date: 'Tuesday, November 10, 2026', time: 'All day' });
+	});
+
+	it('shows both days of a span and the duration across them', () => {
+		expect(eventWhenLabel(span(ev('late', '2026-11-10', 1380, 60), '2026-11-11'), '24h')).toEqual({
+			date: 'Tuesday, November 10, 2026 – Wednesday, November 11, 2026',
+			time: '23:00 – 01:00 · 2h',
+		});
+		expect(eventWhenLabel(span(allDay('r', '2026-11-10'), '2026-11-12'), '12h').time).toBe('All day');
+	});
+});
+
 describe('groupEventsByDay', () => {
 	const days = ['2026-11-09', '2026-11-10'];
 
@@ -257,6 +314,16 @@ describe('groupEventsByDay', () => {
 		expect(timed.get('2026-11-10')).toEqual([]);
 		expect(timed.has('2026-11-11')).toBe(false);
 		expect(allDayByDay.has('2026-11-08')).toBe(false);
+	});
+
+	it('lists a timed span on each visible day as its clipped segment, and an all-day span as itself', () => {
+		const late = span(ev('late', '2026-11-09', 1380, 60), '2026-11-10');
+		const retreat = span(allDay('retreat', '2026-11-08'), '2026-11-10');
+		const { timed, allDay: allDayByDay } = groupEventsByDay([late, retreat], days);
+		expect(timed.get('2026-11-09')).toEqual([{ ...late, start: 1380, end: 1440 }]);
+		expect(timed.get('2026-11-10')).toEqual([{ ...late, start: 0, end: 60 }]);
+		expect(allDayByDay.get('2026-11-09')).toEqual([retreat]);
+		expect(allDayByDay.get('2026-11-10')).toEqual([retreat]);
 	});
 
 	it('returns empty maps for no days', () => {
@@ -333,6 +400,16 @@ describe('itemsForDay', () => {
 		expect(item.event.pending).toBe(true);
 	});
 
+	it('lists a span on every day it covers, with the start time only on its first day', () => {
+		const trip = span(ev('trip', '2026-11-09', 1080, 480), '2026-11-11');
+		const early = ev('early', day, 30, 90);
+		expect(itemsForDay([trip, early], '2026-11-09', '24h').map((i) => i.label)).toEqual(['18:00 trip']);
+		expect(itemsForDay([trip, early], day, '24h').map((i) => i.label)).toEqual(['trip', '00:30 early']);
+		expect(itemsForDay([trip], '2026-11-11', '24h').map((i) => i.label)).toEqual(['trip']);
+		expect(itemsForDay([trip], '2026-11-12', '24h')).toEqual([]);
+		expect(itemsForDay([trip], day, '24h')[0].event).toBe(trip);
+	});
+
 	it('caps month chips at 3', () => {
 		expect(MONTH_MAX_CHIPS).toBe(3);
 	});
@@ -372,6 +449,14 @@ describe('itemsByDay', () => {
 	it('keeps the input event objects', () => {
 		const pending = { ...ev('p', day, 540, 600), pending: true };
 		expect(itemsByDay([pending], [day], '24h').get(day)![0].event).toBe(pending);
+	});
+
+	it('places a span that starts before the first day on every visible day it covers', () => {
+		const retreat = span(allDay('retreat', '2026-11-08'), '2026-11-11');
+		const map = itemsByDay([retreat], ['2026-11-10', '2026-11-11', '2026-11-12'], '24h');
+		expect(map.get('2026-11-10')!.map((i) => i.event)).toEqual([retreat]);
+		expect(map.get('2026-11-11')!.map((i) => i.label)).toEqual(['retreat']);
+		expect(map.get('2026-11-12')).toEqual([]);
 	});
 });
 
@@ -417,6 +502,13 @@ describe('all-day lane', () => {
 
 	it('returns no cells for no days', () => {
 		expect(buildAllDayChips([], events)).toEqual([]);
+	});
+
+	it('shows an all-day span on each day it covers, but not a timed span', () => {
+		const retreat = span(allDay('retreat', '2026-11-09'), '2026-11-10');
+		const late = span(ev('late', '2026-11-09', 1380, 60), '2026-11-10');
+		const cells = buildAllDayChips(['2026-11-09', '2026-11-10', '2026-11-11'], [retreat, late]);
+		expect(cells.map((c) => c.chips.map((e) => e.path))).toEqual([['retreat'], ['retreat'], []]);
 	});
 
 	it('sizes the lane between 1 and 3 rows', () => {

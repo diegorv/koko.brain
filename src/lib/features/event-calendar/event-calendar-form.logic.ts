@@ -155,13 +155,15 @@ export function toggleAllDay(draft: EventFormDraft, allDay = !draft.allDay): Eve
  * sanitized instead (`eventFileBase`).
  * @param draft - draft to check
  * @returns a message per failing area: an empty title (after trim), an empty
- *   or invalid date, and an end at or before the start of a timed draft
+ *   or invalid date, and an end at or before the start of a timed,
+ *   unlocked draft
  */
 export function validateDraft(draft: EventFormDraft): EventFormErrors {
 	const errors: EventFormErrors = {};
 	if (draft.title.trim() === '') errors.title = 'Enter a title.';
 	if (!isValidDayKey(draft.date)) errors.date = 'Enter a valid date.';
-	if (!draft.allDay && draft.end <= draft.start) errors.time = 'End time must be after the start time.';
+	// A locked span may end on a later day, so its `end` can be before its `start`.
+	if (!draft.timingLocked && !draft.allDay && draft.end <= draft.start) errors.time = 'End time must be after the start time.';
 	return errors;
 }
 
