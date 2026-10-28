@@ -9,9 +9,10 @@
 - `resolveTypedNoteTarget`: `src/lib/features/type-definitions/type-definitions.service.ts:48`. `createFile`: `src/lib/core/filesystem/fs.service.ts:121`.
 - macOS APFS is case-insensitive by default; `exists()` is true for a case-only variant, so the current exact-match dedupe and the write disagree.
 
-- [ ] Both dedupe paths compare names case-insensitively
-- [ ] Tests: case-only collision gets ` 1`; distinct names unchanged
+- [x] Both dedupe paths compare names case-insensitively
+- [x] Tests: case-only collision gets ` 1`; distinct names unchanged
 
 ## Comments
 
 - 2026-10-28 18:44 — discovery — fix the shared `generateUniqueName` to compare case-insensitively; unit + both service tests, no E2E (case-sensitive virtual FS) — 0da29ab9
+- 2026-10-28 18:46 — implement — generateUniqueName folds case for createFile and resolveTypedNoteTarget; 338/338 related tests and pnpm check green — 9c153b41
