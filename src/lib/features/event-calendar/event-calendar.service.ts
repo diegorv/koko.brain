@@ -192,7 +192,8 @@ function withoutPending({ pending: _pending, ...event }: EventNote & { pending?:
  * answers only while it holds the current index version and projection
  * inputs: it reloads only while the Calendar view is mounted, so it goes
  * stale once another tab is active. A pending write in the store still wins over a stale store, so a
- * move in flight shows its new day. Otherwise the vault entries snapshot is
+ * move in flight shows its new day, and a rename or delete tombstone finds
+ * nothing at the old path. Otherwise the vault entries snapshot is
  * projected once per index version and settings.
  * @throws the IPC error of the snapshot read
  */
@@ -208,7 +209,11 @@ async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | n
 		const { events } = eventsFromEntries(entries, options);
 		lookupMemo = { entries, key, events, byPath: new Map(events.map((event) => [event.path, event])) };
 	}
-	const pending = eventCalendarStore.isPending(path) ? eventCalendarStore.eventByPath(path) : undefined;
+	const isPending = eventCalendarStore.isPending(path);
+	const pending = isPending ? eventCalendarStore.eventByPath(path) : undefined;
+	// A pending path the store does not show is a tombstone: the snapshot still
+	// lists the note the calendar renamed or deleted away.
+	if (isPending && !pending) return { event: null, events: lookupMemo.events };
 	if (pending) {
 		const event = withoutPending(pending);
 		return { event, events: [...lookupMemo.events.filter((e) => e.path !== path), event] };
@@ -233,7 +238,9 @@ export async function findCalendarEvent(path: string): Promise<EventNote | null>
  * Opens the Calendar on the day of the event at `path` and asks the view to
  * focus and pulse its block. Keeps the current view (the `defaultView`
  * setting on first open) unless it would not show the block, then shows the
- * day view (`focusViewFor`).
+ * day view (`focusViewFor`). The day is the one the index has: the version
+ * bump is throttled, so for ~2-10 s after a date edited in the note body it
+ * can still be the old day.
  * @param path - absolute note path
  * @returns false, with nothing changed, when the note is not a calendar event
  * @throws the IPC error of the snapshot read

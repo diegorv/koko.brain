@@ -294,6 +294,21 @@ describe('findCalendarEvent', () => {
 		expect(found).not.toHaveProperty('pending');
 	});
 
+	it('finds nothing at the old path of a rename or delete tombstone in a stale store', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' })]);
+		await loadEvents();
+		eventCalendarStore.remapPath(P('Standup'), P('Daily'));
+		// The store goes stale and the entries snapshot has not caught up with the rename.
+		vaultStore.bumpVaultIndexVersion(5);
+		addNoteTab();
+
+		expect(await findCalendarEvent(P('Standup'))).toBeNull();
+		expect(await openEventInCalendar(P('Standup'))).toBe(false);
+		expect(calendarTabs()).toHaveLength(0);
+		expect(await findCalendarEvent(P('Daily'))).toMatchObject({ path: P('Daily'), date: '2026-11-10' });
+	});
+
 	it('reads the snapshot when a projection setting changed after the load', async () => {
 		vi.mocked(invoke).mockResolvedValue([eventEntry(P('m'), { _type: 'Meeting', date: '2026-11-10' })]);
 		await loadEvents();
