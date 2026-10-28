@@ -10,7 +10,7 @@
  */
 
 import { sameEventState } from './event-calendar-event.logic';
-import type { HistoryOp } from './event-calendar.types';
+import type { EventState, HistoryOp } from './event-calendar.types';
 
 /** Undo and redo stacks of the calendar, newest op last. */
 export interface EventHistory {
@@ -79,6 +79,24 @@ export function refuseOp(h: EventHistory, op: HistoryOp): EventHistory {
 export function remapPath(h: EventHistory, from: string, to: string): EventHistory {
 	const remap = (op: HistoryOp): HistoryOp => (op.path === from ? { ...op, path: to } : op);
 	return { undo: h.undo.map(remap), redo: h.redo.map(remap), max: h.max };
+}
+
+/**
+ * Follows a note renamed or moved outside the calendar: `remapPath`, and a
+ * recorded title equal to `fromBase` becomes `toBase`. An untitled note shows
+ * its filename as its title, so without the swap every op on it would fail
+ * its state precondition once the calendar reads the new name. A note whose
+ * `event_title` equals its old filename base is misread as untitled.
+ * @param fromBase - filename base of `from`, without `.md`
+ * @param toBase - filename base of `to`, without `.md`
+ */
+export function followRename(h: EventHistory, from: string, to: string, fromBase: string, toBase: string): EventHistory {
+	const title = (state: EventState): EventState => (state.title === fromBase ? { ...state, title: toBase } : state);
+	const follow = (op: HistoryOp): HistoryOp => {
+		if (op.path !== from) return op;
+		return op.kind === 'update' ? { ...op, path: to, before: title(op.before), after: title(op.after) } : { ...op, path: to, state: title(op.state) };
+	};
+	return { undo: h.undo.map(follow), redo: h.redo.map(follow), max: h.max };
 }
 
 /** Removes every op on `path` from both stacks (a note that is gone). */

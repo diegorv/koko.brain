@@ -19,6 +19,7 @@ import { openFileInEditor, saveFileByPath } from '$lib/core/editor/editor.servic
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { generateUniqueName, getFileName, getParentPath, getRelativePath } from '$lib/core/filesystem/fs.logic';
 import { createFile, deleteItem, renameItem } from '$lib/core/filesystem/fs.service';
+import { registerPathChangeConsumer } from '$lib/core/filesystem/path-change.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { restoreItem } from '$lib/core/trash/trash.service';
 import { trashStore } from '$lib/core/trash/trash.store.svelte';
@@ -351,6 +352,13 @@ const writeTails = new Map<string, Promise<void>>();
  */
 const CREATE_QUEUE_KEY = '\0create';
 
+/**
+ * `from` paths of the renames and deletes the calendar itself is running. The
+ * path-change consumer skips them: the write that runs a rename remaps the
+ * stores itself, and a delete keeps the ops its undo restores.
+ */
+const ownPathChanges = new Set<string>();
+
 /** Bumped by `resetEventCalendar`; a write applies its store changes only while it holds the latest value. */
 let writeGeneration = 0;
 
@@ -530,6 +538,52 @@ function patchBetween(from: EventState, to: EventState): EventPatch {
 /** The patch keys that change when an event happens; a read-only span refuses them. */
 const TIMING_KEYS = ['date', 'start', 'end', 'allDay'] as const satisfies readonly (keyof EventPatch)[];
 
+/** Runs `change`, a rename or delete of `path`, marked as the calendar's own (`ownPathChanges`). */
+async function asOwnPathChange<T>(path: string, change: () => Promise<T>): Promise<T> {
+	ownPathChanges.add(path);
+	try {
+		return await change();
+	} finally {
+		ownPathChanges.delete(path);
+	}
+}
+
+/**
+ * Follows a rename, move or delete made outside the calendar (file explorer,
+ * a drag in the tree) for every path the calendar knows at or under `from`:
+ * a rename or move remaps the overlay, the history and the view store the
+ * way the calendar's own rename does, with untitled titles following the new
+ * filename; a delete drops the path's ops, as an undo that finds the note
+ * gone would.
+ */
+function followPathChange(from: string, to: string | null): void {
+	if (ownPathChanges.has(from)) return;
+	const prefix = `${from}/`;
+	const { undo, redo } = eventCalendarStore.history;
+	const paths = new Set<string>();
+	for (const path of [...eventCalendarStore.events.map((event) => event.path), ...undo.map((op) => op.path), ...redo.map((op) => op.path)]) {
+		if (path === from || path.startsWith(prefix)) paths.add(path);
+	}
+	for (const path of paths) {
+		if (to === null) {
+			eventCalendarStore.setHistory(dropPath(eventCalendarStore.history, path));
+			continue;
+		}
+		const target = to + path.slice(from.length);
+		eventCalendarStore.remapPath(path, target, { from: fileBase(path), to: fileBase(target) });
+		eventCalendarViewStore.remapPath(path, target);
+	}
+}
+
+/**
+ * Registers the calendar as a path-change consumer, so its undo history
+ * follows notes renamed, moved or deleted elsewhere. Returns an unregister
+ * function; `initializeVault` registers it and `teardownVault` unregisters it.
+ */
+export function registerEventCalendarPathChangeConsumer(): () => void {
+	return registerPathChangeConsumer({ name: 'event-calendar', pathChanged: followPathChange });
+}
+
 /** Records `op` in the store's history. */
 function record(op: HistoryOp): void {
 	eventCalendarStore.setHistory(pushOp(eventCalendarStore.history, op));
@@ -567,7 +621,8 @@ async function writeEvent(
 		fields.eventTitle = plan.eventTitle;
 		if (plan.renameTo !== null) {
 			if (!isCurrent()) throw new FrontmatterWriteError('vault-changed', path);
-			const renamed = await renameItem(path, plan.renameTo);
+			const renameTo = plan.renameTo;
+			const renamed = await asOwnPathChange(path, () => renameItem(path, renameTo));
 			if (renamed === null) {
 				throw new Error(`Could not rename the note to "${plan.renameTo}": a note with that name may already exist`);
 			}
@@ -848,7 +903,7 @@ async function deleteNow(path: string, isCurrent: () => boolean): Promise<string
 	// the disk bytes, so an unsaved edit is saved first.
 	if (!(await saveFileByPath(path))) throw new FrontmatterWriteError('save-failed', path);
 	if (isCurrent()) eventCalendarStore.putPending({ kind: 'delete', path, settled: false });
-	if (!(await deleteItem(path))) {
+	if (!(await asOwnPathChange(path, () => deleteItem(path)))) {
 		if (isCurrent()) eventCalendarStore.dropPending(path);
 		throw new Error('Could not move the note to the Trash');
 	}

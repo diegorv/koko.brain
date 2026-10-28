@@ -148,7 +148,11 @@ vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 	scanFilesForCalendar: vi.fn(),
 }));
 
+/** Unregister handle returned by the mocked Calendar path-change registration. */
+const unregisterEventCalendarPathChange = vi.hoisted(() => vi.fn());
+
 vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+	registerEventCalendarPathChangeConsumer: vi.fn(() => unregisterEventCalendarPathChange),
 	resetEventCalendar: vi.fn(),
 	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
 }));
@@ -217,7 +221,7 @@ import { resetTemplates, ensureTemplatesFolder } from '$lib/plugins/templates/te
 import { loadBookmarks, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
 import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '$lib/features/file-icons/file-icons.service';
 import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
-import { drainEventCalendarWrites, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
 import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
 import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -736,6 +740,15 @@ describe('note-change consumer wiring', () => {
 
 		teardownVault();
 		expect(eventCalendarDailyNoteStore.available).toBe(false);
+	});
+
+	it('registers the Calendar path-change consumer during initializeVault and unregisters it on teardown', async () => {
+		await initializeVault('/vault');
+		expect(registerEventCalendarPathChangeConsumer).toHaveBeenCalledTimes(1);
+		expect(unregisterEventCalendarPathChange).not.toHaveBeenCalled();
+
+		teardownVault();
+		expect(unregisterEventCalendarPathChange).toHaveBeenCalledTimes(1);
 	});
 
 	it('unregisters the superseded init hooks when a second initializeVault overwrites the handles', async () => {

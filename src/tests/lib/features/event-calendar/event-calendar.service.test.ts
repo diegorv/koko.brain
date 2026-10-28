@@ -32,7 +32,7 @@ vi.mock('$lib/core/filesystem/fs.service', async () => {
 import { invoke } from '@tauri-apps/api/core';
 import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { renameItem } from '$lib/core/filesystem/fs.service';
+import { deleteItem, moveItem, renameItem } from '$lib/core/filesystem/fs.service';
 import { resetHooks } from '$lib/core/editor/editor.hooks';
 import { clearAllIndexed } from '$lib/utils/index-dedupe';
 import { _resetParseFrontmatterCache } from '$lib/features/properties/properties.logic';
@@ -67,6 +67,7 @@ import {
 	openNewEventDialog,
 	redoEventChange,
 	redoEventChangeFromUi,
+	registerEventCalendarPathChangeConsumer,
 	resetEventCalendar,
 	resizeEvent,
 	restoreDeletedEvent,
@@ -2142,6 +2143,162 @@ describe('calendar writes', () => {
 			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
 			expect(disk.has(P('Standup (restored)'))).toBe(false);
 			expect(disk.get(P('Standup'))).toContain('start: 14:00');
+		});
+	});
+
+	describe('path changes made outside the calendar', () => {
+		const MOVED = { date: '2026-11-11', start: 600, end: 660 };
+		let unregister: () => void;
+
+		beforeEach(async () => {
+			// The real rename runs `applyPathChange`, which is what reaches the consumer.
+			const actual = await vi.importActual<typeof import('$lib/core/filesystem/fs.service')>('$lib/core/filesystem/fs.service');
+			vi.mocked(renameItem).mockImplementation(actual.renameItem);
+			// The link rewrite of a rename reads the note's backlinks; none here.
+			const served = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => (cmd === 'get_backlinks_v2' ? [] : served(cmd, args)));
+			unregister = registerEventCalendarPathChangeConsumer();
+		});
+
+		afterEach(() => {
+			unregister();
+		});
+
+		it('undoes a move on the renamed note before the index catches up', async () => {
+			await moveEvent(P('Standup'), MOVED);
+
+			expect(await renameItem(P('Standup'), 'Retro.md')).toBe(P('Retro'));
+
+			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([P('Retro')]);
+			expect(eventCalendarStore.eventByPath(P('Retro'))).toMatchObject({ title: 'Retro', ...MOVED });
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(disk.get(P('Retro'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Retro'))).toContain('start: 09:30');
+		});
+
+		it('undoes and redoes a move on the renamed note once the index shows the new name', async () => {
+			await moveEvent(P('Standup'), MOVED);
+			await renameItem(P('Standup'), 'Retro.md');
+			await refresh();
+			expect(eventCalendarStore.events.map((e) => [e.path, e.title])).toEqual([[P('Retro'), 'Retro']]);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Retro'))).toContain('start: 09:30');
+			await refresh();
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Retro'))).toContain('start: 10:00');
+			expect(eventCalendarStore.eventByPath(P('Retro'))).toMatchObject({ title: 'Retro', ...MOVED });
+		});
+
+		it('keeps an event_title, which the rename does not change', async () => {
+			disk.set(P('Standup'), eventFile({ event_title: 'Team standup' }));
+			await refresh();
+			await moveEvent(P('Standup'), MOVED);
+			await renameItem(P('Standup'), 'Retro.md');
+			await refresh();
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Retro'))).toContain('start: 09:30');
+		});
+
+		it('follows a redo op on the renamed note', async () => {
+			await moveEvent(P('Standup'), MOVED);
+			await undoEventChange();
+			await renameItem(P('Standup'), 'Retro.md');
+
+			expect(eventCalendarStore.history.redo.map((op) => op.path)).toEqual([P('Retro')]);
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Retro'))).toContain('start: 10:00');
+		});
+
+		it('remaps the notes under a moved folder', async () => {
+			const inFolder = `${VAULT}/Events/Sync.md`;
+			const moved = `${VAULT}/Archive/Events/Sync.md`;
+			disk.set(inFolder, eventFile());
+			await refresh();
+			await moveEvent(inFolder, MOVED);
+			await moveEvent(P('Standup'), MOVED);
+			// The fake `rename` moves one key; a folder rename carries its children.
+			vi.mocked(rename).mockImplementationOnce(async (from, to) => {
+				for (const key of [...disk.keys()]) {
+					if (!key.startsWith(`${String(from)}/`)) continue;
+					disk.set(String(to) + key.slice(String(from).length), disk.get(key)!);
+					disk.delete(key);
+				}
+			});
+
+			expect(await moveItem(`${VAULT}/Events`, `${VAULT}/Archive`)).toBe(`${VAULT}/Archive/Events`);
+
+			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([moved, P('Standup')]);
+			await refresh();
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(moved)).toContain('start: 09:30');
+			expect(disk.has(inFolder)).toBe(false);
+		});
+
+		it('drops the ops of a note deleted outside the calendar', async () => {
+			disk.set(P('Retro'), eventFile());
+			await refresh();
+			await moveEvent(P('Retro'), MOVED);
+			await moveEvent(P('Standup'), MOVED);
+			await undoEventChange();
+
+			expect(await deleteItem(P('Standup'))).toBe(true);
+
+			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([P('Retro')]);
+			expect(eventCalendarStore.history.redo).toEqual([]);
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Retro'))).toContain('start: 09:30');
+		});
+
+		it('leaves the history alone for a note the calendar does not know', async () => {
+			disk.set(P('Notes'), '# Notes\n');
+			await moveEvent(P('Standup'), MOVED);
+			const { history } = eventCalendarStore;
+
+			await renameItem(P('Notes'), 'Journal.md');
+			await deleteItem(P('Journal'));
+
+			expect(eventCalendarStore.history).toBe(history);
+			expect(eventCalendarStore.isPending(P('Notes'))).toBe(false);
+		});
+
+		it('keeps the ops of its own delete, so undo restores the note and then undoes the move', async () => {
+			await moveEvent(P('Standup'), MOVED);
+			await deleteEvent(P('Standup'));
+
+			expect(eventCalendarStore.history.undo.map((op) => op.kind)).toEqual(['update', 'delete']);
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Delete event' });
+			await refresh();
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+		});
+
+		it('keeps the redo of an undone create, whose undo deletes the note', async () => {
+			const path = await createEvent(draft());
+			await refresh();
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Create event' });
+			expect(disk.has(path)).toBe(false);
+			expect(eventCalendarStore.history.redo.map((op) => op.path)).toEqual([path]);
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Create event' });
+			expect(disk.has(path)).toBe(true);
+		});
+
+		it('undoes and redoes its own title rename through the real rename', async () => {
+			await editEvent(P('Standup'), { title: 'Daily sync' });
+			await refresh(2);
+			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([P('Daily sync')]);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Edit event' });
+			expect(disk.has(P('Daily sync'))).toBe(false);
+			expect(eventCalendarStore.history.redo.map((op) => op.path)).toEqual([P('Standup')]);
+			await refresh(2);
+			expect(await redoEventChange()).toEqual({ status: 'done', label: 'Edit event' });
+			expect(eventCalendarStore.events.map((e) => [e.path, e.title])).toEqual([[P('Daily sync'), 'Daily sync']]);
 		});
 	});
 

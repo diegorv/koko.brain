@@ -61,7 +61,7 @@ import {
 	scanFilesForCalendar,
 } from '$lib/plugins/calendar/calendar.service';
 import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
-import { drainEventCalendarWrites, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
 import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
 import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
 import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
@@ -241,6 +241,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerCollectionNoteChangeConsumer(),
 		registerFileIconsNoteChangeConsumer(),
 		registerCalendarNoteChangeConsumer(),
+		// A path-change consumer: same lifetime, so it shares the unregister list.
+		registerEventCalendarPathChangeConsumer(),
 	];
 	// Single slot: a later registration replaces this one, so the double-init
 	// window above cannot strand a stale opener.

@@ -469,6 +469,33 @@ describe('eventCalendarStore', () => {
 			expect(store.history.undo.map((op) => op.path)).toEqual([to, other.path]);
 		});
 
+		it('keeps the titles without `titles`, as the calendar\'s own rename writes its own', () => {
+			const a = note('a');
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 1);
+			store.setHistory(pushOp(createEventHistory(), updateOp(a)));
+			store.remapPath(a.path, to);
+
+			expect(store.eventByPath(to)).toMatchObject({ title: 'a' });
+			expect(store.history.undo).toEqual([expect.objectContaining({ before: expect.objectContaining({ title: 'a' }) })]);
+		});
+
+		it('with `titles`, a title read from the old filename follows the new one, on the event and in the history', () => {
+			const a = note('a');
+			const titled = note('t', { title: 'Team sync' });
+			store.setSnapshot(projection([a, titled]), 1);
+			store.setHistory(pushOp(pushOp(createEventHistory(), updateOp(a)), updateOp(titled)));
+			store.remapPath(a.path, P('b'), { from: 'a', to: 'b' });
+			store.remapPath(titled.path, P('u'), { from: 't', to: 'u' });
+
+			expect(store.eventByPath(P('b'))).toMatchObject({ title: 'b', pending: true });
+			expect(store.eventByPath(P('u'))).toMatchObject({ title: 'Team sync', pending: true });
+			expect(store.history.undo.map((op) => op.kind === 'update' && [op.path, op.before.title, op.after.title])).toEqual([
+				[P('b'), 'b', 'b'],
+				[P('u'), 'Team sync', 'Team sync'],
+			]);
+		});
+
 		it('is a no-op for the same path', () => {
 			const a = note('a');
 			store.setSnapshot(projection([a]), 1);

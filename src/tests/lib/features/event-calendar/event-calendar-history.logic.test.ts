@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	createEventHistory,
 	dropPath,
+	followRename,
 	pushOp,
 	refuseOp,
 	remapPath,
@@ -282,5 +283,38 @@ describe('remapPath / dropPath', () => {
 		const h = pushOp(createEventHistory(), move(`${VAULT}/a.md`));
 		expect(remapPath(h, `${VAULT}/x.md`, `${VAULT}/y.md`)).toEqual(h);
 		expect(dropPath(h, `${VAULT}/x.md`)).toEqual(h);
+	});
+});
+
+describe('followRename', () => {
+	const from = `${VAULT}/Standup.md`;
+	const to = `${VAULT}/Archive/Retro.md`;
+
+	it('moves every op on the old path, on both stacks, and swaps a filename title on each state', () => {
+		let h = pushAll(createEventHistory(), [create(from), move(from), del(from), move(`${VAULT}/other.md`)]);
+		h = takeUndo(h)!.history;
+		h = takeUndo(h)!.history;
+		h = followRename(h, from, to, 'Standup', 'Retro');
+
+		expect(h.undo).toEqual([
+			{ ...create(from), path: to, state: state({ title: 'Retro' }) },
+			{ ...move(from), path: to, before: state({ title: 'Retro' }), after: state({ title: 'Retro', start: 780, end: 810 }) },
+		]);
+		expect(h.redo).toEqual([move(`${VAULT}/other.md`), { ...del(from), path: to, state: state({ title: 'Retro' }) }]);
+	});
+
+	it('keeps a title that is not the old filename base', () => {
+		const titled: HistoryOp = { kind: 'update', label: 'Edit event', path: from, before: state({ title: 'Team sync' }), after: state({ title: 'Daily sync' }) };
+		const h = followRename(pushOp(createEventHistory(), titled), from, to, 'Standup', 'Retro');
+
+		expect(h.undo).toEqual([{ ...titled, path: to }]);
+	});
+
+	it('leaves the input untouched and a history without that path unchanged', () => {
+		const h = pushAll(createEventHistory(), [move(from), move(`${VAULT}/b.md`)]);
+		const snapshot = structuredClone(h);
+		expect(followRename(h, from, to, 'Standup', 'Retro')).not.toEqual(h);
+		expect(h).toEqual(snapshot);
+		expect(followRename(h, `${VAULT}/x.md`, to, 'x', 'Retro')).toEqual(h);
 	});
 });

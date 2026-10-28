@@ -10,7 +10,7 @@
  * mutation.
  */
 
-import { createEventHistory, remapPath as remapHistoryPath, type EventHistory } from './event-calendar-history.logic';
+import { createEventHistory, followRename, remapPath as remapHistoryPath, type EventHistory } from './event-calendar-history.logic';
 import { isActionableIssue, mergePending, prunePending, type PendingEventNote } from './event-calendar-event.logic';
 import type { CalendarTask } from './event-calendar-tasks.logic';
 import type { EventIssue, EventNote, EventProjection, PendingWrite } from './event-calendar.types';
@@ -170,18 +170,25 @@ export const eventCalendarStore = {
 	 * is kept and the event at `from` is not moved over it. A write still in
 	 * flight when the rename lands must be settled at `to` afterwards;
 	 * settling `from` hits the tombstone and is a no-op.
+	 *
+	 * With `titles` (a rename made outside the calendar, which writes no
+	 * `event_title`), a title equal to `titles.from` becomes `titles.to`, on
+	 * the moved event and in the history (`followRename`).
+	 * @param titles - filename bases of `from` and `to`, without `.md`
 	 */
-	remapPath(from: string, to: string) {
+	remapPath(from: string, to: string, titles?: { from: string; to: string }) {
 		if (from === to) return;
 		const write = pending.get(from);
 		const current = eventMap.get(from);
 		const next = new Map(pending);
 		if (current && !pending.has(to)) {
-			next.set(to, { kind: 'create', path: to, event: { ...plainEvent(current), path: to }, settled: write ? write.settled : true });
+			const event = { ...plainEvent(current), path: to };
+			if (titles && event.title === titles.from) event.title = titles.to;
+			next.set(to, { kind: 'create', path: to, event, settled: write ? write.settled : true });
 		}
 		next.set(from, { kind: 'delete', path: from, settled: true });
 		pending = next;
-		history = remapHistoryPath(history, from, to);
+		history = titles ? followRename(history, from, to, titles.from, titles.to) : remapHistoryPath(history, from, to);
 		recompute();
 	},
 
