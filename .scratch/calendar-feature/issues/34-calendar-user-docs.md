@@ -39,3 +39,4 @@
 
 - 2026-10-28 16:26 — discovery — docs-only plan in work/34/discovery.md; archify skill unavailable, map files left to ticket 36 — 82e1ee31
 - 2026-10-28 16:29 — implement — 27-calendar.md written, cross-links, README and CLAUDE.md updated; archify files untouched (skill unavailable, ticket 36 follow-up); no source changes so no tests run — 307ab3e2
+- 2026-10-28 16:33 — review — CHANGES_REQUESTED: 1 medium (27-calendar.md:96 says type rename leaves notes on the old name; renameType propagates it), 6 low wording/format nits — db6697e7
