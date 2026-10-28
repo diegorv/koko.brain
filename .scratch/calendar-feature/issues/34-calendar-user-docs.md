@@ -34,3 +34,7 @@
 - [ ] `CLAUDE.md` Project Structure lists `event-calendar` under `features/` (`:65-68`); Indexing rule 6 adds `trash.service::restoreItem` to the write-path list (`:272`) and `restore` to the source list (`:274`), stating that it fires the Rust IPC on every call because nothing indexed the restored note
 - [ ] Archify map: with the `archify` skill available, the `notechange` node's tag "5 change sources" becomes "6 change sources" in `kokobrain-runtime.architecture.json` and `kokobrain-runtime.html` is regenerated with the skill; without it, both files are untouched and the follow-up is left to ticket 36
 - [ ] Gate green (`git diff --cached --stat` lists only docs); one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 16:26 — discovery — docs-only plan in work/34/discovery.md; archify skill unavailable, map files left to ticket 36 — 82e1ee31
