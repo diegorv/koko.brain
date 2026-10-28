@@ -12,3 +12,7 @@
 - [ ] Strip renders in day view only, follows the week-start setting, and changes the day on click and by keyboard
 - [ ] ARIA as the day headers (`aria-pressed`)
 - [ ] Component test and an E2E click
+
+## Comments
+
+- 2026-10-28 17:45 — discovery — new EventWeekStrip above the day-view grid, aria-pressed buttons over weekDays(weekStartsOn) — b41e9b0c
