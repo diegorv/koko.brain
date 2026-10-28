@@ -10,6 +10,7 @@
 	import type { EventCalendarViewMode } from '$lib/core/settings/settings.types';
 	import SettingItem from '$lib/core/settings/sections/SettingItem.svelte';
 	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 	import { buildTypeNoteDir, validateTypeName } from '$lib/features/type-definitions/type-definitions.logic';
@@ -56,12 +57,23 @@
 	/** True while "Open Event type" is creating the definition, so a second click cannot create a duplicate. */
 	let creating = $state(false);
 
+	/** Toast for a vault-root note that holds the type's file name without being a type definition. */
+	function toastNameTaken(fileName: string) {
+		toast.error(`A note named "${fileName}" already exists in the vault root. Add "_type: Type" to its frontmatter or rename it.`);
+	}
+
 	/**
 	 * Opens the event type definition, creating it first when the vault has
 	 * none, then closes the settings panel so the opened note is visible.
 	 * After a create it refreshes the type map before re-enabling the button:
 	 * the throttled index refresh would otherwise leave `eventType` unset for
 	 * seconds, and a second click would write a duplicate `Event 1.md`.
+	 *
+	 * An ordinary root note with the type's name would make the create dedupe
+	 * to `Event 1.md`, a type that never matches the configured name, so every
+	 * click would write another copy. The root is checked first (ignoring case,
+	 * for case-insensitive disks) and the created file name is checked after,
+	 * in case the tree was stale.
 	 */
 	async function openEventType() {
 		if (eventType?.path) {
@@ -76,11 +88,21 @@
 			toast.error(invalid);
 			return;
 		}
+		const fileName = `${name}.md`;
+		const taken = fsStore.fileTree.find((node) => !node.isDirectory && node.name.toLowerCase() === fileName.toLowerCase());
+		if (taken) {
+			toastNameTaken(taken.name);
+			return;
+		}
 		creating = true;
 		try {
 			const path = await createTypeDefinition(name);
 			if (!path) {
 				toast.error(`Could not create the "${name}" type`);
+				return;
+			}
+			if (path.slice(path.lastIndexOf('/') + 1) !== fileName) {
+				toastNameTaken(fileName);
 				return;
 			}
 			settingsPanelStore.close();

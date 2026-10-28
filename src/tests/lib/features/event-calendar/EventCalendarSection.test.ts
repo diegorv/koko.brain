@@ -24,6 +24,7 @@ import EventCalendarSection from '$lib/features/event-calendar/EventCalendarSect
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { getTypeMetadataFallback, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
@@ -53,6 +54,7 @@ describe('EventCalendarSection', () => {
 		vaultStore._reset();
 		typeDefinitionsStore.reset();
 		settingsPanelStore._reset();
+		fsStore.reset();
 	});
 
 	afterEach(() => {
@@ -274,5 +276,42 @@ describe('EventCalendarSection', () => {
 		render();
 		target.querySelector<HTMLButtonElement>('[data-open-event-type]')!.click();
 		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not create the "Event" type'));
+	});
+	it('"Open Event type" toasts instead of creating when an ordinary root note takes the name', () => {
+		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
+		fsStore.setFileTree([{ name: 'event.md', path: `${VAULT}/event.md`, isDirectory: false }]);
+		render();
+		openButton().click();
+		expect(createTypeDefinition).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith(
+			'A note named "event.md" already exists in the vault root. Add "_type: Type" to its frontmatter or rename it.',
+		);
+		expect(settingsPanelStore.isOpen).toBe(true);
+	});
+
+	it('"Open Event type" ignores a same-named folder or a nested note', () => {
+		vaultStore.open(VAULT);
+		fsStore.setFileTree([
+			{ name: 'Event', path: `${VAULT}/Event`, isDirectory: true, children: [{ name: 'Event.md', path: `${VAULT}/Event/Event.md`, isDirectory: false }] },
+		]);
+		render();
+		openButton().click();
+		expect(createTypeDefinition).toHaveBeenCalledWith('Event');
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('"Open Event type" toasts and keeps the panel open when the create lands on a deduped name', async () => {
+		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
+		vi.mocked(createTypeDefinition).mockResolvedValueOnce(`${VAULT}/Event 1.md`);
+		render();
+		openButton().click();
+		await vi.waitFor(() =>
+			expect(toast.error).toHaveBeenCalledWith(
+				'A note named "Event.md" already exists in the vault root. Add "_type: Type" to its frontmatter or rename it.',
+			),
+		);
+		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 });
