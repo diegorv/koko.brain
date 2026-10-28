@@ -26,3 +26,7 @@
 - [ ] ADR-0029's Consequences ends with an amendment note that says the same as the "Relation to ADR-0029" section (`docs/agents/domain.md:31`, "Flag ADR conflicts")
 - [ ] ADR-0009 has an amendment note at "The five sources" (`docs/adr/0009-incremental-indexing-reverse-index.md:48`): there are now six, and `restore` has `rust: 'always'` because no `create_note` ran for the restored file
 - [ ] Gate green (`git diff --cached --stat` lists only docs); one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 16:24 — discovery — docs-only plan in work/35/discovery.md; grep inventory taken on the final tree (no #lib specifiers; EventCalendarSection adds type-definitions.logic and two service imports beyond the plan list) — 82e1ee31
