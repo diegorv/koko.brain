@@ -35,6 +35,15 @@ In the month view, click a day number to select the day; click the selected day'
 
 The grid scrolls to the **Day starts at** hour (Settings > Calendar) when it opens.
 
+## Dated Tasks
+
+Tasks with a due date (`- [ ] Pay rent 📅 2026-11-12`) show on their due day, from the same task index the Tasks view reads. They are outlined, not colored, with a circle (a check mark once done):
+
+- **Week and day views**: a **Tasks** row under the **All day** lane, shown when a visible day has a task. A busy day scrolls inside its cell.
+- **Month view**: after the event chips, in the slots the events leave. **+N more** counts the tasks that do not fit.
+
+Click a task to open its note with the cursor on the task line. Tasks are not events: they cannot be dragged and have no popover. Only the due date (📅) places a task; scheduled and start dates do not. Turn the overlay off with **Show dated tasks** in Settings > Calendar.
+
 ## Creating, Moving and Resizing Events
 
 | Action | How |
@@ -218,7 +227,7 @@ The panel's **Open Calendar** button and day double-click open the Calendar tab.
 
 ## Settings
 
-**Settings > Calendar** sets the week start, time format, **Day starts at** hour, weekends, default view, default duration and color, and the event type. See [Settings](19-settings.md#calendar).
+**Settings > Calendar** sets the week start, time format, **Day starts at** hour, weekends, dated tasks, default view, default duration and color, and the event type. See [Settings](19-settings.md#calendar).
 
 ---
 

@@ -15,6 +15,7 @@
 	import {
 		acquireCalendarClock,
 		deleteEventFromUi,
+		loadCalendarTasks,
 		loadEvents,
 		openNewEventDialog,
 		redoEventChangeFromUi,
@@ -191,6 +192,23 @@
 		block.setAttribute('data-event-pulse', '');
 		setTimeout(() => block.removeAttribute('data-event-pulse'), PULSE_MS);
 	}
+
+	// Dated tasks: load on mount, on every index bump and when the overlay is
+	// turned on. Off, the store keeps its last tasks and nothing renders them.
+	$effect(() => {
+		void vaultStore.vaultIndexVersion;
+		const ready = vaultStore.indexReady;
+		const show = settingsStore.eventCalendar.showTasks;
+		if (!ready || !show) return;
+		untrack(() => {
+			// The service rejects only for the current load.
+			loadCalendarTasks().catch((err) => {
+				toast.error('Could not load tasks', {
+					description: err instanceof Error ? err.message : String(err),
+				});
+			});
+		});
+	});
 
 	// The mounted view owns the clock; the release is the cleanup.
 	$effect(() => untrack(() => acquireCalendarClock()));

@@ -685,6 +685,19 @@ describe('loadCalendarTasks', () => {
 		await load2;
 		expect(eventCalendarStore.tasks).toEqual([]);
 	});
+
+	it('logs but does not rethrow the failure of a load a newer one replaced', async () => {
+		const first = deferred<FileTaskGroupV2[]>();
+		vi.mocked(invoke).mockReturnValueOnce(first.promise).mockResolvedValueOnce([taskGroup(P('new'), [[1, 'new', '2026-11-12']])]);
+		const load1 = loadCalendarTasks();
+		await loadCalendarTasks();
+
+		first.reject(new Error('stale'));
+
+		await expect(load1).resolves.toBeUndefined();
+		expect(console.error).toHaveBeenCalled();
+		expect(eventCalendarStore.tasks.map((t) => t.path)).toEqual([P('new')]);
+	});
 });
 
 describe('acquireCalendarClock', () => {

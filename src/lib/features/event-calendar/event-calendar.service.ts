@@ -101,20 +101,23 @@ export async function loadEvents(): Promise<void> {
 /**
  * Reads the Rust task index (`get_all_tasks_v2`, the IPC the Tasks view
  * uses, without its section-tag filter) and stores its dated tasks in
- * `eventCalendarStore.tasks`. Latest wins: a result that lands after a newer
- * task load, a reset or a vault switch is discarded.
- * @throws the IPC error, after logging it; the tasks are left untouched
+ * `eventCalendarStore.tasks`. Latest wins: a result or a failure that lands
+ * after a newer task load, a reset or a vault switch is discarded (the
+ * failure is still logged), so only the current load reaches the caller.
+ * @throws the IPC error of the current load, after logging it; the tasks are
+ *   left untouched
  */
 export async function loadCalendarTasks(): Promise<void> {
 	const token = ++taskLoadToken;
 	const vaultPath = vaultStore.path;
+	const isCurrent = () => token === taskLoadToken && vaultStore.path === vaultPath;
 	try {
 		const groups = await invoke<FileTaskGroupV2[]>('get_all_tasks_v2');
-		if (token !== taskLoadToken || vaultStore.path !== vaultPath) return;
+		if (!isCurrent()) return;
 		eventCalendarStore.setTasks(tasksFromGroups(groups));
 	} catch (err) {
 		error('EVENT-CALENDAR', 'loadCalendarTasks failed:', err);
-		throw err;
+		if (isCurrent()) throw err;
 	}
 }
 

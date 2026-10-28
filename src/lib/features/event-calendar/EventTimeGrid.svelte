@@ -22,6 +22,7 @@
 	import EventAllDayLane from './EventAllDayLane.svelte';
 	import EventBlock from './EventBlock.svelte';
 	import EventDayHeaders from './EventDayHeaders.svelte';
+	import EventTaskLane from './EventTaskLane.svelte';
 	import type { PendingEventNote } from './event-calendar-event.logic';
 	import type { DragState } from './event-calendar.types';
 
@@ -274,6 +275,9 @@
 		<div class="sticky top-0 z-40 bg-editor-bg" data-time-grid-header>
 			<EventDayHeaders {days} />
 			<EventAllDayLane {days} {events} />
+			{#if settingsStore.eventCalendar.showTasks}
+				<EventTaskLane {days} tasks={eventCalendarStore.tasks} />
+			{/if}
 			<!-- Masks the hour line and label that sit exactly on the header edge after the mount scroll. -->
 			<div class="pointer-events-none absolute inset-x-0 top-full h-2" aria-hidden="true" data-time-grid-mask>
 				<div class="absolute inset-x-0 top-0 h-px bg-editor-bg"></div>

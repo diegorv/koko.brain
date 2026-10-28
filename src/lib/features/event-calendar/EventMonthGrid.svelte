@@ -4,10 +4,12 @@
 	import { DayDrag } from './event-calendar-day-drag.svelte';
 	import { previewDayMove } from './event-calendar-drag.logic';
 	import { eventColorStyle } from './event-calendar-event.logic';
-	import { itemsByDay, MONTH_MAX_CHIPS } from './event-calendar-view.logic';
+	import { monthCellSlots, tasksByDay } from './event-calendar-tasks.logic';
+	import { itemsByDay } from './event-calendar-view.logic';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import EventDailyNoteButton from './EventDailyNoteButton.svelte';
+	import EventTaskChip from './EventTaskChip.svelte';
 
 	let cells = $derived(eventCalendarViewStore.monthCells);
 	let cols = $derived(settingsStore.eventCalendar.showWeekends ? 7 : 5);
@@ -19,6 +21,7 @@
 	let cellsEl: HTMLDivElement | undefined = $state();
 	const drag = new DayDrag({ area: () => cellsEl, days: () => days, rows: 6, events: () => events });
 	let chipsByDay = $derived(itemsByDay(previewDayMove(events, drag.preview, days), days, timeFormat));
+	let dayTasks = $derived(settingsStore.eventCalendar.showTasks ? tasksByDay(eventCalendarStore.tasks, days) : new Map());
 	let selectedPath = $derived(eventCalendarViewStore.selectedEventPath);
 	let gridColumns = $derived(`grid-template-columns: repeat(${cols}, minmax(0, 1fr))`);
 
@@ -76,7 +79,8 @@
 	>
 		{#each cells as cell, i (cell.day)}
 			{@const items = chipsByDay.get(cell.day) ?? []}
-			{@const hidden = items.length - MONTH_MAX_CHIPS}
+			{@const tasks = dayTasks.get(cell.day) ?? []}
+			{@const slots = monthCellSlots(items.length, tasks.length)}
 			{@const selected = cell.day === eventCalendarViewStore.focusedDate}
 			{@const today = cell.day === eventCalendarViewStore.todayKey}
 			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
@@ -112,7 +116,7 @@
 					</button>
 					<EventDailyNoteButton day={cell.day} class="size-6" />
 				</div>
-				{#each items.slice(0, MONTH_MAX_CHIPS) as item (item.event.path)}
+				{#each items.slice(0, slots.events) as item (item.event.path)}
 					<button
 						type="button"
 						class="flex h-[22px] w-full shrink-0 items-center overflow-hidden rounded-md px-1.5 text-left text-xs font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
@@ -127,15 +131,18 @@
 						<span class="min-w-0 flex-1 truncate">{item.label}</span>
 					</button>
 				{/each}
-				{#if hidden > 0}
+				{#each tasks.slice(0, slots.tasks) as task (`${task.path}:${task.line}`)}
+					<EventTaskChip {task} class="h-[22px]" />
+				{/each}
+				{#if slots.hidden > 0}
 					<button
 						type="button"
 						class="shrink-0 self-start rounded-md px-1.5 py-1 text-xs text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-						aria-label="{hidden} more events, open day view"
+						aria-label="{slots.hidden} more items, open day view"
 						data-month-more
 						onclick={() => openDay(cell.day)}
 					>
-						+{hidden} more
+						+{slots.hidden} more
 					</button>
 				{/if}
 			</div>

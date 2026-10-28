@@ -46,7 +46,7 @@ import { CALENDAR_SHORTCUTS } from '$lib/features/event-calendar/event-calendar-
 import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { FileTaskGroupV2, NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { eventEntry } from '../../../fixtures/event-notes.fixture';
 
 const VAULT = '/vault';
@@ -264,12 +264,16 @@ describe('EventCalendarView: loading', () => {
 	});
 
 	it('shows the inline error and toasts when the current load fails', async () => {
-		vi.mocked(invoke).mockRejectedValue(new Error('boom'));
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'get_all_vault_entries_v2') throw new Error('boom');
+			return [];
+		});
 		mountView();
 		await settle();
 
 		expect(text('[data-calendar-load-error]')).toContain('boom');
 		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith('Could not load calendar events', { description: 'boom' });
 	});
 
 	it('does not toast for a load that a newer load replaced', async () => {
@@ -313,6 +317,118 @@ describe('EventCalendarView: loading', () => {
 
 		expect(toast.error).not.toHaveBeenCalled();
 		expect(eventCalendarStore.loadError).toBeNull();
+	});
+});
+
+describe('EventCalendarView: dated tasks', () => {
+	/** A note with `- [ ] Pay rent 📅 2026-11-12` on line 3. */
+	const RENT: FileTaskGroupV2 = {
+		filePath: P('Home'),
+		fileName: 'Home',
+		modifiedAt: 0,
+		tasks: [
+			{
+				text: 'Pay rent 📅 2026-11-12',
+				checked: false,
+				indent: 0,
+				lineNumber: 3,
+				status: 'todo',
+				metadata: { description: 'Pay rent', dueDate: '2026-11-12', tags: [] },
+			},
+		],
+	};
+
+	/** Answers the task index with `groups` and every other command with []. */
+	function mockTasks(groups: FileTaskGroupV2[] | Error) {
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd !== 'get_all_tasks_v2') return [];
+			if (groups instanceof Error) throw groups;
+			return groups;
+		});
+	}
+
+	const taskCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_tasks_v2');
+
+	it('shows a dated task in the week task lane and in the month cell of its due day', async () => {
+		mockTasks([RENT]);
+		mountView();
+		await settle();
+
+		expect(taskCalls()).toHaveLength(1);
+		const laneChip = target.querySelector<HTMLButtonElement>('[data-task-lane-cell="2026-11-12"] [data-calendar-task]');
+		expect(laneChip?.textContent?.trim()).toBe('Pay rent');
+		expect(target.querySelectorAll('[data-calendar-task]')).toHaveLength(1);
+		// A task is not an event: no event path, so no drag, popover or Delete.
+		expect(laneChip!.hasAttribute('data-event-path')).toBe(false);
+
+		eventCalendarViewStore.setView('month');
+		flushSync();
+		const cellChip = target.querySelector('[data-month-cell="2026-11-12"] [data-calendar-task]');
+		expect(cellChip?.textContent?.trim()).toBe('Pay rent');
+	});
+
+	it('opens the note when a task chip is clicked', async () => {
+		mockTasks([RENT]);
+		mountView();
+		await settle();
+
+		target.querySelector<HTMLButtonElement>('[data-calendar-task]')!.click();
+		await settle();
+
+		expect(openFileInEditor).toHaveBeenCalledWith(P('Home'));
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('shows no task lane in a week without dated tasks', async () => {
+		mockTasks([]);
+		mountView();
+		await settle();
+
+		expect(target.querySelector('[data-task-lane]')).toBeNull();
+	});
+
+	it('reloads the tasks on an index bump', async () => {
+		mockTasks([]);
+		mountView();
+		await settle();
+		expect(target.querySelector('[data-calendar-task]')).toBeNull();
+
+		mockTasks([RENT]);
+		vaultStore.bumpVaultIndexVersion(vaultStore.vaultIndexVersion + 1);
+		flushSync();
+		await settle();
+
+		expect(taskCalls()).toHaveLength(2);
+		expect(target.querySelector('[data-calendar-task]')).not.toBeNull();
+	});
+
+	it('hides the overlay and stops loading tasks when the setting is off', async () => {
+		mockTasks([RENT]);
+		mountView();
+		await settle();
+
+		settingsStore.updateEventCalendar({ showTasks: false });
+		flushSync();
+		expect(target.querySelector('[data-calendar-task]')).toBeNull();
+		eventCalendarViewStore.setView('month');
+		flushSync();
+		expect(target.querySelector('[data-calendar-task]')).toBeNull();
+
+		vaultStore.bumpVaultIndexVersion(vaultStore.vaultIndexVersion + 1);
+		flushSync();
+		await settle();
+		expect(taskCalls()).toHaveLength(1);
+	});
+
+	it('toasts when the task index fails and still shows the events', async () => {
+		mockTasks(new Error('tasks gone'));
+		mountView();
+		await settle();
+
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith('Could not load tasks', { description: 'tasks gone' });
+		expect(target.querySelector('[data-calendar-load-error]')).toBeNull();
+		expect(target.querySelector('[data-time-grid]')).not.toBeNull();
 	});
 });
 

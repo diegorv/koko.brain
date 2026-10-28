@@ -17,6 +17,7 @@ import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logi
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
+import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
@@ -38,6 +39,11 @@ function event(overrides: Partial<EventNote> & Pick<EventNote, 'path' | 'title' 
 
 function seed(events: EventNote[]) {
 	eventCalendarStore.setSnapshot({ events, issues: [], archivedCount: 0 }, 1);
+}
+
+/** A dated task on `date`, in note `name`, on `line`. */
+function datedTask(name: string, date: string, line = 1, overrides: Partial<CalendarTask> = {}): CalendarTask {
+	return { path: `/vault/${name}.md`, fileName: name, line, description: name, checked: false, date, ...overrides };
 }
 
 let target: HTMLElement;
@@ -481,5 +487,38 @@ describe('EventTimeGrid: keys during a gesture', () => {
 		press('d');
 
 		expect(reached).toEqual(['d']);
+	});
+});
+
+describe('EventTimeGrid: task lane', () => {
+	it('shows the dated tasks of the visible days under the all-day lane', () => {
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3), datedTask('Later', '2026-12-01')]);
+		mountGrid();
+
+		const header = q('[data-time-grid-header]')!;
+		const lanes = [...header.children].map((c) => (c.hasAttribute('data-all-day-lane') ? 'all-day' : c.hasAttribute('data-task-lane') ? 'tasks' : null)).filter(Boolean);
+		expect(lanes).toEqual(['all-day', 'tasks']);
+		expect(q('[data-task-lane-cell="2026-11-12"] [data-calendar-task]')?.textContent?.trim()).toBe('Rent');
+		expect(qa('[data-calendar-task]')).toHaveLength(1);
+	});
+
+	it('has no task lane when the overlay setting is off or no visible day has a task', () => {
+		eventCalendarStore.setTasks([datedTask('Later', '2026-12-01')]);
+		mountGrid();
+		expect(q('[data-task-lane]')).toBeNull();
+		unmount(component!);
+		component = null;
+
+		settingsStore.updateEventCalendar({ showTasks: false });
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12')]);
+		mountGrid();
+		expect(q('[data-task-lane]')).toBeNull();
+	});
+
+	it('shows only the focused day\'s tasks in day view', () => {
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12'), datedTask('Gym', '2026-11-10')]);
+		mountGrid(['2026-11-10']);
+
+		expect(qa('[data-calendar-task]').map((c) => c.textContent?.trim())).toEqual(['Gym']);
 	});
 });

@@ -28,6 +28,7 @@ import { moveEventToDay, toastEventError } from '$lib/features/event-calendar/ev
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
+import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
@@ -47,6 +48,11 @@ function event(overrides: Partial<EventNote> & Pick<EventNote, 'path' | 'title' 
 
 function seed(events: EventNote[]) {
 	eventCalendarStore.setSnapshot({ events, issues: [], archivedCount: 0 }, 1);
+}
+
+/** A dated task on `date`, in note `name`, on `line`. */
+function datedTask(name: string, date: string, line = 1, overrides: Partial<CalendarTask> = {}): CalendarTask {
+	return { path: `/vault/${name}.md`, fileName: name, line, description: name, checked: false, date, ...overrides };
 }
 
 let target: HTMLElement;
@@ -191,6 +197,55 @@ describe('EventMonthGrid: chips', () => {
 
 		expect(qa('[data-month-cell="2026-11-12"] [data-event-path]')).toHaveLength(3);
 		expect(q('[data-month-more]')).toBeNull();
+	});
+
+	it('shows dated tasks after the events, in the slots the events leave', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-12' })]);
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3), datedTask('Bills', '2026-11-12', 4, { checked: true })]);
+		mountGrid();
+
+		const children = [...cell('2026-11-12').children].slice(1);
+		expect(children.map((c) => (c.hasAttribute('data-calendar-task') ? `task:${c.textContent?.trim()}` : c.textContent?.trim()))).toEqual([
+			'09:00 Standup',
+			'task:Rent',
+			'task:Bills',
+		]);
+		const bills = q(`[data-month-cell="2026-11-12"] [data-task-line="4"]`)!;
+		expect(bills.dataset.checked).toBe('true');
+		expect(bills.querySelector('.line-through')).not.toBeNull();
+		expect(q('[data-month-more]')).toBeNull();
+	});
+
+	it('counts tasks that do not fit behind "+N more"', () => {
+		seed(['A', 'B'].map((t) => event({ path: P(t), title: t, date: '2026-11-12' })));
+		eventCalendarStore.setTasks([datedTask('One', '2026-11-12', 1), datedTask('Two', '2026-11-12', 2), datedTask('Three', '2026-11-12', 3)]);
+		mountGrid();
+
+		expect(qa('[data-month-cell="2026-11-12"] [data-event-path]')).toHaveLength(2);
+		expect(qa('[data-month-cell="2026-11-12"] [data-calendar-task]')).toHaveLength(1);
+		const more = q('[data-month-cell="2026-11-12"] [data-month-more]')!;
+		expect(more.textContent?.trim()).toBe('+2 more');
+		expect(more.getAttribute('aria-label')).toBe('2 more items, open day view');
+	});
+
+	it('shows no tasks when the overlay setting is off', () => {
+		settingsStore.updateEventCalendar({ showTasks: false });
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12')]);
+		mountGrid();
+
+		expect(q('[data-calendar-task]')).toBeNull();
+	});
+
+	it('a task chip click opens its note and leaves the selected day alone', () => {
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3)]);
+		mountGrid();
+
+		q<HTMLButtonElement>('[data-month-cell="2026-11-12"] [data-calendar-task]')!.click();
+		flushSync();
+
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Rent.md');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(eventCalendarViewStore.popover).toBeNull();
 	});
 
 	it('opens the popover on a chip click without changing the selected day, and rings only that chip', () => {

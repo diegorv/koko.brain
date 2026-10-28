@@ -127,10 +127,14 @@ function coerceFrontmatterValue(value: unknown): FrontmatterValue {
 	return null;
 }
 
+/** `📅 YYYY-MM-DD`, the due-date signifier (`DATE_EMOJIS` in `parsing.rs`). */
+const DUE_DATE_RE = /\u{1F4C5}\s*(\d{4}-\d{2}-\d{2})/u;
+
 /**
  * Minimal task parser. The Rust source of truth lives in
  * `src-tauri/src/vault/parsing.rs::extract_tasks`; this covers checkbox
- * char, indent, and lineNumber — enough for golden-path tests.
+ * char, indent, lineNumber and the 📅 due date — enough for golden-path
+ * tests.
  */
 function parseTasks(content: string): TaskV2[] {
 	const tasks: TaskV2[] = [];
@@ -149,6 +153,7 @@ function parseTasks(content: string): TaskV2[] {
 		if (!m) continue;
 
 		const [, indentStr, statusChar, text] = m;
+		const due = text.match(DUE_DATE_RE);
 		tasks.push({
 			text,
 			checked: statusChar !== ' ',
@@ -156,7 +161,8 @@ function parseTasks(content: string): TaskV2[] {
 			lineNumber: i + 1,
 			status: STATUS_BY_CHAR[statusChar] ?? 'todo',
 			metadata: {
-				description: text,
+				description: due ? text.replace(due[0], '').replace(/\s+/g, ' ').trim() : text,
+				...(due ? { dueDate: due[1] } : {}),
 				tags: [],
 			},
 		});
