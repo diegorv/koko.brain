@@ -24,7 +24,7 @@ test.describe('Event calendar daily note action', () => {
 		await expect(action).toHaveAttribute('aria-label', 'Open daily note for November 12, 2026');
 		await action.click();
 
-		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('2026-11-12.md', { timeout: 10_000 });
+		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: '2026-11-12.md' })).toBeVisible({ timeout: 10_000 });
 	});
 
 	test('the month grid day number has the same action', async ({ vaultPage: page }) => {
@@ -33,7 +33,7 @@ test.describe('Event calendar daily note action', () => {
 
 		await page.locator('[data-month-cell="2026-11-20"] [data-daily-note]').click();
 
-		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('2026-11-20.md', { timeout: 10_000 });
+		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: '2026-11-20.md' })).toBeVisible({ timeout: 10_000 });
 	});
 
 	test('a click in the gap between the day number and the action selects the day', async ({ vaultPage: page }) => {
