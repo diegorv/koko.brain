@@ -32,3 +32,4 @@
 ## Comments
 - 2026-10-28 13:55 — discovery — plan in work/39/discovery.md: clocked rename create prunes on state match; intake chain orders undo before later writes — 43dc6ead
 - 2026-10-28 13:59 — implement — both fixes in, each new test shown red first (work/39/discovery.md); event-calendar vitest 456/456, pnpm check 0 errors; full gate left to deliver — 51955ebd
+- 2026-10-28 14:04 — review — CHANGES_REQUESTED: failure-branch rename clock untested (mutation survives); discovery misstates drain test old-code result; work/39/review.md — 02e841cd
