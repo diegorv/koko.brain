@@ -39,3 +39,6 @@
   - end is `min(start + duration, 1440)`;
   - `MIN_EVENT_MINUTES` is imported from `event-calendar-layout.logic.ts` (ticket 06), and nothing is imported from `event-calendar-drag.logic.ts`.
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+- 2026-10-28 12:41 — discovery — pure port of calendar/header/month/all-day/now-line view math; defaults: month visibleDays = month days, lane 3 rows incl. "+N", today slot floors now to 15 min — pending
