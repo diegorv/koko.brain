@@ -13,3 +13,7 @@ Ticket 32 review (fix 0542bac2):
 Ticket 54 review (fix dd9f45a4):
 - [ ] The in-flight guard in `EventDailyNoteButton.svelte:21` is per instance, not per day: a remount or a second Calendar view during an open can fire a second `openOrCreate` for the same date and toast "File already exists". A per-day set in the store, or a guard in `openOrCreatePeriodicNoteForDate`, closes it.
 - [ ] The daily note opener is registered unconditionally (`app-lifecycle.service.ts:247`); if periodic notes ever gets an off switch, the header button must hide with it.
+
+## Comments
+
+- 2026-10-28 18:30 — discovery — plan: root-note collision check + basename backstop in openEventType; per-day in-flight map in the daily note store — 48e49feb
