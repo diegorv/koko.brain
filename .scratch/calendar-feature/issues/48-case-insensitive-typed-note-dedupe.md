@@ -11,3 +11,7 @@
 
 - [ ] Both dedupe paths compare names case-insensitively
 - [ ] Tests: case-only collision gets ` 1`; distinct names unchanged
+
+## Comments
+
+- 2026-10-28 18:44 — discovery — fix the shared `generateUniqueName` to compare case-insensitively; unit + both service tests, no E2E (case-sensitive virtual FS) — 0da29ab9
