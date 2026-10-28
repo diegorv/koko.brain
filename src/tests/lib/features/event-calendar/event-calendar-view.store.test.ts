@@ -26,6 +26,7 @@ describe('eventCalendarViewStore', () => {
 			expect(eventCalendarViewStore.focusedDate).toBe('2026-10-28');
 			expect(eventCalendarViewStore.popover).toBeNull();
 			expect(eventCalendarViewStore.dialog).toBeNull();
+			expect(eventCalendarViewStore.helpOpen).toBe(false);
 			expect(eventCalendarViewStore.initialized).toBe(false);
 			expect(eventCalendarViewStore.isDialogOpen).toBe(false);
 			expect(eventCalendarViewStore.selectedEventPath).toBeNull();
@@ -266,13 +267,36 @@ describe('eventCalendarViewStore', () => {
 		});
 	});
 
+	describe('shortcuts help', () => {
+		it('openHelp and closeHelp toggle helpOpen and isDialogOpen', () => {
+			eventCalendarViewStore.openHelp();
+			expect(eventCalendarViewStore.helpOpen).toBe(true);
+			expect(eventCalendarViewStore.isDialogOpen).toBe(true);
+			eventCalendarViewStore.closeHelp();
+			expect(eventCalendarViewStore.helpOpen).toBe(false);
+			expect(eventCalendarViewStore.isDialogOpen).toBe(false);
+		});
+
+		it('leaves the popover and the event dialog alone', () => {
+			eventCalendarViewStore.openPopover('/v/a.md', RECT);
+			eventCalendarViewStore.openHelp();
+			expect(eventCalendarViewStore.selectedEventPath).toBe('/v/a.md');
+			eventCalendarViewStore.openDialog({ mode: 'edit', path: '/v/a.md' });
+			eventCalendarViewStore.closeHelp();
+			expect(eventCalendarViewStore.dialog?.mode).toBe('edit');
+			expect(eventCalendarViewStore.isDialogOpen).toBe(true);
+		});
+	});
+
 	describe('closeTransient', () => {
-		it('closes the popover and the dialog', () => {
+		it('closes the popover, the dialog and the shortcuts help', () => {
 			eventCalendarViewStore.openPopover('/v/a.md', RECT);
 			eventCalendarViewStore.openDialog({ mode: 'edit', path: '/v/a.md' });
+			eventCalendarViewStore.openHelp();
 			eventCalendarViewStore.closeTransient();
 			expect(eventCalendarViewStore.popover).toBeNull();
 			expect(eventCalendarViewStore.dialog).toBeNull();
+			expect(eventCalendarViewStore.helpOpen).toBe(false);
 			expect(eventCalendarViewStore.isDialogOpen).toBe(false);
 			expect(eventCalendarViewStore.selectedEventPath).toBeNull();
 		});
@@ -342,17 +366,19 @@ describe('eventCalendarViewStore', () => {
 	});
 
 	describe('reset', () => {
-		it('restores view, date, popover, dialog and initialized', () => {
+		it('restores view, date, popover, dialog, shortcuts help and initialized', () => {
 			eventCalendarViewStore.initFromSettings();
 			eventCalendarViewStore.setView('month');
 			eventCalendarViewStore.setDate('2020-01-01');
 			eventCalendarViewStore.openPopover('/v/a.md', RECT);
 			eventCalendarViewStore.openDialog({ mode: 'edit', path: '/v/a.md' });
+			eventCalendarViewStore.openHelp();
 			eventCalendarViewStore.reset();
 			expect(eventCalendarViewStore.view).toBe('week');
 			expect(eventCalendarViewStore.focusedDate).toBe('2026-10-28');
 			expect(eventCalendarViewStore.popover).toBeNull();
 			expect(eventCalendarViewStore.dialog).toBeNull();
+			expect(eventCalendarViewStore.helpOpen).toBe(false);
 			expect(eventCalendarViewStore.initialized).toBe(false);
 		});
 	});

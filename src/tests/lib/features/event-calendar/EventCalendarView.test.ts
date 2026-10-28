@@ -42,6 +42,7 @@ import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import EventCalendarView from '$lib/features/event-calendar/EventCalendarView.svelte';
 import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
+import { CALENDAR_SHORTCUTS } from '$lib/features/event-calendar/event-calendar-keys.logic';
 import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
@@ -676,16 +677,99 @@ describe('EventCalendarView: keyboard', () => {
 	});
 });
 
+describe('EventCalendarView: shortcuts help', () => {
+	const ROOT = () => target.querySelector<HTMLElement>('section[data-event-calendar]')!;
+	const HELP = () => document.querySelector<HTMLElement>('[data-calendar-shortcuts]');
+	const BUTTON = () => target.querySelector<HTMLButtonElement>('[data-calendar-shortcuts-button]')!;
+
+	/** Dispatches a bubbling keydown on `el` and flushes. */
+	function press(el: Element, key: string, mods: KeyboardEventInit = {}) {
+		el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...mods }));
+		flushSync();
+	}
+
+	/** Lets bits-ui mount or unmount the dialog; its open auto-focus runs on the next animation frame. */
+	async function settleDialog() {
+		await settle();
+		await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+		flushSync();
+	}
+
+	it('? opens the help listing every chord and label of the key table', async () => {
+		mountView();
+		await settle();
+
+		press(ROOT(), '?', { shiftKey: true });
+		await settleDialog();
+
+		const help = HELP();
+		expect(help).not.toBeNull();
+		expect(help!.contains(document.activeElement)).toBe(true);
+		const rows = [...help!.querySelectorAll('[data-shortcut]')].map((tr) => ({
+			keys: [...tr.querySelectorAll('kbd')].map((k) => k.textContent?.trim()),
+			label: tr.querySelectorAll('td')[1]?.textContent?.trim(),
+		}));
+		expect(rows).toEqual(CALENDAR_SHORTCUTS.map((r) => ({ keys: [...r.keys], label: r.label })));
+	});
+
+	it('Escape closes the help and returns focus to the view root', async () => {
+		mountView();
+		await settle();
+		press(ROOT(), '?');
+		await settleDialog();
+		expect(HELP()!.contains(document.activeElement)).toBe(true);
+
+		press(document.activeElement!, 'Escape');
+		await settleDialog();
+
+		expect(HELP()).toBeNull();
+		expect(eventCalendarViewStore.helpOpen).toBe(false);
+		expect(document.activeElement).toBe(ROOT());
+	});
+
+	it('the header button opens the help, and Escape returns focus to the button', async () => {
+		mountView();
+		await settle();
+		expect(BUTTON().getAttribute('aria-keyshortcuts')).toBe('?');
+
+		BUTTON().focus();
+		BUTTON().click();
+		await settleDialog();
+		expect(HELP()!.contains(document.activeElement)).toBe(true);
+
+		press(document.activeElement!, 'Escape');
+		await settleDialog();
+
+		expect(HELP()).toBeNull();
+		expect(document.activeElement).toBe(BUTTON());
+	});
+
+	it('view shortcuts do nothing while the help is open', async () => {
+		mountView();
+		await settle();
+		press(ROOT(), '?');
+		await settleDialog();
+
+		press(ROOT(), 'm');
+		press(ROOT(), 'n');
+
+		expect(eventCalendarViewStore.view).toBe('week');
+		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+});
+
 describe('EventCalendarView: lifecycle', () => {
-	it('closes the popover and the dialog on unmount', async () => {
+	it('closes the popover, the dialog and the shortcuts help on unmount', async () => {
 		eventCalendarViewStore.openPopover(P('a'), { x: 1, y: 2, width: 3, height: 4 });
 		eventCalendarViewStore.openDialog({ mode: 'edit', path: P('a') });
+		eventCalendarViewStore.openHelp();
 		mountView();
 		unmountView();
 		mountView();
 
 		expect(eventCalendarViewStore.popover).toBeNull();
 		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(eventCalendarViewStore.helpOpen).toBe(false);
 	});
 
 	it('holds the clock while mounted', async () => {

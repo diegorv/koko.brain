@@ -28,6 +28,7 @@
 	import EventDialog from './EventDialog.svelte';
 	import EventMonthGrid from './EventMonthGrid.svelte';
 	import EventPopover from './EventPopover.svelte';
+	import EventShortcutsDialog from './EventShortcutsDialog.svelte';
 	import EventTimeGrid from './EventTimeGrid.svelte';
 
 	/** The view root: the popover's scroll source and the popover's and dialog's focus fallback. */
@@ -54,6 +55,9 @@
 		if (!action) return;
 		e.preventDefault();
 		switch (action.kind) {
+			case 'help':
+				eventCalendarViewStore.openHelp();
+				break;
 			case 'today':
 				eventCalendarViewStore.goToToday();
 				break;
@@ -174,5 +178,6 @@
 		<EventCalendarNeedsAttention />
 		<EventPopover {root} />
 		<EventDialog {root} />
+		<EventShortcutsDialog />
 	</Tooltip.Provider>
 </section>

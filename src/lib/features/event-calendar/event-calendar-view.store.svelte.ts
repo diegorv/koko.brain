@@ -28,6 +28,8 @@ let focusedDate = $state<string>(toKey(new Date()));
 let popover = $state.raw<PopoverTarget | null>(null);
 /** The open dialog, or null. */
 let dialog = $state.raw<DialogState | null>(null);
+/** Whether the keyboard shortcuts help is open. */
+let helpOpen = $state<boolean>(false);
 /** Current instant as the mounted view's clock last set it. */
 let nowMs = $state<number>(Date.now());
 /** Whether `initFromSettings` already applied the default view this session. */
@@ -35,7 +37,7 @@ let initialized = $state<boolean>(false);
 /** Last dialog session handed out; never reset, so every open remounts. */
 let dialogSession = 0;
 
-/** Reactive state of the Calendar tab: view, date, popover, dialog and clock. */
+/** Reactive state of the Calendar tab: view, date, popover, dialogs and clock. */
 export const eventCalendarViewStore = {
 	/** The active view. */
 	get view() { return view; },
@@ -45,6 +47,8 @@ export const eventCalendarViewStore = {
 	get popover() { return popover; },
 	/** The open dialog, or null. */
 	get dialog() { return dialog; },
+	/** Whether the keyboard shortcuts help is open. */
+	get helpOpen() { return helpOpen; },
 	/** Current instant in epoch milliseconds. */
 	get nowMs() { return nowMs; },
 	/** Whether the default view was applied this session. */
@@ -72,9 +76,9 @@ export const eventCalendarViewStore = {
 	get nowMinutes(): number {
 		return nowOffsetMinutes(nowMs, this.todayKey) ?? 0;
 	},
-	/** Whether a dialog is open. */
+	/** Whether the event dialog or the shortcuts help is open. */
 	get isDialogOpen(): boolean {
-		return dialog !== null;
+		return dialog !== null || helpOpen;
 	},
 	/** Path of the selected event: the popover target, else null. */
 	get selectedEventPath(): string | null {
@@ -126,10 +130,21 @@ export const eventCalendarViewStore = {
 		dialog = null;
 	},
 
-	/** Closes the popover and the dialog; the view calls it when it unmounts. */
+	/** Opens the keyboard shortcuts help. */
+	openHelp() {
+		helpOpen = true;
+	},
+
+	/** Closes the keyboard shortcuts help. */
+	closeHelp() {
+		helpOpen = false;
+	},
+
+	/** Closes the popover, the dialog and the shortcuts help; the view calls it when it unmounts. */
 	closeTransient() {
 		popover = null;
 		dialog = null;
+		helpOpen = false;
 	},
 
 	/** Sets the current instant; the mounted view's clock calls it. */
@@ -154,12 +169,13 @@ export const eventCalendarViewStore = {
 		initialized = true;
 	},
 
-	/** Restores view, date (today), popover, dialog and `initialized`; leaves `nowMs` alone. */
+	/** Restores view, date (today), popover, dialog, shortcuts help and `initialized`; leaves `nowMs` alone. */
 	reset() {
 		view = INITIAL_VIEW;
 		focusedDate = toKey(new Date());
 		popover = null;
 		dialog = null;
+		helpOpen = false;
 		initialized = false;
 	},
 };

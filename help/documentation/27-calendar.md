@@ -19,7 +19,7 @@ The Calendar opens as a tab in the editor area, next to your notes. Only one Cal
 
 ## Views and Navigation
 
-The header holds **Today**, the previous / next arrows and the **D / W / M** switch:
+The header holds **Today**, the previous / next arrows, the **Keyboard shortcuts** button (it opens the list of the shortcuts below, as `?` does) and the **D / W / M** switch:
 
 - **Day** shows one day on a 24-hour time grid.
 - **Week** shows seven days on the time grid (five when **Show weekends** is off).

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Keyboard from '@lucide/svelte/icons/keyboard';
 	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
@@ -72,6 +73,25 @@
 				{/snippet}
 			</Tooltip.Trigger>
 			<Tooltip.Content>Next {unit}</Tooltip.Content>
+		</Tooltip.Root>
+
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon-sm"
+						aria-label="Keyboard shortcuts"
+						aria-keyshortcuts="?"
+						onclick={() => eventCalendarViewStore.openHelp()}
+						data-calendar-shortcuts-button
+					>
+						<Keyboard class="size-4" />
+					</Button>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content>Keyboard shortcuts (?)</Tooltip.Content>
 		</Tooltip.Root>
 	</div>
 
