@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 	import { dayOfWeek, formatLong, formatWeekday, fromKey, WEEKDAYS_SHORT } from './event-calendar-dates.logic';
+	import { DayDrag } from './event-calendar-day-drag.svelte';
+	import { previewDayMove } from './event-calendar-drag.logic';
 	import { eventColorStyle } from './event-calendar-event.logic';
 	import { itemsByDay, MONTH_MAX_CHIPS } from './event-calendar-view.logic';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
@@ -10,17 +12,23 @@
 	let cells = $derived(eventCalendarViewStore.monthCells);
 	let cols = $derived(settingsStore.eventCalendar.showWeekends ? 7 : 5);
 	let headers = $derived(cells.slice(0, cols).map((c) => WEEKDAYS_SHORT[dayOfWeek(c.day)]));
+	let days = $derived(cells.map((c) => c.day));
 	let events = $derived(eventCalendarStore.events);
 	let timeFormat = $derived(settingsStore.eventCalendar.timeFormat);
-	let chipsByDay = $derived(
-		itemsByDay(
-			events,
-			cells.map((c) => c.day),
-			timeFormat,
-		),
-	);
+	/** The six week rows of cells: pointer target of a chip drag and the rect it reads. */
+	let cellsEl: HTMLDivElement | undefined = $state();
+	const drag = new DayDrag({ area: () => cellsEl, days: () => days, rows: 6, events: () => events });
+	let chipsByDay = $derived(itemsByDay(previewDayMove(events, drag.preview, days), days, timeFormat));
 	let selectedPath = $derived(eventCalendarViewStore.selectedEventPath);
 	let gridColumns = $derived(`grid-template-columns: repeat(${cols}, minmax(0, 1fr))`);
+
+	// The drag is keyed by cell index: a month step or a weekend/week-start
+	// change mid-gesture would show it in the new range. Drop it, and on unmount.
+	let daysKey = $derived(days.join(','));
+	$effect(() => {
+		void daysKey;
+		return drag.reset;
+	});
 
 	/** Opens day view on `day` (the "+N more" button, a second click on the selected day number). */
 	function openDay(day: string) {
@@ -57,7 +65,15 @@
 			</div>
 		{/each}
 	</div>
-	<div class="grid min-h-0 flex-1" style="{gridColumns}; grid-template-rows: repeat(6, minmax(0, 1fr))">
+	<div
+		bind:this={cellsEl}
+		class="grid min-h-0 flex-1 select-none"
+		style="{gridColumns}; grid-template-rows: repeat(6, minmax(0, 1fr))"
+		role="presentation"
+		data-month-cells
+		onpointerdown={drag.pointerdown}
+		onclickcapture={drag.clickcapture}
+	>
 		{#each cells as cell, i (cell.day)}
 			{@const items = chipsByDay.get(cell.day) ?? []}
 			{@const hidden = items.length - MONTH_MAX_CHIPS}
@@ -105,6 +121,7 @@
 						style={eventColorStyle(item.event.color)}
 						data-event-path={item.event.path}
 						data-pending={item.event.pending || undefined}
+						data-readonly={item.event.readOnly || undefined}
 						onclick={(e) => eventCalendarViewStore.openPopover(item.event.path, e.currentTarget.getBoundingClientRect())}
 					>
 						<span class="min-w-0 flex-1 truncate">{item.label}</span>

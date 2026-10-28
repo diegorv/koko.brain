@@ -11,11 +11,20 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn() } }));
 
+// The note write is the service's side effect; the drag tests drive its promise.
+vi.mock('$lib/features/event-calendar/event-calendar.service', async () => {
+	const actual = await vi.importActual<typeof import('$lib/features/event-calendar/event-calendar.service')>(
+		'$lib/features/event-calendar/event-calendar.service',
+	);
+	return { ...actual, moveEventToDay: vi.fn(), toastEventError: vi.fn() };
+});
+
 import { flushSync, mount, unmount } from 'svelte';
 import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import EventMonthGrid from '$lib/features/event-calendar/EventMonthGrid.svelte';
+import { moveEventToDay, toastEventError } from '$lib/features/event-calendar/event-calendar.service';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
@@ -369,5 +378,169 @@ describe('EventMonthGrid: spans', () => {
 		expect(chip('2026-11-10', 'Late')).toBe('23:00 Late show');
 		expect(chip('2026-11-11', 'Late')).toBe('Late show');
 		expect(chip('2026-11-12', 'Late')).toBeUndefined();
+	});
+});
+
+describe('EventMonthGrid: drag to another day', () => {
+	// Monday-first November 2026 starts on Oct 26: Nov 10 is cell 15 (row 2, column 1).
+	// Cells are stubbed to 100 x 100 px, so a cell's center is (100 * col + 50, 100 * row + 50).
+	const at = (index: number) => ({ clientX: (index % 7) * 100 + 50, clientY: Math.floor(index / 7) * 100 + 50 });
+	const NOV_10 = 15;
+	const NOV_12 = 17;
+
+	function mountSized() {
+		mountGrid();
+		const area = q('[data-month-cells]')!;
+		area.getBoundingClientRect = () => ({ left: 0, top: 0, width: 700, height: 600, right: 700, bottom: 600, x: 0, y: 0, toJSON: () => ({}) });
+	}
+
+	const chipIn = (day: string, name: string) => cell(day).querySelector<HTMLElement>(`[data-event-path="${P(name)}"]`);
+
+	function down(name: string, index: number) {
+		const chip = q(`[data-event-path="${P(name)}"]`)!;
+		chip.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1, ...at(index) }));
+		flushSync();
+	}
+
+	function move(index: number, type: 'pointermove' | 'pointerup' = 'pointermove') {
+		window.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1, ...at(index) }));
+		flushSync();
+	}
+
+	function press(key: string): KeyboardEvent {
+		const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+		document.body.dispatchEvent(e);
+		flushSync();
+		return e;
+	}
+
+	it('moves a chip to the cell under the pointer, writes the new day once and holds it there until the write settles', async () => {
+		let settle!: () => void;
+		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>((resolve) => (settle = resolve)));
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		expect(chipIn('2026-11-10', 'Standup')).toBeNull();
+		expect(chipIn('2026-11-12', 'Standup')?.textContent?.trim()).toBe('09:00 Standup');
+
+		move(NOV_12, 'pointerup');
+		chipIn('2026-11-12', 'Standup')!.click();
+		flushSync();
+
+		expect(moveEventToDay).toHaveBeenCalledTimes(1);
+		expect(moveEventToDay).toHaveBeenCalledWith(P('Standup'), '2026-11-12');
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(chipIn('2026-11-12', 'Standup')).not.toBeNull();
+
+		settle();
+		await Promise.resolve();
+		await Promise.resolve();
+		flushSync();
+		// The mocked write changed nothing, so the snapshot's day shows again.
+		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
+		expect(chipIn('2026-11-12', 'Standup')).toBeNull();
+	});
+
+	it('moves an all-day chip the same way', () => {
+		vi.mocked(moveEventToDay).mockResolvedValue(undefined);
+		seed([event({ path: P('Holiday'), title: 'Holiday', date: '2026-11-10', allDay: true, start: 0, end: 1440 })]);
+		mountSized();
+
+		down('Holiday', NOV_10);
+		move(NOV_12);
+		move(NOV_12, 'pointerup');
+
+		expect(moveEventToDay).toHaveBeenCalledWith(P('Holiday'), '2026-11-12');
+	});
+
+	it('leaves a press under the threshold to the chip click, which opens the popover', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_10, 'pointerup');
+		chipIn('2026-11-10', 'Standup')!.click();
+		flushSync();
+
+		expect(moveEventToDay).not.toHaveBeenCalled();
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+	});
+
+	it('does not write a drop back on the same day', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		move(NOV_10, 'pointerup');
+
+		expect(moveEventToDay).not.toHaveBeenCalled();
+		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
+	});
+
+	it('marks a read-only span chip and never drags it', () => {
+		seed([event({ path: P('Retreat'), title: 'Retreat', date: '2026-11-10', endDate: '2026-11-11', allDay: true, start: 0, end: 1440, readOnly: true })]);
+		mountSized();
+		expect(chipIn('2026-11-10', 'Retreat')!.dataset.readonly).toBe('true');
+
+		down('Retreat', NOV_10);
+		move(NOV_12);
+		move(NOV_12, 'pointerup');
+
+		expect(chipIn('2026-11-12', 'Retreat')).toBeNull();
+		expect(chipIn('2026-11-10', 'Retreat')).not.toBeNull();
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('Escape mid-drag puts the chip back, writes nothing and keeps keys from the view', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+		const reached: string[] = [];
+		const onKey = (e: KeyboardEvent) => reached.push(e.key);
+		document.addEventListener('keydown', onKey);
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		press('d');
+		const esc = press('Escape');
+		move(NOV_12, 'pointerup');
+		press('d');
+		document.removeEventListener('keydown', onKey);
+
+		expect(esc.defaultPrevented).toBe(true);
+		expect(reached).toEqual(['d']);
+		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('a month step mid-drag discards the drag: nothing is written', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		eventCalendarViewStore.setDate('2026-12-10');
+		flushSync();
+		move(NOV_12, 'pointerup');
+
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('toasts a failed write and drops the held preview', async () => {
+		const failure = new Error('disk full');
+		vi.mocked(moveEventToDay).mockRejectedValue(failure);
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		move(NOV_12, 'pointerup');
+		await vi.waitFor(() => expect(toastEventError).toHaveBeenCalledWith(failure, P('Standup')));
+		flushSync();
+
+		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
+		expect(chipIn('2026-11-12', 'Standup')).toBeNull();
 	});
 });
