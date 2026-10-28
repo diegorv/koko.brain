@@ -26,3 +26,7 @@
 - [ ] The tests extend `event-calendar.service.test.ts`, additionally mocking `@tauri-apps/plugin-fs` and `svelte-sonner`, with the real `editorStore` and stores; they are re-run once p2p-sync Task 1 (its rewrite of the external-reload loop in `editor.service.ts`) has landed (plan Notes > Dependencies, line 938)
 - [ ] Checklist C8 (plan lines 1014-1023) holds for this part: the service writes the event-calendar stores directly, frontmatter goes through `updateNoteFrontmatter` (C2), the rename goes through `renameItem` (which owns the `fsStore` tree, `editorStore` tabs and index legs it changes), and each service test is written before its function
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- **2026-10-28, from ticket 17 (b2389a39):** after a rename, settle any write still in flight at the new path `to`. `settlePending` on the old path `from` is a no-op once `remapPath` has moved the write (see the `settlePending` / `remapPath` JSDoc in `event-calendar.store.svelte.ts`).
