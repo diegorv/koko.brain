@@ -883,6 +883,18 @@ describe('calendar writes', () => {
 			expect(op).toMatchObject({ label: 'Edit event', path: P('Daily sync') });
 			expect(op.kind === 'update' && [op.before.title, op.after.title, op.after.start]).toEqual(['Standup', 'Daily sync', 570]);
 		});
+
+		it('drops the rename-only overlay of a failed field write on the version clock', async () => {
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+			await expect(editEvent(P('Standup'), { title: 'Daily sync', start: 600, end: 660 })).rejects.toThrow('disk full');
+
+			await refreshWith({});
+			expect(eventCalendarStore.isPending(P('Daily sync'))).toBe(true);
+			expect(eventCalendarStore.events.map((e) => [e.path, e.start])).toEqual([[P('Daily sync'), 570]]);
+			await refreshWith({});
+			expect(eventCalendarStore.isPending(P('Daily sync'))).toBe(false);
+			expect(eventCalendarStore.events).toEqual([]);
+		});
 	});
 
 	describe('undoEventChange and redoEventChange', () => {
