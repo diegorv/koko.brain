@@ -18,3 +18,4 @@
 
 - 2026-10-28 18:30 — discovery — both create paths pass vaultStore.path for Markdown files; E2E mock models the FTS gap — 48e49feb
 - 2026-10-28 18:34 — implement — createFile and openOrCreateNote pass vaultStore.path (Markdown only); unit tests green (242 files / 5725 tests in core, plugins, calendar, types), pnpm check 0 errors; E2E spec calendar-feature-46-created-note-search.spec.ts written, not run — 98f783ec
+- 2026-10-28 18:38 — review — VERDICT: APPROVED; 2 low findings (comment wording narrates the change; note-creator lacks a no-vault test) — b1e85199
