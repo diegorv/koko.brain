@@ -29,3 +29,4 @@
 - 2026-10-28 11:54 — discovery — parseDocument + visit path planned, one feat commit; defaults in work/12/discovery.md — 45e2577e
 - 2026-10-28 11:56 — implement — detectLossyFrontmatter + reason/non-case/fixture round-trip tests; pnpm check 0 errors, properties tests 419/419 — df65c5bf
 - 2026-10-28 11:59 — review — APPROVED; 5 low/info findings (null-key duplicate, unsafe ints, custom tags, precedence test, refusal-necessity test) in work/12/review.md — 784db96d
+- 2026-10-28 12:01 — fix — review findings 1-4 fixed (null key, unsafe ints, warnings, precedence test), 5 rejected in review.md; properties tests 424/424, pnpm check 0 errors — pending

@@ -68,3 +68,11 @@ The Issue's checkboxes are still unticked. Closing the Issue is the deliver step
    - The ticket does not require this. Optional fix: for refused fixtures, assert that the round trip does not equal `normalizeAccepted(original)`. The `comments` fixtures would need an exception, because comments are invisible after a parse.
 
 None of these blocks delivery. Findings 1 and 4 are cheap and worth folding into the fix step. Findings 2 and 3 need either a small check or a recorded decision.
+
+## Resolution
+
+1. Fixed. The duplicate-key walk maps a null key to `''` like the parse does. Test: `~: 1` + `"": 2` is `duplicate-keys`.
+2. Fixed. A scalar holding an integer outside `Number.isSafeInteger` adds `unparseable` (the reason union stays fixed). Tests: a 20-digit id refuses, `9007199254740991` is accepted.
+3. Fixed. `doc.warnings` is treated like `doc.errors` (`unparseable`). Test: `a: !custom value`.
+4. Fixed. Precedence test with three multi-reason blocks (`comments` over `duplicate-keys`, `nested` over `comments` + `anchors`, `duplicate-keys` over `anchors`).
+5. Rejected. A parsed-value comparison cannot see the loss for most reasons: comments and anchors (expanded to equal values) are text-level, `alias-collision` and `duplicate-keys` end equal because the normalizer mirrors the dedupe and last-wins rules, `unparseable` input does not parse, and unsafe integers and custom tags round both sides the same way. Only `nested` would be checked, so the assertion would be mostly exceptions.

@@ -852,6 +852,24 @@ describe('detectLossyFrontmatter', () => {
 		it('a sequence root as unparseable', () => {
 			expect(detectLossyFrontmatter(note('- a\n- b'))).toBe('unparseable');
 		});
+
+		it('a null key next to an empty-string key as duplicate-keys', () => {
+			expect(detectLossyFrontmatter(note('~: 1\n"": 2'))).toBe('duplicate-keys');
+		});
+
+		it('an integer beyond the safe range as unparseable', () => {
+			expect(detectLossyFrontmatter(note('id: 12345678901234567890'))).toBe('unparseable');
+		});
+
+		it('an unresolved custom tag as unparseable', () => {
+			expect(detectLossyFrontmatter(note('a: !custom value'))).toBe('unparseable');
+		});
+
+		it('the first reason in precedence order when a block has several', () => {
+			expect(detectLossyFrontmatter(note('# c\na: 1\na: 2'))).toBe('comments');
+			expect(detectLossyFrontmatter(note('meta:\n  x: &y 1 # c'))).toBe('nested');
+			expect(detectLossyFrontmatter(note('a: &x 1\nb: *x\nb: 2'))).toBe('duplicate-keys');
+		});
 	});
 
 	describe('accepts (returns null)', () => {
@@ -874,6 +892,10 @@ describe('detectLossyFrontmatter', () => {
 
 		it('key: null and an empty key', () => {
 			expect(detectLossyFrontmatter(note('a: null\nb:'))).toBeNull();
+		});
+
+		it('the largest safe integer', () => {
+			expect(detectLossyFrontmatter(note('id: 9007199254740991'))).toBeNull();
 		});
 
 		it('a block scalar', () => {

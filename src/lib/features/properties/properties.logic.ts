@@ -185,7 +185,9 @@ export function parseFrontmatterProperties(content: string): Property[] {
 
 /**
  * Why a parse + re-serialize of a note's frontmatter would lose data:
- * - `unparseable`: YAML errors, or a root that is not a mapping.
+ * - `unparseable`: YAML errors or warnings (e.g. an unresolved custom tag), a root
+ *   that is not a mapping, or an integer beyond `Number.MAX_SAFE_INTEGER` (the
+ *   parse rounds it).
  * - `nested`: a mapping below the root, a collection inside a list, or a collection key.
  * - `comments`: any comment; the serializer drops them.
  * - `duplicate-keys`: one key twice in the root mapping; the parse is last-wins.
@@ -232,13 +234,23 @@ export function detectLossyFrontmatter(content: string): LossyFrontmatterReason 
 
 	const doc = parseDocument(raw, { uniqueKeys: false });
 	const root = doc.contents;
-	if (doc.errors.length > 0 || (root !== null && !isMap(root))) return 'unparseable';
+	if (doc.errors.length > 0 || doc.warnings.length > 0 || (root !== null && !isMap(root))) {
+		return 'unparseable';
+	}
 
 	const found = new Set<LossyFrontmatterReason>();
 	if (doc.commentBefore || doc.comment) found.add('comments');
 
 	visit(doc, {
 		Node(key, node, path) {
+			if (
+				isScalar(node) &&
+				typeof node.value === 'number' &&
+				Number.isInteger(node.value) &&
+				!Number.isSafeInteger(node.value)
+			) {
+				found.add('unparseable');
+			}
 			if (node.commentBefore || node.comment) found.add('comments');
 			if (isAlias(node) || node.anchor) found.add('anchors');
 			if (!isCollection(node)) return;
@@ -260,7 +272,8 @@ export function detectLossyFrontmatter(content: string): LossyFrontmatterReason 
 		const populatedCanonical = new Set<string>();
 		for (const pair of root.items) {
 			if (!isScalar(pair.key)) continue;
-			const rawKey = String(pair.key.value);
+			// The parse maps a null key (`~`) to "", so "" and `~` are one key.
+			const rawKey = pair.key.value === null ? '' : String(pair.key.value);
 			if (rawKeys.has(rawKey)) found.add('duplicate-keys');
 			rawKeys.add(rawKey);
 			if (isEmptyYamlNode(pair.value)) continue;
