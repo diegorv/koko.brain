@@ -62,6 +62,7 @@ import {
 	openEventCalendarTab,
 	openNewEventDialog,
 	redoEventChange,
+	redoEventChangeFromUi,
 	resetEventCalendar,
 	resizeEvent,
 	restoreDeletedEvent,
@@ -69,6 +70,7 @@ import {
 	toggleEventCalendarTab,
 	undoDeleteEvent,
 	undoEventChange,
+	undoEventChangeFromUi,
 	updateEventFields,
 } from '$lib/features/event-calendar/event-calendar.service';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
@@ -1038,7 +1040,7 @@ describe('calendar writes', () => {
 			await refresh(2);
 			vi.mocked(writeTextFile).mockClear();
 
-			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Move event' });
+			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Move event', path: P('Standup') });
 			expect(disk.get(P('Standup'))).toBe(external);
 			expect(writeTextFile).not.toHaveBeenCalled();
 			expect(eventCalendarStore.canUndo).toBe(false);
@@ -1596,7 +1598,7 @@ describe('calendar writes', () => {
 			disk.set(P('Planning'), external);
 			await refresh(2);
 
-			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Create event' });
+			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Create event', path: P('Planning') });
 			expect(disk.get(P('Planning'))).toBe(external);
 			expect(eventCalendarStore.canUndo).toBe(false);
 			expect(eventCalendarStore.canRedo).toBe(false);
@@ -1738,6 +1740,124 @@ describe('calendar writes', () => {
 			expect(toast.success).not.toHaveBeenCalled();
 			expect(toast.error).toHaveBeenCalledWith('The note was moved or deleted outside the calendar');
 			expect(document.activeElement).toBe(root);
+		});
+	});
+
+	describe('undoEventChangeFromUi and redoEventChangeFromUi', () => {
+		/** A focusable stand-in for the Calendar view root. */
+		function makeRoot(): HTMLElement {
+			const el = document.body.appendChild(document.createElement('div'));
+			el.tabIndex = -1;
+			return el;
+		}
+
+		/** The `onClick` of the action the last plain toast carried. */
+		function toastAction(): () => void {
+			const [, options] = vi.mocked(toast).mock.calls.at(-1) as unknown as [string, { action: { onClick: () => void } }];
+			return options.action.onClick;
+		}
+
+		afterEach(() => {
+			document.body.innerHTML = '';
+		});
+
+		it('says "Nothing to undo" and "Nothing to redo" with empty stacks', async () => {
+			await undoEventChangeFromUi();
+			await redoEventChangeFromUi();
+
+			expect(vi.mocked(toast).mock.calls).toEqual([['Nothing to undo'], ['Nothing to redo']]);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('toasts "Undone: <label>" with Redo; the Redo re-applies, toasts "Redone" with Undo and focuses the root', async () => {
+			const root = makeRoot();
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+
+			await undoEventChangeFromUi(root);
+
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(toast).toHaveBeenLastCalledWith('Undone: Move event', { action: { label: 'Redo', onClick: expect.any(Function) } });
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-11');
+			expect(toast).toHaveBeenLastCalledWith('Redone: Move event', { action: { label: 'Undo', onClick: expect.any(Function) } });
+			expect(document.activeElement).toBe(root);
+		});
+
+		it('the toast action focuses the live view root over the stale one', async () => {
+			const stale = makeRoot();
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await undoEventChangeFromUi(stale);
+			stale.remove();
+			const live = makeRoot();
+			live.dataset.eventCalendar = '';
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(document.activeElement).toBe(live);
+		});
+
+		it('a refusal on a note still on disk toasts "Event changed since; not undone" with Open note', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await refresh();
+			disk.set(P('Standup'), eventFile({ date: '2026-11-11', start: '11:00', end: '12:00' }));
+			await refresh(2);
+
+			await undoEventChangeFromUi();
+
+			expect(toast.error).toHaveBeenCalledWith('Event changed since; not undone', {
+				action: { label: 'Open note', onClick: expect.any(Function) },
+			});
+			expect(toast).not.toHaveBeenCalled();
+		});
+
+		it('a refusal of a delete whose Trash entry is gone toasts without Open note', async () => {
+			await deleteEvent(P('Standup'));
+			trashStore.setItems([]);
+
+			await undoEventChangeFromUi();
+
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event changed since; not undone']]);
+		});
+
+		it('a redo refusal says "not redone"', async () => {
+			await createEvent(draft());
+			await refresh(2);
+			await undoEventChange();
+			await refresh(2);
+			trashStore.setItems([]);
+
+			await redoEventChangeFromUi();
+
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event changed since; not redone']]);
+		});
+
+		it('vanished toasts that the event was moved or renamed outside the calendar', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await refresh();
+			disk.set(P('Moved'), disk.get(P('Standup'))!);
+			disk.delete(P('Standup'));
+			await refresh();
+
+			await undoEventChangeFromUi();
+
+			expect(toast.error).toHaveBeenCalledWith('Event was moved or renamed outside the calendar; cannot undo');
+			expect(toast).not.toHaveBeenCalled();
+		});
+
+		it('a failed undo write goes through toastEventError', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			await undoEventChangeFromUi();
+
+			expect(toast.error).toHaveBeenCalledWith('disk full');
+			expect(toast).not.toHaveBeenCalled();
 		});
 	});
 

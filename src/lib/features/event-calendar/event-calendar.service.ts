@@ -257,6 +257,8 @@ export interface EventChangeResult {
 	status: 'done' | 'refused' | 'vanished' | 'empty';
 	/** Label of the op, or null for `empty`. */
 	label: EventChangeLabel | null;
+	/** The note a `refused` op targets while it is still on disk, for "Open note"; absent otherwise. */
+	path?: string;
 }
 
 /** Options of `updateEventFields`. */
@@ -841,7 +843,7 @@ function applyNoteOp(op: Exclude<HistoryOp, { kind: 'update' }>, direction: 'und
 			}
 			if (!sameEventState(eventState(shown), op.state)) {
 				if (isCurrent()) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, op));
-				return { status: 'refused', label: op.label };
+				return { status: 'refused', label: op.label, path: op.path };
 			}
 			try {
 				await deleteNow(op.path, isCurrent);
@@ -900,7 +902,7 @@ async function applyHistoryNow(direction: 'undo' | 'redo'): Promise<EventChangeR
 		const current = requireEvent(op.path);
 		if (!sameEventState(eventState(current), expected)) {
 			if (isCurrent()) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, op));
-			return { status: 'refused', label: op.label };
+			return { status: 'refused', label: op.label, path: op.path };
 		}
 		try {
 			await writeEvent(op.path, current, target, patchBetween(eventState(current), target), { label: op.label, record: false, planTitle: true }, isCurrent);
@@ -1044,4 +1046,80 @@ export async function duplicateEventFromUi(path: string, root: HTMLElement | und
 	if (!root?.isConnected) return;
 	const block = root.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(copy)}"]`);
 	(block ?? root).focus();
+}
+
+/** Toast texts of the undo / redo feedback, per direction. */
+const CHANGE_FEEDBACK = {
+	undo: {
+		done: 'Undone',
+		empty: 'Nothing to undo',
+		refused: 'Event changed since; not undone',
+		vanished: 'Event was moved or renamed outside the calendar; cannot undo',
+		reverse: 'Redo',
+	},
+	redo: {
+		done: 'Redone',
+		empty: 'Nothing to redo',
+		refused: 'Event changed since; not redone',
+		vanished: 'Event was moved or renamed outside the calendar; cannot redo',
+		reverse: 'Undo',
+	},
+} as const;
+
+/**
+ * The Calendar keys' and the palette's undo: runs `undoEventChange` and
+ * reports the outcome in a toast. "Undone: <label>" carries a Redo action
+ * that focuses the view root when it finishes; `empty`, `refused` (with
+ * "Open note" while the note is on disk) and `vanished` say why nothing
+ * changed; a thrown write error goes through `toastEventError`.
+ * @param root - the Calendar view root, the fallback focus target of the toast's action
+ */
+export function undoEventChangeFromUi(root?: HTMLElement): Promise<void> {
+	return applyEventChangeFromUi('undo', root);
+}
+
+/**
+ * The Calendar keys' and the palette's redo: `undoEventChangeFromUi` the
+ * other way round, "Redone: <label>" with an Undo action.
+ * @param root - the Calendar view root, the fallback focus target of the toast's action
+ */
+export function redoEventChangeFromUi(root?: HTMLElement): Promise<void> {
+	return applyEventChangeFromUi('redo', root);
+}
+
+/** Runs one undo or redo and toasts its outcome; see `undoEventChangeFromUi`. */
+async function applyEventChangeFromUi(direction: 'undo' | 'redo', root: HTMLElement | undefined): Promise<void> {
+	let result: EventChangeResult;
+	try {
+		result = await (direction === 'undo' ? undoEventChange() : redoEventChange());
+	} catch (err) {
+		toastEventError(err, err instanceof FrontmatterWriteError ? err.path : '');
+		return;
+	}
+	const text = CHANGE_FEEDBACK[direction];
+	if (result.status === 'done') {
+		const reverse = direction === 'undo' ? 'redo' : 'undo';
+		toast(`${text.done}: ${result.label}`, {
+			action: {
+				label: text.reverse,
+				onClick: () => {
+					void applyEventChangeFromUi(reverse, root).finally(() =>
+						focusRoot(document.querySelector<HTMLElement>('[data-event-calendar]') ?? root),
+					);
+				},
+			},
+		});
+		return;
+	}
+	if (result.status === 'empty') {
+		toast(text.empty);
+		return;
+	}
+	if (result.status === 'refused') {
+		const path = result.path;
+		if (path === undefined) toast.error(text.refused);
+		else toast.error(text.refused, { action: { label: 'Open note', onClick: () => void openFileInEditor(path) } });
+		return;
+	}
+	toast.error(text.vanished);
 }
