@@ -459,16 +459,21 @@ describe('eventCalendarStore', () => {
 			expect(store.eventByPath(to)).toMatchObject({ snippet: 'a body', readOnly: true, start: 700 });
 		});
 
-		it('ignores settlePending on the tombstone, so both paths never render', () => {
+		it('settlePending keeps the tombstone\'s remap clock, so both paths never render', () => {
 			const a = note('a');
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 5);
 			store.remapPath(a.path, to, 5);
 			store.settlePending(a.path, 9);
-			store.setSnapshot(projection([a]), 6);
+			expect(store.pendingWrite(a.path)).toEqual({ kind: 'delete', path: a.path, settled: true, settledAtVersion: 5 });
 
+			store.setSnapshot(projection([a]), 6);
 			expect(store.isPending(a.path)).toBe(true);
 			expect(store.events.map((e) => e.path)).toEqual([to]);
+
+			// The clock from the remap (5) expires at 7; a re-clocked one (9) would not.
+			store.setSnapshot(projection([a]), 7);
+			expect(store.isPending(a.path)).toBe(false);
 		});
 
 		it('lets a write in flight at the rename be settled at the new path', () => {
@@ -498,6 +503,18 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toHaveLength(1);
 			expect(store.eventByPath(to)).toMatchObject({ title: 'held', pending: true });
 			expect(store.eventByPath(a.path)).toBeUndefined();
+		});
+
+		it('keeps an unsettled delete held at the new path instead of moving the event over it', () => {
+			const a = note('a');
+			const t = note('t');
+			store.setSnapshot(projection([a, t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.remapPath(a.path, t.path, 1);
+
+			expect(store.pendingWrite(t.path)).toEqual({ kind: 'delete', path: t.path, settled: false });
+			expect(store.eventByPath(t.path)).toBeUndefined();
+			expect(store.events).toHaveLength(0);
 		});
 
 		it('moves the history to the new path', () => {

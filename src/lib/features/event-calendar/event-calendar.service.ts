@@ -558,9 +558,11 @@ async function asOwnPathChange<T>(path: string, change: () => Promise<T>): Promi
  * its event behind a settled `delete` tombstone until the index drops it or
  * two bumps pass, so a note restored before the index drops it shows again.
  *
- * Known limitation: a calendar write still in flight on `from` when the
+ * Known limitations: a calendar write still in flight on `from` when the
  * change lands settles and records its op at `from`, not at the new path.
- * The window is one frontmatter write.
+ * The window is one frontmatter write. A rename's `from` tombstone is clocked
+ * before the link rewrite and `rename_note` run, so a link rewrite spanning
+ * two bumps briefly shows the old event at `from` until the next bump.
  */
 function followPathChange(from: string, to: string | null): void {
 	if (ownPathChanges.has(from)) return;

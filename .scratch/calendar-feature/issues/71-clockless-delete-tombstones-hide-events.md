@@ -20,3 +20,4 @@
 - 2026-10-28 20:47 — discovery — plan in work/71/discovery.md: clock every delete tombstone (service outside delete, store remapPath with a version arg) and let a remap replace a tombstone at `to` — cb258fca
 - 2026-10-28 20:49 — implement — every delete tombstone carries settledAtVersion; remap back onto a tombstone shows the event; event-calendar vitest 24 files / 933 passed, pnpm check 0 errors — 83c7896a
 - 2026-10-28 20:53 — review — CHANGES_REQUESTED: the rewritten 'ignores settlePending on the tombstone' test no longer tells re-clock from keep (medium); 3 low notes in work/71/review.md — f388736b
+- 2026-10-28 20:54 — fix — review findings 1-2 fixed with tests that kill both mutants, 3 noted in JSDoc, 4 kept as is; event-calendar vitest 24 files / 934 passed, pnpm check 0 errors — cad3941a

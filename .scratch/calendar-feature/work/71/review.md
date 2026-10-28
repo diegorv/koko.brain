@@ -62,3 +62,10 @@ Run by the reviewer in the worktree, not taken from the build report:
    - Fix: none needed now. Alternatively, findings 1 and 2's tests plus the service assertion at `event-calendar.service.test.ts:2299` (`settledAtVersion: version`) are the guard. Keep that assertion.
 
 Required before delivery: finding 1. Findings 2-4 are optional.
+
+## Resolution
+
+1. Fixed. The test is renamed "settlePending keeps the tombstone's remap clock, so both paths never render". It asserts `pendingWrite(a)` keeps `settledAtVersion: 5` after `settlePending(a, 9)` and that the tombstone prunes at snapshot 7. The re-clock mutant now fails it.
+2. Fixed. A new store case, "keeps an unsettled delete held at the new path instead of moving the event over it", holds `{ kind: 'delete', settled: false }` at `to`. The mutant that drops `&& held.settled` now fails it.
+3. Accepted as informational. One sentence about the window was added to the `followPathChange` JSDoc's known limitations. Behavior is unchanged.
+4. Accepted as informational. There is no type change, and the service assertion at `event-calendar.service.test.ts:2299` stays as the guard.
