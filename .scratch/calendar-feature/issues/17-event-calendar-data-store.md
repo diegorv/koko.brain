@@ -26,3 +26,7 @@
 - [ ] Tests prove that after `remapPath` and before the snapshot updates, `events` holds exactly one entry for that event and `eventByPath(from)` is undefined
 - [ ] Tests prove 50 `unscheduled` plus 1 `invalid-time` issue gives `attentionCount === 1` and 50 `unscheduledIssues`
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:53 — discovery — plan written to work/17/discovery.md — 29a7f5d8
