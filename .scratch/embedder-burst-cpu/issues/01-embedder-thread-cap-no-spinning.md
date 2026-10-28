@@ -6,7 +6,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 **Touches:**
 - `src-tauri/src/semantic/embedder.rs` (modify; lines 49-54, comment + cap)
@@ -26,3 +26,4 @@
 - 2026-10-28 11:48 — discovery — plan in work/01/discovery.md: cap 4, spinning off in session_builder; no ort getter, manual measurement left for human — e8a24bf1
 - 2026-10-28 11:51 — implement — cap min(4) + intra-op spinning off in session_builder; semantic cargo tests 55/55 pass; manual top measurement (before/after ~20-file replay) still TODO by a human — 2217134b
 - 2026-10-28 11:54 — review — CHANGES_REQUESTED: code correct, 4 semantic test files 55/55 pass; cap has no test (med), measurement unmet so do not close/delete this file, deliver as ready-for-human (med), two comment inaccuracies (low), wrong discovery sha (nit) — de3e2e56
+- 2026-10-28 11:56 — deliver — review fixes in (thread-cap test, comment wording, sha); cargo gate green 1119 passed / 0 failed; code merged to main but Issue NOT closed: owed manual measurement by a human: `top -pid <pid> -stats cpu,rss,th` during a ~20-file replay at ~10/min, baseline = main before the merge (45e2577e) vs after = this merge, plus per-file embed time from the `EMBEDDER` log lines; record numbers here, then close. Issue 02 stays blocked until then — 6a3182a4
