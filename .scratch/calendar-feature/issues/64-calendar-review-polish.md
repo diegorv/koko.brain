@@ -34,3 +34,6 @@ Ticket 32 review (fix 0542bac2):
 
 Ticket 41 review (fix 03026a54):
 - [ ] A span segment block's aria-label reads its clipped day range (e.g. `00:00 – 24:00`) instead of the full event range; the block only receives the clipped segment, so the label needs the full range passed down.
+
+Ticket 58 review (fix 269cfc1e):
+- [ ] No view-level test asserts `document.activeElement` after an arrow key on a focused WeekStrip day; the focus-follow is only tested in `EventWeekStrip.test.ts` via a direct `setDate`. Add one to `EventCalendarView.test.ts`.
