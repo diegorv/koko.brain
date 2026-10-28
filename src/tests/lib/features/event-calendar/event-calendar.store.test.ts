@@ -306,7 +306,7 @@ describe('eventCalendarStore', () => {
 			const a = note('a');
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 
 			expect(store.events).toHaveLength(1);
 			expect(store.eventByPath(a.path)).toBeUndefined();
@@ -320,7 +320,7 @@ describe('eventCalendarStore', () => {
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
 			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700, end: 760 }), settled: false });
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 
 			expect(store.events).toHaveLength(1);
 			expect(store.eventByPath(a.path)).toBeUndefined();
@@ -332,7 +332,7 @@ describe('eventCalendarStore', () => {
 			const to = P('restored 1');
 			store.setSnapshot(projection([]), 1);
 			store.putPending({ kind: 'create', path: created.path, event: created, settled: false });
-			store.remapPath(created.path, to);
+			store.remapPath(created.path, to, 1);
 
 			expect(store.events).toHaveLength(1);
 			expect(store.eventByPath(created.path)).toBeUndefined();
@@ -344,7 +344,7 @@ describe('eventCalendarStore', () => {
 			const to = P('restored 1');
 			store.setSnapshot(projection([a]), 1);
 			store.putPending({ kind: 'delete', path: a.path, settled: true });
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 			store.putPending({ kind: 'create', path: to, event: { ...a, path: to }, settled: true });
 
 			expect(store.eventByPath(a.path)).toBeUndefined();
@@ -352,20 +352,62 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toHaveLength(1);
 		});
 
-		it('prunes the tombstone only once the snapshot no longer contains the old path', () => {
+		it('stamps the tombstone with `version`, so it expires two bumps later even while the snapshot keeps the old path', () => {
 			const a = note('a');
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
+			expect(store.pendingWrite(a.path)).toEqual({ kind: 'delete', path: a.path, settled: true, settledAtVersion: 1 });
 
-			store.setSnapshot(projection([a]), 10);
+			store.setSnapshot(projection([a]), 2);
 			expect(store.isPending(a.path)).toBe(true);
 			expect(store.eventByPath(a.path)).toBeUndefined();
 
+			store.setSnapshot(projection([a]), 3);
+			expect(store.isPending(a.path)).toBe(false);
+			expect(store.eventByPath(a.path)).toMatchObject({ pending: false });
+		});
+
+		it('prunes the tombstone as soon as the snapshot no longer contains the old path', () => {
+			const a = note('a');
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 1);
+			store.remapPath(a.path, to, 1);
+
 			const renamed = { ...a, path: to, title: 'renamed' };
-			store.setSnapshot(projection([renamed]), 11);
+			store.setSnapshot(projection([renamed]), 2);
 			expect(store.pendingPaths.size).toBe(0);
 			expect(store.events).toEqual([{ ...renamed, pending: false }]);
+		});
+
+		it('shows the event at the old path again after a rename and a rename back', () => {
+			const a = note('a');
+			store.setSnapshot(projection([a]), 1);
+			store.remapPath(a.path, P('b'), 1);
+			store.remapPath(P('b'), a.path, 1);
+
+			expect(store.events.map((e) => e.path)).toEqual([a.path]);
+			expect(store.eventByPath(a.path)).toMatchObject({ title: 'a', snippet: 'a body', pending: true });
+			expect(store.pendingWrite(P('b'))).toMatchObject({ kind: 'delete', settledAtVersion: 1 });
+
+			store.setSnapshot(projection([a]), 2);
+			expect(store.events).toEqual([{ ...a, pending: false }]);
+			store.setSnapshot(projection([a]), 3);
+			expect(store.pendingPaths.size).toBe(0);
+			expect(store.events).toEqual([{ ...a, pending: false }]);
+		});
+
+		it('with `outside`, shows the event at the old path again after a rename and a rename back', () => {
+			const a = note('a');
+			store.setSnapshot(projection([a]), 4);
+			store.remapPath(a.path, P('b'), 4, { fromBase: 'a', toBase: 'b' });
+			store.remapPath(P('b'), a.path, 4, { fromBase: 'b', toBase: 'a' });
+
+			expect(store.events.map((e) => [e.path, e.title])).toEqual([[a.path, 'a']]);
+			store.setSnapshot(projection([a]), 5);
+			store.setSnapshot(projection([a]), 6);
+			expect(store.pendingPaths.size).toBe(0);
+			expect(store.events).toEqual([{ ...a, pending: false }]);
 		});
 
 		it('keeps a moved settled update through a snapshot that predates the rename', () => {
@@ -375,7 +417,7 @@ describe('eventCalendarStore', () => {
 			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700, end: 760 }), settled: false });
 			store.settlePending(a.path, 5);
 			store.setSnapshot(projection([a]), 6);
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 6);
 
 			const moved = { path: to, start: 700, end: 760, snippet: 'a body', readOnly: true, pending: true };
 			expect(store.events).toHaveLength(1);
@@ -399,7 +441,7 @@ describe('eventCalendarStore', () => {
 			store.putPending({ kind: 'create', path: created.path, event: created, settled: false });
 			store.settlePending(created.path, 5);
 			store.setSnapshot(projection([]), 6);
-			store.remapPath(created.path, to);
+			store.remapPath(created.path, to, 6);
 
 			store.setSnapshot(projection([]), 7);
 			expect(store.events).toHaveLength(1);
@@ -412,7 +454,7 @@ describe('eventCalendarStore', () => {
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
 			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false });
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 
 			expect(store.eventByPath(to)).toMatchObject({ snippet: 'a body', readOnly: true, start: 700 });
 		});
@@ -421,9 +463,9 @@ describe('eventCalendarStore', () => {
 			const a = note('a');
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 5);
-			store.remapPath(a.path, to);
-			store.settlePending(a.path, 5);
-			store.setSnapshot(projection([a]), 7);
+			store.remapPath(a.path, to, 5);
+			store.settlePending(a.path, 9);
+			store.setSnapshot(projection([a]), 6);
 
 			expect(store.isPending(a.path)).toBe(true);
 			expect(store.events.map((e) => e.path)).toEqual([to]);
@@ -434,7 +476,7 @@ describe('eventCalendarStore', () => {
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
 			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 700 }), settled: false });
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 			// Unsettled: no snapshot prunes it.
 			store.setSnapshot(projection([{ ...a, path: to }]), 2);
 			expect(store.isPending(to)).toBe(true);
@@ -451,7 +493,7 @@ describe('eventCalendarStore', () => {
 			const held = note('restored 1', { title: 'held' });
 			store.setSnapshot(projection([a]), 1);
 			store.putPending({ kind: 'create', path: to, event: held, settled: false });
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 
 			expect(store.events).toHaveLength(1);
 			expect(store.eventByPath(to)).toMatchObject({ title: 'held', pending: true });
@@ -464,7 +506,7 @@ describe('eventCalendarStore', () => {
 			const to = P('renamed');
 			store.setSnapshot(projection([a, other]), 1);
 			store.setHistory(pushOp(pushOp(createEventHistory(), updateOp(a)), updateOp(other)));
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 
 			expect(store.history.undo.map((op) => op.path)).toEqual([to, other.path]);
 		});
@@ -474,7 +516,7 @@ describe('eventCalendarStore', () => {
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
 			store.setHistory(pushOp(createEventHistory(), updateOp(a)));
-			store.remapPath(a.path, to);
+			store.remapPath(a.path, to, 1);
 
 			expect(store.eventByPath(to)).toMatchObject({ title: 'a' });
 			expect(store.history.undo).toEqual([expect.objectContaining({ before: expect.objectContaining({ title: 'a' }) })]);
@@ -485,8 +527,8 @@ describe('eventCalendarStore', () => {
 			const titled = note('t', { title: 'Team sync' });
 			store.setSnapshot(projection([a, titled]), 1);
 			store.setHistory(pushOp(pushOp(createEventHistory(), updateOp(a)), updateOp(titled)));
-			store.remapPath(a.path, P('b'), { fromBase: 'a', toBase: 'b', version: 1 });
-			store.remapPath(titled.path, P('u'), { fromBase: 't', toBase: 'u', version: 1 });
+			store.remapPath(a.path, P('b'), 1, { fromBase: 'a', toBase: 'b' });
+			store.remapPath(titled.path, P('u'), 1, { fromBase: 't', toBase: 'u' });
 
 			expect(store.eventByPath(P('b'))).toMatchObject({ title: 'b', pending: true });
 			expect(store.eventByPath(P('u'))).toMatchObject({ title: 'Team sync', pending: true });
@@ -499,7 +541,7 @@ describe('eventCalendarStore', () => {
 		it('with `outside`, the moved event expires two bumps later when the index never shows `to`', () => {
 			const a = note('a');
 			store.setSnapshot(projection([a]), 3);
-			store.remapPath(a.path, P('b'), { fromBase: 'a', toBase: 'b', version: 3 });
+			store.remapPath(a.path, P('b'), 3, { fromBase: 'a', toBase: 'b' });
 			expect(store.pendingWrite(P('b'))).toMatchObject({ kind: 'create', settled: true, settledAtVersion: 3 });
 
 			store.setSnapshot(projection([]), 4);
@@ -513,7 +555,7 @@ describe('eventCalendarStore', () => {
 			const a = note('a');
 			store.setSnapshot(projection([a]), 1);
 			const events = store.events;
-			store.remapPath(a.path, a.path);
+			store.remapPath(a.path, a.path, 1);
 
 			expect(store.events).toBe(events);
 			expect(store.pendingPaths.size).toBe(0);
@@ -521,7 +563,7 @@ describe('eventCalendarStore', () => {
 
 		it('leaves only a tombstone when the old path has no event', () => {
 			const to = P('renamed');
-			store.remapPath(P('ghost'), to);
+			store.remapPath(P('ghost'), to, 1);
 
 			expect(store.events).toEqual([]);
 			expect([...store.pendingPaths]).toEqual([P('ghost')]);
@@ -557,7 +599,7 @@ describe('eventCalendarStore', () => {
 				pending: [],
 				visible: [a.path],
 			},
-			{ name: 'remapPath', run: () => store.remapPath(a.path, to), pending: [a.path, to], visible: [to] },
+			{ name: 'remapPath', run: () => store.remapPath(a.path, to, 1), pending: [a.path, to], visible: [to] },
 		];
 
 		for (const c of cases) {

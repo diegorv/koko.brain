@@ -135,9 +135,8 @@ export const eventCalendarStore = {
 
 	/**
 	 * Marks the write at `path` as finished on disk. No-op when there is none
-	 * or it is already settled, so a write keeps its first version clock and a
-	 * rename tombstone left by `remapPath` never gains one (it must prune only
-	 * once the snapshot drops its path).
+	 * or it is already settled, so a write keeps its first version clock (a
+	 * rename tombstone left by `remapPath` keeps the one it was created with).
 	 * @param path - absolute note path
 	 * @param versionAtSettle - `vaultIndexVersion` when the write finished
 	 */
@@ -163,13 +162,17 @@ export const eventCalendarStore = {
 	 * no version clock, so it prunes only once the snapshot has `to`; it keeps
 	 * the moved write's `settled` flag, and is settled when there was no write.
 	 * A `delete` at `from` stays put, as moving it would hide `to`. `from`
-	 * keeps a settled `delete` tombstone that prunes once the snapshot no
-	 * longer contains it. History ops on `from` are re-pointed at `to`.
+	 * keeps a settled `delete` tombstone clocked at `version`: it prunes once
+	 * the snapshot no longer contains `from`, or two bumps later, so a note
+	 * that comes back at `from` before the index drops it shows again. History
+	 * ops on `from` are re-pointed at `to`.
 	 *
 	 * Call it before putting any write at `to`: a write already held at `to`
-	 * is kept and the event at `from` is not moved over it. A write still in
-	 * flight when the rename lands must be settled at `to` afterwards;
-	 * settling `from` hits the tombstone and is a no-op.
+	 * is kept and the event at `from` is not moved over it, except a settled
+	 * `delete` tombstone, which the moved event replaces (a rename back onto a
+	 * path renamed away from earlier). A write still in flight when the rename
+	 * lands must be settled at `to` afterwards; settling `from` hits the
+	 * tombstone and is a no-op.
 	 *
 	 * With `outside` (a rename or move made outside the calendar, which writes
 	 * no `event_title`), a title equal to `outside.fromBase` becomes
@@ -177,24 +180,25 @@ export const eventCalendarStore = {
 	 * The `create` at `to` is then settled with a version clock instead: `to`
 	 * may never enter the projection (a dot-folder, the system folder, a
 	 * non-`.md` name), and a clockless overlay would stay there for good.
-	 * @param outside - filename bases of `from` and `to` (without `.md`), and
-	 *   the current `vaultIndexVersion`
+	 * @param version - current `vaultIndexVersion`
+	 * @param outside - filename bases of `from` and `to` (without `.md`)
 	 */
-	remapPath(from: string, to: string, outside?: { fromBase: string; toBase: string; version: number }) {
+	remapPath(from: string, to: string, version: number, outside?: { fromBase: string; toBase: string }) {
 		if (from === to) return;
 		const write = pending.get(from);
+		const held = pending.get(to);
 		const current = eventMap.get(from);
 		const next = new Map(pending);
-		if (current && !pending.has(to)) {
+		if (current && (!held || (held.kind === 'delete' && held.settled))) {
 			const event = { ...plainEvent(current), path: to };
 			if (outside) {
 				if (event.title === outside.fromBase) event.title = outside.toBase;
-				next.set(to, { kind: 'create', path: to, event, settled: true, settledAtVersion: outside.version });
+				next.set(to, { kind: 'create', path: to, event, settled: true, settledAtVersion: version });
 			} else {
 				next.set(to, { kind: 'create', path: to, event, settled: write ? write.settled : true });
 			}
 		}
-		next.set(from, { kind: 'delete', path: from, settled: true });
+		next.set(from, { kind: 'delete', path: from, settled: true, settledAtVersion: version });
 		pending = next;
 		history = outside ? followRename(history, from, to, outside.fromBase, outside.toBase) : remapHistoryPath(history, from, to);
 		recompute();

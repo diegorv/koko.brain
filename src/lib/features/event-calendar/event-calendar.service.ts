@@ -555,7 +555,8 @@ async function asOwnPathChange<T>(path: string, change: () => Promise<T>): Promi
  * way the calendar's own rename does, with untitled titles following the new
  * filename and the moved event expiring on the usual version clock; a delete
  * drops the path's ops, as an undo that finds the note gone would, and hides
- * its event behind a settled `delete` tombstone until the index drops it.
+ * its event behind a settled `delete` tombstone until the index drops it or
+ * two bumps pass, so a note restored before the index drops it shows again.
  *
  * Known limitation: a calendar write still in flight on `from` when the
  * change lands settles and records its op at `from`, not at the new path.
@@ -572,11 +573,11 @@ function followPathChange(from: string, to: string | null): void {
 	for (const path of paths) {
 		if (to === null) {
 			eventCalendarStore.setHistory(dropPath(eventCalendarStore.history, path));
-			if (eventCalendarStore.eventByPath(path)) eventCalendarStore.putPending({ kind: 'delete', path, settled: true });
+			if (eventCalendarStore.eventByPath(path)) eventCalendarStore.putPending({ kind: 'delete', path, settled: true, settledAtVersion: vaultStore.vaultIndexVersion });
 			continue;
 		}
 		const target = to + path.slice(from.length);
-		eventCalendarStore.remapPath(path, target, { fromBase: fileBase(path), toBase: fileBase(target), version: vaultStore.vaultIndexVersion });
+		eventCalendarStore.remapPath(path, target, vaultStore.vaultIndexVersion, { fromBase: fileBase(path), toBase: fileBase(target) });
 		eventCalendarViewStore.remapPath(path, target);
 	}
 }
@@ -634,7 +635,7 @@ async function writeEvent(
 			}
 			target = renamed;
 			if (isCurrent()) {
-				eventCalendarStore.remapPath(path, target);
+				eventCalendarStore.remapPath(path, target, vaultStore.vaultIndexVersion);
 				eventCalendarViewStore.remapPath(path, target);
 			}
 		}

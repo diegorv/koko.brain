@@ -299,9 +299,9 @@ describe('findCalendarEvent', () => {
 		vaultStore.bumpVaultIndexVersion(1);
 		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' })]);
 		await loadEvents();
-		eventCalendarStore.remapPath(P('Standup'), P('Daily'));
+		eventCalendarStore.remapPath(P('Standup'), P('Daily'), 1);
 		// The store goes stale and the entries snapshot has not caught up with the rename.
-		vaultStore.bumpVaultIndexVersion(5);
+		vaultStore.bumpVaultIndexVersion(2);
 		addNoteTab();
 
 		expect(await findCalendarEvent(P('Standup'))).toBeNull();
@@ -2289,6 +2289,30 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toEqual([]);
 			await refresh(6);
 			expect(eventCalendarStore.events).toEqual([]);
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+		});
+
+		it('shows a note deleted and restored before the index dropped it again two refreshes later', async () => {
+			const content = disk.get(P('Standup'))!;
+			expect(await deleteItem(P('Standup'))).toBe(true);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
+			expect(eventCalendarStore.pendingWrite(P('Standup'))).toMatchObject({ kind: 'delete', settledAtVersion: version });
+
+			// Restored from the Trash within the throttle window: the index never drops the path.
+			disk.set(P('Standup'), content);
+			await refresh(2);
+
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ title: 'Standup', pending: false });
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+		});
+
+		it('shows the event at the old path after a rename and a rename back before the index catches up', async () => {
+			await renameItem(P('Standup'), 'Retro.md');
+			await renameItem(P('Retro'), 'Standup.md');
+
+			expect(eventCalendarStore.events.map((e) => [e.path, e.title])).toEqual([[P('Standup'), 'Standup']]);
+			await refresh(2);
+			expect(eventCalendarStore.events.map((e) => [e.path, e.title])).toEqual([[P('Standup'), 'Standup']]);
 			expect(eventCalendarStore.pendingPaths.size).toBe(0);
 		});
 

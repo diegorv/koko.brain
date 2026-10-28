@@ -187,7 +187,7 @@ describe('EventPopover: opening', () => {
 		await settle();
 
 		// What `writeEvent` does on a title rename, in one synchronous step.
-		eventCalendarStore.remapPath(P('Standup'), P('Daily sync'));
+		eventCalendarStore.remapPath(P('Standup'), P('Daily sync'), 1);
 		eventCalendarViewStore.remapPath(P('Standup'), P('Daily sync'));
 		await settle();
 
