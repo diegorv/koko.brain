@@ -11,3 +11,7 @@
 
 - [ ] Undo after an external rename or move applies to the note at its new path
 - [ ] Tests for rename, folder move (children remapped) and delete (ops dropped)
+
+## Comments
+
+- 2026-10-28 19:03 — discovery — path-change consumer registry in applyPathChange + calendar consumer (remap overlay/history on rename and move, drop ops on delete, skip own changes); see work/49/discovery.md — 76e1a7ee
