@@ -13,3 +13,7 @@
 - [ ] Action available on search results and backlinks for event notes
 - [ ] The Calendar opens on the right date and view with the block focused and pulsing once
 - [ ] E2E covering the flow
+
+## Comments
+
+- 2026-10-28 17:46 — discovery — plan in work/56/discovery.md: focus request in the view store, Show in Calendar button on event search results and backlinks, pulse in EventCalendarView — b41e9b0c
