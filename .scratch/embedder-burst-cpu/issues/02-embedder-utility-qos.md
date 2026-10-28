@@ -4,7 +4,7 @@
 
 **Key risk (verify first):** ORT creates its intra-op worker threads when the session is built (`Embedder::load`, reached from `ensure_embedder_loaded`, `src-tauri/src/commands/semantic.rs:255`). Whether those workers inherit the creating thread's QoS is unverified. The QoS must be set on the thread that runs `Embedder::load`, on every caller of `ensure_embedder_loaded` (which runs `Embedder::load` at `:276`): `init_semantic_search` (`:385`, inside the `spawn_blocking` at `:370`), `search_semantic` (`:774`), `search_hybrid` (`:935`) and `update_semantic_file` (`:1245`). Whichever caller loads first owns the worker threads, so a search can be the one that creates them. `build_semantic_index` does not load the model (it only takes `EMBEDDER.lock()` at `:630`), but its embed closure at `:629` runs inference and also gets the QoS call. If workers do not inherit, record that and close as `wontfix` with the evidence, or switch to ORT's thread-creation hooks if the locked `ort 2.0.0-rc.15` exposes them.
 
-**Blocked by:** 01 (measure each change separately)
+**Blocked by:** None (01 is merged; the user deferred all measurements on 2026-10-28)
 
 **Status:** ready-for-agent
 
@@ -17,8 +17,8 @@
 
 - [ ] A macOS-only helper sets utility QoS on the current thread; no-op elsewhere; compiles on non-macOS targets
 - [ ] Called on every thread that can build the embedder session (all four `ensure_embedder_loaded` callers, or inside it) and on the embed closures at :629 and :1198
-- [ ] Inheritance by ORT worker threads verified on a running app (Instruments Thread States or `taskinfo`) and the result recorded in `## Comments`
-- [ ] Query-time search latency checked by hand after the change (not a gate, see search latency policy)
+- [ ] Inheritance by ORT worker threads: if it cannot be verified without a running app, record it as an open item in `## Comments` (deferred by the user) and deliver; do not block on it
+- [ ] Query-time search latency check by hand: open item, deferred by the user (not a gate)
 - [ ] Gate green; one commit in the full CLAUDE.md format
 
 ## Comments
