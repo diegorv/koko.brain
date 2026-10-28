@@ -4,6 +4,7 @@ use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, Embedder};
 use crate::semantic::filtering;
 use crate::semantic::model::ModelManager;
+use crate::semantic::qos::enter_utility_qos;
 use crate::semantic::quantize::QuantizedVector;
 use crate::semantic::reranker::Reranker;
 use crate::semantic::types::{SemanticFileStatus, SemanticProgress, SemanticResult, SemanticStats};
@@ -382,6 +383,8 @@ pub async fn init_semantic_search(vault_path: String) -> Result<bool, String> {
 		// resident. Loading first and assigning after let a concurrent
 		// lazy reload build a second ~1 GB session (logs 2026-09-29 and
 		// 2026-10-26 show two loads with no unload between them).
+		// Utility QoS for this thread while it builds the session.
+		let _qos = enter_utility_qos();
 		ensure_embedder_loaded()?;
 		MODEL_AVAILABLE.store(true, Ordering::SeqCst);
 		Ok(true)
@@ -627,6 +630,7 @@ pub async fn build_semantic_index(
 			let total_batches = (all_chunks.len() + batch_size - 1) / batch_size;
 			debug_log("EMBEDDER", format!("Index batch {}/{} — {} chunks", batch_idx + 1, total_batches, batch.len()));
 			let embeddings = tokio::task::spawn_blocking(move || {
+				let _qos = enter_utility_qos();
 				let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 				let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 				let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
@@ -770,6 +774,10 @@ pub async fn search_semantic(
 		let limit = max_results.unwrap_or(20);
 		let threshold = min_score.unwrap_or(0.3);
 
+		// Utility QoS for this thread only while it loads and runs the
+		// embedder; the cosine ranking below keeps the thread's own QoS.
+		let qos = enter_utility_qos();
+
 		// Lazy-reload embedder if it was unloaded after indexing
 		ensure_embedder_loaded()?;
 
@@ -782,6 +790,7 @@ pub async fn search_semantic(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+		drop(qos);
 
 		// Schedule auto-unload after idle timeout
 		schedule_embedder_unload();
@@ -932,6 +941,8 @@ pub async fn search_hybrid(
 		let fts_paths: Vec<String> = fts_results.iter().map(|r| r.path.clone()).collect();
 
 		// 1b. Semantic ranking (cosine only — the rerank happens after RRF).
+		// Utility QoS only while this thread loads and runs the embedder.
+		let qos = enter_utility_qos();
 		ensure_embedder_loaded()?;
 		let query_embedding = {
 			let mut guard = EMBEDDER.try_lock().map_err(|_| {
@@ -941,6 +952,7 @@ pub async fn search_hybrid(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+		drop(qos);
 		schedule_embedder_unload();
 		let cached_chunks = get_or_load_cache()?;
 
@@ -1241,6 +1253,9 @@ pub async fn update_semantic_file(
 		// Embed only changed/new chunks FIRST, before any DB modification.
 		// If embedding fails, old chunks remain untouched in the DB.
 		let embeddings = if !chunks_to_embed.is_empty() {
+			// Utility QoS for this thread until the embed block ends.
+			let _qos = enter_utility_qos();
+
 			// Lazy-reload embedder if it was unloaded after indexing
 			ensure_embedder_loaded()?;
 
