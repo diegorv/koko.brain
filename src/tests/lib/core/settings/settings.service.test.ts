@@ -331,11 +331,13 @@ describe('loadSettings', () => {
 	describe('eventCalendar', () => {
 		it('fills a missing eventCalendar block with the defaults', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 20 } }));
 			vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
 
+			// A non-default value proves the merge path ran, not the catch fallback to DEFAULT_SETTINGS.
+			expect(settingsStore.settings.editor.fontSize).toBe(20);
 			expect(settingsStore.eventCalendar).toEqual({
 				weekStartsOn: 1,
 				timeFormat: '24h',

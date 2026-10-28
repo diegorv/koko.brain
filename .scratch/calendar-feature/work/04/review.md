@@ -40,3 +40,10 @@ Reviewed `git diff main...HEAD` at `74c52ec6` (commits `af377e7c`, `51805550`, `
 2. **Low.** `src/tests/lib/core/settings/settings.logic.test.ts:351-362`: the unknown `timeFormat` / `defaultView` / `defaultColor` test checks list membership only. The commit message and discovery promise specific fallbacks: `'24h'`, `'week'` and `'blue'`. Of those, only `'blue'` is pinned, and only in the service test. **Fix:** also assert `toBe('24h')`, `toBe('week')` and `toBe('blue')`, so a change to the fallbacks has to be made on purpose. Keep the membership assertions.
 3. **Nit (no change required).** `src/lib/core/settings/settings.logic.ts:47-58`: a non-finite input falls back to the lower bound, so `NaN` becomes 0 (midnight) rather than the default 7. `Infinity` also becomes 0 and 480 respectively instead of the upper bound. This stays within the AC, and JSON cannot carry `Infinity`. Recorded so later tickets know that a garbage `dayStartHour` opens the grid at 00:00.
 4. **Nit (no change required, out of ticket scope).** `src/lib/core/settings/settings.logic.ts:75-91`: `showWeekends` is not normalized, so a hand-edited `"false"` string passes through as truthy. The ticket gives no rule for it. Worth a line in the Task 17/31 tickets if they rely on a strict boolean.
+
+## Resolution
+
+1. Fixed. The suggested `fontSize === 18` would not discriminate: `DEFAULT_SETTINGS.editor.fontSize` is 18, so the catch fallback also yields 18. The fixture now saves `editor.fontSize: 20` and the test asserts `settingsStore.settings.editor.fontSize` is 20. Probe: with the merge line at `settings.service.ts:134` deleted, the test fails (1 failed); restored, it passes.
+2. Fixed. The test now also pins `toBe('24h')`, `toBe('week')` and `toBe('blue')`, keeping the membership assertions.
+3. Accepted as recorded, no change (within the acceptance criteria).
+4. Accepted as recorded, no change (out of ticket scope).

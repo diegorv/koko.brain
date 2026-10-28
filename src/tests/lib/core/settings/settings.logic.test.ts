@@ -359,6 +359,9 @@ describe('normalizeSettings', () => {
 		expect(['24h', '12h']).toContain(eventCalendar.timeFormat);
 		expect(EVENT_CALENDAR_VIEW_MODES).toContain(eventCalendar.defaultView);
 		expect(EVENT_CALENDAR_COLORS).toContain(eventCalendar.defaultColor);
+		expect(eventCalendar.timeFormat).toBe('24h');
+		expect(eventCalendar.defaultView).toBe('week');
+		expect(eventCalendar.defaultColor).toBe('blue');
 	});
 
 	it('runs eventCalendar numbers and the type name through their helpers', () => {
