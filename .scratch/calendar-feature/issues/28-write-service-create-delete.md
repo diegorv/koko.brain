@@ -29,4 +29,5 @@
 
 ## Comments
 
-- 2026-10-28 14:11 — discovery — plan in work/28/discovery.md: internal deleteNow/restoreNow shared by public calls and undo; real owners in tests on the fake disk — pending
+- 2026-10-28 14:11 — discovery — plan in work/28/discovery.md: internal deleteNow/restoreNow shared by public calls and undo; real owners in tests on the fake disk — aa71267f
+- 2026-10-28 14:16 — implement — create/duplicate/delete/restore/undoDelete + create/delete undo-redo; event-calendar vitest 544/544, importers+trash+type-definitions 491/491, svelte-check 0 errors; e2e and full gate left to deliver — 407b00a9
