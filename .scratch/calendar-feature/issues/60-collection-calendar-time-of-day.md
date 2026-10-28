@@ -14,3 +14,7 @@
 
 - [ ] Failing tests first for each of the three cases above
 - [ ] Day-granular comparisons; tests green
+
+## Comments
+
+- 2026-10-28 17:23 — discovery — day-key comparisons in groupRecordsByDate, extractEventsForYear and layoutEventsInMonth; tests first — base 65f96ae
