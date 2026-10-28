@@ -328,6 +328,80 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.history.enabled).toBe(DEFAULT_SETTINGS.history.enabled);
 	});
 
+	describe('eventCalendar', () => {
+		it('fills a missing eventCalendar block with the defaults', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.eventCalendar).toEqual({
+				weekStartsOn: 1,
+				timeFormat: '24h',
+				dayStartHour: 7,
+				showWeekends: true,
+				defaultView: 'week',
+				defaultDurationMinutes: 60,
+				defaultColor: 'blue',
+				eventTypeName: 'Event',
+			});
+		});
+
+		it('merges a partial eventCalendar block with the defaults', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ eventCalendar: { timeFormat: '12h', dayStartHour: 9 } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.eventCalendar).toEqual({
+				...DEFAULT_SETTINGS.eventCalendar,
+				timeFormat: '12h',
+				dayStartHour: 9,
+			});
+		});
+
+		it('keeps a full, valid eventCalendar block from disk', async () => {
+			const saved = {
+				weekStartsOn: 0,
+				timeFormat: '12h',
+				dayStartHour: 6,
+				showWeekends: false,
+				defaultView: 'month',
+				defaultDurationMinutes: 30,
+				defaultColor: 'pink',
+				eventTypeName: 'Meeting',
+			};
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ eventCalendar: saved }));
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.eventCalendar).toEqual(saved);
+		});
+
+		it('normalizes invalid eventCalendar values from a hand-edited file and writes them back', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ eventCalendar: { weekStartsOn: 3, dayStartHour: 20, defaultColor: 'red', eventTypeName: 'type' } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.eventCalendar.weekStartsOn).toBe(1);
+			expect(settingsStore.eventCalendar.dayStartHour).toBe(12);
+			expect(settingsStore.eventCalendar.defaultColor).toBe('blue');
+			expect(settingsStore.eventCalendar.eventTypeName).toBe('Event');
+			const written = JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1] as string);
+			expect(written.eventCalendar.dayStartHour).toBe(12);
+		});
+	});
+
 	it('merges search settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

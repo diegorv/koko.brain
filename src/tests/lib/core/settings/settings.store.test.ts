@@ -33,6 +33,28 @@ describe('settingsStore', () => {
 		});
 	});
 
+	describe('eventCalendar', () => {
+		it('defaults to the event calendar defaults', () => {
+			expect(settingsStore.eventCalendar).toEqual({
+				weekStartsOn: 1,
+				timeFormat: '24h',
+				dayStartHour: 7,
+				showWeekends: true,
+				defaultView: 'week',
+				defaultDurationMinutes: 60,
+				defaultColor: 'blue',
+				eventTypeName: 'Event',
+			});
+		});
+
+		it('getter reflects setSettings', () => {
+			const custom = structuredClone(DEFAULT_SETTINGS);
+			custom.eventCalendar.defaultView = 'month';
+			settingsStore.setSettings(custom);
+			expect(settingsStore.eventCalendar.defaultView).toBe('month');
+		});
+	});
+
 	describe('setSettings', () => {
 		it('replaces entire settings object', () => {
 			const custom = { ...structuredClone(DEFAULT_SETTINGS), periodicNotes: { ...DEFAULT_SETTINGS.periodicNotes, folder: '_custom' } };
@@ -188,6 +210,19 @@ describe('settingsStore', () => {
 			settingsStore.updateAutoMove({ enabled: true });
 			expect(settingsStore.autoMove.enabled).toBe(true);
 			expect(settingsStore.autoMove.debounceMs).toBe(DEFAULT_SETTINGS.autoMove.debounceMs);
+		});
+
+		it('updateEventCalendar merges with existing', () => {
+			settingsStore.updateEventCalendar({ timeFormat: '12h', defaultColor: 'green' });
+			expect(settingsStore.eventCalendar.timeFormat).toBe('12h');
+			expect(settingsStore.eventCalendar.defaultColor).toBe('green');
+			expect(settingsStore.eventCalendar.weekStartsOn).toBe(DEFAULT_SETTINGS.eventCalendar.weekStartsOn);
+			expect(settingsStore.eventCalendar.eventTypeName).toBe(DEFAULT_SETTINGS.eventCalendar.eventTypeName);
+
+			// A second partial update preserves the first
+			settingsStore.updateEventCalendar({ dayStartHour: 9 });
+			expect(settingsStore.eventCalendar.dayStartHour).toBe(9);
+			expect(settingsStore.eventCalendar.timeFormat).toBe('12h');
 		});
 
 		it('updateTodoist merges with existing', () => {

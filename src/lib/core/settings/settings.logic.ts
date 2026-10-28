@@ -1,5 +1,5 @@
 import { clamp } from '$lib/utils/clamp';
-import type { AppSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
+import type { AppSettings, EventCalendarSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
 
 /** Clamps a font size to the valid range (8–32 px) */
 export function clampFontSize(size: number): number {
@@ -35,6 +35,59 @@ export function clampHeadingLineHeight(height: number): number {
 /** Clamps a heading letter spacing to the valid range (-0.1 to 0.1 em) */
 export function clampHeadingLetterSpacing(spacing: number): number {
 	return clamp(spacing, -0.1, 0.1);
+}
+
+/** Event colors the calendar offers; the only runtime copy of this list */
+export const EVENT_CALENDAR_COLORS = ['green', 'purple', 'cyan', 'orange', 'pink', 'blue'] as const;
+
+/** Calendar view modes; the only runtime copy of this list */
+export const EVENT_CALENDAR_VIEW_MODES = ['day', 'week', 'month'] as const;
+
+/** Clamps the calendar's first visible hour to an integer within 0–12 (a non-finite value becomes 0) */
+export function clampDayStartHour(hour: number): number {
+	const rounded = Math.round(hour);
+	if (!Number.isFinite(rounded)) return 0;
+	return clamp(rounded, 0, 12);
+}
+
+/** Rounds a default event duration to a multiple of 15 within 15–480 minutes (a non-finite value becomes 15) */
+export function clampEventDuration(minutes: number): number {
+	const rounded = Math.round(minutes / 15) * 15;
+	if (!Number.isFinite(rounded)) return 15;
+	return clamp(rounded, 15, 480);
+}
+
+/**
+ * Trims the type name event notes carry. An empty value, a non-string, or
+ * `Type` in any case (the type-definition type itself) becomes `Event`.
+ */
+export function normalizeEventTypeName(name: unknown): string {
+	if (typeof name !== 'string') return 'Event';
+	const trimmed = name.trim();
+	if (trimmed === '' || trimmed.toLowerCase() === 'type') return 'Event';
+	return trimmed;
+}
+
+/**
+ * Forces every event-calendar field back to a valid value. Returns the input
+ * object itself when every field is already valid, so the branch keeps its
+ * identity like the other untouched branches of `normalizeSettings`.
+ */
+function normalizeEventCalendar(calendar: EventCalendarSettings): EventCalendarSettings {
+	const normalized: EventCalendarSettings = {
+		...calendar,
+		weekStartsOn: calendar.weekStartsOn === 0 || calendar.weekStartsOn === 1 ? calendar.weekStartsOn : 1,
+		timeFormat: calendar.timeFormat === '24h' || calendar.timeFormat === '12h' ? calendar.timeFormat : '24h',
+		dayStartHour: clampDayStartHour(calendar.dayStartHour),
+		defaultView: (EVENT_CALENDAR_VIEW_MODES as readonly string[]).includes(calendar.defaultView) ? calendar.defaultView : 'week',
+		defaultDurationMinutes: clampEventDuration(calendar.defaultDurationMinutes),
+		defaultColor: (EVENT_CALENDAR_COLORS as readonly string[]).includes(calendar.defaultColor) ? calendar.defaultColor : 'blue',
+		eventTypeName: normalizeEventTypeName(calendar.eventTypeName),
+	};
+	const unchanged = (Object.keys(normalized) as (keyof EventCalendarSettings)[]).every(
+		(key) => normalized[key] === calendar[key],
+	);
+	return unchanged ? calendar : normalized;
 }
 
 /** Clamps the three numeric fields of one heading level, keeping the rest as-is */
@@ -77,6 +130,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
 				h6: normalizeHeadingLevel(headings.h6),
 			},
 		},
+		eventCalendar: normalizeEventCalendar(settings.eventCalendar),
 	};
 }
 

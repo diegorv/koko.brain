@@ -9,7 +9,12 @@ import {
 	clampHeadingFontSize,
 	clampHeadingLineHeight,
 	clampHeadingLetterSpacing,
+	clampDayStartHour,
+	clampEventDuration,
+	normalizeEventTypeName,
 	normalizeSettings,
+	EVENT_CALENDAR_COLORS,
+	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
 } from '$lib/core/settings/settings.logic';
 
@@ -153,6 +158,96 @@ describe('clampHeadingLetterSpacing', () => {
 	});
 });
 
+describe('EVENT_CALENDAR_COLORS', () => {
+	it('lists the six event colors in order', () => {
+		expect(EVENT_CALENDAR_COLORS).toEqual(['green', 'purple', 'cyan', 'orange', 'pink', 'blue']);
+	});
+});
+
+describe('EVENT_CALENDAR_VIEW_MODES', () => {
+	it('lists the three view modes in order', () => {
+		expect(EVENT_CALENDAR_VIEW_MODES).toEqual(['day', 'week', 'month']);
+	});
+});
+
+describe('clampDayStartHour', () => {
+	it('clamps below 0 to 0', () => {
+		expect(clampDayStartHour(-3)).toBe(0);
+	});
+
+	it('clamps above 12 to 12', () => {
+		expect(clampDayStartHour(20)).toBe(12);
+	});
+
+	it('rounds a fractional hour to an integer', () => {
+		expect(clampDayStartHour(7.4)).toBe(7);
+		expect(clampDayStartHour(7.6)).toBe(8);
+	});
+
+	it('keeps boundary and in-range values', () => {
+		expect(clampDayStartHour(0)).toBe(0);
+		expect(clampDayStartHour(7)).toBe(7);
+		expect(clampDayStartHour(12)).toBe(12);
+	});
+
+	it('turns a non-finite value into 0', () => {
+		expect(clampDayStartHour(Number.NaN)).toBe(0);
+	});
+});
+
+describe('clampEventDuration', () => {
+	it('clamps below 15 to 15', () => {
+		expect(clampEventDuration(0)).toBe(15);
+		expect(clampEventDuration(-60)).toBe(15);
+	});
+
+	it('clamps above 480 to 480', () => {
+		expect(clampEventDuration(600)).toBe(480);
+	});
+
+	it('rounds to the nearest multiple of 15', () => {
+		expect(clampEventDuration(50)).toBe(45);
+		expect(clampEventDuration(53)).toBe(60);
+	});
+
+	it('keeps boundary and in-range multiples of 15', () => {
+		expect(clampEventDuration(15)).toBe(15);
+		expect(clampEventDuration(60)).toBe(60);
+		expect(clampEventDuration(480)).toBe(480);
+	});
+
+	it('turns a non-finite value into 15', () => {
+		expect(clampEventDuration(Number.NaN)).toBe(15);
+	});
+});
+
+describe('normalizeEventTypeName', () => {
+	it('trims surrounding whitespace', () => {
+		expect(normalizeEventTypeName(' Meeting ')).toBe('Meeting');
+	});
+
+	it('turns an empty or blank value into Event', () => {
+		expect(normalizeEventTypeName('')).toBe('Event');
+		expect(normalizeEventTypeName('  ')).toBe('Event');
+	});
+
+	it('turns Type in any case into Event', () => {
+		expect(normalizeEventTypeName('type')).toBe('Event');
+		expect(normalizeEventTypeName('Type')).toBe('Event');
+		expect(normalizeEventTypeName(' TYPE ')).toBe('Event');
+	});
+
+	it('turns a non-string into Event', () => {
+		expect(normalizeEventTypeName(42)).toBe('Event');
+		expect(normalizeEventTypeName(null)).toBe('Event');
+		expect(normalizeEventTypeName(undefined)).toBe('Event');
+	});
+
+	it('keeps a valid name', () => {
+		expect(normalizeEventTypeName('Event')).toBe('Event');
+	});
+});
+
 describe('SETTINGS_SECTION_GROUPS', () => {
 	it('contains all expected groups in order', () => {
 		const groups = SETTINGS_SECTION_GROUPS.map((g) => g.group);
@@ -237,6 +332,73 @@ describe('normalizeSettings', () => {
 		expect(normalized.appearance).toBe(settings.appearance);
 		expect(normalized.tagColors).toBe(settings.tagColors);
 		expect(normalized.disabledDecorators).toBe(settings.disabledDecorators);
+	});
+
+	it('replaces an eventCalendar weekStartsOn other than 0 or 1 with 1', () => {
+		const settings = fixture();
+		(settings.eventCalendar as { weekStartsOn: number }).weekStartsOn = 3;
+
+		expect(normalizeSettings(settings).eventCalendar.weekStartsOn).toBe(1);
+	});
+
+	it('keeps an eventCalendar weekStartsOn of 0', () => {
+		const settings = fixture();
+		settings.eventCalendar.weekStartsOn = 0;
+
+		expect(normalizeSettings(settings).eventCalendar.weekStartsOn).toBe(0);
+	});
+
+	it('replaces an unknown eventCalendar timeFormat, defaultView and defaultColor with valid values', () => {
+		const settings = fixture();
+		(settings.eventCalendar as { timeFormat: string }).timeFormat = '36h';
+		(settings.eventCalendar as { defaultView: string }).defaultView = 'year';
+		(settings.eventCalendar as { defaultColor: string }).defaultColor = 'red';
+
+		const { eventCalendar } = normalizeSettings(settings);
+
+		expect(['24h', '12h']).toContain(eventCalendar.timeFormat);
+		expect(EVENT_CALENDAR_VIEW_MODES).toContain(eventCalendar.defaultView);
+		expect(EVENT_CALENDAR_COLORS).toContain(eventCalendar.defaultColor);
+	});
+
+	it('runs eventCalendar numbers and the type name through their helpers', () => {
+		const settings = fixture();
+		settings.eventCalendar.dayStartHour = 20;
+		settings.eventCalendar.defaultDurationMinutes = 53;
+		settings.eventCalendar.eventTypeName = 'type';
+
+		const { eventCalendar } = normalizeSettings(settings);
+
+		expect(eventCalendar.dayStartHour).toBe(12);
+		expect(eventCalendar.defaultDurationMinutes).toBe(60);
+		expect(eventCalendar.eventTypeName).toBe('Event');
+	});
+
+	it('keeps a valid eventCalendar branch by reference', () => {
+		const settings = fixture();
+		settings.eventCalendar = {
+			weekStartsOn: 0,
+			timeFormat: '12h',
+			dayStartHour: 6,
+			showWeekends: false,
+			defaultView: 'month',
+			defaultDurationMinutes: 30,
+			defaultColor: 'pink',
+			eventTypeName: 'Meeting',
+		};
+
+		expect(normalizeSettings(settings).eventCalendar).toBe(settings.eventCalendar);
+	});
+
+	it('rebuilds an invalid eventCalendar branch without mutating its input', () => {
+		const settings = fixture();
+		settings.eventCalendar.dayStartHour = 20;
+
+		const normalized = normalizeSettings(settings);
+
+		expect(normalized.eventCalendar).not.toBe(settings.eventCalendar);
+		expect(settings.eventCalendar.dayStartHour).toBe(20);
+		expect(normalized.eventCalendar.showWeekends).toBe(settings.eventCalendar.showWeekends);
 	});
 
 	it('does not mutate its input', () => {

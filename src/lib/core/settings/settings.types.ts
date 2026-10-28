@@ -1,3 +1,5 @@
+import type { EVENT_CALENDAR_COLORS, EVENT_CALENDAR_VIEW_MODES } from './settings.logic';
+
 /** Supported periodic note types */
 export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 
@@ -295,6 +297,32 @@ export interface KeybindingsSettings {
 /** Sidebar navigation sections in the settings dialog */
 export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'troubleshooting' | 'update';
 
+/** One of the event colors in `EVENT_CALENDAR_COLORS` */
+export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];
+
+/** One of the calendar view modes in `EVENT_CALENDAR_VIEW_MODES` */
+export type EventCalendarViewMode = (typeof EVENT_CALENDAR_VIEW_MODES)[number];
+
+/** Configuration for the event calendar */
+export interface EventCalendarSettings {
+	/** First day of the week: 0 = Sunday, 1 = Monday */
+	weekStartsOn: 0 | 1;
+	/** Clock format used for time labels */
+	timeFormat: '24h' | '12h';
+	/** First hour the time grid scrolls to (integer, 0–12) */
+	dayStartHour: number;
+	/** Whether Saturday and Sunday are shown in the week view */
+	showWeekends: boolean;
+	/** View mode the calendar opens in */
+	defaultView: EventCalendarViewMode;
+	/** Duration of a newly created event in minutes (multiple of 15, 15–480) */
+	defaultDurationMinutes: number;
+	/** Color of a newly created event */
+	defaultColor: EventCalendarColor;
+	/** Type name event notes carry in their `type` frontmatter (never `Type`) */
+	eventTypeName: string;
+}
+
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
 	periodicNotes: PeriodicNotesSettings;
@@ -317,6 +345,8 @@ export interface AppSettings {
 	sentry: SentrySettings;
 	/** Auto-move feature configuration */
 	autoMove: import('$lib/features/auto-move/auto-move.types').AutoMoveSettings;
+	/** Event calendar configuration */
+	eventCalendar: EventCalendarSettings;
 	/** Whether debug messages are logged to the browser console */
 	debugMode: boolean;
 	/** Whether Rust backend debug logs are forwarded to browser devtools */

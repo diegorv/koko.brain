@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings, EventCalendarSettings } from './settings.types';
 import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -99,6 +99,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		enabled: false,
 		debounceMs: 3000,
 	},
+	eventCalendar: {
+		weekStartsOn: 1,
+		timeFormat: '24h',
+		dayStartHour: 7,
+		showWeekends: true,
+		defaultView: 'week',
+		defaultDurationMinutes: 60,
+		defaultColor: 'blue',
+		eventTypeName: 'Event',
+	},
 	todoist: {
 		apiToken: '',
 		defaultLabel: '',
@@ -148,6 +158,7 @@ export const settingsStore = {
 	get history() { return settings.history; },
 	get search() { return settings.search; },
 	get autoMove() { return settings.autoMove; },
+	get eventCalendar() { return settings.eventCalendar; },
 	get todoist() { return settings.todoist; },
 	get sentry() { return settings.sentry; },
 	get debugMode() { return settings.debugMode; },
@@ -284,6 +295,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			autoMove: { ...settings.autoMove, ...value },
+		};
+	},
+
+	/** Partially updates event calendar settings, merging with existing values */
+	updateEventCalendar(value: Partial<EventCalendarSettings>) {
+		settings = {
+			...settings,
+			eventCalendar: { ...settings.eventCalendar, ...value },
 		};
 	},
 

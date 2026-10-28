@@ -131,6 +131,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.autoMove,
 				...parsed.autoMove,
 			},
+			eventCalendar: { ...DEFAULT_SETTINGS.eventCalendar, ...parsed.eventCalendar },
 			todoist: {
 				...DEFAULT_SETTINGS.todoist,
 				...parsed.todoist,
