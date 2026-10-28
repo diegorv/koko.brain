@@ -189,6 +189,17 @@ let writeGeneration = 0;
  */
 let historyTail: Promise<unknown> = Promise.resolve();
 
+/**
+ * Tail of the intake: the turns in which an undo or redo takes its op and
+ * claims its path, and the writes started while such a turn was outstanding.
+ * Turns run in call order, so an undo keeps its place relative to writes
+ * started after it. Never rejects.
+ */
+let intake: Promise<void> = Promise.resolve();
+
+/** Number of intake turns that have not run yet; writes skip the intake at 0. */
+let intakeDepth = 0;
+
 /** Label of a recorded calendar change. */
 export type EventChangeLabel = HistoryOp['label'];
 
@@ -225,14 +236,14 @@ function holdPath(path: string, promise: Promise<unknown>): void {
 	});
 }
 
-/**
- * Runs `task` after every write already queued on `path`, whatever their
- * outcome. `isCurrent` tells the task whether `resetEventCalendar` ran since
- * it was enqueued.
- */
-function enqueue<T>(path: string, task: (isCurrent: () => boolean) => Promise<T>): Promise<T> {
+/** A check that tells whether `resetEventCalendar` ran since it was made. */
+function generationCheck(): () => boolean {
 	const generation = writeGeneration;
-	const isCurrent = () => generation === writeGeneration;
+	return () => generation === writeGeneration;
+}
+
+/** Chains `task` on `path`'s queue now, after every write already queued there. */
+function claimPath<T>(path: string, task: (isCurrent: () => boolean) => Promise<T>, isCurrent: () => boolean): Promise<T> {
 	const previous = writeTails.get(path) ?? Promise.resolve();
 	const run = previous.then(() => task(isCurrent));
 	holdPath(path, run);
@@ -240,10 +251,41 @@ function enqueue<T>(path: string, task: (isCurrent: () => boolean) => Promise<T>
 }
 
 /**
+ * Runs `start` at its turn on the intake, after every earlier turn and after
+ * `after`, and returns what it starts.
+ */
+function takeTurn<T>(start: () => Promise<T>, after: Promise<unknown> = Promise.resolve()): Promise<T> {
+	intakeDepth += 1;
+	const turn = Promise.all([intake, after]).then(() => {
+		intakeDepth -= 1;
+		return { started: start() };
+	});
+	intake = turn.then(
+		() => {},
+		() => {},
+	);
+	return turn.then(({ started }) => started);
+}
+
+/**
+ * Runs `task` after every write already queued on `path`, whatever their
+ * outcome, and after any undo or redo started before it has claimed its own
+ * path. `isCurrent` tells the task whether `resetEventCalendar` ran since it
+ * was enqueued.
+ */
+function enqueue<T>(path: string, task: (isCurrent: () => boolean) => Promise<T>): Promise<T> {
+	const isCurrent = generationCheck();
+	if (intakeDepth === 0) return claimPath(path, task, isCurrent);
+	return takeTurn(() => claimPath(path, task, isCurrent));
+}
+
+/**
  * Resolves once every write queued so far has settled. Never rejects; the
  * vault-switch and window-close paths await it before tearing down.
  */
 export async function drainEventCalendarWrites(): Promise<void> {
+	// Writes waiting on the intake are not in `writeTails` until their turn.
+	await intake;
 	await Promise.allSettled([historyTail, ...writeTails.values()]);
 }
 
@@ -454,18 +496,24 @@ export function editEvent(path: string, patch: EventFormPatch): Promise<string> 
 
 /**
  * Runs one undo or redo after the previous one has settled, whatever its
- * outcome. One that starts after `resetEventCalendar` returns `empty`.
+ * outcome, at its turn on the intake: a write started after it waits until it
+ * has claimed its path. One that starts after `resetEventCalendar` returns
+ * `empty`.
  */
 function applyHistory(direction: 'undo' | 'redo'): Promise<EventChangeResult> {
-	const generation = writeGeneration;
-	const run = historyTail.then(() =>
-		generation === writeGeneration ? applyHistoryNow(direction) : { status: 'empty' as const, label: null },
+	const isCurrent = generationCheck();
+	const run = takeTurn(
+		() => (isCurrent() ? applyHistoryNow(direction) : Promise.resolve({ status: 'empty' as const, label: null })),
+		historyTail,
 	);
 	historyTail = run.catch(() => {});
 	return run;
 }
 
-/** Takes an op off one stack and applies its other state, queued on its path. */
+/**
+ * Takes an op off one stack and applies its other state, queued on its path.
+ * Runs at its intake turn, so it claims the path at once (before its first await).
+ */
 async function applyHistoryNow(direction: 'undo' | 'redo'): Promise<EventChangeResult> {
 	const taken = direction === 'undo' ? takeUndo(eventCalendarStore.history) : takeRedo(eventCalendarStore.history);
 	if (!taken) return { status: 'empty', label: null };
@@ -478,7 +526,7 @@ async function applyHistoryNow(direction: 'undo' | 'redo'): Promise<EventChangeR
 	}
 	const expected = direction === 'undo' ? op.after : op.before;
 	const target = direction === 'undo' ? op.before : op.after;
-	return enqueue(op.path, async (isCurrent) => {
+	return claimPath(op.path, async (isCurrent) => {
 		const shown = eventCalendarStore.eventByPath(op.path);
 		if (!shown || !(await exists(op.path))) {
 			if (isCurrent()) eventCalendarStore.setHistory(dropPath(eventCalendarStore.history, op.path));
@@ -502,7 +550,7 @@ async function applyHistoryNow(direction: 'undo' | 'redo'): Promise<EventChangeR
 			throw err;
 		}
 		return { status: 'done', label: op.label };
-	});
+	}, generationCheck());
 }
 
 /**

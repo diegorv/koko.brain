@@ -986,6 +986,60 @@ describe('calendar writes', () => {
 			]);
 		});
 
+		it('Cmd+Z then an immediate drag on the same event: the undo applies first, then the drag', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+
+			const undo = undoEventChange();
+			const drag = moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 });
+
+			expect(await undo).toEqual({ status: 'done', label: 'Move event' });
+			await drag;
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-12');
+			expect(disk.get(P('Standup'))).toContain('start: 12:00');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-12', start: 720, end: 780 });
+			const op = eventCalendarStore.history.undo[0];
+			expect(eventCalendarStore.history.undo).toHaveLength(1);
+			expect(op.kind === 'update' && [op.before.date, op.before.start, op.after.date]).toEqual(['2026-11-10', 570, '2026-11-12']);
+		});
+
+		it('a drag started after the second of two quick undos waits for both', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await resizeEvent(P('Standup'), 690);
+
+			const first = undoEventChange();
+			const second = undoEventChange();
+			const drag = moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 });
+
+			expect(await first).toEqual({ status: 'done', label: 'Resize event' });
+			expect(await second).toEqual({ status: 'done', label: 'Move event' });
+			await drag;
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-12');
+			const op = eventCalendarStore.history.undo[0];
+			expect(op.kind === 'update' && [op.before.date, op.before.start, op.before.end]).toEqual(['2026-11-10', 570, 600]);
+		});
+
+		it('drainEventCalendarWrites waits for a write queued behind an undo', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+
+			// The undo writes through; the drag queued behind it is held open.
+			vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
+				disk.set(String(p), String(data));
+			});
+			const gate = holdNextWrite();
+			void undoEventChange();
+			void moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 });
+			let drained = false;
+			const drain = drainEventCalendarWrites().then(() => {
+				drained = true;
+			});
+			await flush();
+			expect(drained).toBe(false);
+
+			gate.resolve();
+			await drain;
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-12');
+		});
+
 		it('drops an undo whose field write fails after it renamed the note back', async () => {
 			await editEvent(P('Standup'), { title: 'Daily sync', start: 600, end: 660 });
 			await refresh(2);
