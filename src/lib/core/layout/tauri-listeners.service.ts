@@ -14,7 +14,6 @@ import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
 import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
 import { buildPropertyIndex } from '$lib/features/collection/collection.service';
-import { debounce } from '$lib/utils/debounce';
 import { error } from '$lib/utils/debug';
 import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
 
@@ -77,6 +76,12 @@ export function registerCloseHandler(): () => void {
 	};
 }
 
+/** Delay between a `vault-index-updated` event and its refresh when no refresh ran recently. */
+const REFRESH_DELAY_MS = 2000;
+
+/** Minimum spacing between two `vault-index-updated` refreshes during a burst. */
+const REFRESH_MIN_INTERVAL_MS = 10_000;
+
 /**
  * Registers a listener for the Rust `vault-index-updated` event.
  * Bumps `vaultStore.vaultIndexVersion` from the payload's monotonic counter
@@ -85,16 +90,23 @@ export function registerCloseHandler(): () => void {
  *
  * Phase 3.2 of the perf refactor (`tasks/todo/performance-architecture-refactor.md`).
  *
- * The handler is debounced (300 ms trailing) because the event fires in
- * bursts: the watcher incremental loop emits ONE event PER FILE
- * (`watcher-handler.service.ts`), plus one per content-changed save and
- * per 1 s typing pause. Each firing used to refetch the ENTIRE vault
- * snapshot (`get_all_vault_entries_v2` — clone + sort + multi-MB JSON
- * IPC) and re-run 4-5 O(N) rebuilds, so a 10-file burst meant 10
- * full-snapshot fetches on the main thread (audit 2026-06-10, HIGH
- * finding 3). Debouncing the bump itself also collapses the burst for
- * every `vaultIndexVersion` consumer (TasksView, GraphView, panels) —
- * same rationale and window as `tags.service.ts::scheduleTagIndexRebuild`.
+ * The handler is throttled because the event fires in bursts: the watcher
+ * incremental loop emits ONE event PER FILE (`watcher-handler.service.ts`),
+ * plus one per content-changed save and per 1 s typing pause. Each firing
+ * used to refetch the ENTIRE vault snapshot (`get_all_vault_entries_v2` —
+ * clone + sort + multi-MB JSON IPC) and re-run 4-5 O(N) rebuilds, so a
+ * 10-file burst meant 10 full-snapshot fetches on the main thread (audit
+ * 2026-06-10, HIGH finding 3). Throttling the bump itself also collapses the
+ * burst for every `vaultIndexVersion` consumer (TasksView, GraphView, panels).
+ * A trailing debounce could not coalesce files that land 5-10 s apart (an
+ * embedder burst, 2026-10-27 log: ~198 refreshes in one session), so the
+ * throttle works on time since the last refresh instead: an event arms a
+ * timer only when none is pending, firing `REFRESH_DELAY_MS` after the event
+ * but never sooner than `REFRESH_MIN_INTERVAL_MS` after the previous refresh.
+ * Events that arrive while a timer is pending only update `latestVersion`, so
+ * the trailing refresh after the last event always carries the latest version.
+ * Panels may lag up to 10 s behind external changes during a burst (the
+ * snapshot is a cache, CLAUDE.md Indexing 12).
  * `fetchSeq` is a latest-wins guard: a slow older fetch resolving after
  * a newer one must not overwrite the stores with a stale snapshot.
  * The snapshot read goes through the shared version-keyed memo
@@ -108,7 +120,7 @@ export function registerCloseHandler(): () => void {
  * batch refreshed the Rust index without ever reprojecting the TS snapshot
  * that embedded collection blocks query. It keeps its own try/catch and needs no
  * `fetchSeq` guard: it publishes a whole snapshot, self-heals on the next
- * event, and the 300 ms debounce makes an out-of-order landing rare.
+ * event, and the 10 s refresh spacing makes an out-of-order landing rare.
  *
  * Returns a cleanup function to unsubscribe (cancels any pending refresh).
  */
@@ -117,6 +129,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	let unlisten: (() => void) | undefined;
 	let latestVersion = 0;
 	let fetchSeq = 0;
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let lastRefreshAt = Number.NEGATIVE_INFINITY;
 
 	const refresh = () => {
 		vaultStore.bumpVaultIndexVersion(latestVersion);
@@ -137,11 +151,19 @@ export function registerVaultIndexUpdatedListener(): () => void {
 			}
 		}).catch((err) => { error('LISTENERS', 'get_all_vault_entries_v2 failed:', err); });
 	};
-	const debouncedRefresh = debounce(refresh, 300);
+	const scheduleRefresh = () => {
+		if (timer !== undefined) return;
+		const wait = Math.max(REFRESH_DELAY_MS, lastRefreshAt + REFRESH_MIN_INTERVAL_MS - Date.now());
+		timer = setTimeout(() => {
+			timer = undefined;
+			lastRefreshAt = Date.now();
+			refresh();
+		}, wait);
+	};
 
 	listen<UpdateResultV2>('vault-index-updated', (event) => {
 		latestVersion = event.payload.version;
-		debouncedRefresh();
+		scheduleRefresh();
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
@@ -150,7 +172,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 	});
 	return () => {
 		cancelled = true;
-		debouncedRefresh.cancel();
+		clearTimeout(timer);
+		timer = undefined;
 		unlisten?.();
 	};
 }

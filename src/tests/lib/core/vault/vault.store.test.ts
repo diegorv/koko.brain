@@ -197,7 +197,7 @@ describe('vaultStore', () => {
 		it('stays false on bumps after resetIndexReady (stale event from the torn-down vault)', () => {
 			vaultStore.bumpVaultIndexVersion(7);
 			vaultStore.resetIndexReady();
-			// The debounced vault-index-updated listener survives teardown; a
+			// The throttled vault-index-updated listener survives teardown; a
 			// tail event from the old vault must not clear the placeholder.
 			vaultStore.bumpVaultIndexVersion(8);
 			expect(vaultStore.indexReady).toBe(false);

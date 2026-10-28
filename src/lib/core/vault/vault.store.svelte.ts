@@ -28,7 +28,7 @@ let vaultIndexVersion = $state(0);
 let indexReady = $state(false);
 /**
  * True between vault teardown and the next completed index build. The
- * `vault-index-updated` listener is debounced (300 ms) and never torn down,
+ * `vault-index-updated` listener is throttled (2-10 s) and never torn down,
  * so the OLD vault's tail events (dirty-tab saves, watcher bursts) can land
  * after teardown — while suppressed, those bumps must not flip readiness.
  * Cleared by `markIndexReady()` when `initializeVault` finishes the build.

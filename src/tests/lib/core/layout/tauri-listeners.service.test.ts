@@ -358,17 +358,19 @@ describe('registerVaultIndexUpdatedListener', () => {
 		expect(listen).toHaveBeenCalledWith('vault-index-updated', expect.any(Function));
 	});
 
-	it('bumps vaultIndexVersion only after the 300ms debounce window', async () => {
+	it('bumps vaultIndexVersion 2 s after an isolated event', async () => {
 		vi.useFakeTimers();
 		try {
 			registerVaultIndexUpdatedListener();
 			expect(capturedEventHandler).toBeDefined();
 
 			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 3 } });
-			// No synchronous bump — the handler coalesces bursts behind a debounce.
+			// No synchronous bump — the handler coalesces bursts behind a throttle.
 			expect(vaultStore.vaultIndexVersion).toBe(0);
 
-			await vi.advanceTimersByTimeAsync(300);
+			await vi.advanceTimersByTimeAsync(1999);
+			expect(vaultStore.vaultIndexVersion).toBe(0);
+			await vi.advanceTimersByTimeAsync(1);
 			expect(vaultStore.vaultIndexVersion).toBe(3);
 		} finally {
 			vi.useRealTimers();
@@ -387,9 +389,9 @@ describe('registerVaultIndexUpdatedListener', () => {
 			await vi.advanceTimersByTimeAsync(100);
 			capturedEventHandler!({ payload: { changed: true, affected: ['/x'], version: 5 } });
 
-			// Each event re-arms the trailing debounce; nothing fired yet.
+			// The first event armed the 2 s timer; later ones ride on it.
 			expect(vaultStore.vaultIndexVersion).toBe(0);
-			await vi.advanceTimersByTimeAsync(300);
+			await vi.advanceTimersByTimeAsync(1800);
 			expect(vaultStore.vaultIndexVersion).toBe(5);
 		} finally {
 			vi.useRealTimers();
@@ -421,9 +423,9 @@ describe('registerVaultIndexUpdatedListener', () => {
 });
 
 describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
-	/** Runs the 300ms trailing debounce and settles the invoke `.then` chain. */
+	/** Runs the 2 s first-refresh delay and settles the invoke `.then` chain. */
 	const settleFanOut = async () => {
-		await vi.advanceTimersByTimeAsync(300);
+		await vi.advanceTimersByTimeAsync(2000);
 		await vi.advanceTimersByTimeAsync(0);
 	};
 
@@ -563,8 +565,8 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 		const cleanup = registerVaultIndexUpdatedListener();
 		fireEvent(7);
-		// Debounce fires: bump applied, fetch starts (still pending).
-		await vi.advanceTimersByTimeAsync(300);
+		// Throttle fires: bump applied, fetch starts (still pending).
+		await vi.advanceTimersByTimeAsync(2000);
 		expect(vaultStore.vaultIndexVersion).toBe(7);
 
 		cleanup();
@@ -578,15 +580,79 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		expect(fsStore.contentOrder.size).toBe(0);
 	});
 
-	it('cleanup cancels a pending debounced refresh', async () => {
+	it('cleanup cancels a pending throttled refresh', async () => {
 		const cleanup = registerVaultIndexUpdatedListener();
 		fireEvent(9);
 
-		cleanup(); // before the 300ms window elapses
-		await vi.advanceTimersByTimeAsync(300);
+		cleanup(); // before the 2 s delay elapses
+		await vi.advanceTimersByTimeAsync(20_000);
 
 		expect(invoke).not.toHaveBeenCalled();
 		expect(vaultStore.vaultIndexVersion).toBe(0);
+	});
+
+	it('cleanup cancels a pending trailing refresh after an earlier one ran', async () => {
+		const cleanup = registerVaultIndexUpdatedListener();
+		fireEvent(1);
+		await settleFanOut();
+		expect(vaultStore.vaultIndexVersion).toBe(1);
+		vi.mocked(invoke).mockClear();
+
+		fireEvent(2); // arms the trailing refresh 10 s after the first one
+		cleanup();
+		await vi.advanceTimersByTimeAsync(20_000);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(vaultStore.vaultIndexVersion).toBe(1);
+	});
+
+	it('coalesces events 5 s apart into fewer refreshes, the last carrying the final version', async () => {
+		// Burst shape from the 2026-10-27 log: the embedder lands one file
+		// every ~5 s, each emitting its own vault-index-updated event.
+		const refreshTimes: number[] = [];
+		vi.mocked(invoke).mockImplementation(((command: string) => {
+			if (command === 'get_all_property_records') refreshTimes.push(Date.now());
+			return Promise.resolve([]);
+		}) as unknown as typeof invoke);
+
+		registerVaultIndexUpdatedListener();
+		const start = Date.now();
+		const eventCount = 6;
+		for (let version = 1; version <= eventCount; version++) {
+			fireEvent(version);
+			if (version < eventCount) await vi.advanceTimersByTimeAsync(5000);
+		}
+		const lastEventAt = Date.now();
+		await vi.advanceTimersByTimeAsync(30_000);
+
+		expect(refreshTimes.length).toBeLessThan(eventCount);
+		expect(vaultStore.vaultIndexVersion).toBe(eventCount);
+		// First refresh 2 s after the first event, then at least 10 s apart.
+		expect(refreshTimes[0] - start).toBe(2000);
+		for (let i = 1; i < refreshTimes.length; i++) {
+			expect(refreshTimes[i] - refreshTimes[i - 1]).toBeGreaterThanOrEqual(10_000);
+		}
+		// A trailing refresh follows the last event.
+		expect(refreshTimes[refreshTimes.length - 1]).toBeGreaterThan(lastEventAt);
+	});
+
+	it('refreshes 2 s after an event that follows a quiet period of 10 s or more', async () => {
+		const refreshTimes: number[] = [];
+		vi.mocked(invoke).mockImplementation(((command: string) => {
+			if (command === 'get_all_property_records') refreshTimes.push(Date.now());
+			return Promise.resolve([]);
+		}) as unknown as typeof invoke);
+
+		registerVaultIndexUpdatedListener();
+		fireEvent(1);
+		await vi.advanceTimersByTimeAsync(2000); // first refresh
+		await vi.advanceTimersByTimeAsync(15_000); // quiet period
+		const isolatedAt = Date.now();
+		fireEvent(2);
+		await vi.advanceTimersByTimeAsync(2000);
+
+		expect(refreshTimes).toEqual([isolatedAt - 15_000, isolatedAt + 2000]);
+		expect(vaultStore.vaultIndexVersion).toBe(2);
 	});
 
 	it('coalesces a burst into one snapshot fetch carrying the final version', async () => {
@@ -595,7 +661,7 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 		registerVaultIndexUpdatedListener();
 
-		// Rapid burst: three events inside one debounce window (watcher
+		// Rapid burst: three events inside one throttle window (watcher
 		// incremental loop emits one event per changed file).
 		fireEvent(1);
 		fireEvent(2);
@@ -627,9 +693,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 
 		registerVaultIndexUpdatedListener();
 		fireEvent(1);
-		await vi.advanceTimersByTimeAsync(300); // fetch 1 in flight
+		await vi.advanceTimersByTimeAsync(2000); // fetch 1 in flight
 		fireEvent(2);
-		await vi.advanceTimersByTimeAsync(300); // fetch 2 in flight
+		await vi.advanceTimersByTimeAsync(10_000); // fetch 2 in flight (10 s after fetch 1)
 
 		resolveSecond(newer);
 		await vi.advanceTimersByTimeAsync(0);

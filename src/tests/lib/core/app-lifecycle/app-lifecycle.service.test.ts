@@ -829,7 +829,7 @@ describe('teardownVault', () => {
 		// `vaultStore.vaultIndexVersion`, which teardown deliberately never
 		// rewinds (monotonicity contract). Without an explicit invalidation
 		// the next vault's completion serves the PREVIOUS vault's aliases
-		// until its own first `vault-index-updated` lands (~300 ms).
+		// until its own first `vault-index-updated` lands (~2 s).
 		const restoreInvoke = () => {
 			vi.mocked(invoke).mockImplementation((() => Promise.resolve()) as unknown as typeof invoke);
 		};
@@ -885,7 +885,7 @@ describe('teardownVault', () => {
 		expect(vaultStore.indexReady).toBe(false);
 		expect(vaultStore.vaultIndexVersion).toBe(7);
 
-		// A stale vault-index-updated from the torn-down vault (the debounced
+		// A stale vault-index-updated from the torn-down vault (the throttled
 		// listener survives teardown) must NOT clear the placeholder early.
 		vaultStore.bumpVaultIndexVersion(8);
 		expect(vaultStore.indexReady).toBe(false);
