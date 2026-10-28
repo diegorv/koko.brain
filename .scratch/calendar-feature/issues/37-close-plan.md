@@ -21,3 +21,7 @@
 - [ ] The follow-up issue files filed by ticket 36 stay in `.scratch/calendar-feature/issues/` after the commit ("The follow-up issues stay")
 - [ ] The commit (subject `docs(scratch): close the calendar-feature plan`, the Task 36 title) records in its message that the event-calendar plan is done
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 16:53 — discovery — preconditions hold (01-36 closed, ADR-0032 + amendments landed, follow-ups 40-64 filed); plan is a single own-commit deletion — 60cd2986
