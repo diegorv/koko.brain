@@ -51,3 +51,6 @@ Ticket 56 review (fix 0e187396):
 - [ ] Rename/delete tombstone with a stale store: `lookupCalendarEvent` falls through to the stale snapshot for the old path, so "Show in Calendar" stays and opens the old date with nothing focused. When `isPending(path)` and `eventByPath(path)` is undefined, return `{ event: null }`.
 - [ ] The throttled index bump means a body edit that moves the date pulses the old day for ~2-10 s; inherent, but the "current day" wording overstates it.
 - [ ] The focus effect's loaded check (`EventCalendarView.svelte:166-167`) ignores `storeProjectionKey` (theoretical: a settings change re-triggers the load).
+
+E2E harness (found while fixing the issue 56 backlink spec, 81053434):
+- [ ] `e2e/specs/sidebars.spec.ts` "backlinks panel populates for a note with incoming links" only checks that `/backlinks|linked mentions/i` is visible; the panel header satisfies it, so it passed while backlinks failed to render. Assert on an actual backlink entry.
