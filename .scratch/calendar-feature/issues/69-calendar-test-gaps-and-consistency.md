@@ -36,3 +36,8 @@ Ticket 68 review (fix 17dd1f47):
 - [ ] `event-calendar-daily-note.store.svelte.ts:36` clears the per-day in-flight map on every `register`, including a same-vault re-init (double-init window noted at `app-lifecycle.service.ts:244-246`) or HMR; a click in that window runs a second open and toasts "File already exists" (no duplicate file). Clear on unregister/teardown instead, and fix the comment that says the entries belong to another vault.
 - [ ] With a stale tree, "Open Event type" (`EventCalendarSection.svelte:109-111`) has already written and opened `Event 1.md` before the name-taken toast fires: one stray copy, not one per click.
 - [ ] Unverified: `openEventType` builds the file name from the untrimmed `calendar.eventTypeName` while `validateTypeName` trims; check whether the setting can hold surrounding spaces.
+
+Ticket 55 review (fix 27152237):
+- [ ] `saveFileByPath` (`editor.service.ts:132-149`) does not serialize per path: an autosave of A in flight plus an icon write saving B (A + icon) can land A last, so the disk lacks the icon and the tab stays dirty with no timer armed until the next edit. No text is lost; a per-path save queue would close it.
+- [ ] `auto-move.service.ts:195` checks lossiness on the content captured at save time, not at write time after the debounce; an edit in that window yields one refusal toast or a delayed icon.
+- [ ] No test for a lossy note that auto-move actually moves, nor for an IO error from `setIconForPath`.
