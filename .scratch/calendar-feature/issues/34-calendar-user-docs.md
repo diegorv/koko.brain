@@ -38,3 +38,4 @@
 ## Comments
 
 - 2026-10-28 16:26 — discovery — docs-only plan in work/34/discovery.md; archify skill unavailable, map files left to ticket 36 — 82e1ee31
+- 2026-10-28 16:29 — implement — 27-calendar.md written, cross-links, README and CLAUDE.md updated; archify files untouched (skill unavailable, ticket 36 follow-up); no source changes so no tests run — 307ab3e2
