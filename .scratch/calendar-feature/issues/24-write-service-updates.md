@@ -30,3 +30,4 @@
 ## Comments
 
 - **2026-10-28, from ticket 17 (b2389a39):** after a rename, settle any write still in flight at the new path `to`. `settlePending` on the old path `from` is a no-op once `remapPath` has moved the write (see the `settlePending` / `remapPath` JSDoc in `event-calendar.store.svelte.ts`).
+- 2026-10-28 13:38 — discovery — plan in work/24/discovery.md: one private writeEvent core behind a self-cleaning per-path queue; vanished = not in store or not on disk — d785034f
