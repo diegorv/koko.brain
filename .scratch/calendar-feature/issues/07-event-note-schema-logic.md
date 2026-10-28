@@ -85,3 +85,4 @@
 ## Comments
 
 - 2026-10-28 12:37 — discovery — plan, risks and defaults in work/07/discovery.md — 0ace4d20
+- 2026-10-28 12:41 — implement — schema logic, Rust-shaped fixture and 65 tests; pnpm check 0 errors, event-calendar/properties/type-definitions vitest 819/819 — 3320c134
