@@ -29,3 +29,7 @@
 - [ ] `EventPopover.test.ts` (mount) passes: a lane-chip click opens the popover with the event title; the clicked block carries the ring class and the others do not; Escape closes it and `document.activeElement` is then the clicked block
 - [ ] `event-calendar.spec.ts` passes: clicking a block shows the popover with the title; "Open note" opens the note tab; switching back to the Calendar tab shows no popover
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 14:08 — discovery — plan in work/26/discovery.md: EventPopover (bits-ui customAnchor, fixed strategy, no portal) mounted in the view; blocks/chips open it and carry the ring; focus restored only when lost; bits-ui unchanged at 2.19.5 — pending
