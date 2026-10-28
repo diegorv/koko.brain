@@ -81,3 +81,7 @@
   - `readOnly` for `end_date`, and `event_title` winning over the filename;
   - read scope: an Event note under `<vault>/_system/templates` is excluded, an archived event is hidden and counted in `archivedCount`, and a blank `systemFolder` includes the template.
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 12:37 — discovery — plan, risks and defaults in work/07/discovery.md — 0ace4d20
