@@ -12,3 +12,7 @@
 - [ ] With periodic notes enabled, a header action opens the daily note for that date
 - [ ] Without the plugin the header has no such action
 - [ ] Tests for the bridge registration and an E2E click
+
+## Comments
+
+- 2026-10-28 17:50 — discovery — bridge store in event-calendar, plugin registers opener via initializeVault, icon button beside header and month day number; work/54/discovery.md — cdad575f
