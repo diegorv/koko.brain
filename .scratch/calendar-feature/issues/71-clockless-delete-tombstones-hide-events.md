@@ -14,3 +14,7 @@
 - [ ] Failing store/service tests first for both scenarios (snapshots that keep the path for several versions)
 - [ ] Every `delete` tombstone carries `settledAtVersion`; the rename-back case shows the event at A
 - [ ] `e2e/specs/event-calendar-path-identity.spec.ts` still passes
+
+## Comments
+
+- 2026-10-28 20:47 — discovery — plan in work/71/discovery.md: clock every delete tombstone (service outside delete, store remapPath with a version arg) and let a remap replace a tombstone at `to` — cb258fca
