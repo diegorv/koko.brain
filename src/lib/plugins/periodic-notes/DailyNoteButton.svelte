@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import CalendarDays from '@lucide/svelte/icons/calendar-days';
+	import NotebookPen from '@lucide/svelte/icons/notebook-pen';
 	import { openOrCreateDailyNote } from './periodic-notes.service';
 </script>
 
@@ -15,7 +15,7 @@
 				class="size-6"
 				onclick={() => openOrCreateDailyNote()}
 			>
-				<CalendarDays class="size-3.5" />
+				<NotebookPen class="size-3.5" />
 			</Button>
 		{/snippet}
 	</Tooltip.Trigger>

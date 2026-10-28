@@ -60,6 +60,13 @@ describe('CalendarPanel bridge to the Calendar tab', () => {
 		expect(svg.classList.contains('lucide-calendar')).toBe(false);
 	});
 
+	it('gives the Daily Note button a notebook icon, so it does not read as a second Open Calendar', () => {
+		mountPanel();
+		const icons = [...target.querySelectorAll('button svg')].map((svg) => svg.getAttribute('class') ?? '');
+		expect(icons.some((c) => c.includes('lucide-notebook-pen'))).toBe(true);
+		expect(icons.some((c) => c.includes('lucide-calendar-days'))).toBe(false);
+	});
+
 	it('opens the Calendar tab at the selected date', () => {
 		calendarStore.setSelectedDateKey('2026-11-24');
 		mountPanel();
