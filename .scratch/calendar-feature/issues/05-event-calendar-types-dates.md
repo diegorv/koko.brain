@@ -28,3 +28,7 @@
 - [ ] A DST block under `describe.runIf(runtimeTimeZoneSwitchWorks())` runs `addDays`, `diffDays`, `isoWeek` and `rangeKeys` inside `withTimeZone('America/New_York', ...)` across 2026-03-08 and 2026-11-01 (spring forward and fall back), and they give the same keys and counts as on any other day
 - [ ] Import specifiers follow Notes > Dependencies: `$lib/...` until `.scratch/sveltekit-3-migration/issues/05-expand-lib-subpath-import.md` is closed, then `#lib/...` in new files
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 11:53 — discovery — plan in work/05/discovery.md: four new files, prototype not on disk so signatures are recorded as defaults — 45e2577e
