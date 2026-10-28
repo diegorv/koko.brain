@@ -11,6 +11,9 @@ export const GRAPH_VIRTUAL_PATH = '__virtual__/graph';
 /** Virtual path used for the singleton Tags tab */
 export const TAGS_VIRTUAL_PATH = '__virtual__/tags';
 
+/** Virtual path used for the singleton Calendar tab */
+export const EVENT_CALENDAR_VIRTUAL_PATH = '__virtual__/event-calendar';
+
 /** Returns true if the tab represents a virtual (non-file) view */
 export function isVirtualTab(tab: Pick<EditorTab, 'path'>): boolean {
 	return tab.path.startsWith('__virtual__/');

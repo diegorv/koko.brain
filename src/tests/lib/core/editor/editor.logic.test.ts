@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '$lib/core/editor/editor.logic';
+import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '$lib/core/editor/editor.logic';
 import type { EditorTab } from '$lib/core/editor/editor.types';
 
 describe('getFileName', () => {
@@ -115,6 +115,11 @@ describe('isVirtualTab', () => {
 		expect(isVirtualTab({ path: '__virtual__/tasks' })).toBe(true);
 		expect(isVirtualTab({ path: '__virtual__/graph' })).toBe(true);
 		expect(isVirtualTab({ path: '__virtual__/settings' })).toBe(true);
+	});
+
+	it('treats the Calendar tab path as virtual, so it is never saved', () => {
+		expect(EVENT_CALENDAR_VIRTUAL_PATH).toBe('__virtual__/event-calendar');
+		expect(isVirtualTab({ path: EVENT_CALENDAR_VIRTUAL_PATH })).toBe(true);
 	});
 
 	it('returns false for real file paths', () => {
