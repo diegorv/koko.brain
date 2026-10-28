@@ -34,3 +34,9 @@ Reviewed `git diff main...HEAD` at `aaf833d1` (commits d58b8279, 13906d64, 2a514
 - No global `?` binding in `src/lib` conflicts with the new key.
 - Scope: `e2e/event-calendar.spec.ts`, the projection logic, `EventMonthGrid.svelte` and `EventAllDayLane.svelte` are untouched. Nothing outside the Issue.
 - No third hand-written copy of the shortcuts: the docs got only the new `?` row and a mention of the button.
+
+## Resolution
+
+1. Fixed. `event-calendar-keys.logic.test.ts` adds "lists every press resolveCalendarKey handles in the row of its action": printable ASCII plus the named keys, under {none, Shift, Cmd, Cmd+Shift, Ctrl, Ctrl+Shift, Alt}, with `popoverPath` set. Each resolved press must match a chord of its kind's row (Shift counted only with Cmd or Ctrl). M1 (drop `Backspace`) and M2 (add a `j` step key) both fail it now.
+2. Fixed with the test option: "gives each action kind one row" asserts the kinds are unique, so the dialog's `(row.action)` key stays safe and `data-shortcut` keeps naming the action.
+3. Applied: both help pages now say "while a dialog is open".

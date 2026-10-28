@@ -173,7 +173,7 @@ The Command Palette has **Calendar: Undo** and **Calendar: Redo** too.
 
 ## Calendar Keyboard Shortcuts
 
-These work while the Calendar tab has focus, not while you type in a field or while the event dialog is open.
+These work while the Calendar tab has focus, not while you type in a field or while a dialog is open.
 
 | Key | Action |
 |-----|--------|

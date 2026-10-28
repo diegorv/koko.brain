@@ -59,7 +59,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 
 ## Calendar
 
-These work while the [Calendar tab](27-calendar.md) has focus, not while you type in a field or while the event dialog is open.
+These work while the [Calendar tab](27-calendar.md) has focus, not while you type in a field or while a dialog is open.
 
 | Shortcut | Action |
 |----------|--------|

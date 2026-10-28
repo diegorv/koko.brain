@@ -178,6 +178,42 @@ describe('CALENDAR_SHORTCUTS', () => {
 		expect(new Set(CALENDAR_SHORTCUTS.map((r) => r.action))).toEqual(new Set(Object.keys(kinds)));
 	});
 
+	it('gives each action kind one row', () => {
+		// The dialog keys its rows by action kind.
+		const kinds = CALENDAR_SHORTCUTS.map((r) => r.action);
+		expect(new Set(kinds).size).toBe(kinds.length);
+	});
+
+	it('lists every press resolveCalendarKey handles in the row of its action', () => {
+		// The resolver ignores Shift on bare keys, so Shift only counts with Cmd or Ctrl.
+		const normalize = (e: CalendarKeyEvent) =>
+			[e.key.toLowerCase(), e.metaKey, e.ctrlKey, e.altKey, e.shiftKey && (e.metaKey || e.ctrlKey)].join('|');
+		const printable = Array.from({ length: 0x7e - 0x20 + 1 }, (_, i) => String.fromCharCode(0x20 + i));
+		const named = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete', 'Backspace', 'Escape', 'Enter', 'Tab', 'Home', 'End', 'PageUp', 'PageDown'];
+		const modifierSets: Partial<Omit<CalendarKeyEvent, 'key'>>[] = [
+			{},
+			{ shiftKey: true },
+			{ metaKey: true },
+			{ metaKey: true, shiftKey: true },
+			{ ctrlKey: true },
+			{ ctrlKey: true, shiftKey: true },
+			{ altKey: true },
+		];
+		let resolved = 0;
+		for (const k of [...printable, ...named]) {
+			for (const mods of modifierSets) {
+				const press = key(k, mods);
+				const action = resolveCalendarKey(press, state({ popoverPath: '/v/a.md' }));
+				if (!action) continue;
+				resolved++;
+				const row = CALENDAR_SHORTCUTS.find((r) => r.action === action.kind);
+				const chords = (row?.keys ?? []).map((c) => normalize(chordToKey(c)));
+				expect(chords, `${JSON.stringify(press)} -> ${action.kind}`).toContain(normalize(press));
+			}
+		}
+		expect(resolved).toBeGreaterThan(0);
+	});
+
 	it('gives every row at least one chord and a label', () => {
 		for (const row of CALENDAR_SHORTCUTS) {
 			expect(row.keys.length, row.action).toBeGreaterThan(0);
