@@ -46,3 +46,8 @@ Ticket 59 review (fix f1504724):
 - [ ] The post-drop click swallow (`event-calendar-day-drag.svelte.ts:69`) filters on `detail === 0`; an assistive-tech click with `detail >= 1` and no prior `pointerdown` in the area is eaten once if a drop outside the area or an Escape/pointercancel left the flag armed. Unconfirmed for VoiceOver.
 - [ ] The comment at `:60-67` says "the next press in the area resets the flag"; a press outside the area does not. Reword.
 - [ ] A chip dragged into a full month cell can hide behind "+N more" until dropped (see `work/59/review.md` Resolution).
+
+Ticket 56 review (fix 0e187396):
+- [ ] Rename/delete tombstone with a stale store: `lookupCalendarEvent` falls through to the stale snapshot for the old path, so "Show in Calendar" stays and opens the old date with nothing focused. When `isPending(path)` and `eventByPath(path)` is undefined, return `{ event: null }`.
+- [ ] The throttled index bump means a body edit that moves the date pulses the old day for ~2-10 s; inherent, but the "current day" wording overstates it.
+- [ ] The focus effect's loaded check (`EventCalendarView.svelte:166-167`) ignores `storeProjectionKey` (theoretical: a settings change re-triggers the load).
