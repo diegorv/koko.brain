@@ -1,0 +1,25 @@
+# 01: Embedder capped at 4 intra-op threads, intra-op spinning off
+
+**What to build:** During a watcher burst (Readwise sync writing ~8-14 new notes/min, log `2026-10-27_22-15-08.log`), the BGE-M3 embedder runs every new file through ONNX with up to 8 intra-op threads, holding the process at ~580% CPU and slowing the whole Mac. The thread cap was raised from `min(4)` to `min(8)` on the assumption that "the user doesn't typically interact with the UI while it runs" (`src-tauri/src/semantic/embedder.rs:49-54`), which a background sync breaks. Lower the cap back to `min(4)` and turn off ORT intra-op spinning (busy-wait between ops) in the shared builder `session_builder` (`src-tauri/src/semantic/mod.rs:32-39`) via `.with_intra_op_spinning(false)` (exists in `ort 2.0.0-rc.15`, which `Cargo.lock` resolves from the `2.0.0-rc.13` floor in `Cargo.toml:53`; `session/builder/impl_config_keys.rs:135`).
+
+**Context:** Exploration run 2026-10-28 (20 scouts + 5 reviewers). Commits `8d0daf13`, `a061a034`, `dca9a87e`, `9ce04ba3` fixed memory (31 GB CoreML), idle-unload and double-load, but none bound CPU. Inference is already serialized by `EMBEDDER.lock()` (`src-tauri/src/commands/semantic.rs:1247` per file, `:630` in the full build), so per-run threads are the lever.
+
+**Blocked by:** None (can start immediately)
+
+**Status:** ready-for-agent
+
+**Touches:**
+- `src-tauri/src/semantic/embedder.rs` (modify; lines 49-54, comment + cap)
+- `src-tauri/src/semantic/mod.rs` (modify; `session_builder`, lines 32-39)
+- `src-tauri/src/semantic/reranker.rs` (read; it shares `session_builder` at :57, so spinning-off applies to it too)
+
+**Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` (Rust only)
+
+- [ ] `embedder.rs` caps intra-op threads at 4 (fallback stays 4) and the comment states why (background bursts, UI in use)
+- [ ] `session_builder` disables intra-op spinning for every session it builds; the doc comment says so
+- [ ] Commit confirms spinning-off is wanted for the reranker too (shared builder, `reranker.rs:57`)
+- [ ] Existing `semantic_session_builder_test.rs` still passes; if the builder exposes no getter for the new option, the commit says the effect is verified by measurement only
+- [ ] Manual measurement noted in a `## Comments` entry or commit body: `top -pid <pid> -stats cpu,rss,th` during a replay of ~20 files at ~10/min, before vs after, plus per-file embed time from the log
+- [ ] Gate green; one commit in the full CLAUDE.md format
+
+## Comments
