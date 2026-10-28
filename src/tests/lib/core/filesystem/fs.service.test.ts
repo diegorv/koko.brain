@@ -65,6 +65,7 @@ import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '$lib/utils/index
 import { moveToTrash } from '$lib/core/trash/trash.service';
 import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
 import { error } from '$lib/utils/debug';
+import { registerPathChangeConsumer } from '$lib/core/filesystem/path-change.service';
 import {
 	loadDirectoryTree,
 	refreshTree,
@@ -1029,6 +1030,97 @@ describe('moveItem', () => {
 		expect(result).toBe('/vault/other/dir');
 		expect(collectionStore.propertyIndex.has('/vault/dir/a.md')).toBe(false);
 		expect(collectionStore.propertyIndex.has('/vault/dir/b.md')).toBe(false);
+	});
+});
+
+describe('path-change consumers', () => {
+	/** Every `(from, to)` the recording consumer received, in order. */
+	let changes: [string, string | null][];
+	let unregister: () => void;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearAllIndexed();
+		clearLocalStorage();
+		fsStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		setupDefaultMocks();
+		vi.mocked(moveToTrash).mockResolvedValue(true);
+		changes = [];
+		unregister = registerPathChangeConsumer({ name: 'recorder', pathChanged: (from, to) => changes.push([from, to]) });
+	});
+
+	afterEach(() => {
+		unregister();
+	});
+
+	it('reports a rename with its old and new path', async () => {
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(changes).toEqual([['/vault/old.md', '/vault/new.md']]);
+	});
+
+	it('reports a folder move once, for the folder', async () => {
+		seedDirWithTwoChildren();
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await moveItem('/vault/dir', '/vault/archive');
+
+		expect(changes).toEqual([['/vault/dir', '/vault/archive/dir']]);
+	});
+
+	it('reports a delete with a null destination', async () => {
+		await deleteItem('/vault/note.md');
+
+		expect(changes).toEqual([['/vault/note.md', null]]);
+	});
+
+	it('reports the change before the link rewrite awaits', async () => {
+		vi.mocked(rename).mockResolvedValue(undefined);
+		let seenByLinkUpdater: [string, string | null][] = [];
+		vi.mocked(updateLinksAfterRename).mockImplementationOnce(async () => {
+			seenByLinkUpdater = [...changes];
+		});
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(seenByLinkUpdater).toEqual([['/vault/old.md', '/vault/new.md']]);
+	});
+
+	it('reports nothing when the disk operation fails', async () => {
+		vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+		expect(await renameItem('/vault/old.md', 'new.md')).toBeNull();
+
+		expect(changes).toEqual([]);
+	});
+
+	it('reports nothing once unregistered', async () => {
+		vi.mocked(rename).mockResolvedValue(undefined);
+		unregister();
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(changes).toEqual([]);
+	});
+
+	it('isolates a throwing consumer: the change completes and later consumers still run', async () => {
+		vi.mocked(rename).mockResolvedValue(undefined);
+		unregister();
+		const unregisterThrower = registerPathChangeConsumer({ name: 'thrower', pathChanged: () => { throw new Error('boom'); } });
+		unregister = registerPathChangeConsumer({ name: 'recorder', pathChanged: (from, to) => changes.push([from, to]) });
+
+		try {
+			expect(await renameItem('/vault/old.md', 'new.md')).toBe('/vault/new.md');
+		} finally {
+			unregisterThrower();
+		}
+
+		expect(changes).toEqual([['/vault/old.md', '/vault/new.md']]);
+		expect(error).toHaveBeenCalledWith('FS', 'thrower path change failed:', expect.any(Error));
 	});
 });
 

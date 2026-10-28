@@ -8,7 +8,7 @@ import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
 import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
-import { error } from '$lib/utils/debug';
+import { debug, error } from '$lib/utils/debug';
 
 /** One path change: where the item goes, and how the disk move is performed. */
 export interface PathChange {
@@ -26,6 +26,40 @@ export interface PathChange {
 	isDirectory?: boolean;
 	/** Performs the disk mutation. Runs between the pre-op and post-op steps. */
 	diskOp: () => Promise<void>;
+}
+
+/**
+ * A feature index keyed by note path that must follow a rename, move or
+ * delete. Registered rather than imported: `core/` must not import
+ * `features/` (ADR-0003).
+ */
+export interface PathChangeConsumer {
+	/** Name used in failure logs. */
+	name: string;
+	/**
+	 * Called once per change, after the disk operation succeeded and before
+	 * `applyPathChange` awaits anything else. A folder change arrives once,
+	 * for the folder: paths under `from + '/'` moved to `to + '/'` with it.
+	 * @param from - absolute path the item left
+	 * @param to - absolute path it landed on, or `null` for a deletion
+	 */
+	pathChanged(from: string, to: string | null): void;
+}
+
+/** Registered path-change consumers, in registration order. */
+const pathChangeConsumers: PathChangeConsumer[] = [];
+
+/**
+ * Registers a consumer to follow every path change. Returns an unregister
+ * function; `app-lifecycle` calls it during vault teardown.
+ */
+export function registerPathChangeConsumer(consumer: PathChangeConsumer): () => void {
+	pathChangeConsumers.push(consumer);
+	debug('FS', `Path-change consumer registered: ${consumer.name}`);
+	return () => {
+		const idx = pathChangeConsumers.indexOf(consumer);
+		if (idx >= 0) pathChangeConsumers.splice(idx, 1);
+	};
 }
 
 /**
@@ -92,8 +126,18 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 
 	await diskOp();
 
+	if (to !== null) updateTabAfterRenameOrMove(from, to);
+	// Synchronous and before the next await, so a consumer is never a step
+	// behind the disk while the link rewrite below runs.
+	for (const consumer of [...pathChangeConsumers]) {
+		try {
+			consumer.pathChanged(from, to);
+		} catch (err) {
+			error('FS', `${consumer.name} path change failed:`, err);
+		}
+	}
+
 	if (to !== null) {
-		updateTabAfterRenameOrMove(from, to);
 		// Must precede the removal sweep: `updateLinksAfterRename` resolves the
 		// affected files through `get_backlinks_v2(from)`, which reads the very
 		// Rust entry the sweep is about to prune. A pure move keeps the note
