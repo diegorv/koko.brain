@@ -37,3 +37,4 @@
 ## Comments
 
 - 2026-10-28 15:59 — discovery — plan in work/31/discovery.md: keys logic, service undo/redo feedback, view wiring, Cmd+Shift+C toggle, palette Undo/Redo — 526262b2
+- 2026-10-28 16:07 — implement — keys logic, undo/redo feedback toasts, view wiring, Cmd+Shift+C toggle + palette Undo/Redo, E2E; pnpm check 0 errors, targeted vitest 1101/1101, E2E event-calendar 29 passed + 1 pre-existing flaky, keyboard-shortcuts + command-palette 7/7 — 606589f8
