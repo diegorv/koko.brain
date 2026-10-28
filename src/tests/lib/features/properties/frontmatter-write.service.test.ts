@@ -15,7 +15,7 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 // `vaultStore.open` persists the recent-vaults list; the node test env has no localStorage.
-const localStorageStub = (() => {
+function localStorageStub() {
 	let store: Record<string, string> = {};
 	return {
 		getItem: (key: string) => store[key] ?? null,
@@ -23,8 +23,7 @@ const localStorageStub = (() => {
 		removeItem: (key: string) => { delete store[key]; },
 		clear: () => { store = {}; },
 	};
-})();
-Object.defineProperty(globalThis, 'localStorage', { value: localStorageStub, writable: true });
+}
 
 import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
@@ -69,11 +68,12 @@ function tabFor(path: string) {
 	return editorStore.tabs.find((t) => t.path === path);
 }
 
-/** A promise with its resolver exposed, to hold an `await` open mid-call. */
+/** A promise with its settlers exposed, to hold an `await` open mid-call. */
 function deferred<T>() {
 	let resolve!: (value: T) => void;
-	const promise = new Promise<T>((r) => { resolve = r; });
-	return { promise, resolve };
+	let reject!: (reason: unknown) => void;
+	const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+	return { promise, resolve, reject };
 }
 
 /** Lets every queued microtask run. */
@@ -95,6 +95,7 @@ async function reasonOf(promise: Promise<unknown>): Promise<string> {
 describe('updateNoteFrontmatter', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.stubGlobal('localStorage', localStorageStub());
 		disk.clear();
 		editorStore.reset();
 		vaultStore._reset();
@@ -118,6 +119,7 @@ describe('updateNoteFrontmatter', () => {
 		editorStore.reset();
 		vaultStore._reset();
 		resetHooks();
+		vi.unstubAllGlobals();
 	});
 
 	// --- Race tests (Notes C2, Q5: written first) ---
@@ -315,5 +317,107 @@ describe('updateNoteFrontmatter', () => {
 		expect(exists).not.toHaveBeenCalled();
 		expect(disk.get(path)).toBe(base);
 		expect(isAlreadyIndexed(path, base)).toBe(false);
+	});
+
+	it('keeps edits made during a failing save instead of restoring the base', async () => {
+		const path = `${VAULT}/save-fail-typed.md`;
+		const saved = note('status: open', 'Saved body\n');
+		disk.set(path, saved);
+		openTab(path, saved);
+		const write = deferred<void>();
+		vi.mocked(writeTextFile).mockImplementationOnce(() => write.promise);
+
+		const pending = updateNoteFrontmatter(path, setStatus('done'));
+		await flush();
+		const typed = note('status: done', 'Typed during save\n');
+		editorStore.updateContent(typed);
+		write.reject(new Error('disk full'));
+
+		expect(await reasonOf(pending)).toBe('save-failed');
+		expect(tabFor(path)?.content).toBe(typed);
+		expect(disk.get(path)).toBe(saved);
+	});
+
+	it('throws vault-changed and writes nothing when the vault switches during the exists re-check', async () => {
+		const path = `${VAULT}/switch-exists.md`;
+		const base = note('status: open');
+		disk.set(path, base);
+		const check = deferred<boolean>();
+		vi.mocked(exists).mockImplementationOnce(() => check.promise);
+
+		const pending = updateNoteFrontmatter(path, setStatus('done'));
+		await flush();
+		vaultStore.open('/other-vault');
+		check.resolve(true);
+
+		expect(await reasonOf(pending)).toBe('vault-changed');
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(disk.get(path)).toBe(base);
+	});
+
+	it('throws vault-changed without restoring the tab when the vault switches during the save', async () => {
+		const path = `${VAULT}/switch-save.md`;
+		const base = note('status: open');
+		disk.set(path, base);
+		openTab(path, base);
+		const write = deferred<void>();
+		vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
+			await write.promise;
+			disk.set(String(p), String(data));
+		});
+
+		const pending = updateNoteFrontmatter(path, setStatus('done'));
+		await flush();
+		vaultStore.open('/other-vault');
+		write.resolve();
+
+		const next = note('status: done');
+		expect(await reasonOf(pending)).toBe('vault-changed');
+		// The save landed before the guard ran: the bytes are on disk.
+		expect(disk.get(path)).toBe(next);
+		expect(tabFor(path)?.content).toBe(next);
+	});
+
+	it('throws vault-changed and skips the after-save path when the vault switches during the write', async () => {
+		const path = `${VAULT}/switch-write.md`;
+		disk.set(path, note('status: open'));
+		const write = deferred<void>();
+		vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
+			await write.promise;
+			disk.set(String(p), String(data));
+		});
+
+		const pending = updateNoteFrontmatter(path, setStatus('done'));
+		await flush();
+		vaultStore.open('/other-vault');
+		write.resolve();
+
+		const next = note('status: done');
+		expect(await reasonOf(pending)).toBe('vault-changed');
+		expect(disk.get(path)).toBe(next);
+		expect(isAlreadyIndexed(path, next)).toBe(false);
+		expect(vi.mocked(invoke)).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+	});
+
+	it('syncs a tab opened during the write of a closed note and leaves it clean', async () => {
+		const path = `${VAULT}/open-during-write.md`;
+		const base = note('status: open');
+		disk.set(path, base);
+		const write = deferred<void>();
+		vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
+			await write.promise;
+			disk.set(String(p), String(data));
+		});
+
+		const pending = updateNoteFrontmatter(path, setStatus('done'));
+		await flush();
+		openTab(path, base);
+		write.resolve();
+		const result = await pending;
+
+		expect(result).toBe(note('status: done'));
+		expect(tabFor(path)?.content).toBe(result);
+		expect(tabFor(path)?.savedContent).toBe(result);
+		expect(disk.get(path)).toBe(result);
 	});
 });

@@ -43,3 +43,12 @@ Reviewed `git diff main...HEAD` (88b4be61, 735d739d, 954f923b) against the Issue
 4. **Nit**, `src/tests/lib/features/properties/frontmatter-write.service.test.ts:27`. The `localStorage` stub is defined on `globalThis` at module scope and never removed. Vitest isolates test files by default, so nothing leaks today. If you keep it, scope it with `vi.stubGlobal('localStorage', ...)` and `vi.unstubAllGlobals()` in `afterEach`.
 
 None of these blocks delivery. Findings 1 and 2 are the ones worth taking before ticket 24 builds on the writer.
+
+## Resolution
+
+All four findings accepted and fixed in the fix commit; none rejected.
+
+1. `save-failed` now restores the base only when the tab still holds `next`; edits made while the save was pending are kept. Test "keeps edits made during a failing save instead of restoring the base" (mutation-checked: dropping the guard fails it).
+2. JSDoc: `mutate` must be pure (it can run twice), concurrent calls on one closed note must be serialized per path (last write wins), and `vault-changed` after the save or write can mean the bytes are on disk.
+3. Added vault-switch cases during `exists` (no write), during the tab save (bytes on disk, no restore), during the closed-note write (no after-save path), and the post-write sync for a tab opened during `writeTextFile`.
+4. The `localStorage` stub is installed with `vi.stubGlobal` in `beforeEach` and removed with `vi.unstubAllGlobals()` in `afterEach`.

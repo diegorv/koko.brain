@@ -15,9 +15,12 @@ import type { Property } from './properties.types';
 /**
  * Why `updateNoteFrontmatter` refused or failed:
  * - a `LossyFrontmatterReason`: the rewrite would lose data; nothing was written.
- * - `save-failed`: saving the open tab failed. The tab was restored and the
- *   editor already showed a toast, so the caller must not toast again.
- * - `vault-changed`: the vault switched while the write was in flight.
+ * - `save-failed`: saving the open tab failed. The tab was restored to the base
+ *   unless it changed during the save, and the editor already showed a toast,
+ *   so the caller must not toast again.
+ * - `vault-changed`: the vault switched while the write was in flight. When it
+ *   is thrown after the save or the file write, the new bytes may already be
+ *   on disk.
  * - `missing`: the closed note vanished between the read and the write.
  */
 export type FrontmatterWriteReason = LossyFrontmatterReason | 'save-failed' | 'vault-changed' | 'missing';
@@ -57,6 +60,10 @@ function findTab(path: string) {
  *   (`notifyAfterSave`). It never re-creates a note that vanished during the read.
  *
  * Read errors propagate as-is. Every other failure is a `FrontmatterWriteError`.
+ *
+ * `mutate` must be pure: it runs a second time when a tab opens during the
+ * read. Concurrent calls on one closed note race and the last write wins, so
+ * callers must serialize writes per path.
  */
 export async function updateNoteFrontmatter(
 	path: string,
@@ -95,7 +102,8 @@ async function attempt(
 		const saved = await saveFileByPath(path);
 		assertVault(vault, path);
 		if (!saved) {
-			syncExternalContentToEditor(path, base, false, 'none');
+			// Leave edits made while the save was pending alone.
+			if (findTab(path)?.content === next) syncExternalContentToEditor(path, base, false, 'none');
 			throw new FrontmatterWriteError('save-failed', path);
 		}
 		return next;
