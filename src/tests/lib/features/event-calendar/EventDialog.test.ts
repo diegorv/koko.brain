@@ -353,6 +353,53 @@ describe('EventDialog: saving', () => {
 		expect(document.activeElement).toBe(block(P('1-1 sync')));
 	});
 
+	/** Makes the next rename refresh the index before it returns, as a fast index bump can. */
+	function indexCatchesUpDuringRename() {
+		const move = vi.mocked(renameItem).getMockImplementation()!;
+		vi.mocked(renameItem).mockImplementationOnce(async (from, newName) => {
+			const to = await move(from, newName);
+			// The snapshot drops the old path before `writeEvent` remaps the stores.
+			await refresh();
+			await settle();
+			return to;
+		});
+	}
+
+	it('stays open through a rename whose old path leaves the snapshot mid-save, then focuses the renamed block', async () => {
+		indexCatchesUpDuringRename();
+		mountView();
+		await openEdit(P('Standup'));
+
+		type(field('title'), 'Daily sync');
+		save().click();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(disk.get(P('Daily sync'))).toBeDefined();
+		expect(eventCalendarViewStore.dialog).toBeNull();
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(document.activeElement).toBe(block(P('Daily sync')));
+	});
+
+	it('shows a field write failure after such a rename inline, not in a toast', async () => {
+		indexCatchesUpDuringRename();
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		mountView();
+		await openEdit(P('Standup'));
+
+		type(field('title'), 'Daily sync');
+		type(field('location'), 'Room 4');
+		save().click();
+		await settle();
+		await drainEventCalendarWrites();
+		await settle();
+
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(eventCalendarViewStore.dialog?.payload).toEqual({ mode: 'edit', path: P('Daily sync') });
+		expect(dialog()!.querySelector('[data-form-error]')?.textContent).toContain('disk full');
+	});
+
 	it('keeps the dialog open with an inline error when the write fails', async () => {
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 		mountView();

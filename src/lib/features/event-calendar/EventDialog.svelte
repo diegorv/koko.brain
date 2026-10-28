@@ -34,13 +34,19 @@
 	let focusCopy = false;
 	/** The create form's "Open note after creating" checkbox. */
 	let openAfterCreate = $state(false);
+	/**
+	 * Session whose edit save is in flight. An index refresh during a rename can
+	 * drop the old path before the write remaps the dialog to the new one.
+	 */
+	let savingSession = $state<number | null>(null);
 
 	let dialog = $derived(eventCalendarViewStore.dialog);
 	let session = $derived(dialog?.session ?? null);
 	let creating = $derived(dialog?.payload.mode === 'create');
 	let path = $derived(dialog?.payload.mode === 'edit' ? dialog.payload.path : null);
 	let event = $derived(path ? eventCalendarStore.eventByPath(path) : undefined);
-	let open = $derived(creating || (path !== null && event !== undefined));
+	let saving = $derived(session !== null && savingSession === session);
+	let open = $derived(creating || (path !== null && (event !== undefined || saving)));
 
 	// Read once per session: a remap or an overlay during the save must not
 	// reset the form or move the baseline the patch is computed against.
@@ -68,9 +74,10 @@
 	});
 
 	// The edited note left the calendar (deleted or retyped outside it): close
-	// instead of leaving a form that can only fail.
+	// instead of leaving a form that can only fail. Not during its own save,
+	// which settles the dialog itself.
 	$effect(() => {
-		if (path && !event) eventCalendarViewStore.closeDialog();
+		if (path && !event && !saving) eventCalendarViewStore.closeDialog();
 	});
 
 	function handleOpenChange(next: boolean) {
@@ -98,7 +105,9 @@
 
 	/**
 	 * Writes the changed fields through `editEvent`, then closes; an unchanged
-	 * draft just closes. When the dialog was closed (or reopened for another
+	 * draft just closes. The dialog stays open while the write is in flight,
+	 * even when the old path of a rename leaves the snapshot before the remap,
+	 * so the result still reaches it. When the dialog was closed (or reopened for another
 	 * event) during the write, the result no longer belongs to the open dialog:
 	 * a success leaves it alone and a failure is reported in a toast, since the
 	 * form that would show it inline is gone.
@@ -110,6 +119,7 @@
 		const patch = draftToPatch(draft, opened.state);
 		if (Object.keys(patch).length > 0) {
 			let newPath: string;
+			savingSession = s;
 			try {
 				newPath = await editEvent(target, patch);
 			} catch (err) {
@@ -118,6 +128,8 @@
 					return;
 				}
 				throw err;
+			} finally {
+				if (savingSession === s) savingSession = null;
 			}
 			if (eventCalendarViewStore.dialog?.session !== s) return;
 			lastPath = newPath;
