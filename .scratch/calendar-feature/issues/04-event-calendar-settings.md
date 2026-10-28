@@ -35,3 +35,4 @@
 ## Comments
 
 - 2026-10-28 11:39 — discovery — plan in work/04/discovery.md: four settings files plus three tests, missing-block service test written first — 15cd919c
+- 2026-10-28 11:42 — implement — eventCalendar slice landed; settings tests 300/300 and pnpm check green, full gate left to deliver — 51805550
