@@ -21,3 +21,7 @@
 - [ ] A new E2E test asserts that the bridge button opens the Calendar tab
 - [ ] No production code is removed and `calendarStore` is untouched (only `selectedDateKey` is read); the plugin-to-feature import is the direction ADR-0003 allows (`docs/adr/0003-four-layer-source-taxonomy.md:50`)
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+
+- 2026-10-28 14:51 — discovery — plan in work/33/discovery.md: e2e test 3 first, grid data-date + dblclick, panel bridge button, component tests — 02e742a7
