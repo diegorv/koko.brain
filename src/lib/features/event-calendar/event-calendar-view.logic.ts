@@ -228,6 +228,18 @@ export function groupEventsByDay(events: EventNote[], days: string[]): EventsByD
 }
 
 /**
+ * The view to show `date` in when focusing an event there.
+ * @param view - the current view
+ * @param date - day key of the event
+ * @param weekStartsOn - 0 for Sunday-first, 1 for Monday-first weeks
+ * @param showWeekends - when false, week and month views leave weekends out
+ * @returns `view` when it shows `date`, else `day`
+ */
+export function focusViewFor(view: CalendarViewMode, date: string, weekStartsOn: WeekStart, showWeekends: boolean): CalendarViewMode {
+	return visibleDays(view, date, weekStartsOn, showWeekends).includes(date) ? view : 'day';
+}
+
+/**
  * Cells of the month grid: six weeks around `date`'s month.
  * @param date - any day of the month
  * @param weekStartsOn - 0 for Sunday-first, 1 for Monday-first weeks

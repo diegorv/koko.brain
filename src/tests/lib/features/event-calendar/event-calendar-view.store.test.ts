@@ -382,4 +382,53 @@ describe('eventCalendarViewStore', () => {
 			expect(eventCalendarViewStore.initialized).toBe(false);
 		});
 	});
+
+	describe('focusRequest', () => {
+		it('is null after reset', () => {
+			expect(eventCalendarViewStore.focusRequest).toBeNull();
+		});
+
+		it('requestFocus stores the path under a new seq on every call', () => {
+			eventCalendarViewStore.requestFocus('/v/a.md');
+			const first = eventCalendarViewStore.focusRequest;
+			expect(first?.path).toBe('/v/a.md');
+			eventCalendarViewStore.requestFocus('/v/a.md');
+			expect(eventCalendarViewStore.focusRequest?.seq).toBeGreaterThan(first!.seq);
+		});
+
+		it('clearFocusRequest drops only the matching request', () => {
+			eventCalendarViewStore.requestFocus('/v/a.md');
+			const stale = eventCalendarViewStore.focusRequest!.seq;
+			eventCalendarViewStore.requestFocus('/v/b.md');
+			eventCalendarViewStore.clearFocusRequest(stale);
+			expect(eventCalendarViewStore.focusRequest?.path).toBe('/v/b.md');
+			eventCalendarViewStore.clearFocusRequest(eventCalendarViewStore.focusRequest!.seq);
+			expect(eventCalendarViewStore.focusRequest).toBeNull();
+		});
+
+		it('navigation, closeTransient and reset drop it', () => {
+			const drops: Array<() => void> = [
+				() => eventCalendarViewStore.setView('day'),
+				() => eventCalendarViewStore.setDate('2026-12-01'),
+				() => eventCalendarViewStore.step(1),
+				() => eventCalendarViewStore.goToToday(),
+				() => eventCalendarViewStore.closeTransient(),
+				() => eventCalendarViewStore.reset(),
+			];
+			for (const drop of drops) {
+				eventCalendarViewStore.requestFocus('/v/a.md');
+				drop();
+				expect(eventCalendarViewStore.focusRequest).toBeNull();
+			}
+		});
+
+		it('remapPath follows a renamed note and keeps the seq', () => {
+			eventCalendarViewStore.requestFocus('/v/a.md');
+			const seq = eventCalendarViewStore.focusRequest!.seq;
+			eventCalendarViewStore.remapPath('/v/a.md', '/v/b.md');
+			expect(eventCalendarViewStore.focusRequest).toEqual({ path: '/v/b.md', seq });
+			eventCalendarViewStore.remapPath('/v/x.md', '/v/y.md');
+			expect(eventCalendarViewStore.focusRequest).toEqual({ path: '/v/b.md', seq });
+		});
+	});
 });

@@ -265,6 +265,14 @@ export interface PopoverTarget {
 	rect: PopoverRect;
 }
 
+/** An event the Calendar view focuses and pulses once its block renders. */
+export interface FocusRequest {
+	/** Absolute path of the event note. */
+	path: string;
+	/** Distinguishes repeat requests for the same path. */
+	seq: number;
+}
+
 /** What opens the event dialog: a new event (day and optional range) or an existing note. */
 export type EventDialogPayload =
 	| {

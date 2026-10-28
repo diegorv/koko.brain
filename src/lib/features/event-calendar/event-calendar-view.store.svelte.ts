@@ -13,6 +13,7 @@ import type {
 	CalendarViewMode,
 	DialogState,
 	EventDialogPayload,
+	FocusRequest,
 	PopoverRect,
 	PopoverTarget,
 } from './event-calendar.types';
@@ -34,8 +35,12 @@ let helpOpen = $state<boolean>(false);
 let nowMs = $state<number>(Date.now());
 /** Whether `initFromSettings` already applied the default view this session. */
 let initialized = $state<boolean>(false);
+/** Event the mounted view should focus and pulse once it renders, or null. */
+let focusRequest = $state.raw<FocusRequest | null>(null);
 /** Last dialog session handed out; never reset, so every open remounts. */
 let dialogSession = 0;
+/** Last focus request seq handed out; never reset, so a repeat request is new. */
+let focusSeq = 0;
 
 /** Reactive state of the Calendar tab: view, date, popover, dialogs and clock. */
 export const eventCalendarViewStore = {
@@ -53,6 +58,8 @@ export const eventCalendarViewStore = {
 	get nowMs() { return nowMs; },
 	/** Whether the default view was applied this session. */
 	get initialized() { return initialized; },
+	/** Event the view should focus and pulse, or null. */
+	get focusRequest() { return focusRequest; },
 
 	/** Days the active view shows, per the `weekStartsOn` and `showWeekends` settings. */
 	get visibleDays(): string[] {
@@ -85,28 +92,32 @@ export const eventCalendarViewStore = {
 		return popover?.path ?? null;
 	},
 
-	/** Switches the view and closes the popover. */
+	/** Switches the view, closes the popover and drops the focus request. */
 	setView(next: CalendarViewMode) {
 		view = next;
 		popover = null;
+		focusRequest = null;
 	},
 
-	/** Moves to a day and closes the popover. */
+	/** Moves to a day, closes the popover and drops the focus request. */
 	setDate(date: string) {
 		focusedDate = date;
 		popover = null;
+		focusRequest = null;
 	},
 
-	/** Moves one view unit back (`-1`) or forward (`1`) and closes the popover. */
+	/** Moves one view unit back (`-1`) or forward (`1`), closes the popover and drops the focus request. */
 	step(dir: 1 | -1) {
 		focusedDate = stepDate(view, focusedDate, dir);
 		popover = null;
+		focusRequest = null;
 	},
 
-	/** Moves to today (read from the system clock) and closes the popover. */
+	/** Moves to today (read from the system clock), closes the popover and drops the focus request. */
 	goToToday() {
 		focusedDate = toKey(new Date());
 		popover = null;
+		focusRequest = null;
 	},
 
 	/** Opens the popover for an event anchored at `rect` (copied). */
@@ -140,11 +151,26 @@ export const eventCalendarViewStore = {
 		helpOpen = false;
 	},
 
-	/** Closes the popover, the dialog and the shortcuts help; the view calls it when it unmounts. */
+	/**
+	 * Asks the view to focus and pulse the event at `path` once it renders.
+	 * Call it after any `setDate` / `setView`, which drop the request.
+	 */
+	requestFocus(path: string) {
+		focusSeq += 1;
+		focusRequest = { path, seq: focusSeq };
+	},
+
+	/** Drops the focus request when it is still the one numbered `seq`. */
+	clearFocusRequest(seq: number) {
+		if (focusRequest?.seq === seq) focusRequest = null;
+	},
+
+	/** Closes the popover, the dialog and the shortcuts help and drops the focus request; the view calls it when it unmounts. */
 	closeTransient() {
 		popover = null;
 		dialog = null;
 		helpOpen = false;
+		focusRequest = null;
 	},
 
 	/** Sets the current instant; the mounted view's clock calls it. */
@@ -152,13 +178,16 @@ export const eventCalendarViewStore = {
 		nowMs = ms;
 	},
 
-	/** Points the popover and an edit dialog at `to` after the note at `from` was renamed. */
+	/** Points the popover, an edit dialog and the focus request at `to` after the note at `from` was renamed. */
 	remapPath(from: string, to: string) {
 		if (popover?.path === from) {
 			popover = { ...popover, path: to };
 		}
 		if (dialog?.payload.mode === 'edit' && dialog.payload.path === from) {
 			dialog = { ...dialog, payload: { mode: 'edit', path: to } };
+		}
+		if (focusRequest?.path === from) {
+			focusRequest = { ...focusRequest, path: to };
 		}
 	},
 
@@ -169,13 +198,14 @@ export const eventCalendarViewStore = {
 		initialized = true;
 	},
 
-	/** Restores view, date (today), popover, dialog, shortcuts help and `initialized`; leaves `nowMs` alone. */
+	/** Restores view, date (today), popover, dialog, shortcuts help, focus request and `initialized`; leaves `nowMs` alone. */
 	reset() {
 		view = INITIAL_VIEW;
 		focusedDate = toKey(new Date());
 		popover = null;
 		dialog = null;
 		helpOpen = false;
+		focusRequest = null;
 		initialized = false;
 	},
 };

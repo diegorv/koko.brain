@@ -8,6 +8,7 @@ import {
 	buildMonthCells,
 	defaultCreateSlot,
 	eventWhenLabel,
+	focusViewFor,
 	groupEventsByDay,
 	itemsByDay,
 	itemsForDay,
@@ -627,5 +628,20 @@ describe('defaultCreateSlot', () => {
 			start: 1410,
 			end: 1425,
 		});
+	});
+});
+
+describe('focusViewFor', () => {
+	// 2026-11-14 is a Saturday, 2026-11-10 a Tuesday.
+	it('keeps every view that shows the day', () => {
+		expect(focusViewFor('week', '2026-11-10', 1, true)).toBe('week');
+		expect(focusViewFor('month', '2026-11-10', 1, false)).toBe('month');
+		expect(focusViewFor('day', '2026-11-14', 1, false)).toBe('day');
+		expect(focusViewFor('week', '2026-11-14', 0, true)).toBe('week');
+	});
+
+	it('falls back to the day view when hidden weekends would hide the day', () => {
+		expect(focusViewFor('week', '2026-11-14', 1, false)).toBe('day');
+		expect(focusViewFor('month', '2026-11-14', 0, false)).toBe('day');
 	});
 });

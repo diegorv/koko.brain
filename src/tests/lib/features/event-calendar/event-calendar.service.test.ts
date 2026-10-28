@@ -57,10 +57,12 @@ import {
 	editEvent,
 	EventCalendarError,
 	eventErrorMessage,
+	findCalendarEvent,
 	loadEvents,
 	moveEvent,
 	moveEventToDay,
 	openEventCalendarTab,
+	openEventInCalendar,
 	openNewEventDialog,
 	redoEventChange,
 	redoEventChangeFromUi,
@@ -74,6 +76,7 @@ import {
 	undoEventChangeFromUi,
 	updateEventFields,
 } from '$lib/features/event-calendar/event-calendar.service';
+import { eventState } from '$lib/features/event-calendar/event-calendar-event.logic';
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import type { EventDraft } from '$lib/features/event-calendar/event-calendar.types';
@@ -220,6 +223,113 @@ describe('Calendar tab openers', () => {
 		expect(editorStore.tabs).toHaveLength(1);
 		closeEventCalendarTab();
 		expect(editorStore.tabs).toHaveLength(1);
+	});
+});
+
+describe('findCalendarEvent', () => {
+	it('finds an event note through the vault entries snapshot when nothing is loaded', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' }),
+			entryV2(P('plain note')),
+		]);
+
+		expect(await findCalendarEvent(P('Standup'))).toMatchObject({ path: P('Standup'), date: '2026-11-10', start: 570 });
+		expect(await findCalendarEvent(P('plain note'))).toBeNull();
+		expect(await findCalendarEvent(P('missing'))).toBeNull();
+		// One snapshot read and one projection serve every lookup at one index version.
+		expect(invoke).toHaveBeenCalledTimes(1);
+	});
+
+	it('returns null for an empty vault', async () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+		expect(await findCalendarEvent(P('Standup'))).toBeNull();
+	});
+
+	it('prefers the loaded store, which carries pending writes', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' })]);
+		await loadEvents();
+		const loaded = eventCalendarStore.eventByPath(P('Standup'))!;
+		eventCalendarStore.putPending({ kind: 'update', path: P('Standup'), state: { ...eventState(loaded), date: '2026-11-11' }, settled: false });
+
+		expect(await findCalendarEvent(P('Standup'))).toMatchObject({ date: '2026-11-11' });
+	});
+
+	it('re-projects when the index version or a projection setting changes', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([eventEntry(P('a'), { date: '2026-11-10' })]);
+		expect(await findCalendarEvent(P('a'))).not.toBeNull();
+
+		vaultStore.bumpVaultIndexVersion(2);
+		vi.mocked(invoke).mockResolvedValueOnce([eventEntry(P('a'), { date: '2026-11-10' }, { archived: true })]);
+		expect(await findCalendarEvent(P('a'))).toBeNull();
+
+		vaultStore.bumpVaultIndexVersion(3);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('m'), { _type: 'Meeting', date: '2026-11-10' })]);
+		expect(await findCalendarEvent(P('m'))).toBeNull();
+		settingsStore.updateEventCalendar({ eventTypeName: 'Meeting' });
+		expect(await findCalendarEvent(P('m'))).not.toBeNull();
+	});
+
+	it('propagates an IPC rejection', async () => {
+		vi.mocked(invoke).mockRejectedValue(new Error('index gone'));
+		await expect(findCalendarEvent(P('a'))).rejects.toThrow('index gone');
+	});
+});
+
+describe('openEventInCalendar', () => {
+	it('opens the Calendar on the event day in the current view and asks for focus', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:30', end: '10:00' })]);
+		addNoteTab();
+		eventCalendarViewStore.initFromSettings();
+		eventCalendarViewStore.setView('month');
+		eventCalendarViewStore.openPopover(P('other'), RECT);
+
+		expect(await openEventInCalendar(P('Standup'))).toBe(true);
+
+		expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(eventCalendarViewStore.view).toBe('month');
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(eventCalendarViewStore.focusRequest?.path).toBe(P('Standup'));
+	});
+
+	it('applies the default view on first open', async () => {
+		settingsStore.updateEventCalendar({ defaultView: 'day' });
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10' })]);
+
+		await openEventInCalendar(P('Standup'));
+		// EventCalendarView's onMount
+		eventCalendarViewStore.initFromSettings();
+
+		expect(eventCalendarViewStore.view).toBe('day');
+		expect(eventCalendarViewStore.focusRequest?.path).toBe(P('Standup'));
+	});
+
+	it('switches to the day view when hidden weekends would hide the event', async () => {
+		settingsStore.updateEventCalendar({ showWeekends: false, defaultView: 'week' });
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Brunch'), { date: '2026-11-14', start: '11:00' })]);
+
+		await openEventInCalendar(P('Brunch'));
+
+		expect(eventCalendarViewStore.view).toBe('day');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-14');
+	});
+
+	it('leaves the tabs and the view alone for a note that is not an event', async () => {
+		vi.mocked(invoke).mockResolvedValue([entryV2(P('plain note'))]);
+		addNoteTab();
+		eventCalendarViewStore.setDate('2026-01-05');
+
+		expect(await openEventInCalendar(P('plain note'))).toBe(false);
+
+		expect(calendarTabs()).toHaveLength(0);
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-01-05');
+		expect(eventCalendarViewStore.focusRequest).toBeNull();
+	});
+
+	it('propagates an IPC rejection without opening the tab', async () => {
+		vi.mocked(invoke).mockRejectedValue(new Error('index gone'));
+		await expect(openEventInCalendar(P('a'))).rejects.toThrow('index gone');
+		expect(calendarTabs()).toHaveLength(0);
 	});
 });
 

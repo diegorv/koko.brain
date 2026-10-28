@@ -28,13 +28,14 @@ import { FrontmatterWriteError, updateNoteFrontmatter, type FrontmatterWriteReas
 import { detectLossyFrontmatter, extractBody, parseFrontmatterProperties, rebuildContent } from '$lib/features/properties/properties.logic';
 import { createTypedNote } from '$lib/features/type-definitions/type-definitions.service';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
 import { error } from '$lib/utils/debug';
 import { applyEventDraft, applyEventFields, eventFileBase, eventState, eventsFromEntries, resolveEventTypeName, sameEventState } from './event-calendar-event.logic';
 import type { EventTiming } from './event-calendar-drag.logic';
 import { planTitleChange, type EventFormPatch } from './event-calendar-form.logic';
 import { dropPath, pushOp, refuseOp, removeOp, takeRedo, takeUndo } from './event-calendar-history.logic';
 import { eventCalendarStore } from './event-calendar.store.svelte';
-import { defaultCreateSlot } from './event-calendar-view.logic';
+import { defaultCreateSlot, focusViewFor } from './event-calendar-view.logic';
 import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 import type { CalendarViewMode, EventDraft, EventNote, EventPatch, EventState, HistoryOp } from './event-calendar.types';
 
@@ -140,6 +141,65 @@ export function toggleEventCalendarTab(): void {
 	}
 }
 
+/** Projection behind `findCalendarEvent`, kept while the snapshot and the projection inputs are unchanged. */
+let lookupMemo: { entries: NoteEntryV2[]; key: string; byPath: Map<string, EventNote> } | null = null;
+
+/** Inputs of `eventsFromEntries` for the current vault and settings. */
+function projectionOptions() {
+	const settings = settingsStore.eventCalendar;
+	return {
+		defaults: { defaultDurationMinutes: settings.defaultDurationMinutes, defaultColor: settings.defaultColor },
+		typeName: settings.eventTypeName,
+		vaultPath: vaultStore.path,
+		systemFolder: settingsStore.templates.systemFolder,
+	};
+}
+
+/**
+ * The calendar event at `path`, whether or not the Calendar tab has loaded.
+ * The loaded store wins, so a pending move shows its new day; otherwise the
+ * vault entries snapshot is projected once per index version and settings.
+ * @param path - absolute note path
+ * @returns the event, or null when the note is not a renderable event
+ *   (not event-typed, archived, invalid or dateless)
+ * @throws the IPC error of the snapshot read
+ */
+export async function findCalendarEvent(path: string): Promise<EventNote | null> {
+	const loaded = eventCalendarStore.eventByPath(path);
+	if (loaded) {
+		const { pending: _pending, ...event } = loaded;
+		return event;
+	}
+	const entries = await getVaultEntries();
+	const options = projectionOptions();
+	const key = JSON.stringify(options);
+	if (!lookupMemo || lookupMemo.entries !== entries || lookupMemo.key !== key) {
+		const { events } = eventsFromEntries(entries, options);
+		lookupMemo = { entries, key, byPath: new Map(events.map((event) => [event.path, event])) };
+	}
+	return lookupMemo.byPath.get(path) ?? null;
+}
+
+/**
+ * Opens the Calendar on the day of the event at `path` and asks the view to
+ * focus and pulse its block. Keeps the current view (the `defaultView`
+ * setting on first open) unless hidden weekends would hide the day, then
+ * shows the day view.
+ * @param path - absolute note path
+ * @returns false, with nothing changed, when the note is not a calendar event
+ * @throws the IPC error of the snapshot read
+ */
+export async function openEventInCalendar(path: string): Promise<boolean> {
+	const event = await findCalendarEvent(path);
+	if (!event) return false;
+	eventCalendarViewStore.initFromSettings();
+	const s = settingsStore.eventCalendar;
+	const view = focusViewFor(eventCalendarViewStore.view, event.date, s.weekStartsOn, s.showWeekends);
+	openEventCalendarTab({ date: event.date, view });
+	eventCalendarViewStore.requestFocus(event.path);
+	return true;
+}
+
 /**
  * Opens the Calendar tab and the create dialog at the default slot: now,
  * rounded, on today; `dayStartHour` on any other focused day. The clock
@@ -195,13 +255,14 @@ export function acquireCalendarClock(): () => void {
 /**
  * Resets the two event-calendar stores, discards any load in flight and
  * bumps the write generation, so a write still in flight leaves the stores
- * alone when it resolves. The write queue is kept: a later write to the same
- * path still waits for the one in flight. Leaves the clock and the editor
- * tabs alone.
+ * alone when it resolves, and drops the `findCalendarEvent` projection. The
+ * write queue is kept: a later write to the same path still waits for the one
+ * in flight. Leaves the clock and the editor tabs alone.
  */
 export function resetEventCalendar(): void {
 	loadToken += 1;
 	writeGeneration += 1;
+	lookupMemo = null;
 	eventCalendarStore.reset();
 	eventCalendarViewStore.reset();
 }
