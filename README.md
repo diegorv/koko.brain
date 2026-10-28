@@ -47,6 +47,7 @@ Your notes are plain Markdown files stored locally - no cloud, no lock-in, priva
 - **QueryJS** - JavaScript API for programmatic vault queries
 - **Tasks** - aggregated view with custom statuses and Todoist sync
 - **Kanban** - drag-and-drop task boards with lanes, cards, dates, colors, and tags
+- **Calendar** - day, week, and month views of your Event notes; create, drag, and resize events, each one a plain Markdown note
 - **Periodic notes** - daily, weekly, monthly, and quarterly notes with templates and calendar
 
 ### ⚙️ Power User

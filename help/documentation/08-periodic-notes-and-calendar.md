@@ -36,6 +36,7 @@ It displays a monthly calendar grid where you can navigate between months and ye
 | ◀ / ▶ arrows | Navigate to previous/next month |
 | Year arrows | Navigate to previous/next year |
 | Double-click month name | Jump back to today |
+| Double-click a day | Opens the [Calendar tab](27-calendar.md) on that day, in the day view |
 
 ### Selected Date
 
@@ -46,7 +47,10 @@ When you click a day, a panel below the calendar shows:
 
 ISO week numbers appear on the left column. Weeks start on Monday (ISO convention).
 
-The calendar header also includes a **Daily Note** button and a **Sidebar Mode Toggle** for quick access.
+The calendar header also includes an **Open Calendar** button, a **Daily Note** button and a **Sidebar Mode Toggle** for quick access. **Open Calendar** opens the [Calendar tab](27-calendar.md) on the selected day (or today).
+
+> [!NOTE]
+> This panel is for periodic notes and the files created on each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
 
 You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
 

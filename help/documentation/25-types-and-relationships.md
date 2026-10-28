@@ -588,6 +588,9 @@ attendees:
 
 Any frontmatter field with wikilink values creates a relationship automatically. Open the Backlinks panel on "Website Redesign" and you will see this meeting listed under Relationships.
 
+> [!TIP]
+> Add `date: 2026-03-02` (plus `start: "14:00"` and `end: "15:00"` for a timed meeting) and this Event note shows on the [Calendar tab](27-calendar.md). Without a `date`, it is listed there under **Unscheduled**. See [Using existing Event notes](27-calendar.md#using-existing-event-notes).
+
 **When to use which:**
 
 | Relationship | Use for | Example |
@@ -654,4 +657,5 @@ Views appear in the sidebar alongside types. See [Collection](12-collection.md) 
 
 - [Sidebar Panels](07-sidebar-panels.md) -- Backlinks panel with relationship context
 - [Collection](12-collection.md) -- Build database views filtered by type and relationships
+- [Calendar](27-calendar.md) -- Event notes with a `date` show on a day, week or month grid
 - [Properties](07-sidebar-panels.md#properties-frontmatter-editor) -- Edit frontmatter fields visually

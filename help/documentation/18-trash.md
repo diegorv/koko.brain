@@ -30,6 +30,7 @@ Click the **restore button** (undo icon) next to any item to move it back to its
 - **Parent directories are recreated** if they no longer exist. For example, if you deleted `projects/meeting.md` and then deleted the `projects/` folder, restoring the file will recreate the `projects/` folder.
 - **Conflict resolution**: If the original path is already occupied (a new file with the same name was created), Kokobrain appends a suffix: `file (restored).md`. If that's also taken, it increments: `file (restored 2).md`, `file (restored 3).md`, and so on.
 - The file explorer updates immediately after restoring.
+- A restored note is indexed again at once, so it shows up right away in search, backlinks, the type sidebar and the [Calendar](27-calendar.md) (a restored Event note is back on the calendar).
 
 ## Permanent Deletion
 
@@ -72,4 +73,5 @@ The `trash-manifest.json` file records each item's original path, filename, type
 ## Next Steps
 
 - [Settings](19-settings.md) — Full settings reference
+- [Calendar](27-calendar.md): deleting an event moves its note here; undo in the Calendar restores it
 - [Keyboard Shortcuts](20-keyboard-shortcuts.md) — All shortcuts in one place

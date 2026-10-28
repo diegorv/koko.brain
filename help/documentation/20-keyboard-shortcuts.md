@@ -11,6 +11,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+F` | Search in Vault (opens search panel) |
 | `Cmd+G` | Toggle Graph View |
 | `Cmd+Shift+T` | Toggle Tasks View |
+| `Cmd+Shift+C` | Toggle Calendar View (the [Calendar tab](27-calendar.md)) |
 | `Cmd+B` | Toggle Right Sidebar |
 | `Cmd+Shift+B` | Toggle Left Sidebar |
 
@@ -56,6 +57,21 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Z` | Undo |
 | `Cmd+Shift+Z` | Redo |
 
+## Calendar
+
+These work while the [Calendar tab](27-calendar.md) has focus, not while you type in a field or while the event dialog is open.
+
+| Shortcut | Action |
+|----------|--------|
+| `T` | Go to today |
+| `N` | New event |
+| `D` / `W` / `M` | Day / week / month view |
+| `Left` / `Right` | Previous / next day, week or month |
+| `Delete` / `Backspace` | Delete the event in the open popover, or the focused event |
+| `Escape` | Close the event popover, or cancel a drag |
+| `Cmd+Z` | Undo the last calendar change |
+| `Cmd+Shift+Z` / `Ctrl+Y` | Redo |
+
 ## Editor (In-Editor)
 
 | Shortcut | Action |
@@ -78,6 +94,9 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Pin/Unpin Tab | Pin or unpin the active tab |
 | Copy Block Embed | Copy an embed link to the current block |
 | Toggle Tags View | Open tags as a dedicated virtual tab |
+| New Calendar Event | Open the Calendar tab and the new-event dialog |
+| Calendar: Go to Today | Open the Calendar tab on today |
+| Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change |
 | Toggle Table of Contents | Toggle the TOC panel in the right sidebar |
 
 > [!TIP]
@@ -98,6 +117,7 @@ Cmd+P   Commands    Cmd+W   Close Tab   Cmd+Shift+N  1:1 Note
 Cmd+Shift+F Search  Cmd+K   Mode Toggle Cmd+,     Settings
 Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In
 Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
+Cmd+Shift+C Calendar
 Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom
 Cmd+Shift+B L Side  Cmd+Shift+L Block
 ```

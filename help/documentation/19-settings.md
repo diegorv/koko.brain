@@ -148,6 +148,23 @@ See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
 See [Types & Relationships](25-types-and-relationships.md) for details.
 
+## Calendar
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Week starts on** | First day of the week in the week and month views (Monday or Sunday) | Monday |
+| **Time format** | Clock used for the time axis and event times (24-hour or 12-hour) | 24-hour |
+| **Day starts at** | Hour the time grid scrolls to when it opens (0-12) | 7 |
+| **Show weekends** | Show Saturday and Sunday in the week and month views | Enabled |
+| **Default view** | View the Calendar tab opens in when the app starts (Day, Week or Month) | Week |
+| **Default duration** | Length of a new event in minutes (15-480, in steps of 15) | 60 |
+| **Default color** | Color of a new event | Blue |
+| **Event type** | Notes of this type appear on the calendar. If you rename the type in the type sidebar, enter its new name here. | `Event` |
+| **New events go to** | Read-only: the folder new events are created in, from the event type's `_folder` and the Types base folder | |
+| **Folder and template** | **Open Event type** opens the event type definition, where you set its `_folder` and `_template` | |
+
+See [Calendar](27-calendar.md) for details.
+
 ## Search
 
 | Setting | Description | Default |
