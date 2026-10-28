@@ -358,6 +358,38 @@ describe('createTypedNote', () => {
 		expect(createFile).toHaveBeenCalledWith('/vault/Notes/Events', 'Standup.md', '---\n_type: Event\n---\n');
 		expect(openOrCreateNote).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
+		// create_folder runs before the write.
+		expect(vi.mocked(invoke).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(createFile).mock.invocationCallOrder[0]);
+	});
+
+	it('reads the template after create_folder and before createFile', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		vi.mocked(readTextFile).mockResolvedValue('---\n_type: Event\n---\n');
+		typeDefinitionsStore.setTypeMetadataMap(new Map([
+			['Event', makeMeta({ name: 'Event', template: '_system/templates/Event.md' })],
+		]));
+
+		await createTypedNote({ typeName: 'Event', title: 'Standup' });
+
+		const folderAt = vi.mocked(invoke).mock.invocationCallOrder[0];
+		const templateAt = vi.mocked(readTextFile).mock.invocationCallOrder[0];
+		const writeAt = vi.mocked(createFile).mock.invocationCallOrder[0];
+		expect(folderAt).toBeLessThan(templateAt);
+		expect(templateAt).toBeLessThan(writeAt);
+	});
+
+	it('throws create-failed when create_folder rejects, and creates no file', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		vi.mocked(invoke).mockRejectedValue('Permission denied');
+
+		await expect(createTypedNote({ typeName: 'Event', title: 'Standup' })).rejects.toThrow('create-failed');
+
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault' });
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(createFile).not.toHaveBeenCalled();
 	});
 
 	it('dedupes the filename and hands the deduped target to buildContent', async () => {

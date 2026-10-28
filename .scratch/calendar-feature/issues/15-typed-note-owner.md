@@ -33,3 +33,4 @@
 - 2026-10-28 12:05 — discovery — plan in work/15/discovery.md: move the template block, extract resolveTypedNoteTarget, add createTypedNote, tests first — fce4801d
 - 2026-10-28 12:08 — implement — loadNoteTemplate, resolveTypedNoteTarget and createTypedNote landed with 14 new tests; related suites 748/748, pnpm check 0 errors; full gate and the wikilink-create-on-click E2E left to deliver — 0f584fd6
 - 2026-10-28 12:10 — review — VERDICT: APPROVED; 4 non-blocking findings (create_folder rejection escapes the error contract, double-dedupe race, call order unpinned, commit line range off by one) in work/15/review.md — dbc20588
+- 2026-10-28 12:12 — fix — findings 1 and 3 fixed with 2 new tests, 2 documented in the docblock, 4 rejected (no amend); type-definitions.service.test.ts 53/53 — 8be6088a

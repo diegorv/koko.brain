@@ -102,14 +102,26 @@ export interface CreateTypedNoteOptions {
  * Creates a note of a type without opening it, through the same folder,
  * dedupe and template owner as {@link createNoteOfType}. Returns the created
  * path. Throws `Error('no-vault')` without a vault, `Error('create-failed')`
- * when `createFile` refuses (including a case-folded name collision in Rust
- * `create_note`), or whatever `buildContent` throws.
+ * when the target folder cannot be created or `createFile` refuses (including
+ * a case-folded name collision in Rust `create_note`), or whatever
+ * `buildContent` throws.
+ *
+ * `buildContent` sees the name deduped here, and `createFile` dedupes again
+ * against a fresh `readDir`. If a same-named file appears between the two
+ * reads, the note lands under the next free name while its content was built
+ * for the first one. This same-instant race is accepted (as in `createView`):
+ * throwing then would report a failure for a note that already exists.
  */
 export async function createTypedNote(options: CreateTypedNoteOptions): Promise<string> {
 	const { typeName, title, contextDate, buildContent } = options;
 	const target = await resolveTypedNoteTarget(typeName, title);
 	if (!target) throw new Error('no-vault');
-	await invoke('create_folder', { path: target.dir });
+	try {
+		await invoke('create_folder', { path: target.dir });
+	} catch (err) {
+		error('TYPE-DEF', 'createTypedNote: create_folder failed:', err);
+		throw new Error('create-failed');
+	}
 	const base = await loadNoteTemplate({
 		templatePath: target.templatePath,
 		inlineTemplate: target.inlineTemplate,
