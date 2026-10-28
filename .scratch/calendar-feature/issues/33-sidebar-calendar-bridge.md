@@ -26,3 +26,4 @@
 
 - 2026-10-28 14:51 — discovery — plan in work/33/discovery.md: e2e test 3 first, grid data-date + dblclick, panel bridge button, component tests — 02e742a7
 - 2026-10-28 14:57 — implement — bridge button, data-date + dblclick, openEventCalendarTab keeps an explicit view over first-mount default; pnpm check 0 errors, vitest plugins/calendar + features/event-calendar 677/677, e2e calendar-plugin 5/5 + event-calendar 14/14 (DST now-line and palette-open tests flaky on base too) — 26d2a7bf
+- 2026-10-28 15:00 — review — VERDICT: APPROVED; all ACs met except the gate (deliver); 2 low findings (native title tooltip vs Tooltip.Root siblings, import order nit); pnpm check 0 errors, vitest plugins/calendar + features/event-calendar 677/677; E2E not run (port 1421 busy with another worktree) — 85ae7d28
