@@ -1619,7 +1619,7 @@ describe('calendar writes', () => {
 			await deleteEvent(P('Standup'));
 			trashStore.setItems([]);
 
-			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Delete event' });
+			expect(await undoEventChange()).toEqual({ status: 'refused', label: 'Delete event', reason: 'not-in-trash' });
 			expect(disk.has(P('Standup'))).toBe(false);
 			expect(eventCalendarStore.canUndo).toBe(false);
 			expect(eventCalendarStore.canRedo).toBe(false);
@@ -1816,16 +1816,31 @@ describe('calendar writes', () => {
 			expect(toast).not.toHaveBeenCalled();
 		});
 
-		it('a refusal of a delete whose Trash entry is gone toasts without Open note', async () => {
+		it('a redo refusal on a note still on disk says "not redone"', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await refresh();
+			await undoEventChange();
+			await refresh();
+			disk.set(P('Standup'), eventFile({ date: '2026-11-12', start: '11:00', end: '12:00' }));
+			await refresh(2);
+
+			await redoEventChangeFromUi();
+
+			expect(toast.error).toHaveBeenCalledWith('Event changed since; not redone', {
+				action: { label: 'Open note', onClick: expect.any(Function) },
+			});
+		});
+
+		it('an undo of a delete whose Trash entry is gone says the note left the Trash, without Open note', async () => {
 			await deleteEvent(P('Standup'));
 			trashStore.setItems([]);
 
 			await undoEventChangeFromUi();
 
-			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event changed since; not undone']]);
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['The note is no longer in the Trash; cannot undo']]);
 		});
 
-		it('a redo refusal says "not redone"', async () => {
+		it('a redo of a create whose Trash entry is gone says the note left the Trash', async () => {
 			await createEvent(draft());
 			await refresh(2);
 			await undoEventChange();
@@ -1834,7 +1849,7 @@ describe('calendar writes', () => {
 
 			await redoEventChangeFromUi();
 
-			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event changed since; not redone']]);
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['The note is no longer in the Trash; cannot redo']]);
 		});
 
 		it('vanished toasts that the event was moved or renamed outside the calendar', async () => {

@@ -89,8 +89,14 @@ async function seedEvents(page: Page): Promise<void> {
 	}, { files: EVENT_FILES });
 }
 
-/** Opens the Calendar tab through the command palette. */
-async function openCalendar(page: Page): Promise<void> {
+/**
+ * Opens the Calendar tab through the command palette once the auto-opened
+ * daily note has landed, so that tab cannot take the selection (or the
+ * keystrokes) from the calendar.
+ * @param dailyNote - tab name of the daily note the test clock auto-opens
+ */
+async function openCalendar(page: Page, dailyNote = '2026-11-10.md'): Promise<void> {
+	await expect(page.locator('[role="tab"]', { hasText: dailyNote })).toBeVisible({ timeout: 10_000 });
 	await openCommandPalette(page);
 	await page.locator('input[placeholder*="command"]:visible').first().fill('Toggle Calendar View');
 	await page.getByRole('option', { name: /Toggle Calendar View/ }).click();
@@ -295,12 +301,8 @@ test.describe('Event calendar popover', () => {
 	});
 });
 
-/**
- * Seeds the events and opens the Calendar tab once the auto-opened daily note
- * has landed, so that tab cannot take the selection from the calendar.
- */
+/** Seeds the events and opens the Calendar tab. */
 async function openSeededCalendar(page: Page): Promise<void> {
-	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
 	await seedEvents(page);
 	await openCalendar(page);
 }
@@ -749,7 +751,7 @@ test.describe('Event calendar selected day in a narrow pane', () => {
 
 	test('a selected day at the end of the week scrolls into view', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 900, height: 800 });
-		await openCalendar(page);
+		await openCalendar(page, '2026-11-15.md');
 		const grid = page.locator('[data-time-grid]');
 		await expect(grid).toBeVisible();
 
@@ -764,9 +766,7 @@ test.describe('Event calendar now-line on a DST day', () => {
 	test.use({ clockTime: '2026-10-25T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
 	test('the fall-back day places 10:00 at 640px, not 704px', async ({ vaultPage: page }) => {
-		// Under load the auto-opened daily note can land after the Calendar tab and take the selection.
-		await expect(page.locator('[role="tab"]', { hasText: '2026-10-25.md' })).toBeVisible({ timeout: 10_000 });
-		await openCalendar(page);
+		await openCalendar(page, '2026-10-25.md');
 
 		const line = page.locator('[data-day-column="2026-10-25"] [data-now-line]');
 		await expect(line).toHaveCount(1);

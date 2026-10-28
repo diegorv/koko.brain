@@ -12,15 +12,22 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
-// Tauri IPC, the editor's file opener and the toast are side effects; the
-// stores and the event-calendar service stay real (CLAUDE.md rule 1).
+// Tauri IPC, the editor's file opener and saver, the Trash move and the
+// toast are side effects; the stores and the event-calendar service stay
+// real (CLAUDE.md rule 1).
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
 vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
+	saveFileByPath: vi.fn(async () => true),
 }));
+
+vi.mock('$lib/core/filesystem/fs.service', async () => {
+	const actual = await vi.importActual<typeof import('$lib/core/filesystem/fs.service')>('$lib/core/filesystem/fs.service');
+	return { ...actual, deleteItem: vi.fn(async () => true) };
+});
 
 vi.mock('svelte-sonner', () => ({
 	toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
@@ -588,6 +595,55 @@ describe('EventCalendarView: keyboard', () => {
 		press(input, 'd');
 
 		expect(eventCalendarViewStore.view).toBe('week');
+	});
+
+	it('Delete on a focused block deletes that event', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
+		mountView();
+		await settle();
+		STANDUP().focus();
+
+		press(STANDUP(), 'Delete');
+		await settlePopover();
+
+		expect(toast).toHaveBeenCalledWith('Event deleted', { description: 'Standup', action: { label: 'Undo', onClick: expect.any(Function) } });
+		expect(eventCalendarStore.history.undo.at(-1)).toMatchObject({ kind: 'delete', path: P('Standup') });
+		expect(document.activeElement).toBe(ROOT());
+	});
+
+	it('Delete with the popover open deletes the popover event and leaves focus on the root', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' }),
+			eventEntry(P('Retro'), { date: '2026-11-11', start: '14:00' }),
+		]);
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+		expect(document.querySelector('[data-event-popover]')).not.toBeNull();
+
+		press(ROOT(), 'Delete');
+		await settlePopover();
+
+		expect(document.querySelector('[data-event-popover]')).toBeNull();
+		expect(toast).toHaveBeenCalledWith('Event deleted', expect.objectContaining({ description: 'Standup' }));
+		expect(eventCalendarStore.history.undo.at(-1)).toMatchObject({ kind: 'delete', path: P('Standup') });
+		expect(document.activeElement).toBe(ROOT());
+	});
+
+	it('Backspace with no focused block and no popover does nothing', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' })]);
+		mountView();
+		await settle();
+		const e = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true });
+
+		ROOT().dispatchEvent(e);
+		await settle();
+
+		expect(e.defaultPrevented).toBe(false);
+		expect(toast).not.toHaveBeenCalled();
+		expect(eventCalendarStore.history.undo).toHaveLength(0);
+		expect(STANDUP()).not.toBeNull();
 	});
 
 	it('removes the <body> listener on unmount', async () => {

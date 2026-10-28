@@ -364,3 +364,75 @@ describe('EventTimeGrid: now-line', () => {
 		expect(qa('[data-now-line]')).toHaveLength(0);
 	});
 });
+
+describe('EventTimeGrid: keys during a gesture', () => {
+	/** Keys that reached a bubbling listener on `document` (where the view's shortcuts sit). */
+	let reached: string[];
+	const onKey = (e: KeyboardEvent) => reached.push(e.key);
+
+	beforeEach(() => {
+		reached = [];
+		document.addEventListener('keydown', onKey);
+	});
+
+	afterEach(() => {
+		document.removeEventListener('keydown', onKey);
+	});
+
+	function press(key: string, mods: KeyboardEventInit = {}): KeyboardEvent {
+		const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...mods });
+		document.body.dispatchEvent(e);
+		return e;
+	}
+
+	function startGesture() {
+		q('[data-time-grid-body]')!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1 }));
+		flushSync();
+	}
+
+	it('keeps non-modifier keys from the view while a gesture is live, and lets modifiers through', () => {
+		mountGrid();
+		startGesture();
+
+		press('d');
+		press('Delete');
+		press('ArrowRight');
+		press('z', { metaKey: true });
+		press('Shift');
+		press('Meta');
+
+		expect(reached).toEqual(['Shift', 'Meta']);
+	});
+
+	it('Escape discards the gesture without reaching the view, and keys pass again afterwards', () => {
+		mountGrid();
+		startGesture();
+
+		const esc = press('Escape');
+		flushSync();
+		press('d');
+
+		expect(esc.defaultPrevented).toBe(true);
+		expect(reached).toEqual(['d']);
+	});
+
+	it('does not touch keys when no gesture is live', () => {
+		mountGrid();
+
+		const e = press('d');
+
+		expect(reached).toEqual(['d']);
+		expect(e.defaultPrevented).toBe(false);
+	});
+
+	it('lets keys through once the gesture ends on pointerup', () => {
+		mountGrid();
+		startGesture();
+
+		q('[data-time-grid-body]')!.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1 }));
+		flushSync();
+		press('d');
+
+		expect(reached).toEqual(['d']);
+	});
+});

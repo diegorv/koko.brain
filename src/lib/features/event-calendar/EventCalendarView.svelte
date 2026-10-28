@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -70,7 +70,7 @@
 				// The block is about to go; park focus on the root so keys keep working.
 				eventCalendarViewStore.closePopover();
 				root?.focus();
-				void deleteEventFromUi(action.path, root);
+				void deleteEventFromUi(action.path, root).then(parkFocusAfterDelete);
 				break;
 			case 'close-popover':
 				eventCalendarViewStore.closePopover();
@@ -82,6 +82,18 @@
 				void redoEventChangeFromUi(root);
 				break;
 		}
+	}
+
+	/**
+	 * Focuses the root once a key-driven delete has settled and focus fell to
+	 * `<body>`: a popover closed by the delete returns focus to the deleted
+	 * block after the root took it, and that block then unmounts. Focus the
+	 * user moved elsewhere in the meantime is left alone.
+	 */
+	async function parkFocusAfterDelete() {
+		await tick();
+		const active = document.activeElement;
+		if (root?.isConnected && (!active || active === document.body)) root.focus();
 	}
 
 	// Lost-focus fallback: a key whose target is <body> (focus restored to an

@@ -259,6 +259,8 @@ export interface EventChangeResult {
 	label: EventChangeLabel | null;
 	/** The note a `refused` op targets while it is still on disk, for "Open note"; absent otherwise. */
 	path?: string;
+	/** Set on a `refused` restore whose Trash entry is gone (the note did not change). */
+	reason?: 'not-in-trash';
 }
 
 /** Options of `updateEventFields`. */
@@ -858,7 +860,7 @@ function applyNoteOp(op: Exclude<HistoryOp, { kind: 'update' }>, direction: 'und
 		} catch (err) {
 			// `restoreNow` throws before any remap, so the op is still this reference.
 			if (isCurrent()) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, op));
-			if (err instanceof EventCalendarError && err.reason === 'not-in-trash') return { status: 'refused', label: op.label };
+			if (err instanceof EventCalendarError && err.reason === 'not-in-trash') return { status: 'refused', label: op.label, reason: 'not-in-trash' };
 			throw err;
 		}
 		return { status: 'done', label: op.label };
@@ -1054,6 +1056,7 @@ const CHANGE_FEEDBACK = {
 		done: 'Undone',
 		empty: 'Nothing to undo',
 		refused: 'Event changed since; not undone',
+		notInTrash: 'The note is no longer in the Trash; cannot undo',
 		vanished: 'Event was moved or renamed outside the calendar; cannot undo',
 		reverse: 'Redo',
 	},
@@ -1061,6 +1064,7 @@ const CHANGE_FEEDBACK = {
 		done: 'Redone',
 		empty: 'Nothing to redo',
 		refused: 'Event changed since; not redone',
+		notInTrash: 'The note is no longer in the Trash; cannot redo',
 		vanished: 'Event was moved or renamed outside the calendar; cannot redo',
 		reverse: 'Undo',
 	},
@@ -1070,7 +1074,8 @@ const CHANGE_FEEDBACK = {
  * The Calendar keys' and the palette's undo: runs `undoEventChange` and
  * reports the outcome in a toast. "Undone: <label>" carries a Redo action
  * that focuses the view root when it finishes; `empty`, `refused` (with
- * "Open note" while the note is on disk) and `vanished` say why nothing
+ * "Open note" while the note is on disk, or "no longer in the Trash" for a
+ * restore whose Trash entry is gone) and `vanished` say why nothing
  * changed; a thrown write error goes through `toastEventError`.
  * @param root - the Calendar view root, the fallback focus target of the toast's action
  */
@@ -1116,6 +1121,10 @@ async function applyEventChangeFromUi(direction: 'undo' | 'redo', root: HTMLElem
 		return;
 	}
 	if (result.status === 'refused') {
+		if (result.reason === 'not-in-trash') {
+			toast.error(text.notInTrash);
+			return;
+		}
 		const path = result.path;
 		if (path === undefined) toast.error(text.refused);
 		else toast.error(text.refused, { action: { label: 'Open note', onClick: () => void openFileInEditor(path) } });

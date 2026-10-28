@@ -90,7 +90,7 @@
 		return slotFromPoint(body.getBoundingClientRect(), e.clientX, e.clientY, days.length);
 	}
 
-	/** Forgets the live gesture and its Escape listener. The preview is left to the caller. */
+	/** Forgets the live gesture and its key listener. The preview is left to the caller. */
 	function endGesture() {
 		gesture = null;
 		window.removeEventListener('keydown', handleGestureKeydown, true);
@@ -112,10 +112,19 @@
 		if (bodyEl?.hasPointerCapture?.(live.pointerId)) bodyEl.releasePointerCapture(live.pointerId);
 	}
 
+	/** Keys that only modify a press; they pass through a live gesture. */
+	const MODIFIER_KEYS = new Set(['Shift', 'Meta', 'Control', 'Alt']);
+
+	/**
+	 * While a gesture is live, Escape discards it and every other non-modifier
+	 * key is kept from the view's shortcuts, so Delete, D/W/M, the arrows or
+	 * Cmd+Z cannot change the grid under the pointer mid-drag.
+	 */
 	function handleGestureKeydown(e: KeyboardEvent) {
+		if (MODIFIER_KEYS.has(e.key)) return;
+		e.stopPropagation();
 		if (e.key !== 'Escape') return;
 		e.preventDefault();
-		e.stopPropagation();
 		discardGesture();
 	}
 
