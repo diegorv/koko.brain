@@ -12,3 +12,7 @@
 
 - [ ] Both writers use `updateNoteFrontmatter`; a dirty open tab keeps its edits
 - [ ] The refusal behavior is decided and tested
+
+## Comments
+
+- 2026-10-28 18:30 — discovery — both writers move to updateNoteFrontmatter; refusal adopted with a toast; remove keeps its no-op early return — base 48e49feb
