@@ -39,3 +39,4 @@
 - 2026-10-28 15:59 — discovery — plan in work/31/discovery.md: keys logic, service undo/redo feedback, view wiring, Cmd+Shift+C toggle, palette Undo/Redo — 526262b2
 - 2026-10-28 16:07 — implement — keys logic, undo/redo feedback toasts, view wiring, Cmd+Shift+C toggle + palette Undo/Redo, E2E; pnpm check 0 errors, targeted vitest 1101/1101, E2E event-calendar 29 passed + 1 pre-existing flaky, keyboard-shortcuts + command-palette 7/7 — 606589f8
 - 2026-10-28 16:14 — review — CHANGES_REQUESTED: 1 medium (new keyboard E2E races the daily note), 4 low, 1 nit; see work/31/review.md — 91f7d339
+- 2026-10-28 16:21 — fix — review findings 1-5 fixed, 6 kept; full gate green (check 0 errors, vitest 317 files / 7488 passed, build ok) — d6478fa9
