@@ -26,6 +26,6 @@ One feat commit (the ticket asks for one), test-first.
 
 ## Defaults for open questions
 
-- Zero-length and inverted events are not normalised (the projection of Task 6 rejects invalid times). Because events are sorted by start, the prototype already treats an inverted event like a zero-length one at its start: it takes a column, never widens a later cluster, and a later event can reuse its column. The tests pin that.
+- Zero-length and inverted events are not normalised (the projection of Task 6 rejects invalid times). Because events are sorted by start, the prototype already treats an inverted event like a zero-length one at its start: it takes a column, never widens a later cluster, and a later event can reuse its column. A zero-length event that starts together with a longer one sorts after it and joins its cluster in the next column. The tests pin that.
 - `layoutDay` does not mutate its input array (it sorts a copy) and returns events in start order; the test asserts this.
 - `MIN_COLUMN_PX` is only a constant here; the time grid uses it later.

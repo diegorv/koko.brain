@@ -25,3 +25,4 @@
 
 ## Comments
 - 2026-10-28 12:31 — discovery — straight port of layout.ts:4-48 plus floorToSnap and max-wins clampMinutes; zero-length/inverted input kept as the prototype handles it — 2ece78fc
+- 2026-10-28 12:33 — implement — layout logic + 24 tests green (event-calendar dir 59/59), pnpm check 0 errors; full gate left to deliver — 38cfb70b
