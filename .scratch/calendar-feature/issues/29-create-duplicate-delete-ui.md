@@ -34,3 +34,4 @@
 ## Comments
 
 - 2026-10-28 14:52 — discovery — plan in work/29/discovery.md: dialog create mode, footer and popover Delete/Duplicate via shared service flows, lane/month create, two palette entries — 02e742a7
+- 2026-10-28 15:00 — implement — create mode, footer and popover Delete/Duplicate with toasts, lane/month create, two palette entries; pnpm check 0 errors, vitest event-calendar + command-palette 665 passed, e2e event-calendar 16 passed (1 pre-existing DST now-line flaky, passed on retry), e2e command-palette 3 passed; full gate not run — a6296fec
