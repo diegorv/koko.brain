@@ -172,8 +172,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	if (unsubscribeFileChange) {
 		debug('LIFECYCLE', 'Saving dirty tabs before tearing down previous vault');
 		await saveAllDirtyTabs();
-		// Queued calendar writes still owe the old vault their notifyAfterSave;
-		// let them land in its index before teardown resets it.
+		// Let in-flight calendar writes settle before teardown resets the editor
+		// and stores. A write to a closed note has already lost its index update
+		// to the vault-changed check, since vaultStore.path is the new vault by now.
 		await drainEventCalendarWrites();
 		debug('LIFECYCLE', 'Tearing down previous vault before re-initialization');
 		teardownVault();

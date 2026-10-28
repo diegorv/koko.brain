@@ -315,6 +315,33 @@ describe('registerCloseHandler', () => {
 		expect(flush).toBeLessThan(destroy);
 	});
 
+	it('waits for a pending calendar drain before flushing settings and destroying', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		registerCloseHandler();
+		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
+
+		startSettingsPersistence('/vault');
+		settingsStore.updateLayout({ leftSidebarVisible: false });
+
+		let resolveDrain!: () => void;
+		vi.mocked(drainEventCalendarWrites).mockImplementationOnce(
+			() => new Promise<void>((resolve) => { resolveDrain = resolve; }),
+		);
+
+		const closing = capturedCloseHandler!({ preventDefault: vi.fn() });
+		await vi.waitFor(() => expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1));
+		// Flush a few microtask turns so an un-awaited drain would let the flush run.
+		for (let i = 0; i < 10; i++) await Promise.resolve();
+		expect(writeSettingsFile).not.toHaveBeenCalled();
+		expect(mockDestroy).not.toHaveBeenCalled();
+
+		resolveDrain();
+		await closing;
+
+		expect(writeSettingsFile).toHaveBeenCalledTimes(1);
+		expect(mockDestroy).toHaveBeenCalledTimes(1);
+	});
+
 	it('neither drains calendar writes nor destroys when the user cancels the discard prompt', async () => {
 		vi.mocked(saveAllDirtyTabs).mockResolvedValue(['/vault/note.md']);
 		vi.mocked(ask).mockResolvedValue(false);

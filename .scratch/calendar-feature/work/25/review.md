@@ -53,3 +53,10 @@ Rules checks:
      - Reword the comment at :175-176 to say what the drain guarantees, for example: "Let in-flight calendar writes settle before teardown resets the editor and stores; a write to a closed note has already lost its index update to the vault-changed check, since vaultStore.path is the new vault by now."
      - Do not rewrite 9baefa39. Correct the record in the fix commit's message.
      - Add an Issue comment recording the gap for a human: on a switch, a calendar write to a closed note lands on disk with no index update in the old vault. Closing that gap needs a drain before `vaultStore.open` or a writer change, which is outside this ticket's Touches list.
+
+## Resolution
+
+Both findings accepted and fixed; none rejected.
+
+1. Added a deferred-drain case to each file: app-lifecycle.service.test.ts:1260-1281 (resetEditor and stopWatching stay uncalled while the drain is pending) and tauri-listeners.service.test.ts:318-344 (writeSettingsFile and destroy stay uncalled while the drain is pending). Both were seen failing with `void drainEventCalendarWrites()` in place of the awaits, then passing with the awaits restored.
+2. Reworded app-lifecycle.service.ts:175-177 to what the switch drain guarantees. The fix commit's message corrects the 9baefa39 record (not rewritten). The closed-note index gap on a switch is recorded as a human follow-up in the Issue's Comments.

@@ -1257,6 +1257,29 @@ describe('state transitions: teardown → reinitialize', () => {
 		expect(drain).toBeLessThan(reset);
 	});
 
+	it('waits for a pending calendar drain before tearing down the previous vault', async () => {
+		await initializeVault('/vault-a');
+		vi.clearAllMocks();
+
+		let resolveDrain!: () => void;
+		vi.mocked(drainEventCalendarWrites).mockImplementationOnce(
+			() => new Promise<void>((resolve) => { resolveDrain = resolve; }),
+		);
+
+		const init = initializeVault('/vault-b');
+		await vi.waitFor(() => expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1));
+		// Flush a few microtask turns so an un-awaited drain would let teardown run.
+		for (let i = 0; i < 10; i++) await Promise.resolve();
+		expect(resetEditor).not.toHaveBeenCalled();
+		expect(stopWatching).not.toHaveBeenCalled();
+
+		resolveDrain();
+		await init;
+
+		expect(resetEditor).toHaveBeenCalled();
+		expect(stopWatching).toHaveBeenCalled();
+	});
+
 	it('tears down previous vault automatically when switching without explicit teardown', async () => {
 		// Initialize vault A
 		await initializeVault('/vault-a');
