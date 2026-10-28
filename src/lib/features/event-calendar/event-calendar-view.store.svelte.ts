@@ -9,58 +9,13 @@ import {
 	type MonthCell,
 	type RangeLabel,
 } from './event-calendar-view.logic';
-import type { CalendarViewMode } from './event-calendar.types';
-
-/** Viewport rect the popover anchors to: plain numbers, so the store does no DOM work. */
-export interface PopoverRect {
-	/** Left edge in viewport pixels. */
-	x: number;
-	/** Top edge in viewport pixels. */
-	y: number;
-	/** Width in pixels. */
-	width: number;
-	/** Height in pixels. */
-	height: number;
-}
-
-/** The event the details popover shows and where it is anchored. */
-export interface EventPopoverTarget {
-	/** Absolute path of the event note. */
-	path: string;
-	/** Rect of the clicked block or chip. */
-	rect: PopoverRect;
-}
-
-/** What opens the event dialog: a new event (day and optional range) or an existing note. */
-export type EventDialogPayload =
-	| {
-			/** Create a new event. */
-			mode: 'create';
-			/** Day key of the new event. */
-			date: string;
-			/** Start in minutes from midnight; the form's default when absent. */
-			start?: number;
-			/** End in minutes from midnight; start plus the default duration when absent. */
-			end?: number;
-			/** Whether the new event spans the whole day. */
-			allDay?: boolean;
-	  }
-	| {
-			/** Edit an existing event. */
-			mode: 'edit';
-			/** Absolute path of the event note. */
-			path: string;
-	  };
-
-/** The open event dialog. */
-export interface EventDialogState {
-	/** `create` or `edit`, the same as `payload.mode`. */
-	mode: EventDialogPayload['mode'];
-	/** What the dialog was opened with. */
-	payload: EventDialogPayload;
-	/** Grows on every `openDialog`, so a `{#key}` block remounts the form. */
-	session: number;
-}
+import type {
+	CalendarViewMode,
+	DialogState,
+	EventDialogPayload,
+	PopoverRect,
+	PopoverTarget,
+} from './event-calendar.types';
 
 /** View the tab shows before `initFromSettings` and after `reset`. */
 const INITIAL_VIEW: CalendarViewMode = 'week';
@@ -70,9 +25,9 @@ let view = $state<CalendarViewMode>(INITIAL_VIEW);
 /** Day key the visible range is built around: today at module load. */
 let focusedDate = $state<string>(toKey(new Date()));
 /** The popover target; the selected event derives from it. */
-let popover = $state.raw<EventPopoverTarget | null>(null);
+let popover = $state.raw<PopoverTarget | null>(null);
 /** The open dialog, or null. */
-let dialog = $state.raw<EventDialogState | null>(null);
+let dialog = $state.raw<DialogState | null>(null);
 /** Current instant as the mounted view's clock last set it. */
 let nowMs = $state<number>(Date.now());
 /** Whether `initFromSettings` already applied the default view this session. */
@@ -160,10 +115,10 @@ export const eventCalendarViewStore = {
 		popover = null;
 	},
 
-	/** Opens the dialog with `payload` under a new session. */
+	/** Opens the dialog with a copy of `payload` under a new session. */
 	openDialog(payload: EventDialogPayload) {
 		dialogSession += 1;
-		dialog = { mode: payload.mode, payload, session: dialogSession };
+		dialog = { mode: payload.mode, payload: { ...payload }, session: dialogSession };
 	},
 
 	/** Closes the dialog. */

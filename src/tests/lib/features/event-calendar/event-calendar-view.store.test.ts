@@ -112,18 +112,23 @@ describe('eventCalendarViewStore', () => {
 	});
 
 	describe('rangeLabel', () => {
-		it('week view gives the month title and the week subtitle', () => {
+		it('week view follows weekStartsOn and showWeekends', () => {
+			settingsStore.updateEventCalendar({ weekStartsOn: 1, showWeekends: false });
+			expect(eventCalendarViewStore.rangeLabel).toEqual({ title: 'October, 2026', subtitle: 'Week 44 · Oct 26 – 30' });
+
+			settingsStore.updateEventCalendar({ weekStartsOn: 0, showWeekends: true });
+			expect(eventCalendarViewStore.rangeLabel).toEqual({ title: 'October, 2026', subtitle: 'Week 44 · Oct 25 – 31' });
+		});
+
+		it('a week across two months takes its title from the first visible day', () => {
 			settingsStore.updateEventCalendar({ weekStartsOn: 1 });
-			const label = eventCalendarViewStore.rangeLabel;
-			expect(label.title).toBe('October, 2026');
-			expect(label.subtitle).toMatch(/^Week 44 · /);
+			eventCalendarViewStore.setDate('2026-11-01');
+			expect(eventCalendarViewStore.rangeLabel).toEqual({ title: 'October, 2026', subtitle: 'Week 44 · Oct 26 – Nov 1' });
 		});
 
 		it('month view gives the month span', () => {
 			eventCalendarViewStore.setView('month');
-			const label = eventCalendarViewStore.rangeLabel;
-			expect(label.title).toBe('October, 2026');
-			expect(label.subtitle).not.toMatch(/^Week/);
+			expect(eventCalendarViewStore.rangeLabel).toEqual({ title: 'October, 2026', subtitle: 'Oct 1 – 31' });
 		});
 
 		it('day view names the weekday', () => {
@@ -234,6 +239,14 @@ describe('eventCalendarViewStore', () => {
 			const second = eventCalendarViewStore.dialog;
 			expect(second?.mode).toBe('edit');
 			expect(second!.session).toBe(first!.session + 1);
+		});
+
+		it('openDialog stores a copy of the payload', () => {
+			const payload = { mode: 'create' as const, date: '2026-10-28', start: 600 };
+			eventCalendarViewStore.openDialog(payload);
+			payload.date = 'x';
+			payload.start = 0;
+			expect(eventCalendarViewStore.dialog?.payload).toEqual({ mode: 'create', date: '2026-10-28', start: 600 });
 		});
 
 		it('session keeps growing across close and reset', () => {

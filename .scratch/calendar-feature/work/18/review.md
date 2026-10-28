@@ -66,3 +66,10 @@ My test verdict rests on `src/tests/lib/features/event-calendar/event-calendar-v
 - **Layers.** `features/` imports `core/settings` and its own `.logic.ts` files only, which follows the layer rules. There is no service, no Tauri call and no DOM work.
 - **Scope.** Nothing was added beyond plan Task 17, apart from the `PopoverRect` export. Navigation leaving the dialog open matches the prototype, which keeps the overlay store separate from the calendar store.
 - **Getters.** Getters recompute on each read: `visibleDays` returns a new array every time. That is cheap (at most 42 items) and only re-runs when its reactive dependencies change, so it is not a finding.
+
+## Resolution
+
+- Finding 1: fixed. `PopoverRect`, `PopoverTarget` (rect is now `PopoverRect`), `EventDialogPayload` and `DialogState` (`{ mode; payload; session }`, null when closed) live in `event-calendar.types.ts`, under the plan's names. The store imports them; its local copies (`EventPopoverTarget`, `EventDialogState`) are gone.
+- Finding 2: fixed. `openDialog` stores `{ ...payload }`; a new test mutates the argument afterwards and checks `dialog.payload` is unchanged.
+- Finding 3: fixed. `rangeLabel` tests now assert exact labels for `weekStartsOn: 1` without weekends, `weekStartsOn: 0`, month view, and the cross-month week focused on 2026-11-01.
+- Finding 4: no change, as the review asked.

@@ -224,29 +224,53 @@ export interface PositionedEvent {
 	columns: number;
 }
 
-/** The event the popover is open for. */
+/** Viewport rect the popover anchors to: plain numbers, so the store does no DOM work. */
+export interface PopoverRect {
+	/** Left edge in viewport pixels. */
+	x: number;
+	/** Top edge in viewport pixels. */
+	y: number;
+	/** Width in pixels. */
+	width: number;
+	/** Height in pixels. */
+	height: number;
+}
+
+/** The event the details popover shows and where it is anchored. */
 export interface PopoverTarget {
 	/** Absolute path of the event note. */
 	path: string;
-	/** Screen rectangle the popover anchors to. */
-	rect: DOMRect;
+	/** Rect of the clicked block or chip. */
+	rect: PopoverRect;
 }
 
-/** Open state of the event dialog. */
-export type DialogState =
+/** What opens the event dialog: a new event (day and optional range) or an existing note. */
+export type EventDialogPayload =
 	| {
-			/** The dialog is closed. */
-			mode: 'closed';
-	  }
-	| {
-			/** The dialog creates a new event. */
+			/** Create a new event. */
 			mode: 'create';
-			/** Initial values of the form. */
-			draft: EventDraft;
+			/** Day key of the new event. */
+			date: string;
+			/** Start in minutes from midnight; the form's default when absent. */
+			start?: number;
+			/** End in minutes from midnight; start plus the default duration when absent. */
+			end?: number;
+			/** Whether the new event spans the whole day. */
+			allDay?: boolean;
 	  }
 	| {
-			/** The dialog edits an existing event. */
+			/** Edit an existing event. */
 			mode: 'edit';
 			/** Absolute path of the event note. */
 			path: string;
 	  };
+
+/** The open event dialog; the view store holds `null` while it is closed. */
+export interface DialogState {
+	/** `create` or `edit`, the same as `payload.mode`. */
+	mode: EventDialogPayload['mode'];
+	/** What the dialog was opened with. */
+	payload: EventDialogPayload;
+	/** Grows on every `openDialog`, so a `{#key}` block remounts the form. */
+	session: number;
+}
