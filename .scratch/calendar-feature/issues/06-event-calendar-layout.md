@@ -22,3 +22,6 @@
 - [ ] The test ports the 3 prototype cases from `layout.test.ts:16-33`
 - [ ] The test covers empty input, touching events (end equals the next start, so no overlap), 3 or more columns, a chained cluster that shares one width, and zero-length and inverted input
 - [ ] Gate green; one commit in the full CLAUDE.md format (Context, Problem, Solution, Behavior, Files with line ranges)
+
+## Comments
+- 2026-10-28 12:31 — discovery — straight port of layout.ts:4-48 plus floorToSnap and max-wins clampMinutes; zero-length/inverted input kept as the prototype handles it — 2ece78fc
