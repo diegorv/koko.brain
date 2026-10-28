@@ -41,3 +41,8 @@ Ticket 58 review (fix 269cfc1e):
 Ticket 54 review (fix dd9f45a4):
 - [ ] The in-flight guard in `EventDailyNoteButton.svelte:21` is per instance, not per day: a remount or a second Calendar view during an open can fire a second `openOrCreate` for the same date and toast "File already exists". A per-day set in the store, or a guard in `openOrCreatePeriodicNoteForDate`, closes it.
 - [ ] The daily note opener is registered unconditionally (`app-lifecycle.service.ts:247`); if periodic notes ever gets an off switch, the header button must hide with it.
+
+Ticket 59 review (fix f1504724):
+- [ ] The post-drop click swallow (`event-calendar-day-drag.svelte.ts:69`) filters on `detail === 0`; an assistive-tech click with `detail >= 1` and no prior `pointerdown` in the area is eaten once if a drop outside the area or an Escape/pointercancel left the flag armed. Unconfirmed for VoiceOver.
+- [ ] The comment at `:60-67` says "the next press in the area resets the flag"; a press outside the area does not. Reword.
+- [ ] A chip dragged into a full month cell can hide behind "+N more" until dropped (see `work/59/review.md` Resolution).
