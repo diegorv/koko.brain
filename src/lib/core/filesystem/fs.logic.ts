@@ -184,14 +184,17 @@ export function generateCopyName(
  * Generates a unique file/folder name by appending an incrementing number.
  * E.g. "Untitled.md" → "Untitled 1.md" → "Untitled 2.md" for files,
  * or "Untitled" → "Untitled 1" → "Untitled 2" for directories.
+ * Names compare case-insensitively: on a case-insensitive volume (macOS APFS
+ * by default) `standup.md` and `Standup.md` are the same file, and Rust
+ * `create_note` refuses the write. The result keeps the requested casing.
  */
 export function generateUniqueName(
 	name: string,
 	isDirectory: boolean,
 	existingSiblingNames: string[],
 ): string {
-	const siblings = new Set(existingSiblingNames);
-	if (!siblings.has(name)) return name;
+	const siblings = new Set(existingSiblingNames.map((n) => n.toLowerCase()));
+	if (!siblings.has(name.toLowerCase())) return name;
 
 	let baseName: string;
 	let ext: string;
@@ -212,7 +215,7 @@ export function generateUniqueName(
 
 	for (let i = 1; ; i++) {
 		const candidate = `${baseName} ${i}${ext}`;
-		if (!siblings.has(candidate)) return candidate;
+		if (!siblings.has(candidate.toLowerCase())) return candidate;
 	}
 }
 

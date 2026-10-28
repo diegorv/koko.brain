@@ -433,6 +433,17 @@ describe('createFile', () => {
 		expect(result).toBe('/vault/new 1.md');
 	});
 
+	it('numbers a name that collides with an existing file only by case', async () => {
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'New.md', isDirectory: false, isFile: true, isSymlink: false },
+		] as any);
+
+		const result = await createFile('/vault', 'new.md');
+
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/new 1.md', content: '' });
+		expect(result).toBe('/vault/new 1.md');
+	});
+
 	it('returns null on write error', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {

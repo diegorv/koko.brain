@@ -412,6 +412,20 @@ describe('createTypedNote', () => {
 		expect(createFile).toHaveBeenNthCalledWith(2, '/vault', 'Standup 1.md', '---\n_type: Event\n---\n# Standup 1\n');
 	});
 
+	it('numbers a title that collides with an existing note only by case', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'Standup.md', isDirectory: false, isFile: true, isSymlink: false },
+		] as any);
+		const buildContent = vi.fn((base: string, target: { fileName: string; title: string }) => `${base}# ${target.title}\n`);
+
+		const path = await createTypedNote({ typeName: 'Event', title: 'standup', buildContent });
+
+		expect(path).toBe('/vault/standup 1.md');
+		expect(buildContent).toHaveBeenCalledWith('---\n_type: Event\n---\n', { fileName: 'standup 1.md', title: 'standup 1' });
+		expect(createFile).toHaveBeenCalledWith('/vault', 'standup 1.md', '---\n_type: Event\n---\n# standup 1\n');
+	});
+
 	it('loads the type template, then applies buildContent on top of it', async () => {
 		vaultStore.open('/vault');
 		vi.mocked(readDir).mockResolvedValue([]);

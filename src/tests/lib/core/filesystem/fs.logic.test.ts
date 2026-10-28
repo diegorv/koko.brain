@@ -620,6 +620,26 @@ describe('generateUniqueName', () => {
 	it('returns original name for empty siblings list', () => {
 		expect(generateUniqueName('Untitled.md', false, [])).toBe('Untitled.md');
 	});
+
+	it('numbers a name that collides with a sibling only by case, keeping the requested casing', () => {
+		expect(generateUniqueName('standup.md', false, ['Standup.md'])).toBe('standup 1.md');
+	});
+
+	it('skips a numbered candidate that collides only by case', () => {
+		expect(generateUniqueName('standup.md', false, ['Standup.md', 'STANDUP 1.md'])).toBe('standup 2.md');
+	});
+
+	it('treats a case-only variant of the extension as taken', () => {
+		expect(generateUniqueName('Standup.md', false, ['Standup.MD'])).toBe('Standup 1.md');
+	});
+
+	it('numbers a directory that collides with a sibling only by case', () => {
+		expect(generateUniqueName('projects', true, ['Projects'])).toBe('projects 1');
+	});
+
+	it('keeps a name that differs from its siblings by more than case', () => {
+		expect(generateUniqueName('standup.md', false, ['Standup 1.md', 'standups.md'])).toBe('standup.md');
+	});
 });
 
 describe('validateDragDrop', () => {
