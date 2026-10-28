@@ -55,6 +55,11 @@ vi.mock('$lib/features/file-history/file-history.service', () => ({
 	openFileHistory: vi.fn(),
 }));
 
+// The event-calendar service is real; only its IPC is mocked.
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn() },
 }));
@@ -68,6 +73,7 @@ import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { getBuiltInCommands } from '$lib/features/command-palette/command-palette.service';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {
@@ -81,10 +87,27 @@ describe('getBuiltInCommands', () => {
 		settingsPanelStore._reset();
 	});
 
-	it('returns 26 built-in commands', () => {
+	it('returns 27 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(26);
+		expect(commands).toHaveLength(27);
+	});
+
+	it('includes a toggle-calendar command that opens and closes the Calendar tab', () => {
+		const toggle = getBuiltInCommands().find((c) => c.id === 'event-calendar:toggle');
+
+		expect(toggle).toBeDefined();
+		expect(toggle!.label).toBe('Toggle Calendar View');
+		expect(toggle!.category).toBe('Navigation');
+
+		toggle!.action();
+
+		expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+		expect(editorStore.activeTab?.fileType).toBe('event-calendar');
+
+		toggle!.action();
+
+		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
 	});
 
 	it('includes a cycle-sidebar-view command that advances the mode and reveals the sidebar', () => {

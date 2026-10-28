@@ -16,6 +16,7 @@
 	import GraphView from '$lib/plugins/graph-view/GraphView.svelte';
 	import CanvasView from '$lib/features/canvas/CanvasView.svelte';
 	import KanbanView from '$lib/plugins/kanban/KanbanView.svelte';
+	import EventCalendarView from '$lib/features/event-calendar/EventCalendarView.svelte';
 	import { isVirtualTab } from '$lib/core/editor/editor.logic';
 
 	/** Whether the .collection file is shown in source (YAML) mode vs table view */
@@ -31,6 +32,7 @@
 	let isTasksTab = $derived(editorStore.activeTab?.fileType === 'tasks');
 	let isTagsTab = $derived(editorStore.activeTab?.fileType === 'tags');
 	let isGraphTab = $derived(editorStore.activeTab?.fileType === 'graph');
+	let isEventCalendarTab = $derived(editorStore.activeTab?.fileType === 'event-calendar');
 	let isVirtual = $derived(editorStore.activeTab ? isVirtualTab(editorStore.activeTab) : false);
 
 	// Reset source mode when switching tabs
@@ -52,6 +54,8 @@
 				<TagsView />
 			{:else if isGraphTab}
 				<GraphView />
+			{:else if isEventCalendarTab}
+				<EventCalendarView />
 			{:else if isKanbanTab && !kanbanSourceMode}
 				<KanbanView markdownContent={editorStore.activeTab.content} {onContentChange} />
 			{:else if isCanvasTab && !canvasSourceMode}

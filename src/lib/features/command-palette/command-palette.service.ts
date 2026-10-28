@@ -23,6 +23,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
 import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
 import { toggleTasksTab } from '$lib/features/tasks/tasks.service';
+import { toggleEventCalendarTab } from '$lib/features/event-calendar/event-calendar.service';
 import { toggleTagsTab } from '$lib/features/tags/tags.service';
 import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
 import { openOneOnOnePicker } from '$lib/plugins/one-on-one/one-on-one.service';
@@ -142,6 +143,14 @@ export function getBuiltInCommands(): AppCommand[] {
 			shortcut: { meta: true, shift: true, key: 't' },
 			action: () => {
 				toggleTasksTab();
+			},
+		},
+		{
+			id: 'event-calendar:toggle',
+			label: 'Toggle Calendar View',
+			category: 'Navigation',
+			action: () => {
+				toggleEventCalendarTab();
 			},
 		},
 		{

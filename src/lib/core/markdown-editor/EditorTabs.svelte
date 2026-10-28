@@ -6,6 +6,7 @@
 	import Network from '@lucide/svelte/icons/network';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Kanban from '@lucide/svelte/icons/kanban';
+	import CalendarRange from '@lucide/svelte/icons/calendar-range';
 	import { editorStore } from '$lib/core/editor/editor.store.svelte';
 	import { switchTab, closeTab, togglePinTab } from '$lib/core/editor/editor.service';
 	import { isTabDirty, isTabPinned, isVirtualTab } from '$lib/core/editor/editor.logic';
@@ -51,6 +52,8 @@
 								<LayoutDashboard class="size-3.5 shrink-0 text-muted-foreground" />
 							{:else if tab.fileType === 'kanban'}
 								<Kanban class="size-3.5 shrink-0 text-muted-foreground" />
+							{:else if tab.fileType === 'event-calendar'}
+								<CalendarRange class="size-3.5 shrink-0 text-muted-foreground" />
 							{:else if tabIcon}
 								<IconRenderer icon={tabIcon} class="size-3.5 shrink-0" color={tabColor} />
 							{:else}

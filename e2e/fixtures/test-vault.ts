@@ -151,8 +151,18 @@ async function populateAndOpenVault(page: Page) {
 	await page.locator('[role="tree"]').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
-export const test = base.extend<{ vaultPage: Page }>({
-	vaultPage: async ({ page }, use) => {
+export const test = base.extend<{ vaultPage: Page; clockTime: string | undefined }>({
+	/**
+	 * Opt-in start instant for the page clock (any `Date`-parsable string).
+	 * When set, `page.clock.install` runs before the first navigation, so the
+	 * app boots at that instant and time keeps flowing from there. Unset by
+	 * default: other specs keep the real clock.
+	 */
+	clockTime: [undefined, { option: true }],
+	vaultPage: async ({ page, clockTime }, use) => {
+		if (clockTime !== undefined) {
+			await page.clock.install({ time: new Date(clockTime) });
+		}
 		await populateAndOpenVault(page);
 		await use(page);
 	},
