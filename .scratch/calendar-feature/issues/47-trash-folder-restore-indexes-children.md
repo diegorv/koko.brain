@@ -11,3 +11,7 @@
 
 - [ ] Each Markdown file in a restored folder is indexed (VaultIndex, FTS5, semantic, consumers)
 - [ ] Tests for a nested folder and for an empty folder
+
+## Comments
+
+- 2026-10-28 18:29 — discovery — plan: walk the restored folder via fsStore.fileTree after refreshTree and index each note with source restore — work/47/discovery.md
