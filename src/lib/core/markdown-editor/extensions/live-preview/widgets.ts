@@ -416,7 +416,7 @@ export class TableWidget extends WidgetType {
 	private attachAddButtons(wrapper: HTMLElement, view: EditorView): void {
 		// `mousedown` must stopPropagation BEFORE CodeMirror's own mousedown
 		// handler runs — otherwise CM moves the cursor into the table range,
-		// `shouldShowSource(...)` becomes true on the next render, the widget
+		// the reveal rule shows the table as source on the next render, the widget
 		// is destroyed, and the button's `click` event never fires (target gone).
 		// Same pattern as MetaBindSelect / language switcher / callout type
 		// popover. Without this, the buttons silently no-op.

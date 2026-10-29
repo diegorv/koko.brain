@@ -73,7 +73,7 @@ describe('findWikilinkClickTarget', () => {
 
 /**
  * Regression for the bug where clicking a wikilink could leave a multi-line
- * selection in the destination note (which `shouldShowSource` then expanded
+ * selection in the destination note (which the reveal rule then expanded
  * to raw markdown across several blocks).
  *
  * Root cause was that the wikilink mousedown handler ran on bubble phase, so

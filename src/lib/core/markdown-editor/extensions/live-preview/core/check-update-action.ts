@@ -10,7 +10,7 @@ import { mouseSelectingField } from './mouse-selecting';
  *
  * When `lastCursorLine` is provided, selection-only changes that keep the cursor
  * on the same line return `'none'` instead of `'rebuild'`. This optimization is
- * safe for plugins using `shouldShowSource` — decoration visibility only changes
+ * safe for plugins using `revealPredicate` — decoration visibility only changes
  * when the cursor enters/leaves a line, not when it moves within one.
  */
 export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 'rebuild' | 'skip' | 'none' {
@@ -25,7 +25,7 @@ export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 
 	if (isDragging) return 'skip';
 
 	if (update.selectionSet) {
-		// Skip rebuild when cursor stayed on the same line — shouldShowSource
+		// Skip rebuild when cursor stayed on the same line — revealPredicate
 		// only changes when the cursor enters/leaves a line's range.
 		if (lastCursorLine !== undefined) {
 			const cursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;

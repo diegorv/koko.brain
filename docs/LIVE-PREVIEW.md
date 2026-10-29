@@ -8,7 +8,7 @@ The decision record behind that split is [`docs/adr/0008-codemirror-live-preview
 
 ```
 live-preview/
-  core/           # Shared machinery: blockDecorator, checkUpdateAction, shouldShowSource, profiling
+  core/           # Shared machinery: blockDecorator, checkUpdateAction, revealPredicate, profiling
   inline/         # Unified inline pipeline: HighlightStyle + inlineFormattingPlugin
     handlers/     # One NodeHandler / LineHandler per inline construct
   parsers/        # Parsing functions split out of the decorators (several read the Lezer tree)
@@ -31,8 +31,7 @@ Eleven of the twelve block decorators are `blockDecorator()` products from `core
 
 ## Core Utilities
 
-- **`revealPredicate(state)`** (`core/reveal.ts`) - the reveal rule: returns `isRevealed(from, to?)`, true when any line of the range is touched by a selection range (every cursor of a multi-cursor, every line of a multi-line selection). Reveals nothing while a mouse drag is in progress. Every inline handler gets it as `isRevealed`; build it once per decoration pass.
-- **`shouldShowSource(state, from, to)`** (`core/should-show-source.ts`) - true if any selection range intersects `[from, to]`. Per-element: only the element under the cursor shows source markdown.
+- **`revealPredicate(state)`** (`core/reveal.ts`) - the reveal rule: returns `isRevealed(from, to?)`, true when any line of the range is touched by a selection range (every cursor of a multi-cursor, every line of a multi-line selection). Reveals nothing while a mouse drag is in progress. It is the only reveal check: every inline handler gets it as `isRevealed`, and every block decorator and inline ViewPlugin builds it once per decoration pass and asks it. Nothing else reads the selection to decide what shows as source.
 - **`checkUpdateAction(update, lastCursorLine?)`** (`core/check-update-action.ts`) - returns `'rebuild'` | `'skip'` | `'none'`. `'none'` on a pure viewport change (scrolling defers to `scrollDebouncePlugin`), `'skip'` during a mouse drag to prevent flicker. When `lastCursorLine` is supplied, a selection change that keeps the cursor on the same line also returns `'none'` - the second argument is what turns every intra-line cursor move from a full rescan into a no-op. `blockDecorator` makes this call for every one of its products, which is eleven of the twelve block decorators - `frontmatterField` is a `StateField` and never calls it. The inline pipeline and the four inline ViewPlugins make the call themselves.
 - **`isInsideBlockContext(node)`** (`core/is-inside-block-context.ts`) - true if the node is, or is nested under, a `FencedCode`, `CodeBlock`, `HTMLBlock`, `CommentBlock`, `BlockMath` or `Frontmatter` node. It checks the node itself before walking up, because regex parsers resolving a position can land *on* the block-context node. Inline decorators must check this to avoid decorating inside code blocks.
 - **`expandedVisibleRanges(view, buffer = 2000)`** (`core/expanded-ranges.ts`) - visible ranges grown by `buffer` characters in each direction, so content has decorations ready before it scrolls in.
@@ -115,13 +114,14 @@ export function buildDecorations(
   ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
   const decorations: Range<Decoration>[] = [];
+  const isRevealed = revealPredicate(state);
   for (const { from, to } of ranges) {
     syntaxTree(state).iterate({
       from, to,
       enter: (node) => {
         if (node.name !== 'TargetNode') return;
         if (isInsideBlockContext(node)) return false;
-        const isTouched = shouldShowSource(state, node.from, node.to);
+        const isTouched = isRevealed(node.from, node.to);
         // Apply decorations based on isTouched...
       },
     });
@@ -139,6 +139,7 @@ A block decorator is a `compute(state): DecorationSet` full-document scan plus o
 ```typescript
 // plugins/my-block-field.ts
 export function computeMyBlocks(state: EditorState): DecorationSet {
+  const isRevealed = revealPredicate(state);
   const lines = getAllLines(state);
   const builder = new RangeSetBuilder<Decoration>();
   let idx = 0;
@@ -148,7 +149,7 @@ export function computeMyBlocks(state: EditorState): DecorationSet {
     if (result) {
       const { block, endIdx } = result;
 
-      if (!shouldShowSource(state, block.openFenceFrom, block.closeFenceTo)) {
+      if (!isRevealed(block.openFenceFrom, block.closeFenceTo)) {
         builder.add(
           block.openFenceFrom,
           block.openFenceTo,
@@ -221,7 +222,7 @@ All four clears run from `teardownVault` in `core/app-lifecycle/app-lifecycle.se
 - **collection caches the query, not the render.** Rows, pills and bars carry click listeners, so markup strings would lose them; `renderView()` runs on every `toDOM()` including cache hits. A hit skips the `parseCollectionYaml` parse and `executeQuery` over the property index, and the entry is only reused while its stored `collectionStore.version` still matches.
 - **queryjs is the deliberate exception.** `<canvas>` pixel buffers, `<video>` playback state and `<iframe>` content survive re-mount only through DOM identity, so the store holds the element itself. Its `if (cached && !cached.isConnected)` check is a partial mitigation, not a fix: it detects that another on-screen widget currently owns the node and falls through to the normal cache-miss path instead of stealing it, which under `autoRunQueries: 'manual'` is the ▶ Run placeholder rather than an execution. Do not copy this pattern into a new widget without that same reason - see ADR 0010.
 
-**Interactive controls inside a widget must `stopPropagation` on `mousedown`.** Otherwise CodeMirror moves the cursor into the block, `shouldShowSource` turns true, the widget is destroyed, and the click fires on detached DOM.
+**Interactive controls inside a widget must `stopPropagation` on `mousedown`.** Otherwise CodeMirror moves the cursor onto the widget's line, `revealPredicate` reports it revealed, the widget is destroyed, and the click fires on detached DOM.
 
 ## Adding a New Construct
 

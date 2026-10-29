@@ -150,7 +150,7 @@ export class QueryjsBlockWidget extends WidgetType {
 		button.className = 'cm-lp-qjs-run';
 		button.textContent = '▶ Run';
 		// CodeMirror's `mousedown` handler moves the cursor onto the line of
-		// the widget — which makes `shouldShowSource(...)` return true and
+		// the widget — which reveals the block as source and
 		// destroys the widget BEFORE the click handler can fire. Stopping
 		// propagation at mousedown keeps the widget mounted long enough for
 		// the click to reach our handler. Same pattern as

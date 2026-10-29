@@ -65,7 +65,7 @@
 		// internal mousedown handler from firing — without that, CM would arm
 		// its drag-select state machine, and the mouseup that lands AFTER the
 		// async tab switch would commit a multi-line selection in the new doc
-		// (which `shouldShowSource` then expands to source across blocks).
+		// (which the reveal rule then shows as source across blocks).
 		e.preventDefault();
 		e.stopImmediatePropagation();
 
