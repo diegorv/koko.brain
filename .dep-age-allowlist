@@ -1,9 +1,9 @@
 # Dependency age quarantine allowlist
-# Add package@version entries (one per line) to bypass the 7-day age check
+# Add package@version entries (one per line) to bypass the 5-day age check
 # enforced by scripts/pre-commit-dep-age.sh. Use sparingly — document the
 # reason for each exception. Entries auto-obsolete once the listed version
 # is older than the quarantine; sweep this file periodically and remove
-# anything past 7 days.
+# anything past 5 days.
 #
 # Format:
 #   package@version  # reason for exception

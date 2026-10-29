@@ -118,7 +118,7 @@ Dependency and supply-chain auditing.
 |---|---|---|
 | `npm-audit` | ubuntu-latest | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
 | `cargo-audit` | ubuntu-latest | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. |
-| `supply-chain-quarantine` | ubuntu-latest | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `10080` minutes (7 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
+| `supply-chain-quarantine` | ubuntu-latest | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
 | `dependency-review` | ubuntu-latest | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
 
 **What Security tests**
@@ -380,11 +380,11 @@ Not a workflow. It is the configuration for the GitHub-native dependency update 
 
 Ecosystems watched:
 
-- `npm` at `/`, weekly schedule, `cooldown.default-days: 14`.
-- `cargo` at `/src-tauri`, weekly schedule, `cooldown.default-days: 14`.
-- `github-actions` at `/`, weekly schedule, `cooldown.default-days: 14`.
+- `npm` at `/`, weekly schedule, `cooldown.default-days: 5` (`@tauri-apps/*` excluded).
+- `cargo` at `/src-tauri`, weekly schedule, `cooldown.default-days: 5`.
+- `github-actions` at `/` and `/.github/actions/setup`, weekly schedule, `cooldown.default-days: 14`.
 
-The 14-day cooldown aligns with the pnpm `minimumReleaseAge` setting (7 days at minimum) and supplements the supply-chain quarantine layer: Dependabot will not propose updates to packages younger than 14 days.
+The npm and cargo cooldowns match the pnpm `minimumReleaseAge` (5 days), so Dependabot proposes a version once it is installable. `scripts/check-outdated-cargo.mjs` reads the cargo value as its release-age window.
 
 ---
 

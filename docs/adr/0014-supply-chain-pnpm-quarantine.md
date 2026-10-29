@@ -69,3 +69,9 @@ Adjacent jobs in the same workflow run `pnpm audit --audit-level=moderate`, `rus
 - Scoped packages (`@scope/name@version`) are parsed by splitting on the last `@`, handling leading `@` correctly.
 - `pnpm audit --audit-level=moderate` and `cargo audit` run alongside as CVE detection — they catch known vulnerabilities rather than brand-new compromises.
 - Re-evaluation triggers: pnpm changes the `minimumReleaseAge` option; a supply-chain attack slips through the 7-day window and we need to lengthen it; the allowlist grows unmanageable, indicating the default is too strict; we adopt a different package manager.
+- **Amendment 2026-10-29: the window is 5 days (7200 minutes), not 7.** The
+  maintainer shortened it to adopt releases sooner. The three layers are
+  unchanged and enforce the new value together: `minimumReleaseAge: 7200`,
+  `QUARANTINE_DAYS=5` in the pre-commit hook, and a `min_age=7200` floor in
+  the `supply-chain-quarantine` CI job. The npm and cargo Dependabot cooldowns
+  moved to 5 days to match. Day counts above describe the original decision.

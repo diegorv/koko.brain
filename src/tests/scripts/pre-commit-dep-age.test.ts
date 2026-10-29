@@ -12,7 +12,7 @@ function daysAgo(days: number): string {
 	return new Date(Date.now() - days * DAY_MS).toISOString();
 }
 
-const WORKSPACE_YAML = `minimumReleaseAge: 10080
+const WORKSPACE_YAML = `minimumReleaseAge: 7200
 minimumReleaseAgeExclude:
   - '@tauri-apps/*'
 `;
@@ -163,6 +163,22 @@ describe('pre-commit-dep-age.sh', () => {
 
 		expect(status).toBe(0);
 		expect(out).toContain('2 package(s) checked, all passed');
+	});
+
+	it('treats the quarantine as 5 days: 6 days passes, 4 days blocks', () => {
+		const lock = BASE_LOCK.replaceAll('dompurify@3.4.15', 'dompurify@3.4.16').replaceAll(
+			'@lezer/common@1.5.2',
+			'@lezer/common@1.5.3',
+		);
+		const { status, out } = runHook(lock, {
+			dompurify: { '3.4.16': daysAgo(6) },
+			'@lezer/common': { '1.5.3': daysAgo(4) },
+		});
+
+		expect(status).not.toBe(0);
+		expect(out).toContain('fail the 5-day quarantine');
+		expect(out).toContain('@lezer/common@1.5.3 (published 4 day(s) ago');
+		expect(out).not.toContain('dompurify@3.4.16 (published');
 	});
 
 	it('skips packages matched by the workspace exclude list', () => {

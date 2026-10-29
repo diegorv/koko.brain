@@ -12,7 +12,7 @@
  * reach, and what `cargo audit` flags.
  *
  * Policy: a crate release must be at least `cooldown.default-days` old (the
- * `cargo` entry of .github/dependabot.yml, 7 days). Unlike npm there is no
+ * `cargo` entry of .github/dependabot.yml, 5 days). Unlike npm there is no
  * resolver-side gate (pnpm's `minimumReleaseAge`): cargo resolves the newest
  * compatible release no matter its age, so the window is applied by hand with
  * `cargo update -p <crate> --precise <version>`. RUSTSEC fixes are the one

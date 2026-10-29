@@ -6,10 +6,10 @@
 //
 // Why this exists:
 // `pnpm audit --audit-level=moderate` returns a non-zero exit code as soon
-// as any moderate-or-higher advisory exists. The repo also runs a 7-day
+// as any moderate-or-higher advisory exists. The repo also runs a 5-day
 // supply-chain quarantine (`minimumReleaseAge` in pnpm-workspace.yaml) that
-// refuses to resolve any package version published less than 7 days ago.
-// When upstream ships a security patch, there is a window (up to 7 days)
+// refuses to resolve any package version published less than 5 days ago.
+// When upstream ships a security patch, there is a window (up to 5 days)
 // where the advisory is published, the patch is published, but the
 // quarantine still blocks the resolver. During that window the two
 // policies conflict and the audit job goes red even though the project is
@@ -51,7 +51,7 @@ import { fileURLToPath } from 'node:url';
 import semver from 'semver';
 
 const WORKSPACE_FILE = 'pnpm-workspace.yaml';
-const DEFAULT_MIN_AGE_MINUTES = 10080; // 7 days, must match pre-commit-dep-age.sh
+const DEFAULT_MIN_AGE_MINUTES = 7200; // 5 days, must match pre-commit-dep-age.sh
 
 function readMinReleaseAgeMinutes() {
 	const yaml = readFileSync(WORKSPACE_FILE, 'utf8');

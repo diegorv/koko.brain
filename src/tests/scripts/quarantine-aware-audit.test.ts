@@ -7,7 +7,7 @@ import {
 } from '../../../scripts/quarantine-aware-audit.mjs';
 
 const NOW = Date.parse('2026-08-08T00:00:00.000Z');
-const MIN_AGE_MS = 10080 * 60 * 1000; // 7 days, the repo's minimumReleaseAge
+const MIN_AGE_MS = 7200 * 60 * 1000; // 5 days, the repo's minimumReleaseAge
 
 /** Build a registry-shaped `{version: isoDate}` map. */
 function times(pairs: Array<[string, string]>): Record<string, string> {
