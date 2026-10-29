@@ -19,3 +19,7 @@
 - [ ] Test: `forceDecorationRebuild` and reconfigure rebuild even when the viewport also changed
 - [ ] Test: a `mouseup` outside the content DOM clears the drag flag (one-shot listener on the owner document registered at mousedown)
 - [ ] A pure scroll still does not rebuild
+
+## Comments
+
+- 2026-10-29 17:16 — discovery — plan: reorder checkUpdateAction, document-level one-shot mouseup — b68ace05
