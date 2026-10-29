@@ -21,6 +21,10 @@ What changed: every inline handler that hides syntax (heading, blockquote, empha
 
 Analysis: `.scratch/live-preview-analysis/findings-2026-10-29.md`.
 
+## Amendment (2026-10-29): the rebuild gate keeps no state across updates
+
+`checkUpdateAction` lost its `lastCursorLine` argument, and every plugin lost the field that fed it. A selection change now rebuilds when `touchedLines(update.startState)` differs from `touchedLines(update.state)`, both read from the one `ViewUpdate`. The old field watched only the main cursor's head, so collapsing a multi-line selection onto its head line kept the other lines revealed. Rebuilding on every selection change was measured first and rejected: a 6000-line note costs ~12 ms JS per rebuild (88% in the block decorators), and a move within the same lines cannot change any decoration because `revealPredicate` reveals whole lines.
+
 ## Context
 
 The editor must render markdown as rich text while still being editable — what Obsidian calls "Live Preview." Every feature (headings, bold/italic, wikilinks, embedded images, callouts, tables, code blocks, frontmatter, math, mermaid, queryjs, meta-bind buttons, audio, video, footnotes, block references, inline comments, …) needs to:
@@ -61,14 +65,14 @@ Tag-based styling (bold, italic, strikethrough, monospace) lives in `markdown-hi
 
 ### Block fields
 
-Each block field is a `ViewPlugin` whose `update()` short-circuits viewport-only scroll, runs `checkUpdateAction(update, lastCursorLine)` to decide whether to rebuild, and dispatches `Decoration.replace({ widget })` for its line range. Widgets render rich DOM and stop event propagation on `mousedown` so CodeMirror doesn't move the cursor when the user interacts with their controls (table +col/+row buttons, code-block language switcher, callout type popover, meta-bind inputs).
+Each block field is a `ViewPlugin` whose `update()` short-circuits viewport-only scroll, runs `checkUpdateAction(update)` to decide whether to rebuild, and dispatches `Decoration.replace({ widget })` for its line range. Widgets render rich DOM and stop event propagation on `mousedown` so CodeMirror doesn't move the cursor when the user interacts with their controls (table +col/+row buttons, code-block language switcher, callout type popover, meta-bind inputs).
 
 ### Performance rules (from `CLAUDE.md` §Performance Guidelines / Live Preview)
 
 1. **`Decoration.mark()` + CSS over `Decoration.replace()` + widget** for simple visuals. Hiding syntax is the exception: it uses `Decoration.replace({})` (2026-10-29 amendment).
 2. **Cache expensive widget output at module level.** QueryJS uses a per-session live-DOM cache (ADR 0010) — element references survive viewport re-entry without re-execution.
 3. **Block plugins must skip viewport-only scroll:** `if (isPureScroll(update)) return;` as the first line of `update()`. `isPureScroll` (`core/check-update-action.ts`) is a viewport change with no doc change, selection move, reconfigure or `forceDecorationRebuild`, so a forced rebuild or reconfigure that lands in the same update as a scroll still reaches `checkUpdateAction`. The eleven factory-built block decorators inherit it from `core/block-decorator.ts`; `frontmatterField` is a `StateField`, which never sees a pure scroll (no transaction is dispatched) and so needs no guard. `inlineFormattingPlugin` is the only plugin that still writes the guard by hand — the four inline ViewPlugins get the skip from `checkUpdateAction`, which returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`).
-4. **`checkUpdateAction` with `lastCursorLine`** — plugins skip rebuilds when the cursor stays on the same line.
+4. **`checkUpdateAction` is stateless** — a selection change rebuilds only when it changes the set of lines the selection touches (`touchedLines` in `core/reveal.ts`, shared with `revealPredicate`); no plugin keeps cursor state between updates (2026-10-29 amendment).
 5. **`scrollDebouncePlugin`** defers `forceDecorationRebuild` by 150 ms after scroll stops; `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond the viewport.
 6. **QueryJS uses `_pendingViews` for unawaited `kb.view()`** instead of an auto-await regex (ADR 0010).
 7. **QueryJS resultCache holds the LIVE element**, not a clone — `<canvas>` / `<video>` / `<iframe>` state survives widget re-mount via DOM identity.

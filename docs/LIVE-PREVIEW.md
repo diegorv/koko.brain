@@ -32,7 +32,7 @@ Eleven of the twelve block decorators are `blockDecorator()` products from `core
 ## Core Utilities
 
 - **`revealPredicate(state)`** (`core/reveal.ts`) - the reveal rule: returns `isRevealed(from, to?)`, true when any line of the range is touched by a selection range (every cursor of a multi-cursor, every line of a multi-line selection). Reveals nothing while a mouse drag is in progress. It is the only reveal check: every inline handler gets it as `isRevealed`, and every block decorator and inline ViewPlugin builds it once per decoration pass and asks it. Nothing else reads the selection to decide what shows as source.
-- **`checkUpdateAction(update, lastCursorLine?)`** (`core/check-update-action.ts`) - returns `'rebuild'` | `'skip'` | `'none'`. `'none'` on a pure viewport change (scrolling defers to `scrollDebouncePlugin`), `'skip'` during a mouse drag to prevent flicker. When `lastCursorLine` is supplied, a selection change that keeps the cursor on the same line also returns `'none'` - the second argument is what turns every intra-line cursor move from a full rescan into a no-op. `blockDecorator` makes this call for every one of its products, which is eleven of the twelve block decorators - `frontmatterField` is a `StateField` and never calls it. The inline pipeline and the four inline ViewPlugins make the call themselves.
+- **`checkUpdateAction(update)`** (`core/check-update-action.ts`) - returns `'rebuild'` | `'skip'` | `'none'`. `'none'` on a pure viewport change (scrolling defers to `scrollDebouncePlugin`), `'skip'` during a mouse drag to prevent flicker. A selection change returns `'rebuild'` only when the lines it touches change (`sameTouchedLines` over `touchedLines` in `core/reveal.ts`, the line set `revealPredicate` reveals), so every cursor move that stays within the same lines is a no-op. It reads only the current `ViewUpdate`; plugins keep no cursor state between updates. `blockDecorator` makes this call for every one of its products, which is eleven of the twelve block decorators - `frontmatterField` is a `StateField` and never calls it. The inline pipeline and the four inline ViewPlugins make the call themselves.
 - **`isInsideBlockContext(node)`** (`core/is-inside-block-context.ts`) - true if the node is, or is nested under, a `FencedCode`, `CodeBlock`, `HTMLBlock`, `CommentBlock`, `BlockMath` or `Frontmatter` node. It checks the node itself before walking up, because regex parsers resolving a position can land *on* the block-context node. Inline decorators must check this to avoid decorating inside code blocks.
 - **`expandedVisibleRanges(view, buffer = 2000)`** (`core/expanded-ranges.ts`) - visible ranges grown by `buffer` characters in each direction, so content has decorations ready before it scrolls in.
 - **`getAllLines(state)`** (`core/get-all-lines.ts`) - every `Line` in the document, for full-document block scans.
@@ -81,7 +81,7 @@ export const myHandler: NodeHandler = {
 
 `decorate` receives `{ node, state, isRevealed, decorations, scratch }` (`{ line, state, isRevealed, decorations, scratch }` for a `LineHandler`, which also needs a `name`). `isRevealed(from, to?)` is `revealPredicate` bound to the current state: pass the construct's range and never check the selection in a handler; `scratch` is a per-build `Map` for deduping across dispatches.
 
-The pipeline already supplies, once, for every handler: the single syntax-tree walk, `isInsideBlockContext` suppression, per-node and per-line dedup, `expandedVisibleRanges`, the viewport-scroll skip, `checkUpdateAction` with `lastCursorLine`, and the `inline-formatting` profile bracket. Do not re-implement any of it in a handler.
+The pipeline already supplies, once, for every handler: the single syntax-tree walk, `isInsideBlockContext` suppression, per-node and per-line dedup, `expandedVisibleRanges`, the viewport-scroll skip, the `checkUpdateAction` gate, and the `inline-formatting` profile bracket. Do not re-implement any of it in a handler.
 
 ## Inline ViewPlugin Template (residual, four only)
 
@@ -91,16 +91,13 @@ The pipeline already supplies, once, for every handler: the single syntax-tree w
 export const myPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
-    lastCursorLine: number;
 
     constructor(view: EditorView) {
       this.decorations = buildDecorations(view.state, expandedVisibleRanges(view));
-      this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
     }
 
     update(update: ViewUpdate) {
-      if (checkUpdateAction(update, this.lastCursorLine) !== 'rebuild') return;
-      this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+      if (checkUpdateAction(update) !== 'rebuild') return;
       const _t = profileStart('my-plugin');
       this.decorations = buildDecorations(update.view.state, expandedVisibleRanges(update.view));
       profileEnd('my-plugin', _t);
@@ -178,7 +175,7 @@ export const myBlockField = blockDecorator({
 
 **The factory supplies these; never hand-write them:**
 - the viewport-only-scroll guard (`isPureScroll(update)` from `core/check-update-action.ts`),
-- the `lastCursorLine` field and the `checkUpdateAction(update, this.lastCursorLine)` call,
+- the `checkUpdateAction(update)` call,
 - the `profileStart` / `profileEnd` bracket around `compute`, under `profileLabel`.
 
 **`settingsKey` and `profileLabel` are not interchangeable.** `settingsKey` is typed to the closed `BlockDecoratorName` union from `core/decorator-names.ts` and is persisted user data (`settings.json` → `disabledDecorators`); renaming one orphans every user's saved toggle. `profileLabel` is a free string used only for `LP-PROFILE` / `LP-TRACE`, and the two deliberately diverge in places (`queryjs` vs `queryjs-block`, `codeBlock` vs `code-block`). The factory reads `profileLabel`; `settingsKey` is the type-level declaration that pins the decorator to a kill-switch name, and the gating itself happens in `live-preview.ts` (see *Adding a New Construct*).
