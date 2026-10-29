@@ -179,7 +179,7 @@ describe('EventTimeGrid: timed blocks', () => {
 		seed([event({ path: P('Plain'), title: 'Plain', date: '2026-11-12' })]);
 		mountGrid();
 		const block = () => q(`[data-event-path="${P('Plain')}"]`)!;
-		expect(block().classList.contains('border-dashed')).toBe(false);
+		expect(block().classList.contains('after:border-dashed')).toBe(false);
 
 		eventCalendarStore.putPending({
 			kind: 'update',
@@ -189,7 +189,10 @@ describe('EventTimeGrid: timed blocks', () => {
 		});
 		flushSync();
 
-		expect(block().classList.contains('border-dashed')).toBe(true);
+		expect(block().classList.contains('after:border-dashed')).toBe(true);
+		// Drawn by a pseudo-element, so the border does not narrow the block's
+		// `@container` box and move its narrow-layout switch.
+		expect(block().className).not.toMatch(/(^|\s)border(-dashed)?(\s|$)/);
 		expect(block().className).not.toMatch(/opacity-/);
 	});
 

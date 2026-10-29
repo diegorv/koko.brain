@@ -67,11 +67,13 @@
 	}
 </script>
 
+<!-- The pending dashed border is a pseudo-element: a real border would narrow the
+	`@container` content box, so a pending block would switch to its narrow layout early. -->
 <div
 	role="button"
 	tabindex="0"
 	class="@container absolute cursor-pointer overflow-hidden rounded-md font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-		{event.pending ? 'border border-dashed border-current' : ''}
+		{event.pending ? 'after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-dashed after:border-current' : ''}
 		{selected ? 'ring-2 ring-primary/70' : ''}"
 	{style}
 	aria-label={label}
