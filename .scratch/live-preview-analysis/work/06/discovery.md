@@ -29,3 +29,28 @@ linearly. Not "a few ms" on a large note, so the Issue stops here per its own ru
   line set, so the skip is transitive; drag skips end in the release rebuild. Deviates from the
   recorded decision ("rebuild on every selectionSet").
 - C: keep the gate and close the Issue with the measurement only.
+
+## Implementation plan (owner chose option B)
+- `core/reveal.ts`: extract `touchedLines(state)` (merged, sorted `{first,last}` intervals of
+  the lines the selection touches, same end-at-line-start rule); `revealPredicate` reads it, so
+  the gate and the predicate cannot drift. Add `sameTouchedLines(a, b)`.
+- `core/check-update-action.ts:16,31-39`: drop the parameter; on `selectionSet` return
+  `'rebuild'` only when `touchedLines(startState)` and `touchedLines(state)` differ. Order of
+  the other gates unchanged (doc, reconfigure, drag release, drag skip, force, pure scroll).
+- Callers drop the field and the argument: `core/block-decorator.ts:17-18,67,71,85-87`,
+  `inline/inline-formatting-plugin.ts:142,148,156,164,167`, `plugins/{image,footnote,
+  wikilink-embed,meta-bind-input}-plugin.ts`.
+- Tests: `core/check-update-action.test.ts` (same set / changed set / anchor-line collapse /
+  multi-cursor), `core/reveal.test.ts` (`touchedLines`), `core/block-decorator.test.ts` and
+  `inline/inline-formatting-plugin.test.ts` drop `lastCursorLine` asserts.
+- Regression (new `live-preview/arrow-reveal.test.ts`): full `livePreviewExtensions()` stack,
+  bullet + H1, ArrowDown/ArrowUp via `cursorLineDown/Up` (Range rect stubs as in
+  `keyboard-reveal.test.ts`; fall back to select transactions if jsdom geometry blocks it), DOM
+  assert exactly the new line revealed; scroll variant drives the inline plugin with the
+  viewport-changing stand-in from `inline-formatting-plugin.test.ts:263-280`.
+- Docs: CLAUDE.md rules 4-5, ADR 0008:64,71, `docs/LIVE-PREVIEW.md:35,84,94-103,181`.
+
+Defaults taken: the line set is compared as merged intervals (two cursors on one line equal one
+cursor there); multi-range selections handled the same as `revealPredicate`.
+Risks: the inline viewport plugins rely on `'none'` for a same-set selection move that also
+scrolls (same as before with a same-line move).

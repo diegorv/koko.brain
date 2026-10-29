@@ -36,3 +36,5 @@
   `docs/LIVE-PREVIEW.md` to describe the stateless rule, and add the bullet <-> H1 regression test
   (with and without scroll). Acceptance: no `lastCursorLine` remains; a test proves a selection
   move within the same line set does not rebuild and a move that changes the set does.
+
+- 2026-10-29 20:43 — discovery — plan for option B (stateless touched-line-set gate shared with revealPredicate) in work/06/discovery.md — 137fd16c
