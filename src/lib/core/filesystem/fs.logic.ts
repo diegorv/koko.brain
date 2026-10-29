@@ -257,6 +257,32 @@ export function collectAllDirPaths(nodes: FileTreeNode[]): Set<string> {
 }
 
 /**
+ * Returns the tree without the node at `path` (and, for a folder, everything
+ * under it). Untouched branches keep their identity; the input is not mutated.
+ * Returns `nodes` itself when no node has that path.
+ */
+export function removeNodeByPath(nodes: FileTreeNode[], path: string): FileTreeNode[] {
+	let changed = false;
+	const out: FileTreeNode[] = [];
+	for (const node of nodes) {
+		if (node.path === path) {
+			changed = true;
+			continue;
+		}
+		if (node.children && path.startsWith(node.path + '/')) {
+			const children = removeNodeByPath(node.children, path);
+			if (children !== node.children) {
+				changed = true;
+				out.push({ ...node, children });
+				continue;
+			}
+		}
+		out.push(node);
+	}
+	return changed ? out : nodes;
+}
+
+/**
  * Collects the absolute path of every FILE stored under `dirPath`, recursively.
  *
  * The path-change owner uses this to snapshot a folder's children BEFORE the

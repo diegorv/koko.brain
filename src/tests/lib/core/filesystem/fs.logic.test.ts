@@ -21,6 +21,7 @@ import {
 	validateDragDrop,
 	applyFolderOrder,
 	attachFileCounts,
+	removeNodeByPath,
 } from '#lib/core/filesystem/fs.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
@@ -871,5 +872,49 @@ describe('applyFolderOrder', () => {
 			const result = applyFolderOrder(nodes, {}, vault, vault, co);
 			expect(result[0].children!.map((n) => n.name)).toEqual(['a.md', 'z.md']);
 		});
+	});
+});
+
+describe('removeNodeByPath', () => {
+	const tree = (): FileTreeNode[] => [
+		{ name: 'a.md', path: '/v/a.md', isDirectory: false },
+		{
+			name: 'dir',
+			path: '/v/dir',
+			isDirectory: true,
+			children: [
+				{ name: 'b.md', path: '/v/dir/b.md', isDirectory: false },
+				{ name: 'sub', path: '/v/dir/sub', isDirectory: true, children: [{ name: 'c.md', path: '/v/dir/sub/c.md', isDirectory: false }] },
+			],
+		},
+	];
+
+	it('removes a top-level file', () => {
+		expect(removeNodeByPath(tree(), '/v/a.md').map((n) => n.path)).toEqual(['/v/dir']);
+	});
+
+	it('removes a nested file and keeps its siblings', () => {
+		const out = removeNodeByPath(tree(), '/v/dir/sub/c.md');
+		expect(out[1].children![1].children).toEqual([]);
+		expect(out[1].children![0].path).toBe('/v/dir/b.md');
+	});
+
+	it('removes a folder with everything under it', () => {
+		expect(removeNodeByPath(tree(), '/v/dir/sub')[1].children!.map((n) => n.path)).toEqual(['/v/dir/b.md']);
+	});
+
+	it('returns the same array when the path is not in the tree', () => {
+		const input = tree();
+		expect(removeNodeByPath(input, '/v/missing.md')).toBe(input);
+	});
+
+	it('does not mutate the input tree', () => {
+		const input = tree();
+		removeNodeByPath(input, '/v/dir/b.md');
+		expect(input[1].children!.map((n) => n.path)).toEqual(['/v/dir/b.md', '/v/dir/sub']);
+	});
+
+	it('handles an empty tree', () => {
+		expect(removeNodeByPath([], '/v/a.md')).toEqual([]);
 	});
 });

@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { fsStore } from './fs.store.svelte';
 import { refreshTree } from './fs.service';
-import { collectFilePathsUnder, getFileName, isMarkdownFile } from './fs.logic';
+import { collectFilePathsUnder, getFileName, isMarkdownFile, removeNodeByPath } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { applyNoteChange } from './note-change.service';
 import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
@@ -126,6 +126,9 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 
 	await diskOp();
 
+	// The full rescan in refreshTree() below takes hundreds of ms on a large vault;
+	// until then a deleted item would stay clickable in the explorer and fail to open.
+	if (to === null) fsStore.setFileTree(removeNodeByPath(fsStore.fileTree, from));
 	if (to !== null) updateTabAfterRenameOrMove(from, to);
 	// Synchronous and before the next await, so a consumer is never a step
 	// behind the disk while the link rewrite below runs.

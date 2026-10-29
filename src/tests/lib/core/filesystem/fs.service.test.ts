@@ -560,6 +560,27 @@ describe('deleteItem', () => {
 		expect(result).toBe(true);
 	});
 
+	it('drops the deleted file from the explorer tree before the vault rescan finishes', async () => {
+		fsStore.setFileTree([
+			{ name: 'keep.md', path: '/vault/keep.md', isDirectory: false },
+			{ name: 'note.md', path: '/vault/note.md', isDirectory: false },
+		]);
+		let finishScan: (tree: unknown) => void = () => {};
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'scan_vault') return new Promise((resolve) => { finishScan = resolve; });
+			return [];
+		});
+
+		const pending = deleteItem('/vault/note.md');
+		await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('scan_vault', expect.anything()));
+
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/keep.md']);
+
+		finishScan([{ name: 'keep.md', path: '/vault/keep.md', isDirectory: false }]);
+		expect(await pending).toBe(true);
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/keep.md']);
+	});
+
 	it('passes isDirectory flag to moveToTrash', async () => {
 		await deleteItem('/vault/folder', true);
 
