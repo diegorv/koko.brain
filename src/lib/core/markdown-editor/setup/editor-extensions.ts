@@ -40,8 +40,8 @@ export interface CreateExtensionsOptions {
 	contentWidth: number;
 	/** Extra vertical spacing added after each line, in em (0 = none) */
 	paragraphSpacing: number;
-	/** Compartment for toggling line numbers */
-	lineNumbersCompartment: Compartment;
+	/** Compartment holding `sourceModeExtensions()` in source mode and `[]` in live preview */
+	sourceModeCompartment: Compartment;
 	/** Compartment for dynamic theme updates */
 	editorThemeCompartment: Compartment;
 	/** Compartment for switching language parser */
@@ -61,12 +61,20 @@ export interface CreateExtensionsOptions {
 	isExternalEdit: () => boolean;
 }
 
+/**
+ * Extensions installed only in source mode. The legacy wikilink and callout
+ * decorations are the only styling for those constructs in source mode; in
+ * live preview the inline wikilink handler and `calloutField` own them, so
+ * installing these there would style the same text twice.
+ */
+export function sourceModeExtensions(): Extension[] {
+	return [lineNumbers(), highlightActiveLineGutter(), wikilinkDecoration(), calloutDecoration()];
+}
+
 /** Builds the full CodeMirror extension array for the markdown editor */
 export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 	return [
-		opts.lineNumbersCompartment.of(
-			opts.isLivePreview ? [] : [lineNumbers(), highlightActiveLineGutter()]
-		),
+		opts.sourceModeCompartment.of(opts.isLivePreview ? [] : sourceModeExtensions()),
 		highlightSpecialChars(),
 		history(),
 		dropCursor(),
@@ -81,8 +89,6 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 			override: [wikilinkCompletionSource, dateShortcutCompletionSource],
 			activateOnTyping: true,
 		}),
-		wikilinkDecoration(),
-		calloutDecoration(),
 		livePreview(opts.isLivePreview),
 		rectangularSelection(),
 		crosshairCursor(),

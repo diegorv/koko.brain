@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy, untrack } from 'svelte';
-	import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
+	import { EditorView } from '@codemirror/view';
 	import { EditorState, EditorSelection, Compartment, Transaction } from '@codemirror/state';
 	import Link from '@lucide/svelte/icons/link';
 	import FileSymlink from '@lucide/svelte/icons/file-symlink';
@@ -25,7 +25,7 @@
 	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
-	import { buildEditorTheme, createExtensions } from './setup';
+	import { buildEditorTheme, createExtensions, sourceModeExtensions } from './setup';
 	import { findWikilinkElement } from './wikilink-click-target';
 
 	let container: HTMLDivElement;
@@ -42,7 +42,7 @@
 	 * land on the new tab's view (Phase 4.4).
 	 */
 	let tabSwitchRafAbort: AbortController | null = null;
-	const lineNumbersCompartment = new Compartment();
+	const sourceModeCompartment = new Compartment();
 	const editorThemeCompartment = new Compartment();
 	const languageCompartment = new Compartment();
 	const highlightStyleCompartment = new Compartment();
@@ -189,7 +189,7 @@
 				lineHeight: settingsStore.editor.lineHeight,
 				contentWidth: settingsStore.editor.contentWidth,
 				paragraphSpacing: settingsStore.editor.paragraphSpacing,
-				lineNumbersCompartment,
+				sourceModeCompartment,
 				editorThemeCompartment,
 				languageCompartment,
 				highlightStyleCompartment,
@@ -418,9 +418,7 @@
 					livePreviewCompartment.reconfigure(
 						enabled ? livePreviewExtensions() : []
 					),
-					lineNumbersCompartment.reconfigure(
-						enabled ? [] : [lineNumbers(), highlightActiveLineGutter()]
-					),
+					sourceModeCompartment.reconfigure(enabled ? [] : sourceModeExtensions()),
 				],
 			});
 		});

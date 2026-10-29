@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
-import { createExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import { createExtensions, sourceModeExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 
 function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateExtensionsOptions {
@@ -14,7 +14,7 @@ function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateEx
 		lineHeight: 1.6,
 		contentWidth: 0,
 		paragraphSpacing: 0,
-		lineNumbersCompartment: new Compartment(),
+		sourceModeCompartment: new Compartment(),
 		editorThemeCompartment: new Compartment(),
 		languageCompartment: new Compartment(),
 		highlightStyleCompartment: new Compartment(),
@@ -86,13 +86,13 @@ describe('createExtensions', () => {
 	});
 
 	it('uses the same compartment references passed in options', () => {
-		const lineNumbersCompartment = new Compartment();
+		const sourceModeCompartment = new Compartment();
 		const editorThemeCompartment = new Compartment();
 		const languageCompartment = new Compartment();
 		const highlightStyleCompartment = new Compartment();
 
 		const extensions = createExtensions(makeOptions({
-			lineNumbersCompartment,
+			sourceModeCompartment,
 			editorThemeCompartment,
 			languageCompartment,
 			highlightStyleCompartment,
@@ -100,5 +100,65 @@ describe('createExtensions', () => {
 
 		// The extensions array should contain the compartment configurations
 		expect(extensions.length).toBeGreaterThan(0);
+	});
+
+	describe('legacy source-mode decorations', () => {
+		const DOC = '> [!note] Title\n> body\n\nSee [[Target]] here.';
+
+		function mount(opts: CreateExtensionsOptions) {
+			const root = document.createElement('div');
+			document.body.appendChild(root);
+			const view = new EditorView({
+				state: EditorState.create({ doc: DOC, extensions: createExtensions(opts) }),
+				parent: root,
+			});
+			return {
+				view,
+				dispose: () => {
+					view.destroy();
+					root.remove();
+				},
+			};
+		}
+
+		function legacyClasses(view: EditorView) {
+			return {
+				wikilinkTarget: view.contentDOM.querySelectorAll('.cm-wikilink-target').length,
+				callout: view.contentDOM.querySelectorAll('.cm-callout').length,
+				gutter: view.dom.querySelectorAll('.cm-lineNumbers').length,
+			};
+		}
+
+		it('source mode installs the legacy wikilink and callout decorations', () => {
+			const { view, dispose } = mount(makeOptions({ isLivePreview: false }));
+			try {
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 1, callout: 1, gutter: 1 });
+			} finally {
+				dispose();
+			}
+		});
+
+		it('live preview does not install the legacy wikilink and callout decorations', () => {
+			const { view, dispose } = mount(makeOptions({ isLivePreview: true }));
+			try {
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 0, callout: 0, gutter: 0 });
+			} finally {
+				dispose();
+			}
+		});
+
+		it('toggling the mode through the compartment swaps the legacy decorations', () => {
+			const sourceModeCompartment = new Compartment();
+			const { view, dispose } = mount(makeOptions({ isLivePreview: true, sourceModeCompartment }));
+			try {
+				view.dispatch({ effects: sourceModeCompartment.reconfigure(sourceModeExtensions()) });
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 1, callout: 1, gutter: 1 });
+
+				view.dispatch({ effects: sourceModeCompartment.reconfigure([]) });
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 0, callout: 0, gutter: 0 });
+			} finally {
+				dispose();
+			}
+		});
 	});
 });
