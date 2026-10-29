@@ -61,7 +61,7 @@ async function applySentryConfiguration(settings: SentrySettings): Promise<Sentr
 		// No tracing, replay, sessions, persistent conversation IDs, request
 		// context, or breadcrumbs: this opt-in is error monitoring only.
 		integrations: (defaults) => defaults.filter((integration) => [
-			'InboundFilters',
+			'EventFilters',
 			'FunctionToString',
 			'BrowserApiErrors',
 			'GlobalHandlers',
@@ -77,6 +77,7 @@ async function applySentryConfiguration(settings: SentrySettings): Promise<Sentr
 			graphQL: { document: false, variables: false },
 			genAI: { inputs: false, outputs: false },
 			databaseQueryData: false,
+			queues: false,
 			stackFrameVariables: false,
 			frameContextLines: 0,
 		},

@@ -66,6 +66,7 @@ describe('configureSentry', () => {
 			httpHeaders: { request: false, response: false },
 			httpBodies: [],
 			urlQueryParams: false,
+			queues: false,
 			stackFrameVariables: false,
 			frameContextLines: 0,
 		});
@@ -79,6 +80,20 @@ describe('configureSentry', () => {
 			? options.integrations(defaults)
 			: options.integrations;
 		expect(integrations).toEqual([{ name: 'GlobalHandlers' }]);
+
+		// The filter matches by name, so check it against the SDK's real defaults:
+		// a renamed integration would otherwise be dropped without any error.
+		const actual = await vi.importActual<typeof import('@sentry/browser')>('@sentry/browser');
+		const realDefaults = actual.getDefaultIntegrations({});
+		const kept = (options.integrations as (d: typeof realDefaults) => typeof realDefaults)(realDefaults);
+		expect(kept.map((integration) => integration.name).sort()).toEqual([
+			'BrowserApiErrors',
+			'Dedupe',
+			'EventFilters',
+			'FunctionToString',
+			'GlobalHandlers',
+			'LinkedErrors',
+		]);
 
 		const event = await options.beforeSend!({
 			type: undefined,
