@@ -16,11 +16,12 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Test: nested callout renders both callouts without throwing
-- [ ] Test: `> [!note] Title   ` shows the full title
-- [ ] One callout regex/matcher remains; all three call sites use it
-- [ ] Test: callout content lines get one style, not blockquote + callout
+- [x] Test: nested callout renders both callouts without throwing
+- [x] Test: `> [!note] Title   ` shows the full title
+- [x] One callout regex/matcher remains; all three call sites use it
+- [x] Test: callout content lines get one style, not blockquote + callout
 
 ## Comments
 
 - 2026-10-29 18:08 — discovery — plan in work/07/discovery.md: one matcher in callout.logic.ts, sorted set + innermost-owner lines in callout-field, ancestor callout check in blockquote parser — a5e16246
+- 2026-10-29 18:13 — implement — one matcher (matchCalloutHeader) used by callout parser, blockquote parser and source-mode decoration; nested callouts on a sorted set with innermost line ownership; trailing-space title fixed; callout lines excluded from blockquote styling; extensions vitest 94 files/1296 pass, pnpm check 0 errors — 642a6edc
