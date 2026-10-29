@@ -650,6 +650,129 @@ describe('EventTimeGrid: focus leaving the calendar mid-gesture', () => {
 	});
 });
 
+describe('EventTimeGrid: click swallow after a gesture', () => {
+	const body = () => q('[data-time-grid-body]')!;
+	const block = (name: string) => q(`[data-event-path="${P(name)}"]`)!;
+
+	/** Mounts the grid with its body stubbed to 100 px per day column, so a press lands on a real slot. */
+	function mountSized() {
+		mountGrid();
+		body().getBoundingClientRect = () => ({ left: 0, top: 0, width: 700, height: 1440, right: 700, bottom: 1440, x: 0, y: 0, toJSON: () => ({}) });
+	}
+
+	function pointer(el: HTMLElement, type: string, clientX = 0, clientY = 0) {
+		el.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1, clientX, clientY }));
+		flushSync();
+	}
+
+	/** `detail: 1` is a mouse click (or an assistive-tech activation with no press); `detail: 0` is a keyboard one. */
+	function click(el: HTMLElement, detail: number) {
+		el.dispatchEvent(new MouseEvent('click', { bubbles: true, detail }));
+		flushSync();
+	}
+
+	/** Presses Standup (09:00-10:00 on Nov 10) and drags it a day right, past the threshold. */
+	function dragStandup() {
+		pointer(block('Standup'), 'pointerdown', 50, 586);
+		pointer(body(), 'pointermove', 150, 696);
+	}
+
+	beforeEach(() => {
+		seed([
+			event({ path: P('Standup'), title: 'Standup', date: '2026-11-10', start: 540, end: 600 }),
+			event({ path: P('Review'), title: 'Review', date: '2026-11-12', start: 540, end: 600 }),
+		]);
+	});
+
+	it.each([
+		['pointercancel', 0],
+		['pointercancel', 1],
+		['lostpointercapture', 0],
+		['lostpointercapture', 1],
+	] as const)('a gesture ended by %s arms nothing: a later detail-%i click with no press opens the popover', (type, detail) => {
+		mountSized();
+		dragStandup();
+		pointer(body(), type, 150, 696);
+
+		click(block('Standup'), detail);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(moveEvent).not.toHaveBeenCalled();
+	});
+
+	it('a pointercancel-discarded gesture does not arm the swallow on a later unrelated pointerup', () => {
+		mountSized();
+		dragStandup();
+		pointer(body(), 'pointercancel', 150, 696);
+		pointer(body(), 'pointerup', 150, 696);
+
+		click(block('Standup'), 1);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+	});
+
+	it('swallows the click a moved block\'s release produces', () => {
+		vi.mocked(moveEvent).mockReturnValue(new Promise<void>(() => {}));
+		mountSized();
+		dragStandup();
+		pointer(body(), 'pointerup', 150, 696);
+
+		click(block('Standup'), 1);
+
+		expect(moveEvent).toHaveBeenCalledTimes(1);
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('swallows the click of the release after an Escape-discarded gesture', () => {
+		mountSized();
+		dragStandup();
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		flushSync();
+		pointer(block('Standup'), 'pointerup', 150, 696);
+
+		click(block('Standup'), 1);
+
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(moveEvent).not.toHaveBeenCalled();
+	});
+
+	it('lets a keyboard click (detail 0) on a block act while the swallow is armed', () => {
+		vi.mocked(moveEvent).mockReturnValue(new Promise<void>(() => {}));
+		mountSized();
+		dragStandup();
+		pointer(body(), 'pointerup', 150, 696);
+
+		click(block('Review'), 0);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+	});
+
+	it('a release whose click lands outside the body does not swallow a later click with no press', () => {
+		vi.mocked(moveEvent).mockReturnValue(new Promise<void>(() => {}));
+		mountSized();
+		dragStandup();
+		pointer(body(), 'pointerup', 150, 696);
+		click(document.body, 1);
+
+		click(block('Review'), 1);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+	});
+
+	it('a press anywhere after a moved drop disarms the swallow', () => {
+		vi.mocked(moveEvent).mockReturnValue(new Promise<void>(() => {}));
+		mountSized();
+		dragStandup();
+		pointer(body(), 'pointerup', 150, 696);
+		document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 2 }));
+
+		click(block('Review'), 1);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+	});
+});
+
 describe('EventTimeGrid: task lane', () => {
 	it('shows the dated tasks of the visible days under the all-day lane', () => {
 		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3), datedTask('Later', '2026-12-01')]);

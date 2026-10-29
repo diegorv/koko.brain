@@ -55,7 +55,10 @@
 	}
 
 	let gesture: Gesture | null = null;
-	/** Set when a mouse or pen gesture ends, so the click that follows it does nothing. */
+	/**
+	 * Set from the release of a mouse or pen gesture (or of a discarded one)
+	 * until the click that release produces, so that click does nothing. See `armSwallow`.
+	 */
 	let swallowClick = false;
 	/** Live drag preview; held after a drop until its write settles. */
 	let preview = $state.raw<DragState | null>(null);
@@ -85,7 +88,10 @@
 	// Open on the working day; `{#key view}` in the parent remounts the grid.
 	onMount(() => {
 		if (scroller) scroller.scrollTop = settingsStore.eventCalendar.dayStartHour * HOUR_HEIGHT;
-		return endGesture;
+		return () => {
+			endGesture();
+			disarmSwallow();
+		};
 	});
 
 	/** Slot under the pointer; the body rect is read live, so a scroll mid-drag stays correct. */
@@ -107,14 +113,51 @@
 		dragged = null;
 	}
 
-	/** Drops the live gesture without doing anything (Escape, `pointercancel`, lost capture, focus leaving the view). */
-	function discardGesture() {
+	/**
+	 * Drops the live gesture without doing anything (Escape, `pointercancel`,
+	 * lost capture, focus leaving the view, the days changing). With
+	 * `armOnRelease` the swallow is armed by the release still to come, since
+	 * the button is still down and its release clicks. A cancelled pointer or
+	 * lost capture passes `false`: nothing is armed, so no later, unrelated
+	 * release or assistive-tech click is eaten.
+	 */
+	function discardGesture(armOnRelease: boolean) {
 		const live = gesture;
 		if (!live) return;
 		endGesture();
 		clearPreview();
-		swallowClick = true;
+		disarmSwallow();
+		if (armOnRelease) window.addEventListener('pointerup', handleReleaseAfterDiscard, true);
 		if (bodyEl?.hasPointerCapture?.(live.pointerId)) bodyEl.releasePointerCapture(live.pointerId);
+	}
+
+	function handleReleaseAfterDiscard() {
+		window.removeEventListener('pointerup', handleReleaseAfterDiscard, true);
+		armSwallow();
+	}
+
+	/**
+	 * Arms the swallow for the click the release just produced. That click may
+	 * land outside the body (after a discard the capture is gone), where
+	 * `handleClickCapture` never sees it, so a press anywhere, or a click
+	 * outside the body, disarms it: a later assistive-tech click (`detail >= 1`,
+	 * no press) still acts.
+	 */
+	function armSwallow() {
+		swallowClick = true;
+		window.addEventListener('pointerdown', disarmSwallow, true);
+		window.addEventListener('click', handleClickOutside, true);
+	}
+
+	function disarmSwallow() {
+		swallowClick = false;
+		window.removeEventListener('pointerdown', disarmSwallow, true);
+		window.removeEventListener('click', handleClickOutside, true);
+		window.removeEventListener('pointerup', handleReleaseAfterDiscard, true);
+	}
+
+	function handleClickOutside(e: MouseEvent) {
+		if (!bodyEl || !(e.target instanceof Node) || !bodyEl.contains(e.target)) disarmSwallow();
 	}
 
 	/**
@@ -126,7 +169,7 @@
 		if (e.key !== 'Escape') return;
 		e.stopPropagation();
 		e.preventDefault();
-		discardGesture();
+		discardGesture(true);
 	}
 
 	/**
@@ -134,11 +177,12 @@
 	 * palette opened mid-press) discards the gesture, so the overlay gets the
 	 * first Escape and the release opens nothing behind it. `focusin` on the
 	 * window, not `focusout` on the root: focus need not be inside the root
-	 * when the press starts.
+	 * when the press starts. The button is still down, so its release arms the
+	 * click swallow, as after Escape.
 	 */
 	function handleGestureFocusin(e: FocusEvent) {
 		const root = bodyEl?.closest('[data-event-calendar]') ?? bodyEl;
-		if (root && e.target instanceof Node && !root.contains(e.target)) discardGesture();
+		if (root && e.target instanceof Node && !root.contains(e.target)) discardGesture(true);
 	}
 
 	/**
@@ -147,7 +191,7 @@
 	 * blocks are skipped, so their click opens the popover as before.
 	 */
 	function handlePointerDown(e: PointerEvent) {
-		swallowClick = false;
+		disarmSwallow();
 		const body = bodyEl;
 		if (!body || e.button !== 0 || (e.pointerType !== 'mouse' && e.pointerType !== 'pen')) return;
 		const target = e.target instanceof Element ? e.target : null;
@@ -196,7 +240,9 @@
 		const live = gesture;
 		if (!drag || !live) return;
 		endGesture();
-		swallowClick = true;
+		// Every release, not only a moved one: a plain press opens the dialog or
+		// the popover right here, and its click must not act a second time.
+		armSwallow();
 		const result = resolveDrag(drag, events, days);
 		if (result.kind === 'move') {
 			preview = drag;
@@ -237,19 +283,23 @@
 	$effect(() => {
 		void daysKey;
 		untrack(() => {
-			discardGesture();
+			discardGesture(true);
 			clearPreview();
 		});
 	});
 
 	function handlePointerCancel(e: PointerEvent) {
-		if (gesture && e.pointerId === gesture.pointerId) discardGesture();
+		if (gesture && e.pointerId === gesture.pointerId) discardGesture(false);
 	}
 
-	/** Swallows the click a mouse or pen gesture produces, so a moved block does not open its popover. */
+	/**
+	 * Swallows the click a mouse or pen gesture produces, so a moved block does
+	 * not open its popover. Only a pointer click (`detail > 0`) is swallowed: a
+	 * keyboard Enter or Space on a block (`detail === 0`) must still act.
+	 */
 	function handleClickCapture(e: MouseEvent) {
-		if (!swallowClick) return;
-		swallowClick = false;
+		if (!swallowClick || e.detail === 0) return;
+		disarmSwallow();
 		e.stopPropagation();
 	}
 
