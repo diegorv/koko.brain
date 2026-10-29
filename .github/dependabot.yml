@@ -6,9 +6,6 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 14
-      # Mirror pnpm-workspace.yaml `minimumReleaseAgeExclude`: Tauri JS
-      # plugins must stay in lockstep with their Rust crates, so they are
-      # exempt from the cooldown quarantine (installable on day 0).
       exclude:
         - "@tauri-apps/*"
 
@@ -20,14 +17,6 @@ updates:
       default-days: 7
 
   - package-ecosystem: "github-actions"
-    # `directories` (not `directory`) because `/` only covers
-    # `.github/workflows` plus a root-level `action.yml`. Half of this
-    # repo's third-party actions are pinned inside the composite action
-    # at `.github/actions/setup/action.yml`, which `/` never scanned:
-    # across six months Dependabot opened PRs for actions/checkout,
-    # actions/cache and dorny/paths-filter (all in workflows) and never
-    # once for pnpm/action-setup, Swatinem/rust-cache, sccache-action or
-    # setup-node (all in the composite), leaving them silently stale.
     directories:
       - "/"
       - "/.github/actions/setup"

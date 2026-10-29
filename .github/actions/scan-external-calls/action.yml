@@ -47,8 +47,6 @@ runs:
       run: |
         set -euo pipefail
 
-        # `read -ra` splits on commas, then we trim each entry to build
-        # the per-extension `--include` flags grep needs.
         IFS=',' read -ra GLOBS <<< "$INCLUDE_GLOBS"
         INCLUDE_ARGS=()
         for g in "${GLOBS[@]}"; do
@@ -56,14 +54,11 @@ runs:
           [ -n "$g_trimmed" ] && INCLUDE_ARGS+=( "--include=$g_trimmed" )
         done
 
-        # Parse a multiline input into a bash array, dropping blank lines
-        # and `#` comments so callers can annotate the lists.
         parse_list() {
           local input="$1"
           local arr_name="$2"
           local line
           while IFS= read -r line; do
-            # Trim surrounding whitespace
             line="${line#"${line%%[![:space:]]*}"}"
             line="${line%"${line##*[![:space:]]}"}"
             [ -z "$line" ] && continue
@@ -87,7 +82,6 @@ runs:
 
         for pattern in "${PATTERNS[@]}"; do
           while IFS= read -r match; do
-            # Apply skip filters first
             SKIP_MATCH=false
             for skip in "${SKIP[@]}"; do
               if echo "$match" | grep -qE "$skip"; then
@@ -100,7 +94,6 @@ runs:
               continue
             fi
 
-            # Then known-list (reviewed, allowed)
             IS_KNOWN=false
             for known in "${KNOWN[@]}"; do
               if echo "$match" | grep -qE "$known"; then

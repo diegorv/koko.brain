@@ -28,18 +28,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # Third-party actions (pnpm/action-setup, Swatinem/rust-cache) are
-    # pinned by commit SHA to harden against a maintainer-account
-    # compromise that could ship a malicious tag move. Dependabot still
-    # updates each entry via the trailing `# vX` tag comment.
-    #
-    # `actions/*` (setup-node) is left on a version tag — those are
-    # GitHub-published and considered part of the trusted base.
-    # The pinned pnpm version comes from `package.json#packageManager`
-    # (currently `pnpm@11.24.0`). action-setup honors that field, so the
-    # action's own major version is independent of the pnpm version it
-    # installs — v6 supports pnpm v11 internally but happily installs
-    # v10 when packageManager pins it.
     - name: Setup pnpm
       uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
@@ -53,67 +41,22 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
-    # `dtolnay/rust-toolchain` is pinned by SHA, at the commit `stable`
-    # pointed to. Freezing the action code is exactly the point: `stable`
-    # is a mutable branch ref, so an unpinned `@stable` executes whatever
-    # that branch happens to point at on the day the job runs. Pinning
-    # costs nothing here because the rustc CHANNEL is a separate axis,
-    # pinned via the `toolchain` input below.
-    #
-    # Dependabot will NOT bump this entry: the upstream repo publishes
-    # branch refs, not release tags, and Dependabot resolves SHA pins
-    # against tags. Re-pin by hand when the toolchain is bumped:
-    #   git ls-remote https://github.com/dtolnay/rust-toolchain stable
     - name: Setup Rust
       if: inputs.rust == 'true'
       uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
       with:
-        # Pinned instead of riding the rolling `stable` channel: the
-        # 1.97.1 -> 1.98.0 bump that the runner picked up on its own
-        # between nightly runs 32319243059 (2026-08-20, clean) and
-        # 32667515677 (2026-08-23) changed how release `strip` works on
-        # Apple targets and started emitting build warnings with no
-        # commit to blame. Bump this deliberately.
+        # Pinned on purpose: bump deliberately, not with the runner image.
         toolchain: "1.98.0"
         targets: ${{ inputs.rust-targets }}
-        # `strip = true` in `[profile.release]` makes rustc shell out to
-        # the toolchain's `rust-objcopy` on Apple targets (1.98.0+). That
-        # binary is dynamically linked against `libLLVM.dylib`, which
-        # ships only with the `llvm-tools` component - without it the
-        # strip aborts with SIGABRT and rustc downgrades it to a warning,
-        # silently leaving symbols in the release binary.
+        # `strip = true` needs rust-objcopy, which links libLLVM from llvm-tools.
         components: llvm-tools
 
-    # macos-15-arm64 image (image version 20260511.0048+) ships a Homebrew
-    # rustup whose `cargo`/`rustc`/`rustup-init` are all hardlinks to a
-    # single multi-call binary that's supposed to dispatch on argv[0] —
-    # but that dispatch is broken on this image. Running `cargo metadata`
-    # via any `~/.cargo/bin/cargo` shim (Homebrew's or the one dtolnay
-    # installs) routes to `rustup-init` and dies with:
-    #
-    #     error: error: unexpected argument 'metadata' found
-    #     Usage: rustup-init[EXE] [OPTIONS]
-    #
-    # Confirmed in CI run 25830494309 (job 75894082550, ci.yml `cargo test`)
-    # AND nightly run 25830797786 (job 75895093652, `pnpm tauri build` →
-    # `cargo metadata`). Bypass the multi-call shim entirely by prepending
-    # the toolchain's real binary directory (`~/.rustup/toolchains/<host>/
-    # bin/`), which holds standalone `cargo`/`rustc` executables that do
-    # NOT depend on argv[0] dispatch. `rustup which cargo` returns the
-    # absolute path to the active toolchain's cargo, so the parent dir is
-    # what we need on PATH. GITHUB_PATH appends become PATH prepends for
-    # subsequent steps, so the real cargo wins every lookup — including
-    # subprocesses spawned by `tauri-action`, `pnpm tauri build`, and any
-    # third-party action that shells out to `cargo`.
+    # The runner's rustup multi-call shim misroutes `cargo` to rustup-init.
     - name: Pin cargo to toolchain binary (bypass rustup argv[0] dispatch)
       if: inputs.rust == 'true'
       shell: bash
       run: |
         set -euo pipefail
-        # Resolve rustup from PATH, not `~/.cargo/bin`: on macos-26-arm64
-        # (image 20261021.0445+) rustup is preinstalled outside
-        # `~/.cargo/bin`, so dtolnay skips its own install and that path
-        # does not exist (nightly run 40339171660, exit 127).
         REAL_CARGO=$(rustup which cargo)
         REAL_DIR=$(dirname "$REAL_CARGO")
         echo "Real cargo: $REAL_CARGO"
@@ -124,36 +67,10 @@ runs:
         fi
         "$REAL_CARGO" --version
 
-    # `.cargo/config.toml` at the repo root sets `rustc-wrapper = "sccache"`.
-    # Without sccache on PATH, every cargo invocation on CI errors out with
-    # "Could not find sccache in PATH". This step installs the binary AND
-    # configures the GitHub Actions cache as the storage backend
-    # (`SCCACHE_GHA_ENABLED=true`), so cache hits carry across jobs and
-    # PRs - complementary to Swatinem/rust-cache below, which caches the
-    # `target/` directory at a different layer (artifacts) vs. sccache
-    # (rustc invocations).
-    #
-    # Pinned by commit SHA per the same security pattern as the other
-    # third-party actions in this file. Dependabot bumps via the trailing
-    # `# v0.0.11` tag comment.
     - name: Setup sccache
       if: inputs.rust == 'true'
       uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
-    # sccache-action installs the binary and exposes `SCCACHE_PATH`, but it
-    # does NOT configure the GitHub Actions Cache backend automatically.
-    # Without `SCCACHE_GHA_ENABLED`, sccache falls back to a local-disk
-    # cache that the ephemeral runner discards at the end of every job —
-    # producing a 0% cache hit rate across runs (verified empirically in
-    # nightly run 25817637435: 537 Rust cache misses, 0 hits).
-    #
-    # The two env vars below are the documented configuration for the
-    # GHA backend (https://github.com/Mozilla-Actions/sccache-action#with-rustc).
-    # `RUSTC_WRAPPER` is set to redirect rustc through sccache (the
-    # `.cargo/config.toml` `rustc-wrapper = "sccache"` setting also
-    # accomplishes this for local builds; this env var version is what
-    # the GHA documentation recommends and ensures CI honors it
-    # regardless of cargo config).
     - name: Configure sccache GHA backend
       if: inputs.rust == 'true'
       shell: bash
@@ -161,22 +78,6 @@ runs:
         echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
         echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
-    # `cache-on-failure: true` was previously set here. We dropped it
-    # because empirically (cache entry
-    # `v0-rust-build-macos-Darwin-arm64-f12293dc-688fcf3c`, created at
-    # 18:42 by a CANCELLED nightly run 25819119190) it caused partial
-    # caches from cancelled runs to persist, and subsequent restores
-    # would report `full match: true` against incomplete content,
-    # forcing cargo to recompile the missing deps anyway. Better to
-    # only save complete caches (default), at the cost of skipping
-    # save on a job that failed AFTER doing meaningful compile work.
-    #
-    # `shared-key` (driven by the new `rust-cache-key` input) lets the
-    # nightly and release workflows share a single cache slot when
-    # they run the same cargo invocation
-    # (`--release --target aarch64-apple-darwin`). Without it, each
-    # job's cache lives in its own `v0-rust-<job_id>-...` namespace
-    # and neither workflow primes the cache for the other.
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
       uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2

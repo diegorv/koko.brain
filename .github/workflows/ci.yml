@@ -3,28 +3,6 @@ name: CI
 permissions:
   contents: read
 
-# Triggers:
-#   - workflow_dispatch: manual revalidation lever.
-#   - workflow_call: invoked by pr.yml (the pull_request gate — the PR
-#     entry point lives there now, aggregating this workflow with e2e +
-#     security into one required `PR success` check), nightly.yml (every
-#     push to main), release.yml (tag push, with force_all:true), and
-#     run-all.yml (manual full sweep).
-#
-# `pull_request` is intentionally NOT a trigger here anymore. pr.yml owns
-# the PR event and calls this workflow via workflow_call; a direct
-# pull_request trigger would double-run CI on every PR.
-#
-# `push: main` is intentionally NOT a trigger here. Every accepted
-# commit to main is already validated through nightly.yml, which calls
-# this workflow via `workflow_call`. A standalone push trigger would
-# duplicate that invocation: both runs would land in the same
-# `ci-refs/heads/main` concurrency group, cancel-in-progress would
-# kill one of them mid-run (see run 25831097465, killed with
-# "higher priority waiting request for ci-refs/heads/main"), and the
-# history would carry a confusing trail of cancelled runs that look
-# like flakes but are just self-collisions. Tag pushes are unaffected
-# because release.yml owns the tag path end-to-end.
 on:
   workflow_dispatch:
   workflow_call:
@@ -45,21 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
-      # When `force_all` is true (release.yml on a tag push), short-circuit
-      # the paths-filter step entirely and pretend everything changed.
-      # Otherwise pass through the paths-filter outputs as before.
       frontend: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.frontend }}
       rust: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.rust }}
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # Pinned by commit SHA, not tag, so a compromised maintainer
-      # account can't move the version tag to malicious code and have
-      # us pick it up silently. Dependabot still updates this entry
-      # (it reads the trailing `# v4.0.1` tag comment).
-      # Skipped on release runs (`force_all: true`) — the outputs are
-      # forced to `true` regardless, so running the filter would just
-      # waste seconds.
       - if: ${{ inputs.force_all != true }}
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
@@ -76,22 +44,10 @@ jobs:
               - "tailwind.config.*"
               - "postcss.config.*"
               - "components.json"
-              # CI infrastructure changes (composite actions, workflow
-              # definitions) can break the frontend pipeline silently —
-              # e.g. a setup-action change that drops pnpm caching, or a
-              # workflow tweak that mis-orders the install step. Re-run
-              # frontend tests when these change so regressions surface
-              # in the same PR rather than in the next product commit.
               - ".github/actions/**"
               - ".github/workflows/**"
             rust:
               - "src-tauri/**"
-              # Same rationale as frontend: setup-action and workflow
-              # changes can break the Rust toolchain setup (see commits
-              # ce864fdb / fd02d64f, where a runner image regression
-              # required iterating the composite setup). Trigger the
-              # Rust job on CI infra changes so the fix is validated
-              # in the same PR.
               - ".github/actions/**"
               - ".github/workflows/**"
 
@@ -109,21 +65,12 @@ jobs:
         with:
           rust: "false"
 
-      # `pnpm check` runs `svelte-kit sync` first, so it already produces the
-      # generated files vitest needs — no separate sync step required.
       - name: Run type check
         run: pnpm check
 
       - name: Run unit tests
         run: pnpm vitest run
 
-      # Verifies the SvelteKit / Vite production bundle actually compiles.
-      # `pnpm check` covers types and `pnpm vitest run` covers logic, but
-      # neither catches runtime-only bundling failures (SSR-incompatible
-      # imports, dynamic import paths that don't resolve, type-only
-      # re-exports that become runtime errors, asset references missing
-      # at build time). Without this step, those regressions only surface
-      # inside `tauri-action` during release — late and expensive.
       - name: Build frontend bundle
         run: pnpm build
 
@@ -131,33 +78,11 @@ jobs:
     name: Rust (cargo test)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    # Linux for the main suite: cheaper minutes, faster queue. After
-    # the encrypted-notes removal (commit b562224) the only remaining
-    # `#[cfg(target_os = "macos")]` surface is `src/commands/fonts.rs`
-    # (CoreText FFI), which has a `#[cfg(not(target_os = "macos"))]`
-    # fallback returning `Ok(vec![])` so the crate compiles on Linux.
-    # The macOS-only tests at `tests/commands/fonts_test.rs` are wholly
-    # gated and excluded from this run; the `rust-fonts-macos` job below
-    # picks them up on macos-latest so CoreText behavior is still
-    # validated on every PR touching `src-tauri/**`.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # Tauri 2 pulls in `glib-sys`, `gtk-sys`, `webkit2gtk-sys`, etc. via
-      # the `tauri` crate's Linux backend. Even `cargo test` (which never
-      # links a final binary) still runs each `-sys` crate's build script,
-      # and those scripts shell out to `pkg-config glib-2.0 / gtk+-3.0 /
-      # webkit2gtk-4.1` and abort the build when the system libraries are
-      # absent. The ubuntu-latest image ships none of them, so without
-      # this step the job dies at the very first `glib-sys` build script
-      # (see CI run 26097329567, job 76738532621: "Package 'glib-2.0',
-      # required by 'virtual:world', not found").
-      #
-      # Package list mirrors the Tauri 2 Linux prerequisites documented
-      # at https://v2.tauri.app/start/prerequisites/#linux for
-      # Debian/Ubuntu 24.04.
       - name: Install Tauri Linux dependencies
         run: |
           sudo apt-get update
@@ -175,11 +100,6 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          # The setup action defaults `rust-targets` to
-          # `aarch64-apple-darwin` for the release/nightly macOS builds.
-          # On a Linux runner we only need the host toolchain — passing
-          # an empty value skips the cross-target install that rustup
-          # would otherwise do unnecessarily.
           rust-targets: ""
 
       - name: Run tests
@@ -189,17 +109,6 @@ jobs:
     name: Rust (cargo test — macOS fonts)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    # `src/commands/fonts.rs` uses CoreText FFI and its tests
-    # (`tests/commands/fonts_test.rs`) are gated on
-    # `#[cfg(target_os = "macos")]`. They would silently vanish from
-    # the Linux `rust` job above — running them here keeps CoreText
-    # behavior (sorting, UTF-8 encoding, "Helvetica is present")
-    # covered on every PR touching `src-tauri/**`. Filtering to
-    # `--test commands_test commands::fonts_test::macos` compiles only
-    # the `commands_test` integration binary and the library; every
-    # other integration test (db_*, search_*, semantic_*, vault_*, …)
-    # is skipped, so this job is dramatically cheaper than the
-    # previous full macOS-only suite.
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
@@ -211,27 +120,6 @@ jobs:
       - name: Run fonts tests
         run: cargo test --manifest-path src-tauri/Cargo.toml --test commands_test commands::fonts_test::macos
 
-  # Differential secret scan on every PR / dispatch / release run. Lives
-  # here rather than in security.yml because security.yml is change-gated
-  # by pr.yml on dependency files only — and a leaked credential can land
-  # in any file, so the scan has to be ungated. ci.yml is invoked
-  # unconditionally by pr.yml, and `ci-success` below is the required
-  # status check, so this becomes a merge blocker for free.
-  #
-  # Scope depends on the event, and the action decides it, not us: it
-  # appends `--log-opts` for `push` and `pull_request` only
-  # (src/gitleaks.js:103-117), so those scan the commit range. Every other
-  # event — including a `workflow_dispatch` of this workflow or of
-  # run-all.yml — falls through to a full-history scan. That is harmless
-  # (history is clean, and the whole walk takes ~2s) but it does mean this
-  # job is not always differential. The scheduled full-history sweep still
-  # lives in security.yml's `gitleaks-history`, which is what guarantees
-  # the walk happens on a fixed cadence rather than only when someone
-  # dispatches a run.
-  #
-  # On a tag push (release.yml) the action takes the `push` branch and
-  # exits early when the event payload carries no commits, so treat
-  # release coverage as unverified rather than guaranteed.
   secrets:
     name: Secret Scan (gitleaks)
     runs-on: ubuntu-latest
@@ -239,39 +127,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          # The action diffs the commit range, so it needs real history
-          # rather than the default depth-1 clone. The repo's .git is
-          # ~22 MB, so the full fetch costs a couple of seconds.
           fetch-depth: 0
 
-      # Pinned by commit SHA per the same supply-chain reasoning as
-      # dorny/paths-filter above. Dependabot bumps it via the trailing
-      # tag comment.
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Explicit rather than relying on gitleaks' root auto-discovery:
-          # a config silently ignored means a red run on a known-good
-          # allowlisted finding.
           GITLEAKS_CONFIG: .gitleaks.toml
-          # gitleaks-action v3.0.0 hardcodes `GITLEAKS_VERSION || "8.24.3"`
-          # (src/index.js:138), and 8.24.3 predates the top-level plural
-          # `[[allowlists]]` table — that landed in 8.25.0. Viper is not
-          # configured with ErrorUnused, so 8.24.3 drops the unknown key
-          # SILENTLY: no error, no warning, the allowlist simply does not
-          # apply. Verified locally against this repo's history: 8.24.3 with
-          # .gitleaks.toml reports 1 leak (the allowlisted encrypted-notes
-          # fixture), 8.30.1 with the same file reports 0. Pinning here also
-          # keeps CI on the exact version used to validate the config.
+          # The action defaults to 8.24.3, which silently ignores `[[allowlists]]`.
           GITLEAKS_VERSION: "8.30.1"
 
-  # Aggregate gate used as the single required status check for branch
-  # protection. `frontend` and `rust` are skipped when their paths
-  # filter says nothing relevant changed, which makes them unusable as
-  # required checks directly (a "rust-only" PR would have `frontend`
-  # skipped, branch protection would block forever). This sentinel
-  # passes when every dependency either succeeded or was deliberately
-  # skipped, and fails on any real failure or cancellation.
   ci-success:
     name: CI success
     needs: [changes, frontend, rust, rust-fonts-macos, secrets]

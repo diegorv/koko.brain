@@ -8,12 +8,7 @@ on:
       - "help/examples/**"
 
   workflow_dispatch:
-
 concurrency:
-  # Serialize runs so two rapid pushes to `main` don't race when writing to
-  # the wiki repo (the second run would clobber the first). Cancelling is
-  # NOT what we want here — we want both runs to land in order — so
-  # `cancel-in-progress: false` queues instead of dropping.
   group: sync-wiki-${{ github.ref }}
   cancel-in-progress: false
 
@@ -39,10 +34,8 @@ jobs:
           set -euo pipefail
           cd wiki
 
-          # Remove old pages (except .git)
           find . -maxdepth 1 -name '*.md' -delete
 
-          # Build a mapping of old filenames to new wiki page names
           declare -A LINK_MAP
 
           for f in ../help/documentation/*.md; do
@@ -55,12 +48,10 @@ jobs:
               | sed 's/-/ /g' \
               | sed 's/\b\(.\)/\u\1/g')
 
-            # Map "01-getting-started.md" -> "Getting-Started" (wiki link format)
             wiki_link=$(echo "$clean" | sed 's/ /-/g')
             LINK_MAP["$filename"]="$wiki_link"
           done
 
-          # Copy, rename, and rewrite internal links
           for f in ../help/documentation/*.md; do
             filename=$(basename "$f")
 
@@ -77,7 +68,6 @@ jobs:
 
             cp "$f" "$dest"
 
-            # Rewrite markdown links: [text](01-getting-started.md) -> [text](Getting-Started)
             for old_name in "${!LINK_MAP[@]}"; do
               wiki_link="${LINK_MAP[$old_name]}"
               sed -i "s|(${old_name})|(${wiki_link})|g" "$dest"
@@ -89,12 +79,10 @@ jobs:
           set -euo pipefail
           cd wiki
 
-          # Each subfolder in help/examples/ becomes a wiki page
           for dir in ../help/examples/*/; do
             dirname=$(basename "$dir")
             [ "$dirname" = ".DS_Store" ] && continue
 
-            # Convert folder name to page title: "collection-features" -> "Examples Collection Features"
             title=$(echo "$dirname" \
               | sed 's/-/ /g' \
               | sed 's/\b\(.\)/\u\1/g')
@@ -105,7 +93,6 @@ jobs:
             echo "Sample files for the **${title}** feature." >> "$dest"
             echo "" >> "$dest"
 
-            # Collect all files recursively (skip .DS_Store)
             find "$dir" -type f ! -name '.DS_Store' | sort | while read -r f; do
               fname=$(basename "$f")
               relpath="${f#$dir}"
@@ -116,7 +103,6 @@ jobs:
               echo "## \`${relpath}\`" >> "$dest"
               echo "" >> "$dest"
 
-              # Pick syntax hint for the code block
               case "$ext" in
                 md)         lang="markdown" ;;
                 js)         lang="javascript" ;;

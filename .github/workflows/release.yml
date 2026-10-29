@@ -1,13 +1,5 @@
 name: Release
 
-# Triggers on any semver tag push (`X.Y.Z` or `X.Y.Z-suffix`). The
-# trigger pattern is intentionally permissive; the actual channel
-# allowlist lives in the `validate` job below, where it can be
-# updated without touching the workflow trigger and surfaces a clear
-# error message when a tag falls outside accepted channels. Today
-# the allowed channels are bare semver (current stable), `alpha`,
-# `beta`, `rc.N` (all accepted for backwards compat). Edit the
-# regex in `validate` to add or remove a channel.
 on:
   push:
     tags:
@@ -19,9 +11,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Cheap pre-flight gate. Runs on ubuntu in seconds and fails fast if the
-  # tag was pushed from a branch that isn't on main, before we spin up the
-  # macOS runner or revalidate CI.
   validate:
     name: Validate tag
     runs-on: ubuntu-latest
@@ -32,13 +21,6 @@ jobs:
           fetch-depth: 0
 
       - name: Validate tag matches an accepted release channel
-        # Trigger-level pattern (`*.*.*` + `*.*.*-*`) accepts any semver
-        # shape so future channels don't require workflow edits. This
-        # step asserts the shape matches the channel allowlist below;
-        # anything outside it (e.g. `1.0.0-experimental`,
-        # `1.0.0-foo.bar`) aborts before we spin up the macOS runner.
-        # Edit the regex to add or remove channels — that's the single
-        # knob for release-channel policy.
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
@@ -60,45 +42,18 @@ jobs:
           fi
           echo "Validated: ${{ github.ref_name }} is on main branch"
 
-  # Re-run the full CI suite on the exact tagged SHA via workflow_call.
-  # This replaces the previous "wait for ci.yml on this commit" polling
-  # step: instead of racing GitHub's run registration with `gh run watch`,
-  # we own the run as a dependency. If CI fails here, build-macos never
-  # starts and we don't pay for a macOS runner.
   ci:
     name: CI
     needs: validate
     uses: ./.github/workflows/ci.yml
-    # Force the full frontend + rust matrix on release runs so a tag
-    # push can never short-circuit a check via paths-filter (e.g. if
-    # the only diff between the previous push and the tag commit was
-    # the version bump in package.json + tauri.conf.json, which is
-    # NOT in the frontend or rust filter set). Releases must always
-    # run both suites against the exact tagged SHA.
     with:
       force_all: true
 
-  # Playwright suite on the tagged SHA. Runs in parallel with `ci` (no
-  # shared dependencies), and `build-macos` waits on both. A failing E2E
-  # blocks the release — see e2e.yml for why this is the gate.
   e2e:
     name: E2E
     needs: validate
     uses: ./.github/workflows/e2e.yml
 
-  # Security audits (npm + cargo + supply-chain quarantine) on the
-  # tagged SHA. Runs in parallel with ci + e2e. Wired here because
-  # security.yml no longer runs on push:main — a release tag is the
-  # post-merge surfacing point that catches an advisory or a
-  # quarantine regression slipping past the PR check.
-  #
-  # NOT in `build-macos.needs` on purpose: a security finding (e.g.
-  # a transitive advisory published between the PR merge and the tag
-  # push) is informational at release time, not a hard block. The
-  # finding shows up as a failed check on the release run for the
-  # maintainer to act on, but the macOS build still ships. Promote
-  # this to a blocker by adding `security` back to `build-macos.needs`
-  # if the policy changes.
   security:
     name: Security
     needs: validate
@@ -119,8 +74,6 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          # Share the rust-cache slot with nightly.yml — same cargo
-          # invocation, same artifacts.
           rust-cache-key: macos-release-aarch64
 
       - name: Generate changelog
@@ -128,22 +81,12 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
-          # Restrict PREV_TAG lookup to semver-shaped tags so mutable
-          # channel tags (e.g. `nightly`, which is rewritten on every
-          # accepted main commit by nightly.yml) never get picked as
-          # the previous release. Without this filter, nightly would
-          # sort to the top of `--sort=-version:refname` and produce
-          # an empty/near-empty commit range.
           PREV_TAG=$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
           if [ -z "$PREV_TAG" ]; then
             RANGE="$TAG"
           else
             RANGE="${PREV_TAG}..${TAG}"
           fi
-          # `grep -v` exits 1 when no lines match, which under `set -e`
-          # would kill the step for a release whose only commit is the
-          # version bump. Append `|| true` so an empty changelog is
-          # treated as a valid (if uninteresting) outcome.
           COMMITS=$(git log --pretty=format:"- %s (%h)" "$RANGE" | grep -v "^- chore: bump version" || true)
           {
             echo "commits<<CHANGELOG_EOF"
@@ -154,12 +97,6 @@ jobs:
 
       - name: Build Tauri app
         id: tauri
-        # Pinned by commit SHA, not tag — this action handles Apple
-        # signing certs, notarization credentials, and the Tauri
-        # auto-update signing key. A compromised maintainer account
-        # publishing a malicious "v0.6.x" could exfiltrate every secret
-        # in the env block below. Dependabot still bumps this entry
-        # because of the trailing `# v0.6.2` tag comment.
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -175,15 +112,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
-          # Without this, tauri-action defaults target_commitish to the
-          # tagged commit (context.sha). If anything lands on main while
-          # this job builds (~10 min), that commit is no longer the head
-          # and GitHub rejects the create-release call from GITHUB_TOKEN
-          # with "Resource not accessible by integration" (403) — a
-          # contents:write Actions token can only cut releases at the
-          # current head. `main` resolves to the head at creation time,
-          # and is ignored entirely when the tag already exists (the
-          # normal case here, since the tag push triggered this run).
+          # A contents:write token can only create a release at the current head.
           releaseCommitish: main
           args: '--target aarch64-apple-darwin'
           releaseBody: |
@@ -213,9 +142,6 @@ jobs:
           set -euo pipefail
           cd src-tauri/target/aarch64-apple-darwin/release/bundle
           CHECKSUM_FILE="checksums-sha256.txt"
-          # Emit basenames (not `dmg/<file>`) so the published block matches
-          # the release asset names and `shasum -a 256 -c checksums-sha256.txt`
-          # works in the directory the user downloaded them into.
           find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | while read -r file; do
             shasum -a 256 "$file" | awk -v n="$(basename "$file")" '{print $1 "  " n}' >> "$CHECKSUM_FILE"
           done
@@ -232,12 +158,6 @@ jobs:
             --clobber
 
       - name: Publish checksums in the release body
-        # The release body is written by `tauri-action` BEFORE the bundle
-        # exists, so the checksums cannot be interpolated there. Read the
-        # published body back, drop any previous checksums section (the
-        # nightly release is reused across runs) and re-append the current
-        # one. Reading the body back instead of re-rendering it also keeps
-        # commit subjects out of the shell.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

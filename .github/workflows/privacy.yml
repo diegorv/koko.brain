@@ -22,9 +22,7 @@ on:
       - "PRIVACY.md"
       - ".github/workflows/privacy.yml"
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/run-all.yml`.
   workflow_call:
-
 concurrency:
   group: privacy-${{ github.ref }}
   cancel-in-progress: true
@@ -40,19 +38,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # ── TypeScript / Svelte / JS scan ─────────────────────────────────
-      # Native browser APIs, HTTP libraries, hardcoded URLs. Tests
-      # (`*.test.ts` / `*.spec.ts`), node_modules, generated SvelteKit
-      # output, `.d.ts:` annotations, the E2E mock layer, the
-      # `// privacy-ok` opt-out marker, and inline comment lines are
-      # all skipped.
       - uses: ./.github/actions/scan-external-calls
         with:
           language-label: TypeScript/Svelte
           root: src
           include-globs: "*.ts,*.svelte,*.js"
           patterns: |
-            # Native APIs
             fetch\s*\(
             XMLHttpRequest
             navigator\.sendBeacon
@@ -61,21 +52,17 @@ jobs:
             \.open\s*\(\s*["\x27](?:GET|POST|PUT|DELETE|PATCH)
             RTCPeerConnection
             navigator\.geolocation
-            # External resource loading
             script\.src\s*=
             iframe\.src\s*=
             new\s+Image\s*\(.*\.src\s*=
             new\s+Worker\s*\(
             new\s+SharedWorker\s*\(
             ServiceWorker\.register
-            # HTTP libraries (import/require)
             import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b
             require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)
-            # External API clients
             @doist/todoist-api-typescript
             @tauri-apps/plugin-http
             @sentry/browser
-            # Hardcoded URLs
             https?://
           skip: |
             \.test\.ts
@@ -88,11 +75,9 @@ jobs:
             tauri\.localhost
             e2e/
             privacy-ok
-            # Comment lines (no network calls)
             :\s*//
             :\s*\*
             :\s*/\*
-            # Non-network inline references
             w3\.org
             example\.com
           known: |
@@ -100,23 +85,15 @@ jobs:
             todoist\.com
             @doist/todoist-api-typescript
             @tauri-apps/plugin-http
-            # Sentry error monitoring is user-configured per vault and only
-            # starts after explicit consent. See PRIVACY.md.
             @sentry/browser
             ingest(\.us|\.de)?\.sentry\.io
 
-      # ── Rust scan ─────────────────────────────────────────────────────
-      # HTTP clients, raw networking primitives, hardcoded URLs. Test
-      # files / target dir / privacy-ok / localhost references are
-      # skipped. The huggingface model URL used by the offline semantic
-      # search downloader is on the known list.
       - uses: ./.github/actions/scan-external-calls
         with:
           language-label: Rust
           root: src-tauri/src
           include-globs: "*.rs"
           patterns: |
-            # HTTP clients
             reqwest
             hyper::client
             surf::
@@ -126,12 +103,9 @@ jobs:
             isahc::
             minreq::
             awc::
-            # gRPC
             tonic::transport
-            # Raw networking
             TcpStream::connect
             UdpSocket::connect
-            # Hardcoded URLs
             https?://
           skip: |
             _test\.rs
@@ -140,15 +114,9 @@ jobs:
             localhost
             127\.0\.0\.1
             privacy-ok
-            # Reserved documentation domain (RFC 2606), never a real endpoint
             example\.com
-            # Rust doc-comment lines (/// ...) make no network calls
             :\s*///
           known: |
             huggingface\.co/Xenova/bge-m3
             huggingface\.co/onnx-community/bge-reranker-v2-m3-ONNX
-            # Auto-updater latest.json endpoints (stable + nightly channels).
-            # The constants live in src/commands/update_channel.rs and feed
-            # the Tauri updater's per-channel endpoint selection. See
-            # docs/RELEASE-CHANNELS.md for the full pipeline.
             github\.com/diegorv/koko\.brain/releases

@@ -1,26 +1,5 @@
 name: Nightly
 
-# Nightly build, published as a single fixed pre-release at tag
-# `nightly`. The release entry is never deleted: `tauri-action` reuses
-# it, overwriting the assets whose filename repeats (`latest.json`),
-# and the prune step near the end removes the previous run's
-# version-stamped leftovers once the build has succeeded. The
-# `nightly` tag is moved to the built commit as the last step, so a
-# build that fails inside `tauri-action` leaves both the tag and the
-# assets on the last good build. A failure in the publish steps AFTER
-# the build (checksums, prune, smoke check) still swaps the assets and
-# leaves the tag one commit behind; the assets are what the updater
-# reads, so that is the harmless side of the trade.
-#
-# Triggers:
-#   - `push: main`: every accepted commit on main produces a nightly.
-#     The `guard` job below short-circuits the version-bump commit
-#     (release.yml owns those SHAs) and any commit carrying a
-#     `[skip nightly]` marker, so the stable release flow does not
-#     race with this workflow.
-#   - `workflow_dispatch`: manual cut for cases where a re-run is
-#     needed without a new commit (e.g. flake retry, secret rotation).
-
 permissions:
   contents: read
 
@@ -37,26 +16,11 @@ on:
       - ".scratch/**"
       - "help/**"
   workflow_dispatch:
-
 concurrency:
-  # Manual dispatches are infrequent, but back-to-back triggers should
-  # still produce the LATEST nightly rather than queue stale ones.
   group: nightly
   cancel-in-progress: true
 
 jobs:
-  # Cheap fast-fail guard for forks AND for the redundant version-bump
-  # commit case. Without the fork guard, every fork that accepts pushes
-  # to its own `main` would attempt to publish nightlies to its own
-  # GitHub Releases — wasted CI and confusing notifications for fork
-  # maintainers. The version-bump skip prevents the stable release flow
-  # from duplicating work: `chore: bump version to X.Y.Z` lands on
-  # main first, then the tag push triggers release.yml. Without this
-  # skip, nightly.yml builds the same SHA in parallel for ~30 minutes
-  # and publishes a nightly that's effectively the upcoming stable.
-  #
-  # Both checks run on ubuntu in seconds; if either fails or sets
-  # should_build=false, the macOS runner never spins up.
   guard:
     name: Repository guard
     runs-on: ubuntu-latest
@@ -74,28 +38,6 @@ jobs:
 
       - name: Skip if commit is a stable version bump
         id: check
-        # Two-layer detection so a release commit always skips nightly,
-        # regardless of how the commit was authored:
-        #
-        # 1. Authoritative: ask the GitHub API whether any release tag
-        #    points at this SHA. release.sh pushes the bump commit and
-        #    the tag together, so by the time the runner reaches this
-        #    step the tag is almost always already on origin. If the
-        #    tag is there, release.yml is going to handle this SHA and
-        #    nightly must back off.
-        #
-        # 2. Fallback: subject-prefix match for the brief race window
-        #    where the tag push hasn't landed yet. Accepts any
-        #    `chore(...)? : ... bump version ...` shape so a future
-        #    rename of release.sh's commit message (e.g.
-        #    `chore(release): bump version to X`) doesn't silently
-        #    re-enable duplicate builds. Also matches an explicit
-        #    `[skip nightly]` marker anywhere in the commit body for
-        #    out-of-band manual skips.
-        #
-        # COMMIT_MSG is read via env (not inline ${{ ... }}) to neutralize
-        # shell-metacharacter injection from commit subjects. `|| ''`
-        # covers workflow_dispatch where head_commit is null.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
@@ -111,12 +53,7 @@ jobs:
             exit 0
           fi
 
-          # Bash `[[ =~ ]]` parses unescaped parentheses inside the
-          # regex literal as conditional-expression grouping, not as
-          # regex grouping (`syntax error in conditional expression:
-          # unexpected token ')'`). Assigning the pattern to a variable
-          # bypasses the shell parser — the regex engine then sees the
-          # raw pattern via parameter expansion.
+          # In a variable: inline, bash parses the regex parentheses itself.
           release_subject_re='^chore(\([^)]*\))?:.*bump[[:space:]]+version'
           if [[ "$SUBJECT" =~ $release_subject_re ]]; then
             echo "::notice::Detected version-bump commit shape ('$SUBJECT'). Skipping nightly to avoid colliding with release.yml."
@@ -133,24 +70,6 @@ jobs:
           echo "Proceeding: '$SUBJECT' is not a release-flow commit."
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
-  # Reuse the existing CI suite on this commit. Same workflow_call
-  # contract release.yml uses, but without forcing the paths-filter
-  # bypass: a docs-only or workflow-only commit that lands on main
-  # should not re-run the frontend + rust suites on the nightly path.
-  # If the commit actually changed source, the paths-filter still
-  # gates the relevant job. `e2e` has no such filter of its own, so it
-  # runs in full for every nightly-eligible commit.
-  #
-  # Nothing gates the nightly build: `ci` and `e2e` run alongside
-  # `build-macos`, not before it. The nightly channel is opt-in and
-  # labelled pre-release, so a red check is signal for the maintainer
-  # rather than a reason to withhold the artifact — and the stable
-  # release.yml keeps both as hard gates on the tagged SHA.
-  #
-  # security.yml is deliberately absent: it already triggers on
-  # `push: main` for this same SHA. Calling it here too would put two
-  # runs in the `security-refs/heads/main` concurrency group and
-  # cancel-in-progress would kill one mid-run.
   ci:
     name: CI
     needs: guard
@@ -174,19 +93,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          # Need the full history for `git rev-list --count HEAD` so the
-          # nightly version string carries a monotonic numeric prerelease
-          # identifier (see src/lib/utils/build-info.js for why this is
-          # required by the semver-based auto-updater comparison).
           fetch-depth: 0
 
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          # Share the rust-cache slot with release.yml — both run the
-          # same `cargo build --release --target aarch64-apple-darwin`,
-          # so a successful build in either primes the cache for the
-          # other.
           rust-cache-key: macos-release-aarch64
 
       - name: Compute nightly version
@@ -196,10 +107,6 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           COMMIT_COUNT=$(git rev-list --count HEAD)
           BASE_VERSION=$(jq -r '.version' package.json)
-          # Bump minor+1 so the nightly prerelease is semver-greater than
-          # the current stable (e.g. 2.8.0 → 2.9.0-nightly.1234.abc).
-          # Without this, semver rules make X.Y.Z-pre < X.Y.Z, and the
-          # auto-updater would "downgrade" nightly users to stable.
           IFS='.' read -r MAJOR MINOR PATCH <<< "$(echo "$BASE_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')"
           NEXT_MINOR="$((MINOR + 1))"
           NIGHTLY_BASE="${MAJOR}.${NEXT_MINOR}.0"
@@ -211,21 +118,6 @@ jobs:
           echo "Computed nightly version: ${NIGHTLY_VERSION}"
 
       - name: Patch tauri.conf.json with nightly version
-        # In-place edit, job-scoped — no commit. Tauri reads the version
-        # from `src-tauri/tauri.conf.json` for the bundle's Info.plist
-        # and for the `latest.json` it writes alongside the DMG, so this
-        # file must carry the channel-aware nightly version.
-        #
-        # We intentionally do NOT patch `package.json`: Vite reads it for
-        # `__BUILD_INFO__`, but `src/lib/utils/build-info.js`'s
-        # `resolveVersion()` already appends the
-        # `-nightly.<count>.<sha>` suffix when `KOKO_RELEASE_CHANNEL=nightly`,
-        # so a patched pkg.json would produce a doubled suffix (we saw
-        # this in run 25819389393: build info read
-        # `2.0.19-alpha-nightly.544.0adf7da-nightly.544.0adf7da`).
-        # Leaving package.json at the unpatched base version keeps the
-        # helper as the single source of truth for the nightly suffix
-        # and matches the existing build-info.test.ts expectations.
         run: |
           set -euo pipefail
           NIGHTLY_VERSION="${{ steps.ver.outputs.nightly_version }}"
@@ -271,58 +163,23 @@ jobs:
             echo "NIGHTLY_BODY_EOF"
           } >> "$GITHUB_OUTPUT"
 
+      # Never delete the release up front: a failed build would 404 the updater.
       - name: Snapshot current nightly assets
-        # The previous nightly release is deliberately NOT deleted here.
-        # `tauri-action` runs `buildProject()` before it touches the
-        # release API at all (src/index.ts), so a failing build leaves
-        # the published release untouched — but only if we haven't
-        # already removed it ourselves. Deleting up front meant any
-        # build/notarization failure left `releases/download/nightly/
-        # latest.json` returning 404 until the next green run, breaking
-        # the updater for every nightly user in the meantime.
-        #
-        # Instead we record the asset ids that exist right now and prune
-        # them after a successful build. Two filenames repeat across
-        # runs: `latest.json` (deleted and re-uploaded by tauri-action)
-        # and `checksums-sha256.txt` (replaced by `gh release upload
-        # --clobber`). Both get a NEW id, so the recorded id 404s on
-        # delete and is skipped. Every other asset carries the version
-        # string (`<version>_aarch64.dmg`, `.app.tar.gz`, `.sig`), so
-        # its name changes each run and the recorded id is the genuinely
-        # stale file we want gone.
-        #
-        # The un-draft line restores what delete+recreate gave us for
-        # free: `getOrCreateRelease` only reuses NON-draft releases, so
-        # a nightly release left in draft state would make every future
-        # run try to create a release at an existing tag and fail until
-        # someone intervened by hand.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          # Must come from the REST API, not `gh release view`: the view
-          # command's `.assets[].id` is the GraphQL node ID (`RA_kwDO...`),
-          # which the REST DELETE endpoint rejects with a 404 — every prune
-          # would silently skip and stale DMGs would accumulate forever
-          # (observed 2026-08-19: 6 generations of assets on the release).
+          # REST ids, not `gh release view` GraphQL ids, or every DELETE 404s.
           gh api repos/${{ github.repository }}/releases/tags/nightly --jq '.assets[].id' > stale-asset-ids.txt 2>/dev/null || true
           echo "Recorded $(wc -l < stale-asset-ids.txt | tr -d ' ') existing asset(s)."
           gh release edit nightly --draft=false 2>/dev/null || true
 
       - name: Build Tauri app
         id: tauri
-        # Pinned by commit SHA, not tag — this action handles Apple
-        # signing certs, notarization credentials, and the Tauri
-        # auto-update signing key. Same security pattern as release.yml.
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: "--max-old-space-size=4096"
-          # Drives `__APP_CHANNEL__` and the nightly version string in
-          # `__BUILD_INFO__` via src/lib/utils/build-info.js. The
-          # tauri.conf.json patch above sets the bundle's Info.plist
-          # version, but the Vite-injected runtime constants come from
-          # this env var.
           KOKO_RELEASE_CHANNEL: nightly
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -345,9 +202,6 @@ jobs:
           set -euo pipefail
           cd src-tauri/target/aarch64-apple-darwin/release/bundle
           CHECKSUM_FILE="checksums-sha256.txt"
-          # Emit basenames (not `dmg/<file>`) so the published block matches
-          # the release asset names and `shasum -a 256 -c checksums-sha256.txt`
-          # works in the directory the user downloaded them into.
           find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | while read -r file; do
             shasum -a 256 "$file" | awk -v n="$(basename "$file")" '{print $1 "  " n}' >> "$CHECKSUM_FILE"
           done
@@ -364,12 +218,6 @@ jobs:
             --clobber
 
       - name: Publish checksums in the release body
-        # The release body is written by `tauri-action` BEFORE the bundle
-        # exists, so the checksums cannot be interpolated there. Read the
-        # published body back, drop any previous checksums section (the
-        # nightly release is reused across runs) and re-append the current
-        # one. Reading the body back instead of re-rendering it also keeps
-        # commit subjects out of the shell.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -386,14 +234,6 @@ jobs:
           gh release edit "$TAG" --notes-file body.md
 
       - name: Prune stale assets and re-assert the pre-release flag
-        # Runs only on a successful build (default `if: success()`), and
-        # after the checksum upload, so at no point does the release
-        # advertise a file it no longer has. A 404 on delete means
-        # tauri-action or `--clobber` already replaced that asset with a
-        # new id. The `--prerelease` edit re-asserts the flag the reuse
-        # path cannot set: `getOrCreateRelease` passes `prerelease` only
-        # when it CREATES the release, so without this a release that
-        # got un-flagged would stay un-flagged forever.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -409,20 +249,6 @@ jobs:
           gh release edit nightly --prerelease
 
       - name: Verify nightly latest.json is reachable and well-formed
-        # Post-publish smoke check. GitHub's CDN can lag by ~30 seconds
-        # after a release upload completes, so we poll with a short
-        # back-off rather than hitting the URL once. The assertion
-        # focuses on the structure the Tauri updater actually reads:
-        # the top-level `version` field plus the per-platform `url` and
-        # `signature` for `darwin-aarch64`. A 200 with garbage JSON is
-        # worse than a 404 — the updater would silently fail later.
-        #
-        # The version check lives INSIDE the retry loop on purpose.
-        # Since the release is no longer deleted before the build, a
-        # lagging read returns the previous run's latest.json with a
-        # perfectly valid 200 instead of a 404. Retrying only on
-        # transport failure would hard-fail on attempt 1 during exactly
-        # the propagation window this loop exists to absorb.
         run: |
           set -euo pipefail
           URL="https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json"
@@ -461,24 +287,8 @@ jobs:
           fi
           echo "Smoke check passed: version=$GOT_VERSION, bundle=$BUNDLE_URL, signature length=${#SIGNATURE}"
 
+      # Last on purpose, so a failed build leaves the tag on the published assets.
       - name: Point the nightly tag at this commit
-        # LAST step on purpose. `tauri-action` only sets a tag when it
-        # CREATES the release; on the reuse path updateRelease cannot
-        # move it, and the old flow moved it implicitly via
-        # `gh release delete --cleanup-tag` + recreate. Doing it here
-        # means a run that dies in the build — the common failure, since
-        # `tauri-action` builds before it touches the release API —
-        # leaves the tag on the commit whose assets are published.
-        # Moving it up front desynced the tag on EVERY failure, and
-        # GitHub generates the "Source code" archives from the tag at
-        # download time, so the sources would no longer match the DMG.
-        # A failure in the post-build publish steps still leaves the tag
-        # one commit behind the assets; that residual case is not worth
-        # a rollback dance.
-        #
-        # No workflow triggers on this tag (release.yml matches `*.*.*`
-        # and `*.*.*-*`, which both require two literal dots), and
-        # GITHUB_TOKEN pushes do not trigger workflows anyway.
         run: |
           set -euo pipefail
           git push --force origin "HEAD:refs/tags/nightly"

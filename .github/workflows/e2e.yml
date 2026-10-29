@@ -1,34 +1,11 @@
 name: E2E
 
-# Playwright end-to-end suite, in its own workflow rather than as a CI job.
-#
-# Scope:
-#   - workflow_call: the pull_request gate lives in pr.yml now — it calls
-#     this workflow (change-gated on the frontend paths that used to be
-#     this file's pull_request filter) and folds it into the aggregate
-#     `PR success` check. Also invoked by release.yml on tag push as a
-#     hard gate for the macOS build (release builds never publish without
-#     E2E passing), and by run-all.yml for manual full-sweep runs.
-#   - workflow_dispatch: manual run.
-#
-# Intentionally NOT triggered on push:main. nightly.yml makes the
-# post-merge invocation via workflow_call (for the commits it builds
-# at all — it skips docs-only and version-bump SHAs), where this suite
-# runs for signal only and does not gate the nightly build. The only
-# post-merge E2E *gate* is at release time, where it blocks the build
-# alongside frontend+rust.
-
 permissions:
   contents: read
 
 on:
   workflow_dispatch:
-  # Reusable: invoked by `.github/workflows/pr.yml` (the pull_request
-  # gate, change-gated on frontend paths), `.github/workflows/release.yml`
-  # (as a gate before build-macos), `.github/workflows/nightly.yml`
-  # (signal only, gates nothing), and `.github/workflows/run-all.yml`.
   workflow_call:
-
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
