@@ -327,6 +327,7 @@ describe('vault-files-changed handling', () => {
 
 	it('performs full refresh when more than 5 parent directories change', async () => {
 		const { emit } = await setupWatcher();
+		fsStore.setFileTree(Array.from({ length: 6 }, (_, i) => makeDir(`dir${i}`, `/vault/dir${i}`)));
 		const paths = Array.from({ length: 6 }, (_, i) => `/vault/dir${i}/file.md`);
 
 		emit(paths);
@@ -386,9 +387,11 @@ describe('vault-files-changed handling', () => {
 		onFileChange(listener);
 
 		const { emit } = await setupWatcher();
+		fsStore.setFileTree(['a', 'b', 'c', 'd', 'e', 'f'].map((n) => makeDir(n, `/vault/${n}`)));
 		emit(['/vault/a/1.md', '/vault/b/2.md', '/vault/c/3.md', '/vault/d/4.md', '/vault/e/5.md', '/vault/f/6.md']);
 		await new Promise((r) => setTimeout(r, 0));
 
+		expect(refreshTree).toHaveBeenCalled();
 		expect(listener).toHaveBeenCalledWith(expect.arrayContaining(['/vault/a/1.md']));
 	});
 
@@ -430,6 +433,125 @@ describe('vault-files-changed handling', () => {
 		expect(fsStore.fileTree).toEqual([
 			{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] },
 		]);
+	});
+
+	/** Routes `scan_vault` calls to `scans[path]`; every other command resolves undefined. */
+	function mockScans(scans: Record<string, FileTreeNode[]>) {
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			if (cmd !== 'scan_vault') return undefined;
+			const path = (args as { path: string }).path;
+			if (!(path in scans)) throw new Error(`unexpected scan of ${path}`);
+			return scans[path];
+		});
+	}
+
+	function scannedPaths(): string[] {
+		return vi.mocked(invoke).mock.calls
+			.filter(([cmd]) => cmd === 'scan_vault')
+			.map(([, args]) => (args as { path: string }).path);
+	}
+
+	it('shows files created inside a chain of new folders by rescanning the nearest existing ancestor', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeDir('docs', '/vault/docs', [makeFile('old.md', '/vault/docs/old.md')])]);
+		mockScans({
+			'/vault/docs': [
+				makeDir('new-a', '/vault/docs/new-a', [
+					makeDir('new-b', '/vault/docs/new-a/new-b', [makeFile('file.md', '/vault/docs/new-a/new-b/file.md')]),
+				]),
+				makeFile('old.md', '/vault/docs/old.md'),
+			],
+		});
+
+		emit(['/vault/docs/new-a/new-b/file.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scannedPaths()).toEqual(['/vault/docs']);
+		expect(refreshTree).not.toHaveBeenCalled();
+		const docs = fsStore.fileTree[0];
+		expect(docs.children!.map((n) => n.name)).toEqual(['new-a', 'old.md']);
+		const newA = docs.children![0];
+		expect(newA.children![0].name).toBe('new-b');
+		expect(newA.children![0].children!.map((n) => n.path)).toEqual(['/vault/docs/new-a/new-b/file.md']);
+	});
+
+	it('rescans the vault root when the new folder sits directly under it', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeFile('root.md', '/vault/root.md')]);
+		mockScans({
+			'/vault': [
+				makeDir('fresh', '/vault/fresh', [makeFile('a.md', '/vault/fresh/a.md')]),
+				makeFile('root.md', '/vault/root.md'),
+			],
+		});
+
+		emit(['/vault/fresh/a.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scannedPaths()).toEqual(['/vault']);
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/fresh', '/vault/root.md']);
+		expect(fsStore.fileTree[0].children!.map((n) => n.path)).toEqual(['/vault/fresh/a.md']);
+	});
+
+	it('still rescans only the folder itself when it is already in the tree', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([
+			makeDir('docs', '/vault/docs', [makeDir('sub', '/vault/docs/sub', [])]),
+		]);
+		mockScans({ '/vault/docs/sub': [makeFile('n.md', '/vault/docs/sub/n.md')] });
+
+		emit(['/vault/docs/sub/n.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scannedPaths()).toEqual(['/vault/docs/sub']);
+		expect(fsStore.fileTree[0].children![0].children!.map((n) => n.path)).toEqual(['/vault/docs/sub/n.md']);
+	});
+
+	it('deduplicates walked-up parents so many new folders under one ancestor stay incremental', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeDir('docs', '/vault/docs', [])]);
+		mockScans({ '/vault/docs': [] });
+
+		emit(Array.from({ length: 6 }, (_, i) => `/vault/docs/examples/set${i}/file.md`));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scannedPaths()).toEqual(['/vault/docs']);
+		expect(refreshTree).not.toHaveBeenCalled();
+		expect(getWatcherCounters().incrementalRefreshes).toBe(1);
+	});
+
+	it('performs full refresh when more than 5 distinct parents remain after the walk-up', async () => {
+		const { emit } = await setupWatcher();
+		const dirs = Array.from({ length: 6 }, (_, i) => makeDir(`d${i}`, `/vault/d${i}`, []));
+		fsStore.setFileTree(dirs);
+		mockScans({});
+
+		emit(dirs.map((d) => `${d.path}/new/file.md`));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scannedPaths()).toEqual([]);
+		expect(refreshTree).toHaveBeenCalled();
+		expect(getWatcherCounters().fullRefreshes).toBe(1);
+	});
+
+	it('applies folder order to the subtree of the walked-up ancestor', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeDir('docs', '/vault/docs', [])]);
+		fsStore.setFolderOrder({ 'docs/new': ['zeta', 'alpha'] });
+		mockScans({
+			'/vault/docs': [
+				makeDir('new', '/vault/docs/new', [
+					makeDir('alpha', '/vault/docs/new/alpha', []),
+					makeDir('zeta', '/vault/docs/new/zeta', [makeFile('z.md', '/vault/docs/new/zeta/z.md')]),
+				]),
+			],
+		});
+
+		emit(['/vault/docs/new/zeta/z.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		const newDir = fsStore.fileTree[0].children![0];
+		expect(newDir.children!.map((n) => n.name)).toEqual(['zeta', 'alpha']);
 	});
 
 	it('emits empty paths array as a no-op', async () => {

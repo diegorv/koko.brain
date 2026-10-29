@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, applyFolderOrder, attachFileCounts } from './fs.logic';
+import { applyFolderOrder, attachFileCounts, resolveRescanParents } from './fs.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import type { FileTreeNode } from './fs.types';
 
@@ -119,7 +119,7 @@ interface VaultFilesChangedPayload {
 
 /**
  * Handles a single Rust-emitted batch. Decides between incremental
- * (subtree rescan for ≤5 unique parent dirs) and full (`refreshTree`)
+ * (subtree rescan for ≤5 parent dirs, as picked by `resolveRescanParents`) and full (`refreshTree`)
  * refresh, then notifies listeners. Mirrors the previous TS handler
  * minus the debounce + filter (now Rust-side).
  */
@@ -145,22 +145,15 @@ async function handleChangedPaths(changedPaths: string[]) {
 		return;
 	}
 
-	// Determine unique parent directories that need rescanning.
-	const parentsToRescan = new Set<string>();
-	for (const changedPath of changedPaths) {
-		const parent = getParentPath(changedPath);
-		if (parent.startsWith(vaultPath)) {
-			parentsToRescan.add(parent);
-		}
-	}
+	const parentsToRescan = resolveRescanParents(changedPaths, vaultPath, fsStore.fileTree);
 
 	// Too many changes or no specific paths — full rescan.
-	if (parentsToRescan.size === 0 || parentsToRescan.size > 5) {
+	if (parentsToRescan.length === 0 || parentsToRescan.length > 5) {
 		counters.fullRefreshes++;
 		await refreshTree();
 		if (watchVersion !== version) return;
 		notifyListeners(changedPaths);
-		logElapsed(`full — ${parentsToRescan.size} parents`);
+		logElapsed(`full — ${parentsToRescan.length} parents`);
 		return;
 	}
 
@@ -194,7 +187,7 @@ async function handleChangedPaths(changedPaths: string[]) {
 	attachFileCounts(currentTree);
 	fsStore.setFileTree(currentTree);
 	notifyListeners(changedPaths);
-	logElapsed(`incremental — ${parentsToRescan.size} parents`);
+	logElapsed(`incremental — ${parentsToRescan.length} parents`);
 }
 
 /** Starts the Rust-native vault watcher and subscribes to its events. */

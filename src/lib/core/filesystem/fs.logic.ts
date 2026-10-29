@@ -257,6 +257,32 @@ export function collectAllDirPaths(nodes: FileTreeNode[]): Set<string> {
 }
 
 /**
+ * Picks the directories to rescan for a batch of changed paths.
+ *
+ * Each changed path maps to its parent directory. A parent that is not in
+ * `tree` yet (a folder created outside the app) is walked up to the nearest
+ * ancestor that is, or to the vault root: patching a subtree under a node
+ * the tree lacks is a silent no-op, so the new folder would never appear.
+ * Because `scan_vault` is recursive, a parent nested under another parent
+ * in the result is dropped. Parents outside the vault are skipped.
+ */
+export function resolveRescanParents(changedPaths: string[], vaultPath: string, tree: FileTreeNode[]): string[] {
+	const inVault = (p: string) => p === vaultPath || p.startsWith(vaultPath + '/');
+	const dirsInTree = collectAllDirPaths(tree);
+	const parents = new Set<string>();
+	for (const changedPath of changedPaths) {
+		let parent = getParentPath(changedPath);
+		if (!inVault(parent)) continue;
+		while (parent !== vaultPath && !dirsInTree.has(parent)) {
+			parent = getParentPath(parent);
+		}
+		parents.add(parent);
+	}
+	if (parents.has(vaultPath)) return [vaultPath];
+	return [...parents].filter((p) => ![...parents].some((q) => p.startsWith(q + '/')));
+}
+
+/**
  * Returns the tree without the node at `path` (and, for a folder, everything
  * under it). Untouched branches keep their identity; the input is not mutated.
  * Returns `nodes` itself when no node has that path.

@@ -22,6 +22,7 @@ import {
 	applyFolderOrder,
 	attachFileCounts,
 	removeNodeByPath,
+	resolveRescanParents,
 } from '#lib/core/filesystem/fs.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
@@ -514,6 +515,60 @@ describe('collectAllDirPaths', () => {
 			{ name: 'a.md', path: '/vault/a.md', isDirectory: false },
 		];
 		expect(collectAllDirPaths(tree)).toEqual(new Set());
+	});
+});
+
+describe('resolveRescanParents', () => {
+	const tree: FileTreeNode[] = [
+		{
+			name: 'docs', path: '/vault/docs', isDirectory: true, children: [
+				{ name: 'sub', path: '/vault/docs/sub', isDirectory: true, children: [] },
+			],
+		},
+		{ name: 'other', path: '/vault/other', isDirectory: true, children: [] },
+	];
+
+	it('keeps a parent that is already in the tree', () => {
+		expect(resolveRescanParents(['/vault/docs/sub/a.md'], '/vault', tree)).toEqual(['/vault/docs/sub']);
+	});
+
+	it('keeps the vault root for a file directly under it', () => {
+		expect(resolveRescanParents(['/vault/a.md'], '/vault', tree)).toEqual(['/vault']);
+	});
+
+	it('walks a missing parent up to the nearest folder in the tree', () => {
+		expect(resolveRescanParents(['/vault/docs/new-a/new-b/f.md'], '/vault', tree)).toEqual(['/vault/docs']);
+	});
+
+	it('walks up to the vault root when no ancestor is in the tree', () => {
+		expect(resolveRescanParents(['/vault/fresh/deep/f.md'], '/vault', tree)).toEqual(['/vault']);
+	});
+
+	it('deduplicates parents that collapse to the same ancestor', () => {
+		const paths = ['/vault/docs/x/1.md', '/vault/docs/y/2.md', '/vault/docs/x/3.md'];
+		expect(resolveRescanParents(paths, '/vault', tree)).toEqual(['/vault/docs']);
+	});
+
+	it('drops a parent nested under another parent in the set', () => {
+		const paths = ['/vault/docs/sub/a.md', '/vault/docs/b.md', '/vault/other/c.md'];
+		expect(resolveRescanParents(paths, '/vault', tree)).toEqual(['/vault/docs', '/vault/other']);
+	});
+
+	it('collapses everything into the vault root when the root is rescanned', () => {
+		const paths = ['/vault/docs/sub/a.md', '/vault/new/b.md'];
+		expect(resolveRescanParents(paths, '/vault', tree)).toEqual(['/vault']);
+	});
+
+	it('skips paths outside the vault, including a sibling sharing its prefix', () => {
+		expect(resolveRescanParents(['/elsewhere/a.md', '/vault2/b.md'], '/vault', tree)).toEqual([]);
+	});
+
+	it('returns an empty list for no paths', () => {
+		expect(resolveRescanParents([], '/vault', tree)).toEqual([]);
+	});
+
+	it('walks up to the vault root on an empty tree', () => {
+		expect(resolveRescanParents(['/vault/docs/a.md'], '/vault', [])).toEqual(['/vault']);
 	});
 });
 
