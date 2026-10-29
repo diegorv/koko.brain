@@ -50,3 +50,8 @@ Ticket 66 review (fix 7c772842):
   - `restoreItem` (`src/lib/core/trash/trash.service.ts:155-175`) now swallows a failing `refreshTree` (`scan_vault`) after the rename. Settings > Trash then drops the item with no toast and the note is missing from the file explorer until a later refresh. Consider returning a "restored, refresh failed" flag and showing a warning in `TrashSection.svelte:23-30`.
   - A folder restore whose `refreshTree` throws skips `indexRestoredNotes` entirely, so the folder's notes stay out of VaultIndex/FTS/semantic until a full rescan (same state as before the fix, now without feedback).
   - `trash.service.test.ts:331-344` covers only the file case; add a folder-case test and assert `applyNoteChange` ran before the refresh failure.
+
+- From the post-merge review of ac9cb94b (issue 70 fix), all low:
+  - `EventCalendarSection.test.ts` "keeps the panel open without a second toast" waits one `await Promise.resolve()` before asserting no toast; use `vi.waitFor` on the `creating` reset so the negative check is real.
+  - `EventCalendarSection.svelte:96`: with no vault open the service returns null without a toast and the calendar now returns silently (likely unreachable).
+  - Pre-existing: in the calendar's post-create race branch (file created as `Event 1.md`), `createTypeDefinition` has already opened the stray file before the name-taken toast, and the duplicate is left behind.
