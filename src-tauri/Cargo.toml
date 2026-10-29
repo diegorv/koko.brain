@@ -68,7 +68,11 @@ reqwest = { version = "0.13", features = ["stream"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "fs", "io-util"] }
 tauri-plugin-http = "=3.0.0-alpha.3"
-tauri-plugin-updater = "=3.0.0-alpha.3"
+# Without the default `zip` feature: it only serves the Windows/Linux update
+# paths (macOS updates are .app.tar.gz, extracted with the unconditional
+# tar + flate2 deps), and every 3.0.0-alpha pins zip ^4, which carries
+# RUSTSEC-2026-0367/0368/0369 (fixed in zip 9).
+tauri-plugin-updater = { version = "=3.0.0-alpha.3", default-features = false, features = ["rustls-tls", "system-proxy"] }
 tauri-plugin-process = "=3.0.0-alpha.3"
 url = "2"
 sentry = { version = "0.49.2", default-features = false, features = ["backtrace", "contexts", "panic", "transport"] }

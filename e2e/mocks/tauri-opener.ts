@@ -1,4 +1,4 @@
-export async function revealItemInDir(_path: string): Promise<void> {
+export async function revealItemsInDir(_paths: string | string[]): Promise<void> {
 	// no-op in E2E tests
 }
 
