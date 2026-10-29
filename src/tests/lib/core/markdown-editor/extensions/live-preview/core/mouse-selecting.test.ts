@@ -7,6 +7,8 @@ import {
 	mouseSelectingHandlers,
 	setMouseSelecting,
 } from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
+import { checkUpdateAction } from '#lib/core/markdown-editor/extensions/live-preview/core/check-update-action.js';
+import { revealPredicate } from '#lib/core/markdown-editor/extensions/live-preview/core/reveal.js';
 
 function createState(): EditorState {
 	return EditorState.create({ doc: 'test', extensions: [mouseSelectingField] });
@@ -98,5 +100,60 @@ describe('mouseSelectingHandlers', () => {
 		// The one-shot document listener is gone; a later stray mouseup is a no-op.
 		mouse('mouseup', outside);
 		expect(transactions()).toBe(afterDown + 1);
+	});
+
+	describe('native drag of selected text (no mouseup)', () => {
+		/** Mounts a two-line editor and records `checkUpdateAction` for every update. */
+		function mountWithActions(): { view: EditorView; actions: string[] } {
+			const actions: string[] = [];
+			const view = new EditorView({
+				state: EditorState.create({
+					doc: 'first line\nsecond line',
+					extensions: [
+						mouseSelectingField,
+						mouseSelectingHandlers,
+						EditorView.updateListener.of((u) => {
+							actions.push(checkUpdateAction(u));
+						}),
+					],
+				}),
+				parent: document.body.appendChild(document.createElement('div')),
+			});
+			return { view, actions };
+		}
+
+		/** A browser's native text drag: mousedown, dragstart, drop, dragend; never a mouseup. */
+		function nativeDrag(view: EditorView): void {
+			mouse('mousedown', view.contentDOM);
+			// jsdom has no DragEvent; CodeMirror's drag handlers only read dataTransfer when present.
+			for (const type of ['dragstart', 'drop', 'dragend']) {
+				view.contentDOM.dispatchEvent(new Event(type, { bubbles: true }));
+			}
+		}
+
+		it('clears the drag flag and runs the release rebuild', () => {
+			const { view, actions } = mountWithActions();
+
+			nativeDrag(view);
+
+			expect(view.state.field(mouseSelectingField)).toBe(false);
+			// Mid-drag updates (the mousedown and CodeMirror's own) skip; the drag ends in one rebuild.
+			expect(actions.filter((a) => a === 'rebuild')).toHaveLength(1);
+			expect(actions.at(-1)).toBe('rebuild');
+		});
+
+		it('reveals the cursor line on a selection change after the drop', () => {
+			const { view, actions } = mountWithActions();
+			nativeDrag(view);
+			const before = actions.length;
+
+			const secondLine = view.state.doc.line(2);
+			view.dispatch({ selection: { anchor: secondLine.from } });
+
+			expect(actions.slice(before)).toEqual(['rebuild']);
+			const reveal = revealPredicate(view.state);
+			expect(reveal(secondLine.from, secondLine.to)).toBe(true);
+			expect(reveal(view.state.doc.line(1).from)).toBe(false);
+		});
 	});
 });

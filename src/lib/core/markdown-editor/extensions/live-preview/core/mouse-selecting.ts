@@ -29,6 +29,13 @@ function releaseMouseSelecting(view: EditorView): void {
  * listener on the owner document. The content handler stays because an
  * ancestor between the content DOM and the document (`view.dom`, a Svelte
  * wrapper) may stop the event before it reaches the document.
+ *
+ * A native drag of selected text ends in `drop` / `dragend`, never `mouseup`,
+ * so `dragstart` releases too. It is the one drag event sure to reach the
+ * content DOM: `dragend` targets the source text, which a same-editor move
+ * has already deleted, and `drop` fires in another pane when the text lands
+ * there. Releasing before the drop also lets the drop's edit rebuild with the
+ * cursor's line revealed.
  */
 export const mouseSelectingHandlers = EditorView.domEventHandlers({
 	mousedown: (_e, view) => {
@@ -39,6 +46,10 @@ export const mouseSelectingHandlers = EditorView.domEventHandlers({
 		return false;
 	},
 	mouseup: (_e, view) => {
+		releaseMouseSelecting(view);
+		return false;
+	},
+	dragstart: (_e, view) => {
 		releaseMouseSelecting(view);
 		return false;
 	},
