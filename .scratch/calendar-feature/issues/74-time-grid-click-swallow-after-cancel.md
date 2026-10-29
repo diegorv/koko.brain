@@ -16,3 +16,4 @@
 ## Comments
 
 - 2026-10-28 21:56 — discovery — mirror DayDrag's arm/disarm in EventTimeGrid; plan in work/74/discovery.md — f5671033
+- 2026-10-28 21:57 — implement — EventTimeGrid mirrors DayDrag arm/disarm, detail 0 passes; pnpm check 0 errors, event-calendar vitest 983/983 — a323dfff
