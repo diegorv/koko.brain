@@ -310,10 +310,24 @@ describe('EventPopover: closing', () => {
 		expect(document.activeElement).toBe(outside);
 	});
 
-	it('returns focus to the block, not to a tabindex="-1" wrapper, after an outside click inside it', async () => {
-		const wrapper = document.body.appendChild(document.createElement('div'));
-		wrapper.tabIndex = -1;
-		const text = wrapper.appendChild(document.createElement('span'));
+	it('returns focus to the block, not to the tabindex="-1" root, after a click on empty space in the view', async () => {
+		mountView();
+		const empty = root.appendChild(document.createElement('span'));
+		block(P('Standup')).click();
+		await settle();
+
+		await slowClick(empty);
+		await settle();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(document.activeElement).not.toBe(root);
+		expect(document.activeElement).toBe(block(P('Standup')));
+	});
+
+	it('leaves focus on a tabindex="-1" surface outside the view the user clicked', async () => {
+		const surface = document.body.appendChild(document.createElement('div'));
+		surface.tabIndex = -1;
+		const text = surface.appendChild(document.createElement('span'));
 		mountView();
 		block(P('Standup')).click();
 		await settle();
@@ -322,8 +336,7 @@ describe('EventPopover: closing', () => {
 		await settle();
 
 		expect(eventCalendarViewStore.popover).toBeNull();
-		expect(document.activeElement).not.toBe(wrapper);
-		expect(document.activeElement).toBe(block(P('Standup')));
+		expect(document.activeElement).toBe(surface);
 	});
 
 	it('does not leave focus on <body> when an outside control moves to a week without the event', async () => {

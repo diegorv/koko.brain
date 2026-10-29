@@ -28,8 +28,8 @@
 	/** Set by Duplicate: the copy's block takes focus once it renders, so the close only parks it on the root. */
 	let focusCopy = false;
 
-	/** Elements an outside click may land focus on; a `tabindex="-1"` wrapper (the view root) is not one. */
-	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+	/** Elements an outside click may land focus on. */
+	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
 
 	let target = $derived(eventCalendarViewStore.popover);
 	let event = $derived(target ? eventCalendarStore.events.find((e) => e.path === target.path) : undefined);
@@ -101,7 +101,10 @@
 			return;
 		}
 		const focusable = outside?.isConnected ? outside.closest<HTMLElement>(FOCUSABLE) : null;
-		if (focusable) {
+		// A `tabindex="-1"` wrapper inside this view (the root, the header tablist) is not
+		// where the user meant focus to go; one outside it (another pane) is.
+		const ownWrapper = focusable?.getAttribute('tabindex') === '-1' && root?.contains(focusable);
+		if (focusable && !ownWrapper) {
 			focusable.focus();
 			return;
 		}
