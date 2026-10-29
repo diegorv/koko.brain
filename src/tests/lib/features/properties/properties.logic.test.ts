@@ -388,7 +388,7 @@ describe('setPropertyByBindTarget', () => {
  * serializeProperties for a property shape the Python generator at
  * koko.brain-os/vault/work/people/_generate.py must match. If any of
  * these break, either the canonical form has shifted (intentional —
- * update both this file and the generator) or yaml@2.9.0 has changed
+ * update both this file and the generator) or yaml@2.9.1 has changed
  * (unintentional — re-pin or fix the predicate). Either way the test
  * file is the source of truth.
  */
@@ -526,7 +526,7 @@ describe('canonical form snapshot (serializeProperties)', () => {
 
 describe('serialize — backslash and quote sequences (yaml-quoting integration)', () => {
 	// Mid-string backslashes and double quotes do NOT trigger quoting in
-	// yaml@2.9.0 mapping-value context — they are emitted bare and re-parse
+	// yaml@2.9.1 mapping-value context — they are emitted bare and re-parse
 	// to the same scalar. Leading quote characters DO force quoting.
 	it('emits a mid-string double quote bare', () => {
 		expect(

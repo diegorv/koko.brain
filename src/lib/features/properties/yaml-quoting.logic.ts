@@ -1,5 +1,5 @@
 /**
- * YAML scalar quoting predicate matching yaml@2.9.0 behavior for the
+ * YAML scalar quoting predicate matching yaml@2.9.1 behavior for the
  * options Kokobrain uses ({ lineWidth: 0, flowCollectionPadding: false }).
  *
  * The actual emission is still done by the `yaml` library inside
@@ -72,14 +72,14 @@ export const SCALAR_MUST_QUOTE_SUBSTRINGS: readonly string[] = [
  * Additional substrings that quote inside a flow-sequence item. The comma
  * is the flow-sequence separator and `[ ] { }` are flow indicators, so any
  * of them appearing anywhere in the value (not just leading) would malform
- * the flow collection and forces quoting. yaml@2.9.0 quotes `a[b]c` inside
+ * the flow collection and forces quoting. yaml@2.9.1 quotes `a[b]c` inside
  * a flow sequence but leaves it bare in mapping-value context.
  */
 export const FLOW_ITEM_MUST_QUOTE_SUBSTRINGS: readonly string[] = [',', '[', ']', '{', '}'];
 
 /**
  * Matches strings that parse as YAML core-schema numbers, mirroring the
- * exact resolver regexes yaml@2.9.0 uses (`schema/core/int.js` +
+ * exact resolver regexes yaml@2.9.1 uses (`schema/core/int.js` +
  * `schema/core/float.js`) so the predicate cannot diverge from the library:
  * - octal `0o…`, decimal int `[-+]?[0-9]+` (leading-zero runs like `007`
  *   included), hex `0x…`;
@@ -92,7 +92,7 @@ const NUMERIC_LIKE_REGEX =
 	/^0o[0-7]+$|^[-+]?[0-9]+$|^0x[0-9a-fA-F]+$|^(?:[-+]?\.(?:inf|Inf|INF)|\.nan|\.NaN|\.NAN)$|^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)[eE][-+]?[0-9]+$|^[-+]?(?:\.[0-9]+|[0-9]+\.[0-9]*)$/;
 
 /**
- * Matches an ISO-style date or date-time that yaml@2.9.0 would
+ * Matches an ISO-style date or date-time that yaml@2.9.1 would
  * otherwise parse back as a Date. Must be quoted when written as
  * a string scalar.
  */
@@ -108,7 +108,7 @@ export type ScalarContext = 'mapping-value' | 'flow-item';
 
 /**
  * Returns true when the given string scalar must be double-quoted to
- * round-trip through yaml@2.9.0 with our options.
+ * round-trip through yaml@2.9.1 with our options.
  *
  * The predicate is intentionally one big disjunction so each clause
  * maps 1:1 to a documented rule in ADR 0029.
@@ -158,12 +158,12 @@ export function shouldQuoteScalar(value: string, context: ScalarContext = 'mappi
 /**
  * Returns the canonical emission for a string scalar — either the
  * bare value or its double-quoted form. The escaping mirrors
- * yaml@2.9.0's double-quoted string emission (backslash + double-quote
+ * yaml@2.9.1's double-quoted string emission (backslash + double-quote
  * escape only; we intentionally do NOT emit `\n` escapes because the
  * predicate routes multiline scalars to the bare path, which serializeProperties
  * still hands off to yaml.Document for block-scalar emission).
  *
- * Note: yaml@2.9.0 sometimes picks single-quotes (when the value
+ * Note: yaml@2.9.1 sometimes picks single-quotes (when the value
  * contains a double-quote but no single-quote). This function always
  * emits double-quotes for the quoted case. Both forms are valid YAML
  * and round-trip to the same scalar; the discrepancy only matters for

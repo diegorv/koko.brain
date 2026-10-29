@@ -18,7 +18,7 @@ function emitMappingValue(value: string): string {
 }
 
 /**
- * Emits a single flow-sequence item as yaml@2.9.0 would, by building
+ * Emits a single flow-sequence item as yaml@2.9.1 would, by building
  * a one-item flow sequence and extracting the slot between `[` and `]`.
  */
 function emitFlowItem(value: string): string {
@@ -237,21 +237,21 @@ describe('canonicalizeScalar', () => {
 	});
 
 	it('leaves a plain mid-string backslash bare', () => {
-		// "a\b" has no triggers — yaml@2.9.0 also emits it bare.
+		// "a\b" has no triggers — yaml@2.9.1 also emits it bare.
 		expect(canonicalizeScalar('a\\b')).toBe('a\\b');
 	});
 });
 
 /**
  * Parity test: for every case in this table, our predicate must agree
- * with yaml@2.9.0's actual emission. If yaml's quoting policy ever
+ * with yaml@2.9.1's actual emission. If yaml's quoting policy ever
  * shifts (e.g. via an intentional version bump), this suite breaks
  * loudly so we can update the predicate (and the Python generator)
  * in lock-step.
  *
  * "Agree" means: shouldQuoteScalar returns true iff yaml's emitted
  * scalar starts with `"` (double quote). Block scalars (`|-`) and
- * single-quote emission are not used by yaml@2.9.0 with our options
+ * single-quote emission are not used by yaml@2.9.1 with our options
  * for any of these inputs, so the comparison is unambiguous.
  */
 const PARITY_CASES_MAPPING: readonly string[] = [
@@ -316,7 +316,7 @@ const PARITY_CASES_MAPPING: readonly string[] = [
 	'100%',
 	'foo%bar',
 	'foo@',
-	// --- f57482e6 audit: yaml@2.9.0 divergence classes (issue 04) ---
+	// --- f57482e6 audit: yaml@2.9.1 divergence classes (issue 04) ---
 	// Leading-zero integer runs re-parse as numbers -> quoted.
 	'012',
 	'007',
@@ -350,10 +350,10 @@ const PARITY_CASES_MAPPING: readonly string[] = [
 	'a{b}c',
 ];
 
-describe('parity with yaml@2.9.0 — mapping-value', () => {
+describe('parity with yaml@2.9.1 — mapping-value', () => {
 	it.each(PARITY_CASES_MAPPING)('predicate matches yaml.stringify for %j', (value) => {
 		const emitted = emitMappingValue(value);
-		// yaml@2.9.0 sometimes picks single-quotes (e.g. when the value
+		// yaml@2.9.1 sometimes picks single-quotes (e.g. when the value
 		// contains a double-quote but no single-quote) — treat any quoted
 		// form as "needs quoting" for parity purposes.
 		const yamlQuotes = emitted.startsWith('"') || emitted.startsWith("'");
@@ -373,7 +373,7 @@ const PARITY_CASES_FLOW: readonly string[] = [
 	'plain',
 	'#hash',
 	'@start',
-	// --- f57482e6 audit: yaml@2.9.0 divergence classes (issue 04) ---
+	// --- f57482e6 audit: yaml@2.9.1 divergence classes (issue 04) ---
 	// Interior flow indicators force quoting in flow-item context.
 	'a[b]c',
 	'a]b',
@@ -387,10 +387,10 @@ const PARITY_CASES_FLOW: readonly string[] = [
 	'?',
 ];
 
-describe('parity with yaml@2.9.0 — flow-item', () => {
+describe('parity with yaml@2.9.1 — flow-item', () => {
 	it.each(PARITY_CASES_FLOW)('predicate matches yaml flow-seq emission for %j', (value) => {
 		const emitted = emitFlowItem(value);
-		// yaml@2.9.0 sometimes picks single-quotes (e.g. when the value
+		// yaml@2.9.1 sometimes picks single-quotes (e.g. when the value
 		// contains a double-quote but no single-quote) — treat any quoted
 		// form as "needs quoting" for parity purposes.
 		const yamlQuotes = emitted.startsWith('"') || emitted.startsWith("'");

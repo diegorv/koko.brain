@@ -16,7 +16,7 @@ We need: a documented contract for the canonical form, codified in tests, locked
 
 ## Decision
 
-**The canonical frontmatter byte sequence emitted by Kokobrain is defined by `serializeProperties` at `src/lib/features/properties/properties.logic.ts:202` running against yaml@2.9.0 (pinned, no caret) with `{ lineWidth: 0, flowCollectionPadding: false }`. The exact rules below are reproduced as a pure pre-emission predicate at `src/lib/features/properties/yaml-quoting.logic.ts` (`shouldQuoteScalar`) and pinned by 12 byte-level snapshot tests + 130 predicate parity tests.**
+**The canonical frontmatter byte sequence emitted by Kokobrain is defined by `serializeProperties` at `src/lib/features/properties/properties.logic.ts:202` running against yaml@2.9.1 (pinned, no caret) with `{ lineWidth: 0, flowCollectionPadding: false }`. The exact rules below are reproduced as a pure pre-emission predicate at `src/lib/features/properties/yaml-quoting.logic.ts` (`shouldQuoteScalar`) and pinned by 12 byte-level snapshot tests + 130 predicate parity tests.**
 
 ### Quoting (scalar values)
 
@@ -49,7 +49,7 @@ Bare survives for:
 
 Inside a flow-sequence item (`[a, b]`), the predicate is stricter: any `,` forces quoting because the comma is the flow-sequence separator. So `foo, bar` is bare in mapping context but quoted in list context.
 
-Quote style: always **double-quoted**. yaml@2.9.0 sometimes picks single-quotes (for values containing `"` but no `'`); `canonicalizeScalar` always emits double-quotes. Both forms are valid YAML and round-trip to the same value; the discrepancy only matters for byte-identical comparison on values containing literal `"`, which do not appear in normal vault frontmatter (wikilinks, URNs, emails carry none).
+Quote style: always **double-quoted**. yaml@2.9.1 sometimes picks single-quotes (for values containing `"` but no `'`); `canonicalizeScalar` always emits double-quotes. Both forms are valid YAML and round-trip to the same value; the discrepancy only matters for byte-identical comparison on values containing literal `"`, which do not appear in normal vault frontmatter (wikilinks, URNs, emails carry none).
 
 ### Empty values
 
@@ -71,7 +71,7 @@ Every key is passed through `canonicalizeKey` (`src/lib/utils/frontmatter-aliase
 
 Nested mapping values are not representable in the Properties panel and are dropped during parse at `properties.logic.ts:132-145`. The drop is logged via `appendLog('PROPERTIES', …)` so the data loss is traceable in the session log; the behaviour is preserved (no throw, no UI surface).
 
-YAML comments are dropped on round-trip — yaml@2.9.0 with our options does not preserve them through `Document.toString`. This is a known limitation of the library, not a Kokobrain decision; treat frontmatter as machine-managed and put long-form prose in the body.
+YAML comments are dropped on round-trip — yaml@2.9.1 with our options does not preserve them through `Document.toString`. This is a known limitation of the library, not a Kokobrain decision; treat frontmatter as machine-managed and put long-form prose in the body.
 
 ### Framing
 
@@ -83,14 +83,16 @@ Normalization does NOT fire on open (`editor.service.ts:58-119` reads the file v
 
 ### Version pinning
 
-The `yaml` dependency is pinned to exact `2.9.0` in `package.json` (no caret). Any future upgrade must be an explicit edit accompanied by a re-run of the canonical-form snapshot tests and a sync with the external Python generator. The 130 parity tests at `src/tests/lib/features/properties/yaml-quoting.logic.test.ts` catch drift.
+The `yaml` dependency is pinned to exact `2.9.1` in `package.json` (no caret). Any future upgrade must be an explicit edit accompanied by a re-run of the canonical-form snapshot tests and a sync with the external Python generator. The 130 parity tests at `src/tests/lib/features/properties/yaml-quoting.logic.test.ts` catch drift.
+
+Amendment 2026-10-29: pin moved from 2.9.0 to 2.9.1. The snapshot and parity tests pass unchanged, and the maintainer confirmed the external generator needs no change.
 
 ## Alternatives considered
 
 - **Use the predicate to actually emit, replacing yaml.Document**. Strictly safer but doubles the surface area: we would own both the predicate and the emitter and would have to keep the predicate in sync with itself across mapping and flow contexts, escape sequences, block scalars, etc. The current split (predicate documents + parity-tests yaml's behaviour, yaml emits) keeps the implementation small.
 - **Sort keys alphabetically on write**. Considered briefly; rejected because deterministic order ranks alpha over semantic grouping (`type` -> `_organized` -> `_archived` -> `_favorite` -> `created` -> domain fields is the human-friendly order; alphabetisation would scatter system flags into the middle of domain fields).
 - **Allow yaml's single-quote choice through**. Rejected for the Python generator side: Python emits double-quotes uniformly, and matching yaml's edge-case single-quote pick would force the generator to embed yaml-policy state. The Python side is the source of truth for these rare cases; if yaml emits `'foo'` and Python emits `"foo"`, the next UI touch re-canonicalises to whatever yaml picks.
-- **Preserve YAML comments**. Not feasible with yaml@2.9.0 + `Document.toString` for our shape; would require a different library or a manual emitter.
+- **Preserve YAML comments**. Not feasible with yaml@2.9.1 + `Document.toString` for our shape; would require a different library or a manual emitter.
 
 ## Consequences
 
