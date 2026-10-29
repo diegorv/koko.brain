@@ -45,3 +45,8 @@ Ticket 55 review (fix 27152237):
 Ticket 66 review (fix 7c772842):
 - [ ] `lookupCalendarEvent` (`event-calendar.service.ts:220`) reads `vaultIndexVersion` after `await getVaultEntries()`, while the store reload reads it before its await (`:76`); a bump during the await pairs an older snapshot with a newer version and can expire a delete marker one bump early. Practically unreachable; capture the version before the await.
 - [ ] Unchecked: once `undoDeleteEvent` starts, a vault switch mid-flight is not re-checked in the toast Undo closure; confirm `undoDeleteEvent` guards it.
+
+- From the post-merge review of baf12cca (issue 63 fix), all low:
+  - `restoreItem` (`src/lib/core/trash/trash.service.ts:155-175`) now swallows a failing `refreshTree` (`scan_vault`) after the rename. Settings > Trash then drops the item with no toast and the note is missing from the file explorer until a later refresh. Consider returning a "restored, refresh failed" flag and showing a warning in `TrashSection.svelte:23-30`.
+  - A folder restore whose `refreshTree` throws skips `indexRestoredNotes` entirely, so the folder's notes stay out of VaultIndex/FTS/semantic until a full rescan (same state as before the fix, now without feedback).
+  - `trash.service.test.ts:331-344` covers only the file case; add a folder-case test and assert `applyNoteChange` ran before the refresh failure.
