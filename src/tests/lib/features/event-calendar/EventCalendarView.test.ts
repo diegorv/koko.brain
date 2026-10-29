@@ -618,6 +618,47 @@ describe('EventCalendarView: popover', () => {
 
 		expect(eventCalendarViewStore.popover).toBeNull();
 	});
+
+	/**
+	 * A slow click: pointerdown at (-1, -1), outside the card's all-zero jsdom rect, then
+	 * the click once bits-ui's 10 ms outside-pointerdown dismiss has closed the popover.
+	 */
+	async function slowClick(el: HTMLElement) {
+		el.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: -1, clientY: -1 }));
+		el.focus();
+		await new Promise((r) => setTimeout(r, 30));
+		await settlePopover();
+		el.click();
+		await settlePopover();
+	}
+
+	it('leaves focus on the header view tab whose click closed the popover', async () => {
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+
+		const month = target.querySelector<HTMLButtonElement>('[role="tab"][aria-label="Month"]')!;
+		await slowClick(month);
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(eventCalendarViewStore.view).toBe('month');
+		expect(document.activeElement).toBe(month);
+		expect(month.tabIndex).toBe(0);
+	});
+
+	it('returns focus to the block after a click on the tablist gap closes the popover', async () => {
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+
+		await slowClick(target.querySelector<HTMLElement>('[role="tablist"]')!);
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(eventCalendarViewStore.view).toBe('week');
+		expect(document.activeElement).toBe(STANDUP());
+	});
 });
 
 describe('EventCalendarView: keyboard', () => {

@@ -55,3 +55,12 @@ Test verdict rests on: `src/tests/lib/features/event-calendar/EventPopover.test.
    `click()`), then expect `eventCalendarViewStore.popover` null, view `month`, `document.activeElement` to be
    that tab and its `tabIndex` 0. Optionally a second case slow-clicking the tablist `div` itself that expects
    focus back on the Standup block, which guards the other side of `ownWrapper`. Keep the unit test as is.
+
+## Resolution
+
+1. Accepted. Added two cases to the `EventCalendarView: popover` describe in
+   `src/tests/lib/features/event-calendar/EventCalendarView.test.ts` (621-660): a slow click on the real
+   header `[role="tab"][aria-label="Month"]` closes the popover, switches to month and leaves focus on that tab
+   with `tabIndex` 0; a slow click on the tablist `div` closes the popover, keeps week and returns focus to the
+   Standup block. Red probe: with main's `EventPopover.svelte` the tab case fails (focus on `<body>`); on the
+   branch the file passes 65/65. The unit test in `EventPopover.test.ts` stays as is.

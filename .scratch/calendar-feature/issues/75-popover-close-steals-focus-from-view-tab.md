@@ -11,11 +11,12 @@
 - Any roving-tabindex control inside the view hits the same path.
 - Suggested fix: count a match as a wrapper only when it is not natively focusable, e.g. add `&& !f.matches('button, a[href], input, select, textarea, [contenteditable="true"]')`.
 
-- [ ] A test that opens the popover, clicks an unselected header tab and expects focus on that tab fails today
-- [ ] After the fix it passes, and the existing tests (click on the Calendar's own empty tabindex="-1" surface returns focus to the block; an outside pane's tabindex="-1" surface keeps focus) still pass
+- [x] A test that opens the popover, clicks an unselected header tab and expects focus on that tab fails today
+- [x] After the fix it passes, and the existing tests (click on the Calendar's own empty tabindex="-1" surface returns focus to the block; an outside pane's tabindex="-1" surface keeps focus) still pass
 
 ## Comments
 
 - 2026-10-28 21:43 — discovery — plan in work/75/discovery.md: exclude natively focusable matches from ownWrapper — 0c25cfd7
 - 2026-10-28 21:44 — implement — native controls with tabindex="-1" no longer count as own wrappers; pnpm check 0 errors, event-calendar vitest 962/962 — 22478edf
 - 2026-10-28 21:46 — review — CHANGES_REQUESTED: fix correct (red/green and real-header probe confirmed), add a real EventCalendarHeader tab-click test in EventCalendarView.test.ts — 31bdd2e4
+- 2026-10-28 21:47 — fix — real header tab and tablist-gap slow-click tests added to EventCalendarView.test.ts; tab case red on main, 65/65 green — 57ccb3ca
