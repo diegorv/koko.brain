@@ -15,9 +15,10 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Characterization tests for the current meta-bind-button scanner land first
-- [ ] Test: a meta-bind-button fence nested in a ````md fence is not rendered
-- [ ] A top-level meta-bind-button fence still renders; existing tests pass
+- [x] Characterization tests for the current meta-bind-button scanner land first
+- [x] Test: a meta-bind-button fence nested in a ````md fence is not rendered
+- [x] A top-level meta-bind-button fence still renders; existing tests pass
 
 ## Comments
 - 2026-10-29 18:24 — discovery — plan in work/13/discovery.md: findAllMetaBindButtonBlocks over findSpecialFenceBlocks, field iterates blocks like mermaid-field, characterization tests first — 958d8491
+- 2026-10-29 18:26 — implement — characterization tests (a981040a), switch to findAllMetaBindButtonBlocks over FencedCode with nested-fence tests (d0521615); pnpm check 0 errors, markdown-editor tests 1470/1470 — d0521615
