@@ -28,8 +28,10 @@
 	/** Set by Duplicate: the copy's block takes focus once it renders, so the close only parks it on the root. */
 	let focusCopy = false;
 
+	/** Controls that take focus on their own, whatever their `tabindex`. */
+	const NATIVE_FOCUSABLE = 'button, a[href], input, select, textarea, [contenteditable="true"]';
 	/** Elements an outside click may land focus on. */
-	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
+	const FOCUSABLE = `${NATIVE_FOCUSABLE}, [tabindex]`;
 
 	let target = $derived(eventCalendarViewStore.popover);
 	let event = $derived(target ? eventCalendarStore.events.find((e) => e.path === target.path) : undefined);
@@ -102,8 +104,12 @@
 		}
 		const focusable = outside?.isConnected ? outside.closest<HTMLElement>(FOCUSABLE) : null;
 		// A `tabindex="-1"` wrapper inside this view (the root, the header tablist) is not
-		// where the user meant focus to go; one outside it (another pane) is.
-		const ownWrapper = focusable?.getAttribute('tabindex') === '-1' && root?.contains(focusable);
+		// where the user meant focus to go; one outside it (another pane) is. A native control
+		// with a roving `tabindex="-1"` (an unselected header view tab) is not a wrapper.
+		const ownWrapper =
+			focusable?.getAttribute('tabindex') === '-1' &&
+			!focusable.matches(NATIVE_FOCUSABLE) &&
+			root?.contains(focusable);
 		if (focusable && !ownWrapper) {
 			focusable.focus();
 			return;

@@ -324,6 +324,21 @@ describe('EventPopover: closing', () => {
 		expect(document.activeElement).toBe(block(P('Standup')));
 	});
 
+	it('leaves focus on an unselected tabindex="-1" view tab inside the view the user clicked', async () => {
+		mountView();
+		const tab = root.appendChild(document.createElement('button'));
+		tab.setAttribute('role', 'tab');
+		tab.tabIndex = -1;
+		block(P('Standup')).click();
+		await settle();
+
+		await slowClick(tab);
+		await settle();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(document.activeElement).toBe(tab);
+	});
+
 	it('leaves focus on a tabindex="-1" surface outside the view the user clicked', async () => {
 		const surface = document.body.appendChild(document.createElement('div'));
 		surface.tabIndex = -1;
