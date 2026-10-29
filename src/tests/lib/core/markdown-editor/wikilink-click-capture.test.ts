@@ -43,22 +43,6 @@ describe('findWikilinkElement', () => {
 	});
 });
 
-/**
- * Regression for the bug where clicking a wikilink could leave a multi-line
- * selection in the destination note (which `shouldShowSource` then expanded
- * to raw markdown across several blocks).
- *
- * Root cause was that the wikilink mousedown handler ran on bubble phase, so
- * CodeMirror's internal handlers — registered on a descendant (`cm-content`)
- * — had already armed their drag-select state machine before our handler
- * could `stopPropagation`. The fix registers the listener with
- * `{ capture: true }` and uses `stopImmediatePropagation()`, so descendant
- * listeners never fire.
- *
- * This test pins the contract: with capture-phase + stopImmediatePropagation,
- * descendant mousedown listeners (simulating CodeMirror) are not invoked when
- * the target is a wikilink — but they ARE invoked for ordinary clicks.
- */
 describe('findWikilinkClickTarget', () => {
 	function mousedownOn(target: HTMLElement, button: number): MouseEvent {
 		let captured: MouseEvent | null = null;
@@ -87,6 +71,22 @@ describe('findWikilinkClickTarget', () => {
 	});
 });
 
+/**
+ * Regression for the bug where clicking a wikilink could leave a multi-line
+ * selection in the destination note (which `shouldShowSource` then expanded
+ * to raw markdown across several blocks).
+ *
+ * Root cause was that the wikilink mousedown handler ran on bubble phase, so
+ * CodeMirror's internal handlers — registered on a descendant (`cm-content`)
+ * — had already armed their drag-select state machine before our handler
+ * could `stopPropagation`. The fix registers the listener with
+ * `{ capture: true }` and uses `stopImmediatePropagation()`, so descendant
+ * listeners never fire.
+ *
+ * This test pins the contract: with capture-phase + stopImmediatePropagation,
+ * descendant mousedown listeners (simulating CodeMirror) are not invoked when
+ * the target is a wikilink — but they ARE invoked for ordinary clicks.
+ */
 describe('wikilink mousedown capture-phase contract', () => {
 	function buildDom() {
 		const container = document.createElement('div');

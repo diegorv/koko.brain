@@ -23,3 +23,4 @@
 - 2026-10-29 17:18 — discovery — plan in work/09/discovery.md: sourceModeCompartment holds line numbers + legacy decorations; right-button guard via findWikilinkClickTarget — b68ace05
 - 2026-10-29 17:20 — implement — legacy decorations moved to sourceModeCompartment (02df3e37); right-button guard via findWikilinkClickTarget; pnpm check 0 errors, markdown-editor tests 97 files / 1281 pass; manual LP visual check left for human — e4b5d9f2
 - 2026-10-29 17:23 — review — VERDICT: APPROVED; 4 findings (1 medium: revealed LP [[link]] now unstyled/not clickable, check manually; 3 low: misplaced test JSDoc, component wiring untested, macOS ctrl+click); editor-extensions + wikilink-click-capture tests and markdown-editor suite pass, pnpm check clean — 9c18d628
+- 2026-10-29 17:24 — fix — review finding 2 fixed (test describe moved above the capture-phase JSDoc); findings 1, 3, 4 need no code change; wikilink-click-capture tests 12 pass — 48eae18a
