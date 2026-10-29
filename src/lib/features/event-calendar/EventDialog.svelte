@@ -3,10 +3,10 @@
 	import Copy from '@lucide/svelte/icons/copy';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { toast } from 'svelte-sonner';
-	import { Button } from '$lib/components/ui/button';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { eventState } from './event-calendar-event.logic';
 	import { draftForCreate, draftFromEvent, draftToPatch, type EventFormDraft } from './event-calendar-form.logic';
 	import {

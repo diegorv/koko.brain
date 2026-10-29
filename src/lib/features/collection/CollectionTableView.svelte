@@ -2,7 +2,7 @@
 	import type { QueryResult, NoteRecord, SortDef } from './collection.types';
 	import { formatCellValue, getPropertyValue } from './collection.logic';
 	import { isDisplayValue } from './expression/expression.types';
-	import { sanitizeHtml } from '$lib/utils/sanitize';
+	import { sanitizeHtml } from '#lib/utils/sanitize.js';
 
 	interface Props {
 		result: QueryResult;

@@ -4,7 +4,7 @@
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import { resolveColor } from './canvas.logic';
 	import { openUrl } from '@tauri-apps/plugin-opener';
-	import { isSafeUrl } from '$lib/utils/sanitize-url';
+	import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 	import type { CanvasColor } from './canvas.types';
 
 	interface LinkNodeData extends Record<string, unknown> {

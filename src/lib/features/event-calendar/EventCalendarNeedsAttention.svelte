@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import type { EventIssue } from './event-calendar.types';
 

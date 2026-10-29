@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { NormalizedIcon } from './file-icons.types';
-	import { sanitizeSvgContent } from '$lib/utils/sanitize';
+	import { sanitizeSvgContent } from '#lib/utils/sanitize.js';
 
 	/**
 	 * Renders a normalized icon as inline SVG, or an emoji as a <span>.

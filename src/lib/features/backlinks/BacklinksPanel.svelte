@@ -3,13 +3,13 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Link from '@lucide/svelte/icons/link';
 	import GitBranch from '@lucide/svelte/icons/git-branch';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Collapsible from '$lib/components/ui/collapsible';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { backlinksStore } from './backlinks.store.svelte';
 	import { fetchBacklinksV2, fetchRelationshipBacklinks } from './backlinks.service';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import LinkItem from './LinkItem.svelte';
 
 	let expanded = $state(false);

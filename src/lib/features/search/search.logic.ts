@@ -1,6 +1,6 @@
 import type { SearchQuery, SearchMatch, SearchContextSnippet, SearchResult } from './search.types';
-import { extractFrontmatterTags } from '$lib/features/tags/tags.logic';
-import { relativePath, stem } from '$lib/utils/path';
+import { extractFrontmatterTags } from '#lib/features/tags/tags.logic.js';
+import { relativePath, stem } from '#lib/utils/path.js';
 
 const TAG_OPERATOR_REGEX = /tag:(\S+)/g;
 const PATH_OPERATOR_REGEX = /path:(\S+)/g;
@@ -25,8 +25,8 @@ export function parseSearchQuery(raw: string): SearchQuery {
 }
 
 // Re-exported from the centralized sanitize utility for backwards compatibility.
-// The implementation lives in $lib/utils/sanitize and also escapes single quotes.
-export { sanitizeSnippetHtml } from '$lib/utils/sanitize';
+// The implementation lives in #lib/utils/sanitize and also escapes single quotes.
+export { sanitizeSnippetHtml } from '#lib/utils/sanitize.js';
 
 export function searchFileContent(content: string, query: string): SearchMatch[] {
 	if (!query) return [];

@@ -4,16 +4,16 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Blocks from '@lucide/svelte/icons/blocks';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
-	import { resolveWikilink } from '$lib/features/backlinks/backlinks.logic';
-	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-	import { resolveIconForPath, resolveIconForType } from '$lib/features/file-icons/icon-resolver';
-	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { resolveWikilink } from '#lib/features/backlinks/backlinks.logic.js';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+	import { resolveIconForPath, resolveIconForType } from '#lib/features/file-icons/icon-resolver.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { propertiesStore } from './properties.store.svelte';
 	import {
 		updateProperty,

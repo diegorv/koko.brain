@@ -1,5 +1,5 @@
 import { readFile } from '@tauri-apps/plugin-fs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 
 /** Image extensions we recognize */
 export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];

@@ -1,17 +1,17 @@
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
-} from '$lib/features/properties/frontmatter-write.service';
+} from '#lib/features/properties/frontmatter-write.service.js';
 import {
 	parseFrontmatterProperties,
 	updatePropertyValue,
 	addProperty,
 	removeProperty,
-} from '$lib/features/properties/properties.logic';
-import type { Property } from '$lib/features/properties/properties.types';
+} from '#lib/features/properties/properties.logic.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
 import type { IconPackId } from './file-icons.types';
 
 /** The frontmatter keys an icon owns. */

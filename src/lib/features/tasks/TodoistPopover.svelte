@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Select from '$lib/components/ui/select';
-	import { Button } from '$lib/components/ui/button';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import Send from '@lucide/svelte/icons/send';
 	import { todoistStore } from './todoist.store.svelte';

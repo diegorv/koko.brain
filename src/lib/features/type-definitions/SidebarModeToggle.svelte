@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { Button } from '$lib/components/ui/button';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import FolderTree from '@lucide/svelte/icons/folder-tree';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Calendar from '@lucide/svelte/icons/calendar';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import type { SidebarMode } from '$lib/core/settings/settings.types';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import type { SidebarMode } from '#lib/core/settings/settings.types.js';
 
 	function switchTo(target: SidebarMode) {
 		settingsStore.updateLayout({ sidebarMode: target });

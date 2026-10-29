@@ -1,5 +1,5 @@
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
-import { getInboxCount } from '$lib/features/type-definitions/inbox-workflow.logic';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 
 /**
  * Computes the value to display on the macOS dock badge.

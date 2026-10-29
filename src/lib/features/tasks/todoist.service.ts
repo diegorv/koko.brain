@@ -1,8 +1,8 @@
 import { readTextFile, writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import type { AddTaskArgs } from '@doist/todoist-sdk';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { debug, error } from '$lib/utils/debug';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { debug, error } from '#lib/utils/debug.js';
 import { todoistStore } from './todoist.store.svelte';
 import { createTodoistClient } from './todoist-client';
 import type { TodoistProject, TodoistSection, SentTaskEntry } from './todoist.types';

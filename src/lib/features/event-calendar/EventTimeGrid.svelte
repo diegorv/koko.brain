@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { formatLong, formatTime, formatTimeRange } from './event-calendar-dates.logic';
 	import {
 		beginCreate,

@@ -1,5 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Applies a value to the macOS dock badge (the red count bubble on the

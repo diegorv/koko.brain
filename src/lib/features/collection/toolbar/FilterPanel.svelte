@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Separator } from '$lib/components/ui/separator';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
 	import {
 		Collapsible,
 		CollapsibleTrigger,
 		CollapsibleContent,
-	} from '$lib/components/ui/collapsible';
+	} from '#lib/components/ui/collapsible/index.js';
 	import {
 		DropdownMenu,
 		DropdownMenuTrigger,
 		DropdownMenuContent,
 		DropdownMenuItem,
-	} from '$lib/components/ui/dropdown-menu';
+	} from '#lib/components/ui/dropdown-menu/index.js';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Plus from '@lucide/svelte/icons/plus';
 	import type { FilterConjunction, FilterGroup, FilterRow as FilterRowType } from './toolbar.types';

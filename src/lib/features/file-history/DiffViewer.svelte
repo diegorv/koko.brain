@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import type { DiffLine } from './file-history.types';
 
 	interface Props {

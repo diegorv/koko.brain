@@ -7,10 +7,10 @@
 	import ToggleLeft from '@lucide/svelte/icons/toggle-left';
 	import List from '@lucide/svelte/icons/list';
 	import Tag from '@lucide/svelte/icons/tag';
-	import { Input } from '$lib/components/ui/input';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import type { Property, PropertyType } from './properties.types';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { getTagColor } from '$lib/features/tags/tag-colors.logic';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { getTagColor } from '#lib/features/tags/tag-colors.logic.js';
 
 	interface Props {
 		property: Property;

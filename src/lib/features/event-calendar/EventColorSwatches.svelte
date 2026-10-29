@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { EVENT_CALENDAR_COLORS } from '$lib/core/settings/settings.logic';
+	import { EVENT_CALENDAR_COLORS } from '#lib/core/settings/settings.logic.js';
 	import type { EventColor } from './event-calendar.types';
 
 	interface Props {

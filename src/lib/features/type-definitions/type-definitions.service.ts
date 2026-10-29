@@ -1,27 +1,27 @@
 import type { Dayjs } from 'dayjs';
 import { invoke } from '@tauri-apps/api/core';
 import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { loadNoteTemplate, openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
 import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
-} from '$lib/features/properties/frontmatter-write.service';
-import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
+} from '#lib/features/properties/frontmatter-write.service.js';
+import { toggleFavorite } from '#lib/features/properties/lifecycle.logic.js';
 import { toast } from 'svelte-sonner';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
 import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
-import { updateCollectionYaml, type CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
+import { updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */

@@ -1,6 +1,6 @@
 /**
  * Shared types of the event-calendar feature. Types only: the runtime color
- * and view-mode lists live in `$lib/core/settings/settings.logic.ts`
+ * and view-mode lists live in `#lib/core/settings/settings.logic.ts`
  * (`EVENT_CALENDAR_COLORS`, `EVENT_CALENDAR_VIEW_MODES`) and feature code
  * imports them from there.
  *
@@ -8,7 +8,7 @@
  * as in `event-calendar-dates.logic.ts`.
  */
 
-import type { EventCalendarColor, EventCalendarViewMode } from '$lib/core/settings/settings.types';
+import type { EventCalendarColor, EventCalendarViewMode } from '#lib/core/settings/settings.types.js';
 
 /** One of the event colors (`EVENT_CALENDAR_COLORS`). */
 export type EventColor = EventCalendarColor;

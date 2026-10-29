@@ -1,4 +1,4 @@
-import { formatDate } from '$lib/utils/date';
+import { formatDate } from '#lib/utils/date.js';
 import type { SnapshotInfo, SnapshotGroup } from './file-history.types';
 
 /**

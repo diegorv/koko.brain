@@ -1,10 +1,10 @@
 import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { saveFileByPath, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { notifyAfterSave } from '$lib/core/editor/editor.hooks';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { basename } from '$lib/utils/path';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { basename } from '#lib/utils/path.js';
 import {
 	detectLossyFrontmatter,
 	extractBody,

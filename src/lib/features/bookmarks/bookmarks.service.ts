@@ -2,7 +2,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import type { BookmarkEntry } from './bookmarks.types';
 import { bookmarksStore } from './bookmarks.store.svelte';
 import { toggleBookmark, updateBookmarkPaths } from './bookmarks.logic';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /** Internal directory inside the vault that stores app metadata */
 const KOKOBRAIN_DIR = '.kokobrain';

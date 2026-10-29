@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
-import { debounce } from '$lib/utils/debounce';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { findTabIndex, TAGS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
+import { debounce } from '#lib/utils/debounce.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { findTabIndex, TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tagsStore } from './tags.store.svelte';
 import { buildTagTree, sortTagTree } from './tags.logic';
-import type { TagAggregateV2 } from '$lib/types/vault-v2.types';
+import type { TagAggregateV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Builds the tag tree from the Rust `VaultIndex`. Phase 7.5 — replaces

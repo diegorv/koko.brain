@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Circle from '@lucide/svelte/icons/circle';
 	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
-	import { openNoteAt } from '$lib/core/editor/open-note-at.service';
+	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import type { CalendarTask } from './event-calendar-tasks.logic';
 
 	interface Props {

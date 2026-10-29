@@ -1,5 +1,5 @@
 import type { WikiLink, BacklinkEntry } from './backlinks.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 const WIKILINK_REGEX = /\[\[([^\]]+?)\]\]/g;
 

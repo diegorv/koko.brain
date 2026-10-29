@@ -1,6 +1,6 @@
 import { fileIconsStore } from './file-icons.store.svelte';
 import { getIconSync } from './file-icons.icon-data';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import type { NormalizedIcon } from './file-icons.types';
 
 /** Result of icon resolution: the icon data plus optional styling */

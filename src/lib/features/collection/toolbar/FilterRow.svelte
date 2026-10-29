@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import {
 		DropdownMenu,
 		DropdownMenuTrigger,
@@ -7,7 +7,7 @@
 		DropdownMenuItem,
 		DropdownMenuSeparator,
 		DropdownMenuLabel,
-	} from '$lib/components/ui/dropdown-menu';
+	} from '#lib/components/ui/dropdown-menu/index.js';
 	import X from '@lucide/svelte/icons/x';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import type { FilterRow as FilterRowType, FilterOperator } from './toolbar.types';

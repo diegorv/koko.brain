@@ -4,9 +4,9 @@
 	import { filterIcons } from './file-icons.logic';
 	import { fileIconsStore } from './file-icons.store.svelte';
 	import IconRenderer from './IconRenderer.svelte';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Input } from '$lib/components/ui/input';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import X from '@lucide/svelte/icons/x';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 

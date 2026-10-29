@@ -9,9 +9,9 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import {
 		acquireCalendarClock,
 		deleteEventFromUi,

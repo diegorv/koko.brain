@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { fileHistoryStore } from './file-history.store.svelte';
 	import { selectSnapshot, restoreSnapshot, closeFileHistory } from './file-history.service';
 	import { formatSnapshotTime, formatSnapshotDateTime, formatSnapshotLabel, getSnapshotBackupPath, findBackupTimestamp } from './file-history.logic';
-	import { revealInSystemExplorer } from '$lib/core/filesystem/fs.service';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import SnapshotList from './SnapshotList.svelte';
 	import DiffViewer from './DiffViewer.svelte';
 	import { ask } from '@tauri-apps/plugin-dialog';

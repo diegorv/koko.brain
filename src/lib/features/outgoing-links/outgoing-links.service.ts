@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import { error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
-import { dedupeInflight, isStillCurrentPath } from '$lib/utils/inflight';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { error as errorLog, perfStart, perfEnd } from '#lib/utils/debug.js';
+import { dedupeInflight, isStillCurrentPath } from '#lib/utils/inflight.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { outgoingLinksStore } from './outgoing-links.store.svelte';
 import type { OutgoingLink, OutgoingUnlinkedMention } from './outgoing-links.types';
-import type { OutgoingLinkV2, OutgoingUnlinkedMentionV2 } from '$lib/types/vault-v2.types';
+import type { OutgoingLinkV2, OutgoingUnlinkedMentionV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Composite cache key — outgoing links depend on `(path, content)`

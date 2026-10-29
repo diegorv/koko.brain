@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { searchStore } from './search.store.svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import BrainIcon from '@lucide/svelte/icons/brain';
 	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import SearchIcon from '@lucide/svelte/icons/search';

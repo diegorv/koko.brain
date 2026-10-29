@@ -1,7 +1,7 @@
 import type { EditorView } from '@codemirror/view';
 import { toast } from 'svelte-sonner';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { error } from '$lib/utils/debug';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { error } from '#lib/utils/debug.js';
 import {
 	detectBlockElement,
 	generateBlockId,

@@ -1,5 +1,5 @@
 import type { AppCommand, CommandShortcut } from './command-palette.types';
-import { fuzzyMatch } from '$lib/utils/fuzzy-match';
+import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
 
 const CODE_DISPLAY_MAP: Record<string, string> = {
 	BracketLeft: '[',

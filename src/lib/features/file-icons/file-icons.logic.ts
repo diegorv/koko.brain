@@ -1,5 +1,5 @@
 import type { IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
-import type { FrontmatterValue } from '$lib/types/vault-v2.types';
+import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 
 /** Maximum number of recently used icons to keep */
 const MAX_RECENT_ICONS = 20;

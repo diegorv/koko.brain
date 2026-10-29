@@ -1,5 +1,5 @@
 import { Marked } from 'marked';
-import { sanitizeHtml } from '$lib/utils/sanitize';
+import { sanitizeHtml } from '#lib/utils/sanitize.js';
 
 const marked = new Marked({
 	gfm: true,

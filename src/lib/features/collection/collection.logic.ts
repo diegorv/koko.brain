@@ -10,9 +10,9 @@ import type {
 import { evaluate, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
 import { isDisplayValue, type ASTNode } from './expression/expression.types';
-import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
-import { extractAllTags } from '$lib/features/tags/tags.logic';
-import { getFileExtension, getFileName } from '$lib/core/filesystem/fs.logic';
+import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { extractAllTags } from '#lib/features/tags/tags.logic.js';
+import { getFileExtension, getFileName } from '#lib/core/filesystem/fs.logic.js';
 
 /**
  * Builds a NoteRecord from a file path and its content.
