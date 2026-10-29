@@ -18,3 +18,7 @@ Ticket 41 review (fix 03026a54):
 Ticket 59 review (fix f1504724):
 - [ ] The post-drop click swallow (`event-calendar-day-drag.svelte.ts:69`) filters on `detail === 0`; an assistive-tech click with `detail >= 1` and no prior `pointerdown` in the area is eaten once if a drop outside the area or an Escape/pointercancel left the flag armed. Unconfirmed for VoiceOver.
 - [ ] The comment at `:60-67` says "the next press in the area resets the flag"; a press outside the area does not. Reword.
+
+## Comments
+
+- 2026-10-28 21:28 — discovery — four items located on main, plan in work/67/discovery.md — 47b8e4f2
