@@ -20,3 +20,7 @@
 - [ ] Test: `> [!note] Title   ` shows the full title
 - [ ] One callout regex/matcher remains; all three call sites use it
 - [ ] Test: callout content lines get one style, not blockquote + callout
+
+## Comments
+
+- 2026-10-29 18:08 — discovery — plan in work/07/discovery.md: one matcher in callout.logic.ts, sorted set + innermost-owner lines in callout-field, ancestor callout check in blockquote parser — a5e16246
