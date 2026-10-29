@@ -1,6 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
-import { CALLOUT_COLORS } from '../../callout/callout.logic';
+import { CALLOUT_COLORS, matchCalloutHeader } from '../../callout/callout.logic';
 
 /** Parsed result of a callout header line `> [!type] title` */
 export interface CalloutHeader {
@@ -29,27 +29,23 @@ export interface CalloutBlock {
 	endLine: number;
 }
 
-/** Matches `> [!type]+/-` with optional title (supports nested `> > [!type]` with multiple `>` prefixes) */
-export const CALLOUT_HEADER_RE = /^(?:>\s*)+\[!([\w-]+)\]([+-])?\s*(.*)?$/;
-
 /** Matches a blockquote continuation line `> ...` (not a new callout) */
 export const CALLOUT_CONTENT_RE = /^>\s?/;
 
 /**
  * Parses a callout header line, or returns null if not a callout header.
- * Uses regex since the `[!type]` syntax is Obsidian-specific and not in the Lezer grammar.
+ * Uses `matchCalloutHeader` since the `[!type]` syntax is Obsidian-specific and not in the Lezer grammar.
  */
 export function parseCalloutHeader(text: string, offset: number): CalloutHeader | null {
-	const match = text.match(CALLOUT_HEADER_RE);
+	const match = matchCalloutHeader(text);
 	if (!match) return null;
 
-	const type = match[1].toLowerCase();
-	const foldable = (match[2] as '+' | '-') || null;
-	const title = (match[3] || '').trim();
+	const { type, foldable } = match;
+	const title = match.rawTitle.trim();
 	const color = CALLOUT_COLORS[type] || '#60a5fa';
 
-	// Marker is `> [!type]` + optional fold char
-	const markerEnd = match[0].length - (title ? title.length : 0);
+	// Marker is `> [!type]` + optional fold char + the whitespace before the title
+	const markerEnd = match.markerLength;
 
 	return {
 		type,

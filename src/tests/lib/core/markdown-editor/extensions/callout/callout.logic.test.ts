@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	parseCalloutLine,
+	matchCalloutHeader,
 	CALLOUT_COLORS,
 } from '#lib/core/markdown-editor/extensions/callout/callout.logic.js';
 
@@ -70,6 +71,51 @@ describe('parseCalloutLine', () => {
 		const result = parseCalloutLine('> [!my-custom-type]+');
 		expect(result).not.toBeNull();
 		expect(result!.type).toBe('my-custom-type');
+	});
+});
+
+describe('matchCalloutHeader', () => {
+	it('matches type, fold marker, raw title and marker length', () => {
+		expect(matchCalloutHeader('> [!Tip]+ Pro tip')).toEqual({
+			type: 'tip',
+			foldable: '+',
+			rawTitle: 'Pro tip',
+			markerLength: '> [!Tip]+ '.length,
+		});
+	});
+
+	it('keeps trailing spaces in the raw title so the marker ends before the title', () => {
+		const match = matchCalloutHeader('> [!note] Title   ');
+		expect(match).not.toBeNull();
+		expect(match!.rawTitle).toBe('Title   ');
+		expect(match!.markerLength).toBe('> [!note] '.length);
+	});
+
+	it('swallows whitespace-only remainder into the marker', () => {
+		expect(matchCalloutHeader('> [!note]   ')).toEqual({
+			type: 'note',
+			foldable: null,
+			rawTitle: '',
+			markerLength: '> [!note]   '.length,
+		});
+	});
+
+	it('matches nested headers with several > prefixes', () => {
+		expect(matchCalloutHeader('> > [!note] Inner')?.type).toBe('note');
+		expect(matchCalloutHeader('>>[!note]')?.type).toBe('note');
+	});
+
+	it('returns null for plain blockquotes, plain text and a bare [!type]', () => {
+		expect(matchCalloutHeader('> quote')).toBeNull();
+		expect(matchCalloutHeader('text')).toBeNull();
+		expect(matchCalloutHeader('[!note]')).toBeNull();
+		expect(matchCalloutHeader('')).toBeNull();
+	});
+});
+
+describe('parseCalloutLine on nested headers', () => {
+	it('parses a nested `> > [!type]` header like the live-preview parser does', () => {
+		expect(parseCalloutLine('> > [!warning] Deep')).toEqual({ type: 'warning', color: 'var(--callout-warning)' });
 	});
 });
 

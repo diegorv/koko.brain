@@ -107,6 +107,15 @@ describe('parseCalloutHeader', () => {
 		expect(result!.title).toBe('Deep');
 	});
 
+	it('keeps the full title when the header has trailing spaces', () => {
+		const text = '> [!note] Title   ';
+		const result = parseCalloutHeader(text, 10);
+		expect(result).not.toBeNull();
+		expect(result!.title).toBe('Title');
+		expect(result!.markerTo).toBe(10 + '> [!note] '.length);
+		expect(result!.titleFrom).toBe(10 + text.indexOf('Title'));
+	});
+
 	it('detects all standard callout types', () => {
 		const types = ['note', 'tip', 'important', 'warning', 'caution', 'abstract', 'info', 'todo',
 			'success', 'check', 'done', 'question', 'help', 'faq', 'failure', 'fail', 'missing',
