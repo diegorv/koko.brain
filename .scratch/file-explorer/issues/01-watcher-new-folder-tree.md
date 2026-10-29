@@ -18,3 +18,7 @@
 - [ ] Test: a file created in an existing folder still rescans only that folder (incremental path unchanged)
 - [ ] Test: walked-up parents are deduplicated, and more than 5 distinct parents after the walk-up still triggers the full refresh
 - [ ] Folder order / content order is still applied to the rescanned subtree
+
+## Comments
+
+- 2026-10-29 20:53 — discovery — plan: walk each missing parent up to the nearest folder in the tree, dedupe nested parents, then apply the >5 rule — work/01/discovery.md
