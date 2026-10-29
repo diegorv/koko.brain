@@ -15,14 +15,30 @@ export const mouseSelectingField = StateField.define<boolean>({
 	},
 });
 
-/** DOM event handlers that dispatch mouse-selecting state changes */
+/** Clears the drag flag; dispatches only while it is set, so one drag releases once. */
+function releaseMouseSelecting(view: EditorView): void {
+	if (view.state.field(mouseSelectingField, false)) {
+		view.dispatch({ effects: setMouseSelecting.of(false) });
+	}
+}
+
+/**
+ * DOM event handlers that dispatch mouse-selecting state changes. A release
+ * outside the content DOM (gutter, another pane, outside the window) never
+ * reaches the content `mouseup`, so mousedown also arms a one-shot `mouseup`
+ * listener on the owner document. The content handler stays because a widget
+ * may stop the event from bubbling to the document.
+ */
 export const mouseSelectingHandlers = EditorView.domEventHandlers({
 	mousedown: (_e, view) => {
 		view.dispatch({ effects: setMouseSelecting.of(true) });
+		view.dom.ownerDocument.addEventListener('mouseup', () => releaseMouseSelecting(view), {
+			once: true,
+		});
 		return false;
 	},
 	mouseup: (_e, view) => {
-		view.dispatch({ effects: setMouseSelecting.of(false) });
+		releaseMouseSelecting(view);
 		return false;
 	},
 });

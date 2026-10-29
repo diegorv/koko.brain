@@ -15,10 +15,10 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Test: an update with both `viewportChanged` and `selectionSet` rebuilds
-- [ ] Test: `forceDecorationRebuild` and reconfigure rebuild even when the viewport also changed
-- [ ] Test: a `mouseup` outside the content DOM clears the drag flag (one-shot listener on the owner document registered at mousedown)
-- [ ] A pure scroll still does not rebuild
+- [x] Test: an update with both `viewportChanged` and `selectionSet` rebuilds
+- [x] Test: `forceDecorationRebuild` and reconfigure rebuild even when the viewport also changed
+- [x] Test: a `mouseup` outside the content DOM clears the drag flag (one-shot listener on the owner document registered at mousedown)
+- [x] A pure scroll still does not rebuild
 
 ## Comments
 
