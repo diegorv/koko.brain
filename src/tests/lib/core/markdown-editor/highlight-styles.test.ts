@@ -4,6 +4,7 @@ import { tags } from '@lezer/highlight';
 
 import {
 	markdownHighlight,
+	sourceHeadingSize,
 	codeHighlight,
 	markdownLanguage,
 	getLanguageEffects,
@@ -90,6 +91,21 @@ describe('markdownHighlight', () => {
 
 	it('does not define styles for code-specific tags like typeName', () => {
 		expect(markdownHighlight.style([tags.typeName])).toBeNull();
+	});
+});
+
+describe('sourceHeadingSize', () => {
+	it('sizes each heading level from its heading size setting and styles nothing else', () => {
+		const rules = sourceHeadingSize
+			.module!.getRules()
+			.split('}')
+			.filter((rule) => rule.trim() !== '');
+		expect(rules).toHaveLength(6);
+		for (const level of [1, 2, 3, 4, 5, 6]) {
+			const rule = rules.find((r) => r.includes(`--heading-h${level}-font-size`));
+			expect(rule, `H${level}`).toMatch(/(?:^|[{;\s])font-size\s*:/);
+		}
+		expect(sourceHeadingSize.style([tags.emphasis])).toBeNull();
 	});
 });
 

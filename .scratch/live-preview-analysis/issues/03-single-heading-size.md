@@ -23,3 +23,4 @@
 - 2026-10-29 17:35 — discovery — H1 text measured at 4.235x base (token em x line em); plan: drop HighlightStyle fontSize, line class owns size — c89a634c
 - 2026-10-29 17:40 — implement — HighlightStyle heading fontSize dropped; app H1 text 62.26px -> 30.25px, line height equal on/off cursor; pnpm check 0 errors, 518 targeted vitest + 21 e2e pass; source mode headings now body size (flag) — fdd48b50
 - 2026-10-29 17:43 — review — CHANGES_REQUESTED: LP fix and tests verified (fail on old code); source-mode headings regress to body size (30.25px -> 14.7px), give source mode its own single owner — a10c99da
+- 2026-10-29 17:46 — fix — source mode gets its own heading size owner (sourceHeadingSize via sourceModeExtensions); H1 30.25px again, matches main — 4572e56d

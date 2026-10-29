@@ -39,6 +39,25 @@ test.describe('Live Preview - Source Mode (Cmd+K)', () => {
 		await expect(page.locator('.cm-lp-bold')).toHaveCount(0);
 	});
 
+	test('Cmd+K keeps heading text larger than body text', async ({ lpPage: page }) => {
+		await page.keyboard.press('Meta+K');
+		await page.waitForTimeout(150);
+
+		const sizes = await page.evaluate(() => {
+			const lines = Array.from(document.querySelectorAll('.cm-content .cm-line'));
+			const headingLine = lines.find((l) => l.textContent === '# Heading One')!;
+			const headingText = Array.from(headingLine.querySelectorAll('span')).find((s) =>
+				s.textContent?.includes('Heading One'),
+			)!;
+			const bodyLine = lines.find((l) => l.textContent?.startsWith('This has **bold'))!;
+			return {
+				heading: parseFloat(getComputedStyle(headingText).fontSize),
+				body: parseFloat(getComputedStyle(bodyLine).fontSize),
+			};
+		});
+		expect(sizes.heading).toBeGreaterThan(sizes.body);
+	});
+
 	test('Cmd+K twice returns to live preview', async ({ lpPage: page }) => {
 		await page.keyboard.press('Meta+K');
 		await page.waitForTimeout(150);

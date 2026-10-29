@@ -102,6 +102,81 @@ describe('createExtensions', () => {
 		expect(extensions.length).toBeGreaterThan(0);
 	});
 
+	describe('heading font size has one owner per mode', () => {
+		const HEADINGS = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n';
+		/** Matches a `font-size` declaration (not `--x-font-size` custom properties). */
+		const FONT_SIZE_DECL = /(?:^|[{;\s])font-size\s*:/;
+
+		/** Every plain mounted style rule that declares `font-size`. */
+		function fontSizeRules(): CSSStyleRule[] {
+			const rules: CSSStyleRule[] = [];
+			for (const sheet of Array.from(document.styleSheets)) {
+				for (const rule of Array.from(sheet.cssRules)) {
+					if (
+						rule instanceof CSSStyleRule &&
+						!rule.selectorText.includes('::') &&
+						FONT_SIZE_DECL.test(rule.cssText)
+					) {
+						rules.push(rule);
+					}
+				}
+			}
+			return rules;
+		}
+
+		/** The font-size rules matching each heading line or anything inside it, per level. */
+		function ownersByLevel(view: EditorView): CSSStyleRule[][] {
+			const rules = fontSizeRules();
+			const lines = Array.from(view.contentDOM.querySelectorAll('.cm-line')).slice(0, 6);
+			return lines.map((line) => {
+				const els = [line, ...Array.from(line.querySelectorAll('*'))];
+				return rules.filter((rule) => els.some((el) => el.matches(rule.selectorText)));
+			});
+		}
+
+		function mount(opts: CreateExtensionsOptions) {
+			const root = document.body.appendChild(document.createElement('div'));
+			const view = new EditorView({
+				state: EditorState.create({ doc: HEADINGS, extensions: createExtensions(opts) }),
+				parent: root,
+			});
+			return {
+				view,
+				dispose: () => {
+					view.destroy();
+					root.remove();
+				},
+			};
+		}
+
+		it('source mode sizes each heading through exactly one rule, from the heading size setting', () => {
+			const { view, dispose } = mount(makeOptions({ isLivePreview: false }));
+			try {
+				const owners = ownersByLevel(view);
+				expect(owners).toHaveLength(6);
+				owners.forEach((rules, i) => {
+					expect(rules, `H${i + 1}`).toHaveLength(1);
+					expect(rules[0].cssText, `H${i + 1}`).toContain(`--heading-h${i + 1}-font-size`);
+				});
+			} finally {
+				dispose();
+			}
+		});
+
+		it('leaving source mode drops the source-mode heading size rule', () => {
+			const sourceModeCompartment = new Compartment();
+			const { view, dispose } = mount(makeOptions({ isLivePreview: false, sourceModeCompartment }));
+			try {
+				view.dispatch({ effects: sourceModeCompartment.reconfigure([]) });
+				for (const rules of ownersByLevel(view)) {
+					expect(rules).toEqual([]);
+				}
+			} finally {
+				dispose();
+			}
+		});
+	});
+
 	describe('legacy source-mode decorations', () => {
 		const DOC = '> [!note] Title\n> body\n\nSee [[Target]] here.';
 

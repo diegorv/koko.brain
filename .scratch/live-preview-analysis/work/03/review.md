@@ -47,3 +47,9 @@ The test verdict rests on `src/tests/lib/core/markdown-editor/highlight-styles.t
 - Tests were updated for every changed source file. Comments are JSDoc with no session narration, and the code uses tabs.
 - No scope creep: `styles.ts` is unchanged, which matches the plan (it was already the owner).
 - `git status` was clean after my probes. All probe files were removed and `highlight-styles.ts` was restored to HEAD.
+
+## Resolution
+
+1. **Fixed.** `sourceHeadingSize` (a HighlightStyle that sets only `fontSize: var(--heading-hN-font-size, <same fallback as .cm-lp-hN>)` for H1-H6) is installed through `sourceModeExtensions()`, so the source-mode compartment swaps it in and out and each mode has one size owner. Both JSDocs updated. Tests: `editor-extensions.test.ts` asserts exactly one font-size rule matches each source-mode heading line (and none after leaving source mode); `highlight-styles.test.ts` pins the rule set; `source-mode.spec.ts` checks that the H1 text is larger than body text after Cmd+K. Source-mode sizes after the fix match main: H1 30.25px / 49.13px line box, H2 23.78px / 38.78px, H3 18.70px / 30.66px, H4 14.7px / 24.25px.
+2. **No change**, as the review allows. The exact equality passed locally; if it flakes, report the font rather than adding a tolerance.
+3. **No action** (info).

@@ -12,9 +12,10 @@ import { getLanguageForFile } from '#lib/core/filesystem/fs.logic.js';
 
 /**
  * Syntax highlight style for markdown documents (headings, emphasis, links, etc.).
- * Heading font size is owned by the `cm-lp-hN` line class in live-preview
- * `styles.ts`: these rules style a span inside that line, so an `em` size
- * here would multiply with the line's.
+ * It sets no heading font size. Each editor mode has one size owner: the
+ * `cm-lp-hN` line class in live-preview `styles.ts`, and `sourceHeadingSize`
+ * in source mode. These rules style a span inside the heading line, so an
+ * `em` size here would multiply with the line's in live preview.
  */
 export const markdownHighlight = HighlightStyle.define([
 	{ tag: tags.heading1, fontWeight: 'var(--heading-h1-font-weight, bold)', color: 'var(--syntax-heading1)' },
@@ -39,6 +40,20 @@ export const markdownHighlight = HighlightStyle.define([
 	{ tag: tags.meta, color: 'var(--syntax-meta)' },
 	{ tag: tags.comment, color: 'var(--syntax-meta)' },
 	{ tag: tags.processingInstruction, color: 'var(--syntax-processing)' },
+]);
+
+/**
+ * Heading font size for source mode, installed only by `sourceModeExtensions()`.
+ * Source mode has no `cm-lp-hN` line class, so the heading span carries the
+ * size there. The fallbacks match the `.cm-lp-hN` rules in live-preview `styles.ts`.
+ */
+export const sourceHeadingSize = HighlightStyle.define([
+	{ tag: tags.heading1, fontSize: 'var(--heading-h1-font-size, 2.058em)' },
+	{ tag: tags.heading2, fontSize: 'var(--heading-h2-font-size, 1.618em)' },
+	{ tag: tags.heading3, fontSize: 'var(--heading-h3-font-size, 1.272em)' },
+	{ tag: tags.heading4, fontSize: 'var(--heading-h4-font-size, 1em)' },
+	{ tag: tags.heading5, fontSize: 'var(--heading-h5-font-size, 1em)' },
+	{ tag: tags.heading6, fontSize: 'var(--heading-h6-font-size, 1em)' },
 ]);
 
 /** Syntax highlight style for code files (JS, TS, Python, Rust, etc.) */
