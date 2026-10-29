@@ -17,3 +17,7 @@
 - [ ] Test: live-preview extension set does not contain the legacy wikilink and callout decorations; source mode still does
 - [ ] Test: a right-button mousedown on a wikilink does not navigate
 - [ ] Manual check: wikilinks and callouts in live preview look the same as before minus the double styling
+
+## Comments
+
+- 2026-10-29 17:18 — discovery — plan in work/09/discovery.md: sourceModeCompartment holds line numbers + legacy decorations; right-button guard via findWikilinkClickTarget — b68ace05
