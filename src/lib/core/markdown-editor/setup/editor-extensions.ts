@@ -22,7 +22,7 @@ import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview } from '../extensions/live-preview';
 import { markdownHighlight, markdownLanguage } from '../highlight-styles';
-import { copyBlockLinkToClipboard } from '$lib/features/copy-block-link/copy-block-link.service';
+import { copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
 

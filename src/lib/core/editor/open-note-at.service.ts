@@ -1,4 +1,4 @@
-import { clamp } from '$lib/utils/clamp';
+import { clamp } from '#lib/utils/clamp.js';
 import { openFileInEditor } from './editor.service';
 import { lineStartToOffset } from './editor.logic';
 import { editorStore } from './editor.store.svelte';

@@ -1,8 +1,8 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
-import { error } from '$lib/utils/debug';
+import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
+import { error } from '#lib/utils/debug.js';
 import { vaultStore } from './vault.store.svelte';
 
 /**

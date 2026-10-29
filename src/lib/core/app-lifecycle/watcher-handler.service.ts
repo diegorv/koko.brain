@@ -1,16 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
-import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex } from '$lib/features/collection/collection.service';
-import { buildFrontmatterIconIndex } from '$lib/features/file-icons/file-icons.service';
-import { scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
-import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
-import { debug, error, logProcessMemory } from '$lib/utils/debug';
-import type { FileReadResult } from '$lib/core/filesystem/fs.types';
+import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
+import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
+import { buildFrontmatterIconIndex } from '#lib/features/file-icons/file-icons.service.js';
+import { scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
+import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
+import { debug, error, logProcessMemory } from '#lib/utils/debug.js';
+import type { FileReadResult } from '#lib/core/filesystem/fs.types.js';
 
 /** Maximum number of changed markdown files for incremental path. Above this, do full rebuild. */
 const INCREMENTAL_THRESHOLD = 10;

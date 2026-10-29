@@ -1,15 +1,15 @@
 import type { Dayjs } from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { markRecentSave } from '$lib/core/editor/editor.hooks';
-import { isMarkdownFile } from '$lib/core/filesystem/fs.logic';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { processTemplate } from '$lib/utils/template';
-import { error } from '$lib/utils/debug';
-import { appendLog } from '$lib/utils/log.service';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { processTemplate } from '#lib/utils/template.js';
+import { error } from '#lib/utils/debug.js';
+import { appendLog } from '#lib/utils/log.service.js';
 
 /** Options for creating or opening a note from a template */
 export interface NoteCreationOptions {

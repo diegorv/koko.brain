@@ -4,12 +4,12 @@
 	import BrainIcon from '@lucide/svelte/icons/brain';
 	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import BrainCircuitIcon from '@lucide/svelte/icons/brain-circuit';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { isVirtualTab } from '$lib/core/editor/editor.logic';
-	import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { searchStore } from '$lib/features/search/search.store.svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
+	import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { searchStore } from '#lib/features/search/search.store.svelte.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import {
 		toVaultRelativePath,
 		isMarkdownPath,

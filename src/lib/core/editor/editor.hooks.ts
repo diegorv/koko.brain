@@ -1,9 +1,9 @@
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import { debug, error } from '$lib/utils/debug';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /**
  * Called after a file is successfully saved to disk.

@@ -1,4 +1,4 @@
-import { stem } from '$lib/utils/path';
+import { stem } from '#lib/utils/path.js';
 
 /**
  * Regex pattern matching all wikilink variations (without global flag).

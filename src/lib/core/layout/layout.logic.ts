@@ -1,4 +1,4 @@
-import type { SidebarMode } from '$lib/core/settings/settings.types';
+import type { SidebarMode } from '#lib/core/settings/settings.types.js';
 
 /** Cycle order for the left-sidebar views. */
 const SIDEBAR_MODE_CYCLE: SidebarMode[] = ['files', 'types', 'calendar'];

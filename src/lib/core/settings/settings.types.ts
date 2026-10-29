@@ -346,7 +346,7 @@ export interface AppSettings {
 	/** Optional Sentry error-monitoring configuration */
 	sentry: SentrySettings;
 	/** Auto-move feature configuration */
-	autoMove: import('$lib/features/auto-move/auto-move.types').AutoMoveSettings;
+	autoMove: import('#lib/features/auto-move/auto-move.types.js').AutoMoveSettings;
 	/** Event calendar configuration */
 	eventCalendar: EventCalendarSettings;
 	/** Whether debug messages are logged to the browser console */

@@ -1,6 +1,6 @@
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
-import { isAlreadyIndexed } from '$lib/utils/index-dedupe';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
+import { isAlreadyIndexed } from '#lib/utils/index-dedupe.js';
 
 /** Version counter to discard stale in-flight updates when a newer call arrives. */
 let updateVersion = 0;

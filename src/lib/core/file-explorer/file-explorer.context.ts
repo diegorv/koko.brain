@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
 /** Actions exposed by FileExplorer to its tree-item descendants */
 export interface FileExplorerContextActions {

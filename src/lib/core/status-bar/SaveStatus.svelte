@@ -1,8 +1,8 @@
 <script lang="ts">
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import Circle from '@lucide/svelte/icons/circle';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { isTabDirty, isVirtualTab } from '$lib/core/editor/editor.logic';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { isTabDirty, isVirtualTab } from '#lib/core/editor/editor.logic.js';
 
 	let status = $derived.by(() => {
 		const tab = editorStore.activeTab;

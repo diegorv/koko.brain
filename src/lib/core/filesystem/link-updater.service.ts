@@ -1,12 +1,12 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { isTabDirty } from '$lib/core/editor/editor.logic';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { extractNoteName, replaceWikilinks } from './link-updater.logic';
 import { applyNoteChange } from './note-change.service';
-import { error } from '$lib/utils/debug';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { error } from '#lib/utils/debug.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Updates all wikilinks across the vault after a file rename.

@@ -1,27 +1,27 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
-import { resetHooks } from '$lib/core/editor/editor.hooks';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
-import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
-import { debounce } from '$lib/utils/debounce';
-import { serializeWithRerun } from '$lib/utils/inflight';
-import { debug, error, logProcessMemory, perfStart, perfEnd, setTauriDebugMode, stopTauriDebugListener } from '$lib/utils/debug';
-import { initLogSession, teardownLogSession, startHeartbeat } from '$lib/utils/log.service';
+import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '#lib/core/editor/editor.service.js';
+import { resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+import { resetFileSystem, loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
+import { debounce } from '#lib/utils/debounce.js';
+import { serializeWithRerun } from '#lib/utils/inflight.js';
+import { debug, error, logProcessMemory, perfStart, perfEnd, setTauriDebugMode, stopTauriDebugListener } from '#lib/utils/debug.js';
+import { initLogSession, teardownLogSession, startHeartbeat } from '#lib/utils/log.service.js';
 import {
 	startWatching,
 	stopWatching,
 	onFileChange
-} from '$lib/core/filesystem/fs.watcher';
+} from '#lib/core/filesystem/fs.watcher.js';
 import {
 	buildIndex,
 	resetBacklinks,
-} from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex, registerCollectionNoteChangeConsumer, resetCollection } from '$lib/features/collection/collection.service';
+} from '#lib/features/backlinks/backlinks.service.js';
+import { buildPropertyIndex, registerCollectionNoteChangeConsumer, resetCollection } from '#lib/features/collection/collection.service.js';
 import {
 	resetOutgoingLinks,
-} from '$lib/features/outgoing-links/outgoing-links.service';
-import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
+} from '#lib/features/outgoing-links/outgoing-links.service.js';
+import { buildTagIndex, resetTags } from '#lib/features/tags/tags.service.js';
 import { rebuildAllIndexes } from './watcher-handler.service';
 import {
 	resetSearch,
@@ -31,57 +31,57 @@ import {
 	buildSemanticIndex,
 	startSemanticProgressListener,
 	stopSemanticProgressListener,
-} from '$lib/features/search/search.service';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { loadSettings, resetSettings } from '$lib/core/settings/settings.service';
-import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
-import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { configureSentry, disableSentry } from '$lib/core/settings/sentry.service';
-import { resetProperties } from '$lib/features/properties/properties.service';
-import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
+} from '#lib/features/search/search.service.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { loadSettings, resetSettings } from '#lib/core/settings/settings.service.js';
+import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
+import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { configureSentry, disableSentry } from '#lib/core/settings/sentry.service.js';
+import { resetProperties } from '#lib/features/properties/properties.service.js';
+import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
 import {
 	resetTemplates,
 	ensureTemplatesFolder,
-} from '$lib/plugins/templates/templates.service';
+} from '#lib/plugins/templates/templates.service.js';
 import {
 	loadBookmarks,
 	resetBookmarks,
-} from '$lib/features/bookmarks/bookmarks.service';
-import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
+} from '#lib/features/bookmarks/bookmarks.service.js';
+import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
 import {
 	loadRecentIcons,
 	buildFrontmatterIconIndex,
 	registerFileIconsNoteChangeConsumer,
 	resetFileIcons,
-} from '$lib/features/file-icons/file-icons.service';
+} from '#lib/features/file-icons/file-icons.service.js';
 import {
 	registerCalendarNoteChangeConsumer,
 	resetCalendar,
 	scanFilesForCalendar,
-} from '$lib/plugins/calendar/calendar.service';
-import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
-import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
-import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
-import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { resetKanban } from '$lib/plugins/kanban/kanban.service';
-import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
-import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { registerFileHistoryHook, closeFileHistory } from '$lib/features/file-history/file-history.service';
-import { executePendingAction, resetDeepLink } from '$lib/features/deep-link/deep-link.service';
-import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '$lib/features/auto-move/auto-move.service';
-import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
-import { applyFolderOrder, attachFileCounts } from '$lib/core/filesystem/fs.logic';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
-import { clearMermaidCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
-import { clearCollectionCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
-import { clearMathCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/math-widget';
-import { clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
+} from '#lib/plugins/calendar/calendar.service.js';
+import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
+import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
+import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { resetKanban } from '#lib/plugins/kanban/kanban.service.js';
+import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
+import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-history/file-history.service.js';
+import { executePendingAction, resetDeepLink } from '#lib/features/deep-link/deep-link.service.js';
+import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
+import { buildContentOrderMap } from '#lib/features/folder-notes/folder-notes.logic.js';
+import { applyFolderOrder, attachFileCounts } from '#lib/core/filesystem/fs.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { clearMermaidCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.js';
+import { clearCollectionCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
+import { clearMathCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.js';
+import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 
 /**
  * Delay (ms) before the deferred semantic-search init kicks in.

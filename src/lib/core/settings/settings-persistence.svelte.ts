@@ -1,7 +1,7 @@
 import { settingsStore } from './settings.store.svelte';
 import { writeSettingsFile } from './settings.service';
 import { normalizeSettings } from './settings.logic';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Debounce window for settings writes, in milliseconds.
