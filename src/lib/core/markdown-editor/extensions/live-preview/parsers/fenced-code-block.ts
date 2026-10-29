@@ -101,3 +101,47 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 
 	return blocks;
 }
+
+/** A closed fenced code block claimed by a specialized decorator (mermaid, queryjs, collection) */
+export interface SpecialFenceBlock {
+	/** Start of the opening fence line */
+	openFenceFrom: number;
+	/** End of the opening fence line */
+	openFenceTo: number;
+	/** Start of the closing fence line */
+	closeFenceFrom: number;
+	/** End of the closing fence line */
+	closeFenceTo: number;
+	/** The lines between the fences, joined by `\n` (empty for an empty block) */
+	content: string;
+}
+
+/**
+ * Finds the closed fenced code blocks whose opening fence line matches `openRe`.
+ * Detection comes from Lezer `FencedCode` nodes, so a fence nested inside a
+ * larger fence (plain code text to the outer block) is never returned:
+ * `findAllFencedCodeBlocks` iterates without entering mounted code-language
+ * trees. `openRe` is tested against the whole opening line, which keeps each
+ * decorator's language and fence-character rules.
+ */
+export function findSpecialFenceBlocks(state: EditorState, openRe: RegExp): SpecialFenceBlock[] {
+	const result: SpecialFenceBlock[] = [];
+	for (const block of findAllFencedCodeBlocks(state)) {
+		if (!block.closed) continue;
+		const openLine = state.doc.lineAt(block.openFenceFrom);
+		if (!openRe.test(openLine.text)) continue;
+		const closeLine = state.doc.lineAt(block.closeFenceFrom);
+		const content =
+			closeLine.number - openLine.number > 1
+				? state.doc.sliceString(state.doc.line(openLine.number + 1).from, state.doc.line(closeLine.number - 1).to)
+				: '';
+		result.push({
+			openFenceFrom: block.openFenceFrom,
+			openFenceTo: block.openFenceTo,
+			closeFenceFrom: block.closeFenceFrom,
+			closeFenceTo: block.closeFenceTo,
+			content,
+		});
+	}
+	return result;
+}

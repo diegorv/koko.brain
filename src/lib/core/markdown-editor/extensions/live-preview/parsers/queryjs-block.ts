@@ -1,3 +1,6 @@
+import type { EditorState } from '@codemirror/state';
+import { findSpecialFenceBlocks } from './fenced-code-block';
+
 /** Information about a ```queryjs code block */
 export interface QueryjsBlockInfo {
 	/** Start of the opening ```queryjs line */
@@ -12,40 +15,16 @@ export interface QueryjsBlockInfo {
 	jsContent: string;
 }
 
+/** Opening line of a queryjs block: a backtick fence at column 0 whose info string is exactly `queryjs` */
+const QUERYJS_OPEN_RE = /^`{3,}\s*queryjs\s*$/;
+
 /**
- * Finds a ```queryjs code block starting at the given index in the lines array.
- * Returns the block info and the index of the closing fence, or null if not found.
+ * Finds every closed ```queryjs block, from the Lezer `FencedCode` nodes.
+ * A queryjs fence nested in a larger fence is code text and is not returned.
  */
-export function findQueryjsBlock(
-	lines: { text: string; from: number; to: number }[],
-	startIdx: number,
-): { block: QueryjsBlockInfo; endIdx: number } | null {
-	const firstLine = lines[startIdx];
-	const openMatch = firstLine.text.match(/^(`{3,})\s*queryjs\s*$/);
-	if (!openMatch) return null;
-
-	const fenceChar = '`';
-	const fenceLen = openMatch[1].length;
-
-	const jsLines: string[] = [];
-
-	for (let i = startIdx + 1; i < lines.length; i++) {
-		const line = lines[i];
-		const closeMatch = line.text.match(/^(`{3,})\s*$/);
-		if (closeMatch && closeMatch[1][0] === fenceChar && closeMatch[1].length >= fenceLen) {
-			return {
-				block: {
-					openFenceFrom: firstLine.from,
-					openFenceTo: firstLine.to,
-					closeFenceFrom: line.from,
-					closeFenceTo: line.to,
-					jsContent: jsLines.join('\n'),
-				},
-				endIdx: i,
-			};
-		}
-		jsLines.push(line.text);
-	}
-
-	return null;
+export function findAllQueryjsBlocks(state: EditorState): QueryjsBlockInfo[] {
+	return findSpecialFenceBlocks(state, QUERYJS_OPEN_RE).map(({ content, ...range }) => ({
+		...range,
+		jsContent: content,
+	}));
 }

@@ -2,6 +2,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
+import { markdown } from '@codemirror/lang-markdown';
+import { LanguageDescription, ensureSyntaxTree } from '@codemirror/language';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
@@ -13,14 +15,24 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 
 const DOC = 'text\n```queryjs\nkb.view("scripts/demo")\n```';
 
+/**
+ * Mounts the field in a real view. The markdown language carries an `md`
+ * code language, as the app's does, so a ````md fence parses its content as
+ * markdown (a mounted nested tree) like it would in production.
+ */
 function createView(doc: string): EditorView {
+	const md = LanguageDescription.of({ name: 'Markdown', alias: ['md'], support: markdown() });
 	const state = EditorState.create({
 		doc,
 		selection: EditorSelection.cursor(0), // cursor on "text" — outside the block
-		extensions: [queryjsBlockField],
+		extensions: [markdown({ codeLanguages: [md] }), queryjsBlockField],
 	});
 	const root = document.body.appendChild(document.createElement('div'));
-	return new EditorView({ state, parent: root });
+	const view = new EditorView({ state, parent: root });
+	// Finish the parse and rebuild, so the field sees the whole tree.
+	ensureSyntaxTree(view.state, view.state.doc.length, 5000);
+	view.dispatch({ effects: forceDecorationRebuild.of(null) });
+	return view;
 }
 
 /** Returns the QueryjsBlockWidget instances currently held by the plugin. */
@@ -85,6 +97,26 @@ describe('queryjsBlockField — update() gating', () => {
 		});
 
 		expect(pluginWidgets(view)).toHaveLength(1);
+	});
+});
+
+describe('queryjsBlockField — fenced code awareness', () => {
+	beforeEach(() => {
+		collectionStore.reset();
+		editorStore.reset();
+		document.body.replaceChildren();
+	});
+
+	it('neither renders nor runs a queryjs fence nested in a ````md fence', () => {
+		const view = createView('text\n````md\n```queryjs\nkb.view("scripts/demo")\n```\n````');
+		expect(pluginWidgets(view)).toHaveLength(0);
+		// The widget's toDOM is what executes the script; no widget DOM means no run.
+		expect(view.dom.querySelector('.cm-lp-qjs-block')).toBeNull();
+	});
+
+	it('still renders a top-level queryjs fence next to a ````md fence', () => {
+		const view = createView('text\n````md\n```queryjs\nnested()\n```\n````\n```queryjs\ntop()\n```');
+		expect(pluginWidgets(view).map((w) => w.jsContent)).toEqual(['top()']);
 	});
 });
 

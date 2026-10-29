@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findAllFencedCodeBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.js';
+import { findAllFencedCodeBlocks, findSpecialFenceBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('findAllFencedCodeBlocks', () => {
@@ -108,5 +108,37 @@ describe('findAllFencedCodeBlocks', () => {
 		expect(blocks).toHaveLength(1);
 		const content = doc.slice(blocks[0].contentFrom, blocks[0].contentTo);
 		expect(content).toBe('hello\nworld');
+	});
+});
+
+describe('findSpecialFenceBlocks', () => {
+	const OPEN = /^`{3,}\s*demo\s*$/;
+
+	it('returns closed blocks whose opening line matches, with the inner lines as content', () => {
+		const doc = 'text\n```demo\na\nb\n```\n```js\nc\n```';
+		const blocks = findSpecialFenceBlocks(createMarkdownState(doc), OPEN);
+		expect(blocks).toEqual([
+			{
+				openFenceFrom: 5,
+				openFenceTo: 12,
+				closeFenceFrom: 17,
+				closeFenceTo: 20,
+				content: 'a\nb',
+			},
+		]);
+	});
+
+	it('gives an empty block an empty content', () => {
+		const blocks = findSpecialFenceBlocks(createMarkdownState('```demo\n```'), OPEN);
+		expect(blocks.map((b) => b.content)).toEqual(['']);
+	});
+
+	it('skips an unclosed block', () => {
+		expect(findSpecialFenceBlocks(createMarkdownState('```demo\na'), OPEN)).toEqual([]);
+	});
+
+	it('skips a matching fence nested in a larger fence', () => {
+		const doc = '````md\n```demo\na\n```\n````';
+		expect(findSpecialFenceBlocks(createMarkdownState(doc), OPEN)).toEqual([]);
 	});
 });
