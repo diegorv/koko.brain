@@ -18,3 +18,4 @@
 
 - 2026-10-28 21:43 — discovery — plan in work/75/discovery.md: exclude natively focusable matches from ownWrapper — 0c25cfd7
 - 2026-10-28 21:44 — implement — native controls with tabindex="-1" no longer count as own wrappers; pnpm check 0 errors, event-calendar vitest 962/962 — 22478edf
+- 2026-10-28 21:46 — review — CHANGES_REQUESTED: fix correct (red/green and real-header probe confirmed), add a real EventCalendarHeader tab-click test in EventCalendarView.test.ts — 31bdd2e4
