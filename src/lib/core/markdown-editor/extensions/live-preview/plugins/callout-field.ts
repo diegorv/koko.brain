@@ -1,7 +1,6 @@
-import { RangeSetBuilder } from '@codemirror/state';
-import type { EditorState } from '@codemirror/state';
+import type { EditorState, Range } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view';
-import { findAllCallouts, CALLOUT_CONTENT_RE } from '../parsers/callout';
+import { findAllCallouts, type CalloutBlock } from '../parsers/callout';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 import { calloutFoldState, toggleCalloutFold } from '../core/effects';
@@ -130,16 +129,51 @@ class CalloutTypeSwitcherWidget extends WidgetType {
 	}
 }
 
-/** Computes callout decorations using the Lezer syntax tree */
+/** Number of `>` quote prefixes before the `[!type]` of a callout header line. */
+function headerDepth(text: string): number {
+	return text.slice(0, text.indexOf('[!')).split('>').length - 1;
+}
+
+/** Length of the first `depth` quote prefixes (`>` plus one optional space) of a content line. */
+function quotePrefixLength(text: string, depth: number): number {
+	let i = 0;
+	for (let d = 0; d < depth && text[i] === '>'; d++) {
+		i++;
+		if (text[i] === ' ' || text[i] === '\t') i++;
+	}
+	return i;
+}
+
+/**
+ * Computes callout decorations using the Lezer syntax tree.
+ *
+ * A nested callout (`> > [!note]` inside `> [!warning]`) owns its lines: the
+ * parent skips them, hides them with itself when collapsed, and reveals them
+ * with itself. Its decorations land before positions the parent already
+ * decorated, so the set is sorted at the end.
+ */
 export function computeCallouts(state: EditorState): DecorationSet {
 	const isRevealed = revealPredicate(state);
-	const builder = new RangeSetBuilder<Decoration>();
+	const decos: Range<Decoration>[] = [];
 	const callouts = findAllCallouts(state);
 	const foldedLines = state.field(calloutFoldState, false) ?? new Set<number>();
 
+	// `findAllCallouts` lists a parent before the callouts nested in it, so the
+	// last write per line is its innermost callout.
+	const lineOwner = new Map<number, CalloutBlock>();
 	for (const callout of callouts) {
+		for (let n = callout.startLine; n <= callout.endLine; n++) lineOwner.set(n, callout);
+	}
+	// Ends of the furthest revealed / collapsed callout so far. A later callout
+	// ending at or before one of them is nested inside it.
+	let revealedTo = -1;
+	let collapsedTo = -1;
+
+	for (const callout of callouts) {
+		if (callout.to <= collapsedTo) continue;
 		const { header } = callout;
-		const isTouched = isRevealed(callout.from, callout.to);
+		const isTouched = callout.to <= revealedTo || isRevealed(callout.from, callout.to);
+		if (isTouched) revealedTo = Math.max(revealedTo, callout.to);
 
 		const lineDeco = Decoration.line({
 			class: 'cm-lp-callout',
@@ -159,15 +193,15 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			// Default state — `-` starts collapsed, everything else expanded
 			isCollapsed = header.foldable === '-';
 		}
+		const hidesContent = !isTouched && isCollapsed;
+		if (hidesContent) collapsedTo = Math.max(collapsedTo, callout.to);
 
 		const markerDeco = isTouched ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
 
 		// Header line: line deco + (optional) type-switcher widget + mark on marker
 		// + (optional) fold chevron + optional title mark.
-		// RangeSetBuilder requires sorted (from, startSide) order — additions are
-		// arranged below to honour that.
 		const headerLine = state.doc.line(callout.startLine);
-		builder.add(headerLine.from, headerLine.from, lineDeco);
+		decos.push(lineDeco.range(headerLine.from));
 
 		// Type-switcher widget at marker start (side -1 → before the mark below).
 		// Phase 17: every callout gets it (regardless of `+`/`-` marker).
@@ -176,59 +210,54 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			if (typeBracketIdx >= 0) {
 				const typeFrom = headerLine.from + typeBracketIdx + 2;
 				const typeTo = typeFrom + header.type.length;
-				builder.add(
-					header.markerFrom,
-					header.markerFrom,
+				decos.push(
 					Decoration.widget({
 						widget: new CalloutTypeSwitcherWidget(header.type, typeFrom, typeTo),
 						side: -1,
-					}),
+					}).range(header.markerFrom),
 				);
 			}
 		}
 
-		// Hides the marker text (`> [!type]`) — added after the type-switcher widget
-		// at the same start position because a non-inclusive replace sorts after a
-		// side -1 widget. The fold chevron (side -1 at markerTo) stays outside it.
-		builder.add(header.markerFrom, header.markerTo, markerDeco);
+		// Hides the marker text (`> [!type]`). A non-inclusive replace sorts after
+		// the side -1 type-switcher widget at the same start position. The fold
+		// chevron (side -1 at markerTo) stays outside it.
+		decos.push(markerDeco.range(header.markerFrom, header.markerTo));
 
 		// Fold chevron widget at markerTo. Phase 17: every callout gets a chevron.
 		if (isFoldable && !isTouched) {
-			builder.add(
-				header.markerTo,
-				header.markerTo,
-				Decoration.widget({ widget: new CalloutFoldWidget(isCollapsed, callout.startLine), side: -1 }),
+			decos.push(
+				Decoration.widget({ widget: new CalloutFoldWidget(isCollapsed, callout.startLine), side: -1 }).range(
+					header.markerTo,
+				),
 			);
 		}
 
 		if (header.title) {
-			builder.add(
-				header.titleFrom,
-				header.titleTo,
-				Decoration.mark({ class: 'cm-lp-callout-title' }),
-			);
+			decos.push(Decoration.mark({ class: 'cm-lp-callout-title' }).range(header.titleFrom, header.titleTo));
 		}
 
-		// Content lines: line deco + mark on `> ` prefix (or hide entirely if folded and not editing)
+		// Content lines: line deco + mark on the `> ` prefixes (or hide entirely if folded and not editing)
+		const depth = headerDepth(headerLine.text);
 		for (let lineNum = callout.startLine + 1; lineNum <= callout.endLine; lineNum++) {
 			const line = state.doc.line(lineNum);
 
-			if (!isTouched && isCollapsed) {
-				// Hide content lines when collapsed
-				builder.add(line.from, line.from, hiddenLineDeco);
-				builder.add(line.from, line.from, Decoration.line({ class: 'cm-lp-hidden-line' }));
-			} else {
-				builder.add(line.from, line.from, lineDeco);
+			if (hidesContent) {
+				// Hide content lines when collapsed, nested callouts included
+				decos.push(hiddenLineDeco.range(line.from));
+				decos.push(Decoration.line({ class: 'cm-lp-hidden-line' }).range(line.from));
+			} else if (lineOwner.get(lineNum) === callout) {
+				decos.push(lineDeco.range(line.from));
 
-				const prefixMatch = line.text.match(CALLOUT_CONTENT_RE);
-				if (prefixMatch) {
-					builder.add(line.from, line.from + prefixMatch[0].length, markerDeco);
+				const prefixLength = quotePrefixLength(line.text, depth);
+				if (prefixLength > 0) {
+					decos.push(markerDeco.range(line.from, line.from + prefixLength));
 				}
 			}
 		}
 	}
 
-	return builder.finish();
+	return Decoration.set(decos, true);
 }
 
 /**

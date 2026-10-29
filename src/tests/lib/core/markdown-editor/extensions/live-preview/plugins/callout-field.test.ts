@@ -205,4 +205,63 @@ describe('calloutField', () => {
 		// Header: lineDeco + type-switcher + mark + fold chevron + title mark = 5
 		expect(decos).toHaveLength(5);
 	});
+
+	describe('nested callouts', () => {
+		const doc = 'text\n> [!warning] W\n> > [!note] N\n> > inner\n>\n> outer tail';
+
+		/** Line decorations (`cm-lp-callout` / hidden) per line number, plus widget and replace ranges. */
+		function inspect(state: EditorState) {
+			const lineClasses = new Map<number, string[]>();
+			const widgets: { from: number; name: string }[] = [];
+			const replaces: { from: number; to: number }[] = [];
+			const iter = computeCallouts(state).iter();
+			while (iter.value) {
+				const spec = iter.value.spec as { class?: string; widget?: object };
+				if (spec.widget) widgets.push({ from: iter.from, name: spec.widget.constructor.name });
+				else if (iter.value.point && iter.from < iter.to) replaces.push({ from: iter.from, to: iter.to });
+				else if (iter.from === iter.to && spec.class) {
+					const n = state.doc.lineAt(iter.from).number;
+					lineClasses.set(n, [...(lineClasses.get(n) ?? []), spec.class]);
+				}
+				iter.next();
+			}
+			return { lineClasses, widgets, replaces };
+		}
+
+		it('renders both callouts without throwing', () => {
+			const state = createState(doc, 0);
+			const { lineClasses, widgets } = inspect(state);
+			const switchers = widgets.filter((w) => w.name === 'CalloutTypeSwitcherWidget');
+			expect(switchers.map((w) => state.doc.lineAt(w.from).number)).toEqual([2, 3]);
+			// Every callout line carries exactly one callout line decoration
+			for (const n of [2, 3, 4, 5, 6]) expect(lineClasses.get(n)).toEqual(['cm-lp-callout']);
+		});
+
+		it('hides the whole nested marker and both quote prefixes of nested content', () => {
+			const state = createState(doc, 0);
+			const { replaces } = inspect(state);
+			const at = (n: number) => state.doc.line(n).from;
+			expect(replaces).toEqual([
+				{ from: at(2), to: at(2) + '> [!warning] '.length },
+				{ from: at(3), to: at(3) + '> > [!note] '.length },
+				{ from: at(4), to: at(4) + '> > '.length },
+				{ from: at(5), to: at(5) + '>'.length },
+				{ from: at(6), to: at(6) + '> '.length },
+			]);
+		});
+
+		it('hides the nested callout with its collapsed parent', () => {
+			const state = createState(doc.replace('[!warning]', '[!warning]-'), 0);
+			const { lineClasses, widgets } = inspect(state);
+			expect(widgets.filter((w) => w.name === 'CalloutTypeSwitcherWidget')).toHaveLength(1);
+			for (const n of [3, 4, 5, 6]) expect(new Set(lineClasses.get(n))).toEqual(new Set(['cm-lp-hidden-line']));
+		});
+
+		it('reveals the nested callout when its parent is revealed', () => {
+			const state = createState(doc, doc.indexOf('W')); // cursor on the outer header
+			const { widgets, replaces } = inspect(state);
+			expect(widgets).toEqual([]);
+			expect(replaces).toEqual([]);
+		});
+	});
 });

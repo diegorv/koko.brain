@@ -29,9 +29,6 @@ export interface CalloutBlock {
 	endLine: number;
 }
 
-/** Matches a blockquote continuation line `> ...` (not a new callout) */
-export const CALLOUT_CONTENT_RE = /^>\s?/;
-
 /**
  * Parses a callout header line, or returns null if not a callout header.
  * Uses `matchCalloutHeader` since the `[!type]` syntax is Obsidian-specific and not in the Lezer grammar.
