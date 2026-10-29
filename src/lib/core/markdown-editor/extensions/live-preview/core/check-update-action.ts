@@ -4,9 +4,9 @@ import { mouseSelectingField } from './mouse-selecting';
 
 /**
  * Determines what action a ViewPlugin should take in response to a ViewUpdate.
- * - `'rebuild'`: decorations should be recomputed (doc/viewport changed, drag ended, selection moved, force rebuild)
+ * - `'rebuild'`: decorations should be recomputed (doc changed, reconfigured, drag ended, selection moved, force rebuild)
  * - `'skip'`: currently dragging — suppress rebuild to prevent flicker
- * - `'none'`: no relevant change — keep existing decorations
+ * - `'none'`: no relevant change, including a pure scroll — keep existing decorations
  *
  * When `lastCursorLine` is provided, selection-only changes that keep the cursor
  * on the same line return `'none'` instead of `'rebuild'`. This optimization is
@@ -15,10 +15,6 @@ import { mouseSelectingField } from './mouse-selecting';
  */
 export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 'rebuild' | 'skip' | 'none' {
 	if (update.docChanged) return 'rebuild';
-	// Pure viewport change (scroll): defer to scrollDebouncePlugin which will
-	// dispatch forceDecorationRebuild after scroll stops. This eliminates
-	// decoration rebuilds during active scrolling for all 27 plugins.
-	if (update.viewportChanged) return 'none';
 	if (update.transactions.some((t) => t.reconfigured)) return 'rebuild';
 	if (update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))))
 		return 'rebuild';
@@ -38,5 +34,9 @@ export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 
 		return 'rebuild';
 	}
 
+	// A pure viewport change (scroll) ends here: scrollDebouncePlugin dispatches
+	// forceDecorationRebuild after scrolling stops. A viewport change that also
+	// moves the selection (arrow keys at the viewport edge) or carries a
+	// reconfigure / forceDecorationRebuild was handled above.
 	return 'none';
 }

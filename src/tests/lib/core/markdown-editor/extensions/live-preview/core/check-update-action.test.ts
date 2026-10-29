@@ -53,6 +53,43 @@ describe('checkUpdateAction', () => {
 		expect(checkUpdateAction(update)).toBe('rebuild');
 	});
 
+	it('returns "rebuild" when the selection changes in the same update as the viewport', () => {
+		// ArrowUp/Down at the viewport edge scrolls and moves the cursor at once.
+		const state = createState('line one\nline two');
+		const moved = state.update({ selection: { anchor: 9 } }).state;
+		const update = mockUpdate(state, { state: moved, viewportChanged: true, selectionSet: true });
+		expect(checkUpdateAction(update, 1)).toBe('rebuild');
+	});
+
+	it('returns "rebuild" when reconfigured in the same update as a viewport change', () => {
+		const state = createState();
+		const update = mockUpdate(state, {
+			viewportChanged: true,
+			transactions: [{ reconfigured: true, effects: [] }],
+		});
+		expect(checkUpdateAction(update)).toBe('rebuild');
+	});
+
+	it('returns "rebuild" for forceDecorationRebuild in the same update as a viewport change', () => {
+		const state = createState();
+		const update = mockUpdate(state, {
+			viewportChanged: true,
+			transactions: [
+				{
+					reconfigured: false,
+					effects: [{ is: (type: unknown) => type === forceDecorationRebuild }],
+				},
+			],
+		});
+		expect(checkUpdateAction(update)).toBe('rebuild');
+	});
+
+	it('returns "none" for a viewport change whose selection stays on the same line', () => {
+		const state = createState();
+		const update = mockUpdate(state, { viewportChanged: true, selectionSet: true });
+		expect(checkUpdateAction(update, 1)).toBe('none');
+	});
+
 	it('returns "rebuild" when selection changes', () => {
 		const state = createState();
 		const update = mockUpdate(state, { selectionSet: true });
