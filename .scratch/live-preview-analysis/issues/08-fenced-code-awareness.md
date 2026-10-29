@@ -20,3 +20,7 @@
 - [ ] Test: `%%` lines inside a fenced code block are shown as code
 - [ ] Test: a queryjs fence nested in a ````md fence is not rendered and its script never runs
 - [ ] Mermaid and collection use FencedCode nodes; their existing tests pass
+
+## Comments
+
+- 2026-10-29 18:09 — discovery — plan: shared findFencedBlocks over Lezer FencedCode for queryjs/mermaid/collection, code-line skip for %% fences — a5e16246
