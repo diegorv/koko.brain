@@ -23,10 +23,11 @@
 	import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 	import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
+	import { IS_MAC } from '#lib/utils/platform.js';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions, sourceModeExtensions } from './setup';
-	import { findWikilinkClickTarget } from './wikilink-click-target';
+	import { resolveWikilinkClickPosition } from './wikilink-click-target';
 
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -56,8 +57,8 @@
 
 	async function handleEditorClick(e: MouseEvent) {
 		if (!view) return;
-		const el = findWikilinkClickTarget(e);
-		if (!el) return;
+		const pos = resolveWikilinkClickPosition(e, view, IS_MAC);
+		if (pos === null) return;
 
 		// Capture-phase interception: this listener is registered with
 		// `{ capture: true }` on the container, so it runs before any handler
@@ -70,7 +71,6 @@
 		e.stopImmediatePropagation();
 
 		try {
-			const pos = view.posAtDOM(el);
 			const line = view.state.doc.lineAt(pos);
 			const info = findWikilinkInfoAtPosition(line.text, line.from, pos);
 			if (!info) return;

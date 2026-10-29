@@ -11,9 +11,10 @@ import { handleLivePreviewLinkMousedown } from '#lib/core/markdown-editor/extens
 import { createMarkdownState } from '../../test-helpers';
 
 /** Builds a fake mouse event whose target.closest resolves to the given link element. */
-function createEvent(opts: { meta?: boolean; ctrl?: boolean; linkEl?: HTMLElement | null }): MouseEvent {
+function createEvent(opts: { meta?: boolean; ctrl?: boolean; button?: number; linkEl?: HTMLElement | null }): MouseEvent {
 	const target = { closest: vi.fn(() => opts.linkEl ?? null) };
 	return {
+		button: opts.button ?? 0,
 		metaKey: opts.meta ?? false,
 		ctrlKey: opts.ctrl ?? false,
 		target,
@@ -40,8 +41,8 @@ describe('handleLivePreviewLinkMousedown', () => {
 		mockOpenUrl.mockResolvedValue(undefined);
 	});
 
-	it('returns false when neither Cmd nor Ctrl is held', () => {
-		const handled = handleLivePreviewLinkMousedown(createEvent({}), createView('plain text'));
+	it('returns false without the open modifier', () => {
+		const handled = handleLivePreviewLinkMousedown(createEvent({}), createView('plain text'), true);
 		expect(handled).toBe(false);
 		expect(mockOpenUrl).not.toHaveBeenCalled();
 	});
@@ -50,6 +51,7 @@ describe('handleLivePreviewLinkMousedown', () => {
 		const handled = handleLivePreviewLinkMousedown(
 			createEvent({ meta: true, linkEl: null }),
 			createView('plain text'),
+			true,
 		);
 		expect(handled).toBe(false);
 		expect(mockOpenUrl).not.toHaveBeenCalled();
@@ -59,6 +61,7 @@ describe('handleLivePreviewLinkMousedown', () => {
 		const handled = handleLivePreviewLinkMousedown(
 			createEvent({ meta: true, linkEl: linkWithText('https://example.com') }),
 			createView('https://example.com'),
+			true,
 		);
 		expect(handled).toBe(true);
 		expect(mockOpenUrl).toHaveBeenCalledWith('https://example.com');
@@ -69,6 +72,7 @@ describe('handleLivePreviewLinkMousedown', () => {
 		const handled = handleLivePreviewLinkMousedown(
 			createEvent({ meta: true, linkEl: linkWithText('x') }),
 			createView(doc, 1), // cursor inside [x]
+			true,
 		);
 		expect(handled).toBe(true);
 		expect(mockOpenUrl).toHaveBeenCalledWith('https://md.example.com');
@@ -78,6 +82,7 @@ describe('handleLivePreviewLinkMousedown', () => {
 		const handled = handleLivePreviewLinkMousedown(
 			createEvent({ meta: true, linkEl: linkWithText('javascript:alert(1)') }),
 			createView('javascript:alert(1)'),
+			true,
 		);
 		expect(handled).toBe(true);
 		expect(mockOpenUrl).not.toHaveBeenCalled();
@@ -90,6 +95,7 @@ describe('handleLivePreviewLinkMousedown', () => {
 		handleLivePreviewLinkMousedown(
 			createEvent({ meta: true, linkEl: linkWithText('https://example.com') }),
 			createView('https://example.com'),
+			true,
 		);
 
 		await vi.waitFor(() =>
@@ -100,5 +106,53 @@ describe('handleLivePreviewLinkMousedown', () => {
 			),
 		);
 		consoleErrorSpy.mockRestore();
+	});
+});
+
+describe('handleLivePreviewLinkMousedown platform modifiers', () => {
+	const URL = 'https://example.com';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockOpenUrl.mockResolvedValue(undefined);
+	});
+
+	function click(opts: { meta?: boolean; ctrl?: boolean; button?: number }, mac: boolean): boolean {
+		return handleLivePreviewLinkMousedown(createEvent({ ...opts, linkEl: linkWithText(URL) }), createView(URL), mac);
+	}
+
+	it('macOS: Cmd+click opens the external link in the browser', () => {
+		expect(click({ meta: true }, true)).toBe(true);
+		expect(mockOpenUrl).toHaveBeenCalledWith(URL);
+	});
+
+	it('macOS: Ctrl+click and Cmd+Ctrl+click do not navigate (context menu)', () => {
+		expect(click({ ctrl: true }, true)).toBe(false);
+		expect(click({ meta: true, ctrl: true }, true)).toBe(false);
+		expect(mockOpenUrl).not.toHaveBeenCalled();
+	});
+
+	it('Windows/Linux: Ctrl+click opens the external link in the browser', () => {
+		expect(click({ ctrl: true }, false)).toBe(true);
+		expect(mockOpenUrl).toHaveBeenCalledWith(URL);
+	});
+
+	it('Windows/Linux: Meta+click does not navigate', () => {
+		expect(click({ meta: true }, false)).toBe(false);
+		expect(mockOpenUrl).not.toHaveBeenCalled();
+	});
+
+	it('a plain click places the cursor (not handled) on both platforms', () => {
+		expect(click({}, true)).toBe(false);
+		expect(click({}, false)).toBe(false);
+		expect(mockOpenUrl).not.toHaveBeenCalled();
+	});
+
+	it('a right click does not navigate, with or without the modifier', () => {
+		expect(click({ button: 2 }, true)).toBe(false);
+		expect(click({ button: 2, meta: true }, true)).toBe(false);
+		expect(click({ button: 2 }, false)).toBe(false);
+		expect(click({ button: 2, ctrl: true }, false)).toBe(false);
+		expect(mockOpenUrl).not.toHaveBeenCalled();
 	});
 });

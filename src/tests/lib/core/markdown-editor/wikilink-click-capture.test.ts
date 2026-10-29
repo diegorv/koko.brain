@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
-import { findWikilinkClickTarget, findWikilinkElement, WIKILINK_SELECTOR } from '#lib/core/markdown-editor/wikilink-click-target.js';
+import { describe, it, expect, vi } from 'vitest';
+import {
+	findWikilinkElement,
+	resolveWikilinkClickPosition,
+	WIKILINK_SELECTOR,
+	type WikilinkClickView,
+} from '#lib/core/markdown-editor/wikilink-click-target.js';
+import { createMarkdownState } from './test-helpers';
 
 describe('findWikilinkElement', () => {
 	it('matches every wikilink class the editor uses', () => {
@@ -43,31 +49,112 @@ describe('findWikilinkElement', () => {
 	});
 });
 
-describe('findWikilinkClickTarget', () => {
-	function mousedownOn(target: HTMLElement, button: number): MouseEvent {
+describe('resolveWikilinkClickPosition', () => {
+	// `see [[Note]] here`: the wikilink spans 4..12.
+	const DOC = 'see [[Note]] here';
+	const INSIDE_LINK = 7;
+	const PLAIN_TEXT = 1;
+
+	/**
+	 * A real markdown EditorState with the geometry stubbed: jsdom has no
+	 * layout, so `posAtCoords` / `posAtDOM` return the position the click
+	 * would map to in the app.
+	 */
+	function viewAt(pos: number | null) {
+		const stub = {
+			state: createMarkdownState(DOC),
+			posAtCoords: vi.fn(() => pos),
+			posAtDOM: vi.fn(() => pos ?? 0),
+		};
+		return stub as typeof stub & WikilinkClickView;
+	}
+
+	/** A click on revealed source: the target is the line, no wikilink class. */
+	function revealedClick(mods: { meta?: boolean; ctrl?: boolean; button?: number } = {}): MouseEvent {
+		const line = document.createElement('div');
+		line.className = 'cm-line';
 		let captured: MouseEvent | null = null;
-		target.addEventListener('mousedown', (e) => { captured = e; }, { once: true });
-		target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button }));
+		line.addEventListener('mousedown', (e) => { captured = e; }, { once: true });
+		line.dispatchEvent(new MouseEvent('mousedown', {
+			bubbles: true,
+			cancelable: true,
+			button: mods.button ?? 0,
+			metaKey: mods.meta ?? false,
+			ctrlKey: mods.ctrl ?? false,
+			clientX: 10,
+			clientY: 20,
+		}));
 		return captured!;
 	}
 
-	it('returns the wikilink element for a primary-button mousedown', () => {
+	function renderedClick(mods: { meta?: boolean; ctrl?: boolean; button?: number } = {}): MouseEvent {
 		const link = document.createElement('a');
 		link.className = 'cm-lp-wikilink';
-		expect(findWikilinkClickTarget(mousedownOn(link, 0))).toBe(link);
+		let captured: MouseEvent | null = null;
+		link.addEventListener('mousedown', (e) => { captured = e; }, { once: true });
+		link.dispatchEvent(new MouseEvent('mousedown', {
+			bubbles: true,
+			cancelable: true,
+			button: mods.button ?? 0,
+			metaKey: mods.meta ?? false,
+			ctrlKey: mods.ctrl ?? false,
+		}));
+		return captured!;
+	}
+
+	describe('rendered wikilink', () => {
+		it('macOS: plain click and Cmd+click open, Ctrl+click and right click do not', () => {
+			expect(resolveWikilinkClickPosition(renderedClick(), viewAt(INSIDE_LINK), true)).toBe(INSIDE_LINK);
+			expect(resolveWikilinkClickPosition(renderedClick({ meta: true }), viewAt(INSIDE_LINK), true)).toBe(INSIDE_LINK);
+			expect(resolveWikilinkClickPosition(renderedClick({ ctrl: true }), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(renderedClick({ ctrl: true, meta: true }), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(renderedClick({ button: 2 }), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(renderedClick({ button: 1 }), viewAt(INSIDE_LINK), true)).toBeNull();
+		});
+
+		it('Windows/Linux: plain click and Ctrl+click open, right click does not', () => {
+			expect(resolveWikilinkClickPosition(renderedClick(), viewAt(INSIDE_LINK), false)).toBe(INSIDE_LINK);
+			expect(resolveWikilinkClickPosition(renderedClick({ ctrl: true }), viewAt(INSIDE_LINK), false)).toBe(INSIDE_LINK);
+			expect(resolveWikilinkClickPosition(renderedClick({ button: 2 }), viewAt(INSIDE_LINK), false)).toBeNull();
+			expect(resolveWikilinkClickPosition(renderedClick({ ctrl: true, button: 2 }), viewAt(INSIDE_LINK), false)).toBeNull();
+			expect(resolveWikilinkClickPosition(renderedClick({ button: 1 }), viewAt(INSIDE_LINK), false)).toBeNull();
+		});
 	});
 
-	it('returns null for a right-button or middle-button mousedown on a wikilink', () => {
-		const link = document.createElement('a');
-		link.className = 'cm-lp-wikilink';
-		expect(findWikilinkClickTarget(mousedownOn(link, 2))).toBeNull();
-		expect(findWikilinkClickTarget(mousedownOn(link, 1))).toBeNull();
-	});
+	describe('revealed source (cursor on the wikilink line)', () => {
+		it('macOS: Cmd+click opens the wikilink under the pointer', () => {
+			const view = viewAt(INSIDE_LINK);
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), view, true)).toBe(INSIDE_LINK);
+			expect(view.posAtCoords).toHaveBeenCalledWith({ x: 10, y: 20 });
+		});
 
-	it('returns null for a primary-button mousedown outside a wikilink', () => {
-		const el = document.createElement('span');
-		el.className = 'cm-line';
-		expect(findWikilinkClickTarget(mousedownOn(el, 0))).toBeNull();
+		it('Windows/Linux: Ctrl+click opens the wikilink under the pointer', () => {
+			expect(resolveWikilinkClickPosition(revealedClick({ ctrl: true }), viewAt(INSIDE_LINK), false)).toBe(INSIDE_LINK);
+		});
+
+		it('a plain click does not open (it places the cursor)', () => {
+			expect(resolveWikilinkClickPosition(revealedClick(), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(revealedClick(), viewAt(INSIDE_LINK), false)).toBeNull();
+		});
+
+		it('the other platform\'s modifier does not open', () => {
+			expect(resolveWikilinkClickPosition(revealedClick({ ctrl: true }), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(INSIDE_LINK), false)).toBeNull();
+		});
+
+		it('a right click with the modifier does not open', () => {
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true, button: 2 }), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(revealedClick({ ctrl: true, button: 2 }), viewAt(INSIDE_LINK), false)).toBeNull();
+		});
+
+		it('the modifier on plain text outside any wikilink returns null', () => {
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(PLAIN_TEXT), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(revealedClick({ ctrl: true }), viewAt(PLAIN_TEXT), false)).toBeNull();
+		});
+
+		it('returns null when the pointer maps to no document position', () => {
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(null), true)).toBeNull();
+		});
 	});
 });
 
@@ -108,12 +195,16 @@ describe('wikilink mousedown capture-phase contract', () => {
 		return { container, cmEditor, cmContent, wikilink, plain };
 	}
 
-	function attachWikilinkCaptureHandler(container: HTMLElement, calls: string[]) {
+	function attachWikilinkCaptureHandler(container: HTMLElement, calls: string[], mac = false) {
 		// Mirrors MarkdownEditor.svelte: capture-phase listener that intercepts
 		// only wikilink mousedowns and stops the event from reaching descendants.
+		const view = {
+			state: createMarkdownState('[[Year]] plain text'),
+			posAtDOM: () => 2,
+			posAtCoords: () => null,
+		} as unknown as WikilinkClickView;
 		const handler = (e: MouseEvent) => {
-			const el = findWikilinkClickTarget(e);
-			if (!el) return;
+			if (resolveWikilinkClickPosition(e, view, mac) === null) return;
 			calls.push('wikilink-handler');
 			e.preventDefault();
 			e.stopImmediatePropagation();
@@ -173,6 +264,22 @@ describe('wikilink mousedown capture-phase contract', () => {
 		const detachCm = attachFakeCmHandlers(cmEditor, cmContent, calls);
 
 		const ev = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 2 });
+		wikilink.dispatchEvent(ev);
+
+		expect(calls).toEqual(['cm-capture', 'cm-bubble']);
+		expect(ev.defaultPrevented).toBe(false);
+		detachWl();
+		detachCm();
+		container.remove();
+	});
+
+	it('macOS Ctrl+clicking a wikilink does not navigate and still reaches CodeMirror', () => {
+		const { container, cmEditor, cmContent, wikilink } = buildDom();
+		const calls: string[] = [];
+		const detachWl = attachWikilinkCaptureHandler(container, calls, true);
+		const detachCm = attachFakeCmHandlers(cmEditor, cmContent, calls);
+
+		const ev = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ctrlKey: true });
 		wikilink.dispatchEvent(ev);
 
 		expect(calls).toEqual(['cm-capture', 'cm-bubble']);
