@@ -1,12 +1,10 @@
 import { Decoration } from '@codemirror/view';
-import { linkTextDeco } from '../../styles';
+import { hiddenSyntaxDeco, linkTextDeco } from '../../styles';
 import type { NodeHandler } from '../inline-formatting-plugin';
-
-const FORMATTING_CLS = 'cm-formatting-inline';
 
 /**
  * Markdown link `[text](url)` and reference link `[text][ref]`. Hides the
- * brackets and target portion via `cm-formatting-inline`, styles the visible
+ * brackets and target portion via `hiddenSyntaxDeco`, styles the visible
  * text via `cm-lp-link`. Cursor inside the link → fall through and render
  * raw markdown.
  *
@@ -35,17 +33,17 @@ export const linkHandler: NodeHandler = {
 
 		if (marks.length >= 4) {
 			// Inline link [text](url) — hide `[` and `](url)`
-			decorations.push(Decoration.mark({ class: FORMATTING_CLS }).range(marks[0].from, marks[0].to));
+			decorations.push(hiddenSyntaxDeco.range(marks[0].from, marks[0].to));
 			decorations.push(linkTextDeco.range(marks[0].to, marks[1].from));
 			decorations.push(
-				Decoration.mark({ class: FORMATTING_CLS }).range(marks[1].from, marks[marks.length - 1].to),
+				hiddenSyntaxDeco.range(marks[1].from, marks[marks.length - 1].to),
 			);
 		} else if (marks.length >= 2 && linkLabel) {
 			// Reference link [text][ref] — hide `[` and `][ref]`
-			decorations.push(Decoration.mark({ class: FORMATTING_CLS }).range(marks[0].from, marks[0].to));
+			decorations.push(hiddenSyntaxDeco.range(marks[0].from, marks[0].to));
 			decorations.push(linkTextDeco.range(marks[0].to, marks[1].from));
 			decorations.push(
-				Decoration.mark({ class: FORMATTING_CLS }).range(marks[1].from, linkLabel.to),
+				hiddenSyntaxDeco.range(marks[1].from, linkLabel.to),
 			);
 		}
 		// Lezer's `state.doc` is captured implicitly via `node.from/to` — `state`

@@ -22,7 +22,10 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 	const result: DecoSpec[] = [];
 	const iter = set.iter();
 	while (iter.value) {
-		result.push({ from: iter.from, to: iter.to, class: (iter.value.spec as { class: string }).class });
+		// A point decoration spanning text is a `Decoration.replace`: the syntax is
+		// removed from the DOM, reported here as the `replace` sentinel class.
+		const cls = iter.value.point && iter.from < iter.to ? 'replace' : (iter.value.spec as { class: string }).class;
+		result.push({ from: iter.from, to: iter.to, class: cls });
 		iter.next();
 	}
 	return result;
@@ -35,7 +38,7 @@ describe('linkHandler — inline `[text](url)`', () => {
 		const doc = '[label](https://example.com)\n\nplain';
 		const decos = build(doc, doc.length);
 		const linkText = decos.find((d) => d.class === 'cm-lp-link');
-		const formatting = decos.filter((d) => d.class === 'cm-formatting-inline');
+		const formatting = decos.filter((d) => d.class === 'replace');
 		expect(linkText).toBeDefined();
 		expect(formatting.length).toBeGreaterThanOrEqual(2);
 	});
@@ -58,7 +61,7 @@ describe('linkHandler — reference link `[text][ref]`', () => {
 	it('hides brackets and styles label when cursor away', () => {
 		const doc = '[label][ref]\n\n[ref]: https://example.com';
 		const decos = build(doc, doc.length);
-		// Reference link emits cm-lp-link on label + cm-formatting-inline on brackets
+		// Reference link emits cm-lp-link on label + replaces the brackets
 		const linkText = decos.find((d) => d.class === 'cm-lp-link');
 		expect(linkText).toBeDefined();
 	});

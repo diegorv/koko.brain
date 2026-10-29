@@ -1,5 +1,5 @@
 import { Decoration } from '@codemirror/view';
-import { blockquoteLineDeco } from '../../styles';
+import { blockquoteLineDeco, hiddenSyntaxDeco, revealedBlockSyntaxDeco } from '../../styles';
 import { findBlockquoteMarkRange } from '../../parsers/blockquote';
 import type { NodeHandler } from '../inline-formatting-plugin';
 
@@ -42,9 +42,7 @@ export const blockquoteHandler: NodeHandler = {
 		decorations.push(lineDeco.range(line.from, line.from));
 
 		// Mark visibility — hide the `> ` prefix when cursor is away from the line
-		const cls = isTouched(line.from, line.to)
-			? 'cm-formatting-block cm-formatting-block-visible'
-			: 'cm-formatting-block';
-		decorations.push(Decoration.mark({ class: cls }).range(line.from, range.markTo));
+		const deco = isTouched(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+		decorations.push(deco.range(line.from, range.markTo));
 	},
 };

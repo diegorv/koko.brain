@@ -5,7 +5,7 @@ import { findAllCallouts, CALLOUT_CONTENT_RE } from '../parsers/callout';
 import { blockDecorator } from '../core/block-decorator';
 import { shouldShowSource } from '../core/should-show-source';
 import { calloutFoldState, toggleCalloutFold } from '../core/effects';
-import { hiddenLineDeco } from '../styles';
+import { hiddenLineDeco, hiddenSyntaxDeco, revealedBlockSyntaxDeco } from '../styles';
 import { CALLOUT_COLORS } from '../../callout/callout.logic';
 
 /**
@@ -159,9 +159,7 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			isCollapsed = header.foldable === '-';
 		}
 
-		const markerCls = isTouched
-			? 'cm-formatting-block cm-formatting-block-visible'
-			: 'cm-formatting-block';
+		const markerDeco = isTouched ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
 
 		// Header line: line deco + (optional) type-switcher widget + mark on marker
 		// + (optional) fold chevron + optional title mark.
@@ -188,9 +186,10 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			}
 		}
 
-		// Mark hides the marker text (`> [!type]`) — runs after the type-switcher
-		// widget at the same start position thanks to its side-0 default.
-		builder.add(header.markerFrom, header.markerTo, Decoration.mark({ class: markerCls }));
+		// Hides the marker text (`> [!type]`) — added after the type-switcher widget
+		// at the same start position because a non-inclusive replace sorts after a
+		// side -1 widget. The fold chevron (side -1 at markerTo) stays outside it.
+		builder.add(header.markerFrom, header.markerTo, markerDeco);
 
 		// Fold chevron widget at markerTo. Phase 17: every callout gets a chevron.
 		if (isFoldable && !isTouched) {
@@ -222,7 +221,7 @@ export function computeCallouts(state: EditorState): DecorationSet {
 
 				const prefixMatch = line.text.match(CALLOUT_CONTENT_RE);
 				if (prefixMatch) {
-					builder.add(line.from, line.from + prefixMatch[0].length, Decoration.mark({ class: markerCls }));
+					builder.add(line.from, line.from + prefixMatch[0].length, markerDeco);
 				}
 			}
 		}

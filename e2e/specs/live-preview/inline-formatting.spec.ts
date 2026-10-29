@@ -69,11 +69,8 @@ test.describe('Live Preview - Inline Formatting', () => {
 		// Click on the heading to move cursor away from bold line
 		await clickOnLine(page, 'Heading');
 
-		// The bold line's formatting marks should not have -visible class
+		// Hidden syntax is a Decoration.replace: the `**` is not in the DOM at all
 		const boldLine = page.locator('.cm-line').filter({ hasText: 'bold text' });
-		const marks = boldLine.locator('.cm-formatting-inline');
-		const count = await marks.count();
-		expect(count).toBeGreaterThan(0);
-		await expect(marks.first()).not.toHaveClass(/cm-formatting-inline-visible/);
+		await expect(boldLine).not.toContainText('**');
 	});
 });

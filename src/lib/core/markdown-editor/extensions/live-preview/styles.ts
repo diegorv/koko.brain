@@ -1,5 +1,16 @@
 import { Decoration, EditorView, GutterMarker } from '@codemirror/view';
 
+/**
+ * Hides markdown syntax (`#`, `>`, `**`, link brackets, `%%comments%%`, …) off
+ * the revealed lines. A replace removes the text from the DOM, so the swap is
+ * instant and the line never changes width while CodeMirror measures it.
+ * Ranges must stay within one line (the inline pipeline is a ViewPlugin).
+ */
+export const hiddenSyntaxDeco = Decoration.replace({});
+
+/** Dims block syntax on a revealed line; pairs with `hiddenSyntaxDeco`. */
+export const revealedBlockSyntaxDeco = Decoration.mark({ class: 'cm-formatting-block' });
+
 export const linkTextDeco = Decoration.mark({ class: 'cm-lp-link' });
 export const blockquoteLineDeco = Decoration.line({ class: 'cm-lp-blockquote' });
 export const wikilinkTextDeco = Decoration.mark({ class: 'cm-lp-wikilink' });
@@ -26,32 +37,13 @@ export const headingLineDeco: Record<number, Decoration> = {
 };
 
 export const livePreviewStyles = EditorView.baseTheme({
-	/* ── Phase 3: CSS animation classes for mark visibility ── */
-
-	/** Inline formatting marks (**, *, ~~, `, ==) — hidden state */
-	'.cm-formatting-inline': {
-		display: 'inline-flex',
-		maxWidth: '0',
-		height: '0',
-		opacity: '0',
-		overflow: 'hidden',
-		transition: 'max-width 0.2s ease, opacity 0.15s ease',
-	},
-	/** Inline formatting marks — visible state (cursor nearby) */
-	'.cm-formatting-inline-visible': {
-		maxWidth: '4ch',
-		height: 'auto',
-		opacity: '1',
-	},
-	/** Block formatting marks (#, >) — hidden state */
+	/**
+	 * Revealed block syntax (`#`, `>`, setext underline, callout marker) on a
+	 * line the selection touches. Static on purpose: hidden syntax is a
+	 * `hiddenSyntaxDeco` replace, and animating glyph width broke vertical
+	 * cursor motion (ADR 0008, 2026-10-29 amendment).
+	 */
 	'.cm-formatting-block': {
-		fontSize: '0.01em',
-		opacity: '0',
-		transition: 'font-size 0.2s ease, opacity 0.2s ease',
-	},
-	/** Block formatting marks — visible state (cursor nearby) */
-	'.cm-formatting-block-visible': {
-		fontSize: '1em',
 		opacity: '0.6',
 	},
 
@@ -500,9 +492,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-inline-comment': {
 		color: 'var(--lp-comment, var(--syntax-comment, #6c7086))',
 		opacity: '0.5',
-	},
-	'.cm-lp-inline-comment-hidden': {
-		display: 'none',
 	},
 	'.cm-lp-hidden-line': {
 		display: 'none !important',

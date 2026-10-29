@@ -1,5 +1,4 @@
-import { Decoration } from '@codemirror/view';
-import { headingLineDeco } from '../../styles';
+import { headingLineDeco, hiddenSyntaxDeco, revealedBlockSyntaxDeco } from '../../styles';
 import type { NodeHandler } from '../inline-formatting-plugin';
 
 /**
@@ -7,10 +6,9 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  *   - `Decoration.line({ class: 'cm-lp-h{N}' })` for line-level styling
  *     (font size, weight, colour) — uses the shared `headingLineDeco`
  *     constant so there's one source of truth for the class string.
- *   - `Decoration.mark({ class: 'cm-formatting-block' })` over the
- *     `HeaderMark` (`#…` plus the trailing space) so the marks fade out
- *     when the cursor is away from the line and re-appear when it enters.
- *     The visible variant adds the `cm-formatting-block-visible` modifier.
+ *   - over the `HeaderMark` (`#…` plus the trailing space): `hiddenSyntaxDeco`
+ *     when the cursor is away from the line, `revealedBlockSyntaxDeco` (dim)
+ *     when it is on it. The swap is instant (ADR 0008).
  */
 function makeATXHandler(level: number): NodeHandler {
 	return {
@@ -23,10 +21,8 @@ function makeATXHandler(level: number): NodeHandler {
 			if (!headerMark) return;
 			// Include the space after `#` so the entire prefix collapses together
 			const markTo = Math.min(headerMark.to + 1, line.to);
-			const cls = isTouched(line.from, line.to)
-				? 'cm-formatting-block cm-formatting-block-visible'
-				: 'cm-formatting-block';
-			decorations.push(Decoration.mark({ class: cls }).range(headerMark.from, markTo));
+			const deco = isTouched(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+			decorations.push(deco.range(headerMark.from, markTo));
 		},
 	};
 }
@@ -34,8 +30,8 @@ function makeATXHandler(level: number): NodeHandler {
 /**
  * Builds a setext heading handler (`Heading\n=====` for level 1,
  * `Heading\n-----` for level 2). The text line gets `cm-lp-h{N}` for
- * styling; the underline row is hidden via `cm-formatting-block` and
- * only revealed when the cursor enters the heading (text or underline).
+ * styling; the underline row is hidden via `hiddenSyntaxDeco` and only
+ * revealed when the cursor enters the heading (text or underline).
  */
 function makeSetextHandler(level: 1 | 2): NodeHandler {
 	return {
@@ -45,10 +41,8 @@ function makeSetextHandler(level: 1 | 2): NodeHandler {
 			const underlineLine = state.doc.lineAt(node.to);
 			decorations.push(headingLineDeco[level].range(textLine.from, textLine.from));
 
-			const cls = isTouched(node.from, node.to)
-				? 'cm-formatting-block cm-formatting-block-visible'
-				: 'cm-formatting-block';
-			decorations.push(Decoration.mark({ class: cls }).range(underlineLine.from, underlineLine.to));
+			const deco = isTouched(node.from, node.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+			decorations.push(deco.range(underlineLine.from, underlineLine.to));
 		},
 	};
 }

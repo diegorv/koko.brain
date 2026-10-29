@@ -25,12 +25,10 @@ test.describe('Live Preview - Markdown Links', () => {
 	test('link marks hidden when cursor is away', async ({ lpPage: page }) => {
 		await clickOnLine(page, 'Plain text');
 
+		// Hidden syntax is a Decoration.replace: brackets and URL are not in the DOM
 		const linkLine = page.locator('.cm-line').filter({ hasText: 'markdown link' });
-		const marks = linkLine.locator('.cm-formatting-inline');
-		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-inline-visible/);
-		}
+		await expect(linkLine).not.toContainText('[');
+		await expect(linkLine).not.toContainText('https://example.com');
 	});
 });
 
@@ -47,11 +45,8 @@ test.describe('Live Preview - Wikilinks', () => {
 		await clickOnLine(page, 'Plain text');
 
 		const wlLine = page.locator('.cm-line').filter({ hasText: 'wikilink' }).first();
-		const marks = wlLine.locator('.cm-formatting-inline');
-		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-inline-visible/);
-		}
+		await expect(wlLine).not.toContainText('[[');
+		await expect(wlLine).not.toContainText(']]');
 	});
 
 	test('wikilink with display text shows display text', async ({ lpPage: page }) => {

@@ -19,7 +19,10 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 	const result: DecoSpec[] = [];
 	const iter = set.iter();
 	while (iter.value) {
-		result.push({ from: iter.from, to: iter.to, class: (iter.value.spec as { class: string }).class });
+		// A point decoration spanning text is a `Decoration.replace`: the syntax is
+		// removed from the DOM, reported here as the `replace` sentinel class.
+		const cls = iter.value.point && iter.from < iter.to ? 'replace' : (iter.value.spec as { class: string }).class;
+		result.push({ from: iter.from, to: iter.to, class: cls });
 		iter.next();
 	}
 	return result;
@@ -42,22 +45,24 @@ describe('headingHandlers', () => {
 			expect(lineDeco).toBeDefined();
 		});
 
-		it('hides the # marks when cursor is away (cm-formatting-block, no -visible)', () => {
+		it('replaces the # marks when cursor is away', () => {
 			// Multi-line doc so cursor can be away from the heading line
 			const decos = build('# Heading\n\nplain', 12); // cursor on "plain"
-			const markDeco = decos.find((d) => d.class === 'cm-formatting-block');
-			expect(markDeco).toBeDefined();
+			const hidden = decos.filter((d) => d.class === 'replace');
+			expect(hidden).toEqual([{ from: 0, to: 2, class: 'replace' }]);
+			expect(decos.find((d) => d.class === 'cm-formatting-block')).toBeUndefined();
 		});
 
-		it('reveals the # marks when cursor is on the heading line', () => {
+		it('reveals the # marks with no replace when cursor is on the heading line', () => {
 			const decos = build('# Heading\n\nplain', 3); // cursor inside "Heading"
-			const markDeco = decos.find((d) => d.class === 'cm-formatting-block cm-formatting-block-visible');
-			expect(markDeco).toBeDefined();
+			expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
+			const markDeco = decos.find((d) => d.class === 'cm-formatting-block');
+			expect(markDeco).toEqual({ from: 0, to: 2, class: 'cm-formatting-block' });
 		});
 
-		it('mark range covers the # plus the trailing space', () => {
-			const decos = build('# Heading');
-			const markDeco = decos.find((d) => d.class.startsWith('cm-formatting-block'));
+		it('hidden range covers the # plus the trailing space', () => {
+			const decos = build('# Heading\n\nplain', 12);
+			const markDeco = decos.find((d) => d.class === 'replace');
 			expect(markDeco).toBeDefined();
 			expect(markDeco!.from).toBe(0);
 			// `#` is 1 char, `+1` for the trailing space → marks 0..2
@@ -73,9 +78,9 @@ describe('headingHandlers', () => {
 	describe('Setext headings', () => {
 		it('emits cm-lp-h1 + hides ===== underline (level 1)', () => {
 			const doc = 'Heading\n=======';
-			const decos = build(doc, 0);
+			const decos = build(doc + '\n\nplain', doc.length + 2); // cursor away
 			const lineDeco = decos.find((d) => d.class === 'cm-lp-h1');
-			const markDeco = decos.find((d) => d.class.startsWith('cm-formatting-block'));
+			const markDeco = decos.find((d) => d.class === 'replace');
 			expect(lineDeco).toBeDefined();
 			expect(markDeco).toBeDefined();
 			expect(markDeco!.from).toBe(doc.indexOf('='));
@@ -92,8 +97,9 @@ describe('headingHandlers', () => {
 		it('reveals the underline when cursor is on the heading', () => {
 			const doc = 'Heading\n=======';
 			const decos = build(doc, 3); // cursor on "Heading"
-			const markDeco = decos.find((d) => d.class === 'cm-formatting-block cm-formatting-block-visible');
-			expect(markDeco).toBeDefined();
+			expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
+			const markDeco = decos.find((d) => d.class === 'cm-formatting-block');
+			expect(markDeco).toEqual({ from: doc.indexOf('='), to: doc.length, class: 'cm-formatting-block' });
 		});
 	});
 

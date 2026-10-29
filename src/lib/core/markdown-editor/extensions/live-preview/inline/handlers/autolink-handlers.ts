@@ -1,10 +1,7 @@
-import { Decoration } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
-import { linkTextDeco } from '../../styles';
+import { hiddenSyntaxDeco, linkTextDeco } from '../../styles';
 import { findExtendedAutolinkRanges } from '../../parsers/link';
 import type { NodeHandler, LineHandler } from '../inline-formatting-plugin';
-
-const FORMATTING_CLS = 'cm-formatting-inline';
 
 /**
  * Autolink `<url>` / `<email>` — Lezer node `Autolink`. Hides the angle
@@ -14,9 +11,9 @@ export const autolinkHandler: NodeHandler = {
 	nodeType: 'Autolink',
 	decorate({ node, isTouched, decorations }) {
 		if (isTouched(node.from, node.to)) return;
-		decorations.push(Decoration.mark({ class: FORMATTING_CLS }).range(node.from, node.from + 1));
+		decorations.push(hiddenSyntaxDeco.range(node.from, node.from + 1));
 		decorations.push(linkTextDeco.range(node.from + 1, node.to - 1));
-		decorations.push(Decoration.mark({ class: FORMATTING_CLS }).range(node.to - 1, node.to));
+		decorations.push(hiddenSyntaxDeco.range(node.to - 1, node.to));
 	},
 };
 

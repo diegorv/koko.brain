@@ -1,14 +1,11 @@
-import { Decoration } from '@codemirror/view';
+import { hiddenSyntaxDeco } from '../../styles';
 import type { NodeHandler } from '../inline-formatting-plugin';
-
-const HIDDEN_CLS = 'cm-formatting-inline';
-const VISIBLE_CLS = 'cm-formatting-inline cm-formatting-inline-visible';
 
 /**
  * Builds a mark handler for an inline formatting delimiter — `**` (EmphasisMark),
  * `` ` `` (CodeMark), `~~` (StrikethroughMark), `==` (HighlightMark). Each fires
  * twice per element (open + close); the parent range is what cursor-reveal
- * tests against, so the open mark is shown when the cursor sits inside the
+ * tests against, so the marks are replaced (hidden) unless the cursor sits inside the
  * matching `StrongEmphasis` / `Emphasis` / `InlineCode` / `Strikethrough` /
  * `Highlight` parent.
  */
@@ -18,8 +15,8 @@ function makeMarkHandler(nodeType: string): NodeHandler {
 		decorate({ node, isTouched, decorations }) {
 			const parent = node.node.parent;
 			if (!parent) return;
-			const cls = isTouched(parent.from, parent.to) ? VISIBLE_CLS : HIDDEN_CLS;
-			decorations.push(Decoration.mark({ class: cls }).range(node.from, node.to));
+			if (isTouched(parent.from, parent.to)) return;
+			decorations.push(hiddenSyntaxDeco.range(node.from, node.to));
 		},
 	};
 }
@@ -47,8 +44,8 @@ export const markHandlers: readonly NodeHandler[] = [
 export const escapeHandler: NodeHandler = {
 	nodeType: 'Escape',
 	decorate({ node, isTouched, decorations }) {
-		const cls = isTouched(node.from, node.to) ? VISIBLE_CLS : HIDDEN_CLS;
+		if (isTouched(node.from, node.to)) return;
 		// The Escape node covers `\` + the escaped character. Only hide the `\`.
-		decorations.push(Decoration.mark({ class: cls }).range(node.from, node.from + 1));
+		decorations.push(hiddenSyntaxDeco.range(node.from, node.from + 1));
 	},
 };

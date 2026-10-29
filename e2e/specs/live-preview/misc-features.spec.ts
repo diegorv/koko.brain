@@ -70,12 +70,9 @@ More visible text.
 		await openMarkdownFile(page, 'test.md', CONTENT);
 		await clickOnLine(page, 'Visible text here');
 
-		// Comment should be hidden
-		const comment = page.locator('.cm-lp-inline-comment-hidden');
-		const count = await comment.count();
-		if (count > 0) {
-			await expect(comment.first()).toBeAttached();
-		}
+		// Hidden syntax is a Decoration.replace: the comment text is not in the DOM
+		await expect(page.locator('.cm-content')).toContainText('More visible text');
+		await expect(page.locator('.cm-content')).not.toContainText('This is a comment');
 	});
 });
 

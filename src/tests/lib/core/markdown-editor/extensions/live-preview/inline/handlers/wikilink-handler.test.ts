@@ -19,7 +19,10 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 	const result: DecoSpec[] = [];
 	const iter = set.iter();
 	while (iter.value) {
-		result.push({ from: iter.from, to: iter.to, class: (iter.value.spec as { class: string }).class });
+		// A point decoration spanning text is a `Decoration.replace`: the syntax is
+		// removed from the DOM, reported here as the `replace` sentinel class.
+		const cls = iter.value.point && iter.from < iter.to ? 'replace' : (iter.value.spec as { class: string }).class;
+		result.push({ from: iter.from, to: iter.to, class: cls });
 		iter.next();
 	}
 	return result;
@@ -28,11 +31,11 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 describe('wikilinkHandler', () => {
 	beforeEach(() => settingsStore.reset());
 
-	it('decorates `[[Target]]` with cm-lp-wikilink + cm-formatting-inline brackets', () => {
+	it('decorates `[[Target]]` with cm-lp-wikilink + replaced brackets', () => {
 		const doc = 'See [[Target]] note\n\nplain';
 		const decos = build(doc, doc.length);
 		const wikilink = decos.find((d) => d.class === 'cm-lp-wikilink');
-		const formatting = decos.filter((d) => d.class === 'cm-formatting-inline');
+		const formatting = decos.filter((d) => d.class === 'replace');
 		expect(wikilink).toBeDefined();
 		expect(formatting).toHaveLength(2);
 	});

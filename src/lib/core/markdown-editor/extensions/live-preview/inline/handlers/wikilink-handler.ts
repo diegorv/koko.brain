@@ -1,9 +1,6 @@
-import { Decoration } from '@codemirror/view';
-import { wikilinkTextDeco } from '../../styles';
+import { hiddenSyntaxDeco, wikilinkTextDeco } from '../../styles';
 import { findWikilinkRanges } from '../../../wikilink/decoration.logic';
 import type { LineHandler } from '../inline-formatting-plugin';
-
-const FORMATTING_CLS = 'cm-formatting-inline';
 
 /**
  * Wikilink rendering — `[[target]]`, `[[target#heading]]`, `[[target#^block-id]]`,
@@ -27,25 +24,21 @@ export const wikilinkHandler: LineHandler = {
 			if (range.displayFrom !== null && range.displayTo !== null) {
 				// [[Target|Display]] — hide [[Target| then style display, hide ]]
 				decorations.push(
-					Decoration.mark({ class: FORMATTING_CLS })
-						.range(range.openBracketFrom, range.displayFrom + 1),
+					hiddenSyntaxDeco.range(range.openBracketFrom, range.displayFrom + 1),
 				);
 				decorations.push(wikilinkTextDeco.range(range.displayFrom + 1, range.displayTo));
 				decorations.push(
-					Decoration.mark({ class: FORMATTING_CLS })
-						.range(range.closeBracketFrom, range.closeBracketTo),
+					hiddenSyntaxDeco.range(range.closeBracketFrom, range.closeBracketTo),
 				);
 			} else {
 				// [[Target]], [[Target#Heading]], [[Target#^block-id]]
 				decorations.push(
-					Decoration.mark({ class: FORMATTING_CLS })
-						.range(range.openBracketFrom, range.openBracketTo),
+					hiddenSyntaxDeco.range(range.openBracketFrom, range.openBracketTo),
 				);
 				const contentEnd = range.headingTo ?? range.blockIdTo ?? range.targetTo;
 				decorations.push(wikilinkTextDeco.range(range.targetFrom, contentEnd));
 				decorations.push(
-					Decoration.mark({ class: FORMATTING_CLS })
-						.range(range.closeBracketFrom, range.closeBracketTo),
+					hiddenSyntaxDeco.range(range.closeBracketFrom, range.closeBracketTo),
 				);
 			}
 		}

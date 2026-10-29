@@ -153,8 +153,9 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 			const classes = classesIn(root);
 			expect(classes.has('cm-lp-bold')).toBe(false);
 			expect(classes.has('cm-lp-highlight')).toBe(false);
-			// The formatting plugin must survive the drop: `**` marks still decorated
-			expect(classes.has('cm-formatting-inline')).toBe(true);
+			// The formatting plugin must survive the drop: the `~~` delimiters
+			// (cursor is on `**bold**`, not on the strikethrough) are still replaced.
+			expect(root.querySelector('.cm-content')!.textContent).not.toContain('~~');
 		});
 	});
 });

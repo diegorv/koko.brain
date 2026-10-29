@@ -32,15 +32,47 @@ describe('calloutField', () => {
 		expect(decos).toHaveLength(7);
 	});
 
-	it('uses visible marks when cursor is inside the callout', () => {
+	it('uses dim marks when cursor is inside the callout', () => {
 		const doc = '> [!note] Title\n> content';
 		const state = createState(doc, 3); // cursor inside header
 		const decos = collectDecos(state);
 		// Cursor inside → !isTouched is false → no type-switcher / fold chevron.
-		// Header: lineDeco + mark(visible) on marker + mark on title = 3
-		// Content: lineDeco + mark(visible) on prefix = 2
+		// Header: lineDeco + dim mark on marker + mark on title = 3
+		// Content: lineDeco + dim mark on prefix = 2
 		// Total: 5
 		expect(decos).toHaveLength(5);
+	});
+
+	it('replaces the marker and content prefix when cursor is outside', () => {
+		const doc = 'text\n> [!note] Title\n> content line';
+		const state = createState(doc, 0);
+		const hidden: { from: number; to: number }[] = [];
+		const iter = computeCallouts(state).iter();
+		while (iter.value) {
+			// A point decoration spanning text is a `Decoration.replace`
+			if (iter.value.point && iter.from < iter.to) hidden.push({ from: iter.from, to: iter.to });
+			iter.next();
+		}
+		const header = doc.indexOf('> [!note]');
+		const content = doc.indexOf('> content');
+		expect(hidden).toEqual([
+			{ from: header, to: header + '> [!note] '.length }, // marker includes the trailing space
+			{ from: content, to: content + 2 },
+		]);
+	});
+
+	it('emits no replace and a dim cm-formatting-block mark when cursor is inside', () => {
+		const doc = '> [!note] Title\n> content';
+		const state = createState(doc, 3);
+		const classes: string[] = [];
+		const iter = computeCallouts(state).iter();
+		while (iter.value) {
+			expect(iter.value.point && iter.from < iter.to).toBe(false);
+			const cls = (iter.value.spec as { class?: string }).class;
+			if (cls) classes.push(cls);
+			iter.next();
+		}
+		expect(classes.filter((c) => c === 'cm-formatting-block')).toHaveLength(2);
 	});
 
 	it('produces no decorations without callouts', () => {

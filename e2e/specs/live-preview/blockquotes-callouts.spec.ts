@@ -42,12 +42,11 @@ test.describe('Live Preview - Blockquotes', () => {
 	test('blockquote marks hidden when cursor away', async ({ lpPage: page }) => {
 		await clickOnLine(page, 'Plain text at the end');
 
+		// Hidden syntax is a Decoration.replace: the `>` is not in the DOM at all
 		const bqLine = page.locator('.cm-lp-blockquote').first();
-		const marks = bqLine.locator('.cm-formatting-block');
-		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-block-visible/);
-		}
+		await expect(bqLine).toContainText('Simple blockquote');
+		await expect(bqLine).not.toContainText('>');
+		await expect(bqLine.locator('.cm-formatting-block')).toHaveCount(0);
 	});
 });
 

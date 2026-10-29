@@ -19,7 +19,10 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 	const result: DecoSpec[] = [];
 	const iter = set.iter();
 	while (iter.value) {
-		result.push({ from: iter.from, to: iter.to, class: (iter.value.spec as { class: string }).class });
+		// A point decoration spanning text is a `Decoration.replace`: the syntax is
+		// removed from the DOM, reported here as the `replace` sentinel class.
+		const cls = iter.value.point && iter.from < iter.to ? 'replace' : (iter.value.spec as { class: string }).class;
+		result.push({ from: iter.from, to: iter.to, class: cls });
 		iter.next();
 	}
 	return result;
@@ -29,24 +32,26 @@ describe('blockquoteHandler', () => {
 	beforeEach(() => settingsStore.reset());
 
 	describe('depth-1 blockquote', () => {
-		it('emits cm-lp-blockquote line + hidden mark when cursor is away', () => {
+		it('emits cm-lp-blockquote line + replaces the > mark when cursor is away', () => {
 			// Cursor on line 3 (plain), away from blockquote on line 1
 			const decos = build('> hello\n\nplain', 9);
 			const lineDeco = decos.find((d) => d.class === 'cm-lp-blockquote');
-			const markDeco = decos.find((d) => d.class === 'cm-formatting-block');
+			const markDeco = decos.find((d) => d.class === 'replace');
 			expect(lineDeco).toBeDefined();
 			expect(markDeco).toBeDefined();
+			expect(decos.find((d) => d.class === 'cm-formatting-block')).toBeUndefined();
 		});
 
-		it('reveals the > mark when cursor is on the blockquote line', () => {
+		it('reveals the > mark with no replace when cursor is on the blockquote line', () => {
 			const decos = build('> hello\n\nplain', 3); // cursor inside "hello"
-			const markDeco = decos.find((d) => d.class === 'cm-formatting-block cm-formatting-block-visible');
+			expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
+			const markDeco = decos.find((d) => d.class === 'cm-formatting-block');
 			expect(markDeco).toBeDefined();
 		});
 
-		it('mark range covers `> ` (the > plus the trailing space)', () => {
-			const decos = build('> hello');
-			const markDeco = decos.find((d) => d.class.startsWith('cm-formatting-block'));
+		it('hidden range covers `> ` (the > plus the trailing space)', () => {
+			const decos = build('> hello\n\nplain', 9);
+			const markDeco = decos.find((d) => d.class === 'replace');
 			expect(markDeco).toBeDefined();
 			expect(markDeco!.from).toBe(0);
 			expect(markDeco!.to).toBe(2);
@@ -79,7 +84,7 @@ describe('blockquoteHandler', () => {
 			// produce exactly 2 decorations (1 line + 1 mark), not 4.
 			const decos = build('> > nested');
 			const lineDecos = decos.filter((d) => d.class.startsWith('cm-lp-blockquote'));
-			const markDecos = decos.filter((d) => d.class.startsWith('cm-formatting-block'));
+			const markDecos = decos.filter((d) => d.class === 'replace' || d.class === 'cm-formatting-block');
 			expect(lineDecos).toHaveLength(1);
 			expect(markDecos).toHaveLength(1);
 		});

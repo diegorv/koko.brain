@@ -19,7 +19,10 @@ function build(doc: string, cursor?: number): DecoSpec[] {
 	const result: DecoSpec[] = [];
 	const iter = set.iter();
 	while (iter.value) {
-		result.push({ from: iter.from, to: iter.to, class: (iter.value.spec as { class: string }).class });
+		// A point decoration spanning text is a `Decoration.replace`: the syntax is
+		// removed from the DOM, reported here as the `replace` sentinel class.
+		const cls = iter.value.point && iter.from < iter.to ? 'replace' : (iter.value.spec as { class: string }).class;
+		result.push({ from: iter.from, to: iter.to, class: cls });
 		iter.next();
 	}
 	return result;
@@ -33,7 +36,7 @@ describe('inlineCommentHandler', () => {
 		// Cursor on the second line (away from the comment)
 		const doc = 'before %%hidden%% after\nplain';
 		const decos = build(doc, doc.length);
-		const hidden = decos.find((d) => d.class === 'cm-lp-inline-comment cm-lp-inline-comment-hidden');
+		const hidden = decos.find((d) => d.class === 'replace');
 		expect(hidden).toBeDefined();
 		expect(hidden!.from).toBe(7);
 		expect(hidden!.to).toBe(17);
@@ -45,6 +48,7 @@ describe('inlineCommentHandler', () => {
 		const decos = build(doc, 10);
 		const visible = decos.find((d) => d.class === 'cm-lp-inline-comment');
 		expect(visible).toBeDefined();
+		expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
 	});
 
 	it('emits no decoration when there is no %%…%% syntax', () => {
@@ -56,8 +60,8 @@ describe('inlineCommentHandler', () => {
 		const doc = 'a %%one%% b %%two%% c\nplain';
 		const decos = build(doc, doc.length); // cursor at end (line 2, away from both comments)
 		expect(decos).toHaveLength(2);
-		expect(decos[0].class).toContain('cm-lp-inline-comment-hidden');
-		expect(decos[1].class).toContain('cm-lp-inline-comment-hidden');
+		expect(decos[0].class).toBe('replace');
+		expect(decos[1].class).toBe('replace');
 	});
 
 	it('skips comments inside a fenced code block (block-context skip)', () => {

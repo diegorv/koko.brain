@@ -11,7 +11,7 @@ import { checkUpdateAction } from '../core/check-update-action';
 import { shouldShowSource } from '../core/should-show-source';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
-import { footnoteRefDeco, footnoteDefMarkerDeco } from '../styles';
+import { footnoteRefDeco, footnoteDefMarkerDeco, hiddenSyntaxDeco } from '../styles';
 import {
 	findFootnoteRefRanges,
 	findFootnoteDefRange,
@@ -88,13 +88,9 @@ export function buildFootnoteDecorations(
 			// Inline footnotes: ^[text]
 			for (const range of findInlineFootnoteRanges(state, line.from, line.to)) {
 				if (shouldShowSource(state, range.fullFrom, range.fullTo)) continue;
-				decorations.push(
-					Decoration.mark({ class: 'cm-formatting-inline' }).range(range.openMarkFrom, range.openMarkTo),
-				);
+				decorations.push(hiddenSyntaxDeco.range(range.openMarkFrom, range.openMarkTo));
 				decorations.push(footnoteRefDeco.range(range.textFrom, range.textTo));
-				decorations.push(
-					Decoration.mark({ class: 'cm-formatting-inline' }).range(range.closeMarkFrom, range.closeMarkTo),
-				);
+				decorations.push(hiddenSyntaxDeco.range(range.closeMarkFrom, range.closeMarkTo));
 			}
 		}
 	}

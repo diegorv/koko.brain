@@ -1,4 +1,5 @@
 import { Decoration } from '@codemirror/view';
+import { hiddenSyntaxDeco } from '../../styles';
 import { findInlineCommentRanges } from '../../parsers/comment';
 import type { LineHandler } from '../inline-formatting-plugin';
 
@@ -8,19 +9,18 @@ import type { LineHandler } from '../inline-formatting-plugin';
  * line for matches.
  *
  * Per-element cursor reveal:
- *   - cursor outside the comment → `cm-lp-inline-comment cm-lp-inline-comment-hidden`
- *     (display: none — collapsed entirely)
+ *   - cursor outside the comment → `hiddenSyntaxDeco` (removed from the DOM)
  *   - cursor inside the comment → `cm-lp-inline-comment` only (dimmed but visible)
  */
+const revealedCommentDeco = Decoration.mark({ class: 'cm-lp-inline-comment' });
+
 export const inlineCommentHandler: LineHandler = {
 	name: 'inline-comment',
 	decorate({ line, state, isTouched, decorations }) {
 		const ranges = findInlineCommentRanges(state, line.from, line.to);
 		for (const range of ranges) {
-			const cls = isTouched(range.from, range.to)
-				? 'cm-lp-inline-comment'
-				: 'cm-lp-inline-comment cm-lp-inline-comment-hidden';
-			decorations.push(Decoration.mark({ class: cls }).range(range.from, range.to));
+			const deco = isTouched(range.from, range.to) ? revealedCommentDeco : hiddenSyntaxDeco;
+			decorations.push(deco.range(range.from, range.to));
 		}
 	},
 };

@@ -10,7 +10,8 @@ function collectDecos(decoSet: ReturnType<typeof buildFootnoteDecorations>) {
 		result.push({
 			from: iter.from,
 			to: iter.to,
-			class: (iter.value.spec as { class?: string }).class,
+			// A point decoration spanning text is a `Decoration.replace`
+			class: iter.value.point && iter.from < iter.to ? 'replace' : (iter.value.spec as { class?: string }).class,
 			hasWidget: !!(iter.value.spec as { widget?: unknown }).widget,
 		});
 		iter.next();
@@ -76,8 +77,8 @@ describe('footnotePlugin — buildFootnoteDecorations', () => {
 		it('hides markers and styles text when cursor is outside', () => {
 			const doc = 'hello ^[inline note] world';
 			const decos = buildFootnotes(doc, 0);
-			// Should have: cm-formatting-inline on ^[ and ], footnote-ref on text
-			const marks = decos.filter((d) => d.class === 'cm-formatting-inline');
+			// Should have: replace on ^[ and ], footnote-ref on text
+			const marks = decos.filter((d) => d.class === 'replace');
 			const refs = decos.filter((d) => d.class === 'cm-lp-footnote-ref');
 			expect(marks).toHaveLength(2); // ^[ and ]
 			expect(refs).toHaveLength(1); // inline text

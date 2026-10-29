@@ -56,12 +56,10 @@ test.describe('Live Preview - Headings (new pipeline)', () => {
 		// Move cursor to a non-heading line
 		await clickOnLine(page, 'Setext H1');
 
+		// Hidden syntax is a Decoration.replace: the `# ` is not in the DOM at all
 		const h1Line = page.locator('.cm-line').filter({ hasText: 'Heading One' }).first();
-		const marks = h1Line.locator('.cm-formatting-block');
-		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-block-visible/);
-		}
+		await expect(h1Line).not.toContainText('#');
+		await expect(h1Line.locator('.cm-formatting-block')).toHaveCount(0);
 	});
 
 	test('# marks revealed when cursor is on the heading line', async ({ lpPage: page }) => {
@@ -69,9 +67,8 @@ test.describe('Live Preview - Headings (new pipeline)', () => {
 
 		const h1Line = page.locator('.cm-line').filter({ hasText: 'Heading One' }).first();
 		const marks = h1Line.locator('.cm-formatting-block');
-		const count = await marks.count();
-		expect(count).toBeGreaterThan(0);
-		await expect(marks.first()).toHaveClass(/cm-formatting-block-visible/);
+		await expect(marks).toHaveCount(1);
+		await expect(marks.first()).toHaveText('# ');
 	});
 
 	test('bold inside an h1 emits both cm-lp-h1 and cm-lp-bold', async ({ lpPage: page }) => {

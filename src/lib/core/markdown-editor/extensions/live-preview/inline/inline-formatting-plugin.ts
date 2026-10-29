@@ -10,8 +10,8 @@ import { profileStart, profileEnd } from '../core/profiling';
 
 /**
  * Arguments passed to a node-handler's `decorate` function. `isTouched(from,
- * to)` is the cursor-reveal helper — every handler that wants to toggle a
- * `*-visible` modifier class on its mark calls it with the parent range.
+ * to)` is the cursor-reveal helper — every handler that hides syntax with
+ * `hiddenSyntaxDeco` calls it with the parent range to decide whether to.
  *
  * `scratch` is a per-build Map handlers can use to dedupe across multiple
  * dispatches — e.g. the blockquote handler matches `QuoteMark` (which fires

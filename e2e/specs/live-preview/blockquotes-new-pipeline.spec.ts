@@ -49,20 +49,17 @@ test.describe('Live Preview - Blockquotes (new pipeline)', () => {
 	test('> mark hidden when cursor is away', async ({ lpPage: page }) => {
 		// Cursor on a non-blockquote line
 		await clickOnLine(page, 'callout — handled');
+		// Hidden syntax is a Decoration.replace: the `>` is not in the DOM at all
 		const line = page.locator('.cm-line').filter({ hasText: 'level one' });
-		const marks = line.locator('.cm-formatting-block');
-		const count = await marks.count();
-		if (count > 0) {
-			await expect(marks.first()).not.toHaveClass(/cm-formatting-block-visible/);
-		}
+		await expect(line).not.toContainText('>');
+		await expect(line.locator('.cm-formatting-block')).toHaveCount(0);
 	});
 
 	test('> mark revealed when cursor is on the blockquote line', async ({ lpPage: page }) => {
 		await clickOnLine(page, 'level one');
 		const line = page.locator('.cm-line').filter({ hasText: 'level one' });
 		const marks = line.locator('.cm-formatting-block');
-		const count = await marks.count();
-		expect(count).toBeGreaterThan(0);
-		await expect(marks.first()).toHaveClass(/cm-formatting-block-visible/);
+		await expect(marks).toHaveCount(1);
+		await expect(marks.first()).toContainText('>');
 	});
 });
