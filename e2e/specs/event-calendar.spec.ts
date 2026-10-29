@@ -328,6 +328,48 @@ test.describe('Event calendar spans', () => {
 });
 
 test.describe('Event calendar popover', () => {
+	test('a block near the pane edge flips its popover left instead of past the clipped edge', async ({ vaultPage: page }) => {
+		// Wide enough that the calendar pane sits left of empty viewport, as with the
+		// right sidebar open: against the viewport the card "fits" on the right.
+		await page.setViewportSize({ width: 1600, height: 800 });
+		const saturday = '/test-vault/Events/Saturday.md';
+		await page.evaluate(({ path }) => {
+			const e2e = (window as any).__e2e;
+			e2e.fs.populate({ '/test-vault/Events/': '', [path]: '---\n_type: Event\ndate: 2026-11-14\nstart: 12:00\nend: 13:00\n---\n' });
+			e2e.events.emit('vault-index-updated', { changed: true, affected: [path], version: e2e.vaultIndex.version });
+		}, { path: saturday });
+		await openCalendar(page);
+
+		const block = page.locator(`[data-day-column="2026-11-14"] [data-event-path="${saturday}"]`);
+		await expect(block).toBeVisible({ timeout: 10_000 });
+		// Bring 12:00 clear of the sticky header so the click itself does not scroll.
+		await page.locator('[data-time-grid]').evaluate(
+			(el) =>
+				new Promise<void>((resolve) => {
+					el.addEventListener('scroll', () => requestAnimationFrame(() => resolve()), { once: true });
+					el.scrollTop = 10 * 64;
+				}),
+		);
+		const calendar = (await page.locator('[data-event-calendar]').boundingBox())!;
+		const viewport = page.viewportSize()!;
+		const blockBox = (await block.boundingBox())!;
+		// Precondition: no room for the 300px card inside the calendar, room in the viewport.
+		expect(blockBox.x + blockBox.width + 8 + 300).toBeGreaterThan(calendar.x + calendar.width);
+		expect(blockBox.x + blockBox.width + 8 + 300).toBeLessThan(viewport.width);
+		await block.click();
+
+		const popover = page.locator('[data-event-popover]');
+		await expect(popover.locator('[data-popover-title]')).toHaveText('Saturday');
+		// The editor pane clips anything past the calendar's right edge, and toBeVisible()
+		// does not see that clip: the card has to flip to the block's left, inside the calendar.
+		await expect
+			.poll(async () => {
+				const card = (await popover.boundingBox())!;
+				return card.x >= calendar.x && card.x + card.width <= blockBox.x;
+			})
+			.toBe(true);
+	});
+
 	test('clicking a block shows the popover; "Open note" opens the note and the Calendar tab comes back without it', async ({ vaultPage: page }) => {
 		await seedEvents(page);
 		await openCalendar(page);

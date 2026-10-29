@@ -157,6 +157,9 @@
 
 <svelte:window onresize={() => eventCalendarViewStore.closePopover()} />
 
+<!-- The card renders inside the editor pane, which clips it at the calendar's edge, so
+	collisions are measured against the calendar root: against the viewport a block in the
+	last columns "fits" on the right (over the sidebar) and the card never flips. -->
 <Popover.Root {open} onOpenChange={handleOpenChange}>
 	<Popover.Content
 		bind:ref={content}
@@ -165,6 +168,7 @@
 		align="start"
 		sideOffset={8}
 		collisionPadding={12}
+		collisionBoundary={root}
 		class="w-[300px] max-w-[calc(100vw-24px)] gap-0 p-0"
 		onOpenAutoFocus={(e) => e.preventDefault()}
 		onCloseAutoFocus={handleCloseAutoFocus}
