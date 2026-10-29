@@ -48,3 +48,7 @@ My test verdict rests on these files:
      4. Assert that `moveEvent` / `resizeEvent` were not called, the block is still in its source column, `gestureLive` is false and `popover` is null.
    - Mock only `moveEvent` / `resizeEvent` via a partial `vi.mock('$lib/features/event-calendar/event-calendar.service', ...)` (a side-effect service, allowed by docs/TESTING.md), or assert through the view test's `invoke` mock.
    - Covering a `[data-resize]` grab too (`it.each(['move', 'resize'])`) closes the resize case at almost no cost.
+
+## Resolution
+
+- Finding 1: accepted and fixed. `EventTimeGrid.test.ts` partially mocks `moveEvent` / `resizeEvent` (rest of `event-calendar.service` real) and adds `it.each(['move', 'resize'])` in the focus-leaving describe: press the block (or its `[data-resize]` handle), `pointermove` one column right and 110 px down, focus `outside`, release and click. Asserts no write, the block still in 2026-11-10 and not in 2026-11-11, `gestureLive` false, `popover` null. Control: with `handleGestureFocusin`'s discard disabled, both cases fail with one write each; restored, 43/43 pass.

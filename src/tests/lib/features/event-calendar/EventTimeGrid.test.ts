@@ -9,6 +9,13 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
+// A drop's write is the service's side effect; only the two writers are replaced.
+vi.mock('$lib/features/event-calendar/event-calendar.service', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/features/event-calendar/event-calendar.service')>()),
+	moveEvent: vi.fn(async () => {}),
+	resizeEvent: vi.fn(async () => {}),
+}));
+
 import { flushSync, mount, unmount } from 'svelte';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -17,6 +24,7 @@ import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logi
 import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
 import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
 import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
+import { moveEvent, resizeEvent } from '$lib/features/event-calendar/event-calendar.service';
 import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
 
@@ -566,8 +574,8 @@ describe('EventTimeGrid: focus leaving the calendar mid-gesture', () => {
 		body().getBoundingClientRect = () => ({ left: 0, top: 0, width: 700, height: 1440, right: 700, bottom: 1440, x: 0, y: 0, toJSON: () => ({}) });
 	}
 
-	function pointer(el: HTMLElement, type: string) {
-		el.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1 }));
+	function pointer(el: HTMLElement, type: string, clientX = 0, clientY = 0) {
+		el.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1, clientX, clientY }));
 		flushSync();
 	}
 
@@ -598,6 +606,29 @@ describe('EventTimeGrid: focus leaving the calendar mid-gesture', () => {
 		block.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
 		flushSync();
 
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it.each(['move', 'resize'] as const)('discards a %s of a block past the threshold: the release writes nothing', (kind) => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10', start: 540, end: 600 })]);
+		mountSized();
+		const block = q(`[data-event-path="${P('Standup')}"]`)!;
+		// 09:10 inside the block, or 09:57 on its bottom handle, in the first 100 px column.
+		const [grab, y] = kind === 'resize' ? [block.querySelector<HTMLElement>('[data-resize]')!, 636] : [block, 586];
+		pointer(grab, 'pointerdown', 50, y);
+		pointer(body(), 'pointermove', 150, y + 110);
+
+		outside.focus();
+		flushSync();
+		pointer(body(), 'pointerup', 150, y + 110);
+		block.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+		flushSync();
+
+		expect(moveEvent).not.toHaveBeenCalled();
+		expect(resizeEvent).not.toHaveBeenCalled();
+		expect(q(`[data-day-column="2026-11-10"] [data-event-path="${P('Standup')}"]`)).not.toBeNull();
+		expect(q(`[data-day-column="2026-11-11"] [data-event-path="${P('Standup')}"]`)).toBeNull();
 		expect(eventCalendarViewStore.gestureLive).toBe(false);
 		expect(eventCalendarViewStore.popover).toBeNull();
 	});
