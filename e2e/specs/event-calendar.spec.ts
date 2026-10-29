@@ -101,6 +101,9 @@ async function openCalendar(page: Page, dailyNote = '2026-11-10.md'): Promise<vo
 	await page.locator('input[placeholder*="command"]:visible').first().fill('Toggle Calendar View');
 	await page.getByRole('option', { name: /Toggle Calendar View/ }).click();
 	await expect(page.locator('[data-event-calendar]')).toBeVisible();
+	// bits-ui keeps the body at pointer-events: none for a moment after the palette closes;
+	// a press in that window hits nothing and a drag never starts.
+	await expect(page.locator('body')).not.toHaveCSS('pointer-events', 'none');
 }
 
 test.describe('Event calendar', () => {
