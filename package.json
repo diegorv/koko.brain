@@ -3,6 +3,9 @@
   "version": "3.0.12",
   "description": "",
   "type": "module",
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "packageManager": "pnpm@11.24.0",
   "scripts": {
     "dev": "vite dev",
