@@ -28,12 +28,15 @@ export const eventCalendarDailyNoteStore = {
 	/**
 	 * Registers `next` as the opener, replacing any previous one. The returned
 	 * function unregisters it, and is a no-op once a later registration replaced it.
-	 * A replacement without an unregister is a re-init of the same vault, so its
-	 * opens in flight stay joinable. The unregister runs on vault teardown and
-	 * forgets them: they belong to the closed vault.
+	 * Both a registration and the current opener's unregister forget the opens
+	 * in flight: they belong to the previous vault. The unregister runs on vault
+	 * teardown; a replacement without one is the rapid double vault switch in
+	 * `initializeVault`, where teardown is skipped and the new opener belongs
+	 * to another vault.
 	 */
 	register(next: DailyNoteOpener): () => void {
 		opener = next;
+		inFlight.clear();
 		return () => {
 			if (opener !== next) return;
 			opener = null;

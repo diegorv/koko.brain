@@ -37,17 +37,22 @@ describe('eventCalendarDailyNoteStore', () => {
 		expect(eventCalendarDailyNoteStore.available).toBe(false);
 	});
 
-	it('a later registration replaces the opener and a stale unregister leaves it in place', async () => {
+	it('a later registration replaces the opener and a stale unregister leaves it and its opens in flight in place', async () => {
 		const first = vi.fn(() => Promise.resolve());
-		const second = vi.fn(() => Promise.resolve());
+		let finish!: () => void;
+		const second = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
 		const unregisterFirst = eventCalendarDailyNoteStore.register(first);
 		unregister = eventCalendarDailyNoteStore.register(second);
+		const pending = eventCalendarDailyNoteStore.open('2026-11-13');
 
 		unregisterFirst();
 		expect(eventCalendarDailyNoteStore.available).toBe(true);
-		await eventCalendarDailyNoteStore.open('2026-11-13');
+		expect(eventCalendarDailyNoteStore.open('2026-11-13')).toBe(pending);
+		expect(second).toHaveBeenCalledTimes(1);
 		expect(second).toHaveBeenCalledWith('2026-11-13');
 		expect(first).not.toHaveBeenCalled();
+		finish();
+		await pending;
 	});
 
 	it('joins a second open of the same day while the first is in flight', async () => {
@@ -102,21 +107,25 @@ describe('eventCalendarDailyNoteStore', () => {
 		await fresh;
 	});
 
-	it('a registration that replaces the opener without an unregister (same-vault re-init) joins the open in flight', async () => {
-		let finish!: () => void;
-		const first = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
-		eventCalendarDailyNoteStore.register(first);
-		const pending = eventCalendarDailyNoteStore.open('2026-11-12');
+	it('a registration that replaces the opener without an unregister (double vault switch) does not join an open of the previous opener', async () => {
+		let finishOld!: () => void;
+		const old = vi.fn(() => new Promise<void>((resolve) => (finishOld = resolve)));
+		eventCalendarDailyNoteStore.register(old);
+		const stale = eventCalendarDailyNoteStore.open('2026-11-12');
 
-		const second = vi.fn(() => Promise.resolve());
-		unregister = eventCalendarDailyNoteStore.register(second);
-		expect(eventCalendarDailyNoteStore.open('2026-11-12')).toBe(pending);
-		expect(second).not.toHaveBeenCalled();
+		let finishNext!: () => void;
+		const next = vi.fn(() => new Promise<void>((resolve) => (finishNext = resolve)));
+		unregister = eventCalendarDailyNoteStore.register(next);
+		const fresh = eventCalendarDailyNoteStore.open('2026-11-12');
+		expect(fresh).not.toBe(stale);
+		expect(next).toHaveBeenCalledWith('2026-11-12');
 
-		finish();
-		await pending;
-		await eventCalendarDailyNoteStore.open('2026-11-12');
-		expect(second).toHaveBeenCalledWith('2026-11-12');
+		finishOld();
+		await stale;
+		expect(eventCalendarDailyNoteStore.open('2026-11-12')).toBe(fresh);
+		expect(next).toHaveBeenCalledTimes(1);
+		finishNext();
+		await fresh;
 	});
 
 	it('lets the day open again after a failed open', async () => {
