@@ -74,8 +74,8 @@ importers:
         specifier: ^1.8.1
         version: 1.8.1
       '@primer/octicons':
-        specifier: ^19.41.0
-        version: 19.41.0
+        specifier: ^19.42.0
+        version: 19.42.0
       '@sentry/browser':
         specifier: ^11.8.0
         version: 11.8.0
@@ -582,8 +582,8 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@primer/octicons@19.41.0':
-    resolution: {integrity: sha512-JHtX77XMyLA7ZlYEnEJlvQCtT6FQzYmeL+mbAqdcws1D7ETYKS473tO/e485J8nS53RBwlNaFus+3XIPg3na5Q==}
+  '@primer/octicons@19.42.0':
+    resolution: {integrity: sha512-MEcHxVxNHu1I2Ndk5Mcwp7tfBiDk/EpytDJgKOfE2ldqIczWucVrZNeNU4wtEN5mnNudZ0YL5G0spax3bSMT4w==}
 
   '@rolldown/binding-android-arm-eabi@1.2.15':
     resolution: {integrity: sha512-aLcgK9gIJ3YRvrrtfSBbRa27F5WrpiTaPulnFpsHPxpUHgFlSgnU4854MHwoRGEBhfRJDWCS2WQ7lIjskE9Olw==}
@@ -2797,7 +2797,7 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@primer/octicons@19.41.0':
+  '@primer/octicons@19.42.0':
     dependencies:
       object-assign: 4.1.1
 
