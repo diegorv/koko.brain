@@ -61,7 +61,7 @@
     "dayjs": "^1.11.23",
     "dompurify": "^3.4.17",
     "feather-icons": "^4.29.2",
-    "katex": "^0.18.10",
+    "katex": "^0.19.0",
     "lowlight": "^3.3.0",
     "lucide-static": "^1.61.0",
     "marked": "^18.1.1",
