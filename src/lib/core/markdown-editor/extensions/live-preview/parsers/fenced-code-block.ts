@@ -102,7 +102,7 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 	return blocks;
 }
 
-/** A closed fenced code block claimed by a specialized decorator (mermaid, queryjs, collection) */
+/** A closed fenced code block claimed by a specialized decorator (mermaid, queryjs, collection, meta-bind-button) */
 export interface SpecialFenceBlock {
 	/** Start of the opening fence line */
 	openFenceFrom: number;

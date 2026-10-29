@@ -35,3 +35,8 @@ I did not run the full gate (`pnpm vitest run` over the whole suite + `pnpm buil
 
 1. **Low (optional), `parsers/fenced-code-block.ts:105`.** The JSDoc on `SpecialFenceBlock` reads "claimed by a specialized decorator (mermaid, queryjs, collection)". meta-bind-button is now a fourth user, so the list is out of date. Fix: add `meta-bind-button` to the list, or drop the list ("claimed by a specialized decorator"). This does not block approval. The Issue lists the file as read-only, so leaving it as is would also be fine.
 2. **Info, commit 7bc3b04d message.** The Files section gives `discovery.md (L1-29, new)` but the file is 24 lines. This is commit text only and needs no change. Do not rewrite history for it.
+
+## Resolution
+
+1. Fixed: the `SpecialFenceBlock` JSDoc in `parsers/fenced-code-block.ts:105` now lists meta-bind-button.
+2. Accepted as info only: commit 7bc3b04d is not rewritten.
