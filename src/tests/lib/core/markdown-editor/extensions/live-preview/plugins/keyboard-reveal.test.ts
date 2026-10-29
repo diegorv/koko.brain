@@ -14,6 +14,7 @@ import { calloutFoldState } from '#lib/core/markdown-editor/extensions/live-prev
 import { tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { codeBlockField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
 import { calloutField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.js';
+import { wikilinkEmbedPlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.js';
 
 type DecoratorPlugin = ViewPlugin<{ decorations: DecorationSet }>;
 
@@ -108,6 +109,13 @@ describe('keyboard reveal: entering and leaving a block with the arrow keys', ()
 			plugin: calloutField,
 			extra: [calloutFoldState],
 			block: [2, 3],
+		},
+		{
+			// Entering at column 0 must reveal an embed later on the line.
+			name: 'note embed in the middle of a line',
+			doc: 'before\nsee ![[some-note]] here\nafter',
+			plugin: wikilinkEmbedPlugin,
+			block: [2, 2],
 		},
 	];
 

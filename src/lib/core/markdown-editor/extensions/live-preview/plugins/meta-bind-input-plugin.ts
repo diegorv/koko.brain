@@ -8,7 +8,7 @@ import {
 import type { EditorState, Range } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { frontmatterSlice } from '../core/frontmatter-slice';
@@ -23,7 +23,7 @@ import { profileStart, profileEnd } from '../core/profiling';
  *
  * - Replaces `` `INPUT[inlineSelect(...):bindTarget]` `` with interactive `MetaBindSelectWidget`
  * - Reads current value from frontmatter properties for initial selection
- * - Per-element cursor: shows source when cursor is on the input field
+ * - Line-based reveal: shows source when the selection touches the input's line
  * - Block context skip via `isInsideBlockContext`
  * - Uses `expandedVisibleRanges(view)` for performance
  */
@@ -59,6 +59,7 @@ export function buildMetaBindInputDecorations(
 	ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
 	const decorations: Range<Decoration>[] = [];
+	const isRevealed = revealPredicate(state);
 	const fmProperties = parseFrontmatterProperties(frontmatterSlice(state.doc));
 
 	for (const { from, to } of ranges) {
@@ -73,7 +74,7 @@ export function buildMetaBindInputDecorations(
 			if (isInsideBlockContext(nodeAt)) continue;
 
 			for (const range of findMetaBindInputRanges(line.text, line.from)) {
-				if (shouldShowSource(state, range.from, range.to)) continue;
+				if (isRevealed(range.from, range.to)) continue;
 
 				const prop = fmProperties.find((p) => p.key === range.bindTarget);
 				const currentValue = prop ? String(prop.value) : null;

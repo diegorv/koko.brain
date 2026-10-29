@@ -8,7 +8,7 @@ import {
 import type { EditorState, Range } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { ImageWidget } from '../widgets';
@@ -45,7 +45,7 @@ export function parseImageAlt(rawAlt: string): ImageSize {
  * ViewPlugin that replaces `![alt](url)` image syntax with rendered `<img>` widgets.
  *
  * - Tree traversal for `Image` nodes
- * - Per-element cursor: shows source when cursor is on the image syntax
+ * - Line-based reveal: shows source when the selection touches the image's line
  * - `isInsideBlockContext` to skip
  * - Uses `expandedVisibleRanges(view)` for performance
  */
@@ -104,6 +104,7 @@ export function buildImageDecorations(
 	ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
 	const decorations: Range<Decoration>[] = [];
+	const isRevealed = revealPredicate(state);
 
 	for (const { from, to } of ranges) {
 		syntaxTree(state).iterate({
@@ -114,8 +115,8 @@ export function buildImageDecorations(
 
 				if (isInsideBlockContext(node)) return false;
 
-				// Per-element: if cursor is on this image, show source
-				if (shouldShowSource(state, node.from, node.to)) return false;
+				// Selection touches the image's line: show source
+				if (isRevealed(node.from, node.to)) return false;
 
 				const marks: { from: number; to: number }[] = [];
 				const urlNode = node.node.getChild('URL');

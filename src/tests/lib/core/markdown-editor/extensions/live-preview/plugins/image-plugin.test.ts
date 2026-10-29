@@ -64,12 +64,18 @@ describe('imagePlugin — buildImageDecorations', () => {
 		expect(decos).toHaveLength(0);
 	});
 
-	it('per-element: only shows source for image under cursor', () => {
+	it('only shows source for the image on the cursor line', () => {
 		const doc = '![a](1.png)\n![b](2.png)';
 		const decos = buildImages(doc, 5); // cursor on first image
 		// Only second image should have widget
 		expect(decos).toHaveLength(1);
 		expect(decos[0].from).toBe(12); // second image start
+	});
+
+	it('shows source for every image on the cursor line, wherever the cursor is on it', () => {
+		const doc = 'see ![a](1.png) and ![b](2.png)\nnext';
+		expect(buildImages(doc, 0)).toHaveLength(0); // before both images
+		expect(buildImages(doc, doc.length)).toHaveLength(2); // on the next line
 	});
 });
 

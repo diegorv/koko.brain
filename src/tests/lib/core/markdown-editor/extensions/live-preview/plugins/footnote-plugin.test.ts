@@ -31,9 +31,9 @@ function buildFootnotes(doc: string, cursor?: number) {
 
 describe('footnotePlugin — buildFootnoteDecorations', () => {
 	describe('footnote references [^label]', () => {
-		it('applies footnote-ref styling when cursor is outside', () => {
-			const doc = 'text[^1] more';
-			const decos = buildFootnotes(doc, 0);
+		it('applies footnote-ref styling when cursor is on another line', () => {
+			const doc = 'text[^1] more\nnext';
+			const decos = buildFootnotes(doc, doc.length);
 			const refDecos = decos.filter((d) => d.class === 'cm-lp-footnote-ref');
 			expect(refDecos).toHaveLength(1);
 			expect(refDecos[0].from).toBe(4); // [^1]
@@ -48,10 +48,17 @@ describe('footnotePlugin — buildFootnoteDecorations', () => {
 		});
 
 		it('handles multiple refs on one line', () => {
-			const doc = 'a[^1] b[^2] c';
+			const doc = 'a[^1] b[^2] c\nnext';
 			const decos = buildFootnotes(doc, doc.length);
 			const refDecos = decos.filter((d) => d.class === 'cm-lp-footnote-ref');
 			expect(refDecos).toHaveLength(2);
+		});
+
+		it('shows source with the cursor elsewhere on the reference line', () => {
+			const doc = 'text[^1] more\nnext';
+			const decos = buildFootnotes(doc, 0); // line 1, before the reference
+			const refDecos = decos.filter((d) => d.class === 'cm-lp-footnote-ref');
+			expect(refDecos).toHaveLength(0);
 		});
 	});
 
@@ -74,9 +81,9 @@ describe('footnotePlugin — buildFootnoteDecorations', () => {
 	});
 
 	describe('inline footnotes ^[text]', () => {
-		it('hides markers and styles text when cursor is outside', () => {
-			const doc = 'hello ^[inline note] world';
-			const decos = buildFootnotes(doc, 0);
+		it('hides markers and styles text when cursor is on another line', () => {
+			const doc = 'hello ^[inline note] world\nnext';
+			const decos = buildFootnotes(doc, doc.length);
 			// Should have: replace on ^[ and ], footnote-ref on text
 			const marks = decos.filter((d) => d.class === 'replace');
 			const refs = decos.filter((d) => d.class === 'cm-lp-footnote-ref');

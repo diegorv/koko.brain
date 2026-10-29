@@ -62,6 +62,12 @@ describe('wikilinkEmbedPlugin — buildWikilinkEmbedDecorations', () => {
 		expect(decos).toHaveLength(0);
 	});
 
+	it('shows source with the cursor elsewhere on the embed line', () => {
+		const doc = 'text\nsee ![[photo.png]] here\nmore';
+		expect(buildEmbeds(doc, 5)).toHaveLength(0); // line 2, before the embed
+		expect(buildEmbeds(doc, doc.length)).toHaveLength(1); // line 3
+	});
+
 	it('produces no decorations for plain text', () => {
 		const doc = 'no embeds here';
 		const decos = buildEmbeds(doc, 0);

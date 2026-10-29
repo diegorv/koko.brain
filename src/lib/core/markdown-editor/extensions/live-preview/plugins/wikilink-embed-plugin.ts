@@ -8,7 +8,7 @@ import {
 import type { EditorState, Range } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { findWikilinkEmbedRanges } from '../parsers/wikilink-embed';
@@ -27,7 +27,7 @@ function parseWidth(display: string | null): number | null {
  *
  * - **Image embeds** `![[image.png]]`: Replaced with `WikilinkImageEmbedWidget`
  * - **Note embeds** `![[note]]`, `![[note#heading]]`, `![[note#^block]]`: Replaced with `WikilinkNoteEmbedWidget`
- * - Per-element cursor: shows source when cursor is on the embed
+ * - Line-based reveal: shows source when the selection touches the embed's line
  * - Block context skip via `isInsideBlockContext`
  * - Uses `expandedVisibleRanges(view)` for performance
  */
@@ -63,6 +63,7 @@ export function buildWikilinkEmbedDecorations(
 	ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
 	const decorations: Range<Decoration>[] = [];
+	const isRevealed = revealPredicate(state);
 
 	for (const { from, to } of ranges) {
 		const startLine = state.doc.lineAt(from).number;
@@ -76,7 +77,7 @@ export function buildWikilinkEmbedDecorations(
 			if (isInsideBlockContext(nodeAt)) continue;
 
 			for (const range of findWikilinkEmbedRanges(line.text, line.from)) {
-				if (shouldShowSource(state, range.fullFrom, range.fullTo)) continue;
+				if (isRevealed(range.fullFrom, range.fullTo)) continue;
 
 				if (range.type === 'image') {
 					const width = parseWidth(range.display);

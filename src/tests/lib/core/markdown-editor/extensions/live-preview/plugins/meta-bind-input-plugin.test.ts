@@ -28,9 +28,9 @@ function buildInputs(doc: string, cursor?: number) {
 }
 
 describe('metaBindInputPlugin — buildMetaBindInputDecorations', () => {
-	it('replaces INPUT field with widget when cursor is outside', () => {
-		const doc = 'text `INPUT[inlineSelect(option(1, one), option(2, two)):rating]` more';
-		const decos = buildInputs(doc, 0);
+	it('replaces INPUT field with widget when cursor is on another line', () => {
+		const doc = 'text `INPUT[inlineSelect(option(1, one), option(2, two)):rating]` more\nnext';
+		const decos = buildInputs(doc, doc.length);
 		expect(decos).toHaveLength(1);
 		expect(decos[0].hasWidget).toBe(true);
 	});
@@ -38,6 +38,12 @@ describe('metaBindInputPlugin — buildMetaBindInputDecorations', () => {
 	it('shows source when cursor is on the INPUT field', () => {
 		const doc = 'text `INPUT[inlineSelect(option(1, one), option(2, two)):rating]` more';
 		const decos = buildInputs(doc, 20); // cursor inside INPUT
+		expect(decos).toHaveLength(0);
+	});
+
+	it('shows source with the cursor elsewhere on the INPUT line', () => {
+		const doc = 'text `INPUT[inlineSelect(option(1, one), option(2, two)):rating]` more\nnext';
+		const decos = buildInputs(doc, 0); // line 1, before the INPUT
 		expect(decos).toHaveLength(0);
 	});
 
