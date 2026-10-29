@@ -1,0 +1,22 @@
+# 13: meta-bind-button fences use FencedCode detection
+
+**What to build:** A ```` ```meta-bind-button ```` fence nested inside a larger fence (e.g. a ````` ````md ````` example) is shown as code, not rendered as a button. Move `computeMetaBindButtons` off the raw line regex scanner (`findMetaBindButtonBlock` over `getAllLines`) onto `findSpecialFenceBlocks` over Lezer `FencedCode` nodes, the same switch Issue 08 made for queryjs, mermaid and collection. Pin the current scanner behavior with characterization tests before switching.
+
+**Context:** Raised by the Issue 08 review (`.scratch/live-preview-analysis/work/08/review.md`, finding 2). Issue 08 only named queryjs, mermaid and collection, so meta-bind-button was left on the regex scanner and still renders inside a nested fence.
+
+**Blocked by:** 08 (fenced-code-awareness)
+
+**Status:** ready-for-agent
+
+**Touches:**
+- `src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-button-field.ts` (modify)
+- `src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.ts` (modify)
+- `src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts` (read; `findSpecialFenceBlocks`)
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
+
+- [ ] Characterization tests for the current meta-bind-button scanner land first
+- [ ] Test: a meta-bind-button fence nested in a ````md fence is not rendered
+- [ ] A top-level meta-bind-button fence still renders; existing tests pass
+
+## Comments

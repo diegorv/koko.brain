@@ -51,3 +51,10 @@ My test verdict rests on these files: `plugins/special-fence-detection.test.ts`,
    - No fix. Mention it in the delivery commit's Behavior section next to the indented-close-fence change.
 4. **Info: per-rebuild cost.** Location: `plugins/block-comment-field.ts:17-25`. Probe on a 4400-line note: `computeBlockComments` went from 0.46 ms to 1.29 ms and `computeQueryjsBlocks` from 0.36 ms to 0.44 ms. `findAllFencedCodeBlocks` now runs five times per rebuild (code-block, block-comment, mermaid, queryjs, collection), each iterating every inline node.
    - This is within budget, so no change is needed. If profiling ever flags it, memoize `findAllFencedCodeBlocks` in a `WeakMap` keyed on the `Tree`, or skip the tree walk when the document has no `%%` line.
+
+## Resolution
+
+1. Accepted, no change. The partial-parse delay is the same behavior `code-block-field` already has, and a decorator rebuild on syntax-tree change would touch every block decorator, which is outside this Issue. Not opened as an Issue; Issue 11 (force rebuild through viewport guards) is the closest existing place to pick it up.
+2. Accepted. Opened `.scratch/live-preview-analysis/issues/13-meta-bind-button-fenced-code.md`.
+3. Accepted. Recorded in the close commit's Behavior section.
+4. Accepted, no change. Within budget; memoize per `Tree` only if profiling flags it.
