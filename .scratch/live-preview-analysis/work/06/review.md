@@ -105,3 +105,9 @@ No scope creep. The diff touches only the files the Issue and the owner decision
 `core/reveal.ts` (the shared line set the decision asked for) and the docs the decision listed.
 `work/06/lp-profile-measure.ts.txt` is the measurement harness from the stopped run, kept as
 `.txt` so it is not compiled or collected by vitest.
+
+## Resolution
+
+- Finding 1 (Low): fixed. `core/check-update-action.ts` JSDoc lines 8 and 15-17 reworded as proposed.
+- Finding 2 (Nit): not applied. The only branch rewrite is a plain rebase onto the moved `main`, which keeps messages; rewording `7513659f` alone would need an interactive rebase for a line-range typo in a commit message.
+- Findings 3 and 4 (Info): no change required, as the review states.

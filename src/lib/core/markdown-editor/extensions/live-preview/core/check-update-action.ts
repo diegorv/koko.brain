@@ -5,16 +5,16 @@ import { sameTouchedLines } from './reveal';
 
 /**
  * Determines what action a ViewPlugin should take in response to a ViewUpdate.
- * - `'rebuild'`: decorations should be recomputed (doc changed, reconfigured, drag ended, selection moved, force rebuild)
+ * - `'rebuild'`: decorations should be recomputed (doc changed, reconfigured, drag ended, selection changed its touched lines, force rebuild)
  * - `'skip'`: currently dragging, even on a force rebuild — suppress rebuild to prevent flicker
  * - `'none'`: no relevant change, including a pure scroll — keep existing decorations
  *
  * The answer reads only this update (no state survives across updates). A
  * selection change rebuilds only when it changes the set of lines the
  * selection touches (`sameTouchedLines`): `revealPredicate` reveals whole
- * lines, so a move within that set cannot change any decoration. A skipped
- * move keeps the set equal to the one the last rebuild saw, so skips chain
- * safely; a drag's skips end in the release rebuild.
+ * lines, so a move within that set cannot change any decoration. A move
+ * answered `'none'` keeps the set equal to the one the last rebuild saw, so
+ * those answers chain safely; a drag's skips end in the release rebuild.
  */
 export function checkUpdateAction(update: ViewUpdate): 'rebuild' | 'skip' | 'none' {
 	if (update.docChanged) return 'rebuild';
