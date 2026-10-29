@@ -6,6 +6,10 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-10-29)
+
+SvelteKit 3 removed the built-in lib alias; `appendLog` is now imported from `#lib/utils/log.service.js` (package.json subpath import). The decision is unchanged.
+
 ## Context
 
 Debugging a Tauri desktop app is harder than debugging a browser app. The WebView devtools are not immediately visible; users rarely reproduce in dev mode; Rust side errors live in a different process's stderr entirely; timing problems between TS and Rust require correlation across two logs that are, by default, written nowhere useful.

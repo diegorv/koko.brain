@@ -58,7 +58,7 @@ Two related rules documented in the same guide:
 
 ## Consequences
 
-- Every `$effect` that invokes a service must be audited for this pattern. The `$lib/core/vault/` and `$lib/core/app-lifecycle/` layers have the most dense occurrences.
+- Every `$effect` that invokes a service must be audited for this pattern. The `src/lib/core/vault/` and `src/lib/core/app-lifecycle/` layers have the most dense occurrences.
 - Developers learn a second reactivity mental model: "effects track what they read at the top level, `untrack` is explicit permission to read without binding."
 - Occasionally a side effect inside `untrack()` still wants to be reactive (e.g., reading `settingsStore.theme` to decide rendering). In that case, read it outside `untrack()` as an additional tracked dep.
 - Test coverage: effects are hard to unit test in vitest (see ADR-0005). The discipline is primarily code-review-enforced plus runtime log inspection (`appendLog`).
