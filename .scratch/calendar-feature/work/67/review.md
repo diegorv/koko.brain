@@ -87,3 +87,9 @@ so it is in scope.
    to follow. `handleClickCapture` has no `detail === 0` exemption, and only a press in the grid
    resets the flag. This is the same class of bug as ticket 59, and wider, because a keyboard
    `click()` would also be eaten. The Issue names only the day drag. File a follow-up Issue.
+
+## Resolution
+
+1. Accepted. `FOCUSABLE` is back to the original selector. In `handleCloseAutoFocus`, a match with `tabindex="-1"` inside this view's root falls through to the block; any other match (including a `tabindex="-1"` surface in another pane) keeps focus. The ticket 26 test now clicks empty space inside the root and expects the block; a new test (probe A) expects an outside `tabindex="-1"` surface to keep focus. The inside-root test fails without the guard. Commit 699269c2.
+2. Accepted. `#discard(armOnRelease)`: Escape passes `true`, `pointercancel` passes `false`, so a cancel registers no release listener. JSDoc updated. Probe B added to `EventMonthGrid.test.ts`; it failed before the fix. Commit 5632bb89.
+3. Accepted as out of scope: filed `.scratch/calendar-feature/issues/74-time-grid-click-swallow-after-cancel.md`.
