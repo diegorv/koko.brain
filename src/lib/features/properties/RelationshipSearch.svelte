@@ -1,13 +1,13 @@
 <script lang="ts">
 	import Plus from '@lucide/svelte/icons/plus';
 	import FileText from '@lucide/svelte/icons/file-text';
-	import * as Popover from '$lib/components/ui/popover';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { flattenFileTree, filterAndRank } from '$lib/features/quick-switcher/quick-switcher.logic';
-	import { relativePath } from '$lib/utils/path';
-	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
-	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { flattenFileTree, filterAndRank } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { relativePath } from '#lib/utils/path.js';
+	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 
 	interface Props {
 		onSelect: (fileName: string) => void;

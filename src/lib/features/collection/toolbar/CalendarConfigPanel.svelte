@@ -4,7 +4,7 @@
 		DropdownMenuTrigger,
 		DropdownMenuContent,
 		DropdownMenuItem,
-	} from '$lib/components/ui/dropdown-menu';
+	} from '#lib/components/ui/dropdown-menu/index.js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 
 	interface Props {

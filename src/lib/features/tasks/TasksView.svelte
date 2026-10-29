@@ -9,14 +9,14 @@
 	import CloudCheck from '@lucide/svelte/icons/cloud-check';
 	import RefreshCcw from '@lucide/svelte/icons/refresh-ccw';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
 	import { todoistStore } from './todoist.store.svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { initTodoist, syncTodoistTasks } from './todoist.service';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { filterByDate, filterCompleted, computeTaskStats } from './tasks.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
 	import type { TaskDateFilter } from './tasks.types';

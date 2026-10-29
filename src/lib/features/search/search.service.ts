@@ -1,14 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { searchStore } from './search.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { mergeResults } from './search-hybrid.logic';
 import { parseSearchQuery, performSearchOverFiles, matchesPathFilter } from './search.logic';
-import { vaultRelativeKey } from '$lib/utils/path';
-import { debug, error } from '$lib/utils/debug';
-import type { FileReadResult } from '$lib/core/filesystem/fs.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { vaultRelativeKey } from '#lib/utils/path.js';
+import { debug, error } from '#lib/utils/debug.js';
+import type { FileReadResult } from '#lib/core/filesystem/fs.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type {
 	FtsSearchResult,
 	SemanticSearchResult,

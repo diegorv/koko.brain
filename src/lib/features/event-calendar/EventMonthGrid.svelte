@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { dayOfWeek, formatLong, formatWeekday, fromKey, WEEKDAYS_SHORT } from './event-calendar-dates.logic';
 	import { DayDrag } from './event-calendar-day-drag.svelte';
 	import { previewDayMove } from './event-calendar-drag.logic';

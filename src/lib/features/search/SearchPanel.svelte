@@ -3,8 +3,8 @@
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
-	import { Separator } from '$lib/components/ui/separator';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { searchStore } from './search.store.svelte';
 	import SearchResultItem from './SearchResult.svelte';
 	import type { SearchMode } from './search.types';

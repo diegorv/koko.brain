@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-	import { clampDayStartHour, clampEventDuration, normalizeEventTypeName, EVENT_CALENDAR_VIEW_MODES } from '$lib/core/settings/settings.logic';
-	import type { EventCalendarViewMode } from '$lib/core/settings/settings.types';
-	import SettingItem from '$lib/core/settings/sections/SettingItem.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-	import { buildTypeNoteDir, typeNameTakenMessage, validateTypeName } from '$lib/features/type-definitions/type-definitions.logic';
-	import { createTypeDefinition, refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
-	import { error } from '$lib/utils/debug';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+	import { clampDayStartHour, clampEventDuration, normalizeEventTypeName, EVENT_CALENDAR_VIEW_MODES } from '#lib/core/settings/settings.logic.js';
+	import type { EventCalendarViewMode } from '#lib/core/settings/settings.types.js';
+	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+	import { buildTypeNoteDir, typeNameTakenMessage, validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
+	import { createTypeDefinition, refreshTypeDefinitions } from '#lib/features/type-definitions/type-definitions.service.js';
+	import { error } from '#lib/utils/debug.js';
 	import EventColorSwatches from './EventColorSwatches.svelte';
 	import { resolveEventTypeName } from './event-calendar-event.logic';
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import { CALENDAR_SHORTCUTS } from './event-calendar-keys.logic';
 

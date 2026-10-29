@@ -2,8 +2,8 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Keyboard from '@lucide/svelte/icons/keyboard';
-	import { Button } from '$lib/components/ui/button';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import type { CalendarViewMode } from './event-calendar.types';
 

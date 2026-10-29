@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import { debug, error as errorLog, perfStart, perfEnd } from '$lib/utils/debug';
-import { dedupeInflight, isStillCurrentPath } from '$lib/utils/inflight';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { debug, error as errorLog, perfStart, perfEnd } from '#lib/utils/debug.js';
+import { dedupeInflight, isStillCurrentPath } from '#lib/utils/inflight.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
-import type { NoteEntryV2, RelationshipBacklinkV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2, RelationshipBacklinkV2 } from '#lib/types/vault-v2.types.js';
 
 let vaultPath: string | null = null;
 let isBuilding = false;

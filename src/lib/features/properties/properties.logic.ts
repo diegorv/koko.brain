@@ -10,8 +10,8 @@ import {
 	Document,
 	type YAMLSeq,
 } from 'yaml';
-import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
-import { appendLog } from '$lib/utils/log.service';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
+import { appendLog } from '#lib/utils/log.service.js';
 import type { Property, PropertyType } from './properties.types';
 
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/;

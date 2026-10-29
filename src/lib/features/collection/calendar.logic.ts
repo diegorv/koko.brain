@@ -1,4 +1,4 @@
-import { formatDate } from '$lib/utils/date';
+import { formatDate } from '#lib/utils/date.js';
 import type { NoteRecord } from './collection.types';
 import { getPropertyValue } from './collection.logic';
 

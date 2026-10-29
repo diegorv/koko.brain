@@ -9,12 +9,12 @@
  * overwrite the user's value. Defaults apply only to absent keys.
  */
 
-import type { EventCalendarSettings } from '$lib/core/settings/settings.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
-import type { Property } from '$lib/features/properties/properties.types';
-import { EVENT_CALENDAR_COLORS } from '$lib/core/settings/settings.logic';
-import { extractBody, parseFrontmatterProperties, rebuildContent } from '$lib/features/properties/properties.logic';
-import { excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
+import type { EventCalendarSettings } from '#lib/core/settings/settings.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
+import { EVENT_CALENDAR_COLORS } from '#lib/core/settings/settings.logic.js';
+import { extractBody, parseFrontmatterProperties, rebuildContent } from '#lib/features/properties/properties.logic.js';
+import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { addDays, formatTime, isValidDayKey, parseTimeStrict } from './event-calendar-dates.logic';
 import type {
 	EventColor,

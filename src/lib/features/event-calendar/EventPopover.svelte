@@ -2,10 +2,10 @@
 	import Copy from '@lucide/svelte/icons/copy';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import { Button } from '$lib/components/ui/button';
-	import * as Popover from '$lib/components/ui/popover';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { eventWhenLabel } from './event-calendar-view.logic';
 	import { deleteEventFromUi, duplicateEventFromUi } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';

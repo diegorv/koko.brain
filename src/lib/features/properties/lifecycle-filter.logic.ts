@@ -1,4 +1,4 @@
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /** Builds a set of archived paths from vault entries. */
 export function buildArchivedPathSet(entries: NoteEntryV2[]): Set<string> {

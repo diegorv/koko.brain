@@ -4,11 +4,11 @@
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import AlertCircle from '@lucide/svelte/icons/alert-circle';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Collapsible from '$lib/components/ui/collapsible';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { outgoingLinksStore } from './outgoing-links.store.svelte';
 	import { fetchOutgoingLinksV2 } from './outgoing-links.service';
 

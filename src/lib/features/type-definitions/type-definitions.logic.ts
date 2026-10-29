@@ -1,5 +1,5 @@
-import type { NoteEntryV2, FrontmatterValue } from '$lib/types/vault-v2.types';
-import { isValidFileName } from '$lib/core/filesystem/fs.logic';
+import type { NoteEntryV2, FrontmatterValue } from '#lib/types/vault-v2.types.js';
+import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
 
 /** Display metadata for a type definition. */
 export interface TypeMetadata {

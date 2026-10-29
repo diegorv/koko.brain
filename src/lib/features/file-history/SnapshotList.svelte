@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import HardDriveIcon from '@lucide/svelte/icons/hard-drive';
 	import { groupSnapshotsByDay, formatSnapshotTime, formatSnapshotDateTime, formatFileSize, hasBackupForTimestamp } from './file-history.logic';
 	import type { SnapshotInfo } from './file-history.types';

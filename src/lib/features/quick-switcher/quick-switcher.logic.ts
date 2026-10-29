@@ -1,5 +1,5 @@
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import { fuzzyMatch } from '$lib/utils/fuzzy-match';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
 
 export interface FileEntry {
 	name: string;

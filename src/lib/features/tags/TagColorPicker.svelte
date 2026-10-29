@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import * as Popover from '$lib/components/ui/popover';
+	import * as Popover from '#lib/components/ui/popover/index.js';
 	import X from '@lucide/svelte/icons/x';
 	import { TAG_COLOR_PRESET_ENTRIES } from './tag-colors.logic';
-	import { hexToColorInputValue } from '$lib/core/settings/theme-editor.logic';
+	import { hexToColorInputValue } from '#lib/core/settings/theme-editor.logic.js';
 
 	interface Props {
 		/** Currently selected hex color */

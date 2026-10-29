@@ -1,5 +1,5 @@
 import type { SortDef } from '../collection.types';
-import type { PropertyType } from '$lib/features/properties/properties.types';
+import type { PropertyType } from '#lib/features/properties/properties.types.js';
 
 /**
  * Removes the sort for a given column.

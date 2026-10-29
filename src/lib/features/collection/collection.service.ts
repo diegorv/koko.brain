@@ -1,10 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
-import { debug, error as errorLog, timeAsync } from '$lib/utils/debug';
-import { createFile } from '$lib/core/filesystem/fs.service';
+import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from './collection.store.svelte';
 import type { NoteRecord } from './collection.types';
-import type { NoteRecordV2 } from '$lib/types/vault-v2.types';
+import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { buildNoteRecord } from './collection.logic';
 
 /** Minimal valid .collection body — a single table view with no filters. */

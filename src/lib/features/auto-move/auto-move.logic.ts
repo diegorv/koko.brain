@@ -1,7 +1,7 @@
 import type { AutoMoveRule } from './auto-move.types';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
-import { parse } from '$lib/features/collection/expression/parser';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import { parse } from '#lib/features/collection/expression/parser.js';
 
 /**
  * Evaluates all rules against a NoteRecord and returns the first matching rule.

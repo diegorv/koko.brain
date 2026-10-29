@@ -4,7 +4,7 @@
  * (📅); tasks without one, or with an invalid one, are left out.
  */
 
-import type { FileTaskGroupV2, TaskStatusV2 } from '$lib/types/vault-v2.types';
+import type { FileTaskGroupV2, TaskStatusV2 } from '#lib/types/vault-v2.types.js';
 import { isValidDayKey } from './event-calendar-dates.logic';
 import { MONTH_MAX_CHIPS } from './event-calendar-view.logic';
 

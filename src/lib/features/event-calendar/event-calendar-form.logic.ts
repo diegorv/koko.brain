@@ -7,8 +7,8 @@
  * Times are minutes from midnight (0..1440). Pure logic: no framework imports.
  */
 
-import type { EventCalendarSettings } from '$lib/core/settings/settings.types';
-import { generateUniqueName } from '$lib/core/filesystem/fs.logic';
+import type { EventCalendarSettings } from '#lib/core/settings/settings.types.js';
+import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
 import { isValidDayKey, parseTimeStrict } from './event-calendar-dates.logic';
 import { eventFileBase } from './event-calendar-event.logic';
 import { MIN_EVENT_MINUTES } from './event-calendar-layout.logic';

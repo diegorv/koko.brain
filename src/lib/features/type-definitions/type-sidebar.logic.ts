@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
-import { isViewFile } from '$lib/core/filesystem/fs.logic';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 
 /** A section in the type-grouped sidebar. */
 export interface TypeSection {
@@ -25,7 +25,7 @@ export interface TypeSidebarNote {
 	favorite: boolean;
 	modifiedAt: number;
 	createdAt: number;
-	frontmatter: Record<string, import('$lib/types/vault-v2.types').FrontmatterValue>;
+	frontmatter: Record<string, import('#lib/types/vault-v2.types.js').FrontmatterValue>;
 }
 
 /** Filter mode for the type sidebar. */

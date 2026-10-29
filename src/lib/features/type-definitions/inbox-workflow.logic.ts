@@ -1,4 +1,4 @@
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Returns the inbox count: entries that are not organized, not archived,

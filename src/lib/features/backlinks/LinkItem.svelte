@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FileText from '@lucide/svelte/icons/file-text';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import ShowInCalendarButton from '$lib/features/event-calendar/ShowInCalendarButton.svelte';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import ShowInCalendarButton from '#lib/features/event-calendar/ShowInCalendarButton.svelte';
 	import type { BacklinkEntry } from './backlinks.types';
 
 	let { entry }: { entry: BacklinkEntry } = $props();

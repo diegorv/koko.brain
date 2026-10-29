@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
-	import { Button } from '$lib/components/ui/button';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ImageIcon from '@lucide/svelte/icons/image';
-	import IconPicker from '$lib/features/file-icons/IconPicker.svelte';
-	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
-	import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
-	import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import type { AutoMoveRule } from './auto-move.types';
-	import type { IconPackId } from '$lib/features/file-icons/file-icons.types';
+	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { validateExpression } from './auto-move.logic';
 
 	let {

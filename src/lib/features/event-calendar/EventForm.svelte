@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { timeInputValue } from './event-calendar-dates.logic';
 	import {
 		applyEndChange,

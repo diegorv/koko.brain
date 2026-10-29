@@ -1,6 +1,6 @@
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import { propertiesStore } from './properties.store.svelte';
 import {
 	parseFrontmatterProperties,

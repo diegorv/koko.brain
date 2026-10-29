@@ -33,7 +33,7 @@ export const floorToSnap = (m: number, step = SNAP_MINUTES): number => Math.floo
 
 /**
  * Clamps `n` into `[min, max]`. When the bounds are inverted (`min > max`),
- * `max` wins, unlike `$lib/utils/clamp`: a resize from start 1430 with a
+ * `max` wins, unlike `#lib/utils/clamp.js`: a resize from start 1430 with a
  * 15-minute minimum (`min` 1445) still ends at the day's end, 1440.
  */
 export const clampMinutes = (n: number, min: number, max: number): number => Math.min(max, Math.max(min, n));

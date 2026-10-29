@@ -3,14 +3,14 @@ import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
 import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { switchVault } from '$lib/core/vault/vault.service';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { markRecentSave, notifyAfterSave } from '$lib/core/editor/editor.hooks';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { switchVault } from '#lib/core/vault/vault.service.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { deepLinkStore } from './deep-link.store.svelte';
 import {
 	parseDeepLinkUri,
@@ -20,11 +20,11 @@ import {
 	injectTitleIntoContent,
 } from './deep-link.logic';
 import type { DeepLinkAction, DailyAction, NewAction, CaptureAction } from './deep-link.types';
-import { buildPeriodicNotePath } from '$lib/plugins/periodic-notes/periodic-notes.logic';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { buildCapturePath, getCaptureTitle, buildCaptureVariables } from '$lib/plugins/quick-capture/note-composer.logic';
-import { processTemplate } from '$lib/utils/template';
-import { debug, error } from '$lib/utils/debug';
+import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { buildCapturePath, getCaptureTitle, buildCaptureVariables } from '#lib/plugins/quick-capture/note-composer.logic.js';
+import { processTemplate } from '#lib/utils/template.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /**
  * Serializes deep-link dispatch: actions like append/prepend do a

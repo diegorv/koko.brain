@@ -2,9 +2,9 @@
 	import CalendarSearch from '@lucide/svelte/icons/calendar-search';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { error } from '$lib/utils/debug';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { error } from '#lib/utils/debug.js';
 	import { findCalendarEvent, openEventInCalendar } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 

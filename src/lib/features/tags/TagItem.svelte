@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import * as Collapsible from '$lib/components/ui/collapsible';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
 	import type { TagTreeNode } from './tags.types';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { getTagColor } from './tag-colors.logic';
 	import TagColorDot from './TagColorDot.svelte';
 	import TagColorPicker from './TagColorPicker.svelte';

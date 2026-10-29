@@ -1,5 +1,5 @@
-import { HEADING_RE, BLOCK_ID_RE } from '$lib/core/markdown-editor/extensions/wikilink';
-import { getNoteName } from '$lib/features/backlinks/backlinks.logic';
+import { HEADING_RE, BLOCK_ID_RE } from '#lib/core/markdown-editor/extensions/wikilink/index.js';
+import { getNoteName } from '#lib/features/backlinks/backlinks.logic.js';
 
 /** The kind of markdown element detected on a line */
 export type BlockElementType = 'heading' | 'list-item' | 'block';

@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { Switch } from '$lib/components/ui/switch';
-	import { Input } from '$lib/components/ui/input';
-	import { Button } from '$lib/components/ui/button';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import XIcon from '@lucide/svelte/icons/x';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import SettingItem from '$lib/core/settings/sections/SettingItem.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
 	import AutoMoveRuleRow from './AutoMoveRuleRow.svelte';
 	import { autoMoveStore } from './auto-move.store.svelte';
 	import { saveAutoMoveConfig, toggleAutoMoveHook } from './auto-move.service';
 	import { generateRuleId } from './auto-move.logic';
 	import type { AutoMoveRule } from './auto-move.types';
-	import { error } from '$lib/utils/debug';
-	import { clamp } from '$lib/utils/clamp';
+	import { error } from '#lib/utils/debug.js';
+	import { clamp } from '#lib/utils/clamp.js';
 
 	/** Folder input for adding excluded folders */
 	let newExcludedFolder = $state('');
