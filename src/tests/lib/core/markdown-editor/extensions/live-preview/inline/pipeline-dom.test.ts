@@ -248,3 +248,28 @@ describe('inline pipeline — links whose hidden part crosses a line break (jsdo
 		}
 	});
 });
+
+describe('image plugin — images that span a line break (jsdom)', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	// The image widget replaces the whole `Image` node; across a line break that
+	// replace is illegal from a ViewPlugin. The cursor sits on the leading `plain`
+	// line, away from the image.
+	it.each([
+		['newline before the destination', 'plain\n\n![a](\n/url)', '/url'],
+		['newline inside the resolved reference label', 'plain\n\n![a][r\ns]\n\n[r\ns]: /url', 's]'],
+	])('mounts and renders the source for an image with a %s', (_name, doc, visible) => {
+		let mounted: { view: EditorView; root: HTMLElement } | null = null;
+		expect(() => {
+			mounted = mountView(doc);
+		}).not.toThrow();
+		const { view, root } = mounted!;
+		try {
+			expect(root.querySelector('.cm-content')!.textContent).toContain(visible);
+		} finally {
+			view.destroy();
+		}
+	});
+});

@@ -46,6 +46,7 @@ export function parseImageAlt(rawAlt: string): ImageSize {
  *
  * - Tree traversal for `Image` nodes
  * - Line-based reveal: shows source when the selection touches the image's line
+ * - An image spanning more than one line shows source
  * - `isInsideBlockContext` to skip
  * - Uses `expandedVisibleRanges(view)` for performance
  */
@@ -117,6 +118,10 @@ export function buildImageDecorations(
 
 				// Selection touches the image's line: show source
 				if (isRevealed(node.from, node.to)) return false;
+
+				// The widget replaces the whole node, and a replace across a line break
+				// is illegal from a ViewPlugin (CodeMirror throws a RangeError): show source
+				if (state.doc.lineAt(node.from).number !== state.doc.lineAt(node.to).number) return false;
 
 				const marks: { from: number; to: number }[] = [];
 				const urlNode = node.node.getChild('URL');

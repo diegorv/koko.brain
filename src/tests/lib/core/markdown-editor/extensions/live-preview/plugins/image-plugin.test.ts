@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
 import {
 	buildImageDecorations,
 	parseImageAlt,
@@ -76,6 +77,28 @@ describe('imagePlugin — buildImageDecorations', () => {
 		const doc = 'see ![a](1.png) and ![b](2.png)\nnext';
 		expect(buildImages(doc, 0)).toHaveLength(0); // before both images
 		expect(buildImages(doc, doc.length)).toHaveLength(2); // on the next line
+	});
+});
+
+describe('imagePlugin — image spanning more than one line', () => {
+	// The widget replaces the whole `Image` node, and a replace across a line break
+	// is illegal from a ViewPlugin, so a multi-line image renders its source.
+	it.each([
+		['newline before the destination', '![a](\n/url)\n\nplain'],
+		['newline inside the resolved reference label', '![a][r\ns]\n\n[r\ns]: /url\n\nplain'],
+	])('emits no widget for an image with a %s', (_name, doc) => {
+		const state = createMarkdownState(doc);
+		let image: { from: number; to: number } | null = null;
+		syntaxTree(state).iterate({
+			enter: (node) => {
+				if (node.name === 'Image') image ??= { from: node.from, to: node.to };
+			},
+		});
+		// Guard against a vacuous pass: the shape must parse as one multi-line Image.
+		expect(image).not.toBeNull();
+		expect(doc.slice(image!.from, image!.to)).toContain('\n');
+
+		expect(buildImages(doc, doc.length)).toEqual([]);
 	});
 });
 
