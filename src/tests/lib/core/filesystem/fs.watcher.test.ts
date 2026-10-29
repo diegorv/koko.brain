@@ -554,6 +554,30 @@ describe('vault-files-changed handling', () => {
 		expect(newDir.children!.map((n) => n.name)).toEqual(['zeta', 'alpha']);
 	});
 
+	it('applies content order to the subtree of the walked-up ancestor', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeDir('docs', '/vault/docs', [])]);
+		fsStore.setContentOrder(new Map([
+			['/vault/docs/new/b.md', 1],
+			['/vault/docs/new/a.md', 2],
+		]));
+		mockScans({
+			'/vault/docs': [
+				makeDir('new', '/vault/docs/new', [
+					makeFile('a.md', '/vault/docs/new/a.md'),
+					makeFile('b.md', '/vault/docs/new/b.md'),
+				]),
+			],
+		});
+
+		emit(['/vault/docs/new/a.md', '/vault/docs/new/b.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scannedPaths()).toEqual(['/vault/docs']);
+		const newDir = fsStore.fileTree[0].children![0];
+		expect(newDir.children!.map((n) => n.name)).toEqual(['b.md', 'a.md']);
+	});
+
 	it('emits empty paths array as a no-op', async () => {
 		const { emit } = await setupWatcher();
 		emit([]);

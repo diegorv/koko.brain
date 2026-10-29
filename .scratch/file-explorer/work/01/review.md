@@ -37,3 +37,9 @@ The test verdict rests on `src/tests/lib/core/filesystem/fs.watcher.test.ts`, `s
 ## Not verified
 
 - Not exercised in the running Tauri app with real folders copied in from Finder/shell; the fix is verified against a mocked `scan_vault` only.
+
+## Resolution
+
+1. Fixed: `fs.watcher.test.ts` "applies content order to the subtree of the walked-up ancestor" sets `fsStore.setContentOrder` with no folder order and asserts `b.md`, `a.md` in the rescanned `/vault/docs` subtree (the scan returns `a.md`, `b.md`).
+2. Fixed: `resolveRescanParents` builds the parent list once and filters it against itself.
+3. No change: ADRs are decision records; this fix does not change the decision they record.

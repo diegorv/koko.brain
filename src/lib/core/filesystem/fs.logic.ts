@@ -279,7 +279,8 @@ export function resolveRescanParents(changedPaths: string[], vaultPath: string, 
 		parents.add(parent);
 	}
 	if (parents.has(vaultPath)) return [vaultPath];
-	return [...parents].filter((p) => ![...parents].some((q) => p.startsWith(q + '/')));
+	const list = [...parents];
+	return list.filter((p) => !list.some((q) => p.startsWith(q + '/')));
 }
 
 /**
