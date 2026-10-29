@@ -27,3 +27,7 @@ Today on macOS Ctrl+click arrives as a primary-button mousedown with `ctrlKey`, 
 - [ ] Tests cover every row of the table for both platforms (macOS and non-macOS), wikilink and external link
 - [ ] Test: with the cursor on the wikilink's line (revealed source), the open modifier opens the note and a plain click does not
 - [ ] Plain click on a rendered wikilink still opens the note
+
+## Comments
+
+- 2026-10-29 20:49 — discovery — plan in work/15/discovery.md: platform helper + modifier-aware wikilink resolver + click-handler modifier — pending
