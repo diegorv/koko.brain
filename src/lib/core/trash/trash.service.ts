@@ -106,8 +106,9 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
  * A restored Markdown note, or every Markdown note inside a restored
  * folder, is re-indexed through `applyNoteChange` (`restore` source).
  * @returns the path the item was restored to
- * @throws the filesystem error (logged) when any step fails; a failure
- *   before the rename leaves the item in the Trash
+ * @throws the filesystem error (logged) when a step up to the rename fails,
+ *   which leaves the item in the Trash; a failure to re-index or refresh the
+ *   tree after the rename is logged and does not throw
  */
 export async function restoreItem(vaultPath: string, item: TrashItem): Promise<string> {
 	try {
@@ -144,26 +145,33 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		}
 		trashStore.removeItem(item.id);
 
-		// Re-index a restored note right away instead of waiting for the
-		// watcher.
-		if (!item.isDirectory && isMarkdownPath(restorePath)) {
-			await indexRestoredNotes(vaultPath, [restorePath]);
-		}
-
-		// Refresh the file tree so the restored item appears
-		const { refreshTree } = await import('$lib/core/filesystem/fs.service');
-		await refreshTree();
-
-		// A folder's notes are walked from the refreshed tree, so they match
-		// what the vault scan sees. The watcher cannot stand in: the restore
-		// arrives as one directory rename, which its directory-only filter drops
-		// for a folder name without a dot.
-		if (item.isDirectory) {
-			if (!findNodeByPath(fsStore.fileTree, restorePath)) {
-				debug('Trash', `Restored folder not found in the refreshed tree, notes not indexed: ${restorePath}`);
+		// The item is back on disk and out of the Trash from here on, so a
+		// failure below is logged and the restore still reports success: a
+		// throw would tell the caller the item is still in the Trash.
+		try {
+			// Re-index a restored note right away instead of waiting for the
+			// watcher.
+			if (!item.isDirectory && isMarkdownPath(restorePath)) {
+				await indexRestoredNotes(vaultPath, [restorePath]);
 			}
-			const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
-			await indexRestoredNotes(vaultPath, notes);
+
+			// Refresh the file tree so the restored item appears
+			const { refreshTree } = await import('$lib/core/filesystem/fs.service');
+			await refreshTree();
+
+			// A folder's notes are walked from the refreshed tree, so they match
+			// what the vault scan sees. The watcher cannot stand in: the restore
+			// arrives as one directory rename, which its directory-only filter drops
+			// for a folder name without a dot.
+			if (item.isDirectory) {
+				if (!findNodeByPath(fsStore.fileTree, restorePath)) {
+					debug('Trash', `Restored folder not found in the refreshed tree, notes not indexed: ${restorePath}`);
+				}
+				const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
+				await indexRestoredNotes(vaultPath, notes);
+			}
+		} catch (err) {
+			error('Trash', 'Failed to refresh or index after restore (item is restored):', err);
 		}
 
 		debug('Trash', `Restored: ${item.originalPath} → ${restorePath}`);

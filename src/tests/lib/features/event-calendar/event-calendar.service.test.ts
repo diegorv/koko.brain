@@ -2462,6 +2462,7 @@ describe('calendar writes', () => {
 		it('an Undo whose restore fails toasts that the restore failed, not that the note left the Trash', async () => {
 			const root = makeRoot();
 			await deleteEventFromUi(P('Standup'), root);
+			const historyBefore = eventCalendarStore.history;
 			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
 
 			toastAction()();
@@ -2470,6 +2471,9 @@ describe('calendar writes', () => {
 
 			expect(vi.mocked(toast.error).mock.calls).toEqual([['Could not restore the note from the Trash']]);
 			expect(trashStore.items).toHaveLength(1);
+			// Unlike the restore-from-Trash path, the toast Undo keeps its delete op when the restore fails.
+			expect(eventCalendarStore.history).toEqual(historyBefore);
+			expect(eventCalendarStore.canUndo).toBe(true);
 			expect(document.activeElement).toBe(root);
 		});
 

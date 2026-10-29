@@ -327,6 +327,21 @@ describe('restoreItem', () => {
 		// The entry is still in the Trash: a failed restore is not a missing entry.
 		expect(trashStore.items).toEqual([item]);
 	});
+
+	it('still returns the restored path when the tree refresh after the rename fails', async () => {
+		const item = makeStoredItem('1000', 'notes/meeting.md');
+		trashStore.setItems([item]);
+		vi.mocked(refreshTree).mockRejectedValueOnce(new Error('scan_vault failed'));
+
+		const result = await restoreItem(VAULT, item);
+
+		expect(result).toBe('/Users/me/vault/notes/meeting.md');
+		expect(mockRename).toHaveBeenCalledWith(
+			'/Users/me/vault/.kokobrain/trash/items/1000/meeting.md',
+			'/Users/me/vault/notes/meeting.md',
+		);
+		expect(trashStore.items).toHaveLength(0);
+	});
 });
 
 describe('restoreItem - indexing', () => {

@@ -62,3 +62,12 @@ own alternative ("a throw that the caller maps").
    `undoDeleteEvent` contract ("The op stays when the restore fails", `event-calendar.service.ts:1088`) and the
    one difference from `restoreDeletedEvent` (`retire`). Fix: add `expect(eventCalendarStore.canUndo).toBe(true)`
    (or compare `eventCalendarStore.history` before / after) to that test.
+
+## Resolution
+
+1. Fixed. `restoreItem` (`src/lib/core/trash/trash.service.ts:151-176`) runs the post-rename steps
+   (re-index, `refreshTree`, folder-note indexing) inside a try/catch that logs and still returns the restore
+   path. Test first: `trash.service.test.ts:331-344` failed on the old code (`scan_vault failed` thrown), passes now.
+   `TrashSection.svelte` no longer gets a throw for that case; the item really is restored, so no error toast is right.
+2. Fixed. The toast Undo failure test (`event-calendar.service.test.ts:2462-2480`) now asserts the history is
+   unchanged and `canUndo` is still true.
