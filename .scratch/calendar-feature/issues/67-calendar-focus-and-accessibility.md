@@ -23,3 +23,4 @@ Ticket 59 review (fix f1504724):
 
 - 2026-10-28 21:28 — discovery — four items located on main, plan in work/67/discovery.md — 47b8e4f2
 - 2026-10-28 21:33 — implement — all four items fixed test-first (popover FOCUSABLE, toast focus liveRoot, span segment label, day-drag swallow); pnpm check 0 errors, event-calendar vitest 957/957 — 2e0d1b75
+- 2026-10-28 21:37 — review — CHANGES_REQUESTED: FOCUSABLE now skips tabindex="-1" surfaces outside the Calendar (focus stolen back from another pane, Medium); pointercancel leaves a pointerup listener that can still arm the swallow (Low) — ad0ef6c3
