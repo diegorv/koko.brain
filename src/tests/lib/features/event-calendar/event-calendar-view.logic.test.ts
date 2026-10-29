@@ -7,6 +7,7 @@ import {
 	buildAllDayChips,
 	buildMonthCells,
 	defaultCreateSlot,
+	eventRangeLabel,
 	eventWhenLabel,
 	focusViewFor,
 	groupEventsByDay,
@@ -292,6 +293,18 @@ describe('eventWhenLabel', () => {
 		expect(eventWhenLabel(span(ev('trip', '2026-11-10', 540, 1020), '2026-11-12'), '24h').time).toBe('09:00 – 17:00 · 2d 8h');
 		expect(eventWhenLabel(span(ev('day', '2026-11-10', 540, 540), '2026-11-11'), '24h').time).toBe('09:00 – 09:00 · 1d');
 		expect(eventWhenLabel(span(ev('long', '2026-11-10', 540, 570), '2026-11-11'), '24h').time).toBe('09:00 – 09:30 · 1d 30m');
+	});
+});
+
+describe('eventRangeLabel', () => {
+	it('shows the time range of a single-day event', () => {
+		expect(eventRangeLabel(ev('a', '2026-11-10', 540, 630), '24h')).toBe('09:00 – 10:30');
+		expect(eventRangeLabel(ev('a', '2026-11-10', 540, 630), '12h')).toBe('9:00 AM – 10:30 AM');
+	});
+
+	it('shows each end of a timed span with its day', () => {
+		expect(eventRangeLabel(span(ev('late', '2026-11-10', 1380, 60), '2026-11-11'), '24h')).toBe('Nov 10 23:00 – Nov 11 01:00');
+		expect(eventRangeLabel(span(ev('trip', '2026-11-30', 540, 1020), '2026-12-02'), '12h')).toBe('Nov 30 9:00 AM – Dec 2 5:00 PM');
 	});
 });
 

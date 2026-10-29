@@ -64,6 +64,8 @@
 
 	let timeFormat = $derived(settingsStore.eventCalendar.timeFormat);
 	let events = $derived(eventCalendarStore.events);
+	/** Unclipped events by path: a span segment's block names the whole range. */
+	let eventsByPath = $derived(new Map(events.map((e) => [e.path, e])));
 	let timed = $derived(groupEventsByDay(events, days).timed);
 	let baseColumns = $derived(days.map((day) => layoutDay(timed.get(day) ?? [])));
 	// During a drag only the source and target columns are laid out again.
@@ -325,6 +327,7 @@
 								column={placed.column}
 								columns={placed.columns}
 								{timeFormat}
+								whole={eventsByPath.get(placed.event.path)}
 							/>
 						{/each}
 						{#if ghost && ghost.dayIndex === i}

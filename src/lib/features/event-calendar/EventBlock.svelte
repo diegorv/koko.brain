@@ -2,7 +2,9 @@
 	import { formatTime, formatTimeRange, type TimeFormat } from './event-calendar-dates.logic';
 	import { eventColorStyle, type PendingEventNote } from './event-calendar-event.logic';
 	import { minutesToPx } from './event-calendar-layout.logic';
+	import { eventRangeLabel } from './event-calendar-view.logic';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
+	import type { EventNote } from './event-calendar.types';
 
 	interface Props {
 		/** The merged event the block shows. */
@@ -13,9 +15,11 @@
 		columns: number;
 		/** Clock format of the time text. */
 		timeFormat: TimeFormat;
+		/** The unclipped event when `event` is one day's segment of a timed span: the accessible name reads its whole range. */
+		whole?: EventNote;
 	}
 
-	let { event, column, columns, timeFormat }: Props = $props();
+	let { event, column, columns, timeFormat, whole }: Props = $props();
 
 	/** Under this height the block shows one truncated row. */
 	const COMPACT_PX = 44;
@@ -34,7 +38,9 @@
 	let time = $derived(formatTimeRange(event.start, event.end, timeFormat));
 	let snippetLine = $derived(event.snippet.split('\n')[0]?.trim() ?? '');
 	let selected = $derived(eventCalendarViewStore.selectedEventPath === event.path);
-	let label = $derived(`${event.title}, ${time}${snippetLine ? `, ${snippetLine}` : ''}`);
+	let isSpan = $derived((event.endDate ?? event.date) !== event.date);
+	let labelTime = $derived(isSpan && whole ? eventRangeLabel(whole, timeFormat) : time);
+	let label = $derived(`${event.title}, ${labelTime}${snippetLine ? `, ${snippetLine}` : ''}`);
 	let style = $derived(
 		[
 			eventColorStyle(event.color),

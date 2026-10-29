@@ -104,6 +104,17 @@ describe('EventTimeGrid: timed blocks', () => {
 		expect(block.getAttribute('aria-label')).toBe('Quick, 09:00 – 09:30, Hidden');
 	});
 
+	it('labels each segment of a timed span with the whole range while the time text shows the day part', () => {
+		seed([event({ path: P('Trip'), title: 'Trip', date: '2026-11-10', endDate: '2026-11-12', start: 1320, end: 120 })]);
+		mountGrid();
+
+		const segment = (day: string) => q(`[data-day-column="${day}"] [data-event-path="${P('Trip')}"]`)!;
+		for (const day of ['2026-11-10', '2026-11-11', '2026-11-12']) {
+			expect(segment(day).getAttribute('aria-label')).toBe('Trip, Nov 10 22:00 – Nov 12 02:00');
+		}
+		expect(segment('2026-11-11').querySelector('[data-event-time]')?.textContent).toBe('00:00 – 24:00');
+	});
+
 	it('splits overlapping events into columns', () => {
 		seed([
 			event({ path: P('A'), title: 'A', date: '2026-11-10', start: 540, end: 660 }),

@@ -341,6 +341,19 @@ export function eventWhenLabel(event: EventNote, timeFormat: TimeFormat): EventW
 }
 
 /**
+ * Time range of a timed event, as a block's accessible name reads it.
+ * @param event - a timed event, whole (not a `segmentOnDay` copy)
+ * @param timeFormat - clock format of the times
+ * @returns `09:00 – 10:30` for a single-day event; each end with its day
+ *   for a span (`Nov 10 23:00 – Nov 11 01:00`)
+ */
+export function eventRangeLabel(event: EventNote, timeFormat: TimeFormat): string {
+	const last = event.endDate ?? event.date;
+	if (last === event.date) return formatTimeRange(event.start, event.end, timeFormat);
+	return `${formatShort(event.date)} ${formatTime(event.start, timeFormat)} – ${formatShort(last)} ${formatTime(event.end, timeFormat)}`;
+}
+
+/**
  * Chips of the all-day lane, capped so no day needs more than
  * `ALL_DAY_MAX_ROWS` rows: a day with more all-day events than that shows
  * one row fewer of chips and reserves the last row for "+N".
