@@ -31,7 +31,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import { addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
 import { moveItem } from '$lib/core/filesystem/fs.service';
 import { setIconForPath } from '$lib/features/file-icons/file-icons.service';
-import { debug } from '$lib/utils/debug';
+import { debug, error } from '$lib/utils/debug';
 import { autoMoveStore } from '$lib/features/auto-move/auto-move.store.svelte';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
@@ -328,6 +328,82 @@ describe('auto-move.service', () => {
 			expect(moveItem).not.toHaveBeenCalled();
 			expect(setIconForPath).not.toHaveBeenCalled();
 			expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
+		it('observer moves a note with lossy frontmatter but skips its icon', async () => {
+			vi.useFakeTimers();
+
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{
+					id: 'r1',
+					name: 'Archive',
+					expression: "file.hasTag('archive')",
+					destination: 'Archive',
+					enabled: true,
+					icon: { iconPack: 'lucide', iconName: 'archive' },
+				}],
+				excludedFolders: [],
+			});
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(moveItem).mockResolvedValue('/vault/Archive/note.md');
+
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+
+			registerAutoMoveHook();
+			capturedObserver!('/vault/notes/note.md', '---\n# keep me\ntags:\n  - archive\n---\n');
+
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(moveItem).toHaveBeenCalledWith('/vault/notes/note.md', '/vault/Archive');
+			expect(setIconForPath).not.toHaveBeenCalled();
+			expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
+		it('observer logs an IO error from the icon write and keeps the move', async () => {
+			vi.useFakeTimers();
+
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{
+					id: 'r1',
+					name: 'Archive',
+					expression: "file.hasTag('archive')",
+					destination: 'Archive',
+					enabled: true,
+					icon: { iconPack: 'lucide', iconName: 'archive' },
+				}],
+				excludedFolders: [],
+			});
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(moveItem).mockResolvedValue('/vault/Archive/note.md');
+			const failure = new Error('EACCES: permission denied');
+			vi.mocked(setIconForPath).mockRejectedValueOnce(failure);
+
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+
+			registerAutoMoveHook();
+			capturedObserver!('/vault/notes/note.md', '---\ntags:\n  - archive\n---\n');
+
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(moveItem).toHaveBeenCalledWith('/vault/notes/note.md', '/vault/Archive');
+			expect(setIconForPath).toHaveBeenCalledWith('/vault', '/vault/Archive/note.md', 'lucide', 'archive', undefined, undefined);
+			expect(error).toHaveBeenCalledWith('AUTO-MOVE', 'Failed to apply icon:', failure);
 
 			vi.useRealTimers();
 			vaultStore.close();
