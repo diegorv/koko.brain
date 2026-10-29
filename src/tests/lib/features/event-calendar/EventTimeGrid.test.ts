@@ -874,6 +874,20 @@ describe('EventTimeGrid: task lane', () => {
 		expect(q('[data-task-lane]')).toBeNull();
 	});
 
+	it('hides and shows the task lane when the overlay setting flips while mounted', () => {
+		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12')]);
+		mountGrid();
+		expect(q('[data-task-lane]')).not.toBeNull();
+
+		settingsStore.updateEventCalendar({ showTasks: false });
+		flushSync();
+		expect(q('[data-task-lane]')).toBeNull();
+
+		settingsStore.updateEventCalendar({ showTasks: true });
+		flushSync();
+		expect(q('[data-calendar-task]')?.textContent?.trim()).toBe('Rent');
+	});
+
 	it('shows only the focused day\'s tasks in day view', () => {
 		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12'), datedTask('Gym', '2026-11-10')]);
 		mountGrid(['2026-11-10']);

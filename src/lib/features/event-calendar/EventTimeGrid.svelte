@@ -66,6 +66,9 @@
 	let dragged = $state.raw<PendingEventNote | null>(null);
 
 	let timeFormat = $derived(settingsStore.eventCalendar.timeFormat);
+	// Every settings write replaces the whole settings object; a separate
+	// `$derived` notifies only when the flag itself changes.
+	let showTasks = $derived(settingsStore.eventCalendar.showTasks);
 	let events = $derived(eventCalendarStore.events);
 	/** Unclipped events by path: a span segment's block names the whole range. */
 	let eventsByPath = $derived(new Map(events.map((e) => [e.path, e])));
@@ -344,7 +347,7 @@
 		<div class="sticky top-0 z-40 bg-editor-bg" data-time-grid-header>
 			<EventDayHeaders {days} />
 			<EventAllDayLane {days} {events} />
-			{#if settingsStore.eventCalendar.showTasks}
+			{#if showTasks}
 				<EventTaskLane {days} tasks={eventCalendarStore.tasks} />
 			{/if}
 			<!-- Masks the hour line and label that sit exactly on the header edge after the mount scroll. -->
