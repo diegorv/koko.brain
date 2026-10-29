@@ -6,6 +6,10 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-10-29)
+
+SvelteKit 3 removed the built-in lib alias, so `components.json` aliases now use the `#lib` subpath import (package.json `imports`, mirrored in `tsconfig.json` `paths`). The shadcn-svelte CLI has not been run against these aliases yet; generated imports must carry an extension to pass `lib-specifier-convention.test.ts`. The decision is unchanged.
+
 ## Context
 
 Kokobrain needs a consistent set of accessible, themeable UI primitives (buttons, dialogs, dropdowns, menus, tooltips, sliders, selects, resizable panes, etc.) across a desktop app with dense editor chrome. The primitives must:

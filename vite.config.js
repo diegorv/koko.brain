@@ -71,6 +71,11 @@ export default defineConfig(async () => ({
       adapter: adapter({
         fallback: "index.html",
       }),
+      // Kit 3 polls _app/version.json hourly by default; 0 turns that timer
+      // off. Kit 3 still checks it on window focus and visibility change (a
+      // local asset read in the Tauri webview). Frontend and shell ship
+      // together, so a mid-session "new version" signal has nothing to act on.
+      version: { pollInterval: 0 },
     }),
     tailwindcss(),
   ],

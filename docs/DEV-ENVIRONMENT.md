@@ -63,7 +63,7 @@ For a container that is recreated per session, the right place for steps 1-4 is 
 
 ## Frontend gate
 
-`pnpm check`, `pnpm vitest run` and `pnpm build` need only Node 22 and pnpm; no platform-specific steps were required.
+`pnpm check`, `pnpm vitest run` and `pnpm build` need only Node 22.17 or newer and pnpm; no platform-specific steps were required.
 
 ## Retrieval eval
 
