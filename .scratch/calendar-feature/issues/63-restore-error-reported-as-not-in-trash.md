@@ -16,3 +16,4 @@
 
 - 2026-10-28 21:11 — discovery — restoreItem already throws; plan: wrap it as EventCalendarError(restore-failed) in restoreNow — 2294a13d
 - 2026-10-28 21:13 — implement — restore-failed reason wraps restoreItem errors in restoreNow; event-calendar + trash + settings tests 1309/1309, pnpm check 0 errors — 6b3c483d
+- 2026-10-28 21:15 — review — VERDICT: APPROVED; 2 Low findings (post-rename failure toasted as restore-failed; toast Undo test lacks op-stays assertion) — 8bc7cd05
