@@ -26,7 +26,7 @@ Analysis: `.scratch/live-preview-analysis/findings-2026-10-29.md`.
 The editor must render markdown as rich text while still being editable — what Obsidian calls "Live Preview." Every feature (headings, bold/italic, wikilinks, embedded images, callouts, tables, code blocks, frontmatter, math, mermaid, queryjs, meta-bind buttons, audio, video, footnotes, block references, inline comments, …) needs to:
 
 - Render its own visual representation.
-- Reveal source markdown when the cursor touches the element.
+- Reveal source markdown on every line a selection touches (the line-based `revealPredicate` rule in `core/reveal.ts`, see the 2026-10-29 amendment).
 - Animate smoothly between rendered and source states. (Dropped 2026-10-29, see the amendment.)
 - Not lag on a 1800-note vault with long files, mouse drags, or rapid scrolling.
 

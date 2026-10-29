@@ -5,7 +5,7 @@ import { mouseSelectingField } from './mouse-selecting';
 /**
  * Determines what action a ViewPlugin should take in response to a ViewUpdate.
  * - `'rebuild'`: decorations should be recomputed (doc changed, reconfigured, drag ended, selection moved, force rebuild)
- * - `'skip'`: currently dragging — suppress rebuild to prevent flicker
+ * - `'skip'`: currently dragging, even on a force rebuild — suppress rebuild to prevent flicker
  * - `'none'`: no relevant change, including a pure scroll — keep existing decorations
  *
  * When `lastCursorLine` is provided, selection-only changes that keep the cursor
@@ -16,13 +16,17 @@ import { mouseSelectingField } from './mouse-selecting';
 export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 'rebuild' | 'skip' | 'none' {
 	if (update.docChanged) return 'rebuild';
 	if (update.transactions.some((t) => t.reconfigured)) return 'rebuild';
-	if (update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))))
-		return 'rebuild';
 
+	// The drag check precedes forceDecorationRebuild: revealPredicate reveals
+	// nothing mid-drag, so a forced rebuild (scroll debounce after autoscroll)
+	// would collapse a revealed block under the pointer. The release rebuilds.
 	const isDragging = update.state.field(mouseSelectingField, false);
 	const wasDragging = update.startState.field(mouseSelectingField, false);
 	if (wasDragging && !isDragging) return 'rebuild';
 	if (isDragging) return 'skip';
+
+	if (update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))))
+		return 'rebuild';
 
 	if (update.selectionSet) {
 		// Skip rebuild when cursor stayed on the same line — revealPredicate

@@ -23,3 +23,4 @@
 - 2026-10-29 17:47 — discovery — plan in work/05/discovery.md: swap 16 shouldShowSource calls to revealPredicate, delete shouldShowSource, keyboard enter/leave tests — 9921d7b7
 - 2026-10-29 17:58 — implement — blocks + 4 inline ViewPlugins on revealPredicate, shouldShowSource deleted; pnpm check 0 errors, vitest markdown-editor 99 files 1367 passed — 9e98c81f
 - 2026-10-29 18:03 — review — CHANGES_REQUESTED: 1 medium (forced rebuild mid-drag collapses a revealed block; reorder drag check in checkUpdateAction), 1 low (ADR 0008 per-element goal line); see work/05/review.md — 18c04d02
+- 2026-10-29 18:04 — fix — review findings 1 (drag check before forceDecorationRebuild, 2 tests red first) and 2 (ADR 0008 goal line) fixed; vitest markdown-editor 99 files 1381 passed, pnpm check 0 errors — (this commit)

@@ -9,8 +9,14 @@ import { GFM } from '@lezer/markdown';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
-import { mouseSelectingField } from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
-import { calloutFoldState } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
+import {
+	mouseSelectingField,
+	setMouseSelecting,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
+import {
+	calloutFoldState,
+	forceDecorationRebuild,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import { tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { codeBlockField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
 import { calloutField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.js';
@@ -154,4 +160,26 @@ describe('keyboard reveal: entering and leaving a block with the arrow keys', ()
 			expect(steps.some((s) => s.line >= block[0] && s.line <= block[1])).toBe(true);
 		});
 	}
+});
+
+describe('mouse drag: a revealed block stays revealed', () => {
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('a forced rebuild during a drag keeps the block revealed until release', () => {
+		const view = mount('before\n```js\nconst x = 1;\n```\nafter', codeBlockField);
+		const inside = view.state.doc.line(3).from;
+		view.dispatch({ selection: EditorSelection.cursor(inside) });
+		expect(widgetCount(view, codeBlockField)).toBe(0);
+
+		view.dispatch({ effects: setMouseSelecting.of(true) });
+		view.dispatch({ selection: EditorSelection.range(inside, inside + 5) });
+		// scrollDebouncePlugin dispatches this after drag-autoscroll stops.
+		view.dispatch({ effects: forceDecorationRebuild.of(null) });
+		expect(widgetCount(view, codeBlockField)).toBe(0);
+
+		view.dispatch({ effects: setMouseSelecting.of(false) });
+		expect(widgetCount(view, codeBlockField)).toBe(0);
+	});
 });

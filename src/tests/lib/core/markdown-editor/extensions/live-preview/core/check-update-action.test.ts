@@ -146,6 +146,23 @@ describe('checkUpdateAction', () => {
 		expect(checkUpdateAction(update)).toBe('rebuild');
 	});
 
+	it('returns "skip" for forceDecorationRebuild during mouse-drag', () => {
+		const state = createState();
+		const draggingState = state.update({ effects: setMouseSelecting.of(true) }).state;
+		const update = mockUpdate(draggingState, {
+			state: draggingState,
+			transactions: [
+				{
+					reconfigured: false,
+					effects: [{ is: (type: unknown) => type === forceDecorationRebuild }],
+				},
+			],
+		});
+		// The release rebuilds; a forced rebuild mid-drag would collapse a
+		// revealed block under the pointer.
+		expect(checkUpdateAction(update)).toBe('skip');
+	});
+
 	it('returns "rebuild" for doc change during mouse-drag (doc changes always rebuild)', () => {
 		const state = createState();
 		const draggingState = state.update({ effects: setMouseSelecting.of(true) }).state;

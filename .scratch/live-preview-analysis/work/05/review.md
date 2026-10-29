@@ -33,3 +33,8 @@ The test verdict rests on: `src/tests/lib/core/markdown-editor/extensions/live-p
 - The keyboard tests only move horizontally, because jsdom has no line geometry for `cursorLineDown` / `cursorLineUp`. Issue 06's e2e regression covers bullet/H1 only, so nothing tests vertical entry into a table, code block or callout. A follow-up e2e case would close that gap.
 - The build report says 22 block-reveal tests are red on the old code. I count 24 (see Checks). This does not affect the verdict.
 - `lastCursorLine` gates are untouched, as scoped (Issue 06).
+
+## Resolution
+
+1. Accepted and fixed here. `core/check-update-action.ts` now checks the drag (release → `'rebuild'`, in progress → `'skip'`) after `docChanged` / `reconfigured` and before `forceDecorationRebuild`. New tests: `core/check-update-action.test.ts` "returns \"skip\" for forceDecorationRebuild during mouse-drag" and `plugins/keyboard-reveal.test.ts` "a forced rebuild during a drag keeps the block revealed until release" (real `EditorView`, code block). Both failed before the reorder (`'rebuild'` vs `'skip'`; 1 widget vs 0) and pass after. No new Issue filed.
+2. Accepted and fixed: the ADR 0008 goal line now states the line-based `revealPredicate` rule (`core/reveal.ts`).
