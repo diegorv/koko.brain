@@ -25,3 +25,7 @@
 
 - [ ] Test: after a mousedown followed by `drop`/`dragend` with no `mouseup`, `mouseSelectingField` is `false` and the release rebuild runs
 - [ ] Test: after that drop, a selection change reveals the cursor's line
+
+## Comments
+
+- 2026-10-29 20:55 — discovery — release on dragstart; isPureScroll left as is (scroll debounce already recovers) — a3ea8a09
