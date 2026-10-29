@@ -247,6 +247,16 @@ describe('inline pipeline — links whose hidden part crosses a line break (jsdo
 			view.destroy();
 		}
 	});
+
+	it('styles a link whose label wraps but whose hidden parts are single-line', () => {
+		const { view, root } = mountView('plain\n\n[a\nb](/url)');
+		try {
+			expect(root.querySelector('.cm-lp-link')).not.toBeNull();
+			expect(root.querySelector('.cm-content')!.textContent).not.toContain('/url');
+		} finally {
+			view.destroy();
+		}
+	});
 });
 
 describe('image plugin — images that span a line break (jsdom)', () => {

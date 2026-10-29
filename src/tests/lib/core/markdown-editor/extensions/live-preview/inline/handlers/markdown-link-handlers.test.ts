@@ -77,7 +77,7 @@ describe('linkHandler — link spanning more than one line', () => {
 	beforeEach(() => settingsStore.reset());
 
 	// A replace across a line break is illegal from the inline ViewPlugin, so a
-	// multi-line link renders its source instead of hiding its syntax.
+	// link whose hidden syntax crosses a line renders its source instead.
 	it.each([
 		['newline before the destination', '[a](\n/url)\n\nplain'],
 		['newline inside the title', '[a](/url "t\nx")\n\nplain'],
@@ -87,6 +87,19 @@ describe('linkHandler — link spanning more than one line', () => {
 		const crossing = decos.filter((d) => d.class === 'replace' && doc.slice(d.from, d.to).includes('\n'));
 		expect(crossing).toEqual([]);
 		expect(decos.find((d) => d.class === 'cm-lp-link')).toBeUndefined();
+	});
+
+	// Only the hidden syntax must stay on one line; the styled label is a mark,
+	// and a mark may cross a line break.
+	it.each([
+		['inline link', '[a\nb](/url)\n\nplain'],
+		['reference link', '[a\nb][ref]\n\n[ref]: /url\n\nplain'],
+	])('styles a %s whose label wraps but whose hidden parts are single-line', (_name, doc) => {
+		const decos = build(doc, doc.length);
+		const crossing = decos.filter((d) => d.class === 'replace' && doc.slice(d.from, d.to).includes('\n'));
+		expect(crossing).toEqual([]);
+		expect(decos.find((d) => d.class === 'cm-lp-link')).toEqual({ from: 1, to: 4, class: 'cm-lp-link' });
+		expect(decos.filter((d) => d.class === 'replace')).toHaveLength(2);
 	});
 });
 

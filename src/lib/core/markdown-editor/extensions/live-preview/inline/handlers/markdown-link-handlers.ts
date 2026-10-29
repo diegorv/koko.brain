@@ -6,10 +6,11 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  * Markdown link `[text](url)` and reference link `[text][ref]`. Hides the
  * brackets and target portion via `hiddenSyntaxDeco`, styles the visible
  * text via `cm-lp-link`. Link line touched by the selection → render
- * raw markdown. A link spanning more than one line (newline before the
- * destination, inside the title or inside the reference label) also renders
- * raw markdown: a replace across a line break is illegal from a ViewPlugin and
- * makes CodeMirror throw.
+ * raw markdown. A link whose hidden syntax would cross a line break (newline
+ * before the destination, inside the title or inside the reference label) also
+ * renders raw markdown: a replace across a line break is illegal from a
+ * ViewPlugin and makes CodeMirror throw. The styled text is a mark, which may
+ * cross lines, so a label that wraps (`[a\nb](/url)`) is still styled.
  *
  * Lezer's `Link` node contains:
  *   - 4+ LinkMark children for inline link `[text](url)`: positions of `[`,
@@ -21,7 +22,6 @@ export const linkHandler: NodeHandler = {
 	nodeType: 'Link',
 	decorate({ node, state, isRevealed, decorations }) {
 		if (isRevealed(node.from, node.to)) return;
-		if (state.doc.lineAt(node.from).number !== state.doc.lineAt(node.to).number) return;
 
 		const marks: { from: number; to: number }[] = [];
 		let linkLabel: { from: number; to: number } | null = null;
@@ -35,21 +35,21 @@ export const linkHandler: NodeHandler = {
 			child = child.nextSibling;
 		}
 
+		let hidden: { from: number; to: number }[];
 		if (marks.length >= 4) {
 			// Inline link [text](url) — hide `[` and `](url)`
-			decorations.push(hiddenSyntaxDeco.range(marks[0].from, marks[0].to));
-			decorations.push(linkTextDeco.range(marks[0].to, marks[1].from));
-			decorations.push(
-				hiddenSyntaxDeco.range(marks[1].from, marks[marks.length - 1].to),
-			);
+			hidden = [marks[0], { from: marks[1].from, to: marks[marks.length - 1].to }];
 		} else if (marks.length >= 2 && linkLabel) {
 			// Reference link [text][ref] — hide `[` and `][ref]`
-			decorations.push(hiddenSyntaxDeco.range(marks[0].from, marks[0].to));
-			decorations.push(linkTextDeco.range(marks[0].to, marks[1].from));
-			decorations.push(
-				hiddenSyntaxDeco.range(marks[1].from, linkLabel.to),
-			);
+			hidden = [marks[0], { from: marks[1].from, to: linkLabel.to }];
+		} else {
+			return;
 		}
+		if (hidden.some((r) => state.doc.sliceString(r.from, r.to).includes('\n'))) return;
+
+		decorations.push(hiddenSyntaxDeco.range(hidden[0].from, hidden[0].to));
+		decorations.push(linkTextDeco.range(marks[0].to, marks[1].from));
+		decorations.push(hiddenSyntaxDeco.range(hidden[1].from, hidden[1].to));
 	},
 };
 
