@@ -6,7 +6,7 @@
 
 **Blocked by:** 01 (navigation-always-updates-reveal), 05 (block-decorators-shared-reveal)
 
-**Status:** ready-for-human
+**Status:** ready-for-agent
 
 **Touches:**
 - `src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts` (modify)
@@ -24,3 +24,15 @@
 ## Comments
 
 - 2026-10-29 18:34 — discovery — LP-PROFILE measured: ~2.9 ms JS per rebuild at 1k lines, ~5.0 ms at 2k, ~12.3 ms (15.4 ms per dispatch) at 6k lines; not "a few ms" on a large note, so stopped before removing the gate per the Issue's rule. Numbers in findings-2026-10-29.md, options A/B/C in work/06/discovery.md. Needs a user decision. — 4f358626
+
+- 2026-10-29 owner decision (option B from `work/06/discovery.md`): the measurement stopped the
+  plain removal (6000-line note ~12.3 ms JS per rebuild, 88% in the block decorators). Replace
+  the `lastCursorLine` memory with a stateless check instead: rebuild on a selection change only
+  when the set of lines touched by `update.startState.selection` differs from the set touched by
+  `update.state.selection` (use the shared reveal line set, so the rule stays identical to
+  `revealPredicate`). No state survives across updates. Keep every other gate (doc change,
+  reconfigure, forced rebuild, drag release, pure-scroll skip). Remove `lastCursorLine` from
+  `checkUpdateAction` and every caller, update CLAUDE.md live-preview rules 4-5, ADR 0008 and
+  `docs/LIVE-PREVIEW.md` to describe the stateless rule, and add the bullet <-> H1 regression test
+  (with and without scroll). Acceptance: no `lastCursorLine` remains; a test proves a selection
+  move within the same line set does not rebuild and a move that changes the set does.
