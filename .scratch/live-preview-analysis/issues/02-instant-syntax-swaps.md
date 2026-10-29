@@ -25,3 +25,4 @@
 
 - 2026-10-29 17:19 — discovery — plan: hidden syntax -> shared Decoration.replace across handlers, footnote and callout; delete animation CSS; amend ADR 0008, CLAUDE.md, LIVE-PREVIEW.md — c7480622
 - 2026-10-29 17:24 — implement — hidden syntax is a shared Decoration.replace in all inline handlers, footnote and callout; animation CSS and -visible classes removed; ADR 0008 amended, CLAUDE.md rule 1 and LIVE-PREVIEW.md updated; editor vitest 1276/1276, pnpm check 0 errors, 7 affected e2e specs 50/50; manual arrow-key check not done — 385cb4c6
+- 2026-10-29 17:29 — review — CHANGES_REQUESTED: link replace across a line break throws RangeError in the ViewPlugin (`[a](\n/url)`), manual check pending, 2 low doc fixes (work/02/review.md) — 9ff58c9d
