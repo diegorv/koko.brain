@@ -20,15 +20,4 @@ ignore = [
     # unreachable until tauri moves off gtk-rs 0.18. Drop this when that
     # upstream bump ships.
     "RUSTSEC-2024-0429",
-
-    # zip 4.6.1 extraction flaws (SUID/SGID preservation, symlink targets
-    # outside the destination, permissions applied through symlinks).
-    # Reachable only through tauri-plugin-updater 2.14.0, which declares
-    # zip under `cfg(target_os = "windows")`, so it is never compiled for
-    # the shipped macOS target. The fix is zip >=9.0.0 and the updater's
-    # latest stable still requires zip 4. Drop these when the updater
-    # ships a release on zip >=9 or a Windows target is added.
-    "RUSTSEC-2026-0367",
-    "RUSTSEC-2026-0368",
-    "RUSTSEC-2026-0369",
 ]
