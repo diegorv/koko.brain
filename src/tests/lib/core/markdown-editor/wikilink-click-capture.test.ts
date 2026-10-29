@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { findWikilinkElement, WIKILINK_SELECTOR } from '#lib/core/markdown-editor/wikilink-click-target.js';
+import { findWikilinkClickTarget, findWikilinkElement, WIKILINK_SELECTOR } from '#lib/core/markdown-editor/wikilink-click-target.js';
 
 describe('findWikilinkElement', () => {
 	it('matches every wikilink class the editor uses', () => {
@@ -59,6 +59,34 @@ describe('findWikilinkElement', () => {
  * descendant mousedown listeners (simulating CodeMirror) are not invoked when
  * the target is a wikilink — but they ARE invoked for ordinary clicks.
  */
+describe('findWikilinkClickTarget', () => {
+	function mousedownOn(target: HTMLElement, button: number): MouseEvent {
+		let captured: MouseEvent | null = null;
+		target.addEventListener('mousedown', (e) => { captured = e; }, { once: true });
+		target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button }));
+		return captured!;
+	}
+
+	it('returns the wikilink element for a primary-button mousedown', () => {
+		const link = document.createElement('a');
+		link.className = 'cm-lp-wikilink';
+		expect(findWikilinkClickTarget(mousedownOn(link, 0))).toBe(link);
+	});
+
+	it('returns null for a right-button or middle-button mousedown on a wikilink', () => {
+		const link = document.createElement('a');
+		link.className = 'cm-lp-wikilink';
+		expect(findWikilinkClickTarget(mousedownOn(link, 2))).toBeNull();
+		expect(findWikilinkClickTarget(mousedownOn(link, 1))).toBeNull();
+	});
+
+	it('returns null for a primary-button mousedown outside a wikilink', () => {
+		const el = document.createElement('span');
+		el.className = 'cm-line';
+		expect(findWikilinkClickTarget(mousedownOn(el, 0))).toBeNull();
+	});
+});
+
 describe('wikilink mousedown capture-phase contract', () => {
 	function buildDom() {
 		const container = document.createElement('div');
@@ -84,7 +112,7 @@ describe('wikilink mousedown capture-phase contract', () => {
 		// Mirrors MarkdownEditor.svelte: capture-phase listener that intercepts
 		// only wikilink mousedowns and stops the event from reaching descendants.
 		const handler = (e: MouseEvent) => {
-			const el = findWikilinkElement(e.target);
+			const el = findWikilinkClickTarget(e);
 			if (!el) return;
 			calls.push('wikilink-handler');
 			e.preventDefault();
@@ -133,6 +161,22 @@ describe('wikilink mousedown capture-phase contract', () => {
 		inner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
 
 		expect(calls).toEqual(['wikilink-handler']);
+		detachWl();
+		detachCm();
+		container.remove();
+	});
+
+	it('right-clicking a wikilink does not navigate and still reaches CodeMirror', () => {
+		const { container, cmEditor, cmContent, wikilink } = buildDom();
+		const calls: string[] = [];
+		const detachWl = attachWikilinkCaptureHandler(container, calls);
+		const detachCm = attachFakeCmHandlers(cmEditor, cmContent, calls);
+
+		const ev = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 2 });
+		wikilink.dispatchEvent(ev);
+
+		expect(calls).toEqual(['cm-capture', 'cm-bubble']);
+		expect(ev.defaultPrevented).toBe(false);
 		detachWl();
 		detachCm();
 		container.remove();

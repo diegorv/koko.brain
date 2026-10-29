@@ -20,3 +20,13 @@ export function findWikilinkElement(target: EventTarget | null): HTMLElement | n
 	if (!(target instanceof HTMLElement)) return null;
 	return target.closest(WIKILINK_SELECTOR);
 }
+
+/**
+ * Returns the wikilink element a mousedown should navigate, or `null`. Only
+ * the primary button navigates: a right-button mousedown must fall through to
+ * CodeMirror and the context menu instead of opening or creating the note.
+ */
+export function findWikilinkClickTarget(e: MouseEvent): HTMLElement | null {
+	if (e.button !== 0) return null;
+	return findWikilinkElement(e.target);
+}

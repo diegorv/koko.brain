@@ -26,7 +26,7 @@
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions, sourceModeExtensions } from './setup';
-	import { findWikilinkElement } from './wikilink-click-target';
+	import { findWikilinkClickTarget } from './wikilink-click-target';
 
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -56,7 +56,7 @@
 
 	async function handleEditorClick(e: MouseEvent) {
 		if (!view) return;
-		const el = findWikilinkElement(e.target);
+		const el = findWikilinkClickTarget(e);
 		if (!el) return;
 
 		// Capture-phase interception: this listener is registered with
