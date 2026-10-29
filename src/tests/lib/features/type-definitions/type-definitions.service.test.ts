@@ -15,11 +15,11 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', async () => {
+vi.mock('#lib/core/note-creator/note-creator.service.js', async () => {
 	// The real template loader runs against the mocked `readTextFile`, so
 	// `createTypedNote` is tested through the actual `processTemplate` path.
-	const actual = await vi.importActual<typeof import('$lib/core/note-creator/note-creator.service')>(
-		'$lib/core/note-creator/note-creator.service',
+	const actual = await vi.importActual<typeof import('#lib/core/note-creator/note-creator.service.js')>(
+		'#lib/core/note-creator/note-creator.service.js',
 	);
 	return {
 		openOrCreateNote: vi.fn(),
@@ -27,26 +27,26 @@ vi.mock('$lib/core/note-creator/note-creator.service', async () => {
 	};
 });
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 	syncExternalContentToEditor: vi.fn(),
 	saveFileByPath: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
 	renameItem: vi.fn(),
 }));
 
-vi.mock('$lib/utils/log.service', () => ({
+vi.mock('#lib/utils/log.service.js', () => ({
 	appendLog: vi.fn(),
 }));
 
-vi.mock('$lib/features/collection/yaml-parser', () => ({
+vi.mock('#lib/features/collection/yaml-parser.js', () => ({
 	updateCollectionYaml: vi.fn(),
 }));
 
-vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
+vi.mock('#lib/features/type-definitions/view-parse-cache.js', () => ({
 	refreshViewDefinition: vi.fn(),
 }));
 
@@ -57,18 +57,18 @@ vi.mock('svelte-sonner', () => ({
 import { readDir, readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { createFile, renameItem } from '$lib/core/filesystem/fs.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
-import { typeNameTakenMessage, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
+import { typeNameTakenMessage, type TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
@@ -710,7 +710,7 @@ describe('updateViewIcon', () => {
 	});
 
 	it('writes updated YAML with icon, color, and titleColor', async () => {
-		const { updateViewIcon } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Test\n');
 
 		await updateViewIcon('/vault/test.view', 'lucide:rocket', 'red', '#fff');
@@ -724,7 +724,7 @@ describe('updateViewIcon', () => {
 	});
 
 	it('removes icon fields via removeViewIcon', async () => {
-		const { removeViewIcon } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { removeViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vi.mocked(readTextFile).mockResolvedValue('_icon: lucide:star\n_color: blue\n_title_color: white\n_sidebar_label: Test\n');
 
 		await removeViewIcon('/vault/test.view');
@@ -750,7 +750,7 @@ describe('createView', () => {
 	});
 
 	it('does nothing when vault path is not set', async () => {
-		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore._reset();
 		await createView();
 		expect(createFile).not.toHaveBeenCalled();
@@ -758,7 +758,7 @@ describe('createView', () => {
 	});
 
 	it('aborts when createFile returns null', async () => {
-		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
 		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockResolvedValue(null);
@@ -769,7 +769,7 @@ describe('createView', () => {
 	});
 
 	it('aborts without creating anything when the vault root cannot be read', async () => {
-		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
 		// A silent fallback here would create "Untitled 1.view" with a body
 		// that still says "Untitled" — abort instead.
@@ -784,7 +784,7 @@ describe('createView', () => {
 	});
 
 	it('creates a minimal .view body as initial content and selects the new view in the sidebar', async () => {
-		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
 		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.view');
@@ -803,7 +803,7 @@ describe('createView', () => {
 	});
 
 	it('embeds the deduplicated filename as the title when Untitled.view already exists', async () => {
-		const { createView } = await import('$lib/features/type-definitions/type-definitions.service');
+		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
 		// Dedup runs BEFORE createFile so the body can embed the final title.
 		vi.mocked(readDir).mockResolvedValue([
@@ -828,9 +828,9 @@ describe('updateViewQuery', () => {
 	});
 
 	it('writes the patched YAML and refreshes the parse cache', async () => {
-		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
-		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
-		const { refreshViewDefinition } = await import('$lib/features/type-definitions/view-parse-cache');
+		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
+		const { refreshViewDefinition } = await import('#lib/features/type-definitions/view-parse-cache.js');
 
 		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
 		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
@@ -843,9 +843,9 @@ describe('updateViewQuery', () => {
 	});
 
 	it('skips write and cache refresh when patch produces no change', async () => {
-		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
-		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
-		const { refreshViewDefinition } = await import('$lib/features/type-definitions/view-parse-cache');
+		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
+		const { refreshViewDefinition } = await import('#lib/features/type-definitions/view-parse-cache.js');
 
 		vi.mocked(readTextFile).mockResolvedValue('unchanged yaml\n');
 		vi.mocked(updateCollectionYaml).mockReturnValue('unchanged yaml\n');
@@ -857,8 +857,8 @@ describe('updateViewQuery', () => {
 	});
 
 	it('forwards view-level sort and filter updates verbatim', async () => {
-		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
-		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
+		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
 
 		vi.mocked(readTextFile).mockResolvedValue('y\n');
 		vi.mocked(updateCollectionYaml).mockReturnValue('y2\n');
@@ -1052,8 +1052,8 @@ describe('note-change indexing (issue 29)', () => {
 		// (organized / archived / favorite / tags) with an empty one. The three
 		// registered consumers can read nothing from a fenceless file, so the
 		// `.view` writers deliberately stay off the note-change owner.
-		const { updateViewQuery } = await import('$lib/features/type-definitions/type-definitions.service');
-		const { updateCollectionYaml } = await import('$lib/features/collection/yaml-parser');
+		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
 		collectionStore.updateRecord('/vault/test.view', {
 			path: '/vault/test.view', name: 'test.view', basename: 'test', folder: '/vault',
 			ext: '.view', mtime: 0, ctime: 0, size: 0,

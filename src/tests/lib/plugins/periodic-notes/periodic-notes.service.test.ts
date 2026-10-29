@@ -3,27 +3,27 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 	pinTabByPath: vi.fn(),
 	unpinTabByPath: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
 import dayjs from 'dayjs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { pinTabByPath, unpinTabByPath } from '$lib/core/editor/editor.service';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { pinTabByPath, unpinTabByPath } from '#lib/core/editor/editor.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 import {
 	buildPeriodicNotePath,
 	buildPeriodicVariables,
 	getFormatForPeriod,
-} from '$lib/plugins/periodic-notes/periodic-notes.logic';
+} from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import {
 	openOrCreateDailyNote,
 	openOrCreatePeriodicNote,
@@ -33,7 +33,7 @@ import {
 	resetPeriodicNotes,
 	_getLastAutoOpenedDate,
 	registerCalendarDailyNoteOpener,
-} from '$lib/plugins/periodic-notes/periodic-notes.service';
+} from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 
 describe('openOrCreateDailyNote', () => {
 	beforeEach(() => {

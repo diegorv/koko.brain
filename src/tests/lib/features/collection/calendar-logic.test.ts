@@ -7,8 +7,8 @@ import {
 	formatMonthYear,
 	getWeekDayLabels,
 	formatDateKey,
-} from '$lib/features/collection/calendar.logic';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+} from '#lib/features/collection/calendar.logic.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,

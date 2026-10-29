@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
-import { computeCodeBlocks } from '$lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field';
+import { computeCodeBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {

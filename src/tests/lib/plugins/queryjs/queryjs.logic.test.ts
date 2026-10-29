@@ -6,11 +6,11 @@ import {
 	resolveInlinks,
 	resolveWikiLinkTarget,
 	parseSource,
-} from '$lib/plugins/queryjs/queryjs.logic';
-import { buildResolutionCache } from '$lib/features/backlinks/backlinks.logic';
-import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { NoteEntryV2, TaskV2, WikiLinkV2 } from '$lib/types/vault-v2.types';
+} from '#lib/plugins/queryjs/queryjs.logic.js';
+import { buildResolutionCache } from '#lib/features/backlinks/backlinks.logic.js';
+import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { NoteEntryV2, TaskV2, WikiLinkV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {

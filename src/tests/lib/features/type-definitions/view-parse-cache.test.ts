@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 }));
 
-vi.mock('$lib/features/collection/yaml-parser', () => ({
+vi.mock('#lib/features/collection/yaml-parser.js', () => ({
 	parseCollectionYaml: vi.fn(),
 }));
 
-import { refreshViewDefinition, getCachedViewDefinition, getViewContentHash, clearViewParseCache, clearAllViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
+import { refreshViewDefinition, getCachedViewDefinition, getViewContentHash, clearViewParseCache, clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 
 const mockReadTextFile = vi.mocked(readTextFile);
 const mockParseCollectionYaml = vi.mocked(parseCollectionYaml);

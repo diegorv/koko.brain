@@ -23,21 +23,21 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(() => Promise.resolve()),
 	syncExternalContentToEditor: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	openOrCreateDailyNote: vi.fn(() => Promise.resolve()),
 }));
 
@@ -45,38 +45,38 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 // tests assert the written path only by its .md suffix, so the real
 // buildPeriodicNotePath (which always yields a `<...>.md` path) is used directly.
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
 	notifyAfterSave: vi.fn(),
 }));
 
-vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/utils/template', () => ({
+vi.mock('#lib/utils/template.js', () => ({
 	processTemplate: vi.fn((_template: string, _title: string, _vars?: Record<string, string>) => 'processed-template'),
 }));
 
 import { toast } from 'svelte-sonner';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
-import { processTemplate } from '$lib/utils/template';
-import { error } from '$lib/utils/debug';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { openOrCreateDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { markRecentSave } from '$lib/core/editor/editor.hooks';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { deepLinkStore } from '$lib/features/deep-link/deep-link.store.svelte';
-import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
+import { processTemplate } from '#lib/utils/template.js';
+import { error } from '#lib/utils/debug.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
+import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import {
 	handleDeepLinkUrl,
 	resolveVaultPath,
@@ -86,9 +86,9 @@ import {
 	executePendingAction,
 	resetDeepLink,
 	registerDeepLinkListener,
-} from '$lib/features/deep-link/deep-link.service';
+} from '#lib/features/deep-link/deep-link.service.js';
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
-import type { DeepLinkAction } from '$lib/features/deep-link/deep-link.types';
+import type { DeepLinkAction } from '#lib/features/deep-link/deep-link.types.js';
 
 describe('deep-link.service', () => {
 	beforeEach(() => {

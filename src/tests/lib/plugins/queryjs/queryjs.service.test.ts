@@ -5,7 +5,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { loadExternalScript } from '$lib/plugins/queryjs/queryjs.service';
+import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
 
 const mockReadTextFile = vi.mocked(readTextFile);
 

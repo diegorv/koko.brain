@@ -5,8 +5,8 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
-import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.service';
+import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
+import { refreshArchivedPaths } from '#lib/features/properties/lifecycle-filter.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 describe('refreshArchivedPaths', () => {

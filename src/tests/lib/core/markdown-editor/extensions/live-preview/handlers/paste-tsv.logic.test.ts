@@ -4,7 +4,7 @@ import {
 	parseTSVRows,
 	tsvRowsToMarkdownTable,
 	clipboardToMarkdownTable,
-} from '$lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv.logic';
+} from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv.logic.js';
 
 describe('looksLikeTSV', () => {
 	it('returns true for tab-separated text with ≥2 columns', () => {

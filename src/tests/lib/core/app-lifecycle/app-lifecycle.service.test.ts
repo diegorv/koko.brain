@@ -6,31 +6,31 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	resetEditor: vi.fn(),
 	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),
 	reloadExternallyChangedTabs: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	resetHooks: vi.fn(),
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
 	notifyAfterSave: vi.fn(),
 	areAllRecentSaves: vi.fn(() => false),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	resetFileSystem: vi.fn(),
 	loadDirectoryTree: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/filesystem/fs.watcher', () => ({
+vi.mock('#lib/core/filesystem/fs.watcher.js', () => ({
 	startWatching: vi.fn(() => Promise.resolve()),
 	stopWatching: vi.fn(),
 	onFileChange: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('$lib/utils/debounce', () => ({
+vi.mock('#lib/utils/debounce.js', () => ({
 	debounce: vi.fn((fn: (...args: any[]) => any) => {
 		const debounced = (...args: any[]) => fn(...args);
 		debounced.cancel = vi.fn();
@@ -39,7 +39,7 @@ vi.mock('$lib/utils/debounce', () => ({
 	}),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -53,7 +53,7 @@ vi.mock('$lib/utils/debug', () => ({
 	perfEnd: vi.fn(),
 }));
 
-vi.mock('$lib/features/backlinks/backlinks.service', () => ({
+vi.mock('#lib/features/backlinks/backlinks.service.js', () => ({
 	buildIndex: vi.fn(() => Promise.resolve(true)),
 	rebuildIndex: vi.fn(() => Promise.resolve()),
 	resetBacklinks: vi.fn(),
@@ -62,22 +62,22 @@ vi.mock('$lib/features/backlinks/backlinks.service', () => ({
 // The register function is kept REAL: the wiring probe below asserts that
 // initializeVault actually connects the collection index to the note-change
 // owner, and that teardownVault disconnects it again.
-vi.mock('$lib/features/collection/collection.service', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/features/collection/collection.service')>()),
+vi.mock('#lib/features/collection/collection.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/features/collection/collection.service.js')>()),
 	buildPropertyIndex: vi.fn(),
 	resetCollection: vi.fn(),
 }));
 
-vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
+vi.mock('#lib/features/outgoing-links/outgoing-links.service.js', () => ({
 	resetOutgoingLinks: vi.fn(),
 }));
 
-vi.mock('$lib/features/tags/tags.service', () => ({
+vi.mock('#lib/features/tags/tags.service.js', () => ({
 	buildTagIndex: vi.fn(),
 	resetTags: vi.fn(),
 }));
 
-vi.mock('$lib/features/search/search.service', () => ({
+vi.mock('#lib/features/search/search.service.js', () => ({
 	resetSearch: vi.fn(),
 	buildSearchIndex: vi.fn(() => Promise.resolve()),
 	registerSearchIndexHook: vi.fn(() => vi.fn()),
@@ -87,12 +87,12 @@ vi.mock('$lib/features/search/search.service', () => ({
 	stopSemanticProgressListener: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/settings.service', () => ({
+vi.mock('#lib/core/settings/settings.service.js', () => ({
 	loadSettings: vi.fn(() => Promise.resolve()),
 	resetSettings: vi.fn(),
 }));
 
-vi.mock('$lib/core/settings/sentry.service', () => ({
+vi.mock('#lib/core/settings/sentry.service.js', () => ({
 	configureSentry: vi.fn(() => Promise.resolve('disabled')),
 	disableSentry: vi.fn(() => Promise.resolve('disabled')),
 }));
@@ -100,7 +100,7 @@ vi.mock('$lib/core/settings/sentry.service', () => ({
 // The persistence owner runs a Svelte `$effect.root`; its real behaviour is
 // covered in settings-persistence.test.ts (jsdom). Here only the lifecycle
 // wiring matters, so the module is a spy.
-vi.mock('$lib/core/settings/settings-persistence.svelte', () => ({
+vi.mock('#lib/core/settings/settings-persistence.svelte.js', () => ({
 	startSettingsPersistence: vi.fn(),
 	stopSettingsPersistence: vi.fn(() => Promise.resolve()),
 	flushSettingsPersistence: vi.fn(() => Promise.resolve()),
@@ -114,25 +114,25 @@ vi.mock('svelte-sonner', () => ({
 	},
 }));
 
-vi.mock('$lib/features/properties/properties.service', () => ({
+vi.mock('#lib/features/properties/properties.service.js', () => ({
 	resetProperties: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/graph-view/graph-view.service', () => ({
+vi.mock('#lib/plugins/graph-view/graph-view.service.js', () => ({
 	resetGraphView: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/templates/templates.service', () => ({
+vi.mock('#lib/plugins/templates/templates.service.js', () => ({
 	resetTemplates: vi.fn(),
 	ensureTemplatesFolder: vi.fn(),
 }));
 
-vi.mock('$lib/features/bookmarks/bookmarks.service', () => ({
+vi.mock('#lib/features/bookmarks/bookmarks.service.js', () => ({
 	loadBookmarks: vi.fn(),
 	resetBookmarks: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	loadRecentIcons: vi.fn(),
 	// Phase 11.5g: buildFrontmatterIconIndex is async (awaits Rust IPC).
 	// Mock with a resolved promise so the `.catch()` chain in the
@@ -142,7 +142,7 @@ vi.mock('$lib/features/file-icons/file-icons.service', () => ({
 	resetFileIcons: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/calendar/calendar.service', () => ({
+vi.mock('#lib/plugins/calendar/calendar.service.js', () => ({
 	registerCalendarNoteChangeConsumer: vi.fn(() => vi.fn()),
 	resetCalendar: vi.fn(),
 	scanFilesForCalendar: vi.fn(),
@@ -151,26 +151,26 @@ vi.mock('$lib/plugins/calendar/calendar.service', () => ({
 /** Unregister handle returned by the mocked Calendar path-change registration. */
 const unregisterEventCalendarPathChange = vi.hoisted(() => vi.fn());
 
-vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 	registerEventCalendarPathChangeConsumer: vi.fn(() => unregisterEventCalendarPathChange),
 	resetEventCalendar: vi.fn(),
 	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/features/tasks/tasks.service', () => ({
+vi.mock('#lib/features/tasks/tasks.service.js', () => ({
 	buildTaskIndex: vi.fn(),
 	resetTasks: vi.fn(),
 }));
 
-vi.mock('$lib/core/trash/trash.service', () => ({
+vi.mock('#lib/core/trash/trash.service.js', () => ({
 	loadTrash: vi.fn(() => Promise.resolve()),
 	resetTrash: vi.fn(),
 }));
 
 // The opener registers a stub into the REAL bridge store, so the wiring is
 // observable on store state without the note-creator side effects.
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', async () => {
-	const { eventCalendarDailyNoteStore } = await import('$lib/features/event-calendar/event-calendar-daily-note.store.svelte');
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', async () => {
+	const { eventCalendarDailyNoteStore } = await import('#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js');
 	return {
 		autoOpenDailyNote: vi.fn(() => Promise.resolve()),
 		registerCalendarDailyNoteOpener: vi.fn(() => eventCalendarDailyNoteStore.register(() => Promise.resolve())),
@@ -178,19 +178,19 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', async () => {
 	};
 });
 
-vi.mock('$lib/core/settings/update-check.service', () => ({
+vi.mock('#lib/core/settings/update-check.service.js', () => ({
 	maybeAutoCheckForUpdates: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/features/quick-switcher/quick-switcher.service', () => ({
+vi.mock('#lib/features/quick-switcher/quick-switcher.service.js', () => ({
 	resetQuickSwitcher: vi.fn(),
 }));
 
-vi.mock('$lib/features/command-palette/command-palette.service', () => ({
+vi.mock('#lib/features/command-palette/command-palette.service.js', () => ({
 	resetCommandPalette: vi.fn(),
 }));
 
-vi.mock('$lib/features/auto-move/auto-move.service', () => ({
+vi.mock('#lib/features/auto-move/auto-move.service.js', () => ({
 	loadAutoMoveConfig: vi.fn(() => Promise.resolve()),
 	toggleAutoMoveHook: vi.fn(),
 	resetAutoMove: vi.fn(),
@@ -202,56 +202,56 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { error as debugError } from '$lib/utils/debug';
-import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '$lib/core/editor/editor.service';
-import { resetHooks, addAfterSaveObserver } from '$lib/core/editor/editor.hooks';
-import { resetFileSystem, loadDirectoryTree } from '$lib/core/filesystem/fs.service';
-import { startWatching, stopWatching, onFileChange } from '$lib/core/filesystem/fs.watcher';
-import { buildIndex, rebuildIndex, resetBacklinks } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex, resetCollection } from '$lib/features/collection/collection.service';
-import { resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
-import { buildTagIndex, resetTags } from '$lib/features/tags/tags.service';
-import { resetSearch, buildSearchIndex } from '$lib/features/search/search.service';
-import { loadSettings, resetSettings } from '$lib/core/settings/settings.service';
-import { configureSentry, disableSentry } from '$lib/core/settings/sentry.service';
-import { startSettingsPersistence, stopSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
-import { resetProperties } from '$lib/features/properties/properties.service';
-import { resetGraphView } from '$lib/plugins/graph-view/graph-view.service';
-import { resetTemplates, ensureTemplatesFolder } from '$lib/plugins/templates/templates.service';
-import { loadBookmarks, resetBookmarks } from '$lib/features/bookmarks/bookmarks.service';
-import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '$lib/features/file-icons/file-icons.service';
-import { resetCalendar, scanFilesForCalendar } from '$lib/plugins/calendar/calendar.service';
-import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { buildTaskIndex, resetTasks } from '$lib/features/tasks/tasks.service';
-import { loadTrash, resetTrash } from '$lib/core/trash/trash.service';
-import { autoOpenDailyNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { maybeAutoCheckForUpdates } from '$lib/core/settings/update-check.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
-import { resetCommandPalette } from '$lib/features/command-palette/command-palette.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
+import { error as debugError } from '#lib/utils/debug.js';
+import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '#lib/core/editor/editor.service.js';
+import { resetHooks, addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { resetFileSystem, loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
+import { startWatching, stopWatching, onFileChange } from '#lib/core/filesystem/fs.watcher.js';
+import { buildIndex, rebuildIndex, resetBacklinks } from '#lib/features/backlinks/backlinks.service.js';
+import { buildPropertyIndex, resetCollection } from '#lib/features/collection/collection.service.js';
+import { resetOutgoingLinks } from '#lib/features/outgoing-links/outgoing-links.service.js';
+import { buildTagIndex, resetTags } from '#lib/features/tags/tags.service.js';
+import { resetSearch, buildSearchIndex } from '#lib/features/search/search.service.js';
+import { loadSettings, resetSettings } from '#lib/core/settings/settings.service.js';
+import { configureSentry, disableSentry } from '#lib/core/settings/sentry.service.js';
+import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
+import { resetProperties } from '#lib/features/properties/properties.service.js';
+import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
+import { resetTemplates, ensureTemplatesFolder } from '#lib/plugins/templates/templates.service.js';
+import { loadBookmarks, resetBookmarks } from '#lib/features/bookmarks/bookmarks.service.js';
+import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '#lib/features/file-icons/file-icons.service.js';
+import { resetCalendar, scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
+import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
+import { autoOpenDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
+import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
 import {
 	initSemanticSearch,
 	buildSemanticIndex,
 	startSemanticProgressListener,
 	stopSemanticProgressListener,
-} from '$lib/features/search/search.service';
+} from '#lib/features/search/search.service.js';
 import { toast } from 'svelte-sonner';
-import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
-import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { refreshViewDefinition, getCachedViewDefinition } from '$lib/features/type-definitions/view-parse-cache';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
-import { wikilinkCompletionSource } from '$lib/core/markdown-editor/extensions/wikilink/completion';
+import { initializeVault, teardownVault } from '#lib/core/app-lifecycle/app-lifecycle.service.js';
+import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { refreshViewDefinition, getCachedViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
+import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 
 describe('initializeVault', () => {
 	beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import { outgoingLinksStore } from '#lib/features/outgoing-links/outgoing-links.store.svelte.js';
 
 describe('outgoingLinksStore', () => {
 	beforeEach(() => {

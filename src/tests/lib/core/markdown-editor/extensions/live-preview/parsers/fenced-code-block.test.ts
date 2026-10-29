@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findAllFencedCodeBlocks } from '$lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block';
+import { findAllFencedCodeBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('findAllFencedCodeBlocks', () => {

@@ -20,7 +20,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 // Mock side-effect services only
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(),
 }));
 
@@ -28,23 +28,23 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
 import { exists, readDir, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { templatesStore } from '$lib/plugins/templates/templates.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { templatesStore } from '#lib/plugins/templates/templates.store.svelte.js';
 import {
 	loadTemplates,
 	createFileFromTemplate,
 	ensureTemplatesFolder,
 	openTemplatePicker,
 	resetTemplates,
-} from '$lib/plugins/templates/templates.service';
+} from '#lib/plugins/templates/templates.service.js';
 
 describe('loadTemplates', () => {
 	beforeEach(() => {

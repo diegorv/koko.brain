@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { DisplayHTML } from '$lib/features/collection/expression/expression.types';
-import type { QueryResult } from '$lib/features/collection/collection.types';
+import type { DisplayHTML } from '#lib/features/collection/expression/expression.types.js';
+import type { QueryResult } from '#lib/features/collection/collection.types.js';
 
 // openFileInEditor is a side-effect service used by the row-click handler (not
 // exercised by these render-only assertions) — legitimately mocked. No store or
 // .logic mocks per CLAUDE.md: buildCollectionTable is tested directly with real
 // QueryResult fixtures and the real formatCellValue / isDisplayValue / sanitizeHtml.
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
@@ -15,9 +15,9 @@ import {
 	buildCollectionTable,
 	CollectionBlockWidget,
 	clearCollectionCache,
-} from '$lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
+} from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
 /** Builds a minimal NoteRecord carrying the given properties. */
 function record(properties: Map<string, unknown>) {

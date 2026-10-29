@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import {
 	detectDateShortcut,
 	dateForToken,
-} from '$lib/core/markdown-editor/extensions/date-shortcut/completion.logic';
+} from '#lib/core/markdown-editor/extensions/date-shortcut/completion.logic.js';
 
 describe('detectDateShortcut', () => {
 	it('matches @tod as a prefix of today', () => {

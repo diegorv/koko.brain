@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { findInlineCommentRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
-import { findFootnoteRefRanges, findInlineFootnoteRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
+import { findInlineCommentRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
+import { findFootnoteRefRanges, findInlineFootnoteRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 // ============================================================

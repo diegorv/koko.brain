@@ -29,7 +29,7 @@ import {
 	openLogDir,
 	startHeartbeat,
 	stopHeartbeat,
-} from '$lib/utils/log.service';
+} from '#lib/utils/log.service.js';
 
 const TEST_LOG_DIR = '/Users/test/Library/Logs/com.kokobrain.app';
 

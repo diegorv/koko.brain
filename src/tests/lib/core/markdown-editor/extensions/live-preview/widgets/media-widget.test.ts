@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { MediaWidget } from '$lib/core/markdown-editor/extensions/live-preview/widgets';
+import { MediaWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 
 describe('MediaWidget', () => {
 	it('renders an audio player with the derived cm-lp-audio classes', () => {

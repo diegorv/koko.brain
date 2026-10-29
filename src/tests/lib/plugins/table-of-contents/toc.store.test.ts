@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tocStore } from '$lib/plugins/table-of-contents/toc.store.svelte';
-import type { TocHeading } from '$lib/plugins/table-of-contents/toc.types';
+import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
+import type { TocHeading } from '#lib/plugins/table-of-contents/toc.types.js';
 
 const sample: TocHeading[] = [
 	{ level: 1, text: 'Intro', line: 0, pos: 0 },

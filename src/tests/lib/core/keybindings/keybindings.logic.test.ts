@@ -8,8 +8,8 @@ import {
 	findKeybindingConflict,
 	RESERVED_KEYBINDINGS,
 	TOGGLE_CALENDAR_KEYBINDING,
-} from '$lib/core/keybindings/keybindings.logic';
-import type { KeybindingConfig } from '$lib/core/settings/settings.types';
+} from '#lib/core/keybindings/keybindings.logic.js';
+import type { KeybindingConfig } from '#lib/core/settings/settings.types.js';
 
 /** Builds a fake keyboard event with only the fields the logic reads. */
 function evt(key: string, mods: Partial<{ meta: boolean; shift: boolean; alt: boolean; ctrl: boolean }> = {}): KeyboardEvent {

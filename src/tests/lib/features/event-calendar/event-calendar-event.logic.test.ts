@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { isValidFileName } from '$lib/core/filesystem/fs.logic';
+import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
 import {
 	EVENT_STATE_KEYS,
 	applyEventDraft,
@@ -19,12 +19,12 @@ import {
 	resolveEventTypeName,
 	sameEventState,
 	type EventDefaults,
-} from '$lib/features/event-calendar/event-calendar-event.logic';
-import type { EventDraft, EventNote, PendingWrite } from '$lib/features/event-calendar/event-calendar.types';
-import { _resetParseFrontmatterCache, parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
-import type { Property } from '$lib/features/properties/properties.types';
-import type { FrontmatterValue } from '$lib/types/vault-v2.types';
-import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
+} from '#lib/features/event-calendar/event-calendar-event.logic.js';
+import type { EventDraft, EventNote, PendingWrite } from '#lib/features/event-calendar/event-calendar.types.js';
+import { _resetParseFrontmatterCache, parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
+import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import {
 	eventEntry,
 	eventEntryFromContent,

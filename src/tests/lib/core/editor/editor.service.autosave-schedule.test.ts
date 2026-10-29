@@ -17,7 +17,7 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	timeAsync: vi.fn((_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
@@ -28,12 +28,12 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import { writeTextFile } from '@tauri-apps/plugin-fs';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import {
 	onContentChange,
 	resetEditor,
 	syncExternalContentToEditor,
-} from '$lib/core/editor/editor.service';
+} from '#lib/core/editor/editor.service.js';
 
 /**
  * The `schedule` parameter of `syncExternalContentToEditor` (ARCH 2.1).

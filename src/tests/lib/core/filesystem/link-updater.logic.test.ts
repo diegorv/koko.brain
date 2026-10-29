@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	extractNoteName,
 	replaceWikilinks,
-} from '$lib/core/filesystem/link-updater.logic';
+} from '#lib/core/filesystem/link-updater.logic.js';
 
 describe('extractNoteName', () => {
 	it('extracts name from a path with .md extension', () => {

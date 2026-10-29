@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toDateKey } from '$lib/plugins/calendar/calendar.logic';
+import { toDateKey } from '#lib/plugins/calendar/calendar.logic.js';
 import {
 	addDays,
 	addMonths,
@@ -31,7 +31,7 @@ import {
 	WEEKDAYS,
 	WEEKDAYS_SHORT,
 	weekDays,
-} from '$lib/features/event-calendar/event-calendar-dates.logic';
+} from '#lib/features/event-calendar/event-calendar-dates.logic.js';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
 
 describe('event-calendar dates (prototype cases)', () => {

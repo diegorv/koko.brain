@@ -4,14 +4,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // createFileFromTemplate hits Tauri IPC via openOrCreateNote — legitimately
 // mocked. Stores stay real (CLAUDE.md rule 1): the picker is driven through
 // the real templatesStore and the rendered DOM.
-vi.mock('$lib/plugins/templates/templates.service', () => ({
+vi.mock('#lib/plugins/templates/templates.service.js', () => ({
 	createFileFromTemplate: vi.fn(() => Promise.resolve()),
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import TemplatePicker from '$lib/plugins/templates/TemplatePicker.svelte';
-import { createFileFromTemplate } from '$lib/plugins/templates/templates.service';
-import { templatesStore } from '$lib/plugins/templates/templates.store.svelte';
+import TemplatePicker from '#lib/plugins/templates/TemplatePicker.svelte';
+import { createFileFromTemplate } from '#lib/plugins/templates/templates.service.js';
+import { templatesStore } from '#lib/plugins/templates/templates.store.svelte.js';
 
 // bits-ui's Command scrolls its first item into view; jsdom does not implement it.
 Element.prototype.scrollIntoView ??= () => {};

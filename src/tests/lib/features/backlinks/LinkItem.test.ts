@@ -6,7 +6,7 @@ setupLocalStorage();
 
 // Opening a note reads the file over Tauri; the "Show in Calendar" lookup
 // reads the vault entries over Tauri IPC. Stores stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
@@ -16,15 +16,15 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { flushSync, mount, unmount } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import LinkItem from '$lib/features/backlinks/LinkItem.svelte';
-import type { BacklinkEntry } from '$lib/features/backlinks/backlinks.types';
-import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import LinkItem from '#lib/features/backlinks/LinkItem.svelte';
+import type { BacklinkEntry } from '#lib/features/backlinks/backlinks.types.js';
+import { resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { eventEntry } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findBlockReference } from '$lib/core/markdown-editor/extensions/live-preview/parsers/block-reference';
+import { findBlockReference } from '#lib/core/markdown-editor/extensions/live-preview/parsers/block-reference.js';
 
 describe('findBlockReference', () => {
 	it('detects block reference at end of line', () => {

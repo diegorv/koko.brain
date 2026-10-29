@@ -5,10 +5,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { fetchOutgoingLinksV2, resetOutgoingLinks } from '$lib/features/outgoing-links/outgoing-links.service';
+import { outgoingLinksStore } from '#lib/features/outgoing-links/outgoing-links.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fetchOutgoingLinksV2, resetOutgoingLinks } from '#lib/features/outgoing-links/outgoing-links.service.js';
 
 describe('fetchOutgoingLinksV2 (Phase 6)', () => {
 	beforeEach(() => {

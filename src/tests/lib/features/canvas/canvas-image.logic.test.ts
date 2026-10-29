@@ -8,8 +8,8 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 import { readFile } from '@tauri-apps/plugin-fs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { isImageFile, extToMime, resolveImageSrc } from '$lib/features/canvas/canvas-image.logic';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { isImageFile, extToMime, resolveImageSrc } from '#lib/features/canvas/canvas-image.logic.js';
 
 describe('isImageFile', () => {
 	it('returns true for .png', () => {

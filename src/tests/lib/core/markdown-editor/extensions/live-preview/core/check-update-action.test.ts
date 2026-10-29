@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
-import { checkUpdateAction } from '$lib/core/markdown-editor/extensions/live-preview/core/check-update-action';
+import { checkUpdateAction } from '#lib/core/markdown-editor/extensions/live-preview/core/check-update-action.js';
 import {
 	mouseSelectingField,
 	setMouseSelecting,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting';
-import { forceDecorationRebuild } from '$lib/core/markdown-editor/extensions/live-preview/core/effects';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
+import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 
 function createState(doc = 'hello world'): EditorState {
 	return EditorState.create({ doc, extensions: [mouseSelectingField] });

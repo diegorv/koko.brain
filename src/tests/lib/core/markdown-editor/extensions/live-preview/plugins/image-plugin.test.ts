@@ -3,7 +3,7 @@ import { EditorSelection } from '@codemirror/state';
 import {
 	buildImageDecorations,
 	parseImageAlt,
-} from '$lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin';
+} from '#lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function collectDecos(decoSet: ReturnType<typeof buildImageDecorations>) {

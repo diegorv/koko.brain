@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
+import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 
 describe('KBDateTime', () => {
 	describe('constructor', () => {

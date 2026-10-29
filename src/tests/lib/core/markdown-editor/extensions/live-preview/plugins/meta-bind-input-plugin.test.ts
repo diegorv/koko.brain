@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
-import { buildMetaBindInputDecorations } from '$lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin';
+import { buildMetaBindInputDecorations } from '#lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function collectDecos(decoSet: ReturnType<typeof buildMetaBindInputDecorations>) {

@@ -11,7 +11,7 @@ vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
@@ -19,7 +19,7 @@ vi.mock('$lib/utils/debug', () => ({
 const { executeActionMock } = vi.hoisted(() => ({
 	executeActionMock: vi.fn<(...args: unknown[]) => Promise<void>>(() => Promise.resolve()),
 }));
-vi.mock('$lib/features/deep-link/deep-link.service', () => ({
+vi.mock('#lib/features/deep-link/deep-link.service.js', () => ({
 	executeAction: executeActionMock,
 }));
 
@@ -30,9 +30,9 @@ import {
 	buildCaptureAction,
 	QC_CAPTURE_DETECTED_EVENT,
 	type QuickCaptureDetectedPayload,
-} from '$lib/plugins/quick-capture/quick-capture.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { error } from '$lib/utils/debug';
+} from '#lib/plugins/quick-capture/quick-capture.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { error } from '#lib/utils/debug.js';
 import { toast } from 'svelte-sonner';
 
 /** Flushes pending microtasks and timer-0 macrotasks. */

@@ -9,7 +9,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
@@ -20,12 +20,12 @@ vi.mock('$lib/utils/debug', () => ({
 
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '$lib/core/filesystem/link-updater.service';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /** Builds a minimal `NoteEntryV2` for `get_backlinks_v2` mocks. */
 function entry(path: string, title?: string): NoteEntryV2 {

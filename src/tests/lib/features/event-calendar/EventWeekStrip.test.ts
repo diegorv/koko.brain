@@ -5,9 +5,9 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 import { flushSync, mount, unmount } from 'svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import EventWeekStrip from '$lib/features/event-calendar/EventWeekStrip.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import EventWeekStrip from '#lib/features/event-calendar/EventWeekStrip.svelte';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

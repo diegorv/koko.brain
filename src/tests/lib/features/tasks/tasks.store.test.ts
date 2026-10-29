@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tasksStore } from '$lib/features/tasks/tasks.store.svelte';
+import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 
 describe('tasksStore', () => {
 	beforeEach(() => {

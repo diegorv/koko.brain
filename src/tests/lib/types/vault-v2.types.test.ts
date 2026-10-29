@@ -4,7 +4,7 @@ import type {
 	NoteEntryV2,
 	UpdateResultV2,
 	WikiLinkV2,
-} from '$lib/types/vault-v2.types';
+} from '#lib/types/vault-v2.types.js';
 
 describe('vault-v2.types', () => {
 	describe('FrontmatterValue', () => {

@@ -7,8 +7,8 @@ import {
 	type NodeHandler,
 	type LineHandler,
 	type InlineFormattingHandlers,
-} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+} from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 const STAR = Decoration.mark({ class: 'test-marker' });

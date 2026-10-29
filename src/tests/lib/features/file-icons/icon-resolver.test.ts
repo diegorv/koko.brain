@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	getIconSync: vi.fn(),
 	preloadPacks: vi.fn(),
 	setOnPacksLoaded: vi.fn(),
 }));
 
-import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { resolveIconForPath, resolveIconForType } from '$lib/features/file-icons/icon-resolver';
-import type { NormalizedIcon } from '$lib/features/file-icons/file-icons.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { resolveIconForPath, resolveIconForType } from '#lib/features/file-icons/icon-resolver.js';
+import type { NormalizedIcon } from '#lib/features/file-icons/file-icons.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 const mockIcon = (name: string): NormalizedIcon => ({
 	name,

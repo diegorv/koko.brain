@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CollectionView from '$lib/features/collection/CollectionView.svelte';
+	import CollectionView from '#lib/features/collection/CollectionView.svelte';
 
 	interface HarnessApi {
 		/** Simulates an EXTERNAL yaml change (not routed through onYamlChange). */

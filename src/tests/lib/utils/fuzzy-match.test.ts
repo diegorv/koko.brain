@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fuzzyMatch } from '$lib/utils/fuzzy-match';
+import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
 
 describe('fuzzyMatch', () => {
 	it('matches empty query to everything', () => {

@@ -3,8 +3,8 @@ import {
 	mapPriorityToTodoist,
 	buildTodoistArgs,
 	mergeLabel,
-} from '$lib/features/tasks/todoist-bridge.logic';
-import type { TaskMetadata } from '$lib/features/tasks/task-metadata.types';
+} from '#lib/features/tasks/todoist-bridge.logic.js';
+import type { TaskMetadata } from '#lib/features/tasks/task-metadata.types.js';
 
 // ── mapPriorityToTodoist ───────────────────────────────────────────
 

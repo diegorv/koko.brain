@@ -4,8 +4,8 @@ import {
 	toggleSortDirection,
 	reorderSorts,
 	getSortDirectionLabel,
-} from '$lib/features/collection/toolbar/sort.logic';
-import type { SortDef } from '$lib/features/collection/collection.types';
+} from '#lib/features/collection/toolbar/sort.logic.js';
+import type { SortDef } from '#lib/features/collection/collection.types.js';
 
 describe('removeSort', () => {
 	it('removes a sort by column name', () => {

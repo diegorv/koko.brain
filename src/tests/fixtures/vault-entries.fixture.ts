@@ -1,5 +1,5 @@
-import type { NoteEntryV2, FrontmatterValue, WikiLinkV2 } from '$lib/types/vault-v2.types';
-import { parseWikilinks } from '$lib/features/backlinks/backlinks.logic';
+import type { NoteEntryV2, FrontmatterValue, WikiLinkV2 } from '#lib/types/vault-v2.types.js';
+import { parseWikilinks } from '#lib/features/backlinks/backlinks.logic.js';
 
 /**
  * Builds a minimal `NoteEntryV2` with sensible defaults — title derived

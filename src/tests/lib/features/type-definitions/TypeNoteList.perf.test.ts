@@ -57,45 +57,45 @@ Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
 	configurable: true,
 });
 
-vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	getIconSync: vi.fn(),
 	preloadPacks: vi.fn(),
 	setOnPacksLoaded: vi.fn(),
 }));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
-vi.mock('$lib/core/editor/editor.service', () => ({ openFileInEditor: vi.fn() }));
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	deleteItem: vi.fn(),
 	duplicateItem: vi.fn(),
 	renameItem: vi.fn(),
 	revealInSystemExplorer: vi.fn(),
 }));
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createNoteOfType: vi.fn(),
 	toggleFavoriteForPath: vi.fn(),
 	updateViewQuery: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
+vi.mock('#lib/features/type-definitions/view-parse-cache.js', () => ({
 	getCachedViewDefinition: vi.fn(),
 	getViewContentHash: vi.fn(),
 	refreshViewDefinition: vi.fn(),
 }));
-vi.mock('$lib/utils/log.service', () => ({ appendLog: vi.fn() }));
+vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
-import TypeNoteList from '$lib/features/type-definitions/TypeNoteList.svelte';
-import { getIconSync } from '$lib/features/file-icons/file-icons.icon-data';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import type { NormalizedIcon } from '$lib/features/file-icons/file-icons.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import TypeNoteList from '#lib/features/type-definitions/TypeNoteList.svelte';
+import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import type { NormalizedIcon } from '#lib/features/file-icons/file-icons.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 const TOTAL = 7846;
 const TYPED = 300;

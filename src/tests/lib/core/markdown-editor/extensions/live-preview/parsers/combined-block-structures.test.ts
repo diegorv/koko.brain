@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { findFrontmatterBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/frontmatter';
-import { findAllFencedCodeBlocks } from '$lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block';
-import { findBlockComment } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
-import { findAllTables } from '$lib/core/markdown-editor/extensions/live-preview/parsers/table';
-import { findAllBlockMath } from '$lib/core/markdown-editor/extensions/live-preview/parsers/math';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findFootnoteRefRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findMermaidBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/mermaid';
-import { findCollectionBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/collection-block';
-import { findMetaBindButtonBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button';
+import { findFrontmatterBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/frontmatter.js';
+import { findAllFencedCodeBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.js';
+import { findBlockComment } from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
+import { findAllTables } from '#lib/core/markdown-editor/extensions/live-preview/parsers/table.js';
+import { findAllBlockMath } from '#lib/core/markdown-editor/extensions/live-preview/parsers/math.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findMermaidBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/mermaid.js';
+import { findCollectionBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
+import { findMetaBindButtonBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
 import { createMarkdownState, makeLines } from '../../../test-helpers';
 
 // ============================================================

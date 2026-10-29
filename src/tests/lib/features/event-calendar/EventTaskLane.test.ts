@@ -2,15 +2,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Opening a note is the editor's side effect; the stores stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 import { flushSync, mount, unmount } from 'svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import EventTaskLane from '$lib/features/event-calendar/EventTaskLane.svelte';
-import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import EventTaskLane from '#lib/features/event-calendar/EventTaskLane.svelte';
+import type { CalendarTask } from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
 
 const DAYS = ['2026-11-10', '2026-11-11', '2026-11-12'];
 

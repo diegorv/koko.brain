@@ -19,8 +19,8 @@ import {
 	flowToCanvas,
 	isNodeInsideGroup,
 	computeGroupContainment,
-} from '$lib/features/canvas/canvas.logic';
-import type { CanvasData, CanvasTextNode, CanvasGroupNode, CanvasImageNode } from '$lib/features/canvas/canvas.types';
+} from '#lib/features/canvas/canvas.logic.js';
+import type { CanvasData, CanvasTextNode, CanvasGroupNode, CanvasImageNode } from '#lib/features/canvas/canvas.types.js';
 
 describe('createEmptyCanvas', () => {
 	it('returns an object with empty nodes and edges arrays', () => {

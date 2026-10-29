@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
 
 describe('backlinksStore', () => {
 	beforeEach(() => {

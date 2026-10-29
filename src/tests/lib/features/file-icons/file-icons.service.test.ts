@@ -15,7 +15,7 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	preloadPacks: vi.fn(),
 	setOnPacksLoaded: vi.fn(),
 }));
@@ -23,11 +23,11 @@ vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { preloadPacks } from '$lib/features/file-icons/file-icons.icon-data';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { saveFileByPath } from '$lib/core/editor/editor.service';
-import { resetHooks } from '$lib/core/editor/editor.hooks';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+import { preloadPacks } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { saveFileByPath } from '#lib/core/editor/editor.service.js';
+import { resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import {
 	loadRecentIcons,
 	trackRecentIcon,
@@ -37,12 +37,12 @@ import {
 	updateFrontmatterIconForFile,
 	removeFrontmatterIconForFile,
 	resetFileIcons,
-} from '$lib/features/file-icons/file-icons.service';
-import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
+} from '#lib/features/file-icons/file-icons.service.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /** Configures `invoke('get_all_vault_entries_v2')` to return `entries`. */
 function mockEntriesV2(entries: NoteEntryV2[]): void {

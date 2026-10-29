@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseAlignments, findAllTables } from '$lib/core/markdown-editor/extensions/live-preview/parsers/table';
+import { parseAlignments, findAllTables } from '#lib/core/markdown-editor/extensions/live-preview/parsers/table.js';
 import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 describe('parseAlignments', () => {

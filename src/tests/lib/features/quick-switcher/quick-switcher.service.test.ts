@@ -3,8 +3,8 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
-import { resetQuickSwitcher } from '$lib/features/quick-switcher/quick-switcher.service';
+import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
 
 describe('resetQuickSwitcher', () => {
 	beforeEach(() => {

@@ -2,9 +2,9 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { syntaxHighlighting } from '@codemirror/language';
-import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
-import { markdownLanguage, markdownHighlight } from '$lib/core/markdown-editor/highlight-styles';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
+import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 const SAMPLE = '**bold** *italic* ~~strike~~ `code` ==hi==';

@@ -4,11 +4,11 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -17,16 +17,16 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { createFile } from '$lib/core/filesystem/fs.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import {
 	buildPropertyIndex,
 	createCollectionFile,
 	updateNoteInIndex,
 	removeNoteFromIndex,
 	resetCollection,
-} from '$lib/features/collection/collection.service';
-import type { NoteRecordV2 } from '$lib/types/vault-v2.types';
+} from '#lib/features/collection/collection.service.js';
+import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 
 function record(path: string, props: Record<string, unknown>, mtime = 0, ctime = 0): NoteRecordV2 {
 	const name = path.split('/').pop() ?? '';

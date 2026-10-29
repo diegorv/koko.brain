@@ -7,8 +7,8 @@ import {
 	extractIconFromParsedFrontmatter,
 	extractIconColorsFromParsedFrontmatter,
 	parseIconValuePermissive,
-} from '$lib/features/file-icons/file-icons.logic';
-import type { NormalizedIcon, RecentIcon } from '$lib/features/file-icons/file-icons.types';
+} from '#lib/features/file-icons/file-icons.logic.js';
+import type { NormalizedIcon, RecentIcon } from '#lib/features/file-icons/file-icons.types.js';
 
 function makeIcon(name: string, pack = 'lucide', keywords: string[] = []): NormalizedIcon {
 	return { name, pack: pack as NormalizedIcon['pack'], svgContent: '<path/>', viewBox: '0 0 24 24', keywords };

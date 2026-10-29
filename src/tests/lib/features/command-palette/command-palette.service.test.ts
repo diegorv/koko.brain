@@ -5,7 +5,7 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 // Mock side-effect services (Tauri API calls, etc.) — OK per CLAUDE.md
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	saveCurrentFile: vi.fn(),
 	closeActiveTab: vi.fn(),
 	switchToNextTab: vi.fn(),
@@ -13,45 +13,45 @@ vi.mock('$lib/core/editor/editor.service', () => ({
 	togglePinActiveTab: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
 	createFolder: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/graph-view/graph-view.service', () => ({
+vi.mock('#lib/plugins/graph-view/graph-view.service.js', () => ({
 	toggleGraphTab: vi.fn(),
 }));
 
-vi.mock('$lib/features/tasks/tasks.service', () => ({
+vi.mock('#lib/features/tasks/tasks.service.js', () => ({
 	toggleTasksTab: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	openOrCreateDailyNote: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/templates/templates.service', () => ({
+vi.mock('#lib/plugins/templates/templates.service.js', () => ({
 	openTemplatePicker: vi.fn(),
 }));
 
-vi.mock('$lib/features/copy-block-link/copy-block-link.service', () => ({
+vi.mock('#lib/features/copy-block-link/copy-block-link.service.js', () => ({
 	copyBlockLinkToClipboard: vi.fn(),
 	copyBlockEmbedToClipboard: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/quick-capture/note-composer.service', () => ({
+vi.mock('#lib/plugins/quick-capture/note-composer.service.js', () => ({
 	createNoteComposer: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/one-on-one/one-on-one.service', () => ({
+vi.mock('#lib/plugins/one-on-one/one-on-one.service.js', () => ({
 	openOneOnOnePicker: vi.fn(),
 }));
 
-vi.mock('$lib/features/canvas/canvas.service', () => ({
+vi.mock('#lib/features/canvas/canvas.service.js', () => ({
 	createCanvasFile: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-history/file-history.service', () => ({
+vi.mock('#lib/features/file-history/file-history.service.js', () => ({
 	openFileHistory: vi.fn(),
 }));
 
@@ -66,18 +66,18 @@ vi.mock('svelte-sonner', () => ({
 
 // No mocks for stores or logic files — use real implementations per CLAUDE.md
 
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { toast } from 'svelte-sonner';
-import { getBuiltInCommands } from '$lib/features/command-palette/command-palette.service';
-import { formatShortcut } from '$lib/features/command-palette/command-palette.logic';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
+import { getBuiltInCommands } from '#lib/features/command-palette/command-palette.service.js';
+import { formatShortcut } from '#lib/features/command-palette/command-palette.logic.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {

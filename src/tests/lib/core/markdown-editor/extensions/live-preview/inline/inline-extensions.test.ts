@@ -4,7 +4,7 @@ import {
 	productionHandlers,
 	PRODUCTION_NODE_HANDLERS,
 	PRODUCTION_LINE_HANDLERS,
-} from '$lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions';
+} from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions.js';
 
 describe('inline-extensions', () => {
 	it('PRODUCTION_NODE_HANDLERS covers every Lezer-node-based decoration', () => {

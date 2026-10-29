@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
-import { computeCallouts } from '$lib/core/markdown-editor/extensions/live-preview/plugins/callout-field';
-import { calloutFoldState, toggleCalloutFold } from '$lib/core/markdown-editor/extensions/live-preview/core/effects';
+import { computeCallouts } from '#lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.js';
+import { calloutFoldState, toggleCalloutFold } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {

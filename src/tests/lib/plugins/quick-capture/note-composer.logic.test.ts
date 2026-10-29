@@ -6,8 +6,8 @@ import {
 	buildCapturePath,
 	getCaptureTitle,
 	buildCaptureVariables,
-} from '$lib/plugins/quick-capture/note-composer.logic';
-import type { PeriodicNotesSettings } from '$lib/core/settings/settings.types';
+} from '#lib/plugins/quick-capture/note-composer.logic.js';
+import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
 
 dayjs.extend(advancedFormat);
 dayjs.extend(quarterOfYear);

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { templatesStore } from '$lib/plugins/templates/templates.store.svelte';
+import { templatesStore } from '#lib/plugins/templates/templates.store.svelte.js';
 
 describe('templatesStore', () => {
 	beforeEach(() => {

@@ -5,7 +5,7 @@ import {
 	sanitizeSvgContent,
 	sanitizeSnippetHtml,
 	sanitizeMermaidSvg,
-} from '$lib/utils/sanitize';
+} from '#lib/utils/sanitize.js';
 
 // ---------------------------------------------------------------------------
 // sanitizeHtml

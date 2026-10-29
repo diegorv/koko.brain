@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { generateLifecycleRules } from '$lib/features/auto-move/type-lifecycle-rules';
-import { findMatchingRule } from '$lib/features/auto-move/auto-move.logic';
-import { buildNoteRecord } from '$lib/features/collection/collection.logic';
-import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import { generateLifecycleRules } from '#lib/features/auto-move/type-lifecycle-rules.js';
+import { findMatchingRule } from '#lib/features/auto-move/auto-move.logic.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 function makeTypeMetadata(overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {

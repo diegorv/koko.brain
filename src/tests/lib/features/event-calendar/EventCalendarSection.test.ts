@@ -8,10 +8,10 @@ setupLocalStorage();
 // Side-effect services the "Open Event type" button reaches. Mocked so the
 // mount needs no Tauri; the settings, vault and type stores stay real
 // (CLAUDE.md rule 1) and every value assertion reads the real store back.
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createTypeDefinition: vi.fn((name: string) => Promise.resolve(`/vault/${name}.md`)),
 	refreshTypeDefinitions: vi.fn(() => Promise.resolve()),
 }));
@@ -20,15 +20,15 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import EventCalendarSection from '$lib/features/event-calendar/EventCalendarSection.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { getTypeMetadataFallback, typeNameTakenMessage, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { createTypeDefinition, refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
+import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { getTypeMetadataFallback, typeNameTakenMessage, type TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { createTypeDefinition, refreshTypeDefinitions } from '#lib/features/type-definitions/type-definitions.service.js';
 import { toast } from 'svelte-sonner';
 
 const VAULT = '/vault';

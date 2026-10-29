@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
-import { isInsideBlockContext } from '$lib/core/markdown-editor/extensions/live-preview/core/is-inside-block-context';
+import { isInsideBlockContext } from '#lib/core/markdown-editor/extensions/live-preview/core/is-inside-block-context.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string): EditorState {

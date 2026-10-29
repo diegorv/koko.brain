@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findFootnoteRefRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findBlockReference } from '$lib/core/markdown-editor/extensions/live-preview/parsers/block-reference';
-import { findWikilinkEmbedRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed';
-import { findInlineCommentRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findBlockReference } from '#lib/core/markdown-editor/extensions/live-preview/parsers/block-reference.js';
+import { findWikilinkEmbedRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed.js';
+import { findInlineCommentRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 // ============================================================

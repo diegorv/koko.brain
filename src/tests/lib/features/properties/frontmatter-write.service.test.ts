@@ -28,18 +28,18 @@ function localStorageStub() {
 import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { addAfterSaveObserver, areAllRecentSaves, resetHooks } from '$lib/core/editor/editor.hooks';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
-import { clearAllIndexed, isAlreadyIndexed } from '$lib/utils/index-dedupe';
-import { _resetParseFrontmatterCache, type LossyFrontmatterReason } from '$lib/features/properties/properties.logic';
-import type { Property } from '$lib/features/properties/properties.types';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { addAfterSaveObserver, areAllRecentSaves, resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { clearAllIndexed, isAlreadyIndexed } from '#lib/utils/index-dedupe.js';
+import { _resetParseFrontmatterCache, type LossyFrontmatterReason } from '#lib/features/properties/properties.logic.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
 import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
-} from '$lib/features/properties/frontmatter-write.service';
+} from '#lib/features/properties/frontmatter-write.service.js';
 
 const VAULT = '/vault';
 

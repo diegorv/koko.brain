@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findMetaBindButtonBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button';
+import { findMetaBindButtonBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
 
 function makeLines(texts: string[]) {
 	let pos = 0;

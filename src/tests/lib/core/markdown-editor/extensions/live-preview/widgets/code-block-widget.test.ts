@@ -5,7 +5,7 @@ import { EditorView } from '@codemirror/view';
 import {
 	CodeBlockWidget,
 	COMMON_LANGUAGES,
-} from '$lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget';
+} from '#lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.js';
 
 function mountWithRange(opts: {
 	doc: string;

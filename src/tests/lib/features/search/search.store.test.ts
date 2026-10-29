@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { searchStore } from '$lib/features/search/search.store.svelte';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
 
 describe('searchStore', () => {
 	beforeEach(() => {

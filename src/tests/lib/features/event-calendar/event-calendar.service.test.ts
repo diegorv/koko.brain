@@ -24,28 +24,28 @@ vi.mock('svelte-sonner', () => ({
 
 // `renameItem` runs the full path-change owner (tree refresh, link rewrite,
 // Rust re-key); the write tests replace it with a move on the fake disk.
-vi.mock('$lib/core/filesystem/fs.service', async () => {
-	const actual = await vi.importActual<typeof import('$lib/core/filesystem/fs.service')>('$lib/core/filesystem/fs.service');
+vi.mock('#lib/core/filesystem/fs.service.js', async () => {
+	const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
 	return { ...actual, renameItem: vi.fn() };
 });
 
 import { invoke } from '@tauri-apps/api/core';
 import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { deleteItem, moveItem, renameItem } from '$lib/core/filesystem/fs.service';
-import { resetHooks } from '$lib/core/editor/editor.hooks';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import { _resetParseFrontmatterCache } from '$lib/features/properties/properties.logic';
-import { FrontmatterWriteError } from '$lib/features/properties/frontmatter-write.service';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { getFileName } from '$lib/core/filesystem/fs.logic';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { switchVault } from '$lib/core/vault/vault.service';
-import { trashStore } from '$lib/core/trash/trash.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
+import { deleteItem, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { FrontmatterWriteError } from '#lib/features/properties/frontmatter-write.service.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { getFileName } from '#lib/core/filesystem/fs.logic.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { switchVault } from '#lib/core/vault/vault.service.js';
+import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import {
 	acquireCalendarClock,
 	closeEventCalendarTab,
@@ -78,12 +78,12 @@ import {
 	undoEventChange,
 	undoEventChangeFromUi,
 	updateEventFields,
-} from '$lib/features/event-calendar/event-calendar.service';
-import { eventState } from '$lib/features/event-calendar/event-calendar-event.logic';
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import type { EventDraft } from '$lib/features/event-calendar/event-calendar.types';
-import type { FileTaskGroupV2, NoteEntryV2 } from '$lib/types/vault-v2.types';
+} from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventState } from '#lib/features/event-calendar/event-calendar-event.logic.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import type { EventDraft } from '#lib/features/event-calendar/event-calendar.types.js';
+import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { eventEntry, eventEntryFromContent, eventNote } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -2241,7 +2241,7 @@ describe('calendar writes', () => {
 
 		beforeEach(async () => {
 			// The real rename runs `applyPathChange`, which is what reaches the consumer.
-			const actual = await vi.importActual<typeof import('$lib/core/filesystem/fs.service')>('$lib/core/filesystem/fs.service');
+			const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
 			vi.mocked(renameItem).mockImplementation(actual.renameItem);
 			// The link rewrite of a rename reads the note's backlinks; none here.
 			const served = vi.mocked(invoke).getMockImplementation()!;

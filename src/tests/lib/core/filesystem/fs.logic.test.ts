@@ -21,8 +21,8 @@ import {
 	validateDragDrop,
 	applyFolderOrder,
 	attachFileCounts,
-} from '$lib/core/filesystem/fs.logic';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+} from '#lib/core/filesystem/fs.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
 function makeNode(name: string, isDirectory: boolean, children?: FileTreeNode[]): FileTreeNode {
 	return { name, path: `/vault/${name}`, isDirectory, children };

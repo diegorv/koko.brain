@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
 	return {

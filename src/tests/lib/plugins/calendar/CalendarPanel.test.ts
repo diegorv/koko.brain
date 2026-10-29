@@ -5,23 +5,23 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 // Opening and creating notes are side effects; the stores stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
 import { flushSync, mount, unmount } from 'svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import { toDateKey } from '$lib/plugins/calendar/calendar.logic';
-import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
-import CalendarPanel from '$lib/plugins/calendar/CalendarPanel.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import { toDateKey } from '#lib/plugins/calendar/calendar.logic.js';
+import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
+import CalendarPanel from '#lib/plugins/calendar/CalendarPanel.svelte';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

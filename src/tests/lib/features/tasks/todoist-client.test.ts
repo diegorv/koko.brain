@@ -4,11 +4,11 @@ const { mockCreateTauriFetchAdapter } = vi.hoisted(() => ({
 	mockCreateTauriFetchAdapter: vi.fn(),
 }));
 
-vi.mock('$lib/features/tasks/tauri-fetch-adapter', () => ({
+vi.mock('#lib/features/tasks/tauri-fetch-adapter.js', () => ({
 	createTauriFetchAdapter: mockCreateTauriFetchAdapter,
 }));
 
-import { createTodoistClient } from '$lib/features/tasks/todoist-client';
+import { createTodoistClient } from '#lib/features/tasks/todoist-client.js';
 import { TodoistApi } from '@doist/todoist-sdk';
 
 describe('createTodoistClient', () => {

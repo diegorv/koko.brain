@@ -12,7 +12,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
 
-import { quickSwitcherStore } from '$lib/features/quick-switcher/quick-switcher.store.svelte';
+import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 
 describe('quickSwitcherStore', () => {
 	beforeEach(() => {

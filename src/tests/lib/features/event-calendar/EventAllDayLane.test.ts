@@ -4,23 +4,23 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 // The note write is the service's side effect; the drag tests drive its promise.
-vi.mock('$lib/features/event-calendar/event-calendar.service', async () => {
-	const actual = await vi.importActual<typeof import('$lib/features/event-calendar/event-calendar.service')>(
-		'$lib/features/event-calendar/event-calendar.service',
+vi.mock('#lib/features/event-calendar/event-calendar.service.js', async () => {
+	const actual = await vi.importActual<typeof import('#lib/features/event-calendar/event-calendar.service.js')>(
+		'#lib/features/event-calendar/event-calendar.service.js',
 	);
 	return { ...actual, moveEventToDay: vi.fn(), toastEventError: vi.fn() };
 });
 
 import { flushSync, mount, unmount } from 'svelte';
-import EventAllDayLane from '$lib/features/event-calendar/EventAllDayLane.svelte';
-import { moveEventToDay } from '$lib/features/event-calendar/event-calendar.service';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+import EventAllDayLane from '#lib/features/event-calendar/EventAllDayLane.svelte';
+import { moveEventToDay } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
 const DAYS = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'];

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findBlockquoteMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/blockquote';
+import { findBlockquoteMarkRange } from '#lib/core/markdown-editor/extensions/live-preview/parsers/blockquote.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 describe('findBlockquoteMarkRange', () => {

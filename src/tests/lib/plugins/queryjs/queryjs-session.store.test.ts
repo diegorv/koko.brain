@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 
 function makeEl(text: string): HTMLElement {
 	const el = document.createElement('div');

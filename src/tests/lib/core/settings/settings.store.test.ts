@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { settingsStore, DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
+import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 
 describe('settingsStore', () => {
 	beforeEach(() => {

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import { buildMonthGrid } from '$lib/plugins/calendar/calendar.logic';
-import CalendarGrid from '$lib/plugins/calendar/CalendarGrid.svelte';
+import { buildMonthGrid } from '#lib/plugins/calendar/calendar.logic.js';
+import CalendarGrid from '#lib/plugins/calendar/CalendarGrid.svelte';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

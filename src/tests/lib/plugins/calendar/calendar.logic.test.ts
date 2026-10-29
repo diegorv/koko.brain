@@ -6,7 +6,7 @@ import {
 	formatDateLabel,
 	timestampToDateKey,
 	parseDateToKey,
-} from '$lib/plugins/calendar/calendar.logic';
+} from '#lib/plugins/calendar/calendar.logic.js';
 
 describe('buildMonthGrid', () => {
 	it('builds correct grid for February 2026', () => {

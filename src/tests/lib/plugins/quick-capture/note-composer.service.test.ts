@@ -3,20 +3,20 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
 import dayjs from 'dayjs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import {
 	buildCapturePath,
 	getCaptureTitle,
 	buildCaptureVariables,
-} from '$lib/plugins/quick-capture/note-composer.logic';
-import { createNoteComposer } from '$lib/plugins/quick-capture/note-composer.service';
+} from '#lib/plugins/quick-capture/note-composer.logic.js';
+import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 
 describe('createNoteComposer', () => {
 	beforeEach(() => {

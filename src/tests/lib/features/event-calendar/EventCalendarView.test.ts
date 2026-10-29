@@ -19,13 +19,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 	saveFileByPath: vi.fn(async () => true),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', async () => {
-	const actual = await vi.importActual<typeof import('$lib/core/filesystem/fs.service')>('$lib/core/filesystem/fs.service');
+vi.mock('#lib/core/filesystem/fs.service.js', async () => {
+	const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
 	return { ...actual, deleteItem: vi.fn(async () => true) };
 });
 
@@ -36,17 +36,17 @@ vi.mock('svelte-sonner', () => ({
 import { flushSync, mount, unmount } from 'svelte';
 import { toast } from 'svelte-sonner';
 import { invoke } from '@tauri-apps/api/core';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import EventCalendarView from '$lib/features/event-calendar/EventCalendarView.svelte';
-import { openEventInCalendar, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { CALENDAR_SHORTCUTS } from '$lib/features/event-calendar/event-calendar-keys.logic';
-import { toKey } from '$lib/features/event-calendar/event-calendar-dates.logic';
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import type { FileTaskGroupV2, NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import EventCalendarView from '#lib/features/event-calendar/EventCalendarView.svelte';
+import { openEventInCalendar, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { CALENDAR_SHORTCUTS } from '#lib/features/event-calendar/event-calendar-keys.logic.js';
+import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { eventEntry } from '../../../fixtures/event-notes.fixture';
 
 const VAULT = '/vault';

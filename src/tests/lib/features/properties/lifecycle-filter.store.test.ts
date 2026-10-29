@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { lifecycleFilterStore } from '$lib/features/properties/lifecycle-filter.store.svelte';
+import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 
 describe('lifecycleFilterStore', () => {
 	beforeEach(() => {

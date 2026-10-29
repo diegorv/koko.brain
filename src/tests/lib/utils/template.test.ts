@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import dayjs from 'dayjs';
-import { processTemplate, evaluateExpression } from '$lib/utils/template';
+import { processTemplate, evaluateExpression } from '#lib/utils/template.js';
 
 // Mock today() to return a fixed date but use real dayjs formatting
-vi.mock('$lib/utils/date', async () => {
-	const actual = await vi.importActual('$lib/utils/date');
+vi.mock('#lib/utils/date.js', async () => {
+	const actual = await vi.importActual('#lib/utils/date.js');
 	return {
 		...actual,
 	};

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('$lib/utils/log.service', () => ({
+vi.mock('#lib/utils/log.service.js', () => ({
 	appendLog: vi.fn(),
 }));
 
 import { parse as yamlParse } from 'yaml';
-import { appendLog } from '$lib/utils/log.service';
-import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
+import { appendLog } from '#lib/utils/log.service.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import {
 	extractRawFrontmatter,
 	extractBody,
@@ -24,7 +24,7 @@ import {
 	computeAddRelationshipValue,
 	computeRemoveRelationshipValue,
 	_resetParseFrontmatterCache,
-} from '$lib/features/properties/properties.logic';
+} from '#lib/features/properties/properties.logic.js';
 
 describe('extractRawFrontmatter', () => {
 	it('extracts YAML content between delimiters', () => {

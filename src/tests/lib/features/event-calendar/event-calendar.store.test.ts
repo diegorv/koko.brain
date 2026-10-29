@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { createEventHistory, pushOp } from '$lib/features/event-calendar/event-calendar-history.logic';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { createEventHistory, pushOp } from '#lib/features/event-calendar/event-calendar-history.logic.js';
 import type {
 	EventIssue,
 	EventIssueReason,
@@ -9,7 +9,7 @@ import type {
 	EventProjection,
 	EventState,
 	HistoryOp,
-} from '$lib/features/event-calendar/event-calendar.types';
+} from '#lib/features/event-calendar/event-calendar.types.js';
 
 const P = (name: string) => `/vault/${name}.md`;
 

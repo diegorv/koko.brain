@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 
 describe('fileIconsStore', () => {
 	beforeEach(() => {

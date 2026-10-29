@@ -12,7 +12,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
 
-import { commandPaletteStore } from '$lib/features/command-palette/command-palette.store.svelte';
+import { commandPaletteStore } from '#lib/features/command-palette/command-palette.store.svelte.js';
 
 describe('commandPaletteStore', () => {
 	beforeEach(() => {

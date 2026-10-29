@@ -8,13 +8,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { QueryjsBlockWidget } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
+import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 
 const JS = 'kb.view("scripts/demo")';
 

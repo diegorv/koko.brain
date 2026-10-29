@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/utils/log.service', () => ({
+vi.mock('#lib/utils/log.service.js', () => ({
 	appendLog: vi.fn(),
 }));
 
@@ -12,16 +12,16 @@ vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn().mockResolvedValue(vi.fn()),
 }));
 
-vi.mock('$lib/core/settings/sentry.service', () => ({
+vi.mock('#lib/core/settings/sentry.service.js', () => ({
 	captureSentryException: vi.fn(),
 }));
 
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { debug, error, logProcessMemory, perfBaseline, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '$lib/utils/debug';
-import { appendLog } from '$lib/utils/log.service';
-import { captureSentryException } from '$lib/core/settings/sentry.service';
+import { debug, error, logProcessMemory, perfBaseline, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '#lib/utils/debug.js';
+import { appendLog } from '#lib/utils/log.service.js';
+import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 
 describe('debug', () => {
 	let consoleSpy: ReturnType<typeof vi.spyOn>;

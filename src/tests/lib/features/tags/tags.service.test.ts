@@ -5,9 +5,9 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { tagsStore } from '$lib/features/tags/tags.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { TAGS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { tagsStore } from '#lib/features/tags/tags.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import {
 	buildTagIndex,
 	updateTagSort,
@@ -17,8 +17,8 @@ import {
 	openTagsTab,
 	closeTagsTab,
 	toggleTagsTab,
-} from '$lib/features/tags/tags.service';
-import type { TagAggregateV2 } from '$lib/types/vault-v2.types';
+} from '#lib/features/tags/tags.service.js';
+import type { TagAggregateV2 } from '#lib/types/vault-v2.types.js';
 
 describe('buildTagIndex', () => {
 	beforeEach(() => {

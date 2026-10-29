@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSafeUrl } from '$lib/utils/sanitize-url';
+import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 
 describe('isSafeUrl', () => {
 	it('allows http URLs', () => {

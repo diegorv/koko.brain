@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { deepLinkStore } from '$lib/features/deep-link/deep-link.store.svelte';
-import type { DeepLinkAction } from '$lib/features/deep-link/deep-link.types';
+import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
+import type { DeepLinkAction } from '#lib/features/deep-link/deep-link.types.js';
 
 const openAction: DeepLinkAction = { type: 'open', vault: 'TestVault', file: 'notes/test.md' };
 const searchAction: DeepLinkAction = { type: 'search', vault: 'TestVault', query: 'hello' };

@@ -11,8 +11,8 @@ import {
 	pxToMinutes,
 	SNAP_MINUTES,
 	snap,
-} from '$lib/features/event-calendar/event-calendar-layout.logic';
-import type { EventNote, PositionedEvent } from '$lib/features/event-calendar/event-calendar.types';
+} from '#lib/features/event-calendar/event-calendar-layout.logic.js';
+import type { EventNote, PositionedEvent } from '#lib/features/event-calendar/event-calendar.types.js';
 
 /** Builds a timed event; `id` doubles as the path and the title. */
 const ev = (id: string, start: number, end: number): EventNote => ({

@@ -4,7 +4,7 @@ import {
 	extractBlockContent,
 	stripFrontmatter,
 	getNotePreview,
-} from '$lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic';
+} from '#lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.js';
 
 describe('extractHeadingSection', () => {
 	const content = `# Title

@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	formatShortcut,
 	filterAndRankCommands,
-} from '$lib/features/command-palette/command-palette.logic';
-import type { AppCommand } from '$lib/features/command-palette/command-palette.types';
+} from '#lib/features/command-palette/command-palette.logic.js';
+import type { AppCommand } from '#lib/features/command-palette/command-palette.types.js';
 
 function makeCommand(id: string, label: string, category = 'Test'): AppCommand {
 	return { id, label, category, action: () => {} };

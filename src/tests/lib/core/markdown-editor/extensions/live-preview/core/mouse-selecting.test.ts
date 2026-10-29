@@ -3,7 +3,7 @@ import { EditorState } from '@codemirror/state';
 import {
 	mouseSelectingField,
 	setMouseSelecting,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
 
 function createState(): EditorState {
 	return EditorState.create({ doc: 'test', extensions: [mouseSelectingField] });

@@ -9,12 +9,12 @@ vi.mock('@tauri-apps/api/window', () => ({
 	getCurrentWindow: () => ({ setBadgeCount }),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	error: errorMock,
 	debug: vi.fn(),
 }));
 
-import { applyDockBadge } from '$lib/features/dock-badge/dock-badge.service';
+import { applyDockBadge } from '#lib/features/dock-badge/dock-badge.service.js';
 
 describe('applyDockBadge', () => {
 	beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 
 describe('settingsPanelStore', () => {
 	beforeEach(() => {

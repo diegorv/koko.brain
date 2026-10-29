@@ -3,9 +3,9 @@ import {
 	flattenFileTree,
 	filterAndRank,
 	MAX_RESULTS,
-} from '$lib/features/quick-switcher/quick-switcher.logic';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import type { FileEntry } from '$lib/features/quick-switcher/quick-switcher.logic';
+} from '#lib/features/quick-switcher/quick-switcher.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { FileEntry } from '#lib/features/quick-switcher/quick-switcher.logic.js';
 
 function makeFile(name: string, path: string): FileTreeNode {
 	return { name, path, isDirectory: false };

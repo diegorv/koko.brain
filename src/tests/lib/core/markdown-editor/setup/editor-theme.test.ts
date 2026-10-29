@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { buildEditorTheme } from '$lib/core/markdown-editor/setup/editor-theme';
+import { buildEditorTheme } from '#lib/core/markdown-editor/setup/editor-theme.js';
 
 describe('buildEditorTheme', () => {
 	it('returns a valid Extension', () => {

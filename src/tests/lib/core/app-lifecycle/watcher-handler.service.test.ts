@@ -6,37 +6,37 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock('$lib/features/backlinks/backlinks.service', () => ({
+vi.mock('#lib/features/backlinks/backlinks.service.js', () => ({
 	rebuildIndex: vi.fn(() => Promise.resolve()),
 }));
 
 // Only the BULK builders are mocked - the per-file updaters now reach the
 // watcher through the note-change owner's consumer registry, and the tests
 // assert their real store output instead.
-vi.mock('$lib/features/collection/collection.service', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/features/collection/collection.service')>()),
+vi.mock('#lib/features/collection/collection.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/features/collection/collection.service.js')>()),
 	buildPropertyIndex: vi.fn(),
 }));
 
-vi.mock('$lib/features/file-icons/file-icons.service', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/features/file-icons/file-icons.service')>()),
+vi.mock('#lib/features/file-icons/file-icons.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/features/file-icons/file-icons.service.js')>()),
 	buildFrontmatterIconIndex: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('$lib/plugins/calendar/calendar.service', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/plugins/calendar/calendar.service')>()),
+vi.mock('#lib/plugins/calendar/calendar.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/plugins/calendar/calendar.service.js')>()),
 	scanFilesForCalendar: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	areAllRecentSaves: vi.fn(() => false),
 }));
 
-vi.mock('$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget', () => ({
+vi.mock('#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js', () => ({
 	invalidateQueryjsCache: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 	logProcessMemory: vi.fn(),
@@ -45,19 +45,19 @@ vi.mock('$lib/utils/debug', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { error as debugError } from '$lib/utils/debug';
-import { rebuildIndex } from '$lib/features/backlinks/backlinks.service';
-import { buildPropertyIndex, registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
-import { buildFrontmatterIconIndex, registerFileIconsNoteChangeConsumer } from '$lib/features/file-icons/file-icons.service';
-import { scanFilesForCalendar, registerCalendarNoteChangeConsumer, resetCalendar } from '$lib/plugins/calendar/calendar.service';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
-import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '$lib/utils/index-dedupe';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { rebuildAllIndexes } from '$lib/core/app-lifecycle/watcher-handler.service';
+import { error as debugError } from '#lib/utils/debug.js';
+import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
+import { buildPropertyIndex, registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { buildFrontmatterIconIndex, registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
+import { scanFilesForCalendar, registerCalendarNoteChangeConsumer, resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
+import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index-dedupe.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { rebuildAllIndexes } from '#lib/core/app-lifecycle/watcher-handler.service.js';
 
 describe('rebuildAllIndexes', () => {
 	beforeEach(() => {

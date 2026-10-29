@@ -5,28 +5,28 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 // Opening a note is the editor's side effect; the stores stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 // A drop's write is the service's side effect; only the two writers are replaced.
-vi.mock('$lib/features/event-calendar/event-calendar.service', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/features/event-calendar/event-calendar.service')>()),
+vi.mock('#lib/features/event-calendar/event-calendar.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/features/event-calendar/event-calendar.service.js')>()),
 	moveEvent: vi.fn(async () => {}),
 	resizeEvent: vi.fn(async () => {}),
 }));
 
 import { flushSync, mount, unmount } from 'svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import EventTimeGrid from '$lib/features/event-calendar/EventTimeGrid.svelte';
-import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logic';
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
-import { moveEvent, resizeEvent } from '$lib/features/event-calendar/event-calendar.service';
-import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import EventTimeGrid from '#lib/features/event-calendar/EventTimeGrid.svelte';
+import { weekDays } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
+import { moveEvent, resizeEvent } from '#lib/features/event-calendar/event-calendar.service.js';
+import type { CalendarTask } from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 import { reactiveProps } from '../../../fixtures/reactive-props.svelte';
 
 const P = (name: string) => `/vault/Events/${name}.md`;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
+import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 
 const EXPECTED_KEYS = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'];
 

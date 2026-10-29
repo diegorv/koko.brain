@@ -38,13 +38,13 @@ import { writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import {
 	startSettingsPersistence,
 	stopSettingsPersistence,
-} from '$lib/core/settings/settings-persistence.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+} from '#lib/core/settings/settings-persistence.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	maybeAutoCheckForUpdates,
 	type UpdateMetadata,
-} from '$lib/core/settings/update-check.service';
+} from '#lib/core/settings/update-check.service.js';
 
 describe('maybeAutoCheckForUpdates', () => {
 	const updateAvailable: UpdateMetadata = {

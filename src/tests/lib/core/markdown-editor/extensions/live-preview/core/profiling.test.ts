@@ -5,15 +5,15 @@ const mockAppendLog = vi.fn();
 // appendLog is a side-effect logging service (Tauri file writes) — legitimately
 // mocked. settingsStore is a real store per CLAUDE.md; profiling reads its
 // livePreviewProfiling flag, which we drive via the real updateLivePreviewProfiling.
-vi.mock('$lib/utils/log.service', () => ({
+vi.mock('#lib/utils/log.service.js', () => ({
 	appendLog: (...args: unknown[]) => mockAppendLog(...args),
 }));
 
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	profileStart,
 	profileEnd,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/profiling';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
 
 describe('live-preview profiling', () => {
 	beforeEach(() => {

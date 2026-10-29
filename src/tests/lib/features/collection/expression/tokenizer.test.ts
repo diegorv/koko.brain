@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tokenize } from '$lib/features/collection/expression/tokenizer';
+import { tokenize } from '#lib/features/collection/expression/tokenizer.js';
 
 describe('tokenize', () => {
 	it('tokenizes numbers', () => {

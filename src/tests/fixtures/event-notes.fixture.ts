@@ -1,6 +1,6 @@
-import type { FrontmatterValue, NoteEntryV2 } from '$lib/types/vault-v2.types';
-import type { EventColor } from '$lib/features/event-calendar/event-calendar.types';
-import { canonicalizeKey } from '$lib/utils/frontmatter-aliases';
+import type { FrontmatterValue, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { EventColor } from '#lib/features/event-calendar/event-calendar.types.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import { entryV2 } from './vault-entries.fixture';
 
 /**

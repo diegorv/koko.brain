@@ -9,8 +9,8 @@ import {
 	validateFormulaExpression,
 	validateFormulaName,
 	setFormulaEditing,
-} from '$lib/features/collection/toolbar/formula.logic';
-import type { FormulaEntry } from '$lib/features/collection/toolbar/toolbar.types';
+} from '#lib/features/collection/toolbar/formula.logic.js';
+import type { FormulaEntry } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 describe('formulasToEntries', () => {
 	it('returns empty array for undefined', () => {

@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KBAPI } from '$lib/plugins/queryjs/kb-api';
-import { DataArray } from '$lib/plugins/queryjs/data-array';
-import { KBDateTime } from '$lib/plugins/queryjs/kb-datetime';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
+import { DataArray } from '#lib/plugins/queryjs/data-array.js';
+import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 

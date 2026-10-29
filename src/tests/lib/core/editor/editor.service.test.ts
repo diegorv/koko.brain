@@ -13,7 +13,7 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -25,7 +25,7 @@ vi.mock('$lib/utils/debug', () => ({
 	perfBaseline: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debounce', () => ({
+vi.mock('#lib/utils/debounce.js', () => ({
 	debounce: vi.fn((fn: (...args: any[]) => any) => {
 		let lastArgs: any[] | undefined;
 		const debounced = (...args: any[]) => {
@@ -47,10 +47,10 @@ vi.mock('$lib/utils/debounce', () => ({
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { TASKS_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { addAfterSaveObserver, resetHooks } from '$lib/core/editor/editor.hooks';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import {
 	openFileInEditor,
 	saveCurrentFile,
@@ -71,8 +71,8 @@ import {
 	reloadExternallyChangedTabs,
 	toggleSourceMode,
 	syncExternalContentToEditor,
-} from '$lib/core/editor/editor.service';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
+} from '#lib/core/editor/editor.service.js';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
 	const name = path.split('/').pop() ?? path;

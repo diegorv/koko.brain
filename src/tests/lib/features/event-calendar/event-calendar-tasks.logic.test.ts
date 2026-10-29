@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { monthCellSlots, tasksByDay, tasksFromGroups, type CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
-import { MONTH_MAX_CHIPS } from '$lib/features/event-calendar/event-calendar-view.logic';
-import type { FileTaskGroupV2, TaskV2 } from '$lib/types/vault-v2.types';
+import { monthCellSlots, tasksByDay, tasksFromGroups, type CalendarTask } from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
+import { MONTH_MAX_CHIPS } from '#lib/features/event-calendar/event-calendar-view.logic.js';
+import type { FileTaskGroupV2, TaskV2 } from '#lib/types/vault-v2.types.js';
 
 function task(lineNumber: number, text: string, dueDate?: string, overrides: Partial<TaskV2> = {}): TaskV2 {
 	return {
