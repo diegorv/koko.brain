@@ -1,5 +1,5 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
+  "extends": "$app/tsconfig",
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
@@ -13,17 +13,13 @@
     // TS resolves package.json `imports` targets without the `.svelte` ->
     // `.d.svelte.ts` lookup svelte-check relies on, so `#lib/...svelte` fell
     // back to the ambient `*.svelte` module (props untyped). Mirroring `#lib/*`
-    // as a path restores typed resolution. A local `paths` replaces the
-    // inherited one, so the generated `$app/types` entry is repeated. `$lib`
-    // is left out on purpose: src imports through `#lib` only.
+    // as a path restores typed resolution.
     "paths": {
-      "#lib/*": ["./src/lib/*"],
-      "$app/types": ["./.svelte-kit/types/index.d.ts"]
+      "#lib/*": ["./src/lib/*"]
     }
-  }
-  // Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
-  // except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
-  //
-  // If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
-  // from the referenced tsconfig.json - TypeScript does not merge them in
+  },
+  // Kit 3's generated parent declares no include/exclude, so they live here.
+  // `src` covers src/tests.
+  "include": ["src", "vite.config.js"],
+  "exclude": ["src/service-worker"]
 }
