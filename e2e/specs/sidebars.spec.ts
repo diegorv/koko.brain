@@ -25,7 +25,7 @@ test.describe('Right sidebar panels', () => {
 		// no backlink renders, so assert on the entries under "Linked mentions".
 		await page.locator('button', { has: page.locator('h2', { hasText: 'Backlinks' }) }).click();
 		const linked = page.getByRole('button', { name: /^Linked mentions/ });
-		await expect(linked).toContainText('2', { timeout: 10_000 });
+		await expect(linked.locator('span.ml-auto')).toHaveText('2', { timeout: 10_000 });
 		const entries = linked.locator('xpath=following-sibling::*[1]');
 		await expect(entries.getByRole('button', { name: /^Welcome/ })).toBeVisible();
 		await expect(entries.getByRole('button', { name: /^2026-Q2/ })).toBeVisible();
