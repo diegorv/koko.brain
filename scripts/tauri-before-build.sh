@@ -9,7 +9,7 @@
 # Inputs that count as a change:
 #   - anything under src/ or static/
 #   - top-level frontend config: package.json, pnpm-lock.yaml, vite.config.js,
-#     svelte.config.js, tsconfig.json, tailwind.config.* (if present)
+#     tsconfig.json, tailwind.config.* (if present)
 #
 # The fingerprint is a single SHA-256 over the sorted list of
 # "<sha256>  <path>" pairs from `git ls-files`'d frontend inputs plus
@@ -55,7 +55,6 @@ INPUT_PATHS=(
 	"package.json"
 	"pnpm-lock.yaml"
 	"vite.config.js"
-	"svelte.config.js"
 	"tsconfig.json"
 )
 

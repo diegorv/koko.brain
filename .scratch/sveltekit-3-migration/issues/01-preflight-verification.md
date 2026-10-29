@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Each of the six questions has a sourced answer (URL, tarball file:line, or command output) in the plan Notes
-- [ ] Tickets whose scope changes because of an answer are updated
-- [ ] No source file changed
+- [x] Each of the six questions has a sourced answer (URL, tarball file:line, or command output) in the plan Notes
+- [x] Tickets whose scope changes because of an answer are updated
+- [x] No source file changed
