@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
-import { EditorSelection, type EditorState } from '@codemirror/state';
+import { EditorSelection, type EditorState, type StateEffect } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import {
 	buildInlineDecorations,
@@ -10,6 +10,7 @@ import {
 	type LineHandler,
 	type InlineFormattingHandlers,
 } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../test-helpers';
 
@@ -260,7 +261,15 @@ describe('makeInlineFormattingPlugin', () => {
 		}
 
 		/** Minimal ViewUpdate stand-in: jsdom never reports a viewport change on its own. */
-		function viewportUpdate(view: EditorView, state: EditorState, selectionSet: boolean): ViewUpdate {
+		function viewportUpdate(
+			view: EditorView,
+			state: EditorState,
+			selectionSet: boolean,
+			transaction: { reconfigured: boolean; effects: StateEffect<unknown>[] } = {
+				reconfigured: false,
+				effects: [],
+			},
+		): ViewUpdate {
 			return {
 				view,
 				state,
@@ -268,7 +277,7 @@ describe('makeInlineFormattingPlugin', () => {
 				docChanged: false,
 				selectionSet,
 				viewportChanged: true,
-				transactions: [{ reconfigured: false, effects: [] }],
+				transactions: [transaction],
 			} as unknown as ViewUpdate;
 		}
 
@@ -283,6 +292,27 @@ describe('makeInlineFormattingPlugin', () => {
 
 			expect(counter.builds).toBe(2);
 			expect(value.lastCursorLine).toBe(2);
+		});
+
+		it('rebuilds on a viewport-changing update carrying forceDecorationRebuild', () => {
+			const { view, value, counter } = mountPlugin();
+
+			value.update(
+				viewportUpdate(view, view.state, false, {
+					reconfigured: false,
+					effects: [forceDecorationRebuild.of(null)],
+				}),
+			);
+
+			expect(counter.builds).toBe(2);
+		});
+
+		it('rebuilds on a viewport-changing update carrying a reconfigure', () => {
+			const { view, value, counter } = mountPlugin();
+
+			value.update(viewportUpdate(view, view.state, false, { reconfigured: true, effects: [] }));
+
+			expect(counter.builds).toBe(2);
 		});
 
 		it('does not rebuild on a pure viewport change', () => {

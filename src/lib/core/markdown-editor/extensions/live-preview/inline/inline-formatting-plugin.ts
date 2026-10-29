@@ -2,7 +2,7 @@ import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate
 import type { EditorState, Extension, Range, Line } from '@codemirror/state';
 import type { SyntaxNodeRef } from '@lezer/common';
 import { syntaxTree } from '@codemirror/language';
-import { checkUpdateAction } from '../core/check-update-action';
+import { checkUpdateAction, isPureScroll } from '../core/check-update-action';
 import { revealPredicate, type RevealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
@@ -159,7 +159,7 @@ export function makeInlineFormattingPlugin(handlers: InlineFormattingHandlers): 
 			update(update: ViewUpdate) {
 				// Rule 4: viewport-only scroll never rebuilds; scrollDebouncePlugin
 				// dispatches forceDecorationRebuild after scrolling settles.
-				if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
+				if (isPureScroll(update)) return;
 
 				const action = checkUpdateAction(update, this.lastCursorLine);
 				if (action !== 'rebuild') return;

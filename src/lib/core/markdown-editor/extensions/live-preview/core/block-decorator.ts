@@ -6,7 +6,7 @@ import {
 	ViewPlugin,
 	type ViewUpdate,
 } from '@codemirror/view';
-import { checkUpdateAction } from './check-update-action';
+import { checkUpdateAction, isPureScroll } from './check-update-action';
 import type { BlockDecoratorName } from './decorator-names';
 import { profileStart, profileEnd } from './profiling';
 
@@ -73,7 +73,7 @@ export function blockDecorator(spec: BlockDecoratorSpec): ViewPlugin<BlockDecora
 
 			update(update: ViewUpdate) {
 				// Perf rule 4: pure scroll defers to scrollDebouncePlugin.
-				if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;
+				if (isPureScroll(update)) return;
 				if (gate && !gate(update)) return;
 
 				const forced =

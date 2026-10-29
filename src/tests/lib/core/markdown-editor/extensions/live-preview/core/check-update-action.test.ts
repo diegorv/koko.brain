@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
-import { checkUpdateAction } from '#lib/core/markdown-editor/extensions/live-preview/core/check-update-action.js';
+import {
+	checkUpdateAction,
+	isPureScroll,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/check-update-action.js';
 import {
 	mouseSelectingField,
 	setMouseSelecting,
@@ -172,5 +175,53 @@ describe('checkUpdateAction', () => {
 		});
 		// docChanged takes priority over drag suppression
 		expect(checkUpdateAction(update)).toBe('rebuild');
+	});
+});
+
+describe('isPureScroll', () => {
+	const forceEffect = { is: (type: unknown) => type === forceDecorationRebuild };
+	const otherEffect = { is: () => false };
+
+	it('is true for a viewport change with nothing else', () => {
+		const state = createState();
+		expect(isPureScroll(mockUpdate(state, { viewportChanged: true }))).toBe(true);
+	});
+
+	it('is true for a viewport change carrying an unrelated effect', () => {
+		const state = createState();
+		const update = mockUpdate(state, {
+			viewportChanged: true,
+			transactions: [{ reconfigured: false, effects: [otherEffect] }],
+		});
+		expect(isPureScroll(update)).toBe(true);
+	});
+
+	it('is false without a viewport change', () => {
+		const state = createState();
+		expect(isPureScroll(mockUpdate(state, {}))).toBe(false);
+	});
+
+	it('is false when the viewport change comes with a doc change or a selection move', () => {
+		const state = createState();
+		expect(isPureScroll(mockUpdate(state, { viewportChanged: true, docChanged: true }))).toBe(false);
+		expect(isPureScroll(mockUpdate(state, { viewportChanged: true, selectionSet: true }))).toBe(false);
+	});
+
+	it('is false when the viewport change carries forceDecorationRebuild', () => {
+		const state = createState();
+		const update = mockUpdate(state, {
+			viewportChanged: true,
+			transactions: [{ reconfigured: false, effects: [forceEffect] }],
+		});
+		expect(isPureScroll(update)).toBe(false);
+	});
+
+	it('is false when the viewport change carries a reconfigure', () => {
+		const state = createState();
+		const update = mockUpdate(state, {
+			viewportChanged: true,
+			transactions: [{ reconfigured: true, effects: [] }],
+		});
+		expect(isPureScroll(update)).toBe(false);
 	});
 });

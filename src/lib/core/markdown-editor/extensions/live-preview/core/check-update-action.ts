@@ -44,3 +44,21 @@ export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 
 	// reconfigure / forceDecorationRebuild was handled above.
 	return 'none';
 }
+
+/**
+ * True for a viewport change that should not rebuild a full-document
+ * decorator (CLAUDE.md live-preview perf rule 4): no doc change, no selection
+ * move, no reconfigure and no `forceDecorationRebuild`. scrollDebouncePlugin
+ * dispatches the rebuild once scrolling settles. Any other effect (a
+ * `rebuildOn` effect included) riding a scroll still counts as a pure scroll.
+ */
+export function isPureScroll(update: ViewUpdate): boolean {
+	return (
+		update.viewportChanged &&
+		!update.docChanged &&
+		!update.selectionSet &&
+		!update.transactions.some(
+			(t) => t.reconfigured || t.effects.some((e) => e.is(forceDecorationRebuild)),
+		)
+	);
+}

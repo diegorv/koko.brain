@@ -130,7 +130,7 @@ export function buildDecorations(
 }
 ```
 
-Do **not** add the `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` guard here. `checkUpdateAction` already returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`), so these four get the skip for free. Only two places write that line: `blockDecorator`, where it is load-bearing because a `rebuildOn` effect short-circuits `checkUpdateAction` entirely, and `inlineFormattingPlugin`.
+Do **not** add the `if (isPureScroll(update)) return;` guard here. `checkUpdateAction` already returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`), so these four get the skip for free. Only two places write that line: `blockDecorator`, where it is load-bearing because a `rebuildOn` effect short-circuits `checkUpdateAction` entirely, and `inlineFormattingPlugin`. `isPureScroll` lets a reconfigure or `forceDecorationRebuild` through even when it arrives with a viewport change, so `checkUpdateAction` decides those.
 
 ## Block Decorator Template
 
@@ -177,7 +177,7 @@ export const myBlockField = blockDecorator({
 `'myBlock'` has to be a real member of `BLOCK_DECORATOR_NAMES` before this compiles; until it is, `pnpm check` rejects the spec. That failure is the registration contract working, not a broken template - see *Adding a New Construct*.
 
 **The factory supplies these; never hand-write them:**
-- the viewport-only-scroll guard (`update.viewportChanged && !update.docChanged && !update.selectionSet`),
+- the viewport-only-scroll guard (`isPureScroll(update)` from `core/check-update-action.ts`),
 - the `lastCursorLine` field and the `checkUpdateAction(update, this.lastCursorLine)` call,
 - the `profileStart` / `profileEnd` bracket around `compute`, under `profileLabel`.
 

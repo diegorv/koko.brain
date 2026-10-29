@@ -85,6 +85,40 @@ describe('blockDecorator', () => {
 		expect(counter.scans).toBe(1);
 	});
 
+	// Gate 1a — a forced rebuild or reconfigure that lands in the same update
+	// as a viewport change must pass the guard; checkUpdateAction rebuilds it.
+	it('rebuilds on a viewport-changing update carrying forceDecorationRebuild', () => {
+		const { view, value, counter } = mount({});
+
+		value.update?.({
+			view,
+			state: view.state,
+			startState: view.state,
+			docChanged: false,
+			selectionSet: false,
+			viewportChanged: true,
+			transactions: [{ reconfigured: false, effects: [forceDecorationRebuild.of(null)] }],
+		} as unknown as ViewUpdate);
+
+		expect(counter.scans).toBe(2);
+	});
+
+	it('rebuilds on a viewport-changing update carrying a reconfigure', () => {
+		const { view, value, counter } = mount({});
+
+		value.update?.({
+			view,
+			state: view.state,
+			startState: view.state,
+			docChanged: false,
+			selectionSet: false,
+			viewportChanged: true,
+			transactions: [{ reconfigured: true, effects: [] }],
+		} as unknown as ViewUpdate);
+
+		expect(counter.scans).toBe(2);
+	});
+
 	// Gate 1b — a selection move that also scrolls (ArrowDown at the viewport
 	// edge) must pass the guard so the reveal follows the cursor.
 	it('rebuilds when the selection moves to another line in a viewport-changing update', () => {
@@ -132,7 +166,7 @@ describe('blockDecorator', () => {
 		expect(without.counter.scans).toBe(1);
 	});
 
-	// Gate 4 — the narrower queryjs gate: doc/selection/forceDecorationRebuild only.
+	// Gate 4 — a narrower gate (doc/selection/forceDecorationRebuild only) runs first.
 	it('applies a narrower gate before checkUpdateAction', () => {
 		const queryjsGate: BlockDecoratorSpec['gate'] = (update) =>
 			update.docChanged ||
