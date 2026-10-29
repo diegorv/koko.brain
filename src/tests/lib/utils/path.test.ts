@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { basename, normalizePath, relativePath, resolveFilePath, stem, vaultRelativeKey } from '$lib/utils/path';
+import { basename, normalizePath, relativePath, resolveFilePath, stem, vaultRelativeKey } from '#lib/utils/path.js';
 
 describe('normalizePath', () => {
 	it('resolves . segments', () => {

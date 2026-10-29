@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getInboxCount } from '$lib/features/type-definitions/inbox-workflow.logic';
+import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 describe('getInboxCount', () => {

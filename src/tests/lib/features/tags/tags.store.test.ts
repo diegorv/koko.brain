@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tagsStore } from '$lib/features/tags/tags.store.svelte';
+import { tagsStore } from '#lib/features/tags/tags.store.svelte.js';
 
 describe('tagsStore', () => {
 	beforeEach(() => {

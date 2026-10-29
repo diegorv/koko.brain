@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 
 describe('collectionStore', () => {
 	beforeEach(() => {

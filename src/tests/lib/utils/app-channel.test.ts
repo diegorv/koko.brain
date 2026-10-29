@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getBuildChannel } from '$lib/utils/app-channel';
+import { getBuildChannel } from '#lib/utils/app-channel.js';
 
 describe('getBuildChannel', () => {
 	it('returns stable when __APP_CHANNEL__ is not defined', () => {

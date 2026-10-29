@@ -9,8 +9,8 @@ import {
 	parseTrashManifest,
 	serializeTrashManifest,
 	formatTrashedDate,
-} from '$lib/core/trash/trash.logic';
-import type { TrashItem } from '$lib/core/trash/trash.types';
+} from '#lib/core/trash/trash.logic.js';
+import type { TrashItem } from '#lib/core/trash/trash.types.js';
 
 const VAULT = '/Users/me/vault';
 

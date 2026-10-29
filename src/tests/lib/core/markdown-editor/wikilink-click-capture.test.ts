@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { findWikilinkElement, WIKILINK_SELECTOR } from '$lib/core/markdown-editor/wikilink-click-target';
+import { findWikilinkElement, WIKILINK_SELECTOR } from '#lib/core/markdown-editor/wikilink-click-target.js';
 
 describe('findWikilinkElement', () => {
 	it('matches every wikilink class the editor uses', () => {

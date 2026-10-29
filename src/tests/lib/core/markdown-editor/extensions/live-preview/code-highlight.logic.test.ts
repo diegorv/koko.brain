@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { highlightCode } from '$lib/core/markdown-editor/extensions/live-preview/code-highlight.logic';
+import { highlightCode } from '#lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.js';
 
 describe('highlightCode', () => {
 	it('returns empty html for empty code', () => {

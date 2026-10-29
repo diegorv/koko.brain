@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { oneOnOneStore } from '$lib/plugins/one-on-one/one-on-one.store.svelte';
+import { oneOnOneStore } from '#lib/plugins/one-on-one/one-on-one.store.svelte.js';
 
 describe('oneOnOneStore', () => {
 	beforeEach(() => {

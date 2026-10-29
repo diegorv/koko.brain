@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractVaultName, updateRecentVaults, type RecentVault } from '$lib/core/vault/vault.logic';
+import { extractVaultName, updateRecentVaults, type RecentVault } from '#lib/core/vault/vault.logic.js';
 
 describe('extractVaultName', () => {
 	it('extracts the last segment of a path', () => {

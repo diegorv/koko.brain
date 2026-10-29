@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildArchivedPathSet } from '$lib/features/properties/lifecycle-filter.logic';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { buildArchivedPathSet } from '#lib/features/properties/lifecycle-filter.logic.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 function entry(path: string, archived: boolean): NoteEntryV2 {
 	return {

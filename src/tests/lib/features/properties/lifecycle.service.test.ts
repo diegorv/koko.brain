@@ -3,20 +3,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // syncExternalContentToEditor is a side-effect service (writes into the
 // CodeMirror view + bumps editor signals); per docs/TESTING.md it is the
 // only mock here. Stores and .logic.ts modules are real.
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	syncExternalContentToEditor: vi.fn(),
 }));
 
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { propertiesStore } from '$lib/features/properties/properties.store.svelte';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { propertiesStore } from '#lib/features/properties/properties.store.svelte.js';
 import {
 	setOrganized,
 	setArchived,
 	setFavorite,
-} from '$lib/features/properties/lifecycle.service';
-import { getLifecycleState, isFavorite } from '$lib/features/properties/lifecycle.logic';
-import type { Property } from '$lib/features/properties/properties.types';
+} from '#lib/features/properties/lifecycle.service.js';
+import { getLifecycleState, isFavorite } from '#lib/features/properties/lifecycle.logic.js';
+import type { Property } from '#lib/features/properties/properties.types.js';
 
 function prop(key: string, value: Property['value'], type: Property['type'] = 'text'): Property {
 	return { key, value, type };

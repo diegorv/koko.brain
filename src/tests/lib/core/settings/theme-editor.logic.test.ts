@@ -14,8 +14,8 @@ import {
 	CALLOUT_COLOR_GROUPS,
 	COLOR_GROUP_LABELS,
 	COLOR_GROUP_ORDER,
-} from '$lib/core/settings/theme-editor.logic';
-import { KOKOBRAIN_DEFAULT_THEME } from '$lib/core/settings/theme.logic';
+} from '#lib/core/settings/theme-editor.logic.js';
+import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
 
 describe('camelCaseToLabel', () => {
 	it('converts simple camelCase to spaced label', () => {

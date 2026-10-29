@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { FONT_WEIGHT_MAP, headingTypographyToCssVars } from '$lib/core/settings/heading-typography.logic';
-import type { HeadingTypography } from '$lib/core/settings/settings.types';
+import { FONT_WEIGHT_MAP, headingTypographyToCssVars } from '#lib/core/settings/heading-typography.logic.js';
+import type { HeadingTypography } from '#lib/core/settings/settings.types.js';
 
 const DEFAULT_TYPOGRAPHY: HeadingTypography = {
 	h1: { fontSize: 2.058, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.02 },

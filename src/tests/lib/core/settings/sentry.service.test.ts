@@ -14,7 +14,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import * as Sentry from '@sentry/browser';
 import { invoke } from '@tauri-apps/api/core';
-import { captureSentryException, configureSentry, disableSentry, isSentryActive, sendSentryTestEvent } from '$lib/core/settings/sentry.service';
+import { captureSentryException, configureSentry, disableSentry, isSentryActive, sendSentryTestEvent } from '#lib/core/settings/sentry.service.js';
 
 const VALID_DSN = 'https://public-key@o1.ingest.sentry.io/2';
 

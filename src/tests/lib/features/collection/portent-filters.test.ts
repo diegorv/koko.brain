@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { executeQuery } from '$lib/features/collection/collection.logic';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord } from '$lib/features/collection/collection.types';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import type { CollectionDefinition, CollectionViewDef, NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(path: string, props: Record<string, unknown>): NoteRecord {
 	const name = path.split('/').pop() ?? path;

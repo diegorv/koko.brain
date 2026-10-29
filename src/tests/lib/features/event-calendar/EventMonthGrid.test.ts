@@ -5,31 +5,31 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 // Opening a note is the editor's side effect; the stores stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn() } }));
 
 // The note write is the service's side effect; the drag tests drive its promise.
-vi.mock('$lib/features/event-calendar/event-calendar.service', async () => {
-	const actual = await vi.importActual<typeof import('$lib/features/event-calendar/event-calendar.service')>(
-		'$lib/features/event-calendar/event-calendar.service',
+vi.mock('#lib/features/event-calendar/event-calendar.service.js', async () => {
+	const actual = await vi.importActual<typeof import('#lib/features/event-calendar/event-calendar.service.js')>(
+		'#lib/features/event-calendar/event-calendar.service.js',
 	);
 	return { ...actual, moveEventToDay: vi.fn(), toastEventError: vi.fn() };
 });
 
 import { flushSync, mount, unmount } from 'svelte';
 import { toast } from 'svelte-sonner';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import EventMonthGrid from '$lib/features/event-calendar/EventMonthGrid.svelte';
-import { moveEventToDay, toastEventError } from '$lib/features/event-calendar/event-calendar.service';
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-calendar-daily-note.store.svelte';
-import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import EventMonthGrid from '#lib/features/event-calendar/EventMonthGrid.svelte';
+import { moveEventToDay, toastEventError } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
+import type { CalendarTask } from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
 

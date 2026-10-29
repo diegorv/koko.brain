@@ -5,8 +5,8 @@ import {
 	removeBookmark,
 	toggleBookmark,
 	updateBookmarkPaths,
-} from '$lib/features/bookmarks/bookmarks.logic';
-import type { BookmarkEntry } from '$lib/features/bookmarks/bookmarks.types';
+} from '#lib/features/bookmarks/bookmarks.logic.js';
+import type { BookmarkEntry } from '#lib/features/bookmarks/bookmarks.types.js';
 
 function makeBookmark(path: string, name?: string, isDirectory = false): BookmarkEntry {
 	return { path, name: name ?? path.split('/').pop()!, isDirectory, createdAt: 1000 };

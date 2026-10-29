@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { fromKey, isWeekend } from '$lib/features/event-calendar/event-calendar-dates.logic';
-import { MIN_EVENT_MINUTES } from '$lib/features/event-calendar/event-calendar-layout.logic';
+import { fromKey, isWeekend } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
+import { MIN_EVENT_MINUTES } from '#lib/features/event-calendar/event-calendar-layout.logic.js';
 import {
 	ALL_DAY_MAX_ROWS,
 	buildAllDayChips,
@@ -20,8 +20,8 @@ import {
 	segmentOnDay,
 	stepDate,
 	visibleDays,
-} from '$lib/features/event-calendar/event-calendar-view.logic';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+} from '#lib/features/event-calendar/event-calendar-view.logic.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
 
 /** Builds a timed event; `id` doubles as the path and the title. */

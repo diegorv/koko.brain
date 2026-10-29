@@ -16,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('outgoing-links.logic (post-Phase 6)', () => {
 	it('module exposes no production TS helpers anymore', async () => {
-		const mod = await import('$lib/features/outgoing-links/outgoing-links.logic');
+		const mod = await import('#lib/features/outgoing-links/outgoing-links.logic.js');
 		// The only exports of an empty module are TypeScript's `__esModule` flag
 		// and re-exports; ensure no production helpers leaked back in.
 		const productionKeys = Object.keys(mod).filter((k) => !k.startsWith('__'));

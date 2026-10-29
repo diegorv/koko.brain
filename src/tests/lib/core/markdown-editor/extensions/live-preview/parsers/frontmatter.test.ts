@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	parseFrontmatterProperties,
 	findFrontmatterBlock,
-} from '$lib/core/markdown-editor/extensions/live-preview/parsers/frontmatter';
+} from '#lib/core/markdown-editor/extensions/live-preview/parsers/frontmatter.js';
 
 function makeLines(text: string) {
 	const result: { text: string; from: number; to: number }[] = [];

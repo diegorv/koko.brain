@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '$lib/features/type-definitions/type-sidebar.logic';
+import { buildTypeSections, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
-import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {

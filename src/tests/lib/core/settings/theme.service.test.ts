@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { KOKOBRAIN_DEFAULT_THEME } from '$lib/core/settings/theme.logic';
-import { applyTheme, applyActiveTheme } from '$lib/core/settings/theme.service';
-import type { Theme, ThemeColors } from '$lib/core/settings/theme.types';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme, applyActiveTheme } from '#lib/core/settings/theme.service.js';
+import type { Theme, ThemeColors } from '#lib/core/settings/theme.types.js';
 
 describe('applyTheme', () => {
 	beforeEach(() => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { htmlLinksToMarkdown } from '$lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic';
+import { htmlLinksToMarkdown } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.js';
 
 describe('htmlLinksToMarkdown', () => {
 	it('converts a single anchor to a markdown link, keeping surrounding text', () => {

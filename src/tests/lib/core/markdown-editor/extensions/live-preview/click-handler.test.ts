@@ -7,7 +7,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 
 // No mocks for stores, logic, or the link parser — use real implementations per CLAUDE.md.
 
-import { handleLivePreviewLinkMousedown } from '$lib/core/markdown-editor/extensions/live-preview/click-handler';
+import { handleLivePreviewLinkMousedown } from '#lib/core/markdown-editor/extensions/live-preview/click-handler.js';
 import { createMarkdownState } from '../../test-helpers';
 
 /** Builds a fake mouse event whose target.closest resolves to the given link element. */

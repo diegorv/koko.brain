@@ -11,8 +11,8 @@ import {
 	takeRedo,
 	takeUndo,
 	type EventHistory,
-} from '$lib/features/event-calendar/event-calendar-history.logic';
-import type { EventState, HistoryOp } from '$lib/features/event-calendar/event-calendar.types';
+} from '#lib/features/event-calendar/event-calendar-history.logic.js';
+import type { EventState, HistoryOp } from '#lib/features/event-calendar/event-calendar.types.js';
 
 const VAULT = '/vault';
 

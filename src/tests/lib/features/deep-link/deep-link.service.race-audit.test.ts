@@ -32,21 +32,21 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(() => Promise.resolve()),
 	syncExternalContentToEditor: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	openOrCreateDailyNote: vi.fn(() => Promise.resolve()),
 }));
 
@@ -54,22 +54,22 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 // race-audit tests only exercise `type: 'new'` writes, which never call
 // buildPeriodicNotePath, so no mock is needed.
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
 	notifyAfterSave: vi.fn(),
 }));
 
 import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { syncExternalContentToEditor } from '$lib/core/editor/editor.service';
-import { markRecentSave, notifyAfterSave } from '$lib/core/editor/editor.hooks';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { deepLinkStore } from '$lib/features/deep-link/deep-link.store.svelte';
-import { executePendingAction } from '$lib/features/deep-link/deep-link.service';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
+import { executePendingAction } from '#lib/features/deep-link/deep-link.service.js';
 
 describe('AUDIT: deep-link data integrity (P0 bugs)', () => {
 	beforeEach(() => {

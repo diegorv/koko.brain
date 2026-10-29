@@ -5,14 +5,14 @@ import {
 	resolveFilePath,
 	injectTagsIntoContent,
 	injectTitleIntoContent,
-} from '$lib/features/deep-link/deep-link.logic';
+} from '#lib/features/deep-link/deep-link.logic.js';
 import type {
 	CaptureNoteAction,
 	CaptureClipAction,
 	CaptureLinkAction,
 	CaptureShotAction,
 	CaptureFileAction,
-} from '$lib/features/deep-link/deep-link.types';
+} from '#lib/features/deep-link/deep-link.types.js';
 
 describe('parseDeepLinkUri', () => {
 	// ── open action ────────────────────────────────────────────────────

@@ -11,8 +11,8 @@ import {
 	buildQuarterlyLinksTable,
 	detectPeriodicNoteType,
 	shouldRefreshDailyNote,
-} from '$lib/plugins/periodic-notes/periodic-notes.logic';
-import type { PeriodicNotesSettings } from '$lib/core/settings/settings.types';
+} from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
 
 const fixedDate = dayjs(new Date(2026, 1, 9)); // Feb 9, 2026
 

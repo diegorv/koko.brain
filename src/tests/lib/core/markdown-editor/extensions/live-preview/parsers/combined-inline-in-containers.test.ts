@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { findBlockquoteMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/blockquote';
-import { findFootnoteRefRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findAllTables } from '$lib/core/markdown-editor/extensions/live-preview/parsers/table';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findMetaBindInputRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input';
+import { findBlockquoteMarkRange } from '#lib/core/markdown-editor/extensions/live-preview/parsers/blockquote.js';
+import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findAllTables } from '#lib/core/markdown-editor/extensions/live-preview/parsers/table.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findMetaBindInputRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 // ============================================================

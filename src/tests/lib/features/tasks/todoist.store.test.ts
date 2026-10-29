@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
-import type { SentTaskEntry, TodoistProject, TodoistSection } from '$lib/features/tasks/todoist.types';
+import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
+import type { SentTaskEntry, TodoistProject, TodoistSection } from '#lib/features/tasks/todoist.types.js';
 
 describe('todoistStore', () => {
 	beforeEach(() => {

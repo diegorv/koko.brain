@@ -19,7 +19,7 @@ import mermaid from 'mermaid';
 import {
 	MermaidWidget,
 	clearMermaidCache,
-} from '$lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget';
+} from '#lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.js';
 
 /** Flushes the widget's async render IIFE (dynamic import + parse + render). */
 async function flushAsync(): Promise<void> {

@@ -9,8 +9,8 @@ import {
 	buildColorMapping,
 	getColorForValue,
 	COLOR_PALETTE,
-} from '$lib/features/collection/linear-calendar.logic';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+} from '#lib/features/collection/linear-calendar.logic.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,

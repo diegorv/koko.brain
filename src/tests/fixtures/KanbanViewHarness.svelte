@@ -1,5 +1,5 @@
 <script lang="ts">
-	import KanbanView from '$lib/plugins/kanban/KanbanView.svelte';
+	import KanbanView from '#lib/plugins/kanban/KanbanView.svelte';
 
 	interface HarnessApi {
 		/** Simulates an EXTERNAL content change (not routed through onContentChange). */

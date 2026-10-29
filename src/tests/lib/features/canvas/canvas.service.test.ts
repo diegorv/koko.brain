@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -9,13 +9,13 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
 }));
 
-import { createFile } from '$lib/core/filesystem/fs.service';
-import { serializeCanvas, createEmptyCanvas } from '$lib/features/canvas/canvas.logic';
-import { createCanvasFile } from '$lib/features/canvas/canvas.service';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
+import { serializeCanvas, createEmptyCanvas } from '#lib/features/canvas/canvas.logic.js';
+import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 
 describe('createCanvasFile', () => {
 	beforeEach(() => {

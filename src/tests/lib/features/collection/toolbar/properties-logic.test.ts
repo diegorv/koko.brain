@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	getAllAvailableColumns,
 	toggleColumn,
-} from '$lib/features/collection/toolbar/properties.logic';
-import type { CollectionDefinition, NoteRecord } from '$lib/features/collection/collection.types';
+} from '#lib/features/collection/toolbar/properties.logic.js';
+import type { CollectionDefinition, NoteRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,

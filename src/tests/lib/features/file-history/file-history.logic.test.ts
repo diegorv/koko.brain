@@ -10,8 +10,8 @@ import {
 	findBackupTimestamp,
 	formatSnapshotDateTime,
 	formatSnapshotLabel,
-} from '$lib/features/file-history/file-history.logic';
-import type { SnapshotInfo } from '$lib/features/file-history/file-history.types';
+} from '#lib/features/file-history/file-history.logic.js';
+import type { SnapshotInfo } from '#lib/features/file-history/file-history.types.js';
 
 describe('formatSnapshotTime', () => {
 	afterEach(() => {

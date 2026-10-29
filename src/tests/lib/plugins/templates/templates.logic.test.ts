@@ -4,7 +4,7 @@ import {
 	buildTemplatesFolderPath,
 	filterTemplates,
 	type TemplateEntry,
-} from '$lib/plugins/templates/templates.logic';
+} from '#lib/plugins/templates/templates.logic.js';
 
 describe('extractTitleFromPath', () => {
 	it('extracts filename without extension', () => {

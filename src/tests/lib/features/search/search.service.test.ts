@@ -17,19 +17,19 @@ vi.mock('@tauri-apps/api/event', () => ({
 
 const mockDebug = vi.fn();
 const mockError = vi.fn();
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: (...args: unknown[]) => mockDebug(...args),
 	error: (...args: unknown[]) => mockError(...args),
 }));
 
 // Mock editor hooks
 const mockAddAfterSaveObserver = vi.fn();
-vi.mock('$lib/core/editor/editor.hooks', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	addAfterSaveObserver: (...args: any[]) => mockAddAfterSaveObserver(...args),
 }));
 
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { searchStore } from '$lib/features/search/search.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
 import {
 	performSearch,
 	resetSearch,
@@ -39,10 +39,10 @@ import {
 	registerSearchIndexHook,
 	startSemanticProgressListener,
 	stopSemanticProgressListener,
-} from '$lib/features/search/search.service';
-import type { SemanticProgress } from '$lib/features/search/search.types';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
-import type { FileReadResult } from '$lib/core/filesystem/fs.types';
+} from '#lib/features/search/search.service.js';
+import type { SemanticProgress } from '#lib/features/search/search.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { FileReadResult } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 /**

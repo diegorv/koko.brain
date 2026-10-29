@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { findFolderNote, buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+import { findFolderNote, buildContentOrderMap } from '#lib/features/folder-notes/folder-notes.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeFile(name: string, path: string): FileTreeNode {

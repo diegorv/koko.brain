@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { trashStore } from '$lib/core/trash/trash.store.svelte';
-import type { TrashItem } from '$lib/core/trash/trash.types';
+import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+import type { TrashItem } from '#lib/core/trash/trash.types.js';
 
 function makeItem(id: string, fileName = 'file.md'): TrashItem {
 	return {

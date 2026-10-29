@@ -6,8 +6,8 @@ import {
 	buildResolutionCache,
 	resolveWikilinkCached,
 	noteEntryV2ToBacklinkEntry,
-} from '$lib/features/backlinks/backlinks.logic';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+} from '#lib/features/backlinks/backlinks.logic.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 describe('parseWikilinks', () => {
 	it('parses a basic wikilink', () => {

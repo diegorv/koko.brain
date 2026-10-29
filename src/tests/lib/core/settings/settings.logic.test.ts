@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { AppSettings } from '$lib/core/settings/settings.types';
-import { DEFAULT_SETTINGS } from '$lib/core/settings/settings.store.svelte';
+import type { AppSettings } from '#lib/core/settings/settings.types.js';
+import { DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	clampFontSize,
 	clampLineHeight,
@@ -16,7 +16,7 @@ import {
 	EVENT_CALENDAR_COLORS,
 	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
-} from '$lib/core/settings/settings.logic';
+} from '#lib/core/settings/settings.logic.js';
 
 describe('clampFontSize', () => {
 	it('clamps below minimum to 8', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
-import { buildFootnoteDecorations } from '$lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin';
+import { buildFootnoteDecorations } from '#lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 function collectDecos(decoSet: ReturnType<typeof buildFootnoteDecorations>) {

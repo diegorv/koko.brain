@@ -13,7 +13,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn((_tag: string, ...args: unknown[]) => {
 		console.error(...args);
@@ -22,30 +22,30 @@ vi.mock('$lib/utils/debug', () => ({
 	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
-import { trashStore } from '$lib/core/trash/trash.store.svelte';
-import type { TrashItem } from '$lib/core/trash/trash.types';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+import type { TrashItem } from '#lib/core/trash/trash.types.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import {
 	loadTrash,
 	moveToTrash,
 	restoreItem,
 	deletePermanently,
 	emptyTrash,
-} from '$lib/core/trash/trash.service';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
+} from '#lib/core/trash/trash.service.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
 import { invoke } from '@tauri-apps/api/core';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
-import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import { error } from '$lib/utils/debug';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
+import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { error } from '#lib/utils/debug.js';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 
 const VAULT = '/Users/me/vault';
 

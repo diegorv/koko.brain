@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
-import { executeQuery } from '$lib/features/collection/collection.logic';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 
 /**
  * End-to-end validation of relationship filters as they reach the engine from

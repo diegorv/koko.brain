@@ -17,14 +17,14 @@ vi.mock('svelte-sonner', () => ({
 import { flushSync, mount, unmount } from 'svelte';
 import { toast } from 'svelte-sonner';
 import { invoke } from '@tauri-apps/api/core';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import ShowInCalendarButton from '$lib/features/event-calendar/ShowInCalendarButton.svelte';
-import { resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import ShowInCalendarButton from '#lib/features/event-calendar/ShowInCalendarButton.svelte';
+import { resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { eventEntry } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 

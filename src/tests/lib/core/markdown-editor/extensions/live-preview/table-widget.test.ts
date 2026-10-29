@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { TableWidget, renderTableSource } from '$lib/core/markdown-editor/extensions/live-preview/widgets';
+import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 
 describe('renderTableSource', () => {
 	it('emits header + delimiter + body lines', () => {

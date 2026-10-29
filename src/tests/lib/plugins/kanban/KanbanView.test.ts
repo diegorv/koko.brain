@@ -12,17 +12,17 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 // Both reach Tauri IPC — legitimately mocked. Stores and kanban.logic stay real
 // (CLAUDE.md rule 1): the view is driven through the real board state and the
 // rendered DOM, with the harness round-tripping onContentChange.
-vi.mock('$lib/core/markdown-editor/extensions/live-preview/wikilink-navigation', () => ({
+vi.mock('#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js', () => ({
 	openWikilinkTarget: vi.fn(),
 }));
-vi.mock('$lib/plugins/kanban/kanban.service', () => ({
+vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 	loadLinkedFileContent: vi.fn(async () => null),
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
 import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
-import { kanbanStore } from '$lib/plugins/kanban/kanban.store.svelte';
-import { parseKanbanBoard, serializeKanbanBoard, setViewMode } from '$lib/plugins/kanban/kanban.logic';
+import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
+import { parseKanbanBoard, serializeKanbanBoard, setViewMode } from '#lib/plugins/kanban/kanban.logic.js';
 
 interface HarnessApi {
 	setMarkdown: (markdown: string) => void;

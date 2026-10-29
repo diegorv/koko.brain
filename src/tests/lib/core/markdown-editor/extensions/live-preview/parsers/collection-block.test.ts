@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findCollectionBlock } from '$lib/core/markdown-editor/extensions/live-preview/parsers/collection-block';
+import { findCollectionBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
 
 function makeLines(texts: string[]) {
 	let pos = 0;

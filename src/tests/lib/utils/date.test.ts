@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
-import { formatNow, formatNowOnDate, formatDate, formatDateWithOffset, formatToCapturingRegex } from '$lib/utils/date';
+import { formatNow, formatNowOnDate, formatDate, formatDateWithOffset, formatToCapturingRegex } from '#lib/utils/date.js';
 
 describe('formatDate', () => {
 	it('formats a Date object', () => {

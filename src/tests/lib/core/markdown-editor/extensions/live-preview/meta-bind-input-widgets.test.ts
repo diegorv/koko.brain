@@ -7,7 +7,7 @@ import {
 	MetaBindToggleWidget,
 	isNumericString,
 	isDateString,
-} from '$lib/core/markdown-editor/extensions/live-preview/widgets';
+} from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 
 const FRONTMATTER = '---\ncount: 5\nname: alice\n---\n\nbody\n';
 

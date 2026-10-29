@@ -8,7 +8,7 @@ import {
 	KOKOBRAIN_DEFAULT_THEME,
 	DEFAULT_THEME_NAME,
 	DEFAULT_APPEARANCE,
-} from '$lib/core/settings/theme.logic';
+} from '#lib/core/settings/theme.logic.js';
 
 describe('camelToKebab', () => {
 	it('converts camelCase to kebab-case', () => {

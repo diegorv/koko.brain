@@ -15,13 +15,13 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 // openFileInEditor hits Tauri IPC — legitimately mocked. Stores stay real
 // (CLAUDE.md rule 1): the view is driven through the real collectionStore
 // and the rendered DOM, with the harness round-tripping onYamlChange.
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
 import CollectionViewHarness from '../../../fixtures/CollectionViewHarness.svelte';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 
 const YAML = `filters: 'status == "open"'
 views:

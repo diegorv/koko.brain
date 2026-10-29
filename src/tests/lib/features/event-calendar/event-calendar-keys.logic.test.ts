@@ -9,7 +9,7 @@ import {
 	type CalendarKeyAction,
 	type CalendarKeyEvent,
 	type CalendarKeyState,
-} from '$lib/features/event-calendar/event-calendar-keys.logic';
+} from '#lib/features/event-calendar/event-calendar-keys.logic.js';
 
 /** A key press with no modifiers unless overridden. */
 function key(k: string, mods: Partial<Omit<CalendarKeyEvent, 'key'>> = {}): CalendarKeyEvent {

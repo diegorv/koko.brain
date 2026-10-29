@@ -5,11 +5,11 @@ import { EditorView } from '@codemirror/view';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
-import { queryjsBlockField, computeQueryjsBlocks } from '$lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field';
-import { forceDecorationRebuild } from '$lib/core/markdown-editor/extensions/live-preview/core/effects';
-import { QueryjsBlockWidget } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { queryjsBlockField, computeQueryjsBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.js';
+import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
+import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 
 const DOC = 'text\n```queryjs\nkb.view("scripts/demo")\n```';
 

@@ -14,13 +14,13 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 import { writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	startSettingsPersistence,
 	stopSettingsPersistence,
 	flushSettingsPersistence,
-} from '$lib/core/settings/settings-persistence.svelte';
+} from '#lib/core/settings/settings-persistence.svelte.js';
 
 /** Lets the Svelte effect flush (microtask), then runs out the debounce window */
 async function settle(ms = 500): Promise<void> {

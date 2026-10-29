@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nextSidebarMode } from '$lib/core/layout/layout.logic';
+import { nextSidebarMode } from '#lib/core/layout/layout.logic.js';
 
 describe('nextSidebarMode', () => {
 	it('cycles files -> types -> calendar -> files', () => {

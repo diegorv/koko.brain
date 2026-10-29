@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { propertiesStore } from '$lib/features/properties/properties.store.svelte';
+import { propertiesStore } from '#lib/features/properties/properties.store.svelte.js';
 
 describe('propertiesStore', () => {
 	beforeEach(() => {

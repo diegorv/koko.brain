@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string; order: number }): TypeMetadata {
 	return {

@@ -25,14 +25,14 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 // Opening a note is the editor's side effect; saving stays real.
-vi.mock('$lib/core/editor/editor.service', async () => {
-	const actual = await vi.importActual<typeof import('$lib/core/editor/editor.service')>('$lib/core/editor/editor.service');
+vi.mock('#lib/core/editor/editor.service.js', async () => {
+	const actual = await vi.importActual<typeof import('#lib/core/editor/editor.service.js')>('#lib/core/editor/editor.service.js');
 	return { ...actual, openFileInEditor: vi.fn() };
 });
 
 // `renameItem` runs the full path-change owner; a move on the fake disk replaces it.
-vi.mock('$lib/core/filesystem/fs.service', async () => {
-	const actual = await vi.importActual<typeof import('$lib/core/filesystem/fs.service')>('$lib/core/filesystem/fs.service');
+vi.mock('#lib/core/filesystem/fs.service.js', async () => {
+	const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
 	return { ...actual, renameItem: vi.fn() };
 });
 
@@ -40,23 +40,23 @@ import { flushSync, mount, tick, unmount } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { resetHooks } from '$lib/core/editor/editor.hooks';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { renameItem } from '$lib/core/filesystem/fs.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { trashStore } from '$lib/core/trash/trash.store.svelte';
-import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { _resetParseFrontmatterCache } from '$lib/features/properties/properties.logic';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import EventDialog from '$lib/features/event-calendar/EventDialog.svelte';
-import EventTimeGrid from '$lib/features/event-calendar/EventTimeGrid.svelte';
-import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logic';
-import { drainEventCalendarWrites, loadEvents, resetEventCalendar } from '$lib/features/event-calendar/event-calendar.service';
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { renameItem } from '#lib/core/filesystem/fs.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import EventDialog from '#lib/features/event-calendar/EventDialog.svelte';
+import EventTimeGrid from '#lib/features/event-calendar/EventTimeGrid.svelte';
+import { weekDays } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
+import { drainEventCalendarWrites, loadEvents, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { eventEntryFromContent, eventNote } from '../../../fixtures/event-notes.fixture';
 
 const VAULT = '/vault';

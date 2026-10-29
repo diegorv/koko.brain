@@ -3,8 +3,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
-import { createExtensions } from '$lib/core/markdown-editor/setup/editor-extensions';
-import type { CreateExtensionsOptions } from '$lib/core/markdown-editor/setup/editor-extensions';
+import { createExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 
 function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateExtensionsOptions {
 	return {

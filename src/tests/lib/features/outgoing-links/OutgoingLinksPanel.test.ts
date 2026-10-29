@@ -9,20 +9,20 @@ setupLocalStorage();
 // The fetch service hits Tauri IPC — legitimately mocked. Stores stay real
 // (CLAUDE.md rule 1): the panel's effects are exercised against the real
 // editorStore / vaultStore / outgoingLinksStore.
-vi.mock('$lib/features/outgoing-links/outgoing-links.service', () => ({
+vi.mock('#lib/features/outgoing-links/outgoing-links.service.js', () => ({
 	fetchOutgoingLinksV2: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import OutgoingLinksPanel from '$lib/features/outgoing-links/OutgoingLinksPanel.svelte';
-import { fetchOutgoingLinksV2 } from '$lib/features/outgoing-links/outgoing-links.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
+import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
+import { fetchOutgoingLinksV2 } from '#lib/features/outgoing-links/outgoing-links.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { outgoingLinksStore } from '#lib/features/outgoing-links/outgoing-links.store.svelte.js';
 
 describe('OutgoingLinksPanel — vaultIndexVersion refetch', () => {
 	let target: HTMLElement;

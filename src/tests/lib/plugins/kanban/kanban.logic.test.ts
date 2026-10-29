@@ -45,8 +45,8 @@ import {
 	filterItems,
 	setViewMode,
 	canReorderItems,
-} from '$lib/plugins/kanban/kanban.logic';
-import type { KanbanBoard, KanbanSettings } from '$lib/plugins/kanban/kanban.types';
+} from '#lib/plugins/kanban/kanban.logic.js';
+import type { KanbanBoard, KanbanSettings } from '#lib/plugins/kanban/kanban.types.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 

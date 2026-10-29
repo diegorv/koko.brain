@@ -9,21 +9,21 @@ setupLocalStorage();
 // Fetch services hit Tauri IPC — legitimately mocked. Stores stay real
 // (CLAUDE.md rule 1): the panel's effects are exercised against the real
 // editorStore / vaultStore / backlinksStore.
-vi.mock('$lib/features/backlinks/backlinks.service', () => ({
+vi.mock('#lib/features/backlinks/backlinks.service.js', () => ({
 	fetchBacklinksV2: vi.fn(() => Promise.resolve()),
 	fetchRelationshipBacklinks: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import BacklinksPanel from '$lib/features/backlinks/BacklinksPanel.svelte';
-import { fetchBacklinksV2, fetchRelationshipBacklinks } from '$lib/features/backlinks/backlinks.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
+import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
+import { fetchBacklinksV2, fetchRelationshipBacklinks } from '#lib/features/backlinks/backlinks.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
 
 describe('BacklinksPanel — vaultIndexVersion refetch', () => {
 	let target: HTMLElement;

@@ -8,31 +8,31 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(),
 }));
 
-vi.mock('$lib/core/note-creator/note-creator.service', () => ({
+vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 	openOrCreateNote: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
 
 import dayjs from 'dayjs';
 import { readDir, exists } from '@tauri-apps/plugin-fs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
-import { oneOnOneStore } from '$lib/plugins/one-on-one/one-on-one.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { oneOnOneStore } from '#lib/plugins/one-on-one/one-on-one.store.svelte.js';
 import {
 	buildOneOnOnePath,
 	buildOneOnOneVariables,
-} from '$lib/plugins/one-on-one/one-on-one.logic';
+} from '#lib/plugins/one-on-one/one-on-one.logic.js';
 import {
 	loadPeople,
 	createOneOnOneNote,
 	openOneOnOnePicker,
 	resetOneOnOne,
-} from '$lib/plugins/one-on-one/one-on-one.service';
+} from '#lib/plugins/one-on-one/one-on-one.service.js';
 
 describe('loadPeople', () => {
 	beforeEach(() => {

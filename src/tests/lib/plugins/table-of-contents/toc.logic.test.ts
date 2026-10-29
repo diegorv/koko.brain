@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractTocHeadings, stripHeadingChrome } from '$lib/plugins/table-of-contents/toc.logic';
+import { extractTocHeadings, stripHeadingChrome } from '#lib/plugins/table-of-contents/toc.logic.js';
 
 describe('extractTocHeadings', () => {
 	it('returns [] for empty string', () => {

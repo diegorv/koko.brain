@@ -5,16 +5,16 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
-import { graphViewStore } from '$lib/plugins/graph-view/graph-view.store.svelte';
-import { GRAPH_VIRTUAL_PATH } from '$lib/core/editor/editor.logic';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { graphViewStore } from '#lib/plugins/graph-view/graph-view.store.svelte.js';
+import { GRAPH_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import {
 	buildGraph,
 	openGraphTab,
 	closeGraphTab,
 	toggleGraphTab,
 	resetGraphView,
-} from '$lib/plugins/graph-view/graph-view.service';
+} from '#lib/plugins/graph-view/graph-view.service.js';
 import { entryV2, entryV2WithContent } from '../../../fixtures/vault-entries.fixture';
 
 describe('buildGraph', () => {

@@ -11,7 +11,7 @@ const { mockGetProjects, mockGetSections, mockAddTask, mockGetTask } = vi.hoiste
 	mockGetTask: vi.fn(),
 }));
 
-vi.mock('$lib/features/tasks/todoist-client', () => ({
+vi.mock('#lib/features/tasks/todoist-client.js', () => ({
 	createTodoistClient: () => ({
 		getProjects: mockGetProjects,
 		getSections: mockGetSections,
@@ -27,15 +27,15 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	mkdir: vi.fn(),
 }));
 
-vi.mock('$lib/utils/debug', () => ({
+vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { todoistStore } from '$lib/features/tasks/todoist.store.svelte';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import {
 	fetchProjects,
 	fetchSections,
@@ -48,7 +48,7 @@ import {
 	sendTaskToTodoist,
 	initTodoist,
 	syncTodoistTasks,
-} from '$lib/features/tasks/todoist.service';
+} from '#lib/features/tasks/todoist.service.js';
 
 describe('fetchProjects', () => {
 	beforeEach(() => {

@@ -15,9 +15,9 @@ import {
 	slotFromPoint,
 	updateDayDrag,
 	updateDrag,
-} from '$lib/features/event-calendar/event-calendar-drag.logic';
-import { HOUR_HEIGHT } from '$lib/features/event-calendar/event-calendar-layout.logic';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+} from '#lib/features/event-calendar/event-calendar-drag.logic.js';
+import { HOUR_HEIGHT } from '#lib/features/event-calendar/event-calendar-layout.logic.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 
 const days = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'];
 

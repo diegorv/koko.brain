@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tocStore } from '$lib/plugins/table-of-contents/toc.store.svelte';
-import { rebuildToc } from '$lib/plugins/table-of-contents/toc.service';
+import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
+import { rebuildToc } from '#lib/plugins/table-of-contents/toc.service.js';
 
 describe('rebuildToc', () => {
 	beforeEach(() => {

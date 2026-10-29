@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { graphViewStore } from '$lib/plugins/graph-view/graph-view.store.svelte';
+import { graphViewStore } from '#lib/plugins/graph-view/graph-view.store.svelte.js';
 
 describe('graphViewStore', () => {
 	beforeEach(() => {

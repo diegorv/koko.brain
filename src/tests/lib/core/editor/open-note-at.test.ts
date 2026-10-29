@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // openFileInEditor hits Tauri fs IPC - legitimately mocked. The store and
 // editor.logic stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-import { openNoteAt } from '$lib/core/editor/open-note-at.service';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 
 /**
  * 1-indexed line starts: line 1 "# Title" → 0, line 2 "" → 8,

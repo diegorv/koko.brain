@@ -10,9 +10,9 @@ import {
 	planTitleChange,
 	toggleAllDay,
 	validateDraft,
-} from '$lib/features/event-calendar/event-calendar-form.logic';
-import { eventState } from '$lib/features/event-calendar/event-calendar-event.logic';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+} from '#lib/features/event-calendar/event-calendar-form.logic.js';
+import { eventState } from '#lib/features/event-calendar/event-calendar-event.logic.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 
 const settings = { defaultDurationMinutes: 60, defaultColor: 'green' as const };
 

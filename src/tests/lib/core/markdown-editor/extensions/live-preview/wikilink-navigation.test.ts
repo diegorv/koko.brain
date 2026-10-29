@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-vi.mock('$lib/core/filesystem/fs.service', () => ({
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
 }));
 
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	openOrCreatePeriodicNoteForDate: vi.fn(),
 }));
 
@@ -17,12 +17,12 @@ vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
 // detectPeriodicNoteType returns null for these non-periodic targets, so the
 // "not a periodic note" branch is exercised with the real implementation.
 
-import { openWikilinkTarget } from '$lib/core/markdown-editor/extensions/live-preview/wikilink-navigation';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { createFile } from '$lib/core/filesystem/fs.service';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
+import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
 function makeFile(path: string): FileTreeNode {
 	const segments = path.split('/');

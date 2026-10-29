@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse } from '$lib/features/collection/expression/parser';
+import { parse } from '#lib/features/collection/expression/parser.js';
 
 describe('parse', () => {
 	it('parses number literals', () => {

@@ -8,15 +8,15 @@ import { EditorSelection, EditorState } from '@codemirror/state';
 import {
 	blockDecorator,
 	type BlockDecoratorSpec,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/block-decorator';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/block-decorator.js';
 import {
 	forceDecorationRebuild,
 	toggleCalloutFold,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/effects';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import {
 	mouseSelectingField,
 	setMouseSelecting,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
 
 const DOC = 'line one\nline two\nline three';
 

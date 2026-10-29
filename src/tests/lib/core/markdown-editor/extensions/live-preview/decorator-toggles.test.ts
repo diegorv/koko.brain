@@ -4,13 +4,13 @@ import type { Extension } from '@codemirror/state';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
-import { livePreviewExtensions } from '$lib/core/markdown-editor/extensions/live-preview/live-preview';
+import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
 import {
 	BLOCK_DECORATOR_NAMES,
 	DECORATOR_NAMES,
 	INLINE_PLUGIN_NAMES,
-} from '$lib/core/markdown-editor/extensions/live-preview/core/decorator-names';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+} from '#lib/core/markdown-editor/extensions/live-preview/core/decorator-names.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 
 /**
  * Every name whose kill-switch removes whole extensions from the array. The

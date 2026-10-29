@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { evaluateExpression, type EvalContext } from '$lib/features/collection/expression/evaluator';
-import { dispatchMethod, dispatchField } from '$lib/features/collection/expression/methods.logic';
-import type { NoteRecord } from '$lib/features/collection/collection.types';
-import { isDisplayValue } from '$lib/features/collection/expression/expression.types';
-import type { DisplayLink, DisplayImage, DisplayIcon, DisplayHTML } from '$lib/features/collection/expression/expression.types';
+import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import { dispatchMethod, dispatchField } from '#lib/features/collection/expression/methods.logic.js';
+import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
+import type { DisplayLink, DisplayImage, DisplayIcon, DisplayHTML } from '#lib/features/collection/expression/expression.types.js';
 
 function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
 	return {

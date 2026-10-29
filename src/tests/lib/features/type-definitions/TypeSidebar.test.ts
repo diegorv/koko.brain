@@ -10,20 +10,20 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
-vi.mock('$lib/features/file-icons/file-icons.icon-data', () => ({
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	getIconSync: vi.fn(),
 	preloadPacks: vi.fn(),
 	setOnPacksLoaded: vi.fn(),
 }));
-vi.mock('$lib/core/editor/editor.service', () => ({ openFileInEditor: vi.fn() }));
-vi.mock('$lib/core/filesystem/fs.service', () => ({ revealInSystemExplorer: vi.fn() }));
-vi.mock('$lib/core/settings/settings.service', () => ({ saveSettings: vi.fn() }));
-vi.mock('$lib/features/file-icons/file-icons.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({ revealInSystemExplorer: vi.fn() }));
+vi.mock('#lib/core/settings/settings.service.js', () => ({ saveSettings: vi.fn() }));
+vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createNoteOfType: vi.fn(),
 	createTypeDefinition: vi.fn(),
 	createView: vi.fn(),
@@ -31,23 +31,23 @@ vi.mock('$lib/features/type-definitions/type-definitions.service', () => ({
 	updateViewIcon: vi.fn(),
 	removeViewIcon: vi.fn(),
 }));
-vi.mock('$lib/features/type-definitions/view-parse-cache', () => ({
+vi.mock('#lib/features/type-definitions/view-parse-cache.js', () => ({
 	refreshViewDefinition: vi.fn().mockResolvedValue({ success: false, error: 'stub' }),
 }));
-vi.mock('$lib/plugins/periodic-notes/periodic-notes.service', () => ({
+vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	openOrCreateDailyNote: vi.fn(),
 }));
-vi.mock('$lib/utils/log.service', () => ({ appendLog: vi.fn() }));
+vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
-import TypeSidebar from '$lib/features/type-definitions/TypeSidebar.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { fileIconsStore } from '$lib/features/file-icons/file-icons.store.svelte';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import type { FrontmatterValue, NoteEntryV2 } from '$lib/types/vault-v2.types';
+import TypeSidebar from '#lib/features/type-definitions/TypeSidebar.svelte';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { FrontmatterValue, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 const ALPHA_VIEW = '/vault/alpha.view';
 const BETA_VIEW = '/vault/beta.view';

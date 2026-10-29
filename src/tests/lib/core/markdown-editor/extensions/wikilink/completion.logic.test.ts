@@ -4,8 +4,8 @@ import {
 	matchFilesForWikilink,
 	extractHeadingsFromContent,
 	extractBlockIdsFromContent,
-} from '$lib/core/markdown-editor/extensions/wikilink/completion.logic';
-import type { FileEntry } from '$lib/features/quick-switcher/quick-switcher.logic';
+} from '#lib/core/markdown-editor/extensions/wikilink/completion.logic.js';
+import type { FileEntry } from '#lib/features/quick-switcher/quick-switcher.logic.js';
 
 describe('detectWikilinkContext', () => {
 	it('returns null when cursor is not inside wikilink brackets', () => {

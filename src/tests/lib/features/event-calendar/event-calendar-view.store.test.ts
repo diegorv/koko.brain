@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
 
 /** Wednesday 2026-10-28 10:30 local time. */
@@ -51,7 +51,7 @@ describe('eventCalendarViewStore', () => {
 		it('focusedDate and nowMs are today at module load', async () => {
 			vi.setSystemTime(new Date(2031, 4, 17, 8, 15));
 			vi.resetModules();
-			const fresh = await import('$lib/features/event-calendar/event-calendar-view.store.svelte');
+			const fresh = await import('#lib/features/event-calendar/event-calendar-view.store.svelte.js');
 			expect(fresh.eventCalendarViewStore.focusedDate).toBe('2031-05-17');
 			expect(fresh.eventCalendarViewStore.nowMs).toBe(new Date(2031, 4, 17, 8, 15).getTime());
 			expect(fresh.eventCalendarViewStore.view).toBe('week');

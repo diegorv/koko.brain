@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { findInlineCommentRanges, findBlockComment } from '$lib/core/markdown-editor/extensions/live-preview/parsers/comment';
-import { findBlockquoteMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/blockquote';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findFootnoteRefRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
+import { findInlineCommentRanges, findBlockComment } from '#lib/core/markdown-editor/extensions/live-preview/parsers/comment.js';
+import { findBlockquoteMarkRange } from '#lib/core/markdown-editor/extensions/live-preview/parsers/blockquote.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
 import { createMarkdownState, makeLines } from '../../../test-helpers';
 
 // ============================================================

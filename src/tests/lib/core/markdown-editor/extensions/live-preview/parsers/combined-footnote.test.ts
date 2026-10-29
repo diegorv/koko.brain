@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { findFootnoteRefRanges, findFootnoteDefRange, findInlineFootnoteRanges } from '$lib/core/markdown-editor/extensions/live-preview/parsers/footnote';
-import { findWikilinkRanges } from '$lib/core/markdown-editor/extensions/wikilink/decoration.logic';
-import { findBlockquoteMarkRange } from '$lib/core/markdown-editor/extensions/live-preview/parsers/blockquote';
+import { findFootnoteRefRanges, findFootnoteDefRange, findInlineFootnoteRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
+import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
+import { findBlockquoteMarkRange } from '#lib/core/markdown-editor/extensions/live-preview/parsers/blockquote.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 // ============================================================

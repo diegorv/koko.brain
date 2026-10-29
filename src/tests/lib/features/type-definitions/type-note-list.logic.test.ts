@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '$lib/features/collection/collection.types';
-import type { FilterGroup } from '$lib/features/collection/toolbar/toolbar.types';
+import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import {
 	seedToolbarStateFromDefinition,
 	buildOverriddenQuery,
@@ -8,7 +8,7 @@ import {
 	countActiveFilters,
 	buildViewYamlUpdates,
 	buildRenameFileName,
-} from '$lib/features/type-definitions/type-note-list.logic';
+} from '#lib/features/type-definitions/type-note-list.logic.js';
 
 function makeView(overrides: Partial<CollectionViewDef> = {}): CollectionViewDef {
 	return { type: 'table', name: 'Default', ...overrides };

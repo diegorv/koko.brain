@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { calendarStore } from '$lib/plugins/calendar/calendar.store.svelte';
+import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
 
 describe('calendarStore', () => {
 	beforeEach(() => {

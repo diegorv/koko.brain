@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '$lib/core/editor/editor.logic';
-import type { EditorTab } from '$lib/core/editor/editor.types';
+import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '#lib/core/editor/editor.logic.js';
+import type { EditorTab } from '#lib/core/editor/editor.types.js';
 
 describe('getFileName', () => {
 	it('extracts the filename from a full path', () => {

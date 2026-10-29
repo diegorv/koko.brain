@@ -5,27 +5,27 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 setupLocalStorage();
 
 // Opening a note is the editor's side effect; the stores stay real (CLAUDE.md rule 1).
-vi.mock('$lib/core/editor/editor.service', () => ({
+vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
 // The delete / duplicate flows write through the fs; they run for real in
 // `EventDialog.test.ts` and `event-calendar.service.test.ts`.
-vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 	deleteEventFromUi: vi.fn(async () => {}),
 	duplicateEventFromUi: vi.fn(async () => {}),
 }));
 
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import EventPopover from '$lib/features/event-calendar/EventPopover.svelte';
-import { deleteEventFromUi, duplicateEventFromUi } from '$lib/features/event-calendar/event-calendar.service';
-import EventTimeGrid from '$lib/features/event-calendar/EventTimeGrid.svelte';
-import { weekDays } from '$lib/features/event-calendar/event-calendar-dates.logic';
-import { eventCalendarStore } from '$lib/features/event-calendar/event-calendar.store.svelte';
-import { eventCalendarViewStore } from '$lib/features/event-calendar/event-calendar-view.store.svelte';
-import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import EventPopover from '#lib/features/event-calendar/EventPopover.svelte';
+import { deleteEventFromUi, duplicateEventFromUi } from '#lib/features/event-calendar/event-calendar.service.js';
+import EventTimeGrid from '#lib/features/event-calendar/EventTimeGrid.svelte';
+import { weekDays } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
 const WEEK = weekDays('2026-11-10', 1);

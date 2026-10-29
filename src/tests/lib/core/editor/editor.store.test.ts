@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { editorStore } from '$lib/core/editor/editor.store.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 
 function makeTab(overrides: Partial<{ path: string; name: string; content: string; savedContent: string; pinned: boolean }> = {}) {
 	return {

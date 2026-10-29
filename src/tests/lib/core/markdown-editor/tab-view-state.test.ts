@@ -4,7 +4,7 @@ import {
 	getTabViewState,
 	deleteTabViewState,
 	clearAllTabViewStates,
-} from '$lib/core/markdown-editor/tab-view-state';
+} from '#lib/core/markdown-editor/tab-view-state.js';
 
 describe('tab-view-state', () => {
 	beforeEach(() => {

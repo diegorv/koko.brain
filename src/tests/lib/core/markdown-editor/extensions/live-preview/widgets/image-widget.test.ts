@@ -6,7 +6,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 		`${protocol}://localhost/${encodeURIComponent(path)}`,
 }));
 
-import { ImageWidget } from '$lib/core/markdown-editor/extensions/live-preview/widgets';
+import { ImageWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 
 async function flushMicrotasks(): Promise<void> {
 	for (let i = 0; i < 8; i++) {

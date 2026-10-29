@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countWords, countCharacters, estimateReadingTime } from '$lib/plugins/word-count/word-count.logic';
+import { countWords, countCharacters, estimateReadingTime } from '#lib/plugins/word-count/word-count.logic.js';
 
 describe('countWords', () => {
 	it('returns 0 for an empty string', () => {

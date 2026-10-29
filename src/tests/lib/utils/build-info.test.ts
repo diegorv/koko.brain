@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error semver ships no type declarations and @types/semver is not installed
 import semver from 'semver';
-import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '$lib/utils/build-info';
+import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '#lib/utils/build-info.js';
 
 describe('resolveVersion', () => {
 	it('returns the pkg version unchanged on the stable channel', () => {
