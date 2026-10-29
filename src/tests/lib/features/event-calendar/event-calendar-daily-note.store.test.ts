@@ -80,16 +80,16 @@ describe('eventCalendarDailyNoteStore', () => {
 		await Promise.all(opens);
 	});
 
-	it('a new registration does not join an open of the previous opener', async () => {
+	it('after an unregister (vault teardown), a new registration does not join an open of the previous opener', async () => {
 		let finishOld!: () => void;
 		const old = vi.fn(() => new Promise<void>((resolve) => (finishOld = resolve)));
 		const oldUnregister = eventCalendarDailyNoteStore.register(old);
 		const stale = eventCalendarDailyNoteStore.open('2026-11-12');
 
+		oldUnregister();
 		let finishNext!: () => void;
 		const next = vi.fn(() => new Promise<void>((resolve) => (finishNext = resolve)));
 		unregister = eventCalendarDailyNoteStore.register(next);
-		oldUnregister();
 		const fresh = eventCalendarDailyNoteStore.open('2026-11-12');
 		expect(fresh).not.toBe(stale);
 		expect(next).toHaveBeenCalledWith('2026-11-12');
@@ -100,6 +100,23 @@ describe('eventCalendarDailyNoteStore', () => {
 		expect(next).toHaveBeenCalledTimes(1);
 		finishNext();
 		await fresh;
+	});
+
+	it('a registration that replaces the opener without an unregister (same-vault re-init) joins the open in flight', async () => {
+		let finish!: () => void;
+		const first = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+		eventCalendarDailyNoteStore.register(first);
+		const pending = eventCalendarDailyNoteStore.open('2026-11-12');
+
+		const second = vi.fn(() => Promise.resolve());
+		unregister = eventCalendarDailyNoteStore.register(second);
+		expect(eventCalendarDailyNoteStore.open('2026-11-12')).toBe(pending);
+		expect(second).not.toHaveBeenCalled();
+
+		finish();
+		await pending;
+		await eventCalendarDailyNoteStore.open('2026-11-12');
+		expect(second).toHaveBeenCalledWith('2026-11-12');
 	});
 
 	it('lets the day open again after a failed open', async () => {
