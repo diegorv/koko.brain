@@ -16,3 +16,4 @@
 ## Comments
 
 - 2026-10-28 21:12 — discovery — store flag `gestureLive` blocks view shortcuts in `resolveCalendarKey`; window capture listeners keep only Escape — (this commit)
+- 2026-10-28 21:14 — implement — gestureLive flag in the view store; capture listeners keep only Escape; Enter on a block guarded; check 0 errors, calendar vitest 24 files / 941 passed (closeTransient left alone: unmount paths clear the flag) — c1c85523
