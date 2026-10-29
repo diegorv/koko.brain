@@ -1,5 +1,5 @@
 import type { Dayjs } from 'dayjs';
-import { formatDateWithOffset, formatNow, formatNowOnDate } from '$lib/utils/date';
+import { formatDateWithOffset, formatNow, formatNowOnDate } from '#lib/utils/date.js';
 
 /**
  * Processes a Templater-compatible template string.

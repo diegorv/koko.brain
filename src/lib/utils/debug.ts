@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { captureSentryException } from '$lib/core/settings/sentry.service';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { appendLog } from './log.service';
 
 /** Returns a compact timestamp for console log entries (HH:mm:ss.SSS) */

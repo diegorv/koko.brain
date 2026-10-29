@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
-	import BuildInfo from '$lib/core/settings/BuildInfo.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { openVaultDialog, openRecentVault } from '#lib/core/vault/vault.service.js';
+	import BuildInfo from '#lib/core/settings/BuildInfo.svelte';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import Clock from '@lucide/svelte/icons/clock';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';

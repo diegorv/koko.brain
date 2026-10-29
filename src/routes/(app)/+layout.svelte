@@ -1,23 +1,23 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { searchStore } from '$lib/features/search/search.store.svelte';
-	import { performSearch } from '$lib/features/search/search.service';
-	import { registerGlobalKeybindings } from '$lib/core/keybindings/global-keybindings';
-	import { initializeVault, teardownVault } from '$lib/core/app-lifecycle/app-lifecycle.service';
-	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '$lib/core/layout/tauri-listeners.service';
-	import { registerDeepLinkListener } from '$lib/features/deep-link/deep-link.service';
-	import { registerQuickCaptureListener } from '$lib/plugins/quick-capture/quick-capture.service';
-	import { fetchBacklinksV2 } from '$lib/features/backlinks/backlinks.service';
-	import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-	import { outgoingLinksStore } from '$lib/features/outgoing-links/outgoing-links.store.svelte';
-	import { updateIndexesForFile } from '$lib/core/app-lifecycle/index-updater.service';
-	import { isVirtualTab } from '$lib/core/editor/editor.logic';
-	import { debug, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
-	import AppOverlays from '$lib/core/layout/AppOverlays.svelte';
-	import AppShell from '$lib/core/layout/AppShell.svelte';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { searchStore } from '#lib/features/search/search.store.svelte.js';
+	import { performSearch } from '#lib/features/search/search.service.js';
+	import { registerGlobalKeybindings } from '#lib/core/keybindings/global-keybindings.js';
+	import { initializeVault, teardownVault } from '#lib/core/app-lifecycle/app-lifecycle.service.js';
+	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/core/layout/tauri-listeners.service.js';
+	import { registerDeepLinkListener } from '#lib/features/deep-link/deep-link.service.js';
+	import { registerQuickCaptureListener } from '#lib/plugins/quick-capture/quick-capture.service.js';
+	import { fetchBacklinksV2 } from '#lib/features/backlinks/backlinks.service.js';
+	import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+	import { outgoingLinksStore } from '#lib/features/outgoing-links/outgoing-links.store.svelte.js';
+	import { updateIndexesForFile } from '#lib/core/app-lifecycle/index-updater.service.js';
+	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
+	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
+	import AppOverlays from '#lib/core/layout/AppOverlays.svelte';
+	import AppShell from '#lib/core/layout/AppShell.svelte';
 
 	let { children } = $props();
 
