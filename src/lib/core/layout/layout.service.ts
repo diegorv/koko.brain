@@ -1,3 +1,5 @@
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { nextSidebarMode } from './layout.logic';
 
@@ -21,10 +23,13 @@ export function toggleLeftSidebar(): void {
 }
 
 /**
- * Toggles the right sidebar visibility. Shared by the AppShell toggle button
- * so the button persists the layout exactly like the Cmd+B keybinding.
+ * Toggles the right sidebar visibility. Shared by the AppShell toggle button,
+ * the Cmd+B keybinding and the "Toggle Right Sidebar" command. Does nothing
+ * while the Calendar tab is active: the sidebar is always hidden there, so a
+ * toggle would only flip the saved setting out of sight.
  */
 export function toggleRightSidebar(): void {
+	if (editorStore.activeTabPath === EVENT_CALENDAR_VIRTUAL_PATH) return;
 	const current = settingsStore.layout.rightSidebarVisible;
 	settingsStore.updateLayout({ rightSidebarVisible: !current });
 }

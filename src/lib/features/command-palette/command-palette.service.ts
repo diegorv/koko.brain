@@ -35,7 +35,7 @@ import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { cycleSidebarMode } from '#lib/core/layout/layout.service.js';
+import { cycleSidebarMode, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 
 export function getBuiltInCommands(): AppCommand[] {
 	return [
@@ -224,10 +224,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'Toggle Right Sidebar',
 			category: 'Layout',
 			shortcut: { meta: true, key: 'b' },
-			action: () => {
-				const current = settingsStore.layout.rightSidebarVisible;
-				settingsStore.updateLayout({ rightSidebarVisible: !current });
-			},
+			action: () => toggleRightSidebar(),
 		},
 		{
 			id: 'layout:toggle-table-of-contents',

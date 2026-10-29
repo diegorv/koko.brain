@@ -16,6 +16,8 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 import { writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import {
 	startSettingsPersistence,
 	stopSettingsPersistence,
@@ -47,6 +49,7 @@ function resetAll(): void {
 	clearLocalStorage();
 	vaultStore._reset();
 	settingsStore.reset();
+	editorStore.reset();
 }
 
 /** A session left running keeps writing into later tests in this file */
@@ -158,6 +161,19 @@ describe('toggleRightSidebar', () => {
 
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 		expect(persisted().layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('does nothing while the Calendar tab is active, where the sidebar is always hidden', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		editorStore.addTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, name: 'Calendar', content: '', savedContent: '', fileType: 'event-calendar' });
+		startSettingsPersistence('/vault');
+
+		toggleRightSidebar();
+		await settle();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
 	it('still toggles but does not persist when no vault is open', async () => {

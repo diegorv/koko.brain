@@ -305,6 +305,16 @@ describe('getBuiltInCommands', () => {
 		expect(cmd!.shortcut).toEqual({ meta: true, shift: true, key: 'n' });
 	});
 
+	it('toggle right sidebar action does nothing while the Calendar tab is active', () => {
+		vaultStore.open('/vault');
+		editorStore.addTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, name: 'Calendar', content: '', savedContent: '', fileType: 'event-calendar' });
+		const toggle = getBuiltInCommands().find((c) => c.id === 'layout:toggle-right-sidebar');
+
+		toggle!.action();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+	});
+
 	it('toggle right sidebar action updates settingsStore layout', async () => {
 		vaultStore.open('/vault');
 		const commands = getBuiltInCommands();

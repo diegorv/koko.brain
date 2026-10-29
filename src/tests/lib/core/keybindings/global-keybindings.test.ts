@@ -471,6 +471,16 @@ describe('registerGlobalKeybindings', () => {
 			expect(written.layout.rightSidebarVisible).toBe(true);
 		});
 
+		it('Cmd+B handler does nothing while the Calendar tab is active', () => {
+			editorStore.addTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, name: 'Calendar', content: '', savedContent: '', fileType: 'event-calendar' });
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'b', meta: true, shift: false });
+
+			handler();
+
+			expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+		});
+
 		it('Cmd+B handler toggles layout but persists nothing when no vault is open', () => {
 			vaultStore._reset(); // path -> null, so persistence was never started
 			registerGlobalKeybindings();
