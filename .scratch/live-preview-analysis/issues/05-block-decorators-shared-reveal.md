@@ -21,3 +21,4 @@
 ## Comments
 
 - 2026-10-29 17:47 — discovery — plan in work/05/discovery.md: swap 16 shouldShowSource calls to revealPredicate, delete shouldShowSource, keyboard enter/leave tests — 9921d7b7
+- 2026-10-29 17:58 — implement — blocks + 4 inline ViewPlugins on revealPredicate, shouldShowSource deleted; pnpm check 0 errors, vitest markdown-editor 99 files 1367 passed — 9e98c81f
