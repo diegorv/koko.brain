@@ -25,3 +25,4 @@
 
 - 2026-10-29 17:33 — discovery — plan: core/reveal.ts line-interval predicate wired into buildInlineDecorations as isRevealed; blockquote hide starts at first QuoteMark; shouldShowSource left for Issue 05, lastCursorLine for 06 — (this commit)
 - 2026-10-29 17:37 — implement — core/reveal.ts revealPredicate wired into every inline handler as isRevealed; blockquote hide starts at first QuoteMark; editor vitest 1317/1317, pnpm check 0 errors; e2e not run; multi-line selection collapsing onto the same head line can stay stale until Issue 06 removes lastCursorLine — 107ccb3d
+- 2026-10-29 17:42 — review — CHANGES_REQUESTED: all 4 criteria met; HardBreak range ends at next line start so the cursor on line N+1 reveals line N (medium); triple-click/selectLine reveals next line (low); indented-quote test missing (low) — (this commit)
