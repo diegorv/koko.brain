@@ -17,7 +17,7 @@ setupLocalStorage();
 
 // virtua only mounts rows after ResizeObserver reports the scroller size, and
 // it skips entries whose target has no offsetParent. jsdom implements neither
-// layout API, so this stub fires synchronously on observe() with synthetic
+// layout API, so this stub fires on observe() (in a microtask) with synthetic
 // sizes (the VList scroller is recognizable by its inline overflow-y style)
 // and offsetParent is exposed as parentElement. Same shim as
 // TypeNoteList.perf.test.ts - without it zero rows mount and every row
@@ -32,9 +32,13 @@ class ResizeObserverStub {
 	observe(el: Element) {
 		const isViewport = (el as HTMLElement).style?.overflowY === 'auto';
 		const height = isViewport ? VIEWPORT_HEIGHT : ROW_HEIGHT;
-		this.cb(
-			[{ target: el, contentRect: { height, width: 240 } } as unknown as ResizeObserverEntry],
-			this as unknown as ResizeObserver,
+		// Async like the real observer: virtua wires its scroll observer after observe()
+		// returns, and its resize callback reads it.
+		queueMicrotask(() =>
+			this.cb(
+				[{ target: el, contentRect: { height, width: 240 } } as unknown as ResizeObserverEntry],
+				this as unknown as ResizeObserver,
+			),
 		);
 	}
 	unobserve() {}
