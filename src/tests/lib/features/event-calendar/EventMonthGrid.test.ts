@@ -738,4 +738,50 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
 		expect(chipIn('2026-11-12', 'Standup')).toBeNull();
 	});
+
+	it('focus leaving the calendar mid-drag discards it: Escape reaches the document, the release writes nothing and its click opens no popover', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		target.setAttribute('data-event-calendar', '');
+		mountSized();
+		const overlayInput = document.body.appendChild(document.createElement('input'));
+		const reached: string[] = [];
+		const onKey = (e: KeyboardEvent) => reached.push(e.key);
+		document.addEventListener('keydown', onKey);
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		overlayInput.focus();
+		flushSync();
+		const liveAfterFocus = eventCalendarViewStore.gestureLive;
+		press('Escape');
+		move(NOV_12, 'pointerup');
+		pointerClick(chipIn('2026-11-10', 'Standup')!);
+		document.removeEventListener('keydown', onKey);
+
+		expect(liveAfterFocus).toBe(false);
+		expect(reached).toEqual(['Escape']);
+		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
+		expect(chipIn('2026-11-12', 'Standup')).toBeNull();
+		expect(moveEventToDay).not.toHaveBeenCalled();
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('focus moving within the calendar root keeps the drag', () => {
+		vi.mocked(moveEventToDay).mockResolvedValue(undefined);
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		target.setAttribute('data-event-calendar', '');
+		mountSized();
+		const elsewhereInRoot = target.appendChild(document.createElement('button'));
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		chipIn('2026-11-12', 'Standup')!.focus();
+		elsewhereInRoot.focus();
+		flushSync();
+		const liveAfterFocus = eventCalendarViewStore.gestureLive;
+		move(NOV_12, 'pointerup');
+
+		expect(liveAfterFocus).toBe(true);
+		expect(moveEventToDay).toHaveBeenCalledWith(P('Standup'), '2026-11-12');
+	});
 });

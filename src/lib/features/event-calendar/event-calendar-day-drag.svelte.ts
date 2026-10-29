@@ -56,6 +56,7 @@ export class DayDrag {
 		window.addEventListener('pointercancel', this.#pointercancel);
 		eventCalendarViewStore.setGestureLive(true);
 		window.addEventListener('keydown', this.#keydown, true);
+		window.addEventListener('focusin', this.#focusin, true);
 	};
 
 	/**
@@ -99,14 +100,16 @@ export class DayDrag {
 		window.removeEventListener('pointerup', this.#pointerup);
 		window.removeEventListener('pointercancel', this.#pointercancel);
 		window.removeEventListener('keydown', this.#keydown, true);
+		window.removeEventListener('focusin', this.#focusin, true);
 	}
 
 	/**
-	 * Drops the live gesture without doing anything (Escape, `pointercancel`).
-	 * With `armOnRelease` (Escape) the swallow is armed by the release still to
-	 * come, since the button is still down and its release clicks. A cancelled
-	 * pointer sends no `pointerup`, so it passes `false`: nothing is armed and
-	 * no later, unrelated release can arm it.
+	 * Drops the live gesture without doing anything (Escape, `pointercancel`,
+	 * focus leaving the view). With `armOnRelease` (Escape, focus) the swallow
+	 * is armed by the release still to come, since the button is still down
+	 * and its release clicks. A cancelled pointer sends no `pointerup`, so it
+	 * passes `false`: nothing is armed and no later, unrelated release can arm
+	 * it.
 	 */
 	#discard(armOnRelease: boolean): void {
 		if (!this.#gesture) return;
@@ -183,6 +186,20 @@ export class DayDrag {
 		e.stopPropagation();
 		e.preventDefault();
 		this.#discard(true);
+	};
+
+	/**
+	 * Focus landing outside the Calendar view (an overlay such as the command
+	 * palette opened mid-press) discards the gesture, so the overlay gets the
+	 * first Escape and the release opens nothing behind it. `focusin` on the
+	 * window, not `focusout` on the root: focus need not be inside the root
+	 * when the press starts. The button is still down, so its release arms the
+	 * click swallow, as after Escape.
+	 */
+	#focusin = (e: FocusEvent): void => {
+		const area = this.#options.area();
+		const root = area?.closest('[data-event-calendar]') ?? area;
+		if (root && e.target instanceof Node && !root.contains(e.target)) this.#discard(true);
 	};
 
 	/**

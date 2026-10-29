@@ -198,4 +198,41 @@ describe('EventAllDayLane: drag to another day', () => {
 		expect(moveEventToDay).not.toHaveBeenCalled();
 		expect(chipIn('2026-11-10', 'Holiday')).not.toBeNull();
 	});
+
+	it('focus leaving the calendar mid-drag discards it: the release writes nothing and its click opens no popover', () => {
+		target.setAttribute('data-event-calendar', '');
+		mountLane([allDay('Holiday', '2026-11-10')]);
+		const overlayInput = document.body.appendChild(document.createElement('input'));
+
+		pointer(chipIn('2026-11-10', 'Holiday')!, 'pointerdown', 1);
+		pointer(window, 'pointermove', 3);
+		overlayInput.focus();
+		flushSync();
+		const liveAfterFocus = eventCalendarViewStore.gestureLive;
+		pointer(window, 'pointerup', 3);
+		chipIn('2026-11-10', 'Holiday')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+		flushSync();
+
+		expect(liveAfterFocus).toBe(false);
+		expect(moveEventToDay).not.toHaveBeenCalled();
+		expect(chipIn('2026-11-10', 'Holiday')).not.toBeNull();
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('focus moving within the calendar root keeps the drag', () => {
+		vi.mocked(moveEventToDay).mockResolvedValue(undefined);
+		target.setAttribute('data-event-calendar', '');
+		mountLane([allDay('Holiday', '2026-11-10')]);
+		const elsewhereInRoot = target.appendChild(document.createElement('button'));
+
+		pointer(chipIn('2026-11-10', 'Holiday')!, 'pointerdown', 1);
+		pointer(window, 'pointermove', 3);
+		elsewhereInRoot.focus();
+		flushSync();
+		const liveAfterFocus = eventCalendarViewStore.gestureLive;
+		pointer(window, 'pointerup', 3);
+
+		expect(liveAfterFocus).toBe(true);
+		expect(moveEventToDay).toHaveBeenCalledWith(P('Holiday'), '2026-11-12');
+	});
 });
